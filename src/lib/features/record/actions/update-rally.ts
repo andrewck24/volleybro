@@ -1,14 +1,14 @@
 import type { Record, Rally } from "@/entities/record";
 
 export const updateRally = async (
-  params: { recordId: string; setIndex: number; entryIndex: number },
+  params: { recordId: string; setIndex: number; rallyIndex: number },
   recording: Rally,
   record: Record
 ) => {
-  const { recordId, setIndex, entryIndex } = params;
+  const { recordId, setIndex, rallyIndex } = params;
   try {
     const res = await fetch(
-      `/api/records/${recordId}/sets/rallies?si=${setIndex}&ei=${entryIndex}`,
+      `/api/records/${recordId}/sets/rallies?si=${setIndex}&ri=${rallyIndex}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -16,8 +16,8 @@ export const updateRally = async (
       }
     );
     if (!res.ok) throw new Error("Network response was not ok");
-    const entries = await res.json();
-    record.sets[setIndex].entries = entries;
+    const rallies = await res.json();
+    record.sets[setIndex].rallies = rallies;
     return record;
   } catch (error) {
     console.error("[UPDATE Rally]", error);

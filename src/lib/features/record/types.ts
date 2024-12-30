@@ -77,7 +77,7 @@ export type ReduxStatus = {
     away: number;
   };
   setIndex: number;
-  entryIndex: number;
+  rallyIndex: number;
   isServing: boolean;
   inProgress: boolean;
   isSetPoint: boolean;

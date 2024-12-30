@@ -3,10 +3,7 @@ import {
   type CaseReducer,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import {
-  matchPhaseHelper,
-  getPreviousRally,
-} from "@/lib/features/record/helpers";
+import { matchPhaseHelper } from "@/lib/features/record/helpers";
 
 import {
   type Record,
@@ -28,7 +25,7 @@ import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 const statusState: ReduxStatus = {
   scores: { home: 0, away: 0 },
   setIndex: 0,
-  entryIndex: 0,
+  rallyIndex: 0,
   isServing: false,
   inProgress: false,
   isSetPoint: false,
@@ -70,8 +67,8 @@ const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
 ) => {
   const record = action.payload;
   const setIndex = record.sets.length ? record.sets.length - 1 : 0;
-  const entryIndex = record.sets[setIndex]?.entries?.length || 0;
-  const previousRally = getPreviousRally(record, setIndex, entryIndex);
+  const rallyIndex = record.sets[setIndex]?.rallies?.length || 0;
+  const previousRally = record.sets[setIndex]?.rallies[rallyIndex - 1];
   const { inProgress, isSetPoint } = matchPhaseHelper(
     record,
     setIndex,
@@ -87,7 +84,7 @@ const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
       away: previousRally?.away?.score || 0,
     },
     setIndex: inProgress ? setIndex : setIndex + 1,
-    entryIndex,
+    rallyIndex,
     isServing,
     inProgress,
     isSetPoint,
@@ -168,7 +165,7 @@ const confirmRecordingRally: CaseReducer<
 > = (state, action) => {
   const record = structuredClone(action.payload);
   const { mode } = state;
-  const { setIndex, entryIndex } = state[mode].status;
+  const { setIndex, rallyIndex } = state[mode].status;
   const { inProgress, isSetPoint } = matchPhaseHelper(
     record,
     setIndex,
@@ -182,7 +179,7 @@ const confirmRecordingRally: CaseReducer<
       away: state[mode].recording.away.score,
     },
     setIndex: inProgress ? setIndex : setIndex + 1,
-    entryIndex: entryIndex + 1,
+    rallyIndex: rallyIndex + 1,
     isServing: state[mode].recording.win,
     inProgress,
     isSetPoint,
@@ -228,7 +225,7 @@ const resetRecordingSubstitution: CaseReducer<ReduxRecordState> = (state) => {
 const confirmRecordingSubstitution: CaseReducer<ReduxRecordState> = (state) => {
   const { mode } = state;
   state[mode].status.panel = "home";
-  state[mode].status.entryIndex += 1;
+  state[mode].status.rallyIndex += 1;
   state[mode].recording = {
     ...initialState[mode].recording,
     home: {
@@ -276,13 +273,13 @@ const setSetIndex: CaseReducer<ReduxRecordState, PayloadAction<number>> = (
 // TODO: 修正編輯狀態之 isSetPoint 計算邏輯
 const setEditingEntryStatus: CaseReducer<
   ReduxRecordState,
-  PayloadAction<{ record: Record; entryIndex: number }>
+  PayloadAction<{ record: Record; rallyIndex: number }>
 > = (state, action) => {
-  const { record, entryIndex } = action.payload;
+  const { record, rallyIndex } = action.payload;
   const { setIndex } = state.editing.status;
 
-  const previousRally = getPreviousRally(record, setIndex, entryIndex);
-  const entry = record.sets[setIndex].entries[entryIndex];
+  const previousRally = record.sets[setIndex]?.rallies[rallyIndex - 1];
+  const entry = record.sets[setIndex].rallies[rallyIndex];
 
   state.mode = "editing";
   state.editing.recording = {
@@ -317,7 +314,7 @@ const setEditingEntryStatus: CaseReducer<
       home: previousRally ? previousRally.home.score : 0,
       away: previousRally ? previousRally.away.score : 0,
     },
-    entryIndex,
+    rallyIndex,
     inProgress: true,
     isSetPoint: false,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",

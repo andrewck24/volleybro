@@ -1,14 +1,13 @@
-import { getPreviousRally } from "@/lib/features/record/helpers";
 import { type Record, type Rally, EntryType } from "@/entities/record";
 
 export const createRallyOptimistic = (
-  params: { recordId: string; setIndex: number; entryIndex: number },
+  params: { recordId: string; setIndex: number; rallyIndex: number },
   recording: Rally,
   record: Record
 ) => {
-  const { setIndex, entryIndex } = params;
+  const { setIndex, rallyIndex } = params;
   const { win, home, away } = recording;
-  const previousRally = getPreviousRally(record, setIndex, entryIndex);
+  const previousRally = record.sets[setIndex]?.rallies[rallyIndex - 1];
   const isServing = previousRally
     ? previousRally.win
     : record.sets[setIndex].options.serve === "home";
@@ -39,7 +38,7 @@ export const createRallyOptimistic = (
 
   record.teams.home = homeTeam;
   record.teams.away = awayTeam;
-  record.sets[setIndex].entries[entryIndex] = {
+  record.sets[setIndex].rallies[rallyIndex] = {
     type: EntryType.RALLY,
     data: recording,
   };

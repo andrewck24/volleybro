@@ -74,7 +74,7 @@ export class CreateSetUseCase {
       win: null,
       lineups: { home: data.lineup },
       options: data.options,
-      entries: [],
+      rallies: [],
     };
 
     const updatedRecord = await this.recordRepository.update(

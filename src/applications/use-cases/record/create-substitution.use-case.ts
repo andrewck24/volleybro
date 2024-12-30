@@ -14,7 +14,7 @@ import {
 import { Role, type Lineup } from "@/entities/team";
 
 export interface ICreateSubstitutionInput {
-  params: { recordId: string; setIndex: number; entryIndex: number };
+  params: { recordId: string; setIndex: number; rallyIndex: number };
   data: Substitution;
 }
 
@@ -49,7 +49,7 @@ export class CreateSubstitutionUseCase {
     const side = substitution.team === Side.HOME ? "home" : "away";
     const lineup = record.sets[params.setIndex].lineups[side];
 
-    this.updateLineup(lineup, substitution, params.entryIndex);
+    this.updateLineup(lineup, substitution, params.rallyIndex);
     this.updateRecordStats(record, side, input);
 
     await this.recordRepository.update({ _id: params.recordId }, record);
@@ -59,7 +59,7 @@ export class CreateSubstitutionUseCase {
   private updateLineup(
     lineup: Lineup,
     substitution: Substitution,
-    entryIndex: number
+    rallyIndex: number
   ) {
     const startingIndex = lineup.starting.findIndex(
       (p) => p._id.toString() === substitution.players.out
@@ -73,13 +73,13 @@ export class CreateSubstitutionUseCase {
       position: lineup.starting[startingIndex].position,
       sub: {
         _id: substitution.players.out,
-        entryIndex:
-          lineup.starting[startingIndex].sub?.entryIndex?.in !== undefined
+        rallyIndex:
+          lineup.starting[startingIndex].sub?.rallyIndex?.in !== undefined
             ? {
-                ...lineup.starting[startingIndex].sub.entryIndex,
-                out: entryIndex,
+                ...lineup.starting[startingIndex].sub.rallyIndex,
+                out: rallyIndex,
               }
-            : { in: entryIndex, out: null },
+            : { in: rallyIndex, out: null },
       },
     };
 
@@ -88,13 +88,13 @@ export class CreateSubstitutionUseCase {
       _id: substitution.players.out,
       sub: {
         _id: substitution.players.in,
-        entryIndex:
-          lineup.substitutes[subIndex].sub?.entryIndex?.in !== undefined
+        rallyIndex:
+          lineup.substitutes[subIndex].sub?.rallyIndex?.in !== undefined
             ? {
-                ...lineup.substitutes[subIndex].sub.entryIndex,
-                out: entryIndex,
+                ...lineup.substitutes[subIndex].sub.rallyIndex,
+                out: rallyIndex,
               }
-            : { in: entryIndex, out: null },
+            : { in: rallyIndex, out: null },
       },
     };
   }
@@ -105,7 +105,7 @@ export class CreateSubstitutionUseCase {
     input: ICreateSubstitutionInput
   ) {
     const {
-      params: { setIndex, entryIndex },
+      params: { setIndex, rallyIndex },
       data: substitution,
     } = input;
     const lineup = record.sets[setIndex].lineups[side];
@@ -113,7 +113,7 @@ export class CreateSubstitutionUseCase {
     const startingPlayer = lineup.starting.find(
       (p) => p._id.toString() === substitution.players.in
     );
-    if (!!startingPlayer.sub?.entryIndex?.in !== undefined) {
+    if (!!startingPlayer.sub?.rallyIndex?.in !== undefined) {
       const player = record.teams[side].players.find(
         (p) => p._id.toString() === substitution.players.in
       );
@@ -121,7 +121,7 @@ export class CreateSubstitutionUseCase {
     }
 
     record.teams[side].stats[setIndex].substitution++;
-    record.sets[setIndex].entries[entryIndex] = {
+    record.sets[setIndex].entries[rallyIndex] = {
       type: EntryType.SUBSTITUTION,
       data: substitution,
     };

@@ -133,6 +133,7 @@ const rallySchema = new Schema({
   win: { type: Boolean },
   home: { type: rallyDetailSchema },
   away: { type: rallyDetailSchema },
+  entries: [{ type: { type: Number, enum: EntryType }, _id: { type: String } }],
 });
 
 const substitutionSchema = new Schema({
@@ -141,16 +142,19 @@ const substitutionSchema = new Schema({
     in: { type: Schema.Types.ObjectId, ref: "Member" },
     out: { type: Schema.Types.ObjectId, ref: "Member" },
   },
+  rallyIndex: { type: Number },
 });
 
 const timeoutSchema = new Schema({
   team: { type: Number, enum: Side },
+  rallyIndex: { type: Number },
 });
 
 const challengeSchema = new Schema({
   team: { type: Number, enum: Side },
   type: { type: String },
   success: { type: Boolean },
+  rallyIndex: { type: Number },
 });
 
 const entrySchema = new Schema({
@@ -171,7 +175,10 @@ const setSchema = new Schema({
       end: { type: String },
     },
   },
-  entries: [{ type: entrySchema }],
+  rallies: [{ type: rallySchema }],
+  substitutions: [{ type: substitutionSchema }],
+  timeouts: [{ type: timeoutSchema }],
+  challenges: [{ type: challengeSchema }],
 });
 
 const recordSchema = new Schema(

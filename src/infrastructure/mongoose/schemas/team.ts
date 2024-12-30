@@ -16,7 +16,7 @@ export const lineupSchema = new Schema({
       position: { type: String, enum: Position },
       sub: {
         _id: { type: Schema.Types.ObjectId, ref: "Member" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
+        rallyIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
   ],
@@ -26,7 +26,7 @@ export const lineupSchema = new Schema({
       position: { type: String, enum: Position },
       sub: {
         _id: { type: Schema.Types.ObjectId, ref: "Member" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
+        rallyIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
   ],
@@ -35,7 +35,7 @@ export const lineupSchema = new Schema({
       _id: { type: Schema.Types.ObjectId, ref: "Member" },
       sub: {
         _id: { type: Schema.Types.ObjectId, ref: "Member" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
+        rallyIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
   ],

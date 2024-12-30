@@ -16,10 +16,10 @@ const gerGeneralModeSubstitutes = (
   const player = starting.find((p) => p._id === startingId);
 
   // 若此位置之球員已替補兩次，則無法再進行替補
-  if (player?.sub?.entryIndex?.out) return [];
+  if (player?.sub?.rallyIndex?.out) return [];
 
   // 若是替補球員，只能與原本的球員互換
-  if (player?.sub?.entryIndex?.in) {
+  if (player?.sub?.rallyIndex?.in) {
     return [players.find((p) => p._id === player.sub._id)];
   }
 
@@ -40,7 +40,7 @@ const getEditingModeSubstitutes = (
   status: ReduxStatus,
   recording: ReduxRecording
 ) => {
-  const { setIndex, entryIndex } = status;
+  const { setIndex, rallyIndex } = status;
   const { starting, substitutes } = record.sets[setIndex].lineups.home;
   const { players } = record.teams.home;
   const startingId = recording.home.player._id;
@@ -53,13 +53,17 @@ const getEditingModeSubstitutes = (
   if (!player) return [];
 
   const { sub } = player;
-  
+
   // 檢查此位置是否已使用完兩次替補
-  if (sub?.entryIndex?.out && sub.entryIndex.out < entryIndex) return [];
+  if (sub?.rallyIndex?.out && sub.rallyIndex.out < rallyIndex) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
-  if (sub?.entryIndex?.in < entryIndex) {
-    return [players.find((p) => p._id === (sub.entryIndex.out ? player._id : sub._id))];
+  if (sub?.rallyIndex?.in < rallyIndex) {
+    return [
+      players.find(
+        (p) => p._id === (sub.rallyIndex.out ? player._id : sub._id)
+      ),
+    ];
   }
 
   // 處理一般球員替補
@@ -72,7 +76,7 @@ const getEditingModeSubstitutes = (
     .filter((sub) => !usedIds.has(sub._id))
     .map((s) => s._id);
 
-  if (sub?.entryIndex?.in) availablePlayers.push(player._id);
+  if (sub?.rallyIndex?.in) availablePlayers.push(player._id);
 
   return availablePlayers.map((id) => players.find((p) => p._id === id));
 };
@@ -83,10 +87,10 @@ export const useSubstitutes = (
 ) => {
   const { record } = useRecord(recordId);
   const { status, recording } = state;
-  const { setIndex, entryIndex } = status;
+  const { setIndex, rallyIndex } = status;
 
   const substitutes =
-    entryIndex === record.sets[setIndex].entries.length
+    rallyIndex === record.sets[setIndex].rallies.length
       ? gerGeneralModeSubstitutes(record, status, recording)
       : getEditingModeSubstitutes(record, status, recording);
 

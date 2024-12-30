@@ -7,11 +7,11 @@ import {
 } from "@/entities/record";
 
 export const createSubstitutionOptimistic = (
-  params: { recordId: string; setIndex: number; entryIndex: number },
+  params: { recordId: string; setIndex: number; rallyIndex: number },
   substitution: Substitution,
   record: Record
 ) => {
-  const { setIndex, entryIndex } = params;
+  const { setIndex, rallyIndex } = params;
   const side = substitution.team === Side.HOME ? "home" : "away";
   const lineup = record.sets[setIndex].lineups[side];
 
@@ -28,13 +28,13 @@ export const createSubstitutionOptimistic = (
     position: lineup.starting[startingIndex].position,
     sub: {
       _id: substitution.players.out,
-      entryIndex:
-        lineup.starting[startingIndex].sub?.entryIndex?.in !== undefined
+      rallyIndex:
+        lineup.starting[startingIndex].sub?.rallyIndex?.in !== undefined
           ? {
-              ...lineup.starting[startingIndex].sub.entryIndex,
-              out: entryIndex,
+              ...lineup.starting[startingIndex].sub.rallyIndex,
+              out: rallyIndex,
             }
-          : { in: entryIndex, out: null },
+          : { in: rallyIndex, out: null },
     },
   };
 
@@ -43,13 +43,13 @@ export const createSubstitutionOptimistic = (
     _id: substitution.players.out,
     sub: {
       _id: substitution.players.in,
-      entryIndex:
-        lineup.substitutes[subIndex].sub?.entryIndex?.in !== undefined
+      rallyIndex:
+        lineup.substitutes[subIndex].sub?.rallyIndex?.in !== undefined
           ? {
-              ...lineup.substitutes[subIndex].sub.entryIndex,
-              out: entryIndex,
+              ...lineup.substitutes[subIndex].sub.rallyIndex,
+              out: rallyIndex,
             }
-          : { in: entryIndex, out: null },
+          : { in: rallyIndex, out: null },
     },
   };
 
@@ -57,7 +57,7 @@ export const createSubstitutionOptimistic = (
   const startingPlayer = lineup.starting.find(
     (p) => p._id.toString() === substitution.players.in
   );
-  if (!!startingPlayer.sub?.entryIndex?.in !== undefined) {
+  if (!!startingPlayer.sub?.rallyIndex?.in !== undefined) {
     const player = record.teams[side].players.find(
       (p) => p._id.toString() === substitution.players.in
     );
@@ -65,7 +65,7 @@ export const createSubstitutionOptimistic = (
   }
 
   record.teams[side].stats[setIndex].substitution++;
-  record.sets[setIndex].entries[entryIndex] = {
+  record.sets[setIndex].entries[rallyIndex] = {
     type: EntryType.SUBSTITUTION,
     data: substitution,
   };

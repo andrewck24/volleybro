@@ -66,7 +66,7 @@ const updateRotation = (record: Record, setIndex: number) => {
   const set = record.sets[setIndex];
   let rotation = 0;
   let isServing = set.options.serve === "home";
-  for (const entry of set.entries) {
+  for (const entry of set.rallies) {
     if (entry.type !== EntryType.RALLY) continue;
     const rally = entry.data as Rally;
     if (rally.win && !isServing) rotation += 1;
@@ -76,13 +76,13 @@ const updateRotation = (record: Record, setIndex: number) => {
 };
 
 export const updateRallyOptimistic = (
-  params: { recordId: string; setIndex: number; entryIndex: number },
+  params: { recordId: string; setIndex: number; rallyIndex: number },
   recording: Rally,
   record: Record
 ) => {
-  const { setIndex, entryIndex } = params;
-  const entries = record.sets[setIndex].entries;
-  const originalEntry = entries[entryIndex];
+  const { setIndex, rallyIndex } = params;
+  const rallies = record.sets[setIndex].rallies;
+  const originalEntry = rallies[rallyIndex];
   if (originalEntry.type !== EntryType.RALLY) {
     throw new Error("Entry is not a rally");
   }
@@ -91,7 +91,7 @@ export const updateRallyOptimistic = (
   discardOriginalStats(record, setIndex, originalRally);
   updateStats(record, setIndex, recording);
 
-  record.sets[setIndex].entries[entryIndex] = {
+  record.sets[setIndex].rallies[rallyIndex] = {
     type: EntryType.RALLY,
     data: recording,
   };

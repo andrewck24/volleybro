@@ -8,7 +8,7 @@ import { type Entry, type Rally } from "@/entities/record";
 import { Role } from "@/entities/team";
 
 export type IUpdateRallyInput = {
-  params: { recordId: string; setIndex: number; entryIndex: number };
+  params: { recordId: string; setIndex: number; rallyIndex: number };
   data: Rally;
 };
 
@@ -49,6 +49,6 @@ export class UpdateRallyUseCase {
 
     await this.recordRepository.update({ _id: record._id }, updatedRecord);
 
-    return updatedRecord.sets[params.setIndex].entries;
+    return updatedRecord.sets[params.setIndex].rallies;
   }
 }

@@ -53,7 +53,7 @@ const RecordCourt = ({
             zone={-(index + 1)}
             onClick={() => {}}
           >
-            {player.sub?._id && !player.sub?.entryIndex?.out && (
+            {player.sub?._id && !player.sub?.rallyIndex?.out && (
               <SubIndicator number={player.sub.number} />
             )}
           </PlayerCard>
@@ -76,7 +76,7 @@ const RecordCourt = ({
               )
             }
           >
-            {player.sub?._id && !player.sub?.entryIndex?.out && (
+            {player.sub?._id && !player.sub?.rallyIndex?.out && (
               <SubIndicator number={player.sub.number} />
             )}
           </PlayerCard>

@@ -22,12 +22,12 @@ const RecordPreview = ({
   const { players } = record.teams.home;
   const {
     recording,
-    status: { inProgress, setIndex, entryIndex },
+    status: { inProgress, setIndex, rallyIndex },
   } = useAppSelector((state) => state.record[mode]);
 
   if (!inProgress) return null;
 
-  const lastRally = record.sets[setIndex].entries[entryIndex - 1];
+  const lastRally = record.sets[setIndex].rallies[rallyIndex - 1];
   const isEditing = recording.home.player._id || recording.home.type;
   const recordingEntry = recording.substitution
     ? { type: EntryType.SUBSTITUTION, data: recording.substitution }
@@ -36,7 +36,7 @@ const RecordPreview = ({
     : recording.challenge
     ? { type: EntryType.CHALLENGE, data: recording.challenge }
     : { type: EntryType.RALLY, data: recording };
-  const entry = isEditing || entryIndex === 0 ? recordingEntry : lastRally;
+  const entry = isEditing || rallyIndex === 0 ? recordingEntry : lastRally;
 
   return (
     <Card className={cn("grid w-full p-2", className)}>

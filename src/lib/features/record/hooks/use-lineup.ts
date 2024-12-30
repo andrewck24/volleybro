@@ -19,7 +19,7 @@ const getGeneralModeLineup = (record: Record, status: ReduxStatus) => {
         sub: {
           _id: substitute?._id,
           number: substitute?.number,
-          entryIndex: libero?.sub?.entryIndex,
+          rallyIndex: libero?.sub?.rallyIndex,
         },
       };
     }),
@@ -32,7 +32,7 @@ const getGeneralModeLineup = (record: Record, status: ReduxStatus) => {
         sub: {
           _id: substitute?._id,
           number: substitute?.number,
-          entryIndex: starter?.sub?.entryIndex,
+          rallyIndex: starter?.sub?.rallyIndex,
         },
       };
     }),
@@ -48,12 +48,12 @@ const getGeneralModeLineup = (record: Record, status: ReduxStatus) => {
 };
 
 const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
-  const { setIndex, entryIndex } = status;
+  const { setIndex, rallyIndex } = status;
   const { players } = record.teams.home;
   const set = record.sets[setIndex];
 
   // Calculate serving and rotation
-  const { rotation } = set.entries.slice(0, entryIndex).reduce(
+  const { rotation } = set.rallies.slice(0, rallyIndex).reduce(
     (acc, entry) => {
       if (
         entry.type === EntryType.RALLY &&
@@ -73,16 +73,16 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
 
   const mapPlayer = (player: LineupPlayer) => {
     // Whether this player has been substituted in the game
-    const hasSub = player?.sub?.entryIndex?.in < entryIndex;
+    const hasSub = player?.sub?.rallyIndex?.in < rallyIndex;
     // Current game state shows this player is a substitute
     const isSub =
-      player?.sub?.entryIndex?.in !== undefined &&
-      !player?.sub?.entryIndex?.out;
+      player?.sub?.rallyIndex?.in !== undefined &&
+      !player?.sub?.rallyIndex?.out;
     // At the editing point, this player was a substitute
     const wasSub =
-      player?.sub?.entryIndex?.in < entryIndex &&
-      (!player?.sub?.entryIndex?.out ||
-        player?.sub?.entryIndex?.out >= entryIndex);
+      player?.sub?.rallyIndex?.in < rallyIndex &&
+      (!player?.sub?.rallyIndex?.out ||
+        player?.sub?.rallyIndex?.out >= rallyIndex);
     // When a player (LineupPlayer) is substituted, their _id and sub._id are swapped
     // So when isSub and wasSub are the same, it means no need to swap _id and sub._id
     const toSwap = isSub === wasSub;
@@ -100,7 +100,7 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
       sub: {
         _id: subPlayer?._id,
         number: subPlayer?.number,
-        entryIndex: player?.sub?.entryIndex,
+        rallyIndex: player?.sub?.rallyIndex,
       },
     };
   };
@@ -119,15 +119,15 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
 };
 
 export const useLineup = (recordId: string, status: ReduxStatus) => {
-  const { setIndex, entryIndex, isServing, inProgress } = status;
+  const { setIndex, rallyIndex, isServing, inProgress } = status;
   const { record } = useRecord(recordId);
 
   if (!inProgress) return { starting: [], liberos: [] };
 
-  const { entries, lineups } = record.sets[setIndex];
+  const { rallies, lineups } = record.sets[setIndex];
 
   const lineup =
-    entryIndex === entries.length
+    rallyIndex === rallies.length
       ? getGeneralModeLineup(record, status)
       : getEditingModeLineup(record, status);
 

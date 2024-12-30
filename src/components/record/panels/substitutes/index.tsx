@@ -23,21 +23,21 @@ const Substitutes = ({
   const dispatch = useAppDispatch();
   const { record, mutate } = useRecord(recordId);
   const { status, recording } = useAppSelector((state) => state.record[mode]);
-  const { setIndex, entryIndex } = status;
+  const { setIndex, rallyIndex } = status;
   const substitutes = useSubstitutes(recordId, { status, recording });
 
   const onSubmit = async () => {
     try {
       mutate(
         createSubstitution(
-          { recordId, setIndex, entryIndex },
+          { recordId, setIndex, rallyIndex },
           recording.substitution,
           record
         ),
         {
           revalidate: false,
           optimisticData: createSubstitutionOptimistic(
-            { recordId, setIndex, entryIndex },
+            { recordId, setIndex, rallyIndex },
             recording.substitution,
             record
           ),

@@ -141,6 +141,44 @@ export type Team = {
   lineup?: Lineup;
 };
 
+export enum Side {
+  HOME = 1,
+  AWAY = 0,
+}
+
+export type Substitution = {
+  team: Side;
+  players: {
+    in: string;
+    out: string;
+  };
+  rallyIndex: number;
+};
+
+export type Timeout = {
+  team: Side;
+  rallyIndex: number;
+};
+
+export type Challenge = {
+  team: Side;
+  type: string;
+  success: boolean;
+  rallyIndex: number;
+};
+
+export enum EntryType {
+  RALLY,
+  SUBSTITUTION,
+  TIMEOUT,
+  CHALLENGE,
+}
+
+export type Entry = {
+  type: EntryType;
+  data: Rally | Substitution | Timeout | Challenge;
+};
+
 export type RallyDetail = {
   score: number;
   type: MoveType;
@@ -155,41 +193,7 @@ export type Rally = {
   win: boolean;
   home: RallyDetail;
   away: RallyDetail;
-};
-
-export enum Side {
-  HOME = 1,
-  AWAY = 0,
-}
-
-export type Substitution = {
-  team: Side;
-  players: {
-    in: string;
-    out: string;
-  };
-};
-
-export type Timeout = {
-  team: Side;
-};
-
-export type Challenge = {
-  team: Side;
-  type: string;
-  success: boolean;
-};
-
-export enum EntryType {
-  RALLY,
-  SUBSTITUTION,
-  TIMEOUT,
-  CHALLENGE,
-}
-
-export type Entry = {
-  type: EntryType;
-  data: Rally | Substitution | Timeout | Challenge;
+  entries?: [{ type: EntryType; _id: string }];
 };
 
 export type Set = {
@@ -205,7 +209,10 @@ export type Set = {
       end: string;
     };
   };
-  entries: Entry[];
+  rallies: Rally[];
+  substitutions: Substitution[];
+  timeouts: Timeout[];
+  challenges: Challenge[];
 };
 
 export type Record = {

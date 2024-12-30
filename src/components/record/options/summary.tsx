@@ -14,11 +14,11 @@ const RecordOptionsSummary = ({ recordId }: { recordId: string }) => {
     (state) => state.record.editing.status
   );
   const set = inProgress ? setIndex : setIndex - 1;
-  const { entries } = record.sets[set];
+  const { rallies } = record.sets[set];
   const { players } = record.teams.home;
 
-  const handleEntryClick = (entryIndex: number) => {
-    dispatch(recordActions.setEditingEntryStatus({ record, entryIndex }));
+  const handleEntryClick = (rallyIndex: number) => {
+    dispatch(recordActions.setEditingEntryStatus({ record, rallyIndex }));
   };
 
   return (
@@ -48,12 +48,12 @@ const RecordOptionsSummary = ({ recordId }: { recordId: string }) => {
       </div>
       <div className="flex flex-col-reverse gap-1">
         <Separator content="比賽開始" />
-        {entries.map((entry, entryIndex: number) => (
+        {rallies.map((entry, rallyIndex: number) => (
           <Entry
-            key={entryIndex}
+            key={rallyIndex}
             entry={entry}
             players={players}
-            onClick={() => handleEntryClick(entryIndex)}
+            onClick={() => handleEntryClick(rallyIndex)}
           />
         ))}
       </div>

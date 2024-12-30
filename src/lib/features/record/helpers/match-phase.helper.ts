@@ -12,10 +12,10 @@ export const matchPhaseHelper = (
   const isDecidingSet = setIndex === record.info.scoring.setCount - 1;
   const point = isDecidingSet ? record.info.scoring.decidingSetPoints : 25;
 
-  // In the first set, though there is no entries recorded yet,
-  // the game is `inProgress` if `entries` of the first set has been created
+  // In the first set, though there is no rallies recorded yet,
+  // the game is `inProgress` if `rallies` of the first set has been created
   if (!rally) {
-    if (record?.sets[0]?.entries)
+    if (record?.sets[0]?.rallies)
       return { inProgress: true, isSetPoint: false };
     return { inProgress: false, isSetPoint: false };
   }

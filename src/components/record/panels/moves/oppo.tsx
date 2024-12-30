@@ -17,7 +17,7 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
   const recordState = useAppSelector((state) => state.record);
   const {
-    status: { setIndex, entryIndex },
+    status: { setIndex, rallyIndex },
     recording,
   } = recordState[recordState.mode];
   const { record, mutate } = useRecord(recordId);
@@ -27,22 +27,29 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
   );
 
   const create = () => {
-    mutate(createRally({ recordId, setIndex, entryIndex }, recording, record), {
-      revalidate: false,
-      optimisticData: createRallyOptimistic(
-        { recordId, setIndex, entryIndex },
+    mutate(
+      createRally(
+        { recordId, setIndex, rallyIndex: rallyIndex },
         recording,
         record
       ),
-    });
+      {
+        revalidate: false,
+        optimisticData: createRallyOptimistic(
+          { recordId, setIndex, rallyIndex },
+          recording,
+          record
+        ),
+      }
+    );
     dispatch(recordActions.confirmRecordingRally(record));
   };
 
   const update = () => {
-    mutate(updateRally({ recordId, setIndex, entryIndex }, recording, record), {
+    mutate(updateRally({ recordId, setIndex, rallyIndex }, recording, record), {
       revalidate: false,
       optimisticData: updateRallyOptimistic(
-        { recordId, setIndex, entryIndex },
+        { recordId, setIndex, rallyIndex },
         recording,
         record
       ),

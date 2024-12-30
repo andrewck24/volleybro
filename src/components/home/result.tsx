@@ -1,6 +1,6 @@
 import { useRouter } from "next/navigation";
 import { RiGroupLine, RiArrowRightWideLine } from "react-icons/ri";
-import { Rally, type Record } from "@/entities/record";
+import { type Record } from "@/entities/record";
 
 const Result = ({ record }: { record: Record }) => {
   const router = useRouter();
@@ -21,11 +21,7 @@ const Result = ({ record }: { record: Record }) => {
             key={index}
             className="flex items-center justify-center w-4 text-lg"
           >
-            {
-              set.entries.filter(
-                (entry) => (entry.data as Rally)?.win === isHome
-              ).length
-            }
+            {set.rallies.filter((rally) => rally.win === isHome).length}
           </p>
         ))}
       </div>
