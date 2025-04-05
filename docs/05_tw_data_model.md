@@ -2,15 +2,30 @@
 
 ## 0. 概述
 
-本文檔描述 VolleyBro 應用程式中使用的主要數據模型及其關係。
+本文件描述 VolleyBro 應用程式中使用的主要數據模型及其關係，旨在提供系統資料結構的完整藍圖。
 
 ---
 
-## 1. 領域實體 (Domain Entities)
+## 1. 資料庫架構
 
-### 用戶 (User)
+VolleyBro 系統採用 **MongoDB** 作為 NoSQL 資料庫，選擇其原因包括：
 
-用戶實體代表系統中的註冊用戶。
+- **靈活性**：支援非結構化與半結構化數據，適合比賽記錄與球員統計的動態需求。
+- **擴展性**：便於隨著系統功能擴展而新增資料模型與屬性。
+- **效能**：透過適當的索引策略優化查詢效率。
+
+設計原則包括：
+
+- 使用嵌套結構（如 `Record` 中的 `teams` 和 `sets`）減少關聯查詢。
+- 透過參考（`ref`）實現模型間的關係（如 `User` 與 `Team`）。
+
+---
+
+## 2. 領域實體 (Domain Entities)
+
+以下是 VolleyBro 系統中的主要實體及其屬性：
+
+### 1. 用戶 (User)
 
 ```typescript
 interface User {
@@ -24,22 +39,36 @@ interface User {
     joined: string[]; // 已加入的隊伍 ID
     inviting: string[]; // 收到邀請的隊伍 ID
   };
-  info?: object; // 用戶附加信息
-  preferences?: object; // 用戶偏好設置
+  info?: Record<string, unknown>;
+  preferences?: Record<string, unknown>;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 ```
 
-### 隊伍 (Team)
-
-隊伍實體代表一個排球隊。
+### 2. 隊伍 (Team)
 
 ```typescript
-enum Role {
-  MEMBER, // 一般隊員
-  OWNER, // 隊伍擁有者
-  ADMIN, // 隊伍管理員
+interface Team {
+  _id: string;
+  name: string;
+  nickname?: string;
+  members: {
+    _id: string;
+    email?: string;
+    role: Role; // MEMBER, OWNER, ADMIN
+    user_id: string;
+  }[];
+  lineups: Lineup[];
+  stats?: TeamStats[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
+```
 
+#### 2.1 陣容 (Lineup)
+
+```typescript
 enum Position {
   NONE = "", // 未指定位置
   OH = "OH", // 主攻手
@@ -49,179 +78,133 @@ enum Position {
   L = "L", // 自由球員
 }
 
-interface Team {
-  _id: string;
-  name: string; // 隊伍名稱
-  nickname?: string; // 隊伍暱稱
-  members: {
-    // 隊員列表
-    _id: string;
-    email?: string;
-    role: Role;
-    user_id: string;
-  }[];
-  lineups: Lineup[]; // 陣容列表
-  stats?: TeamStats[]; // 隊伍統計數據
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-```
-
-### 陣容 (Lineup)
-
-陣容定義了一個隊伍的上場人員安排。
-
-```typescript
 interface Lineup {
   options: {
     liberoReplaceMode: 0 | 1 | 2;
     liberoReplacePosition: Position;
   };
   starting: {
-    // 先發陣容
     _id: string;
     position: Position;
-    sub?: {
-      // 替補紀錄
-      _id: string;
-      entryIndex: { in?: number; out?: number };
-    };
+    sub?: { _id: string; entryIndex: { in?: number; out?: number } };
   }[];
   liberos: {
-    // 自由球員
     _id: string;
     position: Position;
-    sub?: {
-      // 替補紀錄
-      _id: string;
-      entryIndex: { in?: number; out?: number };
-    };
+    sub?: { _id: string; entryIndex: { in?: number; out?: number } };
   }[];
   substitutes: {
-    // 替補球員
     _id: string;
-    sub?: {
-      // 上場紀錄
-      _id: string;
-      entryIndex: { in?: number; out?: number };
-    };
+    sub?: { _id: string; entryIndex: { in?: number; out?: number } };
   }[];
 }
 ```
 
-### 隊員 (Member)
-
-隊員實體代表一個隊伍中的成員。
+#### 2.2 成員 (Member)
 
 ```typescript
 interface Member {
   _id: string;
-  team_id: string; // 所屬隊伍 ID
-  name: string; // 隊員姓名
-  number: number; // 球員號碼
-  info?: object; // 隊員附加信息
-  stats?: object; // 隊員統計數據
-}
-```
-
-### 比賽紀錄 (Record)
-
-比賽紀錄實體包含一場比賽的完整信息。
-
-```typescript
-enum MatchPhase {
-  NONE,
-  ELIM, // 淘汰賽
-  SEED, // 種子賽
-  QUAL, // 資格賽
-  FINAL, // 決賽
-}
-
-enum MatchDivision {
-  NONE,
-  MEN, // 男子組
-  WOMEN, // 女子組
-  MIXED, // 混合組
-}
-
-enum MatchCategory {
-  NONE,
-  SENIOR, // 成人組
-  JUNIOR, // 青年組
-  YOUTH, // 少年組
-}
-
-enum MoveType {
-  SERVING = 1, // 發球
-  BLOCKING, // 攔網
-  ATTACK, // 攻擊
-  RECEPTION, // 接發球
-  DEFENSE, // 防守
-  SETTING, // 舉球
-  UNFORCED, // 非強迫性失誤
-}
-
-enum EntryType {
-  RALLY, // 得分回合
-  SUBSTITUTION, // 換人
-  TIMEOUT, // 暫停
-  CHALLENGE, // 挑戰
-}
-
-interface Record {
-  _id: string;
-  win: boolean; // 是否獲勝
-  team_id: string; // 記錄方隊伍 ID
-  info: Match; // 比賽基本信息
-  teams: {
-    home: Team; // 主隊
-    away: Team; // 客隊
-  };
-  sets: Set[]; // 各局數據
+  team_id: string;
+  name: string;
+  number: number;
+  info?: Record<string, unknown>;
+  stats?: Record<string, unknown>;
   createdAt?: Date;
   updatedAt?: Date;
 }
 ```
 
-### 其他相關實體
+### 3. 比賽紀錄 (Record)
 
-- **賽事 (Match)**: 比賽基本信息
-- **球員統計 (PlayerStats)**: 球員表現數據
-- **隊伍統計 (TeamStats)**: 隊伍整體表現數據
-- **賽局 (Set)**: 一場比賽中的每一局
-- **回合 (Rally)**: 一個得分回合
-- **換人 (Substitution)**: 換人記錄
-- **暫停 (Timeout)**: 暫停記錄
-- **挑戰 (Challenge)**: 挑戰記錄
+```typescript
+interface Record {
+  _id: string;
+  win: boolean;
+  team_id: string;
+  info: Match;
+  teams: {
+    home: Team;
+    away: Team;
+  };
+  sets: Set[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+#### 3.1 賽事 (Match)
+
+```typescript
+interface Match {
+  _id?: string;
+  name?: string;
+  number?: number;
+  phase?: MatchPhase; // NONE, ELIM, SEED, QUAL, FINAL
+  division?: MatchDivision; // NONE, MEN, WOMEN, MIXED
+  category?: MatchCategory; // NONE, SENIOR, JUNIOR, YOUTH
+  scoring: {
+    setCount: number;
+    decidingSetPoints: number;
+  };
+  location?: { city?: string; hall?: string };
+  time?: { date?: string; start?: string; end?: string };
+  weather?: { temperature: number };
+}
+```
+
+#### 3.2 賽局 (Set)
+
+```typescript
+interface Set {
+  win: boolean;
+  lineups: {
+    home: Lineup;
+    away?: Lineup;
+  };
+  options: {
+    serve: "home" | "away";
+    time?: { start: string; end: string };
+  };
+  entries: Entry[]; // RALLY, SUBSTITUTION, TIMEOUT, CHALLENGE
+}
+```
+
+#### 3.3 其他比賽紀錄相關實體
+
+- **球員統計 (PlayerStats)**：記錄球員技術表現（如發球、攻擊等）。
+- **隊伍統計 (TeamStats)**：記錄隊伍整體表現。
+- **回合 (Rally)**、**替補 (Substitution)**、**暫停 (Timeout)**、**挑戰 (Challenge)**：比賽中的逐球紀錄與事件。
 
 ---
 
-## 2. 數據庫模型 (Database Schemas)
+## 3. 數據庫模型 (Database Schemas)
 
-系統使用 Mongoose 與 MongoDB 實現數據持久化。以下是主要的數據庫模型：
+系統使用 Mongoose 與 MongoDB 實現數據持久化，以下是主要模型的 Schema：
 
-### User Schema
+### 1. User Schema
 
 ```typescript
 const userSchema = new Schema<UserDocument>(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true },
-    emailVerified: { type: Date, required: false, trim: true },
-    image: { type: String, required: false, trim: true },
-    password: { type: String, required: false },
+    emailVerified: { type: Date },
+    image: { type: String },
+    password: { type: String },
     teams: {
-      joined: [{ type: Schema.Types.ObjectId, ref: "Team", required: false }],
-      inviting: [{ type: Schema.Types.ObjectId, ref: "Team", required: false }],
+      joined: [{ type: Schema.Types.ObjectId, ref: "Team" }],
+      inviting: [{ type: Schema.Types.ObjectId, ref: "Team" }],
     },
-    info: { type: Object, required: false },
-    preferences: { type: Object, required: false },
+    info: { type: Object },
+    preferences: { type: Object },
   },
   { timestamps: true }
 );
+userSchema.index({ email: 1 });
 ```
 
-### Team Schema
+### 2. Team Schema
 
 ```typescript
 const teamSchema = new Schema<TeamDocument>(
@@ -237,22 +220,18 @@ const teamSchema = new Schema<TeamDocument>(
       },
     ],
     lineups: [lineupSchema],
-    stats: { type: Object },
+    stats: [{ type: teamStatsSchema }],
   },
   { timestamps: true }
 );
 ```
 
-### Member Schema
+#### 2.1 Member Schema
 
 ```typescript
 const memberSchema = new Schema<MemberDocument>(
   {
-    team_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Team",
-      required: true,
-    },
+    team_id: { type: Schema.Types.ObjectId, ref: "Team", required: true },
     name: { type: String, required: true },
     number: { type: Number, required: true },
     info: { type: Object },
@@ -260,9 +239,10 @@ const memberSchema = new Schema<MemberDocument>(
   },
   { timestamps: true }
 );
+memberSchema.index({ team_id: 1 });
 ```
 
-### Record Schema
+### 3. Record Schema
 
 ```typescript
 const recordSchema = new Schema<RecordDocument>(
@@ -278,106 +258,109 @@ const recordSchema = new Schema<RecordDocument>(
   },
   { timestamps: true }
 );
+recordSchema.index({ team_id: 1 });
 ```
 
-### 其他輔助模型
+#### 3.1 Match Schema
 
-- **Account Schema**: 用於第三方身份驗證
-- **Session Schema**: 用於管理用戶會話
+```typescript
+const matchSchema = new Schema<MatchDocument>({
+  name: { type: String },
+  number: { type: Number },
+  phase: { type: Number, enum: MatchPhase, default: MatchPhase.NONE },
+  division: { type: Number, enum: MatchDivision, default: MatchDivision.NONE },
+  category: { type: Number, enum: MatchCategory, default: MatchCategory.NONE },
+  scoring: {
+    setCount: { type: Number, default: 3 },
+    decidingSetPoints: { type: Number, default: 15 },
+  },
+  location: { city: { type: String }, hall: { type: String } },
+  time: {
+    date: { type: String },
+    start: { type: String },
+    end: { type: String },
+  },
+  weather: { temperature: { type: Number } },
+});
+```
 
-## 實體關係圖 (Entity Relationship Diagram)
+#### 3.2 Set Schema
+
+```typescript
+const setSchema = new Schema<SetDocument>({
+  win: { type: Boolean },
+  lineups: {
+    home: { type: lineupSchema },
+    away: { type: lineupSchema },
+  },
+  options: {
+    serve: { type: String, enum: ["home", "away"] },
+    time: { start: { type: String }, end: { type: String } },
+  },
+  entries: [{ type: entrySchema }],
+});
+```
+
+---
+
+## 4. 資料流程
+
+以下是系統中的主要資料流程：
+
+- **使用者與隊伍**：
+  - 使用者註冊後可創建或加入隊伍，更新 `User.teams.joined` 和 `Team.members`。
+- **陣容配置**：
+  - 管理者設定 `Team.lineups`，用於比賽中的人員安排。
+- **比賽記錄**：
+  - 比賽開始時創建 `Record`，記錄 `Match` 資訊、`Team` 數據與 `Set` 內容。
+  - 比賽進行中，`Set.entries` 更新 `Rally`、`Substitution` 等事件，並同步影響 `PlayerStats` 和 `TeamStats`。
+
+---
+
+## 5. 實體關係圖 (Entity Relationship Diagram)
 
 ```mermaid
 erDiagram
     User ||--o{ Team : "joins"
-    User ||--o{ Account : "has"
-    User ||--o{ Session : "creates"
-
     Team ||--o{ Member : "contains"
     Team ||--o{ Lineup : "defines"
     Team ||--o{ Record : "participates"
-
     Member ||--o{ Record : "plays in"
-
     Record ||--o{ Set : "includes"
+    Record ||--o{ Match : "describes"
     Set ||--o{ Entry : "contains"
-
-    Entry {
-        string type
-        object data
-    }
-
-    User {
-        string _id
-        string name
-        string email
-        date emailVerified
-        string image
-        string password
-        object teams
-        object info
-        object preferences
-    }
-
-    Team {
-        string _id
-        string name
-        string nickname
-        array members
-        array lineups
-        object stats
-    }
-
-    Member {
-        string _id
-        string team_id
-        string name
-        number number
-        object info
-        object stats
-    }
-
-    Record {
-        string _id
-        boolean win
-        string team_id
-        object info
-        object teams
-        array sets
-    }
-
-    Set {
-        string _id
-        number index
-        array entries
-        object scores
-    }
+    PlayerStats ||--o{ Member : "tracks"
+    TeamStats ||--o{ Team : "tracks"
 ```
 
-## 索引策略
+---
 
-為了優化查詢效能，我們在關鍵欄位上設置了索引：
+## 6. 資料驗證與約束
 
-1. `userSchema.index({ email: 1 })`: 針對用戶電子郵件
-2. `memberSchema.index({ team_id: 1 })`: 針對隊員所屬隊伍
-3. `recordSchema.index({ team_id: 1 })`: 針對比賽記錄相關隊伍
+- **User**：`email` 必須為有效格式，`name` 不可為空。
+- **Team**：`name` 必須唯一，`members.role` 限制於枚舉值。
+- **Member**：`number` 在同一隊伍中必須唯一。
+- **Match**：`setCount` 和 `decidingSetPoints` 必須為正整數。
+- **Lineup**：`starting` 人數需符合比賽規則（通常為 6 人）。
 
-## 數據關聯
+---
+
+## 7. 索引策略
+
+- `userSchema.index({ email: 1 })`：加速用戶查詢。
+- `memberSchema.index({ team_id: 1 })`：加速成員查詢。
+- `recordSchema.index({ team_id: 1 })`：加速比賽記錄查詢。
+
+---
+
+## 8. 數據關聯
 
 ```mermaid
 flowchart TB
-  User ---|"1:N"| Team
-  Team ---|"1:N"| Member
-  Team ---|"1:N"| Lineup
-  Team ---|"1:N"| Record
-  Record ---|"1:N"| Set
-  Set ---|"1:N"| Entry
-  User ---|"1:N"| Member
+    User ---|"1:N"| Team
+    Team ---|"1:N"| Member
+    Team ---|"1:N"| Lineup
+    Team ---|"1:N"| Record
+    Record ---|"1:N"| Set
+    Set ---|"1:N"| Entry
 ```
-
-- 用戶 (User) 可以加入多個隊伍 (Team)
-- 隊伍 (Team) 可以有多個隊員 (Member)
-- 隊伍 (Team) 可以有多個陣容 (Lineup)
-- 隊伍 (Team) 可以有多個比賽記錄 (Record)
-- 比賽記錄 (Record) 包含多個賽局 (Set)
-- 賽局 (Set) 包含多個比賽事件 (Entry)

@@ -40,7 +40,7 @@ const TeamMembers = ({ teamId }: { teamId: string }) => {
           href={`/team/${teamId}/members/new`}
         >
           <FiPlus />
-          新增隊員
+          新增成員
         </Link>
       </div>
       <TeamMembersTable team={team} members={members} teamId={teamId} />
