@@ -131,7 +131,7 @@ export class RecordRepositoryImpl
           },
         },
 
-        // 重塑文檔結構
+        // 重塑文件結構
         {
           $project: {
             _id: 1,

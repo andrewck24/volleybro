@@ -90,7 +90,7 @@ const MemberForm = ({ teamId, className }) => {
               <FormControl>
                 <Input placeholder="石川祐希" {...field} />
               </FormControl>
-              <FormDescription>請輸入隊員姓名</FormDescription>
+              <FormDescription>請輸入成員姓名</FormDescription>
             </FormItem>
           )}
         />
@@ -161,7 +161,7 @@ const MemberForm = ({ teamId, className }) => {
         />
         <Button size="lg">
           <RiUserAddLine />
-          新增隊員
+          新增成員
         </Button>
       </Form>
     </Card>
