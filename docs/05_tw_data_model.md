@@ -10,7 +10,7 @@
 
 VolleyBro 系統採用 **MongoDB** 作為 NoSQL 資料庫，選擇其原因包括：
 
-- **靈活性**：支援非結構化與半結構化數據，適合比賽記錄與球員統計的動態需求。
+- **靈活性**：支援非結構化與半結構化數據，適合賽事紀錄與球員統計的動態需求。
 - **擴展性**：便於隨著系統功能擴展而新增資料模型與屬性。
 - **效能**：透過適當的索引策略優化查詢效率。
 
@@ -115,7 +115,7 @@ interface Member {
 }
 ```
 
-### 3. 比賽紀錄 (Record)
+### 3. 賽事紀錄 (Record)
 
 ```typescript
 interface Record {
@@ -170,7 +170,7 @@ interface Set {
 }
 ```
 
-#### 3.3 其他比賽紀錄相關實體
+#### 3.3 其他賽事紀錄相關實體
 
 - **球員統計 (PlayerStats)**：記錄球員技術表現（如發球、攻擊等）。
 - **隊伍統計 (TeamStats)**：記錄隊伍整體表現。
@@ -311,7 +311,7 @@ const setSchema = new Schema<SetDocument>({
   - 使用者註冊後可創建或加入隊伍，更新 `User.teams.joined` 和 `Team.members`。
 - **陣容配置**：
   - 管理者設定 `Team.lineups`，用於比賽中的人員安排。
-- **比賽記錄**：
+- **賽事紀錄**：
   - 比賽開始時創建 `Record`，記錄 `Match` 資訊、`Team` 數據與 `Set` 內容。
   - 比賽進行中，`Set.entries` 更新 `Rally`、`Substitution` 等事件，並同步影響 `PlayerStats` 和 `TeamStats`。
 
@@ -349,7 +349,7 @@ erDiagram
 
 - `userSchema.index({ email: 1 })`：加速用戶查詢。
 - `memberSchema.index({ team_id: 1 })`：加速成員查詢。
-- `recordSchema.index({ team_id: 1 })`：加速比賽記錄查詢。
+- `recordSchema.index({ team_id: 1 })`：加速賽事紀錄查詢。
 
 ---
 

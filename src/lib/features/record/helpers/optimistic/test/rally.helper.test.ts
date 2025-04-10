@@ -606,7 +606,7 @@ describe("rally.helper.ts", () => {
       });
     });
 
-    // 測試更新比賽記錄時的邏輯
+    // 測試更新賽事紀錄時的邏輯
     describe("when updating rally", () => {
       it("should recalculate set and match status when rally is updated", () => {
         const mockRecord = createMockRecord();

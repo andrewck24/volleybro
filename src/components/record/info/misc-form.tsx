@@ -84,7 +84,7 @@ const MatchMiscForm = ({
   return (
     <DialogContent className={className} size="lg">
       <DialogHeader>
-        <DialogTitle>編輯比賽資訊</DialogTitle>
+        <DialogTitle>編輯賽事資訊</DialogTitle>
         <DialogDescription className="sr-only">
           填寫比賽相關資訊
         </DialogDescription>
