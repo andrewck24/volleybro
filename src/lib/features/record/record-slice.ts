@@ -265,15 +265,18 @@ const setSetIndex: CaseReducer<ReduxRecordState, PayloadAction<number>> = (
   state.editing.status.setIndex = action.payload;
 };
 
-// TODO: 修正編輯狀態之 isSetPoint 計算邏輯
 const setEditingEntryStatus: CaseReducer<
   ReduxRecordState,
-  PayloadAction<{ record: Record; entryIndex: number }>
+  PayloadAction<{ record: Record; setIndex: number; entryIndex: number }>
 > = (state, action) => {
-  const { record, entryIndex } = action.payload;
-  const { setIndex } = state.editing.status;
+  const { record, setIndex, entryIndex } = action.payload;
   const set = record.sets[setIndex];
   const entry = set.entries[entryIndex];
+  const { inProgress, isSetPoint } = matchPhaseHelper(
+    record,
+    setIndex,
+    entryIndex
+  );
 
   state.mode = "editing";
   state.editing.recording = {
@@ -303,9 +306,10 @@ const setEditingEntryStatus: CaseReducer<
     ...state.editing.status,
     isServing: getServingStatus(set, entryIndex),
     scores: getPreviousScores(set?.entries, entryIndex),
+    setIndex,
     entryIndex,
-    inProgress: true,
-    isSetPoint: false,
+    inProgress: inProgress,
+    isSetPoint: isSetPoint,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",
   };
 };
