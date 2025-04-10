@@ -108,7 +108,7 @@
     @apply box-border border-border outline-ring/50 overscroll-x-none;
   }
   body {
-    @apply text-foreground w-screen h-lvh max-w-full select-none transition-colors bg-accent overflow-y-scroll overscroll-y-contain;
+    @apply text-foreground w-screen h-lvh max-w-full select-none transition-colors bg-accent overscroll-y-contain;
   }
 }
 
