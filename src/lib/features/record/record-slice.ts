@@ -82,7 +82,8 @@ const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
   state._id = record._id;
   const status = {
     scores: getPreviousScores(set?.entries, entryIndex),
-    setIndex: inProgress ? setIndex : setIndex + 1,
+    setIndex:
+      !setIndex && !set?.entries ? 0 : inProgress ? setIndex : setIndex + 1,
     entryIndex,
     isServing,
     inProgress,
