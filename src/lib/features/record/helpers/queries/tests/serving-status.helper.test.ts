@@ -1,97 +1,76 @@
 import { getServingStatus } from "@/lib/features/record/helpers";
-import { type Record, EntryType, MoveType } from "@/entities/record";
+import { type Set, EntryType, MoveType } from "@/entities/record";
 
 describe("getServingStatus", () => {
-  test("should return true when previous Rally was won", () => {
-    // Create Record object with winning Rally
-    const mockRecord = {
-      sets: [
+  it("should return true when previous Rally was won", () => {
+    const mockSet = {
+      entries: [
         {
-          entries: [
-            {
-              type: EntryType.RALLY,
-              data: {
-                win: true,
-                home: { score: 10, type: MoveType.SERVING, num: 1 },
-                away: { score: 8, type: MoveType.RECEPTION, num: 1 },
-              },
-            },
-          ],
+          type: EntryType.RALLY,
+          data: {
+            win: true,
+            home: { score: 10, type: MoveType.SERVING, num: 1 },
+            away: { score: 8, type: MoveType.RECEPTION, num: 1 },
+          },
         },
       ],
-    } as Record;
+    } as Set;
 
-    const setIndex = 0;
     const entryIndex = 1; // Look for rally before entryIndex
 
-    const isServing = getServingStatus(mockRecord, setIndex, entryIndex);
+    const isServing = getServingStatus(mockSet, entryIndex);
 
     expect(isServing).toBe(true);
   });
 
-  test("should return false when previous Rally was lost", () => {
-    const mockRecord = {
-      sets: [
+  it("should return false when previous Rally was lost", () => {
+    const mockSet = {
+      entries: [
         {
-          entries: [
-            {
-              type: EntryType.RALLY,
-              data: {
-                win: false,
-                home: { score: 8, type: MoveType.RECEPTION, num: 1 },
-                away: { score: 10, type: MoveType.SERVING, num: 1 },
-              },
-            },
-          ],
+          type: EntryType.RALLY,
+          data: {
+            win: false,
+            home: { score: 8, type: MoveType.RECEPTION, num: 1 },
+            away: { score: 10, type: MoveType.SERVING, num: 1 },
+          },
         },
       ],
-    } as Record;
+    } as Set;
 
-    const setIndex = 0;
     const entryIndex = 1;
 
-    const isServing = getServingStatus(mockRecord, setIndex, entryIndex);
+    const isServing = getServingStatus(mockSet, entryIndex);
 
     expect(isServing).toBe(false);
   });
 
-  test("should return initial serve setting when no previous Rally exists", () => {
-    const mockRecord = {
-      sets: [
+  it("should return initial serve setting when no previous Rally exists", () => {
+    const mockSet = {
+      options: { serve: "home" },
+      entries: [
         {
-          options: { serve: "home" },
-          entries: [
-            {
-              type: EntryType.TIMEOUT, // Non-RALLY type
-              data: {},
-            },
-          ],
+          type: EntryType.TIMEOUT, // Non-RALLY type
+          data: {},
         },
       ],
-    } as Record;
+    } as Set;
 
-    const setIndex = 0;
     const entryIndex = 1;
 
-    const isServing = getServingStatus(mockRecord, setIndex, entryIndex);
+    const isServing = getServingStatus(mockSet, entryIndex);
 
     expect(isServing).toBe(true);
   });
 
-  test("should return initial serve setting when entryIndex is 0", () => {
-    const mockRecord = {
-      sets: [
-        {
-          options: { serve: "away" },
-          entries: [],
-        },
-      ],
-    } as Record;
+  it("should return initial serve setting when entryIndex is 0", () => {
+    const mockSet = {
+      options: { serve: "away" },
+      entries: [],
+    } as Set;
 
-    const setIndex = 0;
-    const entryIndex = 0; // No previous entry
+    const entryIndex = 0;
 
-    const isServing = getServingStatus(mockRecord, setIndex, entryIndex);
+    const isServing = getServingStatus(mockSet, entryIndex);
 
     expect(isServing).toBe(false);
   });

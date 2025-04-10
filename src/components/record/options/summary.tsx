@@ -18,7 +18,9 @@ const RecordOptionsSummary = ({ recordId }: { recordId: string }) => {
   const { players } = record.teams.home;
 
   const handleEntryClick = (entryIndex: number) => {
-    dispatch(recordActions.setEditingEntryStatus({ record, entryIndex }));
+    dispatch(
+      recordActions.setEditingEntryStatus({ record, setIndex: set, entryIndex })
+    );
   };
 
   return (

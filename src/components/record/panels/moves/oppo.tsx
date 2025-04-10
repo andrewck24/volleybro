@@ -27,27 +27,29 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
   );
 
   const create = () => {
+    const { record: updatedRecord, phase } = createRallyHelper(
+      { recordId, setIndex, entryIndex },
+      recording,
+      record
+    );
     mutate(createRally({ recordId, setIndex, entryIndex }, recording, record), {
       revalidate: false,
-      optimisticData: createRallyHelper(
-        { recordId, setIndex, entryIndex },
-        recording,
-        record
-      ),
+      optimisticData: updatedRecord,
     });
-    dispatch(recordActions.confirmRecordingRally(record));
+    dispatch(recordActions.confirmRecordingRally(phase));
   };
 
   const update = () => {
+    const { record: updatedRecord, phase } = updateRallyHelper(
+      { recordId, setIndex, entryIndex },
+      recording,
+      record
+    );
     mutate(updateRally({ recordId, setIndex, entryIndex }, recording, record), {
       revalidate: false,
-      optimisticData: updateRallyHelper(
-        { recordId, setIndex, entryIndex },
-        recording,
-        record
-      ),
+      optimisticData: updatedRecord,
     });
-    dispatch(recordActions.confirmRecordingRally(record));
+    dispatch(recordActions.confirmRecordingRally(phase));
     dispatch(recordActions.setRecordMode("general"));
   };
 

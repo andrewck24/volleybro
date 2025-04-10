@@ -72,16 +72,18 @@ const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
   const record = action.payload;
   const setIndex = record.sets.length ? record.sets.length - 1 : 0;
   const entryIndex = record.sets[setIndex]?.entries?.length || 0;
+  const set = record.sets[setIndex];
   const { inProgress, isSetPoint } = matchPhaseHelper(
     record,
     setIndex,
     entryIndex
   );
-  const isServing = getServingStatus(record, setIndex, entryIndex);
+  const isServing = getServingStatus(set, entryIndex);
   state._id = record._id;
   const status = {
-    scores: getPreviousScores(record, setIndex, entryIndex),
-    setIndex: inProgress ? setIndex : setIndex + 1,
+    scores: getPreviousScores(set?.entries, entryIndex),
+    setIndex:
+      !setIndex && !set?.entries ? 0 : inProgress ? setIndex : setIndex + 1,
     entryIndex,
     isServing,
     inProgress,
@@ -159,16 +161,11 @@ const setRecordingAwayMove: CaseReducer<
 
 const confirmRecordingRally: CaseReducer<
   ReduxRecordState,
-  PayloadAction<Record>
+  PayloadAction<{ inProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
-  const record = structuredClone(action.payload);
+  const { inProgress, isSetPoint } = action.payload;
   const { mode } = state;
   const { setIndex, entryIndex } = state[mode].status;
-  const { inProgress, isSetPoint } = matchPhaseHelper(
-    record,
-    setIndex,
-    entryIndex
-  );
 
   state[mode].status = {
     ...state[mode].status,
@@ -268,14 +265,18 @@ const setSetIndex: CaseReducer<ReduxRecordState, PayloadAction<number>> = (
   state.editing.status.setIndex = action.payload;
 };
 
-// TODO: 修正編輯狀態之 isSetPoint 計算邏輯
 const setEditingEntryStatus: CaseReducer<
   ReduxRecordState,
-  PayloadAction<{ record: Record; entryIndex: number }>
+  PayloadAction<{ record: Record; setIndex: number; entryIndex: number }>
 > = (state, action) => {
-  const { record, entryIndex } = action.payload;
-  const { setIndex } = state.editing.status;
-  const entry = record.sets[setIndex].entries[entryIndex];
+  const { record, setIndex, entryIndex } = action.payload;
+  const set = record.sets[setIndex];
+  const entry = set.entries[entryIndex];
+  const { inProgress, isSetPoint } = matchPhaseHelper(
+    record,
+    setIndex,
+    entryIndex
+  );
 
   state.mode = "editing";
   state.editing.recording = {
@@ -303,11 +304,12 @@ const setEditingEntryStatus: CaseReducer<
   };
   state.editing.status = {
     ...state.editing.status,
-    isServing: getServingStatus(record, setIndex, entryIndex),
-    scores: getPreviousScores(record, setIndex, entryIndex),
+    isServing: getServingStatus(set, entryIndex),
+    scores: getPreviousScores(set?.entries, entryIndex),
+    setIndex,
     entryIndex,
-    inProgress: true,
-    isSetPoint: false,
+    inProgress: inProgress,
+    isSetPoint: isSetPoint,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",
   };
 };

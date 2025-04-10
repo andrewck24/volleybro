@@ -50,7 +50,7 @@ export class CreateRallyUseCase {
     // 若傳入的 setIndex, (entryIndex), scores, type, num 一致時，則視為同筆資料不新增
     // 若 setIndex, score 等資料不同時，通知後傳入之使用者，令其選擇合適之紀錄，或新增於前者紀錄之後（如何更新前者之資料？）
 
-    const updatedRecord = createRallyHelper(params, rally, record);
+    const { record: updatedRecord } = createRallyHelper(params, rally, record);
 
     await this.recordRepository.update({ _id: recordId }, updatedRecord);
 
@@ -93,7 +93,7 @@ export class UpdateRallyUseCase {
       Role.MEMBER
     );
 
-    const updatedRecord = updateRallyHelper(params, rally, record);
+    const { record: updatedRecord } = updateRallyHelper(params, rally, record);
 
     await this.recordRepository.update({ _id: record._id }, updatedRecord);
 

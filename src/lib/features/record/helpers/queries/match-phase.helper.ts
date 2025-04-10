@@ -12,7 +12,7 @@ export const matchPhaseHelper = (
   // To calculate the point to win the set
   const isDecidingSet = setIndex === record.info.scoring.setCount - 1;
   const point = isDecidingSet ? record.info.scoring.decidingSetPoints : 25;
-  const rally = getPreviousRally(record, setIndex, entryIndex);
+  const rally = getPreviousRally(record.sets[setIndex]?.entries, entryIndex);
 
   // In the first set, though there is no entries recorded yet,
   // the game is `inProgress` if `entries` of the first set has been created
