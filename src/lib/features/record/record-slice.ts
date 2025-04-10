@@ -72,15 +72,16 @@ const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
   const record = action.payload;
   const setIndex = record.sets.length ? record.sets.length - 1 : 0;
   const entryIndex = record.sets[setIndex]?.entries?.length || 0;
+  const set = record.sets[setIndex];
   const { inProgress, isSetPoint } = matchPhaseHelper(
     record,
     setIndex,
     entryIndex
   );
-  const isServing = getServingStatus(record, setIndex, entryIndex);
+  const isServing = getServingStatus(set, entryIndex);
   state._id = record._id;
   const status = {
-    scores: getPreviousScores(record, setIndex, entryIndex),
+    scores: getPreviousScores(set?.entries, entryIndex),
     setIndex: inProgress ? setIndex : setIndex + 1,
     entryIndex,
     isServing,
@@ -159,16 +160,11 @@ const setRecordingAwayMove: CaseReducer<
 
 const confirmRecordingRally: CaseReducer<
   ReduxRecordState,
-  PayloadAction<Record>
+  PayloadAction<{ inProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
-  const record = structuredClone(action.payload);
+  const { inProgress, isSetPoint } = action.payload;
   const { mode } = state;
   const { setIndex, entryIndex } = state[mode].status;
-  const { inProgress, isSetPoint } = matchPhaseHelper(
-    record,
-    setIndex,
-    entryIndex
-  );
 
   state[mode].status = {
     ...state[mode].status,
@@ -275,7 +271,8 @@ const setEditingEntryStatus: CaseReducer<
 > = (state, action) => {
   const { record, entryIndex } = action.payload;
   const { setIndex } = state.editing.status;
-  const entry = record.sets[setIndex].entries[entryIndex];
+  const set = record.sets[setIndex];
+  const entry = set.entries[entryIndex];
 
   state.mode = "editing";
   state.editing.recording = {
@@ -303,8 +300,8 @@ const setEditingEntryStatus: CaseReducer<
   };
   state.editing.status = {
     ...state.editing.status,
-    isServing: getServingStatus(record, setIndex, entryIndex),
-    scores: getPreviousScores(record, setIndex, entryIndex),
+    isServing: getServingStatus(set, entryIndex),
+    scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     inProgress: true,
     isSetPoint: false,
