@@ -112,9 +112,65 @@
   }
 }
 
-/* 在行動裝置上隱藏捲軸 */
-@media (max-width: 640px) and (display-mode: standalone) {
-  /* Webkit 瀏覽器 (iOS Safari, Chrome) */
+/* View Transitions Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-from-right {
+  from {
+    transform: translateX(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.main-view {
+  view-transition-name: main-view;
+}
+
+.sub-view {
+  view-transition-name: sub-view;
+}
+
+::view-transition-old(main-view) {
+  animation: 300ms fade-in reverse;
+}
+
+::view-transition-new(main-view) {
+  animation: 300ms slide-from-right;
+}
+
+::view-transition-old(sub-view) {
+  animation: 300ms fade-in reverse;
+}
+
+::view-transition-new(sub-view) {
+  animation: 300ms slide-from-left;
+}
+
+/* Hide scrollbar on mobile devices */
+@media (max-width: 768px) and (display-mode: standalone) {
+  /* Webkit browsers (iOS Safari, Chrome) */
   ::-webkit-scrollbar {
     display: none;
   }

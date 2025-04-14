@@ -7,10 +7,15 @@ import type {
 } from "@/entities/record";
 
 // For Forms and Tables
-export const RecordInfoFormSchema = z.object({
+export const MatchInfoFormSchema = z.object({
+  _id: z.string().optional(),
   // For MatchInfoForm
   name: z.string().optional(),
-  number: z.coerce.number().int().positive().optional(),
+  teams: z.object({
+    home: z.object({ name: z.string().optional() }),
+    away: z.object({ name: z.string().optional() }),
+  }),
+  number: z.coerce.number().int().optional(),
   phase: z.enum(["0", "1", "2", "3", "4"]).optional(),
   division: z.enum(["0", "1", "2", "3"]).optional(),
   category: z.enum(["0", "1", "2", "3"]).optional(),
@@ -18,12 +23,6 @@ export const RecordInfoFormSchema = z.object({
     setCount: z.string(),
     decidingSetPoints: z.coerce.number(),
   }),
-});
-
-export type RecordInfoFormValues = z.infer<typeof RecordInfoFormSchema>;
-
-export const RecordMiscFormSchema = z.object({
-  // For MatchMiscForm
   location: z
     .object({
       city: z.string().optional(),
@@ -32,7 +31,7 @@ export const RecordMiscFormSchema = z.object({
     .optional(),
   time: z
     .object({
-      date: z.string().optional(),
+      date: z.date().optional(),
       start: z.string().optional(),
       end: z.string().optional(),
     })
@@ -44,12 +43,7 @@ export const RecordMiscFormSchema = z.object({
     .optional(),
 });
 
-export type RecordMiscFormValues = z.infer<typeof RecordMiscFormSchema>;
-
-export type RecordMatchInfoForm = RecordInfoFormValues &
-  RecordMiscFormValues & {
-    _id?: string;
-  };
+export type TMatchInfoForm = z.infer<typeof MatchInfoFormSchema>;
 
 export const SetOptionsFormSchema = z.object({
   serve: z.enum(["home", "away"]),

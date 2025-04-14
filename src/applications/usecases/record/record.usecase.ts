@@ -3,8 +3,8 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { type Lineup, Role } from "@/entities/team";
-import type { Record, Team } from "@/entities/record";
+import type { Record } from "@/entities/record";
+import { Role } from "@/entities/team";
 
 export interface IFindRecordInput {
   params: { _id: string };
@@ -46,8 +46,7 @@ export interface ICreateRecordInput {
   params: { teamId: string };
   data: {
     info: Record["info"];
-    team: Team;
-    lineup: Lineup;
+    teams: Record["teams"];
   };
 }
 
@@ -79,7 +78,7 @@ export class CreateRecordUseCase {
       win: null,
       team_id: params.teamId,
       info: data.info,
-      teams: { home: { ...data.team, lineup: data.lineup }, away: {} },
+      teams: { home: { ...data.teams.home }, away: { ...data.teams.away } },
     });
 
     return record;

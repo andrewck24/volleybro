@@ -36,7 +36,7 @@ export type Match = {
     hall?: string;
   };
   time?: {
-    date?: string;
+    date?: Date;
     start?: string;
     end?: string;
   };
@@ -219,8 +219,6 @@ export type Record = {
     away: Team;
   };
   sets: Set[];
-  createdAt?: Date;
-  updatedAt?: Date;
 };
 
 export type MatchResult = {
