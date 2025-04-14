@@ -4,6 +4,17 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useAppDispatch } from "@/lib/redux/hooks";
+import { globalActions } from "@/lib/features/global-slice";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const Drawer = ({
   ...props
@@ -54,8 +65,8 @@ const DrawerContent = ({
       data-slot="drawer-content"
       className={cn(
         "group/drawer-content bg-background fixed z-50 flex h-auto flex-col",
-        "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[80vh] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b",
-        "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[80vh] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
+        "data-[vaul-drawer-direction=top]:inset-x-0 data-[vaul-drawer-direction=top]:top-0 data-[vaul-drawer-direction=top]:mb-24 data-[vaul-drawer-direction=top]:max-h-[calc(100%-var(--safe-area-inset-top)-3rem)] data-[vaul-drawer-direction=top]:rounded-b-lg data-[vaul-drawer-direction=top]:border-b",
+        "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:mt-24 data-[vaul-drawer-direction=bottom]:max-h-[calc(100%-var(--safe-area-inset-top)-3rem)] data-[vaul-drawer-direction=bottom]:rounded-t-lg data-[vaul-drawer-direction=bottom]:border-t",
         "data-[vaul-drawer-direction=right]:inset-y-0 data-[vaul-drawer-direction=right]:right-0 data-[vaul-drawer-direction=right]:w-3/4 data-[vaul-drawer-direction=right]:border-l data-[vaul-drawer-direction=right]:sm:max-w-sm",
         "data-[vaul-drawer-direction=left]:inset-y-0 data-[vaul-drawer-direction=left]:left-0 data-[vaul-drawer-direction=left]:w-3/4 data-[vaul-drawer-direction=left]:border-r data-[vaul-drawer-direction=left]:sm:max-w-sm",
         className
@@ -106,6 +117,54 @@ const DrawerDescription = ({
   />
 );
 
+const ResposiveDrawer = ({
+  children,
+  button,
+  title,
+  description,
+}: {
+  children: React.ReactNode;
+  button: React.ReactNode;
+  title?: string;
+  description?: string;
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const dispatch = useAppDispatch();
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  React.useEffect(() => {
+    dispatch(globalActions.setIsDisabled(open));
+  }, [open, dispatch]);
+
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>{button}</DialogTrigger>
+        <DialogContent size="lg">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          {children}
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>{button}</DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader className="text-left">
+          <DrawerTitle>{title}</DrawerTitle>
+          <DrawerDescription>{description}</DrawerDescription>
+        </DrawerHeader>
+        {children}
+      </DrawerContent>
+    </Drawer>
+  );
+};
+
 export {
   Drawer,
   DrawerPortal,
@@ -117,4 +176,5 @@ export {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
+  ResposiveDrawer,
 };
