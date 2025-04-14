@@ -1,6 +1,6 @@
 # VolleyBro
 
-VolleyBro 是一個專為排球球隊設計的比賽記錄與隊伍管理應用程式，幫助教練及管理者方便記錄賽事數據、管理球隊成員以及設定比賽陣容。
+VolleyBro 是一個專為排球球隊設計的賽事紀錄與隊伍管理應用程式，幫助教練及管理者方便記錄賽事數據、管理球隊成員以及設定比賽陣容。
 
 獲取最新版本的 [VolleyBro](https://volleybro.vercel.app/)。
 
@@ -20,13 +20,13 @@ Get the latest version of [VolleyBro](https://volleybro.vercel.app/).
 
 ## 項目介紹 / Project Overview
 
-VolleyBro 是一個基於 [Next.js](https://nextjs.org/) 的現代化應用程式，專注於排球比賽記錄與球隊管理。系統整合用戶認證、比賽記錄、陣容管理及即時通知等功能，確保使用者能夠輕鬆掌握比賽數據。
+VolleyBro 是一個基於 [Next.js](https://nextjs.org/) 的現代化應用程式，專注於排球賽事紀錄與球隊管理。系統整合用戶認證、賽事紀錄、陣容管理及即時通知等功能，確保使用者能夠輕鬆掌握比賽數據。
 
 VolleyBro is a modern application built on [Next.js](https://nextjs.org/), designed for volleyball match recording and team management. The system integrates user authentication, match data recording, lineup management, and real-time notifications to help users easily keep track of match data.
 
 ## 主要功能 / Key Features
 
-- **比賽記錄：** 詳細記錄比賽數據，包括得分、替換、拉力等資訊。
+- **賽事紀錄：** 詳細記錄比賽數據，包括得分、替換、拉力等資訊。
 - **隊伍管理：** 管理球隊資訊、成員資料、陣容設定與替補名單。
 - **用戶認證：** 透過 NextAuth 與 Google 驗證進行安全登入。
 - **現代化 UI：** 使用 Tailwind CSS 及自訂元件打造流暢的使用者介面。
@@ -50,7 +50,7 @@ andrewck24-volleybro/
 └── src/                 // 源碼目錄 / Source code directory
     ├── app/             // Next.js 頁面與路由 / Pages and routing
     ├── components/      // 可重用 UI 元件 / Reusable UI components
-    ├── entities/        // 領域實體定義（如隊伍、比賽記錄） / Entity definitions (e.g., team, record)
+    ├── entities/        // 領域實體定義（如隊伍、賽事紀錄） / Entity definitions (e.g., team, record)
     ├── hooks/           // React hooks
     ├── infrastructure/  // 基礎架構層 / Infrastructure layer
     │   ├── db/          // 資料庫相關（Mongoose 連線、Schema 定義）/ Database related (Mongoose connection, Schema definitions)

@@ -21,7 +21,7 @@ const ListBadge = ({ list }: { list: string }) => {
   );
 };
 
-const RosterTable = ({ roster }: { roster: TableRosterPlayer[] }) => {
+export const RosterTable = ({ roster }: { roster: TableRosterPlayer[] }) => {
   return (
     <Table>
       <TableHeader className="text-lg">
@@ -47,5 +47,3 @@ const RosterTable = ({ roster }: { roster: TableRosterPlayer[] }) => {
     </Table>
   );
 };
-
-export default RosterTable;

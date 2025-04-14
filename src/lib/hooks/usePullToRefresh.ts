@@ -25,7 +25,7 @@ import { globalActions } from "@/lib/features/global-slice";
  */
 export const usePullToRefresh = (refresh: () => {} | void) => {
   const dispatch = useAppDispatch();
-  const { isRefreshing, isPulling } = useAppSelector(
+  const { isRefreshing, isPulling, isDisabled } = useAppSelector(
     (state) => state.global.refresh
   );
   const touchStartY = useRef(0);
@@ -33,6 +33,7 @@ export const usePullToRefresh = (refresh: () => {} | void) => {
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
+      if (isDisabled) return;
       touchStartY.current = e.touches[0].clientY;
       scrollStartY.current =
         window.scrollY ||
@@ -76,7 +77,7 @@ export const usePullToRefresh = (refresh: () => {} | void) => {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [refresh, dispatch]);
+  }, [isDisabled, refresh, dispatch]);
 
   return { isRefreshing, isPulling };
 };

@@ -11,8 +11,7 @@ export const POST = async (req: NextRequest) => {
       params: { teamId },
       data: {
         info: request.info,
-        team: request.team,
-        lineup: request.lineup,
+        teams: request.teams,
       },
     };
 
