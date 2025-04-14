@@ -77,7 +77,7 @@ export const usePullToRefresh = (refresh: () => {} | void) => {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [refresh, dispatch]);
+  }, [isDisabled, refresh, dispatch]);
 
   return { isRefreshing, isPulling };
 };

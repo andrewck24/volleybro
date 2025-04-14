@@ -60,15 +60,21 @@ const Calendar = ({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ className, ...props }) => (
-          <RiArrowLeftWideLine className={cn("size-4", className)} {...props} />
-        ),
-        IconRight: ({ className, ...props }) => (
-          <RiArrowRightWideLine
-            className={cn("size-4", className)}
-            {...props}
-          />
-        ),
+        Chevron: (props) => {
+          if (props.orientation === "left")
+            return (
+              <RiArrowLeftWideLine
+                className={cn("size-4", className)}
+                {...props}
+              />
+            );
+          return (
+            <RiArrowRightWideLine
+              className={cn("size-4", className)}
+              {...props}
+            />
+          );
+        },
       }}
       {...props}
     />
