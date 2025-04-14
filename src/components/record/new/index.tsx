@@ -127,7 +127,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <div className="main-view w-full h-full flex flex-col gap-2 justify-center items-center bg-background">
+        <div className="main-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
@@ -176,7 +176,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
           </DialogFooter>
         </div>
       ) : (
-        <div className="sub-view w-full h-full flex flex-col gap-2 justify-center items-center bg-background">
+        <div className="sub-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
           <DialogHeader>
             <DialogTitle>
               <Button
