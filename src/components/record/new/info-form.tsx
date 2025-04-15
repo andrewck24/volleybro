@@ -134,7 +134,7 @@ const BasicInfoFields = ({ form }) => {
                     size="wide"
                     variant="outline"
                     className={cn(
-                      "pl-3 text-left font-normal",
+                      "pl-3 text-left font-normal bg-transparent",
                       !field.value && "text-muted-foreground"
                     )}
                   >
