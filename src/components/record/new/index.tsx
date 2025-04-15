@@ -52,27 +52,27 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     weather: { temperature: "" },
   });
 
-  const getPlayerData = (list: string) => {
-    if (!team || !members) return [];
-    return team.lineups[lineupIndex][list].map((player) => {
-      const member = members.find((member) => member._id === player._id);
-      return {
-        _id: member._id,
-        name: member.name,
-        number: member.number,
-        list,
-      };
-    });
-  };
-
   const players = useMemo(() => {
+    const getPlayerData = (list: string) => {
+      if (!team || !members) return [];
+      return team.lineups[lineupIndex][list].map((player) => {
+        const member = members.find((member) => member._id === player._id);
+        return {
+          _id: member._id,
+          name: member.name,
+          number: member.number,
+          list,
+        };
+      });
+    };
+
     const starting = getPlayerData("starting");
     const liberos = getPlayerData("liberos");
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
-      .sort((a, b) => a.number - b.number);
-  }, [team, members, lineupIndex, getPlayerData]);
+      .sort((a: any, b: any) => a.number - b.number);
+  }, [team, members, lineupIndex]);
 
   const createRecord = async () => {
     const infoData = {
@@ -127,7 +127,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <div className="main-view w-full h-full flex flex-col gap-2 justify-center items-center bg-background">
+        <div className="main-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
@@ -176,7 +176,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
           </DialogFooter>
         </div>
       ) : (
-        <div className="sub-view w-full h-full flex flex-col gap-2 justify-center items-center bg-background">
+        <div className="sub-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
           <DialogHeader>
             <DialogTitle>
               <Button
