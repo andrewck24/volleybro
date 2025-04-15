@@ -223,7 +223,6 @@ const Calendar = ({
         ),
         MonthGrid: ({ className, children, ...props }) => (
           <MonthGrid
-            children={children}
             className={className}
             displayYears={displayYears}
             startMonth={startMonth}
@@ -231,7 +230,9 @@ const Calendar = ({
             navView={navView}
             setNavView={setNavView}
             {...props}
-          />
+          >
+            {children}
+          </MonthGrid>
         ),
       }}
       numberOfMonths={columnsDisplayed}
@@ -318,7 +319,15 @@ const Nav = ({
     }
     goToMonth(previousMonth);
     onPrevClick?.(previousMonth);
-  }, [previousMonth, goToMonth]);
+  }, [
+    previousMonth,
+    goToMonth,
+    navView,
+    setDisplayYears,
+    onPrevClick,
+    displayYears.from,
+    displayYears.to,
+  ]);
 
   const handleNextClick = React.useCallback(() => {
     if (!nextMonth) return;
@@ -338,7 +347,16 @@ const Nav = ({
     }
     goToMonth(nextMonth);
     onNextClick?.(nextMonth);
-  }, [goToMonth, nextMonth]);
+  }, [
+    goToMonth,
+    nextMonth,
+    navView,
+    setDisplayYears,
+    onNextClick,
+    displayYears.from,
+    displayYears.to,
+  ]);
+
   return (
     <nav className={cn("flex items-center", className)}>
       <Button
