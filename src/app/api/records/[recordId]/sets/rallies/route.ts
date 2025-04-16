@@ -3,14 +3,16 @@ import {
   createRallyController,
   updateRallyController,
 } from "@/interface/controllers/record/rally.controller";
+import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 
 export const POST = async (
   req: NextRequest,
   props: { params: Promise<{ recordId: string }> }
 ) => {
-  const params = await props.params;
-  const { recordId } = params;
   try {
+    await connectToMongoDB();
+    const params = await props.params;
+    const { recordId } = params;
     const rally = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
@@ -31,9 +33,10 @@ export const PUT = async (
   req: NextRequest,
   props: { params: Promise<{ recordId: string }> }
 ) => {
-  const params = await props.params;
-  const { recordId } = params;
   try {
+    await connectToMongoDB();
+    const params = await props.params;
+    const { recordId } = params;
     const rally = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
