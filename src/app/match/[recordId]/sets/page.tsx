@@ -1,5 +1,7 @@
-const MatchSetsPage = async ({ params }: { params: { recordId: string } }) => {
-  const { recordId } = params;
+const MatchSetsPage = async (props: {
+  params: Promise<{ recordId: string }>;
+}) => {
+  const { recordId } = await props.params;
 
   return (
     <div>
