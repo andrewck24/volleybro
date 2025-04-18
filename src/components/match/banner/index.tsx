@@ -4,6 +4,7 @@ import { Teams } from "@/components/match/banner/teams";
 import { Button, Link } from "@/components/ui/button";
 import { Match, MatchPhase } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
+import { phase as phaseText } from "@/lib/constants/match";
 import { RiFileListLine, RiInformationLine } from "react-icons/ri";
 
 export const Banner = ({ recordId }: { recordId: string }) => {
@@ -35,7 +36,7 @@ const Info = ({ info }: { info: Match }) => {
     <div className="flex w-full flex-col items-center justify-center px-4 pt-2 text-muted-foreground">
       <p>
         {name || "未知賽事"}
-        {phase !== MatchPhase.NONE && ` - ${phase}`}
+        {phase !== MatchPhase.NONE && ` - ${getPhaseText(phase)}`}
         {number && ` - #${number}`}
       </p>
       <p>
@@ -44,4 +45,19 @@ const Info = ({ info }: { info: Match }) => {
       </p>
     </div>
   );
+};
+
+const getPhaseText = (phase: MatchPhase): string => {
+  switch (phase) {
+    case MatchPhase.ELIM:
+      return phaseText.elim;
+    case MatchPhase.SEED:
+      return phaseText.seed;
+    case MatchPhase.QUAL:
+      return phaseText.qual;
+    case MatchPhase.FINAL:
+      return phaseText.final;
+    default:
+      return "";
+  }
 };

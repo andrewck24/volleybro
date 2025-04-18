@@ -1,9 +1,4 @@
 "use client";
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { RiCalendarLine, RiCheckLine } from "react-icons/ri";
-import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -28,12 +23,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { phase, division, category } from "@/lib/text/match";
+import { category, division, phase } from "@/lib/constants/match";
 import {
   MatchInfoFormSchema,
   type TMatchInfoForm,
 } from "@/lib/features/record/types";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { RiCalendarLine, RiCheckLine } from "react-icons/ri";
 
 export const MatchInfoForm = ({
   info,
@@ -64,9 +64,12 @@ export const MatchInfoForm = ({
     <Form
       form={form}
       onSubmit={form.handleSubmit(onSubmit)}
-      className={cn("w-full h-full flex-1 flex flex-col gap-2 overflow-y-hidden", className)}
+      className={cn(
+        "flex h-full w-full flex-1 flex-col gap-2 overflow-y-hidden",
+        className,
+      )}
     >
-      <Card className="flex-1 shadow-none px-0 py-0 overflow-y-auto">
+      <Card className="flex-1 overflow-y-auto px-0 py-0 shadow-none">
         <BasicInfoFields form={form} />
         <Accordion type="single" collapsible>
           <MatchInfoFields form={form} />
@@ -134,8 +137,8 @@ const BasicInfoFields = ({ form }) => {
                     size="wide"
                     variant="outline"
                     className={cn(
-                      "pl-3 text-left font-normal bg-transparent",
-                      !field.value && "text-muted-foreground"
+                      "bg-transparent pl-3 text-left font-normal",
+                      !field.value && "text-muted-foreground",
                     )}
                   >
                     {field.value ? (
