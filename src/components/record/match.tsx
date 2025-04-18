@@ -11,7 +11,7 @@ export const MatchResult = ({ match }: { match: TMatchResult }) => {
   return (
     <Card
       data-slot="MatchResult"
-      onClick={() => router.push(`/record/${match._id}`)}
+      onClick={() => router.push(`/match/${match._id}`)}
       className="flex flex-col gap-2 px-4 py-2 bg-card md:flex-row"
     >
       <div className="flex flex-row items-center justify-center grow-0 gap-2 md:flex-col">

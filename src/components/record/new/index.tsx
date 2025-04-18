@@ -107,7 +107,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
       const record = await res.json();
       if (record.error) throw new Error(record.error);
       mutate(`/api/records/${record._id}`, record, false);
-      return router.push(`/record/${record._id}`);
+      return router.push(`/match/${record._id}`);
     } catch (err) {
       console.log(err);
     }

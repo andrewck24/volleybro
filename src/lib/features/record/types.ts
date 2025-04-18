@@ -1,10 +1,11 @@
-import { z } from "zod";
 import type {
+  Challenge,
   Rally,
   Substitution,
+  TeamStats,
   Timeout,
-  Challenge,
 } from "@/entities/record";
+import { z } from "zod";
 
 // For Forms and Tables
 export const MatchInfoFormSchema = z.object({
@@ -96,3 +97,9 @@ export type ReduxRecordState = {
     recording: ReduxRecording;
   };
 };
+
+// For Other Components
+export interface ITeamsStats {
+  home: TeamStats;
+  away: TeamStats;
+}
