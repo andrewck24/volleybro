@@ -1,6 +1,6 @@
 "use client";
 import { Points } from "@/components/match/stats/teams-stats/points";
-import { type Record, TeamStats } from "@/entities/record";
+import { type Record, type TeamStats, TeamStatsClass } from "@/entities/record";
 import type { ITeamsStats } from "@/lib/features/record/types";
 import { useMemo } from "react";
 
@@ -27,6 +27,12 @@ export const getTeamsStats = (
   teams: Record["teams"],
   setIndex: number,
 ): ITeamsStats => {
+  if (teams.home.stats.length === 0 || teams.away.stats.length === 0) {
+    return {
+      home: new TeamStatsClass(),
+      away: new TeamStatsClass(),
+    };
+  }
   const isCalculatingAll = setIndex === -1;
   if (!isCalculatingAll) {
     return {
@@ -41,8 +47,6 @@ export const getTeamsStats = (
 };
 
 const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
-  if (statsArr.length === 0) return {} as TeamStats;
-
   return statsArr.reduce((acc, stats) => {
     for (const key in stats) {
       if (typeof stats[key] === "object" && stats[key] !== null) {
