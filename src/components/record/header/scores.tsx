@@ -30,6 +30,7 @@ const Team = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+// TODO: 使用 `Figure` 重構
 export const Scores = ({ recordId, ...props }) => {
   const { record } = useRecord(recordId);
   const { scores } = useAppSelector((state) => state.record.general.status);

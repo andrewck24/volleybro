@@ -5,6 +5,7 @@
   "tailwindStylesheet": "./src/app/globals.css",
   "tailwindFunctions": [
     "clsx",
-    "cn"
+    "cn",
+    "cva"
   ]
 }

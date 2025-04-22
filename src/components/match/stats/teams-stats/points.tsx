@@ -9,31 +9,31 @@ export const Points = ({ stats }: { stats: ITeamsStats }) => {
   return (
     <section className="flex w-full flex-col gap-2">
       <StatsItem
-        title="ATTACK"
+        label="ATTACK"
         type={MoveType.ATTACK}
         success={true}
         stats={stats}
       />
       <StatsItem
-        title="BLOCK"
+        label="BLOCK"
         type={MoveType.BLOCKING}
         success={true}
         stats={stats}
       />
       <StatsItem
-        title="SERVE"
+        label="SERVE"
         type={MoveType.SERVING}
         success={true}
         stats={stats}
       />
       <StatsItem
-        title="OPPONENT ERROR"
+        label="OPPONENT ERROR"
         type={MoveType.UNFORCED}
         success={true}
         stats={stats}
       />
       <TotalStatsItem
-        title="TOTAL"
+        label="TOTAL"
         types={[
           MoveType.ATTACK,
           MoveType.BLOCKING,

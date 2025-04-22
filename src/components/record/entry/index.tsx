@@ -29,6 +29,7 @@ export const EntryContainer = ({
   </div>
 );
 
+// TODO: 使用 `Figure` 重構
 export const EntryScore = ({
   win = null,
   children,
