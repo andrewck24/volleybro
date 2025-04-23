@@ -1,8 +1,12 @@
+"use client";
 import { Figure } from "@/components/custom/stats/figures";
-import type { Record, Set, Team } from "@/entities/record";
+import type { Set, Team } from "@/entities/record";
+import { useRecord } from "@/hooks/use-data";
 import { RiGroupLine } from "react-icons/ri";
 
-export const Teams = ({ record }: { record: Record }) => {
+export const Teams = ({ recordId }: { recordId: string }) => {
+  const { record } = useRecord(recordId);
+  
   return (
     <div className="flex w-full flex-row items-center justify-center gap-2 py-2">
       <TeamAvatar team={record.teams.home} isHome={true} />
