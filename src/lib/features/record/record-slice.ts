@@ -262,7 +262,8 @@ const setSetIndex: CaseReducer<ReduxRecordState, PayloadAction<number>> = (
   state,
   action
 ) => {
-  state.editing.status.setIndex = action.payload;
+  // TODO: 刪除 general, editing 的區別
+  state.general.status.setIndex = action.payload;
 };
 
 const setEditingEntryStatus: CaseReducer<

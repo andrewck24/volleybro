@@ -1,17 +1,17 @@
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+"use client";
+import { Button } from "@/components/ui/button";
+import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panels";
+import { Separator } from "@/components/ui/separator";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
+import { LineupOptionMode } from "@/lib/features/team/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
+  RiArrowLeftWideLine,
   RiUserFollowLine,
   RiUserLine,
-  RiArrowLeftWideLine,
 } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
-import { LineupOptionMode } from "@/lib/features/team/types";
-
-const Substitutes = ({ members, others, className }) => {
+export const Substitutes = ({ members, others }) => {
   const dispatch = useAppDispatch();
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[status.lineupIndex].liberos.length;
@@ -27,7 +27,7 @@ const Substitutes = ({ members, others, className }) => {
           _id: member._id,
           list: "substitutes",
           zone: index + 1,
-        })
+        }),
       );
     } else {
       dispatch(lineupActions.removeSubstitutePlayer(member._id));
@@ -41,7 +41,7 @@ const Substitutes = ({ members, others, className }) => {
           _id: member._id,
           list: "",
           zone: index + 1,
-        })
+        }),
       );
     } else if (!isSubstituteFull) {
       dispatch(lineupActions.addSubstitutePlayer(member._id));
@@ -49,21 +49,20 @@ const Substitutes = ({ members, others, className }) => {
   };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() =>
-              dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
-            }
-          >
-            <RiArrowLeftWideLine />
-          </Button>
-          {`替補名單 (${substituteCount}/${substituteLimit})`}
-        </CardTitle>
-      </CardHeader>
+    <PanelContent>
+      <PanelHeader>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 [&>svg]:size-5"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
+          }
+        >
+          <RiArrowLeftWideLine />
+        </Button>
+        <PanelTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</PanelTitle>
+      </PanelHeader>
       {lineups[status.lineupIndex].substitutes.map((player, index) => {
         const member = members.find((m) => m._id === player._id);
         return (
@@ -75,7 +74,7 @@ const Substitutes = ({ members, others, className }) => {
             className="text-xl"
           >
             <RiUserFollowLine />
-            <span className="flex justify-end font-semibold basis-8">
+            <span className="flex basis-8 justify-end font-semibold">
               {member.number || " "}
             </span>
             {member.name}
@@ -93,15 +92,13 @@ const Substitutes = ({ members, others, className }) => {
             className="text-xl"
           >
             <RiUserLine />
-            <span className="flex justify-end font-semibold basis-8">
+            <span className="flex basis-8 justify-end font-semibold">
               {member.number}
             </span>
             {member.name}
           </Button>
         );
       })}
-    </Card>
+    </PanelContent>
   );
 };
-
-export default Substitutes;
