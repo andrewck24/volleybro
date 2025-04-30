@@ -1,12 +1,44 @@
-import { useRecord } from "@/hooks/use-data";
-import { type LineupPlayer } from "@/entities/team";
 import { type Record, EntryType, Rally } from "@/entities/record";
+import { type LineupPlayer } from "@/entities/team";
+import { useRecord } from "@/hooks/use-data";
 import type { ReduxStatus } from "@/lib/features/record/types";
 
-const getGeneralModeLineup = (record: Record, status: ReduxStatus) => {
-  const { setIndex } = status;
+export const useLineup = (
+  recordId: string,
+  setIndex: number,
+  status: ReduxStatus,
+) => {
+  const { entryIndex, isServing, inProgress } = status;
+  const { record } = useRecord(recordId);
+
+  if (!inProgress) return { starting: [], liberos: [] };
+
+  const { entries, lineups } = record.sets[setIndex];
+
+  const lineup =
+    entryIndex === entries.length
+      ? getGeneralModeLineup(record, setIndex)
+      : getEditingModeLineup(record, setIndex, entryIndex);
+
+  const switchTargetIndex = lineup.starting.findIndex(
+    (player, index) =>
+      player.position === lineups.home.options.liberoReplacePosition &&
+      ((index === 0 && !isServing) || index >= 4),
+  );
+  if (switchTargetIndex !== -1) {
+    const switchTarget = {
+      ...lineup.starting[switchTargetIndex],
+    };
+    lineup.starting[switchTargetIndex] = lineup.liberos[0];
+    lineup.liberos[0] = switchTarget;
+  }
+
+  return lineup;
+};
+
+const getGeneralModeLineup = (record: Record, setIndex: number) => {
   const { starting, liberos } = structuredClone(
-    record.sets[setIndex].lineups.home
+    record.sets[setIndex].lineups.home,
   );
   const { players, stats } = record.teams.home;
   const lineup = {
@@ -47,8 +79,11 @@ const getGeneralModeLineup = (record: Record, status: ReduxStatus) => {
   return lineup;
 };
 
-const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
-  const { setIndex, entryIndex } = status;
+const getEditingModeLineup = (
+  record: Record,
+  setIndex: number,
+  entryIndex: number,
+) => {
   const { players } = record.teams.home;
   const set = record.sets[setIndex];
 
@@ -66,7 +101,7 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
       }
       return acc;
     },
-    { isServing: set.options.serve === "home", rotation: 0 }
+    { isServing: set.options.serve === "home", rotation: 0 },
   );
 
   const { starting, liberos } = structuredClone(set.lineups.home);
@@ -88,10 +123,10 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
     const toSwap = isSub === wasSub;
 
     const mainPlayer = players.find(
-      (p) => p._id === (toSwap ? player._id : player?.sub?._id)
+      (p) => p._id === (toSwap ? player._id : player?.sub?._id),
     );
     const subPlayer = players.find(
-      (p) => p._id === (hasSub && (toSwap ? player?.sub?._id : player._id))
+      (p) => p._id === (hasSub && (toSwap ? player?.sub?._id : player._id)),
     );
 
     return {
@@ -113,35 +148,6 @@ const getEditingModeLineup = (record: Record, status: ReduxStatus) => {
   if (rotation) {
     const rotatedPlayers = lineup.starting.splice(0, rotation);
     lineup.starting.push(...rotatedPlayers);
-  }
-
-  return lineup;
-};
-
-export const useLineup = (recordId: string, status: ReduxStatus) => {
-  const { setIndex, entryIndex, isServing, inProgress } = status;
-  const { record } = useRecord(recordId);
-
-  if (!inProgress) return { starting: [], liberos: [] };
-
-  const { entries, lineups } = record.sets[setIndex];
-
-  const lineup =
-    entryIndex === entries.length
-      ? getGeneralModeLineup(record, status)
-      : getEditingModeLineup(record, status);
-
-  const switchTargetIndex = lineup.starting.findIndex(
-    (player, index) =>
-      player.position === lineups.home.options.liberoReplacePosition &&
-      ((index === 0 && !isServing) || index >= 4)
-  );
-  if (switchTargetIndex !== -1) {
-    const switchTarget = {
-      ...lineup.starting[switchTargetIndex],
-    };
-    lineup.starting[switchTargetIndex] = lineup.liberos[0];
-    lineup.liberos[0] = switchTarget;
   }
 
   return lineup;

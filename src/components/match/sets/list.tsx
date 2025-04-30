@@ -12,19 +12,17 @@ import { Dialog } from "@/components/ui/dialog";
 import type { Set } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
 import { getPreviousRally } from "@/lib/features/record/helpers";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { useAppDispatch } from "@/lib/redux/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiAddLine, RiArrowRightLine, RiMoreLine } from "react-icons/ri";
 
 export const SetsList = ({ recordId }: { recordId: string }) => {
   const { record } = useRecord(recordId);
-  const dispatch = useAppDispatch();
+  const [setIndex, setSetIndex] = useState<number>(0);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
 
   const handleOptionsOpen = (setIndex: number) => {
-    dispatch(recordActions.setSetIndex(setIndex));
+    setSetIndex(setIndex);
     setDialogOpen(true);
   };
 
@@ -46,7 +44,7 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
         新增一局
       </Button>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <SetOptions recordId={recordId} />
+        <SetOptions recordId={recordId} setIndex={setIndex} />
       </Dialog>
     </>
   );

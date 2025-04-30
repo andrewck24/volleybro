@@ -9,15 +9,18 @@ import {
 } from "@/components/ui/dialog";
 import { useRecord } from "@/hooks/use-data";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useAppDispatch } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 
-export const SetOptions = ({ recordId }: { recordId: string }) => {
+export const SetOptions = ({
+  recordId,
+  setIndex,
+}: {
+  recordId: string;
+  setIndex: number;
+}) => {
   const dispatch = useAppDispatch();
   const { record } = useRecord(recordId);
-  const { setIndex } = useAppSelector(
-    (state) => state.record[state.record.mode].status,
-  );
 
   useEffect(() => {
     const lineup =

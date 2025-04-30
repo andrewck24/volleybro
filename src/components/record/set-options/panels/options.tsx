@@ -36,8 +36,7 @@ import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 export const Options = ({ recordId }: { recordId: string }) => {
   const router = useRouter();
   const { lineups } = useAppSelector((state) => state.lineup);
-  const { mode } = useAppSelector((state) => state.record);
-  const { setIndex } = useAppSelector((state) => state.record[mode].status);
+  const { setIndex } = useAppSelector((state) => state.record);
   const { hasPairedReplacePosition } = useReplacePosition();
   const { record, mutate } = useRecord(recordId);
   const isNewSet = setIndex === record?.sets.length;

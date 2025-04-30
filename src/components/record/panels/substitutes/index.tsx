@@ -1,15 +1,15 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { useRecord } from "@/hooks/use-data";
-import { useSubstitutes } from "@/lib/features/record/hooks/use-substitutes";
-import { RiArrowLeftWideLine, RiCheckLine } from "react-icons/ri";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRecord } from "@/hooks/use-data";
 import { createSubstitution } from "@/lib/features/record/actions/create-substitution";
 import { createSubstitutionHelper } from "@/lib/features/record/helpers";
+import { useSubstitutes } from "@/lib/features/record/hooks/use-substitutes";
+import { recordActions } from "@/lib/features/record/record-slice";
 import type { ReduxRecordState } from "@/lib/features/record/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { cn } from "@/lib/utils";
+import { RiArrowLeftWideLine, RiCheckLine } from "react-icons/ri";
 
 const Substitutes = ({
   recordId,
@@ -22,9 +22,14 @@ const Substitutes = ({
 }) => {
   const dispatch = useAppDispatch();
   const { record, mutate } = useRecord(recordId);
+  const { setIndex } = useAppSelector((state) => state.record);
   const { status, recording } = useAppSelector((state) => state.record[mode]);
-  const { setIndex, entryIndex } = status;
-  const substitutes = useSubstitutes(recordId, { status, recording });
+  const { entryIndex } = status;
+  const substitutes = useSubstitutes(recordId, {
+    setIndex,
+    entryIndex,
+    recording,
+  });
 
   const onSubmit = async () => {
     try {
@@ -32,16 +37,16 @@ const Substitutes = ({
         createSubstitution(
           { recordId, setIndex, entryIndex },
           recording.substitution,
-          record
+          record,
         ),
         {
           revalidate: false,
           optimisticData: createSubstitutionHelper(
             { recordId, setIndex, entryIndex },
             recording.substitution,
-            record
+            record,
           ),
-        }
+        },
       );
       dispatch(recordActions.confirmRecordingSubstitution());
     } catch (error) {
@@ -50,7 +55,7 @@ const Substitutes = ({
   };
 
   return (
-    <Card className={cn("flex-1 w-full pb-4", className)}>
+    <Card className={cn("w-full flex-1 pb-4", className)}>
       <CardHeader>
         <CardTitle>
           <Button
@@ -76,12 +81,12 @@ const Substitutes = ({
               onClick={() =>
                 dispatch(
                   recordActions.setRecordingSubstitution(
-                    toggled ? null : substitute._id
-                  )
+                    toggled ? null : substitute._id,
+                  ),
                 )
               }
             >
-              <span className="flex justify-end font-semibold basis-8">
+              <span className="flex basis-8 justify-end font-semibold">
                 {substitute.number}
               </span>
               {substitute.name}

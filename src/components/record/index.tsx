@@ -1,19 +1,25 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { useRecord } from "@/hooks/use-data";
+import LoadingCard from "@/components/custom/loading/card";
+import LoadingCourt from "@/components/custom/loading/court";
+import RecordCourt from "@/components/record/court";
+import Header from "@/components/record/header";
+import RecordOptions from "@/components/record/options";
+import RecordPanels from "@/components/record/panels";
+import RecordPreview from "@/components/record/preview";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
-import Header from "@/components/record/header";
-import RecordCourt from "@/components/record/court";
-import RecordPreview from "@/components/record/preview";
-import RecordPanels from "@/components/record/panels";
-import RecordOptions from "@/components/record/options";
-import LoadingCourt from "@/components/custom/loading/court";
-import LoadingCard from "@/components/custom/loading/card";
+import { useRecord } from "@/hooks/use-data";
+import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useEffect, useState } from "react";
 
-const Record = ({ recordId }: { recordId: string }) => {
+const Record = ({
+  recordId,
+  setIndex,
+}: {
+  recordId: string;
+  setIndex: number;
+}) => {
   const { record, isLoading, error } = useRecord(recordId);
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -21,14 +27,14 @@ const Record = ({ recordId }: { recordId: string }) => {
   const recordState = useAppSelector((state) => state.record);
 
   const handleOptionOpen = (tabValue: string) => {
-    dispatch(recordActions.initialize(record));
+    dispatch(recordActions.initialize({ record, setIndex }));
     setTabValue(tabValue);
     setDialogOpen(true);
   };
 
   useEffect(() => {
-    if (record) dispatch(recordActions.initialize(record));
-  }, [recordId, record, dispatch]);
+    if (record) dispatch(recordActions.initialize({ record, setIndex }));
+  }, [recordId, setIndex, record, dispatch]);
 
   if (error) throw error;
   if (isLoading || recordState._id !== recordId) {
@@ -37,9 +43,9 @@ const Record = ({ recordId }: { recordId: string }) => {
         <Header />
         <LoadingCourt />
         <Card className="grid w-full p-2">
-          <div className="h-8 rounded-md motion-safe:animate-pulse bg-muted" />
+          <div className="h-8 rounded-md bg-muted motion-safe:animate-pulse" />
         </Card>
-        <LoadingCard className="flex-1 w-full pb-4" />
+        <LoadingCard className="w-full flex-1 pb-4" />
       </>
     );
   }

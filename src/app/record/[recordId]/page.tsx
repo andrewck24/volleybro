@@ -5,9 +5,9 @@ const RecordPage = async (props: {
   searchParams: Promise<{ si: string }>;
 }) => {
   const { recordId } = await props.params;
-  const { si: setIndex } = await props.searchParams;
+  const { si } = await props.searchParams;
 
-  return <Record recordId={recordId} />;
+  return <Record recordId={recordId} setIndex={Number(si)} />;
 };
 
 export default RecordPage;

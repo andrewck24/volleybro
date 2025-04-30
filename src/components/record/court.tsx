@@ -1,16 +1,17 @@
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { useLineup } from "@/lib/features/record/hooks/use-lineup";
+"use client";
 import {
+  AdjustButton,
   Court,
-  Outside,
   Inside,
+  Outside,
+  PlaceholderCard,
   PlayerCard,
   SubIndicator,
-  AdjustButton,
-  PlaceholderCard,
 } from "@/components/custom/court";
+import { useLineup } from "@/lib/features/record/hooks/use-lineup";
+import { recordActions } from "@/lib/features/record/record-slice";
 import type { ReduxRecordState } from "@/lib/features/record/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
 const RecordCourt = ({
   recordId,
@@ -20,8 +21,9 @@ const RecordCourt = ({
   mode: ReduxRecordState["mode"];
 }) => {
   const dispatch = useAppDispatch();
+  const { setIndex } = useAppSelector((state) => state.record);
   const { status, recording } = useAppSelector((state) => state.record[mode]);
-  const { starting, liberos } = useLineup(recordId, status);
+  const { starting, liberos } = useLineup(recordId, setIndex, status);
 
   if (status.inProgress === false) {
     return (
@@ -72,7 +74,7 @@ const RecordCourt = ({
                 recordActions.setRecordingPlayer({
                   _id: player._id,
                   zone: index + 1,
-                })
+                }),
               )
             }
           >
