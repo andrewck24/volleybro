@@ -1,42 +1,28 @@
-import { useAppSelector } from "@/lib/redux/hooks";
-import PlayerInfo from "@/components/team/lineup/panels/player-info";
-import Options from "@/components/record/set-options/panels/options";
-import Positions from "@/components/team/lineup/panels/positions";
-import Substitutes from "@/components/record/set-options/panels/substitutes";
-
+"use client";
+import { Options } from "@/components/record/set-options/panels/options";
+import { Substitutes } from "@/components/record/set-options/panels/substitutes";
+import { PlayerInfo } from "@/components/team/lineup/panels/player-info";
+import { Positions } from "@/components/team/lineup/panels/positions";
+import { Panels } from "@/components/ui/panels";
+import { useRecord } from "@/hooks/use-data";
 import { LineupOptionMode } from "@/lib/features/team/types";
-import type { Player } from "@/entities/record";
+import { useAppSelector } from "@/lib/redux/hooks";
 
-const LineupPanels = ({
-  recordId,
-  members,
-  hasPairedSwitchPosition,
-  className,
-}: {
-  recordId: string;
-  members: Player[];
-  hasPairedSwitchPosition: boolean;
-  className?: string;
-}) => {
+export const SetOptionsPanels = ({ recordId }: { recordId: string }) => {
+  const { record } = useRecord(recordId);
   const { optionMode } = useAppSelector((state) => state.lineup.status);
 
   return (
-    <>
+    <Panels>
       {optionMode === LineupOptionMode.PLAYERINFO ? (
-        <PlayerInfo members={members} className={className} />
+        <PlayerInfo members={record.teams.home.players} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
-        <Substitutes members={members} className={className} />
+        <Substitutes recordId={recordId} />
       ) : optionMode === LineupOptionMode.POSITIONS ? (
-        <Positions className={className} />
+        <Positions />
       ) : (
-        <Options
-          recordId={recordId}
-          members={members}
-          hasPairedSwitchPosition={hasPairedSwitchPosition}
-        />
+        <Options recordId={recordId} />
       )}
-    </>
+    </Panels>
   );
 };
-
-export default LineupPanels;

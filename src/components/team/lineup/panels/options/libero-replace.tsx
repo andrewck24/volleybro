@@ -1,18 +1,7 @@
 "use client";
-import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  RiArrowRightWideLine,
-  RiAlertLine,
-  RiQuestionLine,
-} from "react-icons/ri";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -27,71 +16,38 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
+import { PanelSection, PanelSectionTitle } from "@/components/ui/panels";
 import {
   Select,
-  SelectTrigger,
-  SelectItem,
-  SelectValue,
   SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-
+import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-position";
+import { lineupActions } from "@/lib/features/team/lineup-slice";
 import {
   LiberoReplaceFormSchema,
   type LiberoReplaceFormValues,
 } from "@/lib/features/team/types";
+import { useAppDispatch } from "@/lib/redux/hooks";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import {
+  RiAlertLine,
+  RiArrowRightWideLine,
+  RiQuestionLine,
+} from "react-icons/ri";
 
-const LiberoReplace = () => {
-  const dispatch = useAppDispatch();
-  const { lineups, status } = useAppSelector((state) => state.lineup);
-  const { liberoReplaceMode, liberoReplacePosition } =
-    lineups[status.lineupIndex]?.options;
-  const hasPairedSwitchPosition =
-    liberoReplacePosition === "OP"
-      ? true
-      : lineups[status.lineupIndex]?.starting.some((player, index) => {
-          const oppositeIndex = index >= 3 ? index - 3 : index + 3;
-          return (
-            player._id &&
-            player.position === liberoReplacePosition &&
-            lineups[status.lineupIndex].starting[oppositeIndex]._id &&
-            lineups[status.lineupIndex].starting[oppositeIndex].position ===
-              liberoReplacePosition
-          );
-        });
-
-  const form = useForm<LiberoReplaceFormValues>({
-    resolver: zodResolver(LiberoReplaceFormSchema),
-    defaultValues: {
-      mode: String(liberoReplaceMode) as LiberoReplaceFormValues["mode"],
-      position: liberoReplacePosition,
-    },
-  });
-
-  useEffect(() => {
-    form.reset({
-      mode: String(liberoReplaceMode) as LiberoReplaceFormValues["mode"],
-      position: liberoReplacePosition,
-    });
-  }, [form, liberoReplaceMode, liberoReplacePosition]);
-
-  const onSubmit = (data: LiberoReplaceFormValues) => {
-    const modeNumber = parseInt(data.mode, 10) as 0 | 1 | 2;
-    dispatch(
-      lineupActions.setLiberoReplace({
-        liberoReplaceMode: modeNumber,
-        liberoReplacePosition: data.position,
-      })
-    );
-  };
+export const LiberoReplaceTrigger = () => {
+  const { liberoReplaceMode, liberoReplacePosition, hasPairedReplacePosition } =
+    useReplacePosition();
 
   return (
-    <div className="grid gap-2 pb-2 text-xl">
-      <h4 className="px-2 text-lg font-medium text-muted-foreground">
-        自由球員設定
-      </h4>
-      <Separator />
-      {!!liberoReplaceMode && !hasPairedSwitchPosition && (
+    <PanelSection>
+      <PanelSectionTitle>自由球員設定</PanelSectionTitle>
+      {!!liberoReplaceMode && !hasPairedReplacePosition && (
         <Alert variant="destructive">
           <RiAlertLine />
           <AlertTitle>無對位 {liberoReplacePosition}</AlertTitle>
@@ -101,79 +57,16 @@ const LiberoReplace = () => {
           </AlertDescription>
         </Alert>
       )}
-
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="wide">
-            替換模式
-            <span className="flex-1 text-left text-primary">
-              {liberoReplaceMode === 0 ? "手動替換" : "自動替換"}{" "}
-              {liberoReplaceMode ? liberoReplacePosition : ""}
-            </span>
-            <RiArrowRightWideLine />
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>自由球員替換模式</DialogTitle>
-            <DialogDescription>
-              選擇自由球員替換模式與替換對象。
-            </DialogDescription>
-          </DialogHeader>
-          <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
-            <FormField
-              control={form.control}
-              name="mode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>替換模式</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇替換模式" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="0">手動替換</SelectItem>
-                      <SelectItem value="1">自動替換</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>替換對象</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="選擇替換模式" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="MB">MB</SelectItem>
-                      <SelectItem value="OH">OH</SelectItem>
-                      <SelectItem value="OP">OP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-            <DialogClose asChild>
-              <Button type="submit">確定</Button>
-            </DialogClose>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="wide">
+          替換模式
+          <span className="flex-1 text-left text-primary">
+            {liberoReplaceMode === 0 ? "手動替換" : "自動替換"}{" "}
+            {liberoReplaceMode ? liberoReplacePosition : ""}
+          </span>
+          <RiArrowRightWideLine />
+        </Button>
+      </DialogTrigger>
       {liberoReplaceMode === 0 ? (
         <Alert>
           <RiQuestionLine />
@@ -199,8 +92,91 @@ const LiberoReplace = () => {
           )}
         </Alert>
       )}
-    </div>
+    </PanelSection>
   );
 };
 
-export default LiberoReplace;
+export const LiberoReplaceDialog = () => {
+  const dispatch = useAppDispatch();
+  const { liberoReplaceMode, liberoReplacePosition } = useReplacePosition();
+
+  const form = useForm<LiberoReplaceFormValues>({
+    resolver: zodResolver(LiberoReplaceFormSchema),
+    defaultValues: {
+      mode: String(liberoReplaceMode) as LiberoReplaceFormValues["mode"],
+      position: liberoReplacePosition,
+    },
+  });
+
+  useEffect(() => {
+    form.reset({
+      mode: String(liberoReplaceMode) as LiberoReplaceFormValues["mode"],
+      position: liberoReplacePosition,
+    });
+  }, [form, liberoReplaceMode, liberoReplacePosition]);
+
+  const onSubmit = (data: LiberoReplaceFormValues) => {
+    const modeNumber = parseInt(data.mode, 10) as 0 | 1 | 2;
+    dispatch(
+      lineupActions.setLiberoReplace({
+        liberoReplaceMode: modeNumber,
+        liberoReplacePosition: data.position,
+      }),
+    );
+  };
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>自由球員替換模式</DialogTitle>
+        <DialogDescription>選擇自由球員替換模式與替換對象。</DialogDescription>
+      </DialogHeader>
+      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          control={form.control}
+          name="mode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>替換模式</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇替換模式" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="0">手動替換</SelectItem>
+                  <SelectItem value="1">自動替換</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="position"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>替換對象</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇替換對象" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="MB">MB</SelectItem>
+                  <SelectItem value="OH">OH</SelectItem>
+                  <SelectItem value="OP">OP</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+        <DialogClose asChild>
+          <Button type="submit">確定</Button>
+        </DialogClose>
+      </Form>
+    </DialogContent>
+  );
+};

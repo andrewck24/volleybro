@@ -1,13 +1,13 @@
 "use client";
-import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { RiSaveLine } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import LineupCourt from "@/components/team/lineup/court";
-import LineupPanels from "@/components/team/lineup/panels";
-import LoadingCourt from "@/components/custom/loading/court";
 import LoadingCard from "@/components/custom/loading/card";
+import LoadingCourt from "@/components/custom/loading/court";
+import LineupCourt from "@/components/team/lineup/court";
+import { LineupPanels } from "@/components/team/lineup/panels";
+import { Button } from "@/components/ui/button";
+import { lineupActions } from "@/lib/features/team/lineup-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useEffect } from "react";
+import { RiSaveLine } from "react-icons/ri";
 
 const Lineup = ({ team, members, handleSave }) => {
   const dispatch = useAppDispatch();
@@ -20,7 +20,7 @@ const Lineup = ({ team, members, handleSave }) => {
     liberoReplaceMode === 0 ||
     (liberoReplacePosition === "OP"
       ? lineups[status.lineupIndex]?.starting.some(
-          (player) => player._id && player.position === "OP"
+          (player) => player._id && player.position === "OP",
         )
       : lineups[status.lineupIndex]?.starting.some((player, index) => {
           const oppositeIndex = index >= 3 ? index - 3 : index + 3;
@@ -41,8 +41,8 @@ const Lineup = ({ team, members, handleSave }) => {
     return (
       <>
         <LoadingCourt />
-        <LoadingCard className="flex-1 w-full" />
-        <div className="flex flex-col w-full px-4">
+        <LoadingCard className="w-full flex-1" />
+        <div className="flex w-full flex-col px-4">
           <Button size="lg" className="motion-safe:animate-pulse" />
         </div>
       </>
@@ -55,10 +55,9 @@ const Lineup = ({ team, members, handleSave }) => {
       <LineupPanels
         members={members}
         hasPairedSwitchPosition={hasPairedSwitchPosition}
-        className="w-full"
       />
       {!status.optionMode && (
-        <div className="flex flex-col w-full px-4 pt-2">
+        <div className="flex w-full flex-col px-4 pt-2">
           <Button
             size="lg"
             onClick={() => handleSave(lineups)}

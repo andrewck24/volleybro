@@ -71,7 +71,6 @@ export type ReduxStatus = {
     home: number;
     away: number;
   };
-  setIndex: number;
   entryIndex: number;
   isServing: boolean;
   inProgress: boolean;
@@ -87,6 +86,7 @@ export type ReduxRecording = Rally & {
 
 export type ReduxRecordState = {
   _id: string;
+  setIndex: number;
   mode: "general" | "editing";
   general: {
     status: ReduxStatus;

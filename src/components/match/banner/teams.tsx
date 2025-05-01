@@ -1,7 +1,12 @@
-import type { Record, Set, Team } from "@/entities/record";
+"use client";
+import { Figure } from "@/components/custom/stats/figures";
+import type { Set, Team } from "@/entities/record";
+import { useRecord } from "@/hooks/use-data";
 import { RiGroupLine } from "react-icons/ri";
 
-export const Teams = ({ record }: { record: Record }) => {
+export const Teams = ({ recordId }: { recordId: string }) => {
+  const { record } = useRecord(recordId);
+  
   return (
     <div className="flex w-full flex-row items-center justify-center gap-2 py-2">
       <TeamAvatar team={record.teams.home} isHome={true} />
@@ -25,16 +30,22 @@ const TeamAvatar = ({ team, isHome }: { team?: Team; isHome: boolean }) => {
 const SetScore = ({ sets }: { sets: Set[] }) => {
   const homeSetsWon = sets.filter((set) => set.win === true).length;
   const awaySetsWon = sets.filter((set) => set.win === false).length;
+  const isHomeWin = homeSetsWon > awaySetsWon;
+  const isAwayWin = awaySetsWon > homeSetsWon;
 
   return (
     <div className="flex flex-1 flex-row items-center justify-center gap-2">
-      <div className="flex size-16 items-center justify-center rounded-lg bg-accent text-[3rem]">
-        {homeSetsWon}
-      </div>
+      <Figure
+        value={homeSetsWon}
+        size="lg"
+        variant={isHomeWin ? "primaryText" : "secondary"}
+      />
       <div className="font-medium text-muted-foreground">:</div>
-      <div className="flex size-16 items-center justify-center rounded-lg bg-accent text-[3rem]">
-        {awaySetsWon}
-      </div>
+      <Figure
+        value={awaySetsWon}
+        size="lg"
+        variant={isAwayWin ? "destructiveText" : "secondary"}
+      />
     </div>
   );
 };

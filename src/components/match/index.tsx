@@ -16,11 +16,11 @@ const Match = ({ recordId }: { recordId: string }) => {
   }
 
   return (
-    <main className="flex w-full flex-col items-center justify-center gap-2 pt-[calc(env(safe-area-inset-top)+3rem)]">
-      <Header />
+    <>
+      <Header title="賽事總覽" url="/home" />
       <Banner recordId={recordId} />
       <Stats recordId={recordId} />
-    </main>
+    </>
   );
 };
 
