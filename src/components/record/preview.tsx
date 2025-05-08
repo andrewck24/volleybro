@@ -1,5 +1,5 @@
 "use client";
-import Entry from "@/components/record/entry";
+import { Entry } from "@/components/record/entry";
 import { Card } from "@/components/ui/card";
 import { type Entry as IEntry, EntryType } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
@@ -7,7 +7,7 @@ import type { ReduxRecordState } from "@/lib/features/record/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 
-const RecordPreview = ({
+export const RecordPreview = ({
   recordId,
   mode,
   handleOptionOpen,
@@ -50,5 +50,3 @@ const RecordPreview = ({
     </Card>
   );
 };
-
-export default RecordPreview;

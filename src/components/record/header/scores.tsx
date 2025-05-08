@@ -4,33 +4,6 @@ import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { MdOutlineSportsVolleyball } from "react-icons/md";
 
-const Container = ({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) => {
-  return (
-    <div
-      className={cn(
-        "flex h-20 w-16 flex-col items-center justify-center text-[3rem] leading-none font-bold [&>svg]:size-12",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
-};
-
-const Team = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div className="flex w-full max-w-16 items-center justify-center overflow-hidden text-[1rem] font-medium text-ellipsis whitespace-nowrap">
-      {children}
-    </div>
-  );
-};
-
 // TODO: 使用 `Figure` 重構
 export const Scores = ({ recordId, ...props }) => {
   const { record } = useRecord(recordId);
@@ -75,4 +48,29 @@ export const Scores = ({ recordId, ...props }) => {
   );
 };
 
-export default Scores;
+const Container = ({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) => {
+  return (
+    <div
+      className={cn(
+        "flex h-20 w-16 flex-col items-center justify-center text-[3rem] leading-none font-bold [&>svg]:size-12",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
+const Team = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex w-full max-w-16 items-center justify-center overflow-hidden text-[1rem] font-medium text-ellipsis whitespace-nowrap">
+      {children}
+    </div>
+  );
+};

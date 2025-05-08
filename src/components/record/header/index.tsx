@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { RiArrowLeftLine, RiSettings4Line } from "react-icons/ri";
 
-export const Header = ({
+export const RecordHeader = ({
   recordId,
   handleOptionOpen,
 }: {
@@ -40,5 +40,3 @@ export const Header = ({
     </header>
   );
 };
-
-export default Header;

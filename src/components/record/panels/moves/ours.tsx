@@ -1,18 +1,18 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { Container, MoveButton } from "@/components/record/panels/moves";
+import { Button } from "@/components/ui/button";
 import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
-  frontMoves,
   backMoves,
   errorMoves,
+  frontMoves,
   type ScoringMove,
 } from "@/lib/scoring-moves";
-import { FiPlus, FiMinus } from "react-icons/fi";
+import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiRepeat2Line } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import { Container, MoveButton } from "@/components/record/panels/moves";
 
-const OursMoves = () => {
+export const OursMoves = () => {
   const dispatch = useAppDispatch();
   const recordState = useAppSelector((state) => state.record);
   const { recording } = recordState[recordState.mode];
@@ -41,7 +41,7 @@ const OursMoves = () => {
         <Button
           variant="secondary"
           size="lg"
-          className="h-full text-[1.5rem] pr-1"
+          className="h-full pr-1 text-[1.5rem]"
           onClick={() => dispatch(recordActions.setPanel("substitutes"))}
         >
           替補
@@ -51,5 +51,3 @@ const OursMoves = () => {
     </Container>
   );
 };
-
-export default OursMoves;

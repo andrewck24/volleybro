@@ -1,5 +1,5 @@
 "use client";
-import Entry from "@/components/record/entry";
+import { Entry } from "@/components/record/entry";
 import { Separator } from "@/components/ui/separator";
 import { useRecord } from "@/hooks/use-data";
 import { recordActions } from "@/lib/features/record/record-slice";

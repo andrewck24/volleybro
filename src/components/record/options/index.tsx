@@ -63,5 +63,3 @@ export const RecordOptions = ({
     </DialogContent>
   );
 };
-
-export default RecordOptions;

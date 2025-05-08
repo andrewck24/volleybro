@@ -1,12 +1,59 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { OppoMoves } from "@/components/record/panels/moves/oppo";
+import { OursMoves } from "@/components/record/panels/moves/ours";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { RiEditBoxLine } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import OursMoves from "@/components/record/panels/moves/ours";
-import OppoMoves from "@/components/record/panels/moves/oppo";
+export const RecordMoves = ({
+  recordId,
+  className,
+}: {
+  recordId: string;
+  className?: string;
+}) => {
+  const dispatch = useAppDispatch();
+  const recordState = useAppSelector((state) => state.record);
+  const { status, recording } = recordState[recordState.mode];
+
+  return (
+    <Card className={cn("w-full flex-1 pb-4", className)}>
+      <CardHeader className="flex-row">
+        <CardTitle
+          onClick={() => dispatch(recordActions.setPanel("home"))}
+          className={cn(
+            "overflow-hidden border-b-2 border-l-2 border-primary p-1 text-nowrap transition-all",
+            status.panel === "home" ? "w-full" : "w-[2rem]",
+          )}
+        >
+          <RiEditBoxLine className="w-6 min-w-6" />
+          我方得失分紀錄
+        </CardTitle>
+        <CardTitle
+          onClick={() => dispatch(recordActions.setPanel("away"))}
+          className={cn(
+            "overflow-hidden border-b-2 border-l-2 border-destructive p-1 text-nowrap transition-all",
+            status.panel !== "home"
+              ? "w-full"
+              : recording.home.num === null
+                ? "sr-only w-0"
+                : "w-[2rem]",
+          )}
+        >
+          <RiEditBoxLine className="w-6 min-w-6" />
+          對方得失分紀錄
+        </CardTitle>
+      </CardHeader>
+      {status.panel === "home" ? (
+        <OursMoves />
+      ) : (
+        <OppoMoves recordId={recordId} />
+      )}
+    </Card>
+  );
+};
 
 export const Container = ({
   children,
@@ -16,7 +63,7 @@ export const Container = ({
   className?: string;
 }) => {
   return (
-    <CardContent className={cn("grid flex-1 w-full grid-cols-2", className)}>
+    <CardContent className={cn("grid w-full flex-1 grid-cols-2", className)}>
       {children}
     </CardContent>
   );
@@ -34,8 +81,8 @@ export const MoveButton = ({ move, toggled, onClick, children }) => {
       variant={move.win ? "default" : "destructive"}
       size="lg"
       className={cn(
-        "h-full text-[1.5rem] pr-1 transition-colors duration-200",
-        toggled || (move.win ? WIN_STYLE : LOSE_STYLE)
+        "h-full pr-1 text-[1.5rem] transition-colors duration-200",
+        toggled || (move.win ? WIN_STYLE : LOSE_STYLE),
       )}
       onClick={() => onClick(move)}
     >
@@ -43,53 +90,3 @@ export const MoveButton = ({ move, toggled, onClick, children }) => {
     </Button>
   );
 };
-
-const RecordMoves = ({
-  recordId,
-  className,
-}: {
-  recordId: string;
-  className?: string;
-}) => {
-  const dispatch = useAppDispatch();
-  const recordState = useAppSelector((state) => state.record);
-  const { status, recording } = recordState[recordState.mode];
-
-  return (
-    <Card className={cn("flex-1 w-full pb-4", className)}>
-      <CardHeader className="flex-row">
-        <CardTitle
-          onClick={() => dispatch(recordActions.setPanel("home"))}
-          className={cn(
-            "p-1 border-l-2 border-b-2 border-primary transition-all overflow-hidden text-nowrap",
-            status.panel === "home" ? "w-full" : "w-[2rem]"
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          我方得失分紀錄
-        </CardTitle>
-        <CardTitle
-          onClick={() => dispatch(recordActions.setPanel("away"))}
-          className={cn(
-            "p-1 border-l-2 border-b-2 border-destructive transition-all overflow-hidden text-nowrap",
-            status.panel !== "home"
-              ? "w-full"
-              : recording.home.num === null
-              ? "w-0 sr-only"
-              : "w-[2rem]"
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          對方得失分紀錄
-        </CardTitle>
-      </CardHeader>
-      {status.panel === "home" ? (
-        <OursMoves />
-      ) : (
-        <OppoMoves recordId={recordId} />
-      )}
-    </Card>
-  );
-};
-
-export default RecordMoves;

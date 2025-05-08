@@ -13,7 +13,7 @@ import { scoringMoves } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiSendPlaneLine } from "react-icons/ri";
 
-const OppoMoves = ({ recordId }: { recordId: string }) => {
+export const OppoMoves = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.record);
   const {
@@ -82,5 +82,3 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
     </Container>
   );
 };
-
-export default OppoMoves;
