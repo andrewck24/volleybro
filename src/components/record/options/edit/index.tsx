@@ -1,18 +1,18 @@
 "use client";
-import { useAppDispatch } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { RiArrowLeftWideLine } from "react-icons/ri";
+import { RecordCourt } from "@/components/record/court";
+import { RecordPanels } from "@/components/record/panels";
+import { RecordPreview } from "@/components/record/preview";
 import { Button } from "@/components/ui/button";
 import {
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import RecordCourt from "@/components/record/court";
-import RecordPreview from "@/components/record/preview";
-import RecordPanels from "@/components/record/panels";
+import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch } from "@/lib/redux/hooks";
+import { RiArrowLeftWideLine } from "react-icons/ri";
 
-const EntriesEdit = ({ recordId }: { recordId: string }) => {
+export const EntriesEdit = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
 
   return (
@@ -45,5 +45,3 @@ const EntriesEdit = ({ recordId }: { recordId: string }) => {
     </>
   );
 };
-
-export default EntriesEdit;
