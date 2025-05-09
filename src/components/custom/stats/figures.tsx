@@ -52,7 +52,7 @@ export const figureVariants = cva(
         destructiveText: "bg-accent text-destructive",
       },
       size: {
-        sm: "size-12 text-[1.5rem]",
+        sm: "size-8 text-[1.5rem] font-normal",
         default: "size-15 text-[2rem]",
         lg: "size-16 text-[3rem]",
       },
@@ -64,7 +64,7 @@ export const figureVariants = cva(
 export interface FigureProps
   extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof figureVariants> {
-  value: number;
+  value?: number;
 }
 
 export const Figure = ({ value, size, variant, className }: FigureProps) => {

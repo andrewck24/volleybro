@@ -51,28 +51,6 @@ export const EntryContainer = ({
   </div>
 );
 
-// TODO: 使用 `Figure` 重構
-export const EntryScore = ({
-  win = null,
-  children,
-}: {
-  win?: boolean;
-  children?: React.ReactNode;
-}) => {
-  return (
-    <div
-      className={cn(
-        "flex flex-none items-center justify-center",
-        "size-8 basis-8 rounded-[0.5rem] text-[1.5rem] font-semibold",
-        win !== null &&
-          (win ? "bg-primary text-primary-foreground" : "bg-accent"),
-      )}
-    >
-      {children}
-    </div>
-  );
-};
-
 export const EntryText = ({
   className,
   children,

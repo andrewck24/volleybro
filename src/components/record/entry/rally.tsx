@@ -1,8 +1,5 @@
-import {
-  EntryPlayerNumber,
-  EntryScore,
-  EntryText,
-} from "@/components/record/entry";
+import { Figure } from "@/components/custom/stats/figures";
+import { EntryPlayerNumber, EntryText } from "@/components/record/entry";
 import { type Player, type Rally as TRally, MoveType } from "@/entities/record";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
@@ -22,13 +19,21 @@ export const Rally = ({
     <>
       {home.type ? (
         <>
-          <EntryScore win={win}>{home.score}</EntryScore>
-          <EntryScore win={!win}>{away.score}</EntryScore>
+          <Figure
+            value={home.score}
+            size="sm"
+            variant={win ? "primary" : "secondary"}
+          />
+          <Figure
+            value={away.score}
+            size="sm"
+            variant={win ? "secondary" : "destructive"}
+          />
         </>
       ) : (
         <>
-          <EntryScore>{home.score}</EntryScore>
-          <EntryScore>{away.score}</EntryScore>
+          <Figure value={home.score} size="sm" variant="secondary" />
+          <Figure value={away.score} size="sm" variant="secondary" />
         </>
       )}
       <EntryText className="border-primary">

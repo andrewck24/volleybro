@@ -1,8 +1,5 @@
-import {
-  EntryPlayerNumber,
-  EntryScore,
-  EntryText,
-} from "@/components/record/entry";
+import { Figure } from "@/components/custom/stats/figures";
+import { EntryPlayerNumber, EntryText } from "@/components/record/entry";
 import {
   type Player,
   type Substitution as TSubstitution,
@@ -21,8 +18,8 @@ export const Substitution = ({
 
   return (
     <>
-      <EntryScore />
-      <EntryScore />
+      <Figure size="sm" />
+      <Figure size="sm" />
       <EntryText>
         <EntryPlayerNumber>{outPlayer?.number}</EntryPlayerNumber>
         OUT
