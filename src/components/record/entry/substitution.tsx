@@ -1,26 +1,25 @@
-import { RiArrowUpWideLine, RiArrowDownWideLine } from "react-icons/ri";
+import { Figure } from "@/components/custom/stats/figures";
+import { EntryPlayerNumber, EntryText } from "@/components/record/entry";
 import {
-  EntryScore,
-  EntryText,
-  EntryPlayerNumber,
-} from "@/components/record/entry";
+  type Player,
+  type Substitution as TSubstitution,
+} from "@/entities/record";
+import { RiArrowDownWideLine, RiArrowUpWideLine } from "react-icons/ri";
 
-import { type Substitution, type Player } from "@/entities/record";
-
-const Substitution = ({
-  substitution,
+export const Substitution = ({
+  data,
   players,
 }: {
-  substitution: Substitution;
+  data: TSubstitution;
   players: Player[];
 }) => {
-  const inPlayer = players.find((p) => p._id === substitution.players.in);
-  const outPlayer = players.find((p) => p._id === substitution.players.out);
+  const inPlayer = players.find((p) => p._id === data.players.in);
+  const outPlayer = players.find((p) => p._id === data.players.out);
 
   return (
     <>
-      <EntryScore />
-      <EntryScore />
+      <Figure size="sm" />
+      <Figure size="sm" />
       <EntryText>
         <EntryPlayerNumber>{outPlayer?.number}</EntryPlayerNumber>
         OUT
@@ -34,5 +33,3 @@ const Substitution = ({
     </>
   );
 };
-
-export default Substitution;

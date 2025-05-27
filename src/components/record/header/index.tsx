@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { RiArrowLeftLine, RiSettings4Line } from "react-icons/ri";
 
-export const Header = ({
+export const RecordHeader = ({
   recordId,
   handleOptionOpen,
 }: {
@@ -14,7 +14,7 @@ export const Header = ({
   const router = useRouter();
 
   return (
-    <header className="fixed top-0 z-10 flex w-full max-w-[640px] items-center justify-between">
+    <header className="fixed top-0 z-10 flex w-full max-w-[640px] items-center justify-between h-21">
       <div className="flex w-full items-center justify-between gap-2 rounded-b-lg bg-card px-2 pt-[env(safe-area-inset-top)] shadow-sm">
         <Button
           variant="ghost"
@@ -40,5 +40,3 @@ export const Header = ({
     </header>
   );
 };
-
-export default Header;

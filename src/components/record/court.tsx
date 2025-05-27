@@ -13,7 +13,7 @@ import { recordActions } from "@/lib/features/record/record-slice";
 import type { ReduxRecordState } from "@/lib/features/record/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
-const RecordCourt = ({
+export const RecordCourt = ({
   recordId,
   mode,
 }: {
@@ -87,5 +87,3 @@ const RecordCourt = ({
     </Court>
   );
 };
-
-export default RecordCourt;

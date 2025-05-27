@@ -79,6 +79,7 @@ const initialize: CaseReducer<
   const isServing = getServingStatus(set, entryIndex);
   state._id = record._id;
   state.setIndex = setIndex;
+  state.mode = "general";
   const status = {
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,

@@ -11,7 +11,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { RiArrowLeftWideLine, RiCheckLine } from "react-icons/ri";
 
-const Substitutes = ({
+export const Substitutes = ({
   recordId,
   mode,
   className,
@@ -101,5 +101,3 @@ const Substitutes = ({
     </Card>
   );
 };
-
-export default Substitutes;

@@ -1,7 +1,7 @@
 "use client";
-import EntriesEdit from "@/components/record/options/edit";
-import RecordOptionsOverview from "@/components/record/options/overview";
-import RecordOptionsSummary from "@/components/record/options/summary";
+import { EntriesEdit } from "@/components/record/options/edit";
+import { RecordOptionsOverview } from "@/components/record/options/overview";
+import { RecordOptionsSummary } from "@/components/record/options/summary";
 import {
   DialogContent,
   DialogDescription,
@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { recordActions } from "@/lib/features/record/record-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
-const RecordOptions = ({
+export const RecordOptions = ({
   recordId,
   tabValue,
   setTabValue,
@@ -63,5 +63,3 @@ const RecordOptions = ({
     </DialogContent>
   );
 };
-
-export default RecordOptions;

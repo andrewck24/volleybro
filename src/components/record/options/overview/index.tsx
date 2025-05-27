@@ -3,19 +3,7 @@ import { MoveType } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const StatsRow = ({ children }: { children?: React.ReactNode }) => {
-  return <div className="flex w-full text-xl">{children}</div>;
-};
-
-export const StatsCell = ({ children }: { children?: React.ReactNode }) => {
-  return (
-    <div className="flex flex-1 items-center justify-center text-wrap">
-      {children}
-    </div>
-  );
-};
-
-const RecordOptionsOverview = ({ recordId }: { recordId: string }) => {
+export const RecordOptionsOverview = ({ recordId }: { recordId: string }) => {
   const { record } = useRecord(recordId);
   const { setIndex } = useAppSelector((state) => state.record);
   const { home, away } = record.teams;
@@ -51,4 +39,14 @@ const RecordOptionsOverview = ({ recordId }: { recordId: string }) => {
   );
 };
 
-export default RecordOptionsOverview;
+export const StatsRow = ({ children }: { children?: React.ReactNode }) => {
+  return <div className="flex w-full text-xl">{children}</div>;
+};
+
+export const StatsCell = ({ children }: { children?: React.ReactNode }) => {
+  return (
+    <div className="flex flex-1 items-center justify-center text-wrap">
+      {children}
+    </div>
+  );
+};

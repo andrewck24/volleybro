@@ -1,27 +1,27 @@
 "use client";
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useSWRConfig } from "swr";
-import { useTeam, useTeamMembers } from "@/hooks/use-data";
-import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBtnGroup,
-} from "@/components/ui/card";
-import {
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
 import { MatchInfo } from "@/components/record/match";
 import { MatchInfoForm } from "@/components/record/new/info-form";
 import { RosterTable } from "@/components/record/new/roster-table";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardBtnGroup,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DialogClose,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useTeam, useTeamMembers } from "@/hooks/use-data";
 import type { TMatchInfoForm } from "@/lib/features/record/types";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
+import { useSWRConfig } from "swr";
 
 export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   const router = useRouter();
@@ -117,8 +117,8 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     return (
       <>
         <DialogHeader>
-          <DialogTitle className="h-5 w-25 rounded-md bg-muted animate-pulse" />
-          <DialogDescription className="h-5 w-60 rounded-md bg-muted animate-pulse" />
+          <DialogTitle className="h-5 w-25 animate-pulse rounded-md bg-muted" />
+          <DialogDescription className="h-5 w-60 animate-pulse rounded-md bg-muted" />
         </DialogHeader>
       </>
     );
@@ -127,14 +127,14 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <div className="main-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
+        <div className="main-view flex h-full w-full flex-col items-start justify-center gap-2 bg-card">
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
               編輯賽事基本資訊、確認陣容後點選「創建賽事紀錄」。
             </DialogDescription>
           </DialogHeader>
-          <Card className="w-full overflow-y-auto shadow-none px-0">
+          <Card className="w-full overflow-y-auto px-0 shadow-none">
             <CardHeader>
               <CardTitle className="text-lg leading-0">
                 1. 編輯賽事資訊
@@ -142,7 +142,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
             </CardHeader>
             <MatchInfo info={info} onClick={() => handleViewChange("form")} />
             <CardHeader>
-              <CardTitle className="text-lg leading-0 pt-2">
+              <CardTitle className="pt-2 text-lg leading-0">
                 2. 確認出賽名單
               </CardTitle>
             </CardHeader>
@@ -156,7 +156,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
                       variant={lineupIndex === index ? "default" : "outline"}
                       size="icon"
                       onClick={() => setLineupIndex(index)}
-                      className="text-[1.25rem] w-8 h-8"
+                      className="h-8 w-8 text-[1.25rem]"
                     >
                       {index + 1}
                     </Button>
@@ -166,7 +166,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
             </CardHeader>
             <RosterTable roster={players} />
           </Card>
-          <DialogFooter className="flex flex-col w-full">
+          <DialogFooter className="flex w-full flex-col">
             <DialogClose asChild>
               <Button size="lg" onClick={createRecord}>
                 創建賽事紀錄
@@ -176,12 +176,12 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
           </DialogFooter>
         </div>
       ) : (
-        <div className="sub-view w-full h-full flex flex-col gap-2 justify-center items-start bg-card">
+        <div className="sub-view flex h-full w-full flex-col items-start justify-center gap-2 bg-card">
           <DialogHeader>
             <DialogTitle>
               <Button
                 variant="ghost"
-                className="size-5 [&>svg]:size-5 p-0"
+                className="size-5 p-0 [&>svg]:size-5"
                 onClick={() => handleViewChange("")}
               >
                 <RiArrowLeftWideLine />
