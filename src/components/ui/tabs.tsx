@@ -23,7 +23,7 @@ const TabsList = ({
   <TabsPrimitive.List
     data-slot="TabsList"
     className={cn(
-      "mb-1 inline-flex h-10 items-center justify-center bg-background text-lg text-foreground",
+      "mb-1 inline-flex h-10 items-center justify-center bg-card text-lg text-foreground",
       className,
     )}
     {...props}
@@ -39,7 +39,7 @@ const TabsTrigger = ({
     className={cn(
       "inline-flex h-full items-center justify-center border-2 border-transparent px-3 py-1 font-medium whitespace-nowrap ring-offset-background transition-all",
       "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50",
-      "data-[state=active]:border-b-primary data-[state=active]:bg-background data-[state=active]:text-primary",
+      "data-[state=active]:border-b-primary data-[state=active]:bg-card data-[state=active]:text-primary",
       className,
     )}
     {...props}
