@@ -71,9 +71,9 @@ export const Container = ({
 
 export const MoveButton = ({ move, toggled, onClick, children }) => {
   const WIN_STYLE =
-    "bg-[hsl(190.91,29.73%,78.24%)] text-foreground [&>svg]:text-primary shadow-sm hover:bg-primary/80";
+    "bg-primary/30 text-foreground [&>svg]:text-primary shadow-sm hover:bg-primary/80";
   const LOSE_STYLE =
-    "bg-[hsl(13.2,96.15%,89.8%)] text-foreground [&>svg]:text-destructive shadow-sm hover:bg-destructive/80";
+    "bg-destructive/30 text-foreground [&>svg]:text-destructive shadow-sm hover:bg-destructive/80";
 
   return (
     <Button
