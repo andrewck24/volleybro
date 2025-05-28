@@ -85,7 +85,7 @@ export const BarChart = ({
   const rightScale = total === 0 ? 0 : (values.right / total) * 2;
 
   return (
-    <div className="grid h-2 w-full grid-cols-2 overflow-hidden rounded bg-accent">
+    <div className="grid h-2 w-full grid-cols-2 overflow-hidden rounded bg-secondary">
       <div
         className={cn("origin-left bg-primary transition-all")}
         style={{ transform: `scaleX(${leftScale})` }}
