@@ -1,11 +1,19 @@
 "use client";
 import LoadingCard from "@/components/custom/loading/card";
 import LoadingCourt from "@/components/custom/loading/court";
+import { StatsForOneSet } from "@/components/match/stats";
 import { RecordCourt } from "@/components/record/court";
 import { RecordHeader } from "@/components/record/header";
 import { RecordOptions } from "@/components/record/options";
 import { RecordPanels } from "@/components/record/panels";
 import { RecordPreview } from "@/components/record/preview";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { useRecord } from "@/hooks/use-data";
@@ -24,7 +32,7 @@ const Record = ({
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
-  const { _id } = useAppSelector((state) => state.record);
+  const { _id, general } = useAppSelector((state) => state.record);
 
   const handleOptionOpen = (tabValue: string) => {
     dispatch(recordActions.initialize({ record, setIndex }));
@@ -50,6 +58,10 @@ const Record = ({
     );
   }
 
+  if (!general.status.inProgress) {
+    return <Interval recordId={recordId} setIndex={setIndex} />;
+  }
+
   return (
     <>
       <RecordHeader recordId={recordId} handleOptionOpen={handleOptionOpen} />
@@ -71,6 +83,42 @@ const Record = ({
           setTabValue={setTabValue}
         />
       </Dialog>
+    </>
+  );
+};
+
+const Interval = ({
+  recordId,
+  setIndex,
+}: {
+  recordId: string;
+  setIndex: number;
+}) => {
+  return (
+    <>
+      <RecordHeader recordId={recordId} handleOptionOpen={() => {}} />
+      <Accordion
+        type="single"
+        defaultValue="stats"
+        collapsible
+        className="w-full bg-card mb-[calc(env(safe-area-inset-bottom)+5.5rem)]"
+      >
+        <AccordionItem value="stats" className="w-full">
+          <AccordionTrigger className="w-full p-4">數據統計</AccordionTrigger>
+          <AccordionContent className="flex w-full flex-col items-center justify-center gap-4">
+            <StatsForOneSet recordId={recordId} setIndex={setIndex} />
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem value="summary" className="w-full">
+          <AccordionTrigger className="w-full p-4">逐球紀錄</AccordionTrigger>
+          <AccordionContent className="w-full"></AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1rem)] w-full px-4">
+        <Button size="lg" className="w-full">
+          新的一局
+        </Button>
+      </div>
     </>
   );
 };
