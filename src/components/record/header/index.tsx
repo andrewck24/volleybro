@@ -26,16 +26,20 @@ export const RecordHeader = ({
         </Button>
         <Scores
           recordId={recordId}
-          onClick={() => handleOptionOpen("overview")}
+          onClick={handleOptionOpen && (() => handleOptionOpen("overview"))}
         />
-        <Button
-          variant="ghost"
-          className="[&>svg]:size-8"
-          onClick={() => handleOptionOpen("settings")}
-        >
-          <RiSettings4Line />
-          <span className="sr-only">Options</span>
-        </Button>
+        {handleOptionOpen ? (
+          <Button
+            variant="ghost"
+            className="[&>svg]:size-8"
+            onClick={() => handleOptionOpen("settings")}
+          >
+            <RiSettings4Line />
+            <span className="sr-only">Options</span>
+          </Button>
+        ) : (
+          <div className="size-12"></div>
+        )}
       </div>
     </header>
   );

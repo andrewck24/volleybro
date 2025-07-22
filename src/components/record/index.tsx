@@ -97,7 +97,7 @@ const Interval = ({
 }) => {
   return (
     <>
-      <RecordHeader recordId={recordId} handleOptionOpen={() => {}} />
+      <RecordHeader recordId={recordId} />
       <Accordion
         type="single"
         defaultValue="stats"
