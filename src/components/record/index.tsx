@@ -8,6 +8,7 @@ import { RecordOptions } from "@/components/record/options";
 import { RecordOptionsSummary } from "@/components/record/options/summary";
 import { RecordPanels } from "@/components/record/panels";
 import { RecordPreview } from "@/components/record/preview";
+import { SetOptions } from "@/components/record/set-options";
 import {
   Accordion,
   AccordionContent,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { useRecord } from "@/hooks/use-data";
 import { recordActions } from "@/lib/features/record/record-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -118,9 +119,14 @@ const Interval = ({
         </AccordionItem>
       </Accordion>
       <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] w-full px-4">
-        <Button size="lg" className="w-full">
-          新的一局
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button size="lg" className="w-full">
+              新的一局
+            </Button>
+          </DialogTrigger>
+          <SetOptions recordId={recordId} setIndex={setIndex + 1} />
+        </Dialog>
       </div>
     </>
   );

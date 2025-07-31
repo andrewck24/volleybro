@@ -84,7 +84,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   }, [record, setIndex, defaultValues, form]);
 
   return (
-    <PanelContent>
+    <PanelContent className="overflow-y-hidden">
       <Dialog>
         <Form
           form={form}
