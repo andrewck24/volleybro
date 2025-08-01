@@ -44,6 +44,33 @@ export const Stats = ({ recordId }: { recordId: string }) => {
   );
 };
 
+export const StatsForOneSet = ({
+  recordId,
+  setIndex,
+}: {
+  recordId: string;
+  setIndex: number;
+}) => {
+  const { record } = useRecord(recordId);
+
+  return (
+    <Card className="w-full">
+      <Tabs defaultValue="team-stats" className="relative w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="team-stats">隊伍數據</TabsTrigger>
+          <TabsTrigger value="box-score" disabled>
+            個人數據
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="team-stats">
+          <TeamsStats teams={record.teams} setIndex={setIndex} />
+        </TabsContent>
+        <TabsContent value="box-score"></TabsContent>
+      </Tabs>
+    </Card>
+  );
+};
+
 const SetSwitch = ({
   sets,
   setIndex,
