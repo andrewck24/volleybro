@@ -1,14 +1,11 @@
-import { useState } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { RiUserLine } from "react-icons/ri";
-import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { Button } from "@/components/ui/button";
+"use client";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardBtnGroup,
-} from "@/components/ui/card";
+  LiberoReplaceDialog,
+  LiberoReplaceTrigger,
+} from "@/components/team/lineup/panels/options/libero-replace";
+import { LineupError } from "@/components/team/lineup/panels/options/lineup-error";
+import { Button } from "@/components/ui/button";
+import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panels";
 import {
   Table,
   TableBody,
@@ -17,17 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import LineupError from "@/components/team/lineup/panels/options/lineup-error";
-import LiberoReplace from "@/components/team/lineup/panels/options/libero-replace";
-
+import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { Dialog } from "@radix-ui/react-dialog";
+import { useState } from "react";
+import { RiUserLine } from "react-icons/ri";
 
-const LineupOptions = ({
-  members,
-  others,
-  hasPairedSwitchPosition,
-  className,
-}) => {
+export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const { lineups, status } = useAppSelector((state) => state.lineup);
@@ -46,27 +40,28 @@ const LineupOptions = ({
   };
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>
-          陣容配置 {status.lineupIndex + 1}
-          <CardBtnGroup>
-            {lineups.map((_, index) => (
-              <Button
-                key={index}
-                variant={status.lineupIndex === index ? "default" : "outline"}
-                size="icon"
-                onClick={() => handlelineupIndexClick(index)}
-                className="text-[1.25rem] size-8"
-              >
-                {index + 1}
-              </Button>
-            ))}
-          </CardBtnGroup>
-        </CardTitle>
-      </CardHeader>
+    <PanelContent>
+      <PanelHeader>
+        <PanelTitle>陣容配置 {status.lineupIndex + 1}</PanelTitle>
+        <div className="flex flex-1 flex-row items-center justify-end gap-2">
+          {lineups.map((_, index) => (
+            <Button
+              key={index}
+              variant={status.lineupIndex === index ? "default" : "outline"}
+              size="icon"
+              onClick={() => handlelineupIndexClick(index)}
+              className="size-7 text-lg"
+            >
+              {index + 1}
+            </Button>
+          ))}
+        </div>
+      </PanelHeader>
       <LineupError open={dialogOpen} setOpen={setDialogOpen} />
-      <LiberoReplace />
+      <Dialog>
+        <LiberoReplaceTrigger />
+        <LiberoReplaceDialog />
+      </Dialog>
       <Table>
         <TableHeader className="text-lg">
           <TableRow>
@@ -78,10 +73,10 @@ const LineupOptions = ({
                 <Button
                   variant="link"
                   size="lg"
-                  className="px-0 w-fit"
+                  className="w-fit px-0"
                   onClick={() =>
                     dispatch(
-                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES)
+                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
                     )
                   }
                 >
@@ -100,7 +95,7 @@ const LineupOptions = ({
                   <TableCell className="w-6 [&>svg]:size-6">
                     <RiUserLine />
                   </TableCell>
-                  <TableCell className="text-right w-[2.5rem]">
+                  <TableCell className="w-[2.5rem] text-right">
                     {member?.number}
                   </TableCell>
                   <TableCell>{member?.name}</TableCell>
@@ -118,10 +113,10 @@ const LineupOptions = ({
                 <Button
                   variant="link"
                   size="lg"
-                  className="px-0 w-fit"
+                  className="w-fit px-0"
                   onClick={() =>
                     dispatch(
-                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES)
+                      lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
                     )
                   }
                 >
@@ -139,7 +134,7 @@ const LineupOptions = ({
                   <TableCell className="w-6 [&>svg]:size-6">
                     <RiUserLine />
                   </TableCell>
-                  <TableCell className="text-right w-[2.5rem]">
+                  <TableCell className="w-[2.5rem] text-right">
                     {member?.number}
                   </TableCell>
                   <TableCell colSpan={2}>{member?.name}</TableCell>
@@ -148,7 +143,7 @@ const LineupOptions = ({
             })}
         </TableBody>
       </Table>
-    </Card>
+    </PanelContent>
   );
 };
 

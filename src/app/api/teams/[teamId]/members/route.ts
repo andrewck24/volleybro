@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import connectToMongoDB from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import User from "@/infrastructure/db/mongoose/schemas/user";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import Member from "@/infrastructure/db/mongoose/schemas/member";
@@ -10,10 +10,10 @@ export const GET = async (
   req: NextRequest,
   props: { params: Promise<{ teamId: string }> }
 ) => {
-  const params = await props.params;
-  const { teamId } = params;
   try {
     await connectToMongoDB();
+    const params = await props.params;
+    const { teamId } = params;
     const members = await Member.find({ team_id: teamId });
     return NextResponse.json(members, { status: 200 });
   } catch (error) {
@@ -26,9 +26,9 @@ export const PATCH = async (
   req: NextRequest,
   props: { params: Promise<{ teamId: string }> }
 ) => {
-  const params = await props.params;
-  const { teamId } = params;
   try {
+    const params = await props.params;
+    const { teamId } = params;
     const session = await auth();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import { useUser, useMatches } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
-import { Result } from "@/components/home/result";
+import { MatchResult } from "@/components/record/match";
 import LoadingCard from "@/components/custom/loading/card";
 
 export const TeamMatches = ({ teamId }: { teamId: string }) => {
@@ -71,7 +71,7 @@ export const TeamMatches = ({ teamId }: { teamId: string }) => {
             const isLastItem = index === matches.length - 1;
             return (
               <div key={match._id} ref={isLastItem ? lastItemRef : null}>
-                <Result match={match} />
+                <MatchResult match={match} />
               </div>
             );
           })}

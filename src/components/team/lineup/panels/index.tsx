@@ -1,11 +1,13 @@
-import { useAppSelector } from "@/lib/redux/hooks";
-import PlayerInfo from "@/components/team/lineup/panels/player-info";
-import LineupOptions from "@/components/team/lineup/panels/options";
-import Substitutes from "@/components/team/lineup/panels/substitutes";
-import Positions from "@/components/team/lineup/panels/positions";
+"use client";
+import { LineupOptions } from "@/components/team/lineup/panels/options";
+import { PlayerInfo } from "@/components/team/lineup/panels/player-info";
+import { Positions } from "@/components/team/lineup/panels/positions";
+import { Substitutes } from "@/components/team/lineup/panels/substitutes";
+import { Panels } from "@/components/ui/panels";
 import { LineupOptionMode } from "@/lib/features/team/types";
+import { useAppSelector } from "@/lib/redux/hooks";
 
-const LineupPanels = ({ members, hasPairedSwitchPosition, className }) => {
+export const LineupPanels = ({ members, hasPairedSwitchPosition }) => {
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const { optionMode } = status;
   const { starting, liberos, substitutes } = lineups[status.lineupIndex];
@@ -19,23 +21,20 @@ const LineupPanels = ({ members, hasPairedSwitchPosition, className }) => {
     .sort((a, b) => a.number - b.number);
 
   return (
-    <>
+    <Panels className="px-4 py-2">
       {optionMode === LineupOptionMode.PLAYERINFO ? (
-        <PlayerInfo members={members} className={className} />
+        <PlayerInfo members={members} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
-        <Substitutes members={members} others={others} className={className} />
+        <Substitutes members={members} others={others} />
       ) : optionMode === LineupOptionMode.POSITIONS ? (
-        <Positions className={className} />
+        <Positions />
       ) : (
         <LineupOptions
           members={members}
           others={others}
           hasPairedSwitchPosition={hasPairedSwitchPosition}
-          className={className}
         />
       )}
-    </>
+    </Panels>
   );
 };
-
-export default LineupPanels;

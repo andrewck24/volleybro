@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRecordController } from "@/interface/controllers/record/record.controller";
+import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 
 export const POST = async (req: NextRequest) => {
   try {
+    await connectToMongoDB();
     const request = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const teamId = searchParams.get("ti");
@@ -11,8 +13,7 @@ export const POST = async (req: NextRequest) => {
       params: { teamId },
       data: {
         info: request.info,
-        team: request.team,
-        lineup: request.lineup,
+        teams: request.teams,
       },
     };
 

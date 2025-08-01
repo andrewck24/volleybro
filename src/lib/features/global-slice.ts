@@ -5,11 +5,11 @@ import {
 } from "@reduxjs/toolkit";
 
 type GlobalState = {
-  refresh: { isRefreshing: boolean; isPulling: boolean };
+  refresh: { isRefreshing: boolean; isPulling: boolean; isDisabled: boolean };
 };
 
 const initialState: GlobalState = {
-  refresh: { isRefreshing: false, isPulling: false },
+  refresh: { isRefreshing: false, isPulling: false, isDisabled: false },
 };
 
 const setIsRefreshing: CaseReducer<GlobalState, PayloadAction<boolean>> = (
@@ -26,12 +26,20 @@ const setIsPulling: CaseReducer<GlobalState, PayloadAction<boolean>> = (
   state.refresh.isPulling = action.payload;
 };
 
+const setIsDisabled: CaseReducer<GlobalState, PayloadAction<boolean>> = (
+  state,
+  action
+) => {
+  state.refresh.isDisabled = action.payload;
+};
+
 export const globalSlice = createSlice({
   name: "global",
   initialState,
   reducers: {
     setIsRefreshing,
     setIsPulling,
+    setIsDisabled,
   },
 });
 

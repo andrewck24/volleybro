@@ -1,29 +1,21 @@
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+"use client";
+import { Button } from "@/components/ui/button";
+import { PanelContent, PanelHeader, PanelTitle } from "@/components/ui/panels";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Player } from "@/entities/record";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
+import { LineupOptionMode } from "@/lib/features/team/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { BsGrid3X2Gap } from "react-icons/bs";
 import {
   RiArrowLeftWideLine,
-  RiHashtag,
-  RiListUnordered,
-  RiUserLine,
   RiEditBoxLine,
-  RiNumbersLine,
+  RiHashtag,
   RiRepeat2Line,
+  RiUserLine,
 } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
 
-import { LineupOptionMode } from "@/lib/features/team/types";
-
-const PlayerInfo = ({ members, className }) => {
+export const PlayerInfo = ({ members }: { members: Player[] }) => {
   const dispatch = useAppDispatch();
   const { status, lineups } = useAppSelector((state) => state.lineup);
   const { lineupIndex, editingMember } = status;
@@ -32,19 +24,22 @@ const PlayerInfo = ({ members, className }) => {
   const member = members.find((member) => member._id === editingMember._id);
 
   return (
-    <Card className={className}>
-      <CardHeader className="flex-row items-center">
+    <PanelContent>
+      <PanelHeader>
         <Button
           variant="ghost"
           size="icon"
+          className="size-7 [&>svg]:size-5"
           onClick={() =>
             dispatch(lineupActions.setOptionMode(LineupOptionMode.NONE))
           }
         >
           <RiArrowLeftWideLine />
         </Button>
-        <CardTitle className="flex-1">球員資訊</CardTitle>
+        <PanelTitle>球員資訊</PanelTitle>
         <Button
+          variant="ghost"
+          className="h-7 text-lg text-primary [&>svg]:size-5"
           onClick={() =>
             dispatch(lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES))
           }
@@ -52,17 +47,8 @@ const PlayerInfo = ({ members, className }) => {
           <RiRepeat2Line />
           更換球員
         </Button>
-      </CardHeader>
+      </PanelHeader>
       <Table>
-        <TableHeader className="text-lg">
-          <TableRow>
-            <TableHead className="w-6">
-              <RiListUnordered />
-            </TableHead>
-            <TableHead colSpan={2}>基本資訊</TableHead>
-            <TableHead className="w-6" />
-          </TableRow>
-        </TableHeader>
         <TableBody className="text-xl">
           <TableRow>
             <TableCell>
@@ -88,9 +74,10 @@ const PlayerInfo = ({ members, className }) => {
               <Button
                 variant="ghost"
                 size="icon"
+                className="size-7 [&>svg]:size-5"
                 onClick={() =>
                   dispatch(
-                    lineupActions.setOptionMode(LineupOptionMode.POSITIONS)
+                    lineupActions.setOptionMode(LineupOptionMode.POSITIONS),
                   )
                 }
               >
@@ -100,18 +87,7 @@ const PlayerInfo = ({ members, className }) => {
           </TableRow>
         </TableBody>
       </Table>
-      <Table>
-        <TableHeader className="text-lg">
-          <TableRow>
-            <TableHead className="w-6">
-              <RiNumbersLine />
-            </TableHead>
-            <TableHead>數據統計</TableHead>
-          </TableRow>
-        </TableHeader>
-      </Table>
-    </Card>
+      {/* TODO: Add data statistics table here  */}
+    </PanelContent>
   );
 };
-
-export default PlayerInfo;

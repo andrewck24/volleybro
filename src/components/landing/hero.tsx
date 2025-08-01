@@ -16,7 +16,7 @@ export const Hero = () => {
         <div className="flex flex-col items-start justify-center flex-1 size-full gap-4 px-4">
           <Badge variant="destructive">Beta</Badge>
           <h1 className="text-5xl font-medium leading-[1.1] tracking-wider text-white text-nowrap md:text-7xl">
-            讓排球比賽紀錄
+            讓排球賽事紀錄
             <br />
             更加
             <FlipWords words={words} className="text-primary-foreground" />

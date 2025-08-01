@@ -1,14 +1,28 @@
+import type { Record } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
-import { type Record } from "@/entities/record";
-import type { ReduxStatus, ReduxRecording } from "@/lib/features/record/types";
+import type { ReduxRecording } from "@/lib/features/record/types";
+
+export const useSubstitutes = (
+  recordId: string,
+  state: { setIndex: number; entryIndex: number; recording: ReduxRecording },
+) => {
+  const { record } = useRecord(recordId);
+  const { setIndex, entryIndex, recording } = state;
+
+  const substitutes =
+    entryIndex === record.sets[setIndex].entries.length
+      ? gerGeneralModeSubstitutes(record, recording, setIndex)
+      : getEditingModeSubstitutes(record, recording, setIndex, entryIndex);
+
+  return substitutes;
+};
 
 // 取得一般模式下的替補球員清單
 const gerGeneralModeSubstitutes = (
   record: Record,
-  status: ReduxStatus,
-  recording: ReduxRecording
+  recording: ReduxRecording,
+  setIndex: number,
 ) => {
-  const { setIndex } = status;
   const { starting, substitutes } = record.sets[setIndex].lineups.home;
   const { players } = record.teams.home;
   const startingId = recording.home.player._id;
@@ -37,10 +51,10 @@ const gerGeneralModeSubstitutes = (
 // 取得編輯模式下的替補球員清單
 const getEditingModeSubstitutes = (
   record: Record,
-  status: ReduxStatus,
-  recording: ReduxRecording
+  recording: ReduxRecording,
+  setIndex: number,
+  entryIndex: number,
 ) => {
-  const { setIndex, entryIndex } = status;
   const { starting, substitutes } = record.sets[setIndex].lineups.home;
   const { players } = record.teams.home;
   const startingId = recording.home.player._id;
@@ -53,13 +67,17 @@ const getEditingModeSubstitutes = (
   if (!player) return [];
 
   const { sub } = player;
-  
+
   // 檢查此位置是否已使用完兩次替補
   if (sub?.entryIndex?.out && sub.entryIndex.out < entryIndex) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
   if (sub?.entryIndex?.in < entryIndex) {
-    return [players.find((p) => p._id === (sub.entryIndex.out ? player._id : sub._id))];
+    return [
+      players.find(
+        (p) => p._id === (sub.entryIndex.out ? player._id : sub._id),
+      ),
+    ];
   }
 
   // 處理一般球員替補
@@ -75,20 +93,4 @@ const getEditingModeSubstitutes = (
   if (sub?.entryIndex?.in) availablePlayers.push(player._id);
 
   return availablePlayers.map((id) => players.find((p) => p._id === id));
-};
-
-export const useSubstitutes = (
-  recordId: string,
-  state: { status: ReduxStatus; recording: ReduxRecording }
-) => {
-  const { record } = useRecord(recordId);
-  const { status, recording } = state;
-  const { setIndex, entryIndex } = status;
-
-  const substitutes =
-    entryIndex === record.sets[setIndex].entries.length
-      ? gerGeneralModeSubstitutes(record, status, recording)
-      : getEditingModeSubstitutes(record, status, recording);
-
-  return substitutes;
 };

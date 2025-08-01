@@ -1,8 +1,57 @@
 "use client";
-import { useAppSelector } from "@/lib/redux/hooks";
+import { Figure } from "@/components/custom/stats/figures";
 import { useRecord } from "@/hooks/use-data";
-import { MdOutlineSportsVolleyball } from "react-icons/md";
+import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
+import { MdOutlineSportsVolleyball } from "react-icons/md";
+
+export const Scores = ({
+  recordId,
+  onClick,
+}: {
+  recordId: string;
+  onClick: () => void;
+}) => {
+  const { record } = useRecord(recordId);
+  const { scores, isSetPoint } = useAppSelector(
+    (state) => state.record.general.status,
+  );
+  const isHomeSetPoint = isSetPoint && scores.home > scores.away;
+  const isAwaySetPoint = isSetPoint && scores.away > scores.home;
+
+  return (
+    <div
+      className="flex h-21 flex-1 flex-row items-center justify-center gap-2"
+      onClick={onClick}
+    >
+      <Container className="border-primary">
+        <Figure
+          value={scores.home}
+          size="lg"
+          variant={isHomeSetPoint ? "primary" : "default"}
+          className="h-14 w-18 font-bold"
+        />
+        <Team>{record?.teams?.home?.name || "我方"}</Team>
+      </Container>
+      <div className="flex h-20 w-16 flex-col items-center justify-center [&>svg]:size-12">
+        <MdOutlineSportsVolleyball />
+        <div className="flex h-5 flex-row gap-1 text-[1.25rem] leading-none font-bold">
+          <div>{record?.sets.filter((set) => set.win === true).length}</div>-
+          <div>{record?.sets.filter((set) => set.win === false).length}</div>
+        </div>
+      </div>
+      <Container className="border-destructive">
+        <Figure
+          value={scores.away}
+          size="lg"
+          variant={isAwaySetPoint ? "destructive" : "default"}
+          className="h-14 w-18 font-bold"
+        />
+        <Team>{record?.teams?.away?.name || "對手"}</Team>
+      </Container>
+    </div>
+  );
+};
 
 const Container = ({
   className,
@@ -14,63 +63,19 @@ const Container = ({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center w-16 h-20 text-[3rem] [&>svg]:size-12 leading-none font-bold",
-        className
+        "flex h-21 w-18 flex-col items-center justify-center gap-1 border-b-4 text-[3rem] leading-none font-bold",
+        className,
       )}
     >
       {children}
     </div>
   );
 };
+
 const Team = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="flex items-center justify-center text-[1rem] font-medium w-full max-w-16 overflow-hidden whitespace-nowrap text-ellipsis">
+    <p className="flex w-full max-w-16 items-center justify-center overflow-hidden text-[1rem] font-medium text-ellipsis whitespace-nowrap">
       {children}
-    </div>
+    </p>
   );
 };
-
-export const Scores = ({ recordId, ...props }) => {
-  const { record } = useRecord(recordId);
-  const { scores } = useAppSelector((state) => state.record.general.status);
-  // TODO: Add set-point styles
-
-  return (
-    <div
-      className="flex flex-row items-center justify-center flex-1 gap-2 min-h-[3rem] text-[1.625rem] font-medium"
-      {...props}
-    >
-      <Container
-        className={cn(
-          "border-b-4 border-primary"
-          // isSetPoint &&
-          //   scores.home > scores.away &&
-          //   "bg-primary text-primary-foreground"
-        )}
-      >
-        {scores.home}
-        <Team>{record?.teams?.home?.name || "我方"}</Team>
-      </Container>
-      <Container>
-        <MdOutlineSportsVolleyball />
-        <div className="flex flex-row text-[1.25rem] gap-1 leading-none h-5">
-          <div>{record?.sets.filter((set) => set.win === true).length}</div>-
-          <div>{record?.sets.filter((set) => set.win === false).length}</div>
-        </div>
-      </Container>
-      <Container
-        className={cn(
-          "border-b-4 border-destructive"
-          // isSetPoint &&
-          //   scores.away > scores.home &&
-          //   "bg-destructive text-destructive-foreground"
-        )}
-      >
-        {scores.away}
-        <Team>{record?.teams?.away?.name || "對手"}</Team>
-      </Container>
-    </div>
-  );
-};
-
-export default Scores;

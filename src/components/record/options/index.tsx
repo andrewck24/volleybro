@@ -1,18 +1,18 @@
 "use client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
+import { EntriesEdit } from "@/components/record/options/edit";
+import { RecordOptionsOverview } from "@/components/record/options/overview";
+import { RecordOptionsSummary } from "@/components/record/options/summary";
 import {
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import EntriesEdit from "@/components/record/options/edit";
-import RecordOptionsOverview from "@/components/record/options/overview";
-import RecordOptionsSummary from "@/components/record/options/summary";
+import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
-const RecordOptions = ({
+export const RecordOptions = ({
   recordId,
   tabValue,
   setTabValue,
@@ -51,7 +51,7 @@ const RecordOptions = ({
             <TabsContent value="overview" className="flex-1">
               <RecordOptionsOverview recordId={recordId} />
             </TabsContent>
-            <TabsContent value="summary" className="flex-1 h-full">
+            <TabsContent value="summary" className="h-full flex-1">
               <RecordOptionsSummary recordId={recordId} />
             </TabsContent>
             <TabsContent value="settings" className="flex-1">
@@ -63,5 +63,3 @@ const RecordOptions = ({
     </DialogContent>
   );
 };
-
-export default RecordOptions;

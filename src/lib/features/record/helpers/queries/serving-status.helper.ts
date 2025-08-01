@@ -1,15 +1,11 @@
 import { getPreviousRally } from "@/lib/features/record/helpers";
-import type { Record } from "@/entities/record";
+import type { Set } from "@/entities/record";
 
-export const getServingStatus = (
-  record: Record,
-  setIndex: number,
-  entryIndex: number
-): boolean => {
-  const previousRally = getPreviousRally(record, setIndex, entryIndex);
+export const getServingStatus = (set: Set, entryIndex: number): boolean => {
+  const previousRally = getPreviousRally(set?.entries, entryIndex);
   return previousRally
     ? previousRally.win
-    : record.sets[setIndex]
-    ? record.sets[setIndex].options.serve === "home"
+    : set
+    ? set.options.serve === "home"
     : true;
 };

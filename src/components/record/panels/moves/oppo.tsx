@@ -1,53 +1,55 @@
 "use client";
-import { useRecord } from "@/hooks/use-data";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { recordActions } from "@/lib/features/record/record-slice";
-import { scoringMoves } from "@/lib/scoring-moves";
-import { FiPlus, FiMinus } from "react-icons/fi";
-import { RiSendPlaneLine } from "react-icons/ri";
 import { Container, MoveButton } from "@/components/record/panels/moves";
+import { useRecord } from "@/hooks/use-data";
 import { createRally } from "@/lib/features/record/actions/create-rally";
 import { updateRally } from "@/lib/features/record/actions/update-rally";
 import {
   createRallyHelper,
   updateRallyHelper,
 } from "@/lib/features/record/helpers";
+import { recordActions } from "@/lib/features/record/record-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { scoringMoves } from "@/lib/scoring-moves";
+import { FiMinus, FiPlus } from "react-icons/fi";
+import { RiSendPlaneLine } from "react-icons/ri";
 
-const OppoMoves = ({ recordId }: { recordId: string }) => {
+export const OppoMoves = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
-  const recordState = useAppSelector((state) => state.record);
+  const { setIndex, mode } = useAppSelector((state) => state.record);
   const {
-    status: { setIndex, entryIndex },
+    status: { entryIndex },
     recording,
-  } = recordState[recordState.mode];
+  } = useAppSelector((state) => state.record[mode]);
   const { record, mutate } = useRecord(recordId);
 
   const oppoMoves = scoringMoves.filter((option) =>
-    scoringMoves[recording.home.num]?.outcome.includes(option.num)
+    scoringMoves[recording.home.num]?.outcome.includes(option.num),
   );
 
   const create = () => {
+    const { record: updatedRecord, phase } = createRallyHelper(
+      { recordId, setIndex, entryIndex },
+      recording,
+      record,
+    );
     mutate(createRally({ recordId, setIndex, entryIndex }, recording, record), {
       revalidate: false,
-      optimisticData: createRallyHelper(
-        { recordId, setIndex, entryIndex },
-        recording,
-        record
-      ),
+      optimisticData: updatedRecord,
     });
-    dispatch(recordActions.confirmRecordingRally(record));
+    dispatch(recordActions.confirmRecordingRally(phase));
   };
 
   const update = () => {
+    const { record: updatedRecord, phase } = updateRallyHelper(
+      { recordId, setIndex, entryIndex },
+      recording,
+      record,
+    );
     mutate(updateRally({ recordId, setIndex, entryIndex }, recording, record), {
       revalidate: false,
-      optimisticData: updateRallyHelper(
-        { recordId, setIndex, entryIndex },
-        recording,
-        record
-      ),
+      optimisticData: updatedRecord,
     });
-    dispatch(recordActions.confirmRecordingRally(record));
+    dispatch(recordActions.confirmRecordingRally(phase));
     dispatch(recordActions.setRecordMode("general"));
   };
 
@@ -56,7 +58,7 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
       dispatch(recordActions.setRecordingAwayMove(move));
     } else {
       try {
-        recordState.mode === "general" ? create() : update();
+        mode === "general" ? create() : update();
       } catch (error) {
         console.error("[POST /api/records]", error);
       }
@@ -80,5 +82,3 @@ const OppoMoves = ({ recordId }: { recordId: string }) => {
     </Container>
   );
 };
-
-export default OppoMoves;

@@ -7,16 +7,16 @@ import {
   RiHome5Fill,
   RiGroupLine,
   RiGroupFill,
-  RiAddBoxLine,
   RiNotification2Line,
   RiNotification2Fill,
   RiMenuLine,
   RiMenuFill,
 } from "react-icons/ri";
+import { ActionButton } from "@/components/layout/nav/action-button";
 
 export const NavLinks = ({ session }) => {
   const pathname = usePathname();
-  const defaultTeamId = session?.user?.teams?.joined[0];
+  const defaultTeamId: string = session?.user?.teams?.joined[0];
 
   return (
     <nav className="fixed bottom-0 left-0 flex flex-row items-center justify-center w-full pb-[calc(env(safe-area-inset-bottom)-1rem)] bg-card">
@@ -36,17 +36,7 @@ export const NavLinks = ({ session }) => {
       >
         隊伍
       </NavLink>
-      <NavLink
-        href={
-          defaultTeamId
-            ? `/team/${defaultTeamId}/records/new`
-            : "/user/invitations"
-        }
-        className="[&>svg]:size-10"
-        aria-label="Start recording match"
-      >
-        <RiAddBoxLine />
-      </NavLink>
+      <ActionButton teamId={defaultTeamId} />
       <NavLink
         href="/notifications"
         active={pathname.startsWith("/notifications")}

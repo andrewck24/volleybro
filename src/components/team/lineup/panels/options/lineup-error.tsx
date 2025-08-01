@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const LineupError = ({ open, setOpen }) => {
+export const LineupError = ({ open, setOpen }) => {
   return (
     <Dialog open={open} onOpenChange={() => setOpen(false)}>
       <DialogContent>
@@ -21,5 +21,3 @@ const LineupError = ({ open, setOpen }) => {
     </Dialog>
   );
 };
-
-export default LineupError;

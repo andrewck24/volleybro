@@ -9,7 +9,7 @@ import {
   AdjustButton,
 } from "@/components/custom/court";
 
-const LineupCourt = ({ members }) => {
+export const LineupCourt = ({ members }) => {
   const dispatch = useAppDispatch();
   const { lineups, status } = useAppSelector((state) => state.lineup);
 

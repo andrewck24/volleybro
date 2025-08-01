@@ -1,34 +1,32 @@
 import {
-  createSlice,
-  type CaseReducer,
-  type PayloadAction,
-} from "@reduxjs/toolkit";
-import {
-  matchPhaseHelper,
-  getServingStatus,
-  getPreviousScores,
-} from "@/lib/features/record/helpers";
-
-import {
+  EntryType,
+  Rally,
+  Side,
+  type Challenge,
+  type RallyDetail,
   type Record,
   type Substitution,
   type Timeout,
-  type Challenge,
-  type RallyDetail,
-  Side,
-  EntryType,
-  Rally,
 } from "@/entities/record";
+import {
+  getPreviousScores,
+  getServingStatus,
+  matchPhaseHelper,
+} from "@/lib/features/record/helpers";
 import type {
   ReduxRecordState,
   ReduxStatus,
 } from "@/lib/features/record/types";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
+import {
+  createSlice,
+  type CaseReducer,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
 
 // Define the initial states
 const statusState: ReduxStatus = {
   scores: { home: 0, away: 0 },
-  setIndex: 0,
   entryIndex: 0,
   isServing: false,
   inProgress: false,
@@ -45,6 +43,7 @@ const rallyDetailState: RallyDetail = {
 
 const initialState: ReduxRecordState = {
   _id: "",
+  setIndex: 0,
   mode: "general",
   general: {
     status: statusState,
@@ -65,23 +64,24 @@ const initialState: ReduxRecordState = {
 };
 
 // Define the reducers
-const initialize: CaseReducer<ReduxRecordState, PayloadAction<Record>> = (
-  state,
-  action
-) => {
-  const record = action.payload;
-  const setIndex = record.sets.length ? record.sets.length - 1 : 0;
-  const entryIndex = record.sets[setIndex]?.entries?.length || 0;
+const initialize: CaseReducer<
+  ReduxRecordState,
+  PayloadAction<{ record: Record; setIndex: number }>
+> = (state, action) => {
+  const { record, setIndex } = action.payload;
+  const set = record.sets[setIndex];
+  const entryIndex = set?.entries?.length || 0;
   const { inProgress, isSetPoint } = matchPhaseHelper(
     record,
     setIndex,
-    entryIndex
+    entryIndex,
   );
-  const isServing = getServingStatus(record, setIndex, entryIndex);
+  const isServing = getServingStatus(set, entryIndex);
   state._id = record._id;
+  state.setIndex = setIndex;
+  state.mode = "general";
   const status = {
-    scores: getPreviousScores(record, setIndex, entryIndex),
-    setIndex: inProgress ? setIndex : setIndex + 1,
+    scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     isServing,
     inProgress,
@@ -159,16 +159,11 @@ const setRecordingAwayMove: CaseReducer<
 
 const confirmRecordingRally: CaseReducer<
   ReduxRecordState,
-  PayloadAction<Record>
+  PayloadAction<{ inProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
-  const record = structuredClone(action.payload);
+  const { inProgress, isSetPoint } = action.payload;
   const { mode } = state;
-  const { setIndex, entryIndex } = state[mode].status;
-  const { inProgress, isSetPoint } = matchPhaseHelper(
-    record,
-    setIndex,
-    entryIndex
-  );
+  const { entryIndex } = state[mode].status;
 
   state[mode].status = {
     ...state[mode].status,
@@ -176,7 +171,6 @@ const confirmRecordingRally: CaseReducer<
       home: state[mode].recording.home.score,
       away: state[mode].recording.away.score,
     },
-    setIndex: inProgress ? setIndex : setIndex + 1,
     entryIndex: entryIndex + 1,
     isServing: state[mode].recording.win,
     inProgress,
@@ -261,21 +255,19 @@ const resetRecording: CaseReducer<ReduxRecordState> = (state) => {
   };
 };
 
-const setSetIndex: CaseReducer<ReduxRecordState, PayloadAction<number>> = (
-  state,
-  action
-) => {
-  state.editing.status.setIndex = action.payload;
-};
-
-// TODO: 修正編輯狀態之 isSetPoint 計算邏輯
 const setEditingEntryStatus: CaseReducer<
   ReduxRecordState,
   PayloadAction<{ record: Record; entryIndex: number }>
 > = (state, action) => {
+  const { setIndex } = state;
   const { record, entryIndex } = action.payload;
-  const { setIndex } = state.editing.status;
-  const entry = record.sets[setIndex].entries[entryIndex];
+  const set = record.sets[setIndex];
+  const entry = set.entries[entryIndex];
+  const { inProgress, isSetPoint } = matchPhaseHelper(
+    record,
+    setIndex,
+    entryIndex,
+  );
 
   state.mode = "editing";
   state.editing.recording = {
@@ -284,11 +276,14 @@ const setEditingEntryStatus: CaseReducer<
       entry.type === EntryType.RALLY
         ? (entry.data as Rally).home
         : entry.type === EntryType.SUBSTITUTION
-        ? {
-            ...rallyDetailState,
-            player: { _id: (entry.data as Substitution).players.out, zone: 0 },
-          }
-        : rallyDetailState,
+          ? {
+              ...rallyDetailState,
+              player: {
+                _id: (entry.data as Substitution).players.out,
+                zone: 0,
+              },
+            }
+          : rallyDetailState,
     away:
       entry.type === EntryType.RALLY
         ? (entry.data as Rally).away
@@ -296,18 +291,18 @@ const setEditingEntryStatus: CaseReducer<
     ...(entry.type === EntryType.SUBSTITUTION
       ? { substitution: entry.data as Substitution }
       : entry.type === EntryType.TIMEOUT
-      ? { timeout: entry.data as Timeout }
-      : entry.type === EntryType.CHALLENGE
-      ? { challenge: entry.data as Challenge }
-      : entry.data),
+        ? { timeout: entry.data as Timeout }
+        : entry.type === EntryType.CHALLENGE
+          ? { challenge: entry.data as Challenge }
+          : entry.data),
   };
   state.editing.status = {
     ...state.editing.status,
-    isServing: getServingStatus(record, setIndex, entryIndex),
-    scores: getPreviousScores(record, setIndex, entryIndex),
+    isServing: getServingStatus(set, entryIndex),
+    scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
-    inProgress: true,
-    isSetPoint: false,
+    inProgress: inProgress,
+    isSetPoint: isSetPoint,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",
   };
 };
@@ -327,7 +322,6 @@ const recordSlice = createSlice({
     confirmRecordingSubstitution,
     setPanel,
     resetRecording,
-    setSetIndex,
     setEditingEntryStatus,
   },
 });

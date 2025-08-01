@@ -29,5 +29,3 @@ export const connectToMongoDB = async () => {
 
   return dbConnection;
 };
-
-export default connectToMongoDB;

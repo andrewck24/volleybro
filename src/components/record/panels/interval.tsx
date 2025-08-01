@@ -1,10 +1,7 @@
 "use client";
+import { Card } from "@/components/ui/card";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import RecordSetOptions from "@/components/record/set-options";
 
 const RecordInterval = ({
   recordId,
@@ -18,18 +15,18 @@ const RecordInterval = ({
   return (
     <Card
       className={cn(
-        "items-center justify-center flex-1 w-full px-8 pb-4",
-        className
+        "w-full flex-1 items-center justify-center px-8 pb-4",
+        className,
       )}
     >
-      <Dialog defaultOpen={!inProgress}>
+      {/* <Dialog defaultOpen={!inProgress}>
         <DialogTrigger asChild>
           <Button size="lg" className="w-full">
             開始下一局
           </Button>
         </DialogTrigger>
-        <RecordSetOptions recordId={recordId} />
-      </Dialog>
+        <SetOptions recordId={recordId} />
+      </Dialog> */}
     </Card>
   );
 };

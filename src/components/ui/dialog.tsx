@@ -105,7 +105,10 @@ const DialogTitle = ({
 }: React.ComponentProps<typeof DialogPrimitive.Title>) => (
   <DialogPrimitive.Title
     data-slot="DialogTitle"
-    className={cn("text-xl font-medium leading-none tracking-tight", className)}
+    className={cn(
+      "w-full flex flex-row justify-start items-center gap-1 text-xl font-medium leading-none tracking-tight",
+      className
+    )}
     {...props}
   />
 );
