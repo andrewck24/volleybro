@@ -11,43 +11,12 @@ export const Panels = ({
     <div
       data-slot="Panels"
       className={cn(
-        "flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden overflow-y-scroll bg-card",
+        "flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden bg-card",
         className,
       )}
     >
       {children}
     </div>
-  );
-};
-
-export const PanelHeader = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div
-      data-slot="PanelHeader"
-      className="flex h-9 w-full items-center justify-start pt-2"
-    >
-      {children}
-    </div>
-  );
-};
-
-export const PanelTitle = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <h3 data-slot="PanelTitle" className="flex-1 text-left text-lg font-medium">
-      {children}
-    </h3>
-  );
-};
-
-export const PanelDescription = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  return (
-    <p className="text-sm text-muted-foreground" data-slot="PanelDescription">
-      {children}
-    </p>
   );
 };
 
@@ -62,12 +31,61 @@ export const PanelContent = ({
     <div
       data-slot="PanelContent"
       className={cn(
-        "flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-scroll",
+        "flex w-full flex-1 flex-col items-center justify-start gap-2",
         className,
       )}
     >
       {children}
     </div>
+  );
+};
+
+export const PanelHeader = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  return (
+    <div
+      data-slot="PanelHeader"
+      className={cn(
+        "flex h-9 w-full items-center justify-start pt-2",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+};
+
+export const PanelTitle = ({
+  children,
+  ...props
+}: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <h3
+      data-slot="PanelTitle"
+      className="flex-1 text-left text-lg font-medium"
+      {...props}
+    >
+      {children}
+    </h3>
+  );
+};
+
+export const PanelDescription = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  return (
+    <p className="text-sm text-muted-foreground" data-slot="PanelDescription">
+      {children}
+    </p>
   );
 };
 

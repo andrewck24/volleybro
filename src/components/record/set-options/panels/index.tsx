@@ -13,7 +13,7 @@ export const SetOptionsPanels = ({ recordId }: { recordId: string }) => {
   const { optionMode } = useAppSelector((state) => state.lineup.status);
 
   return (
-    <Panels className="overflow-hidden">
+    <Panels>
       {optionMode === LineupOptionMode.PLAYERINFO ? (
         <PlayerInfo members={record.teams.home.players} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
