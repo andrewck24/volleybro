@@ -1,5 +1,5 @@
 "use client";
-import { Container, MoveButton } from "@/components/record/panels/moves";
+import { Container, MoveButton } from "@/components/record/panel/moves";
 import { useRecord } from "@/hooks/use-data";
 import { createRally } from "@/lib/features/record/actions/create-rally";
 import { updateRally } from "@/lib/features/record/actions/update-rally";

@@ -1,11 +1,11 @@
 "use client";
-import { RecordMoves } from "@/components/record/panels/moves";
-import { Substitutes } from "@/components/record/panels/substitutes";
-import { Panels } from "@/components/ui/panels";
+import { RecordMoves } from "@/components/record/panel/moves";
+import { Substitutes } from "@/components/record/panel/substitutes";
+import { Panel } from "@/components/ui/panel";
 import type { ReduxRecordState } from "@/lib/features/record/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const RecordPanels = ({
+export const RecordPanel = ({
   recordId,
   mode,
   className,
@@ -17,12 +17,12 @@ export const RecordPanels = ({
   const { status } = useAppSelector((state) => state.record[mode]);
 
   return (
-    <Panels>
+    <Panel>
       {status.panel === "substitutes" ? (
         <Substitutes recordId={recordId} mode={mode} className={className} />
       ) : (
         <RecordMoves recordId={recordId} className={className} />
       )}
-    </Panels>
+    </Panel>
   );
 };

@@ -6,7 +6,7 @@ import { RecordCourt } from "@/components/record/court";
 import { RecordHeader } from "@/components/record/header";
 import { RecordOptions } from "@/components/record/options";
 import { RecordOptionsSummary } from "@/components/record/options/summary";
-import { RecordPanels } from "@/components/record/panels";
+import { RecordPanel } from "@/components/record/panel";
 import { RecordPreview } from "@/components/record/preview";
 import { SetOptions } from "@/components/record/set-options";
 import {
@@ -73,7 +73,7 @@ const Record = ({
         mode="general"
         handleOptionOpen={handleOptionOpen}
       />
-      <RecordPanels
+      <RecordPanel
         recordId={recordId}
         mode="general"
         className="pb-[max(calc(env(safe-area-inset-bottom)-1rem),1.5rem)]"

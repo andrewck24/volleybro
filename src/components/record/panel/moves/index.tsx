@@ -1,6 +1,6 @@
 "use client";
-import { OppoMoves } from "@/components/record/panels/moves/oppo";
-import { OursMoves } from "@/components/record/panels/moves/ours";
+import { OppoMoves } from "@/components/record/panel/moves/oppo";
+import { OursMoves } from "@/components/record/panel/moves/ours";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recordActions } from "@/lib/features/record/record-slice";
