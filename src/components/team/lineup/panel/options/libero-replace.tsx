@@ -1,6 +1,7 @@
 "use client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DialogClose,
   DialogContent,
@@ -16,7 +17,6 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { PanelSection, PanelSectionTitle } from "@/components/ui/panels";
 import {
   Select,
   SelectContent,
@@ -31,6 +31,7 @@ import {
   type LiberoReplaceFormValues,
 } from "@/lib/features/team/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -45,8 +46,14 @@ export const LiberoReplaceTrigger = () => {
     useReplacePosition();
 
   return (
-    <PanelSection>
-      <PanelSectionTitle>自由球員設定</PanelSectionTitle>
+    <section
+      className={cn(
+        "flex w-full flex-col items-center justify-center gap-2 pt-2",
+      )}
+    >
+      <CardHeader>
+        <CardTitle>自由球員設定</CardTitle>
+      </CardHeader>
       {!!liberoReplaceMode && !hasPairedReplacePosition && (
         <Alert variant="destructive">
           <RiAlertLine />
@@ -92,7 +99,7 @@ export const LiberoReplaceTrigger = () => {
           )}
         </Alert>
       )}
-    </PanelSection>
+    </section>
   );
 };
 

@@ -1,6 +1,6 @@
 "use client";
 import { RecordCourt } from "@/components/record/court";
-import { RecordPanels } from "@/components/record/panels";
+import { RecordPanel } from "@/components/record/panel";
 import { RecordPreview } from "@/components/record/preview";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,7 @@ export const EntriesEdit = ({ recordId }: { recordId: string }) => {
         mode="editing"
         className="px-0 py-1 shadow-none"
       />
-      <RecordPanels
+      <RecordPanel
         recordId={recordId}
         mode="editing"
         className="p-0 shadow-none"

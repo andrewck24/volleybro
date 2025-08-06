@@ -2,7 +2,7 @@
 import LoadingCard from "@/components/custom/loading/card";
 import LoadingCourt from "@/components/custom/loading/court";
 import LineupCourt from "@/components/team/lineup/court";
-import { LineupPanels } from "@/components/team/lineup/panels";
+import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -52,7 +52,7 @@ const Lineup = ({ team, members, handleSave }) => {
   return (
     <>
       <LineupCourt members={members} />
-      <LineupPanels
+      <LineupPanel
         members={members}
         hasPairedSwitchPosition={hasPairedSwitchPosition}
       />
