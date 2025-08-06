@@ -45,7 +45,7 @@ export const LiberoReplaceTrigger = () => {
     useReplacePosition();
 
   return (
-    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
       <CardHeader className="w-full">
         <CardTitle>自由球員設定</CardTitle>
       </CardHeader>
