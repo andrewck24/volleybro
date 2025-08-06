@@ -16,7 +16,7 @@ export const Substitutes = ({ recordId }: { recordId: string }) => {
 
   return (
     <PanelContent>
-      <Card>
+      <Card className="p-0">
         <CardHeader>
           <Button
             variant="ghost"

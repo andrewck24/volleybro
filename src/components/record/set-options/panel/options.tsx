@@ -24,7 +24,6 @@ import {
 } from "@/lib/features/record/types";
 import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-position";
 import { useAppSelector } from "@/lib/redux/hooks";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -83,7 +82,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
 
   return (
     <PanelContent className="overflow-y-hidden">
-      <Card>
+      <Card className="p-0 overflow-y-hidden">
         <Dialog>
           <Form
             form={form}
@@ -113,12 +112,8 @@ export const Options = ({ recordId }: { recordId: string }) => {
 
 const ServingTeam = ({ form }) => {
   return (
-    <section
-      className={cn(
-        "flex w-full flex-col items-center justify-center gap-2 pt-2",
-      )}
-    >
-      <CardHeader>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+      <CardHeader className="w-full">
         <CardTitle>本局發球權</CardTitle>
       </CardHeader>
       <FormField
@@ -150,12 +145,8 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
 
   return (
-    <section
-      className={cn(
-        "flex w-full flex-col items-center justify-center gap-2 pt-2",
-      )}
-    >
-      <CardHeader>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+      <CardHeader className="w-full">
         <CardTitle>
           替補名單 ({substituteCount}/{substituteLimit})
         </CardTitle>

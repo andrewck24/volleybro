@@ -51,7 +51,7 @@ export const Substitutes = ({ members, others }) => {
 
   return (
     <PanelContent>
-      <Card>
+      <Card className="p-0">
         <CardHeader>
           <Button
             variant="ghost"
