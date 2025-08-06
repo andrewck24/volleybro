@@ -16,8 +16,8 @@ export const Substitutes = ({ recordId }: { recordId: string }) => {
 
   return (
     <PanelContent>
-      <Card className="p-0">
-        <CardHeader>
+      <Card className="size-full p-0">
+        <CardHeader className="h-9 flex-row items-center justify-start">
           <Button
             variant="ghost"
             size="icon"

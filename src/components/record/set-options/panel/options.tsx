@@ -82,7 +82,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
 
   return (
     <PanelContent className="overflow-y-hidden">
-      <Card className="p-0 overflow-y-hidden">
+      <Card className="size-full overflow-y-hidden p-0">
         <Dialog>
           <Form
             form={form}
@@ -112,7 +112,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
 
 const ServingTeam = ({ form }) => {
   return (
-    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
       <CardHeader className="w-full">
         <CardTitle>本局發球權</CardTitle>
       </CardHeader>
@@ -145,7 +145,7 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
 
   return (
-    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
       <CardHeader className="w-full">
         <CardTitle>
           替補名單 ({substituteCount}/{substituteLimit})

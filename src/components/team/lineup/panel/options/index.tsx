@@ -42,8 +42,8 @@ export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
 
   return (
     <PanelContent>
-      <Card className="p-0">
-        <CardHeader>
+      <Card className="size-full p-0">
+        <CardHeader className="h-9 flex-row items-center justify-start">
           <CardTitle>陣容配置 {status.lineupIndex + 1}</CardTitle>
           <div className="flex flex-1 flex-row items-center justify-end gap-2">
             {lineups.map((_, index) => (
