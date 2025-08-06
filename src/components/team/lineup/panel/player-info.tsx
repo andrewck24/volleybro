@@ -26,7 +26,7 @@ export const PlayerInfo = ({ members }: { members: Player[] }) => {
 
   return (
     <PanelContent>
-      <Card>
+      <Card className="p-0">
         <CardHeader>
           <Button
             variant="ghost"

@@ -1,7 +1,7 @@
 "use client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DialogClose,
   DialogContent,
@@ -31,7 +31,6 @@ import {
   type LiberoReplaceFormValues,
 } from "@/lib/features/team/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -46,12 +45,8 @@ export const LiberoReplaceTrigger = () => {
     useReplacePosition();
 
   return (
-    <section
-      className={cn(
-        "flex w-full flex-col items-center justify-center gap-2 pt-2",
-      )}
-    >
-      <CardHeader>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pt-2">
+      <CardHeader className="w-full">
         <CardTitle>自由球員設定</CardTitle>
       </CardHeader>
       {!!liberoReplaceMode && !hasPairedReplacePosition && (

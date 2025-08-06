@@ -40,7 +40,7 @@ export const Positions = () => {
 
   return (
     <PanelContent>
-      <Card>
+      <Card className="p-0">
         <CardHeader>
           <Button
             variant="ghost"
