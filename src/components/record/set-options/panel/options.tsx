@@ -2,8 +2,9 @@
 import {
   LiberoReplaceDialog,
   LiberoReplaceTrigger,
-} from "@/components/team/lineup/panels/options/libero-replace";
+} from "@/components/team/lineup/panel/options/libero-replace";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
@@ -13,11 +14,7 @@ import {
   FormRadioGroup,
   FormRadioItem,
 } from "@/components/ui/form";
-import {
-  PanelContent,
-  PanelSection,
-  PanelSectionTitle,
-} from "@/components/ui/panels";
+import { PanelContent } from "@/components/ui/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Player } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
@@ -85,36 +82,40 @@ export const Options = ({ recordId }: { recordId: string }) => {
 
   return (
     <PanelContent className="overflow-y-hidden">
-      <Dialog>
-        <Form
-          form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex w-full flex-1 flex-col gap-2 overflow-y-hidden"
-        >
-          <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-scroll">
-            <ServingTeam form={form} />
-            <LiberoReplaceTrigger />
-            <SubstitutesTable members={members} />
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <ActionButton
-                isNewSet={isNewSet}
-                disabled={!hasPairedReplacePosition}
-              />
-            </DialogClose>
-          </DialogFooter>
-        </Form>
-        <LiberoReplaceDialog />
-      </Dialog>
+      <Card className="size-full overflow-y-hidden p-0">
+        <Dialog>
+          <Form
+            form={form}
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex w-full flex-1 flex-col gap-2 overflow-y-hidden"
+          >
+            <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-scroll">
+              <ServingTeam form={form} />
+              <LiberoReplaceTrigger />
+              <SubstitutesTable members={members} />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <ActionButton
+                  isNewSet={isNewSet}
+                  disabled={!hasPairedReplacePosition}
+                />
+              </DialogClose>
+            </DialogFooter>
+          </Form>
+          <LiberoReplaceDialog />
+        </Dialog>
+      </Card>
     </PanelContent>
   );
 };
 
 const ServingTeam = ({ form }) => {
   return (
-    <PanelSection>
-      <PanelSectionTitle>本局發球權</PanelSectionTitle>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
+      <CardHeader className="w-full">
+        <CardTitle>本局發球權</CardTitle>
+      </CardHeader>
       <FormField
         control={form.control}
         name="serve"
@@ -133,7 +134,7 @@ const ServingTeam = ({ form }) => {
           </FormItem>
         )}
       />
-    </PanelSection>
+    </section>
   );
 };
 
@@ -144,10 +145,12 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
 
   return (
-    <PanelSection>
-      <PanelSectionTitle>
-        替補名單 ({substituteCount}/{substituteLimit})
-      </PanelSectionTitle>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
+      <CardHeader className="w-full">
+        <CardTitle>
+          替補名單 ({substituteCount}/{substituteLimit})
+        </CardTitle>
+      </CardHeader>
       <Table>
         <TableBody className="text-xl">
           {lineups[0]?.substitutes &&
@@ -167,7 +170,7 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
             })}
         </TableBody>
       </Table>
-    </PanelSection>
+    </section>
   );
 };
 

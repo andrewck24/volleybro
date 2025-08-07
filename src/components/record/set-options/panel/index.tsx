@@ -1,19 +1,19 @@
 "use client";
-import { Options } from "@/components/record/set-options/panels/options";
-import { Substitutes } from "@/components/record/set-options/panels/substitutes";
-import { PlayerInfo } from "@/components/team/lineup/panels/player-info";
-import { Positions } from "@/components/team/lineup/panels/positions";
-import { Panels } from "@/components/ui/panels";
+import { Options } from "@/components/record/set-options/panel/options";
+import { Substitutes } from "@/components/record/set-options/panel/substitutes";
+import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
+import { Positions } from "@/components/team/lineup/panel/positions";
+import { Panel } from "@/components/ui/panel";
 import { useRecord } from "@/hooks/use-data";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const SetOptionsPanels = ({ recordId }: { recordId: string }) => {
+export const SetOptionsPanel = ({ recordId }: { recordId: string }) => {
   const { record } = useRecord(recordId);
   const { optionMode } = useAppSelector((state) => state.lineup.status);
 
   return (
-    <Panels className="overflow-hidden">
+    <Panel>
       {optionMode === LineupOptionMode.PLAYERINFO ? (
         <PlayerInfo members={record.teams.home.players} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
@@ -23,6 +23,6 @@ export const SetOptionsPanels = ({ recordId }: { recordId: string }) => {
       ) : (
         <Options recordId={recordId} />
       )}
-    </Panels>
+    </Panel>
   );
 };

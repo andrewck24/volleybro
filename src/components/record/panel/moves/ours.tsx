@@ -1,5 +1,5 @@
 "use client";
-import { Container, MoveButton } from "@/components/record/panels/moves";
+import { Container, MoveButton } from "@/components/record/panel/moves";
 import { Button } from "@/components/ui/button";
 import { recordActions } from "@/lib/features/record/record-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";

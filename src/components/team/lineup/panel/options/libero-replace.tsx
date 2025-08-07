@@ -1,6 +1,7 @@
 "use client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DialogClose,
   DialogContent,
@@ -16,7 +17,6 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { PanelSection, PanelSectionTitle } from "@/components/ui/panels";
 import {
   Select,
   SelectContent,
@@ -45,8 +45,10 @@ export const LiberoReplaceTrigger = () => {
     useReplacePosition();
 
   return (
-    <PanelSection>
-      <PanelSectionTitle>自由球員設定</PanelSectionTitle>
+    <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
+      <CardHeader className="w-full">
+        <CardTitle>自由球員設定</CardTitle>
+      </CardHeader>
       {!!liberoReplaceMode && !hasPairedReplacePosition && (
         <Alert variant="destructive">
           <RiAlertLine />
@@ -92,7 +94,7 @@ export const LiberoReplaceTrigger = () => {
           )}
         </Alert>
       )}
-    </PanelSection>
+    </section>
   );
 };
 

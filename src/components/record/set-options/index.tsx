@@ -1,5 +1,5 @@
 "use client";
-import { SetOptionsPanels } from "@/components/record/set-options/panels";
+import { SetOptionsPanel } from "@/components/record/set-options/panel";
 import { LineupCourt } from "@/components/team/lineup/court";
 import {
   DialogContent,
@@ -39,7 +39,7 @@ export const SetOptions = ({
         </DialogDescription>
       </DialogHeader>
       <LineupCourt members={record.teams.home.players} />
-      <SetOptionsPanels recordId={recordId} />
+      <SetOptionsPanel recordId={recordId} />
     </DialogContent>
   );
 };
