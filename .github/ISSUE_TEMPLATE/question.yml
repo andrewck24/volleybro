@@ -1,0 +1,76 @@
+name: ❓ Question / Discussion
+description: 提問、尋求協助或討論使用方法
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        🤔 有問題嗎？我們來幫助你！
+
+        **提醒**：在提問前，請先：
+        - 🔍 搜尋現有的 issues 和討論
+        - 📚 查看官方文件
+        - 💬 考慮使用 [Discussions](https://github.com/andrewck24/volleybro/discussions) 進行開放式討論
+
+  - type: dropdown
+    id: question_type
+    attributes:
+      label: 📂 問題類型
+      options:
+        - 使用方法
+        - 設定問題
+        - 錯誤理解
+        - 最佳實務
+        - 整合相關
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: ❓ 問題內容
+      description: 清楚地描述你的問題
+      placeholder: 詳細描述你想了解或需要幫助的問題...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🎯 使用情境
+      description: 提供相關的背景資訊
+      placeholder: |
+        - 你想達成什麼目標？
+        - 目前嘗試了什麼方法？
+        - 參考了哪些文件？
+
+  - type: textarea
+    id: code_example
+    attributes:
+      label: 💻 相關程式碼
+      description: 如果適用，提供相關的程式碼片段
+      render: javascript
+      placeholder: |
+        // 你的程式碼範例
+        // 或設定檔內容
+
+  - type: input
+    id: environment_simple
+    attributes:
+      label: 🔧 環境資訊（如相關）
+      description: 簡單描述你的環境
+      placeholder: "例如: Node 18, React 18, Browser Chrome"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ 確認清單
+      options:
+        - label: 我已經搜尋過現有的 issues
+          required: true
+        - label: 我已經查看過相關文件
+          required: true
+        - label: 這不是一個錯誤報告（錯誤請使用 Bug Report 模板）
+          required: true

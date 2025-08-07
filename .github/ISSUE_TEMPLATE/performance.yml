@@ -1,0 +1,71 @@
+name: 🚀 Performance Issue
+description: 回報效能問題或優化建議
+title: "[Performance] "
+labels: ["performance"]
+body:
+  - type: dropdown
+    id: performance_type
+    attributes:
+      label: ⚡ 效能類型
+      options:
+        - 執行速度慢
+        - 記憶體使用過多
+        - 網路請求優化
+        - 打包大小
+        - 首次載入時間
+        - 使用者互動回應
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📊 問題描述
+      description: 描述你遇到的效能問題
+      placeholder: 詳細描述效能問題的情境和症狀...
+    validations:
+      required: true
+
+  - type: textarea
+    id: measurements
+    attributes:
+      label: 📈 效能數據
+      description: 提供具體的效能測量資料
+      placeholder: |
+        - 執行時間：xx 秒
+        - 記憶體使用：xx MB
+        - 檔案大小：xx KB
+        - 測試工具：xxx
+      render: text
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🖥️ 測試環境
+      description: 效能測試的環境資訊
+      placeholder: |
+        - OS: 
+        - CPU: 
+        - RAM: 
+        - Node.js: 
+        - 瀏覽器:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔄 重現方式
+      description: 如何重現這個效能問題？
+      placeholder: |
+        1. 建立測試案例...
+        2. 執行特定操作...
+        3. 觀察效能表現...
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 💡 優化建議
+      description: 你是否有優化建議？
+      placeholder: 可能的優化方向或解決方案...
