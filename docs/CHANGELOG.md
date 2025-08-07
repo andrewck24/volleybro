@@ -1,3 +1,12 @@
+## [0.8.1](https://github.com/andrewck24/volleybro/compare/v0.8.0...v0.8.1) (2025-08-07)
+
+
+### Bug Fixes
+
+* **header:** adjust header height to accommodate safe area insets ([6a52884](https://github.com/andrewck24/volleybro/commit/6a528842c1305b3c33086a358a0cc27df526fe94))
+* **header:** increase z-index of header for improved visibility ([2ae6dbb](https://github.com/andrewck24/volleybro/commit/2ae6dbb38d54b318d63b1d7786a52ab6280795af))
+* **ui:** remove fixed padding from Card in PanelContent ([7f40f45](https://github.com/andrewck24/volleybro/commit/7f40f45e41568fd273f320ca7f943f40327bbed8)), closes [#214](https://github.com/andrewck24/volleybro/issues/214)
+
 # [0.8.0](https://github.com/andrewck24/volleybro/compare/v0.7.0...v0.8.0) (2025-08-01)
 
 
