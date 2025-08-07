@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 import { RiMore2Fill, RiEditFill, RiDeleteBinLine } from "react-icons/ri";
 
 import {

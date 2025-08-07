@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
