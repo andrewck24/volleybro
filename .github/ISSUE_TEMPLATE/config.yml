@@ -1,0 +1,17 @@
+blank_issues_enabled: true
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感謝你願意提供回饋！請選擇以下問題類型，並填寫相關資訊以幫助我們更好地理解和解決問題。
+
+contact_links:
+  - name: 💬 討論區 (Discussions)
+    url: https://github.com/andrewck24/volleybro/discussions
+    about: 一般討論、想法分享或尋求協助
+  - name: 📚 文件 (Documentation)
+    url: https://your-docs-site.com
+    about: 查看完整文件和 API 參考
+  - name: 🛡️ 安全漏洞 (Security Vulnerabilities)
+    url: https://github.com/andrewck24/volleybro/security/advisories/new
+    about: 私下回報安全漏洞（請勿建立公開 issue）

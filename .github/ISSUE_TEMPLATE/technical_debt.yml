@@ -1,0 +1,114 @@
+name: 🔧 Technical Debt / Refactor
+description: 改善程式碼品質、架構或技術債
+title: "[Tech Debt] "
+labels: ["technical-debt", "refactor"]
+body:
+  - type: textarea
+    id: current_situation
+    attributes:
+      label: 📊 目前狀況
+      description: 描述目前的程式碼問題或技術債
+      placeholder: 目前的程式碼存在以下問題...
+    validations:
+      required: true
+
+  - type: textarea
+    id: problems
+    attributes:
+      label: ⚠️ 造成的問題
+      description: 這些技術債造成什麼問題？
+      placeholder: |
+        - 維護困難
+        - 效能問題
+        - 測試困難
+        - 新功能開發受阻
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: 🎯 建議解決方案
+      description: 你建議如何改善？
+      placeholder: 建議採用 [...] 方案來解決...
+
+  - type: textarea
+    id: files_affected
+    attributes:
+      label: 📁 影響檔案
+      description: 哪些檔案或模組需要修改？
+      placeholder: |
+        - src/components/...
+        - lib/utils/...
+
+  - type: dropdown
+    id: technical_priority
+    attributes:
+      label: 🚨 技術優先級
+      description: 根據技術債的緊急程度分類
+      options:
+        - 緊急 - 阻礙關鍵功能或造成穩定性問題
+        - 高 - 明顯影響開發效率或程式碼品質
+        - 中 - 需要改善但不急迫
+        - 低 - 優化項目，時間允許時處理
+    validations:
+      required: true
+
+  - type: input
+    id: story_points_tech
+    attributes:
+      label: 📊 Story Points
+      description: 估算重構工作的複雜度 (1,2,3,5,8,13,21...)
+      placeholder: "例如: 13"
+
+  - type: dropdown
+    id: effort_days
+    attributes:
+      label: ⏱️ 預估工時 (人天)
+      options:
+        - 極小 (0.5) - 半天內
+        - 小 (1-2) - 1-2天
+        - 中 (3-5) - 3-5天
+        - 大 (6-10) - 1-2週
+        - 極大 (10+) - 超過2週
+
+  - type: dropdown
+    id: technical_impact
+    attributes:
+      label: 💥 技術影響程度
+      description: 重構對系統的影響範圍
+      options:
+        - 局部 - 單一模組或檔案
+        - 模組 - 影響相關模組
+        - 系統 - 影響多個子系統
+        - 全域 - 影響整個專案架構
+
+  - type: textarea
+    id: risk_assessment
+    attributes:
+      label: ⚠️ 風險評估
+      description: 重構可能帶來的風險和緩解措施
+      placeholder: |
+        風險:
+        - 可能影響現有功能
+        - 測試覆蓋度不足
+
+        緩解措施:
+        - 增加單元測試
+        - 分階段重構
+
+  - type: checkboxes
+    id: breaking_changes
+    attributes:
+      label: 💥 重大變更
+      options:
+        - label: 這個重構可能包含重大變更 (breaking changes)
+          required: false
+
+  - type: textarea
+    id: success_metrics
+    attributes:
+      label: 📈 成功指標
+      description: 如何衡量重構是否成功？
+      placeholder: |
+        - 程式碼複雜度降低 X%
+        - 測試覆蓋率提升至 X%
+        - 建置時間減少 X 秒

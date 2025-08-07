@@ -1,0 +1,55 @@
+name: 🛡️ Security Issue
+description: 回報安全相關問題（非緊急漏洞）
+title: "[Security] "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **重要提醒**：
+        - 如果是嚴重的安全漏洞，請使用 [GitHub 私人漏洞回報](https://github.com/andrewck24/volleybro/security/advisories/new)
+        - 這裡僅適用於一般性安全改善建議或非敏感的安全相關討論
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 🚨 風險等級
+      options:
+        - 資訊性 - 安全建議或最佳實務
+        - 低風險 - 潛在的安全改善
+        - 中風險 - 需要注意的安全問題
+      description: 緊急或高風險漏洞請使用私人回報！
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 📋 問題描述
+      description: 描述安全相關的問題或建議
+      placeholder: 描述你發現的安全問題或改善建議...
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 💥 潛在影響
+      description: 這個問題可能造成什麼影響？
+      placeholder: 可能的安全風險或影響...
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 🔧 改善建議
+      description: 你建議如何解決這個問題？
+      placeholder: 建議的解決方案或安全措施...
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 📚 相關資源
+      description: 相關的 CVE、文件或參考資料
+      placeholder: |
+        - CVE-XXXX-XXXXX
+        - https://example.com/security-guide

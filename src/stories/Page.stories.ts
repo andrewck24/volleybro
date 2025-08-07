@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from '@storybook/react';
-import { expect, userEvent, within } from '@storybook/test';
+/* eslint-disable testing-library/no-node-access */
+import type { Meta, StoryObj } from '@storybook/nextjs';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { Page } from './Page';
 
@@ -19,14 +20,25 @@ export const LoggedOut: Story = {};
 
 // More on component testing: https://storybook.js.org/docs/writing-tests/component-testing
 export const LoggedIn: Story = {
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, step }) => {
     const canvas = within(canvasElement);
-    const loginButton = canvas.getByRole('button', { name: /Log in/i });
-    await expect(loginButton).toBeInTheDocument();
-    await userEvent.click(loginButton);
-    await expect(loginButton).not.toBeInTheDocument();
 
-    const logoutButton = canvas.getByRole('button', { name: /Log out/i });
-    await expect(logoutButton).toBeInTheDocument();
+    await step('Initial state: Renders login button', async () => {
+      const loginButton = canvas.getByRole('button', { name: /Log in/i });
+      await expect(loginButton).toBeInTheDocument();
+    });
+
+    await step('Action: User clicks login button', async () => {
+      const loginButton = canvas.getByRole('button', { name: /Log in/i });
+      await userEvent.click(loginButton);
+    });
+
+    await step('Final state: Renders logout button', async () => {
+      const loginButton = canvas.queryByRole('button', { name: /Log in/i });
+      await expect(loginButton).not.toBeInTheDocument();
+
+      const logoutButton = canvas.getByRole('button', { name: /Log out/i });
+      await expect(logoutButton).toBeInTheDocument();
+    });
   },
 };

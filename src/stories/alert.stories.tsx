@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 import { RiInformationLine, RiAlertLine } from "react-icons/ri";
 
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";

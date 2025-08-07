@@ -1,0 +1,136 @@
+name: ✨ Feature Request
+description: 提出新功能建議或改善現有功能
+title: "[Feature] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        💡 感謝你的建議！請描述你希望看到的功能。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🤔 要解決的問題
+      description: 這個功能請求是否與某個問題相關？
+      placeholder: 我總是為了 [...] 而感到困擾
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 建議的解決方案
+      description: 你希望看到什麼樣的功能？
+      placeholder: 我希望能夠 [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 替代方案
+      description: 你考慮過其他替代解決方案嗎？
+      placeholder: 我也考慮過 [...]
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 📂 功能類型
+      options:
+        - 核心功能
+        - API 改善
+        - 開發者體驗
+        - 效能優化
+        - 無障礙功能
+        - 國際化/多語言支援
+        - 文件改善
+        - 其他
+
+  - type: dropdown
+    id: moscow_priority
+    attributes:
+      label: 🎯 MoSCoW 優先級
+      description: 根據 MoSCoW 方法評估功能重要性
+      options:
+        - Must Have - 必須有的核心功能
+        - Should Have - 應該有的重要功能
+        - Could Have - 可以有的額外功能
+        - Won't Have - 此版本不會有的功能
+    validations:
+      required: true
+
+  - type: input
+    id: reach_estimate
+    attributes:
+      label: 📈 預估影響範圍 (Reach)
+      description: 這個功能預計會影響多少使用者？
+      placeholder: "例如: 80% 的活躍使用者, 約 1000 人/月"
+
+  - type: dropdown
+    id: impact_level
+    attributes:
+      label: 💥 影響程度 (Impact)
+      description: 對每個使用者的影響程度
+      options:
+        - 極高 (3) - 大幅改善使用者體驗
+        - 高 (2) - 明顯改善使用體驗
+        - 中 (1) - 小幅改善
+        - 低 (0.5) - 微小改善
+        - 極低 (0.25) - 幾乎無影響
+
+  - type: dropdown
+    id: confidence_level
+    attributes:
+      label: 🎲 信心水準 (Confidence)
+      description: 對預估 Reach 和 Impact 的信心程度
+      options:
+        - 高 (100%) - 有充分數據支撐
+        - 中高 (80%) - 有一定數據或經驗支撐
+        - 中 (50%) - 基於合理假設
+        - 低 (20%) - 高度不確定
+
+  - type: dropdown
+    id: effort_estimate
+    attributes:
+      label: ⏱️ 工作量估算 (Effort)
+      description: 開發這個功能需要的工作量（人月）
+      options:
+        - 極小 (0.5) - 幾天內完成
+        - 小 (1) - 1週內完成
+        - 中 (2) - 2-4週完成
+        - 大 (4) - 1-2月完成
+        - 極大 (8+) - 超過2個月
+
+  - type: input
+    id: story_points
+    attributes:
+      label: 📊 Story Points
+      description: 使用 Fibonacci 數列估算複雜度 (1,2,3,5,8,13,21...)
+      placeholder: "例如: 8"
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: ✅ 驗收標準 (Acceptance Criteria)
+      description: 完成這個功能需要滿足的條件
+      placeholder: |
+        - [ ] 使用者能夠...
+        - [ ] 系統會自動...  
+        - [ ] 錯誤處理包含...
+
+  - type: textarea
+    id: business_value
+    attributes:
+      label: 💼 商業價值
+      description: 這個功能對業務的價值和預期效益
+      placeholder: |
+        - 提升使用者留存率
+        - 減少客服工作量
+        - 增加轉換率
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 📋 額外背景資訊
+      description: 任何其他相關資訊、使用案例或參考資料
