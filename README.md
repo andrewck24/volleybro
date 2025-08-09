@@ -195,6 +195,14 @@ See [LICENSE](./LICENSE) for the full license.
 
 ## 聯絡方式 / Contact
 
-如有任何疑問或建議，請透過 GitHub Issue 與我們聯絡。
+如有任何疑問或建議，請透過以下方式與我們聯絡：
+
+- 💬 **討論區 (Discussions)**：[一般討論、想法分享或尋求協助](https://github.com/andrewck24/volleybro/discussions)
+- 🛡️ **安全漏洞 (Security Vulnerabilities)**：[私下回報安全漏洞（請勿建立公開 issue）](https://github.com/andrewck24/volleybro/security/advisories/new)
+
+If you have any questions or suggestions, please contact us via the following methods:
+
+- 💬 **Discussions**: [General discussions, sharing ideas, or seeking help](https://github.com/andrewck24/volleybro/discussions)
+- 🛡️ **Security Vulnerabilities**: [Privately report security vulnerabilities (please do not create public issues)](https://github.com/andrewck24/volleybro/security/advisories/new)
 
 If you have any questions or suggestions, please contact us via GitHub Issues.
