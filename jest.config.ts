@@ -8,40 +8,20 @@ import nextJest from "next/jest";
 
 const createJestConfig = nextJest({ dir: "./" });
 
-const commonConfig = {
-  moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
-  preset: "ts-jest",
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-};
-
 const config: Config = {
   collectCoverage: true,
   coverageDirectory: "coverage",
   coverageProvider: "v8",
-  projects: [
-    {
-      ...commonConfig,
-      displayName: "frontend",
-      testEnvironment: "jest-environment-jsdom",
-      testMatch: [
-        "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/app/**/!(api)/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      ],
-    },
-    {
-      ...commonConfig,
-      displayName: "backend",
-      testEnvironment: "node",
-      testMatch: [
-        "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/interfaces/**/*.{spec,test}.{js,jsx,ts,tsx}",
-        "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      ],
-    },
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+  testMatch: ["<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}"],
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/types/**/*",
   ],
+  moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
 };
 
 export default createJestConfig(config);
