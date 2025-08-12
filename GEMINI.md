@@ -21,7 +21,7 @@ VolleyBro
 - UI 組件庫: Shadcn/UI 搭配 Tailwind CSS
 - 狀態管理 (State Management): Redux Toolkit (用於複雜狀態) + SWR (用於資料獲取與快取)
 - 依賴注入 (DI): InversifyJS
-- 測試 (Testing): Jest (單元/整合測試) & Storybook (UI 組件開發與測試)
+- 測試 (Testing): Jest (統一 jsdom 環境) & Storybook (UI 組件開發與測試)
 - PWA: @serwist/next
 - 程式碼品質: ESLint (語法檢查) & Prettier (程式碼格式化)
 - 版本與發布: Semantic Release (自動化版本管理與日誌生成)
@@ -123,3 +123,79 @@ VolleyBro
 1 feat(record): add set and match completion detection
 2 fix(auth): resolve type conflicts by consolidating auth type declarations
 3 docs(readme): update project architecture diagram
+
+## 測試策略與配置 (Testing Strategy & Configuration)
+
+### 當前測試環境 (Current Testing Environment)
+
+**狀態**: ✅ **已更新** - 統一測試環境已建立 (2024-08-11)
+
+- **測試環境**: 統一的 `jsdom` 環境（適用於所有測試）
+- **測試框架**: Jest + Next.js 整合 (`next/jest`)
+- **覆蓋率**: Landing page 元件達到 95%+ 測試覆蓋率
+- **設定檔**: 單一 `jest.setup.ts` 統一配置
+
+### 關鍵技術決策 (Key Technical Decisions)
+
+#### 1. 統一 jsdom 環境 vs 分離前後端測試環境
+
+**選擇**: 統一使用 `jsdom` 環境
+
+**理由**:
+- 符合 Next.js 官方最佳實踐建議
+- 簡化配置維護，避免 ES 模組與 CommonJS 語法衝突
+- 通用元件測試更貼近實際運行環境
+- Clean Architecture 各層級與環境無關
+
+#### 2. MongoDB Mock 策略（短期方案）
+
+**問題**: BSON ES 模組導致 Jest 解析錯誤
+
+**解決方案**: 在 `jest.setup.ts` 中 mock `mongodb`、`mongoose` 和 `bson` 模組
+
+**優點**:
+- 避免 `transformIgnorePatterns` 複雜配置
+- 測試執行速度更快
+- 真正的單元測試隔離
+
+**未來考慮**:
+- 中期：評估 `@shelf/jest-mongodb` 用於整合測試
+- 長期：考慮遷移至 Vitest 以獲得更好的 ES 模組支援
+
+#### 3. 替代方案評估
+
+- ❌ `transformIgnorePatterns`: Next.js 覆寫複雜，維護負擔重
+- ✅ `@shelf/jest-mongodb`: Jest 官方預設（未來考慮）
+- ✅ Vitest 遷移: 更好的 ES 模組支援（長期選項）
+
+### 測試結構 (Test Structure)
+
+```
+src/
+├── components/landing/__tests__/     # 元件單元測試
+├── infrastructure/__tests__/         # 基礎設施層測試（已 mock）
+├── applications/__tests__/           # 用例測試
+├── entities/__tests__/               # 領域邏輯測試
+└── lib/features/*/test/             # 功能特定輔助測試
+```
+
+### 測試指令 (Testing Commands)
+
+- `npm test` - 執行所有測試
+- `npm run test:watch` - 監控模式執行測試
+- `npm run test:coverage` - 生成覆蓋率報告
+
+### 測試類型與工具 (Test Types & Tools)
+
+1. **單元測試 (Unit Tests)**: Jest + React Testing Library
+2. **整合測試 (Integration Tests)**: Jest（元件間互動測試）
+3. **E2E 測試 (End-to-End Tests)**: Playwright（跨瀏覽器測試）
+4. **視覺測試 (Visual Tests)**: Storybook + Chromatic
+5. **無障礙測試 (Accessibility Tests)**: jest-axe
+
+### CI/CD 整合 (CI/CD Integration)
+
+GitHub Actions 工作流程確保：
+- 所有元件測試通過後才執行 E2E 測試
+- 測試覆蓋率維持在 95% 以上
+- 自動生成測試報告和覆蓋率徽章
