@@ -1,3 +1,10 @@
+## [0.8.2](https://github.com/andrewck24/volleybro/compare/v0.8.1...v0.8.2) (2025-08-14)
+
+
+### Bug Fixes
+
+* **auth:** resolve ObjectId serialization causing team page failures ([91ade6c](https://github.com/andrewck24/volleybro/commit/91ade6c6d11a4cae3823e269df61cef447942047)), closes [#239](https://github.com/andrewck24/volleybro/issues/239)
+
 ## [0.8.1](https://github.com/andrewck24/volleybro/compare/v0.8.0...v0.8.1) (2025-08-07)
 
 
