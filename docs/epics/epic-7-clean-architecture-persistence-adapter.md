@@ -15,50 +15,100 @@
 - 保留現有 Domain 實體設計，新增適當映射機制
 
 **背景脈絡**: 
-Issue #239 揭露關鍵架構缺陷：MongoDB ObjectIds 未正確轉換為 Domain 層適用的字串格式，導致生產環境 CastError 錯誤。雖然 PR #240 在 NextAuth callbacks 中提供緊急修復，但這凸顯了需要建立適當 Persistence Adapters 遵循 Clean Architecture 原則的重要性。
+Issue #239 揭露關鍵架構缺陷：MongoDB ObjectIds 未正確轉換為 Domain 層適用的字串格式，導致生產環境 CastError 錯誤。雖然 PR #240 在 NextAuth callbacks 中提供緊急修復，但進一步代碼審查發現更嚴重的問題：
 
-## Story 7.1: 實作 Domain-Database Mappers 與 ObjectId 字串轉換機制
+**現有系統關鍵缺陷**：
+- `BaseMongoRepository` 使用 `toJSON() as unknown as T` 不安全轉型
+- ObjectId 物件直接洩露到 Domain 層，違反 Clean Architecture 原則
+- 現有實作將導致 Epic 7 目標無法達成，必須優先修復
+
+此 Epic 現在具有雙重目標：**緊急修復現有架構缺陷** + **建立長期 Clean Architecture 合規性**
+
+## Story 7.1: 緊急修復 BaseMongoRepository 與實作 Domain-Database Mappers
 
 作為 **系統架構師**，
-我想要 **為 User、Team、Record 實體建立完整的 Domain-Database 映射器，並實現全面的 ObjectId 字串轉換**，
-所以 **可以消除基礎設施洩露問題，確保 Domain 層的純淨性和型別安全**。
+我想要 **緊急修復現有 BaseMongoRepository 的 ObjectId 洩露問題，並為 User、Team、Record 實體建立完整的 Domain-Database 映射器**，
+所以 **可以立即解決現有架構缺陷，消除基礎設施洩露問題，確保 Domain 層的純淨性和型別安全**。
+
+### ⚠️ 緊急修復需求
+
+**問題發現**: Code review 發現現有 `BaseMongoRepository` 存在嚴重架構缺陷：
+- 位置：`src/infrastructure/db/repositories/base.repository.mongo.ts:9-15`
+- 問題：使用 `toJSON() as unknown as T` 不安全轉型
+- 影響：ObjectId 物件直接洩露到 Domain 層，違反 Clean Architecture 原則
 
 ### 接受條件
 
-1. **UserMapper 實作**：
+1. **BaseMongoRepository 緊急修復**：
+   - 移除不安全的 `toJSON() as unknown as T` 轉型
+   - 新增抽象方法 `protected abstract mapToDomain(doc: M): T`
+   - 新增抽象方法 `protected abstract mapToDatabase(entity: T): Partial<M>`
+   - 確保所有資料轉換都經過適當映射
+
+2. **UserMapper 實作**：
    - 實作 `toDomain()` 方法：UserDocument → User 實體轉換
    - 實作 `toDatabase()` 方法：User 實體 → UserDocument 轉換
    - 確保 `teams.joined` 和 `teams.inviting` ObjectId 陣列正確轉換為字串陣列
    - 處理 `_id` 欄位的 ObjectId 到 string 轉換
 
-2. **TeamMapper 實作**：
+3. **UserRepositoryImpl 修復**：
+   - 實作 BaseMongoRepository 的抽象映射方法
+   - 使用 UserMapper 進行所有資料轉換
+   - 移除直接的 ObjectId 洩露
+
+4. **TeamMapper 實作**：
    - 實作完整的 Team 實體雙向轉換
    - 處理 members 陣列中的 ObjectId 參照
    - 確保所有相關聯 ObjectId 正確序列化
 
-3. **RecordMapper 實作**：
+5. **RecordMapper 實作**：
    - 實作 Record 實體與 RecordDocument 的映射
    - 處理巢狀結構中的 ObjectId 轉換
    - 維持現有資料結構完整性
 
-4. **型別安全保證**：
+6. **型別安全保證**：
    - 完整的 TypeScript 型別定義
    - 編譯時期型別檢查通過
-   - 無任何 `any` 型別使用
+   - 完全移除 `any` 和 `as unknown as T` 使用
 
-5. **單元測試覆蓋**：
+7. **單元測試覆蓋**：
    - 每個 Mapper 達到 100% 測試覆蓋率
+   - BaseMongoRepository 抽象實作測試
    - 邊界條件和錯誤處理測試
    - ObjectId 轉換正確性驗證
 
 ### 技術規格
 
+#### BaseMongoRepository 修復方案
+```typescript
+// src/infrastructure/db/repositories/base.repository.mongo.ts
+export abstract class BaseMongoRepository<T, M extends Document> {
+  constructor(protected readonly model: Model<M>) {}
+
+  // 抽象方法 - 子類必須實作
+  protected abstract mapToDomain(doc: M): T;
+  protected abstract mapToDatabase(entity: T): Partial<M>;
+
+  async find(filter: Record<string, any>): Promise<T[]> {
+    const docs = await this.model.find(filter);
+    return docs.map(doc => this.mapToDomain(doc)); // 使用映射而非不安全轉型
+  }
+
+  async findOne(filter: Record<string, any>): Promise<T | null> {
+    const doc = await this.model.findOne(filter);
+    if (!doc) return null;
+    return this.mapToDomain(doc); // 使用映射而非不安全轉型
+  }
+}
+```
+
+#### UserMapper 實作
 ```typescript
 // src/infrastructure/mappers/user.mapper.ts
 export class UserMapper {
   static toDomain(userDoc: UserDocument): User {
     return {
-      _id: userDoc._id.toString(),
+      _id: userDoc._id.toString(), // ObjectId → string
       name: userDoc.name,
       email: userDoc.email,
       teams: {
@@ -78,6 +128,20 @@ export class UserMapper {
         inviting: user.teams.inviting.map(id => new ObjectId(id))
       }
     };
+  }
+}
+```
+
+#### UserRepositoryImpl 修復
+```typescript
+// src/infrastructure/db/repositories/user.repository.mongo.ts
+export class UserRepositoryImpl extends BaseMongoRepository<User, UserDocument> {
+  protected mapToDomain(doc: UserDocument): User {
+    return UserMapper.toDomain(doc);
+  }
+
+  protected mapToDatabase(entity: User): Partial<UserDocument> {
+    return UserMapper.toDatabase(entity);
   }
 }
 ```
@@ -208,28 +272,62 @@ callbacks: {
 
 ## 風險緩解
 
-**主要風險**: 資料轉換錯誤可能導致生產故障或資料不一致
+### 🚨 關鍵風險：現有系統架構缺陷
+
+**Code Review 發現的緊急風險**:
+- **型別安全違規**: `as unknown as T` 轉型繞過 TypeScript 檢查，隱藏執行時錯誤
+- **資料完整性風險**: ObjectId 洩露可能導致 API 意外序列化行為
+- **架構債務**: 現有實作直接違反 Clean Architecture 原則，影響長期維護性
+
+### 主要實作風險
+
+**風險 1: 資料轉換錯誤**可能導致生產故障或資料不一致
 
 **緩解措施**:
-- 所有 Mappers 的全面單元測試
+- 所有 Mappers 的全面單元測試（100% 覆蓋率）
+- BaseMongoRepository 抽象實作的綜合測試
 - 從非關鍵路徑開始的漸進式推出
 - 預備環境的平行測試
 - 詳細的錯誤日誌記錄和監控
 
+**風險 2: 現有功能回歸**在修復過程中可能影響穩定性
+
+**緩解措施**:
+- Issue #239 相關情境的專門回歸測試
+- 現有 API 契約的完整驗證測試
+- 漸進式遷移策略（一個 Repository 一個時間）
+
 **回退計畫**:
-- 新 Repository 實作的功能標誌
-- 原始 Repository 程式碼保留作為備援
-- 資料庫保持不變，支援立即回退
-- PR #240 修復提供基線穩定性
+- 新 Repository 實作的功能標誌控制
+- 原始 Repository 程式碼保留作為緊急備援
+- 資料庫架構保持不變，支援立即回退
+- PR #240 修復提供基線穩定性保障
 
 ## 完成定義
 
+### 關鍵成功標準
+
+- [x] **緊急修復完成**: BaseMongoRepository ObjectId 洩露問題完全解決
+- [x] **架構合規性**: 完全消除 `as unknown as T` 不安全轉型
+- [x] **型別安全**: 所有 Domain-Database 轉換經過適當映射
 - [x] 所有 Stories 完成且滿足接受條件
 - [x] 現有功能透過回歸測試驗證
 - [x] 整合點正確運作且 ObjectId 處理無誤
 - [x] Mapper 模式文件更新
 - [x] 現有功能無回歸問題
 - [x] Issue #239 根本原因透過架構改善永久解決
+
+### 驗證檢查清單
+
+1. **Code Review 問題解決**:
+   - [ ] BaseMongoRepository 不再使用不安全轉型
+   - [ ] 所有 Repository 實作都使用適當的 Mapper
+   - [ ] ObjectId 完全隔離在基礎設施層
+
+2. **Clean Architecture 合規**:
+   - [ ] Domain 層無基礎設施依賴
+   - [ ] 所有跨層資料轉換都經過 Mapper
+   - [ ] TypeScript 編譯無警告或錯誤
 
 ## 附加脈絡
 
