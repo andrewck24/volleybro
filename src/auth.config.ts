@@ -62,7 +62,10 @@ const authConfig = {
         token.name = user.name;
         token.email = user.email;
         token.image = user.image;
-        token.teams = user.teams;
+        token.teams = user.teams ? {
+          joined: user.teams.joined?.map(id => id.toString()) || [],
+          inviting: user.teams.inviting?.map(id => id.toString()) || []
+        } : { joined: [], inviting: [] };
       }
       if (trigger === "update") {
         return { ...token, user: session?.user };
@@ -74,7 +77,7 @@ const authConfig = {
       session.user.name = token.name;
       session.user.email = token.email;
       session.user.image = token.image;
-      session.user.teams = token.teams;
+      session.user.teams = token.teams || { joined: [], inviting: [] };
       return session;
     },
   },
