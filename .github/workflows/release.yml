@@ -11,6 +11,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    outputs:
+      new-release-published: ${{ steps.semantic-release.outputs.new-release-published }}
+      new-release-version: ${{ steps.semantic-release.outputs.new-release-version }}
     permissions:
       contents: write # to be able to publish a GitHub release
       issues: write # to be able to comment on released issues
@@ -30,6 +33,48 @@ jobs:
       - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
         run: npm audit signatures
       - name: Release
+        id: semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+
+  sync-dev:
+    name: Create PR to sync version to dev branch
+    runs-on: ubuntu-latest
+    needs: release
+    if: needs.release.outputs.new-release-published == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync/version-${{ needs.release.outputs.new-release-version }}
+          base: dev
+          title: "chore: sync version ${{ needs.release.outputs.new-release-version }} to dev"
+          body: |
+            ## 🔄 Auto-sync from main branch
+
+            This PR automatically syncs the new release version `${{ needs.release.outputs.new-release-version }}` from main to dev branch.
+
+            ### Changes include:
+            - 📦 Updated package.json version
+            - 📝 Updated CHANGELOG.md  
+            - 🏷️ Release commit and tags
+
+            ### 🤖 This is an automated PR
+            - Created by semantic-release workflow
+            - Safe to merge if no conflicts exist
+            - Please review and merge when ready
+          labels: |
+            automated
+            version-sync
+          delete-branch: true
