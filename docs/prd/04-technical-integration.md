@@ -28,8 +28,8 @@
 
 - 狀態管理：Redux Toolkit + SWR架構保持不變
 - UI元件：完全使用Shadcn UI + Tailwind CSS設計系統
-- 動畫系統：沿用現有Motion/React模式
-- Waitlist狀態使用SWR進行簡單的server state管理
+- 動畫系統：Motion.js 動態導入優化，移除 LazySection 依賴
+- Bundle 優化：預期減少 15-20% bundle size
 
 ### 測試整合策略
 
@@ -44,7 +44,6 @@
 - 新功能必須遵循五層架構(Domain/Application/Infrastructure/Interface/Presentation)
 - 使用現有的InversifyJS依賴注入模式
 - 遵循現有的repository pattern
-
 
 **編碼標準**:
 

@@ -21,22 +21,46 @@ VolleyBro目前採用完整的設計系統，包含：
 
 基於需求分析，以下畫面需要修改或新增：
 
-### 產品介紹頁增強 (已部分實現)
+### Beta階段 Landing Page 重構 (進行中 - Brownfield Enhancement)
 
-**現有畫面**:
+**現有架構**:
 
-- ✅ Hero區塊 - 主標題「讓排球賽事紀錄更加[簡單/快速/一目瞭然]」
-- ✅ Features區塊 - 橫向滾動卡片展示「創建隊伍/設定陣容/記錄比賽/逐球紀錄」
-- ✅ Benefits區塊 - 產品優勢說明
-- ✅ Footer區塊 - 包含深色模式切換
+```plaintext
+Header + Hero + Features + Benefits + Stats + Testimonials + Footer
+```
 
-**需要修改/新增**:
+**重構後新架構**:
 
-- 🟡 Hero區塊增強：Beta階段定位和技術優勢副標題
-- 🟡 Features區塊增強：整合技術驅動的功能亮點
-- 🔴 Waitlist註冊區塊：email註冊表單和狀態回饋
-- 🔴 技術優勢展示區塊：將Clean Architecture等技術特色包裝為使用者價值
-- 🔴 Beta功能預告區塊：展示計劃中的進階功能
+```plaintext
+Header → Hero → RecordingSection → AnalyticsSection → TeamManagementSection → TechAdvantages → ProductMilestones → Footer
+```
+
+**重構內容**:
+
+- 🟠 **Hero 區塊升級**：整合 claude/hero 背景動畫 + Beta 標示 + 文字輪播「簡單、快速、專業」
+  - 主標題：「讓排球賽事紀錄更加簡單、快速、專業」
+  - 副標題：「專為排球教練與管理者設計的數位化解決方案，告別紙筆記錄，擁抱智慧化團隊管理」
+  - Beta 標示：明確標示產品階段
+  - CTA：保持「開始使用」文案
+
+- 🟠 **核心功能分區展示**：替代原 Features 區塊
+  - RecordingSection：即時記錄功能詳細介紹
+  - AnalyticsSection：數據分析功能展示
+  - TeamManagementSection：團隊管理特色說明
+
+- 🟠 **真實價值展示**：替代虛構數據
+  - TechAdvantages：技術優勢替代 Stats 組件的虛構統計
+  - ProductMilestones：開發成果替代 Testimonials 組件的虛構推薦
+
+- 🟡 **技術優化**：
+  - Motion.js 動態導入替代 LazySection
+  - WhatsApp 風格進入動畫（useInView + bottomRootMargin）
+  - 預期 bundle size 減少 15-20%
+
+**可選需求**:
+
+- 🟡 Waitlist註冊功能：email註冊表單（低優先級）
+- 🟡 意見回饋功能：用戶反饋收集（低優先級）
 
 ### 未來功能的新增畫面
 
