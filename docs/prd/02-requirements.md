@@ -6,17 +6,12 @@
 
 ### 核心功能模組（已實現/部分實現）
 
-**FR1: Beta階段 Landing Page 重構** - _🟠 進行中（Brownfield Enhancement）_
+**FR1: 產品介紹頁功能** - _🟡 已部分實現_
 
-- 系統應提供針對 Beta 階段優化的產品介紹頁面，移除虛構數據，強化真實產品價值展示
-- 當前狀態：重構進行中 - Hero 區塊整合 claude/hero 背景動畫、三個核心功能區塊詳細展示
-- 頁面結構更新：Header → Hero → RecordingSection → AnalyticsSection → TeamManagementSection → TechAdvantages → ProductMilestones → Footer
-- 技術優化：Motion.js 動態導入替代 LazySection，預期 bundle size 減少 15-20%
-- 內容策略：
-  - Hero：「讓排球賽事紀錄更加簡單、快速、專業」+ Beta 標示 + 「開始使用」CTA
-  - 功能分區：即時記錄、數據分析、團隊管理三大核心功能詳細介紹
-  - 真實價值：技術優勢展示替代虛構統計、開發里程碑替代虛構推薦
-- 測試覆蓋率：維持 95%+ 覆蓋率
+- 系統應提供產品介紹頁面，包含產品功能展示、Beta階段定位、Waitlist註冊功能
+- 當前狀態：已實現Hero區塊、Features區塊、Benefits區塊、Footer區塊，具備響應式設計和動畫效果
+- 測試覆蓋率：95%+ (根據CLAUDE.md中的landing page測試覆蓋率)
+- 待完成：Beta階段內容策略調整、Waitlist功能、技術優勢包裝展示
 
 **FR2: 使用者管理功能** - _🟢 已實現_
 
@@ -55,13 +50,12 @@
 
 ### 未來擴展功能（計劃實現）
 
-**FR6: Waitlist註冊功能** - _🟡 可選需求（低優先級）_
+**FR6: Waitlist註冊功能** - _🔴 未實現_
 
 - 系統應提供email註冊表單，支援潛在使用者加入等候清單
 - 系統應支援email驗證和確認機制
 - 系統應提供註冊成功回饋和狀態追蹤
 - 必須與現有使用者註冊系統完全分離運作
-- 註記：根據 Epic 1 規劃，此功能與意見回饋功能同等級，為可選實作項目
 
 **FR7: Beta功能標示和管理** - _🔴 未實現_
 
