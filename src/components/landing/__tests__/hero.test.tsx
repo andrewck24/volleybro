@@ -7,7 +7,7 @@ import { Hero } from "../hero";
 jest.mock("@/components/landing/cta-button", () => ({
   CTAButton: ({ className, size, ...props }: any) => (
     <button data-testid="cta-button" className={className} {...props}>
-      立即體驗
+      開始使用
     </button>
   ),
 }));
@@ -237,7 +237,7 @@ describe("Hero Component", () => {
 
       const ctaButton = screen.getByRole("button");
       expect(ctaButton).toBeInTheDocument();
-      expect(ctaButton).toHaveTextContent("立即體驗");
+      expect(ctaButton).toHaveTextContent("開始使用");
     });
   });
 
