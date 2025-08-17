@@ -4,11 +4,14 @@
 
 **功能範圍**:
 
-- Hero 區塊背景動畫整合（claude/hero 風格）
+- Hero 區塊背景動畫整合（浮動模糊背景球）、元素拆分與模組化重構
 - Motion.js 動態導入優化，移除 LazySection 依賴
 - 核心功能分區展示（即時記錄、數據分析、團隊管理）
 - 虛構數據替換為真實技術優勢展示
 - Beta 階段定位與用戶招募優化
+- 父層背景色彩統一管理策略、Dark/Light Mode 主題配色方案重新評估
+- Header glassmorphism 效果實現（參考 KIRO 設計模式）
+- Preview Badge 視覺簡化與動畫清理
 
 **整合需求**:
 
@@ -48,8 +51,8 @@
 
 ### 1.1.4 整合驗證
 
-IV1: 新背景動畫與現有 ParticleSystem 和 FloatingElements 協調運作
-IV2: 文字輪播動畫與現有 FlipWords 組件整合
+IV1: 新背景動畫元素正確渲染並與整體頁面效果協調
+IV2: 文字輪播動畫與現有 FlipWords 元件整合
 IV3: 響應式設計和滾動視差效果保持正常
 
 ## Story 1.2: 核心功能詳細展示區塊
@@ -62,7 +65,7 @@ IV3: 響應式設計和滾動視差效果保持正常
 
 - 移除現有 LazySection 依賴
 - 使用 `dynamic(() => import('motion/react'))` 動態導入
-- 創建三個新組件：RecordingSection, AnalyticsSection, TeamManagementSection
+- 創建三個新元件：RecordingSection, AnalyticsSection, TeamManagementSection
 - 實作 WhatsApp 風格的進入動畫（`useInView` + `bottomRootMargin`）
 
 ### 1.2.2 接受條件
@@ -98,6 +101,74 @@ IV3: 進入動畫與整體頁面動畫協調
 IV1: 內容真實性提升用戶信任度
 IV2: Beta 標示讓用戶有正確期待
 IV3: 產品價值表達清晰易懂
+
+## Story 1.4: Header Glassmorphism 效果與主題適配
+
+作為 **網站訪問者**，
+我想要 **看到專業且現代的導航體驗**，
+所以 **我能感受到產品的品質和技術水準**。
+
+### 1.4.1 設計需求 (參考 KIRO 模式)
+
+**滾動前狀態**:
+
+- 完全透明背景，融入頁面背景色
+- 文字顏色自動適配 dark/light mode
+- 最小化 padding，保持簡潔感
+
+**滾動後狀態**:
+
+- Glassmorphism 毛玻璃效果
+- 圓角邊框與陰影增強層次
+- 背景模糊與半透明效果
+- 平滑過渡動畫
+
+### 1.4.2 技術實作
+
+- 使用 `backdrop-filter: blur()` 實現毛玻璃效果
+- `useScroll` hook 監測滾動狀態
+- Tailwind CSS 主題變數適配
+- 確保跨瀏覽器相容性
+
+### 1.4.3 接受條件
+
+1. Header 初始狀態完全透明，不設定背景色
+2. 滾動觸發 glassmorphism 效果轉換
+3. Dark/Light mode 自動適配文字顏色
+4. 平滑的進入/退出動畫效果
+5. 保持現有導航功能完整性
+
+## Story 1.5: Hero 組件模組化重構與主題統一
+
+作為 **開發維護者**，
+我想要 **Hero 組件具有清晰的架構和統一的主題管理**，
+所以 **代碼更易於維護和擴展**。
+
+### 1.5.1 組件拆分策略
+
+**核心子組件**:
+
+- `HeroBadge`: Preview badge 獨立組件
+- `HeroTitle`: 主標題與文字輪播
+- `HeroDescription`: 描述文字組件
+- `HeroCTA`: 行動召喚按鈕區域
+- `HeroFeatures`: 三大特色標籤
+- `HeroImage`: 右側圖片展示
+
+### 1.5.2 主題管理改進
+
+- Hero 移除固定背景色，使用父層背景
+- 統一 dark/light mode 色彩變數
+- Preview Badge 簡化為 outline 風格
+- 移除未使用的 `animate-pulse-glow` 動畫
+
+### 1.5.3 接受條件
+
+1. Hero 主組件程式碼行數減少 50%
+2. 各子組件職責單一，可獨立測試
+3. Preview Badge 使用適當的 outline 顏色
+4. 背景色彩統一由父層管理
+5. 清理未使用的動畫設定和CSS
 
 ---
 

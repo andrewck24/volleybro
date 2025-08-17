@@ -8,6 +8,8 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 /** @type {(phase: string, defaultConfig: import("next").NextConfig) => Promise<import("next").NextConfig>} */
 module.exports = async (phase) => {
+  const removeProperties =
+    phase === PHASE_PRODUCTION_BUILD ? { properties: ["^data-testid$"] } : false;
   /** @type {import("next").NextConfig} */
   const nextConfig = {
     experimental: {
@@ -24,8 +26,8 @@ module.exports = async (phase) => {
       ],
     },
     compiler: {
-      // Remove data-testid attributes in production
-      reactRemoveProperties: phase === PHASE_PRODUCTION_BUILD ? ["data-testid"] : false,
+      removeConsole: phase === PHASE_PRODUCTION_BUILD,
+      reactRemoveProperties: removeProperties,
     },
   };
 

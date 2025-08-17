@@ -2,10 +2,11 @@ import { Hero } from "@/components/landing/hero";
 import { Features } from "@/components/landing/features";
 import { Benefits } from "@/components/landing/benefits";
 import { Footer } from "@/components/landing/footer";
+import "@/styles/landing.css";
 
 const LandingPage = () => {
   return (
-    <main className="w-full min-h-full bg-primary select-text">
+    <main className="w-full min-h-full select-text">
       <Hero />
       <Features />
       <Benefits />
