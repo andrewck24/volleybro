@@ -1,15 +1,3 @@
-# [0.9.0](https://github.com/andrewck24/volleybro/compare/v0.8.2...v0.9.0) (2025-08-17)
-
-
-### Bug Fixes
-
-* **tests:** update CTA button text in hero component tests ([3f8cf57](https://github.com/andrewck24/volleybro/commit/3f8cf57e7e2e163cd873d68663acf76bc5ae2c47))
-
-
-### Features
-
-* **landing:** implement hero section optimization with CSS code splitting ([b7b8dba](https://github.com/andrewck24/volleybro/commit/b7b8dba57c95aa322d8a00c35984866bad99dbde))
-
 ## [0.8.2](https://github.com/andrewck24/volleybro/compare/v0.8.1...v0.8.2) (2025-08-14)
 
 
