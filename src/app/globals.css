@@ -105,10 +105,10 @@
 
 @layer base {
   * {
-    @apply box-border border-border outline-ring/50 overscroll-x-none;
+    @apply box-border overscroll-x-none border-border outline-ring/50;
   }
   body {
-    @apply text-foreground w-screen h-lvh max-w-full select-none transition-colors bg-accent overscroll-y-contain;
+    @apply h-lvh w-screen max-w-full overscroll-y-contain bg-accent text-foreground transition-colors select-none;
   }
 }
 
