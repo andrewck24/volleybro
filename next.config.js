@@ -23,6 +23,10 @@ module.exports = async (phase) => {
         },
       ],
     },
+    compiler: {
+      // Remove data-testid attributes in production
+      reactRemoveProperties: phase === PHASE_PRODUCTION_BUILD ? ["data-testid"] : false,
+    },
   };
 
   if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
