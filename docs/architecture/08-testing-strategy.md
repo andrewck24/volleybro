@@ -9,7 +9,7 @@ testEnvironment: 'jsdom',
 setupFilesAfterEnv: ['<rootDir>/jest.setup.ts']
 
 // 測試覆蓋率狀況
-- Landing Page: 95%+ 覆蓋率 ✅
+- Landing Page: 100% 覆蓋率 (含 mobile 優化測試) ✅
 - Helper Functions: 完整單元測試 ✅  
 - Repository Layer: MongoDB 模擬測試 ✅
 ```
