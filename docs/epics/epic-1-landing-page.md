@@ -172,6 +172,69 @@ IV3: 產品價值表達清晰易懂
 4. 背景色彩統一由父層管理
 5. 清理未使用的動畫設定和CSS
 
+## Story 1.6: Header 佈局重構與 Preview Badge 重新定位
+
+作為 **網站訪問者**，
+我想要 **看到更簡潔且平衡的 Header 佈局設計**，
+所以 **我能有更好的導航體驗且視覺焦點更清楚**。
+
+### 1.6.1 Header 佈局最適化
+
+- header-glassmorphism-container 統一使用 `p-3`, `rounded-2xl`
+- 改採用 `justify-between` 佈局取代 `justify-start`
+- logo-container 移除 `flex-1` 並新增 `pl-4` 視覺平衡
+- Preview badge 從 Hero 移至 Header logo 右側
+- Logo 與 preview badge 垂直置中對齊
+- Logo 高度限制不超過 CTA 按鈕高度
+
+### 1.6.2 接受條件
+
+1. Header 佈局採用 justify-between 與統一 padding
+2. Preview badge 整合至 Header logo-container 中
+3. Logo 與 badge 垂直置中且視覺平衡
+4. 現有 glassmorphism 效果與響應式設計保持不變
+5. Header 相關測試更新完成
+
+### 1.6.3 整合驗證
+
+IV1: 新 Header 佈局在所有斷點正確顯示
+IV2: Preview badge 位置與現有設計系統一致
+IV3: Glassmorphism 效果與滾動行為無迴歸
+
+## Story 1.7: CTA Button 重構與相依關係解耦
+
+作為 **開發維護者**，
+我想要 **CTA Button 組件具有統一設計且不依賴組件間耦合**，
+所以 **程式碼更易於維護且視覺呈現更一致**。
+
+### 1.7.1 架構解耦重構
+
+- 移除 Header CTA 的 scroll-to-reveal 功能
+- 解除 Header 與 Hero 組件的 observerRef 相依關係
+- Header 從 Hero 中移出，直接在 Landing Page 使用
+- 統一所有 Landing Page CTA 的顏色配置
+- 取消 CTA 邊框（一般與 hover 狀態）
+
+### 1.7.2 元件最適化重構
+
+- 使用原生 Button, Link 元件降低樣式覆蓋複雜度
+- Light/Dark mode 背景對比色最適化
+- 重新評估並撰寫 CTA 元件測試
+
+### 1.7.3 接受條件
+
+1. Header 與 Hero 組件完全解耦
+2. CTA Button 顏色配置在 Light/Dark mode 都有鮮明對比
+3. 所有 CTA 按鈕設計統一且無邊框
+4. PWA 安裝功能保持完整
+5. 新的 CTA 元件測試涵蓋重構後的功能
+
+### 1.7.4 整合驗證
+
+IV1: Landing Page 直接整合 Header 與 Hero 無相依關係
+IV2: CTA 按鈕在不同主題下都有最佳對比效果
+IV3: 現有 CTA 功能（PWA 安裝等）無迴歸問題
+
 ---
 
 ## 技術架構更新
@@ -179,8 +242,8 @@ IV3: 產品價值表達清晰易懂
 **新頁面結構**:
 
 ```plaintext
-Header (保持現有)
-Hero (整合 claude/hero 背景動畫 + Beta 標示)
+Header (獨立組件，包含 logo + preview badge + CTA)
+Hero (移除 Header 依賴，專注內容展示)
 RecordingSection (即時記錄詳細介紹)
 AnalyticsSection (數據分析功能展示)
 TeamManagementSection (團隊管理特色)
