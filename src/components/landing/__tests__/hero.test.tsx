@@ -1,6 +1,6 @@
+import { Hero } from "@/components/landing/hero";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
-import { Hero } from "../hero";
 
 // Mock dependencies
 
@@ -96,9 +96,6 @@ describe("Hero Component", () => {
       // Header
       expect(screen.getByTestId("header")).toBeInTheDocument();
 
-      // Badge
-      expect(screen.getByTestId("badge")).toBeInTheDocument();
-
       // Main heading
       expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
 
@@ -130,13 +127,6 @@ describe("Hero Component", () => {
   });
 
   describe("Interactive Elements", () => {
-    it("should render preview badge with correct content", () => {
-      render(<Hero />);
-
-      const badge = screen.getByTestId("badge");
-      expect(badge).toHaveTextContent("Preview");
-    });
-
     it("should render FlipWords component with correct words", () => {
       render(<Hero />);
 
@@ -150,7 +140,7 @@ describe("Hero Component", () => {
 
       const statusContainer = screen.getByTestId("status-indicators");
       expect(statusContainer).toBeInTheDocument();
-      
+
       expect(screen.getByText("即時同步")).toBeInTheDocument();
       expect(screen.getByText("跨平台支援")).toBeInTheDocument();
       expect(screen.getByText("快速紀錄")).toBeInTheDocument();
@@ -268,10 +258,12 @@ describe("Hero Component", () => {
       render(<Hero />);
 
       // Background decorations should be present
-      const backgroundDecorations = screen.getByTestId("background-decorations");
+      const backgroundDecorations = screen.getByTestId(
+        "background-decorations",
+      );
       const gradientOverlay = screen.getByTestId("gradient-overlay");
       const heroImageContainer = screen.getByTestId("hero-image-container");
-      
+
       expect(backgroundDecorations).toBeInTheDocument();
       expect(gradientOverlay).toBeInTheDocument();
       expect(heroImageContainer).toBeInTheDocument();

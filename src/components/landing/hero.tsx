@@ -1,7 +1,6 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
 import { Header } from "@/components/landing/header";
-import { Badge } from "@/components/ui/badge";
 import { FlipWords } from "@/components/ui/flip-words";
 import Image from "next/image";
 import { useRef } from "react";
@@ -23,7 +22,6 @@ export const Hero = () => {
         <BackgroundDecorations />
         <GradientOverlay />
         <div className="relative z-10 flex size-full flex-1 flex-col items-start justify-center gap-6 px-4">
-          <HeroBadge />
           <HeroTitle words={words} />
           <HeroDescription content="專為排球教練與管理者設計的數位化解決方案，讓您告別紙筆記錄，擁抱智慧化團隊管理。" />
           <div
@@ -65,10 +63,6 @@ const GradientOverlay = () => {
       className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-primary/50 to-transparent"
     />
   );
-};
-
-const HeroBadge = () => {
-  return <Badge variant="outline">Preview</Badge>;
 };
 
 interface HeroTitleProps {
