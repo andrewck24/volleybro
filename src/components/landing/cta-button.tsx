@@ -1,21 +1,22 @@
-import { useEffect, useState } from "react";
-import {
-  RiArrowRightLine,
-  RiShare2Line,
-  RiAddBoxLine,
-  RiCheckLine,
-} from "react-icons/ri";
 import { Button, Link, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
-  DialogTrigger,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import {
+  RiAddBoxLine,
+  RiArrowRightLine,
+  RiCheckLine,
+  RiShare2Line,
+} from "react-icons/ri";
 
 type Platform = "iOS" | "desktop" | "mobile";
 
@@ -48,7 +49,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
       return () => {
         window.removeEventListener(
           "beforeinstallprompt",
-          handleBeforeInstallPrompt
+          handleBeforeInstallPrompt,
         );
       };
     }
@@ -72,7 +73,11 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   // 如果已經以 PWA 模式運行，不顯示安裝按鈕
   if (isStandalone || platform === "desktop") {
     return (
-      <Link href="/home" variant="outline" className={className}>
+      <Link
+        href="/home"
+        variant="outline"
+        className={cn("border-0 bg-primary-foreground text-primary", className)}
+      >
         開始使用
         <RiArrowRightLine />
       </Link>
@@ -84,7 +89,14 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
     return (
       <Dialog>
         <DialogTrigger asChild>
-          <Button {...props} variant="outline" className={className}>
+          <Button
+            {...props}
+            variant="outline"
+            className={cn(
+              "border-0 bg-primary-foreground text-primary",
+              className,
+            )}
+          >
             開始使用
             <RiArrowRightLine />
           </Button>
@@ -130,7 +142,10 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
           {...props}
           variant="outline"
           onClick={handleInstallClick}
-          className={className}
+          className={cn(
+            "border-0 bg-primary-foreground text-primary",
+            className,
+          )}
         >
           安裝應用程式
         </Button>
