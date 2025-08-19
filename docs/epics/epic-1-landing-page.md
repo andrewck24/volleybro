@@ -235,6 +235,49 @@ IV1: Landing Page 直接整合 Header 與 Hero 無相依關係
 IV2: CTA 按鈕在不同主題下都有最佳對比效果
 IV3: 現有 CTA 功能（PWA 安裝等）無迴歸問題
 
+## Story 1.8: CTA Button 與 Hero RWD 程式碼品質改善
+
+作為 **開發維護者**，
+我想要 **CTA Button 具有更嚴格的 type safety 並移除 console logging，同時 Hero section 在中等斷點有適當的垂直 RWD 佈局**，
+所以 **程式碼品質更高、生產環境更乾淨，且使用者在不同裝置上都有最佳的視覺體驗**。
+
+### 1.8.1 Type Safety 與 Code Quality 改善
+
+**CTA Button 類型安全強化**:
+此需求源自於 PR #250 的 [code review](https://github.com/andrewck24/volleybro/pull/250#issuecomment-3201032530)
+
+- 在 `cta-button.tsx:58-70` 中將 `any` 類型替換為 `BeforeInstallPromptEvent` 類型
+- 移除第 63-66 行的 `console.log` 語句，改用環境變數控制或完全移除
+- 為 PWA 安裝失敗場景新增適當的錯誤處理機制
+
+**Hero Section RWD 最佳化**:
+
+- 在 `md` 斷點時，hero-content 與 hero-image 改用垂直佈局
+- 保留適當的 padding 以維持視覺平衡
+- 確保動畫效果在不同佈局下都能正常運作
+
+### 1.8.2 技術實作重點
+
+- 定義或匯入 `BeforeInstallPromptEvent` interface
+- 使用 `process.env.NODE_ENV !== 'production'` 控制 logging 行為
+- 在 Hero section 使用 Tailwind CSS 的 `md:flex-col` 調整佈局
+- 使用 try-catch 包裝 PWA 相關操作
+
+### 1.8.3 接受條件
+
+1. **Type Safety**: 移除所有 `any` 類型，使用具體的 `BeforeInstallPromptEvent` 類型
+2. **Production Clean**: 生產環境無任何 console.log 輸出
+3. **RWD Layout**: Hero section 在 `md` 斷點正確使用垂直佈局且視覺平衡
+4. **Error Handling**: PWA 安裝失敗有優雅的降級體驗
+5. **Functionality**: 現有 PWA 安裝功能在所有平台正常運作
+6. **Code Quality**: TypeScript 編譯通過，ESLint 檢查無錯誤
+
+### 1.8.4 整合驗證
+
+IV1: PWA 安裝功能在各種瀏覽器與平台上無迴歸
+IV2: Hero section RWD 佈局在所有斷點都有良好的視覺呈現
+IV3: 類型安全改善後編譯與執行時都無錯誤
+
 ---
 
 ## 技術架構更新

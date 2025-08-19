@@ -17,18 +17,20 @@ export const Hero = () => {
     >
       <BackgroundDecorations />
       <GradientOverlay />
-      <div className="relative z-10 flex size-full flex-1 flex-col items-start justify-center gap-6 px-4">
-        <HeroTitle words={words} />
-        <HeroDescription content="專為排球教練與管理者設計的數位化解決方案，讓您告別紙筆記錄，擁抱智慧化團隊管理。" />
-        <div className="flex w-full flex-col items-center justify-start gap-4 py-6 md:flex-row md:gap-6">
-          <CTAButton
-            className="h-12 w-full px-8 text-lg font-bold shadow-2xl md:w-auto"
-            size="lg"
-          />
-          <HeroFeatures />
+      <div className="relative z-10 flex size-full flex-1 flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col items-start justify-center gap-6 md:flex-1">
+          <HeroTitle words={words} />
+          <HeroDescription content="專為排球教練與管理者設計的數位化解決方案，讓您告別紙筆記錄，擁抱智慧化團隊管理。" />
+          <div className="flex w-full flex-col items-center justify-start gap-4 py-6 xl:flex-row xl:gap-6">
+            <CTAButton
+              className="h-12 w-full px-8 text-lg font-bold shadow-2xl xl:w-auto"
+              size="lg"
+            />
+            <HeroFeatures />
+          </div>
         </div>
+        <HeroImage />
       </div>
-      <HeroImage />
     </section>
   );
 };
@@ -64,8 +66,8 @@ interface HeroTitleProps {
 
 const HeroTitle = ({ words, duration = 2500 }: HeroTitleProps) => {
   return (
-    <h1 className="text-5xl leading-[1.1] font-bold tracking-wide text-foreground md:text-7xl lg:text-8xl">
-      <span className="inline-block">讓排球賽事紀錄</span>
+    <h1 className="text-5xl leading-[1.1] font-bold tracking-wide text-foreground lg:text-6xl xl:text-7xl">
+      <span className="inline-block">讓排球賽事記錄</span>
       <br />
       <span className="inline-block">更加</span>
       <FlipWords words={words} duration={duration} className="text-primary" />
@@ -125,13 +127,12 @@ interface HeroImageProps {
 const HeroImage = ({
   src = "/landing/hero.svg",
   alt = "VolleyBro App Interface",
-  className = "object-contain object-right dark:invert",
+  className = "object-contain object-center dark:invert",
 }: HeroImageProps) => {
   return (
     <div
       data-testid="hero-image-container"
-      className="pointer-events-none absolute top-0 right-0 h-full w-1/2 overflow-hidden"
-      style={{ zIndex: 3 }}
+      className="pointer-events-none relative h-64 w-full overflow-hidden md:h-full md:w-1/2 md:flex-1"
     >
       <Image src={src} alt={alt} fill={true} className={className} priority />
     </div>

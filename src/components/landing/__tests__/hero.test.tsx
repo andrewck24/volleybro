@@ -98,7 +98,7 @@ describe("Hero Component", () => {
       render(<Hero />);
 
       const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading).toHaveTextContent("讓排球賽事紀錄");
+      expect(heading).toHaveTextContent("讓排球賽事記錄");
       expect(heading).toHaveTextContent("更加");
     });
 
@@ -158,7 +158,7 @@ describe("Hero Component", () => {
       const heroImage = screen.getByRole("img");
       expect(heroImage).toHaveClass(
         "object-contain",
-        "object-right",
+        "object-center",
         "dark:invert",
       );
     });
@@ -224,7 +224,7 @@ describe("Hero Component", () => {
       render(<Hero />);
 
       const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading).toHaveClass("text-5xl", "md:text-7xl", "lg:text-8xl");
+      expect(heading).toHaveClass("text-5xl", "lg:text-6xl", "xl:text-7xl");
 
       const description = screen.getByText(/專為排球教練與管理者設計/);
       expect(description).toHaveClass("text-xl");

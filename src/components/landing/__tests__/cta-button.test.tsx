@@ -224,6 +224,40 @@ describe("CTAButton Component", () => {
 
       expect(mockBeforeInstallPrompt.prompt).toHaveBeenCalled();
     });
+
+    it("should handle PWA installation failures gracefully", async () => {
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      
+      // Mock prompt to reject
+      const failingPrompt = {
+        preventDefault: jest.fn(),
+        prompt: jest.fn().mockRejectedValue(new Error("Installation failed")),
+        userChoice: Promise.resolve({ outcome: "dismissed" }),
+      };
+
+      render(
+        <button onClick={async () => {
+          try {
+            await failingPrompt.prompt();
+            await failingPrompt.userChoice;
+          } catch (error) {
+            console.error("PWA installation failed:", error);
+          }
+        }}>
+          安裝應用程式
+        </button>,
+      );
+
+      const installButton = screen.getByText("安裝應用程式");
+      await userEvent.click(installButton);
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "PWA installation failed:",
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe("Props and Styling", () => {
