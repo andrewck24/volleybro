@@ -1,6 +1,5 @@
 import { Header } from "@/components/landing/header";
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { RefObject } from "react";
 
 /**
  * Header Component Tests
@@ -32,13 +31,17 @@ jest.mock("next/image", () => {
     alt,
     width,
     height,
+    priority, // Destructure priority to prevent it from being passed to the DOM
     ...props
   }: {
     src: string;
     alt: string;
     width: number;
     height: number;
+    priority?: boolean;
   }) {
+    // Disable eslint warning to isolate next/image mock
+    // eslint-disable-next-line @next/next/no-img-element
     return <img src={src} alt={alt} width={width} height={height} {...props} />;
   };
 });
@@ -53,18 +56,7 @@ jest.mock("@/components/landing/cta-button", () => ({
 }));
 
 describe("Header Component", () => {
-  const mockObserverRef: RefObject<HTMLDivElement> = {
-    current: document.createElement("div"),
-  };
-
   beforeEach(() => {
-    // Mock IntersectionObserver
-    global.IntersectionObserver = jest.fn().mockImplementation((_callback) => ({
-      observe: jest.fn(),
-      unobserve: jest.fn(),
-      disconnect: jest.fn(),
-    }));
-
     // Mock requestAnimationFrame
     global.requestAnimationFrame = jest.fn((cb) => {
       cb(0);
@@ -83,7 +75,7 @@ describe("Header Component", () => {
   // AC1: Header initial state is completely transparent with no background color
   describe("AC1: Initial transparent state", () => {
     it("should render header with transparent background initially", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const header = screen.getByTestId("header");
       expect(header).toBeInTheDocument();
@@ -93,7 +85,7 @@ describe("Header Component", () => {
     });
 
     it("should not have glassmorphism effects in initial state", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const glassmorphismContainer = screen.getByTestId(
         "header-glassmorphism-container",
@@ -111,7 +103,7 @@ describe("Header Component", () => {
       // Set scroll position above threshold (0px - any scroll triggers it)
       mockScrollY.get.mockReturnValue(100);
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Simulate scroll event
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
@@ -132,7 +124,7 @@ describe("Header Component", () => {
       // Set scroll position at threshold (0px)
       mockScrollY.get.mockReturnValue(0);
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Simulate scroll event
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
@@ -149,7 +141,7 @@ describe("Header Component", () => {
     });
 
     it("should use correct scroll threshold of 0px", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Test that any positive scroll triggers effect
       mockScrollY.get.mockReturnValue(1);
@@ -165,7 +157,7 @@ describe("Header Component", () => {
   // AC3: Dark/Light mode automatic text color adaptation
   describe("AC3: Theme adaptation", () => {
     it("should apply theme-adaptive text colors", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const glassmorphismContainer = screen.getByTestId(
         "header-glassmorphism-container",
@@ -177,7 +169,7 @@ describe("Header Component", () => {
     it("should include dark mode variants when scrolled", async () => {
       mockScrollY.get.mockReturnValue(100);
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
       act(() => {
@@ -197,7 +189,7 @@ describe("Header Component", () => {
   // AC4: Smooth enter/exit animation effects
   describe("AC4: Smooth animations", () => {
     it("should include transition classes for smooth animations", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const glassmorphismContainer = screen.getByTestId(
         "header-glassmorphism-container",
@@ -209,7 +201,7 @@ describe("Header Component", () => {
     });
 
     it("should use requestAnimationFrame for optimized scroll handling", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Verify scroll handler uses performance optimization
       expect(mockScrollY.on).toHaveBeenCalledWith(
@@ -230,7 +222,7 @@ describe("Header Component", () => {
   // AC5: Maintain existing navigation functionality integrity
   describe("AC5: Navigation functionality preservation", () => {
     it("should render logo with correct attributes", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const logo = screen.getByTestId("logo-image");
       expect(logo).toBeInTheDocument();
@@ -241,7 +233,7 @@ describe("Header Component", () => {
     });
 
     it("should render CTA button", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const ctaButton = screen.getByTestId("cta-button");
       expect(ctaButton).toBeInTheDocument();
@@ -249,7 +241,7 @@ describe("Header Component", () => {
     });
 
     it("should maintain proper accessibility", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Header should be a banner landmark
       const header = screen.getByRole("banner");
@@ -264,7 +256,7 @@ describe("Header Component", () => {
   // Component structure and test IDs
   describe("Component structure", () => {
     it("should render all required elements with correct test IDs", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // All required test IDs should be present
       expect(screen.getByTestId("header")).toBeInTheDocument();
@@ -274,7 +266,7 @@ describe("Header Component", () => {
     });
 
     it("should have proper HTML structure", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const header = screen.getByTestId("header");
       const logoContainer = screen.getByTestId("logo-container");
@@ -294,7 +286,7 @@ describe("Header Component", () => {
       const unsubscribe = jest.fn();
       mockScrollY.on.mockReturnValue(unsubscribe);
 
-      const { unmount } = render(<Header observerRef={mockObserverRef} />);
+      const { unmount } = render(<Header />);
 
       unmount();
 
@@ -302,7 +294,7 @@ describe("Header Component", () => {
     });
 
     it("should implement throttling mechanism", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
 
@@ -321,7 +313,7 @@ describe("Header Component", () => {
   // Responsive design
   describe("Responsive design", () => {
     it("should maintain responsive behavior", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const header = screen.getByTestId("header");
       const logoContainer = screen.getByTestId("logo-container");
@@ -336,7 +328,7 @@ describe("Header Component", () => {
   describe("AC6: Mobile responsive optimization", () => {
     // AC6.1: Mobile screen smaller header version
     it("should render mobile version with reduced dimensions", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const glassmorphismContainer = screen.getByTestId(
         "header-glassmorphism-container",
@@ -352,7 +344,7 @@ describe("Header Component", () => {
 
     // AC6.2: Reduced mobile element sizes (logo, spacing)
     it("should use smaller logo size for mobile", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const logo = screen.getByTestId("logo-image");
 
@@ -364,7 +356,7 @@ describe("Header Component", () => {
 
     // AC6.4: Maximized CTA button height for mobile
     it("should maximize CTA button height for mobile", () => {
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const ctaButton = screen.getByTestId("cta-button");
       const logoContainer = screen.getByTestId("logo-container");
@@ -388,7 +380,7 @@ describe("Header Component", () => {
         value: 375,
       });
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const glassmorphismContainer = screen.getByTestId(
         "header-glassmorphism-container",
@@ -408,7 +400,7 @@ describe("Header Component", () => {
           value: width,
         });
 
-        const { unmount } = render(<Header observerRef={mockObserverRef} />);
+        const { unmount } = render(<Header />);
 
         const glassmorphismContainer = screen.getByTestId(
           "header-glassmorphism-container",
@@ -434,7 +426,7 @@ describe("Header Component", () => {
 
       mockScrollY.get.mockReturnValue(100);
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       // Simulate scroll event
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
@@ -466,7 +458,7 @@ describe("Header Component", () => {
         value: 375,
       });
 
-      render(<Header observerRef={mockObserverRef} />);
+      render(<Header />);
 
       const scrollHandler = mockScrollY.on.mock.calls[0][1];
 

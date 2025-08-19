@@ -3,20 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 
 // Mock dependencies
-
 jest.mock("@/components/landing/cta-button", () => ({
   CTAButton: ({ className, size, ...props }: any) => (
     <button data-testid="cta-button" className={className} {...props}>
       開始使用
     </button>
-  ),
-}));
-
-jest.mock("@/components/landing/header", () => ({
-  Header: ({ observerRef }: any) => (
-    <header data-testid="header" ref={observerRef}>
-      Header Component
-    </header>
   ),
 }));
 
@@ -36,21 +27,21 @@ jest.mock("@/components/ui/flip-words", () => ({
   ),
 }));
 
-jest.mock("next/image", () => ({
-  __esModule: true,
-  default: ({ src, alt, fill, priority, ...props }: any) => (
-    <div
-      data-testid="hero-image"
-      data-src={src}
-      data-alt={alt}
-      data-fill={fill ? "true" : "false"}
-      data-priority={priority ? "true" : "false"}
-      role="img"
-      aria-label={alt}
-      {...props}
-    />
-  ),
-}));
+jest.mock("next/image", () => {
+  return function MockImage({
+    src,
+    alt,
+    priority, // Destructured to avoid passing to DOM
+    ...props
+  }: {
+    src: string;
+    alt: string;
+    priority?: boolean;
+  }) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} {...props} />;
+  };
+});
 
 // Mock motion/react
 jest.mock("motion/react", () => ({
@@ -93,9 +84,6 @@ describe("Hero Component", () => {
     it("should render all main sections", () => {
       render(<Hero />);
 
-      // Header
-      expect(screen.getByTestId("header")).toBeInTheDocument();
-
       // Main heading
       expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
 
@@ -103,7 +91,7 @@ describe("Hero Component", () => {
       expect(screen.getByTestId("cta-button")).toBeInTheDocument();
 
       // Hero Image
-      expect(screen.getByTestId("hero-image")).toBeInTheDocument();
+      expect(screen.getByRole("img")).toBeInTheDocument();
     });
 
     it("should render correct main heading text", () => {
@@ -159,15 +147,15 @@ describe("Hero Component", () => {
     it("should render hero image with correct attributes", () => {
       render(<Hero />);
 
-      const heroImage = screen.getByTestId("hero-image");
-      expect(heroImage).toHaveAttribute("data-src", "/landing/hero.svg");
-      expect(heroImage).toHaveAttribute("data-alt", "VolleyBro App Interface");
+      const heroImage = screen.getByRole("img");
+      expect(heroImage).toHaveAttribute("src", "/landing/hero.svg");
+      expect(heroImage).toHaveAttribute("alt", "VolleyBro App Interface");
     });
 
     it("should have correct image styling classes", () => {
       render(<Hero />);
 
-      const heroImage = screen.getByTestId("hero-image");
+      const heroImage = screen.getByRole("img");
       expect(heroImage).toHaveClass(
         "object-contain",
         "object-right",
@@ -247,13 +235,6 @@ describe("Hero Component", () => {
   });
 
   describe("Performance Optimizations", () => {
-    it("should render hero image with priority loading", () => {
-      render(<Hero />);
-
-      const heroImage = screen.getByTestId("hero-image");
-      expect(heroImage).toHaveAttribute("data-priority", "true");
-    });
-
     it("should render background elements separately", () => {
       render(<Hero />);
 

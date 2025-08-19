@@ -4,36 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useScroll } from "motion/react";
 import Image from "next/image";
-import { RefObject, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-interface HeaderProps {
-  observerRef: RefObject<HTMLDivElement | null>;
-}
-
-export const Header = ({ observerRef }: HeaderProps) => {
-  const [isShowingCTA, setIsShowingCTA] = useState(false);
+export const Header = () => {
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
 
   const SCROLL_THRESHOLD = 0;
-
-  useEffect(() => {
-    const targetElement = observerRef.current;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsShowingCTA(!entry.isIntersecting),
-      { threshold: 0.5 },
-    );
-
-    if (targetElement) {
-      observer.observe(targetElement);
-    }
-
-    return () => {
-      if (targetElement) {
-        observer.unobserve(targetElement);
-      }
-    };
-  }, [observerRef]);
 
   // 使用 throttle 機制避免性能問題
   useEffect(() => {
@@ -92,14 +69,7 @@ export const Header = ({ observerRef }: HeaderProps) => {
             Preview
           </Badge>
         </div>
-        <CTAButton
-          data-testid="cta-button"
-          className={cn(
-            "h-8 md:h-9",
-            "transition-opacity ease-in-out",
-            isShowingCTA ? "opacity-100" : "opacity-0",
-          )}
-        />
+        <CTAButton data-testid="cta-button" className="h-8 md:h-9" />
       </div>
     </header>
   );

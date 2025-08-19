@@ -1,43 +1,35 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
-import { Header } from "@/components/landing/header";
 import { FlipWords } from "@/components/ui/flip-words";
 import Image from "next/image";
 import { useRef } from "react";
 import { RiDeviceLine, RiGlobalLine, RiSpeedLine } from "react-icons/ri";
 
 export const Hero = () => {
-  const observerRef = useRef<HTMLDivElement | null>(null);
   const heroRef = useRef<HTMLDivElement | null>(null);
   const words: string[] = ["簡單", "快速", "專業"];
 
   return (
-    <>
-      <Header observerRef={observerRef} />
-      <section
-        ref={heroRef}
-        data-testid="hero-section"
-        className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden pt-10 md:px-[5%]"
-      >
-        <BackgroundDecorations />
-        <GradientOverlay />
-        <div className="relative z-10 flex size-full flex-1 flex-col items-start justify-center gap-6 px-4">
-          <HeroTitle words={words} />
-          <HeroDescription content="專為排球教練與管理者設計的數位化解決方案，讓您告別紙筆記錄，擁抱智慧化團隊管理。" />
-          <div
-            ref={observerRef}
-            className="flex w-full flex-col items-center justify-start gap-4 py-6 md:flex-row md:gap-6"
-          >
-            <CTAButton
-              className="h-12 w-full border-0 bg-gradient-to-r from-primary-foreground to-primary-foreground/90 px-8 text-lg font-bold text-primary shadow-2xl md:w-auto"
-              size="lg"
-            />
-            <HeroFeatures />
-          </div>
+    <section
+      ref={heroRef}
+      data-testid="hero-section"
+      className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden pt-10 md:px-[5%]"
+    >
+      <BackgroundDecorations />
+      <GradientOverlay />
+      <div className="relative z-10 flex size-full flex-1 flex-col items-start justify-center gap-6 px-4">
+        <HeroTitle words={words} />
+        <HeroDescription content="專為排球教練與管理者設計的數位化解決方案，讓您告別紙筆記錄，擁抱智慧化團隊管理。" />
+        <div className="flex w-full flex-col items-center justify-start gap-4 py-6 md:flex-row md:gap-6">
+          <CTAButton
+            className="h-12 w-full px-8 text-lg font-bold shadow-2xl md:w-auto"
+            size="lg"
+          />
+          <HeroFeatures />
         </div>
-        <HeroImage />
-      </section>
-    </>
+      </div>
+      <HeroImage />
+    </section>
   );
 };
 
