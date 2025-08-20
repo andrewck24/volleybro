@@ -1,50 +1,40 @@
 "use client";
 import { cn } from "@/lib/utils";
-import {
-  motion,
-  useInView,
-  useScroll,
-  useSpring,
-  useTransform,
-} from "motion/react";
+import { motion, useScroll, useSpring, useTransform } from "motion/react";
 import { useRef } from "react";
 import {
-  RiBarChartLine,
-  RiRecordCircleLine,
-  RiSmartphoneLine,
-  RiTeamLine,
+  RiBarChartBoxAiFill,
+  RiDeviceFill,
+  RiPencilFill,
+  RiTeamFill,
 } from "react-icons/ri";
 
 const iconMap = {
-  record: RiRecordCircleLine,
-  chart: RiBarChartLine,
-  team: RiTeamLine,
-  device: RiSmartphoneLine,
+  record: RiPencilFill,
+  chart: RiBarChartBoxAiFill,
+  team: RiTeamFill,
+  device: RiDeviceFill,
 } as const;
 
 type IconKey = keyof typeof iconMap;
 
 const highlights = [
   {
-    id: 1,
     title: "提供簡單易用的賽事記錄工具",
     description: "讓教練能夠快速記錄比賽數據，告別繁瑣的紙筆作業",
     icon: "record" as const,
   },
   {
-    id: 2,
     title: "透過強大的數據分析功能",
     description: "深入了解球隊表現，以數據驅動戰術改進",
     icon: "chart" as const,
   },
   {
-    id: 3,
     title: "有效掌握球員資訊與表現變化",
     description: "協助陣容安排，讓每場比賽都有最佳配置",
     icon: "team" as const,
   },
   {
-    id: 4,
     title: "無論是手機、平板或電腦",
     description: "隨時隨地輕鬆使用，不受設備限制",
     icon: "device" as const,
@@ -61,118 +51,82 @@ export const Highlights = () => {
   const springX = useSpring(x, { stiffness: 100, damping: 30 });
 
   return (
-    <motion.section
+    <section
       ref={targetRef}
       data-testid="highlights-section"
-      className="relative h-[400vh] bg-gradient-to-b from-primary/5 via-background to-muted"
-      style={{
-        // Force a new stacking context to contain sticky positioning
-        isolation: "isolate",
-        // Ensure proper containing block
-        contain: "layout style paint",
-      }}
+      className="relative isolate bg-gradient-to-b from-primary/5 via-background to-muted py-16 md:h-[300vh] md:[contain:layout_style_paint]"
     >
-      {/* Sticky container with proper height and positioning */}
+      {/* Mobile: Static vertical layout */}
+      <div className="container mx-auto px-4 md:hidden">
+        <div
+          data-testid="highlights-cards-container-mobile"
+          className="grid grid-cols-1 gap-6"
+        >
+          {highlights.map((highlight, index) => (
+            <HighlightCard key={index} highlight={highlight} isMobile />
+          ))}
+        </div>
+      </div>
+
+      {/* Desktop: Sticky horizontal scroll layout */}
       <div
         data-testid="sticky-container"
-        className="sticky top-0 flex h-screen items-center overflow-hidden"
-        style={{
-          // Create a stable containing block for transforms
-          willChange: "auto",
-          // Force GPU acceleration to prevent janky animations
-          transform: "translateZ(0)",
-        }}
+        className="sticky top-0 hidden h-screen translate-z-0 items-center overflow-hidden will-change-auto md:flex"
       >
-        {/* Title positioned within the sticky container */}
-        <motion.div
-          className="absolute top-20 left-1/2 z-10 -translate-x-1/2 transform text-center"
-          initial={{ opacity: 0, y: -50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <h2 className="mb-4 text-4xl font-bold text-foreground md:text-6xl">
-            四大核心特色
-          </h2>
-          <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-            從即時記錄到數據分析，全方位滿足您的排球管理需求
-          </p>
-        </motion.div>
-
-        {/* Scrolling cards container */}
         <motion.div
           data-testid="highlights-cards-container"
           style={{ x: springX }}
           className="flex gap-6 pl-[15%] will-change-transform md:gap-8"
         >
           {highlights.map((highlight, index) => (
-            <HighlightCard
-              key={highlight.id}
-              highlight={highlight}
-              index={index}
-            />
+            <HighlightCard key={index} highlight={highlight} />
           ))}
         </motion.div>
       </div>
-    </motion.section>
+    </section>
   );
 };
 
 interface HighlightCardProps {
   highlight: {
-    id: number;
     title: string;
     description: string;
     icon: IconKey;
   };
-  index: number;
+  isMobile?: boolean;
 }
 
-const HighlightCard = ({ highlight, index }: HighlightCardProps) => {
-  const cardRef = useRef(null);
-  const isInView = useInView(cardRef, { once: true, margin: "-100px" });
-  const IconComponent = iconMap[highlight.icon];
+const HighlightCard = ({
+  highlight: { title, description, icon },
+  isMobile = false,
+}: HighlightCardProps) => {
+  const Icon = iconMap[icon];
 
   return (
-    <motion.div
-      ref={cardRef}
+    <div
       data-testid="highlight-card"
       className={cn(
-        "relative aspect-[1/2.17] h-[65vh] overflow-hidden",
-        "flex flex-col items-center justify-between rounded-3xl shadow-2xl",
+        "relative overflow-hidden rounded-3xl shadow-2xl",
+        "flex flex-col items-center justify-center",
         "bg-gradient-to-t from-background via-background/95 to-primary/20",
-        "md:aspect-auto md:w-[55vw] lg:w-[45vw]",
-        "border border-border/50 backdrop-blur-sm",
+        "border border-border/50 p-8 backdrop-blur-sm",
+        isMobile
+          ? "aspect-[3/2] w-full" // Mobile: landscape ratio (w > h)
+          : "aspect-[1/2.17] h-[45vh] md:aspect-auto md:w-[55vw] lg:w-[45vw]", // Desktop: original
       )}
     >
-      {/* Header section */}
-      <div className="flex w-full flex-col items-center justify-center p-6 text-center">
-        <div
-          data-testid={`highlight-badge-${highlight.id}`}
-          className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground"
-        >
-          <span className="text-2xl font-bold">{highlight.id}</span>
-        </div>
-
-        <h3 className="mb-3 text-3xl font-bold text-foreground">
-          {highlight.title}
-        </h3>
-
-        <motion.p
-          className="leading-relaxed text-muted-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isInView ? 1 : 0 }}
-          transition={{ delay: index * 0.2 + 0.4 }}
-        >
-          {highlight.description}
-        </motion.p>
+      <div
+        data-testid={`highlight-badge-${icon}`}
+        className="mb-4 inline-flex size-20 items-center justify-center rounded-full bg-primary"
+      >
+        {Icon && <Icon className="size-14 text-primary-foreground" />}
       </div>
-
-      {/* Icon section */}
-      <div className="relative flex items-center justify-center p-6">
-        {IconComponent && (
-          <IconComponent className="h-32 w-32 text-primary/60" />
-        )}
-      </div>
-    </motion.div>
+      <h3 className="mb-3 text-center text-2xl font-bold text-foreground md:text-3xl">
+        {title}
+      </h3>
+      <p className="text-center leading-relaxed text-muted-foreground">
+        {description}
+      </p>
+    </div>
   );
 };
