@@ -20,8 +20,18 @@ import {
 
 type Platform = "iOS" | "desktop" | "mobile";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+interface NavigatorStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 export const CTAButton = ({ className, ...props }: ButtonProps) => {
-  const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [platform, setPlatform] = useState<Platform>("mobile");
   const [isStandalone, setIsStandalone] = useState(false);
@@ -33,14 +43,14 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
     // 檢查是否已經安裝為 PWA
     const isInStandalone =
       "standalone" in window.navigator &&
-      (window.navigator as any).standalone === true;
+      (window.navigator as NavigatorStandalone).standalone === true;
     setIsStandalone(isInStandalone);
 
     // 非 Apple 平台使用 beforeinstallprompt
     if (currentPlatform === "mobile") {
       const handleBeforeInstallPrompt = (e: Event) => {
         e.preventDefault();
-        setDeferredPrompt(e);
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
         setIsInstallable(true);
       };
 
@@ -55,18 +65,19 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
     }
   }, []);
 
-  const handleInstallClick = () => {
+  const handleInstallClick = async () => {
     if (platform === "mobile" && deferredPrompt) {
-      (deferredPrompt as any).prompt();
-      (deferredPrompt as any).userChoice.then((choiceResult: any) => {
-        if (choiceResult.outcome === "accepted") {
-          console.log("User accepted the install prompt");
-        } else {
-          console.log("User dismissed the install prompt");
-        }
+      try {
+        await deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+
         setDeferredPrompt(null);
         setIsInstallable(false);
-      });
+      } catch (error) {
+        console.error("PWA installation failed:", error);
+        setDeferredPrompt(null);
+        setIsInstallable(false);
+      }
     }
   };
 
