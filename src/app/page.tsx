@@ -1,4 +1,5 @@
 import { Benefits } from "@/components/landing/benefits";
+import { Features } from "@/components/landing/features";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
@@ -11,6 +12,7 @@ const LandingPage = () => {
       <Header />
       <Hero />
       <Highlights />
+      <Features />
       <Benefits />
       <Footer />
     </main>
