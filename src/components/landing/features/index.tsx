@@ -24,7 +24,7 @@ interface FeatureCardsContainerProps
   children: React.ReactNode;
 }
 
-export const FeatureCardsContainer = ({
+const FeatureCardsContainer = ({
   children,
   ...props
 }: FeatureCardsContainerProps) => {
@@ -49,7 +49,7 @@ interface FeatureCardProps {
   layout: "left-image" | "right-image";
 }
 
-export const FeatureCard = ({
+const FeatureCard = ({
   title,
   description,
   className,
@@ -96,11 +96,7 @@ interface FeatureDemoImageProps {
   alt: string;
 }
 
-export const FeatureDemoImage = ({
-  feature,
-  number,
-  alt,
-}: FeatureDemoImageProps) => {
+const FeatureDemoImage = ({ feature, number, alt }: FeatureDemoImageProps) => {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
@@ -118,3 +114,6 @@ export const FeatureDemoImage = ({
     </div>
   );
 };
+
+// Export at the end
+export { FeatureCard, FeatureCardsContainer, FeatureDemoImage };
