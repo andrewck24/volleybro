@@ -32,6 +32,26 @@ describe("Features Component", () => {
     });
   });
 
+  describe("Content Structure", () => {
+    it("should render all required demo areas", () => {
+      render(<Features />);
+
+      const recordingDemo1 = screen.getByTestId("demo-area-recording-1");
+      const recordingDemo2 = screen.getByTestId("demo-area-recording-2");
+      const analyticsDemo1 = screen.getByTestId("demo-area-analytics-1");
+      const analyticsDemo2 = screen.getByTestId("demo-area-analytics-2");
+      const teamDemo1 = screen.getByTestId("demo-area-team-1");
+      const teamDemo2 = screen.getByTestId("demo-area-team-2");
+
+      expect(recordingDemo1).toBeInTheDocument();
+      expect(recordingDemo2).toBeInTheDocument();
+      expect(analyticsDemo1).toBeInTheDocument();
+      expect(analyticsDemo2).toBeInTheDocument();
+      expect(teamDemo1).toBeInTheDocument();
+      expect(teamDemo2).toBeInTheDocument();
+    });
+  });
+
   describe("FeatureCard Component", () => {
     it("should have correct card height of 70vh on large screens", () => {
       render(<Features />);
@@ -112,24 +132,15 @@ describe("Features Component", () => {
       expect(recordingCard1).toHaveClass("lg:flex-row");
       expect(recordingCard2).toHaveClass("lg:flex-row");
     });
-  });
 
-  describe("Responsive Design", () => {
-    it("should maintain design system consistency", () => {
+    it("should render FeatureDemoImage components for both recording cards", () => {
       render(<Features />);
 
-      const featuresSection = screen.getByTestId("features-section");
-      expect(featuresSection.className).toMatch(/flex/);
-      expect(featuresSection.className).toMatch(/w-full/);
-    });
+      const recordingImage1 = screen.getByTestId("recording-demo-image-1");
+      const recordingImage2 = screen.getByTestId("recording-demo-image-2");
 
-    it("should use large screen breakpoints for responsive layout", () => {
-      render(<Features />);
-
-      const featureCards = screen.getAllByTestId(/-card-/);
-      featureCards.forEach((card) => {
-        expect(card.className).toMatch(/lg:/);
-      });
+      expect(recordingImage1).toBeInTheDocument();
+      expect(recordingImage2).toBeInTheDocument();
     });
   });
 
@@ -193,26 +204,6 @@ describe("Features Component", () => {
     });
   });
 
-  describe("Content Structure", () => {
-    it("should render all required demo areas", () => {
-      render(<Features />);
-
-      const recordingDemo1 = screen.getByTestId("demo-area-recording-1");
-      const recordingDemo2 = screen.getByTestId("demo-area-recording-2");
-      const analyticsDemo1 = screen.getByTestId("demo-area-analytics-1");
-      const analyticsDemo2 = screen.getByTestId("demo-area-analytics-2");
-      const teamDemo1 = screen.getByTestId("demo-area-team-1");
-      const teamDemo2 = screen.getByTestId("demo-area-team-2");
-
-      expect(recordingDemo1).toBeInTheDocument();
-      expect(recordingDemo2).toBeInTheDocument();
-      expect(analyticsDemo1).toBeInTheDocument();
-      expect(analyticsDemo2).toBeInTheDocument();
-      expect(teamDemo1).toBeInTheDocument();
-      expect(teamDemo2).toBeInTheDocument();
-    });
-  });
-
   describe("TeamFeatures", () => {
     it("should render two team management feature cards", () => {
       render(<Features />);
@@ -262,6 +253,61 @@ describe("Features Component", () => {
 
       expect(teamDemo1).toBeInTheDocument();
       expect(teamDemo2).toBeInTheDocument();
+    });
+
+    it("should render FeatureDemoImage components for both team cards", () => {
+      render(<Features />);
+
+      const teamImage1 = screen.getByTestId("team-demo-image-1");
+      const teamImage2 = screen.getByTestId("team-demo-image-2");
+
+      expect(teamImage1).toBeInTheDocument();
+      expect(teamImage2).toBeInTheDocument();
+    });
+  });
+
+  describe("Responsive Design", () => {
+    it("should maintain design system consistency", () => {
+      render(<Features />);
+
+      const featuresSection = screen.getByTestId("features-section");
+      expect(featuresSection.className).toMatch(/flex/);
+      expect(featuresSection.className).toMatch(/w-full/);
+    });
+
+    it("should use large screen breakpoints for responsive layout", () => {
+      render(<Features />);
+
+      const featureCards = screen.getAllByTestId(/-card-/);
+      featureCards.forEach((card) => {
+        expect(card.className).toMatch(/lg:/);
+      });
+    });
+  });
+
+  describe("FeatureDemoImage Component", () => {
+    it("should render all FeatureDemoImage components with correct test IDs", () => {
+      render(<Features />);
+
+      const recordingImage1 = screen.getByTestId("recording-demo-image-1");
+      const recordingImage2 = screen.getByTestId("recording-demo-image-2");
+      const teamImage1 = screen.getByTestId("team-demo-image-1");
+      const teamImage2 = screen.getByTestId("team-demo-image-2");
+
+      expect(recordingImage1).toBeInTheDocument();
+      expect(recordingImage2).toBeInTheDocument();
+      expect(teamImage1).toBeInTheDocument();
+      expect(teamImage2).toBeInTheDocument();
+    });
+
+    it("should have proper image structure with Next.js Image component", () => {
+      render(<Features />);
+
+      const demoImages = screen.getAllByTestId(/-demo-image-/);
+      demoImages.forEach((image) => {
+        // Check that each image has the expected Next.js Image attributes
+        expect(image.tagName).toBe("IMG");
+      });
     });
   });
 });
