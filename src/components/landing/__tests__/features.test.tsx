@@ -201,13 +201,67 @@ describe("Features Component", () => {
       const recordingDemo2 = screen.getByTestId("demo-area-recording-2");
       const analyticsDemo1 = screen.getByTestId("demo-area-analytics-1");
       const analyticsDemo2 = screen.getByTestId("demo-area-analytics-2");
-      const teamDemo = screen.getByTestId("demo-area-team");
+      const teamDemo1 = screen.getByTestId("demo-area-team-1");
+      const teamDemo2 = screen.getByTestId("demo-area-team-2");
 
       expect(recordingDemo1).toBeInTheDocument();
       expect(recordingDemo2).toBeInTheDocument();
       expect(analyticsDemo1).toBeInTheDocument();
       expect(analyticsDemo2).toBeInTheDocument();
-      expect(teamDemo).toBeInTheDocument();
+      expect(teamDemo1).toBeInTheDocument();
+      expect(teamDemo2).toBeInTheDocument();
+    });
+  });
+
+  describe("TeamFeatures", () => {
+    it("should render two team management feature cards", () => {
+      render(<Features />);
+
+      const teamCard1 = screen.getByTestId("team-card-1");
+      const teamCard2 = screen.getByTestId("team-card-2");
+
+      expect(teamCard1).toBeInTheDocument();
+      expect(teamCard2).toBeInTheDocument();
+    });
+
+    it("should display correct content for team roster card", () => {
+      render(<Features />);
+
+      const rosterCard = screen.getByTestId("team-card-1");
+      expect(rosterCard).toHaveTextContent("建立完整隊伍名單");
+      expect(rosterCard).toHaveTextContent(
+        "輕鬆建立和管理球員資料，掌握每位成員的基本資訊和比賽表現",
+      );
+    });
+
+    it("should display correct content for lineup arrangement card", () => {
+      render(<Features />);
+
+      const lineupCard = screen.getByTestId("team-card-2");
+      expect(lineupCard).toHaveTextContent("智慧陣容安排");
+      expect(lineupCard).toHaveTextContent(
+        "根據球員能力與狀況，快速安排最適合的先發陣容",
+      );
+    });
+
+    it("should use right-image layout for both team cards", () => {
+      render(<Features />);
+
+      const teamCard1 = screen.getByTestId("team-card-1");
+      const teamCard2 = screen.getByTestId("team-card-2");
+
+      expect(teamCard1).toHaveClass("lg:flex-row");
+      expect(teamCard2).toHaveClass("lg:flex-row");
+    });
+
+    it("should render demo areas for both team cards", () => {
+      render(<Features />);
+
+      const teamDemo1 = screen.getByTestId("demo-area-team-1");
+      const teamDemo2 = screen.getByTestId("demo-area-team-2");
+
+      expect(teamDemo1).toBeInTheDocument();
+      expect(teamDemo2).toBeInTheDocument();
     });
   });
 });

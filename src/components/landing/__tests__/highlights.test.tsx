@@ -6,6 +6,7 @@ import { axe } from "jest-axe";
 jest.mock("next/image", () => ({
   __esModule: true,
   default: ({ src, alt, fill, ...props }: any) => (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       data-testid="highlight-image"
       src={src}
