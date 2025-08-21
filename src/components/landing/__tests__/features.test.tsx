@@ -133,18 +133,80 @@ describe("Features Component", () => {
     });
   });
 
+  describe("AnalyticsFeatures", () => {
+    it("should render two analytics feature cards", () => {
+      render(<Features />);
+
+      const analyticsCard1 = screen.getByTestId("analytics-card-1");
+      const analyticsCard2 = screen.getByTestId("analytics-card-2");
+
+      expect(analyticsCard1).toBeInTheDocument();
+      expect(analyticsCard2).toBeInTheDocument();
+    });
+
+    it("should display correct content for match performance comparison card", () => {
+      render(<Features />);
+
+      const performanceCard = screen.getByTestId("analytics-card-1");
+      expect(performanceCard).toHaveTextContent("賽事表現比較分析");
+      expect(performanceCard).toHaveTextContent(
+        "透過視覺化圖表比較團隊表現，找出球隊優勢",
+      );
+    });
+
+    it("should display correct content for player analysis card", () => {
+      render(<Features />);
+
+      const playerCard = screen.getByTestId("analytics-card-2");
+      expect(playerCard).toHaveTextContent("深入分析球員表現（開發中）");
+      expect(playerCard).toHaveTextContent(
+        "運用圖表深入分析個別球員的技能表現和成長軌跡",
+      );
+    });
+
+    it("should use left-image layout for both analytics cards", () => {
+      render(<Features />);
+
+      const analyticsCard1 = screen.getByTestId("analytics-card-1");
+      const analyticsCard2 = screen.getByTestId("analytics-card-2");
+
+      expect(analyticsCard1).toHaveClass("lg:flex-row-reverse");
+      expect(analyticsCard2).toHaveClass("lg:flex-row-reverse");
+    });
+
+    it("should render Points component in first analytics card", () => {
+      render(<Features />);
+
+      const demoArea1 = screen.getByTestId("demo-area-analytics-1");
+      expect(demoArea1).toBeInTheDocument();
+      // Points component should be rendered inside
+      expect(screen.getByTestId("points-component")).toBeInTheDocument();
+    });
+
+    it("should render radar chart in second analytics card", () => {
+      render(<Features />);
+
+      const demoArea2 = screen.getByTestId("demo-area-analytics-2");
+      expect(demoArea2).toBeInTheDocument();
+      // Radar chart should be rendered inside
+      expect(screen.getByTestId("radar-chart")).toBeInTheDocument();
+    });
+  });
+
   describe("Content Structure", () => {
     it("should render all required demo areas", () => {
       render(<Features />);
 
       const recordingDemo1 = screen.getByTestId("demo-area-recording-1");
       const recordingDemo2 = screen.getByTestId("demo-area-recording-2");
-      const analyticsDemo = screen.getByTestId("demo-area-analytics");
+      const analyticsDemo1 = screen.getByTestId("demo-area-analytics-1");
+      const analyticsDemo2 = screen.getByTestId("demo-area-analytics-2");
       const teamDemo = screen.getByTestId("demo-area-team");
 
       expect(recordingDemo1).toBeInTheDocument();
       expect(recordingDemo2).toBeInTheDocument();
-      expect(analyticsDemo).toBeInTheDocument();
+      expect(analyticsDemo1).toBeInTheDocument();
+      expect(analyticsDemo2).toBeInTheDocument();
       expect(teamDemo).toBeInTheDocument();
     });
   });
