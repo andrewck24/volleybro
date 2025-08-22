@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom";
 import { toHaveNoViolations } from "jest-axe";
+import type { ImageProps } from "next/image";
+import React from "react";
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
@@ -42,6 +44,23 @@ Object.defineProperty(window, "matchMedia", {
 
 // Mock fetch for API testing
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
+// Mock Next.js Image component
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: ({ src, alt, width, height, ...rest }: ImageProps) => {
+    // Filter out special props from next/image
+    const { fill, priority, quality, sizes, ...imgProps } = rest;
+    // eslint-disable-next-line @next/next/no-img-element
+    return React.createElement("img", {
+      src: typeof src === "string" ? src : "",
+      alt: alt ?? "",
+      width,
+      height,
+      ...imgProps,
+    });
+  },
+}));
 
 // Mock MongoDB modules to avoid ES module issues
 jest.mock("mongodb", () => ({

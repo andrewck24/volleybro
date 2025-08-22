@@ -2,21 +2,6 @@ import { CTASection } from "@/components/landing/cta-section";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 
-// Mock Next.js Image component
-jest.mock("next/image", () => ({
-  __esModule: true,
-  default: ({ src, alt, className, ...props }: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      data-testid="cta-background-image"
-      src={src}
-      alt={alt}
-      className={className}
-      {...props}
-    />
-  ),
-}));
-
 // Mock motion/react
 jest.mock("motion/react", () => ({
   motion: {

@@ -1,11 +1,44 @@
 import { Features } from "@/components/landing/features";
 import { render, screen } from "@testing-library/react";
 
-// Mock Motion components to avoid animation issues in tests
+jest.mock("@/components/match/stats/teams-stats/points", () => ({
+  Points: () => <div data-testid="mock-points-chart">Mock Points Chart</div>,
+}));
+
+jest.mock("@/components/ui/chart", () => ({
+  ChartContainer: ({ children, className, ...props }: any) => (
+    <div className={className} {...props}>
+      {children}
+    </div>
+  ),
+  ChartTooltip: ({ children }: any) => <div>{children}</div>,
+  ChartTooltipContent: () => <div>Mock Tooltip</div>,
+}));
+
 jest.mock("motion/react", () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, className, ...props }: any) => (
+      <div className={className} {...props}>
+        {children}
+      </div>
+    ),
+    section: ({ children, className, ...props }: any) => (
+      <section className={className} {...props}>
+        {children}
+      </section>
+    ),
   },
+}));
+
+jest.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: any) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  RadarChart: () => <div data-testid="mock-radar-chart">Mock Radar Chart</div>,
+  PolarGrid: () => <div>Mock PolarGrid</div>,
+  PolarAngleAxis: () => <div>Mock PolarAngleAxis</div>,
+  PolarRadiusAxis: () => <div>Mock PolarRadiusAxis</div>,
+  Radar: () => <div>Mock Radar</div>,
 }));
 
 describe("Features Component", () => {
@@ -192,6 +225,7 @@ describe("Features Component", () => {
       expect(demoArea1).toBeInTheDocument();
       // Points component should be rendered inside
       expect(screen.getByTestId("points-component")).toBeInTheDocument();
+      expect(screen.getByTestId("mock-points-chart")).toBeInTheDocument();
     });
 
     it("should render radar chart in second analytics card", () => {
@@ -201,6 +235,7 @@ describe("Features Component", () => {
       expect(demoArea2).toBeInTheDocument();
       // Radar chart should be rendered inside
       expect(screen.getByTestId("radar-chart")).toBeInTheDocument();
+      expect(screen.getByTestId("mock-radar-chart")).toBeInTheDocument();
     });
   });
 

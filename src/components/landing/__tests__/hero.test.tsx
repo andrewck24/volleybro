@@ -27,22 +27,6 @@ jest.mock("@/components/ui/flip-words", () => ({
   ),
 }));
 
-jest.mock("next/image", () => {
-  return function MockImage({
-    src,
-    alt,
-    priority, // Destructured to avoid passing to DOM
-    ...props
-  }: {
-    src: string;
-    alt: string;
-    priority?: boolean;
-  }) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} {...props} />;
-  };
-});
-
 // Mock motion/react
 jest.mock("motion/react", () => ({
   motion: {

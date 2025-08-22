@@ -24,28 +24,6 @@ jest.mock("motion/react", () => ({
   useScroll: () => ({ scrollY: mockScrollY }),
 }));
 
-// Mock next/image
-jest.mock("next/image", () => {
-  return function MockImage({
-    src,
-    alt,
-    width,
-    height,
-    priority, // Destructure priority to prevent it from being passed to the DOM
-    ...props
-  }: {
-    src: string;
-    alt: string;
-    width: number;
-    height: number;
-    priority?: boolean;
-  }) {
-    // Disable eslint warning to isolate next/image mock
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} width={width} height={height} {...props} />;
-  };
-});
-
 // Mock CTA Button
 jest.mock("@/components/landing/cta-button", () => ({
   CTAButton: ({ className, ...props }: any) => (
