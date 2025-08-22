@@ -1,0 +1,143 @@
+"use client";
+import { CTAButton } from "@/components/landing/cta-button";
+import { motion } from "motion/react";
+import Image from "next/image";
+
+export const CTASection = () => {
+  return (
+    <motion.section
+      data-testid="cta-section"
+      className="relative mx-6 overflow-hidden rounded-lg bg-card px-4 py-24 text-center lg:mx-12"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      viewport={{ once: true }}
+    >
+      <CTABackgroundImage />
+      <CTABackgroundEffects />
+
+      <div
+        data-testid="cta-main-container"
+        className="relative z-20 container mx-auto max-w-4xl text-center"
+      >
+        <CTAContent />
+      </div>
+    </motion.section>
+  );
+};
+
+const CTABackgroundImage = () => {
+  return (
+    <Image
+      data-testid="cta-background-image"
+      src="/landing/hero.svg"
+      alt="VolleyBro App Interface"
+      fill
+      className="object-contain object-center opacity-10 dark:invert"
+    />
+  );
+};
+
+const CTABackgroundEffects = () => {
+  return (
+    <div
+      data-testid="cta-background-effects"
+      className="pointer-events-none absolute inset-0 z-10 size-full"
+    >
+      <motion.div
+        data-testid="cta-floating-1"
+        className="absolute top-10 left-10 h-64 w-64 rounded-full bg-primary/30 blur-3xl"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.6, 0.3],
+          x: [0, 10, 0],
+          y: [0, -10, 0],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.div
+        data-testid="cta-floating-2"
+        className="absolute right-10 bottom-10 h-48 w-48 rounded-full bg-secondary/40 blur-3xl"
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.4, 0.7, 0.4],
+          x: [0, 10, 0],
+          y: [0, -10, 0],
+        }}
+        transition={{
+          duration: 3.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 1.5,
+        }}
+      />
+      <motion.div
+        data-testid="cta-floating-3"
+        className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/10 blur-2xl"
+        animate={{
+          scale: [1, 1.3, 1],
+          x: [0, 10, 0],
+          y: [0, -10, 0],
+        }}
+        transition={{
+          duration: 5,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+      />
+    </div>
+  );
+};
+
+// Optimized Vertical Layout Content for Action Focus
+const CTAContent = () => {
+  return (
+    <motion.div
+      data-testid="cta-content-container"
+      className="flex flex-col items-center gap-12"
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, delay: 0.1 }}
+      viewport={{ once: true }}
+    >
+      <motion.h2
+        className="max-w-3xl text-3xl leading-tight font-bold text-foreground md:text-4xl lg:text-5xl"
+        initial={{ opacity: 0, y: 15 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        viewport={{ once: true }}
+      >
+        準備好革新你的排球管理方式了嗎？
+      </motion.h2>
+
+      <motion.p
+        className="max-w-2xl text-lg text-muted-foreground md:text-xl"
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.5 }}
+        viewport={{ once: true }}
+      >
+        立即體驗 VolleyBro 的強大功能，讓數據驅動你的每一個戰術決策
+      </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.7 }}
+        viewport={{ once: true }}
+      >
+        <CTAButton
+          size="lg"
+          className="hover:shadow-3xl h-14 px-12 py-4 text-xl font-bold shadow-2xl transition-shadow"
+          data-testid="cta-section-button"
+        >
+          立即開始使用
+        </CTAButton>
+      </motion.div>
+    </motion.div>
+  );
+};

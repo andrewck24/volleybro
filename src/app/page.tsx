@@ -1,4 +1,4 @@
-import { Benefits } from "@/components/landing/benefits";
+import { CTASection } from "@/components/landing/cta-section";
 import { Features } from "@/components/landing/features";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
@@ -8,12 +8,12 @@ import "@/styles/landing.css";
 
 const LandingPage = () => {
   return (
-    <main className="min-h-full w-full select-text">
+    <main className="min-h-full w-full select-text bg-background">
       <Header />
       <Hero />
       <Highlights />
       <Features />
-      <Benefits />
+      <CTASection />
       <Footer />
     </main>
   );
