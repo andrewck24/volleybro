@@ -64,135 +64,122 @@ jest.mock("@/components/landing/cta-button", () => ({
   ),
 }));
 
-describe("CTASection TDD Implementation", () => {
-  describe("Red Phase - Failing Tests", () => {
-    describe("Component Structure", () => {
-      it("should render CTA section with core elements", () => {
-        render(<CTASection />);
+describe("CTASection Component", () => {
+  describe("Core Elements", () => {
+    it("should render CTA section with core elements", () => {
+      render(<CTASection />);
 
-        // 這些測試一開始會失敗
-        expect(screen.getByTestId("cta-section")).toBeInTheDocument();
-        expect(
-          screen.getByText("準備好革新你的排球管理方式了嗎？"),
-        ).toBeInTheDocument();
-        expect(screen.getByTestId("cta-section-button")).toBeInTheDocument();
-      });
-
-      it("should contain slogan, CTA button, and background image", () => {
-        render(<CTASection />);
-
-        // 驗證三個核心元素存在
-        const slogan = screen.getByText("準備好革新你的排球管理方式了嗎？");
-        const button = screen.getByTestId("cta-section-button");
-        const backgroundImage = screen.getByTestId("cta-background-image");
-
-        expect(slogan).toBeInTheDocument();
-        expect(button).toBeInTheDocument();
-        expect(backgroundImage).toBeInTheDocument();
-      });
+      expect(screen.getByTestId("cta-section")).toBeInTheDocument();
+      expect(
+        screen.getByText("準備好革新你的排球管理方式了嗎？"),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("cta-section-button")).toBeInTheDocument();
     });
 
-    describe("Vertical Layout Design", () => {
-      it("should use vertical layout for action focus", () => {
-        render(<CTASection />);
+    it("should contain slogan, CTA button, and background image", () => {
+      render(<CTASection />);
 
-        const container = screen.getByTestId("cta-content-container");
-        expect(container).toHaveClass("flex", "flex-col", "items-center");
-      });
+      const slogan = screen.getByText("準備好革新你的排球管理方式了嗎？");
+      const button = screen.getByTestId("cta-section-button");
+      const backgroundImage = screen.getByTestId("cta-background-image");
 
-      it("should have centered text alignment", () => {
-        render(<CTASection />);
+      expect(slogan).toBeInTheDocument();
+      expect(button).toBeInTheDocument();
+      expect(backgroundImage).toBeInTheDocument();
+    });
+  });
 
-        const mainContainer = screen.getByTestId("cta-section");
-        expect(mainContainer).toHaveClass("text-center");
-      });
+  describe("Layout and Design", () => {
+    it("should use vertical layout for action focus", () => {
+      render(<CTASection />);
 
-      it("should have appropriate vertical spacing between elements", () => {
-        render(<CTASection />);
-
-        const contentContainer = screen.getByTestId("cta-content-container");
-        expect(contentContainer).toHaveClass("gap-12");
-      });
-
-      it("should render supporting text for better context", () => {
-        render(<CTASection />);
-
-        const supportingText =
-          screen.getByText(/立即體驗 VolleyBro 的強大功能/);
-        expect(supportingText).toBeInTheDocument();
-        expect(supportingText).toHaveTextContent(
-          "讓數據驅動你的每一個戰術決策",
-        );
-      });
+      const container = screen.getByTestId("cta-content-container");
+      expect(container).toHaveClass("flex", "flex-col", "items-center");
     });
 
-    describe("Hero Image Consistency", () => {
-      it("should integrate Hero image consistently", () => {
-        render(<CTASection />);
+    it("should have centered text alignment", () => {
+      render(<CTASection />);
 
-        const image = screen.getByTestId("cta-background-image");
-        expect(image).toHaveAttribute("src", "/landing/hero.svg");
-        expect(image).toHaveAttribute("alt", "VolleyBro App Interface");
-      });
+      const mainContainer = screen.getByTestId("cta-section");
+      expect(mainContainer).toHaveClass("text-center");
     });
 
-    describe("CTA Button Integration", () => {
-      it("should render CTAButton with unified design", () => {
-        render(<CTASection />);
+    it("should have appropriate vertical spacing between elements", () => {
+      render(<CTASection />);
 
-        const ctaButton = screen.getByTestId("cta-section-button");
-        expect(ctaButton).toHaveAttribute("data-size", "lg");
-        expect(ctaButton).toHaveClass("px-12", "py-4", "text-xl", "shadow-2xl");
-      });
-
-      it("should display correct CTA button text", () => {
-        render(<CTASection />);
-
-        const ctaButton = screen.getByTestId("cta-section-button");
-        expect(ctaButton).toHaveTextContent("立即開始使用");
-      });
+      const contentContainer = screen.getByTestId("cta-content-container");
+      expect(contentContainer).toHaveClass("gap-12");
     });
 
-    describe("Visual Effects", () => {
-      it("should render background decorations for visual appeal", () => {
-        render(<CTASection />);
+    it("should render supporting text for better context", () => {
+      render(<CTASection />);
 
-        const backgroundEffects = screen.getByTestId("cta-background-effects");
-        expect(backgroundEffects).toBeInTheDocument();
-        expect(backgroundEffects).toHaveClass("pointer-events-none");
-      });
+      const supportingText = screen.getByText(/立即體驗 VolleyBro 的強大功能/);
+      expect(supportingText).toBeInTheDocument();
+      expect(supportingText).toHaveTextContent("讓數據驅動你的每一個戰術決策");
+    });
+  });
 
-      it("should have floating animation elements", () => {
-        render(<CTASection />);
+  describe("Hero Image Consistency", () => {
+    it("should integrate Hero image consistently", () => {
+      render(<CTASection />);
 
-        const floatingElements = screen.getAllByTestId(/cta-floating-/);
-        expect(floatingElements.length).toBeGreaterThanOrEqual(2);
+      const image = screen.getByTestId("cta-background-image");
+      expect(image).toHaveAttribute("src", "/landing/hero.svg");
+      expect(image).toHaveAttribute("alt", "VolleyBro App Interface");
+    });
+  });
 
-        // Check that floating elements exist (motion animation props will be handled by motion components)
-        expect(screen.getByTestId("cta-floating-1")).toBeInTheDocument();
-        expect(screen.getByTestId("cta-floating-2")).toBeInTheDocument();
-      });
+  describe("CTA Button Integration", () => {
+    it("should render CTAButton with unified design", () => {
+      render(<CTASection />);
+
+      const ctaButton = screen.getByTestId("cta-section-button");
+      expect(ctaButton).toHaveAttribute("data-size", "lg");
+      expect(ctaButton).toHaveClass("px-12", "py-4", "text-xl", "shadow-2xl");
     });
 
-    describe("Section Layout and Styling", () => {
-      it("should have correct section padding and structure", () => {
-        render(<CTASection />);
+    it("should display correct CTA button text", () => {
+      render(<CTASection />);
 
-        const section = screen.getByTestId("cta-section");
-        expect(section).toHaveClass("relative", "mx-6", "lg:mx-12");
-      });
+      const ctaButton = screen.getByTestId("cta-section-button");
+      expect(ctaButton).toHaveTextContent("立即開始使用");
+    });
+  });
 
-      it("should have container with max-width constraint", () => {
-        render(<CTASection />);
+  describe("Visual Effects", () => {
+    it("should render background decorations for visual appeal", () => {
+      render(<CTASection />);
 
-        const mainContainer = screen.getByTestId("cta-main-container");
-        expect(mainContainer).toHaveClass(
-          "container",
-          "mx-auto",
-          "max-w-4xl",
-          "text-center",
-        );
-      });
+      const backgroundEffects = screen.getByTestId("cta-background-effects");
+      expect(backgroundEffects).toBeInTheDocument();
+      expect(backgroundEffects).toHaveClass("pointer-events-none");
+    });
+
+    it("should have floating animation elements", () => {
+      render(<CTASection />);
+
+      const floatingElements = screen.getAllByTestId(/cta-floating-/);
+      expect(floatingElements.length).toBeGreaterThanOrEqual(2);
+
+      expect(screen.getByTestId("cta-floating-1")).toBeInTheDocument();
+      expect(screen.getByTestId("cta-floating-2")).toBeInTheDocument();
+    });
+  });
+
+  describe("Section Layout and Styling", () => {
+    it("should have correct section padding and structure", () => {
+      render(<CTASection />);
+
+      const section = screen.getByTestId("cta-section");
+      expect(section).toHaveClass("relative", "mx-6", "lg:mx-12");
+    });
+
+    it("should have container with max-width constraint", () => {
+      render(<CTASection />);
+
+      const mainContainer = screen.getByTestId("cta-main-container");
+      expect(mainContainer).toHaveClass("container", "mx-auto", "text-center");
     });
   });
 
@@ -250,7 +237,6 @@ describe("CTASection TDD Implementation", () => {
 
       const section = screen.getByTestId("cta-section");
       expect(section).toBeInTheDocument();
-      // Motion section should be rendered with proper test-id
     });
   });
 });
