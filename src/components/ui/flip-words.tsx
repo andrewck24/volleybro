@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import * as m from "motion/react-m";
-import { cn } from "@/lib/utils";
+import { useCallback, useEffect, useState } from "react";
 
 export const FlipWords = ({
   words,
@@ -13,12 +13,18 @@ export const FlipWords = ({
   duration?: number;
   className?: string;
 }) => {
+  // Guard against empty words array
+  if (words.length === 0) return null;
+
   const [currentWord, setCurrentWord] = useState(words[0]);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   const startAnimation = useCallback(() => {
-    const word = words[words.indexOf(currentWord) + 1] || words[0];
+    const currentIndex = words.indexOf(currentWord);
+    const nextIndex =
+      currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
+    const word = words[nextIndex];
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
@@ -29,12 +35,12 @@ export const FlipWords = ({
 
   useEffect(() => {
     if (!mounted) return;
-    
+
     if (!isAnimating) {
       const timeoutId = setTimeout(() => {
         startAnimation();
       }, duration);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [isAnimating, duration, startAnimation, mounted]);
@@ -44,8 +50,8 @@ export const FlipWords = ({
     return (
       <div
         className={cn(
-          "z-10 inline-block relative text-left text-neutral-900 dark:text-neutral-100",
-          className
+          "relative z-10 inline-block text-left text-neutral-900 dark:text-neutral-100",
+          className,
         )}
       >
         {words[0].split(" ").map((word, wordIndex) => (
@@ -83,8 +89,8 @@ export const FlipWords = ({
             position: "absolute",
           }}
           className={cn(
-            "z-10 inline-block relative text-left text-neutral-900 dark:text-neutral-100",
-            className
+            "relative z-10 inline-block text-left text-neutral-900 dark:text-neutral-100",
+            className,
           )}
           key={currentWord}
         >
@@ -118,12 +124,18 @@ export const FlipLetters = ({
   duration?: number;
   className?: string;
 }) => {
+  // Guard against empty words array
+  if (words.length === 0) return null;
+
   const [currentWord, setCurrentWord] = useState(words[0]);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   const startAnimation = useCallback(() => {
-    const word = words[words.indexOf(currentWord) + 1] || words[0];
+    const currentIndex = words.indexOf(currentWord);
+    const nextIndex =
+      currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
+    const word = words[nextIndex];
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
@@ -134,12 +146,12 @@ export const FlipLetters = ({
 
   useEffect(() => {
     if (!mounted) return;
-    
+
     if (!isAnimating) {
       const timeoutId = setTimeout(() => {
         startAnimation();
       }, duration);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [isAnimating, duration, startAnimation, mounted]);
@@ -149,8 +161,8 @@ export const FlipLetters = ({
     return (
       <div
         className={cn(
-          "z-10 inline-block relative text-left text-neutral-900 dark:text-neutral-100",
-          className
+          "relative z-10 inline-block text-left text-neutral-900 dark:text-neutral-100",
+          className,
         )}
       >
         {words[0].split(" ").map((word, wordIndex) => (
@@ -159,10 +171,7 @@ export const FlipLetters = ({
             className="inline-block whitespace-nowrap"
           >
             {word.split("").map((letter, letterIndex) => (
-              <span
-                key={word + letterIndex}
-                className="inline-block"
-              >
+              <span key={word + letterIndex} className="inline-block">
                 {letter}
               </span>
             ))}
@@ -195,8 +204,8 @@ export const FlipLetters = ({
             position: "absolute",
           }}
           className={cn(
-            "z-10 inline-block relative text-left text-neutral-900 dark:text-neutral-100",
-            className
+            "relative z-10 inline-block text-left text-neutral-900 dark:text-neutral-100",
+            className,
           )}
           key={currentWord}
         >
