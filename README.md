@@ -159,7 +159,7 @@ All commit messages must follow the [Angular Commit Message Convention](https://
 - `docs:` Documentation only changes
 - `feat:` A new feature
 - `fix:` A bug fix
-- `style:` Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- `perf:` A code change that improves performance
 - `refactor:` A code change that neither fixes a bug nor adds a feature
 - `test:` Adding missing tests or correcting existing tests
 
