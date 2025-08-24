@@ -1,3 +1,4 @@
+"use client";
 import { Button, Link, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,6 +36,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [isInstallable, setIsInstallable] = useState(false);
   const [platform, setPlatform] = useState<Platform>("mobile");
   const [isStandalone, setIsStandalone] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const currentPlatform = checkPlatform();
@@ -55,6 +57,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
       };
 
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      setMounted(true);
 
       return () => {
         window.removeEventListener(
@@ -63,6 +66,8 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
         );
       };
     }
+
+    setMounted(true);
   }, []);
 
   const handleInstallClick = async () => {
@@ -80,6 +85,20 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
       }
     }
   };
+
+  if (!mounted) {
+    return (
+      <Button
+        {...props}
+        variant="outline"
+        className={cn("border-0 bg-primary-foreground text-primary", className)}
+        disabled
+      >
+        開始使用
+        <RiArrowRightLine />
+      </Button>
+    );
+  }
 
   // 如果已經以 PWA 模式運行，不顯示安裝按鈕
   if (isStandalone || platform === "desktop") {
@@ -112,35 +131,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
             <RiArrowRightLine />
           </Button>
         </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>安裝此應用程式到主頁面</DialogTitle>
-            <DialogDescription>
-              透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
-            </DialogDescription>
-          </DialogHeader>
-          <ul className="space-y-2 text-sm">
-            <li className="flex items-center">
-              <span className="w-4">1.</span>
-              點擊下方的分享
-              <RiShare2Line className="inline-block size-5" />
-              按鈕
-            </li>
-            <li className="flex items-start">
-              <span className="w-4">2.</span>
-              向下滑動並選擇「加入主畫面
-              <RiAddBoxLine className="inline-block size-5" />」
-            </li>
-          </ul>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">
-                <RiCheckLine />
-                我知道了
-              </Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
+        <IOSInstallInstruction />
       </Dialog>
     );
   }
@@ -162,6 +153,40 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
         </Button>
       )}
     </>
+  );
+};
+
+const IOSInstallInstruction = () => {
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>安裝此應用程式到主頁面</DialogTitle>
+        <DialogDescription>
+          透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
+        </DialogDescription>
+      </DialogHeader>
+      <ul className="space-y-2 text-sm">
+        <li className="flex items-center">
+          <span className="w-4">1.</span>
+          點擊下方的分享
+          <RiShare2Line className="inline-block size-5" />
+          按鈕
+        </li>
+        <li className="flex items-start">
+          <span className="w-4">2.</span>
+          向下滑動並選擇「加入主畫面
+          <RiAddBoxLine className="inline-block size-5" />」
+        </li>
+      </ul>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button variant="outline">
+            <RiCheckLine />
+            我知道了
+          </Button>
+        </DialogClose>
+      </DialogFooter>
+    </DialogContent>
   );
 };
 
