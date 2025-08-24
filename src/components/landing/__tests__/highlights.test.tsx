@@ -2,65 +2,9 @@ import { Highlights } from "@/components/landing/highlights";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 
-// Mock Next.js Image component
-jest.mock("next/image", () => ({
-  __esModule: true,
-  default: ({ src, alt, fill, ...props }: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      data-testid="highlight-image"
-      src={src}
-      alt={alt}
-      data-fill={fill ? "true" : "false"}
-      {...props}
-    />
-  ),
-}));
-
 // Mock motion/react hooks - match Features component exactly
 jest.mock("motion/react", () => ({
-  motion: {
-    div: ({
-      children,
-      className,
-      style,
-      whileInView,
-      initial,
-      animate,
-      transition,
-      ...props
-    }: any) => (
-      <div className={className} style={style} {...props}>
-        {children}
-      </div>
-    ),
-    section: ({
-      children,
-      className,
-      ref,
-      style,
-      initial,
-      whileInView,
-      transition,
-      ...props
-    }: any) => (
-      <section className={className} ref={ref} style={style} {...props}>
-        {children}
-      </section>
-    ),
-    p: ({
-      children,
-      className,
-      initial,
-      animate,
-      transition,
-      ...props
-    }: any) => (
-      <p className={className} {...props}>
-        {children}
-      </p>
-    ),
-  },
+  ...jest.requireActual("motion/react"),
   useInView: jest.fn(() => true),
   useScroll: jest.fn(() => ({ scrollYProgress: { get: () => 0 } })),
   useSpring: jest.fn((value) => value),

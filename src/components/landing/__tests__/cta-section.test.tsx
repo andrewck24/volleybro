@@ -2,55 +2,7 @@ import { CTASection } from "@/components/landing/cta-section";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 
-// Mock Next.js Image component
-jest.mock("next/image", () => ({
-  __esModule: true,
-  default: ({ src, alt, className, ...props }: any) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      data-testid="cta-background-image"
-      src={src}
-      alt={alt}
-      className={className}
-      {...props}
-    />
-  ),
-}));
-
-// Mock motion/react
-jest.mock("motion/react", () => ({
-  motion: {
-    section: ({
-      children,
-      className,
-      initial,
-      whileInView,
-      transition,
-      ...props
-    }: any) => (
-      <section className={className} {...props}>
-        {children}
-      </section>
-    ),
-    div: ({ children, className, ...props }: any) => (
-      <div className={className} {...props}>
-        {children}
-      </div>
-    ),
-    h2: ({ children, className, ...props }: any) => (
-      <h2 className={className} {...props}>
-        {children}
-      </h2>
-    ),
-    p: ({ children, className, ...props }: any) => (
-      <p className={className} {...props}>
-        {children}
-      </p>
-    ),
-  },
-}));
-
-// Mock CTAButton component
+// Mock dependencies
 jest.mock("@/components/landing/cta-button", () => ({
   CTAButton: ({ children, className, size, ...props }: any) => (
     <button
