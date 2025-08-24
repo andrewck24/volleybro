@@ -5,7 +5,7 @@ import { TeamFeatures } from "@/components/landing/features/team";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 export const Features = () => {
   return (
@@ -106,6 +106,13 @@ export const FeatureDemoImage = ({
   const [mounted, setMounted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Memoize theme-dependent values to avoid recalculation on every render
+  const themeValues = useMemo(() => {
+    const isDark = theme === "dark";
+    const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
+    return { isDark, imageSrc };
+  }, [theme, feature, number]);
+
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
@@ -116,9 +123,6 @@ export const FeatureDemoImage = ({
     );
   }
 
-  const isDark = theme === "dark";
-  const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
-
   return (
     <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl">
       <div
@@ -128,7 +132,7 @@ export const FeatureDemoImage = ({
         )}
       />
       <Image
-        src={imageSrc}
+        src={themeValues.imageSrc}
         alt={alt}
         fill
         className={cn(

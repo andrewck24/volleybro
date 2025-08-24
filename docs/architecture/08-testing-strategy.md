@@ -89,7 +89,12 @@ experimental: {
 jest.mock("motion/react", () => {
   const filterMotionProps = (props: any) => {
     const {
-      initial, animate, exit, whileInView, transition, variants,
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
       // 過濾掉所有 motion 專屬屬性，避免 DOM 警告
       ...rest
     } = props;
@@ -110,7 +115,44 @@ jest.mock("motion/react", () => {
       span: ({ children, ...props }: any) =>
         React.createElement("span", filterMotionProps(props), children),
     },
+    // LazyMotion 相關 mock (配合 Story 1.12 優化)
+    LazyMotion: ({ children }: any) => children,
+    domAnimation: {},
+    useReducedMotion: () => false,
     // 注意：hooks 由個別測試檔案處理，避免衝突
+  };
+});
+
+// motion/react-m Mock 策略 (Story 1.12 Bundle Size 優化)
+jest.mock("motion/react-m", () => {
+  const filterMotionProps = (props: any) => {
+    const {
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
+      // 過濾掉所有 motion 專屬屬性，避免 DOM 警告
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  return {
+    __esModule: true,
+    m: {
+      section: ({ children, ...props }: any) =>
+        React.createElement("section", filterMotionProps(props), children),
+      div: ({ children, ...props }: any) =>
+        React.createElement("div", filterMotionProps(props), children),
+      h1: ({ children, ...props }: any) =>
+        React.createElement("h1", filterMotionProps(props), children),
+      p: ({ children, ...props }: any) =>
+        React.createElement("p", filterMotionProps(props), children),
+      span: ({ children, ...props }: any) =>
+        React.createElement("span", filterMotionProps(props), children),
+    },
   };
 });
 ```

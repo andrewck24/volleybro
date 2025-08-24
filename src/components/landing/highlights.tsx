@@ -1,6 +1,13 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { motion, useScroll, useSpring, useTransform } from "motion/react";
+import {
+  LazyMotion,
+  domAnimation,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "motion/react";
+import * as m from "motion/react-m";
 import { useRef } from "react";
 import {
   RiBarChartBoxAiFill,
@@ -51,39 +58,41 @@ export const Highlights = () => {
   const springX = useSpring(x, { stiffness: 100, damping: 30 });
 
   return (
-    <section
-      ref={targetRef}
-      data-testid="highlights-section"
-      className="relative isolate bg-gradient-to-b from-primary/5 via-background to-muted py-16 md:h-[300vh] md:[contain:layout_style_paint]"
-    >
-      {/* Mobile: Static vertical layout */}
-      <div className="container mx-auto px-4 md:hidden">
-        <div
-          data-testid="highlights-cards-container-mobile"
-          className="grid grid-cols-1 gap-6"
-        >
-          {highlights.map((highlight, index) => (
-            <HighlightCard key={index} highlight={highlight} isMobile />
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop: Sticky horizontal scroll layout */}
-      <div
-        data-testid="sticky-container"
-        className="sticky top-0 hidden h-screen translate-z-0 items-center overflow-hidden will-change-auto md:flex"
+    <LazyMotion features={domAnimation} strict>
+      <section
+        ref={targetRef}
+        data-testid="highlights-section"
+        className="relative isolate bg-gradient-to-b from-primary/5 via-background to-muted py-16 md:h-[300vh] md:[contain:layout_style_paint]"
       >
-        <motion.div
-          data-testid="highlights-cards-container"
-          style={{ x: springX }}
-          className="flex gap-6 pl-[15%] will-change-transform md:gap-8"
+        {/* Mobile: Static vertical layout */}
+        <div className="container mx-auto px-4 md:hidden">
+          <div
+            data-testid="highlights-cards-container-mobile"
+            className="grid grid-cols-1 gap-6"
+          >
+            {highlights.map((highlight, index) => (
+              <HighlightCard key={index} highlight={highlight} isMobile />
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: Sticky horizontal scroll layout */}
+        <div
+          data-testid="sticky-container"
+          className="sticky top-0 hidden h-screen translate-z-0 items-center overflow-hidden will-change-auto md:flex"
         >
-          {highlights.map((highlight, index) => (
-            <HighlightCard key={index} highlight={highlight} />
-          ))}
-        </motion.div>
-      </div>
-    </section>
+          <m.div
+            data-testid="highlights-cards-container"
+            style={{ x: springX }}
+            className="flex gap-6 pl-[15%] will-change-transform md:gap-8"
+          >
+            {highlights.map((highlight, index) => (
+              <HighlightCard key={index} highlight={highlight} />
+            ))}
+          </m.div>
+        </div>
+      </section>
+    </LazyMotion>
   );
 };
 
