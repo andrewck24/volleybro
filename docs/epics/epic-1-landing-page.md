@@ -472,6 +472,58 @@ IV1: 團隊管理功能展示符合實際使用場景
 IV2: 圖右文左佈局與整體設計協調
 IV3: FeatureCard 元件在三個區塊中保持一致性
 
+## Story 1.12: Motion Components Bundle Size 與 Runtime 優化
+
+作為 **網站效能管理者**，
+我想要 **大幅減少 motion 相關的 bundle size 並改善運行時效能**，
+所以 **使用者在載入頁面時能獲得更快的初始載入體驗，尤其是在低階裝置和慢速網路環境下**。
+
+### 1.12.1 核心效能問題與目標
+
+**當前問題識別**:
+
+- Bundle Size: 使用完整 `motion` 元件 (~34kb)，實際僅需基礎動畫功能
+- Tree Shaking: 未充分利用 bundler 的 tree-shaking 能力
+- Feature Loading: 未使用 LazyMotion 進行功能分割和延遲載入
+- 潛在 Motion 警告: 三個浮動元素可能觸發 React motion props 警告
+
+**優化目標**:
+
+- Bundle Size 減少: 從 34kb 降至 19.6kb (-42%)
+- 初始載入: 4.6kb (m + LazyMotion)
+- 延遲載入: 15kb (domAnimation 功能包)
+- 移除開發環境 console warnings
+
+### 1.12.2 受影響檔案
+
+**核心元件**:
+
+- `src/components/landing/cta-section.tsx` (主要優化目標)
+- `src/components/landing/highlights.tsx`
+- `src/components/landing/header.tsx`
+- `src/app/layout.tsx` (新增 LazyMotion wrapper)
+
+**測試與文件**:
+
+- `jest.setup.ts` (新增 motion/react-m mock)
+- `docs/architecture/08-testing-strategy.md` (更新測試策略註記)
+
+### 1.12.3 接受條件
+
+1. Bundle size 從 34kb 減少至 19.6kb (42% 減少)
+2. 所有現有動畫效果正常運作
+3. 開發環境無 motion 相關 console warnings
+4. 支援 prefers-reduced-motion 系統偏好設定
+5. 測試覆蓋率維持現有水準
+6. TypeScript 編譯無錯誤，ESLint 檢查通過
+
+### 1.12.4 整合驗證
+
+IV1: 所有 landing page 動畫效果在優化後保持完整功能
+IV2: Bundle size 分析確認達到預期減少目標 (-42%)
+IV3: 無障礙性支援 (prefers-reduced-motion) 正常運作
+IV4: 開發環境清潔無 motion 相關警告
+
 ---
 
 ## 技術架構更新

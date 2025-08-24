@@ -72,7 +72,8 @@ jest.mock("motion/react", () => {
       whileInView,
       transition,
       variants,
-      // 加上其他可能用到的 motion props
+      viewport,
+      style,
       ...rest
     } = props;
     return rest;
@@ -92,7 +93,44 @@ jest.mock("motion/react", () => {
       span: ({ children, ...props }: any) =>
         React.createElement("span", filterMotionProps(props), children),
     },
+    // 新增 LazyMotion 相關支援
+    LazyMotion: ({ children }: any) => children,
+    domAnimation: {},
+    useReducedMotion: () => false,
     // Note: hooks mocking is handled in individual test files using jest.mocked()
+  };
+});
+
+// Mock motion/react-m components
+jest.mock("motion/react-m", () => {
+  const filterMotionProps = (props: any) => {
+    const {
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
+      viewport,
+      style,
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  // motion/react-m 直接匯出 HTML 元素，不是包在 m 物件中
+  return {
+    __esModule: true,
+    section: ({ children, ...props }: any) =>
+      React.createElement("section", filterMotionProps(props), children),
+    div: ({ children, ...props }: any) =>
+      React.createElement("div", filterMotionProps(props), children),
+    h1: ({ children, ...props }: any) =>
+      React.createElement("h1", filterMotionProps(props), children),
+    p: ({ children, ...props }: any) =>
+      React.createElement("p", filterMotionProps(props), children),
+    span: ({ children, ...props }: any) =>
+      React.createElement("span", filterMotionProps(props), children),
   };
 });
 

@@ -1,28 +1,31 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
-import { motion } from "motion/react";
+import { LazyMotion, domAnimation, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
 import Image from "next/image";
 
 export const CTASection = () => {
   return (
-    <motion.section
-      data-testid="cta-section"
-      className="relative mx-6 overflow-hidden rounded-lg bg-card px-4 py-24 text-center lg:mx-12"
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      viewport={{ once: true }}
-    >
-      <CTABackgroundImage />
-      <CTABackgroundEffects />
-
-      <div
-        data-testid="cta-main-container"
-        className="relative z-20 container mx-auto max-w-4xl text-center"
+    <LazyMotion features={domAnimation} strict>
+      <m.section
+        data-testid="cta-section"
+        className="relative mx-6 overflow-hidden rounded-lg bg-card px-4 py-24 text-center lg:mx-12"
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        viewport={{ once: true }}
       >
-        <CTAContent />
-      </div>
-    </motion.section>
+        <CTABackgroundImage />
+        <CTABackgroundEffects />
+
+        <div
+          data-testid="cta-main-container"
+          className="relative z-20 container mx-auto max-w-4xl text-center"
+        >
+          <CTAContent />
+        </div>
+      </m.section>
+    </LazyMotion>
   );
 };
 
@@ -39,12 +42,38 @@ const CTABackgroundImage = () => {
 };
 
 const CTABackgroundEffects = () => {
+  const shouldReduceMotion = useReducedMotion();
+
+  if (shouldReduceMotion) {
+    // 靜態背景替代方案 - 保持視覺效果但無動畫
+    return (
+      <div
+        data-testid="cta-background-effects"
+        className="pointer-events-none absolute inset-0 z-10 size-full"
+      >
+        <div
+          data-testid="cta-floating-1-static"
+          className="absolute top-10 left-10 h-64 w-64 rounded-full bg-primary/20 blur-3xl"
+        />
+        <div
+          data-testid="cta-floating-2-static"
+          className="absolute right-10 bottom-10 h-48 w-48 rounded-full bg-secondary/30 blur-3xl"
+        />
+        <div
+          data-testid="cta-floating-3-static"
+          className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/5 blur-2xl"
+        />
+      </div>
+    );
+  }
+
+  // 動畫背景效果
   return (
     <div
       data-testid="cta-background-effects"
       className="pointer-events-none absolute inset-0 z-10 size-full"
     >
-      <motion.div
+      <m.div
         data-testid="cta-floating-1"
         className="absolute top-10 left-10 h-64 w-64 rounded-full bg-primary/30 blur-3xl"
         animate={{
@@ -59,7 +88,7 @@ const CTABackgroundEffects = () => {
           ease: "easeInOut",
         }}
       />
-      <motion.div
+      <m.div
         data-testid="cta-floating-2"
         className="absolute right-10 bottom-10 h-48 w-48 rounded-full bg-secondary/40 blur-3xl"
         animate={{
@@ -75,7 +104,7 @@ const CTABackgroundEffects = () => {
           delay: 1.5,
         }}
       />
-      <motion.div
+      <m.div
         data-testid="cta-floating-3"
         className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full bg-destructive/10 blur-2xl"
         animate={{
@@ -95,7 +124,7 @@ const CTABackgroundEffects = () => {
 
 const CTAContent = () => {
   return (
-    <motion.div
+    <m.div
       data-testid="cta-content-container"
       className="flex flex-col items-center gap-12"
       initial={{ opacity: 0, scale: 0.95 }}
@@ -116,6 +145,6 @@ const CTAContent = () => {
       >
         立即開始使用
       </CTAButton>
-    </motion.div>
+    </m.div>
   );
 };
