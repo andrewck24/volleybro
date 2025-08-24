@@ -1,6 +1,7 @@
 import { Features } from "@/components/landing/features";
 import { render, screen } from "@testing-library/react";
 
+// Mock dependencies
 jest.mock("@/components/match/stats/teams-stats/points", () => ({
   Points: () => <div data-testid="mock-points-chart">Mock Points Chart</div>,
 }));
@@ -13,21 +14,6 @@ jest.mock("@/components/ui/chart", () => ({
   ),
   ChartTooltip: ({ children }: any) => <div>{children}</div>,
   ChartTooltipContent: () => <div>Mock Tooltip</div>,
-}));
-
-jest.mock("motion/react", () => ({
-  motion: {
-    div: ({ children, className, ...props }: any) => (
-      <div className={className} {...props}>
-        {children}
-      </div>
-    ),
-    section: ({ children, className, ...props }: any) => (
-      <section className={className} {...props}>
-        {children}
-      </section>
-    ),
-  },
 }));
 
 jest.mock("recharts", () => ({

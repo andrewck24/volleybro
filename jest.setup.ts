@@ -62,6 +62,40 @@ jest.mock("next/image", () => ({
   },
 }));
 
+// Mock motion/react components
+jest.mock("motion/react", () => {
+  const filterMotionProps = (props: any) => {
+    const {
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
+      // 加上其他可能用到的 motion props
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  return {
+    __esModule: true,
+    motion: {
+      section: ({ children, ...props }: any) =>
+        React.createElement("section", filterMotionProps(props), children),
+      div: ({ children, ...props }: any) =>
+        React.createElement("div", filterMotionProps(props), children),
+      h1: ({ children, ...props }: any) =>
+        React.createElement("h1", filterMotionProps(props), children),
+      p: ({ children, ...props }: any) =>
+        React.createElement("p", filterMotionProps(props), children),
+      span: ({ children, ...props }: any) =>
+        React.createElement("span", filterMotionProps(props), children),
+    },
+    // Note: hooks mocking is handled in individual test files using jest.mocked()
+  };
+});
+
 // Mock MongoDB modules to avoid ES module issues
 jest.mock("mongodb", () => ({
   MongoClient: {

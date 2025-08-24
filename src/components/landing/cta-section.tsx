@@ -93,7 +93,6 @@ const CTABackgroundEffects = () => {
   );
 };
 
-// Optimized Vertical Layout Content for Action Focus
 const CTAContent = () => {
   return (
     <motion.div
@@ -104,40 +103,19 @@ const CTAContent = () => {
       transition={{ duration: 0.5, delay: 0.1 }}
       viewport={{ once: true }}
     >
-      <motion.h2
-        className="max-w-3xl text-3xl leading-tight font-bold text-foreground md:text-4xl lg:text-5xl"
-        initial={{ opacity: 0, y: 15 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        viewport={{ once: true }}
-      >
+      <h2 className="max-w-3xl text-3xl leading-tight font-bold text-foreground md:text-4xl lg:text-5xl">
         準備好革新你的排球管理方式了嗎？
-      </motion.h2>
-
-      <motion.p
-        className="max-w-2xl text-lg text-muted-foreground md:text-xl"
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-        viewport={{ once: true }}
-      >
+      </h2>
+      <p className="max-w-2xl text-lg text-muted-foreground md:text-xl">
         立即體驗 VolleyBro 的強大功能，讓數據驅動你的每一個戰術決策
-      </motion.p>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.7 }}
-        viewport={{ once: true }}
+      </p>
+      <CTAButton
+        size="lg"
+        className="hover:shadow-3xl h-14 px-12 py-4 text-xl font-bold shadow-2xl transition-shadow"
+        data-testid="cta-section-button"
       >
-        <CTAButton
-          size="lg"
-          className="hover:shadow-3xl h-14 px-12 py-4 text-xl font-bold shadow-2xl transition-shadow"
-          data-testid="cta-section-button"
-        >
-          立即開始使用
-        </CTAButton>
-      </motion.div>
+        立即開始使用
+      </CTAButton>
     </motion.div>
   );
 };

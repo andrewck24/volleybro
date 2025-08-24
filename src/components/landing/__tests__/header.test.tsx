@@ -12,16 +12,20 @@ import { act, render, screen, waitFor } from "@testing-library/react";
  * Epic Reference: docs/epics/epic-1-landing-page.md section 1.4.3
  */
 
-// Mock motion/react
+// Mock only the hooks we need, keeping motion components from jest.setup.ts
 const mockScrollY = {
   get: jest.fn(() => 0),
-  on: jest.fn((_event: string, _handler: Function) => {
-    return jest.fn(); // unsubscribe function
-  }),
+  on: jest.fn((_event: string, _handler: () => void) => jest.fn()),
 };
 
 jest.mock("motion/react", () => ({
-  useScroll: () => ({ scrollY: mockScrollY }),
+  ...jest.requireActual("motion/react"),
+  useScroll: jest.fn(() => ({
+    scrollX: mockScrollY,
+    scrollY: mockScrollY,
+    scrollXProgress: mockScrollY,
+    scrollYProgress: mockScrollY,
+  })),
 }));
 
 // Mock CTA Button
@@ -41,7 +45,7 @@ describe("Header Component", () => {
       return 0;
     });
 
-    // Reset scroll mock
+    // Reset scroll mock state
     mockScrollY.get.mockReturnValue(0);
     jest.clearAllMocks();
   });

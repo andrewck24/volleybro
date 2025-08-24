@@ -27,42 +27,6 @@ jest.mock("@/components/ui/flip-words", () => ({
   ),
 }));
 
-// Mock motion/react
-jest.mock("motion/react", () => ({
-  motion: {
-    section: ({ children, className, style, ...props }: any) => (
-      <section className={className} style={style} {...props}>
-        {children}
-      </section>
-    ),
-    div: ({ children, className, style, ...props }: any) => (
-      <div className={className} style={style} {...props}>
-        {children}
-      </div>
-    ),
-    h1: ({ children, className, ...props }: any) => (
-      <h1 className={className} {...props}>
-        {children}
-      </h1>
-    ),
-    p: ({ children, className, ...props }: any) => (
-      <p className={className} {...props}>
-        {children}
-      </p>
-    ),
-    span: ({ children, className, ...props }: any) => (
-      <span className={className} {...props}>
-        {children}
-      </span>
-    ),
-  },
-  useScroll: () => ({ scrollY: { get: () => 0 } }),
-  useTransform: (_value: any, _input: any, output: any) => ({
-    get: () => output[0],
-  }),
-  useSpring: (value: any) => value,
-}));
-
 describe("Hero Component", () => {
   describe("Component Structure", () => {
     it("should render all main sections", () => {
