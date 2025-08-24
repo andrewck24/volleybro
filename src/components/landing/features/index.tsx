@@ -120,11 +120,11 @@ export const FeatureDemoImage = ({
   const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
 
   return (
-    <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl bg-background">
+    <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl">
       <div
         className={cn(
-          "absolute inset-0 flex size-full animate-pulse items-center justify-center bg-muted transition-opacity duration-300",
-          imageLoaded ? "opacity-0" : "opacity-100",
+          "absolute inset-0 flex size-full items-center justify-center transition-opacity duration-300",
+          imageLoaded ? "opacity-0" : "animate-pulse opacity-100 bg-muted",
         )}
       />
       <Image

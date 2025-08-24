@@ -1,33 +1,6 @@
 import { Header } from "@/components/landing/header";
 import { act, render, screen, waitFor } from "@testing-library/react";
 
-/**
- * Header Component Tests
- *
- * Tests correspond to Epic-1 Story 1.4 Acceptance Criteria:
- * - AC1-AC5: Core glassmorphism functionality
- * - AC6: Mobile responsive optimization and cross-device compatibility
- * - AC7: Complete testing coverage and quality assurance
- *
- * Epic Reference: docs/epics/epic-1-landing-page.md section 1.4.3
- */
-
-// Mock only the hooks we need, keeping motion components from jest.setup.ts
-const mockScrollY = {
-  get: jest.fn(() => 0),
-  on: jest.fn((_event: string, _handler: () => void) => jest.fn()),
-};
-
-jest.mock("motion/react", () => ({
-  ...jest.requireActual("motion/react"),
-  useScroll: jest.fn(() => ({
-    scrollX: mockScrollY,
-    scrollY: mockScrollY,
-    scrollXProgress: mockScrollY,
-    scrollYProgress: mockScrollY,
-  })),
-}));
-
 // Mock CTA Button
 jest.mock("@/components/landing/cta-button", () => ({
   CTAButton: ({ className, ...props }: any) => (
@@ -38,21 +11,62 @@ jest.mock("@/components/landing/cta-button", () => ({
 }));
 
 describe("Header Component", () => {
+  let mockScrollEventListeners: ((event?: any) => void)[] = [];
+
   beforeEach(() => {
+    // Reset scroll listeners array
+    mockScrollEventListeners = [];
+
     // Mock requestAnimationFrame
     global.requestAnimationFrame = jest.fn((cb) => {
       cb(0);
       return 0;
     });
 
-    // Reset scroll mock state
-    mockScrollY.get.mockReturnValue(0);
+    // Mock window.scrollY
+    Object.defineProperty(window, "scrollY", {
+      writable: true,
+      configurable: true,
+      value: 0,
+    });
+
+    // Mock addEventListener to capture scroll listeners
+    window.addEventListener = jest.fn((event: string, listener: any) => {
+      if (event === "scroll") {
+        mockScrollEventListeners.push(listener);
+      }
+    });
+
+    // Mock removeEventListener
+    window.removeEventListener = jest.fn((event: string, listener: any) => {
+      if (event === "scroll") {
+        const index = mockScrollEventListeners.indexOf(listener);
+        if (index > -1) {
+          mockScrollEventListeners.splice(index, 1);
+        }
+      }
+    });
+
     jest.clearAllMocks();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
+
+  // Helper function to trigger scroll events
+  const triggerScroll = (scrollY: number) => {
+    Object.defineProperty(window, "scrollY", {
+      writable: true,
+      configurable: true,
+      value: scrollY,
+    });
+
+    // Trigger all registered scroll listeners
+    mockScrollEventListeners.forEach((listener) => {
+      listener();
+    });
+  };
 
   // AC1: Header initial state is completely transparent with no background color
   describe("AC1: Initial transparent state", () => {
@@ -82,15 +96,11 @@ describe("Header Component", () => {
   // AC2: Scroll triggers glassmorphism effect transition
   describe("AC2: Scroll-triggered glassmorphism", () => {
     it("should trigger glassmorphism when scroll exceeds threshold", async () => {
-      // Set scroll position above threshold (0px - any scroll triggers it)
-      mockScrollY.get.mockReturnValue(100);
-
       render(<Header />);
 
-      // Simulate scroll event
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
+      // Trigger scroll event above threshold
       act(() => {
-        scrollHandler();
+        triggerScroll(100);
       });
 
       await waitFor(() => {
@@ -103,15 +113,11 @@ describe("Header Component", () => {
     });
 
     it("should not trigger glassmorphism at zero scroll", async () => {
-      // Set scroll position at threshold (0px)
-      mockScrollY.get.mockReturnValue(0);
-
       render(<Header />);
 
-      // Simulate scroll event
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
+      // Trigger scroll at zero (threshold)
       act(() => {
-        scrollHandler();
+        triggerScroll(0);
       });
 
       await waitFor(() => {
@@ -126,13 +132,16 @@ describe("Header Component", () => {
       render(<Header />);
 
       // Test that any positive scroll triggers effect
-      mockScrollY.get.mockReturnValue(1);
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
       act(() => {
-        scrollHandler();
+        triggerScroll(1);
       });
 
-      expect(mockScrollY.get).toHaveBeenCalled();
+      // Verify scroll event listener was registered
+      expect(window.addEventListener).toHaveBeenCalledWith(
+        "scroll",
+        expect.any(Function),
+        { passive: true },
+      );
     });
   });
 
@@ -149,13 +158,10 @@ describe("Header Component", () => {
     });
 
     it("should include dark mode variants when scrolled", async () => {
-      mockScrollY.get.mockReturnValue(100);
-
       render(<Header />);
 
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
       act(() => {
-        scrollHandler();
+        triggerScroll(100);
       });
 
       await waitFor(() => {
@@ -185,16 +191,16 @@ describe("Header Component", () => {
     it("should use requestAnimationFrame for optimized scroll handling", () => {
       render(<Header />);
 
-      // Verify scroll handler uses performance optimization
-      expect(mockScrollY.on).toHaveBeenCalledWith(
-        "change",
+      // Verify scroll event listener was registered
+      expect(window.addEventListener).toHaveBeenCalledWith(
+        "scroll",
         expect.any(Function),
+        { passive: true },
       );
 
       // Simulate scroll event to trigger requestAnimationFrame
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
       act(() => {
-        scrollHandler();
+        triggerScroll(50);
       });
 
       expect(global.requestAnimationFrame).toHaveBeenCalled();
@@ -265,26 +271,32 @@ describe("Header Component", () => {
   // Performance and cleanup
   describe("Performance optimization", () => {
     it("should cleanup scroll listener on unmount", () => {
-      const unsubscribe = jest.fn();
-      mockScrollY.on.mockReturnValue(unsubscribe);
-
       const { unmount } = render(<Header />);
+
+      // Verify event listener was added
+      expect(window.addEventListener).toHaveBeenCalledWith(
+        "scroll",
+        expect.any(Function),
+        { passive: true },
+      );
 
       unmount();
 
-      expect(unsubscribe).toHaveBeenCalled();
+      // Verify event listener was removed
+      expect(window.removeEventListener).toHaveBeenCalledWith(
+        "scroll",
+        expect.any(Function),
+      );
     });
 
     it("should implement throttling mechanism", () => {
       render(<Header />);
 
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
-
-      // Call scroll handler multiple times rapidly
+      // Trigger rapid scroll events
       act(() => {
-        scrollHandler();
-        scrollHandler();
-        scrollHandler();
+        triggerScroll(10);
+        triggerScroll(20);
+        triggerScroll(30);
       });
 
       // requestAnimationFrame should be used for throttling
@@ -406,14 +418,11 @@ describe("Header Component", () => {
         value: 375, // iPhone viewport
       });
 
-      mockScrollY.get.mockReturnValue(100);
-
       render(<Header />);
 
-      // Simulate scroll event
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
+      // Trigger scroll event
       act(() => {
-        scrollHandler();
+        triggerScroll(100);
       });
 
       await waitFor(() => {
@@ -442,12 +451,12 @@ describe("Header Component", () => {
 
       render(<Header />);
 
-      const scrollHandler = mockScrollY.on.mock.calls[0][1];
-
       // Rapid scroll events (mobile touch scrolling simulation)
-      for (let i = 0; i < 10; i++) {
-        scrollHandler();
-      }
+      act(() => {
+        for (let i = 0; i < 10; i++) {
+          triggerScroll(i * 10);
+        }
+      });
 
       // requestAnimationFrame should still be used for throttling
       expect(global.requestAnimationFrame).toHaveBeenCalled();
