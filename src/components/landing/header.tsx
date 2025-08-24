@@ -2,22 +2,20 @@
 import { CTAButton } from "@/components/landing/cta-button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useScroll } from "motion/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export const Header = () => {
-  const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
 
   const SCROLL_THRESHOLD = 0;
 
-  // 使用 throttle 機制避免性能問題
+  // 使用原生 Web API 和 throttle 機制避免性能問題
   useEffect(() => {
     let ticking = false;
 
     const updateScrollState = () => {
-      const currentScrollY = scrollY.get();
+      const currentScrollY = window.scrollY;
       setIsScrolled(currentScrollY > SCROLL_THRESHOLD);
       ticking = false;
     };
@@ -29,10 +27,10 @@ export const Header = () => {
       }
     };
 
-    const unsubscribe = scrollY.on("change", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => unsubscribe();
-  }, [scrollY]);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <header
