@@ -13,14 +13,13 @@ export const FlipWords = ({
   duration?: number;
   className?: string;
 }) => {
-  // Guard against empty words array
-  if (words.length === 0) return null;
-
-  const [currentWord, setCurrentWord] = useState(words[0]);
+  const [currentWord, setCurrentWord] = useState(words[0] || "");
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   const startAnimation = useCallback(() => {
+    if (words.length === 0) return;
+    
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
@@ -29,12 +28,10 @@ export const FlipWords = ({
     setIsAnimating(true);
   }, [currentWord, words]);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || words.length === 0) return;
 
     if (!isAnimating) {
       const timeoutId = setTimeout(() => {
@@ -43,7 +40,10 @@ export const FlipWords = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isAnimating, duration, startAnimation, mounted]);
+  }, [isAnimating, duration, startAnimation, mounted, words.length]);
+
+  // Guard against empty words array - after hooks are called
+  if (words.length === 0) return null;
 
   // SSR placeholder - show first word without animation
   if (!mounted) {
@@ -124,14 +124,13 @@ export const FlipLetters = ({
   duration?: number;
   className?: string;
 }) => {
-  // Guard against empty words array
-  if (words.length === 0) return null;
-
-  const [currentWord, setCurrentWord] = useState(words[0]);
+  const [currentWord, setCurrentWord] = useState(words[0] || "");
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
   const startAnimation = useCallback(() => {
+    if (words.length === 0) return;
+    
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
@@ -140,12 +139,10 @@ export const FlipLetters = ({
     setIsAnimating(true);
   }, [currentWord, words]);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || words.length === 0) return;
 
     if (!isAnimating) {
       const timeoutId = setTimeout(() => {
@@ -154,7 +151,10 @@ export const FlipLetters = ({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isAnimating, duration, startAnimation, mounted]);
+  }, [isAnimating, duration, startAnimation, mounted, words.length]);
+
+  // Guard against empty words array - after hooks are called
+  if (words.length === 0) return null;
 
   // SSR placeholder - show first word without animation
   if (!mounted) {
