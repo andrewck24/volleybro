@@ -5,6 +5,7 @@ import { TeamFeatures } from "@/components/landing/features/team";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export const Features = () => {
   return (
@@ -96,20 +97,48 @@ interface FeatureDemoImageProps {
   alt: string;
 }
 
-export const FeatureDemoImage = ({ feature, number, alt }: FeatureDemoImageProps) => {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+export const FeatureDemoImage = ({
+  feature,
+  number,
+  alt,
+}: FeatureDemoImageProps) => {
+  const { resolvedTheme: theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    return (
+      <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl bg-background">
+        <div className="flex h-full w-full animate-pulse items-center justify-center bg-muted" />
+      </div>
+    );
+  }
+
+  const isDark = theme === "dark";
   const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
 
   return (
     <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl bg-background">
+      <div
+        className={cn(
+          "absolute inset-0 flex size-full animate-pulse items-center justify-center bg-muted transition-opacity duration-300",
+          imageLoaded ? "opacity-0" : "opacity-100",
+        )}
+      />
       <Image
         src={imageSrc}
         alt={alt}
         fill
-        className="object-contain"
+        className={cn(
+          "object-contain transition-opacity duration-300",
+          imageLoaded ? "opacity-100" : "opacity-0",
+        )}
         data-testid={`${feature}-demo-image-${number}`}
         priority={false}
+        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 50vw"
+        onLoad={() => setImageLoaded(true)}
       />
     </div>
   );
