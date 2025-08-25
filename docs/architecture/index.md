@@ -1,85 +1,58 @@
-# VolleyBro 棕地架構文檔
+# VolleyBro Architecture
+
+> **Last Updated**: 2025-08-26
+> **Version**: 2.0  
+> **Maintainer**: Andrew
 
 ## Table of Contents
 
-- [VolleyBro 棕地架構文檔](#table-of-contents)
-  - [01. Document Info](./01-document-info.md)
-    - [Change Log](./01-document-info.md#變更日誌)
-  - [02. Executive Summary](./02-executive-summary.md)
-    - [Project Status Overview](./02-executive-summary.md#專案狀態概覽)
-    - [Key Architecture Decisions](./02-executive-summary.md#關鍵架構決策)
-    - [Technical Debt Highlights (Epic 6)](./02-executive-summary.md#技術債務重點-epic-6)
-  - [03. Architecture Overview](./03-architecture-overview.md)
-    - [Clean Architecture Five-Layer Separation](./03-architecture-overview.md#clean-architecture-五層分離)
-    - [Tech Stack Architecture Diagram](./03-architecture-overview.md#技術棧架構圖)
-  - [04. Key Files and Entry Points](./04-key-files-entrypoints.md)
-    - [Key Configuration Files](./04-key-files-entrypoints.md#關鍵配置文件)
-    - [Business Logic Core](./04-key-files-entrypoints.md#業務邏輯核心)
-    - [Frontend Architecture Highlights](./04-key-files-entrypoints.md#前端架構重點)
-  - [05. Data Architecture & Decisions](./05-data-architecture.md)
-    - [MongoDB Data Model Design](./05-data-architecture.md#mongodb-資料模型設計)
-      - [Design Principles: Embedded Documents Strategy](./05-data-architecture.md#設計原則embedded-documents-strategy)
-      - [MongoDB vs PostgreSQL Review Points](./05-data-architecture.md#mongodb-vs-postgresql-檢討要點)
-    - [Core Entity Relationships](./05-data-architecture.md#核心實體關係)
-  - [06. State Management Strategy](./06-state-management.md)
-    - [Hybrid State Management Architecture](./06-state-management.md#混合狀態管理架構)
-      - [Redux Toolkit Use Cases](./06-state-management.md#redux-toolkit-使用場景)
-      - [SWR Use Cases](./06-state-management.md#swr-使用場景)
-      - [Design Rationale & Integration](./06-state-management.md#設計理由與整合)
-  - [07. Authentication & Authorization](./07-authentication-authorization.md)
-    - [NextAuth.js v5 Architecture](./07-authentication-authorization.md#nextauthjs-v5-架構)
-      - [Authentication Flow](./07-authentication-authorization.md#認證流程)
-      - [Permission System Design](./07-authentication-authorization.md#權限系統設計)
-      - [Refactoring Focus (Epic 2)](./07-authentication-authorization.md#重構重點-epic-2)
-  - [08. Testing Strategy Current State](./08-testing-strategy.md)
-    - [Current Testing Architecture](./08-testing-strategy.md#當前測試架構)
-      - [Established Testing Environment](./08-testing-strategy.md#已建立的測試環境)
-      - [Technical Debt & Improvement Directions](./08-testing-strategy.md#技術債務與改善方向)
-  - [09. Dependency Injection Architecture](./09-dependency-injection.md)
-    - [InversifyJS Container Design](./09-dependency-injection.md#inversifyjs-容器設計)
-      - [Current DI Container Structure](./09-dependency-injection.md#當前-di-容器結構)
-      - [DI Use Case Analysis](./09-dependency-injection.md#di-使用場景分析)
-      - [Refactoring Considerations (Epic 2-5)](./09-dependency-injection.md#重構考量-epic-2-5)
-  - [10. UI/UX Architecture](./10-ui-ux-architecture.md)
-    - [Design System Architecture](./10-ui-ux-architecture.md#設計系統架構)
-      - [Shadcn/UI + Tailwind CSS](./10-ui-ux-architecture.md#shadcnui--tailwind-css)
-      - [Animation System (Motion/React)](./10-ui-ux-architecture.md#動畫系統-motionreact)
-      - [PWA Architecture (Serwist)](./10-ui-ux-architecture.md#pwa-架構-serwist)
-  - [11. Performance & Optimization](./11-performance-optimization.md)
-    - [Bundle Analysis & Optimization](./11-performance-optimization.md#bundle-分析與最佳化)
-      - [Current Performance Configuration](./11-performance-optimization.md#當前效能配置)
-      - [Data Query Performance Strategy](./11-performance-optimization.md#資料查詢效能策略)
-    - [Epic 5 Performance Refactoring Focus](./11-performance-optimization.md#epic-5-效能重構重點)
-  - [12. Technical Debt Analysis (Epic 6 Focus)](./12-technical-debt-analysis.md)
-    - [TypeScript Migration Strategy](./12-technical-debt-analysis.md#typescript-遷移策略)
-      - [Current Situation Assessment](./12-technical-debt-analysis.md#當前狀況評估)
-      - [File Format Standardization (Story 6.1)](./12-technical-debt-analysis.md#檔案格式標準化-story-61)
-      - [Props Type Definition Gaps (Story 6.2)](./12-technical-debt-analysis.md#props-型別定義缺口-story-62)
-    - [Zod Schema Refactoring Strategy](./12-technical-debt-analysis.md#zod-schema-重構策略)
-      - [Current Schema Dispersion Issues](./12-technical-debt-analysis.md#當前-schema-分散問題)
-      - [Common Schema Design (Story 6.4)](./12-technical-debt-analysis.md#通用-schema-設計-story-64)
-    - [Progressive Migration Plan](./12-technical-debt-analysis.md#漸進式遷移計劃)
-  - [13. Future Architecture Evolution](./13-future-architecture-evolution.md)
-    - [Post-Epic Architecture Evolution](./13-future-architecture-evolution.md#epic-執行後的架構演進)
-      - [Epic 1 Architecture Impact](./13-future-architecture-evolution.md#epic-1-產品介紹頁優化-架構影響)
-      - [Epic 2-5 Architecture Enhancement](./13-future-architecture-evolution.md#epic-2-5-系統重構-架構提升)
-    - [Technology Selection Review Timing](./13-future-architecture-evolution.md#技術選型檢討時機)
-  - [14. Architecture Checklist](./14-architecture-checklist.md)
-    - [Pre-Epic Execution Checklist](./14-architecture-checklist.md#epic-執行前置檢查)
-      - [Epic 2 Readiness](./14-architecture-checklist.md#epic-2-使用者管理-準備度)
-      - [Epic 3 Readiness](./14-architecture-checklist.md#epic-3-球隊管理-準備度)
-      - [Epic 4 Readiness](./14-architecture-checklist.md#epic-4-賽事紀錄-準備度)
-      - [Epic 5 Readiness](./14-architecture-checklist.md#epic-5-數據分析-準備度)
-      - [Epic 6 Readiness](./14-architecture-checklist.md#epic-6-typescript-重構-準備度)
-    - [Architecture Consistency Check](./14-architecture-checklist.md#架構一致性檢查)
-  - [15. Conclusions & Recommendations](./15-conclusions-recommendations.md)
-    - [Architecture Strengths](./15-conclusions-recommendations.md#架構強項)
-    - [Major Improvement Opportunities](./15-conclusions-recommendations.md#主要改善機會)
-    - [Execution Recommendations](./15-conclusions-recommendations.md#執行建議)
+- **[Technology Stack](./tech-stack.md)** - Complete overview of the technology stack used in VolleyBro
+  - [Core Technology Stack](./tech-stack.md#core-technology-stack) - Frontend, backend, and database technologies
+  - [Architecture Patterns](./tech-stack.md#architecture-patterns) - InversifyJS dependency injection and Clean Architecture
+  - [Development Tools](./tech-stack.md#development-tools) - Testing, linting, and development utilities
+  - [PWA & Performance](./tech-stack.md#pwa--performance) - Progressive Web App and optimization tools
+  - [Key Design Decisions](./tech-stack.md#key-design-decisions) - Rationale for technology choices
+  - [Environment Configuration](./tech-stack.md#environment-configuration) - Required environment variables and setup
 
-## 變更日誌
+- **[Source Tree Structure](./source-tree.md)** - Comprehensive source code organization guide
+  - [Clean Architecture Layers](./source-tree.md#clean-architecture-layers) - Five-layer separation of concerns
+    - [Entities Layer](./source-tree.md#1-entities-layer-srcentities) - Domain entities and business logic
+    - [Applications Layer](./source-tree.md#2-applications-layer-srcapplications) - Use cases and interfaces
+    - [Infrastructure Layer](./source-tree.md#3-infrastructure-layer-srcinfrastructure) - External integrations
+    - [Interface Layer](./source-tree.md#4-interface-layer-srcinterface) - API controllers
+  - [Presentation Layer](./source-tree.md#presentation-layer) - UI components and Next.js App Router
+    - [Next.js App Router](./source-tree.md#nextjs-app-router-srcapp) - Route organization and API endpoints
+    - [React Components](./source-tree.md#react-components-srccomponents) - Component organization patterns
+  - [Supporting Infrastructure](./source-tree.md#supporting-infrastructure) - Libraries, hooks, and utilities
+  - [File Naming Conventions](./source-tree.md#file-naming-conventions) - Consistent naming standards
 
-| 日期       | 版本 | 描述                   | 作者    |
-| ---------- | ---- | ---------------------- | ------- |
-| 2025-08-14 | 1.0  | 初始棕地架構分析文檔   | Winston |
-| 2025-08-14 | 1.1  | 執行章節分片和英文檔名重命名 | Sarah (PO) |
+- **[Coding Standards](./coding-standards.md)** - Development guidelines and best practices
+  - [Language & Framework Standards](./coding-standards.md#language--framework-standards) - TypeScript and formatting rules
+  - [Clean Architecture Patterns](./coding-standards.md#clean-architecture-patterns) - Implementation patterns by layer
+    - [Dependency Injection Patterns](./coding-standards.md#dependency-injection-patterns) - InversifyJS container usage
+  - [React Component Standards](./coding-standards.md#react-component-standards) - Component structure and patterns
+    - [State Management Patterns](./coding-standards.md#state-management-patterns) - Redux Toolkit and SWR usage
+  - [API Route Standards](./coding-standards.md#api-route-standards) - Next.js API route conventions
+  - [Styling Standards](./coding-standards.md#styling-standards) - Tailwind CSS and Motion usage
+  - [File Organization Standards](./coding-standards.md#file-organization-standards) - Naming and structure conventions
+  - [Security Standards](./coding-standards.md#security-standards) - Authentication and validation patterns
+
+- **[Testing Strategy](./testing-strategy.md)** - Comprehensive testing approach and standards
+  - [Current Testing Architecture](./testing-strategy.md#-current-testing-architecture) - Jest configuration and environment setup
+  - [Development Rules & Code Quality](./testing-strategy.md#-development-rules--code-quality-requirements) - TDD flow and quality standards
+    - [Test-Driven Development Flow](./testing-strategy.md#-test-driven-development-tdd-flow) - Red-Green-Refactor process
+    - [Test Identifier Standards](./testing-strategy.md#-test-identifier-data-testid-standards) - data-testid conventions
+    - [Production Environment Optimization](./testing-strategy.md#-production-environment-optimization) - Test attribute removal
+  - [Testing Patterns](./testing-strategy.md#testing-patterns) - Mock strategies and best practices
+    - [Mock Strategy & Best Practices](./testing-strategy.md#mock-strategy--best-practices) - Layered mocking approach
+    - [Component Testing](./testing-strategy.md#component-testing) - React Testing Library patterns
+    - [Use Case Testing](./testing-strategy.md#use-case-testing) - Business logic testing
+  - [Technical Debt & Improvements](./testing-strategy.md#-technical-debt--improvement-directions) - Future testing enhancements
+
+## Change Log
+
+| Date       | Version | Description                                  | Author    |
+| ---------- | ------- | -------------------------------------------- | --------- |
+| 2025-08-14 | 1.0     | Initial brownfield architecture analysis doc | Architect |
+| 2025-08-14 | 1.1     | Section splitting and English file renaming  | PO        |
+| 2025-08-26 | 2.0     | Reorganized documents structure              | Andrew    |
