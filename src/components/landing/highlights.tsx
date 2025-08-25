@@ -62,7 +62,7 @@ export const Highlights = () => {
       <section
         ref={targetRef}
         data-testid="highlights-section"
-        className="relative isolate bg-gradient-to-b from-primary/5 via-background to-muted py-16 md:h-[300vh] md:[contain:layout_style_paint]"
+        className="relative isolate bg-gradient-to-b from-primary/50 to-transparent py-16 md:h-[300vh] md:[contain:layout_style_paint]"
       >
         {/* Mobile: Static vertical layout */}
         <div className="container mx-auto px-4 md:hidden">
@@ -71,7 +71,7 @@ export const Highlights = () => {
             className="grid grid-cols-1 gap-6"
           >
             {highlights.map((highlight, index) => (
-              <HighlightCard key={index} highlight={highlight} isMobile />
+              <HighlightCard key={index} highlight={highlight} />
             ))}
           </div>
         </div>
@@ -102,12 +102,10 @@ interface HighlightCardProps {
     description: string;
     icon: IconKey;
   };
-  isMobile?: boolean;
 }
 
 const HighlightCard = ({
   highlight: { title, description, icon },
-  isMobile = false,
 }: HighlightCardProps) => {
   const Icon = iconMap[icon];
 
@@ -117,11 +115,10 @@ const HighlightCard = ({
       className={cn(
         "relative overflow-hidden rounded-3xl shadow-2xl",
         "flex flex-col items-center justify-center",
-        "bg-gradient-to-t from-background via-background/95 to-primary/20",
-        "border border-border/50 p-8 backdrop-blur-sm",
-        isMobile
-          ? "aspect-[3/2] w-full" // Mobile: landscape ratio (w > h)
-          : "aspect-[1/2.17] h-[45vh] md:aspect-auto md:w-[55vw] lg:w-[45vw]", // Desktop: original
+        "bg-gradient-to-b from-primary/20 via-background/95 to-background",
+        "border border-border p-8 backdrop-blur-sm",
+        "aspect-[3/2] w-full", // Mobile: landscape ratio (w > h)
+        "md:aspect-[1/2.17] md:h-[45vh] md:w-[55vw] lg:w-[45vw]", // Desktop: portrait ratio
       )}
     >
       <div
