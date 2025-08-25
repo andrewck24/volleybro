@@ -124,15 +124,6 @@ describe("Hero Component", () => {
         "h-[calc(100vh-3.25rem)]",
       );
     });
-
-    it("should render gradient overlays", () => {
-      render(<Hero />);
-
-      // Check for gradient overlay elements using testid
-      const gradientOverlay = screen.getByTestId("gradient-overlay");
-      expect(gradientOverlay).toBeInTheDocument();
-      expect(gradientOverlay).toHaveClass("bg-gradient-to-t");
-    });
   });
 
   describe("Accessibility", () => {
@@ -190,11 +181,9 @@ describe("Hero Component", () => {
       const backgroundDecorations = screen.getByTestId(
         "background-decorations",
       );
-      const gradientOverlay = screen.getByTestId("gradient-overlay");
       const heroImageContainer = screen.getByTestId("hero-image-container");
 
       expect(backgroundDecorations).toBeInTheDocument();
-      expect(gradientOverlay).toBeInTheDocument();
       expect(heroImageContainer).toBeInTheDocument();
     });
   });

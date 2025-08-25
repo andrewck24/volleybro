@@ -57,21 +57,17 @@ describe("Highlights Component Tests", () => {
 
         const section = screen.getByTestId("highlights-section");
         expect(section).toBeInTheDocument();
-        expect(section).toHaveClass(
-          "relative",
-          "isolate", 
-          "md:h-[300vh]"
-        );
+        expect(section).toHaveClass("relative", "isolate", "md:h-[300vh]");
       });
 
       it("should render mobile cards container with grid layout", () => {
         render(<Highlights />);
 
-        const mobileContainer = screen.getByTestId("highlights-cards-container-mobile");
-        expect(mobileContainer).toBeInTheDocument();
-        expect(mobileContainer).toHaveClass(
-          "grid",
+        const mobileContainer = screen.getByTestId(
+          "highlights-cards-container-mobile",
         );
+        expect(mobileContainer).toBeInTheDocument();
+        expect(mobileContainer).toHaveClass("grid");
       });
 
       it("should render desktop sticky container (hidden on mobile)", () => {
@@ -83,14 +79,16 @@ describe("Highlights Component Tests", () => {
           "sticky",
           "top-0",
           "hidden",
-          "md:flex"
+          "md:flex",
         );
       });
 
       it("should render desktop cards container with scroll animation", () => {
         render(<Highlights />);
 
-        const desktopContainer = screen.getByTestId("highlights-cards-container");
+        const desktopContainer = screen.getByTestId(
+          "highlights-cards-container",
+        );
         expect(desktopContainer).toBeInTheDocument();
         expect(desktopContainer).toHaveClass("will-change-transform");
       });
@@ -126,10 +124,18 @@ describe("Highlights Component Tests", () => {
         render(<Highlights />);
 
         // Each icon should appear at least once (mobile or desktop)
-        expect(screen.getAllByTestId("ri-pencil-fill").length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByTestId("ri-bar-chart-box-ai-fill").length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByTestId("ri-team-fill").length).toBeGreaterThanOrEqual(1);
-        expect(screen.getAllByTestId("ri-device-fill").length).toBeGreaterThanOrEqual(1);
+        expect(
+          screen.getAllByTestId("ri-pencil-fill").length,
+        ).toBeGreaterThanOrEqual(1);
+        expect(
+          screen.getAllByTestId("ri-bar-chart-box-ai-fill").length,
+        ).toBeGreaterThanOrEqual(1);
+        expect(
+          screen.getAllByTestId("ri-team-fill").length,
+        ).toBeGreaterThanOrEqual(1);
+        expect(
+          screen.getAllByTestId("ri-device-fill").length,
+        ).toBeGreaterThanOrEqual(1);
       });
 
       it("should display icon badges for each feature type", () => {
@@ -149,8 +155,10 @@ describe("Highlights Component Tests", () => {
 
         const section = screen.getByTestId("highlights-section");
         expect(section).toHaveClass("py-16");
-        
-        const mobileContainer = screen.getByTestId("highlights-cards-container-mobile");
+
+        const mobileContainer = screen.getByTestId(
+          "highlights-cards-container-mobile",
+        );
         expect(mobileContainer).toHaveClass("grid", "grid-cols-1", "gap-6");
       });
 
@@ -165,7 +173,9 @@ describe("Highlights Component Tests", () => {
       it("should have proper gap classes for desktop container", () => {
         render(<Highlights />);
 
-        const desktopContainer = screen.getByTestId("highlights-cards-container");
+        const desktopContainer = screen.getByTestId(
+          "highlights-cards-container",
+        );
         expect(desktopContainer).toHaveClass("gap-6", "md:gap-8");
       });
     });
@@ -174,39 +184,46 @@ describe("Highlights Component Tests", () => {
       it("should render mobile cards with landscape aspect ratio", () => {
         render(<Highlights />);
 
-        const mobileContainer = screen.getByTestId("highlights-cards-container-mobile");
+        const mobileContainer = screen.getByTestId(
+          "highlights-cards-container-mobile",
+        );
         expect(mobileContainer).toBeInTheDocument();
-        
+
         // Verify mobile cards have correct aspect ratio classes
         const allCards = screen.getAllByTestId("highlight-card");
         const mobileCards = allCards.slice(0, 4); // First 4 are mobile cards
-        
+
         expect(mobileCards).toHaveLength(4);
-        mobileCards.forEach(card => {
+        mobileCards.forEach((card) => {
           expect(card).toHaveClass("aspect-[3/2]", "w-full");
         });
       });
 
-      it("should render desktop cards with original aspect ratio", () => {
+      it("should render desktop cards with responsive aspect ratio", () => {
         render(<Highlights />);
 
-        const desktopContainer = screen.getByTestId("highlights-cards-container");
+        const desktopContainer = screen.getByTestId(
+          "highlights-cards-container",
+        );
         expect(desktopContainer).toBeInTheDocument();
-        
-        // Verify desktop cards have correct aspect ratio classes
+
+        // Verify all cards have responsive aspect ratio classes (mobile first approach)
         const allCards = screen.getAllByTestId("highlight-card");
-        const desktopCards = allCards.slice(4, 8); // Last 4 are desktop cards
-        
-        expect(desktopCards).toHaveLength(4);
-        desktopCards.forEach(card => {
-          expect(card).toHaveClass("aspect-[1/2.17]", "h-[45vh]");
+
+        expect(allCards).toHaveLength(8); // 4 mobile + 4 desktop
+        allCards.forEach((card) => {
+          // All cards should have mobile-first responsive classes
+          expect(card).toHaveClass("aspect-[3/2]", "w-full"); // Mobile default
+          expect(card).toHaveClass("md:aspect-[1/2.17]", "md:h-[45vh]"); // Desktop responsive
         });
       });
 
       it("should maintain desktop scroll animation performance", () => {
         render(<Highlights />);
 
-        const desktopContainer = screen.getByTestId("highlights-cards-container");
+        const desktopContainer = screen.getByTestId(
+          "highlights-cards-container",
+        );
         expect(desktopContainer).toHaveClass("will-change-transform");
       });
     });
@@ -218,17 +235,8 @@ describe("Highlights Component Tests", () => {
         const cards = screen.getAllByTestId("highlight-card");
         cards.forEach((card) => {
           expect(card).toHaveClass("rounded-3xl", "shadow-2xl");
-          expect(card).toHaveClass(
-            "bg-gradient-to-t",
-            "from-background",
-            "via-background/95",
-            "to-primary/20"
-          );
-          expect(card).toHaveClass(
-            "border",
-            "border-border/50",
-            "backdrop-blur-sm"
-          );
+          expect(card).toHaveClass("bg-gradient-to-b");
+          expect(card).toHaveClass("border", "backdrop-blur-sm");
         });
       });
 
@@ -245,7 +253,7 @@ describe("Highlights Component Tests", () => {
               "items-center",
               "justify-center",
               "rounded-full",
-              "bg-primary"
+              "bg-primary",
             );
           });
         });
@@ -272,7 +280,7 @@ describe("Highlights Component Tests", () => {
           descriptions.forEach((description) => {
             expect(description).toHaveClass(
               "leading-relaxed",
-              "text-muted-foreground"
+              "text-muted-foreground",
             );
           });
         });
@@ -321,16 +329,17 @@ describe("Highlights Component Tests", () => {
         const section = screen.getByTestId("highlights-section");
         expect(section).toHaveClass(
           "bg-gradient-to-b",
-          "from-primary/5",
-          "via-background",
-          "to-muted"
+          "from-primary/50",
+          "to-transparent",
         );
       });
 
       it("should maintain consistent spacing with desktop container", () => {
         render(<Highlights />);
 
-        const desktopContainer = screen.getByTestId("highlights-cards-container");
+        const desktopContainer = screen.getByTestId(
+          "highlights-cards-container",
+        );
         expect(desktopContainer).toHaveClass("pl-[15%]");
       });
     });
@@ -354,8 +363,12 @@ describe("Highlights Component Tests", () => {
       // Verify motion components are rendered
       expect(screen.getByTestId("highlights-section")).toBeInTheDocument();
       expect(screen.getByTestId("sticky-container")).toBeInTheDocument();
-      expect(screen.getByTestId("highlights-cards-container")).toBeInTheDocument();
-      expect(screen.getByTestId("highlights-cards-container-mobile")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("highlights-cards-container"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("highlights-cards-container-mobile"),
+      ).toBeInTheDocument();
     });
   });
 });

@@ -51,7 +51,7 @@ export const Header = () => {
         )}
       >
         <div
-          className="flex h-8 items-center justify-start gap-3 pl-4 md:h-9"
+          className="flex h-8 items-center justify-start gap-3 rounded-full bg-radial from-muted/40 via-muted/10 to-transparent pl-4 md:h-9"
           data-testid="logo-container"
         >
           <Image

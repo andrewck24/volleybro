@@ -13,10 +13,9 @@ export const Hero = () => {
     <section
       ref={heroRef}
       data-testid="hero-section"
-      className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden pt-10 md:px-[5%]"
+      className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden bg-gradient-to-b from-transparent to-primary/50 pt-10 md:px-[5%]"
     >
       <BackgroundDecorations />
-      <GradientOverlay />
       <div className="relative z-10 flex size-full flex-1 flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col items-start justify-center gap-6 md:flex-1">
           <HeroTitle words={words} />
@@ -39,7 +38,7 @@ const BackgroundDecorations = () => {
   return (
     <div
       data-testid="background-decorations"
-      className="pointer-events-none absolute inset-0 z-[1]"
+      className="pointer-events-none absolute inset-0"
     >
       <div className="animate-float absolute top-20 right-20 h-96 w-96 rounded-full bg-primary/10 blur-3xl" />
       <div
@@ -47,15 +46,6 @@ const BackgroundDecorations = () => {
         style={{ animationDelay: "1s" }}
       />
     </div>
-  );
-};
-
-const GradientOverlay = () => {
-  return (
-    <div
-      data-testid="gradient-overlay"
-      className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-primary/50 to-transparent"
-    />
   );
 };
 
