@@ -1,3 +1,41 @@
+# [0.9.0](https://github.com/andrewck24/volleybro/compare/v0.8.2...v0.9.0) (2025-08-25)
+
+
+### Bug Fixes
+
+* **landing:** add SSR placeholder for CTA Button to prevent hydration mismatch ([254e107](https://github.com/andrewck24/volleybro/commit/254e1073ca9da4bcd59b49022012be79c450db89))
+* **landing:** remove legacy features.tsx and restore inline exports ([0c3a1a6](https://github.com/andrewck24/volleybro/commit/0c3a1a612f311eb617aca7bb9de4bcbddbbe3d04))
+* **landing:** resolve animate-pulse visibility issue in FeatureDemoImage ([ff55497](https://github.com/andrewck24/volleybro/commit/ff55497e58bb987536b6725d9bb23e02ed534865))
+* **landing:** resolve FeatureDemoImage hydration mismatch and optimize image loading ([2212ae6](https://github.com/andrewck24/volleybro/commit/2212ae624a25c3305b6057b2733bc9819136782e))
+* **landing:** resolve TypeScript export issue in features components ([041ae91](https://github.com/andrewck24/volleybro/commit/041ae91cc1aae971c97100e5902f665aa73cacbd))
+* **tests:** update CTA button text in hero component tests ([3f8cf57](https://github.com/andrewck24/volleybro/commit/3f8cf57e7e2e163cd873d68663acf76bc5ae2c47))
+* **ui:** resolve FlipWords animation logic bug when currentWord becomes out of sync ([fd30edc](https://github.com/andrewck24/volleybro/commit/fd30edcde1ff4e7247e1ea0bfe223a98f3a5e75f)), closes [#256](https://github.com/andrewck24/volleybro/issues/256)
+* **ui:** resolve React Hooks rules violations in FlipWords components ([c8fdf33](https://github.com/andrewck24/volleybro/commit/c8fdf333c3bf296d1ea2ad266e9dde3eb674479f))
+
+
+### Features
+
+* **landing:** decouple header/hero and unify CTA button ([38b5b76](https://github.com/andrewck24/volleybro/commit/38b5b76d06e82b686ffe5e30be7e07e5b596750a))
+* **landing:** finalize Highlights component with responsive dual-layout architecture ([65dcb23](https://github.com/andrewck24/volleybro/commit/65dcb23053c2c3d39e5aaf671f52d7eeea1d2e48))
+* **landing:** implement AnalyticsSection with data analysis features ([c984df6](https://github.com/andrewck24/volleybro/commit/c984df6c8a00d4c7a5e14daf97fbd7246c977fd6))
+* **landing:** implement CTASection with TDD and comprehensive QA review ([3e40ce9](https://github.com/andrewck24/volleybro/commit/3e40ce99426d955a9651aa2e10614252e8da24f3))
+* **landing:** implement Features component with RecordingSection functionality ([0d2281a](https://github.com/andrewck24/volleybro/commit/0d2281ab55cdfe2cbe22f84d438fd54659d79b57))
+* **landing:** implement header glassmorphism effect with mobile optimization ([ed9d5f0](https://github.com/andrewck24/volleybro/commit/ed9d5f0cde86af7c5b979f8f51e063ca8f6566c2))
+* **landing:** implement hero section optimization with CSS code splitting ([b7b8dba](https://github.com/andrewck24/volleybro/commit/b7b8dba57c95aa322d8a00c35984866bad99dbde))
+* **landing:** implement Highlights component with TDD methodology ([1c65d33](https://github.com/andrewck24/volleybro/commit/1c65d33a282ce30f9f64cd792725da27ecada3b3))
+* **landing:** implement TeamManagementSection with team feature cards ([a61850e](https://github.com/andrewck24/volleybro/commit/a61850ef6d5e25797266f3508e2edf4886bb1ace))
+* **landing:** improve CTA Button type safety and Hero RWD layout ([46b317a](https://github.com/andrewck24/volleybro/commit/46b317a4c227527a523ff262c84e5f916ecb243a))
+* **landing:** modularize Hero component with 7 sub-components ([10ae90e](https://github.com/andrewck24/volleybro/commit/10ae90e6ede4c35b47c16f3f9b1e6c47093778a0))
+* **landing:** refactor header layout with preview badge integration ([2d756fa](https://github.com/andrewck24/volleybro/commit/2d756fad54866de11216de71309663ff15947b08))
+* upgrade BMad framework to v4.39.0 ([c49d138](https://github.com/andrewck24/volleybro/commit/c49d138b2a0beb0e3cfd6fd8fbbd2b09a9c701d7))
+
+
+### Performance Improvements
+
+* **landing:** implement LazyMotion architecture for 42% motion bundle reduction ([4b1dd8b](https://github.com/andrewck24/volleybro/commit/4b1dd8b31172e69ee7e660db13a5665e07c9821b))
+* **landing:** optimize FeatureDemoImage theme-dependent value calculations ([37a3ab0](https://github.com/andrewck24/volleybro/commit/37a3ab0af63c6056ed6a66a17e4cbdcedb7df1a6)), closes [#256](https://github.com/andrewck24/volleybro/issues/256)
+* **ui:** optimize FlipWords components with LazyMotion and SSR compatibility ([56087d0](https://github.com/andrewck24/volleybro/commit/56087d0573f75621b0e4391c5fee0feed9e7bccb))
+
 ## [0.8.2](https://github.com/andrewck24/volleybro/compare/v0.8.1...v0.8.2) (2025-08-14)
 
 
