@@ -45,7 +45,7 @@ const CTABackgroundEffects = () => {
   const shouldReduceMotion = useReducedMotion();
 
   if (shouldReduceMotion) {
-    // 靜態背景替代方案 - 保持視覺效果但無動畫
+    // Static background alternative - preserves visual effect without animation
     return (
       <div
         data-testid="cta-background-effects"

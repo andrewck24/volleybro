@@ -184,7 +184,7 @@ describe("CTASection Component", () => {
   });
 
   describe("Motion and Animation", () => {
-    it("should render as motion.section", () => {
+    it("should render within LazyMotion wrapper with strict mode", () => {
       render(<CTASection />);
 
       const section = screen.getByTestId("cta-section");
