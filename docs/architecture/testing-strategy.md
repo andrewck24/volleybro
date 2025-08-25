@@ -1,5 +1,9 @@
 # Testing Standards & Strategy
 
+> **Last Updated**: 2025-08-26
+> **Version**: 2.0  
+> **Maintainer**: Andrew
+
 ## 🧪 Current Testing Architecture
 
 ### ✅ Established Testing Environment

@@ -1,5 +1,9 @@
 # Source Tree Structure
 
+> **Last Updated**: 2025-08-26  
+> **Version**: 2.0  
+> **Maintainer**: Andrew
+
 ## Overview
 
 This document provides a comprehensive overview of the VolleyBro project's source code organization, following Clean Architecture principles and Domain-Driven Design patterns.

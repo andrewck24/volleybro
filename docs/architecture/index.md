@@ -1,5 +1,9 @@
 # VolleyBro Architecture
 
+> **Last Updated**: 2025-08-26
+> **Version**: 2.0  
+> **Maintainer**: Andrew
+
 ## Table of Contents
 
 - **[Technology Stack](./tech-stack.md)** - Complete overview of the technology stack used in VolleyBro

@@ -1,5 +1,9 @@
 # Technology Stack
 
+> **Last Updated**: 2025-08-26
+> **Version**: 2.0  
+> **Maintainer**: Andrew
+
 ## Overview
 
 This document provides a comprehensive overview of the technology stack used in VolleyBro, a volleyball team management and match recording web application.
