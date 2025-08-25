@@ -74,4 +74,8 @@ export const EntryPlayerNumber = ({
   children,
 }: {
   children: React.ReactNode;
-}) => <span className="text-[1.375rem] font-semibold">{children}</span>;
+}) => (
+  <span className="flex size-6 items-center justify-center text-[1.375rem] font-semibold">
+    {children}
+  </span>
+);
