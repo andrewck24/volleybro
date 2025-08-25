@@ -1,49 +1,74 @@
 "use client";
-import Image from "next/image";
-import { useEffect, useState, RefObject } from "react";
 import { CTAButton } from "@/components/landing/cta-button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
-interface HeaderProps {
-  observerRef: RefObject<HTMLDivElement | null>;
-}
+export const Header = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
 
-export const Header = ({ observerRef }: HeaderProps) => {
-  const [isShowingCTA, setIsShowingCTA] = useState(false);
+  const SCROLL_THRESHOLD = 0;
 
+  // 使用原生 Web API 和 throttle 機制避免性能問題
   useEffect(() => {
-    const targetElement = observerRef.current;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsShowingCTA(!entry.isIntersecting),
-      { threshold: 0.5 }
-    );
+    let ticking = false;
 
-    if (targetElement) {
-      observer.observe(targetElement);
-    }
+    const updateScrollState = () => {
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > SCROLL_THRESHOLD);
+      ticking = false;
+    };
 
-    return () => {
-      if (targetElement) {
-        observer.unobserve(targetElement);
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(updateScrollState);
+        ticking = true;
       }
     };
-  }, [observerRef]);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 left-0 z-50 flex flex-row items-center justify-start w-full px-4 py-2 transition-colors">
-      <div className="flex items-center justify-start flex-1 h-9">
-        <Image
-          src="/logo.svg"
-          alt="VolleyBro"
-          width={140}
-          height={30}
-          priority={true}
-        />
+    <header
+      data-testid="header"
+      className="sticky top-0 left-0 z-50 flex w-full flex-row"
+    >
+      <div
+        data-testid="header-glassmorphism-container"
+        className={cn(
+          "mx-2 mt-1 flex flex-1 items-center justify-between p-3 text-foreground md:mx-4 md:mt-2",
+          "rounded-2xl border border-transparent",
+          "transition-all duration-300 ease-out",
+          isScrolled && [
+            "border border-white/20 bg-white/10 backdrop-blur-sm",
+            "shadow-lg shadow-black/5",
+            "dark:border-white/10 dark:bg-black/10",
+          ],
+        )}
+      >
+        <div
+          className="flex h-8 items-center justify-start gap-3 rounded-full bg-radial from-muted/40 via-muted/10 to-transparent pl-4 md:h-9"
+          data-testid="logo-container"
+        >
+          <Image
+            src="/logo.svg"
+            alt="VolleyBro"
+            width={100}
+            height={20}
+            priority={true}
+            data-testid="logo-image"
+            className="md:h-[30px] md:w-[140px]"
+          />
+          <Badge variant="outline" data-testid="preview-badge">
+            Preview
+          </Badge>
+        </div>
+        <CTAButton data-testid="cta-button" className="h-8 md:h-9" />
       </div>
-      <CTAButton
-        className={`transition-opacity ease-in-out ${
-          isShowingCTA ? "opacity-100" : "opacity-0"
-        }`}
-      />
     </header>
   );
 };

@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom";
 import { toHaveNoViolations } from "jest-axe";
+import type { ImageProps } from "next/image";
+import React from "react";
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
@@ -42,6 +44,95 @@ Object.defineProperty(window, "matchMedia", {
 
 // Mock fetch for API testing
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+
+// Mock Next.js Image component
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: ({ src, alt, width, height, ...rest }: ImageProps) => {
+    // Filter out special props from next/image
+    const { fill, priority, quality, sizes, ...imgProps } = rest;
+    // eslint-disable-next-line @next/next/no-img-element
+    return React.createElement("img", {
+      src: typeof src === "string" ? src : "",
+      alt: alt ?? "",
+      width,
+      height,
+      ...imgProps,
+    });
+  },
+}));
+
+// Mock motion/react components
+jest.mock("motion/react", () => {
+  const filterMotionProps = (props: any) => {
+    const {
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
+      viewport,
+      style,
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  return {
+    __esModule: true,
+    motion: {
+      section: ({ children, ...props }: any) =>
+        React.createElement("section", filterMotionProps(props), children),
+      div: ({ children, ...props }: any) =>
+        React.createElement("div", filterMotionProps(props), children),
+      h1: ({ children, ...props }: any) =>
+        React.createElement("h1", filterMotionProps(props), children),
+      p: ({ children, ...props }: any) =>
+        React.createElement("p", filterMotionProps(props), children),
+      span: ({ children, ...props }: any) =>
+        React.createElement("span", filterMotionProps(props), children),
+    },
+    // 新增 LazyMotion 相關支援
+    LazyMotion: ({ children }: any) => children,
+    domAnimation: {},
+    useReducedMotion: () => false,
+    // Note: hooks mocking is handled in individual test files using jest.mocked()
+  };
+});
+
+// Mock motion/react-m components
+jest.mock("motion/react-m", () => {
+  const filterMotionProps = (props: any) => {
+    const {
+      initial,
+      animate,
+      exit,
+      whileInView,
+      transition,
+      variants,
+      viewport,
+      style,
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  // motion/react-m 直接匯出 HTML 元素，不是包在 m 物件中
+  return {
+    __esModule: true,
+    section: ({ children, ...props }: any) =>
+      React.createElement("section", filterMotionProps(props), children),
+    div: ({ children, ...props }: any) =>
+      React.createElement("div", filterMotionProps(props), children),
+    h1: ({ children, ...props }: any) =>
+      React.createElement("h1", filterMotionProps(props), children),
+    p: ({ children, ...props }: any) =>
+      React.createElement("p", filterMotionProps(props), children),
+    span: ({ children, ...props }: any) =>
+      React.createElement("span", filterMotionProps(props), children),
+  };
+});
 
 // Mock MongoDB modules to avoid ES module issues
 jest.mock("mongodb", () => ({
