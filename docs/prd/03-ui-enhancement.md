@@ -2,18 +2,18 @@
 
 ## 與現有UI的整合
 
-VolleyBro目前採用完整的設計系統，包含：
+VolleyBro 目前採用完整的設計系統，包含：
 
 - **設計框架**: Shadcn UI + Tailwind CSS，提供一致的設計語言
-- **動畫系統**: Motion/React (原Framer Motion)，實現流暢的互動體驗
-- **PWA支援**: Serwist實現，支援應用安裝和離線功能
+- **動畫系統**: Motion/React (原 Framer Motion)，實現流暢的互動體驗
+- **PWA支援**: Serwist 實現，支援應用安裝和離線功能
 - **響應式設計**: 完整的桌面和行動裝置適配
 - **主題系統**: 支援深色/淺色模式切換
 
-新增UI元素將完全遵循現有的設計系統：
+新增 UI 元素將完全遵循現有的設計系統：
 
-- 使用現有的UI組件庫(components/ui/)
-- 保持一致的色彩配置(primary、destructive、muted等)
+- 使用現有的 UI 元件庫 (components/ui/)
+- 保持一致的色彩配置 (primary、destructive、muted 等)
 - 遵循現有的動畫模式和轉場效果
 - 維持響應式設計原則
 
@@ -21,7 +21,7 @@ VolleyBro目前採用完整的設計系統，包含：
 
 基於需求分析，以下畫面需要修改或新增：
 
-### Beta階段 Landing Page 重構 (進行中 - Brownfield Enhancement)
+### Preview 階段 Landing Page 重構 (已完成)
 
 **現有架構**:
 
@@ -49,8 +49,8 @@ Header → Hero → RecordingSection → AnalyticsSection → TeamManagementSect
   - TeamManagementSection：團隊管理特色說明
 
 - 🟠 **真實價值展示**：替代虛構數據
-  - TechAdvantages：技術優勢替代 Stats 組件的虛構統計
-  - ProductMilestones：開發成果替代 Testimonials 組件的虛構推薦
+  - TechAdvantages：技術優勢替代 Stats 元件的虛構統計
+  - ProductMilestones：開發成果替代 Testimonials 元件的虛構推薦
 
 - 🟡 **技術優化**：
   - Motion.js 動態導入替代 LazySection

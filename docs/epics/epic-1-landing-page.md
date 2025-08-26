@@ -561,4 +561,4 @@ Footer (Preview 版本聲明)
 **Epic 1 執行優先級**: 立即執行（Brownfield Enhancement）
 **預估時程**: 1-2 週
 **成功指標**: 用戶信任度提升、真實價值傳達、Preview 註冊轉換率
-**對應功能**: FR1 - 產品介紹頁功能（🟡 已部分實現 → 🟢 Preview 階段完善）
+**對應功能**: FR1 - 產品介紹頁功能（🟢 Preview 階段完善）

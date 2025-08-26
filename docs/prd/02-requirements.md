@@ -6,14 +6,14 @@
 
 ### 核心功能模組（已實現/部分實現）
 
-**FR1: Beta階段 Landing Page 重構** - _🟠 進行中（Brownfield Enhancement）_
+**FR1: Preview 階段 Landing Page 重構** - _🟢 已實現_
 
-- 系統應提供針對 Beta 階段優化的產品介紹頁面，移除虛構數據，強化真實產品價值展示
+- 系統應提供針對 Preview 階段優化的產品介紹頁面，移除虛構數據，強化真實產品價值展示
 - 當前狀態：重構進行中 - Hero 區塊整合 claude/hero 背景動畫、三個核心功能區塊詳細展示
 - 頁面結構更新：Header → Hero → RecordingSection → AnalyticsSection → TeamManagementSection → TechAdvantages → ProductMilestones → Footer
 - 技術優化：Motion.js 動態導入替代 LazySection，預期 bundle size 減少 15-20%
 - 內容策略：
-  - Hero：「讓排球賽事紀錄更加簡單、快速、專業」+ Beta 標示 + 「開始使用」CTA
+  - Hero：「讓排球賽事紀錄更加簡單、快速、專業」+ Preview 標示 + 「開始使用」CTA
   - 功能分區：即時記錄、數據分析、團隊管理三大核心功能詳細介紹
   - 真實價值：技術優勢展示替代虛構統計、開發里程碑替代虛構推薦
 - 測試覆蓋率：維持 95%+ 覆蓋率
@@ -63,11 +63,11 @@
 - 必須與現有使用者註冊系統完全分離運作
 - 註記：根據 Epic 1 規劃，此功能與意見回饋功能同等級，為可選實作項目
 
-**FR7: Beta功能標示和管理** - _🔴 未實現_
+**FR7: Preview功能標示和管理** - _🔴 未實現_
 
-- 系統應實作feature flag控制Beta功能顯示
-- 系統應在相關UI元件顯示Beta標籤
-- 系統應建立Beta功能的使用追蹤機制
+- 系統應實作feature flag控制Preview功能顯示
+- 系統應在相關UI元件顯示Preview標籤
+- 系統應建立Preview功能的使用追蹤機制
 - 系統應提供管理介面控制feature flag狀態
 
 **FR8: 即時通知功能** - _🔴 未實現_
