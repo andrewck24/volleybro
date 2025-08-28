@@ -11,17 +11,23 @@
 - **Strict Mode**: Currently disabled (`"strict": false`) for gradual migration
 - **Decorators**: Enabled for InversifyJS dependency injection
 - **Module Resolution**: Node.js style with path mapping
-- **Base URL**: `src/` with `@/*` path alias
+- **Base URL**: Root directory (`.`) with `@/*` path alias pointing to `src/*`
+- **Root Access**: Enables direct imports from project root (locales, package.json, etc.)
 
 - **嚴格模式**: 目前禁用以支援漸進式遷移
 - **裝飾器**: 為 InversifyJS 依賴注入啟用
 - **模組解析**: Node.js 風格，支援路徑映射
-- **基礎 URL**: `src/` 搭配 `@/*` 路徑別名
+- **基礎 URL**: 根目錄 (`.`) 搭配 `@/*` 路徑別名指向 `src/*`
+- **根目錄存取**: 允許直接從專案根目錄匯入（locales、package.json 等）
 
 ```typescript
-// ✅ Good - Use path alias
+// ✅ Good - Use path alias for src/ files
 import { Button } from "@/components/ui/button";
 import { UserService } from "@/applications/services/user.service";
+
+// ✅ Good - Direct imports from project root
+import(`locales/${language}/${namespace}.json`);
+import packageJson from "package.json";
 
 // ❌ Bad - Relative imports for cross-module references
 import { Button } from "../../../components/ui/button";
