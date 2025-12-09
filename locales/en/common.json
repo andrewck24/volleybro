@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "VolleyBro",
+    "description": "Professional volleyball team management and match recording platform"
+  },
+  "navigation": {
+    "home": "Home",
+    "teams": "Teams",
+    "matches": "Matches",
+    "records": "Records",
+    "profile": "Profile",
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signInWithGoogle": "Sign in with Google",
+    "welcome": "Welcome back!",
+    "welcomeMessage": "Please sign in to your account"
+  },
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset"
+  },
+  "team": {
+    "name": "Team Name",
+    "members": "Members",
+    "createTeam": "Create Team",
+    "editTeam": "Edit Team",
+    "deleteTeam": "Delete Team",
+    "joinTeam": "Join Team",
+    "leaveTeam": "Leave Team",
+    "inviteMembers": "Invite Members",
+    "teamSettings": "Team Settings",
+    "lineup": "Lineup"
+  },
+  "match": {
+    "newMatch": "New Match",
+    "matchHistory": "Match History",
+    "score": "Score",
+    "sets": "Sets",
+    "rallies": "Rallies",
+    "statistics": "Statistics",
+    "opponent": "Opponent",
+    "date": "Date",
+    "time": "Time",
+    "venue": "Venue"
+  },
+  "errors": {
+    "general": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "validation": "Please check your input and try again."
+  },
+  "success": {
+    "saved": "Successfully saved!",
+    "updated": "Successfully updated!",
+    "deleted": "Successfully deleted!",
+    "created": "Successfully created!"
+  }
+}

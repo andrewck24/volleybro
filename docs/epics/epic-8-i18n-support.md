@@ -77,7 +77,8 @@
 - 實現 locale routing (/, /zh-TW)
 - 自動生成 hreflang 標記
 - 設定 canonical URL 和多語言 sitemap
-- Landing Page 內容翻譯
+- Landing Page 內容翻譯 (namespace 底下的 key 命名可以考慮與 testid 一致)
+- 重構 footer 加入語言切換器
 
 **Acceptance Criteria**:
 
@@ -85,6 +86,7 @@
 - [ ] SEO 標記正確生成 (hreflang, canonical)
 - [ ] Google Search Console 可正確識別多語版本
 - [ ] Landing Page 內容完整翻譯
+- [ ] Footer 加入語言切換器
 
 ### Story 8.3: 應用程式內語言切換與使用者偏好
 
