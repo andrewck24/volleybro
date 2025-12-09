@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "VolleyBro",
+    "description": "專業排球隊伍管理與比賽紀錄平台"
+  },
+  "navigation": {
+    "home": "首頁",
+    "teams": "隊伍",
+    "matches": "比賽",
+    "records": "紀錄",
+    "profile": "個人檔案",
+    "settings": "設定",
+    "signOut": "登出"
+  },
+  "auth": {
+    "signIn": "登入",
+    "signOut": "登出",
+    "signUp": "註冊",
+    "email": "電子郵件",
+    "password": "密碼",
+    "forgotPassword": "忘記密碼？",
+    "noAccount": "還沒有帳號？",
+    "hasAccount": "已經有帳號了？",
+    "signInWithGoogle": "使用 Google 登入",
+    "welcome": "歡迎回來！",
+    "welcomeMessage": "請登入您的帳號"
+  },
+  "common": {
+    "loading": "載入中...",
+    "save": "儲存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "create": "建立",
+    "update": "更新",
+    "search": "搜尋",
+    "filter": "篩選",
+    "sort": "排序",
+    "close": "關閉",
+    "confirm": "確認",
+    "yes": "是",
+    "no": "否",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "submit": "提交",
+    "reset": "重設"
+  },
+  "team": {
+    "name": "隊伍名稱",
+    "members": "成員",
+    "createTeam": "建立隊伍",
+    "editTeam": "編輯隊伍",
+    "deleteTeam": "刪除隊伍",
+    "joinTeam": "加入隊伍",
+    "leaveTeam": "離開隊伍",
+    "inviteMembers": "邀請成員",
+    "teamSettings": "隊伍設定",
+    "lineup": "陣容"
+  },
+  "match": {
+    "newMatch": "新比賽",
+    "matchHistory": "比賽歷史",
+    "score": "分數",
+    "sets": "局數",
+    "rallies": "回合",
+    "statistics": "統計",
+    "opponent": "對手",
+    "date": "日期",
+    "time": "時間",
+    "venue": "場地"
+  },
+  "errors": {
+    "general": "發生錯誤，請重試。",
+    "network": "網路錯誤，請檢查您的連線。",
+    "unauthorized": "您沒有權限執行此操作。",
+    "notFound": "找不到請求的資源。",
+    "validation": "請檢查您的輸入並重試。"
+  },
+  "success": {
+    "saved": "儲存成功！",
+    "updated": "更新成功！",
+    "deleted": "刪除成功！",
+    "created": "建立成功！"
+  }
+}
