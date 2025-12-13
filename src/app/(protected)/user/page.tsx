@@ -1,4 +1,6 @@
-import { signOut } from "@/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { RiLogoutBoxRLine } from "react-icons/ri";
 import { Button } from "@/components/ui/button";
 import Menu from "@/components/user/menu";
@@ -11,7 +13,8 @@ const UserPage = () => {
         className="grid w-full px-4"
         action={async () => {
           "use server";
-          await signOut({ redirectTo: "/auth/sign-in" });
+          await auth.api.signOut({ headers: await headers() });
+          redirect("/auth/sign-in");
         }}
       >
         <Button variant="destructive" size="lg">

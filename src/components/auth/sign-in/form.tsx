@@ -1,7 +1,7 @@
 "use client";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { signIn } from "@/lib/features/auth/actions";
+import { authClient } from "@/lib/auth-client";
 import { FcGoogle } from "react-icons/fc";
 import { RiAlertLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -21,7 +21,9 @@ const SignInError = () => {
   const errorMessage =
     urlError === "OAuthAccountNotLinked"
       ? "看來您已使用其他方式註冊，請使用原註冊方式登入"
-      : "";
+      : urlError
+        ? "登入時發生錯誤，請稍後再試"
+        : "";
 
   if (urlError)
     return (
@@ -34,6 +36,13 @@ const SignInError = () => {
 };
 
 const SignInForm = () => {
+  const handleGoogleSignIn = async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/home",
+    });
+  };
+
   return (
     <Card className="w-full h-[50%] rounded-lg max-w-[600px] bg-transparent text-primary-foreground shadow-none">
       <CardHeader className="flex-col items-start flex-1">
@@ -49,7 +58,7 @@ const SignInForm = () => {
           variant="outline"
           size="lg"
           className="w-full text-foreground"
-          onClick={async () => await signIn("google")}
+          onClick={handleGoogleSignIn}
         >
           <FcGoogle />
           使用 Google 帳戶繼續

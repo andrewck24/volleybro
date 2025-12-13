@@ -5,12 +5,14 @@ import { TYPES } from "@/infrastructure/di/types";
 import { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { IRecordRepository } from "@/applications/repositories/record.repository.interface";
+import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 
 import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
+import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
@@ -37,6 +39,9 @@ container.bind<ITeamRepository>(TYPES.TeamRepository).to(TeamRepositoryImpl);
 container
   .bind<IRecordRepository>(TYPES.RecordRepository)
   .to(RecordRepositoryImpl);
+container
+  .bind<IProfileRepository>(TYPES.ProfileRepository)
+  .to(ProfileRepositoryImpl);
 
 // register services
 container

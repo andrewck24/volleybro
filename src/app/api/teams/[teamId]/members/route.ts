@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import Profile from "@/infrastructure/db/mongoose/schemas/profile";
 import User from "@/infrastructure/db/mongoose/schemas/user";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import Member from "@/infrastructure/db/mongoose/schemas/member";
-import { ObjectId } from "mongodb";
 
 export const GET = async (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> }
 ) => {
   try {
@@ -17,8 +18,11 @@ export const GET = async (
     const members = await Member.find({ team_id: teamId });
     return NextResponse.json(members, { status: 200 });
   } catch (error) {
-    console.log("[get-team-members]", error);
-    return NextResponse.json({ error }, { status: 500 });
+    console.error("[GET /api/teams/:teamId/members]", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 };
 
@@ -29,15 +33,15 @@ export const PATCH = async (
   try {
     const params = await props.params;
     const { teamId } = params;
-    const session = await auth();
-    if (!session) {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToMongoDB();
-    const user = await User.findById(session.user.id);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const profile = await Profile.findOne({ userId: session.user.id });
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const team = await Team.findById(teamId);
@@ -63,31 +67,38 @@ export const PATCH = async (
       }
 
       if (member?.user_id) {
-        const leavingUser = await User.findById(member.user_id);
-        if (leavingUser) {
-          leavingUser.teams.joined = leavingUser.teams.joined.filter(
-            (t) => t.toString() !== teamId
-          );
-          await leavingUser.save();
+        const leavingProfile = await Profile.findOne({
+          userId: member.user_id.toString(),
+        });
+        if (leavingProfile) {
+          leavingProfile.teams.joined = (
+            leavingProfile.teams.joined as any
+          ).filter((t: any) => t.toString() !== teamId);
+          await leavingProfile.save();
         }
         team.members[memberIndex].user_id = null;
         team.members[memberIndex].email = "";
       } else if (member?.email) {
+        // Remove from inviting list if user exists
         const leavingUser = await User.findOne({ email: member.email });
         if (leavingUser) {
-          leavingUser.teams.inviting = leavingUser.teams.inviting.filter(
-            (t) => t.toString() !== teamId
+          await Profile.findOneAndUpdate(
+            { userId: leavingUser._id.toString() },
+            { $pull: { "teams.inviting": teamId } }
           );
-          await leavingUser.save();
         }
         team.members[memberIndex].email = "";
       }
 
       if (formData.email) {
+        // Add to inviting list if user exists
         const invitingUser = await User.findOne({ email: formData.email });
         if (invitingUser) {
-          invitingUser.teams.inviting.push(new ObjectId(teamId));
-          await invitingUser.save();
+          await Profile.findOneAndUpdate(
+            { userId: invitingUser._id.toString() },
+            { $addToSet: { "teams.inviting": teamId } },
+            { upsert: true }
+          );
         }
         team.members[memberIndex].email = formData.email;
       }
@@ -98,7 +109,10 @@ export const PATCH = async (
     await team.save();
     return NextResponse.json(team.members, { status: 200 });
   } catch (error) {
-    console.log("[patch-team-members]", error);
-    return NextResponse.json({ error }, { status: 500 });
+    console.error("[PATCH /api/teams/:teamId/members]", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 };
