@@ -55,8 +55,6 @@ const profileSchema = new Schema<ProfileDocument>(
   },
 );
 
-profileSchema.index({ userId: 1 });
-
 export const Profile =
   (models.Profile as Model<ProfileDocument>) ||
   model<ProfileDocument>("Profile", profileSchema, "profiles");

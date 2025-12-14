@@ -1,45 +1,41 @@
-const {
-  PHASE_DEVELOPMENT_SERVER,
-  PHASE_PRODUCTION_BUILD,
-} = require("next/constants");
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
+import bundleAnalyzer from "@next/bundle-analyzer";
+import withSerwistInit from "@serwist/next";
+
+const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
 });
 
-/** @type {(phase: string, defaultConfig: import("next").NextConfig) => Promise<import("next").NextConfig>} */
-module.exports = async (phase) => {
-  const removeProperties =
-    phase === PHASE_PRODUCTION_BUILD ? { properties: ["^data-testid$"] } : false;
-  /** @type {import("next").NextConfig} */
-  const nextConfig = {
-    experimental: {
-      optimizePackageImports: ["react-icons"],
-    },
-    images: {
-      remotePatterns: [
-        {
-          protocol: "https",
-          hostname: "lh3.googleusercontent.com",
-          port: "",
-          pathname: "**",
-        },
-      ],
-    },
-    compiler: {
-      removeConsole: phase === PHASE_PRODUCTION_BUILD,
-      reactRemoveProperties: removeProperties,
-    },
-  };
+const removeProperties =
+  process.env.NODE_ENV === "production"
+    ? { properties: ["^data-testid$"] }
+    : false;
 
-  if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
-    const withSerwist = (await import("@serwist/next")).default({
-      // Note: This is only an example. If you use Pages Router,
-      // use something else that works, such as "service-worker/index.ts".
-      swSrc: "src/app/sw.ts",
-      swDest: "public/sw.js",
-    });
-    return withBundleAnalyzer(withSerwist(nextConfig));
-  }
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
+});
 
-  return nextConfig;
+/** @type {import("next").NextConfig} */
+const nextConfig = {
+  turbopack: {},
+  experimental: {
+    optimizePackageImports: ["react-icons"],
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        port: "",
+        pathname: "**",
+      },
+    ],
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+    reactRemoveProperties: removeProperties,
+  },
 };
+
+export default withBundleAnalyzer(withSerwist(nextConfig));
