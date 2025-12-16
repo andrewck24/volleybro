@@ -1,8 +1,10 @@
+import { BusinessRuleError } from "@/applications/usecases/user/profile.usecase";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import {
-  getProfileController,
   createProfileController,
+  getProfileController,
   updateProfileController,
+  ValidationError,
 } from "@/interface/controllers/user/profile.controller";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -66,14 +68,6 @@ export const PATCH = async (request: NextRequest) => {
 
     const body = await request.json();
 
-    // 不允許更新 userId
-    if (body.userId) {
-      return NextResponse.json(
-        { error: "Cannot update userId" },
-        { status: 400 },
-      );
-    }
-
     await connectToMongoDB();
 
     const profile = await updateProfileController({
@@ -82,15 +76,27 @@ export const PATCH = async (request: NextRequest) => {
     });
 
     if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     return NextResponse.json(profile, { status: 200 });
   } catch (error) {
     console.error("Error updating profile:", error);
+
+    // 處理 Controller Layer 驗證錯誤（格式與型別）
+    if (error instanceof ValidationError) {
+      return NextResponse.json(
+        { error: "Invalid request format", details: error.details },
+        { status: 400 },
+      );
+    }
+
+    // 處理 Use Case Layer 業務規則錯誤
+    if (error instanceof BusinessRuleError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    // 其他未預期的錯誤
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
