@@ -1,9 +1,9 @@
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import type { Profile } from "@/entities/profile";
 import {
   Profile as ProfileModel,
   type ProfileDocument,
 } from "@/infrastructure/db/mongoose/schemas/profile";
-import type { Profile } from "@/entities/profile";
 import { BaseMongoRepository } from "@/infrastructure/db/repositories";
 
 export class ProfileRepositoryImpl
@@ -22,12 +22,12 @@ export class ProfileRepositoryImpl
 
   async updateTeams(
     userId: string,
-    teams: Profile["teams"]
+    teams: Profile["teams"],
   ): Promise<Profile | null> {
     const doc = await this.model.findOneAndUpdate(
       { userId },
       { $set: { teams } },
-      { new: true }
+      { new: true },
     );
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;
@@ -35,12 +35,12 @@ export class ProfileRepositoryImpl
 
   async addTeamToJoined(
     userId: string,
-    teamId: string
+    teamId: string,
   ): Promise<Profile | null> {
     const doc = await this.model.findOneAndUpdate(
       { userId },
       { $addToSet: { "teams.joined": teamId } },
-      { new: true }
+      { new: true },
     );
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;
@@ -48,12 +48,12 @@ export class ProfileRepositoryImpl
 
   async addTeamToInviting(
     userId: string,
-    teamId: string
+    teamId: string,
   ): Promise<Profile | null> {
     const doc = await this.model.findOneAndUpdate(
       { userId },
       { $addToSet: { "teams.inviting": teamId } },
-      { new: true }
+      { new: true },
     );
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;
@@ -61,12 +61,12 @@ export class ProfileRepositoryImpl
 
   async removeTeamFromJoined(
     userId: string,
-    teamId: string
+    teamId: string,
   ): Promise<Profile | null> {
     const doc = await this.model.findOneAndUpdate(
       { userId },
       { $pull: { "teams.joined": teamId } },
-      { new: true }
+      { new: true },
     );
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;
@@ -74,12 +74,12 @@ export class ProfileRepositoryImpl
 
   async removeTeamFromInviting(
     userId: string,
-    teamId: string
+    teamId: string,
   ): Promise<Profile | null> {
     const doc = await this.model.findOneAndUpdate(
       { userId },
       { $pull: { "teams.inviting": teamId } },
-      { new: true }
+      { new: true },
     );
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;

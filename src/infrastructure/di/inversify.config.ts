@@ -17,6 +17,11 @@ import { AuthenticationService } from "@/infrastructure/services/auth/authentica
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
 import {
+  GetProfileUseCase,
+  CreateProfileUseCase,
+  UpdateProfileUseCase,
+} from "@/applications/usecases/user/profile.usecase";
+import {
   FindRecordUseCase,
   CreateRecordUseCase,
 } from "@/applications/usecases/record/record.usecase";
@@ -52,6 +57,18 @@ container
   .to(AuthorizationService);
 
 // register usecases
+// user auth usecases
+container
+  .bind<GetProfileUseCase>(TYPES.GetProfileUseCase)
+  .to(GetProfileUseCase);
+container
+  .bind<CreateProfileUseCase>(TYPES.CreateProfileUseCase)
+  .to(CreateProfileUseCase);
+container
+  .bind<UpdateProfileUseCase>(TYPES.UpdateProfileUseCase)
+  .to(UpdateProfileUseCase);
+
+// record usecases
 container
   .bind<FindRecordUseCase>(TYPES.FindRecordUseCase)
   .to(FindRecordUseCase);

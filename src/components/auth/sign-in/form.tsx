@@ -1,19 +1,19 @@
 "use client";
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
-import { FcGoogle } from "react-icons/fc";
-import { RiAlertLine } from "react-icons/ri";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Logo } from "@/components/custom/logo";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
   CardContent,
   CardFooter,
+  CardHeader,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Logo } from "@/components/custom/logo";
+import { authClient } from "@/lib/auth-client";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { RiAlertLine } from "react-icons/ri";
 
 const SignInError = () => {
   const searchParams = useSearchParams();
@@ -44,9 +44,9 @@ const SignInForm = () => {
   };
 
   return (
-    <Card className="w-full h-[50%] rounded-lg max-w-[600px] bg-transparent text-primary-foreground shadow-none">
-      <CardHeader className="flex-col items-start flex-1">
-        <Logo className="justify-start max-h-fit" />
+    <Card className="h-[50%] w-full max-w-150 rounded-lg bg-transparent text-primary-foreground shadow-none">
+      <CardHeader className="flex-1 flex-col items-start">
+        <Logo className="max-h-fit justify-start" />
         <p className="text-2xl">快速記錄每一場精彩的比賽。</p>
       </CardHeader>
       <Separator className="bg-primary-foreground" />
@@ -64,7 +64,7 @@ const SignInForm = () => {
           使用 Google 帳戶繼續
         </Button>
       </CardContent>
-      <CardFooter className="pb-[15vh] items-center">
+      <CardFooter className="items-center pb-[15vh]">
         <p className="font-thin text-accent">
           如果註冊，即表示您同意服務條款和隱私政策。
         </p>

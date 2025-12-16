@@ -1,12 +1,17 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import Profile from "@/infrastructure/db/mongoose/schemas/profile";
+import {
+  getProfileController,
+  createProfileController,
+  updateProfileController,
+} from "@/interface/controllers/user/profile.controller";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// GET: 取得當前用戶的 profile（若不存在則自動建立）
+// GET: 取得當前用戶的 profile
+// 注意：保留自動建立邏輯作為 fallback（防止 Hook 失敗情況）
 export const GET = async () => {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -16,17 +21,29 @@ export const GET = async () => {
 
     await connectToMongoDB();
 
-    let profile = await Profile.findOne({ userId: session.user.id });
+    // 透過 Controller 取得 Profile（遵循 Clean Architecture）
+    let profile = await getProfileController({
+      userId: session.user.id,
+    });
 
-    // 若 profile 不存在，自動建立
+    // Fallback：若 profile 不存在（Hook 失敗時），透過 Controller 建立
     if (!profile) {
-      profile = await Profile.create({
+      console.warn(
+        `[GET /api/profiles] Fallback: creating profile for user ${session.user.id}`,
+      );
+
+      const createdProfile = await createProfileController({
         userId: session.user.id,
-        teams: {
-          joined: [],
-          inviting: [],
-        },
       });
+
+      if (!createdProfile) {
+        return NextResponse.json(
+          { error: "Failed to create profile" },
+          { status: 500 },
+        );
+      }
+
+      profile = createdProfile;
     }
 
     return NextResponse.json(profile, { status: 200 });
@@ -34,7 +51,7 @@ export const GET = async () => {
     console.error("Error fetching profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -53,24 +70,30 @@ export const PATCH = async (request: NextRequest) => {
     if (body.userId) {
       return NextResponse.json(
         { error: "Cannot update userId" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     await connectToMongoDB();
 
-    const profile = await Profile.findOneAndUpdate(
-      { userId: session.user.id },
-      { $set: body },
-      { new: true, upsert: true }
-    );
+    const profile = await updateProfileController({
+      userId: session.user.id,
+      updates: body,
+    });
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Profile not found" },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json(profile, { status: 200 });
   } catch (error) {
     console.error("Error updating profile:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };

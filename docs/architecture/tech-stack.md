@@ -1,7 +1,7 @@
 # Technology Stack
 
-> **Last Updated**: 2025-08-26
-> **Version**: 2.0  
+> **Last Updated**: 2024-12-15
+> **Version**: 2.1
 > **Maintainer**: Andrew
 
 ## Overview
@@ -39,12 +39,11 @@ This document provides a comprehensive overview of the technology stack used in 
 
 ### Backend & Database
 
-| Technology          | Version       | Purpose           | Notes                            |
-| ------------------- | ------------- | ----------------- | -------------------------------- |
-| **MongoDB**         | 6.15.0        | Document Database | Primary data store               |
-| **Mongoose**        | 8.13.2        | ODM               | Schema definition and validation |
-| **NextAuth.js**     | 5.0.0-beta.25 | Authentication    | OAuth integration                |
-| **MongoDB Adapter** | 3.8.0         | Auth Persistence  | NextAuth session storage         |
+| Technology      | Version | Purpose           | Notes                                 |
+| --------------- | ------- | ----------------- | ------------------------------------- |
+| **MongoDB**     | 6.15.0  | Document Database | Primary data store                    |
+| **Mongoose**    | 8.13.2  | ODM               | Schema definition and validation      |
+| **Better Auth** | 1.3.3   | Authentication    | OAuth integration with database hooks |
 
 ### Architecture Patterns
 
@@ -119,6 +118,22 @@ VolleyBro 遵循乾淨架構原則，明確分離關注點：
 - **Flexible Schema**: Adaptable to evolving match recording needs (適應不斷演化的比賽記錄需求)
 - **Atlas Integration**: Managed cloud database service (雲端資料庫服務)
 
+#### Why Better Auth?
+
+- **Database Hooks**: Automatic profile creation on user registration (使用者註冊時自動建立 Profile)
+- **OAuth Support**: Google OAuth 2.0 integration (Google OAuth 2.0 整合)
+- **Type Safety**: Full TypeScript support with type inference (完整 TypeScript 支援與型別推斷)
+- **Clean Architecture**: Integrates seamlessly with use cases and controllers (與 Use Cases 和 Controllers 無縫整合)
+- **Extensible**: Easy to add Email/Password, Apple Sign In (易於新增 Email/密碼、Apple 登入)
+
+**Key Features**:
+
+- User-Profile Separation: Authentication data (User) managed by Better Auth, business data (Profile) managed by application (驗證資料由 Better Auth 管理，業務資料由應用程式管理)
+- Auto-sync OAuth Data: Automatically updates user name/image from Google (自動同步 Google 使用者名稱與頭像)
+- Non-blocking Hooks: Profile creation failure doesn't block login (Profile 建立失敗不會阻塞登入)
+
+For detailed information, see [User Management Documentation](../features/users/index.md).
+
 #### Why InversifyJS?
 
 - **Dependency Injection**: Testable and maintainable code (可測試與可維護的程式碼)
@@ -131,16 +146,16 @@ VolleyBro 遵循乾淨架構原則，明確分離關注點：
 #### Required Environment Variables
 
 ```bash
-# Authentication
+# Authentication (Better Auth)
 AUTH_GOOGLE_ID=your_google_oauth_client_id
 AUTH_GOOGLE_SECRET=your_google_oauth_client_secret
-AUTH_SECRET=your_nextauth_secret
+BETTER_AUTH_SECRET=your_secret_key  # For session encryption
 
 # Database
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/volleybro
 
-# Optional
-NEXTAUTH_URL=http://localhost:3000  # For development
+# Application
+NEXT_PUBLIC_APP_URL=http://localhost:3000  # For Better Auth client
 ```
 
 #### TypeScript Configuration
