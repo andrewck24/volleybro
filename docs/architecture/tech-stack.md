@@ -155,7 +155,7 @@ BETTER_AUTH_SECRET=your_secret_key  # For session encryption
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/volleybro
 
 # Application
-NEXT_PUBLIC_APP_URL=http://localhost:3000  # For Better Auth client
+BETTER_AUTH_URL=http://localhost:3000  # For Better Auth client
 ```
 
 #### TypeScript Configuration
