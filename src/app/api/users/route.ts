@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import User from "@/infrastructure/db/mongoose/schemas/user";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export const GET = async () => {
   try {
-    const session = await auth();
-    if (!session) {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

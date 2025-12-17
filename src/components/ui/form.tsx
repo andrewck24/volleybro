@@ -25,13 +25,13 @@ interface FormProps<TFieldValues extends FieldValues> {
   children?: React.ReactNode;
 }
 
-const Form = ({
+const Form = <TFieldValues extends FieldValues = FieldValues>({
   form,
   onSubmit,
   className,
   children,
   ...props
-}: FormProps<FieldValues>) => (
+}: FormProps<TFieldValues>) => (
   <FormProvider {...form}>
     <form
       data-slot="Form"

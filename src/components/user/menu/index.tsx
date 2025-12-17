@@ -3,7 +3,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useUserTeams } from "@/hooks/use-data";
+import { useUser, useProfile, useUserTeams } from "@/hooks/use-data";
 import { FiPlus } from "react-icons/fi";
 import {
   RiArrowDownWideLine,
@@ -20,7 +20,8 @@ import { DarkMode } from "@/components/user/menu/dark-mode";
 
 const Menu = ({ className }: { className?: string }) => {
   const router = useRouter();
-  const { user, mutate: mutateUser } = useUser();
+  const { user } = useUser();
+  const { profile, mutate: mutateProfile } = useProfile();
   const {
     teams,
     isLoading: isUserTeamsLoading,
@@ -39,7 +40,7 @@ const Menu = ({ className }: { className?: string }) => {
         }
       );
       const userTeams = await response.json();
-      mutateUser({ ...user, teams: userTeams }, false);
+      mutateProfile({ ...profile, teams: userTeams }, false);
       mutateUserTeams();
 
       return router.push(`/team/${team._id}`);

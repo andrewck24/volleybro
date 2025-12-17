@@ -1,30 +1,38 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextResponse, type NextRequest } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import User from "@/infrastructure/db/mongoose/schemas/user";
+import Profile from "@/infrastructure/db/mongoose/schemas/profile";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import Member from "@/infrastructure/db/mongoose/schemas/member";
 
-export const POST = async (req) => {
+export const POST = async (request: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session) {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectToMongoDB();
-    const user = await User.findById(session.user._id);
-    if (!user) {
-      console.error("[POST /api/users/teams] User not found");
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    // Get or create user profile
+    let profile = await Profile.findOne({ userId: session.user.id });
+    if (!profile) {
+      profile = await Profile.create({
+        userId: session.user.id,
+        teams: {
+          joined: [],
+          inviting: [],
+        },
+      });
     }
 
     const newMember = new Member({
-      name: user.name,
+      name: session.user.name,
       number: 1,
     });
 
-    const { name, nickname } = await req.json();
+    const { name, nickname } = await request.json();
     // TODO: Add validation for name and nickname
     // if there is a team with the same name, ask the user to choose another name or join the existing team
     // see issue #6
@@ -34,9 +42,9 @@ export const POST = async (req) => {
       members: [
         {
           _id: newMember._id,
-          email: user.email,
+          email: session.user.email,
           role: 1, // TODO: Role.OWNER (import { Role } from "@/entities/team")
-          user_id: user._id,
+          user_id: session.user.id,
         },
       ],
       lineups: new Array(3).fill({
@@ -50,16 +58,19 @@ export const POST = async (req) => {
       }),
     });
 
-    newMember.team_id = newTeam._id;
-    user.teams.joined.unshift(newTeam._id);
+    newMember.team_id = newTeam._id as any;
+    (profile.teams.joined as any).unshift(newTeam._id.toString());
 
     await newMember.save();
     await newTeam.save();
-    await user.save();
+    await profile.save();
 
     return NextResponse.json(newTeam, { status: 201 });
   } catch (error) {
-    console.log("[create-team]", error);
-    return NextResponse.json({ error }, { status: 500 });
+    console.error("[POST /api/teams]", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 };

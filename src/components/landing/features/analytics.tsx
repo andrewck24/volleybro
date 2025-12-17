@@ -89,7 +89,7 @@ export const AnalyticsFeatures = () => {
         <ChartContainer
           data-testid="radar-chart"
           config={radarChartConfig}
-          className="aspect-square size-full"
+          className="aspect-square size-full min-h-75"
         >
           <RadarChart
             data={playerRadarData}

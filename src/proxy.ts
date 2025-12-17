@@ -1,19 +1,20 @@
-import { NextResponse } from "next/server";
-import NextAuth from "next-auth";
-import authConfig from "@/auth.config";
+import { auth } from "@/lib/auth";
 import {
-  publicRoutes,
-  authRoutes,
   apiAuthPrefix,
+  authRoutes,
   DEFAULT_SIGN_IN_REDIRECT,
+  publicRoutes,
 } from "@/lib/features/auth/routes";
+import { headers } from "next/headers";
+import { NextResponse, type NextRequest } from "next/server";
 
-const { auth } = NextAuth(authConfig);
+export async function proxy(request: NextRequest) {
+  const { nextUrl } = request;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-export const middleware = auth((req) => {
-  const { nextUrl } = req;
-  const isSignedIn = !!req.auth;
-
+  const isSignedIn = !!session;
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
@@ -30,8 +31,9 @@ export const middleware = auth((req) => {
   if (!isSignedIn && !isPublicRoute) {
     return NextResponse.redirect(new URL("/auth/sign-in", nextUrl));
   }
+
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],

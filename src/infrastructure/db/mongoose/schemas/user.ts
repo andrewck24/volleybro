@@ -1,24 +1,10 @@
-import {
-  Schema,
-  model,
-  models,
-  type Document,
-  type Model,
-  type Types,
-} from "mongoose";
+import { Schema, model, models, type Document, type Model } from "mongoose";
 
 export interface UserDocument extends Document {
   name: string;
   email: string;
-  emailVerified?: Date;
+  emailVerified?: boolean;
   image?: string;
-  password?: string;
-  teams: {
-    joined: Types.ObjectId[];
-    inviting: Types.ObjectId[];
-  };
-  info?: object;
-  preferences?: object;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -34,47 +20,18 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
     },
     emailVerified: {
-      type: Date,
+      type: Boolean,
       required: false,
-      trim: true,
     },
     image: {
       type: String,
       required: false,
       trim: true,
     },
-    password: {
-      type: String,
-      required: false,
-    },
-    teams: {
-      joined: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Team",
-          required: false,
-        },
-      ],
-      inviting: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Team",
-          required: false,
-        },
-      ],
-    },
-    info: {
-      type: Object,
-      required: false,
-    },
-    preferences: {
-      type: Object,
-      required: false,
-    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.index({ email: 1 });

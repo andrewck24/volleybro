@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { RiCalendarLine, RiCheckLine } from "react-icons/ri";
 
 export const MatchInfoForm = ({
@@ -47,7 +47,7 @@ export const MatchInfoForm = ({
   className?: string;
 }) => {
   const form = useForm<TMatchInfoForm>({
-    resolver: zodResolver(MatchInfoFormSchema),
+    resolver: zodResolver(MatchInfoFormSchema) as Resolver<TMatchInfoForm>,
     defaultValues: info,
   });
 

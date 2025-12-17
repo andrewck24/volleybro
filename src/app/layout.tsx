@@ -3,7 +3,6 @@ import { Saira, Noto_Sans_TC } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ReduxProvider } from "@/lib/redux/provider";
-import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { BackgroundColorHandler } from "@/components/layout/bg-handler";
@@ -185,22 +184,20 @@ export default async function RootLayout({
         {/* TODO: twitter 設定待補 */}
       </head>
       <body>
-        <SessionProvider>
-          <ReduxProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster />
-              <BackgroundColorHandler />
-              <Analytics />
-              <SpeedInsights />
-            </ThemeProvider>
-          </ReduxProvider>
-        </SessionProvider>
+        <ReduxProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+            <BackgroundColorHandler />
+            <Analytics />
+            <SpeedInsights />
+          </ThemeProvider>
+        </ReduxProvider>
       </body>
     </html>
   );

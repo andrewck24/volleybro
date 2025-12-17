@@ -28,7 +28,7 @@ For a detailed version, see the [Architecture Documentation](./docs/architecture
 - **UI**: Shadcn/UI components + Tailwind CSS
 - **State Management**: Redux Toolkit + SWR for data fetching
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: NextAuth.js v5 (Auth.js) with Google OAuth
+- **Authentication**: Better Auth with Google OAuth
 - **Dependency Injection**: InversifyJS
 - **PWA**: @serwist/next for Progressive Web App features
 - **Testing**: Jest (to be refactored with optimal testing tools)
@@ -84,17 +84,21 @@ Components are organized by domain and purpose (features):
 
 Uses MongoDB with embedded documents for performance:
 
-- **User**: Links to teams (joined/inviting arrays)
+- **User**: Authentication data managed by Better Auth (name, email, emailVerified, image)
+- **Profile**: User business data with team relationships (joined/inviting arrays)
 - **Team**: Contains members array and lineups array
 - **Record**: Embeds complete match data including teams and sets
 - **Member**: References team_id with player information
 
 ### Authentication Flow
 
-- NextAuth.js v5 with Google OAuth provider
-- Custom user type extensions in `src/auth.config.ts`
-- Protected routes use middleware.ts for route guarding
-- User sessions include team membership information
+- Better Auth with Google OAuth provider (configured in `src/lib/auth.ts`)
+- Client-side authentication using Better Auth React client (`src/lib/auth-client.ts`)
+- Server-side session validation via `auth.api.getSession()` in API routes
+- User and Profile separation:
+  - **User**: Authentication data (Better Auth managed)
+  - **Profile**: Business data (application managed, linked via userId)
+- Profile auto-creation on first access to `/api/profiles`
 
 ### State Management
 

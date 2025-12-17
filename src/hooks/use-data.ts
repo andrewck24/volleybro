@@ -1,6 +1,7 @@
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 import type { User } from "@/entities/user";
+import type { Profile } from "@/entities/profile";
 import type { Team } from "@/entities/team";
 import type { Member } from "@/entities/member";
 import type { Record, MatchResult } from "@/entities/record";
@@ -46,6 +47,15 @@ export const useUser = (fetcher = defaultFetcher, options = {}) => {
   >("/api/users", fetcher, { dedupingInterval: 5 * 60 * 1000, ...options });
 
   return { user: data, error, isLoading, isValidating, mutate };
+};
+
+export const useProfile = (fetcher = defaultFetcher, options = {}) => {
+  const { data, error, isLoading, isValidating, mutate } = useSWR<
+    Profile,
+    FetchError
+  >("/api/profiles", fetcher, { dedupingInterval: 5 * 60 * 1000, ...options });
+
+  return { profile: data, error, isLoading, isValidating, mutate };
 };
 
 export const useUserTeams = (fetcher = defaultFetcher, options = {}) => {

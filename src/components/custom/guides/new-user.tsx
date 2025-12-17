@@ -1,24 +1,15 @@
-import { auth } from "@/auth";
+import { Link } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
-import { Link } from "@/components/ui/button";
 
-export const GuidesForNewUser = async () => {
-  const session = await auth();
-  if (!session?.user) return null;
-  const { user } = session;
-
-  return <>{user && !user?.teams?.joined?.length && <Message />}</>;
-};
-
-const Message = () => {
+export const GuidesForNewUser = () => {
   return (
-    <Card className="flex items-center justify-center w-full">
+    <Card className="flex w-full items-center justify-center">
       <CardHeader>
         <CardTitle>歡迎使用 VolleyBro !</CardTitle>
       </CardHeader>

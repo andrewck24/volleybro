@@ -1,4 +1,16 @@
 import {
+  EntryType,
+  MatchCategory,
+  MatchDivision,
+  MatchPhase,
+  MoveType,
+  Side,
+} from "@/entities/record";
+import {
+  lineupSchema,
+  type LineupDocument,
+} from "@/infrastructure/db/mongoose/schemas/team";
+import {
   Schema,
   model,
   models,
@@ -6,18 +18,6 @@ import {
   type Model,
   type Types,
 } from "mongoose";
-import {
-  MatchCategory,
-  MatchDivision,
-  MatchPhase,
-  MoveType,
-  Side,
-  EntryType,
-} from "@/entities/record";
-import {
-  lineupSchema,
-  type LineupDocument,
-} from "@/infrastructure/db/mongoose/schemas/team";
 
 interface MatchDocument extends Document {
   _id: Types.ObjectId;
@@ -50,17 +50,17 @@ const matchSchema = new Schema<MatchDocument>({
   number: { type: Number },
   phase: {
     type: Number,
-    enum: MatchPhase,
+    enum: Object.values(MatchPhase).filter((v) => typeof v === "number"),
     default: MatchPhase.NONE,
   },
   division: {
     type: Number,
-    enum: MatchDivision,
+    enum: Object.values(MatchDivision).filter((v) => typeof v === "number"),
     default: MatchDivision.NONE,
   },
   category: {
     type: Number,
-    enum: MatchCategory,
+    enum: Object.values(MatchCategory).filter((v) => typeof v === "number"),
     default: MatchCategory.NONE,
   },
   scoring: {
@@ -230,7 +230,10 @@ interface RallyDetailDocument extends Document {
 
 const rallyDetailSchema = new Schema<RallyDetailDocument>({
   score: { type: Number },
-  type: { type: Number, enum: MoveType },
+  type: {
+    type: Number,
+    enum: Object.values(MoveType).filter((v) => typeof v === "number"),
+  },
   num: { type: Number },
   player: {
     _id: { type: Schema.Types.ObjectId, ref: "Member" },
@@ -251,7 +254,10 @@ const rallySchema = new Schema<RallyDocument>({
 });
 
 const substitutionSchema = new Schema({
-  team: { type: Number, enum: Side },
+  team: {
+    type: Number,
+    enum: Object.values(Side).filter((v) => typeof v === "number"),
+  },
   players: {
     in: { type: Schema.Types.ObjectId, ref: "Member" },
     out: { type: Schema.Types.ObjectId, ref: "Member" },
@@ -259,11 +265,17 @@ const substitutionSchema = new Schema({
 });
 
 const timeoutSchema = new Schema({
-  team: { type: Number, enum: Side },
+  team: {
+    type: Number,
+    enum: Object.values(Side).filter((v) => typeof v === "number"),
+  },
 });
 
 const challengeSchema = new Schema({
-  team: { type: Number, enum: Side },
+  team: {
+    type: Number,
+    enum: Object.values(Side).filter((v) => typeof v === "number"),
+  },
   type: { type: String },
   success: { type: Boolean },
 });
@@ -274,7 +286,10 @@ interface EntryDocument extends Document {
 }
 
 const entrySchema = new Schema<EntryDocument>({
-  type: { type: Number, enum: EntryType },
+  type: {
+    type: Number,
+    enum: Object.values(EntryType).filter((v) => typeof v === "number"),
+  },
   data: { type: Schema.Types.Mixed },
 });
 
@@ -337,7 +352,7 @@ const recordSchema = new Schema<RecordDocument>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 recordSchema.index({ team_id: 1 });

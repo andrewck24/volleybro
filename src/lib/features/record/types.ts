@@ -22,7 +22,7 @@ export const MatchInfoFormSchema = z.object({
   category: z.enum(["0", "1", "2", "3"]).optional(),
   scoring: z.object({
     setCount: z.string(),
-    decidingSetPoints: z.coerce.number(),
+    decidingSetPoints: z.coerce.number().int(),
   }),
   location: z
     .object({

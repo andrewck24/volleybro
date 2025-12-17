@@ -97,6 +97,8 @@ applications/
 │       ├── authentication.service.interface.ts
 │       └── authorization.service.interface.ts
 └── usecases/                   # Business use cases
+    ├── user/                    # User management use cases
+    │   └── profile.usecase.ts   # Profile CRUD operations
     └── record/
         ├── matches.usecase.ts
         ├── rally.usecase.ts
@@ -159,6 +161,8 @@ API controllers that orchestrate use cases:
 ```txt
 interface/
 └── controllers/
+    ├── user/                      # User management controllers
+    │   └── profile.controller.ts  # Profile operations
     └── record/
         ├── match.controller.ts
         ├── rally.controller.ts
