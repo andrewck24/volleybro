@@ -12,6 +12,9 @@ export type { IGetPlayerUseCase } from '@/applications/usecases/player/get-playe
 export type { ICreatePlayerUseCase } from '@/applications/usecases/player/create-player.usecase.interface';
 export type { IUpdateRoleUseCase } from '@/applications/usecases/player/update-role.usecase.interface';
 export type { IUpdatePlayerInfoUseCase } from '@/applications/usecases/player/update-player-info.usecase.interface';
+export type { ILeaveTeamUseCase } from '@/applications/usecases/player/leave-team.usecase.interface';
+export type { ITransferOwnershipUseCase } from '@/applications/usecases/player/transfer-ownership.usecase.interface';
+export type { IRemovePlayerUseCase } from '@/applications/usecases/player/remove-player.usecase.interface';
 
 // Implementations
 export { CreateInvitationUseCase } from '@/applications/usecases/player/create-invitation.usecase';
@@ -23,3 +26,6 @@ export { GetPlayerUseCase } from '@/applications/usecases/player/get-player.usec
 export { CreatePlayerUseCase } from '@/applications/usecases/player/create-player.usecase';
 export { UpdateRoleUseCase } from '@/applications/usecases/player/update-role.usecase';
 export { UpdatePlayerInfoUseCase } from '@/applications/usecases/player/update-player-info.usecase';
+export { LeaveTeamUseCase } from '@/applications/usecases/player/leave-team.usecase';
+export { TransferOwnershipUseCase } from '@/applications/usecases/player/transfer-ownership.usecase';
+export { RemovePlayerUseCase } from '@/applications/usecases/player/remove-player.usecase';

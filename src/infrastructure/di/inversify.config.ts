@@ -47,6 +47,9 @@ import {
   CreatePlayerUseCase,
   UpdateRoleUseCase,
   UpdatePlayerInfoUseCase,
+  LeaveTeamUseCase,
+  TransferOwnershipUseCase,
+  RemovePlayerUseCase,
 } from "@/applications/usecases/player";
 
 const container = new Container();
@@ -134,5 +137,14 @@ container
 container
   .bind<UpdatePlayerInfoUseCase>(TYPES.UpdatePlayerInfoUseCase)
   .to(UpdatePlayerInfoUseCase);
+container
+  .bind<LeaveTeamUseCase>(TYPES.LeaveTeamUseCase)
+  .to(LeaveTeamUseCase);
+container
+  .bind<TransferOwnershipUseCase>(TYPES.TransferOwnershipUseCase)
+  .to(TransferOwnershipUseCase);
+container
+  .bind<RemovePlayerUseCase>(TYPES.RemovePlayerUseCase)
+  .to(RemovePlayerUseCase);
 
 export { container };

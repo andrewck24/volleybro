@@ -38,6 +38,6 @@ export const TYPES = {
   UpdatePlayerInfoUseCase: Symbol.for("UpdatePlayerInfoUseCase"),
   LeaveTeamUseCase: Symbol.for("LeaveTeamUseCase"),
   TransferOwnershipUseCase: Symbol.for("TransferOwnershipUseCase"),
-  DeletePlayerUseCase: Symbol.for("DeletePlayerUseCase"),
+  RemovePlayerUseCase: Symbol.for("RemovePlayerUseCase"),
   CancelInvitationUseCase: Symbol.for("CancelInvitationUseCase"),
 };

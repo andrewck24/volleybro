@@ -242,20 +242,20 @@
 
 ### Tests for User Story 6（TDD - Red Phase）
 
-- [ ] T081 [P] [US6] 撰寫 LeaveTeamUseCase 測試於 src/applications/usecases/player/**tests**/leave-team.usecase.test.ts
-- [ ] T082 [P] [US6] 撰寫 TransferOwnershipUseCase 測試於 src/applications/usecases/player/**tests**/transfer-ownership.usecase.test.ts
-- [ ] T083 [P] [US6] 撰寫 DeletePlayerUseCase 測試於 src/applications/usecases/player/**tests**/delete-player.usecase.test.ts
+- [x] T081 [P] [US6] 撰寫 LeaveTeamUseCase 測試於 src/applications/usecases/player/**tests**/leave-team.usecase.test.ts
+- [x] T082 [P] [US6] 撰寫 TransferOwnershipUseCase 測試於 src/applications/usecases/player/**tests**/transfer-ownership.usecase.test.ts
+- [x] T083 [P] [US6] 撰寫 RemovePlayerUseCase 測試於 src/applications/usecases/player/**tests**/remove-player.usecase.test.ts
 - [ ] T084 [P] [US6] 撰寫 PATCH /api/players/{playerId}/status（leave）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
 - [ ] T085 [P] [US6] 撰寫 DELETE /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
 
 ### Implementation for User Story 6（TDD - Green Phase）
 
-- [ ] T086 [P] [US6] 定義 ILeaveTeamUseCase 介面於 src/applications/usecases/player/leave-team.usecase.interface.ts
-- [ ] T087 [P] [US6] 定義 ITransferOwnershipUseCase 介面於 src/applications/usecases/player/transfer-ownership.usecase.interface.ts
-- [ ] T088 [P] [US6] 定義 IDeletePlayerUseCase 介面於 src/applications/usecases/player/delete-player.usecase.interface.ts
-- [ ] T089 [US6] 實作 LeaveTeamUseCase 於 src/applications/usecases/player/leave-team.usecase.ts
-- [ ] T090 [US6] 實作 TransferOwnershipUseCase 於 src/applications/usecases/player/transfer-ownership.usecase.ts
-- [ ] T091 [US6] 實作 DeletePlayerUseCase（含比賽紀錄檢查）於 src/applications/usecases/player/delete-player.usecase.ts
+- [x] T086 [P] [US6] 定義 ILeaveTeamUseCase 介面於 src/applications/usecases/player/leave-team.usecase.interface.ts
+- [x] T087 [P] [US6] 定義 ITransferOwnershipUseCase 介面於 src/applications/usecases/player/transfer-ownership.usecase.interface.ts
+- [x] T088 [P] [US6] 定義 IRemovePlayerUseCase 介面於 src/applications/usecases/player/remove-player.usecase.interface.ts
+- [x] T089 [US6] 實作 LeaveTeamUseCase 於 src/applications/usecases/player/leave-team.usecase.ts
+- [x] T090 [US6] 實作 TransferOwnershipUseCase 於 src/applications/usecases/player/transfer-ownership.usecase.ts
+- [x] T091 [US6] 實作 RemovePlayerUseCase 於 src/applications/usecases/player/remove-player.usecase.ts
 - [ ] T092 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
 - [ ] T093 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
 - [ ] T094 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
