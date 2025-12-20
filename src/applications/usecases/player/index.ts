@@ -9,6 +9,7 @@ export type { IAcceptInvitationUseCase } from '@/applications/usecases/player/ac
 export type { IRejectInvitationUseCase } from '@/applications/usecases/player/reject-invitation.usecase.interface';
 export type { IGetTeamPlayersUseCase } from '@/applications/usecases/player/get-team-players.usecase.interface';
 export type { IGetPlayerUseCase } from '@/applications/usecases/player/get-player.usecase.interface';
+export type { ICreatePlayerUseCase } from '@/applications/usecases/player/create-player.usecase.interface';
 
 // Implementations
 export { CreateInvitationUseCase } from '@/applications/usecases/player/create-invitation.usecase';
@@ -17,3 +18,4 @@ export { AcceptInvitationUseCase } from '@/applications/usecases/player/accept-i
 export { RejectInvitationUseCase } from '@/applications/usecases/player/reject-invitation.usecase';
 export { GetTeamPlayersUseCase } from '@/applications/usecases/player/get-team-players.usecase';
 export { GetPlayerUseCase } from '@/applications/usecases/player/get-player.usecase';
+export { CreatePlayerUseCase } from '@/applications/usecases/player/create-player.usecase';

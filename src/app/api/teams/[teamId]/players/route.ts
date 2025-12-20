@@ -11,12 +11,14 @@ import { headers } from 'next/headers';
 import {
   ICreateInvitationUseCase,
   IGetTeamPlayersUseCase,
+  ICreatePlayerUseCase,
 } from '@/applications/usecases/player';
 import {
   CreatePlayerSchema,
   PlayerSchema,
 } from '@/lib/validations/player';
 import { ZodError } from 'zod';
+import type { Player } from '@/entities/player';
 
 export async function POST(
   req: NextRequest,
@@ -39,23 +41,31 @@ export async function POST(
     const body = await req.json();
     const validatedData = CreatePlayerSchema.parse(body);
 
-    // Get use case from DI container
-    const createInvitationUseCase = container.get<ICreateInvitationUseCase>(
-      TYPES.CreateInvitationUseCase
+    // If email is provided, create an invitation (US1)
+    // Otherwise, create a pure player (US4)
+    if (validatedData.email) {
+      const createInvitationUseCase = container.get<ICreateInvitationUseCase>(
+        TYPES.CreateInvitationUseCase
+      );
+
+      const playerId = await createInvitationUseCase.execute(
+        teamId,
+        validatedData.email.toLowerCase(),
+        validatedData.role || '',
+        userId
+      );
+
+      return NextResponse.json({ playerId }, { status: 201 });
+    }
+
+    // Create pure player without email
+    const createPlayerUseCase = container.get<ICreatePlayerUseCase>(
+      TYPES.CreatePlayerUseCase
     );
 
-    // Execute use case
-    const playerId = await createInvitationUseCase.execute(
-      teamId,
-      validatedData.email.toLowerCase(),
-      validatedData.role,
-      userId
-    );
+    const player = await createPlayerUseCase.execute(teamId, validatedData, userId);
 
-    return NextResponse.json(
-      { playerId },
-      { status: 201 }
-    );
+    return NextResponse.json(player, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(

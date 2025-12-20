@@ -44,6 +44,7 @@ import {
   RejectInvitationUseCase,
   GetTeamPlayersUseCase,
   GetPlayerUseCase,
+  CreatePlayerUseCase,
 } from "@/applications/usecases/player";
 
 const container = new Container();
@@ -122,5 +123,8 @@ container
 container
   .bind<GetPlayerUseCase>(TYPES.GetPlayerUseCase)
   .to(GetPlayerUseCase);
+container
+  .bind<CreatePlayerUseCase>(TYPES.CreatePlayerUseCase)
+  .to(CreatePlayerUseCase);
 
 export { container };

@@ -191,16 +191,16 @@
 
 ### Tests for User Story 4（TDD - Red Phase）
 
-- [ ] T062 [P] [US4] 撰寫 CreatePlayerUseCase 測試於 src/applications/usecases/player/**tests**/create-player.usecase.test.ts
-- [ ] T063 [P] [US4] 撰寫 POST /api/teams/{teamId}/players（純球員）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
+- [x] T062 [P] [US4] 撰寫 CreatePlayerUseCase 測試於 src/applications/usecases/player/**tests**/create-player.usecase.test.ts
+- [x] T063 [P] [US4] 撰寫 POST /api/teams/{teamId}/players（純球員）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
 
 ### Implementation for User Story 4（TDD - Green Phase）
 
-- [ ] T064 [P] [US4] 定義 ICreatePlayerUseCase 介面於 src/applications/usecases/player/create-player.usecase.interface.ts
-- [ ] T065 [US4] 實作 CreatePlayerUseCase 於 src/applications/usecases/player/create-player.usecase.ts
-- [ ] T066 [US4] 擴充 POST /api/teams/{teamId}/players 支援純球員建立（無 email）於 src/app/api/teams/[teamId]/players/route.ts
-- [ ] T067 [P] [US4] 建立 PlayerForm 元件於 src/components/team/player-form.tsx
-- [ ] T068 [US4] 撰寫 PlayerForm 元件測試於 src/components/team/**tests**/player-form.test.tsx
+- [x] T064 [P] [US4] 定義 ICreatePlayerUseCase 介面於 src/applications/usecases/player/create-player.usecase.interface.ts
+- [x] T065 [US4] 實作 CreatePlayerUseCase 於 src/applications/usecases/player/create-player.usecase.ts
+- [x] T066 [US4] 擴充 POST /api/teams/{teamId}/players 支援純球員建立（無 email）於 src/app/api/teams/[teamId]/players/route.ts
+- [x] T067 [P] [US4] 建立 PlayerForm 元件於 src/components/team/player-form.tsx
+- [x] T068 [US4] 撰寫 PlayerForm 元件測試於 src/components/team/**tests**/player-form.test.tsx
 
 **Checkpoint**: User Story 4 應可獨立測試
 
