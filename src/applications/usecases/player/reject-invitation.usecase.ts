@@ -1,7 +1,7 @@
-import { inject, injectable } from 'inversify';
-import type { IRejectInvitationUseCase } from '@/applications/usecases/player/reject-invitation.usecase.interface';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import { TYPES } from '@/infrastructure/di/types';
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IRejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase.interface";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
 
 /**
  * RejectInvitationUseCase Implementation
@@ -15,18 +15,18 @@ import { TYPES } from '@/infrastructure/di/types';
 export class RejectInvitationUseCase implements IRejectInvitationUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
-    private playerRepository: IPlayerRepository
+    private playerRepository: IPlayerRepository,
   ) {}
 
-  async execute(playerId: string, userId: string): Promise<void> {
+  async execute(playerId: string, _userId: string): Promise<void> {
     const player = await this.playerRepository.findById(playerId);
 
     if (!player) {
-      throw new Error('Player record not found');
+      throw new Error("Player record not found");
     }
 
     if (!player.email) {
-      throw new Error('No invitation found for this player');
+      throw new Error("No invitation found for this player");
     }
 
     // Clear email to convert from INVITED to PURE_PLAYER status

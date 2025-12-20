@@ -1,6 +1,9 @@
-import { Player } from '@/entities/player';
-import { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import { PlayerModel } from '../mongoose/schemas/player';
+import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { Player } from "@/entities/player";
+import {
+  PlayerModel,
+  type PlayerDocument,
+} from "@/infrastructure/db/mongoose/schemas/player";
 
 /**
  * PlayerRepository Implementation
@@ -12,7 +15,7 @@ export class PlayerRepository implements IPlayerRepository {
    * Convert Mongoose document to Player entity
    * Handles ObjectId to string conversion for _id and teamId
    */
-  private toPlayer(doc: any): Player {
+  private toPlayer(doc: PlayerDocument): Player {
     const obj = doc.toObject();
     return {
       ...obj,
@@ -43,14 +46,14 @@ export class PlayerRepository implements IPlayerRepository {
 
   async findInvitedByTeamIdAndEmail(
     teamId: string,
-    email: string
+    email: string,
   ): Promise<Player | null> {
     const doc = await PlayerModel.findOne({ teamId, email }).exec();
     return doc ? this.toPlayer(doc) : null;
   }
 
   async create(
-    player: Omit<Player, '_id' | 'createdAt' | 'updatedAt'>
+    player: Omit<Player, "_id" | "createdAt" | "updatedAt">,
   ): Promise<Player> {
     const newPlayer = await PlayerModel.create(player);
     return this.toPlayer(newPlayer);
@@ -75,7 +78,7 @@ export class PlayerRepository implements IPlayerRepository {
   async findTeamOwner(teamId: string): Promise<Player | null> {
     const doc = await PlayerModel.findOne({
       teamId,
-      role: 'OWNER',
+      role: "OWNER",
     }).exec();
     return doc ? this.toPlayer(doc) : null;
   }
@@ -83,7 +86,7 @@ export class PlayerRepository implements IPlayerRepository {
   async findAdminsByTeamId(teamId: string): Promise<Player[]> {
     const docs = await PlayerModel.find({
       teamId,
-      role: { $in: ['ADMIN', 'OWNER'] },
+      role: { $in: ["ADMIN", "OWNER"] },
     }).exec();
     return docs.map((doc) => this.toPlayer(doc));
   }
@@ -99,7 +102,7 @@ export class PlayerRepository implements IPlayerRepository {
 
   async findByTeamIdAndUserId(
     teamId: string,
-    userId: string
+    userId: string,
   ): Promise<Player | null> {
     const doc = await PlayerModel.findOne({ teamId, userId }).exec();
     return doc ? this.toPlayer(doc) : null;

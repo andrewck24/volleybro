@@ -1,4 +1,11 @@
-import mongoose from 'mongoose';
+import {
+  Schema,
+  model,
+  models,
+  type Document,
+  type Model,
+  type Types,
+} from "mongoose";
 
 /**
  * Mongoose Player Schema
@@ -13,12 +20,19 @@ import mongoose from 'mongoose';
  * - status: Computed from email and userId fields
  */
 
-interface PlayerDocument {
+export interface PlayerDocument extends Document {
+  name: string;
+  number?: number;
+  position?: string;
+  teamId?: Types.ObjectId;
   userId?: string;
   email?: string;
+  role?: "MEMBER" | "ADMIN" | "OWNER";
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const PlayerSchema = new mongoose.Schema(
+const PlayerSchema = new Schema<PlayerDocument>(
   {
     name: {
       type: String,
@@ -33,12 +47,12 @@ const PlayerSchema = new mongoose.Schema(
     },
     position: {
       type: String,
-      enum: ['', 'OH', 'MB', 'OP', 'S', 'L'],
-      default: '',
+      enum: ["", "OH", "MB", "OP", "S", "L"],
+      default: "",
     },
     teamId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Team',
+      type: Schema.Types.ObjectId,
+      ref: "Team",
     },
     userId: {
       type: String, // Better Auth user.id
@@ -50,13 +64,13 @@ const PlayerSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['MEMBER', 'ADMIN', 'OWNER'],
+      enum: ["MEMBER", "ADMIN", "OWNER"],
     },
   },
   {
     timestamps: true,
-    collection: 'players',
-  }
+    collection: "players",
+  },
 );
 
 // Single field indices for common queries
@@ -73,22 +87,24 @@ PlayerSchema.index(
     unique: true,
     sparse: true,
     partialFilterExpression: {
-      email: { $exists: true, $nin: [null, ''] },
+      email: { $exists: true, $nin: [null, ""] },
     },
-  }
+  },
 );
 
 // Composite index for querying members who have joined a team
 PlayerSchema.index({ teamId: 1, userId: 1 });
 
 // Virtual field for status inference
-PlayerSchema.virtual('status').get(function (this: PlayerDocument) {
-  if (this.userId) return 'JOINED';
-  if (this.email) return 'INVITED';
-  return 'PURE_PLAYER';
+PlayerSchema.virtual("status").get(function (this: PlayerDocument) {
+  if (this.userId) return "JOINED";
+  if (this.email) return "INVITED";
+  return "PURE_PLAYER";
 });
 
 // Prevent model overwrite error in development (hot reload)
-export const PlayerModel = mongoose.models.Player || mongoose.model('Player', PlayerSchema);
+export const PlayerModel =
+  (models.Player as Model<PlayerDocument>) ||
+  model<PlayerDocument>("Player", PlayerSchema, "players");
 
 export default PlayerSchema;
