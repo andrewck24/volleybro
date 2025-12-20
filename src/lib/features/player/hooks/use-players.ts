@@ -179,3 +179,101 @@ export const usePlayerDetail = (
     mutate,
   };
 };
+
+/**
+ * T079 [US5] usePlayerMutation - 更新球員角色和資訊的 mutations
+ * 用於更新球員角色和基本資訊（名稱、背號、位置）
+ */
+export const usePlayerMutation = () => {
+  const { mutate } = useSWRConfig();
+
+  const updatePlayerRole = async (playerId: string, role: string) => {
+    try {
+      const response = await fetch(`/api/players/${playerId}/role`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new FetchError(
+          'Failed to update player role',
+          error,
+          response.status
+        );
+      }
+
+      const data = await response.json();
+
+      // 重新驗證相關的 SWR caches
+      mutate((key) => {
+        if (typeof key === 'string') {
+          return (
+            key.includes('/api/players/') ||
+            key.includes('/api/teams/') ||
+            key.includes('/api/users/')
+          );
+        }
+        return false;
+      });
+
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const updatePlayerInfo = async (
+    playerId: string,
+    updates: {
+      name?: string;
+      number?: number;
+      position?: string;
+    }
+  ) => {
+    try {
+      const response = await fetch(`/api/players/${playerId}/info`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new FetchError(
+          'Failed to update player info',
+          error,
+          response.status
+        );
+      }
+
+      const data = await response.json();
+
+      // 重新驗證相關的 SWR caches
+      mutate((key) => {
+        if (typeof key === 'string') {
+          return (
+            key.includes('/api/players/') ||
+            key.includes('/api/teams/') ||
+            key.includes('/api/users/')
+          );
+        }
+        return false;
+      });
+
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  return {
+    updatePlayerRole,
+    updatePlayerInfo,
+  };
+};

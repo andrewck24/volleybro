@@ -214,20 +214,20 @@
 
 ### Tests for User Story 5（TDD - Red Phase）
 
-- [ ] T069 [P] [US5] 撰寫 UpdateRoleUseCase 測試於 src/applications/usecases/player/**tests**/update-role.usecase.test.ts
-- [ ] T070 [P] [US5] 撰寫 UpdatePlayerInfoUseCase 測試於 src/applications/usecases/player/**tests**/update-player-info.usecase.test.ts
-- [ ] T071 [P] [US5] 撰寫 PATCH /api/players/{playerId}/role 集成測試於 src/app/api/players/[playerId]/role/**tests**/route.test.ts
-- [ ] T072 [P] [US5] 撰寫 PATCH /api/players/{playerId}/info 集成測試於 src/app/api/players/[playerId]/info/**tests**/route.test.ts
+- [x] T069 [P] [US5] 撰寫 UpdateRoleUseCase 測試於 src/applications/usecases/player/**tests**/update-role.usecase.test.ts
+- [x] T070 [P] [US5] 撰寫 UpdatePlayerInfoUseCase 測試於 src/applications/usecases/player/**tests**/update-player-info.usecase.test.ts
+- [x] T071 [P] [US5] 撰寫 PATCH /api/players/{playerId}/role 集成測試於 src/app/api/players/[playerId]/role/**tests**/route.test.ts
+- [x] T072 [P] [US5] 撰寫 PATCH /api/players/{playerId}/info 集成測試於 src/app/api/players/[playerId]/info/**tests**/route.test.ts
 
 ### Implementation for User Story 5（TDD - Green Phase）
 
-- [ ] T073 [P] [US5] 定義 IUpdateRoleUseCase 介面於 src/applications/usecases/player/update-role.usecase.interface.ts
-- [ ] T074 [P] [US5] 定義 IUpdatePlayerInfoUseCase 介面於 src/applications/usecases/player/update-player-info.usecase.interface.ts
-- [ ] T075 [US5] 實作 UpdateRoleUseCase 於 src/applications/usecases/player/update-role.usecase.ts
-- [ ] T076 [US5] 實作 UpdatePlayerInfoUseCase 於 src/applications/usecases/player/update-player-info.usecase.ts
-- [ ] T077 [US5] 實作 PATCH /api/players/{playerId}/role 於 src/app/api/players/[playerId]/role/route.ts
-- [ ] T078 [US5] 實作 PATCH /api/players/{playerId}/info 於 src/app/api/players/[playerId]/info/route.ts
-- [ ] T079 [P] [US5] 建立 usePlayerMutation hooks（updateRole, updateInfo）於 src/lib/features/player/hooks/use-players.ts
+- [x] T073 [P] [US5] 定義 IUpdateRoleUseCase 介面於 src/applications/usecases/player/update-role.usecase.interface.ts
+- [x] T074 [P] [US5] 定義 IUpdatePlayerInfoUseCase 介面於 src/applications/usecases/player/update-player-info.usecase.interface.ts
+- [x] T075 [US5] 實作 UpdateRoleUseCase 於 src/applications/usecases/player/update-role.usecase.ts
+- [x] T076 [US5] 實作 UpdatePlayerInfoUseCase 於 src/applications/usecases/player/update-player-info.usecase.ts
+- [x] T077 [US5] 實作 PATCH /api/players/{playerId}/role 於 src/app/api/players/[playerId]/role/route.ts
+- [x] T078 [US5] 實作 PATCH /api/players/{playerId}/info 於 src/app/api/players/[playerId]/info/route.ts
+- [x] T079 [P] [US5] 建立 usePlayerMutation hooks（updateRole, updateInfo）於 src/lib/features/player/hooks/use-players.ts
 - [ ] T080 [P] [US5] 擴充 PlayerCard 元件支援角色與資訊編輯於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 5 應可獨立測試

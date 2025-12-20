@@ -45,6 +45,8 @@ import {
   GetTeamPlayersUseCase,
   GetPlayerUseCase,
   CreatePlayerUseCase,
+  UpdateRoleUseCase,
+  UpdatePlayerInfoUseCase,
 } from "@/applications/usecases/player";
 
 const container = new Container();
@@ -126,5 +128,11 @@ container
 container
   .bind<CreatePlayerUseCase>(TYPES.CreatePlayerUseCase)
   .to(CreatePlayerUseCase);
+container
+  .bind<UpdateRoleUseCase>(TYPES.UpdateRoleUseCase)
+  .to(UpdateRoleUseCase);
+container
+  .bind<UpdatePlayerInfoUseCase>(TYPES.UpdatePlayerInfoUseCase)
+  .to(UpdatePlayerInfoUseCase);
 
 export { container };
