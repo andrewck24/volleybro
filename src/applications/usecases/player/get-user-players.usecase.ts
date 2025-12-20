@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
-import { IGetUserPlayersUseCase } from './get-user-players.usecase.interface';
-import { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
+import type { IGetUserPlayersUseCase } from '@/applications/usecases/player/get-user-players.usecase.interface';
+import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import { TYPES } from '@/infrastructure/di/types';
 import { Player } from '@/entities/player';
 

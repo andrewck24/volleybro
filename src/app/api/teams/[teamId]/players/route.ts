@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/infrastructure/di/inversify.config';
 import { TYPES } from '@/infrastructure/di/types';
-import { getSession } from '@/lib/auth-client';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 import {
   ICreateInvitationUseCase,
   IGetTeamPlayersUseCase,
@@ -19,11 +20,11 @@ import { ZodError } from 'zod';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     // Verify authentication
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -32,7 +33,7 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     // Parse and validate request body
     const body = await req.json();
@@ -58,7 +59,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
@@ -96,11 +97,11 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     // Verify authentication
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -108,7 +109,7 @@ export async function GET(
       );
     }
 
-    const teamId = params.teamId;
+    const { teamId } = await params;
 
     // Get use case from DI container
     const getTeamPlayersUseCase = container.get<IGetTeamPlayersUseCase>(
@@ -128,7 +129,7 @@ export async function GET(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid response data', details: error.errors },
+        { error: 'Invalid response data', details: error.issues },
         { status: 500 }
       );
     }

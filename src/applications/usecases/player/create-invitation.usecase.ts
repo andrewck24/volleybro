@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
-import { ICreateInvitationUseCase } from './create-invitation.usecase.interface';
-import { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
+import type { ICreateInvitationUseCase } from '@/applications/usecases/player/create-invitation.usecase.interface';
+import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
+import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import { TYPES } from '@/infrastructure/di/types';
 import { PlayerRole } from '@/entities/player';
 

@@ -5,18 +5,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/infrastructure/di/inversify.config';
 import { TYPES } from '@/infrastructure/di/types';
-import { getSession } from '@/lib/auth-client';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 import { IGetUserPlayersUseCase } from '@/applications/usecases/player';
 import { PlayerSchema } from '@/lib/validations/player';
 import { ZodError } from 'zod';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     // Verify authentication
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -25,7 +26,7 @@ export async function GET(
     }
 
     const requestingUserId = session.user.id;
-    const targetUserId = params.userId;
+    const { userId: targetUserId } = await params;
 
     // Verify user can only access their own players
     if (requestingUserId !== targetUserId) {
@@ -53,7 +54,7 @@ export async function GET(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid response data', details: error.errors },
+        { error: 'Invalid response data', details: error.issues },
         { status: 500 }
       );
     }

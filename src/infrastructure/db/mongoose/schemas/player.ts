@@ -13,6 +13,11 @@ import mongoose from 'mongoose';
  * - status: Computed from email and userId fields
  */
 
+interface PlayerDocument {
+  userId?: string;
+  email?: string;
+}
+
 const PlayerSchema = new mongoose.Schema(
   {
     name: {
@@ -68,7 +73,7 @@ PlayerSchema.index(
     unique: true,
     sparse: true,
     partialFilterExpression: {
-      email: { $exists: true, $ne: null, $ne: '' },
+      email: { $exists: true, $nin: [null, ''] },
     },
   }
 );
@@ -77,12 +82,13 @@ PlayerSchema.index(
 PlayerSchema.index({ teamId: 1, userId: 1 });
 
 // Virtual field for status inference
-PlayerSchema.virtual('status').get(function (this: any) {
+PlayerSchema.virtual('status').get(function (this: PlayerDocument) {
   if (this.userId) return 'JOINED';
   if (this.email) return 'INVITED';
   return 'PURE_PLAYER';
 });
 
-export const PlayerModel = mongoose.model('Player', PlayerSchema);
+// Prevent model overwrite error in development (hot reload)
+export const PlayerModel = mongoose.models.Player || mongoose.model('Player', PlayerSchema);
 
 export default PlayerSchema;

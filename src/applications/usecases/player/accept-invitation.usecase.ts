@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
-import { IAcceptInvitationUseCase } from './accept-invitation.usecase.interface';
-import { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
+import type { IAcceptInvitationUseCase } from '@/applications/usecases/player/accept-invitation.usecase.interface';
+import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import { TYPES } from '@/infrastructure/di/types';
 import { PlayerStatus } from '@/entities/player';
 

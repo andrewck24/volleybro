@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import {
   PlayerSchema,
   CreatePlayerSchema,
@@ -171,7 +170,9 @@ describe('Player Validation Schemas', () => {
 
         const result = UpdatePlayerStatusSchema.parse(input);
         expect(result.action).toBe('invite');
-        expect(result.email).toBe('newmember@example.com');
+        if (result.action === 'invite') {
+          expect(result.email).toBe('newmember@example.com');
+        }
       });
 
       it('should reject invalid email', () => {
@@ -211,7 +212,7 @@ describe('Player Validation Schemas', () => {
         // Should either strip or throw - Zod by default strips unknown properties
         const result = UpdatePlayerStatusSchema.parse(input);
         expect(result.action).toBe('cancel');
-        expect((result as any).extra).toBeUndefined();
+        expect('extra' in result).toBe(false);
       });
     });
 

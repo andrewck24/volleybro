@@ -71,7 +71,16 @@ describe('Players GET API Route', () => {
     });
 
     it('should handle pure player (no email, no userId)', () => {
-      const player = {
+      const player: {
+        _id: string;
+        name: string;
+        number: number;
+        position: string;
+        teamId: string;
+        role: string;
+        email?: string;
+        userId?: string;
+      } = {
         _id: 'player-3',
         name: 'Opponent',
         number: 7,

@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { container } from '@/infrastructure/di/inversify.config';
 import { TYPES } from '@/infrastructure/di/types';
-import { getSession } from '@/lib/auth-client';
+import { auth } from '@/lib/auth';
+import { headers } from 'next/headers';
 import {
   IAcceptInvitationUseCase,
   IRejectInvitationUseCase,
@@ -16,11 +17,11 @@ import { ZodError } from 'zod';
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { playerId: string } }
+  { params }: { params: Promise<{ playerId: string }> }
 ) {
   try {
     // Verify authentication
-    const session = await getSession();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -29,7 +30,7 @@ export async function PATCH(
     }
 
     const userId = session.user.id;
-    const playerId = params.playerId;
+    const { playerId } = await params;
 
     // Parse and validate request body
     const body = await req.json();
@@ -86,7 +87,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
     }
