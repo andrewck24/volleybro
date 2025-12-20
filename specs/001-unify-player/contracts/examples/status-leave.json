@@ -1,0 +1,4 @@
+{
+  "$schema": "../schemas.json#/definitions/UpdatePlayerStatusRequest",
+  "action": "leave"
+}

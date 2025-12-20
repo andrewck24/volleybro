@@ -210,3 +210,12 @@ src/
 - `AUTH_GOOGLE_ID` - Google OAuth client ID
 - `AUTH_GOOGLE_SECRET` - Google OAuth client secret
 - `MONGODB_URI` - MongoDB connection string
+
+## Active Technologies
+
+- TypeScript 5.x, Node.js 20+, React 19 + Next.js 15+, Mongoose ODM, Better Auth, Redux Toolkit, SWR, Zod, InversifyJS (001-unify-player)
+- MongoDB (Atlas) (001-unify-player)
+
+## Recent Changes
+
+- 001-unify-player: Added TypeScript 5.x, Node.js 20+, React 19 + Next.js 15+, Mongoose ODM, Better Auth, Redux Toolkit, SWR, Zod, InversifyJS
