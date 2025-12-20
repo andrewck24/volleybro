@@ -6,6 +6,7 @@ import { IUserRepository } from "@/applications/repositories/user.repository.int
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 
@@ -13,6 +14,7 @@ import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
 import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
+import { PlayerRepository } from "@/infrastructure/db/repositories/player.repository";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
@@ -47,6 +49,9 @@ container
 container
   .bind<IProfileRepository>(TYPES.ProfileRepository)
   .to(ProfileRepositoryImpl);
+container
+  .bind<IPlayerRepository>(TYPES.PlayerRepository)
+  .to(PlayerRepository);
 
 // register services
 container

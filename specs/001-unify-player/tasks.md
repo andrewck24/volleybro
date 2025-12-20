@@ -65,13 +65,13 @@
 
 ### Authorization Service Update
 
-- [ ] T013 擴充 IAuthorizationService 介面，新增 Player 相關權限驗證方法於 src/applications/services/auth/authorization.service.interface.ts
-- [ ] T014 更新 AuthorizationService 實作，改用 PlayerRepository 查詢角色於 src/infrastructure/services/auth/authorization.service.ts
-- [ ] T015 撰寫 AuthorizationService 權限驗證測試於 src/infrastructure/services/auth/**tests**/authorization.service.test.ts（Red-Green-Refactor）
+- [x] T013 擴充 IAuthorizationService 介面，新增 Player 相關權限驗證方法於 src/applications/services/auth/authorization.service.interface.ts
+- [x] T014 更新 AuthorizationService 實作，改用 PlayerRepository 查詢角色於 src/infrastructure/services/auth/authorization.service.ts
+- [x] T015 撰寫 AuthorizationService 權限驗證測試於 src/infrastructure/services/auth/**tests**/authorization.service.test.ts（Red-Green-Refactor）
 
 ### Dependency Injection
 
-- [ ] T016 註冊 PlayerRepository 與相關 Use Cases 至 DI Container 於 src/infrastructure/di/container.ts
+- [x] T016 註冊 PlayerRepository 與相關 Use Cases 至 DI Container 於 src/infrastructure/di/container.ts
 
 **Checkpoint**: 基礎設施完成 - User Story 實作可開始平行進行
 
