@@ -47,21 +47,21 @@
 
 ### Entity & Validation Layer
 
-- [ ] T004 [P] 建立 Player Entity 與狀態推斷函式於 src/entities/player.ts
-- [ ] T005 [P] 撰寫 Player Entity 單元測試於 src/entities/**tests**/player.test.ts（Red-Green-Refactor）
-- [ ] T006 [P] 建立 Zod 驗證 Schema 於 src/lib/validations/player.ts
-- [ ] T007 [P] 撰寫 Zod 驗證測試於 src/lib/validations/**tests**/player.test.ts（Red-Green-Refactor）
+- [x] T004 [P] 建立 Player Entity 與狀態推斷函式於 src/entities/player.ts
+- [x] T005 [P] 撰寫 Player Entity 單元測試於 src/entities/**tests**/player.test.ts（Red-Green-Refactor）
+- [x] T006 [P] 建立 Zod 驗證 Schema 於 src/lib/validations/player.ts
+- [x] T007 [P] 撰寫 Zod 驗證測試於 src/lib/validations/**tests**/player.test.ts（Red-Green-Refactor）
 
 ### Database Layer
 
-- [ ] T008 建立 Mongoose Player Schema 於 src/infrastructure/db/mongoose/schemas/player.ts（包含索引定義）
-- [ ] T009 撰寫 Mongoose Schema 驗證測試於 src/infrastructure/db/mongoose/schemas/**tests**/player.test.ts（Red-Green-Refactor）
+- [x] T008 建立 Mongoose Player Schema 於 src/infrastructure/db/mongoose/schemas/player.ts（包含索引定義）
+- [x] T009 撰寫 Mongoose Schema 驗證測試於 src/infrastructure/db/mongoose/schemas/**tests**/player.test.ts（Red-Green-Refactor）
 
 ### Repository Layer
 
-- [ ] T010 定義 IPlayerRepository 介面於 src/applications/repositories/player.repository.interface.ts
-- [ ] T011 實作 PlayerRepository 於 src/infrastructure/db/repositories/player.repository.ts
-- [ ] T012 撰寫 PlayerRepository 單元測試於 src/infrastructure/db/repositories/**tests**/player.repository.test.ts（Red-Green-Refactor）
+- [x] T010 定義 IPlayerRepository 介面於 src/applications/repositories/player.repository.interface.ts
+- [x] T011 實作 PlayerRepository 於 src/infrastructure/db/repositories/player.repository.ts
+- [x] T012 撰寫 PlayerRepository 單元測試於 src/infrastructure/db/repositories/**tests**/player.repository.test.ts（Red-Green-Refactor）
 
 ### Authorization Service Update
 
