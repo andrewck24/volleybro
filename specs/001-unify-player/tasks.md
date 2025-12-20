@@ -174,10 +174,10 @@
 
 ### Security & Performance Fixes
 
-- [ ] T058 [P] Fix email validation in CreateInvitationUseCase - use Zod schema validation instead of basic string check (防止 email injection 攻擊) 於 src/applications/usecases/player/create-invitation.usecase.ts
-- [ ] T059 [P] Add owner-only protection for OWNER role assignment in CreateInvitationUseCase (防止非 OWNER 分配 OWNER 角色) 於 src/applications/usecases/player/create-invitation.usecase.ts
-- [ ] T060 [P] Add missing database indexes to PlayerSchema (teamId+userId, teamId+email, teamId+role) 於 src/infrastructure/db/mongoose/schemas/player.ts
-- [ ] T061 [P] Replace existsInvitation() call with findInvitedByTeamIdAndEmail() in CreateInvitationUseCase (消除重複查詢邏輯) 於 src/applications/usecases/player/create-invitation.usecase.ts
+- [x] T058 [P] Fix email validation in CreateInvitationUseCase - use Zod schema validation instead of basic string check (防止 email injection 攻擊) 於 src/applications/usecases/player/create-invitation.usecase.ts
+- [x] T059 [P] Add owner-only protection for OWNER role assignment in CreateInvitationUseCase (防止非 OWNER 分配 OWNER 角色) 於 src/applications/usecases/player/create-invitation.usecase.ts
+- [x] T060 [P] Add missing database indexes to PlayerSchema (teamId+userId, teamId+email, teamId+role) 於 src/infrastructure/db/mongoose/schemas/player.ts
+- [x] T061 [P] Replace existsInvitation() call with findInvitedByTeamIdAndEmail() in CreateInvitationUseCase (消除重複查詢邏輯) 於 src/applications/usecases/player/create-invitation.usecase.ts
 
 **Checkpoint**: 所有 MVP critical issues 已修復，可安心進入 Phase 6
 
