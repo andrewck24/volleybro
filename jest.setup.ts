@@ -169,8 +169,15 @@ jest.mock("mongoose", () => {
     plugin: jest.fn(),
     pre: jest.fn(),
     post: jest.fn(),
+    virtual: jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnThis(),
+      set: jest.fn().mockReturnThis(),
+    }),
+    virtualpath: jest.fn(),
+    virtuals: {},
     methods: {},
     statics: {},
+    getIndexes: jest.fn().mockReturnValue([]),
   }));
 
   // Add Types to the Schema constructor function
@@ -195,6 +202,9 @@ jest.mock("mongoose", () => {
     findByIdAndDelete: jest
       .fn()
       .mockReturnValue({ exec: jest.fn().mockResolvedValue({}) }),
+    countDocuments: jest
+      .fn()
+      .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
   };
 
   return {

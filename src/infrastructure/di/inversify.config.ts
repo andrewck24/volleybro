@@ -6,6 +6,7 @@ import { IUserRepository } from "@/applications/repositories/user.repository.int
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 
@@ -13,6 +14,7 @@ import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
 import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
+import { PlayerRepository } from "@/infrastructure/db/repositories/player.repository";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
@@ -35,6 +37,14 @@ import {
   UpdateRallyUseCase,
 } from "@/applications/usecases/record/rally.usecase";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/record/substitution.usecase";
+import {
+  CreateInvitationUseCase,
+  GetUserPlayersUseCase,
+  AcceptInvitationUseCase,
+  RejectInvitationUseCase,
+  GetTeamPlayersUseCase,
+  GetPlayerUseCase,
+} from "@/applications/usecases/player";
 
 const container = new Container();
 
@@ -47,6 +57,9 @@ container
 container
   .bind<IProfileRepository>(TYPES.ProfileRepository)
   .to(ProfileRepositoryImpl);
+container
+  .bind<IPlayerRepository>(TYPES.PlayerRepository)
+  .to(PlayerRepository);
 
 // register services
 container
@@ -89,5 +102,25 @@ container
 container
   .bind<CreateSubstitutionUseCase>(TYPES.CreateSubstitutionUseCase)
   .to(CreateSubstitutionUseCase);
+
+// player usecases
+container
+  .bind<CreateInvitationUseCase>(TYPES.CreateInvitationUseCase)
+  .to(CreateInvitationUseCase);
+container
+  .bind<GetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
+  .to(GetUserPlayersUseCase);
+container
+  .bind<AcceptInvitationUseCase>(TYPES.AcceptInvitationUseCase)
+  .to(AcceptInvitationUseCase);
+container
+  .bind<RejectInvitationUseCase>(TYPES.RejectInvitationUseCase)
+  .to(RejectInvitationUseCase);
+container
+  .bind<GetTeamPlayersUseCase>(TYPES.GetTeamPlayersUseCase)
+  .to(GetTeamPlayersUseCase);
+container
+  .bind<GetPlayerUseCase>(TYPES.GetPlayerUseCase)
+  .to(GetPlayerUseCase);
 
 export { container };

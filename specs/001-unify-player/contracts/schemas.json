@@ -1,0 +1,324 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://volleybro.app/schemas/player/v1",
+  "title": "Player API Schemas",
+  "description": "JSON Schema definitions for Player API request/response validation",
+  "definitions": {
+    "PlayerRole": {
+      "type": "string",
+      "enum": ["MEMBER", "ADMIN", "OWNER"],
+      "description": "球員角色"
+    },
+    "Position": {
+      "type": "string",
+      "enum": ["", "OH", "MB", "OP", "S", "L"],
+      "description": "球員位置"
+    },
+    "PlayerStatus": {
+      "type": "string",
+      "enum": ["INVITED", "JOINED", "PURE_PLAYER"],
+      "description": "球員狀態（computed from email/userId）"
+    },
+    "ObjectId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{24}$",
+      "description": "MongoDB ObjectId"
+    },
+    "Player": {
+      "type": "object",
+      "required": ["_id", "name", "createdAt", "updatedAt"],
+      "properties": {
+        "_id": {
+          "$ref": "#/definitions/ObjectId",
+          "description": "球員唯一識別碼"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "球員姓名"
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99,
+          "description": "球衣號碼"
+        },
+        "position": {
+          "$ref": "#/definitions/Position",
+          "description": "球員位置"
+        },
+        "teamId": {
+          "$ref": "#/definitions/ObjectId",
+          "description": "所屬隊伍 ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "關聯的使用者 ID（JOINED 狀態時存在）"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "邀請用 Email（INVITED 狀態時存在）"
+        },
+        "role": {
+          "$ref": "#/definitions/PlayerRole",
+          "description": "球員角色"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "建立時間"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "最後更新時間"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CreatePlayerRequest": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "球員姓名"
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99,
+          "description": "球衣號碼"
+        },
+        "position": {
+          "$ref": "#/definitions/Position",
+          "description": "球員位置"
+        },
+        "role": {
+          "$ref": "#/definitions/PlayerRole",
+          "default": "MEMBER",
+          "description": "球員角色（預設 MEMBER）"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "邀請用 Email（有提供則建立 INVITED 狀態）"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpdatePlayerInfoRequest": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "球員姓名"
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99,
+          "description": "球衣號碼"
+        },
+        "position": {
+          "$ref": "#/definitions/Position",
+          "description": "球員位置"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpdatePlayerRoleRequest": {
+      "type": "object",
+      "required": ["role"],
+      "properties": {
+        "role": {
+          "$ref": "#/definitions/PlayerRole",
+          "description": "新角色"
+        }
+      },
+      "additionalProperties": false
+    },
+    "UpdatePlayerStatusRequest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["action", "email"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "invite"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "accept"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "reject"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "cancel"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "const": "leave"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GetTeamPlayersResponse": {
+      "type": "object",
+      "required": ["players", "total"],
+      "properties": {
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Player"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "總球員數"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TeamSummary": {
+      "type": "object",
+      "required": ["_id", "name"],
+      "properties": {
+        "_id": {
+          "$ref": "#/definitions/ObjectId"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PlayerWithTeam": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/Player"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "team": {
+              "$ref": "#/definitions/TeamSummary"
+            }
+          }
+        }
+      ]
+    },
+    "GetUserPlayersResponse": {
+      "type": "object",
+      "required": ["players", "joined", "invited"],
+      "properties": {
+        "players": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PlayerWithTeam"
+          }
+        },
+        "joined": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "已加入的隊伍數"
+        },
+        "invited": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "待處理的邀請數"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Error": {
+      "type": "object",
+      "required": ["error", "message"],
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "錯誤代碼"
+        },
+        "message": {
+          "type": "string",
+          "description": "錯誤訊息"
+        },
+        "details": {
+          "type": "object",
+          "description": "詳細錯誤資訊",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ValidationErrorDetails": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "姓名驗證錯誤訊息"
+        },
+        "number": {
+          "type": "string",
+          "description": "號碼驗證錯誤訊息"
+        },
+        "position": {
+          "type": "string",
+          "description": "位置驗證錯誤訊息"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email 驗證錯誤訊息"
+        },
+        "role": {
+          "type": "string",
+          "description": "角色驗證錯誤訊息"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

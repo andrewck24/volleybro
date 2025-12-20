@@ -1,0 +1,6 @@
+{
+  "$schema": "../schemas.json#/definitions/CreatePlayerRequest",
+  "name": "陳球員",
+  "number": 5,
+  "position": "MB"
+}
