@@ -129,9 +129,9 @@
 - [x] T037 [US2] 實作 AcceptInvitationUseCase 於 src/applications/usecases/player/accept-invitation.usecase.ts
 - [x] T038 [US2] 實作 RejectInvitationUseCase 於 src/applications/usecases/player/reject-invitation.usecase.ts
 - [x] T039 [US2] 實作 PATCH /api/players/{playerId}/status（含 accept/reject actions）於 src/app/api/players/[playerId]/status/route.ts
-- [ ] T040 [P] [US2] 建立 usePlayerStatusMutation hook 於 src/lib/features/player/hooks/use-players.ts
-- [ ] T041 [P] [US2] 建立 InvitationList 元件於 src/components/team/invitation-list.tsx（顯示待處理邀請）
-- [ ] T042 [US2] 撰寫 InvitationList 元件測試於 src/components/team/**tests**/invitation-list.test.tsx
+- [x] T040 [P] [US2] 建立 usePlayerStatusMutation hook 於 src/lib/features/player/hooks/use-players.ts
+- [x] T041 [P] [US2] 建立 InvitationList 元件於 src/components/team/invitation-list.tsx（顯示待處理邀請）
+- [x] T042 [US2] 撰寫 InvitationList 元件測試於 src/components/team/**tests**/invitation-list.test.tsx
 
 **Checkpoint**: User Story 1 與 2 應同時正常運作且可獨立測試
 
