@@ -1,3 +1,48 @@
+# [0.10.0](https://github.com/andrewck24/volleybro/compare/v0.9.0...v0.10.0) (2025-12-20)
+
+
+### Features
+
+* **auth:** add layered validation to Profile API ([c66ef5d](https://github.com/andrewck24/volleybro/commit/c66ef5d66f758a239c03caaf2fe36035f701dd23))
+* **auth:** implement Clean Architecture profile auto-creation ([b23f02e](https://github.com/andrewck24/volleybro/commit/b23f02e8e2a828a96c0f3c6ff6943d52c02579c1))
+* **auth:** migrate from NextAuth.js to Better Auth ([915c999](https://github.com/andrewck24/volleybro/commit/915c99912d7c94fe4866cb34f993ec5f5224492f))
+* **auth:** update environment variable for Better Auth client URL ([206efab](https://github.com/andrewck24/volleybro/commit/206efabbcf2f4ba810848f8ca50897ec3d628e62))
+
+
+### BREAKING CHANGES
+
+* **auth:** Authentication system migrated from NextAuth.js v5 to Better Auth
+
+- Implement Better Auth with Google OAuth
+  - Add Better Auth server config (src/lib/auth.ts)
+  - Add Better Auth client (src/lib/auth-client.ts)
+  - Configure MongoDB adapter for Better Auth
+  - Add auth API route handler ([...all]/route.ts)
+
+- Separate User and Profile entities
+  - User: Authentication data (Better Auth managed)
+  - Profile: Business data (teams, preferences)
+  - Add Profile repository and schema
+  - Auto-create profile on first access
+
+- Update all API routes to use Better Auth session
+  - Replace auth() with auth.api.getSession()
+  - Standardize session checks (session?.user)
+  - Implement email-based team inviting with User lookup
+
+- Update components for Better Auth
+  - Use authClient for sign-in flow
+  - Add error handling to Home component
+  - Remove SessionProvider wrapper
+
+- Documentation and migration
+  - Update CLAUDE.md with Better Auth flow
+  - Archive migration script with documentation
+  - Add migration guide in docs/archive/migrations/
+
+Tests passing. Build has pre-existing TypeScript error in info-form.tsx
+(unrelated to this migration, tracked for future fix).
+
 # [0.9.0](https://github.com/andrewck24/volleybro/compare/v0.8.2...v0.9.0) (2025-08-25)
 
 
