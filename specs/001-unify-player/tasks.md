@@ -33,9 +33,9 @@
 
 **目的**：建立專案基礎結構與開發環境
 
-- [ ] T001 建立 Player 相關目錄結構（src/entities/, src/applications/usecases/player/, src/infrastructure/db/repositories/, src/app/api/players/）
-- [ ] T002 [P] 註冊 DI 容器類型定義至 src/infrastructure/di/types.ts
-- [ ] T003 [P] 準備測試環境設定（jest.setup.ts 已配置，確認 MongoDB mock 正常運作）
+- [x] T001 建立 Player 相關目錄結構（src/entities/, src/applications/usecases/player/, src/infrastructure/db/repositories/, src/app/api/players/）
+- [x] T002 [P] 註冊 DI 容器類型定義至 src/infrastructure/di/types.ts
+- [x] T003 [P] 準備測試環境設定（jest.setup.ts 已配置，確認 MongoDB mock 正常運作）
 
 ---
 

@@ -4,6 +4,7 @@ export const TYPES = {
   TeamRepository: Symbol.for("TeamRepository"),
   RecordRepository: Symbol.for("RecordRepository"),
   ProfileRepository: Symbol.for("ProfileRepository"),
+  PlayerRepository: Symbol.for("PlayerRepository"),
 
   // services
   AuthenticationService: Symbol.for("AuthenticationService"),
@@ -24,4 +25,19 @@ export const TYPES = {
   CreateRallyUseCase: Symbol.for("CreateRallyUseCase"),
   UpdateRallyUseCase: Symbol.for("UpdateRallyUseCase"),
   CreateSubstitutionUseCase: Symbol.for("CreateSubstitutionUseCase"),
+
+  // player usecases
+  CreateInvitationUseCase: Symbol.for("CreateInvitationUseCase"),
+  GetUserPlayersUseCase: Symbol.for("GetUserPlayersUseCase"),
+  AcceptInvitationUseCase: Symbol.for("AcceptInvitationUseCase"),
+  RejectInvitationUseCase: Symbol.for("RejectInvitationUseCase"),
+  GetTeamPlayersUseCase: Symbol.for("GetTeamPlayersUseCase"),
+  GetPlayerUseCase: Symbol.for("GetPlayerUseCase"),
+  CreatePlayerUseCase: Symbol.for("CreatePlayerUseCase"),
+  UpdateRoleUseCase: Symbol.for("UpdateRoleUseCase"),
+  UpdatePlayerInfoUseCase: Symbol.for("UpdatePlayerInfoUseCase"),
+  LeaveTeamUseCase: Symbol.for("LeaveTeamUseCase"),
+  TransferOwnershipUseCase: Symbol.for("TransferOwnershipUseCase"),
+  DeletePlayerUseCase: Symbol.for("DeletePlayerUseCase"),
+  CancelInvitationUseCase: Symbol.for("CancelInvitationUseCase"),
 };
