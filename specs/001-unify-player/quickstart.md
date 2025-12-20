@@ -10,7 +10,7 @@
 
 本功能採用**分層漸進式開發**，遵循 Clean Architecture 由內而外的實作順序：
 
-```
+```text
 Phase 2: Entity & Schema (1 天)
   ↓
 Phase 3: Repository & Use Cases (2-3 天)
@@ -254,6 +254,7 @@ describe('Player Schema', () => {
 ### 3.1 實作 PlayerRepository
 
 **檔案**:
+
 - `src/applications/repositories/player.repository.interface.ts`
 - `src/infrastructure/db/repositories/player.repository.ts`
 
@@ -452,6 +453,7 @@ export class PlayerRepository implements IPlayerRepository {
 #### 範例: GetTeamPlayersUseCase
 
 **檔案**:
+
 - `src/applications/usecases/player/get-team-players.usecase.interface.ts`
 - `src/applications/usecases/player/get-team-players.usecase.ts`
 
@@ -736,6 +738,7 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
 **重複此流程**: 完成所有變更類 use cases
 
 **Checkpoint**:
+
 - `npm test` 確保所有 use case 測試通過
 - `npm run lint` 無錯誤
 - Code coverage 應達 80% 以上
@@ -913,6 +916,7 @@ export async function DELETE(
 ### 4.2 實作 Sub-resource Routes
 
 **檔案**:
+
 - `src/app/api/players/[playerId]/info/route.ts`
 - `src/app/api/players/[playerId]/role/route.ts`
 - `src/app/api/players/[playerId]/status/route.ts`
@@ -977,6 +981,7 @@ export async function PATCH(
 **重複此流程**: 完成所有 API routes
 
 **Checkpoint**:
+
 - 使用 Postman Collection 測試所有端點
 - `npm test -- api/` 確保所有 API 測試通過
 
@@ -1203,6 +1208,7 @@ describe('PlayerCard', () => {
 **重複此流程**: 完成所有 UI components
 
 **Checkpoint**:
+
 - `npm test -- components/team/` 確保元件測試通過
 - `npm run storybook` 檢視元件視覺呈現
 
@@ -1432,6 +1438,7 @@ EOF
 **症狀**: `E11000 duplicate key error`
 
 **解決**:
+
 ```bash
 # 刪除舊索引
 db.players.dropIndexes()

@@ -327,20 +327,20 @@ role: 維持         ┌────────────────┐
 
 ### 狀態定義
 
-| 狀態        | email | userId | role    | 說明             |
-| ----------- | ----- | ------ | ------- | ---------------- |
-| INVITED     | ✓     | ✗      | 已設定  | 待接受的邀請     |
-| JOINED      | ✓     | ✓      | 已設定  | 已加入的成員     |
-| PURE_PLAYER | ✗     | ✗      | 可選    | 純球員（無帳號） |
+| 狀態        | email | userId | role   | 說明             |
+| ----------- | ----- | ------ | ------ | ---------------- |
+| INVITED     | ✓     | ✗      | 已設定 | 待接受的邀請     |
+| JOINED      | ✓     | ✓      | 已設定 | 已加入的成員     |
+| PURE_PLAYER | ✗     | ✗      | 可選   | 純球員（無帳號） |
 
 ### 狀態轉換操作
 
-| 操作   | 起始狀態    | 目標狀態    | 欄位變更                 | 權限要求       |
-| ------ | ----------- | ----------- | ------------------------ | -------------- |
-| invite | PURE_PLAYER | INVITED     | 設定 email, role         | ADMIN+         |
-| accept | INVITED     | JOINED      | 設定 userId              | 被邀請者       |
-| reject | INVITED     | PURE_PLAYER | 清空 email               | 被邀請者       |
-| cancel | INVITED     | PURE_PLAYER | 清空 email               | ADMIN+         |
+| 操作   | 起始狀態    | 目標狀態    | 欄位變更                  | 權限要求         |
+| ------ | ----------- | ----------- | ------------------------- | ---------------- |
+| invite | PURE_PLAYER | INVITED     | 設定 email, role          | ADMIN+           |
+| accept | INVITED     | JOINED      | 設定 userId               | 被邀請者         |
+| reject | INVITED     | PURE_PLAYER | 清空 email                | 被邀請者         |
+| cancel | INVITED     | PURE_PLAYER | 清空 email                | ADMIN+           |
 | leave  | JOINED      | PURE_PLAYER | 清空 userId（保留 email） | 成員本人或 OWNER |
 
 **注意**：`role` 欄位獨立於成員狀態，只透過角色管理操作變更，不受邀請流程影響。
@@ -361,12 +361,12 @@ role: 維持         ┌────────────────┐
 
 ### 角色轉換規則
 
-| 操作         | 執行者 | 目標角色 | 前置條件               | 副作用                       |
-| ------------ | ------ | -------- | ---------------------- | ---------------------------- |
-| 升級為 ADMIN | OWNER  | ADMIN    | 目標為 MEMBER          | 無                           |
-| 降級為 MEMBER | ADMIN  | MEMBER   | 目標為自己             | 無                           |
-| 降級為 MEMBER | OWNER  | MEMBER   | 目標為 ADMIN           | 無                           |
-| 移轉 OWNER   | OWNER  | OWNER    | 目標為 MEMBER 或 ADMIN | 原 OWNER 自動降為 ADMIN      |
+| 操作          | 執行者 | 目標角色 | 前置條件               | 副作用                  |
+| ------------- | ------ | -------- | ---------------------- | ----------------------- |
+| 升級為 ADMIN  | OWNER  | ADMIN    | 目標為 MEMBER          | 無                      |
+| 降級為 MEMBER | ADMIN  | MEMBER   | 目標為自己             | 無                      |
+| 降級為 MEMBER | OWNER  | MEMBER   | 目標為 ADMIN           | 無                      |
+| 移轉 OWNER    | OWNER  | OWNER    | 目標為 MEMBER 或 ADMIN | 原 OWNER 自動降為 ADMIN |
 
 **特殊規則**：
 
@@ -380,15 +380,15 @@ role: 維持         ┌────────────────┐
 
 ### 查詢模式
 
-| 查詢需求           | 查詢條件                                                    | 頻率 | 索引           |
-| ------------------ | ----------------------------------------------------------- | ---- | -------------- |
-| 隊伍的所有球員     | `{ teamId }`                                                | 高   | `{ teamId: 1 }` |
-| 使用者加入的隊伍   | `{ userId }`                                                | 高   | `{ userId: 1 }` |
-| 使用者收到的邀請   | `{ email: user.email, userId: { $exists: false } }`        | 中   | `{ email: 1 }` |
-| 隊伍的待處理邀請   | `{ teamId, email: { $exists: true }, userId: null }`       | 中   | `{ teamId: 1, email: 1 }` |
-| 檢查重複邀請       | `{ teamId, email }`                                         | 高   | `{ teamId: 1, email: 1 }` unique |
-| 隊伍的已加入成員   | `{ teamId, userId: { $exists: true } }`                     | 高   | `{ teamId: 1, userId: 1 }` |
-| 單一球員查詢       | `{ _id }`                                                   | 極高 | `{ _id: 1 }` (預設) |
+| 查詢需求         | 查詢條件                                             | 頻率 | 索引                             |
+| ---------------- | ---------------------------------------------------- | ---- | -------------------------------- |
+| 隊伍的所有球員   | `{ teamId }`                                         | 高   | `{ teamId: 1 }`                  |
+| 使用者加入的隊伍 | `{ userId }`                                         | 高   | `{ userId: 1 }`                  |
+| 使用者收到的邀請 | `{ email: user.email, userId: { $exists: false } }`  | 中   | `{ email: 1 }`                   |
+| 隊伍的待處理邀請 | `{ teamId, email: { $exists: true }, userId: null }` | 中   | `{ teamId: 1, email: 1 }`        |
+| 檢查重複邀請     | `{ teamId, email }`                                  | 高   | `{ teamId: 1, email: 1 }` unique |
+| 隊伍的已加入成員 | `{ teamId, userId: { $exists: true } }`              | 高   | `{ teamId: 1, userId: 1 }`       |
+| 單一球員查詢     | `{ _id }`                                            | 極高 | `{ _id: 1 }` (預設)              |
 
 ### 索引定義
 
@@ -420,31 +420,31 @@ PlayerSchema.index({ teamId: 1, userId: 1 });
 
 ### 移除的結構
 
-| 原結構           | 位置                                                  | 替代方案                            |
-| ---------------- | ----------------------------------------------------- | ----------------------------------- |
-| `Team.members[]` | `src/entities/team.ts`                                | `Player.find({ teamId })`           |
-| `Profile.teams`  | `src/entities/profile.ts`                             | `Player.find({ userId })`           |
-| `Member` collection | `src/infrastructure/db/mongoose/schemas/member.ts` | 合併至 `Player`                     |
+| 原結構              | 位置                                               | 替代方案                  |
+| ------------------- | -------------------------------------------------- | ------------------------- |
+| `Team.members[]`    | `src/entities/team.ts`                             | `Player.find({ teamId })` |
+| `Profile.teams`     | `src/entities/profile.ts`                          | `Player.find({ userId })` |
+| `Member` collection | `src/infrastructure/db/mongoose/schemas/member.ts` | 合併至 `Player`           |
 
 ### 保留的結構（快照）
 
-| 結構         | 位置        | 說明                                 |
-| ------------ | ----------- | ------------------------------------ |
+| 結構          | 位置        | 說明                                 |
+| ------------- | ----------- | ------------------------------------ |
 | `MatchPlayer` | Record 內嵌 | 比賽時的球員快照，包含每局統計       |
-| `MatchTeam`  | Record 內嵌 | 比賽時的隊伍快照，包含球員和教練列表 |
+| `MatchTeam`   | Record 內嵌 | 比賽時的隊伍快照，包含球員和教練列表 |
 
 ### 資料遷移對照
 
-| 來源                   | 欄位                | 目標 Player 欄位 | 轉換規則                              |
-| ---------------------- | ------------------- | ---------------- | ------------------------------------- |
-| Member collection      | `_id`               | `_id`            | 保留（比賽紀錄引用）                  |
-| Member collection      | `team_id`           | `teamId`         | ObjectId 轉字串                       |
-| Member collection      | `name`              | `name`           | 直接複製                              |
-| Member collection      | `number`            | `number`         | 直接複製                              |
-| Team.members[]         | `_id`               | `_id`            | 若 Member 已存在則更新，否則建立      |
-| Team.members[]         | `user_id`           | `userId`         | 直接複製                              |
-| Team.members[]         | `email`             | `email`          | 直接複製                              |
-| Team.members[]         | `role` (數值 enum)  | `role`           | 0→'MEMBER', 1→'OWNER', 2→'ADMIN'      |
+| 來源              | 欄位               | 目標 Player 欄位 | 轉換規則                         |
+| ----------------- | ------------------ | ---------------- | -------------------------------- |
+| Member collection | `_id`              | `_id`            | 保留（比賽紀錄引用）             |
+| Member collection | `team_id`          | `teamId`         | ObjectId 轉字串                  |
+| Member collection | `name`             | `name`           | 直接複製                         |
+| Member collection | `number`           | `number`         | 直接複製                         |
+| Team.members[]    | `_id`              | `_id`            | 若 Member 已存在則更新，否則建立 |
+| Team.members[]    | `user_id`          | `userId`         | 直接複製                         |
+| Team.members[]    | `email`            | `email`          | 直接複製                         |
+| Team.members[]    | `role` (數值 enum) | `role`           | 0→'MEMBER', 1→'OWNER', 2→'ADMIN' |
 
 ---
 
@@ -467,7 +467,7 @@ PlayerSchema.index({ teamId: 1, userId: 1 });
 ### 刪除約束
 
 1. **Player 刪除條件**
-   - 必須無比賽紀錄（檢查 Record.teams.*.players 中是否引用）
+   - 必須無比賽紀錄（檢查 Record.teams.\*.players 中是否引用）
    - 必須無 userId（已加入成員不可刪除，需先離隊）
    - 實作：Use Case 層驗證
 
@@ -523,12 +523,12 @@ enum Position {
 
 ### 欄位對照
 
-| MongoDB        | PostgreSQL  | 轉換說明             |
-| -------------- | ----------- | -------------------- |
-| `_id` (ObjectId) | `id` (cuid) | ObjectId → cuid       |
-| `teamId` (ObjectId) | `teamId` (String) | ObjectId → cuid |
-| `userId` (String) | `userId` (String) | 直接複製 |
-| 其他欄位       | 同名        | 類型相容，直接複製   |
+| MongoDB             | PostgreSQL        | 轉換說明           |
+| ------------------- | ----------------- | ------------------ |
+| `_id` (ObjectId)    | `id` (cuid)       | ObjectId → cuid    |
+| `teamId` (ObjectId) | `teamId` (String) | ObjectId → cuid    |
+| `userId` (String)   | `userId` (String) | 直接複製           |
+| 其他欄位            | 同名              | 類型相容，直接複製 |
 
 ---
 
@@ -539,8 +539,8 @@ enum Position {
 - [ ] 所有原 Member 記錄已遷移至 Player
 - [ ] 所有原 Team.members[] 的 role 資訊已遷移
 - [ ] 每個隊伍有且僅有一個 OWNER
-- [ ] 所有 Record.teams.*.players 引用的 Player._id 存在
-- [ ] 所有 Lineup.*.players 引用的 Player._id 存在
+- [ ] 所有 Record.teams.\*.players 引用的 Player.\_id 存在
+- [ ] 所有 Lineup.\*.players 引用的 Player.\_id 存在
 - [ ] 索引正確建立且 unique 約束生效
 - [ ] `Player.find({ userId })` 正確返回使用者的所有隊伍
 - [ ] `Player.find({ email, userId: null })` 正確返回待處理邀請
@@ -565,6 +565,7 @@ enum Position {
   "updatedAt": "2025-12-20T10:00:00Z"
 }
 ```
+
 狀態：`INVITED`（等待 wang@example.com 接受邀請）
 
 ### 範例 2：已加入的成員
@@ -583,6 +584,7 @@ enum Position {
   "updatedAt": "2025-12-20T11:00:00Z"
 }
 ```
+
 狀態：`JOINED`（已接受邀請並加入）
 
 ### 範例 3：純球員
@@ -601,4 +603,5 @@ enum Position {
   "updatedAt": "2025-12-20T12:00:00Z"
 }
 ```
+
 狀態：`PURE_PLAYER`（臨打球員或對手球員）
