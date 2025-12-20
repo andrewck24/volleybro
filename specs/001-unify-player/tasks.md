@@ -100,11 +100,11 @@
 - [x] T024 [US1] 實作 GetUserPlayersUseCase 於 src/applications/usecases/player/get-user-players.usecase.ts
 - [x] T025 [P] [US1] 實作 POST /api/teams/{teamId}/players（建立邀請）於 src/app/api/teams/[teamId]/players/route.ts
 - [x] T026 [P] [US1] 實作 GET /api/users/{userId}/players 於 src/app/api/users/[userId]/players/route.ts
-- [ ] T027 [US1] 建立 PlayerController 邀請相關方法於 src/interface/controllers/player.controller.ts
-- [ ] T028 [P] [US1] 建立 useUserPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
-- [ ] T029 [P] [US1] 建立 InviteAccordion 元件於 src/components/team/invite-accordion.tsx
-- [ ] T030 [P] [US1] 建立 RoleSelect 元件於 src/components/team/role-select.tsx
-- [ ] T031 [US1] 撰寫 InviteAccordion 元件測試於 src/components/team/**tests**/invite-accordion.test.tsx
+- [x] T027 [US1] 建立 PlayerController 邀請相關方法於 src/interface/controllers/player.controller.ts
+- [x] T028 [P] [US1] 建立 useUserPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
+- [x] T029 [P] [US1] 建立 InviteAccordion 元件於 src/components/team/invite-accordion.tsx
+- [x] T030 [P] [US1] 建立 RoleSelect 元件於 src/components/team/role-select.tsx
+- [x] T031 [US1] 撰寫 InviteAccordion 元件測試於 src/components/team/**tests**/invite-accordion.test.tsx
 
 **Checkpoint**: User Story 1 應完全可運作且可獨立測試
 
