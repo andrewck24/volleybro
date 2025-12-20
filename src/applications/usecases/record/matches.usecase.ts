@@ -3,7 +3,7 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { Role } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 import type { MatchResult } from "@/entities/record";
 
 export interface IFindMatchesInput {
@@ -35,7 +35,7 @@ export class FindMatchesUseCase {
     await this.authorizationService.verifyTeamRole(
       params.teamId.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     const results = await this.recordRepository.findMatchesWithPagination(

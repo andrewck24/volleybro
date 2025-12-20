@@ -9,7 +9,8 @@ import {
   PlayerStatsClass,
   TeamStatsClass,
 } from "@/entities/record";
-import { type Lineup, Role } from "@/entities/team";
+import { type Lineup } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 
 export interface ICreateSetInput {
   params: { recordId: string; setIndex: number };
@@ -43,7 +44,7 @@ export class CreateSetUseCase {
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     // 新增上場選手(在 lineups 中)對應局數的 stats 物件（在開新局、換人時）
@@ -109,7 +110,7 @@ export class UpdateSetUseCase {
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     record.sets[params.setIndex].options = data.options;

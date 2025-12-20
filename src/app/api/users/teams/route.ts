@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import Profile from "@/infrastructure/db/mongoose/schemas/profile";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 
 export const dynamic = "force-dynamic";
 
@@ -119,10 +122,16 @@ export const PATCH = async (request: NextRequest) => {
         );
       }
 
-      const memberIndex = team.members.findIndex(
-        (m) => m?.email === session.user.email
+      // Find invited player by email using PlayerRepository
+      const playerRepository = container.get<IPlayerRepository>(
+        TYPES.PlayerRepository
       );
-      if (memberIndex === -1) {
+      const invitedPlayer =
+        await playerRepository.findInvitedByTeamIdAndEmail(
+          teamId!,
+          session.user.email!
+        );
+      if (!invitedPlayer) {
         return NextResponse.json(
           { error: "You are not invited to this team" },
           { status: 403 }
@@ -130,20 +139,25 @@ export const PATCH = async (request: NextRequest) => {
       }
 
       if (action === "accept") {
+        // Update player to add userId (accept invitation)
+        await playerRepository.update(invitedPlayer._id!.toString(), {
+          userId: session.user.id,
+        });
         (profile.teams.joined as any).unshift(teamId!);
         profile.teams.inviting = invitingArr.filter(
           (id: any) => id.toString() !== teamId
         );
-        team.members[memberIndex].user_id = session.user.id as any;
       } else {
+        // Remove email from player (reject invitation)
+        await playerRepository.update(invitedPlayer._id!.toString(), {
+          email: undefined,
+        });
         profile.teams.inviting = invitingArr.filter(
           (id: any) => id.toString() !== teamId
         );
-        team.members[memberIndex].email = "";
       }
 
       await profile.save();
-      await team.save();
 
       return NextResponse.json(profile.teams, { status: 200 });
     }

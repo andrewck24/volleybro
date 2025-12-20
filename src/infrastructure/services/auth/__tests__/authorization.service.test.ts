@@ -1,11 +1,9 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { Player, PlayerRole } from "@/entities/player";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
-  let mockTeamRepository: jest.Mocked<ITeamRepository>;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
 
   const mockPlayer: Player = {
@@ -30,14 +28,6 @@ describe("AuthorizationService", () => {
   };
 
   beforeEach(() => {
-    mockTeamRepository = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as jest.Mocked<ITeamRepository>;
-
     mockPlayerRepository = {
       findById: jest.fn(),
       findByTeamId: jest.fn(),
@@ -55,7 +45,6 @@ describe("AuthorizationService", () => {
     } as jest.Mocked<IPlayerRepository>;
 
     service = new AuthorizationService(
-      mockTeamRepository,
       mockPlayerRepository,
     );
   });

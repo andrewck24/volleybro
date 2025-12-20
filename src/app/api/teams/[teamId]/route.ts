@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import User from "@/infrastructure/db/mongoose/schemas/user";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 
 export const GET = async (
   req: NextRequest,
@@ -42,11 +44,6 @@ export const PATCH = async (
     }
 
     await connectToMongoDB();
-    const user = await User.findById(session.user.id);
-    if (!user) {
-      console.error("[PATCH /api/users/teams] User not found");
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
 
     const { name, nickname } = await req.json();
     const team = await Team.findById(teamId);
@@ -54,17 +51,24 @@ export const PATCH = async (
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    const userIndex = team.members.findIndex(
-      (m) => m?.user_id?.toString() === user._id.toString()
+    // Check if user is admin/owner of the team using PlayerRepository
+    const playerRepository = container.get<IPlayerRepository>(
+      TYPES.PlayerRepository
     );
-    const isMember = userIndex !== -1;
-    if (!isMember) {
+    const player = await playerRepository.findByTeamIdAndUserId(
+      teamId,
+      session.user.id
+    );
+    if (!player) {
       return NextResponse.json(
         { error: "You are not authorized to update this team" },
         { status: 401 }
       );
     }
-    const isAdmin = !!team.members[userIndex].role;
+
+    // Check if user has admin or owner role
+    const isAdmin =
+      player.role === "ADMIN" || player.role === "OWNER";
     if (!isAdmin) {
       return NextResponse.json(
         { error: "You are not authorized to update this team" },

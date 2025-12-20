@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import User from "@/infrastructure/db/mongoose/schemas/user";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 
 export const PATCH = async (
   req: NextRequest,
@@ -18,10 +20,6 @@ export const PATCH = async (
     }
 
     await connectToMongoDB();
-    const user = await User.findById(session.user.id);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
 
     const team = await Team.findById(teamId);
     if (!team) {
@@ -29,10 +27,15 @@ export const PATCH = async (
       return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
-    const isMember = team.members.find(
-      (m) => m?.user_id?.toString() === user._id.toString()
+    // Check if user is a member of the team using PlayerRepository
+    const playerRepository = container.get<IPlayerRepository>(
+      TYPES.PlayerRepository
     );
-    if (!isMember) {
+    const player = await playerRepository.findByTeamIdAndUserId(
+      teamId,
+      session.user.id
+    );
+    if (!player) {
       return NextResponse.json(
         { error: "You are not authorized to update this team" },
         { status: 401 }

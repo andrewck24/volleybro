@@ -26,14 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Member } from "@/entities/member";
+import type { Player } from "@/entities/player";
 
-interface DataTableProps<Member> {
-  columns: ColumnDef<Member, any>[];
-  data: Member[];
+interface DataTableProps<Player> {
+  columns: ColumnDef<Player, any>[];
+  data: Player[];
 }
 
-const DataTable = ({ columns, data }: DataTableProps<Member>) => {
+const DataTable = ({ columns, data }: DataTableProps<Player>) => {
   const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -77,7 +77,7 @@ const DataTable = ({ columns, data }: DataTableProps<Member>) => {
               data-state={row.getIsSelected() && "selected"}
               onClick={() =>
                 router.push(
-                  `/team/${row.original.team_id}/members/${row.original._id}`
+                  `/team/${row.original.teamId}/members/${row.original._id}`
                 )
               }
             >
@@ -101,7 +101,7 @@ const DataTable = ({ columns, data }: DataTableProps<Member>) => {
 };
 
 const TeamMembersTable = ({ team, members, teamId }) => {
-  const columns: ColumnDef<Member, any>[] = [
+  const columns: ColumnDef<Player, any>[] = [
     {
       id: "image",
       header: () => <RiUserLine />,

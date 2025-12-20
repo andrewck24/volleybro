@@ -3,7 +3,7 @@ import useSWRInfinite from "swr/infinite";
 import type { User } from "@/entities/user";
 import type { Profile } from "@/entities/profile";
 import type { Team } from "@/entities/team";
-import type { Member } from "@/entities/member";
+import type { Player } from "@/entities/player";
 import type { Record, MatchResult } from "@/entities/record";
 
 class FetchError extends Error {
@@ -95,7 +95,7 @@ export const useTeamMembers = (
   const key = `/api/teams/${teamId}/members`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Member[],
+    Player[],
     FetchError
   >(key, fetcher, {
     dedupingInterval: 5 * 60 * 1000,
