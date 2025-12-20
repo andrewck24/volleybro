@@ -65,4 +65,10 @@ export interface IPlayerRepository {
    * Check if email invitation already exists in team
    */
   existsInvitation(teamId: string, email: string): Promise<boolean>;
+
+  /**
+   * Find a player by team ID and user ID
+   * Used for verifying user's role in a specific team
+   */
+  findByTeamIdAndUserId(teamId: string, userId: string): Promise<Player | null>;
 }

@@ -43,6 +43,7 @@ describe('AuthorizationService', () => {
       findByUserId: jest.fn(),
       findByEmail: jest.fn(),
       findInvitedByTeamIdAndEmail: jest.fn(),
+      findByTeamIdAndUserId: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
@@ -57,19 +58,25 @@ describe('AuthorizationService', () => {
 
   describe('verifyIsTeamAdmin', () => {
     it('should verify user is team admin', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([mockPlayer]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       await service.verifyIsTeamAdmin('team-1', 'user-1');
 
-      expect(mockPlayerRepository.findByUserId).toHaveBeenCalledWith('user-1');
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
+        'team-1',
+        'user-1'
+      );
     });
 
     it('should verify user is team owner', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([mockOwner]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockOwner);
 
       await service.verifyIsTeamAdmin('team-1', 'owner-user');
 
-      expect(mockPlayerRepository.findByUserId).toHaveBeenCalledWith('owner-user');
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
+        'team-1',
+        'owner-user'
+      );
     });
 
     it('should throw error if user is not admin', async () => {
@@ -77,7 +84,7 @@ describe('AuthorizationService', () => {
         ...mockPlayer,
         role: PlayerRole.MEMBER,
       };
-      mockPlayerRepository.findByUserId.mockResolvedValue([member]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
       await expect(service.verifyIsTeamAdmin('team-1', 'user-1')).rejects.toThrow(
         'User is not admin of the team'
@@ -85,7 +92,7 @@ describe('AuthorizationService', () => {
     });
 
     it('should throw error if user has no player record in team', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(service.verifyIsTeamAdmin('team-1', 'user-1')).rejects.toThrow(
         'User is not admin of the team'
@@ -121,15 +128,18 @@ describe('AuthorizationService', () => {
 
   describe('verifyPlayerRole', () => {
     it('should verify user has specific role', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([mockPlayer]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       await service.verifyPlayerRole('team-1', 'user-1', PlayerRole.ADMIN);
 
-      expect(mockPlayerRepository.findByUserId).toHaveBeenCalledWith('user-1');
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
+        'team-1',
+        'user-1'
+      );
     });
 
     it('should throw error if user does not have role', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([mockPlayer]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       await expect(
         service.verifyPlayerRole('team-1', 'user-1', PlayerRole.OWNER)
@@ -137,7 +147,7 @@ describe('AuthorizationService', () => {
     });
 
     it('should throw error if user not in team', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.verifyPlayerRole('team-1', 'user-1', PlayerRole.ADMIN)
@@ -147,7 +157,7 @@ describe('AuthorizationService', () => {
 
   describe('getPlayerRole', () => {
     it('should return player role', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([mockPlayer]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       const role = await service.getPlayerRole('team-1', 'user-1');
 
@@ -155,7 +165,7 @@ describe('AuthorizationService', () => {
     });
 
     it('should return null if user not in team', async () => {
-      mockPlayerRepository.findByUserId.mockResolvedValue([]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       const role = await service.getPlayerRole('team-1', 'user-1');
 
@@ -167,7 +177,7 @@ describe('AuthorizationService', () => {
         ...mockPlayer,
         role: undefined,
       };
-      mockPlayerRepository.findByUserId.mockResolvedValue([purePlayer]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
 
       const role = await service.getPlayerRole('team-1', 'user-1');
 
@@ -175,19 +185,15 @@ describe('AuthorizationService', () => {
     });
 
     it('should find correct team when user in multiple teams', async () => {
-      const otherTeamPlayer: Player = {
-        ...mockPlayer,
-        teamId: 'team-2',
-        role: PlayerRole.MEMBER,
-      };
-      mockPlayerRepository.findByUserId.mockResolvedValue([
-        mockPlayer,
-        otherTeamPlayer,
-      ]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       const role = await service.getPlayerRole('team-1', 'user-1');
 
       expect(role).toBe(PlayerRole.ADMIN);
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
+        'team-1',
+        'user-1'
+      );
     });
   });
 });

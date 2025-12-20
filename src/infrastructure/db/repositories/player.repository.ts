@@ -96,4 +96,12 @@ export class PlayerRepository implements IPlayerRepository {
     }).exec();
     return count > 0;
   }
+
+  async findByTeamIdAndUserId(
+    teamId: string,
+    userId: string
+  ): Promise<Player | null> {
+    const doc = await PlayerModel.findOne({ teamId, userId }).exec();
+    return doc ? this.toPlayer(doc) : null;
+  }
 }

@@ -37,18 +37,14 @@ export class AuthorizationService implements IAuthorizationService {
    * Verify user is admin or owner of the team
    */
   async verifyIsTeamAdmin(teamId: string, userId: string): Promise<void> {
-    const player = await this.playerRepository.findInvitedByTeamIdAndEmail(
+    const player = await this.playerRepository.findByTeamIdAndUserId(
       teamId,
       userId
     );
 
-    // Check if user has a player record with admin or owner role
-    const players = await this.playerRepository.findByUserId(userId);
-    const isAdmin = players.some(
-      (p) =>
-        p.teamId === teamId &&
-        (p.role === PlayerRole.ADMIN || p.role === PlayerRole.OWNER)
-    );
+    const isAdmin =
+      player &&
+      (player.role === PlayerRole.ADMIN || player.role === PlayerRole.OWNER);
 
     if (!isAdmin) {
       throw new Error("User is not admin of the team");
@@ -74,8 +70,10 @@ export class AuthorizationService implements IAuthorizationService {
     userId: string,
     requiredRole: PlayerRole
   ): Promise<void> {
-    const players = await this.playerRepository.findByUserId(userId);
-    const player = players.find((p) => p.teamId === teamId);
+    const player = await this.playerRepository.findByTeamIdAndUserId(
+      teamId,
+      userId
+    );
 
     if (!player || player.role !== requiredRole) {
       throw new Error(`User does not have role ${requiredRole} in team`);
@@ -89,8 +87,10 @@ export class AuthorizationService implements IAuthorizationService {
     teamId: string,
     userId: string
   ): Promise<PlayerRole | null> {
-    const players = await this.playerRepository.findByUserId(userId);
-    const player = players.find((p) => p.teamId === teamId);
+    const player = await this.playerRepository.findByTeamIdAndUserId(
+      teamId,
+      userId
+    );
 
     return player?.role || null;
   }
