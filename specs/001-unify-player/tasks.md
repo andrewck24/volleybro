@@ -158,11 +158,11 @@
 - [x] T050 [US3] 實作 GetPlayerUseCase 於 src/applications/usecases/player/get-player.usecase.ts
 - [x] T051 [US3] 實作 GET /api/teams/{teamId}/players 於 src/app/api/teams/[teamId]/players/route.ts
 - [x] T052 [US3] 實作 GET /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
-- [ ] T053 [P] [US3] 建立 useTeamPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
-- [ ] T054 [P] [US3] 建立 PlayerCard 元件於 src/components/team/player-card.tsx
-- [ ] T055 [P] [US3] 建立 PlayerList 元件於 src/components/team/player-list.tsx（含篩選功能）
-- [ ] T056 [US3] 撰寫 PlayerCard 元件測試於 src/components/team/**tests**/player-card.test.tsx
-- [ ] T057 [US3] 撰寫 PlayerList 元件測試於 src/components/team/**tests**/player-list.test.tsx
+- [x] T053 [P] [US3] 建立 useTeamPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
+- [x] T054 [P] [US3] 建立 PlayerCard 元件於 src/components/team/player-card.tsx
+- [x] T055 [P] [US3] 建立 PlayerList 元件於 src/components/team/player-list.tsx（含篩選功能）
+- [x] T056 [US3] 撰寫 PlayerCard 元件測試於 src/components/team/**tests**/player-card.test.tsx
+- [x] T057 [US3] 撰寫 PlayerList 元件測試於 src/components/team/**tests**/player-list.test.tsx
 
 **Checkpoint**: MVP 核心功能（US1-US3）全部完成，可獨立測試與驗收
 
