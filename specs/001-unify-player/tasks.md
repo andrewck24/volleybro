@@ -168,6 +168,21 @@
 
 ---
 
+## Phase 5.5: MVP Hotfixes & Code Quality (Critical Issues After MVP)
+
+**目的**：解決 code review 中發現的 critical security 和 performance 問題，在開始 Phase 6 (US4) 之前完成
+
+### Security & Performance Fixes
+
+- [ ] T058 [P] Fix email validation in CreateInvitationUseCase - use Zod schema validation instead of basic string check (防止 email injection 攻擊) 於 src/applications/usecases/player/create-invitation.usecase.ts
+- [ ] T059 [P] Add owner-only protection for OWNER role assignment in CreateInvitationUseCase (防止非 OWNER 分配 OWNER 角色) 於 src/applications/usecases/player/create-invitation.usecase.ts
+- [ ] T060 [P] Add missing database indexes to PlayerSchema (teamId+userId, teamId+email, teamId+role) 於 src/infrastructure/db/mongoose/schemas/player.ts
+- [ ] T061 [P] Replace existsInvitation() call with findInvitedByTeamIdAndEmail() in CreateInvitationUseCase (消除重複查詢邏輯) 於 src/applications/usecases/player/create-invitation.usecase.ts
+
+**Checkpoint**: 所有 MVP critical issues 已修復，可安心進入 Phase 6
+
+---
+
 ## Phase 6: User Story 4 - 新增純球員 (Priority: P2)
 
 **目標**：隊伍管理者可新增不需要系統帳號的球員（對手球員、借將）
@@ -176,16 +191,16 @@
 
 ### Tests for User Story 4（TDD - Red Phase）
 
-- [ ] T058 [P] [US4] 撰寫 CreatePlayerUseCase 測試於 src/applications/usecases/player/**tests**/create-player.usecase.test.ts
-- [ ] T059 [P] [US4] 撰寫 POST /api/teams/{teamId}/players（純球員）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
+- [ ] T062 [P] [US4] 撰寫 CreatePlayerUseCase 測試於 src/applications/usecases/player/**tests**/create-player.usecase.test.ts
+- [ ] T063 [P] [US4] 撰寫 POST /api/teams/{teamId}/players（純球員）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
 
 ### Implementation for User Story 4（TDD - Green Phase）
 
-- [ ] T060 [P] [US4] 定義 ICreatePlayerUseCase 介面於 src/applications/usecases/player/create-player.usecase.interface.ts
-- [ ] T061 [US4] 實作 CreatePlayerUseCase 於 src/applications/usecases/player/create-player.usecase.ts
-- [ ] T062 [US4] 擴充 POST /api/teams/{teamId}/players 支援純球員建立（無 email）於 src/app/api/teams/[teamId]/players/route.ts
-- [ ] T063 [P] [US4] 建立 PlayerForm 元件於 src/components/team/player-form.tsx
-- [ ] T064 [US4] 撰寫 PlayerForm 元件測試於 src/components/team/**tests**/player-form.test.tsx
+- [ ] T064 [P] [US4] 定義 ICreatePlayerUseCase 介面於 src/applications/usecases/player/create-player.usecase.interface.ts
+- [ ] T065 [US4] 實作 CreatePlayerUseCase 於 src/applications/usecases/player/create-player.usecase.ts
+- [ ] T066 [US4] 擴充 POST /api/teams/{teamId}/players 支援純球員建立（無 email）於 src/app/api/teams/[teamId]/players/route.ts
+- [ ] T067 [P] [US4] 建立 PlayerForm 元件於 src/components/team/player-form.tsx
+- [ ] T068 [US4] 撰寫 PlayerForm 元件測試於 src/components/team/**tests**/player-form.test.tsx
 
 **Checkpoint**: User Story 4 應可獨立測試
 
@@ -199,21 +214,21 @@
 
 ### Tests for User Story 5（TDD - Red Phase）
 
-- [ ] T065 [P] [US5] 撰寫 UpdateRoleUseCase 測試於 src/applications/usecases/player/**tests**/update-role.usecase.test.ts
-- [ ] T066 [P] [US5] 撰寫 UpdatePlayerInfoUseCase 測試於 src/applications/usecases/player/**tests**/update-player-info.usecase.test.ts
-- [ ] T067 [P] [US5] 撰寫 PATCH /api/players/{playerId}/role 集成測試於 src/app/api/players/[playerId]/role/**tests**/route.test.ts
-- [ ] T068 [P] [US5] 撰寫 PATCH /api/players/{playerId}/info 集成測試於 src/app/api/players/[playerId]/info/**tests**/route.test.ts
+- [ ] T069 [P] [US5] 撰寫 UpdateRoleUseCase 測試於 src/applications/usecases/player/**tests**/update-role.usecase.test.ts
+- [ ] T070 [P] [US5] 撰寫 UpdatePlayerInfoUseCase 測試於 src/applications/usecases/player/**tests**/update-player-info.usecase.test.ts
+- [ ] T071 [P] [US5] 撰寫 PATCH /api/players/{playerId}/role 集成測試於 src/app/api/players/[playerId]/role/**tests**/route.test.ts
+- [ ] T072 [P] [US5] 撰寫 PATCH /api/players/{playerId}/info 集成測試於 src/app/api/players/[playerId]/info/**tests**/route.test.ts
 
 ### Implementation for User Story 5（TDD - Green Phase）
 
-- [ ] T069 [P] [US5] 定義 IUpdateRoleUseCase 介面於 src/applications/usecases/player/update-role.usecase.interface.ts
-- [ ] T070 [P] [US5] 定義 IUpdatePlayerInfoUseCase 介面於 src/applications/usecases/player/update-player-info.usecase.interface.ts
-- [ ] T071 [US5] 實作 UpdateRoleUseCase 於 src/applications/usecases/player/update-role.usecase.ts
-- [ ] T072 [US5] 實作 UpdatePlayerInfoUseCase 於 src/applications/usecases/player/update-player-info.usecase.ts
-- [ ] T073 [US5] 實作 PATCH /api/players/{playerId}/role 於 src/app/api/players/[playerId]/role/route.ts
-- [ ] T074 [US5] 實作 PATCH /api/players/{playerId}/info 於 src/app/api/players/[playerId]/info/route.ts
-- [ ] T075 [P] [US5] 建立 usePlayerMutation hooks（updateRole, updateInfo）於 src/lib/features/player/hooks/use-players.ts
-- [ ] T076 [P] [US5] 擴充 PlayerCard 元件支援角色與資訊編輯於 src/components/team/player-card.tsx
+- [ ] T073 [P] [US5] 定義 IUpdateRoleUseCase 介面於 src/applications/usecases/player/update-role.usecase.interface.ts
+- [ ] T074 [P] [US5] 定義 IUpdatePlayerInfoUseCase 介面於 src/applications/usecases/player/update-player-info.usecase.interface.ts
+- [ ] T075 [US5] 實作 UpdateRoleUseCase 於 src/applications/usecases/player/update-role.usecase.ts
+- [ ] T076 [US5] 實作 UpdatePlayerInfoUseCase 於 src/applications/usecases/player/update-player-info.usecase.ts
+- [ ] T077 [US5] 實作 PATCH /api/players/{playerId}/role 於 src/app/api/players/[playerId]/role/route.ts
+- [ ] T078 [US5] 實作 PATCH /api/players/{playerId}/info 於 src/app/api/players/[playerId]/info/route.ts
+- [ ] T079 [P] [US5] 建立 usePlayerMutation hooks（updateRole, updateInfo）於 src/lib/features/player/hooks/use-players.ts
+- [ ] T080 [P] [US5] 擴充 PlayerCard 元件支援角色與資訊編輯於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 5 應可獨立測試
 
@@ -227,23 +242,23 @@
 
 ### Tests for User Story 6（TDD - Red Phase）
 
-- [ ] T077 [P] [US6] 撰寫 LeaveTeamUseCase 測試於 src/applications/usecases/player/**tests**/leave-team.usecase.test.ts
-- [ ] T078 [P] [US6] 撰寫 TransferOwnershipUseCase 測試於 src/applications/usecases/player/**tests**/transfer-ownership.usecase.test.ts
-- [ ] T079 [P] [US6] 撰寫 DeletePlayerUseCase 測試於 src/applications/usecases/player/**tests**/delete-player.usecase.test.ts
-- [ ] T080 [P] [US6] 撰寫 PATCH /api/players/{playerId}/status（leave）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
-- [ ] T081 [P] [US6] 撰寫 DELETE /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
+- [ ] T081 [P] [US6] 撰寫 LeaveTeamUseCase 測試於 src/applications/usecases/player/**tests**/leave-team.usecase.test.ts
+- [ ] T082 [P] [US6] 撰寫 TransferOwnershipUseCase 測試於 src/applications/usecases/player/**tests**/transfer-ownership.usecase.test.ts
+- [ ] T083 [P] [US6] 撰寫 DeletePlayerUseCase 測試於 src/applications/usecases/player/**tests**/delete-player.usecase.test.ts
+- [ ] T084 [P] [US6] 撰寫 PATCH /api/players/{playerId}/status（leave）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
+- [ ] T085 [P] [US6] 撰寫 DELETE /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
 
 ### Implementation for User Story 6（TDD - Green Phase）
 
-- [ ] T082 [P] [US6] 定義 ILeaveTeamUseCase 介面於 src/applications/usecases/player/leave-team.usecase.interface.ts
-- [ ] T083 [P] [US6] 定義 ITransferOwnershipUseCase 介面於 src/applications/usecases/player/transfer-ownership.usecase.interface.ts
-- [ ] T084 [P] [US6] 定義 IDeletePlayerUseCase 介面於 src/applications/usecases/player/delete-player.usecase.interface.ts
-- [ ] T085 [US6] 實作 LeaveTeamUseCase 於 src/applications/usecases/player/leave-team.usecase.ts
-- [ ] T086 [US6] 實作 TransferOwnershipUseCase 於 src/applications/usecases/player/transfer-ownership.usecase.ts
-- [ ] T087 [US6] 實作 DeletePlayerUseCase（含比賽紀錄檢查）於 src/applications/usecases/player/delete-player.usecase.ts
-- [ ] T088 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
-- [ ] T089 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
-- [ ] T090 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
+- [ ] T086 [P] [US6] 定義 ILeaveTeamUseCase 介面於 src/applications/usecases/player/leave-team.usecase.interface.ts
+- [ ] T087 [P] [US6] 定義 ITransferOwnershipUseCase 介面於 src/applications/usecases/player/transfer-ownership.usecase.interface.ts
+- [ ] T088 [P] [US6] 定義 IDeletePlayerUseCase 介面於 src/applications/usecases/player/delete-player.usecase.interface.ts
+- [ ] T089 [US6] 實作 LeaveTeamUseCase 於 src/applications/usecases/player/leave-team.usecase.ts
+- [ ] T090 [US6] 實作 TransferOwnershipUseCase 於 src/applications/usecases/player/transfer-ownership.usecase.ts
+- [ ] T091 [US6] 實作 DeletePlayerUseCase（含比賽紀錄檢查）於 src/applications/usecases/player/delete-player.usecase.ts
+- [ ] T092 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
+- [ ] T093 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
+- [ ] T094 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 6 應可獨立測試
 
@@ -257,15 +272,15 @@
 
 ### Tests for User Story 7（TDD - Red Phase）
 
-- [ ] T091 [P] [US7] 撰寫 CancelInvitationUseCase 測試於 src/applications/usecases/player/**tests**/cancel-invitation.usecase.test.ts
-- [ ] T092 [P] [US7] 撰寫 PATCH /api/players/{playerId}/status（cancel）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
+- [ ] T095 [P] [US7] 撰寫 CancelInvitationUseCase 測試於 src/applications/usecases/player/**tests**/cancel-invitation.usecase.test.ts
+- [ ] T096 [P] [US7] 撰寫 PATCH /api/players/{playerId}/status（cancel）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
 
 ### Implementation for User Story 7（TDD - Green Phase）
 
-- [ ] T093 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
-- [ ] T094 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
-- [ ] T095 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
-- [ ] T096 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
+- [ ] T097 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
+- [ ] T098 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
+- [ ] T099 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
+- [ ] T100 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 7 應可獨立測試
 
@@ -277,35 +292,31 @@
 
 ### Migration Script
 
-- [ ] T097 撰寫資料遷移腳本於 scripts/migrations/migrate-to-unified-player.ts（含 role 數值轉字串邏輯）
-- [ ] T098 撰寫遷移驗證腳本於 scripts/migrations/validate-migration.ts
-- [ ] T099 執行資料庫備份（mongodump）
-- [ ] T100 執行資料遷移（tsx scripts/migrations/migrate-to-unified-player.ts）
-- [ ] T101 執行遷移驗證（npm run validate-migration）
+- [ ] T101 撰寫資料遷移腳本於 scripts/migrations/migrate-to-unified-player.ts（含 role 數值轉字串邏輯）
+- [ ] T102 撰寫遷移驗證腳本於 scripts/migrations/validate-migration.ts
+- [ ] T103 執行資料庫備份（mongodump）
+- [ ] T104 執行資料遷移（tsx scripts/migrations/migrate-to-unified-player.ts）
+- [ ] T105 執行遷移驗證（npm run validate-migration）
 
 ### Code Cleanup
 
-- [ ] T102 [P] 刪除 src/entities/member.ts
-- [ ] T103 [P] 刪除 src/infrastructure/db/mongoose/schemas/member.ts
-- [ ] T104 [P] 刪除 src/infrastructure/db/repositories/member.repository.ts
-- [ ] T105 [P] 刪除 src/app/api/members/ 目錄與所有相關路由
-- [ ] T106 移除 Team Entity 的 members[] 欄位於 src/entities/team.ts
-- [ ] T107 移除 Team Schema 的 members schema 於 src/infrastructure/db/mongoose/schemas/team.ts
-- [ ] T108 移除 Profile Entity 的 teams 欄位於 src/entities/profile.ts
-- [ ] T109 移除 Profile Schema 的 teams 欄位於 src/infrastructure/db/mongoose/schemas/profile.ts
-- [ ] T110 更新 DI Container 移除舊 Member 相關註冊於 src/infrastructure/di/container.ts
-- [ ] T111 [P] 刪除 src/components/team/member-list.tsx（被 player-list 取代）
-- [ ] T112 [P] 刪除 src/components/team/member-card.tsx（被 player-card 取代）
-- [ ] T113 更新所有 import 路徑移除 member 相關引用（全專案搜尋）
+- [ ] T106 [P] 刪除 src/entities/member.ts
+- [ ] T107 [P] 刪除 src/infrastructure/db/mongoose/schemas/member.ts
+- [ ] T108 [P] 刪除 src/infrastructure/db/repositories/member.repository.ts
+- [ ] T109 [P] 刪除 src/app/api/members/ 目錄與所有相關路由
+- [ ] T110 移除 Team Entity 的 members[] 欄位於 src/entities/team.ts
+- [ ] T111 移除 Team Schema 的 members schema 於 src/infrastructure/db/mongoose/schemas/team.ts
+- [ ] T112 移除 Profile Entity 的 teams 欄位於 src/entities/profile.ts
+- [ ] T113 移除 Profile Schema 的 teams 欄位於 src/infrastructure/db/mongoose/schemas/profile.ts
+- [ ] T114 更新 DI Container 移除舊 Member 相關註冊於 src/infrastructure/di/container.ts
+- [ ] T115 [P] 刪除 src/components/team/member-list.tsx（被 player-list 取代）
+- [ ] T116 [P] 刪除 src/components/team/member-card.tsx（被 player-card 取代）
+- [ ] T117 更新所有 import 路徑移除 member 相關引用（全專案搜尋）
 
 ### Verification
 
-- [ ] T114 執行 `npm test` 確保所有測試通過
-- [ ] T115 執行 `npm run lint` 確保無 linting 錯誤
-- [ ] T116 執行 `npm run build` 確保建置成功
-- [ ] T117 執行 `npm run type-check` 確保無 TypeScript 錯誤
-- [ ] T118 使用 Postman Collection 測試所有 API 端點（specs/001-unify-player/contracts/postman-collection.json）
-- [ ] T119 檢查測試覆蓋率（目標：≥ 80%）
+- [ ] T118 執行 `npm test` 確保所有測試通過
+- [ ] T119 執行 `npm run lint` 確保無 linting 錯誤
 
 **Checkpoint**: 資料遷移完成且舊程式碼已移除
 
@@ -436,17 +447,18 @@ Task T030: "建立 RoleSelect 元件"
 
 ## Task Count Summary
 
-- **Total Tasks**: 128 tasks
+- **Total Tasks**: 132 tasks
 - **Phase 1 (Setup)**: 3 tasks
 - **Phase 2 (Foundational)**: 13 tasks
 - **Phase 3 (US1 - P1)**: 15 tasks
 - **Phase 4 (US2 - P1)**: 11 tasks
 - **Phase 5 (US3 - P1)**: 15 tasks
+- **Phase 5.5 (Hotfixes)**: 4 tasks
 - **Phase 6 (US4 - P2)**: 7 tasks
 - **Phase 7 (US5 - P2)**: 12 tasks
 - **Phase 8 (US6 - P2)**: 14 tasks
 - **Phase 9 (US7 - P3)**: 6 tasks
-- **Phase 10 (Migration)**: 17 tasks
+- **Phase 10 (Migration)**: 19 tasks
 - **Phase 11 (Polish)**: 9 tasks
 
 **Parallel Opportunities**: 約 60% 的任務標記 [P]，可在同一 Phase 內平行執行
