@@ -272,13 +272,13 @@
 
 ### Tests for User Story 7（TDD - Red Phase）
 
-- [ ] T095 [P] [US7] 撰寫 CancelInvitationUseCase 測試於 src/applications/usecases/player/**tests**/cancel-invitation.usecase.test.ts
+- [x] T095 [P] [US7] 撰寫 CancelInvitationUseCase 測試於 src/applications/usecases/player/**tests**/cancel-invitation.usecase.test.ts
 - [ ] T096 [P] [US7] 撰寫 PATCH /api/players/{playerId}/status（cancel）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
 
 ### Implementation for User Story 7（TDD - Green Phase）
 
-- [ ] T097 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
-- [ ] T098 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
+- [x] T097 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
+- [x] T098 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
 - [ ] T099 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
 - [ ] T100 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
 

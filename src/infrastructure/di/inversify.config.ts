@@ -50,6 +50,7 @@ import {
   LeaveTeamUseCase,
   TransferOwnershipUseCase,
   RemovePlayerUseCase,
+  CancelInvitationUseCase,
 } from "@/applications/usecases/player";
 
 const container = new Container();
@@ -146,5 +147,8 @@ container
 container
   .bind<RemovePlayerUseCase>(TYPES.RemovePlayerUseCase)
   .to(RemovePlayerUseCase);
+container
+  .bind<CancelInvitationUseCase>(TYPES.CancelInvitationUseCase)
+  .to(CancelInvitationUseCase);
 
 export { container };
