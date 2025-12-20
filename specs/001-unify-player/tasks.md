@@ -89,8 +89,8 @@
 
 - [x] T017 [P] [US1] 撰寫 CreateInvitationUseCase 測試於 src/applications/usecases/player/**tests**/create-invitation.usecase.test.ts
 - [x] T018 [P] [US1] 撰寫 GetUserPlayersUseCase 測試於 src/applications/usecases/player/**tests**/get-user-players.usecase.test.ts
-- [ ] T019 [P] [US1] 撰寫 POST /api/teams/{teamId}/players（邀請）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
-- [ ] T020 [P] [US1] 撰寫 GET /api/users/{userId}/players 集成測試於 src/app/api/users/[userId]/players/**tests**/route.test.ts
+- [x] T019 [P] [US1] 撰寫 POST /api/teams/{teamId}/players（邀請）集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
+- [x] T020 [P] [US1] 撰寫 GET /api/users/{userId}/players 集成測試於 src/app/api/users/[userId]/players/**tests**/route.test.ts
 
 ### Implementation for User Story 1（TDD - Green Phase）
 
@@ -98,8 +98,8 @@
 - [x] T022 [P] [US1] 定義 IGetUserPlayersUseCase 介面於 src/applications/usecases/player/get-user-players.usecase.interface.ts
 - [x] T023 [US1] 實作 CreateInvitationUseCase 於 src/applications/usecases/player/create-invitation.usecase.ts
 - [x] T024 [US1] 實作 GetUserPlayersUseCase 於 src/applications/usecases/player/get-user-players.usecase.ts
-- [ ] T025 [P] [US1] 實作 POST /api/teams/{teamId}/players（建立邀請）於 src/app/api/teams/[teamId]/players/route.ts
-- [ ] T026 [P] [US1] 實作 GET /api/users/{userId}/players 於 src/app/api/users/[userId]/players/route.ts
+- [x] T025 [P] [US1] 實作 POST /api/teams/{teamId}/players（建立邀請）於 src/app/api/teams/[teamId]/players/route.ts
+- [x] T026 [P] [US1] 實作 GET /api/users/{userId}/players 於 src/app/api/users/[userId]/players/route.ts
 - [ ] T027 [US1] 建立 PlayerController 邀請相關方法於 src/interface/controllers/player.controller.ts
 - [ ] T028 [P] [US1] 建立 useUserPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
 - [ ] T029 [P] [US1] 建立 InviteAccordion 元件於 src/components/team/invite-accordion.tsx
@@ -120,7 +120,7 @@
 
 - [x] T032 [P] [US2] 撰寫 AcceptInvitationUseCase 測試於 src/applications/usecases/player/**tests**/accept-invitation.usecase.test.ts
 - [x] T033 [P] [US2] 撰寫 RejectInvitationUseCase 測試於 src/applications/usecases/player/**tests**/reject-invitation.usecase.test.ts
-- [ ] T034 [P] [US2] 撰寫 PATCH /api/players/{playerId}/status（accept）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
+- [x] T034 [P] [US2] 撰寫 PATCH /api/players/{playerId}/status（accept）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
 
 ### Implementation for User Story 2（TDD - Green Phase）
 
@@ -128,7 +128,7 @@
 - [x] T036 [P] [US2] 定義 IRejectInvitationUseCase 介面於 src/applications/usecases/player/reject-invitation.usecase.interface.ts
 - [x] T037 [US2] 實作 AcceptInvitationUseCase 於 src/applications/usecases/player/accept-invitation.usecase.ts
 - [x] T038 [US2] 實作 RejectInvitationUseCase 於 src/applications/usecases/player/reject-invitation.usecase.ts
-- [ ] T039 [US2] 實作 PATCH /api/players/{playerId}/status（含 accept/reject actions）於 src/app/api/players/[playerId]/status/route.ts
+- [x] T039 [US2] 實作 PATCH /api/players/{playerId}/status（含 accept/reject actions）於 src/app/api/players/[playerId]/status/route.ts
 - [ ] T040 [P] [US2] 建立 usePlayerStatusMutation hook 於 src/lib/features/player/hooks/use-players.ts
 - [ ] T041 [P] [US2] 建立 InvitationList 元件於 src/components/team/invitation-list.tsx（顯示待處理邀請）
 - [ ] T042 [US2] 撰寫 InvitationList 元件測試於 src/components/team/**tests**/invitation-list.test.tsx
@@ -147,8 +147,8 @@
 
 - [x] T043 [P] [US3] 撰寫 GetTeamPlayersUseCase 測試於 src/applications/usecases/player/**tests**/get-team-players.usecase.test.ts
 - [x] T044 [P] [US3] 撰寫 GetPlayerUseCase 測試於 src/applications/usecases/player/**tests**/get-player.usecase.test.ts
-- [ ] T045 [P] [US3] 撰寫 GET /api/teams/{teamId}/players 集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
-- [ ] T046 [P] [US3] 撰寫 GET /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
+- [x] T045 [P] [US3] 撰寫 GET /api/teams/{teamId}/players 集成測試於 src/app/api/teams/[teamId]/players/**tests**/route.test.ts
+- [x] T046 [P] [US3] 撰寫 GET /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
 
 ### Implementation for User Story 3（TDD - Green Phase）
 
@@ -156,8 +156,8 @@
 - [x] T048 [P] [US3] 定義 IGetPlayerUseCase 介面於 src/applications/usecases/player/get-player.usecase.interface.ts
 - [x] T049 [US3] 實作 GetTeamPlayersUseCase 於 src/applications/usecases/player/get-team-players.usecase.ts
 - [x] T050 [US3] 實作 GetPlayerUseCase 於 src/applications/usecases/player/get-player.usecase.ts
-- [ ] T051 [US3] 實作 GET /api/teams/{teamId}/players 於 src/app/api/teams/[teamId]/players/route.ts
-- [ ] T052 [US3] 實作 GET /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
+- [x] T051 [US3] 實作 GET /api/teams/{teamId}/players 於 src/app/api/teams/[teamId]/players/route.ts
+- [x] T052 [US3] 實作 GET /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
 - [ ] T053 [P] [US3] 建立 useTeamPlayers SWR hook 於 src/lib/features/player/hooks/use-players.ts
 - [ ] T054 [P] [US3] 建立 PlayerCard 元件於 src/components/team/player-card.tsx
 - [ ] T055 [P] [US3] 建立 PlayerList 元件於 src/components/team/player-list.tsx（含篩選功能）
