@@ -1,12 +1,31 @@
-import { auth } from "@/auth";
+"use client";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
 import { TeamMatches } from "@/components/home/matches";
+import { useProfile } from "@/hooks/use-data";
+import LoadingCard from "@/components/custom/loading/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { RiAlertLine } from "react-icons/ri";
 
-const Home = async () => {
-  const session = await auth();
-  if (!session?.user) return null;
-  const { user } = session;
-  const defaultTeamId = user?.teams?.joined[0];
+const Home = () => {
+  const { profile, isLoading, error } = useProfile();
+
+  if (isLoading) {
+    return <LoadingCard className="w-full" />;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <RiAlertLine />
+        <AlertTitle>載入失敗</AlertTitle>
+        <AlertDescription>
+          無法載入使用者資料，請稍後再試或聯絡系統管理員
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const defaultTeamId = profile?.teams?.joined?.[0];
 
   if (!defaultTeamId) return <GuidesForNewUser />;
 

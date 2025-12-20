@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import User from "@/infrastructure/db/mongoose/schemas/user";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
@@ -11,8 +12,8 @@ export const PATCH = async (
   try {
     const params = await props.params;
     const { teamId } = params;
-    const session = await auth();
-    if (!session) {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -45,7 +46,10 @@ export const PATCH = async (
 
     return NextResponse.json(team.lineups, { status: 200 });
   } catch (error) {
-    console.error("[PATCH /api/teams/[teamId]/lineups] Error:", error);
-    return NextResponse.json({ error }, { status: 500 });
+    console.error("[PATCH /api/teams/:teamId/lineups]", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 };

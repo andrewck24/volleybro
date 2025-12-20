@@ -18,6 +18,12 @@
 /public/workbox-*.js
 /public/swe-worker*
 
+# AI agents
+.claude/*
+.gemini/*
+.github/chatmodes/*
+.bmad-core/*
+
 # misc
 .DS_Store
 *.pem

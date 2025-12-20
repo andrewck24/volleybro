@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useUser, useUserTeams } from "@/hooks/use-data";
+import { useProfile, useUserTeams } from "@/hooks/use-data";
 import { FiPlus } from "react-icons/fi";
 import { RiGroupLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const router = useRouter();
-  const { user, mutate: mutateUser } = useUser();
+  const { profile, mutate: mutateProfile } = useProfile();
   const { teams, isLoading, mutate: mutateUserTeams } = useUserTeams();
 
   const handleAccept = async (teamId, accept) => {
@@ -32,7 +32,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       );
       const userTeams = await response.json();
       mutateUserTeams();
-      mutateUser({ ...user, teams: userTeams }, false);
+      mutateProfile({ ...profile, teams: userTeams }, false);
 
       return accept ? router.push(`/team/${teamId}`) : null;
     } catch (error) {
@@ -45,7 +45,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       <CardHeader>
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
-      {user && !user?.teams?.joined?.length && <Message />}
+      {profile && !profile?.teams?.joined?.length && <Message />}
       <Table>
         <TableBody className="text-xl">
           {isLoading ? (

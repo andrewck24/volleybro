@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useUser, useUserTeams } from "@/hooks/use-data";
+import { useProfile, useUserTeams } from "@/hooks/use-data";
 import { RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,10 @@ const ConfirmInvitation = ({
   className?: string;
 }) => {
   const router = useRouter();
-  const { user, mutate: mutateUser } = useUser();
+  const { profile, mutate: mutateProfile } = useProfile();
   const { mutate: mutateUserTeams } = useUserTeams();
-  const isInviting = user?.teams.inviting.find(
-    (team: string) => team === teamId
+  const isInviting = profile?.teams.inviting.find(
+    (team: any) => team.toString() === teamId
   );
 
   const handleAccept = async (teamId: string, accept: boolean) => {
@@ -32,7 +32,7 @@ const ConfirmInvitation = ({
       );
       const userTeams = await response.json();
       mutateUserTeams();
-      mutateUser({ ...user, teams: userTeams }, false);
+      mutateProfile({ ...profile, teams: userTeams }, false);
 
       if (accept) return;
 

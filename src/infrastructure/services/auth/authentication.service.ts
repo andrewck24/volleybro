@@ -1,9 +1,10 @@
 import { injectable, inject } from "inversify";
+import { headers } from "next/headers";
 import { TYPES } from "@/infrastructure/di/types";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { User } from "@/entities/user";
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 
 @injectable()
 export class AuthenticationService implements IAuthenticationService {
@@ -12,7 +13,7 @@ export class AuthenticationService implements IAuthenticationService {
   ) {}
 
   async verifySession(): Promise<User | undefined> {
-    const session = await auth();
+    const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new Error("Invalid session");
 
     const user = await this.userRepository.findOne({

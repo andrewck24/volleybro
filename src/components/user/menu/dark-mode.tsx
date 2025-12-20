@@ -1,14 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useTheme } from "next-themes";
-import {
-  RiSunLine,
-  RiSunFill,
-  RiMoonLine,
-  RiMoonFill,
-  RiDeviceLine,
-  RiDeviceFill,
-} from "react-icons/ri";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,23 +9,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTheme } from "next-themes";
+import {
+  RiDeviceFill,
+  RiDeviceLine,
+  RiMoonFill,
+  RiMoonLine,
+  RiSunFill,
+  RiSunLine,
+} from "react-icons/ri";
 
 export const DarkMode = () => {
-  const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <Button variant="outline" size="wide">
-        <RiMoonLine />
-        深色模式
-      </Button>
-    );
-  }
 
   return (
     <Dialog>
@@ -45,7 +30,7 @@ export const DarkMode = () => {
           深色模式
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>深色模式</DialogTitle>
           <DialogDescription className="sr-only">
