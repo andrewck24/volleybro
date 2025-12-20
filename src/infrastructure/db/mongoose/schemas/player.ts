@@ -78,7 +78,7 @@ PlayerSchema.index({ teamId: 1 });
 PlayerSchema.index({ userId: 1 });
 PlayerSchema.index({ email: 1 });
 
-// Composite unique index to prevent duplicate invitations to same email in same team
+// T060: Composite unique index to prevent duplicate invitations to same email in same team
 // Sparse: only applies to documents where email field exists
 // PartialFilterExpression: only applies to non-null, non-empty email values
 PlayerSchema.index(
@@ -92,8 +92,11 @@ PlayerSchema.index(
   },
 );
 
-// Composite index for querying members who have joined a team
+// T060: Composite index for querying members who have joined a team
 PlayerSchema.index({ teamId: 1, userId: 1 });
+
+// T060: Composite index for querying members by role within a team
+PlayerSchema.index({ teamId: 1, role: 1 });
 
 // Virtual field for status inference
 PlayerSchema.virtual("status").get(function (this: PlayerDocument) {

@@ -4,6 +4,7 @@ import type { IPlayerRepository } from '@/applications/repositories/player.repos
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import { TYPES } from '@/infrastructure/di/types';
 import { PlayerRole } from '@/entities/player';
+import { z } from 'zod';
 
 /**
  * CreateInvitationUseCase Implementation
@@ -11,8 +12,9 @@ import { PlayerRole } from '@/entities/player';
  *
  * Validates:
  * - Creator is ADMIN or OWNER of the team
+ * - Email is valid format (using Zod email validation)
  * - Email is not already invited to this team
- * - Email is valid format
+ * - Role is valid (OWNER role can only be assigned by current OWNER)
  */
 @injectable()
 export class CreateInvitationUseCase implements ICreateInvitationUseCase {
@@ -32,20 +34,26 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
     // Validate creator is admin or owner
     await this.authService.verifyIsTeamAdmin(teamId, createdBy);
 
-    // Validate email format (basic)
-    if (!email || !email.includes('@')) {
-      throw new Error('Invalid email format');
-    }
+    // T058: Validate email format using Zod (replaces basic string check)
+    const validatedEmail = z.string().email('Invalid email format').parse(email);
 
     // Validate role
     if (!Object.values(PlayerRole).includes(role as PlayerRole)) {
       throw new Error(`Invalid role: ${role}`);
     }
 
-    // Check if invitation already exists
+    // T059: Protect OWNER role - only current OWNER can assign OWNER role
+    if (role === PlayerRole.OWNER) {
+      const creatorRole = await this.authService.getPlayerRole(teamId, createdBy);
+      if (creatorRole !== PlayerRole.OWNER) {
+        throw new Error('Only OWNER can assign OWNER role');
+      }
+    }
+
+    // T061: Use findInvitedByTeamIdAndEmail directly (replaces existsInvitation pattern)
     const existingInvitation = await this.playerRepository.findInvitedByTeamIdAndEmail(
       teamId,
-      email
+      validatedEmail
     );
 
     if (existingInvitation) {
@@ -54,9 +62,9 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
 
     // Create invitation
     const player = await this.playerRepository.create({
-      name: email.split('@')[0], // Default name from email
+      name: validatedEmail.split('@')[0], // Default name from email
       teamId,
-      email: email.toLowerCase(),
+      email: validatedEmail.toLowerCase(),
       role: role as PlayerRole,
     });
 

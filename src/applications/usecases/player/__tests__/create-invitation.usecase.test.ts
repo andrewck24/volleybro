@@ -184,4 +184,48 @@ describe("CreateInvitationUseCase", () => {
       }),
     );
   });
+
+  it("should throw error if non-OWNER tries to assign OWNER role", async () => {
+    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
+    mockAuthService.getPlayerRole.mockResolvedValue(PlayerRole.ADMIN);
+    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+
+    await expect(
+      usecase.execute(
+        "team-1",
+        "test@example.com",
+        PlayerRole.OWNER,
+        "admin-user",
+      ),
+    ).rejects.toThrow("Only OWNER can assign OWNER role");
+  });
+
+  it("should allow OWNER to assign OWNER role", async () => {
+    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
+    mockAuthService.getPlayerRole.mockResolvedValue(PlayerRole.OWNER);
+    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+    mockPlayerRepository.create.mockResolvedValue({
+      _id: "player-1",
+      name: "test",
+      teamId: "team-1",
+      email: "test@example.com",
+      role: PlayerRole.OWNER,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const playerId = await usecase.execute(
+      "team-1",
+      "test@example.com",
+      PlayerRole.OWNER,
+      "owner-user",
+    );
+
+    expect(playerId).toBe("player-1");
+    expect(mockPlayerRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: PlayerRole.OWNER,
+      }),
+    );
+  });
 });
