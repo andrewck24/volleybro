@@ -245,8 +245,8 @@
 - [x] T081 [P] [US6] 撰寫 LeaveTeamUseCase 測試於 src/applications/usecases/player/**tests**/leave-team.usecase.test.ts
 - [x] T082 [P] [US6] 撰寫 TransferOwnershipUseCase 測試於 src/applications/usecases/player/**tests**/transfer-ownership.usecase.test.ts
 - [x] T083 [P] [US6] 撰寫 RemovePlayerUseCase 測試於 src/applications/usecases/player/**tests**/remove-player.usecase.test.ts
-- [ ] T084 [P] [US6] 撰寫 PATCH /api/players/{playerId}/status（leave）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
-- [ ] T085 [P] [US6] 撰寫 DELETE /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
+- [x] T084 [P] [US6] 撰寫 PATCH /api/players/{playerId}/status（leave）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
+- [x] T085 [P] [US6] 撰寫 DELETE /api/players/{playerId} 集成測試於 src/app/api/players/[playerId]/**tests**/route.test.ts
 
 ### Implementation for User Story 6（TDD - Green Phase）
 
@@ -256,8 +256,8 @@
 - [x] T089 [US6] 實作 LeaveTeamUseCase 於 src/applications/usecases/player/leave-team.usecase.ts
 - [x] T090 [US6] 實作 TransferOwnershipUseCase 於 src/applications/usecases/player/transfer-ownership.usecase.ts
 - [x] T091 [US6] 實作 RemovePlayerUseCase 於 src/applications/usecases/player/remove-player.usecase.ts
-- [ ] T092 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
-- [ ] T093 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
+- [x] T092 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
+- [x] T093 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
 - [ ] T094 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 6 應可獨立測試
@@ -273,13 +273,13 @@
 ### Tests for User Story 7（TDD - Red Phase）
 
 - [x] T095 [P] [US7] 撰寫 CancelInvitationUseCase 測試於 src/applications/usecases/player/**tests**/cancel-invitation.usecase.test.ts
-- [ ] T096 [P] [US7] 撰寫 PATCH /api/players/{playerId}/status（cancel）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
+- [x] T096 [P] [US7] 撰寫 PATCH /api/players/{playerId}/status（cancel）集成測試於 src/app/api/players/[playerId]/status/**tests**/route.test.ts
 
 ### Implementation for User Story 7（TDD - Green Phase）
 
 - [x] T097 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
 - [x] T098 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
-- [ ] T099 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
+- [x] T099 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
 - [ ] T100 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 7 應可獨立測試

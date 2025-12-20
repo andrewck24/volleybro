@@ -11,6 +11,8 @@ import { headers } from 'next/headers';
 import {
   IAcceptInvitationUseCase,
   IRejectInvitationUseCase,
+  ILeaveTeamUseCase,
+  ICancelInvitationUseCase,
 } from '@/applications/usecases/player';
 import { UpdatePlayerStatusSchema } from '@/lib/validations/player';
 import { ZodError } from 'zod';
@@ -63,18 +65,24 @@ export async function PATCH(
       }
 
       case 'leave': {
-        // TODO: Implement LeaveTeamUseCase (Phase 6)
+        const leaveUseCase = container.get<ILeaveTeamUseCase>(
+          TYPES.LeaveTeamUseCase
+        );
+        await leaveUseCase.execute(playerId, userId);
         return NextResponse.json(
-          { error: 'Leave action not yet implemented' },
-          { status: 501 }
+          { success: true, message: 'Left team successfully' },
+          { status: 200 }
         );
       }
 
       case 'cancel': {
-        // TODO: Implement CancelInvitationUseCase (Phase 7)
+        const cancelUseCase = container.get<ICancelInvitationUseCase>(
+          TYPES.CancelInvitationUseCase
+        );
+        await cancelUseCase.execute(playerId, userId);
         return NextResponse.json(
-          { error: 'Cancel action not yet implemented' },
-          { status: 501 }
+          { success: true, message: 'Invitation cancelled' },
+          { status: 200 }
         );
       }
 
