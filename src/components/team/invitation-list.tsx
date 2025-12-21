@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Player } from '@/entities/player';
 import { getPlayerStatus } from '@/entities/player';
 import { useToast } from '@/components/ui/use-toast';
+import { ROLE_LABELS } from '@/lib/constants/labels';
 
 interface InvitationListProps {
   invitations: Player[];
@@ -21,12 +22,6 @@ interface InvitationListProps {
   onAccept: (playerId: string) => Promise<void>;
   onReject: (playerId: string) => Promise<void>;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  MEMBER: '成員',
-  ADMIN: '管理員',
-  OWNER: '隊長',
-};
 
 /**
  * T041 [US2] InvitationList - 顯示待決邀請的元件

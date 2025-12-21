@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { PlayerCard } from '@/components/team/player-card';
 import type { Player } from '@/entities/player';
 import { getPlayerStatus } from '@/entities/player';
+import { POSITION_LABELS, STATUS_LABELS } from '@/lib/constants/labels';
 
 interface PlayerListProps {
   players: Player[];
@@ -25,20 +26,22 @@ interface PlayerListProps {
   onPromote?: (playerId: string) => void;
 }
 
+// T125: Position filter options (using centralized labels)
 const POSITION_FILTERS = [
   { value: '', label: '所有位置' },
-  { value: 'OH', label: '主攻手' },
-  { value: 'MB', label: '中塊' },
-  { value: 'OP', label: '對角' },
-  { value: 'S', label: '舉球員' },
-  { value: 'L', label: '自由人' },
+  { value: 'OH', label: POSITION_LABELS['OH'] },
+  { value: 'MB', label: POSITION_LABELS['MB'] },
+  { value: 'OP', label: POSITION_LABELS['OP'] },
+  { value: 'S', label: POSITION_LABELS['S'] },
+  { value: 'L', label: POSITION_LABELS['L'] },
 ];
 
+// T125: Status filter options (using centralized labels)
 const STATUS_FILTERS = [
   { value: '', label: '所有狀態' },
-  { value: 'JOINED', label: '已加入' },
-  { value: 'INVITED', label: '待決' },
-  { value: 'PURE_PLAYER', label: '純球員' },
+  { value: 'JOINED', label: STATUS_LABELS['JOINED'] },
+  { value: 'INVITED', label: STATUS_LABELS['INVITED'] },
+  { value: 'PURE_PLAYER', label: STATUS_LABELS['PURE_PLAYER'] },
 ];
 
 /**

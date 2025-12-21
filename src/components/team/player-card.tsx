@@ -11,6 +11,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import type { Player } from '@/entities/player';
 import { getPlayerStatus } from '@/entities/player';
+import {
+  ROLE_LABELS,
+  POSITION_LABELS,
+  STATUS_LABELS,
+  STATUS_COLORS,
+} from '@/lib/constants/labels';
 
 interface PlayerCardProps {
   player: Player;
@@ -25,33 +31,6 @@ interface PlayerCardProps {
   onCancelInvitation?: (playerId: string) => void;
   isLoading?: boolean;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  MEMBER: '成員',
-  ADMIN: '管理員',
-  OWNER: '隊長',
-};
-
-const POSITION_LABELS: Record<string, string> = {
-  OH: '主攻手',
-  MB: '中塊',
-  OP: '對角',
-  S: '舉球員',
-  L: '自由人',
-  '': '未指定',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  JOINED: '已加入',
-  INVITED: '待決',
-  PURE_PLAYER: '純球員',
-};
-
-const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  JOINED: 'default',
-  INVITED: 'secondary',
-  PURE_PLAYER: 'outline',
-};
 
 /**
  * T054 [US3] PlayerCard - 顯示單一球員資訊的元件
