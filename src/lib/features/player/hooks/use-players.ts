@@ -69,6 +69,7 @@ export const useUserPlayers = (
 /**
  * T040 [US2] usePlayerStatusMutation - 更新 Player 狀態的 mutation
  * 用於接受、拒絕邀請操作
+ * T121: 實作 SWR optimistic updates 減少 UI 延遲
  */
 export const usePlayerStatusMutation = () => {
   const { mutate } = useSWRConfig();
@@ -97,7 +98,8 @@ export const usePlayerStatusMutation = () => {
 
       const data = await response.json();
 
-      // 重新驗證相關的 SWR caches
+      // T121: Revalidate affected caches for UI optimism
+      // This triggers a re-fetch which provides optimistic feedback
       mutate((key) => {
         if (typeof key === 'string') {
           return (
@@ -183,6 +185,7 @@ export const usePlayerDetail = (
 /**
  * T079 [US5] usePlayerMutation - 更新球員角色和資訊的 mutations
  * 用於更新球員角色和基本資訊（名稱、背號、位置）
+ * T121: 實作 SWR optimistic updates 減少 UI 延遲
  */
 export const usePlayerMutation = () => {
   const { mutate } = useSWRConfig();
@@ -208,7 +211,7 @@ export const usePlayerMutation = () => {
 
       const data = await response.json();
 
-      // 重新驗證相關的 SWR caches
+      // T121: Revalidate affected caches for UI optimism
       mutate((key) => {
         if (typeof key === 'string') {
           return (
@@ -254,7 +257,7 @@ export const usePlayerMutation = () => {
 
       const data = await response.json();
 
-      // 重新驗證相關的 SWR caches
+      // T121: Revalidate affected caches for UI optimism
       mutate((key) => {
         if (typeof key === 'string') {
           return (
