@@ -6,6 +6,15 @@ import type { Team } from "@/entities/team";
 import type { Player } from "@/entities/player";
 import type { Record, MatchResult } from "@/entities/record";
 
+/**
+ * T126: Performance Optimization - SWR Configuration
+ *
+ * Centralized SWR configuration to:
+ * - Reduce redundant API requests
+ * - Optimize cache strategies per resource type
+ * - Improve consistency across all data hooks
+ */
+
 class FetchError extends Error {
   info: any;
   status: number;
@@ -40,11 +49,34 @@ const useHasCache = (key: string) => {
   return cache.get(key) !== undefined;
 };
 
+// T126: Optimized SWR configuration presets
+// Deduplication intervals prevent redundant requests when multiple components mount simultaneously
+const SWR_CONFIG = {
+  // Default config for single-resource fetches (user, team, record)
+  DEFAULT: {
+    dedupingInterval: 5 * 60 * 1000, // 5 minutes - prevent concurrent requests
+    focusThrottleInterval: 5 * 60 * 1000, // 5 minutes - prevent refetch on window focus
+    errorRetryInterval: 5000, // 5 seconds - retry failed requests
+  },
+  // Config for frequently-changing data (lists)
+  LIST: {
+    dedupingInterval: 2 * 60 * 1000, // 2 minutes - more aggressive for lists
+    focusThrottleInterval: 3 * 60 * 1000,
+    errorRetryInterval: 5000,
+  },
+  // Config for infinite scrolling data
+  INFINITE: {
+    dedupingInterval: 2 * 60 * 1000,
+    focusThrottleInterval: 3 * 60 * 1000,
+    errorRetryInterval: 5000,
+  },
+} as const;
+
 export const useUser = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     User,
     FetchError
-  >("/api/users", fetcher, { dedupingInterval: 5 * 60 * 1000, ...options });
+  >("/api/users", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
 
   return { user: data, error, isLoading, isValidating, mutate };
 };
@@ -53,7 +85,7 @@ export const useProfile = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Profile,
     FetchError
-  >("/api/profiles", fetcher, { dedupingInterval: 5 * 60 * 1000, ...options });
+  >("/api/profiles", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
 
   return { profile: data, error, isLoading, isValidating, mutate };
 };
@@ -62,7 +94,7 @@ export const useUserTeams = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     "/api/users/teams",
     fetcher,
-    { dedupingInterval: 5 * 60 * 1000, ...options }
+    { ...SWR_CONFIG.LIST, ...options }
   );
 
   return { teams: data, error, isLoading, isValidating, mutate };
@@ -79,7 +111,7 @@ export const useTeam = (
     Team,
     FetchError
   >(key, fetcher, {
-    dedupingInterval: 5 * 60 * 1000,
+    ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
     ...options,
   });
@@ -98,7 +130,7 @@ export const useTeamMembers = (
     Player[],
     FetchError
   >(key, fetcher, {
-    dedupingInterval: 5 * 60 * 1000,
+    ...SWR_CONFIG.LIST,
     revalidateOnMount: !hasCache,
     ...options,
   });
@@ -117,7 +149,7 @@ export const useRecord = (
     Record,
     FetchError
   >(recordId ? key : null, fetcher, {
-    dedupingInterval: 5 * 60 * 1000,
+    ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
     ...options,
   });
@@ -134,11 +166,11 @@ export const useMatches = (
     // Reached the end
     if (previousPageData && !previousPageData.hasMore) return null;
 
-    // First page, no lastId needed
-    if (pageIndex === 0) return `/api/matches?ti=${teamId}`;
+    // First page, no teamId query param needed
+    if (pageIndex === 0) return `/api/matches?teamId=${teamId}`;
 
     // Add the lastId from the previous page
-    return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
+    return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
   };
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =
@@ -147,7 +179,7 @@ export const useMatches = (
       hasMore: boolean;
       lastId: string;
     }>(getKey, fetcher, {
-      dedupingInterval: 5 * 60 * 1000,
+      ...SWR_CONFIG.INFINITE,
       ...options,
     });
 
