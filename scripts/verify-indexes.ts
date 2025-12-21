@@ -65,12 +65,12 @@ async function verifyIndexes() {
     let allIndexesVerified = true;
 
     for (const requiredIndex of REQUIRED_INDEXES) {
-      const found = Object.entries(existingIndexes).some(([indexName, indexSpec]) => {
+      const found = Object.entries(existingIndexes).some(([indexName, indexSpec]: [string, any]) => {
         if (indexName === "_id_") return false; // Skip default _id index
 
         // Compare the key specification
         const specKeys = Object.keys(requiredIndex.spec).sort();
-        const indexSpecKeys = Object.keys(indexSpec.key).sort();
+        const indexSpecKeys = Object.keys(indexSpec.key || {}).sort();
 
         if (specKeys.length !== indexSpecKeys.length) return false;
 
@@ -119,10 +119,10 @@ async function verifyIndexes() {
     // Get index statistics
     console.log("\n" + "=".repeat(80));
     console.log("\nIndex Statistics:");
-    const stats = await collection.stats();
-    if (stats.indexSizes) {
+    const stats = await (collection as any).stats();
+    if (stats?.indexSizes) {
       console.log("Index sizes on disk:");
-      Object.entries(stats.indexSizes).forEach(([indexName, size]) => {
+      Object.entries(stats.indexSizes).forEach(([indexName, size]: [string, any]) => {
         if (indexName !== "_id_") {
           console.log(`  ${indexName}: ${(size / 1024).toFixed(2)} KB`);
         }
