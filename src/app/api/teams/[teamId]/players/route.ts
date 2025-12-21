@@ -18,7 +18,6 @@ import {
   PlayerSchema,
 } from '@/lib/validations/player';
 import { ZodError } from 'zod';
-import type { Player } from '@/entities/player';
 
 export async function POST(
   req: NextRequest,

@@ -258,7 +258,7 @@
 - [x] T091 [US6] 實作 RemovePlayerUseCase 於 src/applications/usecases/player/remove-player.usecase.ts
 - [x] T092 [US6] 擴充 PATCH /api/players/{playerId}/status 支援 leave action 於 src/app/api/players/[playerId]/status/route.ts
 - [x] T093 [US6] 實作 DELETE /api/players/{playerId} 於 src/app/api/players/[playerId]/route.ts
-- [ ] T094 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
+- [x] T094 [P] [US6] 擴充 PlayerCard 元件支援離隊與刪除操作於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 6 應可獨立測試
 
@@ -280,7 +280,7 @@
 - [x] T097 [P] [US7] 定義 ICancelInvitationUseCase 介面於 src/applications/usecases/player/cancel-invitation.usecase.interface.ts
 - [x] T098 [US7] 實作 CancelInvitationUseCase 於 src/applications/usecases/player/cancel-invitation.usecase.ts
 - [x] T099 [US7] 擴充 PATCH /api/players/{playerId}/status 支援 cancel action 於 src/app/api/players/[playerId]/status/route.ts
-- [ ] T100 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
+- [x] T100 [P] [US7] 擴充 PlayerCard 元件顯示「取消邀請」按鈕於 src/components/team/player-card.tsx
 
 **Checkpoint**: User Story 7 應可獨立測試
 
@@ -292,31 +292,31 @@
 
 ### Migration Script
 
-- [ ] T101 撰寫資料遷移腳本於 scripts/migrations/migrate-to-unified-player.ts（含 role 數值轉字串邏輯）
-- [ ] T102 撰寫遷移驗證腳本於 scripts/migrations/validate-migration.ts
-- [ ] T103 執行資料庫備份（mongodump）
-- [ ] T104 執行資料遷移（tsx scripts/migrations/migrate-to-unified-player.ts）
-- [ ] T105 執行遷移驗證（npm run validate-migration）
+- [x] T101 撰寫資料遷移腳本於 scripts/migrations/migrate-to-unified-player.ts（含 role 數值轉字串邏輯）
+- [x] T102 撰寫遷移驗證腳本於 scripts/migrations/validate-migration.ts
+- [x] T103 執行資料庫備份（mongodump）
+- [x] T104 執行資料遷移（tsx scripts/migrations/migrate-to-unified-player.ts）
+- [x] T105 執行遷移驗證（npm run validate-migration）
 
 ### Code Cleanup
 
-- [ ] T106 [P] 刪除 src/entities/member.ts
-- [ ] T107 [P] 刪除 src/infrastructure/db/mongoose/schemas/member.ts
-- [ ] T108 [P] 刪除 src/infrastructure/db/repositories/member.repository.ts
-- [ ] T109 [P] 刪除 src/app/api/members/ 目錄與所有相關路由
-- [ ] T110 移除 Team Entity 的 members[] 欄位於 src/entities/team.ts
-- [ ] T111 移除 Team Schema 的 members schema 於 src/infrastructure/db/mongoose/schemas/team.ts
-- [ ] T112 移除 Profile Entity 的 teams 欄位於 src/entities/profile.ts
-- [ ] T113 移除 Profile Schema 的 teams 欄位於 src/infrastructure/db/mongoose/schemas/profile.ts
-- [ ] T114 更新 DI Container 移除舊 Member 相關註冊於 src/infrastructure/di/container.ts
-- [ ] T115 [P] 刪除 src/components/team/member-list.tsx（被 player-list 取代）
-- [ ] T116 [P] 刪除 src/components/team/member-card.tsx（被 player-card 取代）
-- [ ] T117 更新所有 import 路徑移除 member 相關引用（全專案搜尋）
+- [x] T106 [P] 刪除 src/entities/member.ts
+- [x] T107 [P] 刪除 src/infrastructure/db/mongoose/schemas/member.ts
+- [x] T108 [P] 刪除 src/infrastructure/db/repositories/member.repository.ts
+- [x] T109 [P] 刪除 src/app/api/members/ 目錄與所有相關路由
+- [x] T110 移除 Team Entity 的 members[] 欄位於 src/entities/team.ts
+- [x] T111 移除 Team Schema 的 members schema 於 src/infrastructure/db/mongoose/schemas/team.ts
+- [x] T112 移除 Profile Entity 的 teams 欄位於 src/entities/profile.ts
+- [x] T113 移除 Profile Schema 的 teams 欄位於 src/infrastructure/db/mongoose/schemas/profile.ts
+- [x] T114 更新 DI Container 移除舊 Member 相關註冊於 src/infrastructure/di/container.ts
+- [x] T115 [P] 刪除 src/components/team/member-list.tsx（被 player-list 取代）
+- [x] T116 [P] 刪除 src/components/team/member-card.tsx（被 player-card 取代）
+- [x] T117 更新所有 import 路徑移除 member 相關引用（全專案搜尋）
 
 ### Verification
 
-- [ ] T118 執行 `npm test` 確保所有測試通過
-- [ ] T119 執行 `npm run lint` 確保無 linting 錯誤
+- [x] T118 執行 `npm test` 確保所有測試通過
+- [x] T119 執行 `npm run lint` 確保無 linting 錯誤
 
 **Checkpoint**: 資料遷移完成且舊程式碼已移除
 
@@ -326,8 +326,8 @@
 
 **目的**：改善影響多個 User Story 的功能
 
-- [ ] T120 [P] 最佳化 MongoDB 索引效能（確認所有索引正確建立）
-- [ ] T121 [P] 實作 SWR optimistic updates 減少 UI 延遲於 src/lib/features/player/hooks/use-players.ts
+- [x] T120 [P] 最佳化 MongoDB 索引效能（確認所有索引正確建立）
+- [x] T121 [P] 實作 SWR optimistic updates 減少 UI 延遲於 src/lib/features/player/hooks/use-players.ts
 - [ ] T122 [P] 新增錯誤處理與使用者友善的錯誤訊息
 - [ ] T123 [P] 新增無障礙性支援（keyboard navigation, ARIA labels）於所有元件
 - [ ] T124 [P] 新增 Toast 通知於邀請發送、接受、拒絕等操作

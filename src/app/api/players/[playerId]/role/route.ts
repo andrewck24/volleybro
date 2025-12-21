@@ -8,6 +8,7 @@ import { TYPES } from '@/infrastructure/di/types';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import type { IUpdateRoleUseCase } from '@/applications/usecases/player';
+import { PlayerRole } from '@/entities/player';
 import { PlayerSchema } from '@/lib/validations/player';
 import { z, ZodError } from 'zod';
 
@@ -46,7 +47,7 @@ export async function PATCH(
     // Execute use case
     const updatedPlayer = await updateRoleUseCase.execute(
       playerId,
-      validatedData.role as any,
+      validatedData.role as PlayerRole,
       userId
     );
 
