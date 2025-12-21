@@ -16,9 +16,13 @@ interface PlayerCardProps {
   player: Player;
   isOwner?: boolean;
   canManage?: boolean;
+  currentUserId?: string;
   onEdit?: (player: Player) => void;
   onRemove?: (playerId: string) => void;
   onPromote?: (playerId: string) => void;
+  onLeave?: (playerId: string) => void;
+  onDelete?: (playerId: string) => void;
+  onCancelInvitation?: (playerId: string) => void;
   isLoading?: boolean;
 }
 
@@ -57,9 +61,13 @@ export function PlayerCard({
   player,
   isOwner = false,
   canManage = false,
+  currentUserId,
   onEdit,
   onRemove,
   onPromote,
+  onLeave,
+  onDelete,
+  onCancelInvitation,
   isLoading = false,
 }: PlayerCardProps) {
   const status = getPlayerStatus(player);
@@ -105,43 +113,79 @@ export function PlayerCard({
           </div>
 
           {/* Actions */}
-          {canManage && (
-            <div className="flex gap-2 pt-2 border-t">
-              {onEdit && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEdit(player)}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  編輯
-                </Button>
-              )}
-              {onPromote && player.role === 'MEMBER' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPromote(player._id)}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  升級為管理員
-                </Button>
-              )}
-              {onRemove && !isOwner && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onRemove(player._id)}
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  移除
-                </Button>
-              )}
-            </div>
-          )}
+          <div className="flex gap-2 pt-2 border-t flex-wrap">
+            {/* Edit Action */}
+            {canManage && onEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(player)}
+                disabled={isLoading}
+              >
+                編輯
+              </Button>
+            )}
+
+            {/* Promote to Admin */}
+            {canManage && onPromote && player.role === 'MEMBER' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPromote(player._id)}
+                disabled={isLoading}
+              >
+                升級為管理員
+              </Button>
+            )}
+
+            {/* Remove Member */}
+            {canManage && onRemove && !isOwner && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onRemove(player._id)}
+                disabled={isLoading}
+              >
+                移除
+              </Button>
+            )}
+
+            {/* Leave Team - T094 US6 */}
+            {onLeave && player.userId === currentUserId && !isOwner && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onLeave(player._id)}
+                disabled={isLoading}
+              >
+                離開隊伍
+              </Button>
+            )}
+
+            {/* Delete Player - T094 US6 */}
+            {canManage && onDelete && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onDelete(player._id)}
+                disabled={isLoading}
+              >
+                刪除球員
+              </Button>
+            )}
+
+            {/* Cancel Invitation - T100 US7 */}
+            {canManage && onCancelInvitation && status === 'INVITED' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onCancelInvitation(player._id)}
+                disabled={isLoading}
+              >
+                取消邀請
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
