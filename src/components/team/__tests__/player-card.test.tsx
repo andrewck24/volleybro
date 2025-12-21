@@ -95,7 +95,7 @@ describe('PlayerCard', () => {
         <PlayerCard player={joinedPlayer} canManage={true} onEdit={mockOnEdit} />
       );
 
-      expect(screen.getByRole('button', { name: '編輯' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /編輯球員/ })).toBeInTheDocument();
     });
 
     it('should not show edit button when canManage is false', () => {
@@ -103,7 +103,7 @@ describe('PlayerCard', () => {
         <PlayerCard player={joinedPlayer} canManage={false} onEdit={mockOnEdit} />
       );
 
-      expect(screen.queryByRole('button', { name: '編輯' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /編輯球員/ })).not.toBeInTheDocument();
     });
 
     it('should call onEdit when edit button is clicked', async () => {
@@ -113,7 +113,7 @@ describe('PlayerCard', () => {
         <PlayerCard player={joinedPlayer} canManage={true} onEdit={mockOnEdit} />
       );
 
-      const editButton = screen.getByRole('button', { name: '編輯' });
+      const editButton = screen.getByRole('button', { name: /編輯球員/ });
       await user.click(editButton);
 
       expect(mockOnEdit).toHaveBeenCalledWith(joinedPlayer);
@@ -129,7 +129,7 @@ describe('PlayerCard', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: '升級為管理員' })
+        screen.getByRole('button', { name: /升級為管理員/ })
       ).toBeInTheDocument();
     });
 
@@ -143,7 +143,7 @@ describe('PlayerCard', () => {
       );
 
       expect(
-        screen.queryByRole('button', { name: '升級為管理員' })
+        screen.queryByRole('button', { name: /升級為管理員/ })
       ).not.toBeInTheDocument();
     });
 
@@ -157,7 +157,7 @@ describe('PlayerCard', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: '移除' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /從隊伍中移除/ })).toBeInTheDocument();
     });
 
     it('should not show remove button for owner', () => {
@@ -171,7 +171,7 @@ describe('PlayerCard', () => {
       );
 
       expect(
-        screen.queryByRole('button', { name: '移除' })
+        screen.queryByRole('button', { name: /從隊伍中移除/ })
       ).not.toBeInTheDocument();
     });
 
@@ -187,7 +187,7 @@ describe('PlayerCard', () => {
         />
       );
 
-      const removeButton = screen.getByRole('button', { name: '移除' });
+      const removeButton = screen.getByRole('button', { name: /從隊伍中移除/ });
       await user.click(removeButton);
 
       expect(mockOnRemove).toHaveBeenCalledWith('player-1');

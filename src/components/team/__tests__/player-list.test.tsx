@@ -267,9 +267,9 @@ describe('PlayerList', () => {
         />
       );
 
-      expect(screen.getByRole('button', { name: '編輯' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '升級為管理員' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '移除' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /編輯球員/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /升級為管理員/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /從隊伍中移除/ })).toBeInTheDocument();
     });
   });
 });

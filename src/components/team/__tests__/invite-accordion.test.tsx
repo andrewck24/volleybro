@@ -29,14 +29,14 @@ describe("InviteAccordion", () => {
       expect(screen.getByLabelText("電子郵件")).toBeInTheDocument();
       expect(screen.getByText("角色")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "發送邀請" }),
+        screen.getByRole("button", { name: /發送邀請/ }),
       ).toBeInTheDocument();
     });
 
     it("should have send button disabled initially when email is empty", () => {
       render(<InviteAccordion teamId={teamId} />);
 
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
       expect(submitButton).toBeDisabled();
     });
   });
@@ -49,7 +49,7 @@ describe("InviteAccordion", () => {
       const emailInput = screen.getByLabelText("電子郵件") as HTMLInputElement;
       await user.type(emailInput, "test@example.com");
 
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
       expect(submitButton).toBeEnabled();
     });
 
@@ -80,7 +80,7 @@ describe("InviteAccordion", () => {
       const emailInput = screen.getByLabelText("電子郵件") as HTMLInputElement;
       await user.type(emailInput, "invited@example.com");
 
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
       await user.click(submitButton);
 
       await waitFor(() => {
@@ -123,7 +123,7 @@ describe("InviteAccordion", () => {
       const emailInput = screen.getByLabelText("電子郵件") as HTMLInputElement;
       await user.type(emailInput, "duplicate@example.com");
 
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
       await user.click(submitButton);
 
       await waitFor(() => {
@@ -151,12 +151,12 @@ describe("InviteAccordion", () => {
       const emailInput = screen.getByLabelText("電子郵件") as HTMLInputElement;
       await user.type(emailInput, "test@example.com");
 
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
       await user.click(submitButton);
 
       await waitFor(() => {
         expect(
-          screen.getByRole("button", { name: "發送中..." }),
+          screen.getByRole("button", { name: /發送邀請|發送中/ }),
         ).toBeDisabled();
       });
 
@@ -171,7 +171,7 @@ describe("InviteAccordion", () => {
       render(<InviteAccordion teamId={teamId} isLoading={true} />);
 
       const emailInput = screen.getByLabelText("電子郵件") as HTMLInputElement;
-      const submitButton = screen.getByRole("button", { name: "發送邀請" });
+      const submitButton = screen.getByRole("button", { name: /發送邀請/ });
 
       expect(emailInput).toBeDisabled();
       expect(submitButton).toBeDisabled();

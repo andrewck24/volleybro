@@ -56,6 +56,11 @@ const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 /**
  * T054 [US3] PlayerCard - 顯示單一球員資訊的元件
  * 用於隊伍成員列表中顯示每個球員的詳細資訊
+ *
+ * T123: Accessibility improvements
+ * - ARIA labels for screen readers
+ * - Keyboard navigation support
+ * - Focus management for interactive elements
  */
 export function PlayerCard({
   player,
@@ -75,10 +80,15 @@ export function PlayerCard({
   const statusColor = STATUS_COLORS[status] || 'default';
   const positionLabel = POSITION_LABELS[player.position] || player.position;
 
+  // Accessibility: Create aria-label for player card
+  const ariaLabel = `${player.name}, ${ROLE_LABELS[player.role] || player.role}, ${statusLabel}${
+    player.number > 0 ? `, 球號 ${player.number}` : ''
+  }${positionLabel ? `, 位置 ${positionLabel}` : ''}`;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between" role="region" aria-label={`球員資訊: ${player.name}`}>
           <div className="flex-1">
             <CardTitle className="text-lg">{player.name}</CardTitle>
             <CardDescription className="mt-1">
@@ -87,9 +97,9 @@ export function PlayerCard({
               {positionLabel}
             </CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Badge variant={statusColor}>{statusLabel}</Badge>
-            <Badge variant="secondary">{ROLE_LABELS[player.role] || player.role}</Badge>
+          <div className="flex gap-2" role="group" aria-label="球員狀態">
+            <Badge variant={statusColor} aria-label={`狀態: ${statusLabel}`}>{statusLabel}</Badge>
+            <Badge variant="secondary" aria-label={`角色: ${ROLE_LABELS[player.role] || player.role}`}>{ROLE_LABELS[player.role] || player.role}</Badge>
           </div>
         </div>
       </CardHeader>
@@ -113,7 +123,7 @@ export function PlayerCard({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t flex-wrap">
+          <div className="flex gap-2 pt-2 border-t flex-wrap" role="group" aria-label={`${player.name} 的操作`}>
             {/* Edit Action */}
             {canManage && onEdit && (
               <Button
@@ -121,6 +131,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onEdit(player)}
                 disabled={isLoading}
+                aria-label={`編輯球員 ${player.name}`}
               >
                 編輯
               </Button>
@@ -133,6 +144,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onPromote(player._id)}
                 disabled={isLoading}
+                aria-label={`將 ${player.name} 升級為管理員`}
               >
                 升級為管理員
               </Button>
@@ -145,6 +157,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onRemove(player._id)}
                 disabled={isLoading}
+                aria-label={`從隊伍中移除 ${player.name}`}
               >
                 移除
               </Button>
@@ -157,6 +170,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onLeave(player._id)}
                 disabled={isLoading}
+                aria-label="離開當前隊伍"
               >
                 離開隊伍
               </Button>
@@ -169,6 +183,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onDelete(player._id)}
                 disabled={isLoading}
+                aria-label={`永久刪除球員 ${player.name}`}
               >
                 刪除球員
               </Button>
@@ -181,6 +196,7 @@ export function PlayerCard({
                 size="sm"
                 onClick={() => onCancelInvitation(player._id)}
                 disabled={isLoading}
+                aria-label={`取消對 ${player.name} 的邀請`}
               >
                 取消邀請
               </Button>

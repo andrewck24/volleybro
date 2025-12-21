@@ -23,6 +23,11 @@ interface InviteAccordionProps {
 /**
  * T029 [US1] InviteAccordion - 邀請成員表單元件
  * 用於輸入被邀請者 email 和選擇角色
+ *
+ * T123: Accessibility improvements
+ * - ARIA labels and descriptions
+ * - Error announcements for screen readers
+ * - Keyboard navigation support
  */
 export function InviteAccordion({
   teamId,
@@ -102,7 +107,12 @@ export function InviteAccordion({
           </div>
 
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div
+              className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+              role="alert"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {error}
             </div>
           )}
@@ -111,6 +121,7 @@ export function InviteAccordion({
             type="submit"
             disabled={isLoading || isSubmitting || !email}
             className="w-full"
+            aria-label={isSubmitting ? '發送邀請中' : '發送邀請給成員'}
           >
             {isSubmitting ? '發送中...' : '發送邀請'}
           </Button>
