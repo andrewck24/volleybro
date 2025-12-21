@@ -330,7 +330,7 @@
 - [x] T121 [P] 實作 SWR optimistic updates 減少 UI 延遲於 src/lib/features/player/hooks/use-players.ts
 - [x] T122 [P] 新增錯誤處理與使用者友善的錯誤訊息
 - [x] T123 [P] 新增無障礙性支援（keyboard navigation, ARIA labels）於所有元件
-- [ ] T124 [P] 新增 Toast 通知於邀請發送、接受、拒絕等操作
+- [x] T124 [P] 新增 Toast 通知於邀請發送、接受、拒絕等操作
 - [ ] T125 [P] 程式碼重構與清理（移除重複邏輯、優化命名）
 - [ ] T126 [P] 效能優化（減少 API 請求、優化 SWR cache）
 - [ ] T127 執行 quickstart.md 驗證（依照 quickstart.md 步驟完整測試）

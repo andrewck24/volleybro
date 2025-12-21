@@ -114,7 +114,7 @@ describe("InviteAccordion", () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({
-          error: "此電子郵件已被邀請",
+          message: "此電子郵件已被邀請",
         }),
       });
 

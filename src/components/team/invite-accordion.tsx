@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RoleSelect } from '@/components/team/role-select';
 import { PlayerRole } from '@/entities/player';
+import { useToast } from '@/components/ui/use-toast';
 
 interface InviteAccordionProps {
   teamId: string;
@@ -34,6 +35,7 @@ export function InviteAccordion({
   onInviteSent,
   isLoading = false,
 }: InviteAccordionProps) {
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<PlayerRole>(PlayerRole.MEMBER);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,15 +61,28 @@ export function InviteAccordion({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || '邀請失敗，請重試');
+        throw new Error(errorData.message || '邀請失敗，請重試');
       }
+
+      // T124: Show success toast notification
+      toast({
+        title: '邀請已發送',
+        description: `已向 ${email} 發送邀請`,
+      });
 
       // Reset form
       setEmail('');
       setRole(PlayerRole.MEMBER);
       onInviteSent?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '發生未知錯誤');
+      const errorMessage = err instanceof Error ? err.message : '發生未知錯誤';
+      setError(errorMessage);
+      // T124: Show error toast notification
+      toast({
+        title: '邀請失敗',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
