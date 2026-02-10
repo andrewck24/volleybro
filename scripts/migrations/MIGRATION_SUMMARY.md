@@ -84,9 +84,34 @@ If rollback is needed:
 - ✅ All member/player data now in `Players` collection
 - ✅ Access via `PlayerRepository.findByTeamId(teamId)`
 
+## Post-Migration Fix: userId Type Normalization
+
+**Date**: 2026-02-10
+**Script**: `scripts/migrations/fix-player-userId.ts`
+
+### Problem
+The migration script stored `userId` with its original type from `Team.members.user_id`.
+The Player schema was updated to define `userId` as `Schema.Types.ObjectId` (ref: "User")
+to be consistent with the User collection's `_id` type.
+
+### Schema Change
+```typescript
+// Before (String)
+userId: { type: String }
+
+// After (ObjectId)
+userId: { type: Schema.Types.ObjectId, ref: "User" }
+```
+
+### Fix Result
+- 6 players with userId found
+- 0 needed fixing (all were already ObjectId from the migration)
+- PlayerRepository updated with `userId: obj.userId?.toString()` in `toPlayer()` for Entity layer conversion
+
 ## Notes
 
 - Migration script automatically detects database name from MONGODB_URI
 - Handles both joined members (with userId) and invited members (email only)
 - Preserves all existing player data (name, number, position, role)
 - Creates proper timestamps for all new Player documents
+- `userId` is stored as ObjectId in MongoDB, converted to string at the repository layer

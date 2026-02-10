@@ -13,7 +13,7 @@ import {
 export class PlayerRepository implements IPlayerRepository {
   /**
    * Convert Mongoose document to Player entity
-   * Handles ObjectId to string conversion for _id and teamId
+   * Handles ObjectId to string conversion for _id, teamId, and userId
    */
   private toPlayer(doc: PlayerDocument): Player {
     const obj = doc.toObject();
@@ -21,6 +21,7 @@ export class PlayerRepository implements IPlayerRepository {
       ...obj,
       _id: obj._id.toString(),
       teamId: obj.teamId?.toString(),
+      userId: obj.userId?.toString(),
     };
   }
 

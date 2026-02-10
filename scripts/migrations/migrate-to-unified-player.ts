@@ -86,6 +86,9 @@ async function runMigration(): Promise<MigrationResult> {
           };
 
           // Add userId if member has joined (user_id exists)
+          // NOTE: This stored userId with its original type from Team.members.
+          // If user_id was an ObjectId, it remains ObjectId; if string, it remains string.
+          // Use fix-player-userId.ts to normalize all userId fields to ObjectId.
           if (member.user_id) {
             playerDoc.userId = member.user_id;
           }
