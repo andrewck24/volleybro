@@ -238,7 +238,7 @@ export const PlayerSchema = z.object({
   position: PositionSchema.optional(),
   teamId: z.string().optional(),
   userId: z.string().optional(),
-  email: z.string().email().optional(),
+  email: z.email().optional(),
   role: PlayerRoleSchema.optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -250,7 +250,7 @@ export const CreatePlayerSchema = z.object({
   number: z.number().int().min(0).max(99).optional(),
   position: PositionSchema.optional(),
   role: PlayerRoleSchema.default(PlayerRole.MEMBER),
-  email: z.string().email().optional(), // 有 email = 建立邀請
+  email: z.email().optional(), // 有 email = 建立邀請
 });
 
 export const UpdatePlayerInfoSchema = z.object({
@@ -266,7 +266,7 @@ export const UpdatePlayerRoleSchema = z.object({
 export const UpdatePlayerStatusSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('invite'),
-    email: z.string().email('請輸入有效的 email'),
+    email: z.email('請輸入有效的 email'),
   }),
   z.object({ action: z.literal('cancel') }),
   z.object({ action: z.literal('accept') }),
@@ -566,7 +566,7 @@ enum Position {
 }
 ```
 
-狀態：`INVITED`（等待 wang@example.com 接受邀請）
+狀態：`INVITED`（等待 `wang@example.com` 接受邀請）
 
 ### 範例 2：已加入的成員
 
