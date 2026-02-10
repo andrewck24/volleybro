@@ -3,34 +3,28 @@
  * GET /api/teams/{teamId}/players - List all players in team
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/infrastructure/di/inversify.config';
-import { TYPES } from '@/infrastructure/di/types';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
 import {
   ICreateInvitationUseCase,
-  IGetTeamPlayersUseCase,
   ICreatePlayerUseCase,
-} from '@/applications/usecases/player';
-import {
-  CreatePlayerSchema,
-  PlayerSchema,
-} from '@/lib/validations/player';
-import { ZodError } from 'zod';
+  IGetTeamPlayersUseCase,
+} from "@/applications/usecases/player";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
+import { auth } from "@/lib/auth";
+import { CreatePlayerSchema, PlayerSchema } from "@/lib/validations/player";
+import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ teamId: string }> },
 ) {
   try {
     // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -44,14 +38,14 @@ export async function POST(
     // Otherwise, create a pure player (US4)
     if (validatedData.email) {
       const createInvitationUseCase = container.get<ICreateInvitationUseCase>(
-        TYPES.CreateInvitationUseCase
+        TYPES.CreateInvitationUseCase,
       );
 
       const playerId = await createInvitationUseCase.execute(
         teamId,
         validatedData.email.toLowerCase(),
-        validatedData.role || '',
-        userId
+        validatedData.role || "",
+        userId,
       );
 
       return NextResponse.json({ playerId }, { status: 201 });
@@ -59,70 +53,64 @@ export async function POST(
 
     // Create pure player without email
     const createPlayerUseCase = container.get<ICreatePlayerUseCase>(
-      TYPES.CreatePlayerUseCase
+      TYPES.CreatePlayerUseCase,
     );
 
-    const player = await createPlayerUseCase.execute(teamId, validatedData, userId);
+    const player = await createPlayerUseCase.execute(
+      teamId,
+      validatedData,
+      userId,
+    );
 
     return NextResponse.json(player, { status: 201 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
+        { error: "Invalid request data", details: error.issues },
+        { status: 400 },
       );
     }
 
     if (error instanceof Error) {
       // Authorization errors
-      if (error.message.includes('not admin')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 403 }
-        );
+      if (error.message.includes("not admin")) {
+        return NextResponse.json({ error: error.message }, { status: 403 });
       }
 
       // Validation errors
-      if (error.message.includes('already exists') ||
-          error.message.includes('Invalid')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 409 }
-        );
+      if (
+        error.message.includes("already exists") ||
+        error.message.includes("Invalid")
+      ) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
       }
 
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ teamId: string }> },
 ) {
   try {
     // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { teamId } = await params;
 
     // Get use case from DI container
     const getTeamPlayersUseCase = container.get<IGetTeamPlayersUseCase>(
-      TYPES.GetTeamPlayersUseCase
+      TYPES.GetTeamPlayersUseCase,
     );
 
     // Execute use case
@@ -131,28 +119,22 @@ export async function GET(
     // Validate response
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
-    return NextResponse.json(
-      { players: validatedPlayers },
-      { status: 200 }
-    );
+    return NextResponse.json(validatedPlayers, { status: 200 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid response data', details: error.issues },
-        { status: 500 }
+        { error: "Invalid response data", details: error.issues },
+        { status: 500 },
       );
     }
 
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
