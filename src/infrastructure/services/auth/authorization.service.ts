@@ -1,8 +1,8 @@
-import { injectable, inject } from "inversify";
-import { TYPES } from "@/infrastructure/di/types";
-import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { PlayerRole } from "@/entities/player";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
 
 @injectable()
 export class AuthorizationService implements IAuthorizationService {

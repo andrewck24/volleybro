@@ -1,10 +1,10 @@
+import type { Player } from "@/entities/player";
+import type { Profile } from "@/entities/profile";
+import type { MatchResult, Record } from "@/entities/record";
+import type { Team } from "@/entities/team";
+import type { User } from "@/entities/user";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
-import type { User } from "@/entities/user";
-import type { Profile } from "@/entities/profile";
-import type { Team } from "@/entities/team";
-import type { Player } from "@/entities/player";
-import type { Record, MatchResult } from "@/entities/record";
 
 /**
  * T126: Performance Optimization - SWR Configuration
@@ -36,7 +36,7 @@ const defaultFetcher = async (url: string) => {
     const error = new FetchError(
       "An error occurred while fetching the data.",
       info,
-      res.status
+      res.status,
     );
     throw error;
   }
@@ -94,7 +94,7 @@ export const useUserTeams = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR(
     "/api/users/teams",
     fetcher,
-    { ...SWR_CONFIG.LIST, ...options }
+    { ...SWR_CONFIG.LIST, ...options },
   );
 
   return { teams: data, error, isLoading, isValidating, mutate };
@@ -103,7 +103,7 @@ export const useUserTeams = (fetcher = defaultFetcher, options = {}) => {
 export const useTeam = (
   teamId: string,
   fetcher = defaultFetcher,
-  options = {}
+  options = {},
 ) => {
   const key = `/api/teams/${teamId}`;
   const hasCache = useHasCache(key);
@@ -122,9 +122,9 @@ export const useTeam = (
 export const useTeamMembers = (
   teamId: string,
   fetcher = defaultFetcher,
-  options = {}
+  options = {},
 ) => {
-  const key = `/api/teams/${teamId}/members`;
+  const key = `/api/teams/${teamId}/players`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Player[],
@@ -135,13 +135,13 @@ export const useTeamMembers = (
     ...options,
   });
 
-  return { members: data, error, isLoading, isValidating, mutate };
+  return { players: data, error, isLoading, isValidating, mutate };
 };
 
 export const useRecord = (
   recordId: string,
   fetcher = defaultFetcher,
-  options = {}
+  options = {},
 ) => {
   const key = `/api/records/${recordId}`;
   const hasCache = useHasCache(key);
@@ -160,17 +160,17 @@ export const useRecord = (
 export const useMatches = (
   teamId: string,
   fetcher = defaultFetcher,
-  options = {}
+  options = {},
 ) => {
   const getKey = (pageIndex: number, previousPageData: any) => {
     // Reached the end
     if (previousPageData && !previousPageData.hasMore) return null;
 
     // First page, no teamId query param needed
-    if (pageIndex === 0) return `/api/matches?teamId=${teamId}`;
+    if (pageIndex === 0) return `/api/matches?ti=${teamId}`;
 
     // Add the lastId from the previous page
-    return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
+    return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
   };
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =

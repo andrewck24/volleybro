@@ -1,5 +1,5 @@
 import { User } from "@/entities/user";
 
 export interface IAuthenticationService {
-  verifySession(): Promise<User | undefined>;
+  verifySession(): Promise<User>;
 }
