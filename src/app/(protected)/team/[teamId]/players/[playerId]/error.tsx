@@ -1,12 +1,12 @@
 "use client";
 import { Card } from "@/components/ui/card";
 
-const MemberError = () => {
+const PlayerError = () => {
   return (
     <Card className="w-full">
-      <h1>Member Error</h1>
+      <h1>Player Error</h1>
     </Card>
   );
 };
 
-export default MemberError;
+export default PlayerError;

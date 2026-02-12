@@ -1,15 +1,15 @@
 "use client";
-import { use } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useTeam, useTeamMembers } from "@/hooks/use-data";
 import Lineup from "@/components/team/lineup";
+import { useToast } from "@/components/ui/use-toast";
+import { useTeam, useTeamPlayers } from "@/hooks/use-data";
+import { use } from "react";
 
 const LineupPage = (props: { params: Promise<{ teamId: string }> }) => {
   const params = use(props.params);
   const { toast } = useToast();
   const { teamId } = params;
   const { team, mutate } = useTeam(teamId);
-  const { members } = useTeamMembers(teamId);
+  const { players } = useTeamPlayers(teamId);
 
   const handleSave = async (lineups) => {
     try {
@@ -31,7 +31,7 @@ const LineupPage = (props: { params: Promise<{ teamId: string }> }) => {
     }
   };
 
-  return <Lineup team={team} members={members} handleSave={handleSave} />;
+  return <Lineup team={team} members={players} handleSave={handleSave} />;
 };
 
 export default LineupPage;

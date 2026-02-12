@@ -1,47 +1,51 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { PlayerCard } from "@/components/team/player-card";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { PlayerCard } from '@/components/team/player-card';
-import type { Player } from '@/entities/player';
-import { getPlayerStatus } from '@/entities/player';
-import { POSITION_LABELS, STATUS_LABELS } from '@/lib/constants/labels';
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { Player } from "@/entities/player";
+import { getPlayerStatus } from "@/entities/player";
+import { POSITION_LABELS, STATUS_LABELS } from "@/lib/constants/labels";
+import { useMemo, useState } from "react";
 
 interface PlayerListProps {
   players: Player[];
   isOwner?: boolean;
   canManage?: boolean;
+  currentUserId?: string;
   isLoading?: boolean;
   onEdit?: (player: Player) => void;
   onRemove?: (playerId: string) => void;
   onPromote?: (playerId: string) => void;
+  onLeave?: (playerId: string) => void;
+  onDelete?: (playerId: string) => void;
+  onCancelInvitation?: (playerId: string) => void;
 }
 
 // T125: Position filter options (using centralized labels)
 const POSITION_FILTERS = [
-  { value: '', label: '所有位置' },
-  { value: 'OH', label: POSITION_LABELS['OH'] },
-  { value: 'MB', label: POSITION_LABELS['MB'] },
-  { value: 'OP', label: POSITION_LABELS['OP'] },
-  { value: 'S', label: POSITION_LABELS['S'] },
-  { value: 'L', label: POSITION_LABELS['L'] },
+  { value: "", label: "所有位置" },
+  { value: "OH", label: POSITION_LABELS["OH"] },
+  { value: "MB", label: POSITION_LABELS["MB"] },
+  { value: "OP", label: POSITION_LABELS["OP"] },
+  { value: "S", label: POSITION_LABELS["S"] },
+  { value: "L", label: POSITION_LABELS["L"] },
 ];
 
 // T125: Status filter options (using centralized labels)
 const STATUS_FILTERS = [
-  { value: '', label: '所有狀態' },
-  { value: 'JOINED', label: STATUS_LABELS['JOINED'] },
-  { value: 'INVITED', label: STATUS_LABELS['INVITED'] },
-  { value: 'PURE_PLAYER', label: STATUS_LABELS['PURE_PLAYER'] },
+  { value: "", label: "所有狀態" },
+  { value: "JOINED", label: STATUS_LABELS["JOINED"] },
+  { value: "INVITED", label: STATUS_LABELS["INVITED"] },
+  { value: "PURE_PLAYER", label: STATUS_LABELS["PURE_PLAYER"] },
 ];
 
 /**
@@ -52,14 +56,18 @@ export function PlayerList({
   players,
   isOwner = false,
   canManage = false,
+  currentUserId,
   isLoading = false,
   onEdit,
   onRemove,
   onPromote,
+  onLeave,
+  onDelete,
+  onCancelInvitation,
 }: PlayerListProps) {
-  const [searchText, setSearchText] = useState('');
-  const [positionFilter, setPositionFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [searchText, setSearchText] = useState("");
+  const [positionFilter, setPositionFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // Filter and search players
   const filteredPlayers = useMemo(() => {
@@ -173,9 +181,9 @@ export function PlayerList({
               variant="outline"
               size="sm"
               onClick={() => {
-                setSearchText('');
-                setPositionFilter('');
-                setStatusFilter('');
+                setSearchText("");
+                setPositionFilter("");
+                setStatusFilter("");
               }}
               disabled={isLoading}
             >
@@ -203,9 +211,7 @@ export function PlayerList({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-muted-foreground">
-              {players.length === 0
-                ? '暫無球員記錄'
-                : '沒有符合篩選條件的球員'}
+              {players.length === 0 ? "暫無球員記錄" : "沒有符合篩選條件的球員"}
             </div>
           </CardContent>
         </Card>
@@ -215,11 +221,15 @@ export function PlayerList({
             <PlayerCard
               key={player._id}
               player={player}
-              isOwner={isOwner && player.role === 'OWNER'}
+              isOwner={isOwner && player.role === "OWNER"}
               canManage={canManage}
+              currentUserId={currentUserId}
               onEdit={onEdit}
               onRemove={onRemove}
               onPromote={onPromote}
+              onLeave={onLeave}
+              onDelete={onDelete}
+              onCancelInvitation={onCancelInvitation}
               isLoading={isLoading}
             />
           ))}

@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import type { Player } from '@/entities/player';
-import { getPlayerStatus } from '@/entities/player';
+} from "@/components/ui/card";
+import type { Player } from "@/entities/player";
+import { getPlayerStatus } from "@/entities/player";
 import {
-  ROLE_LABELS,
   POSITION_LABELS,
-  STATUS_LABELS,
+  ROLE_LABELS,
   STATUS_COLORS,
-} from '@/lib/constants/labels';
+  STATUS_LABELS,
+} from "@/lib/constants/labels";
 
 interface PlayerCardProps {
   player: Player;
@@ -56,29 +56,40 @@ export function PlayerCard({
 }: PlayerCardProps) {
   const status = getPlayerStatus(player);
   const statusLabel = STATUS_LABELS[status] || status;
-  const statusColor = STATUS_COLORS[status] || 'default';
+  const statusColor = STATUS_COLORS[status] || "default";
   const positionLabel = POSITION_LABELS[player.position] || player.position;
 
   // Accessibility: Create aria-label for player card
   const ariaLabel = `${player.name}, ${ROLE_LABELS[player.role] || player.role}, ${statusLabel}${
-    player.number > 0 ? `, 球號 ${player.number}` : ''
-  }${positionLabel ? `, 位置 ${positionLabel}` : ''}`;
+    player.number > 0 ? `, 球號 ${player.number}` : ""
+  }${positionLabel ? `, 位置 ${positionLabel}` : ""}`;
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between" role="region" aria-label={`球員資訊: ${player.name}`}>
+        <div
+          className="flex items-start justify-between"
+          role="region"
+          aria-label={ariaLabel}
+        >
           <div className="flex-1">
             <CardTitle className="text-lg">{player.name}</CardTitle>
             <CardDescription className="mt-1">
               {player.number > 0 && `球號: ${player.number}`}
-              {player.number > 0 && positionLabel && ' • '}
+              {player.number > 0 && positionLabel && " • "}
               {positionLabel}
             </CardDescription>
           </div>
           <div className="flex gap-2" role="group" aria-label="球員狀態">
-            <Badge variant={statusColor} aria-label={`狀態: ${statusLabel}`}>{statusLabel}</Badge>
-            <Badge variant="secondary" aria-label={`角色: ${ROLE_LABELS[player.role] || player.role}`}>{ROLE_LABELS[player.role] || player.role}</Badge>
+            <Badge variant={statusColor} aria-label={`狀態: ${statusLabel}`}>
+              {statusLabel}
+            </Badge>
+            <Badge
+              variant="secondary"
+              aria-label={`角色: ${ROLE_LABELS[player.role] || player.role}`}
+            >
+              {ROLE_LABELS[player.role] || player.role}
+            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -86,7 +97,7 @@ export function PlayerCard({
       <CardContent>
         <div className="space-y-3">
           {/* Player Info */}
-          <div className="text-sm space-y-1">
+          <div className="space-y-1 text-sm">
             {player.userId && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">使用者 ID:</span>
@@ -102,7 +113,11 @@ export function PlayerCard({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t flex-wrap" role="group" aria-label={`${player.name} 的操作`}>
+          <div
+            className="flex flex-wrap gap-2 border-t pt-2"
+            role="group"
+            aria-label={`${player.name} 的操作`}
+          >
             {/* Edit Action */}
             {canManage && onEdit && (
               <Button
@@ -117,7 +132,7 @@ export function PlayerCard({
             )}
 
             {/* Promote to Admin */}
-            {canManage && onPromote && player.role === 'MEMBER' && (
+            {canManage && onPromote && player.role === "MEMBER" && (
               <Button
                 variant="outline"
                 size="sm"
@@ -169,7 +184,7 @@ export function PlayerCard({
             )}
 
             {/* Cancel Invitation - T100 US7 */}
-            {canManage && onCancelInvitation && status === 'INVITED' && (
+            {canManage && onCancelInvitation && status === "INVITED" && (
               <Button
                 variant="outline"
                 size="sm"

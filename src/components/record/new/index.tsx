@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useTeam, useTeamMembers } from "@/hooks/use-data";
+import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import type { TMatchInfoForm } from "@/lib/features/record/types";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -28,7 +28,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   const [view, setView] = useState("");
   const { mutate } = useSWRConfig();
   const { team, isLoading: isTeamLoading } = useTeam(teamId);
-  const { members, isLoading: isMembersLoading } = useTeamMembers(teamId);
+  const { players, isLoading: isPlayersLoading } = useTeamPlayers(teamId);
 
   const [lineupIndex, setLineupIndex] = useState(0);
   const handleViewChange = (view: string) => {
@@ -52,11 +52,11 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     weather: { temperature: "" },
   });
 
-  const players = useMemo(() => {
+  const roster = useMemo(() => {
     const getPlayerData = (list: string) => {
-      if (!team || !members) return [];
+      if (!team || !players) return [];
       return team.lineups[lineupIndex][list].map((player) => {
-        const member = members.find((member) => member._id === player._id);
+        const member = players.find((p) => p._id === player._id);
         return {
           _id: member._id,
           name: member.name,
@@ -71,8 +71,10 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
-      .sort((a: any, b: any) => a.number - b.number);
-  }, [team, members, lineupIndex]);
+      .sort(
+        (a: { number: number }, b: { number: number }) => a.number - b.number,
+      );
+  }, [team, players, lineupIndex]);
 
   const createRecord = async () => {
     const infoData = {
@@ -96,7 +98,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
             home: {
               _id: teamId,
               name: info.teams.home.name,
-              players,
+              roster,
               lineup: team.lineups[lineupIndex],
             },
             away: { name: info.teams.away.name },
@@ -113,7 +115,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     }
   };
 
-  if (isTeamLoading || isMembersLoading) {
+  if (isTeamLoading || isPlayersLoading) {
     return (
       <>
         <DialogHeader>
@@ -164,7 +166,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
                 </CardBtnGroup>
               </CardTitle>
             </CardHeader>
-            <RosterTable roster={players} />
+            <RosterTable roster={roster} />
           </Card>
           <DialogFooter className="flex w-full flex-col">
             <DialogClose asChild>

@@ -38,7 +38,6 @@ import {
 } from "@/applications/usecases/record/rally.usecase";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/record/substitution.usecase";
 import {
-  CreateInvitationUseCase,
   GetUserPlayersUseCase,
   AcceptInvitationUseCase,
   RejectInvitationUseCase,
@@ -111,9 +110,6 @@ container
   .to(CreateSubstitutionUseCase);
 
 // player usecases
-container
-  .bind<CreateInvitationUseCase>(TYPES.CreateInvitationUseCase)
-  .to(CreateInvitationUseCase);
 container
   .bind<GetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
   .to(GetUserPlayersUseCase);

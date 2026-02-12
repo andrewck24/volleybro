@@ -119,7 +119,7 @@ export const useTeam = (
   return { team: data, error, isLoading, isValidating, mutate };
 };
 
-export const useTeamMembers = (
+export const useTeamPlayers = (
   teamId: string,
   fetcher = defaultFetcher,
   options = {},
@@ -162,7 +162,10 @@ export const useMatches = (
   fetcher = defaultFetcher,
   options = {},
 ) => {
-  const getKey = (pageIndex: number, previousPageData: any) => {
+  const getKey = (
+    pageIndex: number,
+    previousPageData: { hasMore: boolean; lastId: string } | null,
+  ) => {
     // Reached the end
     if (previousPageData && !previousPageData.hasMore) return null;
 

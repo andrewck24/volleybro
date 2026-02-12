@@ -4,7 +4,6 @@
  */
 
 import {
-  ICreateInvitationUseCase,
   ICreatePlayerUseCase,
   IGetTeamPlayersUseCase,
 } from "@/applications/usecases/player";
@@ -34,24 +33,7 @@ export async function POST(
     const body = await req.json();
     const validatedData = CreatePlayerSchema.parse(body);
 
-    // If email is provided, create an invitation (US1)
-    // Otherwise, create a pure player (US4)
-    if (validatedData.email) {
-      const createInvitationUseCase = container.get<ICreateInvitationUseCase>(
-        TYPES.CreateInvitationUseCase,
-      );
-
-      const playerId = await createInvitationUseCase.execute(
-        teamId,
-        validatedData.email.toLowerCase(),
-        validatedData.role || "",
-        userId,
-      );
-
-      return NextResponse.json({ playerId }, { status: 201 });
-    }
-
-    // Create pure player without email
+    // CreatePlayerUseCase handles both invitation (with email) and pure player (without email)
     const createPlayerUseCase = container.get<ICreatePlayerUseCase>(
       TYPES.CreatePlayerUseCase,
     );
