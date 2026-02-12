@@ -3,12 +3,7 @@
  * GET /api/teams/{teamId}/players - List all players in team
  */
 
-import {
-  ICreatePlayerUseCase,
-  IGetTeamPlayersUseCase,
-} from "@/applications/usecases/player";
-import { container } from "@/infrastructure/di/inversify.config";
-import { TYPES } from "@/infrastructure/di/types";
+import * as playerController from "@/interface/controllers/player/player.controller";
 import { auth } from "@/lib/auth";
 import { CreatePlayerSchema, PlayerSchema } from "@/lib/validations/player";
 import { headers } from "next/headers";
@@ -20,7 +15,6 @@ export async function POST(
   { params }: { params: Promise<{ teamId: string }> },
 ) {
   try {
-    // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,16 +23,10 @@ export async function POST(
     const userId = session.user.id;
     const { teamId } = await params;
 
-    // Parse and validate request body
     const body = await req.json();
     const validatedData = CreatePlayerSchema.parse(body);
 
-    // CreatePlayerUseCase handles both invitation (with email) and pure player (without email)
-    const createPlayerUseCase = container.get<ICreatePlayerUseCase>(
-      TYPES.CreatePlayerUseCase,
-    );
-
-    const player = await createPlayerUseCase.execute(
+    const player = await playerController.createPlayer(
       teamId,
       validatedData,
       userId,
@@ -54,12 +42,10 @@ export async function POST(
     }
 
     if (error instanceof Error) {
-      // Authorization errors
       if (error.message.includes("not admin")) {
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
 
-      // Validation errors
       if (
         error.message.includes("already exists") ||
         error.message.includes("Invalid")
@@ -78,11 +64,10 @@ export async function POST(
 }
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ teamId: string }> },
 ) {
   try {
-    // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -90,15 +75,8 @@ export async function GET(
 
     const { teamId } = await params;
 
-    // Get use case from DI container
-    const getTeamPlayersUseCase = container.get<IGetTeamPlayersUseCase>(
-      TYPES.GetTeamPlayersUseCase,
-    );
+    const players = await playerController.getTeamPlayers(teamId);
 
-    // Execute use case
-    const players = await getTeamPlayersUseCase.execute(teamId);
-
-    // Validate response
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
     return NextResponse.json(validatedPlayers, { status: 200 });

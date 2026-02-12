@@ -2,21 +2,18 @@
  * GET /api/users/{userId}/players - Retrieve all teams/players for a user
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/infrastructure/di/inversify.config';
-import { TYPES } from '@/infrastructure/di/types';
+import * as playerController from '@/interface/controllers/player/player.controller';
 import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { IGetUserPlayersUseCase } from '@/applications/usecases/player';
 import { PlayerSchema } from '@/lib/validations/player';
+import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -28,7 +25,6 @@ export async function GET(
     const requestingUserId = session.user.id;
     const { userId: targetUserId } = await params;
 
-    // Verify user can only access their own players
     if (requestingUserId !== targetUserId) {
       return NextResponse.json(
         { error: 'Forbidden: Cannot access other user\'s players' },
@@ -36,15 +32,8 @@ export async function GET(
       );
     }
 
-    // Get use case from DI container
-    const getUserPlayersUseCase = container.get<IGetUserPlayersUseCase>(
-      TYPES.GetUserPlayersUseCase
-    );
+    const players = await playerController.getUserPlayers(targetUserId);
 
-    // Execute use case
-    const players = await getUserPlayersUseCase.execute(targetUserId);
-
-    // Validate response
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
     return NextResponse.json(
