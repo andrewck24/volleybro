@@ -2,7 +2,6 @@ import { inject, injectable } from 'inversify';
 import type { IAcceptInvitationUseCase } from '@/applications/usecases/player/accept-invitation.usecase.interface';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import { TYPES } from '@/infrastructure/di/types';
-import { PlayerStatus } from '@/entities/player';
 
 /**
  * AcceptInvitationUseCase Implementation
@@ -26,11 +25,12 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
       throw new Error('Player record not found');
     }
 
-    // Verify this is a pending invitation (has email, no userId)
-    if (PlayerStatus.INVITED !== 'INVITED') {
-      throw new Error('Player is not in INVITED status');
+    // Verify player is not already joined
+    if (player.userId) {
+      throw new Error('Player is already a joined member');
     }
 
+    // Verify this is a pending invitation (has email)
     if (!player.email) {
       throw new Error('No invitation found for this player');
     }

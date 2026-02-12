@@ -74,6 +74,16 @@ export const ManagePlayerMembershipSchema = z.object({
 export type ManagePlayerMembershipInput = z.infer<typeof ManagePlayerMembershipSchema>;
 
 /**
+ * Schema for invitation response (accept/reject)
+ * PATCH /api/players/{playerId}/invitations
+ */
+export const InvitationResponseSchema = z.object({
+  action: z.enum(["accept", "reject"]),
+});
+
+export type InvitationResponseInput = z.infer<typeof InvitationResponseSchema>;
+
+/**
  * Discriminated union for status change operations
  * - invite: Create invitation with email
  * - cancel: Cancel pending invitation

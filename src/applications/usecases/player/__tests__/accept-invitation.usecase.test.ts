@@ -59,6 +59,18 @@ describe("AcceptInvitationUseCase", () => {
     );
   });
 
+  it("should throw error if player is already joined", async () => {
+    const joinedPlayer: Player = {
+      ...invitedPlayer,
+      userId: "existing-user",
+    };
+    mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
+
+    await expect(usecase.execute("player-1", "user-1")).rejects.toThrow(
+      "Player is already a joined member",
+    );
+  });
+
   it("should throw error if no invitation", async () => {
     const purePlayer: Player = {
       ...invitedPlayer,
