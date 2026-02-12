@@ -1,58 +1,36 @@
 /**
  * GET /api/players/{playerId} - Get Single Player
+ * PATCH /api/players/{playerId} - Update Player Info
  * DELETE /api/players/{playerId} - Remove Player
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { container } from '@/infrastructure/di/inversify.config';
-import { TYPES } from '@/infrastructure/di/types';
+import * as playerController from '@/interface/controllers/player/player.controller';
+import { PlayerSchema, UpdatePlayerInfoSchema } from '@/lib/validations/player';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
-import {
-  IGetPlayerUseCase,
-  IRemovePlayerUseCase,
-} from '@/applications/usecases/player';
-import { PlayerSchema } from '@/lib/validations/player';
+import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ playerId: string }> }
 ) {
   try {
-    // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { playerId } = await params;
 
-    // Get use case from DI container
-    const getPlayerUseCase = container.get<IGetPlayerUseCase>(
-      TYPES.GetPlayerUseCase
-    );
-
-    // Execute use case
-    const player = await getPlayerUseCase.execute(playerId);
+    const player = await playerController.getPlayer(playerId);
 
     if (!player) {
-      return NextResponse.json(
-        { error: 'Player not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Player not found' }, { status: 404 });
     }
 
-    // Validate response
     const validatedPlayer = PlayerSchema.parse(player);
-
-    return NextResponse.json(
-      { player: validatedPlayer },
-      { status: 200 }
-    );
+    return NextResponse.json({ player: validatedPlayer }, { status: 200 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -62,10 +40,58 @@ export async function GET(
     }
 
     if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ playerId: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+    const { playerId } = await params;
+
+    const body = await req.json();
+    const validatedData = UpdatePlayerInfoSchema.parse(body);
+
+    const updatedPlayer = await playerController.updatePlayer(
+      playerId,
+      validatedData,
+      userId
+    );
+
+    const validatedPlayer = PlayerSchema.parse(updatedPlayer);
+    return NextResponse.json(validatedPlayer, { status: 200 });
+  } catch (error) {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Invalid request data', details: error.issues },
         { status: 400 }
       );
+    }
+
+    if (error instanceof Error) {
+      if (error.message.includes('not admin')) {
+        return NextResponse.json({ error: error.message }, { status: 403 });
+      }
+
+      if (error.message.includes('not found')) {
+        return NextResponse.json({ error: error.message }, { status: 404 });
+      }
+
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
@@ -76,64 +102,38 @@ export async function GET(
 }
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ playerId: string }> }
 ) {
   try {
-    // Verify authentication
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const userId = session.user.id;
     const { playerId } = await params;
 
-    // Get use case from DI container
-    const removePlayerUseCase = container.get<IRemovePlayerUseCase>(
-      TYPES.RemovePlayerUseCase
-    );
-
-    // Execute use case
-    await removePlayerUseCase.execute(playerId, userId);
+    await playerController.removePlayer(playerId, userId);
 
     return NextResponse.json(
       { success: true, message: 'Player removed successfully' },
       { status: 200 }
     );
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
-      );
-    }
-
     if (error instanceof Error) {
-      // Player not found
       if (error.message.includes('not found')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: error.message }, { status: 404 });
       }
 
-      // Authorization errors
-      if (error.message.includes('not authorized') ||
-          error.message.includes('Unauthorized')) {
-        return NextResponse.json(
-          { error: error.message },
-          { status: 403 }
-        );
+      if (
+        error.message.includes('not authorized') ||
+        error.message.includes('Unauthorized')
+      ) {
+        return NextResponse.json({ error: error.message }, { status: 403 });
       }
 
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
