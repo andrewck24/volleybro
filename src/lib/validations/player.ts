@@ -52,13 +52,26 @@ export const UpdatePlayerInfoSchema = z.object({
 export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
 
 /**
- * Schema for updating player role
+ * Schema for updating player role (MEMBER or ADMIN only, not OWNER)
  */
+const MemberAdminRoleSchema = z.enum([PlayerRole.MEMBER, PlayerRole.ADMIN]);
+
 export const UpdatePlayerRoleSchema = z.object({
-  role: PlayerRoleSchema,
+  role: MemberAdminRoleSchema,
 });
 
 export type UpdatePlayerRoleInput = z.infer<typeof UpdatePlayerRoleSchema>;
+
+/**
+ * Schema for creating an invitation to an existing PURE_PLAYER
+ * POST /api/players/{playerId}/memberships
+ */
+export const ManagePlayerMembershipSchema = z.object({
+  email: z.email("請輸入有效的電子郵件"),
+  role: MemberAdminRoleSchema.default(PlayerRole.MEMBER),
+});
+
+export type ManagePlayerMembershipInput = z.infer<typeof ManagePlayerMembershipSchema>;
 
 /**
  * Discriminated union for status change operations
