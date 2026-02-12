@@ -1,14 +1,36 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { ITransferOwnershipUseCase } from '../transfer-ownership.usecase.interface';
-import { TransferOwnershipUseCase } from '../transfer-ownership.usecase';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
-import { PlayerRole } from '@/entities/player';
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { PlayerRole } from "@/entities/player";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { TransferOwnershipUseCase } from "../transfer-ownership.usecase";
+import type { ITransferOwnershipUseCase } from "../transfer-ownership.usecase.interface";
 
-describe('TransferOwnershipUseCase', () => {
+describe("TransferOwnershipUseCase", () => {
   let useCase: ITransferOwnershipUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
-  let mockAuthService: jest.Mocked<IAuthorizationService>;
+
+  const teamId = "team_123";
+  const userId = "user_456";
+  const newOwnerId = "player_002";
+
+  const currentOwner = {
+    _id: "player_001",
+    name: "Current Owner",
+    teamId,
+    userId,
+    role: PlayerRole.OWNER,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const newOwner = {
+    _id: newOwnerId,
+    name: "New Owner",
+    teamId,
+    userId: "user_789",
+    role: PlayerRole.ADMIN,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   beforeEach(() => {
     mockPlayerRepository = {
@@ -20,248 +42,108 @@ describe('TransferOwnershipUseCase', () => {
       update: jest.fn(),
       delete: jest.fn(),
       findInvitedByTeamIdAndEmail: jest.fn(),
-    } as any;
+      findByTeamIdAndUserId: jest.fn(),
+      countByTeamId: jest.fn(),
+      findTeamOwner: jest.fn(),
+      findAdminsByTeamId: jest.fn(),
+      existsInvitation: jest.fn(),
+    } as jest.Mocked<IPlayerRepository>;
 
-    mockAuthService = {
-      verifyIsTeamAdmin: jest.fn(),
-    } as any;
-
-    useCase = new TransferOwnershipUseCase(
-      mockPlayerRepository,
-      mockAuthService
-    );
+    useCase = new TransferOwnershipUseCase(mockPlayerRepository);
   });
 
-  describe('execute', () => {
-    it('should transfer ownership to new owner', async () => {
-      const teamId = 'team_123';
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_owner_002';
-      const userId = 'user_456';
+  describe("execute", () => {
+    it("should transfer ownership and demote current owner to ADMIN", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(newOwner);
+      mockPlayerRepository.update
+        .mockResolvedValueOnce({ ...newOwner, role: PlayerRole.OWNER })
+        .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.ADMIN });
 
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
+      const result = await useCase.execute(teamId, newOwnerId, userId);
+
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
         teamId,
         userId,
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const newOwner = {
-        _id: newOwnerId,
-        name: 'New Owner',
-        teamId,
-        userId: 'user_789',
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(newOwner);
-      mockPlayerRepository.update.mockResolvedValue({
-        ...newOwner,
-        role: PlayerRole.OWNER,
-      });
-
-      const result = await useCase.execute(
-        currentOwnerId,
-        newOwnerId,
-        userId
       );
-
-      expect(mockPlayerRepository.findById).toHaveBeenNthCalledWith(
+      expect(mockPlayerRepository.findById).toHaveBeenCalledWith(newOwnerId);
+      expect(mockPlayerRepository.update).toHaveBeenNthCalledWith(
         1,
-        currentOwnerId
+        newOwnerId,
+        { role: PlayerRole.OWNER },
       );
-      expect(mockPlayerRepository.findById).toHaveBeenNthCalledWith(
+      expect(mockPlayerRepository.update).toHaveBeenNthCalledWith(
         2,
-        newOwnerId
+        currentOwner._id,
+        { role: PlayerRole.ADMIN },
       );
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith(newOwnerId, {
-        role: PlayerRole.OWNER,
-      });
       expect(result.role).toBe(PlayerRole.OWNER);
     });
 
-    it('should reject if current owner not found', async () => {
-      const currentOwnerId = 'player_999';
-      const newOwnerId = 'player_002';
-      const userId = 'user_456';
+    it("should reject if current owner not found in team", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Current owner not found in team",
+      );
+    });
+
+    it("should reject if user does not have OWNER role", async () => {
+      const adminPlayer = { ...currentOwner, role: PlayerRole.ADMIN };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(adminPlayer);
+
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Only current owner can transfer ownership",
+      );
+    });
+
+    it("should reject if new owner player not found", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('Player not found');
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Player not found",
+      );
     });
 
-    it('should reject if new owner not found', async () => {
-      const teamId = 'team_123';
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_999';
-      const userId = 'user_456';
+    it("should reject if new owner is not in same team", async () => {
+      const otherTeamPlayer = { ...newOwner, teamId: "team_999" };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(otherTeamPlayer);
 
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
-        teamId,
-        userId,
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(null);
-
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('Player not found');
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Target player is not in this team",
+      );
     });
 
-    it('should reject if owners are not in same team', async () => {
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_owner_002';
-      const userId = 'user_456';
+    it("should reject if new owner is not a joined member", async () => {
+      const purePlayer = { ...newOwner, userId: undefined };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
 
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
-        teamId: 'team_123',
-        userId,
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const newOwner = {
-        _id: newOwnerId,
-        name: 'New Owner',
-        teamId: 'team_999',
-        userId: 'user_789',
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(newOwner);
-
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('Players must be in same team');
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Target player must be a joined member",
+      );
     });
 
-    it('should reject if user is not the owner', async () => {
-      const teamId = 'team_123';
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_owner_002';
-      const userId = 'user_999';
-
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
-        teamId,
-        userId: 'user_456',
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const newOwner = {
-        _id: newOwnerId,
-        name: 'New Owner',
-        teamId,
-        userId: 'user_789',
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(newOwner);
-
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('Only current owner can transfer ownership');
-    });
-
-    it('should reject if current owner does not have OWNER role', async () => {
-      const teamId = 'team_123';
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_owner_002';
-      const userId = 'user_456';
-
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
-        teamId,
-        userId,
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const newOwner = {
-        _id: newOwnerId,
-        name: 'New Owner',
-        teamId,
-        userId: 'user_789',
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(newOwner);
-
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('User must be OWNER to transfer ownership');
-    });
-
-    it('should reject if update fails', async () => {
-      const teamId = 'team_123';
-      const currentOwnerId = 'player_owner_001';
-      const newOwnerId = 'player_owner_002';
-      const userId = 'user_456';
-
-      const currentOwner = {
-        _id: currentOwnerId,
-        name: 'Current Owner',
-        teamId,
-        userId,
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const newOwner = {
-        _id: newOwnerId,
-        name: 'New Owner',
-        teamId,
-        userId: 'user_789',
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById
-        .mockResolvedValueOnce(currentOwner)
-        .mockResolvedValueOnce(newOwner);
+    it("should reject if update fails", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(newOwner);
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute(currentOwnerId, newOwnerId, userId)
-      ).rejects.toThrow('Failed to update new owner');
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
+        "Failed to update new owner",
+      );
     });
   });
 });

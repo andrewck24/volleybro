@@ -1,60 +1,64 @@
-import { injectable, inject } from 'inversify';
-import { TYPES } from '@/infrastructure/di/types';
-import type { ITransferOwnershipUseCase } from './transfer-ownership.usecase.interface';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
-import type { Player } from '@/entities/player';
-import { PlayerRole } from '@/entities/player';
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { Player } from "@/entities/player";
+import { PlayerRole } from "@/entities/player";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
+import type { ITransferOwnershipUseCase } from "./transfer-ownership.usecase.interface";
 
 @injectable()
 export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
-    @inject(TYPES.AuthorizationService)
-    private authService: IAuthorizationService
   ) {}
 
   async execute(
-    currentOwnerId: string,
+    teamId: string,
     newOwnerId: string,
-    userId: string
+    userId: string,
   ): Promise<Player> {
-    // 1. Get both players
-    const currentOwner = await this.playerRepository.findById(currentOwnerId);
-    const newOwner = await this.playerRepository.findById(newOwnerId);
-
-    if (!currentOwner || !newOwner) {
-      throw new Error('Player not found');
+    // 1. Find current owner by teamId + userId
+    const currentOwner = await this.playerRepository.findByTeamIdAndUserId(
+      teamId,
+      userId,
+    );
+    if (!currentOwner) {
+      throw new Error("Current owner not found in team");
     }
 
-    // 2. Verify they're in same team
-    if (currentOwner.teamId !== newOwner.teamId) {
-      throw new Error('Players must be in same team');
-    }
-
-    // 3. Verify current user is the current owner
-    if (currentOwner.userId !== userId) {
-      throw new Error('Only current owner can transfer ownership');
-    }
-
-    // 4. Verify current user has OWNER role
+    // 2. Verify current user has OWNER role
     if (currentOwner.role !== PlayerRole.OWNER) {
-      throw new Error('User must be OWNER to transfer ownership');
+      throw new Error("Only current owner can transfer ownership");
     }
 
-    // 5. Transfer ownership - update new owner to OWNER
+    // 3. Get new owner and verify they're in the same team
+    const newOwner = await this.playerRepository.findById(newOwnerId);
+    if (!newOwner) {
+      throw new Error("Player not found");
+    }
+
+    if (newOwner.teamId !== teamId) {
+      throw new Error("Target player is not in this team");
+    }
+
+    // 4. Verify new owner is a JOINED member (has userId)
+    if (!newOwner.userId) {
+      throw new Error("Target player must be a joined member");
+    }
+
+    // 5. Transfer: update new owner to OWNER, demote current owner to ADMIN
     const updatedNewOwner = await this.playerRepository.update(newOwnerId, {
       role: PlayerRole.OWNER,
     });
 
     if (!updatedNewOwner) {
-      throw new Error('Failed to update new owner');
+      throw new Error("Failed to update new owner");
     }
 
-    // 6. Optionally downgrade current owner (can remain as ADMIN/MEMBER)
-    // For now, we leave current owner as is - let them decide their own role
-    // They would use updateRole usecase to change themselves if desired
+    // 6. Demote current owner to ADMIN
+    await this.playerRepository.update(currentOwner._id, {
+      role: PlayerRole.ADMIN,
+    });
 
     return updatedNewOwner;
   }

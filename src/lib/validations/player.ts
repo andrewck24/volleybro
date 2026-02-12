@@ -71,7 +71,9 @@ export const ManagePlayerMembershipSchema = z.object({
   role: MemberAdminRoleSchema.default(PlayerRole.MEMBER),
 });
 
-export type ManagePlayerMembershipInput = z.infer<typeof ManagePlayerMembershipSchema>;
+export type ManagePlayerMembershipInput = z.infer<
+  typeof ManagePlayerMembershipSchema
+>;
 
 /**
  * Schema for invitation response (accept/reject)
@@ -82,6 +84,16 @@ export const InvitationResponseSchema = z.object({
 });
 
 export type InvitationResponseInput = z.infer<typeof InvitationResponseSchema>;
+
+/**
+ * Schema for transferring team ownership
+ * POST /api/teams/{teamId}/ownership
+ */
+export const TransferOwnershipSchema = z.object({
+  newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
+});
+
+export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
 
 /**
  * Discriminated union for status change operations
