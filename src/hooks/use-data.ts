@@ -138,6 +138,25 @@ export const useTeamPlayers = (
   return { players: data, error, isLoading, isValidating, mutate };
 };
 
+export const usePlayer = (
+  playerId: string,
+  fetcher = defaultFetcher,
+  options = {},
+) => {
+  const key = `/api/players/${playerId}`;
+  const hasCache = useHasCache(key);
+  const { data, error, isLoading, isValidating, mutate } = useSWR<
+    { player: Player },
+    FetchError
+  >(playerId ? key : null, fetcher, {
+    ...SWR_CONFIG.DEFAULT,
+    revalidateOnMount: !hasCache,
+    ...options,
+  });
+
+  return { player: data?.player, error, isLoading, isValidating, mutate };
+};
+
 export const useRecord = (
   recordId: string,
   fetcher = defaultFetcher,
