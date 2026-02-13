@@ -4,21 +4,21 @@
  * DELETE /api/players/{playerId} - Remove Player
  */
 
-import * as playerController from '@/interface/controllers/player/player.controller';
-import { PlayerSchema, UpdatePlayerInfoSchema } from '@/lib/validations/player';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { ZodError } from 'zod';
+import * as playerController from "@/interface/controllers/player/player.controller";
+import { auth } from "@/lib/auth";
+import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
+import { headers } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
+  { params }: { params: Promise<{ playerId: string }> },
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { playerId } = await params;
@@ -26,16 +26,16 @@ export async function GET(
     const player = await playerController.getPlayer(playerId);
 
     if (!player) {
-      return NextResponse.json({ error: 'Player not found' }, { status: 404 });
+      return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
     const validatedPlayer = PlayerSchema.parse(player);
-    return NextResponse.json({ player: validatedPlayer }, { status: 200 });
+    return NextResponse.json(validatedPlayer, { status: 200 });
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid response data', details: error.issues },
-        { status: 500 }
+        { error: "Invalid response data", details: error.issues },
+        { status: 500 },
       );
     }
 
@@ -44,20 +44,20 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
+  { params }: { params: Promise<{ playerId: string }> },
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -69,7 +69,7 @@ export async function PATCH(
     const updatedPlayer = await playerController.updatePlayer(
       playerId,
       validatedData,
-      userId
+      userId,
     );
 
     const validatedPlayer = PlayerSchema.parse(updatedPlayer);
@@ -77,17 +77,17 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
+        { error: "Invalid request data", details: error.issues },
+        { status: 400 },
       );
     }
 
     if (error instanceof Error) {
-      if (error.message.includes('not admin')) {
+      if (error.message.includes("not admin")) {
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
 
-      if (error.message.includes('not found')) {
+      if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
 
@@ -95,20 +95,20 @@ export async function PATCH(
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
+  { params }: { params: Promise<{ playerId: string }> },
 ) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = session.user.id;
@@ -117,18 +117,18 @@ export async function DELETE(
     await playerController.removePlayer(playerId, userId);
 
     return NextResponse.json(
-      { success: true, message: 'Player removed successfully' },
-      { status: 200 }
+      { success: true, message: "Player removed successfully" },
+      { status: 200 },
     );
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes('not found')) {
+      if (error.message.includes("not found")) {
         return NextResponse.json({ error: error.message }, { status: 404 });
       }
 
       if (
-        error.message.includes('not authorized') ||
-        error.message.includes('Unauthorized')
+        error.message.includes("not authorized") ||
+        error.message.includes("Unauthorized")
       ) {
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
@@ -137,8 +137,8 @@ export async function DELETE(
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

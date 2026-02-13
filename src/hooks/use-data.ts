@@ -146,7 +146,7 @@ export const usePlayer = (
   const key = `/api/players/${playerId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    { player: Player },
+    Player,
     FetchError
   >(playerId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -154,7 +154,7 @@ export const usePlayer = (
     ...options,
   });
 
-  return { player: data?.player, error, isLoading, isValidating, mutate };
+  return { player: data, error, isLoading, isValidating, mutate };
 };
 
 export const useRecord = (
