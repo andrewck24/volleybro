@@ -464,3 +464,54 @@ Task T030: "建立 RoleSelect 元件"
 **Parallel Opportunities**: 約 60% 的任務標記 [P]，可在同一 Phase 內平行執行
 
 **Suggested MVP Scope**: Phase 1-5（Setup + Foundational + US1-US3），共 57 tasks
+
+---
+
+## Phase 12: 路由、元件與架構重構（後補）
+
+**目的**：Phase 11 完成後發現的架構問題與 UX 改善，統一於本 PR 處理。
+
+**參考計畫**：`~/.claude/plans/adaptive-meandering-dongarra.md`
+
+### Phase 12-1：路由重命名
+
+- [x] T129 建立 `src/app/(protected)/team/[teamId]/players/` 路由目錄取代舊 `/members/`（Phase 1）
+
+### Phase 12-2：API 端點重構（Clean Architecture 修正）
+
+- [x] T130 [P] 重組 Controller 目錄至 `src/interface/controllers/player/`，依職責分離（Phase 2A）
+- [x] T131 清理舊 `CreateInvitationUseCase`（與 `CreatePlayerUseCase` 重複），重建為邀請現有 PURE_PLAYER 的新版本（Phase 2B/2F）
+- [x] T132 [P] 實作 `POST /api/players/{playerId}/memberships`（邀請現有球員）（Phase 2B）
+- [x] T133 [P] 實作 `PATCH /api/players/{playerId}/memberships`（變更角色）（Phase 2B）
+- [x] T134 [P] 實作 `DELETE /api/players/{playerId}/memberships`（取消邀請）（Phase 2B）
+- [x] T135 [P] 實作 `PATCH /api/players/{playerId}/invitations`（accept/reject）（Phase 2C）
+- [x] T136 修復 `AcceptInvitationUseCase` 常數比較 bug（Phase 2C）
+- [x] T137 重構 `TransferOwnershipUseCase` 介面，安全性邏輯移入 UseCase（Phase 2D）
+- [x] T138 [P] 實作 `POST /api/teams/{teamId}/ownership`（移轉所有權）（Phase 2D）
+- [x] T139 刪除舊 `/status`、`/role`、`/info` 端點，將 PATCH 合併至主路由（Phase 2E）
+- [x] T140 修正所有 player API routes 透過 Controller 層（不直接存取 DI container）（Phase 2）
+
+### Phase 12-3：元件重組
+
+- [x] T141 [P] 新增 `players/list-item.tsx`（聯絡人風格列表項目）（Phase 3）
+- [x] T142 重寫 `players/list.tsx`（平鋪清單取代舊的 grid+filter）（Phase 3）
+- [x] T143 [P] 新增 `players/info.tsx`（球員詳情頁）（Phase 3）
+- [x] T144 [P] 新增 `players/create-form.tsx`（新增球員表單）（Phase 3）
+- [x] T145 [P] 新增 `players/edit-form.tsx`（編輯表單 + 隊籍管理）（Phase 3）
+- [x] T146 [P] 新增 `players/membership-section.tsx`（invite/cancel/role/transfer-ownership 操作）（Phase 3）
+- [x] T147 刪除舊 `player-form`、`player-card`、`player-list`、`invite-accordion` 元件（Phase 3）
+- [x] T148 刪除 `use-player-actions.ts`（操作邏輯內聯至 membership-section）（Phase 3）
+- [x] T149 簡化 `labels.ts`（移除 STATUS_LABELS、STATUS_COLORS 等已不使用的 exports）（Phase 3）
+
+### Phase 12-4：Hooks 更新
+
+- [x] T150 新增 `usePlayer(playerId)` SWR hook 至 `use-data.ts`（Phase 4）
+
+### 變更紀錄
+
+| 項目                            | 說明                                                                                                  |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `/api/players/{id}/info`        | 刪除（冗餘）；PATCH 合併至主路由 `/api/players/{id}`                                                  |
+| `TransferOwnershipUseCase` 介面 | 由 `(currentOwnerId, newOwnerId, userId)` 改為 `(teamId, newOwnerId, userId)`；安全性邏輯移入 UseCase |
+| `AcceptInvitationUseCase` bug   | 第 30 行常數比較 `PlayerStatus.INVITED !== 'INVITED'` 始終為 false，修正為 `if (player.userId)`       |
+| Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                    |
