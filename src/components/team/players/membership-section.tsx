@@ -4,10 +4,12 @@ import { RoleSelect } from "@/components/team/role-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { getPlayerStatus, PlayerRole, PlayerStatus } from "@/entities/player";
 import { ROLE_LABELS } from "@/lib/constants/labels";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 
@@ -24,34 +26,125 @@ export function MembershipSection({
 }: MembershipSectionProps) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
+  const router = useRouter();
   const status = getPlayerStatus(player);
+  const isJoined = status === PlayerStatus.JOINED;
+  const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
   const revalidate = () => {
     mutate(`/api/players/${player._id}`);
     mutate(`/api/teams/${teamId}/players`);
   };
 
-  if (status === PlayerStatus.PURE_PLAYER) {
-    return (
-      <InviteSection player={player} onSuccess={revalidate} toast={toast} />
-    );
-  }
+  const handleRemove = async () => {
+    if (!window.confirm(`確定要將 ${player.name} 從隊伍中移除嗎？`)) return;
 
-  if (status === PlayerStatus.INVITED) {
-    return (
-      <InvitedSection player={player} onSuccess={revalidate} toast={toast} />
-    );
-  }
+    try {
+      const res = await fetch(`/api/players/${player._id}`, {
+        method: "DELETE",
+      });
 
-  // JOINED
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "移除失敗");
+      }
+
+      toast({
+        title: "成員已移除",
+        description: `${player.name} 已從隊伍中移除`,
+      });
+      mutate(`/api/teams/${teamId}/players`);
+      router.push(`/team/${teamId}`);
+    } catch (err) {
+      toast({
+        title: "移除失敗",
+        description: err instanceof Error ? err.message : "發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (
+      !window.confirm(
+        `確定要將隊伍所有權移轉給 ${player.name} 嗎？你將被降級為管理員。`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/teams/${teamId}/ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOwnerId: player._id }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "移轉失敗");
+      }
+
+      toast({
+        title: "所有權已移轉",
+        description: `${player.name} 已成為新隊長`,
+      });
+      revalidate();
+    } catch (err) {
+      toast({
+        title: "移轉失敗",
+        description: err instanceof Error ? err.message : "發生錯誤",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <JoinedSection
-      player={player}
-      teamId={teamId}
-      isCurrentOwner={isCurrentOwner}
-      onSuccess={revalidate}
-      toast={toast}
-    />
+    <>
+      {status === PlayerStatus.PURE_PLAYER && (
+        <InviteSection player={player} onSuccess={revalidate} toast={toast} />
+      )}
+
+      {status === PlayerStatus.INVITED && (
+        <InvitedSection player={player} onSuccess={revalidate} toast={toast} />
+      )}
+
+      {isJoined && (
+        <JoinedSection player={player} onSuccess={revalidate} toast={toast} />
+      )}
+
+      {!isOwnerPlayer && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-destructive">移除成員</h3>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={handleRemove}
+            >
+              移除成員
+            </Button>
+          </div>
+        </>
+      )}
+
+      {isJoined && !isOwnerPlayer && isCurrentOwner && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={handleTransferOwnership}
+            >
+              移轉所有權給此球員
+            </Button>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -191,17 +284,13 @@ function InvitedSection({
   );
 }
 
-// --- JOINED: role management + transfer ownership ---
+// --- JOINED: role management only ---
 function JoinedSection({
   player,
-  teamId,
-  isCurrentOwner,
   onSuccess,
   toast,
 }: {
   player: Player;
-  teamId: string;
-  isCurrentOwner: boolean;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -211,7 +300,6 @@ function JoinedSection({
       : player.role || PlayerRole.MEMBER,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
   const handleUpdateRole = async () => {
     setIsSubmitting(true);
@@ -244,56 +332,12 @@ function JoinedSection({
     }
   };
 
-  const handleTransferOwnership = async () => {
-    if (
-      !window.confirm(
-        `確定要將隊伍所有權移轉給 ${player.name} 嗎？你將被降級為管理員。`,
-      )
-    ) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const res = await fetch(`/api/teams/${teamId}/ownership`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newOwnerId: player._id }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "移轉失敗");
-      }
-
-      toast({
-        title: "所有權已移轉",
-        description: `${player.name} 已成為新隊長`,
-      });
-      onSuccess();
-    } catch (err) {
-      toast({
-        title: "移轉失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isOwnerPlayer) {
+  if (player.role === PlayerRole.OWNER) {
     return (
       <div className="space-y-3">
         <h3 className="text-sm font-medium">隊籍</h3>
         <div className="rounded-md bg-muted/50 p-3 text-sm">
-          <p className="text-muted-foreground">
-            角色：
-            <span className="font-medium text-foreground">
-              {ROLE_LABELS[PlayerRole.OWNER]}
-            </span>
-          </p>
+          <p className="font-medium">{ROLE_LABELS[PlayerRole.OWNER]}</p>
         </div>
       </div>
     );
@@ -306,26 +350,13 @@ function JoinedSection({
         <Label>角色</Label>
         <RoleSelect value={role} onChange={setRole} disabled={isSubmitting} />
       </div>
-      {role !== player.role && (
-        <Button
-          className="w-full"
-          onClick={handleUpdateRole}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "變更中..." : "變更角色"}
-        </Button>
-      )}
-
-      {isCurrentOwner && (
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleTransferOwnership}
-          disabled={isSubmitting}
-        >
-          移轉所有權給此球員
-        </Button>
-      )}
+      <Button
+        className="w-full"
+        onClick={handleUpdateRole}
+        disabled={isSubmitting || role === player.role}
+      >
+        {isSubmitting ? "變更中..." : "變更角色"}
+      </Button>
     </div>
   );
 }

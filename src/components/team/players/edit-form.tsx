@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
@@ -51,7 +52,7 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
       <InfoSection player={player} teamId={teamId} />
       {showMembership && (
         <>
-          <hr />
+          <Separator />
           <MembershipSection
             player={player}
             teamId={teamId}
