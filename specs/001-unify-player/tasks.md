@@ -507,11 +507,20 @@ Task T030: "建立 RoleSelect 元件"
 
 - [x] T150 新增 `usePlayer(playerId)` SWR hook 至 `use-data.ts`（Phase 4）
 
+### Phase 12-5：Bug 修復（members → players 遷移殘留問題）
+
+- [x] T151 修復 `src/components/team/info/index.tsx`：
+  - 重寫元件，移除 `TeamInfoTable`（table.tsx）
+  - `team.members.length` → 改以 `useTeamPlayers()` 取得的 `players.length`
+  - `isAdmin = true`（hardcoded TODO）→ 改為 `canManageTeam(currentUserPlayer)` 實際權限判斷
+  - 刪除 `src/components/team/info/table.tsx`（已直接內聯，且依賴舊 members 欄位）
+
 ### 變更紀錄
 
-| 項目                            | 說明                                                                                                  |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `/api/players/{id}/info`        | 刪除（冗餘）；PATCH 合併至主路由 `/api/players/{id}`                                                  |
-| `TransferOwnershipUseCase` 介面 | 由 `(currentOwnerId, newOwnerId, userId)` 改為 `(teamId, newOwnerId, userId)`；安全性邏輯移入 UseCase |
-| `AcceptInvitationUseCase` bug   | 第 30 行常數比較 `PlayerStatus.INVITED !== 'INVITED'` 始終為 false，修正為 `if (player.userId)`       |
-| Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                    |
+| 項目                            | 說明                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/players/{id}/info`        | 刪除（冗餘）；PATCH 合併至主路由 `/api/players/{id}`                                                                                              |
+| `TransferOwnershipUseCase` 介面 | 由 `(currentOwnerId, newOwnerId, userId)` 改為 `(teamId, newOwnerId, userId)`；安全性邏輯移入 UseCase                                             |
+| `AcceptInvitationUseCase` bug   | 第 30 行常數比較 `PlayerStatus.INVITED !== 'INVITED'` 始終為 false，修正為 `if (player.userId)`                                                   |
+| Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                                                                |
+| `TeamInfoTable` bug             | `team.members.length`（舊欄位）改為 `players.length`（`useTeamPlayers`）；`isAdmin = true` hardcoded TODO 改為 `canManageTeam(currentUserPlayer)` |
