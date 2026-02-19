@@ -38,7 +38,7 @@ export const SetOptions = ({
           設定第 {setIndex + 1} 局的陣容
         </DialogDescription>
       </DialogHeader>
-      <LineupCourt members={record.teams.home.players} />
+      <LineupCourt players={record.teams.home.players} />
       <SetOptionsPanel recordId={recordId} />
     </DialogContent>
   );

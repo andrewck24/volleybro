@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -22,7 +23,17 @@ import { Dialog } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { RiUserLine } from "react-icons/ri";
 
-export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
+interface LineupOptionsProps {
+  players: Player[];
+  others: Player[];
+  hasPairedSwitchPosition: boolean;
+}
+
+export const LineupOptions = ({
+  players,
+  others,
+  hasPairedSwitchPosition,
+}: LineupOptionsProps) => {
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const { lineups, status } = useAppSelector((state) => state.lineup);
@@ -78,7 +89,9 @@ export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
                     className="w-fit px-0"
                     onClick={() =>
                       dispatch(
-                        lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
+                        lineupActions.setOptionMode(
+                          LineupOptionMode.SUBSTITUTES,
+                        ),
                       )
                     }
                   >
@@ -90,17 +103,17 @@ export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
           </TableHeader>
           <TableBody className="text-xl">
             {lineups[status.lineupIndex]?.substitutes &&
-              lineups[status.lineupIndex].substitutes.map((player) => {
-                const member = members?.find((m) => m._id === player._id);
+              lineups[status.lineupIndex].substitutes.map((lineupPlayer) => {
+                const player = players?.find((p) => p._id === lineupPlayer._id);
                 return (
-                  <TableRow key={member._id}>
+                  <TableRow key={player?._id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>
-                    <TableCell className="w-[2.5rem] text-right">
-                      {member?.number}
+                    <TableCell className="w-10 text-right">
+                      {player?.number}
                     </TableCell>
-                    <TableCell>{member?.name}</TableCell>
+                    <TableCell>{player?.name}</TableCell>
                   </TableRow>
                 );
               })}
@@ -118,7 +131,9 @@ export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
                     className="w-fit px-0"
                     onClick={() =>
                       dispatch(
-                        lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
+                        lineupActions.setOptionMode(
+                          LineupOptionMode.SUBSTITUTES,
+                        ),
                       )
                     }
                   >
@@ -130,16 +145,16 @@ export const LineupOptions = ({ members, others, hasPairedSwitchPosition }) => {
           </TableHeader>
           <TableBody className="text-xl">
             {others &&
-              others.map((member) => {
+              others.map((player) => {
                 return (
-                  <TableRow key={member._id}>
+                  <TableRow key={player._id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>
-                    <TableCell className="w-[2.5rem] text-right">
-                      {member?.number}
+                    <TableCell className="w-10 text-right">
+                      {player?.number}
                     </TableCell>
-                    <TableCell colSpan={2}>{member?.name}</TableCell>
+                    <TableCell colSpan={2}>{player?.name}</TableCell>
                   </TableRow>
                 );
               })}

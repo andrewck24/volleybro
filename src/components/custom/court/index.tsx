@@ -3,7 +3,12 @@ import { FiPlus } from "react-icons/fi";
 import { RiRepeat2Line } from "react-icons/ri";
 import { Badge } from "@/components/ui/badge";
 
-import type { Player } from "@/entities/record";
+type CardPlayer = {
+  _id: string;
+  name: string;
+  number?: number;
+  position: string;
+};
 
 export const Court = ({
   className,
@@ -46,7 +51,7 @@ export const Outside = ({
 
 export const Inside = ({ children }: { children?: React.ReactNode }) => {
   return (
-    <div className="relative flex-9 aspect-1/1 h-full max-h-[35vh] py-[5%] px-2 grid [grid-template-areas:'z4_z3_z2''z5_z6_z1'] gap-2 bg-[hsl(12.93,96.67%,76.47%)] border-4 border-primary-foreground before:content-[''] before:absolute before:top-0 before:w-full before:min-h-[calc((100%-1rem)/3)] before:bg-destructive before:border-b-4 before:border-background dark:before:border-primary-foreground">
+    <div className="relative flex-9 aspect-square h-full max-h-[35vh] py-[5%] px-2 grid [grid-template-areas:'z4_z3_z2''z5_z6_z1'] gap-2 bg-[hsl(12.93,96.67%,76.47%)] border-4 border-primary-foreground before:content-[''] before:absolute before:top-0 before:w-full before:min-h-[calc((100%-1rem)/3)] before:bg-destructive before:border-b-4 before:border-background dark:before:border-primary-foreground">
       {children}
     </div>
   );
@@ -91,7 +96,7 @@ const Number = ({ children }: { children?: React.ReactNode }) => {
     <p
       className={cn(
         "flex items-center justify-center",
-        "max-h-[3rem] min-h-[3rem] max-w-[3rem] min-w-[3rem]",
+        "max-h-12 min-h-12 max-w-12 min-w-12",
         "text-[3rem] font-bold [&>svg]:size-12"
       )}
     >
@@ -105,7 +110,7 @@ const Position = ({ children }: { children?: React.ReactNode }) => {
     <p
       className={cn(
         "flex items-center justify-center",
-        "max-h-[1.25rem] min-h-[1.25rem] max-w-[1.25rem] min-w-[1.25rem]",
+        "max-h-5 min-h-5 max-w-5 min-w-5",
         "text-[1.25rem] font-normal [&>svg]:size-5"
       )}
     >
@@ -118,12 +123,12 @@ export const SubIndicator = ({ number }: { number: number }) => {
   return (
     <Badge
       className={cn(
-        "absolute w-[1.5rem] h-[1.5rem] aspect-1/1",
+        "absolute w-6 h-6 aspect-square",
         "flex items-center justify-center",
         "m-1 border-2 border-primary-foreground rounded-full",
         "transition-all duration-200",
         "text-primary-foreground [&>svg]:size-5",
-        "top-[-0.75rem] right-[-0.75rem] bg-primary"
+        "-top-3 -right-3 bg-primary"
       )}
     >
       <RiRepeat2Line />
@@ -141,7 +146,7 @@ export const PlayerCard = ({
   onClick,
   children,
 }: {
-  player: Player & { position: string };
+  player: CardPlayer | null;
   toggled: boolean;
   list: string;
   zone: number;

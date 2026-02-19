@@ -1,8 +1,9 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { PanelContent } from "@/components/ui/panel";
 import { Separator } from "@/components/ui/separator";
+import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -12,7 +13,12 @@ import {
   RiUserLine,
 } from "react-icons/ri";
 
-export const Substitutes = ({ members, others }) => {
+interface SubstitutesProps {
+  players: Player[];
+  others: Player[];
+}
+
+export const Substitutes = ({ players, others }: SubstitutesProps) => {
   const dispatch = useAppDispatch();
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[status.lineupIndex].liberos.length;
@@ -21,37 +27,36 @@ export const Substitutes = ({ members, others }) => {
   const isSubstituteFull = substituteCount >= substituteLimit;
   const isEditingStarting = !!status.editingMember.zone;
 
-  const handleSubstituteClick = (member, index) => {
+  const handleSubstituteClick = (player: Player, index: number) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({
-          _id: member._id,
+          _id: player._id,
           list: "substitutes",
           zone: index + 1,
         }),
       );
     } else {
-      dispatch(lineupActions.removeSubstitutePlayer(member._id));
+      dispatch(lineupActions.removeSubstitutePlayer(player._id));
     }
   };
 
-  const handleOtherClick = (member, index) => {
+  const handleOtherClick = (player: Player, index: number) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({
-          _id: member._id,
+          _id: player._id,
           list: "",
           zone: index + 1,
         }),
       );
     } else if (!isSubstituteFull) {
-      dispatch(lineupActions.addSubstitutePlayer(member._id));
+      dispatch(lineupActions.addSubstitutePlayer(player._id));
     }
   };
 
   return (
     <PanelContent>
-      <Card className="size-full p-0">
         <CardHeader className="h-9 flex-row items-center justify-start">
           <Button
             variant="ghost"
@@ -65,43 +70,42 @@ export const Substitutes = ({ members, others }) => {
           </Button>
           <CardTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</CardTitle>
         </CardHeader>
-        {lineups[status.lineupIndex].substitutes.map((player, index) => {
-          const member = members.find((m) => m._id === player._id);
+        {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
+          const player = players.find((p) => p._id === lineupPlayer._id);
           return (
             <Button
-              key={member._id}
+              key={player?._id}
               variant={isEditingStarting ? "outline" : "default"}
               size="wide"
-              onClick={() => handleSubstituteClick(member, index)}
+              onClick={() => handleSubstituteClick(player, index)}
               className="text-xl"
             >
               <RiUserFollowLine />
               <span className="flex basis-8 justify-end font-semibold">
-                {member.number || " "}
+                {player?.number || " "}
               </span>
-              {member.name}
+              {player?.name}
             </Button>
           );
         })}
         <Separator content="以上為正式比賽 12 + 2 人名單" />
-        {others.map((member, index) => {
+        {others.map((player, index) => {
           return (
             <Button
-              key={member._id}
+              key={player._id}
               variant="outline"
               size="wide"
-              onClick={() => handleOtherClick(member, index)}
+              onClick={() => handleOtherClick(player, index)}
               className="text-xl"
             >
               <RiUserLine />
               <span className="flex basis-8 justify-end font-semibold">
-                {member.number}
+                {player?.number}
               </span>
-              {member.name}
+              {player?.name}
             </Button>
           );
         })}
-      </Card>
     </PanelContent>
   );
 };

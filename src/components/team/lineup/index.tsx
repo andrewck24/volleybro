@@ -4,13 +4,39 @@ import LoadingCourt from "@/components/custom/loading/court";
 import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 import { RiSaveLine } from "react-icons/ri";
 
-const Lineup = ({ team, members, handleSave }) => {
+const Lineup = ({ teamId }) => {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
+  const { team, mutate } = useTeam(teamId);
+  const { players } = useTeamPlayers(teamId);
+
+  const handleSave = async (lineups) => {
+    try {
+      const response = await fetch(`/api/teams/${team._id}/lineups`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(lineups),
+      });
+      const data = await response.json();
+      mutate({ ...team, lineups: data }, false);
+      return toast({
+        title: "儲存成功",
+        description: "已成功儲存陣容設定。",
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const liberoReplaceMode =
     lineups[status.lineupIndex]?.options.liberoReplaceMode;
@@ -37,7 +63,7 @@ const Lineup = ({ team, members, handleSave }) => {
     if (team && team.lineups) dispatch(lineupActions.initialize(team.lineups));
   }, [team, dispatch]);
 
-  if (!team || !members || !lineups.length) {
+  if (!team || !players || !lineups.length) {
     return (
       <>
         <LoadingCourt />
@@ -51,9 +77,9 @@ const Lineup = ({ team, members, handleSave }) => {
 
   return (
     <>
-      <LineupCourt members={members} />
+      <LineupCourt players={players} />
       <LineupPanel
-        members={members}
+        players={players}
         hasPairedSwitchPosition={hasPairedSwitchPosition}
       />
       {!status.optionMode && (

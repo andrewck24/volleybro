@@ -515,12 +515,72 @@ Task T030: "建立 RoleSelect 元件"
   - `isAdmin = true`（hardcoded TODO）→ 改為 `canManageTeam(currentUserPlayer)` 實際權限判斷
   - 刪除 `src/components/team/info/table.tsx`（已直接內聯，且依賴舊 members 欄位）
 
+### Phase 12-6：Lineup 元件 member → player 遷移
+
+**目的**：lineup 相關元件的 props 命名與型別全面統一為 `player`/`players`，並解決跨 entity（`entities/player` vs `entities/record`）的型別衝突。
+
+**型別設計決策**：
+
+- `PlayerCard`（`src/components/custom/court/index.tsx`）改用局部定義的 `CardPlayer` 最小型別（`{ _id, name, number?, position: string }`），脫離對特定 entity 的綁定，同時支援 team lineup 與 record 兩種場景。
+- `LineupCourt`、`PlayerInfo` 的 props 同樣改用最小結構型別（`{ _id, name, number? }[]`），不綁定 `entities/player.Player`，使 `record.teams.home.players`（`entities/record.Player[]`）也可直接傳入。
+- `Substitutes`、`LineupOptions` 仍使用 `entities/player.Player[]`（僅在 team lineup 場景使用）。
+
+**不在本次範圍**：
+
+- Redux `status.editingMember` → `status.editingPlayer` 重命名（涉及 `lineup-slice.ts`、`types.ts` 及所有消費者，屬獨立重構）
+- `entities/player.ts` 與 `entities/team.ts` 中 `Position` enum 重複定義問題
+
+**修改清單**：
+
+- [x] T152 `src/components/custom/court/index.tsx`：
+  - 移除 `import type { Player } from "@/entities/record"`
+  - 新增局部型別 `CardPlayer = { _id: string; name: string; number?: number; position: string }`
+  - `PlayerCard` 的 `player` prop 改為 `CardPlayer | null`
+
+- [x] T153 `src/components/team/lineup/court.tsx`：
+  - 移除 `import type { Player } from "@/entities/player"`
+  - `LineupPanelProps` → `LineupCourtProps`，`players` 型別改為 `{ _id: string; name: string; number?: number }[]`（最小結構）
+  - 內部查詢結果：兩處 `member = players.find(...)` → `player = players.find(...)`
+  - 組合結果變數：兩處 `player = { ...member, position }` → `lineupPlayer = { ...player, position }`
+  - 傳入 `PlayerCard` 的 prop：`player={player}` → `player={lineupPlayer}`
+
+- [x] T154 `src/components/team/lineup/panel/player-info.tsx`：
+  - 移除 `import { Player } from "@/entities/player"`
+  - `players` prop 型別改為最小結構 `{ _id: string; name: string; number?: number }[]`
+
+- [x] T155 `src/components/team/lineup/panel/options/index.tsx`：
+  - 新增 `import type { Player } from "@/entities/player"`
+  - 新增 `interface LineupOptionsProps`，props `members` → `players: Player[]`，`others: Player[]`
+  - Redux substitutes 迭代變數：`player` → `lineupPlayer`（`LineupPlayer`）
+  - 查詢結果變數：`member = members.find(...)` → `player = players.find(...)`
+  - others 迭代變數：`(member) =>` → `(player) =>`
+
+- [x] T156 `src/components/team/lineup/panel/substitutes.tsx`：
+  - 新增 `import type { Player } from "@/entities/player"`
+  - 新增 `interface SubstitutesProps`，props `members` → `players: Player[]`，`others: Player[]`
+  - handler 參數：`(member, index)` → `(player: Player, index: number)`
+  - Redux substitutes 迭代變數：`player` → `lineupPlayer`
+  - 查詢結果變數：`member = members.find(...)` → `player = players.find(...)`
+  - others 迭代變數：`(member, index) =>` → `(player, index) =>`
+
+- [x] T157 `src/components/team/lineup/panel/index.tsx`：
+  - filter 迭代變數：`(member) =>` → `(player) =>`
+  - `<Substitutes members={players} ...>` → `<Substitutes players={players} ...>`
+  - `<LineupOptions members={players} ...>` → `<LineupOptions players={players} ...>`
+
+- [x] T158 `src/components/record/set-options/index.tsx`：
+  - `<LineupCourt members={...}>` → `<LineupCourt players={...}>`
+
+- [x] T159 `src/components/record/set-options/panel/index.tsx`：
+  - `<PlayerInfo members={...}>` → `<PlayerInfo players={...}>`
+
 ### 變更紀錄
 
-| 項目                            | 說明                                                                                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/players/{id}/info`        | 刪除（冗餘）；PATCH 合併至主路由 `/api/players/{id}`                                                                                              |
-| `TransferOwnershipUseCase` 介面 | 由 `(currentOwnerId, newOwnerId, userId)` 改為 `(teamId, newOwnerId, userId)`；安全性邏輯移入 UseCase                                             |
-| `AcceptInvitationUseCase` bug   | 第 30 行常數比較 `PlayerStatus.INVITED !== 'INVITED'` 始終為 false，修正為 `if (player.userId)`                                                   |
-| Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                                                                |
-| `TeamInfoTable` bug             | `team.members.length`（舊欄位）改為 `players.length`（`useTeamPlayers`）；`isAdmin = true` hardcoded TODO 改為 `canManageTeam(currentUserPlayer)` |
+| 項目                            | 說明                                                                                                                                                                                                                                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/players/{id}/info`        | 刪除（冗餘）；PATCH 合併至主路由 `/api/players/{id}`                                                                                                                                                                                                                                     |
+| `TransferOwnershipUseCase` 介面 | 由 `(currentOwnerId, newOwnerId, userId)` 改為 `(teamId, newOwnerId, userId)`；安全性邏輯移入 UseCase                                                                                                                                                                                    |
+| `AcceptInvitationUseCase` bug   | 第 30 行常數比較 `PlayerStatus.INVITED !== 'INVITED'` 始終為 false，修正為 `if (player.userId)`                                                                                                                                                                                          |
+| Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                                                                                                                                                                                                       |
+| `TeamInfoTable` bug             | `team.members.length`（舊欄位）改為 `players.length`（`useTeamPlayers`）；`isAdmin = true` hardcoded TODO 改為 `canManageTeam(currentUserPlayer)`                                                                                                                                        |
+| Lineup 元件 members → players   | `PlayerCard` 改用 `CardPlayer` 最小型別；`LineupCourt`、`PlayerInfo` props 改用結構最小型別；`LineupOptions`、`Substitutes` props 改為 `players: Player[]`；消除 `entities/record.Player` 與 `entities/player.Player` 的型別衝突；`record/set-options` 中 `members=` 全數改為 `players=` |
