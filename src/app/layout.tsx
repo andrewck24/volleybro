@@ -6,6 +6,7 @@ import { ReduxProvider } from "@/lib/redux/provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { BackgroundColorHandler } from "@/components/layout/bg-handler";
+import { SerwistProvider } from "@/app/serwist-provider";
 import type { Metadata, Viewport } from "next";
 
 const APP_NAME = "VolleyBro";
@@ -184,20 +185,25 @@ export default async function RootLayout({
         {/* TODO: twitter 設定待補 */}
       </head>
       <body>
-        <ReduxProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-            <Toaster />
-            <BackgroundColorHandler />
-            <Analytics />
-            <SpeedInsights />
-          </ThemeProvider>
-        </ReduxProvider>
+        <SerwistProvider
+          swUrl="/sw.js"
+          disable={process.env.NODE_ENV !== "production"}
+        >
+          <ReduxProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+              <Toaster />
+              <BackgroundColorHandler />
+              <Analytics />
+              <SpeedInsights />
+            </ThemeProvider>
+          </ReduxProvider>
+        </SerwistProvider>
       </body>
     </html>
   );

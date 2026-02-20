@@ -1,5 +1,4 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
-import withSerwistInit from "@serwist/next";
 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === "true",
@@ -9,12 +8,6 @@ const removeProperties =
   process.env.NODE_ENV === "production"
     ? { properties: ["^data-testid$"] }
     : false;
-
-const withSerwist = withSerwistInit({
-  swSrc: "src/app/sw.ts",
-  swDest: "public/sw.js",
-  disable: process.env.NODE_ENV !== "production",
-});
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
@@ -38,4 +31,4 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(withSerwist(nextConfig));
+export default withBundleAnalyzer(nextConfig);
