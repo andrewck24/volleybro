@@ -597,15 +597,16 @@ Task T030: "建立 RoleSelect 元件"
   - 重新排列判斷順序為 MEMBER → ADMIN → OWNER（由低到高），提升可讀性
   - 新增 `verifyTeamRole` 測試套件（10 個測試案例，涵蓋所有角色組合）
 
-- [ ] T161 實作 `ITeamRepository.removePlayerFromLineups`：
+- [x] T161 實作 `ITeamRepository.removePlayerFromLineups`：
   - 在 `team.repository.interface.ts` 新增方法定義
   - 在 `team.repository.mongo.ts` 實作 MongoDB `$pull` 清理 `lineups[*].starting/liberos/substitutes`
+  - `sub` 元素僅在比賽資料 `Record` 中建立，Team lineup 不含 sub 參照，不需清理
 
-- [ ] T162 在 `RemovePlayerUseCase` 注入 `ITeamRepository`，delete 後呼叫 `removePlayerFromLineups`
+- [x] T162 在 `RemovePlayerUseCase` 注入 `ITeamRepository`，delete 後呼叫 `removePlayerFromLineups`
 
-- [ ] T163 在 `LeaveTeamUseCase` 注入 `ITeamRepository`，update 後呼叫 `removePlayerFromLineups`
+- [x] T163 在 `LeaveTeamUseCase` 注入 `ITeamRepository`，update 後呼叫 `removePlayerFromLineups`
 
-- [ ] T164 更新 `remove-player.usecase.test.ts` 與 `leave-team.usecase.test.ts`，新增 lineup cleanup 測試
+- [x] T164 更新 `remove-player.usecase.test.ts` 與 `leave-team.usecase.test.ts`，新增 lineup cleanup 測試
 
 **不在本次範圍（Follow-up）**：
 

@@ -3,11 +3,13 @@ import type { IRemovePlayerUseCase } from '../remove-player.usecase.interface';
 import { RemovePlayerUseCase } from '../remove-player.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
+import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
 
 describe('RemovePlayerUseCase', () => {
   let useCase: IRemovePlayerUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
   let mockAuthService: jest.Mocked<IAuthorizationService>;
+  let mockTeamRepository: jest.Mocked<ITeamRepository>;
 
   beforeEach(() => {
     mockPlayerRepository = {
@@ -25,7 +27,11 @@ describe('RemovePlayerUseCase', () => {
       verifyIsTeamAdmin: jest.fn(),
     } as any;
 
-    useCase = new RemovePlayerUseCase(mockPlayerRepository, mockAuthService);
+    mockTeamRepository = {
+      removePlayerFromLineups: jest.fn(),
+    } as any;
+
+    useCase = new RemovePlayerUseCase(mockPlayerRepository, mockAuthService, mockTeamRepository);
   });
 
   describe('execute', () => {
@@ -47,6 +53,7 @@ describe('RemovePlayerUseCase', () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.delete.mockResolvedValue(true);
+      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
 
       const result = await useCase.execute(playerId, userId);
 
@@ -56,6 +63,10 @@ describe('RemovePlayerUseCase', () => {
       );
       expect(mockPlayerRepository.findById).toHaveBeenCalledWith(playerId);
       expect(mockPlayerRepository.delete).toHaveBeenCalledWith(playerId);
+      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
+        teamId,
+        playerId
+      );
       expect(result).toEqual({ success: true });
     });
 

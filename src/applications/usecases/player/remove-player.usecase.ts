@@ -3,6 +3,7 @@ import { TYPES } from '@/infrastructure/di/types';
 import type { IRemovePlayerUseCase } from './remove-player.usecase.interface';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
+import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
 
 @injectable()
 export class RemovePlayerUseCase implements IRemovePlayerUseCase {
@@ -10,7 +11,9 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
     @inject(TYPES.AuthorizationService)
-    private authService: IAuthorizationService
+    private authService: IAuthorizationService,
+    @inject(TYPES.TeamRepository)
+    private teamRepository: ITeamRepository
   ) {}
 
   async execute(
@@ -31,6 +34,9 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     if (!deleted) {
       throw new Error('Failed to delete player');
     }
+
+    // 4. Remove player from team lineups
+    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     return { success: true };
   }

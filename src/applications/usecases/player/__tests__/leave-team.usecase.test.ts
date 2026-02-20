@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import type { ILeaveTeamUseCase } from '../leave-team.usecase.interface';
 import { LeaveTeamUseCase } from '../leave-team.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
+import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
 
 describe('LeaveTeamUseCase', () => {
   let useCase: ILeaveTeamUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockTeamRepository: jest.Mocked<ITeamRepository>;
 
   beforeEach(() => {
     mockPlayerRepository = {
@@ -19,7 +21,11 @@ describe('LeaveTeamUseCase', () => {
       findInvitedByTeamIdAndEmail: jest.fn(),
     } as any;
 
-    useCase = new LeaveTeamUseCase(mockPlayerRepository);
+    mockTeamRepository = {
+      removePlayerFromLineups: jest.fn(),
+    } as any;
+
+    useCase = new LeaveTeamUseCase(mockPlayerRepository, mockTeamRepository);
   });
 
   describe('execute', () => {
@@ -41,6 +47,7 @@ describe('LeaveTeamUseCase', () => {
         ...player,
         userId: undefined,
       });
+      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
 
       const result = await useCase.execute(playerId, userId);
 
@@ -48,6 +55,10 @@ describe('LeaveTeamUseCase', () => {
       expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
         userId: undefined,
       });
+      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
+        'team_789',
+        playerId
+      );
       expect(result).toEqual({ success: true });
     });
 
