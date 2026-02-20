@@ -1,20 +1,26 @@
+import type { Player, PlayerRole } from '@/entities/player';
+
 /**
- * CreateInvitationUseCase Interface
- * Invitation use case for User Story 1: Team managers invite members
+ * ICreateInvitationUseCase - Invite an existing PURE_PLAYER to the team
+ *
+ * Adds an email to a PURE_PLAYER, transitioning them to INVITED status.
+ * Only ADMIN or OWNER can create invitations.
+ *
+ * Preconditions:
+ * - Player must exist and be a PURE_PLAYER (no email, no userId)
+ * - Requesting user must be ADMIN or OWNER of the team
+ *
+ * @param playerId - The ID of the PURE_PLAYER to invite
+ * @param email - The email to send the invitation to
+ * @param role - The role to assign (MEMBER or ADMIN)
+ * @param userId - The ID of the requesting user (must be ADMIN/OWNER)
+ * @returns The updated player with email set (now INVITED status)
  */
 export interface ICreateInvitationUseCase {
-  /**
-   * Create invitation for user to join team with specified role
-   * @param teamId Team to join
-   * @param email Email of user to invite
-   * @param role Role to assign (MEMBER or ADMIN)
-   * @param createdBy User ID of the person inviting (must be ADMIN or OWNER)
-   * @returns Created player ID
-   */
   execute(
-    teamId: string,
+    playerId: string,
     email: string,
-    role: string,
-    createdBy: string
-  ): Promise<string>;
+    role: PlayerRole,
+    userId: string
+  ): Promise<Player>;
 }

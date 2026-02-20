@@ -29,24 +29,10 @@ export type Lineup = {
   substitutes: LineupPlayer[];
 };
 
-export enum Role {
-  MEMBER,
-  OWNER,
-  ADMIN,
-}
-
-export type Member = {
-  _id: string;
-  email?: string;
-  role: Role;
-  user_id?: string;
-};
-
 export type Team = {
   _id: string;
   name: string;
   nickname?: string;
-  members: Member[];
   lineups: Lineup[];
   stats?: TeamStats[];
   createdAt?: Date;

@@ -12,7 +12,7 @@ export class AuthenticationService implements IAuthenticationService {
     @inject(TYPES.UserRepository) private userRepository: IUserRepository
   ) {}
 
-  async verifySession(): Promise<User | undefined> {
+  async verifySession(): Promise<User> {
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session) throw new Error("Invalid session");
 

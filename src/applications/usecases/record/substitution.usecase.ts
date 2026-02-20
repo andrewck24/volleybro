@@ -11,7 +11,8 @@ import {
   EntryType,
   PlayerStatsClass,
 } from "@/entities/record";
-import { Role, type Lineup } from "@/entities/team";
+import { type Lineup } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 
 export interface ICreateSubstitutionInput {
   params: { recordId: string; setIndex: number; entryIndex: number };
@@ -44,7 +45,7 @@ export class CreateSubstitutionUseCase {
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     const side = substitution.team === Side.HOME ? "home" : "away";

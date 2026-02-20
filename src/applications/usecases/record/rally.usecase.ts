@@ -7,7 +7,7 @@ import {
   createRallyHelper,
   updateRallyHelper,
 } from "@/lib/features/record/helpers";
-import { Role } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 import type { Entry, Rally } from "@/entities/record";
 
 export interface ICreateRallyInput {
@@ -43,7 +43,7 @@ export class CreateRallyUseCase {
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     // TODO: handle race condition
@@ -90,7 +90,7 @@ export class UpdateRallyUseCase {
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     const { record: updatedRecord } = updateRallyHelper(params, rally, record);

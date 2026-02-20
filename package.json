@@ -14,7 +14,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "npx chromatic",
-    "migrate:auth": "ts-node -r tsconfig-paths/register --transpile-only --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-auth-data.ts"
+    "migrate:auth": "ts-node -r tsconfig-paths/register --transpile-only --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-auth-data.ts",
+    "verify:indexes": "tsx scripts/verify-indexes.ts"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",

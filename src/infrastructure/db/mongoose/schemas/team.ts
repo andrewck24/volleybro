@@ -6,7 +6,7 @@ import {
   type Model,
   type Types,
 } from "mongoose";
-import { Position, Role } from "@/entities/team";
+import { Position } from "@/entities/team";
 
 export interface LineupDocument extends Document {
   options: {
@@ -49,29 +49,29 @@ export const lineupSchema = new Schema<LineupDocument>({
   },
   starting: [
     {
-      _id: { type: Schema.Types.ObjectId, ref: "Member" },
+      _id: { type: Schema.Types.ObjectId, ref: "Player" },
       position: { type: String, enum: Position },
       sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Member" },
+        _id: { type: Schema.Types.ObjectId, ref: "Player" },
         entryIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
   ],
   liberos: [
     {
-      _id: { type: Schema.Types.ObjectId, ref: "Member" },
+      _id: { type: Schema.Types.ObjectId, ref: "Player" },
       position: { type: String, enum: Position },
       sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Member" },
+        _id: { type: Schema.Types.ObjectId, ref: "Player" },
         entryIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
   ],
   substitutes: [
     {
-      _id: { type: Schema.Types.ObjectId, ref: "Member" },
+      _id: { type: Schema.Types.ObjectId, ref: "Player" },
       sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Member" },
+        _id: { type: Schema.Types.ObjectId, ref: "Player" },
         entryIndex: { in: { type: Number }, out: { type: Number } },
       },
     },
@@ -81,12 +81,6 @@ export const lineupSchema = new Schema<LineupDocument>({
 export interface TeamDocument extends Document {
   name: string;
   nickname?: string;
-  members: {
-    _id: Types.ObjectId;
-    email?: string;
-    role: Role;
-    user_id: Types.ObjectId;
-  }[];
   lineups: LineupDocument[];
   stats?: object;
 }
@@ -95,14 +89,6 @@ const teamSchema = new Schema<TeamDocument>(
   {
     name: { type: String, required: true },
     nickname: { type: String },
-    members: [
-      {
-        _id: { type: Schema.Types.ObjectId, ref: "Member" },
-        email: { type: String },
-        role: { type: String, enum: [Role.MEMBER, Role.OWNER, Role.ADMIN] },
-        user_id: { type: Schema.Types.ObjectId, ref: "User" },
-      },
-    ],
     lineups: [lineupSchema],
     stats: { type: Object },
   },

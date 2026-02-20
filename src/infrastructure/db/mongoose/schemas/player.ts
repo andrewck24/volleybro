@@ -25,7 +25,7 @@ export interface PlayerDocument extends Document {
   number?: number;
   position?: string;
   teamId?: Types.ObjectId;
-  userId?: string;
+  userId?: Types.ObjectId;
   email?: string;
   role?: "MEMBER" | "ADMIN" | "OWNER";
   createdAt: Date;
@@ -55,7 +55,8 @@ const PlayerSchema = new Schema<PlayerDocument>(
       ref: "Team",
     },
     userId: {
-      type: String, // Better Auth user.id
+      type: Schema.Types.ObjectId,
+      ref: "User",
     },
     email: {
       type: String,

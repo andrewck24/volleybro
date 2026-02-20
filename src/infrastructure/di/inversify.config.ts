@@ -44,6 +44,13 @@ import {
   RejectInvitationUseCase,
   GetTeamPlayersUseCase,
   GetPlayerUseCase,
+  CreatePlayerUseCase,
+  UpdateRoleUseCase,
+  UpdatePlayerInfoUseCase,
+  LeaveTeamUseCase,
+  TransferOwnershipUseCase,
+  RemovePlayerUseCase,
+  CancelInvitationUseCase,
 } from "@/applications/usecases/player";
 
 const container = new Container();
@@ -122,5 +129,26 @@ container
 container
   .bind<GetPlayerUseCase>(TYPES.GetPlayerUseCase)
   .to(GetPlayerUseCase);
+container
+  .bind<CreatePlayerUseCase>(TYPES.CreatePlayerUseCase)
+  .to(CreatePlayerUseCase);
+container
+  .bind<UpdateRoleUseCase>(TYPES.UpdateRoleUseCase)
+  .to(UpdateRoleUseCase);
+container
+  .bind<UpdatePlayerInfoUseCase>(TYPES.UpdatePlayerInfoUseCase)
+  .to(UpdatePlayerInfoUseCase);
+container
+  .bind<LeaveTeamUseCase>(TYPES.LeaveTeamUseCase)
+  .to(LeaveTeamUseCase);
+container
+  .bind<TransferOwnershipUseCase>(TYPES.TransferOwnershipUseCase)
+  .to(TransferOwnershipUseCase);
+container
+  .bind<RemovePlayerUseCase>(TYPES.RemovePlayerUseCase)
+  .to(RemovePlayerUseCase);
+container
+  .bind<CancelInvitationUseCase>(TYPES.CancelInvitationUseCase)
+  .to(CancelInvitationUseCase);
 
 export { container };

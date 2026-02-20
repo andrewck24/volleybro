@@ -1,11 +1,9 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { Player, PlayerRole } from "@/entities/player";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
-  let mockTeamRepository: jest.Mocked<ITeamRepository>;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
 
   const mockPlayer: Player = {
@@ -30,14 +28,6 @@ describe("AuthorizationService", () => {
   };
 
   beforeEach(() => {
-    mockTeamRepository = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as jest.Mocked<ITeamRepository>;
-
     mockPlayerRepository = {
       findById: jest.fn(),
       findByTeamId: jest.fn(),
@@ -55,9 +45,86 @@ describe("AuthorizationService", () => {
     } as jest.Mocked<IPlayerRepository>;
 
     service = new AuthorizationService(
-      mockTeamRepository,
       mockPlayerRepository,
     );
+  });
+
+  describe("verifyTeamRole", () => {
+    it("should allow MEMBER role when player has any role", async () => {
+      const member: Player = { ...mockPlayer, role: PlayerRole.MEMBER };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
+
+      await service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER);
+
+      expect(mockPlayerRepository.findByTeamIdAndUserId).toHaveBeenCalledWith(
+        "team-1",
+        "user-1",
+      );
+    });
+
+    it("should allow MEMBER role for ADMIN", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
+
+      await service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER);
+    });
+
+    it("should allow MEMBER role for OWNER", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockOwner);
+
+      await service.verifyTeamRole("team-1", "owner-user", PlayerRole.MEMBER);
+    });
+
+    it("should reject MEMBER role when player has no role (pure player)", async () => {
+      const purePlayer: Player = { ...mockPlayer, role: undefined };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
+
+      await expect(
+        service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
+      ).rejects.toThrow("User does not have role(MEMBER) privileges");
+    });
+
+    it("should throw error if user not found in team", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+
+      await expect(
+        service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
+      ).rejects.toThrow("User not found in team");
+    });
+
+    it("should allow ADMIN role for ADMIN", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
+
+      await service.verifyTeamRole("team-1", "user-1", PlayerRole.ADMIN);
+    });
+
+    it("should allow ADMIN role for OWNER", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockOwner);
+
+      await service.verifyTeamRole("team-1", "owner-user", PlayerRole.ADMIN);
+    });
+
+    it("should reject ADMIN role for MEMBER", async () => {
+      const member: Player = { ...mockPlayer, role: PlayerRole.MEMBER };
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
+
+      await expect(
+        service.verifyTeamRole("team-1", "user-1", PlayerRole.ADMIN),
+      ).rejects.toThrow("User does not have role(ADMIN) privileges");
+    });
+
+    it("should allow OWNER role for OWNER", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockOwner);
+
+      await service.verifyTeamRole("team-1", "owner-user", PlayerRole.OWNER);
+    });
+
+    it("should reject OWNER role for ADMIN", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
+
+      await expect(
+        service.verifyTeamRole("team-1", "user-1", PlayerRole.OWNER),
+      ).rejects.toThrow("User does not have role(OWNER) privileges");
+    });
   });
 
   describe("verifyIsTeamAdmin", () => {

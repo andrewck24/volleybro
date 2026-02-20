@@ -1,231 +1,153 @@
-import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { PlayerRole } from "@/entities/player";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { CreateInvitationUseCase } from "../create-invitation.usecase";
+import type { ICreateInvitationUseCase } from "../create-invitation.usecase.interface";
 
 describe("CreateInvitationUseCase", () => {
-  let usecase: CreateInvitationUseCase;
+  let useCase: ICreateInvitationUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
   let mockAuthService: jest.Mocked<IAuthorizationService>;
 
   beforeEach(() => {
     mockPlayerRepository = {
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      create: jest.fn(),
       findById: jest.fn(),
       findByTeamId: jest.fn(),
       findByUserId: jest.fn(),
       findByEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
+      create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
+      findInvitedByTeamIdAndEmail: jest.fn(),
+    } as any;
 
     mockAuthService = {
       verifyIsTeamAdmin: jest.fn(),
-      verifyIsTeamOwner: jest.fn(),
-      verifyPlayerRole: jest.fn(),
-      getPlayerRole: jest.fn(),
-      verifyTeamRole: jest.fn(),
-    } as jest.Mocked<IAuthorizationService>;
+    } as any;
 
-    usecase = new CreateInvitationUseCase(
+    useCase = new CreateInvitationUseCase(
       mockPlayerRepository,
       mockAuthService,
     );
   });
 
-  it("should create invitation when user is admin", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-    mockPlayerRepository.create.mockResolvedValue({
-      _id: "player-1",
-      name: "test",
-      teamId: "team-1",
-      email: "test@example.com",
+  describe("execute", () => {
+    const playerId = "player_123";
+    const userId = "user_456";
+    const teamId = "team_789";
+    const email = "newmember@example.com";
+    const role = PlayerRole.MEMBER;
+
+    const purePlayer = {
+      _id: playerId,
+      name: "Pure Player",
+      teamId,
       role: PlayerRole.MEMBER,
       createdAt: new Date(),
       updatedAt: new Date(),
+    };
+
+    it("should invite a PURE_PLAYER by adding email", async () => {
+      const invitedPlayer = {
+        ...purePlayer,
+        email,
+        role,
+      };
+
+      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
+
+      const result = await useCase.execute(playerId, email, role, userId);
+
+      expect(mockPlayerRepository.findById).toHaveBeenCalledWith(playerId);
+      expect(mockAuthService.verifyIsTeamAdmin).toHaveBeenCalledWith(
+        teamId,
+        userId,
+      );
+      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
+        email,
+        role,
+      });
+      expect(result.email).toBe(email);
+      expect(result.role).toBe(role);
     });
 
-    const playerId = await usecase.execute(
-      "team-1",
-      "test@example.com",
-      PlayerRole.MEMBER,
-      "admin-user",
-    );
+    it("should invite with ADMIN role", async () => {
+      const adminRole = PlayerRole.ADMIN;
+      const invitedPlayer = {
+        ...purePlayer,
+        email,
+        role: adminRole,
+      };
 
-    expect(playerId).toBe("player-1");
-    expect(mockAuthService.verifyIsTeamAdmin).toHaveBeenCalledWith(
-      "team-1",
-      "admin-user",
-    );
-    expect(mockPlayerRepository.create).toHaveBeenCalled();
-  });
+      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
 
-  it("should throw error if user is not admin", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
-      new Error("User is not admin of the team"),
-    );
+      const result = await useCase.execute(playerId, email, adminRole, userId);
 
-    await expect(
-      usecase.execute(
-        "team-1",
-        "test@example.com",
-        PlayerRole.MEMBER,
-        "user-1",
-      ),
-    ).rejects.toThrow("User is not admin of the team");
-  });
-
-  it("should throw error if invitation already exists", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue({
-      _id: "existing-player",
-      name: "test",
-      teamId: "team-1",
-      email: "test@example.com",
-      role: PlayerRole.MEMBER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
+        email,
+        role: adminRole,
+      });
+      expect(result.role).toBe(adminRole);
     });
 
-    await expect(
-      usecase.execute(
-        "team-1",
-        "test@example.com",
-        PlayerRole.MEMBER,
-        "admin-user",
-      ),
-    ).rejects.toThrow("Invitation already exists for this email");
-  });
+    it("should reject if player not found", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(null);
 
-  it("should throw error if email is invalid", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-
-    await expect(
-      usecase.execute(
-        "team-1",
-        "invalid-email",
-        PlayerRole.MEMBER,
-        "admin-user",
-      ),
-    ).rejects.toThrow("Invalid email format");
-  });
-
-  it("should throw error if role is invalid", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-
-    await expect(
-      usecase.execute(
-        "team-1",
-        "test@example.com",
-        "INVALID_ROLE",
-        "admin-user",
-      ),
-    ).rejects.toThrow("Invalid role: INVALID_ROLE");
-  });
-
-  it("should lowercase email when creating invitation", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-    mockPlayerRepository.create.mockResolvedValue({
-      _id: "player-1",
-      name: "test",
-      teamId: "team-1",
-      email: "test@example.com",
-      role: PlayerRole.ADMIN,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      await expect(
+        useCase.execute(playerId, email, role, userId),
+      ).rejects.toThrow("Player not found");
     });
 
-    await usecase.execute(
-      "team-1",
-      "TEST@EXAMPLE.COM",
-      PlayerRole.ADMIN,
-      "admin-user",
-    );
+    it("should reject if player already has email (INVITED status)", async () => {
+      const invitedPlayer = {
+        ...purePlayer,
+        email: "existing@example.com",
+      };
 
-    expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        email: "test@example.com",
-      }),
-    );
-  });
+      mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-  it("should assign ADMIN role when specified", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-    mockPlayerRepository.create.mockResolvedValue({
-      _id: "player-1",
-      name: "test",
-      teamId: "team-1",
-      email: "test@example.com",
-      role: PlayerRole.ADMIN,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      await expect(
+        useCase.execute(playerId, email, role, userId),
+      ).rejects.toThrow("Player already has an invitation");
     });
 
-    await usecase.execute(
-      "team-1",
-      "test@example.com",
-      PlayerRole.ADMIN,
-      "admin-user",
-    );
+    it("should reject if player already has userId (JOINED status)", async () => {
+      const joinedPlayer = {
+        ...purePlayer,
+        userId: "some_user_id",
+      };
 
-    expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        role: PlayerRole.ADMIN,
-      }),
-    );
-  });
+      mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 
-  it("should throw error if non-OWNER tries to assign OWNER role", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockAuthService.getPlayerRole.mockResolvedValue(PlayerRole.ADMIN);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-
-    await expect(
-      usecase.execute(
-        "team-1",
-        "test@example.com",
-        PlayerRole.OWNER,
-        "admin-user",
-      ),
-    ).rejects.toThrow("Only OWNER can assign OWNER role");
-  });
-
-  it("should allow OWNER to assign OWNER role", async () => {
-    mockAuthService.verifyIsTeamAdmin.mockResolvedValue(undefined);
-    mockAuthService.getPlayerRole.mockResolvedValue(PlayerRole.OWNER);
-    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-    mockPlayerRepository.create.mockResolvedValue({
-      _id: "player-1",
-      name: "test",
-      teamId: "team-1",
-      email: "test@example.com",
-      role: PlayerRole.OWNER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      await expect(
+        useCase.execute(playerId, email, role, userId),
+      ).rejects.toThrow("Player is already a joined member");
     });
 
-    const playerId = await usecase.execute(
-      "team-1",
-      "test@example.com",
-      PlayerRole.OWNER,
-      "owner-user",
-    );
+    it("should reject if user is not team admin", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
+        new Error("User is not admin of this team"),
+      );
 
-    expect(playerId).toBe("player-1");
-    expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        role: PlayerRole.OWNER,
-      }),
-    );
+      await expect(
+        useCase.execute(playerId, email, role, userId),
+      ).rejects.toThrow("User is not admin of this team");
+    });
+
+    it("should reject if update fails", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockPlayerRepository.update.mockResolvedValue(null);
+
+      await expect(
+        useCase.execute(playerId, email, role, userId),
+      ).rejects.toThrow("Failed to create invitation");
+    });
   });
 });

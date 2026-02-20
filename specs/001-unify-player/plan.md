@@ -291,3 +291,75 @@ scripts/
 ## Complexity Tracking
 
 > 無 Constitution 違規需要記錄。
+
+---
+
+## Phase 12 後補架構決策（Phase 11 完成後）
+
+**日期**: 2026-02-13 | **參考計畫**: `~/.claude/plans/adaptive-meandering-dongarra.md`
+
+### 動機
+
+Phase 11 完成後，審視實際程式碼發現下列問題：
+
+1. **Clean Architecture 違規**：所有 player API routes 繞過 Controller 層直接存取 DI container
+2. **端點職責混亂**：`/status` 端點同時處理 invite/cancel/accept/reject/leave 五種操作
+3. **前端路由不一致**：前端仍使用 `/members/` 路由，與 API 的 `/players/` 不一致
+4. **元件架構不符使用需求**：舊的 grid+filter 清單不適合行動裝置，需改為聯絡人風格
+
+### 架構決策
+
+#### ADR-01：Controller 目錄重組
+
+**決策**：將單一 `player.controller.ts` 拆分為依職責分離的三個 controller：
+
+| 檔案                       | 職責                                                                    |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `player.controller.ts`     | Player 資源 CRUD（getPlayer, createPlayer, updatePlayer, removePlayer） |
+| `membership.controller.ts` | 管理者對隊籍的操作（createInvitation, updateRole, cancelInvitation）    |
+| `invitation.controller.ts` | 被邀請者的操作（acceptInvitation, rejectInvitation）                    |
+| `ownership.controller.ts`  | 所有權移轉（transferOwnership）                                         |
+
+**理由**：單一責任原則；避免單一 controller 檔案過度膨脹。
+
+#### ADR-02：端點重設計
+
+**決策**：移除 `/status`、`/role`、`/info` 端點，改為語意明確的端點：
+
+| 舊端點                                              | 新端點                                 | 說明               |
+| --------------------------------------------------- | -------------------------------------- | ------------------ |
+| `PATCH /status` (invite/cancel/accept/reject/leave) | 拆分為 `/memberships` + `/invitations` | 職責分離           |
+| `PATCH /role`                                       | `PATCH /memberships`                   | 合併至隊籍管理     |
+| `PATCH /info`                                       | `PATCH /players/{id}`                  | 合併至主資源路由   |
+| —                                                   | `POST /teams/{teamId}/ownership`       | 新增所有權移轉端點 |
+
+#### ADR-03：TransferOwnership UseCase 介面修正
+
+**問題**：原介面 `execute(currentOwnerId, newOwnerId, userId)` 要求呼叫端（route）自行查詢 currentOwnerId，導致資料庫安全邏輯洩漏至 interface 層。
+
+**決策**：改為 `execute(teamId, newOwnerId, userId)`，UseCase 內部透過 `findByTeamIdAndUserId` 驗證並取得當前 owner，完整封裝安全邏輯於 Application 層。
+
+#### ADR-04：API Response 格式統一
+
+**決策**：所有 player API 回應使用扁平格式，移除包裝物件：
+
+| 回應類型     | 格式                                           |
+| ------------ | ---------------------------------------------- |
+| 單一 Player  | `Player`（直接，非 `{ player: Player }`）      |
+| Player 列表  | `Player[]`（直接，非 `{ players: Player[] }`） |
+| 變更操作成功 | `Player`（回傳更新後物件）                     |
+| 刪除操作成功 | `{ success: boolean, message: string }`        |
+
+#### ADR-05：元件架構重組
+
+**決策**：廢棄舊的 grid+filter 元件架構，改用聯絡人清單風格：
+
+- `player-list.tsx`（grid + filter）→ `players/list.tsx`（扁平清單）+ `players/list-item.tsx`（行項目）
+- `player-card.tsx`（獨立卡片）→ `players/info.tsx`（詳情頁）
+- `invite-accordion.tsx`→ `players/membership-section.tsx`（嵌入 edit-form）
+- 操作邏輯從 `use-player-actions.ts` hook 移入各元件，搭配 SWR mutate 就地更新
+
+### 後續待辦（不在本 PR）
+
+- 離開隊伍功能：確認比賽紀錄資料保存策略後實作，放在 about tab
+- `UpdatePlayerInfoUseCase` → `UpdatePlayerUseCase` 全面重新命名

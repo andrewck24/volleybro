@@ -1,20 +1,16 @@
-import { inject, injectable } from 'inversify';
-import type { ICreateInvitationUseCase } from '@/applications/usecases/player/create-invitation.usecase.interface';
+import { injectable, inject } from 'inversify';
+import { TYPES } from '@/infrastructure/di/types';
+import type { ICreateInvitationUseCase } from './create-invitation.usecase.interface';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
-import { TYPES } from '@/infrastructure/di/types';
+import type { Player } from '@/entities/player';
 import { PlayerRole } from '@/entities/player';
-import { z } from 'zod';
 
 /**
- * CreateInvitationUseCase Implementation
- * Team managers (ADMIN or OWNER) can invite users via email
+ * CreateInvitationUseCase - Invite an existing PURE_PLAYER to the team
  *
- * Validates:
- * - Creator is ADMIN or OWNER of the team
- * - Email is valid format (using Zod email validation)
- * - Email is not already invited to this team
- * - Role is valid (OWNER role can only be assigned by current OWNER)
+ * Adds an email to a PURE_PLAYER record, transitioning the player
+ * from PURE_PLAYER to INVITED status.
  */
 @injectable()
 export class CreateInvitationUseCase implements ICreateInvitationUseCase {
@@ -26,48 +22,38 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
   ) {}
 
   async execute(
-    teamId: string,
+    playerId: string,
     email: string,
-    role: string,
-    createdBy: string
-  ): Promise<string> {
-    // Validate creator is admin or owner
-    await this.authService.verifyIsTeamAdmin(teamId, createdBy);
-
-    // T058: Validate email format using Zod (replaces basic string check)
-    const validatedEmail = z.string().email('Invalid email format').parse(email);
-
-    // Validate role
-    if (!Object.values(PlayerRole).includes(role as PlayerRole)) {
-      throw new Error(`Invalid role: ${role}`);
+    role: PlayerRole,
+    userId: string
+  ): Promise<Player> {
+    // 1. Get player record
+    const player = await this.playerRepository.findById(playerId);
+    if (!player) {
+      throw new Error('Player not found');
     }
 
-    // T059: Protect OWNER role - only current OWNER can assign OWNER role
-    if (role === PlayerRole.OWNER) {
-      const creatorRole = await this.authService.getPlayerRole(teamId, createdBy);
-      if (creatorRole !== PlayerRole.OWNER) {
-        throw new Error('Only OWNER can assign OWNER role');
-      }
+    // 2. Verify player is PURE_PLAYER (no email, no userId)
+    if (player.email) {
+      throw new Error('Player already has an invitation');
+    }
+    if (player.userId) {
+      throw new Error('Player is already a joined member');
     }
 
-    // T061: Use findInvitedByTeamIdAndEmail directly (replaces existsInvitation pattern)
-    const existingInvitation = await this.playerRepository.findInvitedByTeamIdAndEmail(
-      teamId,
-      validatedEmail
-    );
+    // 3. Verify user is admin/owner of the team
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
-    if (existingInvitation) {
-      throw new Error('Invitation already exists for this email');
-    }
-
-    // Create invitation
-    const player = await this.playerRepository.create({
-      name: validatedEmail.split('@')[0], // Default name from email
-      teamId,
-      email: validatedEmail.toLowerCase(),
-      role: role as PlayerRole,
+    // 4. Update player with email and role
+    const updated = await this.playerRepository.update(playerId, {
+      email,
+      role,
     });
 
-    return player._id;
+    if (!updated) {
+      throw new Error('Failed to create invitation');
+    }
+
+    return updated;
   }
 }

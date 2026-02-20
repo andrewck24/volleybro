@@ -4,10 +4,19 @@ import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
 import { Positions } from "@/components/team/lineup/panel/positions";
 import { Substitutes } from "@/components/team/lineup/panel/substitutes";
 import { Panel } from "@/components/ui/panel";
+import type { Player } from "@/entities/player";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const LineupPanel = ({ members, hasPairedSwitchPosition }) => {
+interface LineupPanelProps {
+  players: Player[];
+  hasPairedSwitchPosition: boolean;
+}
+
+export const LineupPanel = ({
+  players,
+  hasPairedSwitchPosition,
+}: LineupPanelProps) => {
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const { optionMode } = status;
   const { starting, liberos, substitutes } = lineups[status.lineupIndex];
@@ -16,21 +25,21 @@ export const LineupPanel = ({ members, hasPairedSwitchPosition }) => {
     ...liberos.map((player) => player._id),
     ...substitutes.map((player) => player._id),
   ]);
-  const others = members
-    .filter((member) => !listedIds.has(member._id))
+  const others = players
+    .filter((player) => !listedIds.has(player._id))
     .sort((a, b) => a.number - b.number);
 
   return (
     <Panel className="px-4 py-2">
       {optionMode === LineupOptionMode.PLAYERINFO ? (
-        <PlayerInfo members={members} />
+        <PlayerInfo players={players} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
-        <Substitutes members={members} others={others} />
+        <Substitutes players={players} others={others} />
       ) : optionMode === LineupOptionMode.POSITIONS ? (
         <Positions />
       ) : (
         <LineupOptions
-          members={members}
+          players={players}
           others={others}
           hasPairedSwitchPosition={hasPairedSwitchPosition}
         />

@@ -1,10 +1,10 @@
-import { injectable, inject } from "inversify";
-import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { Role } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 import type { MatchResult } from "@/entities/record";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
 
 export interface IFindMatchesInput {
   params: { teamId: string; lastId?: string; limit?: number };
@@ -23,24 +23,24 @@ export class FindMatchesUseCase {
     @inject(TYPES.AuthenticationService)
     private authenticationService: IAuthenticationService,
     @inject(TYPES.AuthorizationService)
-    private authorizationService: IAuthorizationService
+    private authorizationService: IAuthorizationService,
   ) {}
 
   async execute(
-    input: IFindMatchesInput
+    input: IFindMatchesInput,
   ): Promise<IFindMatchesOutput | undefined> {
     const { params } = input;
     const user = await this.authenticationService.verifySession();
 
     await this.authorizationService.verifyTeamRole(
-      params.teamId.toString(),
+      params.teamId,
       user._id.toString(),
-      Role.MEMBER
+      PlayerRole.MEMBER,
     );
 
     const results = await this.recordRepository.findMatchesWithPagination(
       { team_id: params.teamId },
-      { lastId: params.lastId }
+      { lastId: params.lastId },
     );
 
     const { data: matches, hasMore, lastId } = results;
