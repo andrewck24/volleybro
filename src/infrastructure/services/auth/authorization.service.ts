@@ -21,9 +21,9 @@ export class AuthorizationService implements IAuthorizationService {
     );
     if (!player) throw new Error("User not found in team");
 
-    if (role === PlayerRole.MEMBER) return;
-    if (role === PlayerRole.OWNER && player.role === PlayerRole.OWNER) return;
+    if (role === PlayerRole.MEMBER && player.role) return;
     if (role === PlayerRole.ADMIN && (player.role === PlayerRole.ADMIN || player.role === PlayerRole.OWNER)) return;
+    if (role === PlayerRole.OWNER && player.role === PlayerRole.OWNER) return;
 
     throw new Error(`User does not have role(${role}) privileges`);
   }

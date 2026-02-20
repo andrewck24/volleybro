@@ -584,3 +584,36 @@ Task T030: "建立 RoleSelect 元件"
 | Controller 層                   | 所有 player API routes 現在嚴格遵循 route → controller → usecase → repository 分層                                                                                                                                                                                                       |
 | `TeamInfoTable` bug             | `team.members.length`（舊欄位）改為 `players.length`（`useTeamPlayers`）；`isAdmin = true` hardcoded TODO 改為 `canManageTeam(currentUserPlayer)`                                                                                                                                        |
 | Lineup 元件 members → players   | `PlayerCard` 改用 `CardPlayer` 最小型別；`LineupCourt`、`PlayerInfo` props 改用結構最小型別；`LineupOptions`、`Substitutes` props 改為 `players: Player[]`；消除 `entities/record.Player` 與 `entities/player.Player` 的型別衝突；`record/set-options` 中 `members=` 全數改為 `players=` |
+
+### Phase 12-7：Code Review 修正（PR #268 Pre-merge）
+
+**目的**：修正 PR #268 code review 中發現的 high priority 問題。
+
+**計畫文件**：`~/.claude/plans/adaptive-meandering-dongarra.md`
+
+- [x] T160 修正 `AuthorizationService.verifyTeamRole` MEMBER role bypass：
+  - `if (role === PlayerRole.MEMBER) return;` → `if (role === PlayerRole.MEMBER && player.role) return;`
+  - 原邏輯在確認 player 存在後直接返回，不檢查 `player.role`，導致 `role: undefined` 的純球員也能通過 MEMBER 驗證
+  - 重新排列判斷順序為 MEMBER → ADMIN → OWNER（由低到高），提升可讀性
+  - 新增 `verifyTeamRole` 測試套件（10 個測試案例，涵蓋所有角色組合）
+
+- [ ] T161 實作 `ITeamRepository.removePlayerFromLineups`：
+  - 在 `team.repository.interface.ts` 新增方法定義
+  - 在 `team.repository.mongo.ts` 實作 MongoDB `$pull` 清理 `lineups[*].starting/liberos/substitutes`
+
+- [ ] T162 在 `RemovePlayerUseCase` 注入 `ITeamRepository`，delete 後呼叫 `removePlayerFromLineups`
+
+- [ ] T163 在 `LeaveTeamUseCase` 注入 `ITeamRepository`，update 後呼叫 `removePlayerFromLineups`
+
+- [ ] T164 更新 `remove-player.usecase.test.ts` 與 `leave-team.usecase.test.ts`，新增 lineup cleanup 測試
+
+**不在本次範圍（Follow-up）**：
+
+- Profile.teams 廢棄：Player collection 已可完整取代 `profile.teams.joined/inviting`，需獨立 PR 處理（涉及 API route、6+ UI 元件、repository、schema 層級）
+- 標準化錯誤訊息（加入 teamId/playerId context）
+- 敏感操作 audit logging
+- `editingMember` → `editingPlayer` Redux state 命名遷移
+- Repository 批次操作（transaction）
+- Soft delete 考量
+- `Position` enum 重複定義
+- 舊版 API 路由清理（`PATCH /api/users/teams`）
