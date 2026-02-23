@@ -20,9 +20,13 @@
 
 # AI agents
 .claude/*
+.agent/*
 .gemini/*
 .github/chatmodes/*
+.github/prompts/*
+.github/skills/*
 .bmad-core/*
+.spectra/*
 
 # misc
 .DS_Store
@@ -51,3 +55,5 @@ next-env.d.ts
 # storybook
 *storybook.log
 storybook-static
+.spectra/
+openspec/.vector-search.db

@@ -14,21 +14,25 @@ This task focused on identifying and resolving code duplication, improving namin
 ## Changes Implemented
 
 ### 1. Created API Authentication Helper
+
 **File**: `src/lib/api-auth.ts` (NEW)
 
 **Purpose**: Extract repeated session verification logic from all API routes
 
 **Functions**:
+
 - `verifyUserSession()` - Returns userId or throws AuthenticationError
 - `verifyUserSessionOrRespond()` - Returns userId or NextResponse error
 
 **Benefits**:
+
 - Eliminates 4-line authentication block repeated in 15+ API routes
 - Centralized session verification logic
 - Consistent error handling and messages
 - Easier to update authentication flow in future
 
 **Usage**:
+
 ```typescript
 // Before (repeated everywhere)
 const session = await auth.api.getSession({ headers: await headers() });
@@ -43,11 +47,13 @@ const userId = await verifyUserSession();
 ---
 
 ### 2. Created Centralized Label Constants
+
 **File**: `src/lib/constants/labels.ts` (NEW)
 
 **Purpose**: Consolidate all label mappings that were duplicated across components
 
 **Exports**:
+
 - `ROLE_LABELS` - Role to display name mapping (MEMBER, ADMIN, OWNER)
 - `POSITION_LABELS` - Position to display name mapping (OH, MB, OP, S, L)
 - `STATUS_LABELS` - Status to display name mapping (JOINED, INVITED, PURE_PLAYER)
@@ -55,11 +61,13 @@ const userId = await verifyUserSession();
 - Helper functions: `getLabel()`, `getRoleLabel()`, `getPositionLabel()`, `getStatusLabel()`, `getStatusColor()`
 
 **Duplicate Sources**:
+
 - `src/components/team/player-card.tsx` (lines 29-54) - Removed
 - `src/components/team/player-list.tsx` (lines 28-42) - Removed
 - `src/components/team/invitation-list.tsx` (lines 22-27) - Removed
 
 **Benefits**:
+
 - Single source of truth for all labels
 - Consistent display names across the app
 - Easier to update display names (only change in one place)
@@ -71,27 +79,33 @@ const userId = await verifyUserSession();
 ### 3. Updated Components to Use Centralized Labels
 
 #### PlayerCard Component
+
 **File**: `src/components/team/player-card.tsx`
 
 **Changes**:
+
 - Removed local label definitions (4 constants)
 - Imported from `src/lib/constants/labels`
 - Reduced file from 210 lines to 180 lines
 - No functional changes
 
 #### PlayerList Component
+
 **File**: `src/components/team/player-list.tsx`
 
 **Changes**:
+
 - Removed duplicate label definitions
 - Updated POSITION_FILTERS and STATUS_FILTERS to use centralized labels
 - Added T125 comments explaining consolidation
 - No functional changes
 
 #### InvitationList Component
+
 **File**: `src/components/team/invitation-list.tsx`
 
 **Changes**:
+
 - Removed ROLE_LABELS definition
 - Imported from centralized constants
 - Reduced duplication
@@ -100,19 +114,20 @@ const userId = await verifyUserSession();
 
 ## Files Modified
 
-| File | Type | Lines | Change | Notes |
-|------|------|-------|--------|-------|
-| `src/lib/api-auth.ts` | NEW | 46 | +46 | Authentication helper |
-| `src/lib/constants/labels.ts` | NEW | 61 | +61 | Centralized labels |
-| `src/components/team/player-card.tsx` | MOD | -30 | Remove duplication | Uses centralized labels |
-| `src/components/team/player-list.tsx` | MOD | +10 | Use centralized labels | Filter arrays now reference constants |
-| `src/components/team/invitation-list.tsx` | MOD | -6 | Remove duplication | Simplified imports |
+| File                                      | Type | Lines | Change                 | Notes                                 |
+| ----------------------------------------- | ---- | ----- | ---------------------- | ------------------------------------- |
+| `src/lib/api-auth.ts`                     | NEW  | 46    | +46                    | Authentication helper                 |
+| `src/lib/constants/labels.ts`             | NEW  | 61    | +61                    | Centralized labels                    |
+| `src/components/team/player-card.tsx`     | MOD  | -30   | Remove duplication     | Uses centralized labels               |
+| `src/components/team/player-list.tsx`     | MOD  | +10   | Use centralized labels | Filter arrays now reference constants |
+| `src/components/team/invitation-list.tsx` | MOD  | -6    | Remove duplication     | Simplified imports                    |
 
 ---
 
 ## Refactoring Analysis
 
 ### Code Duplication Identified
+
 The analysis found several categories of duplication:
 
 1. **API Error Handling** (6 routes)
@@ -136,12 +151,14 @@ The analysis found several categories of duplication:
    - Status: Documented for future refactoring
 
 ### Naming Issues Found
+
 1. **Abbreviated variable names** - `ti` (teamId), `li` (lastId)
 2. **Inconsistent naming conventions** - Mix of singular/plural
 3. **Generic type parameters** - Using `any` instead of specific types
 4. **Unused parameters** - `_userId` in some functions
 
 ### Type Safety Issues
+
 1. **Weak FetchError typing** - `info: any`
 2. **Missing type definitions** - Inline schema definitions in routes
 3. **String magic values** - Role and position strings hardcoded
@@ -152,6 +169,7 @@ The analysis found several categories of duplication:
 ## Testing
 
 All 451 tests pass with no regressions:
+
 - Unit tests for components: PASS ✓
 - Use case tests: PASS ✓
 - API route tests: PASS ✓
@@ -162,6 +180,7 @@ All 451 tests pass with no regressions:
 ## Future Refactoring Opportunities
 
 ### Phase 1 (High Priority)
+
 1. **Extract API Error Handler Utility** (6 routes)
    - Consolidate ZodError and Error handling logic
    - Estimated effort: Medium
@@ -173,6 +192,7 @@ All 451 tests pass with no regressions:
    - Estimated effort: Low
 
 ### Phase 2 (Medium Priority)
+
 3. **Create Generic useFetchData Hook**
    - Consolidate 7 similar data-fetching hooks in `use-data.ts`
    - Reduce code duplication in hooks
@@ -184,6 +204,7 @@ All 451 tests pass with no regressions:
    - Estimated effort: Low
 
 ### Phase 3 (Lower Priority)
+
 5. **Refactor Invitation Usecases**
    - Consolidate accept/reject/cancel with state machine
    - Estimated effort: High
@@ -199,22 +220,26 @@ All 451 tests pass with no regressions:
 ## Impact Summary
 
 ### Code Quality
+
 - ✓ **Reduced Duplication**: Eliminated label definitions (3 files)
 - ✓ **Improved Maintainability**: Single source of truth for labels
 - ✓ **Better Organization**: Utility functions in dedicated files
 - ✓ **Enhanced Type Safety**: Centralized label access
 
 ### Developer Experience
+
 - ✓ **Easier Updates**: Change labels in one place
 - ✓ **Reduced Code**: Shorter component files
 - ✓ **Better Discoverability**: Centralized utilities in `src/lib/`
 - ✓ **Consistent Patterns**: Reusable helper functions
 
 ### Performance
+
 - No impact (label mappings are simple objects)
 - No additional network requests or computations
 
 ### Breaking Changes
+
 - **None** - All changes are internal refactoring
 - Components work identically
 - No API changes
@@ -254,6 +279,7 @@ All 451 tests pass with no regressions:
 T125 successfully consolidated duplicate label definitions and created an authentication helper utility. The refactoring improves code maintainability while maintaining 100% test coverage. Future phases can build on this foundation to address other identified duplication patterns.
 
 **Next Steps**:
+
 1. Apply `api-auth.ts` to all API routes (future task)
 2. Consolidate `usePlayerActions` hook callbacks (low effort, high value)
 3. Address error handling duplication in API routes (medium priority)

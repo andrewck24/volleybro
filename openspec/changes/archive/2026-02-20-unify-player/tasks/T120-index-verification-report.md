@@ -20,21 +20,22 @@ All required MongoDB indexes for the Player collection are **correctly configure
 
 #### Single Field Indexes (3)
 
-| Index | Field | Purpose |
-|-------|-------|---------|
+| Index     | Field       | Purpose                     |
+| --------- | ----------- | --------------------------- |
 | ✓ Index 1 | `teamId: 1` | Query all members in a team |
-| ✓ Index 2 | `userId: 1` | Query teams by user |
-| ✓ Index 3 | `email: 1` | Query players by email |
+| ✓ Index 2 | `userId: 1` | Query teams by user         |
+| ✓ Index 3 | `email: 1`  | Query players by email      |
 
 #### Composite Indexes (3)
 
-| Index | Fields | Type | Purpose |
-|-------|--------|------|---------|
-| ✓ Index 4 | `teamId + email` | Unique, Sparse | Prevent duplicate invitations |
-| ✓ Index 5 | `teamId + userId` | Compound | Find joined members quickly |
-| ✓ Index 6 | `teamId + role` | Compound | Query members by role |
+| Index     | Fields            | Type           | Purpose                       |
+| --------- | ----------------- | -------------- | ----------------------------- |
+| ✓ Index 4 | `teamId + email`  | Unique, Sparse | Prevent duplicate invitations |
+| ✓ Index 5 | `teamId + userId` | Compound       | Find joined members quickly   |
+| ✓ Index 6 | `teamId + role`   | Compound       | Query members by role         |
 
 **Special Properties**:
+
 - Index 4 (teamId + email) uses:
   - `unique: true` - Prevents duplicate invitations
   - `sparse: true` - Allows multiple PURE_PLAYER records (no email)
@@ -46,19 +47,19 @@ All required MongoDB indexes for the Player collection are **correctly configure
 
 ### All 11 Query Methods - Verification Matrix
 
-| Method | Query Pattern | Covered By | Status |
-|--------|---------------|-----------|--------|
-| `findById(id)` | `_id` | Default index | ✓ |
-| `findByTeamId(teamId)` | `teamId` | Index 1 | ✓ |
-| `findByUserId(userId)` | `userId` | Index 2 | ✓ |
-| `findByEmail(email)` | `email` | Index 3 | ✓ |
-| `findInvitedByTeamIdAndEmail()` | `teamId + email` | Index 4 | ✓ |
-| `findByTeamIdAndUserId()` | `teamId + userId` | Index 5 | ✓ |
-| `findTeamOwner(teamId)` | `teamId + role` | Index 6 | ✓ |
-| `findAdminsByTeamId(teamId)` | `teamId + role` ($in) | Index 6 | ✓ |
-| `countByTeamId(teamId)` | `teamId` | Index 1 | ✓ |
-| `existsInvitation(teamId, email)` | `teamId + email` | Index 4 | ✓ |
-| CRUD operations | Write operations | All indexes | ✓ |
+| Method                            | Query Pattern         | Covered By    | Status |
+| --------------------------------- | --------------------- | ------------- | ------ |
+| `findById(id)`                    | `_id`                 | Default index | ✓      |
+| `findByTeamId(teamId)`            | `teamId`              | Index 1       | ✓      |
+| `findByUserId(userId)`            | `userId`              | Index 2       | ✓      |
+| `findByEmail(email)`              | `email`               | Index 3       | ✓      |
+| `findInvitedByTeamIdAndEmail()`   | `teamId + email`      | Index 4       | ✓      |
+| `findByTeamIdAndUserId()`         | `teamId + userId`     | Index 5       | ✓      |
+| `findTeamOwner(teamId)`           | `teamId + role`       | Index 6       | ✓      |
+| `findAdminsByTeamId(teamId)`      | `teamId + role` ($in) | Index 6       | ✓      |
+| `countByTeamId(teamId)`           | `teamId`              | Index 1       | ✓      |
+| `existsInvitation(teamId, email)` | `teamId + email`      | Index 4       | ✓      |
+| CRUD operations                   | Write operations      | All indexes   | ✓      |
 
 **Coverage**: 100% - All query methods are optimally covered
 
@@ -67,25 +68,31 @@ All required MongoDB indexes for the Player collection are **correctly configure
 ## Performance Hotspots Covered
 
 ### 1. Authorization Checks (Most Frequent Operation)
+
 ```typescript
 // In authorization.service.ts - called on nearly every request
 await playerRepository.findByTeamIdAndUserId(teamId, userId)
 ```
+
 **Index**: Index 5 (`teamId + userId`) - ✓ OPTIMAL
 
 ### 2. Invitation Management
+
 ```typescript
 // In create-invitation.usecase.ts - prevents duplicate invitations
 await playerRepository.findInvitedByTeamIdAndEmail(teamId, email)
 ```
+
 **Index**: Index 4 (`teamId + email`) - ✓ UNIQUE + SPARSE for optimal insertion
 
 ### 3. Role-Based Access Control
+
 ```typescript
 // Authorization checks for OWNER/ADMIN roles
 await playerRepository.findTeamOwner(teamId)
 await playerRepository.findAdminsByTeamId(teamId)
 ```
+
 **Index**: Index 6 (`teamId + role`) - ✓ COMPOUND INDEX
 
 ---
@@ -115,11 +122,13 @@ db.players.countDocuments({
 ```
 
 **Execution Plan**:
+
 1. Index 4 (`teamId + email`) filters to candidate set efficiently
 2. Post-filter: `userId: { $exists: false }` removes joined members
 3. Result: Usually 0-1 documents to filter
 
 **Why Not a 3-Field Index?**
+
 - A `{teamId, email, userId}` index would provide minimal benefit
 - The unique constraint on `{teamId, email}` makes duplicates impossible
 - Post-filtering 1-2 documents is negligible compared to index overhead
@@ -129,23 +138,28 @@ db.players.countDocuments({
 ## Recommendations
 
 ### Current Status: ✓ OPTIMAL
+
 - No indexes missing
 - No indexes to remove
 - No additional indexes needed
 - All design patterns follow MongoDB best practices
 
 ### Future Considerations
+
 - **If adding sorting**: Would need indexes on sorted fields
 - **If adding aggregation pipelines**: May need to evaluate aggregation index hints
 - **If scaling**: Monitor query performance with index statistics
 
 ### Verification Method
+
 To verify indexes in your MongoDB database, run:
+
 ```bash
 npm run verify:indexes
 ```
 
 This script will:
+
 1. Connect to MongoDB
 2. List all existing indexes on the 'players' collection
 3. Verify each required index is present

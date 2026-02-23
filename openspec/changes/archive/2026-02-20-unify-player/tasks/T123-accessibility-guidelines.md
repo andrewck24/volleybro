@@ -16,12 +16,14 @@ This document outlines the accessibility improvements made to VolleyBro componen
 ### 1. PlayerCard Component
 
 **ARIA Enhancements:**
+
 - `role="region"` with `aria-label` for player information section
 - `role="group"` with `aria-label` for status badges
 - Individual `aria-label` attributes for each status badge
 - `aria-label` for each action button with context (player name, action)
 
 **Example:**
+
 ```tsx
 <Button
   aria-label={`編輯球員 ${player.name}`}
@@ -32,6 +34,7 @@ This document outlines the accessibility improvements made to VolleyBro componen
 ```
 
 **Benefits:**
+
 - Screen readers announce: "Button: Edit player Alice"
 - Users understand button purpose without color alone
 - Context-aware labels for destructive actions
@@ -39,11 +42,13 @@ This document outlines the accessibility improvements made to VolleyBro componen
 ### 2. InviteAccordion Component
 
 **ARIA Enhancements:**
+
 - Form labels with `htmlFor` attributes (already present)
 - Error message with `role="alert"` and `aria-live="polite"`
 - Submit button with `aria-label` indicating current state
 
 **Example:**
+
 ```tsx
 {error && (
   <div
@@ -57,6 +62,7 @@ This document outlines the accessibility improvements made to VolleyBro componen
 ```
 
 **Benefits:**
+
 - Errors automatically announced when they appear
 - No need for users to navigate to read error messages
 - State changes communicated immediately
@@ -65,14 +71,14 @@ This document outlines the accessibility improvements made to VolleyBro componen
 
 ## ARIA Attributes Used
 
-| Attribute | Purpose | Example |
-|-----------|---------|---------|
-| `aria-label` | Provides accessible name | `aria-label="Edit player"` |
-| `aria-live="polite"` | Announces dynamic content | Error messages, status updates |
-| `role="alert"` | Marks important announcements | Error messages |
-| `role="region"` | Marks significant content area | Player information section |
-| `role="group"` | Groups related elements | Button groups, status badges |
-| `aria-atomic="true"` | Announces entire element | Error messages with multiple parts |
+| Attribute            | Purpose                        | Example                            |
+| -------------------- | ------------------------------ | ---------------------------------- |
+| `aria-label`         | Provides accessible name       | `aria-label="Edit player"`         |
+| `aria-live="polite"` | Announces dynamic content      | Error messages, status updates     |
+| `role="alert"`       | Marks important announcements  | Error messages                     |
+| `role="region"`      | Marks significant content area | Player information section         |
+| `role="group"`       | Groups related elements        | Button groups, status badges       |
+| `aria-atomic="true"` | Announces entire element       | Error messages with multiple parts |
 
 ---
 
@@ -81,6 +87,7 @@ This document outlines the accessibility improvements made to VolleyBro componen
 ### Current Implementation
 
 All shadcn/ui components already support keyboard navigation:
+
 - **Tab/Shift+Tab**: Navigate between focusable elements
 - **Enter/Space**: Activate buttons and form submission
 - **Arrow Keys**: Navigate within select dropdowns
@@ -120,12 +127,14 @@ All shadcn/ui components already support keyboard navigation:
 ### Screen Reader Testing
 
 Test with:
+
 - **macOS**: VoiceOver (Command + F5)
 - **Windows**: NVDA (free)
 - **Windows**: JAWS (commercial)
 - **Mobile**: VoiceOver (iOS) or TalkBack (Android)
 
 **What to listen for:**
+
 - Element type announced (button, input, etc.)
 - Label/content read correctly
 - Status/state communicated
@@ -146,6 +155,7 @@ npm install --save-dev @axe-core/react
 ## Components Modified (T123)
 
 ### 1. PlayerCard
+
 - **File**: `src/components/team/player-card.tsx`
 - **Changes**:
   - Added region role for player info
@@ -154,6 +164,7 @@ npm install --save-dev @axe-core/react
   - Updated comments with T123 note
 
 ### 2. InviteAccordion
+
 - **File**: `src/components/team/invite-accordion.tsx`
 - **Changes**:
   - Added error alert role
@@ -167,50 +178,57 @@ npm install --save-dev @axe-core/react
 
 These components should be reviewed for accessibility improvements in future phases:
 
-| Component | Location | Potential Improvements |
-|-----------|----------|------------------------|
-| InvitationList | `src/components/team/invitation-list.tsx` | ARIA labels, list semantics |
-| PlayerList | `src/components/team/player-list.tsx` | Filter accessibility, list structure |
-| RoleSelect | `src/components/team/role-select.tsx` | Dropdown semantics, keyboard nav |
-| PlayerForm | `src/components/team/player-form.tsx` | Form validation feedback |
-| Dialog Components | `src/components/ui/dialog.tsx` | Focus trap, escape key handling |
+| Component         | Location                                  | Potential Improvements               |
+| ----------------- | ----------------------------------------- | ------------------------------------ |
+| InvitationList    | `src/components/team/invitation-list.tsx` | ARIA labels, list semantics          |
+| PlayerList        | `src/components/team/player-list.tsx`     | Filter accessibility, list structure |
+| RoleSelect        | `src/components/team/role-select.tsx`     | Dropdown semantics, keyboard nav     |
+| PlayerForm        | `src/components/team/player-form.tsx`     | Form validation feedback             |
+| Dialog Components | `src/components/ui/dialog.tsx`            | Focus trap, escape key handling      |
 
 ---
 
 ## WCAG 2.1 Compliance
 
 ### Levels Targeted
+
 - **Level A**: Basic accessibility
 - **Level AA**: Enhanced accessibility (target for VolleyBro)
 - **Level AAA**: Advanced accessibility (nice to have)
 
 ### Success Criteria Addressed
 
-**1.3.1 Info and Relationships (Level A)**
+#### 1.3.1 Info and Relationships (Level A)
+
 - ✓ Form labels associated with inputs
 - ✓ Headings mark sections
 - ✓ ARIA labels provide context
 
-**1.4.3 Contrast (Minimum) (Level AA)**
+#### 1.4.3 Contrast (Minimum) (Level AA)
+
 - ✓ Text meets 4.5:1 ratio (body text)
 - ✓ Large text meets 3:1 ratio (Tailwind defaults)
 - ✓ Buttons and badges have sufficient contrast
 
-**2.1.1 Keyboard (Level A)**
+#### 2.1.1 Keyboard (Level A)
+
 - ✓ All functionality keyboard accessible
 - ✓ No keyboard traps
 - ✓ Focus visible
 
-**2.4.3 Focus Order (Level A)**
+#### 2.4.3 Focus Order (Level A)
+
 - ✓ Focus order matches visual order
 - ✓ DOM order matches presentation
 
-**3.3.1 Error Identification (Level A)**
+#### 3.3.1 Error Identification (Level A)
+
 - ✓ Errors identified to users
 - ✓ Error messages clear
 - ✓ Alternative to color alone
 
-**4.1.2 Name, Role, Value (Level A)**
+#### 4.1.2 Name, Role, Value (Level A)
+
 - ✓ Buttons have names (via aria-label)
 - ✓ Form inputs have labels
 - ✓ Roles properly set (alert, region, group)
@@ -289,22 +307,26 @@ These components should be reviewed for accessibility improvements in future pha
 ## Resources & References
 
 ### Accessibility Standards
+
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
 - [ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/)
 - [MDN: Accessibility](https://developer.mozilla.org/en-US/docs/Web/Accessibility)
 
 ### React/Next.js Accessibility
+
 - [React: Accessibility](https://react.dev/learn/accessibility)
 - [Next.js: Accessibility](https://nextjs.org/learn/seo/introduction-to-accessibility)
 - [WebAIM: Screen Reader Testing](https://webaim.org/articles/screenreader_testing/)
 
 ### Tools
+
 - [Axe DevTools](https://www.deque.com/axe/devtools/)
 - [WAVE Accessibility Checker](https://wave.webaim.org/)
 - [Lighthouse](https://developers.google.com/web/tools/lighthouse)
 - [NVDA Screen Reader](https://www.nvaccess.org/)
 
 ### Design Resources
+
 - [Material Design: Accessibility](https://material.io/design/usability/accessibility.html)
 - [Inclusive Components](https://inclusive-components.design/)
 - [The A11Y Project](https://www.a11yproject.com/)
@@ -314,6 +336,7 @@ These components should be reviewed for accessibility improvements in future pha
 ## Next Steps
 
 ### Phase 2: Extended Components (Future)
+
 - [ ] Add accessibility to InvitationList
 - [ ] Add accessibility to PlayerList with filtering
 - [ ] Add accessibility to RoleSelect dropdown
@@ -321,12 +344,14 @@ These components should be reviewed for accessibility improvements in future pha
 - [ ] Test with screen readers (NVDA, VoiceOver)
 
 ### Phase 3: User Testing (Future)
+
 - [ ] Recruit users with disabilities for testing
 - [ ] Identify pain points
 - [ ] Iterate on solutions
 - [ ] Document findings
 
 ### Phase 4: Automation (Future)
+
 - [ ] Add automated accessibility tests
 - [ ] Integrate axe-core in CI/CD
 - [ ] Monitor accessibility metrics
@@ -365,4 +390,3 @@ A: Keyboard navigation works with standard keyboard. Screen readers are free (NV
 
 **Q: How do we measure accessibility?**
 A: Use automated tools (Lighthouse, axe) and manual testing with screen readers and keyboard.
-

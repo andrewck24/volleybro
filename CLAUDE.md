@@ -4,8 +4,8 @@
 
 ### Core Development
 
-- `npm run dev` - Start [development server](http://localhost:3000)
-- `npm run build` - Build for production
+- `npm run dev` - Start [development server](http://localhost:3000) (runs `serwist build --watch` and `next dev` concurrently)
+- `npm run build` - Build for production (`next build && serwist build`)
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint code checking
 - `npm test` - Run Jest unit tests
@@ -24,13 +24,13 @@ For a detailed version, see the [Architecture Documentation](./docs/architecture
 
 ### Technology Stack
 
-- **Frontend**: Next.js 15+ (React 19), TypeScript
+- **Frontend**: Next.js 16+ (React 19), TypeScript
 - **UI**: Shadcn/UI components + Tailwind CSS
 - **State Management**: Redux Toolkit + SWR for data fetching
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: Better Auth with Google OAuth
 - **Dependency Injection**: InversifyJS
-- **PWA**: @serwist/next for Progressive Web App features
+- **PWA**: @serwist/next (configurator mode) for Progressive Web App features
 - **Testing**: Jest (to be refactored with optimal testing tools)
 
 Detailed tech-stack info [docs](./docs/architecture/tech-stack.md)
@@ -196,89 +196,8 @@ src/
 - **Priority**: Low (infrastructure tests, not affecting core functionality)
 - **Check**: Run `npm test` and verify repository tests are properly skipped
 
-### Development Notes
-
-- The project supports both English and Traditional Chinese
-- PWA functionality is implemented for mobile-first experience
-- Uses Storybook for component development and documentation
-- Implements dependency injection with InversifyJS for better testability
-- Follow existing commit message conventions (Conventional Commits)
-- **Pre-development**: Rebuild testing environment following BDD principles
-
 ### Environment Variables
 
 - `AUTH_GOOGLE_ID` - Google OAuth client ID
 - `AUTH_GOOGLE_SECRET` - Google OAuth client secret
 - `MONGODB_URI` - MongoDB connection string
-
-## Active Technologies
-
-- TypeScript 5.x, Node.js 20+, React 19 + Next.js 15+, Mongoose ODM, Better Auth, Redux Toolkit, SWR, Zod, InversifyJS (001-unify-player)
-- MongoDB (Atlas) (001-unify-player)
-
-## Recent Changes
-
-### 001-unify-player Feature (Phase 1-7 Complete) ✅
-
-**Status**: Phase 1-7 fully implemented and tested (451 tests passing)
-
-#### Completed Tasks (T120-T127)
-
-- **T120**: MongoDB indexes optimized for query performance
-- **T121**: SWR optimistic updates and cache strategy implemented
-- **T122**: Unified error handling system across all layers
-- **T123**: WCAG 2.1 AA accessibility compliance (ARIA labels, keyboard navigation, screen reader support)
-- **T124**: Toast notifications for all user actions (invitations, accept/reject, promote, remove)
-- **T125**: Code refactoring with centralized labels and auth helper utilities
-- **T126**: SWR cache optimization with deduplicated request configurations
-- **T127**: Full quickstart verification completed - all phases validated
-
-#### Key Implementation Details
-
-##### Player Management System
-
-- Complete player entity with status inference (JOINED, INVITED, PURE_PLAYER)
-- Full CRUD operations via repository pattern
-- Authorization checks for team-based operations
-- 11 query methods optimized with MongoDB indexes
-
-##### User Stories Implemented
-
-1. ✓ US1: Team manager invites members (CreateInvitationUseCase)
-2. ✓ US2: Accept/Reject invitations (AcceptInvitationUseCase, RejectInvitationUseCase)
-3. ✓ US3: View team members with filtering (GetTeamPlayersUseCase)
-4. ✓ US4: Promote member to admin (UpdateRoleUseCase)
-5. ✓ US5: Remove member from team (RemovePlayerUseCase)
-6. ✓ US6: Leave team (LeaveTeamUseCase)
-7. ✓ US7: Cancel invitations (CancelInvitationUseCase)
-
-##### Architecture
-
-- Clean Architecture with strict layer separation
-- Dependency Injection via InversifyJS
-- Test-Driven Development (Red-Green-Refactor)
-- TypeScript 5.x with strict mode compliance
-
-##### Performance Optimizations
-
-- SWR deduplication intervals configured per data volatility (DEFAULT: 5min, LIST: 2min, INFINITE: 2min)
-- MongoDB composite indexes for multi-field queries
-- API request deduplication with focus throttling
-- Optimistic updates for better UX
-
-##### Quality Assurance
-
-- 451 unit and integration tests passing
-- ESLint compliance verified
-- TypeScript strict mode enabled
-- No console errors or warnings
-- Accessibility compliance verified (WCAG 2.1 AA)
-
-##### Technologies Added
-
-- TypeScript 5.x, Node.js 20+, React 19 + Next.js 15+
-- Mongoose ODM with MongoDB Atlas
-- Better Auth with Google OAuth
-- Redux Toolkit + SWR for state management
-- Zod for runtime validation
-- InversifyJS for dependency injection

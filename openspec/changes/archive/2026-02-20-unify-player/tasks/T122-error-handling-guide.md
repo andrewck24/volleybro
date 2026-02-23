@@ -3,6 +3,7 @@
 **Status**: In Progress
 **Task**: Add error handling and user-friendly error messages throughout the API layer
 **Files Created**:
+
 - `src/lib/errors/api-error.ts` - Custom error class hierarchy
 - `src/lib/errors/handle-api-error.ts` - Error handler utility
 - `src/lib/errors/index.ts` - Error exports
@@ -20,6 +21,7 @@ This guide provides a unified error handling strategy for all VolleyBro API rout
 ### 7 Custom Error Classes
 
 All errors extend `ApiError` and include:
+
 - `statusCode` - HTTP status code
 - `message` - Internal message (for logging)
 - `userMessage` - User-friendly message (for API response)
@@ -84,6 +86,7 @@ export async function POST(req: NextRequest) {
 ```
 
 **What handleApiError does:**
+
 1. Catches `ApiError` instances → Returns with proper statusCode
 2. Catches `ZodError` → Returns 400 with validation details
 3. Catches generic `Error` → Infers error type from message
@@ -143,6 +146,7 @@ export class CreatePlayerUseCase {
 ## API Response Format
 
 ### Success Response (200)
+
 ```json
 {
   "name": "Alice",
@@ -152,6 +156,7 @@ export class CreatePlayerUseCase {
 ```
 
 ### Error Response (standardized)
+
 ```json
 {
   "error": "NotFoundError",
@@ -161,6 +166,7 @@ export class CreatePlayerUseCase {
 ```
 
 ### Validation Error Response (400)
+
 ```json
 {
   "error": "ValidationError",
@@ -180,35 +186,37 @@ export class CreatePlayerUseCase {
 
 ## HTTP Status Code Mapping
 
-| Code | Error Class | Example | User Message |
-|------|-------------|---------|--------------|
-| 400 | ValidationError | Invalid email format | "Please check your input and try again" |
-| 401 | AuthenticationError | Missing session | "You need to log in to access this resource" |
-| 403 | AuthorizationError | Not team admin | "You don't have permission to perform this action" |
-| 404 | NotFoundError | Player not found | "The player you're looking for doesn't exist" |
-| 409 | ConflictError | Email already invited | "This resource already exists" |
-| 422 | BusinessRuleError | Owner cannot be removed | "This action violates business rules" |
-| 500 | InternalServerError | Database error | "An unexpected error occurred. Please try again later." |
+| Code | Error Class         | Example                 | User Message                                            |
+| ---- | ------------------- | ----------------------- | ------------------------------------------------------- |
+| 400  | ValidationError     | Invalid email format    | "Please check your input and try again"                 |
+| 401  | AuthenticationError | Missing session         | "You need to log in to access this resource"            |
+| 403  | AuthorizationError  | Not team admin          | "You don't have permission to perform this action"      |
+| 404  | NotFoundError       | Player not found        | "The player you're looking for doesn't exist"           |
+| 409  | ConflictError       | Email already invited   | "This resource already exists"                          |
+| 422  | BusinessRuleError   | Owner cannot be removed | "This action violates business rules"                   |
+| 500  | InternalServerError | Database error          | "An unexpected error occurred. Please try again later." |
 
 ---
 
 ## Error Message Strategy
 
 ### Internal Messages (logged)
+
 - Detailed, technical, includes context
 - For debugging and monitoring
 - May expose internal implementation
 
-```
+```text
 "Email 'alice@example.com' is already invited to team 507f1f77"
 ```
 
 ### User Messages (API response)
+
 - Clear, friendly, non-technical
 - Actionable and helpful
 - Should never expose implementation details
 
-```
+```text
 "This email has already been invited to the team. Please use a different email or wait for the user to respond to the invitation."
 ```
 
@@ -217,6 +225,7 @@ export class CreatePlayerUseCase {
 ## Implementation Checklist for T122
 
 ### Phase 1: Foundation (COMPLETE)
+
 - [x] Create ApiError base class with hierarchy
 - [x] Create handleApiError utility function
 - [x] Create withErrorHandler wrapper
@@ -224,6 +233,7 @@ export class CreatePlayerUseCase {
 - [x] Export all errors from `src/lib/errors/index.ts`
 
 ### Phase 2: API Route Migration
+
 - [ ] Update `/api/players/[playerId]/status/route.ts`
 - [ ] Update `/api/players/[playerId]/info/route.ts`
 - [ ] Update `/api/players/[playerId]/role/route.ts`
@@ -237,11 +247,13 @@ export class CreatePlayerUseCase {
 - [ ] Update `/api/profiles/route.ts`
 
 ### Phase 3: Use Case Error Handling
+
 - [ ] Review all use cases in `src/applications/usecases/player/`
 - [ ] Ensure they throw appropriate ApiError subclasses
 - [ ] Add proper error messages (internal + user-friendly)
 
 ### Phase 4: Integration Tests
+
 - [ ] Test error responses for each API route
 - [ ] Verify status codes are correct
 - [ ] Validate error messages are user-friendly
@@ -252,6 +264,7 @@ export class CreatePlayerUseCase {
 ## Example: Migrating a Route
 
 ### Before (current pattern)
+
 ```typescript
 export async function PATCH(req: NextRequest) {
   try {
@@ -283,6 +296,7 @@ export async function PATCH(req: NextRequest) {
 ```
 
 ### After (new pattern)
+
 ```typescript
 import { handleApiError, AuthenticationError } from '@/lib/errors';
 
@@ -304,6 +318,7 @@ export async function PATCH(req: NextRequest) {
 ```
 
 **Benefits:**
+
 - Less boilerplate (no if-statements for each error type)
 - Consistent error handling across all routes
 - Automatic logging with context
@@ -358,6 +373,7 @@ it('should return 400 for validation error', async () => {
 ## Configuration & Customization
 
 ### Changing error messages
+
 Each error class accepts custom messages:
 
 ```typescript
@@ -368,6 +384,7 @@ throw new NotFoundError(
 ```
 
 ### Adding new error types
+
 Create a new subclass:
 
 ```typescript

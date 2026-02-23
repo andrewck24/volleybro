@@ -8,6 +8,7 @@
 ## Overview
 
 This task focused on optimizing the data fetching strategy by:
+
 1. Consolidating SWR configuration into reusable presets
 2. Implementing differentiated cache strategies based on data volatility
 3. Improving API URL readability
@@ -18,6 +19,7 @@ This task focused on optimizing the data fetching strategy by:
 ## Changes Implemented
 
 ### 1. Centralized SWR Configuration Presets
+
 **File**: `src/hooks/use-data.ts`
 
 **Added**: `SWR_CONFIG` object with three configuration presets
@@ -43,6 +45,7 @@ const SWR_CONFIG = {
 ```
 
 **Benefits**:
+
 - **DEFAULT**: For single-resource queries (user, team, record) - 5 min dedup prevents concurrent requests
 - **LIST**: For collection queries - 2 min dedup for more responsive updates on frequently-changing data
 - **INFINITE**: For paginated queries - similar to LIST but optimized for infinite scroll scenarios
@@ -53,17 +56,18 @@ const SWR_CONFIG = {
 
 Updated 7 hooks to use the new presets:
 
-| Hook | Config Type | Rationale |
-|------|-------------|-----------|
-| `useUser()` | DEFAULT | Single user resource, stable |
-| `useProfile()` | DEFAULT | Single profile resource, stable |
-| `useUserTeams()` | LIST | User may belong to multiple teams, changes less frequently |
-| `useTeam()` | DEFAULT | Single team resource, stable |
-| `useTeamMembers()` | LIST | Members list, may change when users join/leave |
-| `useRecord()` | DEFAULT | Single record resource, stable |
-| `useMatches()` | INFINITE | Paginated matches, use infinite scroll optimizations |
+| Hook               | Config Type | Rationale                                                  |
+| ------------------ | ----------- | ---------------------------------------------------------- |
+| `useUser()`        | DEFAULT     | Single user resource, stable                               |
+| `useProfile()`     | DEFAULT     | Single profile resource, stable                            |
+| `useUserTeams()`   | LIST        | User may belong to multiple teams, changes less frequently |
+| `useTeam()`        | DEFAULT     | Single team resource, stable                               |
+| `useTeamMembers()` | LIST        | Members list, may change when users join/leave             |
+| `useRecord()`      | DEFAULT     | Single record resource, stable                             |
+| `useMatches()`     | INFINITE    | Paginated matches, use infinite scroll optimizations       |
 
 **Benefits**:
+
 - Consistent configuration across all hooks
 - Appropriate cache strategies per data type
 - Easier to adjust performance globally (update SWR_CONFIG)
@@ -71,9 +75,11 @@ Updated 7 hooks to use the new presets:
 ---
 
 ### 3. Improved API URL Readability
+
 **File**: `src/hooks/use-data.ts` (useMatches function)
 
 **Changed**:
+
 ```typescript
 // Before (abbreviated, unclear)
 return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
@@ -83,6 +89,7 @@ return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
 ```
 
 **Benefits**:
+
 - More readable API URLs in network tab
 - Easier debugging
 - Better alignment with REST conventions
@@ -92,6 +99,7 @@ return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
 ## Performance Impact
 
 ### Reduced API Requests
+
 1. **Deduplication Intervals**: Prevent concurrent requests when multiple components mount
    - `DEFAULT`: Requests within 5 minutes are deduplicated
    - `LIST`: Requests within 2 minutes are deduplicated
@@ -108,7 +116,9 @@ return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
    - Balances freshness vs. network efficiency
 
 ### Example Scenario
+
 **User visits team page with multiple components**:
+
 1. TeamHero component mounts → fetches `/api/teams/{teamId}` (cache miss)
 2. TeamMembers component mounts → (deduplicated, uses cache from step 1)
 3. TeamInfo component mounts → (deduplicated, uses cache from step 1)
@@ -121,6 +131,7 @@ return `/api/matches?teamId=${teamId}&lastId=${previousPageData!.lastId}`;
 ## Testing
 
 All 451 tests pass with no regressions:
+
 - SWR configuration doesn't affect component behavior
 - All hooks return same data structure
 - Error handling remains unchanged
@@ -131,6 +142,7 @@ All 451 tests pass with no regressions:
 ## Best Practices Applied
 
 ### 1. Deduplication Strategy
+
 Prevents thundering herd problem when multiple components request same data simultaneously
 
 ```typescript
@@ -138,6 +150,7 @@ dedupingInterval: 5 * 60 * 1000 // Multiple requests within this window are comb
 ```
 
 ### 2. Focus Throttling
+
 Reduces unnecessary API calls when user returns to the tab
 
 ```typescript
@@ -145,6 +158,7 @@ focusThrottleInterval: 5 * 60 * 1000 // Don't refetch on focus if recently fetch
 ```
 
 ### 3. Error Retry Strategy
+
 Graceful handling of transient failures
 
 ```typescript
@@ -152,6 +166,7 @@ errorRetryInterval: 5000 // Wait 5 seconds before retrying failed requests
 ```
 
 ### 4. Differentiated Cache Strategies
+
 Not all data changes at the same rate - optimize accordingly
 
 ```typescript
@@ -167,27 +182,32 @@ useTeamMembers() → SWR_CONFIG.LIST (2 min)
 ## Configuration Explanation
 
 ### dedupingInterval
+
 **What**: Request deduplication interval
 **Why**: Prevent multiple concurrent requests for the same URL
 **Effect**: Multiple requests for the same URL within the interval are combined into one
 
 Example:
+
 - Component A requests `/api/teams/123` at 0ms
 - Component B requests `/api/teams/123` at 100ms
 - Both get the same response (single network request)
 
 ### focusThrottleInterval
+
 **What**: Minimum time between refetches on window focus
 **Why**: Prevent excessive API calls when user returns to tab
 **Effect**: If data was fetched recently, won't refetch on window focus
 
 Example:
+
 - User fetches `/api/users` at 0ms
 - User switches to another tab
 - User returns after 2 minutes
 - Data is refetched (because > 5 min interval)
 
 ### errorRetryInterval
+
 **What**: Delay before retrying failed requests
 **Why**: Give server time to recover from transient failures
 **Effect**: Failed requests are retried after specified delay
@@ -197,11 +217,13 @@ Example:
 ## Future Optimizations
 
 ### Phase 1 (Medium Priority)
+
 1. **Request Batching**: Combine multiple requests into single API call
 2. **Selective Revalidation**: Only refetch data that changed
 3. **Prefetching**: Fetch predictable data proactively
 
 ### Phase 2 (Lower Priority)
+
 4. **Request Prioritization**: Prioritize critical data fetches
 5. **Conditional Requests**: Use ETags for conditional updates
 6. **Compression**: Enable gzip compression for large responses
@@ -221,7 +243,7 @@ Example:
 
 - Configuration presets: See `SWR_CONFIG` in `src/hooks/use-data.ts`
 - Hook implementation: All hooks in `src/hooks/use-data.ts`
-- SWR documentation: https://swr.vercel.app/
+- SWR documentation: `https://swr.vercel.app/`
 
 ---
 

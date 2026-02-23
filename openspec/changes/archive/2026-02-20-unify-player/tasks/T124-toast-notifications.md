@@ -18,18 +18,22 @@ This document describes the implementation of toast notifications throughout the
 The application uses Shadcn/UI toast components with a custom hook pattern:
 
 **Components:**
+
 - `src/components/ui/toast.tsx` - Toast UI components (ToastProvider, ToastViewport, Toast, etc.)
 - `src/components/ui/use-toast.ts` - React hook for triggering toasts
 
 **Integration:**
+
 - `src/app/layout.tsx` - Toaster component added to root layout for global toast rendering
 
 ### 2. Updated Components
 
 #### A. InviteAccordion Component
+
 **File**: `src/components/team/invite-accordion.tsx`
 
 **Changes:**
+
 - Added `useToast` hook import
 - Modified `handleSubmit` to show toast notifications:
   - **Success**: "邀請已發送" (Invitation Sent) with email address
@@ -37,6 +41,7 @@ The application uses Shadcn/UI toast components with a custom hook pattern:
 - Changed error data retrieval from `errorData.error` to `errorData.message` (aligned with T122 error handling)
 
 **Example:**
+
 ```tsx
 const handleSubmit = async (e: React.FormEvent) => {
   // ... fetch logic
@@ -48,9 +53,11 @@ const handleSubmit = async (e: React.FormEvent) => {
 ```
 
 #### B. InvitationList Component
+
 **File**: `src/components/team/invitation-list.tsx`
 
 **Changes:**
+
 - Added `useToast` hook import
 - Added `processingId` state to track which invitation is being processed
 - Created `handleAccept` wrapper function with try-catch and toast notifications:
@@ -63,6 +70,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 - Added `aria-busy` attributes for accessibility during processing
 
 **Example:**
+
 ```tsx
 const handleAccept = async (playerId: string) => {
   setProcessingId(playerId);
@@ -83,6 +91,7 @@ const handleAccept = async (playerId: string) => {
 ```
 
 #### C. usePlayerActions Hook
+
 **File**: `src/hooks/use-player-actions.ts` (NEW)
 
 **Purpose**: Provides wrapped player actions with built-in toast notifications
@@ -119,6 +128,7 @@ const handleAccept = async (playerId: string) => {
 ## Toast Notification Types
 
 ### Success Toast
+
 ```tsx
 toast({
   title: '操作成功',
@@ -127,6 +137,7 @@ toast({
 ```
 
 ### Error Toast
+
 ```tsx
 toast({
   title: '操作失敗',
@@ -136,6 +147,7 @@ toast({
 ```
 
 ### Features
+
 - Non-blocking feedback
 - Auto-dismiss after 1000000ms (configurable in `use-toast.ts`)
 - Manual dismiss via close button
@@ -148,6 +160,7 @@ toast({
 ## Usage Examples
 
 ### Sending Invitations (InviteAccordion)
+
 ```tsx
 // User fills email and role, clicks send
 // Component automatically shows:
@@ -156,6 +169,7 @@ toast({
 ```
 
 ### Accepting/Rejecting Invitations (InvitationList)
+
 ```tsx
 // User sees pending invitation
 // Clicks "接受" or "拒絕"
@@ -164,6 +178,7 @@ toast({
 ```
 
 ### Player Operations (using usePlayerActions hook)
+
 ```tsx
 const { promotePlayer, removePlayer, leaveTeam } = usePlayerActions(teamId);
 
@@ -181,11 +196,13 @@ await removePlayer(playerId, playerName);
 ## Integration Points
 
 ### Components Using Toast Notifications
+
 1. **InviteAccordion** - Sending invitations
 2. **InvitationList** - Accepting/rejecting invitations
 3. **Custom components using usePlayerActions hook** - Player management operations
 
 ### API Error Handling
+
 - Toast notifications display the `message` field from API error responses
 - This aligns with T122 unified error handling system
 - Error messages are user-friendly and non-technical
@@ -195,11 +212,13 @@ await removePlayer(playerId, playerName);
 ## Testing Considerations
 
 ### Unit Testing
+
 - InviteAccordion: Test toast calls on success/error
 - InvitationList: Test handleAccept/handleReject with toast
 - usePlayerActions: Test each action function with mock fetch
 
 ### Manual Testing Checklist
+
 - [ ] Send invitation → See success toast
 - [ ] Send invitation to invalid email → See error toast
 - [ ] Accept invitation → See success toast
@@ -214,26 +233,31 @@ await removePlayer(playerId, playerName);
 ## Best Practices Applied
 
 ### 1. Error Recovery
+
 - Try-catch blocks prevent unhandled rejections
 - Errors are displayed to users in a readable format
 - Operations can be retried by user
 
 ### 2. User Feedback
+
 - Clear action titles (邀請已發送, 升級成功, etc.)
 - Descriptive details (email, player name, etc.)
 - Immediate feedback (no delay)
 
 ### 3. Accessibility
+
 - Toast component uses ARIA alert role
 - aria-busy attributes on buttons during processing
 - Screen reader support for dynamic content
 
 ### 4. UX Consistency
+
 - All toast messages in Traditional Chinese
 - Consistent success/error title format
 - Consistent description format
 
 ### 5. Error Messages
+
 - Uses error response `message` field (T122 aligned)
 - Fallback to generic message if none provided
 - Never exposes technical details to users
@@ -252,11 +276,11 @@ await removePlayer(playerId, playerName);
 
 ## Files Modified
 
-| File | Changes | Lines |
-|------|---------|-------|
-| `src/components/team/invite-accordion.tsx` | Added useToast, updated handleSubmit | +30 lines |
-| `src/components/team/invitation-list.tsx` | Added useToast, created handlers, updated logic | +80 lines |
-| `src/hooks/use-player-actions.ts` | NEW - Player action wrapper with toast | +180 lines |
+| File                                       | Changes                                         | Lines      |
+| ------------------------------------------ | ----------------------------------------------- | ---------- |
+| `src/components/team/invite-accordion.tsx` | Added useToast, updated handleSubmit            | +30 lines  |
+| `src/components/team/invitation-list.tsx`  | Added useToast, created handlers, updated logic | +80 lines  |
+| `src/hooks/use-player-actions.ts`          | NEW - Player action wrapper with toast          | +180 lines |
 
 ---
 
