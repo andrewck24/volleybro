@@ -82,6 +82,7 @@ This project uses a clean architecture and implements dependency injection with 
 - **TypeScript 5.x** with strict mode
 - **Shadcn/UI** components library
 - **Tailwind CSS** for styling
+- **Serwist** for Progressive Web App (PWA) features
 
 ### State Management & Data Fetching
 
@@ -102,32 +103,8 @@ This project uses a clean architecture and implements dependency injection with 
 - **451 tests passing** with comprehensive coverage
 - **ESLint** for code quality
 - **TypeScript strict mode** enabled
-
-### Developer Experience
-
 - **Storybook** for component development and documentation
 - **Prettier** for code formatting
-- **Serwist** for Progressive Web App (PWA) features
-
-## 測試與品質保證 / Testing & Quality Assurance
-
-**Status**: ✅ **生產就緒 / Production Ready**
-
-### Test Coverage
-
-- **Total Tests**: 451 passing
-- **Test Types**: Unit tests, Integration tests, Component tests
-- **Coverage**: High coverage on critical business logic
-- **CI/CD**: Pre-commit validation (tests, lint, build)
-
-### Quality Metrics
-
-- ✅ All 451 tests passing
-- ✅ ESLint compliance
-- ✅ TypeScript strict mode
-- ✅ WCAG 2.1 AA accessibility compliance
-- ✅ No console errors or warnings
-- ✅ No TypeScript type errors
 
 ### Running Tests
 
