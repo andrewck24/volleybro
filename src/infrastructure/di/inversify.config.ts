@@ -14,7 +14,7 @@ import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
 import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
-import { PlayerRepository } from "@/infrastructure/db/repositories/player.repository";
+import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
@@ -66,7 +66,7 @@ container
   .to(ProfileRepositoryImpl);
 container
   .bind<IPlayerRepository>(TYPES.PlayerRepository)
-  .to(PlayerRepository);
+  .to(PlayerRepositoryImpl);
 
 // register services
 container

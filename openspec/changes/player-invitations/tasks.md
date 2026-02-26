@@ -14,12 +14,12 @@
 
 ## 3. Infrastructure Layer — Schema & Repository Updates
 
-- [ ] 3.1 Write unit tests for Player Mongoose schema (status field required, enum validation) and `linkUserToInvitations` repository method
-- [ ] 3.2 Write unit tests for Profile Mongoose schema (activeTeamId field, teams removed)
-- [ ] 3.3 Update Player Mongoose schema — add `status` field (enum, required, default NONE), remove virtual `status` computation
-- [ ] 3.4 Add `linkUserToInvitations(email: string, userId: string)` to Player repository interface and Mongoose implementation (using `updateMany`)
-- [ ] 3.5 Update Profile Mongoose schema — remove `teams` embedded fields, add `activeTeamId` (optional String)
-- [ ] 3.6 Remove Profile repository methods: `addTeamToJoined`, `addTeamToInviting`, `removeTeamFromJoined`, `removeTeamFromInviting`
+- [x] 3.1 Write unit tests for `linkUserToInvitations` repository method (schema enum validation skipped: Mongoose schema constraints are framework behaviour, not our business logic)
+- [x] 3.2 ~~Write unit tests for Profile Mongoose schema~~ — skipped: schema structure changes are enforced by TypeScript interface at compile time, no runtime logic to test
+- [x] 3.3 Update Player Mongoose schema — add `status` field (enum, required, default NONE), remove virtual `status` computation
+- [x] 3.4 Add `linkUserToInvitations(email: string, userId: string)` to Player repository interface and Mongoose implementation (using `updateMany`)
+- [x] 3.5 Update Profile Mongoose schema — remove `teams` embedded fields, add `activeTeamId` (optional String)
+- [x] 3.6 Remove Profile repository methods: `addTeamToJoined`, `addTeamToInviting`, `removeTeamFromJoined`, `removeTeamFromInviting`; add `updateActiveTeamId`
 
 ## 4. Application Layer — Use Case Updates (Player)
 

@@ -1,20 +1,19 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { Player } from "@/entities/player";
+import { Player, PlayerStatus } from "@/entities/player";
 import {
   PlayerModel,
   type PlayerDocument,
 } from "@/infrastructure/db/mongoose/schemas/player";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 
-/**
- * PlayerRepository Implementation
- * Provides MongoDB data access operations for Player entity
- * Implements Repository Pattern for Clean Architecture
- */
-export class PlayerRepository implements IPlayerRepository {
-  /**
-   * Convert Mongoose document to Player entity
-   * Handles ObjectId to string conversion for _id, teamId, and userId
-   */
+export class PlayerRepositoryImpl
+  extends BaseMongoRepository<Player, PlayerDocument>
+  implements IPlayerRepository
+{
+  constructor() {
+    super(PlayerModel);
+  }
+
   private toPlayer(doc: PlayerDocument): Player {
     const obj = doc.toObject();
     return {
@@ -26,22 +25,22 @@ export class PlayerRepository implements IPlayerRepository {
   }
 
   async findById(id: string): Promise<Player | null> {
-    const doc = await PlayerModel.findById(id).exec();
+    const doc = await this.model.findById(id).exec();
     return doc ? this.toPlayer(doc) : null;
   }
 
   async findByTeamId(teamId: string): Promise<Player[]> {
-    const docs = await PlayerModel.find({ teamId }).exec();
+    const docs = await this.model.find({ teamId }).exec();
     return docs.map((doc) => this.toPlayer(doc));
   }
 
   async findByUserId(userId: string): Promise<Player[]> {
-    const docs = await PlayerModel.find({ userId }).exec();
+    const docs = await this.model.find({ userId }).exec();
     return docs.map((doc) => this.toPlayer(doc));
   }
 
   async findByEmail(email: string): Promise<Player[]> {
-    const docs = await PlayerModel.find({ email }).exec();
+    const docs = await this.model.find({ email }).exec();
     return docs.map((doc) => this.toPlayer(doc));
   }
 
@@ -49,55 +48,49 @@ export class PlayerRepository implements IPlayerRepository {
     teamId: string,
     email: string,
   ): Promise<Player | null> {
-    const doc = await PlayerModel.findOne({ teamId, email }).exec();
+    const doc = await this.model.findOne({ teamId, email }).exec();
     return doc ? this.toPlayer(doc) : null;
   }
 
   async create(
     player: Omit<Player, "_id" | "createdAt" | "updatedAt">,
   ): Promise<Player> {
-    const newPlayer = await PlayerModel.create(player);
+    const newPlayer = await this.model.create(player);
     return this.toPlayer(newPlayer);
   }
 
   async update(id: string, updates: Partial<Player>): Promise<Player | null> {
-    const updated = await PlayerModel.findByIdAndUpdate(id, updates, {
-      new: true,
-    }).exec();
+    const updated = await this.model
+      .findByIdAndUpdate(id, updates, { new: true })
+      .exec();
     return updated ? this.toPlayer(updated) : null;
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await PlayerModel.findByIdAndDelete(id).exec();
+    const result = await this.model.findByIdAndDelete(id).exec();
     return !!result;
   }
 
   async countByTeamId(teamId: string): Promise<number> {
-    return PlayerModel.countDocuments({ teamId }).exec();
+    return this.model.countDocuments({ teamId }).exec();
   }
 
   async findTeamOwner(teamId: string): Promise<Player | null> {
-    const doc = await PlayerModel.findOne({
-      teamId,
-      role: "OWNER",
-    }).exec();
+    const doc = await this.model.findOne({ teamId, role: "OWNER" }).exec();
     return doc ? this.toPlayer(doc) : null;
   }
 
   async findAdminsByTeamId(teamId: string): Promise<Player[]> {
-    const docs = await PlayerModel.find({
-      teamId,
-      role: { $in: ["ADMIN", "OWNER"] },
-    }).exec();
+    const docs = await this.model
+      .find({ teamId, role: { $in: ["ADMIN", "OWNER"] } })
+      .exec();
     return docs.map((doc) => this.toPlayer(doc));
   }
 
   async existsInvitation(teamId: string, email: string): Promise<boolean> {
-    const count = await PlayerModel.countDocuments({
-      teamId,
-      email,
-      userId: { $exists: false },
-    }).exec();
+    const count = await this.model
+      .countDocuments({ teamId, email, userId: { $exists: false } })
+      .exec();
     return count > 0;
   }
 
@@ -105,7 +98,15 @@ export class PlayerRepository implements IPlayerRepository {
     teamId: string,
     userId: string,
   ): Promise<Player | null> {
-    const doc = await PlayerModel.findOne({ teamId, userId }).exec();
+    const doc = await this.model.findOne({ teamId, userId }).exec();
     return doc ? this.toPlayer(doc) : null;
+  }
+
+  async linkUserToInvitations(email: string, userId: string): Promise<number> {
+    const result = await this.model.updateMany(
+      { email, status: PlayerStatus.INVITED },
+      { $set: { userId, status: PlayerStatus.INVITED }, $unset: { email: "" } },
+    );
+    return result.modifiedCount;
   }
 }

@@ -20,67 +20,17 @@ export class ProfileRepositoryImpl
     return doc.toJSON() as unknown as Profile;
   }
 
-  async updateTeams(
+  async updateActiveTeamId(
     userId: string,
-    teams: Profile["teams"],
+    activeTeamId: string | null,
   ): Promise<Profile | null> {
-    const doc = await this.model.findOneAndUpdate(
-      { userId },
-      { $set: { teams } },
-      { new: true },
-    );
-    if (!doc) return null;
-    return doc.toJSON() as unknown as Profile;
-  }
-
-  async addTeamToJoined(
-    userId: string,
-    teamId: string,
-  ): Promise<Profile | null> {
-    const doc = await this.model.findOneAndUpdate(
-      { userId },
-      { $addToSet: { "teams.joined": teamId } },
-      { new: true },
-    );
-    if (!doc) return null;
-    return doc.toJSON() as unknown as Profile;
-  }
-
-  async addTeamToInviting(
-    userId: string,
-    teamId: string,
-  ): Promise<Profile | null> {
-    const doc = await this.model.findOneAndUpdate(
-      { userId },
-      { $addToSet: { "teams.inviting": teamId } },
-      { new: true },
-    );
-    if (!doc) return null;
-    return doc.toJSON() as unknown as Profile;
-  }
-
-  async removeTeamFromJoined(
-    userId: string,
-    teamId: string,
-  ): Promise<Profile | null> {
-    const doc = await this.model.findOneAndUpdate(
-      { userId },
-      { $pull: { "teams.joined": teamId } },
-      { new: true },
-    );
-    if (!doc) return null;
-    return doc.toJSON() as unknown as Profile;
-  }
-
-  async removeTeamFromInviting(
-    userId: string,
-    teamId: string,
-  ): Promise<Profile | null> {
-    const doc = await this.model.findOneAndUpdate(
-      { userId },
-      { $pull: { "teams.inviting": teamId } },
-      { new: true },
-    );
+    const update =
+      activeTeamId === null
+        ? { $unset: { activeTeamId: "" } }
+        : { $set: { activeTeamId } };
+    const doc = await this.model.findOneAndUpdate({ userId }, update, {
+      new: true,
+    });
     if (!doc) return null;
     return doc.toJSON() as unknown as Profile;
   }
