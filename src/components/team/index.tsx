@@ -1,5 +1,4 @@
 "use client";
-import ConfirmInvitation from "@/components/team/confirmation";
 import TeamHero from "@/components/team/hero";
 import TeamInfo from "@/components/team/info";
 import TeamPlayers from "@/components/team/players";
@@ -19,7 +18,6 @@ const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
 
   return (
     <div className="flex flex-col">
-      <ConfirmInvitation teamId={teamId} />
       <TeamHero teamId={teamId} />
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">

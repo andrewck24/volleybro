@@ -1,6 +1,5 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useProfile, useUserTeams } from "@/hooks/use-data";
 import { FiPlus } from "react-icons/fi";
 import { RiGroupLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -14,30 +13,23 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
+// TODO(8.4): Rewrite this component — data source should come from player-based
+// SWR query (GET /api/users/{userId}/players, filter INVITED). The current
+// implementation references the deleted /api/users/teams endpoint and has been
+// stubbed out to let the build pass.
+
 export const Invitations = ({ className }: { className?: string }) => {
   const router = useRouter();
-  const { profile, mutate: mutateProfile } = useProfile();
-  const { teams, isLoading, mutate: mutateUserTeams } = useUserTeams();
+  const teams: { inviting: { _id: string; name: string }[] } = {
+    inviting: [],
+  };
+  const isLoading = false;
 
-  const handleAccept = async (teamId, accept) => {
-    if (!window.confirm(accept ? "確認接受邀請？" : "確認拒絕邀請？")) return;
-    const action = accept ? "accept" : "reject";
-    try {
-      const response = await fetch(
-        `/api/users/teams?action=${action}&teamId=${teamId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      const userTeams = await response.json();
-      mutateUserTeams();
-      mutateProfile({ ...profile, teams: userTeams }, false);
-
-      return accept ? router.push(`/team/${teamId}`) : null;
-    } catch (error) {
-      console.log(error);
-    }
+  const handleAccept = async (
+    _teamId: string,
+    _accept: boolean
+  ): Promise<void> => {
+    // TODO(8.4): Implement accept/reject via new invitation use cases
   };
 
   return (
@@ -45,7 +37,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       <CardHeader>
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
-      {profile && !profile?.teams?.joined?.length && <Message />}
+      <Message />
       <Table>
         <TableBody className="text-xl">
           {isLoading ? (

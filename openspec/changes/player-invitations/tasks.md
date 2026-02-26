@@ -25,12 +25,15 @@
 
 > Group 3 removes `Profile.teams` from the schema. The following files directly access `profile.teams` and must be patched before the build can succeed. These are subsets of Group 6/8/9 tasks pulled forward due to the breaking schema change.
 
-- [ ] 3b.1 Refactor `POST /api/teams` to follow clean architecture: introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, then update the route to use the controller. Owner player must have `status: JOINED`; profile must have `activeTeamId = newTeamId` set (no more `profile.teams.joined`). **Architectural note**: `POST /api/teams` is a legacy route that directly mutates Mongoose models — this task also migrates it to the controller/use-case pattern. (Task 6.3, pulled forward and expanded)
+- [x] 3b.1 Refactor `POST /api/teams` to follow clean architecture: introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, then update the route to use the controller. Owner player must have `status: JOINED`; profile must have `activeTeamId = newTeamId` set (no more `profile.teams.joined`). **Architectural note**: `POST /api/teams` is a legacy route that directly mutates Mongoose models — this task also migrates it to the controller/use-case pattern. (Task 6.3, pulled forward and expanded)
 - [x] 3b.2 Update `InvitationList` component — change filter to `player.status === INVITED` (Task 8.3, already done)
 - [x] 3b.3 Update `MembershipSection` component — remove `getPlayerStatus()` import, use `player.status` directly; replace `PlayerStatus.PURE_PLAYER` with `PlayerStatus.NONE` (Task 8.2/8.3 partial, already done)
 - [x] 3b.4 Delete `GET/PATCH /api/users/teams` route — fully depends on removed `profile.teams`; cannot compile (Task 7.1, pulled forward)
 - [x] 3b.5 Update `CreateProfileUseCase` — remove `teams: { joined: [], inviting: [] }` from create call (Task 4.14, pulled forward)
 - [x] 3b.6 Update `UpdateProfileUseCase` — remove business rule 3 (`teams` array validation) (Task 4.14, pulled forward)
+- [x] 3b.7 Update `Home`, `NavLinks`, `Notifications` components — replace `profile.teams.joined[0]` with `profile.activeTeamId` (Task 9.1-9.3, pulled forward)
+- [x] 3b.8 Delete `ConfirmInvitation` component — depends on deleted `/api/users/teams` endpoint and removed `profile.teams.inviting` (Task 7.3, pulled forward)
+- [x] 3b.9 Stub out `Invitations` and `Menu` components — remove `useUserTeams` import and `profile.teams` references to unblock build; full rewrite deferred to Tasks 8.4/8.5
 
 ## 4. Application Layer — Use Case Updates (Player)
 

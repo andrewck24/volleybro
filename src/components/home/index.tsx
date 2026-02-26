@@ -25,7 +25,7 @@ const Home = () => {
     );
   }
 
-  const defaultTeamId = profile?.teams?.joined?.[0];
+  const defaultTeamId = profile?.activeTeamId;
 
   if (!defaultTeamId) return <GuidesForNewUser />;
 

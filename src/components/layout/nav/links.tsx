@@ -18,8 +18,7 @@ import { useProfile } from "@/hooks/use-data";
 export const NavLinks = ({ session }) => {
   const pathname = usePathname();
   const { profile } = useProfile();
-  const defaultTeamId: string | undefined =
-    profile?.teams?.joined?.[0]?.toString();
+  const defaultTeamId: string | undefined = profile?.activeTeamId?.toString();
 
   return (
     <nav className="fixed bottom-0 left-0 flex flex-row items-center justify-center w-full pb-[calc(env(safe-area-inset-bottom)-1rem)] bg-card">
