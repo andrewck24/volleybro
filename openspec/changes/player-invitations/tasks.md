@@ -54,9 +54,9 @@
 
 ## 5. Infrastructure Layer — Auth Hook Refactor
 
-- [ ] 5.1 Write unit tests for hook flow — CreateProfileUseCase then LinkPendingInvitationsUseCase, retry-once on transient failure, both fail → log + continue
-- [ ] 5.2 Refactor `user.create.after` hook in `src/lib/auth.ts` — resolve `CreateProfileUseCase` directly from DI container (bypass controller)
-- [ ] 5.3 Add `LinkPendingInvitationsUseCase` call after profile creation in the hook, with retry-once-on-transient-failure logic
+- [x] 5.1 Write unit tests for hook flow — CreateProfileUseCase then LinkPendingInvitationsUseCase, retry-once on transient failure, both fail → log + continue
+- [x] 5.2 Refactor `user.create.after` hook in `src/lib/auth.ts` — extract to `src/lib/auth-hook.ts`, resolves use cases directly from DI container (bypass controller)
+- [x] 5.3 Add `LinkPendingInvitationsUseCase` call after profile creation in the hook, with retry-once-on-transient-failure logic
 
 ## 6. API Routes — New & Modified Endpoints
 
