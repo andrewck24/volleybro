@@ -21,6 +21,17 @@
 - [x] 3.5 Update Profile Mongoose schema — remove `teams` embedded fields, add `activeTeamId` (optional String)
 - [x] 3.6 Remove Profile repository methods: `addTeamToJoined`, `addTeamToInviting`, `removeTeamFromJoined`, `removeTeamFromInviting`; add `updateActiveTeamId`
 
+## 3b. Build Fix — Breaking Changes from Group 3
+
+> Group 3 removes `Profile.teams` from the schema. The following files directly access `profile.teams` and must be patched before the build can succeed. These are subsets of Group 6/8/9 tasks pulled forward due to the breaking schema change.
+
+- [ ] 3b.1 Refactor `POST /api/teams` to follow clean architecture: introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, then update the route to use the controller. Owner player must have `status: JOINED`; profile must have `activeTeamId = newTeamId` set (no more `profile.teams.joined`). **Architectural note**: `POST /api/teams` is a legacy route that directly mutates Mongoose models — this task also migrates it to the controller/use-case pattern. (Task 6.3, pulled forward and expanded)
+- [x] 3b.2 Update `InvitationList` component — change filter to `player.status === INVITED` (Task 8.3, already done)
+- [x] 3b.3 Update `MembershipSection` component — remove `getPlayerStatus()` import, use `player.status` directly; replace `PlayerStatus.PURE_PLAYER` with `PlayerStatus.NONE` (Task 8.2/8.3 partial, already done)
+- [x] 3b.4 Delete `GET/PATCH /api/users/teams` route — fully depends on removed `profile.teams`; cannot compile (Task 7.1, pulled forward)
+- [x] 3b.5 Update `CreateProfileUseCase` — remove `teams: { joined: [], inviting: [] }` from create call (Task 4.14, pulled forward)
+- [x] 3b.6 Update `UpdateProfileUseCase` — remove business rule 3 (`teams` array validation) (Task 4.14, pulled forward)
+
 ## 4. Application Layer — Use Case Updates (Player)
 
 - [ ] 4.1 Write unit tests for `LinkPendingInvitationsUseCase` — success returns `Result<number>`, DB failure returns TransientError, idempotent re-execution
@@ -48,14 +59,14 @@
 
 - [ ] 6.1 Expand `GET /api/users` route — add `?email=` search param dispatch to `SearchUserUseCase`, Zod validation, rate limiting
 - [ ] 6.2 Update `PATCH /api/profiles` validation schema to support `activeTeamId` field
-- [ ] 6.3 Update `POST /api/teams` — create owner player with `status: JOINED`, set `Profile.activeTeamId` instead of `profile.teams.joined.unshift()`
+- [x] 6.3 Refactor `POST /api/teams` — introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, owner player with `status: JOINED`, set `Profile.activeTeamId` (done in 3b.1)
 - [ ] 6.4 Add `GET /api/users/{userId}/players` route for player-based team queries
 - [ ] 6.5 Update Player-related route validation schemas to include `status` field
 - [ ] 6.6 Update `AcceptInvitationUseCase` caller to also set `Profile.activeTeamId`
 
 ## 7. Legacy System Removal
 
-- [ ] 7.1 Delete `GET/PATCH /api/users/teams` route files
+- [x] 7.1 Delete `GET/PATCH /api/users/teams` route files (done in 3b.4)
 - [ ] 7.2 Delete `useUserTeams` SWR hook from `src/hooks/use-data.ts`
 - [ ] 7.3 Delete `ConfirmInvitation` component
 - [ ] 7.4 Remove all imports and references to deleted modules across codebase

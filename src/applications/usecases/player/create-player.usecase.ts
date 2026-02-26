@@ -5,7 +5,7 @@ import type { IPlayerRepository } from '@/applications/repositories/player.repos
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { Player } from '@/entities/player';
 import type { CreatePlayerInput } from '@/lib/validations/player';
-import { PlayerRole } from '@/entities/player';
+import { PlayerRole, PlayerStatus } from '@/entities/player';
 
 @injectable()
 export class CreatePlayerUseCase implements ICreatePlayerUseCase {
@@ -35,9 +35,10 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
       }
     }
 
-    // 3. 建立球員
+    // 3. 建立球員（純球員，status: NONE）
     const player = await this.playerRepository.create({
       name: input.name,
+      status: PlayerStatus.NONE,
       number: input.number,
       position: input.position,
       teamId,

@@ -18,6 +18,7 @@ import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
+import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
 import {
   GetProfileUseCase,
   CreateProfileUseCase,
@@ -77,6 +78,11 @@ container
   .to(AuthorizationService);
 
 // register usecases
+// team usecases
+container
+  .bind<CreateTeamUseCase>(TYPES.CreateTeamUseCase)
+  .to(CreateTeamUseCase);
+
 // user auth usecases
 container
   .bind<GetProfileUseCase>(TYPES.GetProfileUseCase)

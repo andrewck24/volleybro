@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
-import { getPlayerStatus, PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,7 +27,7 @@ export function MembershipSection({
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
   const router = useRouter();
-  const status = getPlayerStatus(player);
+  const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
@@ -101,7 +101,7 @@ export function MembershipSection({
 
   return (
     <>
-      {status === PlayerStatus.PURE_PLAYER && (
+      {status === PlayerStatus.NONE && (
         <InviteSection player={player} onSuccess={revalidate} toast={toast} />
       )}
 

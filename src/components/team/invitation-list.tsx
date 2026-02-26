@@ -10,8 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Player } from '@/entities/player';
-import { getPlayerStatus } from '@/entities/player';
+import { PlayerStatus, type Player } from '@/entities/player';
 import { useToast } from '@/components/ui/use-toast';
 import { ROLE_LABELS } from '@/lib/constants/labels';
 
@@ -45,7 +44,7 @@ export function InvitationList({
 
   // Filter only pending invitations
   const pendingInvitations = invitations.filter(
-    (player) => getPlayerStatus(player) === 'INVITED'
+    (player) => player.status === PlayerStatus.INVITED
   );
 
   const handleAccept = async (playerId: string) => {

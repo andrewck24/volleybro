@@ -81,6 +81,7 @@
 - 新增 `LinkPendingInvitationsUseCase`
 - Profile use cases 需移除 teams 相關邏輯
 - 新增 `AppError` 與 Result type 定義
+- 新增 `CreateTeamUseCase`（`POST /api/teams` 由直接操作 Mongoose 重構為 clean architecture 路徑）
 
 ### Infrastructure Layer
 
@@ -93,7 +94,7 @@
 
 - `GET /api/users`: 擴充 searchParams 支援 email 搜尋
 - `PATCH /api/profiles`: 調整 validation schema 支援 `activeTeamId` 更新
-- `POST /api/teams`: 移除 `profile.teams.joined.unshift()`，改為設定 `activeTeamId`，建立 owner player 時帶 `status: JOINED`
+- `POST /api/teams`: 重構為 clean architecture（`CreateTeamUseCase` + controller）；移除直接 Mongoose 操作；owner player 帶 `status: JOINED`；設定 `Profile.activeTeamId`
 - `GET/PATCH /api/users/teams`: 移除
 - Player 相關 routes: 調整 validation schemas
 
