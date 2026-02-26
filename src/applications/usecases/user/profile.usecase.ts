@@ -1,6 +1,8 @@
 import { inject, injectable } from "inversify";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import type { Profile } from "@/entities/profile";
+import { TransientError } from "@/applications/errors/app-error";
+import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
 
 // ============ Get Profile Use Case ============
@@ -32,7 +34,7 @@ export interface ICreateProfileInput {
   userId: string;
 }
 
-export type ICreateProfileOutput = Profile;
+export type ICreateProfileOutput = Result<Profile>;
 
 @injectable()
 export class CreateProfileUseCase {
@@ -44,18 +46,20 @@ export class CreateProfileUseCase {
   async execute(input: ICreateProfileInput): Promise<ICreateProfileOutput> {
     const { userId } = input;
 
-    // 檢查是否已存在（避免重複建立）
-    const existingProfile = await this.profileRepository.findByUserId(userId);
-    if (existingProfile) {
-      return existingProfile;
+    try {
+      const existingProfile = await this.profileRepository.findByUserId(userId);
+      if (existingProfile) {
+        return { ok: true, value: existingProfile };
+      }
+
+      const profile = await this.profileRepository.create({ userId });
+      return { ok: true, value: profile };
+    } catch {
+      return {
+        ok: false,
+        error: new TransientError("Failed to create profile"),
+      };
     }
-
-    // 建立新的 Profile
-    const profile = await this.profileRepository.create({
-      userId,
-    });
-
-    return profile;
   }
 }
 

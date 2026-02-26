@@ -1,6 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { PlayerRole } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { CreateInvitationUseCase } from "../create-invitation.usecase";
 import type { ICreateInvitationUseCase } from "../create-invitation.usecase.interface";
@@ -20,6 +20,7 @@ describe("CreateInvitationUseCase", () => {
       update: jest.fn(),
       delete: jest.fn(),
       findInvitedByTeamIdAndEmail: jest.fn(),
+      linkUserToInvitations: jest.fn(),
     } as any;
 
     mockAuthService = {
@@ -39,23 +40,25 @@ describe("CreateInvitationUseCase", () => {
     const email = "newmember@example.com";
     const role = PlayerRole.MEMBER;
 
-    const purePlayer = {
+    const nonePlayer = {
       _id: playerId,
       name: "Pure Player",
       teamId,
+      status: PlayerStatus.NONE,
       role: PlayerRole.MEMBER,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
-    it("should invite a PURE_PLAYER by adding email", async () => {
+    it("should invite a NONE player by setting status to INVITED and adding email", async () => {
       const invitedPlayer = {
-        ...purePlayer,
+        ...nonePlayer,
+        status: PlayerStatus.INVITED,
         email,
         role,
       };
 
-      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
 
@@ -67,6 +70,7 @@ describe("CreateInvitationUseCase", () => {
         userId,
       );
       expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
+        status: PlayerStatus.INVITED,
         email,
         role,
       });
@@ -77,18 +81,20 @@ describe("CreateInvitationUseCase", () => {
     it("should invite with ADMIN role", async () => {
       const adminRole = PlayerRole.ADMIN;
       const invitedPlayer = {
-        ...purePlayer,
+        ...nonePlayer,
+        status: PlayerStatus.INVITED,
         email,
         role: adminRole,
       };
 
-      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
 
       const result = await useCase.execute(playerId, email, adminRole, userId);
 
       expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
+        status: PlayerStatus.INVITED,
         email,
         role: adminRole,
       });
@@ -103,9 +109,10 @@ describe("CreateInvitationUseCase", () => {
       ).rejects.toThrow("Player not found");
     });
 
-    it("should reject if player already has email (INVITED status)", async () => {
+    it("should reject if player status is INVITED", async () => {
       const invitedPlayer = {
-        ...purePlayer,
+        ...nonePlayer,
+        status: PlayerStatus.INVITED,
         email: "existing@example.com",
       };
 
@@ -116,9 +123,10 @@ describe("CreateInvitationUseCase", () => {
       ).rejects.toThrow("Player already has an invitation");
     });
 
-    it("should reject if player already has userId (JOINED status)", async () => {
+    it("should reject if player status is JOINED", async () => {
       const joinedPlayer = {
-        ...purePlayer,
+        ...nonePlayer,
+        status: PlayerStatus.JOINED,
         userId: "some_user_id",
       };
 
@@ -130,7 +138,7 @@ describe("CreateInvitationUseCase", () => {
     });
 
     it("should reject if user is not team admin", async () => {
-      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
         new Error("User is not admin of this team"),
       );
@@ -141,7 +149,7 @@ describe("CreateInvitationUseCase", () => {
     });
 
     it("should reject if update fails", async () => {
-      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(null);
 

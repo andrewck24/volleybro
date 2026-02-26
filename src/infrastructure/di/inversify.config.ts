@@ -24,6 +24,8 @@ import {
   CreateProfileUseCase,
   UpdateProfileUseCase,
 } from "@/applications/usecases/user/profile.usecase";
+import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
+import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
 import {
   FindRecordUseCase,
   CreateRecordUseCase,
@@ -93,6 +95,12 @@ container
 container
   .bind<UpdateProfileUseCase>(TYPES.UpdateProfileUseCase)
   .to(UpdateProfileUseCase);
+container
+  .bind<LinkPendingInvitationsUseCase>(TYPES.LinkPendingInvitationsUseCase)
+  .to(LinkPendingInvitationsUseCase);
+container
+  .bind<SearchUserUseCase>(TYPES.SearchUserUseCase)
+  .to(SearchUserUseCase);
 
 // record usecases
 container

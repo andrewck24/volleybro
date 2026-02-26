@@ -1,15 +1,17 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
-import { Player, PlayerRole } from "@/entities/player";
+import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("AcceptInvitationUseCase", () => {
   let usecase: AcceptInvitationUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
 
-  const invitedPlayer: Player = {
+  // Email-based invitation (unregistered user)
+  const emailInvitedPlayer: Player = {
     _id: "player-1",
     name: "test",
     teamId: "team-1",
+    status: PlayerStatus.INVITED,
     email: "test@example.com",
     role: PlayerRole.MEMBER,
     createdAt: new Date(),
@@ -31,23 +33,49 @@ describe("AcceptInvitationUseCase", () => {
       findTeamOwner: jest.fn(),
       findAdminsByTeamId: jest.fn(),
       existsInvitation: jest.fn(),
+      linkUserToInvitations: jest.fn(),
     } as jest.Mocked<IPlayerRepository>;
 
     usecase = new AcceptInvitationUseCase(mockPlayerRepository);
   });
 
-  it("should accept invitation and set userId", async () => {
-    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
+  it("should transition status from INVITED to JOINED and set userId, clear email", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(emailInvitedPlayer);
     mockPlayerRepository.update.mockResolvedValue({
-      ...invitedPlayer,
+      ...emailInvitedPlayer,
+      status: PlayerStatus.JOINED,
       userId: "user-1",
+      email: undefined,
     });
 
     await usecase.execute("player-1", "user-1");
 
     expect(mockPlayerRepository.findById).toHaveBeenCalledWith("player-1");
     expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
+      status: PlayerStatus.JOINED,
       userId: "user-1",
+      email: undefined,
+    });
+  });
+
+  it("should accept userId-based invitation (INVITED + userId)", async () => {
+    const userIdInvitedPlayer: Player = {
+      ...emailInvitedPlayer,
+      email: undefined,
+      userId: "user-1",
+    };
+    mockPlayerRepository.findById.mockResolvedValue(userIdInvitedPlayer);
+    mockPlayerRepository.update.mockResolvedValue({
+      ...userIdInvitedPlayer,
+      status: PlayerStatus.JOINED,
+    });
+
+    await usecase.execute("player-1", "user-1");
+
+    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
+      status: PlayerStatus.JOINED,
+      userId: "user-1",
+      email: undefined,
     });
   });
 
@@ -59,10 +87,12 @@ describe("AcceptInvitationUseCase", () => {
     );
   });
 
-  it("should throw error if player is already joined", async () => {
+  it("should throw error if player is already JOINED", async () => {
     const joinedPlayer: Player = {
-      ...invitedPlayer,
+      ...emailInvitedPlayer,
+      status: PlayerStatus.JOINED,
       userId: "existing-user",
+      email: undefined,
     };
     mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 
@@ -71,12 +101,13 @@ describe("AcceptInvitationUseCase", () => {
     );
   });
 
-  it("should throw error if no invitation", async () => {
-    const purePlayer: Player = {
-      ...invitedPlayer,
+  it("should throw error if player status is NONE (no invitation)", async () => {
+    const nonePlayer: Player = {
+      ...emailInvitedPlayer,
+      status: PlayerStatus.NONE,
       email: undefined,
     };
-    mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+    mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
     await expect(usecase.execute("player-1", "user-1")).rejects.toThrow(
       "No invitation found for this player",
@@ -85,19 +116,23 @@ describe("AcceptInvitationUseCase", () => {
 
   it("should preserve role when accepting invitation", async () => {
     const adminInvite: Player = {
-      ...invitedPlayer,
+      ...emailInvitedPlayer,
       role: PlayerRole.ADMIN,
     };
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);
     mockPlayerRepository.update.mockResolvedValue({
       ...adminInvite,
+      status: PlayerStatus.JOINED,
       userId: "user-1",
+      email: undefined,
     });
 
     await usecase.execute("player-1", "user-1");
 
     expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
+      status: PlayerStatus.JOINED,
       userId: "user-1",
+      email: undefined,
     });
   });
 });

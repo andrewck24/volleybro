@@ -1,15 +1,12 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IRejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase.interface";
+import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
 /**
  * RejectInvitationUseCase Implementation
- * User rejects invitation - clears email but keeps player record as PURE_PLAYER
- *
- * Validates:
- * - Player record exists with pending invitation
- * - Player record has email set
+ * User rejects invitation: status INVITED → NONE, clears email and userId
  */
 @injectable()
 export class RejectInvitationUseCase implements IRejectInvitationUseCase {
@@ -25,14 +22,14 @@ export class RejectInvitationUseCase implements IRejectInvitationUseCase {
       throw new Error("Player record not found");
     }
 
-    if (!player.email) {
+    if (player.status !== PlayerStatus.INVITED) {
       throw new Error("No invitation found for this player");
     }
 
-    // Clear email to convert from INVITED to PURE_PLAYER status
-    // Role is preserved as per business rules
     await this.playerRepository.update(playerId, {
+      status: PlayerStatus.NONE,
       email: undefined,
+      userId: undefined,
     });
   }
 }

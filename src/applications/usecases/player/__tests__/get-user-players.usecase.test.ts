@@ -1,6 +1,6 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
-import { Player, PlayerRole } from "@/entities/player";
+import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("GetUserPlayersUseCase", () => {
   let usecase: GetUserPlayersUseCase;
@@ -11,8 +11,8 @@ describe("GetUserPlayersUseCase", () => {
       _id: "player-1",
       name: "User",
       teamId: "team-1",
+      status: PlayerStatus.JOINED,
       userId: "user-1",
-      email: "user@example.com",
       role: PlayerRole.MEMBER,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -21,8 +21,8 @@ describe("GetUserPlayersUseCase", () => {
       _id: "player-2",
       name: "User",
       teamId: "team-2",
+      status: PlayerStatus.JOINED,
       userId: "user-1",
-      email: "user@example.com",
       role: PlayerRole.ADMIN,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -44,12 +44,13 @@ describe("GetUserPlayersUseCase", () => {
       findTeamOwner: jest.fn(),
       findAdminsByTeamId: jest.fn(),
       existsInvitation: jest.fn(),
+      linkUserToInvitations: jest.fn(),
     } as jest.Mocked<IPlayerRepository>;
 
     usecase = new GetUserPlayersUseCase(mockPlayerRepository);
   });
 
-  it("should return all teams user has joined", async () => {
+  it("should return all players for a user", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
     const result = await usecase.execute("user-1");
@@ -58,7 +59,7 @@ describe("GetUserPlayersUseCase", () => {
     expect(mockPlayerRepository.findByUserId).toHaveBeenCalledWith("user-1");
   });
 
-  it("should return empty array if user has no teams", async () => {
+  it("should return empty array if user has no players", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue([]);
 
     const result = await usecase.execute("user-1");
@@ -66,7 +67,7 @@ describe("GetUserPlayersUseCase", () => {
     expect(result).toEqual([]);
   });
 
-  it("should return multiple teams for user", async () => {
+  it("should return multiple players for user", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
     const result = await usecase.execute("user-1");
@@ -85,15 +86,15 @@ describe("GetUserPlayersUseCase", () => {
     expect(result[1].role).toBe(PlayerRole.ADMIN);
   });
 
-  it("should include user email in results", async () => {
+  it("should include status field in results", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
     const result = await usecase.execute("user-1");
 
-    expect(result.every((p) => p.email === "user@example.com")).toBe(true);
+    expect(result.every((p) => p.status === PlayerStatus.JOINED)).toBe(true);
   });
 
-  it("should include userId field for verification", async () => {
+  it("should include userId field in results", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
     const result = await usecase.execute("user-1");

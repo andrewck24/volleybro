@@ -18,6 +18,8 @@ export const TYPES = {
   GetProfileUseCase: Symbol.for("GetProfileUseCase"),
   CreateProfileUseCase: Symbol.for("CreateProfileUseCase"),
   UpdateProfileUseCase: Symbol.for("UpdateProfileUseCase"),
+  LinkPendingInvitationsUseCase: Symbol.for("LinkPendingInvitationsUseCase"),
+  SearchUserUseCase: Symbol.for("SearchUserUseCase"),
 
   // record usecases
   FindRecordUseCase: Symbol.for("FindRecordUseCase"),

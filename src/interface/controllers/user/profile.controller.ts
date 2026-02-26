@@ -7,10 +7,10 @@ import {
   type IGetProfileInput,
   type IGetProfileOutput,
   type ICreateProfileInput,
-  type ICreateProfileOutput,
   type IUpdateProfileInput,
   type IUpdateProfileOutput,
 } from "@/applications/usecases/user/profile.usecase";
+import type { Profile } from "@/entities/profile";
 import { z } from "zod";
 
 // ============ Controller Layer Validation Schemas ============
@@ -24,12 +24,7 @@ import { z } from "zod";
  */
 export const UpdateProfileRequestSchema = z
   .object({
-    teams: z
-      .object({
-        joined: z.array(z.string()),
-        inviting: z.array(z.string()),
-      })
-      .optional(),
+    activeTeamId: z.string().optional(),
     info: z.record(z.string(), z.unknown()).optional(),
     preferences: z.record(z.string(), z.unknown()).optional(),
   })
@@ -61,16 +56,16 @@ export const getProfileController = async (
 
 export const createProfileController = async (
   input: ICreateProfileInput,
-): Promise<ICreateProfileOutput | undefined> => {
-  try {
-    const createProfileUseCase = container.get<CreateProfileUseCase>(
-      TYPES.CreateProfileUseCase,
-    );
-    return await createProfileUseCase.execute(input);
-  } catch (error) {
-    console.error("[createProfileController] Failed to create profile:", error);
+): Promise<Profile | undefined> => {
+  const createProfileUseCase = container.get<CreateProfileUseCase>(
+    TYPES.CreateProfileUseCase,
+  );
+  const result = await createProfileUseCase.execute(input);
+  if (!result.ok) {
+    console.error("[createProfileController] Failed to create profile:", result.error);
     return undefined;
   }
+  return result.value;
 };
 
 /**
