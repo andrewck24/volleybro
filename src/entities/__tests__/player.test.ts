@@ -1,177 +1,182 @@
+import { ValidationError } from "@/applications/errors/app-error";
 import {
   Player,
   PlayerRole,
   PlayerStatus,
   canManageTeam,
-  getPlayerStatus,
   isOwner,
+  validatePlayerStatus,
 } from "@/entities/player";
 
+const basePlayer = (overrides: Partial<Player> = {}): Player => ({
+  _id: "player-1",
+  name: "Test Player",
+  status: PlayerStatus.NONE,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
 describe("Player Entity", () => {
-  describe("getPlayerStatus", () => {
-    it("should return JOINED when userId exists", () => {
-      const player: Player = {
-        _id: "player-1",
-        name: "John Doe",
-        teamId: "team-1",
-        userId: "user-1",
-        email: "john@example.com",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+  describe("validatePlayerStatus", () => {
+    describe("NONE", () => {
+      it("accepts player with no userId and no email", () => {
+        expect(() =>
+          validatePlayerStatus(basePlayer({ status: PlayerStatus.NONE })),
+        ).not.toThrow();
+      });
 
-      expect(getPlayerStatus(player)).toBe(PlayerStatus.JOINED);
+      it("rejects player with userId", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({ status: PlayerStatus.NONE, userId: "user-1" }),
+          ),
+        ).toThrow(ValidationError);
+      });
+
+      it("rejects player with email", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.NONE,
+              email: "test@example.com",
+            }),
+          ),
+        ).toThrow(ValidationError);
+      });
     });
 
-    it("should return INVITED when email exists but no userId", () => {
-      const player: Player = {
-        _id: "player-2",
-        name: "Jane Smith",
-        teamId: "team-1",
-        email: "jane@example.com",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    describe("INVITED", () => {
+      it("accepts player with userId only (registered user)", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.INVITED,
+              userId: "user-1",
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).not.toThrow();
+      });
 
-      expect(getPlayerStatus(player)).toBe(PlayerStatus.INVITED);
+      it("accepts player with email only (unregistered user)", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.INVITED,
+              email: "alice@example.com",
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).not.toThrow();
+      });
+
+      it("rejects player with neither userId nor email", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.INVITED,
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).toThrow(ValidationError);
+      });
+
+      it("rejects player with both userId and email", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.INVITED,
+              userId: "user-1",
+              email: "alice@example.com",
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).toThrow(ValidationError);
+      });
     });
 
-    it("should return PURE_PLAYER when neither email nor userId exist", () => {
-      const player: Player = {
-        _id: "player-3",
-        name: "Opponent Player",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+    describe("JOINED", () => {
+      it("accepts player with userId", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.JOINED,
+              userId: "user-1",
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).not.toThrow();
+      });
 
-      expect(getPlayerStatus(player)).toBe(PlayerStatus.PURE_PLAYER);
-    });
+      it("rejects player without userId", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.JOINED,
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).toThrow(ValidationError);
+      });
 
-    it("should prioritize userId over email when both exist", () => {
-      const player: Player = {
-        _id: "player-4",
-        name: "Member",
-        teamId: "team-1",
-        userId: "user-1",
-        email: "member@example.com",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(getPlayerStatus(player)).toBe(PlayerStatus.JOINED);
+      it("rejects player with email present", () => {
+        expect(() =>
+          validatePlayerStatus(
+            basePlayer({
+              status: PlayerStatus.JOINED,
+              userId: "user-1",
+              email: "alice@example.com",
+              teamId: "team-1",
+              role: PlayerRole.MEMBER,
+            }),
+          ),
+        ).toThrow(ValidationError);
+      });
     });
   });
 
   describe("canManageTeam", () => {
-    it("should return true for OWNER role", () => {
-      const player: Player = {
-        _id: "player-1",
-        name: "Owner",
-        teamId: "team-1",
-        userId: "user-1",
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(canManageTeam(player)).toBe(true);
+    it("returns true for OWNER", () => {
+      expect(canManageTeam(basePlayer({ role: PlayerRole.OWNER }))).toBe(true);
     });
 
-    it("should return true for ADMIN role", () => {
-      const player: Player = {
-        _id: "player-2",
-        name: "Admin",
-        teamId: "team-1",
-        userId: "user-2",
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(canManageTeam(player)).toBe(true);
+    it("returns true for ADMIN", () => {
+      expect(canManageTeam(basePlayer({ role: PlayerRole.ADMIN }))).toBe(true);
     });
 
-    it("should return false for MEMBER role", () => {
-      const player: Player = {
-        _id: "player-3",
-        name: "Member",
-        teamId: "team-1",
-        userId: "user-3",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(canManageTeam(player)).toBe(false);
+    it("returns false for MEMBER", () => {
+      expect(canManageTeam(basePlayer({ role: PlayerRole.MEMBER }))).toBe(
+        false,
+      );
     });
 
-    it("should return false when role is undefined", () => {
-      const player: Player = {
-        _id: "player-4",
-        name: "Pure Player",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(canManageTeam(player)).toBe(false);
+    it("returns false when role is undefined", () => {
+      expect(canManageTeam(basePlayer())).toBe(false);
     });
   });
 
   describe("isOwner", () => {
-    it("should return true for OWNER role", () => {
-      const player: Player = {
-        _id: "player-1",
-        name: "Owner",
-        teamId: "team-1",
-        userId: "user-1",
-        role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(isOwner(player)).toBe(true);
+    it("returns true for OWNER", () => {
+      expect(isOwner(basePlayer({ role: PlayerRole.OWNER }))).toBe(true);
     });
 
-    it("should return false for ADMIN role", () => {
-      const player: Player = {
-        _id: "player-2",
-        name: "Admin",
-        teamId: "team-1",
-        userId: "user-2",
-        role: PlayerRole.ADMIN,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(isOwner(player)).toBe(false);
+    it("returns false for ADMIN", () => {
+      expect(isOwner(basePlayer({ role: PlayerRole.ADMIN }))).toBe(false);
     });
 
-    it("should return false for MEMBER role", () => {
-      const player: Player = {
-        _id: "player-3",
-        name: "Member",
-        teamId: "team-1",
-        userId: "user-3",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(isOwner(player)).toBe(false);
+    it("returns false for MEMBER", () => {
+      expect(isOwner(basePlayer({ role: PlayerRole.MEMBER }))).toBe(false);
     });
 
-    it("should return false when role is undefined", () => {
-      const player: Player = {
-        _id: "player-4",
-        name: "Pure Player",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      expect(isOwner(player)).toBe(false);
+    it("returns false when role is undefined", () => {
+      expect(isOwner(basePlayer())).toBe(false);
     });
   });
 });

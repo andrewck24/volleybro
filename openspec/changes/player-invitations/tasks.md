@@ -6,11 +6,11 @@
 
 ## 2. Domain Layer — Entity Updates
 
-- [ ] 2.1 Write unit tests for Player entity — status constraints (NONE requires no userId/email, INVITED requires exactly one, JOINED requires userId, invalid combos rejected)
-- [ ] 2.2 Write unit tests for Profile entity — `activeTeamId` field, `teams` removed
-- [ ] 2.3 Update `PlayerStatus` enum in `src/entities/player.ts` to `NONE` / `INVITED` / `JOINED`, add explicit `status` field, remove `getPlayerStatus()` helper
-- [ ] 2.4 Add domain-level validation for status-field constraints
-- [ ] 2.5 Update `src/entities/profile.ts` — remove `teams` (joined/inviting arrays), add optional `activeTeamId` field
+- [x] 2.1 Write unit tests for Player entity — status constraints (NONE requires no userId/email, INVITED requires exactly one, JOINED requires userId, invalid combos rejected)
+- [x] 2.2 ~~Write unit tests for Profile entity~~ — skipped: Profile is a plain TypeScript type with no runtime logic; `activeTeamId` optionality and `teams` removal are enforced by the type system at compile time, not testable runtime behaviour
+- [x] 2.3 Update `PlayerStatus` enum in `src/entities/player.ts` to `NONE` / `INVITED` / `JOINED`, add explicit `status` field, remove `getPlayerStatus()` helper
+- [x] 2.4 Add domain-level validation for status-field constraints
+- [x] 2.5 Update `src/entities/profile.ts` — remove `teams` (joined/inviting arrays), add optional `activeTeamId` field
 
 ## 3. Infrastructure Layer — Schema & Repository Updates
 

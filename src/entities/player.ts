@@ -1,40 +1,40 @@
 /**
  * Player Entity - Unified player representation for team members, invited users, and pure players
  *
- * This entity combines the functionality of the old Team.members[] and Member collection
- * into a single unified structure.
- *
- * State Machine:
- * - INVITED: email ✓ && userId ✗ (waiting for user to accept)
- * - JOINED: userId ✓ (user has accepted invitation)
- * - PURE_PLAYER: email ✗ && userId ✗ (no system account, temporary/opponent player)
+ * Status Model (explicit field):
+ * - NONE: Pure player, no system account linked (userId ✗, email ✗)
+ * - INVITED + userId: Registered user invited (userId ✓, email ✗)
+ * - INVITED + email: Unregistered user invited (userId ✗, email ✓)
+ * - JOINED: User has accepted invitation (userId ✓, email ✗)
  *
  * Role Management:
  * - MEMBER: regular team member
  * - ADMIN: team administrator with management privileges
  * - OWNER: team owner (unique per team)
- * - null: pure player without team role
+ * - undefined: pure player without team and team role
  */
 
+import { ValidationError } from "@/applications/errors/app-error";
+
 export enum PlayerRole {
-  MEMBER = 'MEMBER',
-  ADMIN = 'ADMIN',
-  OWNER = 'OWNER',
+  MEMBER = "MEMBER",
+  ADMIN = "ADMIN",
+  OWNER = "OWNER",
 }
 
 export enum Position {
-  NONE = '',
-  OH = 'OH', // Outside Hitter
-  MB = 'MB', // Middle Blocker
-  OP = 'OP', // Opposite
-  S = 'S', // Setter
-  L = 'L', // Libero
+  NONE = "",
+  OH = "OH",
+  MB = "MB",
+  OP = "OP",
+  S = "S",
+  L = "L",
 }
 
 export enum PlayerStatus {
-  INVITED = 'INVITED',
-  JOINED = 'JOINED',
-  PURE_PLAYER = 'PURE_PLAYER',
+  NONE = "NONE",
+  INVITED = "INVITED",
+  JOINED = "JOINED",
 }
 
 export type Player = {
@@ -42,6 +42,7 @@ export type Player = {
   name: string;
   number?: number;
   position?: Position;
+  status: PlayerStatus;
   teamId?: string;
   userId?: string;
   email?: string;
@@ -51,27 +52,47 @@ export type Player = {
 };
 
 /**
- * Infer player status from field combinations
- * - If userId exists: JOINED (user has accepted invitation)
- * - Else if email exists: INVITED (waiting for user to accept)
- * - Else: PURE_PLAYER (no system account)
+ * Validate that status and field combination is consistent.
+ * Throws ValidationError if constraints are violated.
  */
-export function getPlayerStatus(player: Player): PlayerStatus {
-  if (player.userId) return PlayerStatus.JOINED;
-  if (player.email) return PlayerStatus.INVITED;
-  return PlayerStatus.PURE_PLAYER;
+export function validatePlayerStatus(player: Player): void {
+  const { status, userId, email } = player;
+
+  switch (status) {
+    case PlayerStatus.NONE:
+      if (userId || email) {
+        throw new ValidationError("NONE status must not have userId or email");
+      }
+      break;
+    case PlayerStatus.INVITED:
+      if (userId && email) {
+        throw new ValidationError(
+          "INVITED status must have exactly one of userId or email, not both",
+        );
+      }
+      if (!userId && !email) {
+        throw new ValidationError(
+          "INVITED status must have either userId or email",
+        );
+      }
+      break;
+    case PlayerStatus.JOINED:
+      if (!userId) {
+        throw new ValidationError("JOINED status must have userId");
+      }
+      if (email) {
+        throw new ValidationError("JOINED status must not have email");
+      }
+      break;
+    default:
+      throw new ValidationError(`Unknown player status: ${status}`);
+  }
 }
 
-/**
- * Check if player can manage team (ADMIN or OWNER)
- */
 export function canManageTeam(player: Player): boolean {
   return player.role === PlayerRole.OWNER || player.role === PlayerRole.ADMIN;
 }
 
-/**
- * Check if player is team owner
- */
 export function isOwner(player: Player): boolean {
   return player.role === PlayerRole.OWNER;
 }
