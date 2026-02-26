@@ -1,8 +1,8 @@
 ## 1. Error Handling Foundation (Application Layer)
 
-- [ ] 1.1 Write unit tests for AppError hierarchy (instanceof checks, code/isTransient properties) and Result type
-- [ ] 1.2 Create `AppError` abstract base class and concrete subclasses (`NotFoundError`, `ValidationError`, `AuthorizationError`, `ConflictError`, `TransientError`) in `src/applications/errors/`
-- [ ] 1.3 Define `Result<T>` discriminated union type in `src/applications/types/result.ts`
+- [x] 1.1 Write unit tests for AppError hierarchy (instanceof checks, code/isTransient properties) and Result type
+- [x] 1.2 Create `AppError` abstract base class and concrete subclasses (`NotFoundError`, `ValidationError`, `AuthorizationError`, `ConflictError`, `TransientError`) in `src/applications/errors/`
+- [x] 1.3 Define `Result<T>` discriminated union type in `src/applications/types/result.ts`
 
 ## 2. Domain Layer — Entity Updates
 
