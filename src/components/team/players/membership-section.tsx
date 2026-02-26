@@ -148,7 +148,9 @@ export function MembershipSection({
   );
 }
 
-// --- PURE_PLAYER: invite form ---
+type FoundUser = { _id: string; name: string; image?: string };
+
+// --- NONE: invite section with user search ---
 function InviteSection({
   player,
   onSuccess,
@@ -160,7 +162,32 @@ function InviteSection({
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<PlayerRole>(PlayerRole.MEMBER);
+  const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [foundUser, setFoundUser] = useState<FoundUser | null>(null);
+  const [searchDone, setSearchDone] = useState(false);
+
+  const handleSearch = async () => {
+    if (!email) return;
+    setIsSearching(true);
+    setFoundUser(null);
+    setSearchDone(false);
+
+    try {
+      const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFoundUser(data);
+      } else {
+        setFoundUser(null);
+      }
+    } catch {
+      setFoundUser(null);
+    } finally {
+      setIsSearching(false);
+      setSearchDone(true);
+    }
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +208,8 @@ function InviteSection({
       toast({ title: "邀請已發送", description: `已向 ${email} 發送邀請` });
       setEmail("");
       setRole(PlayerRole.MEMBER);
+      setFoundUser(null);
+      setSearchDone(false);
       onSuccess();
     } catch (err) {
       toast({
@@ -199,16 +228,45 @@ function InviteSection({
       <form onSubmit={handleInvite} className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="invite-email">電子郵件</Label>
-          <Input
-            id="invite-email"
-            type="email"
-            placeholder="user@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isSubmitting}
-            required
-          />
+          <div className="flex gap-2">
+            <Input
+              id="invite-email"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFoundUser(null);
+                setSearchDone(false);
+              }}
+              disabled={isSubmitting}
+              required
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSearch}
+              disabled={isSearching || !email}
+            >
+              {isSearching ? "搜尋中..." : "搜尋"}
+            </Button>
+          </div>
         </div>
+
+        {searchDone && (
+          <div className="rounded-md bg-muted/50 p-3 text-sm">
+            {foundUser ? (
+              <p className="text-foreground">
+                找到用戶：<span className="font-medium">{foundUser.name}</span>
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                此 email 尚未在系統中註冊，邀請將以 email 方式發送。
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <Label>角色</Label>
           <RoleSelect value={role} onChange={setRole} disabled={isSubmitting} />
@@ -267,10 +325,20 @@ function InvitedSection({
     <div className="space-y-3">
       <h3 className="text-sm font-medium">邀請狀態</h3>
       <div className="rounded-md bg-muted/50 p-3 text-sm">
-        <p className="text-muted-foreground">
-          已邀請{" "}
-          <span className="font-medium text-foreground">{player.email}</span>
-        </p>
+        {player.userId ? (
+          <p className="text-muted-foreground">
+            已邀請已註冊用戶（
+            <span className="font-medium text-foreground">
+              userId: {player.userId}
+            </span>
+            ）
+          </p>
+        ) : (
+          <p className="text-muted-foreground">
+            已邀請{" "}
+            <span className="font-medium text-foreground">{player.email}</span>
+          </p>
+        )}
       </div>
       <Button
         variant="outline"

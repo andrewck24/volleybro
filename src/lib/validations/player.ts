@@ -1,4 +1,4 @@
-import { PlayerRole, Position } from "@/entities/player";
+import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { z } from "zod";
 
 /**
@@ -7,6 +7,7 @@ import { z } from "zod";
  */
 
 export const PlayerRoleSchema = z.nativeEnum(PlayerRole);
+export const PlayerStatusSchema = z.nativeEnum(PlayerStatus);
 export const PositionSchema = z.nativeEnum(Position);
 
 /**
@@ -17,6 +18,7 @@ export const PlayerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   number: z.number().int().min(0).max(99).optional(),
   position: PositionSchema.optional(),
+  status: PlayerStatusSchema,
   teamId: z.string().nullish(),
   userId: z.string().nullish(),
   email: z.email("Invalid email format").nullish(),

@@ -3,7 +3,8 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useProfile } from "@/hooks/use-data";
+import { useUser, useProfile, useUserPlayers } from "@/hooks/use-data";
+import { PlayerStatus } from "@/entities/player";
 import { FiPlus } from "react-icons/fi";
 import {
   RiArrowDownWideLine,
@@ -16,16 +17,30 @@ import { Button, Link } from "@/components/ui/button";
 import { Card, CardDescription } from "@/components/ui/card";
 import { DarkMode } from "@/components/user/menu/dark-mode";
 
-// TODO(8.5): Rewrite this component — team list should come from player-based
-// SWR query, team switch via PATCH /api/profiles (activeTeamId). The current
-// implementation referenced the deleted /api/users/teams endpoint and has been
-// stubbed out to let the build pass.
-
 const Menu = ({ className }: { className?: string }) => {
   const router = useRouter();
   const { user } = useUser();
-  const { profile } = useProfile();
+  const { profile, mutate: mutateProfile } = useProfile();
+  const { players } = useUserPlayers(user?._id);
   const [extendTeams, setExtendTeams] = useState(false);
+
+  const joinedPlayers = players.filter(
+    (p) => p.status === PlayerStatus.JOINED && p.teamId
+  );
+
+  const handleSwitchTeam = async (teamId: string) => {
+    try {
+      await fetch("/api/profiles", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeTeamId: teamId }),
+      });
+      mutateProfile();
+      router.push(`/team/${teamId}`);
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <Card className={className}>
@@ -63,17 +78,22 @@ const Menu = ({ className }: { className?: string }) => {
       </Button>
       {extendTeams && (
         <>
-          {profile?.activeTeamId && (
+          {joinedPlayers.length > 0 && (
             <>
               <CardDescription>已加入隊伍</CardDescription>
-              <Button
-                variant="ghost"
-                size="wide"
-                onClick={() => router.push(`/team/${profile.activeTeamId}`)}
-              >
-                <RiGroupLine />
-                <span className="flex justify-start flex-1">目前隊伍</span>
-              </Button>
+              {joinedPlayers.map((p) => (
+                <Button
+                  key={p._id}
+                  variant={
+                    profile?.activeTeamId === p.teamId ? "default" : "ghost"
+                  }
+                  size="wide"
+                  onClick={() => handleSwitchTeam(p.teamId!)}
+                >
+                  <RiGroupLine />
+                  <span className="flex justify-start flex-1">{p.name}</span>
+                </Button>
+              ))}
             </>
           )}
           <CardDescription>

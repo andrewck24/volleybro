@@ -61,7 +61,7 @@ export const createProfileController = async (
     TYPES.CreateProfileUseCase,
   );
   const result = await createProfileUseCase.execute(input);
-  if (!result.ok) {
+  if (result.ok === false) {
     console.error("[createProfileController] Failed to create profile:", result.error);
     return undefined;
   }

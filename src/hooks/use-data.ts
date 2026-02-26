@@ -1,4 +1,5 @@
 import type { Player } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
 import type { MatchResult, Record } from "@/entities/record";
 import type { Team } from "@/entities/team";
@@ -90,14 +91,35 @@ export const useProfile = (fetcher = defaultFetcher, options = {}) => {
   return { profile: data, error, isLoading, isValidating, mutate };
 };
 
-export const useUserTeams = (fetcher = defaultFetcher, options = {}) => {
-  const { data, error, isLoading, isValidating, mutate } = useSWR(
-    "/api/users/teams",
-    fetcher,
-    { ...SWR_CONFIG.LIST, ...options },
-  );
+export const useUserPlayers = (
+  userId: string | undefined,
+  fetcher = defaultFetcher,
+  options = {},
+) => {
+  const key = userId ? `/api/users/${userId}/players` : null;
+  const { data, error, isLoading, isValidating, mutate } = useSWR<
+    Player[],
+    FetchError
+  >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
-  return { teams: data, error, isLoading, isValidating, mutate };
+  return { players: data ?? [], error, isLoading, isValidating, mutate };
+};
+
+/**
+ * Returns the active team ID for the current user.
+ * Falls back to the first JOINED player's teamId when profile.activeTeamId is null.
+ */
+export const useActiveTeamId = () => {
+  const { user } = useUser();
+  const { profile } = useProfile();
+  const { players } = useUserPlayers(user?._id);
+
+  if (profile?.activeTeamId) return profile.activeTeamId;
+
+  const firstJoined = players.find(
+    (p) => p.status === PlayerStatus.JOINED && p.teamId,
+  );
+  return firstJoined?.teamId ?? undefined;
 };
 
 export const useTeam = (

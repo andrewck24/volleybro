@@ -23,7 +23,7 @@ export async function handleUserCreated(user: {
 
   const profileResult = await createProfileUseCase.execute({ userId: user.id });
 
-  if (!profileResult.ok) {
+  if (profileResult.ok === false) {
     console.error(
       `[Auth Hook] Failed to create profile for user ${user.id}:`,
       profileResult.error
@@ -39,14 +39,14 @@ export async function handleUserCreated(user: {
 
   let linkResult = await linkUseCase.execute(user.email, user.id);
 
-  if (!linkResult.ok && linkResult.error.isTransient) {
+  if (linkResult.ok === false && linkResult.error.isTransient) {
     console.warn(
       `[Auth Hook] Transient error linking invitations, retrying once...`
     );
     linkResult = await linkUseCase.execute(user.email, user.id);
   }
 
-  if (!linkResult.ok) {
+  if (linkResult.ok === false) {
     console.error(
       `[Auth Hook] Failed to link pending invitations for ${user.email}:`,
       linkResult.error
@@ -54,7 +54,7 @@ export async function handleUserCreated(user: {
     return;
   }
 
-  if (linkResult.value > 0) {
+  if (linkResult.ok === true && linkResult.value > 0) {
     console.log(
       `[Auth Hook] Linked ${linkResult.value} pending invitation(s) for ${user.email}`
     );

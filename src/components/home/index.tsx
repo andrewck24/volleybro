@@ -1,13 +1,14 @@
 "use client";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
 import { TeamMatches } from "@/components/home/matches";
-import { useProfile } from "@/hooks/use-data";
+import { useProfile, useActiveTeamId } from "@/hooks/use-data";
 import LoadingCard from "@/components/custom/loading/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RiAlertLine } from "react-icons/ri";
 
 const Home = () => {
-  const { profile, isLoading, error } = useProfile();
+  const { isLoading, error } = useProfile();
+  const defaultTeamId = useActiveTeamId();
 
   if (isLoading) {
     return <LoadingCard className="w-full" />;
@@ -24,8 +25,6 @@ const Home = () => {
       </Alert>
     );
   }
-
-  const defaultTeamId = profile?.activeTeamId;
 
   if (!defaultTeamId) return <GuidesForNewUser />;
 

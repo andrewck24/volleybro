@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { InvitationList } from '@/components/team/invitation-list';
-import { PlayerRole } from '@/entities/player';
+import { PlayerRole, PlayerStatus } from '@/entities/player';
 
 describe('InvitationList', () => {
   const mockOnAccept = jest.fn();
@@ -12,10 +12,13 @@ describe('InvitationList', () => {
     name: '團隊 A',
     number: 0,
     position: '',
+    status: PlayerStatus.INVITED,
     teamId: 'team-1',
     role: PlayerRole.MEMBER,
     email: 'user@example.com',
     userId: undefined,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   const acceptedInvitation = {
@@ -23,10 +26,13 @@ describe('InvitationList', () => {
     name: '團隊 B',
     number: 0,
     position: '',
+    status: PlayerStatus.JOINED,
     teamId: 'team-2',
     role: PlayerRole.MEMBER,
     email: undefined,
     userId: 'user-123',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(() => {

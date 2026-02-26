@@ -60,45 +60,45 @@
 
 ## 6. API Routes — New & Modified Endpoints
 
-- [ ] 6.1 Expand `GET /api/users` route — add `?email=` search param dispatch to `SearchUserUseCase`, Zod validation, rate limiting
-- [ ] 6.2 Update `PATCH /api/profiles` validation schema to support `activeTeamId` field
+- [x] 6.1 Expand `GET /api/users` route — add `?email=` search param dispatch to `SearchUserUseCase`, Zod validation, rate limiting
+- [x] 6.2 Update `PATCH /api/profiles` validation schema to support `activeTeamId` field (done via profile.controller.ts in Group 4)
 - [x] 6.3 Refactor `POST /api/teams` — introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, owner player with `status: JOINED`, set `Profile.activeTeamId` (done in 3b.1)
-- [ ] 6.4 Add `GET /api/users/{userId}/players` route for player-based team queries
-- [ ] 6.5 Update Player-related route validation schemas to include `status` field
-- [ ] 6.6 Update `AcceptInvitationUseCase` caller to also set `Profile.activeTeamId`
+- [x] 6.4 Add `GET /api/users/{userId}/players` route for player-based team queries (already existed)
+- [x] 6.5 Update Player-related route validation schemas to include `status` field
+- [x] 6.6 Update `AcceptInvitationUseCase` caller to also set `Profile.activeTeamId`
 
 ## 7. Legacy System Removal
 
 - [x] 7.1 Delete `GET/PATCH /api/users/teams` route files (done in 3b.4)
-- [ ] 7.2 Delete `useUserTeams` SWR hook from `src/hooks/use-data.ts`
-- [ ] 7.3 Delete `ConfirmInvitation` component
-- [ ] 7.4 Remove all imports and references to deleted modules across codebase
+- [x] 7.2 Delete `useUserTeams` SWR hook from `src/hooks/use-data.ts`
+- [x] 7.3 Delete `ConfirmInvitation` component (done in 3b.8)
+- [x] 7.4 Remove all imports and references to deleted modules across codebase
 
 ## 8. UI Components — Invitation Flow
 
-- [ ] 8.1 Rewrite `InviteSection` — replace email input with user search UI (button-triggered fetch, not SWR), display found user info or unregistered message
-- [ ] 8.2 Update `InvitedSection` — show user info (avatar, name) for userId-based invites, show email for email-based invites
-- [ ] 8.3 Update `InvitationList` — change filter to `player.status === INVITED`
-- [ ] 8.4 Rewrite `Invitations` page — data source from player-based SWR query, filter INVITED
-- [ ] 8.5 Rewrite `Menu` component — team list from player-based SWR query, team switch via `PATCH /api/profiles` (activeTeamId)
-- [ ] 8.6 Add Leave Team UI — button at bottom of team info page with confirmation dialog
+- [x] 8.1 Rewrite `InviteSection` — replace email input with user search UI (button-triggered fetch, not SWR), display found user info or unregistered message
+- [x] 8.2 Update `InvitedSection` — show user info (avatar, name) for userId-based invites, show email for email-based invites
+- [x] 8.3 Update `InvitationList` — change filter to `player.status === INVITED` (done in 3b.2)
+- [x] 8.4 Rewrite `Invitations` page — data source from player-based SWR query, filter INVITED
+- [x] 8.5 Rewrite `Menu` component — team list from player-based SWR query, team switch via `PATCH /api/profiles` (activeTeamId)
+- [x] 8.6 Add Leave Team UI — button at bottom of team info page with confirmation dialog
 
 ## 9. UI Components — activeTeamId Migration
 
-- [ ] 9.1 Update `NavLinks` — replace `profile?.teams?.joined?.[0]` with `profile.activeTeamId`
-- [ ] 9.2 Update `Home` — replace `profile?.teams?.joined?.[0]` with `profile.activeTeamId`
-- [ ] 9.3 Update `Notifications` — replace `profile?.teams?.joined[0]` with `profile.activeTeamId`
-- [ ] 9.4 Implement frontend fallback logic — when `activeTeamId` is null or invalid, fallback to first JOINED player's teamId or show onboarding
+- [x] 9.1 Update `NavLinks` — replace `profile?.teams?.joined?.[0]` with `profile.activeTeamId` (done in 3b.7)
+- [x] 9.2 Update `Home` — replace `profile?.teams?.joined?.[0]` with `profile.activeTeamId` (done in 3b.7)
+- [x] 9.3 Update `Notifications` — replace `profile?.teams?.joined[0]` with `profile.activeTeamId` (done in 3b.7)
+- [x] 9.4 Implement frontend fallback logic — when `activeTeamId` is null or invalid, fallback to first JOINED player's teamId or show onboarding
 
 ## 10. SWR Hooks
 
-- [ ] 10.1 Create or adjust player-based SWR hook for fetching user's players (joined + invited teams)
-- [ ] 10.2 Ensure all components consuming team data use the new hook instead of removed `useUserTeams`
+- [x] 10.1 Create or adjust player-based SWR hook for fetching user's players (joined + invited teams)
+- [x] 10.2 Ensure all components consuming team data use the new hook instead of removed `useUserTeams`
 
 ## 11. Verification
 
-- [ ] 11.1 Run `npm test` — all tests pass
-- [ ] 11.2 Run `npm run lint` — no linting errors
-- [ ] 11.3 Run `npm run build` — build succeeds without errors
+- [x] 11.1 Run `npm test` — all tests pass (496 passed)
+- [x] 11.2 Run `npm run lint` — pre-existing lint errors only, no new errors introduced
+- [x] 11.3 Run `npm run build` — build succeeds without errors
 - [ ] 11.4 Manual smoke test: create team → invite registered user → accept → switch team → leave team
 - [ ] 11.5 Manual smoke test: invite unregistered email → register new user → verify invitation auto-linked
