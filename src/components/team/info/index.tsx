@@ -1,18 +1,33 @@
 "use client";
 import LoadingCard from "@/components/custom/loading/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiEditBoxLine, RiGroupLine, RiInformationLine } from "react-icons/ri";
-import { useToast } from "@/components/ui/use-toast";
 
 const TeamInfo = ({ teamId }: { teamId: string }) => {
   const { team, isLoading: isTeamLoading } = useTeam(teamId);
-  const { players, isLoading: isPlayersLoading, mutate } = useTeamPlayers(teamId);
+  const {
+    players,
+    isLoading: isPlayersLoading,
+    mutate,
+  } = useTeamPlayers(teamId);
   const { user, isLoading: isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
@@ -31,9 +46,6 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const isOwner = currentUserPlayer?.role === PlayerRole.OWNER;
 
   const handleLeaveTeam = async () => {
-    if (!currentUserPlayer) return;
-    if (!window.confirm("確定要離開這個隊伍嗎？")) return;
-
     setIsLeaving(true);
     try {
       const res = await fetch(
@@ -42,7 +54,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "leave" }),
-        }
+        },
       );
 
       if (!res.ok) {
@@ -86,16 +98,35 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       {isJoined && !isOwner && (
         <>
           <Separator />
-          <div className="p-4 space-y-2">
+          <div className="space-y-2 p-4">
             <h3 className="text-sm font-medium text-destructive">離開隊伍</h3>
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleLeaveTeam}
-              disabled={isLeaving}
-            >
-              {isLeaving ? "離開中..." : "離開隊伍"}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isLeaving}
+                >
+                  {isLeaving ? "離開中..." : "離開隊伍"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>確定要離開這個隊伍嗎？</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button variant="destructive" onClick={handleLeaveTeam}>
+                      確認離開
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}

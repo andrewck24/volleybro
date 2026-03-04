@@ -1,6 +1,17 @@
 "use client";
 
 import { RoleSelect } from "@/components/team/role-select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,8 +48,6 @@ export function MembershipSection({
   };
 
   const handleRemove = async () => {
-    if (!window.confirm(`確定要將 ${player.name} 從隊伍中移除嗎？`)) return;
-
     try {
       const res = await fetch(`/api/players/${player._id}`, {
         method: "DELETE",
@@ -65,14 +74,6 @@ export function MembershipSection({
   };
 
   const handleTransferOwnership = async () => {
-    if (
-      !window.confirm(
-        `確定要將隊伍所有權移轉給 ${player.name} 嗎？你將被降級為管理員。`,
-      )
-    ) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/teams/${teamId}/ownership`, {
         method: "POST",
@@ -118,13 +119,31 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移除成員</h3>
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleRemove}
-            >
-              移除成員
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  移除成員
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    確定要將 {player.name} 從隊伍中移除嗎？
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    移除後該成員將無法繼續使用隊伍相關功能。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button variant="destructive" onClick={handleRemove}>
+                      確認移除
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}
@@ -134,13 +153,34 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleTransferOwnership}
-            >
-              移轉所有權給此球員
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  移轉所有權給此球員
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    確定要將隊伍所有權移轉給 {player.name} 嗎？
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    移轉後你將被降級為管理員，{player.name} 將成為新隊長。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleTransferOwnership}
+                    >
+                      確認移轉
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}
