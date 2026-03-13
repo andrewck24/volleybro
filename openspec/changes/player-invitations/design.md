@@ -128,7 +128,7 @@ AppError (abstract base)
 type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }
 ```
 
-**Pilot scope**: 僅 `LinkPendingInvitationsUseCase` 和 `CreateProfileUseCase`。caller（hook）根據 `error.isTransient` 決定是否 retry。
+**Pilot scope**: `LinkPendingInvitationsUseCase`、`CreateProfileUseCase`、`SearchUserUseCase`、`GetUserByIdUseCase`。caller（hook）根據 `error.isTransient` 決定是否 retry；route 層根據 `error.code` 映射 HTTP status。
 
 ### D8: Leave Team 行為
 

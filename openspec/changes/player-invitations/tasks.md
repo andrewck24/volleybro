@@ -60,7 +60,8 @@
 
 ## 6. API Routes — New & Modified Endpoints
 
-- [x] 6.1 Expand `GET /api/users` route — add `?email=` search param dispatch to `SearchUserUseCase`, Zod validation, rate limiting
+- [x] 6.1 Expand `GET /api/users` route — add `?email=` search param dispatch to `SearchUserUseCase`, Zod validation (**known gap**: rate limiting not yet implemented, tracked for future change)
+- [x] 6.1b Refactor `GET /api/users` to clean architecture — `getUserController` dispatches to `SearchUserUseCase` (by email) or `GetUserByIdUseCase` (by actorId), route only handles session/params parsing
 - [x] 6.2 Update `PATCH /api/profiles` validation schema to support `activeTeamId` field (done via profile.controller.ts in Group 4)
 - [x] 6.3 Refactor `POST /api/teams` — introduce `CreateTeamUseCase` + `ITeamController.createTeam()`, owner player with `status: JOINED`, set `Profile.activeTeamId` (done in 3b.1)
 - [x] 6.4 Add `GET /api/users/{userId}/players` route for player-based team queries (already existed)
