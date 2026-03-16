@@ -104,7 +104,7 @@
 - [x] R2. Fix `LeaveTeamUseCase` — clear `profile.activeTeamId` when it points to the team being left; route `leave` action through controller
 - [x] R3. Fix `existsInvitation` query — replace legacy `userId: { $exists: false }` with `status: PlayerStatus.INVITED`
 - [x] R4. Fix `GetUserByIdUseCase` — return full `User` entity for self-lookup instead of truncated `SearchUserOutput`
-- [ ] R5. (deferred) Accept/RejectInvitationUseCase lack authorization check (IDOR risk) — tracked for future change
+- [x] R5. Fix Accept/RejectInvitationUseCase — add `player.userId === userId` authorization check to prevent IDOR
 - [ ] R6. (deferred) AppError `httpStatus` centralization — extract `ERROR_STATUS` mapping from routes into AppError class
 
 ## 11. Verification
