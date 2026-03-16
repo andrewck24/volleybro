@@ -15,7 +15,7 @@ export class RejectInvitationUseCase implements IRejectInvitationUseCase {
     private playerRepository: IPlayerRepository,
   ) {}
 
-  async execute(playerId: string, _userId: string): Promise<void> {
+  async execute(playerId: string, userId: string): Promise<void> {
     const player = await this.playerRepository.findById(playerId);
 
     if (!player) {
@@ -24,6 +24,10 @@ export class RejectInvitationUseCase implements IRejectInvitationUseCase {
 
     if (player.status !== PlayerStatus.INVITED) {
       throw new Error("No invitation found for this player");
+    }
+
+    if (player.userId !== userId) {
+      throw new Error("User is not the invited recipient");
     }
 
     await this.playerRepository.update(playerId, {

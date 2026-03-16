@@ -6,13 +6,13 @@ describe("AcceptInvitationUseCase", () => {
   let usecase: AcceptInvitationUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
 
-  // Email-based invitation (unregistered user)
-  const emailInvitedPlayer: Player = {
+  // userId-linked invitation (after linkUserToInvitations or direct userId invite)
+  const invitedPlayer: Player = {
     _id: "player-1",
     name: "test",
     teamId: "team-1",
     status: PlayerStatus.INVITED,
-    email: "test@example.com",
+    userId: "user-1",
     role: PlayerRole.MEMBER,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -40,9 +40,9 @@ describe("AcceptInvitationUseCase", () => {
   });
 
   it("should transition status from INVITED to JOINED and set userId, clear email", async () => {
-    mockPlayerRepository.findById.mockResolvedValue(emailInvitedPlayer);
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
     mockPlayerRepository.update.mockResolvedValue({
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       status: PlayerStatus.JOINED,
       userId: "user-1",
       email: undefined,
@@ -58,25 +58,13 @@ describe("AcceptInvitationUseCase", () => {
     });
   });
 
-  it("should accept userId-based invitation (INVITED + userId)", async () => {
-    const userIdInvitedPlayer: Player = {
-      ...emailInvitedPlayer,
-      email: undefined,
-      userId: "user-1",
-    };
-    mockPlayerRepository.findById.mockResolvedValue(userIdInvitedPlayer);
-    mockPlayerRepository.update.mockResolvedValue({
-      ...userIdInvitedPlayer,
-      status: PlayerStatus.JOINED,
-    });
+  it("should throw error if userId does not match invited recipient", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-    await usecase.execute("player-1", "user-1");
-
-    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
-      status: PlayerStatus.JOINED,
-      userId: "user-1",
-      email: undefined,
-    });
+    await expect(usecase.execute("player-1", "wrong-user")).rejects.toThrow(
+      "User is not the invited recipient",
+    );
+    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
   });
 
   it("should throw error if player not found", async () => {
@@ -89,7 +77,7 @@ describe("AcceptInvitationUseCase", () => {
 
   it("should throw error if player is already JOINED", async () => {
     const joinedPlayer: Player = {
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       status: PlayerStatus.JOINED,
       userId: "existing-user",
       email: undefined,
@@ -103,7 +91,7 @@ describe("AcceptInvitationUseCase", () => {
 
   it("should throw error if player status is NONE (no invitation)", async () => {
     const nonePlayer: Player = {
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       status: PlayerStatus.NONE,
       email: undefined,
     };
@@ -116,7 +104,7 @@ describe("AcceptInvitationUseCase", () => {
 
   it("should preserve role when accepting invitation", async () => {
     const adminInvite: Player = {
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       role: PlayerRole.ADMIN,
     };
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);

@@ -6,12 +6,12 @@ describe("RejectInvitationUseCase", () => {
   let usecase: RejectInvitationUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
 
-  const emailInvitedPlayer: Player = {
+  const invitedPlayer: Player = {
     _id: "player-1",
     name: "test",
     teamId: "team-1",
     status: PlayerStatus.INVITED,
-    email: "test@example.com",
+    userId: "user-1",
     role: PlayerRole.MEMBER,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -39,9 +39,9 @@ describe("RejectInvitationUseCase", () => {
   });
 
   it("should transition status from INVITED to NONE and clear email", async () => {
-    mockPlayerRepository.findById.mockResolvedValue(emailInvitedPlayer);
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
     mockPlayerRepository.update.mockResolvedValue({
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       status: PlayerStatus.NONE,
       email: undefined,
     });
@@ -56,26 +56,13 @@ describe("RejectInvitationUseCase", () => {
     });
   });
 
-  it("should reject userId-based invitation and clear userId", async () => {
-    const userIdInvitedPlayer: Player = {
-      ...emailInvitedPlayer,
-      email: undefined,
-      userId: "user-1",
-    };
-    mockPlayerRepository.findById.mockResolvedValue(userIdInvitedPlayer);
-    mockPlayerRepository.update.mockResolvedValue({
-      ...userIdInvitedPlayer,
-      status: PlayerStatus.NONE,
-      userId: undefined,
-    });
+  it("should throw error if userId does not match invited recipient", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-    await usecase.execute("player-1", "user-1");
-
-    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
-      status: PlayerStatus.NONE,
-      email: undefined,
-      userId: undefined,
-    });
+    await expect(usecase.execute("player-1", "wrong-user")).rejects.toThrow(
+      "User is not the invited recipient",
+    );
+    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
   });
 
   it("should throw error if player not found", async () => {
@@ -88,7 +75,7 @@ describe("RejectInvitationUseCase", () => {
 
   it("should throw error if player status is not INVITED", async () => {
     const nonePlayer: Player = {
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       status: PlayerStatus.NONE,
       email: undefined,
     };
@@ -101,7 +88,7 @@ describe("RejectInvitationUseCase", () => {
 
   it("should preserve role when rejecting invitation", async () => {
     const adminInvite: Player = {
-      ...emailInvitedPlayer,
+      ...invitedPlayer,
       role: PlayerRole.ADMIN,
     };
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);

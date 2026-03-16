@@ -30,6 +30,10 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
       throw new Error('No invitation found for this player');
     }
 
+    if (player.userId !== userId) {
+      throw new Error('User is not the invited recipient');
+    }
+
     await this.playerRepository.update(playerId, {
       status: PlayerStatus.JOINED,
       userId,
