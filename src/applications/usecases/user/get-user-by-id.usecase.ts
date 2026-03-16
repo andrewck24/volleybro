@@ -3,7 +3,7 @@ import { NotFoundError } from "@/applications/errors/app-error";
 import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import type { SearchUserOutput } from "./search-user.usecase";
+import type { User } from "@/entities/user";
 
 @injectable()
 export class GetUserByIdUseCase {
@@ -12,7 +12,7 @@ export class GetUserByIdUseCase {
     private userRepository: IUserRepository
   ) {}
 
-  async execute(userId: string): Promise<Result<SearchUserOutput>> {
+  async execute(userId: string): Promise<Result<User>> {
     const user = await this.userRepository.findOne({ _id: userId });
 
     if (!user) {
@@ -24,11 +24,7 @@ export class GetUserByIdUseCase {
 
     return {
       ok: true,
-      value: {
-        _id: user._id,
-        name: user.name,
-        image: user.image,
-      },
+      value: user,
     };
   }
 }
