@@ -60,8 +60,23 @@ export class PlayerRepositoryImpl
   }
 
   async update(id: string, updates: Partial<Player>): Promise<Player | null> {
+    const $set: Record<string, unknown> = {};
+    const $unset: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === undefined) {
+        $unset[key] = "";
+      } else {
+        $set[key] = value;
+      }
+    }
+
+    const updateOps: Record<string, unknown> = {};
+    if (Object.keys($set).length > 0) updateOps.$set = $set;
+    if (Object.keys($unset).length > 0) updateOps.$unset = $unset;
+
     const updated = await this.model
-      .findByIdAndUpdate(id, updates, { new: true })
+      .findByIdAndUpdate(id, updateOps, { new: true })
       .exec();
     return updated ? this.toPlayer(updated) : null;
   }

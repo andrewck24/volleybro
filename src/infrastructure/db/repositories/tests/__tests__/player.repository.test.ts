@@ -206,10 +206,32 @@ describe("PlayerRepository", () => {
 
       expect(PlayerModel.findByIdAndUpdate).toHaveBeenCalledWith(
         "player-1",
-        updates,
+        { $set: { role: PlayerRole.ADMIN } },
         { new: true },
       );
       expect(result?.role).toBe(PlayerRole.ADMIN);
+    });
+
+    it("should $unset fields with undefined values", async () => {
+      const updates = { status: PlayerStatus.NONE, userId: undefined, email: undefined };
+      const mockExec = jest.fn().mockResolvedValue({
+        toObject: () => ({ ...mockPlayer, status: PlayerStatus.NONE }),
+      });
+      (PlayerModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
+        exec: mockExec,
+      });
+
+      const result = await repository.update("player-1", updates);
+
+      expect(PlayerModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        "player-1",
+        {
+          $set: { status: PlayerStatus.NONE },
+          $unset: { userId: "", email: "" },
+        },
+        { new: true },
+      );
+      expect(result?.status).toBe(PlayerStatus.NONE);
     });
 
     it("should return null if player not found during update", async () => {
