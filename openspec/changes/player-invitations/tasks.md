@@ -96,10 +96,21 @@
 - [x] 10.1 Create or adjust player-based SWR hook for fetching user's players (joined + invited teams)
 - [x] 10.2 Ensure all components consuming team data use the new hook instead of removed `useUserTeams`
 
+## Post-Review Fixes
+
+> Discovered during code review of player-invitations branch vs dev.
+
+- [x] R1. Fix `PlayerRepositoryImpl.update()` — `undefined` values silently ignored by Mongoose; split into `$set`/`$unset` operations
+- [x] R2. Fix `LeaveTeamUseCase` — clear `profile.activeTeamId` when it points to the team being left; route `leave` action through controller
+- [x] R3. Fix `existsInvitation` query — replace legacy `userId: { $exists: false }` with `status: PlayerStatus.INVITED`
+- [x] R4. Fix `GetUserByIdUseCase` — return full `User` entity for self-lookup instead of truncated `SearchUserOutput`
+- [ ] R5. (deferred) Accept/RejectInvitationUseCase lack authorization check (IDOR risk) — tracked for future change
+- [ ] R6. (deferred) AppError `httpStatus` centralization — extract `ERROR_STATUS` mapping from routes into AppError class
+
 ## 11. Verification
 
 - [x] 11.1 Run `npm test` — all tests pass (496 passed)
 - [x] 11.2 Run `npm run lint` — pre-existing lint errors only, no new errors introduced
 - [x] 11.3 Run `npm run build` — build succeeds without errors
-- [ ] 11.4 Manual smoke test: create team → invite registered user → accept → switch team → leave team
-- [ ] 11.5 Manual smoke test: invite unregistered email → register new user → verify invitation auto-linked
+- [x] 11.4 Manual smoke test: create team → invite registered user → accept → switch team → leave team
+- [x] 11.5 Manual smoke test: invite unregistered email → register new user → verify invitation auto-linked

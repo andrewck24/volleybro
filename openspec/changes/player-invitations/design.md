@@ -88,9 +88,10 @@
 
 - 建隊：`POST /api/teams` 設定 `activeTeamId = newTeamId`
 - 接受邀請：`AcceptInvitationUseCase` 後設定 `activeTeamId = teamId`
+- 離開隊伍：`LeaveTeamUseCase` 清除 `activeTeamId`（若指向離開的隊伍則設為 null）
 - 手動切換：`PATCH /api/profiles` 更新 `activeTeamId`
 
-**Fallback**: 前端讀到 `activeTeamId` 為 null 或指向已離開的隊伍時，從 JOINED players 取第一個 teamId，或顯示新手引導。
+**Fallback**: 前端讀到 `activeTeamId` 為 null 時，從 JOINED players 取第一個 teamId，或顯示新手引導。
 
 ### D6: User Search API — 擴充現有端點
 
