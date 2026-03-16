@@ -104,7 +104,7 @@ export class PlayerRepositoryImpl
 
   async existsInvitation(teamId: string, email: string): Promise<boolean> {
     const count = await this.model
-      .countDocuments({ teamId, email, userId: { $exists: false } })
+      .countDocuments({ teamId, email, status: PlayerStatus.INVITED })
       .exec();
     return count > 0;
   }
