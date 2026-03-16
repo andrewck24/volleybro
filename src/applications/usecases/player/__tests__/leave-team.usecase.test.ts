@@ -1,14 +1,16 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { ILeaveTeamUseCase } from '../leave-team.usecase.interface';
-import { LeaveTeamUseCase } from '../leave-team.usecase';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
-import { PlayerRole, PlayerStatus } from '@/entities/player';
+import { describe, it, expect, beforeEach, jest } from "@jest/globals";
+import type { ILeaveTeamUseCase } from "../leave-team.usecase.interface";
+import { LeaveTeamUseCase } from "../leave-team.usecase";
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 
-describe('LeaveTeamUseCase', () => {
+describe("LeaveTeamUseCase", () => {
   let useCase: ILeaveTeamUseCase;
   let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
   let mockTeamRepository: jest.Mocked<ITeamRepository>;
+  let mockProfileRepository: jest.Mocked<IProfileRepository>;
 
   beforeEach(() => {
     mockPlayerRepository = {
@@ -27,17 +29,26 @@ describe('LeaveTeamUseCase', () => {
       removePlayerFromLineups: jest.fn(),
     } as any;
 
-    useCase = new LeaveTeamUseCase(mockPlayerRepository, mockTeamRepository);
+    mockProfileRepository = {
+      findByUserId: jest.fn(),
+      updateActiveTeamId: jest.fn(),
+    } as any;
+
+    useCase = new LeaveTeamUseCase(
+      mockPlayerRepository,
+      mockTeamRepository,
+      mockProfileRepository,
+    );
   });
 
-  describe('execute', () => {
-    it('should set status to NONE and clear userId when leaving', async () => {
-      const playerId = 'player_123';
-      const userId = 'user_456';
+  describe("execute", () => {
+    it("should set status to NONE and clear userId when leaving", async () => {
+      const playerId = "player_123";
+      const userId = "user_456";
       const player = {
         _id: playerId,
-        name: 'Test Player',
-        teamId: 'team_789',
+        name: "Test Player",
+        teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId,
         role: PlayerRole.MEMBER,
@@ -52,6 +63,12 @@ describe('LeaveTeamUseCase', () => {
         userId: undefined,
       });
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+      mockProfileRepository.findByUserId.mockResolvedValue({
+        _id: "profile_1",
+        userId,
+        activeTeamId: "team_789",
+      } as any);
+      mockProfileRepository.updateActiveTeamId.mockResolvedValue(null);
 
       const result = await useCase.execute(playerId, userId);
 
@@ -61,27 +78,63 @@ describe('LeaveTeamUseCase', () => {
         userId: undefined,
       });
       expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-        'team_789',
-        playerId
+        "team_789",
+        playerId,
+      );
+      expect(mockProfileRepository.updateActiveTeamId).toHaveBeenCalledWith(
+        userId,
+        null,
       );
       expect(result).toEqual({ success: true });
     });
 
-    it('should reject if player not found', async () => {
+    it("should not clear activeTeamId if it points to a different team", async () => {
+      const playerId = "player_123";
+      const userId = "user_456";
+      const player = {
+        _id: playerId,
+        name: "Test Player",
+        teamId: "team_789",
+        status: PlayerStatus.JOINED,
+        userId,
+        role: PlayerRole.MEMBER,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPlayerRepository.findById.mockResolvedValue(player);
+      mockPlayerRepository.update.mockResolvedValue({
+        ...player,
+        status: PlayerStatus.NONE,
+        userId: undefined,
+      });
+      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+      mockProfileRepository.findByUserId.mockResolvedValue({
+        _id: "profile_1",
+        userId,
+        activeTeamId: "other_team",
+      } as any);
+
+      await useCase.execute(playerId, userId);
+
+      expect(mockProfileRepository.updateActiveTeamId).not.toHaveBeenCalled();
+    });
+
+    it("should reject if player not found", async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute('player_999', 'user_456')).rejects.toThrow(
-        'Player not found'
+      await expect(useCase.execute("player_999", "user_456")).rejects.toThrow(
+        "Player not found",
       );
     });
 
-    it('should reject if user does not own the player record', async () => {
+    it("should reject if user does not own the player record", async () => {
       const player = {
-        _id: 'player_123',
-        name: 'Test Player',
-        teamId: 'team_789',
+        _id: "player_123",
+        name: "Test Player",
+        teamId: "team_789",
         status: PlayerStatus.JOINED,
-        userId: 'user_999',
+        userId: "user_999",
         role: PlayerRole.MEMBER,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -89,18 +142,18 @@ describe('LeaveTeamUseCase', () => {
 
       mockPlayerRepository.findById.mockResolvedValue(player);
 
-      await expect(useCase.execute('player_123', 'user_456')).rejects.toThrow(
-        'User cannot leave this player record'
+      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
+        "User cannot leave this player record",
       );
     });
 
-    it('should reject if owner tries to leave the team', async () => {
+    it("should reject if owner tries to leave the team", async () => {
       const owner = {
-        _id: 'player_123',
-        name: 'Team Owner',
-        teamId: 'team_789',
+        _id: "player_123",
+        name: "Team Owner",
+        teamId: "team_789",
         status: PlayerStatus.JOINED,
-        userId: 'user_456',
+        userId: "user_456",
         role: PlayerRole.OWNER,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -108,18 +161,18 @@ describe('LeaveTeamUseCase', () => {
 
       mockPlayerRepository.findById.mockResolvedValue(owner);
 
-      await expect(useCase.execute('player_123', 'user_456')).rejects.toThrow(
-        'Owner cannot leave the team'
+      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
+        "Owner cannot leave the team",
       );
     });
 
-    it('should reject if update fails', async () => {
+    it("should reject if update fails", async () => {
       const player = {
-        _id: 'player_123',
-        name: 'Test Player',
-        teamId: 'team_789',
+        _id: "player_123",
+        name: "Test Player",
+        teamId: "team_789",
         status: PlayerStatus.JOINED,
-        userId: 'user_456',
+        userId: "user_456",
         role: PlayerRole.MEMBER,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -128,8 +181,8 @@ describe('LeaveTeamUseCase', () => {
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(useCase.execute('player_123', 'user_456')).rejects.toThrow(
-        'Failed to leave team'
+      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
+        "Failed to leave team",
       );
     });
   });

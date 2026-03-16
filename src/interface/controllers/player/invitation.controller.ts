@@ -2,6 +2,7 @@ import { container } from '@/infrastructure/di/inversify.config';
 import { TYPES } from '@/infrastructure/di/types';
 import type { IAcceptInvitationUseCase } from '@/applications/usecases/player/accept-invitation.usecase.interface';
 import type { IRejectInvitationUseCase } from '@/applications/usecases/player/reject-invitation.usecase.interface';
+import type { ILeaveTeamUseCase } from '@/applications/usecases/player/leave-team.usecase.interface';
 import type { IGetPlayerUseCase } from '@/applications/usecases/player/get-player.usecase.interface';
 import type { UpdateProfileUseCase } from '@/applications/usecases/user/profile.usecase';
 
@@ -34,4 +35,12 @@ export const rejectInvitation = async (
     TYPES.RejectInvitationUseCase
   );
   return await useCase.execute(playerId, userId);
+};
+
+export const leaveTeam = async (
+  playerId: string,
+  userId: string
+): Promise<void> => {
+  const useCase = container.get<ILeaveTeamUseCase>(TYPES.LeaveTeamUseCase);
+  await useCase.execute(playerId, userId);
 };

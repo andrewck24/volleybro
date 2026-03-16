@@ -3,9 +3,6 @@
  */
 
 import * as invitationController from '@/interface/controllers/player/invitation.controller';
-import { container } from '@/infrastructure/di/inversify.config';
-import { TYPES } from '@/infrastructure/di/types';
-import type { ILeaveTeamUseCase } from '@/applications/usecases/player/leave-team.usecase.interface';
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
@@ -51,8 +48,7 @@ export async function PATCH(
       }
 
       case 'leave': {
-        const leaveUseCase = container.get<ILeaveTeamUseCase>(TYPES.LeaveTeamUseCase);
-        await leaveUseCase.execute(playerId, userId);
+        await invitationController.leaveTeam(playerId, userId);
         return NextResponse.json(
           { success: true, message: 'Left team successfully' },
           { status: 200 }
