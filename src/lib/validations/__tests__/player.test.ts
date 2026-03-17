@@ -7,7 +7,7 @@ import {
   PlayerRoleSchema,
   PositionSchema,
 } from '../player';
-import { PlayerRole, Position } from '@/entities/player';
+import { PlayerRole, PlayerStatus, Position } from '@/entities/player';
 
 describe('Player Validation Schemas', () => {
   describe('PlayerRoleSchema', () => {
@@ -265,6 +265,7 @@ describe('Player Validation Schemas', () => {
         name: 'John Doe',
         number: 10,
         position: Position.OH,
+        status: PlayerStatus.JOINED,
         teamId: 'team-1',
         userId: 'user-1',
         email: 'john@example.com',
@@ -282,6 +283,7 @@ describe('Player Validation Schemas', () => {
       const player = {
         _id: 'player-2',
         name: 'Pure Player',
+        status: PlayerStatus.NONE,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

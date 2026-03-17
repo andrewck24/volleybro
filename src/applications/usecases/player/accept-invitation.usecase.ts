@@ -1,15 +1,12 @@
 import { inject, injectable } from 'inversify';
 import type { IAcceptInvitationUseCase } from '@/applications/usecases/player/accept-invitation.usecase.interface';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
+import { PlayerStatus } from '@/entities/player';
 import { TYPES } from '@/infrastructure/di/types';
 
 /**
  * AcceptInvitationUseCase Implementation
- * User accepts invitation and joins team
- *
- * Validates:
- * - Player record exists with pending invitation (email set, userId not set)
- * - Email matches inviting user's email
+ * User accepts invitation: status INVITED → JOINED, sets userId, clears email
  */
 @injectable()
 export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
@@ -25,19 +22,22 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
       throw new Error('Player record not found');
     }
 
-    // Verify player is not already joined
-    if (player.userId) {
+    if (player.status === PlayerStatus.JOINED) {
       throw new Error('Player is already a joined member');
     }
 
-    // Verify this is a pending invitation (has email)
-    if (!player.email) {
+    if (player.status !== PlayerStatus.INVITED) {
       throw new Error('No invitation found for this player');
     }
 
-    // Update player with userId to mark as joined
+    if (player.userId !== userId) {
+      throw new Error('User is not the invited recipient');
+    }
+
     await this.playerRepository.update(playerId, {
+      status: PlayerStatus.JOINED,
       userId,
+      email: undefined,
     });
   }
 }

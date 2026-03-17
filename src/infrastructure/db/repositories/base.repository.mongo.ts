@@ -22,18 +22,20 @@ export class BaseMongoRepository<T, M extends Document> {
   }
 
   async update(
-    filter: Record<string, any>,
+    filter: string | Record<string, any>,
     data: Partial<T>
   ): Promise<T | null> {
-    const doc = await this.model.findOneAndReplace(filter, data as any, {
+    const query = typeof filter === "string" ? { _id: filter } : filter;
+    const doc = await this.model.findOneAndReplace(query, data as any, {
       new: true,
     });
     if (!doc) return null;
     return doc.toJSON() as unknown as T;
   }
 
-  async delete(filter: Record<string, any>): Promise<boolean> {
-    const result = await this.model.findOneAndDelete(filter);
+  async delete(filter: string | Record<string, any>): Promise<boolean> {
+    const query = typeof filter === "string" ? { _id: filter } : filter;
+    const result = await this.model.findOneAndDelete(query);
     return !!result;
   }
 }

@@ -14,15 +14,19 @@ import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
 import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
-import { PlayerRepository } from "@/infrastructure/db/repositories/player.repository";
+import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
+import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
 import {
   GetProfileUseCase,
   CreateProfileUseCase,
   UpdateProfileUseCase,
 } from "@/applications/usecases/user/profile.usecase";
+import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
+import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
+import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
 import {
   FindRecordUseCase,
   CreateRecordUseCase,
@@ -66,7 +70,7 @@ container
   .to(ProfileRepositoryImpl);
 container
   .bind<IPlayerRepository>(TYPES.PlayerRepository)
-  .to(PlayerRepository);
+  .to(PlayerRepositoryImpl);
 
 // register services
 container
@@ -77,6 +81,11 @@ container
   .to(AuthorizationService);
 
 // register usecases
+// team usecases
+container
+  .bind<CreateTeamUseCase>(TYPES.CreateTeamUseCase)
+  .to(CreateTeamUseCase);
+
 // user auth usecases
 container
   .bind<GetProfileUseCase>(TYPES.GetProfileUseCase)
@@ -87,6 +96,15 @@ container
 container
   .bind<UpdateProfileUseCase>(TYPES.UpdateProfileUseCase)
   .to(UpdateProfileUseCase);
+container
+  .bind<LinkPendingInvitationsUseCase>(TYPES.LinkPendingInvitationsUseCase)
+  .to(LinkPendingInvitationsUseCase);
+container
+  .bind<SearchUserUseCase>(TYPES.SearchUserUseCase)
+  .to(SearchUserUseCase);
+container
+  .bind<GetUserByIdUseCase>(TYPES.GetUserByIdUseCase)
+  .to(GetUserByIdUseCase);
 
 // record usecases
 container

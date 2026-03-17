@@ -1,13 +1,24 @@
 "use client";
 
 import { RoleSelect } from "@/components/team/role-select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
-import { getPlayerStatus, PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,7 +38,7 @@ export function MembershipSection({
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
   const router = useRouter();
-  const status = getPlayerStatus(player);
+  const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
@@ -37,8 +48,6 @@ export function MembershipSection({
   };
 
   const handleRemove = async () => {
-    if (!window.confirm(`確定要將 ${player.name} 從隊伍中移除嗎？`)) return;
-
     try {
       const res = await fetch(`/api/players/${player._id}`, {
         method: "DELETE",
@@ -65,14 +74,6 @@ export function MembershipSection({
   };
 
   const handleTransferOwnership = async () => {
-    if (
-      !window.confirm(
-        `確定要將隊伍所有權移轉給 ${player.name} 嗎？你將被降級為管理員。`,
-      )
-    ) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/teams/${teamId}/ownership`, {
         method: "POST",
@@ -101,7 +102,7 @@ export function MembershipSection({
 
   return (
     <>
-      {status === PlayerStatus.PURE_PLAYER && (
+      {status === PlayerStatus.NONE && (
         <InviteSection player={player} onSuccess={revalidate} toast={toast} />
       )}
 
@@ -118,13 +119,31 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移除成員</h3>
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleRemove}
-            >
-              移除成員
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  移除成員
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    確定要將 {player.name} 從隊伍中移除嗎？
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    移除後該成員將無法繼續使用隊伍相關功能。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button variant="destructive" onClick={handleRemove}>
+                      確認移除
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}
@@ -134,13 +153,34 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleTransferOwnership}
-            >
-              移轉所有權給此球員
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  移轉所有權給此球員
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    確定要將隊伍所有權移轉給 {player.name} 嗎？
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    移轉後你將被降級為管理員，{player.name} 將成為新隊長。
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction asChild>
+                    <Button
+                      variant="destructive"
+                      onClick={handleTransferOwnership}
+                    >
+                      確認移轉
+                    </Button>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </>
       )}
@@ -148,7 +188,9 @@ export function MembershipSection({
   );
 }
 
-// --- PURE_PLAYER: invite form ---
+type FoundUser = { _id: string; name: string; image?: string };
+
+// --- NONE: invite section with user search ---
 function InviteSection({
   player,
   onSuccess,
@@ -160,7 +202,32 @@ function InviteSection({
 }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<PlayerRole>(PlayerRole.MEMBER);
+  const [isSearching, setIsSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [foundUser, setFoundUser] = useState<FoundUser | null>(null);
+  const [searchDone, setSearchDone] = useState(false);
+
+  const handleSearch = async () => {
+    if (!email) return;
+    setIsSearching(true);
+    setFoundUser(null);
+    setSearchDone(false);
+
+    try {
+      const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFoundUser(data);
+      } else {
+        setFoundUser(null);
+      }
+    } catch {
+      setFoundUser(null);
+    } finally {
+      setIsSearching(false);
+      setSearchDone(true);
+    }
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,6 +248,8 @@ function InviteSection({
       toast({ title: "邀請已發送", description: `已向 ${email} 發送邀請` });
       setEmail("");
       setRole(PlayerRole.MEMBER);
+      setFoundUser(null);
+      setSearchDone(false);
       onSuccess();
     } catch (err) {
       toast({
@@ -199,16 +268,45 @@ function InviteSection({
       <form onSubmit={handleInvite} className="space-y-3">
         <div className="space-y-1.5">
           <Label htmlFor="invite-email">電子郵件</Label>
-          <Input
-            id="invite-email"
-            type="email"
-            placeholder="user@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isSubmitting}
-            required
-          />
+          <div className="flex gap-2">
+            <Input
+              id="invite-email"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFoundUser(null);
+                setSearchDone(false);
+              }}
+              disabled={isSubmitting}
+              required
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSearch}
+              disabled={isSearching || !email}
+            >
+              {isSearching ? "搜尋中..." : "搜尋"}
+            </Button>
+          </div>
         </div>
+
+        {searchDone && (
+          <div className="rounded-md bg-muted/50 p-3 text-sm">
+            {foundUser ? (
+              <p className="text-foreground">
+                找到用戶：<span className="font-medium">{foundUser.name}</span>
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                此 email 尚未在系統中註冊，邀請將以 email 方式發送。
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <Label>角色</Label>
           <RoleSelect value={role} onChange={setRole} disabled={isSubmitting} />
@@ -267,10 +365,20 @@ function InvitedSection({
     <div className="space-y-3">
       <h3 className="text-sm font-medium">邀請狀態</h3>
       <div className="rounded-md bg-muted/50 p-3 text-sm">
-        <p className="text-muted-foreground">
-          已邀請{" "}
-          <span className="font-medium text-foreground">{player.email}</span>
-        </p>
+        {player.userId ? (
+          <p className="text-muted-foreground">
+            已邀請已註冊用戶（
+            <span className="font-medium text-foreground">
+              userId: {player.userId}
+            </span>
+            ）
+          </p>
+        ) : (
+          <p className="text-muted-foreground">
+            已邀請{" "}
+            <span className="font-medium text-foreground">{player.email}</span>
+          </p>
+        )}
       </div>
       <Button
         variant="outline"

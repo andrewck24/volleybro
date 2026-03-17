@@ -4,6 +4,7 @@ import type { ICancelInvitationUseCase } from './cancel-invitation.usecase.inter
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { Player } from '@/entities/player';
+import { PlayerStatus } from '@/entities/player';
 
 @injectable()
 export class CancelInvitationUseCase implements ICancelInvitationUseCase {
@@ -15,23 +16,21 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
   ) {}
 
   async execute(playerId: string, userId: string): Promise<Player> {
-    // 1. Get the player to check if invitation exists
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new Error('Player not found');
     }
 
-    // 2. Verify user is admin of the team
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
-    // 3. Check if player has an email (invitation status)
-    if (!player.email) {
+    if (player.status !== PlayerStatus.INVITED) {
       throw new Error('Player is not an invited member');
     }
 
-    // 4. Cancel invitation by removing email
     const updated = await this.playerRepository.update(playerId, {
+      status: PlayerStatus.NONE,
       email: undefined,
+      userId: undefined,
     });
 
     if (!updated) {

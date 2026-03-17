@@ -4,7 +4,7 @@ import { useProfile } from "@/hooks/use-data";
 
 const Notifications = () => {
   const { profile } = useProfile();
-  const defaultTeamId = profile?.teams?.joined[0];
+  const defaultTeamId = profile?.activeTeamId;
 
   return <>{!defaultTeamId && <GuidesForNewUser />}</>;
 };

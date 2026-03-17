@@ -1,6 +1,6 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
-import { Player, PlayerRole } from "@/entities/player";
+import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("RejectInvitationUseCase", () => {
   let usecase: RejectInvitationUseCase;
@@ -10,7 +10,8 @@ describe("RejectInvitationUseCase", () => {
     _id: "player-1",
     name: "test",
     teamId: "team-1",
-    email: "test@example.com",
+    status: PlayerStatus.INVITED,
+    userId: "user-1",
     role: PlayerRole.MEMBER,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -31,15 +32,17 @@ describe("RejectInvitationUseCase", () => {
       findTeamOwner: jest.fn(),
       findAdminsByTeamId: jest.fn(),
       existsInvitation: jest.fn(),
+      linkUserToInvitations: jest.fn(),
     } as jest.Mocked<IPlayerRepository>;
 
     usecase = new RejectInvitationUseCase(mockPlayerRepository);
   });
 
-  it("should reject invitation and clear email", async () => {
+  it("should transition status from INVITED to NONE and clear email", async () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
     mockPlayerRepository.update.mockResolvedValue({
       ...invitedPlayer,
+      status: PlayerStatus.NONE,
       email: undefined,
     });
 
@@ -47,8 +50,19 @@ describe("RejectInvitationUseCase", () => {
 
     expect(mockPlayerRepository.findById).toHaveBeenCalledWith("player-1");
     expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
+      status: PlayerStatus.NONE,
       email: undefined,
+      userId: undefined,
     });
+  });
+
+  it("should throw error if userId does not match invited recipient", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
+
+    await expect(usecase.execute("player-1", "wrong-user")).rejects.toThrow(
+      "User is not the invited recipient",
+    );
+    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
   });
 
   it("should throw error if player not found", async () => {
@@ -59,12 +73,13 @@ describe("RejectInvitationUseCase", () => {
     );
   });
 
-  it("should throw error if no invitation to reject", async () => {
-    const purePlayer: Player = {
+  it("should throw error if player status is not INVITED", async () => {
+    const nonePlayer: Player = {
       ...invitedPlayer,
+      status: PlayerStatus.NONE,
       email: undefined,
     };
-    mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+    mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
     await expect(usecase.execute("player-1", "user-1")).rejects.toThrow(
       "No invitation found for this player",
@@ -79,28 +94,16 @@ describe("RejectInvitationUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);
     mockPlayerRepository.update.mockResolvedValue({
       ...adminInvite,
+      status: PlayerStatus.NONE,
       email: undefined,
     });
 
     await usecase.execute("player-1", "user-1");
 
     expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
+      status: PlayerStatus.NONE,
       email: undefined,
-    });
-  });
-
-  it("should convert INVITED to PURE_PLAYER status", async () => {
-    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
-    mockPlayerRepository.update.mockResolvedValue({
-      ...invitedPlayer,
-      email: undefined,
-    });
-
-    await usecase.execute("player-1", "user-1");
-
-    // After update, email is cleared, converting INVITED -> PURE_PLAYER
-    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
-      email: undefined,
+      userId: undefined,
     });
   });
 });

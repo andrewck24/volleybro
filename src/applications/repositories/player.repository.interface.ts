@@ -71,4 +71,11 @@ export interface IPlayerRepository {
    * Used for verifying user's role in a specific team
    */
   findByTeamIdAndUserId(teamId: string, userId: string): Promise<Player | null>;
+
+  /**
+   * Batch-link pending INVITED players (by email) to a registered userId.
+   * Uses updateMany: sets userId, clears email, idempotent.
+   * Returns the number of records modified.
+   */
+  linkUserToInvitations(email: string, userId: string): Promise<number>;
 }

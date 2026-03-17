@@ -3,7 +3,7 @@ import type { ICreatePlayerUseCase } from '../create-player.usecase.interface';
 import { CreatePlayerUseCase } from '../create-player.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
-import { PlayerRole } from '@/entities/player';
+import { PlayerRole, PlayerStatus } from '@/entities/player';
 
 describe('CreatePlayerUseCase', () => {
   let useCase: ICreatePlayerUseCase;
@@ -20,6 +20,7 @@ describe('CreatePlayerUseCase', () => {
       update: jest.fn(),
       delete: jest.fn(),
       findInvitedByTeamIdAndEmail: jest.fn(),
+      linkUserToInvitations: jest.fn(),
     } as any;
 
     mockAuthService = {
@@ -30,7 +31,7 @@ describe('CreatePlayerUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should create a pure player without email', async () => {
+    it('should create a NONE status player', async () => {
       const teamId = 'team_123';
       const userId = 'user_456';
       const input = {
@@ -43,6 +44,7 @@ describe('CreatePlayerUseCase', () => {
         _id: 'player_new_001',
         ...input,
         teamId,
+        status: PlayerStatus.NONE,
         role: PlayerRole.MEMBER,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -61,13 +63,14 @@ describe('CreatePlayerUseCase', () => {
         name: input.name,
         number: input.number,
         position: input.position,
+        status: PlayerStatus.NONE,
         teamId,
         role: PlayerRole.MEMBER,
       });
       expect(result).toEqual(createdPlayer);
     });
 
-    it('should create an invited player with email', async () => {
+    it('should create a player with email as NONE status (invitation via CreateInvitationUseCase)', async () => {
       const teamId = 'team_123';
       const userId = 'user_456';
       const input = {
@@ -81,6 +84,7 @@ describe('CreatePlayerUseCase', () => {
         name: input.name,
         email: input.email,
         role: input.role,
+        status: PlayerStatus.NONE,
         teamId,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -92,20 +96,13 @@ describe('CreatePlayerUseCase', () => {
 
       const result = await useCase.execute(teamId, input, userId);
 
-      expect(mockAuthService.verifyIsTeamAdmin).toHaveBeenCalledWith(
-        teamId,
-        userId
+      expect(mockPlayerRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: PlayerStatus.NONE,
+          name: input.name,
+          teamId,
+        })
       );
-      expect(mockPlayerRepository.findInvitedByTeamIdAndEmail).toHaveBeenCalledWith(
-        teamId,
-        input.email
-      );
-      expect(mockPlayerRepository.create).toHaveBeenCalledWith({
-        name: input.name,
-        email: input.email,
-        role: input.role || PlayerRole.MEMBER,
-        teamId,
-      });
       expect(result).toEqual(createdPlayer);
     });
 
@@ -159,6 +156,7 @@ describe('CreatePlayerUseCase', () => {
         _id: 'player_new_002',
         name: input.name,
         teamId,
+        status: PlayerStatus.NONE,
         role: PlayerRole.MEMBER,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -169,11 +167,14 @@ describe('CreatePlayerUseCase', () => {
 
       await useCase.execute(teamId, input, userId);
 
-      expect(mockPlayerRepository.create).toHaveBeenCalledWith({
-        name: input.name,
-        teamId,
-        role: PlayerRole.MEMBER,
-      });
+      expect(mockPlayerRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: input.name,
+          teamId,
+          status: PlayerStatus.NONE,
+          role: PlayerRole.MEMBER,
+        })
+      );
     });
   });
 });

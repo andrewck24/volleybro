@@ -11,19 +11,18 @@ import {
  * Mongoose Player Schema
  * Unified schema for team members, invited users, and pure players
  *
- * State Machine:
- * - INVITED: email ✓ && userId ✗
- * - JOINED: userId ✓
- * - PURE_PLAYER: email ✗ && userId ✗
- *
- * Virtual fields:
- * - status: Computed from email and userId fields
+ * Status Model (explicit field):
+ * - NONE: Pure player, no system account linked (userId ✗, email ✗)
+ * - INVITED + userId: Registered user invited (userId ✓, email ✗)
+ * - INVITED + email: Unregistered user invited (userId ✗, email ✓)
+ * - JOINED: User has accepted invitation (userId ✓, email ✗)
  */
 
 export interface PlayerDocument extends Document {
   name: string;
   number?: number;
   position?: string;
+  status: "NONE" | "INVITED" | "JOINED";
   teamId?: Types.ObjectId;
   userId?: Types.ObjectId;
   email?: string;
@@ -49,6 +48,12 @@ const PlayerSchema = new Schema<PlayerDocument>(
       type: String,
       enum: ["", "OH", "MB", "OP", "S", "L"],
       default: "",
+    },
+    status: {
+      type: String,
+      enum: ["NONE", "INVITED", "JOINED"],
+      required: true,
+      default: "NONE",
     },
     teamId: {
       type: Schema.Types.ObjectId,
@@ -98,13 +103,6 @@ PlayerSchema.index({ teamId: 1, userId: 1 });
 
 // T060: Composite index for querying members by role within a team
 PlayerSchema.index({ teamId: 1, role: 1 });
-
-// Virtual field for status inference
-PlayerSchema.virtual("status").get(function (this: PlayerDocument) {
-  if (this.userId) return "JOINED";
-  if (this.email) return "INVITED";
-  return "PURE_PLAYER";
-});
 
 // Prevent model overwrite error in development (hot reload)
 export const PlayerModel =
