@@ -2,15 +2,15 @@
 
 > Implements: error class hierarchy location, error field structure, seven error subclasses design decisions
 
-- [ ] [P] 1.1 Write tests for AppError class hierarchy — constructor with/without internalMessage, instanceof chain, all seven subclasses with correct fixed properties (code, httpStatus, isTransient), AppErrorCode type union (entities layer)
-- [ ] [P] 1.2 Write tests for ValidationError with details field — with Zod issues, without details (entities layer)
-- [ ] [P] 1.3 Write tests for UnexpectedError with originalError field (entities layer)
-- [ ] [P] 1.4 Write tests for TransientError with source metadata — source, retryable options (entities layer)
-- [ ] 1.5 Implement AppError abstract base class and seven concrete subclasses in `src/entities/errors/app-error.ts` — ValidationError, AuthenticationError, AuthorizationError, NotFoundError, ConflictError, TransientError, UnexpectedError (entities layer)
-- [ ] 1.6 Define `AppErrorCode` type union in `src/entities/errors/app-error.ts` (entities layer)
-- [ ] 1.7 Create domain-scoped reason enums files following naming convention — `src/entities/errors/reasons/common.ts` (CommonReason with shared values), plus placeholder files for `player.ts`, `record.ts`, `profile.ts`, `auth.ts` (entities layer)
-- [ ] 1.8 Create barrel export `src/entities/errors/index.ts`
-- [ ] 1.9 Run `npm test` — all new and existing tests pass
+- [x] [P] 1.1 Write tests for AppError class hierarchy — constructor with/without internalMessage, instanceof chain, all seven subclasses with correct fixed properties (code, httpStatus, isTransient), AppErrorCode type union (entities layer)
+- [x] [P] 1.2 Write tests for ValidationError with details field — with Zod issues, without details (entities layer)
+- [x] [P] 1.3 Write tests for UnexpectedError with originalError field (entities layer)
+- [x] [P] 1.4 Write tests for TransientError with source metadata — source, retryable options (entities layer)
+- [x] 1.5 Implement AppError abstract base class and seven concrete subclasses in `src/entities/errors/app-error.ts` — ValidationError, AuthenticationError, AuthorizationError, NotFoundError, ConflictError, TransientError, UnexpectedError (entities layer)
+- [x] 1.6 Define `AppErrorCode` type union in `src/entities/errors/app-error.ts` (entities layer)
+- [x] 1.7 Create domain-scoped reason enums files following naming convention — `src/entities/errors/reasons/common.ts` (CommonReason with shared values), plus placeholder files for `player.ts`, `record.ts`, `profile.ts`, `auth.ts` (entities layer)
+- [x] 1.8 Create barrel export `src/entities/errors/index.ts`
+- [x] 1.9 Run `npm test` — all new and existing tests pass
 
 ## 2. Route Wrappers (Route Handler Layer)
 
