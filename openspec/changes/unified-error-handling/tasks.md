@@ -16,12 +16,12 @@
 
 > Implements: `withErrorHandler` and `withAuth` wrappers, observability impact and structured logging design decisions
 
-- [ ] 2.1 Write tests for withErrorHandler route wrapper and HTTP error response format — AppError serialized to structured response (code, reason, detail, no message leakage), ZodError converted to ValidationError, unknown error wrapped as UnexpectedError (route layer)
-- [ ] 2.2 Write tests for structured error logging — operational error produces warn-level JSON log via console.error, unexpected error produces error-level log with stack trace (route layer)
-- [ ] 2.3 Write tests for withAuth route wrapper — authenticated request passes userId, unauthenticated request returns 401 (route layer)
-- [ ] 2.4 Implement `withErrorHandler` in `src/lib/api/wrappers.ts` — try/catch, AppError→JSON serialization, ZodError conversion, UnexpectedError wrapping, structured error logging (route layer)
-- [ ] 2.5 Implement `withAuth` in `src/lib/api/wrappers.ts` — session validation via Better Auth, AuthenticationError throw, userId context passing (route layer)
-- [ ] 2.6 Run `npm test` — all new and existing tests pass
+- [x] 2.1 Write tests for withErrorHandler route wrapper and HTTP error response format — AppError serialized to structured response (code, reason, detail, no message leakage), ZodError converted to ValidationError, unknown error wrapped as UnexpectedError (route layer)
+- [x] 2.2 Write tests for structured error logging — operational error produces warn-level JSON log via console.error, unexpected error produces error-level log with stack trace (route layer)
+- [x] 2.3 Write tests for withAuth route wrapper — authenticated request passes userId, unauthenticated request returns 401 (route layer)
+- [x] 2.4 Implement `withErrorHandler` in `src/lib/api/wrappers.ts` — try/catch, AppError→JSON serialization, ZodError conversion, UnexpectedError wrapping, structured error logging (route layer)
+- [x] 2.5 Implement `withAuth` in `src/lib/api/wrappers.ts` — session validation via Better Auth, AuthenticationError throw, userId context passing (route layer)
+- [x] 2.6 Run `npm test` — all new and existing tests pass
 
 ## 3. Proxy API Authentication Gate (Edge Runtime)
 
