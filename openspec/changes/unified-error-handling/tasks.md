@@ -35,13 +35,13 @@
 
 > Implements: infrastructure error translation design decision
 
-- [ ] 4.1 Write tests for repository error translation — Mongoose CastError→NotFoundError, MongoServerError 11000→ConflictError, connection error→TransientError with database source, unknown error→UnexpectedError (infrastructure layer)
-- [ ] 4.2 Write tests for AuthenticationService error translation — invalid session→AuthenticationError, user not found→AuthenticationError (infrastructure layer)
-- [ ] 4.3 Write tests for AuthorizationService error translation — insufficient role→AuthorizationError, not team member→AuthorizationError (infrastructure layer)
-- [ ] 4.4 Implement error translation in base repository or per-repository catch blocks — only AppError subclasses shall be thrown from repositories (infrastructure layer)
-- [ ] 4.5 Update `AuthenticationService.verifySession()` to throw `AuthenticationError` instead of generic Error (infrastructure layer)
-- [ ] 4.6 Update `AuthorizationService` methods to throw `AuthorizationError` instead of generic Error, populate AuthReason enum values (infrastructure layer)
-- [ ] 4.7 Run `npm test` — all new and existing tests pass
+- [x] 4.1 Write tests for repository error translation — Mongoose CastError→NotFoundError, MongoServerError 11000→ConflictError, connection error→TransientError with database source, unknown error→UnexpectedError (infrastructure layer)
+- [x] 4.2 Write tests for AuthenticationService error translation — invalid session→AuthenticationError, user not found→AuthenticationError (infrastructure layer)
+- [x] 4.3 Write tests for AuthorizationService error translation — insufficient role→AuthorizationError, not team member→AuthorizationError (infrastructure layer)
+- [x] 4.4 Implement error translation in base repository or per-repository catch blocks — only AppError subclasses shall be thrown from repositories (infrastructure layer)
+- [x] 4.5 Update `AuthenticationService.verifySession()` to throw `AuthenticationError` instead of generic Error (infrastructure layer)
+- [x] 4.6 Update `AuthorizationService` methods to throw `AuthorizationError` instead of generic Error, populate AuthReason enum values (infrastructure layer)
+- [x] 4.7 Run `npm test` — all new and existing tests pass
 
 ## 5. Use Case Migration — Player Domain (Application Layer)
 
