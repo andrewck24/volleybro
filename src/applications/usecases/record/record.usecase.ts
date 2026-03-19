@@ -5,6 +5,8 @@ import type { IAuthenticationService } from "@/applications/services/auth/authen
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import type { Record } from "@/entities/record";
 import { PlayerRole } from "@/entities/player";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { RecordReason } from "@/entities/errors/reasons/record";
 
 export interface IFindRecordInput {
   params: { _id: string };
@@ -31,6 +33,7 @@ export class FindRecordUseCase {
     const record = await this.recordRepository.findOne({
       _id: params._id,
     });
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),

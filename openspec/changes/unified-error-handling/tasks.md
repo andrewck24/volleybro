@@ -76,10 +76,10 @@
 
 ## 8. Use Case Migration — Record Domain (Application Layer)
 
-- [ ] 8.1 Analyze all error paths in record domain use cases (rally, set, substitution), define `RecordReason` enum values in `src/entities/errors/reasons/record.ts`
-- [ ] 8.2 Update tests for record use cases
-- [ ] 8.3 Migrate rally, set, and substitution use cases to throw typed AppError
-- [ ] 8.4 Run `npm test` — all record domain tests pass
+- [x] 8.1 Analyze all error paths in record domain use cases (rally, set, substitution), define `RecordReason` enum values in `src/entities/errors/reasons/record.ts`
+- [x] 8.2 Update tests for record use cases
+- [x] 8.3 Migrate rally, set, and substitution use cases to throw typed AppError
+- [x] 8.4 Run `npm test` — all record domain tests pass
 
 ## 9. Route Migration (Route Handler Layer)
 
