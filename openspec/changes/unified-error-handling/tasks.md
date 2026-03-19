@@ -27,9 +27,9 @@
 
 > Implements: proxy authentication gate design decision
 
-- [ ] 3.1 Write tests for proxy API authentication gate — unauthenticated API request blocked, auth routes excluded, authenticated request passes through (edge layer)
-- [ ] 3.2 Extend `src/proxy.ts` to return 401 JSON for unauthenticated API requests (except `/api/auth/*`) (edge layer)
-- [ ] 3.3 Run `npm test && npm run build` — verify proxy changes
+- [x] 3.1 Write tests for proxy API authentication gate — unauthenticated API request blocked, auth routes excluded, authenticated request passes through (edge layer)
+- [x] 3.2 Extend `src/proxy.ts` to return 401 JSON for unauthenticated API requests (except `/api/auth/*`) (edge layer)
+- [x] 3.3 Run `npm test && npm run build` — verify proxy changes
 
 ## 4. Infrastructure Error Translation (Infrastructure Layer)
 
