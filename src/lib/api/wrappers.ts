@@ -3,11 +3,12 @@ import { headers } from "next/headers";
 import { ZodError } from "zod";
 import {
   AppError,
+  AuthenticationError,
   UnexpectedError,
   ValidationError,
 } from "@/entities/errors/app-error";
 import { AuthReason } from "@/entities/errors/reasons/auth";
-import { AuthenticationError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import { auth } from "@/lib/auth";
 
 type RouteHandler = (req: NextRequest) => Promise<NextResponse>;
@@ -28,7 +29,7 @@ function serializeError(error: AppError): Record<string, unknown> {
   return body;
 }
 
-function logError(error: unknown, req: NextRequest): void {
+function logError(error: AppError | Error, req: NextRequest): void {
   const url = new URL(req.url);
   const base = {
     path: url.pathname,
@@ -36,7 +37,20 @@ function logError(error: unknown, req: NextRequest): void {
     timestamp: new Date().toISOString(),
   };
 
-  if (error instanceof AppError) {
+  if (error instanceof UnexpectedError) {
+    const original =
+      error.originalError instanceof Error ? error.originalError : error;
+    console.error(
+      JSON.stringify({
+        level: "error",
+        code: error.code,
+        reason: error.reason,
+        message: error.message,
+        stack: original.stack,
+        ...base,
+      }),
+    );
+  } else if (error instanceof AppError) {
     console.error(
       JSON.stringify({
         level: "warn",
@@ -47,14 +61,13 @@ function logError(error: unknown, req: NextRequest): void {
       }),
     );
   } else {
-    const err = error instanceof Error ? error : new Error(String(error));
     console.error(
       JSON.stringify({
         level: "error",
         code: "UNEXPECTED",
-        reason: "UNHANDLED_ERROR",
-        message: err.message,
-        stack: err.stack,
+        reason: CommonReason.UNHANDLED_ERROR,
+        message: error.message,
+        stack: error.stack,
         ...base,
       }),
     );
@@ -65,7 +78,27 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
   return async (req: NextRequest) => {
     try {
       return await handler(req);
-    } catch (error) {
+    } catch (raw) {
+      // Normalize error before logging so ZodError logs as warn, not error
+      let error: AppError | Error;
+      if (raw instanceof AppError) {
+        error = raw;
+      } else if (raw instanceof ZodError) {
+        error = new ValidationError(
+          CommonReason.INVALID_INPUT,
+          "Request data failed validation",
+          undefined,
+          raw.issues,
+        );
+      } else {
+        error = new UnexpectedError(
+          CommonReason.UNHANDLED_ERROR,
+          "An unexpected error occurred",
+          raw instanceof Error ? raw.message : String(raw),
+          raw,
+        );
+      }
+
       logError(error, req);
 
       if (error instanceof AppError) {
@@ -74,22 +107,11 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
         });
       }
 
-      if (error instanceof ZodError) {
-        const validationError = new ValidationError(
-          "INVALID_INPUT",
-          "Request data failed validation",
-          undefined,
-          error.issues,
-        );
-        return NextResponse.json(serializeError(validationError), {
-          status: 400,
-        });
-      }
-
+      // Unreachable: all paths above produce an AppError, but TypeScript needs this
       return NextResponse.json(
         {
           code: "UNEXPECTED",
-          reason: "UNHANDLED_ERROR",
+          reason: CommonReason.UNHANDLED_ERROR,
           detail: "An unexpected error occurred",
         },
         { status: 500 },
