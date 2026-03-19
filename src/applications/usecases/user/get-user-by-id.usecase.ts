@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { NotFoundError } from "@/applications/errors/app-error";
+import { NotFoundError } from "@/entities/errors/app-error";
 import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";

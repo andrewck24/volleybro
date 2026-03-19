@@ -59,13 +59,13 @@
 
 > Implements: throw-only pattern (no Result type as default) design decision; removes Result type definition, mixed error handling pattern, and pilot scope limitation requirements from the existing error-handling spec
 
-- [ ] 6.1 Analyze all error paths in user/profile use cases, define `ProfileReason` enum values in `src/entities/errors/reasons/profile.ts`
-- [ ] 6.2 Update `CreateProfileUseCase` — remove mixed error handling pattern (Result return), switch to throw-only
-- [ ] 6.3 Update `LinkPendingInvitationsUseCase` — remove Result return pattern, switch to throw-only (removes pilot scope limitation)
-- [ ] 6.4 Update `src/lib/auth-hook.ts` — replace `result.ok` checks with try/catch (auth hook Result dependency migration)
-- [ ] 6.5 Update tests for auth hook and profile use cases
-- [ ] 6.6 Verify `SearchUserUseCase` and `GetUserByIdUseCase` already throw AppError correctly, update if needed
-- [ ] 6.7 Run `npm test` — all user/profile domain tests pass
+- [x] 6.1 Analyze all error paths in user/profile use cases, define `ProfileReason` enum values in `src/entities/errors/reasons/profile.ts`
+- [x] 6.2 Update `CreateProfileUseCase` — remove mixed error handling pattern (Result return), switch to throw-only
+- [x] 6.3 Update `LinkPendingInvitationsUseCase` — remove Result return pattern, switch to throw-only (removes pilot scope limitation)
+- [x] 6.4 Update `src/lib/auth-hook.ts` — replace `result.ok` checks with try/catch (auth hook Result dependency migration)
+- [x] 6.5 Update tests for auth hook and profile use cases
+- [x] 6.6 Verify `SearchUserUseCase` and `GetUserByIdUseCase` already throw AppError correctly, update if needed
+- [x] 6.7 Run `npm test` — all user/profile domain tests pass
 
 ## 7. Use Case Migration — Team Domain (Application Layer)
 

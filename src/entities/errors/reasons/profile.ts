@@ -1,1 +1,4 @@
-export enum ProfileReason {}
+export enum ProfileReason {
+  PROFILE_NOT_FOUND = "PROFILE_NOT_FOUND",
+  INVALID_EMAIL = "INVALID_EMAIL",
+}
