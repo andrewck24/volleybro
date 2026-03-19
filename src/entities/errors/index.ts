@@ -1,6 +1,6 @@
 export {
   AppError,
-  AppErrorCode,
+  type AppErrorCode,
   ValidationError,
   AuthenticationError,
   AuthorizationError,

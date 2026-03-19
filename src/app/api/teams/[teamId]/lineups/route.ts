@@ -1,44 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { withAuth } from "@/lib/api/wrappers";
+import {
+  NotFoundError,
+  AuthorizationError,
+} from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
+import { AuthReason } from "@/entities/errors/reasons/auth";
 
-export const PATCH = async (
+export const PATCH = (
   req: NextRequest,
-  props: { params: Promise<{ teamId: string }> }
-) => {
-  try {
-    const params = await props.params;
-    const { teamId } = params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+  props: { params: Promise<{ teamId: string }> },
+) =>
+  withAuth(async (req, { userId }) => {
+    const { teamId } = await props.params;
     await connectToMongoDB();
 
     const team = await Team.findById(teamId);
     if (!team) {
-      console.error("[PATCH /api/teams/[teamId]/lineups] Team not found");
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "Team not found",
+      );
     }
 
-    // Check if user is a member of the team using PlayerRepository
     const playerRepository = container.get<IPlayerRepository>(
-      TYPES.PlayerRepository
+      TYPES.PlayerRepository,
     );
     const player = await playerRepository.findByTeamIdAndUserId(
       teamId,
-      session.user.id
+      userId,
     );
     if (!player) {
-      return NextResponse.json(
-        { error: "You are not authorized to update this team" },
-        { status: 401 }
+      throw new AuthorizationError(
+        AuthReason.NOT_TEAM_MEMBER,
+        "You are not a member of this team",
       );
     }
 
@@ -48,11 +48,4 @@ export const PATCH = async (
     await team.save();
 
     return NextResponse.json(team.lineups, { status: 200 });
-  } catch (error) {
-    console.error("[PATCH /api/teams/:teamId/lineups]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-};
+  })(req);

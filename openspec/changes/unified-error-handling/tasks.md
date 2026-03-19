@@ -83,11 +83,11 @@
 
 ## 9. Route Migration (Route Handler Layer)
 
-- [ ] [P] 9.1 Migrate player API routes (`/api/players/*`, `/api/teams/*/players`) — replace manual catch blocks with `withAuth`/`withErrorHandler` wrappers
-- [ ] [P] 9.2 Migrate user/profile API routes (`/api/users`, `/api/profiles`) — replace manual catch blocks with wrappers
-- [ ] [P] 9.3 Migrate team API routes (`/api/teams/*`) — replace manual catch blocks with wrappers
-- [ ] [P] 9.4 Migrate record API routes (`/api/records/*`, `/api/matches`) — replace manual catch blocks with wrappers (currently all return 500)
-- [ ] 9.5 Run `npm test && npm run build` — all route tests pass, build succeeds
+- [x] [P] 9.1 Migrate player API routes (`/api/players/*`, `/api/teams/*/players`) — replace manual catch blocks with `withAuth`/`withErrorHandler` wrappers
+- [x] [P] 9.2 Migrate user/profile API routes (`/api/users`, `/api/profiles`) — replace manual catch blocks with wrappers
+- [x] [P] 9.3 Migrate team API routes (`/api/teams/*`) — replace manual catch blocks with wrappers
+- [x] [P] 9.4 Migrate record API routes (`/api/records/*`, `/api/matches`) — replace manual catch blocks with wrappers (currently all return 500)
+- [x] 9.5 Run `npm test && npm run build` — all route tests pass, build succeeds
 
 ## 10. API Client and Frontend Error Consumption (Presentation Layer)
 

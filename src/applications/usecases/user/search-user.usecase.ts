@@ -1,5 +1,7 @@
 import { inject, injectable } from "inversify";
 import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
+import { ProfileReason } from "@/entities/errors/reasons/profile";
 import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
@@ -23,7 +25,7 @@ export class SearchUserUseCase {
     if (!email || !EMAIL_REGEX.test(email)) {
       return {
         ok: false,
-        error: new ValidationError("Invalid email format"),
+        error: new ValidationError(ProfileReason.INVALID_EMAIL, "Invalid email format"),
       };
     }
 
@@ -32,7 +34,7 @@ export class SearchUserUseCase {
     if (!user) {
       return {
         ok: false,
-        error: new NotFoundError(`User with email ${email} not found`),
+        error: new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "User not found", `User with email ${email} not found`),
       };
     }
 
