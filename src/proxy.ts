@@ -38,6 +38,8 @@ export async function proxy(request: NextRequest) {
     headers: await headers(),
   });
 
+  // Page-level auth (non-API routes reach here, plus /api/auth/* which
+  // is excluded from the API gate above)
   const isSignedIn = !!session;
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);

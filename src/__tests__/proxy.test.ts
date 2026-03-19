@@ -64,12 +64,6 @@ describe("proxy — API authentication gate", () => {
         detail: "Authentication is required",
       });
     });
-
-    it("does not forward unauthenticated API request to route handler", async () => {
-      mockGetSessionCookie.mockReturnValue(null);
-      const res = await proxy(makeRequest("/api/teams") as never);
-      expect(res.status).toBe(401);
-    });
   });
 
   describe("auth API routes are excluded from the check", () => {
@@ -77,6 +71,7 @@ describe("proxy — API authentication gate", () => {
       mockGetSession.mockResolvedValue(null);
       const res = await proxy(makeRequest("/api/auth/sign-in") as never);
       expect(res.status).not.toBe(401);
+      expect(mockGetSessionCookie).not.toHaveBeenCalled();
     });
   });
 
