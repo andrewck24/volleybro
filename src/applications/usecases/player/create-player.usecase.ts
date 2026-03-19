@@ -6,6 +6,9 @@ import type { IAuthorizationService } from '@/applications/services/auth/authori
 import type { Player } from '@/entities/player';
 import type { CreatePlayerInput } from '@/lib/validations/player';
 import { PlayerRole, PlayerStatus } from '@/entities/player';
+import { ConflictError, UnexpectedError } from '@/entities/errors/app-error';
+import { PlayerReason } from '@/entities/errors/reasons/player';
+import { CommonReason } from '@/entities/errors/reasons/common';
 
 @injectable()
 export class CreatePlayerUseCase implements ICreatePlayerUseCase {
@@ -31,7 +34,7 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
         input.email
       );
       if (existingInvitation) {
-        throw new Error('Email already invited in this team');
+        throw new ConflictError(PlayerReason.EMAIL_ALREADY_INVITED, "This email already has a pending invitation for this team");
       }
     }
 
@@ -47,7 +50,7 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
     });
 
     if (!player) {
-      throw new Error('Failed to create player');
+      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to create player");
     }
 
     return player;

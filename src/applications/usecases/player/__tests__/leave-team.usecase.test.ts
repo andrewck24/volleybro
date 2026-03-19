@@ -5,6 +5,7 @@ import type { IPlayerRepository } from "@/applications/repositories/player.repos
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { NotFoundError, AuthorizationError, UnexpectedError } from "@/entities/errors/app-error";
 
 describe("LeaveTeamUseCase", () => {
   let useCase: ILeaveTeamUseCase;
@@ -123,9 +124,7 @@ describe("LeaveTeamUseCase", () => {
     it("should reject if player not found", async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute("player_999", "user_456")).rejects.toThrow(
-        "Player not found",
-      );
+      await expect(useCase.execute("player_999", "user_456")).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if user does not own the player record", async () => {
@@ -142,9 +141,7 @@ describe("LeaveTeamUseCase", () => {
 
       mockPlayerRepository.findById.mockResolvedValue(player);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "User cannot leave this player record",
-      );
+      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should reject if owner tries to leave the team", async () => {
@@ -161,9 +158,7 @@ describe("LeaveTeamUseCase", () => {
 
       mockPlayerRepository.findById.mockResolvedValue(owner);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "Owner cannot leave the team",
-      );
+      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should reject if update fails", async () => {
@@ -181,9 +176,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "Failed to leave team",
-      );
+      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(UnexpectedError);
     });
   });
 });

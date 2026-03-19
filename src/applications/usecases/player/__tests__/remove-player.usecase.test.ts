@@ -4,6 +4,7 @@ import { RemovePlayerUseCase } from '../remove-player.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
+import { NotFoundError, UnexpectedError } from '@/entities/errors/app-error';
 
 describe('RemovePlayerUseCase', () => {
   let useCase: IRemovePlayerUseCase;
@@ -76,9 +77,7 @@ describe('RemovePlayerUseCase', () => {
 
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(playerId, userId)).rejects.toThrow(
-        'Player not found'
-      );
+      await expect(useCase.execute(playerId, userId)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it('should reject if user is not team admin', async () => {
@@ -125,9 +124,7 @@ describe('RemovePlayerUseCase', () => {
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.delete.mockResolvedValue(false);
 
-      await expect(useCase.execute(playerId, userId)).rejects.toThrow(
-        'Failed to delete player'
-      );
+      await expect(useCase.execute(playerId, userId)).rejects.toBeInstanceOf(UnexpectedError);
     });
   });
 });

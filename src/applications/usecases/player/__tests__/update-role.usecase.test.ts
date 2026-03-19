@@ -4,6 +4,7 @@ import { UpdateRoleUseCase } from '../update-role.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import { PlayerRole } from '@/entities/player';
+import { NotFoundError } from '@/entities/errors/app-error';
 
 describe('UpdateRoleUseCase', () => {
   let useCase: IUpdateRoleUseCase;
@@ -127,7 +128,7 @@ describe('UpdateRoleUseCase', () => {
 
       await expect(
         useCase.execute('non_existent', PlayerRole.ADMIN, 'user_456')
-      ).rejects.toThrow();
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 });

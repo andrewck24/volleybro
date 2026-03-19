@@ -47,13 +47,13 @@
 
 > Follows migration strategy: domain-by-domain migration with build verification
 
-- [ ] 5.1 Analyze all error paths in player domain use cases, define `PlayerReason` enum values in `src/entities/errors/reasons/player.ts`
-- [ ] 5.2 Update tests for player use cases — assert on AppError subclasses instead of generic Error messages
-- [ ] 5.3 Migrate `CreateInvitationUseCase` to throw typed AppError (only AppError subclasses shall be thrown)
-- [ ] 5.4 Migrate `AcceptInvitationUseCase`, `RejectInvitationUseCase`, `CancelInvitationUseCase` to throw typed AppError
-- [ ] 5.5 Migrate `CreatePlayerUseCase`, `RemovePlayerUseCase`, `UpdatePlayerInfoUseCase`, `UpdateRoleUseCase` to throw typed AppError
-- [ ] 5.6 Migrate `LeaveTeamUseCase`, `TransferOwnershipUseCase` to throw typed AppError
-- [ ] 5.7 Run `npm test` — all player domain tests pass
+- [x] 5.1 Analyze all error paths in player domain use cases, define `PlayerReason` enum values in `src/entities/errors/reasons/player.ts`
+- [x] 5.2 Update tests for player use cases — assert on AppError subclasses instead of generic Error messages
+- [x] 5.3 Migrate `CreateInvitationUseCase` to throw typed AppError (only AppError subclasses shall be thrown)
+- [x] 5.4 Migrate `AcceptInvitationUseCase`, `RejectInvitationUseCase`, `CancelInvitationUseCase` to throw typed AppError
+- [x] 5.5 Migrate `CreatePlayerUseCase`, `RemovePlayerUseCase`, `UpdatePlayerInfoUseCase`, `UpdateRoleUseCase` to throw typed AppError
+- [x] 5.6 Migrate `LeaveTeamUseCase`, `TransferOwnershipUseCase` to throw typed AppError
+- [x] 5.7 Run `npm test` — all player domain tests pass
 
 ## 6. Use Case Migration — User/Profile Domain (Application Layer)
 

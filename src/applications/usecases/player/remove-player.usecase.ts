@@ -4,6 +4,9 @@ import type { IRemovePlayerUseCase } from './remove-player.usecase.interface';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
+import { NotFoundError, UnexpectedError } from '@/entities/errors/app-error';
+import { PlayerReason } from '@/entities/errors/reasons/player';
+import { CommonReason } from '@/entities/errors/reasons/common';
 
 @injectable()
 export class RemovePlayerUseCase implements IRemovePlayerUseCase {
@@ -23,7 +26,7 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     // 1. Get player
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
-      throw new Error('Player not found');
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found");
     }
 
     // 2. Verify user is admin of team
@@ -32,7 +35,7 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     // 3. Delete player record
     const deleted = await this.playerRepository.delete(playerId);
     if (!deleted) {
-      throw new Error('Failed to delete player');
+      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to delete player");
     }
 
     // 4. Remove player from team lineups

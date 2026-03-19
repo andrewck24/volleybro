@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { NotFoundError, ConflictError, UnexpectedError } from "@/entities/errors/app-error";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { CreateInvitationUseCase } from "../create-invitation.usecase";
 import type { ICreateInvitationUseCase } from "../create-invitation.usecase.interface";
@@ -106,7 +107,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute(playerId, email, role, userId),
-      ).rejects.toThrow("Player not found");
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if player status is INVITED", async () => {
@@ -120,7 +121,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute(playerId, email, role, userId),
-      ).rejects.toThrow("Player already has an invitation");
+      ).rejects.toBeInstanceOf(ConflictError);
     });
 
     it("should reject if player status is JOINED", async () => {
@@ -134,7 +135,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute(playerId, email, role, userId),
-      ).rejects.toThrow("Player is already a joined member");
+      ).rejects.toBeInstanceOf(ConflictError);
     });
 
     it("should reject if user is not team admin", async () => {
@@ -155,7 +156,7 @@ describe("CreateInvitationUseCase", () => {
 
       await expect(
         useCase.execute(playerId, email, role, userId),
-      ).rejects.toThrow("Failed to create invitation");
+      ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });
 });

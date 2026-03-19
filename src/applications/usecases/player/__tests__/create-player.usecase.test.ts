@@ -4,6 +4,7 @@ import { CreatePlayerUseCase } from '../create-player.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import { PlayerRole, PlayerStatus } from '@/entities/player';
+import { ConflictError } from '@/entities/errors/app-error';
 
 describe('CreatePlayerUseCase', () => {
   let useCase: ICreatePlayerUseCase;
@@ -140,9 +141,7 @@ describe('CreatePlayerUseCase', () => {
         updatedAt: new Date(),
       } as any);
 
-      await expect(useCase.execute(teamId, input, userId)).rejects.toThrow(
-        'Email already invited in this team'
-      );
+      await expect(useCase.execute(teamId, input, userId)).rejects.toBeInstanceOf(ConflictError);
     });
 
     it('should use default role MEMBER if not specified', async () => {
