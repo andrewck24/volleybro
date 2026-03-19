@@ -15,7 +15,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 export const POST = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -33,10 +33,10 @@ export const POST = (
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 201 });
-  })(req);
+  })(_req);
 
 export const PATCH = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -53,13 +53,13 @@ export const PATCH = (
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  })(req);
+  })(_req);
 
 export const DELETE = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
-  withAuth(async (req, { userId }) => {
+  withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
 
     const player = await membershipController.cancelInvitation(
@@ -69,4 +69,4 @@ export const DELETE = (
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  })(req);
+  })(_req);

@@ -9,7 +9,7 @@ import { CreatePlayerSchema, PlayerSchema } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 export const POST = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -25,10 +25,10 @@ export const POST = (
     );
 
     return NextResponse.json(player, { status: 201 });
-  })(req);
+  })(_req);
 
 export const GET = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withAuth(async (_req, { userId: _userId }) => {
@@ -39,4 +39,4 @@ export const GET = (
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
     return NextResponse.json(validatedPlayers, { status: 200 });
-  })(req);
+  })(_req);

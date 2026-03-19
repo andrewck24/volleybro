@@ -7,7 +7,7 @@ import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongod
 import { withErrorHandler } from "@/lib/api/wrappers";
 
 export const POST = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ recordId: string }> },
 ) =>
   withErrorHandler(async (req) => {
@@ -28,10 +28,10 @@ export const POST = (
     const record = await createSetController(input);
 
     return NextResponse.json(record, { status: 201 });
-  })(req);
+  })(_req);
 
 export const PUT = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ recordId: string }> },
 ) =>
   withErrorHandler(async (req) => {
@@ -49,4 +49,4 @@ export const PUT = (
     const record = await updateSetController(input);
 
     return NextResponse.json(record, { status: 200 });
-  })(req);
+  })(_req);

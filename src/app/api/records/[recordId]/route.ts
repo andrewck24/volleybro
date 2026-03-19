@@ -4,7 +4,7 @@ import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongod
 import { withErrorHandler } from "@/lib/api/wrappers";
 
 export const GET = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ recordId: string }> },
 ) =>
   withErrorHandler(async (req) => {
@@ -15,4 +15,4 @@ export const GET = (
     const record = await findRecordController(input);
 
     return NextResponse.json(record, { status: 200 });
-  })(req);
+  })(_req);

@@ -3,17 +3,13 @@ import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongod
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
-import {
-  NotFoundError,
-  AuthorizationError,
-} from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
-import { AuthReason } from "@/entities/errors/reasons/auth";
 
 export const GET = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withErrorHandler(async (req) => {
@@ -29,10 +25,10 @@ export const GET = (
     }
 
     return NextResponse.json(team, { status: 200 });
-  })(req);
+  })(_req);
 
 export const PATCH = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -47,27 +43,10 @@ export const PATCH = (
       );
     }
 
-    const playerRepository = container.get<IPlayerRepository>(
-      TYPES.PlayerRepository,
+    const authorizationService = container.get<IAuthorizationService>(
+      TYPES.AuthorizationService,
     );
-    const player = await playerRepository.findByTeamIdAndUserId(
-      teamId,
-      userId,
-    );
-    if (!player) {
-      throw new AuthorizationError(
-        AuthReason.NOT_TEAM_MEMBER,
-        "You are not a member of this team",
-      );
-    }
-
-    const isAdmin = player.role === "ADMIN" || player.role === "OWNER";
-    if (!isAdmin) {
-      throw new AuthorizationError(
-        AuthReason.INSUFFICIENT_ROLE,
-        "You are not authorized to update this team",
-      );
-    }
+    await authorizationService.verifyIsTeamAdmin(teamId, userId);
 
     const { name, nickname } = await req.json();
     if (name) team.name = name;
@@ -76,4 +55,4 @@ export const PATCH = (
     await team.save();
 
     return NextResponse.json(team, { status: 200 });
-  })(req);
+  })(_req);

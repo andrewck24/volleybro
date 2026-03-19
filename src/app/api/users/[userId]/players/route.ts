@@ -10,10 +10,10 @@ import { PlayerSchema } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ userId: string }> },
 ) =>
-  withAuth(async (req, { userId: requestingUserId }) => {
+  withAuth(async (_req, { userId: requestingUserId }) => {
     const { userId: targetUserId } = await props.params;
 
     if (requestingUserId !== targetUserId) {
@@ -28,4 +28,4 @@ export const GET = (
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
     return NextResponse.json(validatedPlayers, { status: 200 });
-  })(req);
+  })(_req);

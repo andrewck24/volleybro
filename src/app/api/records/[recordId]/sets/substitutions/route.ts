@@ -4,7 +4,7 @@ import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongod
 import { withErrorHandler } from "@/lib/api/wrappers";
 
 export const POST = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ recordId: string }> },
 ) =>
   withErrorHandler(async (req) => {
@@ -20,4 +20,4 @@ export const POST = (
       data: substitution,
     });
     return NextResponse.json(entries, { status: 200 });
-  })(req);
+  })(_req);

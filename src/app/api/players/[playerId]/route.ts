@@ -12,7 +12,7 @@ import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
   withAuth(async (_req, { userId: _userId }) => {
@@ -29,10 +29,10 @@ export const GET = (
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  })(req);
+  })(_req);
 
 export const PATCH = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -49,13 +49,13 @@ export const PATCH = (
 
     const validatedPlayer = PlayerSchema.parse(updatedPlayer);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  })(req);
+  })(_req);
 
 export const DELETE = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
-  withAuth(async (req, { userId }) => {
+  withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
 
     await playerController.removePlayer(playerId, userId);
@@ -64,4 +64,4 @@ export const DELETE = (
       { success: true, message: "Player removed successfully" },
       { status: 200 },
     );
-  })(req);
+  })(_req);

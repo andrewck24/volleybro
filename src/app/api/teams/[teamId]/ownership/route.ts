@@ -11,7 +11,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 export const POST = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -28,4 +28,4 @@ export const POST = (
 
     const validatedPlayer = PlayerSchema.parse(updatedPlayer);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  })(req);
+  })(_req);

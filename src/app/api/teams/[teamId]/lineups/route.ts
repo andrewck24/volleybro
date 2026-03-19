@@ -3,17 +3,14 @@ import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongod
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { withAuth } from "@/lib/api/wrappers";
-import {
-  NotFoundError,
-  AuthorizationError,
-} from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { PlayerRole } from "@/entities/player";
 
 export const PATCH = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -28,19 +25,10 @@ export const PATCH = (
       );
     }
 
-    const playerRepository = container.get<IPlayerRepository>(
-      TYPES.PlayerRepository,
+    const authorizationService = container.get<IAuthorizationService>(
+      TYPES.AuthorizationService,
     );
-    const player = await playerRepository.findByTeamIdAndUserId(
-      teamId,
-      userId,
-    );
-    if (!player) {
-      throw new AuthorizationError(
-        AuthReason.NOT_TEAM_MEMBER,
-        "You are not a member of this team",
-      );
-    }
+    await authorizationService.verifyTeamRole(teamId, userId, PlayerRole.MEMBER);
 
     const lineups = await req.json();
     team.lineups = lineups;
@@ -48,4 +36,4 @@ export const PATCH = (
     await team.save();
 
     return NextResponse.json(team.lineups, { status: 200 });
-  })(req);
+  })(_req);

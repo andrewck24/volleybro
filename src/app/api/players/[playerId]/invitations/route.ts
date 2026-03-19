@@ -14,7 +14,7 @@ const PatchInvitationSchema = z.discriminatedUnion("action", [
 ]);
 
 export const PATCH = (
-  req: NextRequest,
+  _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
   withAuth(async (req, { userId }) => {
@@ -48,4 +48,4 @@ export const PATCH = (
         );
       }
     }
-  })(req);
+  })(_req);
