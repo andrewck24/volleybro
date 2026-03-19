@@ -69,10 +69,10 @@
 
 ## 7. Use Case Migration — Team Domain (Application Layer)
 
-- [ ] 7.1 Analyze all error paths in team domain use cases, update `CommonReason` or create `TeamReason` if needed
-- [ ] 7.2 Update tests for team use cases
-- [ ] 7.3 Migrate `CreateTeamUseCase` to throw typed AppError
-- [ ] 7.4 Run `npm test` — all team domain tests pass
+- [x] 7.1 Analyze all error paths in team domain use cases, update `CommonReason` or create `TeamReason` if needed
+- [x] 7.2 Update tests for team use cases
+- [x] 7.3 Migrate `CreateTeamUseCase` to throw typed AppError
+- [x] 7.4 Run `npm test` — all team domain tests pass
 
 ## 8. Use Case Migration — Record Domain (Application Layer)
 
