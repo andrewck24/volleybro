@@ -19,6 +19,7 @@ import {
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import type { TMatchInfoForm } from "@/lib/features/record/types";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/lib/api/api-client";
 import { useMemo, useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
@@ -89,7 +90,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     };
 
     try {
-      const res = await fetch(`/api/records?ti=${teamId}`, {
+      const record = await apiClient<{ _id: string }>(`/api/records?ti=${teamId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,8 +107,6 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
         }),
       });
 
-      const record = await res.json();
-      if (record.error) throw new Error(record.error);
       mutate(`/api/records/${record._id}`, record, false);
       return router.push(`/match/${record._id}`);
     } catch (err) {

@@ -16,6 +16,7 @@ import { useUser } from "@/hooks/use-data";
 import { useUserPlayers } from "@/hooks/use-data";
 import { PlayerStatus } from "@/entities/player";
 import { useToast } from "@/components/ui/use-toast";
+import { apiClient, ApiClientError } from "@/lib/api/api-client";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const router = useRouter();
@@ -29,23 +30,19 @@ export const Invitations = ({ className }: { className?: string }) => {
 
   const handleAccept = async (playerId: string): Promise<void> => {
     try {
-      const res = await fetch(`/api/players/${playerId}/invitations`, {
+      await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "accept" }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "接受邀請失敗");
-      }
-
       toast({ title: "邀請已接受", description: "您已加入隊伍" });
       mutate();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "接受邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     }
@@ -53,23 +50,19 @@ export const Invitations = ({ className }: { className?: string }) => {
 
   const handleReject = async (playerId: string): Promise<void> => {
     try {
-      const res = await fetch(`/api/players/${playerId}/invitations`, {
+      await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reject" }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "拒絕邀請失敗");
-      }
-
       toast({ title: "邀請已拒絕" });
       mutate();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "拒絕邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     }

@@ -16,6 +16,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
+import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -48,27 +49,20 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const handleLeaveTeam = async () => {
     setIsLeaving(true);
     try {
-      const res = await fetch(
-        `/api/players/${currentUserPlayer._id}/invitations`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "leave" }),
-        },
-      );
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "離隊失敗");
-      }
+      await apiClient(`/api/players/${currentUserPlayer._id}/invitations`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "leave" }),
+      });
 
       toast({ title: "已離開隊伍" });
       mutate();
       router.push("/user/invitations");
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "離隊失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     } finally {

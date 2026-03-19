@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -49,14 +50,9 @@ export function MembershipSection({
 
   const handleRemove = async () => {
     try {
-      const res = await fetch(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player._id}`, {
         method: "DELETE",
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "移除失敗");
-      }
 
       toast({
         title: "成員已移除",
@@ -65,9 +61,10 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "移除失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     }
@@ -75,16 +72,11 @@ export function MembershipSection({
 
   const handleTransferOwnership = async () => {
     try {
-      const res = await fetch(`/api/teams/${teamId}/ownership`, {
+      await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newOwnerId: player._id }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "移轉失敗");
-      }
 
       toast({
         title: "所有權已移轉",
@@ -92,9 +84,10 @@ export function MembershipSection({
       });
       revalidate();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "移轉失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     }
@@ -214,13 +207,10 @@ function InviteSection({
     setSearchDone(false);
 
     try {
-      const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFoundUser(data);
-      } else {
-        setFoundUser(null);
-      }
+      const data = await apiClient<FoundUser>(
+        `/api/users?email=${encodeURIComponent(email)}`,
+      );
+      setFoundUser(data);
     } catch {
       setFoundUser(null);
     } finally {
@@ -234,16 +224,11 @@ function InviteSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "邀請失敗");
-      }
 
       toast({ title: "邀請已發送", description: `已向 ${email} 發送邀請` });
       setEmail("");
@@ -252,9 +237,10 @@ function InviteSection({
       setSearchDone(false);
       onSuccess();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     } finally {
@@ -339,21 +325,17 @@ function InvitedSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "DELETE",
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "取消失敗");
-      }
 
       toast({ title: "邀請已取消" });
       onSuccess();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "取消失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     } finally {
@@ -413,16 +395,11 @@ function JoinedSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "變更失敗");
-      }
 
       toast({
         title: "角色已變更",
@@ -430,9 +407,10 @@ function JoinedSection({
       });
       onSuccess();
     } catch (err) {
+      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
       toast({
         title: "變更失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
+        description: detail,
         variant: "destructive",
       });
     } finally {

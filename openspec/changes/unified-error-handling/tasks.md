@@ -93,12 +93,12 @@
 
 > Implements: frontend error consumption, HTTP error response format (client-side) design decisions
 
-- [ ] 10.1 Implement `parseApiError` in `src/lib/api/parse-api-error.ts` — extract `{ code, reason, detail, details, status }` from Response
-- [ ] 10.2 Implement `apiClient` in `src/lib/api/api-client.ts` — wrap fetch, throw structured error on non-OK responses (API client and frontend error consumption)
-- [ ] 10.3 Update SWR fetcher in `src/hooks/use-data.ts` to use `apiClient` — SWR hooks receive structured error
-- [ ] 10.4 Update component manual fetch calls to use `apiClient` — replace raw `fetch` + `if (!res.ok)` patterns
-- [ ] 10.5 Update component error handling — switch on `error.code`/`error.reason` for zh-TW toast messages, use `error.detail` as fallback
-- [ ] 10.6 Run `npm test && npm run build` — all frontend tests pass
+- [x] 10.1 Implement `parseApiError` in `src/lib/api/parse-api-error.ts` — extract `{ code, reason, detail, details, status }` from Response
+- [x] 10.2 Implement `apiClient` in `src/lib/api/api-client.ts` — wrap fetch, throw structured error on non-OK responses (API client and frontend error consumption)
+- [x] 10.3 Update SWR fetcher in `src/hooks/use-data.ts` to use `apiClient` — SWR hooks receive structured error
+- [x] 10.4 Update component manual fetch calls to use `apiClient` — replace raw `fetch` + `if (!res.ok)` patterns
+- [x] 10.5 Update component error handling — switch on `error.code`/`error.reason` for zh-TW toast messages, use `error.detail` as fallback
+- [x] 10.6 Run `npm test && npm run build` — all frontend tests pass
 
 ## 11. Legacy Cleanup
 

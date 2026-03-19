@@ -18,6 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
+import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
@@ -104,16 +105,11 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
       };
       const validated = UpdatePlayerInfoSchema.parse(data);
 
-      const res = await fetch(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
-
-      if (!res.ok) {
-        const resData = await res.json();
-        throw new Error(resData.error || "更新失敗");
-      }
 
       toast({ title: "已更新", description: "球員資訊已更新" });
       mutate(`/api/players/${player._id}`);
@@ -125,10 +121,12 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
           newErrors[issue.path.join(".")] = issue.message;
         });
         setErrors(newErrors);
-      } else if (error instanceof Error) {
+      } else {
+        const detail =
+          error instanceof ApiClientError ? error.detail : "發生錯誤";
         toast({
           title: "更新失敗",
-          description: error.message,
+          description: detail,
           variant: "destructive",
         });
       }

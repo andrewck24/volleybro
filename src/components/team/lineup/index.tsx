@@ -5,7 +5,9 @@ import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
@@ -19,14 +21,11 @@ const Lineup = ({ teamId }) => {
 
   const handleSave = async (lineups) => {
     try {
-      const response = await fetch(`/api/teams/${team._id}/lineups`, {
+      const data = await apiClient<Lineup[]>(`/api/teams/${team._id}/lineups`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(lineups),
       });
-      const data = await response.json();
       mutate({ ...team, lineups: data }, false);
       return toast({
         title: "儲存成功",

@@ -16,8 +16,9 @@ import {
 } from "@/components/ui/form";
 import { PanelContent } from "@/components/ui/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Player } from "@/entities/record";
+import { Player, type Record } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
 import {
   SetOptionsFormSchema,
   type SetOptionsFormValues,
@@ -63,16 +64,18 @@ export const Options = ({ recordId }: { recordId: string }) => {
   });
 
   const onSubmit = async (data: SetOptionsFormValues) => {
-    const res = await fetch(`/api/records/${recordId}/sets?si=${setIndex}`, {
-      method: isNewSet ? "POST" : "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lineup: lineups[0],
-        options: data,
-      }),
-    });
-    const record = await res.json();
-    mutate(record, false);
+    const result = await apiClient<Record>(
+      `/api/records/${recordId}/sets?si=${setIndex}`,
+      {
+        method: isNewSet ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lineup: lineups[0],
+          options: data,
+        }),
+      },
+    );
+    mutate(result, false);
     isNewSet && router.push(`/record/${recordId}?si=${setIndex}`);
   };
 
