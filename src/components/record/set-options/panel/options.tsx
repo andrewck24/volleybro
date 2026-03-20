@@ -76,7 +76,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
       },
     );
     mutate(result, false);
-    isNewSet && router.push(`/record/${recordId}?si=${setIndex}`);
+    if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
   };
 
   useEffect(() => {

@@ -19,6 +19,7 @@ import useSWRInfinite from "swr/infinite";
 
 export { ApiClientError };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const defaultFetcher = (url: string) => apiClient<any>(url);
 
 const useHasCache = (key: string) => {

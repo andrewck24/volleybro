@@ -102,11 +102,11 @@
 
 ## 11. Legacy Cleanup
 
-- [ ] 11.1 Delete `src/lib/errors/` directory (legacy ApiError, handleApiError, withErrorHandler)
-- [ ] 11.2 Delete `src/applications/errors/` directory (old AppError location, moved to entities per error class hierarchy location decision)
-- [ ] 11.3 Delete `src/applications/types/result.ts` if no remaining references, or mark as deprecated (Result type definition removal)
-- [ ] 11.4 Update all imports across codebase to use `src/entities/errors/`
-- [ ] 11.5 Run `npm test && npm run lint && npm run build` — full verification, no regressions
+- [x] 11.1 Delete `src/lib/errors/` directory (legacy ApiError, handleApiError, withErrorHandler)
+- [x] 11.2 Delete `src/applications/errors/` directory (old AppError location, moved to entities per error class hierarchy location decision)
+- [x] 11.3 Delete `src/applications/types/result.ts` if no remaining references, or mark as deprecated (Result type definition removal)
+- [x] 11.4 Update all imports across codebase to use `src/entities/errors/`
+- [x] 11.5 Run `npm test && npm run lint && npm run build` — full verification, no regressions
 
 ## 12. Final Verification
 

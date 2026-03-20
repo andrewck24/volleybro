@@ -14,7 +14,8 @@
  * - undefined: pure player without team and team role
  */
 
-import { ValidationError } from "@/applications/errors/app-error";
+import { ValidationError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 
 export enum PlayerRole {
   MEMBER = "MEMBER",
@@ -61,31 +62,33 @@ export function validatePlayerStatus(player: Player): void {
   switch (status) {
     case PlayerStatus.NONE:
       if (userId || email) {
-        throw new ValidationError("NONE status must not have userId or email");
+        throw new ValidationError(CommonReason.INVALID_INPUT, "NONE status must not have userId or email");
       }
       break;
     case PlayerStatus.INVITED:
       if (userId && email) {
         throw new ValidationError(
+          CommonReason.INVALID_INPUT,
           "INVITED status must have exactly one of userId or email, not both",
         );
       }
       if (!userId && !email) {
         throw new ValidationError(
+          CommonReason.INVALID_INPUT,
           "INVITED status must have either userId or email",
         );
       }
       break;
     case PlayerStatus.JOINED:
       if (!userId) {
-        throw new ValidationError("JOINED status must have userId");
+        throw new ValidationError(CommonReason.INVALID_INPUT, "JOINED status must have userId");
       }
       if (email) {
-        throw new ValidationError("JOINED status must not have email");
+        throw new ValidationError(CommonReason.INVALID_INPUT, "JOINED status must not have email");
       }
       break;
     default:
-      throw new ValidationError(`Unknown player status: ${status}`);
+      throw new ValidationError(CommonReason.INVALID_INPUT, `Unknown player status: ${status}`);
   }
 }
 
