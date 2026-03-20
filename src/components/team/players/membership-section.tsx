@@ -19,7 +19,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -61,12 +62,7 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "移除失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     }
   };
 
@@ -84,12 +80,7 @@ export function MembershipSection({
       });
       revalidate();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "移轉失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     }
   };
 
@@ -237,12 +228,7 @@ function InviteSection({
       setSearchDone(false);
       onSuccess();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "邀請失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }
@@ -332,12 +318,7 @@ function InvitedSection({
       toast({ title: "邀請已取消" });
       onSuccess();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "取消失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }
@@ -407,12 +388,7 @@ function JoinedSection({
       });
       onSuccess();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "變更失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }

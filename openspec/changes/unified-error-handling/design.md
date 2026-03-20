@@ -159,6 +159,34 @@ Migration is performed domain-by-domain to keep diffs reviewable:
 
 Each group must pass `npm test && npm run lint && npm run build` before proceeding.
 
+### Frontend 500 error UX
+
+Current frontend error handling displays plain text messages (e.g., `"發生錯誤"`) via toast notifications for all error types. For 500/unexpected errors, this provides no actionable guidance. The core principle is: **never interrupt the user's flow** — handle errors in-place.
+
+**Error surface strategy by context:**
+
+| Context | Treatment | Example |
+| :--- | :--- | :--- |
+| **Data loading** (SWR/list/component data) | Inline error state within the component that failed to load | Component shows branded error message with retry button in-place |
+| **Form submission / match recording** | Dialog or toast with retry guidance | 「系統暫時無法處理，請稍後再試」with retry CTA |
+| **Other user flows** | Toast notification with empathetic message | Non-blocking toast, user stays on current page |
+
+**Tone**: Witty & branded (volleyball-themed humor) — e.g., 「哎呀！球掉了...」to soften frustration while keeping it actionable.
+
+**Error message structure** (all 500-class surfaces should include):
+
+1. **Empathy heading** — acknowledge without blame
+2. **Brief explanation** — plain-language zh-TW status
+3. **Action** — retry button, or guidance to try again later
+
+**What this is NOT**:
+
+- NOT a dedicated error page or redirect — user stays on current page
+- NOT a Next.js `error.tsx` boundary — those catch render errors, while most 500s come from data fetching or mutations where the component is still mounted
+- NOT changing operational error handling (400/401/403/404/409) — those remain as toast with `error.detail`
+
+**Scope**: `ApiClientError` with `status >= 500` or `code === "UNEXPECTED"`. Reusable inline error component for data loading; dialog/toast patterns for mutations.
+
 ## Risks / Trade-offs
 
 - **[Large blast radius]** → Mitigated by domain-by-domain migration with build verification at each step. Use cases that haven't been migrated yet will still throw generic `Error`, which `withErrorHandler` catches as `UnexpectedError` (500) — safe but imprecise until migrated.

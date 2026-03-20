@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingCard from "@/components/custom/loading/card";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,7 +19,8 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
-import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
@@ -30,13 +32,12 @@ interface EditFormProps {
 }
 
 export function EditForm({ teamId, playerId }: EditFormProps) {
-  const { player, isLoading, error } = usePlayer(playerId);
+  const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
   if (isLoading) return <LoadingCard />;
-  if (error)
-    return <div className="p-4 text-sm text-destructive">載入失敗</div>;
+  if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
@@ -122,13 +123,7 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
         });
         setErrors(newErrors);
       } else {
-        const detail =
-          error instanceof ApiClientError ? error.detail : "發生錯誤";
-        toast({
-          title: "更新失敗",
-          description: detail,
-          variant: "destructive",
-        });
+        showErrorToast(error, toast);
       }
     } finally {
       setIsSubmitting(false);

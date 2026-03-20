@@ -1,7 +1,9 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 import { useRecord } from "@/hooks/use-data";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { createSubstitution } from "@/lib/features/record/actions/create-substitution";
 import { createSubstitutionHelper } from "@/lib/features/record/helpers";
 import { useSubstitutes } from "@/lib/features/record/hooks/use-substitutes";
@@ -20,6 +22,7 @@ export const Substitutes = ({
   mode: ReduxRecordState["mode"];
   className?: string;
 }) => {
+  const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { record, mutate } = useRecord(recordId);
   const { setIndex } = useAppSelector((state) => state.record);
@@ -50,7 +53,7 @@ export const Substitutes = ({
       );
       dispatch(recordActions.confirmRecordingSubstitution());
     } catch (error) {
-      console.error("[POST /api/records/sets/substitution]", error);
+      showErrorToast(error, toast);
     }
   };
 

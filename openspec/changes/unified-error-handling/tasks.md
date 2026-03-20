@@ -108,10 +108,20 @@
 - [x] 11.4 Update all imports across codebase to use `src/entities/errors/`
 - [x] 11.5 Run `npm test && npm run lint && npm run build` — full verification, no regressions
 
-## 12. Final Verification
+## 12. Frontend 500 Error UX (Presentation Layer)
 
-- [x] 12.1 Run `npm test` — all tests pass
-- [x] 12.2 Run `npm run lint` — no new lint errors
-- [x] 12.3 Run `npm run build` — build succeeds
-- [ ] 12.4 Manual smoke test: trigger each error category (401, 403, 404, 409, 500) and verify structured JSON response
-- [ ] 12.5 Manual smoke test: verify frontend toast displays correct zh-TW message for known reasons and falls back to detail for unknown reasons
+> Implements: frontend 500 error UX design decision — in-place error handling without interrupting user flow
+
+- [x] [P] 12.1 Create reusable inline error component for data loading failures — branded volleyball-themed message with retry button, used when SWR/component data fetch returns 500 (presentation layer)
+- [x] [P] 12.2 Create reusable error dialog component for mutation failures (form submission, match recording) — empathetic message with retry CTA (presentation layer)
+- [x] 12.3 Update SWR-based components to render inline error component when `ApiClientError.status >= 500` instead of generic text (presentation layer)
+- [x] 12.4 Update mutation handlers (form submissions, match recording) to show error dialog/toast for 500 errors with retry guidance (presentation layer)
+- [x] 12.5 Run `npm test && npm run lint && npm run build` — verify no regressions
+
+## 13. Final Verification
+
+- [x] 13.1 Run `npm test` — all tests pass
+- [x] 13.2 Run `npm run lint` — no new lint errors
+- [x] 13.3 Run `npm run build` — build succeeds
+- [ ] 13.4 Manual smoke test: trigger each error category (401, 403, 404, 409, 500) and verify structured JSON response
+- [ ] 13.5 Manual smoke test: verify frontend toast displays correct zh-TW message for known reasons and falls back to detail for unknown reasons

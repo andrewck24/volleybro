@@ -16,16 +16,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import type { TMatchInfoForm } from "@/lib/features/record/types";
 import { useRouter } from "next/navigation";
-import { apiClient } from "@/lib/api/api-client";
 import { useMemo, useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
 export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const [view, setView] = useState("");
   const { mutate } = useSWRConfig();
   const { team, isLoading: isTeamLoading } = useTeam(teamId);
@@ -90,27 +93,30 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     };
 
     try {
-      const record = await apiClient<{ _id: string }>(`/api/records?ti=${teamId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          info: infoData,
-          teams: {
-            home: {
-              _id: teamId,
-              name: info.teams.home.name,
-              roster,
-              lineup: team.lineups[lineupIndex],
+      const record = await apiClient<{ _id: string }>(
+        `/api/records?ti=${teamId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            info: infoData,
+            teams: {
+              home: {
+                _id: teamId,
+                name: info.teams.home.name,
+                roster,
+                lineup: team.lineups[lineupIndex],
+              },
+              away: { name: info.teams.away.name },
             },
-            away: { name: info.teams.away.name },
-          },
-        }),
-      });
+          }),
+        },
+      );
 
       mutate(`/api/records/${record._id}`, record, false);
       return router.push(`/match/${record._id}`);
     } catch (err) {
-      console.log(err);
+      showErrorToast(err, toast);
     }
   };
 

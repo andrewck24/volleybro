@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole } from "@/entities/player";
-import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
@@ -93,13 +94,7 @@ export function CreateForm({ teamId }: CreateFormProps) {
         });
         setErrors(newErrors);
       } else {
-        const detail =
-          error instanceof ApiClientError ? error.detail : "發生錯誤";
-        toast({
-          title: "新增失敗",
-          description: detail,
-          variant: "destructive",
-        });
+        showErrorToast(error, toast);
       }
     } finally {
       setIsSubmitting(false);

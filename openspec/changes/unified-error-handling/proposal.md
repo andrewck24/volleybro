@@ -14,6 +14,7 @@ Error handling is fragmented across the codebase: ~50 throw points use generic `
 - Add domain-scoped reason enums (`PlayerReason`, `RecordReason`, `ProfileReason`, `AuthReason`, `CommonReason`) for type-safe frontend error discrimination.
 - Delete legacy `src/lib/errors/` system (`ApiError`, `handleApiError`, `withErrorHandler` — replaced by new implementation).
 - Update frontend `FetchError` handling to consume `code` + `reason` from structured error responses.
+- Improve frontend 500 error UX — replace plain text error messages with branded, empathetic error UI including: empathy-driven heading, brief plain-language explanation, call-to-action (retry/go home), and contact channel. Tone: witty & branded (volleyball-themed humor) to soften negative experience.
 
 ## Capabilities
 

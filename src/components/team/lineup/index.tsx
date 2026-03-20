@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
@@ -32,7 +33,7 @@ const Lineup = ({ teamId }) => {
         description: "已成功儲存陣容設定。",
       });
     } catch (error) {
-      console.log(error);
+      showErrorToast(error, toast);
     }
   };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingCard from "@/components/custom/loading/card";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { ListItem } from "@/components/team/players/list-item";
 import { useTeamPlayers } from "@/hooks/use-data";
 
@@ -9,11 +10,10 @@ interface PlayersListProps {
 }
 
 export function PlayersList({ teamId }: PlayersListProps) {
-  const { players, isLoading, error } = useTeamPlayers(teamId);
+  const { players, isLoading, error, mutate } = useTeamPlayers(teamId);
 
   if (isLoading) return <LoadingCard />;
-  if (error)
-    return <div className="p-4 text-sm text-destructive">載入失敗</div>;
+  if (error) return <ServerErrorState onRetry={() => mutate()} />;
 
   if (!players || players.length === 0) {
     return (

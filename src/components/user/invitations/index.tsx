@@ -16,7 +16,8 @@ import { useUser } from "@/hooks/use-data";
 import { useUserPlayers } from "@/hooks/use-data";
 import { PlayerStatus } from "@/entities/player";
 import { useToast } from "@/components/ui/use-toast";
-import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const router = useRouter();
@@ -39,12 +40,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       toast({ title: "邀請已接受", description: "您已加入隊伍" });
       mutate();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "接受邀請失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     }
   };
 
@@ -59,12 +55,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       toast({ title: "邀請已拒絕" });
       mutate();
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "拒絕邀請失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     }
   };
 

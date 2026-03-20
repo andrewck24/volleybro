@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { PlayerStatus, type Player } from '@/entities/player';
 import { useToast } from '@/components/ui/use-toast';
+import { showErrorToast } from '@/lib/api/error-toast';
 import { ROLE_LABELS } from '@/lib/constants/labels';
 
 interface InvitationListProps {
@@ -57,13 +58,7 @@ export function InvitationList({
         description: '您已加入隊伍',
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '接受邀請失敗，請重試';
-      // T124: Show error toast notification
-      toast({
-        title: '接受邀請失敗',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      showErrorToast(err, toast);
     } finally {
       setProcessingId(null);
     }
@@ -79,13 +74,7 @@ export function InvitationList({
         description: '您已拒絕了該邀請',
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '拒絕邀請失敗，請重試';
-      // T124: Show error toast notification
-      toast({
-        title: '拒絕邀請失敗',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      showErrorToast(err, toast);
     } finally {
       setProcessingId(null);
     }

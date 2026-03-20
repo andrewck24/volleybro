@@ -16,7 +16,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
-import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -59,12 +60,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       mutate();
       router.push("/user/invitations");
     } catch (err) {
-      const detail = err instanceof ApiClientError ? err.detail : "發生錯誤";
-      toast({
-        title: "離隊失敗",
-        description: detail,
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsLeaving(false);
     }
