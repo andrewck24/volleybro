@@ -123,5 +123,14 @@
 - [x] 13.1 Run `npm test` — all tests pass
 - [x] 13.2 Run `npm run lint` — no new lint errors
 - [x] 13.3 Run `npm run build` — build succeeds
-- [ ] 13.4 Manual smoke test: trigger each error category (401, 403, 404, 409, 500) and verify structured JSON response
-- [ ] 13.5 Manual smoke test: verify frontend toast displays correct zh-TW message for known reasons and falls back to detail for unknown reasons
+- [x] 13.4 Manual smoke test: trigger each error category (401, 403, 404, 409, 500) and verify structured JSON response
+  - 401: proxy returns `{code: AUTHENTICATION, reason: SESSION_REQUIRED, detail: "Authentication is required"}`
+  - 403: `{code: AUTHORIZATION, reason: NOT_TEAM_OWNER, detail: "Only the current team owner can transfer ownership"}`
+  - 404: `{code: NOT_FOUND, reason: RESOURCE_NOT_FOUND, detail: "Team not found"}`
+  - 409: `{code: CONFLICT, reason: EMAIL_ALREADY_INVITED, detail: "This email already has a pending invitation for this team"}`
+  - 500: `{code: UNEXPECTED, reason: UNHANDLED_ERROR, detail: "An unexpected error occurred"}` (triggered via malformed JSON body → req.json() SyntaxError → UnexpectedError)
+  - Note: 400 (ValidationError) also verified — `{code: VALIDATION, reason: INVALID_INPUT, details: [...Zod issues]}`
+- [x] 13.5 Manual smoke test: verify frontend toast displays correct zh-TW message for known reasons and falls back to detail for unknown reasons
+  - 4xx operational errors → toast title "操作失敗" + `error.detail` as description (user-actionable)
+  - 5xx / UNEXPECTED → branded volleyball zh-TW message "哎呀，發球掛網了！" (does NOT expose raw detail)
+  - Note: some mutation scenarios (e.g. form submission conflict) may benefit from dialog/alert-dialog instead of toast for clearer user guidance — follow-up needed
