@@ -1,444 +1,286 @@
-## ADDED Requirements
-
-### Requirement: AppError class hierarchy
-
-The system SHALL define an abstract `AppError` base class extending `Error`, with concrete subclasses for each error category. Each subclass SHALL expose a `code` string and an `isTransient` boolean (Application layer: shared types).
-
-#### Scenario: AppError subclasses
-
-- **WHEN** the error handling module is loaded
-- **THEN** the following classes SHALL be available:
-  - `NotFoundError` (code: `NOT_FOUND`, isTransient: false)
-  - `ValidationError` (code: `VALIDATION`, isTransient: false)
-  - `AuthorizationError` (code: `AUTHORIZATION`, isTransient: false)
-  - `ConflictError` (code: `CONFLICT`, isTransient: false)
-  - `TransientError` (code: `TRANSIENT`, isTransient: true)
-
-#### Scenario: instanceof works correctly
-
-- **WHEN** a `NotFoundError` is thrown or returned
-- **THEN** `error instanceof NotFoundError` SHALL return true
-- **THEN** `error instanceof AppError` SHALL return true
-- **THEN** `error instanceof Error` SHALL return true
-
-
-<!-- @trace
-source: player-invitations
-updated: 2026-03-17
-code:
-  - src/applications/types/result.ts
-  - src/components/team/players/membership-section.tsx
-  - src/applications/usecases/player/create-player.usecase.ts
-  - src/components/home/index.tsx
-  - src/infrastructure/db/mongoose/schemas/player.ts
-  - src/components/user/menu/index.tsx
-  - src/components/ui/alert-dialog.tsx
-  - src/applications/usecases/player/reject-invitation.usecase.ts
-  - src/lib/auth.ts
-  - src/infrastructure/db/repositories/player.repository.mongo.ts
-  - src/components/user/invitations/index.tsx
-  - src/app/api/players/[playerId]/invitations/route.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/lib/validations/player.ts
-  - src/infrastructure/db/repositories/index.ts
-  - src/applications/usecases/user/search-user.usecase.ts
-  - src/applications/usecases/player/cancel-invitation.usecase.ts
-  - src/interface/controllers/user/user.controller.ts
-  - src/interface/controllers/user/profile.controller.ts
-  - package.json
-  - src/applications/repositories/profile.repository.interface.ts
-  - src/app/api/users/route.ts
-  - src/applications/usecases/user/get-user-by-id.usecase.ts
-  - src/components/team/info/index.tsx
-  - src/hooks/use-data.ts
-  - src/applications/usecases/player/leave-team.usecase.ts
-  - src/applications/usecases/player/accept-invitation.usecase.ts
-  - src/applications/usecases/team/create-team.usecase.interface.ts
-  - src/components/team/invitation-list.tsx
-  - src/applications/usecases/player/create-invitation.usecase.ts
-  - CLAUDE.md
-  - src/interface/controllers/player/invitation.controller.ts
-  - src/entities/player.ts
-  - src/components/team/confirmation/index.tsx
-  - src/applications/errors/app-error.ts
-  - src/infrastructure/db/repositories/player.repository.ts
-  - src/components/notifications/index.tsx
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
-  - src/infrastructure/di/inversify.config.ts
-  - src/app/api/users/teams/route.ts
-  - src/infrastructure/db/mongoose/schemas/profile.ts
-  - src/app/api/teams/route.ts
-  - src/components/team/index.tsx
-  - AGENTS.md
-  - src/components/layout/nav/links.tsx
-  - src/infrastructure/di/types.ts
-  - src/applications/usecases/team/create-team.usecase.ts
-  - src/applications/usecases/user/link-pending-invitations.usecase.ts
-  - src/applications/repositories/player.repository.interface.ts
-  - src/infrastructure/db/repositories/base.repository.mongo.ts
-  - src/entities/profile.ts
-  - src/interface/controllers/team/team.controller.ts
-  - src/lib/auth-hook.ts
-tests:
-  - src/components/team/__tests__/invitation-list.test.tsx
-  - src/applications/usecases/player/__tests__/leave-team.usecase.test.ts
-  - src/applications/errors/__tests__/app-error.test.ts
-  - src/infrastructure/db/repositories/__tests__/player.repository.test.ts
-  - src/lib/__tests__/auth-hook.test.ts
-  - src/entities/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/accept-invitation.usecase.test.ts
-  - src/infrastructure/db/repositories/tests/__tests__/player.repository.test.ts
-  - src/applications/usecases/user/__tests__/link-pending-invitations.usecase.test.ts
-  - src/applications/usecases/player/__tests__/get-user-players.usecase.test.ts
-  - src/applications/errors/__tests__/result.test.ts
-  - src/applications/usecases/player/__tests__/reject-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
-  - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
-  - src/lib/validations/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/create-player.usecase.test.ts
--->
-
-### Requirement: Result type definition
-
-The system SHALL define a discriminated union `Result<T>` type for representing success or failure outcomes without throwing (Application layer: shared types).
-
-#### Scenario: Success result
-
-- **WHEN** an operation succeeds with value `42`
-- **THEN** the result SHALL be `{ ok: true, value: 42 }`
-- **THEN** accessing `result.ok` SHALL return `true`
-
-#### Scenario: Failure result
-
-- **WHEN** an operation fails with a NotFoundError
-- **THEN** the result SHALL be `{ ok: false, error: NotFoundError }`
-- **THEN** accessing `result.ok` SHALL return `false`
-- **THEN** accessing `result.error.isTransient` SHALL return `false`
-
-
-<!-- @trace
-source: player-invitations
-updated: 2026-03-17
-code:
-  - src/applications/types/result.ts
-  - src/components/team/players/membership-section.tsx
-  - src/applications/usecases/player/create-player.usecase.ts
-  - src/components/home/index.tsx
-  - src/infrastructure/db/mongoose/schemas/player.ts
-  - src/components/user/menu/index.tsx
-  - src/components/ui/alert-dialog.tsx
-  - src/applications/usecases/player/reject-invitation.usecase.ts
-  - src/lib/auth.ts
-  - src/infrastructure/db/repositories/player.repository.mongo.ts
-  - src/components/user/invitations/index.tsx
-  - src/app/api/players/[playerId]/invitations/route.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/lib/validations/player.ts
-  - src/infrastructure/db/repositories/index.ts
-  - src/applications/usecases/user/search-user.usecase.ts
-  - src/applications/usecases/player/cancel-invitation.usecase.ts
-  - src/interface/controllers/user/user.controller.ts
-  - src/interface/controllers/user/profile.controller.ts
-  - package.json
-  - src/applications/repositories/profile.repository.interface.ts
-  - src/app/api/users/route.ts
-  - src/applications/usecases/user/get-user-by-id.usecase.ts
-  - src/components/team/info/index.tsx
-  - src/hooks/use-data.ts
-  - src/applications/usecases/player/leave-team.usecase.ts
-  - src/applications/usecases/player/accept-invitation.usecase.ts
-  - src/applications/usecases/team/create-team.usecase.interface.ts
-  - src/components/team/invitation-list.tsx
-  - src/applications/usecases/player/create-invitation.usecase.ts
-  - CLAUDE.md
-  - src/interface/controllers/player/invitation.controller.ts
-  - src/entities/player.ts
-  - src/components/team/confirmation/index.tsx
-  - src/applications/errors/app-error.ts
-  - src/infrastructure/db/repositories/player.repository.ts
-  - src/components/notifications/index.tsx
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
-  - src/infrastructure/di/inversify.config.ts
-  - src/app/api/users/teams/route.ts
-  - src/infrastructure/db/mongoose/schemas/profile.ts
-  - src/app/api/teams/route.ts
-  - src/components/team/index.tsx
-  - AGENTS.md
-  - src/components/layout/nav/links.tsx
-  - src/infrastructure/di/types.ts
-  - src/applications/usecases/team/create-team.usecase.ts
-  - src/applications/usecases/user/link-pending-invitations.usecase.ts
-  - src/applications/repositories/player.repository.interface.ts
-  - src/infrastructure/db/repositories/base.repository.mongo.ts
-  - src/entities/profile.ts
-  - src/interface/controllers/team/team.controller.ts
-  - src/lib/auth-hook.ts
-tests:
-  - src/components/team/__tests__/invitation-list.test.tsx
-  - src/applications/usecases/player/__tests__/leave-team.usecase.test.ts
-  - src/applications/errors/__tests__/app-error.test.ts
-  - src/infrastructure/db/repositories/__tests__/player.repository.test.ts
-  - src/lib/__tests__/auth-hook.test.ts
-  - src/entities/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/accept-invitation.usecase.test.ts
-  - src/infrastructure/db/repositories/tests/__tests__/player.repository.test.ts
-  - src/applications/usecases/user/__tests__/link-pending-invitations.usecase.test.ts
-  - src/applications/usecases/player/__tests__/get-user-players.usecase.test.ts
-  - src/applications/errors/__tests__/result.test.ts
-  - src/applications/usecases/player/__tests__/reject-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
-  - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
-  - src/lib/validations/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/create-player.usecase.test.ts
--->
-
-### Requirement: Mixed error handling pattern
-
-Use cases in pilot scope SHALL use Result type for business logic outcomes. Infrastructure errors (database crashes, network failures) MAY still throw. Callers SHALL handle both patterns (Application layer convention).
-
-#### Scenario: Use case returns Result for business error
-
-- **WHEN** `LinkPendingInvitationsUseCase` encounters a database write failure
-- **THEN** it SHALL catch the error and return `{ ok: false, error: TransientError }`
-
-#### Scenario: Use case returns Result for success
-
-- **WHEN** `CreateProfileUseCase` successfully creates a profile
-- **THEN** it SHALL return `{ ok: true, value: <profile> }`
-
-
-<!-- @trace
-source: player-invitations
-updated: 2026-03-17
-code:
-  - src/applications/types/result.ts
-  - src/components/team/players/membership-section.tsx
-  - src/applications/usecases/player/create-player.usecase.ts
-  - src/components/home/index.tsx
-  - src/infrastructure/db/mongoose/schemas/player.ts
-  - src/components/user/menu/index.tsx
-  - src/components/ui/alert-dialog.tsx
-  - src/applications/usecases/player/reject-invitation.usecase.ts
-  - src/lib/auth.ts
-  - src/infrastructure/db/repositories/player.repository.mongo.ts
-  - src/components/user/invitations/index.tsx
-  - src/app/api/players/[playerId]/invitations/route.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/lib/validations/player.ts
-  - src/infrastructure/db/repositories/index.ts
-  - src/applications/usecases/user/search-user.usecase.ts
-  - src/applications/usecases/player/cancel-invitation.usecase.ts
-  - src/interface/controllers/user/user.controller.ts
-  - src/interface/controllers/user/profile.controller.ts
-  - package.json
-  - src/applications/repositories/profile.repository.interface.ts
-  - src/app/api/users/route.ts
-  - src/applications/usecases/user/get-user-by-id.usecase.ts
-  - src/components/team/info/index.tsx
-  - src/hooks/use-data.ts
-  - src/applications/usecases/player/leave-team.usecase.ts
-  - src/applications/usecases/player/accept-invitation.usecase.ts
-  - src/applications/usecases/team/create-team.usecase.interface.ts
-  - src/components/team/invitation-list.tsx
-  - src/applications/usecases/player/create-invitation.usecase.ts
-  - CLAUDE.md
-  - src/interface/controllers/player/invitation.controller.ts
-  - src/entities/player.ts
-  - src/components/team/confirmation/index.tsx
-  - src/applications/errors/app-error.ts
-  - src/infrastructure/db/repositories/player.repository.ts
-  - src/components/notifications/index.tsx
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
-  - src/infrastructure/di/inversify.config.ts
-  - src/app/api/users/teams/route.ts
-  - src/infrastructure/db/mongoose/schemas/profile.ts
-  - src/app/api/teams/route.ts
-  - src/components/team/index.tsx
-  - AGENTS.md
-  - src/components/layout/nav/links.tsx
-  - src/infrastructure/di/types.ts
-  - src/applications/usecases/team/create-team.usecase.ts
-  - src/applications/usecases/user/link-pending-invitations.usecase.ts
-  - src/applications/repositories/player.repository.interface.ts
-  - src/infrastructure/db/repositories/base.repository.mongo.ts
-  - src/entities/profile.ts
-  - src/interface/controllers/team/team.controller.ts
-  - src/lib/auth-hook.ts
-tests:
-  - src/components/team/__tests__/invitation-list.test.tsx
-  - src/applications/usecases/player/__tests__/leave-team.usecase.test.ts
-  - src/applications/errors/__tests__/app-error.test.ts
-  - src/infrastructure/db/repositories/__tests__/player.repository.test.ts
-  - src/lib/__tests__/auth-hook.test.ts
-  - src/entities/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/accept-invitation.usecase.test.ts
-  - src/infrastructure/db/repositories/tests/__tests__/player.repository.test.ts
-  - src/applications/usecases/user/__tests__/link-pending-invitations.usecase.test.ts
-  - src/applications/usecases/player/__tests__/get-user-players.usecase.test.ts
-  - src/applications/errors/__tests__/result.test.ts
-  - src/applications/usecases/player/__tests__/reject-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
-  - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
-  - src/lib/validations/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/create-player.usecase.test.ts
--->
-
-### Requirement: Pilot scope limitation
-
-The Result pattern and AppError hierarchy SHALL be applied only to `LinkPendingInvitationsUseCase` and `CreateProfileUseCase` in this change. All other existing use cases SHALL continue using the current `throw new Error()` pattern until a dedicated migration change is created.
-
-#### Scenario: Non-pilot use case unchanged
-
-- **WHEN** `AcceptInvitationUseCase` encounters an error
-- **THEN** it SHALL continue to `throw new Error(message)` (no change from current behavior)
-
 ## Requirements
 
-
-<!-- @trace
-source: player-invitations
-updated: 2026-03-17
-code:
-  - src/applications/types/result.ts
-  - src/components/team/players/membership-section.tsx
-  - src/applications/usecases/player/create-player.usecase.ts
-  - src/components/home/index.tsx
-  - src/infrastructure/db/mongoose/schemas/player.ts
-  - src/components/user/menu/index.tsx
-  - src/components/ui/alert-dialog.tsx
-  - src/applications/usecases/player/reject-invitation.usecase.ts
-  - src/lib/auth.ts
-  - src/infrastructure/db/repositories/player.repository.mongo.ts
-  - src/components/user/invitations/index.tsx
-  - src/app/api/players/[playerId]/invitations/route.ts
-  - src/applications/usecases/user/profile.usecase.ts
-  - src/lib/validations/player.ts
-  - src/infrastructure/db/repositories/index.ts
-  - src/applications/usecases/user/search-user.usecase.ts
-  - src/applications/usecases/player/cancel-invitation.usecase.ts
-  - src/interface/controllers/user/user.controller.ts
-  - src/interface/controllers/user/profile.controller.ts
-  - package.json
-  - src/applications/repositories/profile.repository.interface.ts
-  - src/app/api/users/route.ts
-  - src/applications/usecases/user/get-user-by-id.usecase.ts
-  - src/components/team/info/index.tsx
-  - src/hooks/use-data.ts
-  - src/applications/usecases/player/leave-team.usecase.ts
-  - src/applications/usecases/player/accept-invitation.usecase.ts
-  - src/applications/usecases/team/create-team.usecase.interface.ts
-  - src/components/team/invitation-list.tsx
-  - src/applications/usecases/player/create-invitation.usecase.ts
-  - CLAUDE.md
-  - src/interface/controllers/player/invitation.controller.ts
-  - src/entities/player.ts
-  - src/components/team/confirmation/index.tsx
-  - src/applications/errors/app-error.ts
-  - src/infrastructure/db/repositories/player.repository.ts
-  - src/components/notifications/index.tsx
-  - src/infrastructure/db/repositories/profile.repository.mongo.ts
-  - src/infrastructure/di/inversify.config.ts
-  - src/app/api/users/teams/route.ts
-  - src/infrastructure/db/mongoose/schemas/profile.ts
-  - src/app/api/teams/route.ts
-  - src/components/team/index.tsx
-  - AGENTS.md
-  - src/components/layout/nav/links.tsx
-  - src/infrastructure/di/types.ts
-  - src/applications/usecases/team/create-team.usecase.ts
-  - src/applications/usecases/user/link-pending-invitations.usecase.ts
-  - src/applications/repositories/player.repository.interface.ts
-  - src/infrastructure/db/repositories/base.repository.mongo.ts
-  - src/entities/profile.ts
-  - src/interface/controllers/team/team.controller.ts
-  - src/lib/auth-hook.ts
-tests:
-  - src/components/team/__tests__/invitation-list.test.tsx
-  - src/applications/usecases/player/__tests__/leave-team.usecase.test.ts
-  - src/applications/errors/__tests__/app-error.test.ts
-  - src/infrastructure/db/repositories/__tests__/player.repository.test.ts
-  - src/lib/__tests__/auth-hook.test.ts
-  - src/entities/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/accept-invitation.usecase.test.ts
-  - src/infrastructure/db/repositories/tests/__tests__/player.repository.test.ts
-  - src/applications/usecases/user/__tests__/link-pending-invitations.usecase.test.ts
-  - src/applications/usecases/player/__tests__/get-user-players.usecase.test.ts
-  - src/applications/errors/__tests__/result.test.ts
-  - src/applications/usecases/player/__tests__/reject-invitation.usecase.test.ts
-  - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
-  - src/applications/usecases/user/__tests__/search-user.usecase.test.ts
-  - src/applications/usecases/user/__tests__/create-profile.usecase.test.ts
-  - src/lib/validations/__tests__/player.test.ts
-  - src/applications/usecases/player/__tests__/create-player.usecase.test.ts
--->
-
 ### Requirement: AppError class hierarchy
 
-The system SHALL define an abstract `AppError` base class extending `Error`, with concrete subclasses for each error category. Each subclass SHALL expose a `code` string and an `isTransient` boolean (Application layer: shared types).
+The system SHALL define an abstract `AppError` class extending `Error` in `src/entities/errors/app-error.ts` (Domain layer). Each instance SHALL expose the following fields:
 
-#### Scenario: AppError subclasses
+- `code` (required, `AppErrorCode` enum): Error classification string
+- `reason` (required, `string`): Domain-scoped enum value for precise discrimination
+- `detail` (required, `string`): De-identified, stable, human-readable description — safe for HTTP responses and monitoring grouping
+- `message` (inherited from `Error`): Internal-only string that can contain entity IDs for debugging — SHALL NOT be serialized to HTTP responses
+- `httpStatus` (required, `number`): HTTP status code fixed per subclass
+- `isTransient` (required, `boolean`): Whether the error represents a temporary failure
 
-- **WHEN** the error handling module is loaded
-- **THEN** the following classes SHALL be available:
-  - `NotFoundError` (code: `NOT_FOUND`, isTransient: false)
-  - `ValidationError` (code: `VALIDATION`, isTransient: false)
-  - `AuthorizationError` (code: `AUTHORIZATION`, isTransient: false)
-  - `ConflictError` (code: `CONFLICT`, isTransient: false)
-  - `TransientError` (code: `TRANSIENT`, isTransient: true)
+The constructor signature SHALL be `(reason: string, detail: string, internalMessage?: string)`. When `internalMessage` is omitted, `Error.message` SHALL default to the `detail` value.
 
-#### Scenario: instanceof works correctly
+The system SHALL provide exactly seven concrete subclasses of `AppError`:
 
-- **WHEN** a `NotFoundError` is thrown or returned
-- **THEN** `error instanceof NotFoundError` SHALL return true
+| Class                 | code             | httpStatus | isTransient |
+| --------------------- | ---------------- | ---------- | ----------- |
+| `ValidationError`     | `VALIDATION`     | 400        | false       |
+| `AuthenticationError` | `AUTHENTICATION` | 401        | false       |
+| `AuthorizationError`  | `AUTHORIZATION`  | 403        | false       |
+| `NotFoundError`       | `NOT_FOUND`      | 404        | false       |
+| `ConflictError`       | `CONFLICT`       | 409        | false       |
+| `TransientError`      | `TRANSIENT`      | 503        | true        |
+| `UnexpectedError`     | `UNEXPECTED`     | 500        | false       |
+
+#### Scenario: AppError constructor with internalMessage
+
+- **WHEN** `new NotFoundError("PLAYER_NOT_FOUND", "The specified player does not exist", "Player 6721a not found in team abc")` is created
+- **THEN** `error.reason` SHALL be `"PLAYER_NOT_FOUND"`
+- **THEN** `error.detail` SHALL be `"The specified player does not exist"`
+- **THEN** `error.message` SHALL be `"Player 6721a not found in team abc"`
+
+#### Scenario: AppError constructor without internalMessage
+
+- **WHEN** `new AuthenticationError("SESSION_REQUIRED", "Authentication is required")` is created
+- **THEN** `error.message` SHALL be `"Authentication is required"` (defaults to detail)
+
+#### Scenario: instanceof chain works correctly
+
+- **WHEN** a `ConflictError` is thrown
+- **THEN** `error instanceof ConflictError` SHALL return true
 - **THEN** `error instanceof AppError` SHALL return true
 - **THEN** `error instanceof Error` SHALL return true
 
 ---
-### Requirement: Result type definition
 
-The system SHALL define a discriminated union `Result<T>` type for representing success or failure outcomes without throwing (Application layer: shared types).
+### Requirement: AppErrorCode type union
 
-#### Scenario: Success result
+The system SHALL define an `AppErrorCode` type as a union of string literals: `"VALIDATION" | "AUTHENTICATION" | "AUTHORIZATION" | "NOT_FOUND" | "CONFLICT" | "TRANSIENT" | "UNEXPECTED"`.
 
-- **WHEN** an operation succeeds with value `42`
-- **THEN** the result SHALL be `{ ok: true, value: 42 }`
-- **THEN** accessing `result.ok` SHALL return `true`
+#### Scenario: AppErrorCode matches subclass codes
 
-#### Scenario: Failure result
-
-- **WHEN** an operation fails with a NotFoundError
-- **THEN** the result SHALL be `{ ok: false, error: NotFoundError }`
-- **THEN** accessing `result.ok` SHALL return `false`
-- **THEN** accessing `result.error.isTransient` SHALL return `false`
+- **WHEN** each error subclass is instantiated
+- **THEN** its `code` property SHALL be assignable to `AppErrorCode`
 
 ---
-### Requirement: Mixed error handling pattern
 
-Use cases in pilot scope SHALL use Result type for business logic outcomes. Infrastructure errors (database crashes, network failures) MAY still throw. Callers SHALL handle both patterns (Application layer convention).
+### Requirement: ValidationError with details field
 
-#### Scenario: Use case returns Result for business error
+`ValidationError` SHALL accept an optional `details` parameter (fourth argument) for carrying structured validation information such as Zod issue arrays. Other error subclasses SHALL NOT have a `details` field.
 
-- **WHEN** `LinkPendingInvitationsUseCase` encounters a database write failure
-- **THEN** it SHALL catch the error and return `{ ok: false, error: TransientError }`
+#### Scenario: ValidationError with Zod issues
 
-#### Scenario: Use case returns Result for success
+- **WHEN** `new ValidationError("INVALID_INPUT", "Request data failed validation", undefined, zodError.issues)` is created
+- **THEN** `error.details` SHALL contain the Zod issues array
+- **THEN** `error.httpStatus` SHALL be `400`
 
-- **WHEN** `CreateProfileUseCase` successfully creates a profile
-- **THEN** it SHALL return `{ ok: true, value: <profile> }`
+#### Scenario: ValidationError without details
+
+- **WHEN** `new ValidationError("INVALID_EMAIL", "Invalid email format")` is created
+- **THEN** `error.details` SHALL be `undefined`
 
 ---
-### Requirement: Pilot scope limitation
 
-The Result pattern and AppError hierarchy SHALL be applied only to `LinkPendingInvitationsUseCase` and `CreateProfileUseCase` in this change. All other existing use cases SHALL continue using the current `throw new Error()` pattern until a dedicated migration change is created.
+### Requirement: UnexpectedError with originalError field
 
-#### Scenario: Non-pilot use case unchanged
+`UnexpectedError` SHALL accept an optional `originalError` parameter for preserving the original caught error. This field SHALL be used for logging only and SHALL NOT be serialized to HTTP responses.
 
-- **WHEN** `AcceptInvitationUseCase` encounters an error
-- **THEN** it SHALL continue to `throw new Error(message)` (no change from current behavior)
+#### Scenario: UnexpectedError wrapping unknown error
+
+- **WHEN** an unknown error is caught and wrapped as `new UnexpectedError("UNHANDLED_ERROR", "An unexpected error occurred", undefined, originalError)`
+- **THEN** `error.originalError` SHALL reference the original error object
+- **THEN** `error.httpStatus` SHALL be `500`
+
+---
+
+### Requirement: TransientError with source metadata
+
+`TransientError` SHALL accept an optional `options` object with `source` (string identifying the failing infrastructure component) and `retryable` (boolean hint for callers). These fields SHALL be used for server-side logging and retry decisions only and SHALL NOT be serialized to HTTP responses.
+
+#### Scenario: TransientError with database source
+
+- **WHEN** `new TransientError("DATABASE_UNAVAILABLE", "Service temporarily unavailable", undefined, { source: "database", retryable: true })` is created
+- **THEN** `error.source` SHALL be `"database"`
+- **THEN** `error.retryable` SHALL be `true`
+- **THEN** `error.httpStatus` SHALL be `503`
+
+---
+
+### Requirement: Domain-scoped reason enums
+
+The system SHALL define reason enums grouped by domain entity in `src/entities/errors/reasons/`. Each domain entity that throws errors SHALL have a corresponding reason enum file. A shared `CommonReason` enum SHALL exist for cross-domain values.
+
+Each enum value SHALL be an `UPPER_SNAKE_CASE` string. The `reason` field on `AppError` SHALL accept any of these enum values. Concrete enum values SHALL be determined during per-domain migration based on analysis of all error paths in that domain.
+
+#### Scenario: Reason enum follows naming convention
+
+- **WHEN** a new reason enum is created for a domain entity
+- **THEN** the file SHALL be located at `src/entities/errors/reasons/<entity>.ts`
+- **THEN** the enum SHALL be named `<Entity>Reason` (e.g., `PlayerReason`, `RecordReason`)
+- **THEN** all enum values SHALL use `UPPER_SNAKE_CASE` format
+
+#### Scenario: CommonReason provides shared values
+
+- **WHEN** an error reason is not specific to any single domain entity
+- **THEN** it SHALL be defined in `CommonReason` at `src/entities/errors/reasons/common.ts`
+
+---
+
+### Requirement: Only AppError subclasses shall be thrown
+
+All application code (use cases, services, repositories) SHALL throw only `AppError` subclasses. Throwing `new Error("message")` directly SHALL be prohibited. Infrastructure layers SHALL catch external library errors (Mongoose, Better Auth) and translate them into the appropriate `AppError` subclass before re-throwing.
+
+#### Scenario: Use case throws typed error
+
+- **WHEN** a use case detects a domain error condition
+- **THEN** it SHALL throw an `AppError` subclass with an appropriate `reason` and `detail`
+- **THEN** it SHALL NOT throw `new Error("message")`
+
+#### Scenario: Infrastructure translates Mongoose errors
+
+- **WHEN** a Mongoose `CastError` is thrown during a repository operation
+- **THEN** the repository SHALL catch it and throw a `NotFoundError`
+
+#### Scenario: Infrastructure translates duplicate key errors
+
+- **WHEN** a Mongoose `MongoServerError` with code 11000 is thrown during a repository operation
+- **THEN** the repository SHALL catch it and throw a `ConflictError` with the appropriate domain reason
+
+#### Scenario: Infrastructure translates connection errors
+
+- **WHEN** a Mongoose connection or timeout error is thrown during a repository operation
+- **THEN** the repository SHALL catch it and throw a `TransientError` with `source: "database"`
+
+---
+
+### Requirement: withErrorHandler route wrapper and HTTP error response format
+
+The system SHALL provide a `withErrorHandler` higher-order function in `src/lib/api/wrappers.ts` (Route Handler layer) that wraps Next.js route handler functions (`GET`, `POST`, `PATCH`, `DELETE` exports).
+
+The wrapper SHALL execute a try/catch around the handler and map caught errors to structured HTTP responses with a fixed field structure and no envelope:
+
+- `AppError` instances → `{ code, reason, detail, details? }` with `error.httpStatus` as the response status code. `details` SHALL only be present for `VALIDATION` errors.
+- `ZodError` instances → converted to `ValidationError` with Zod issues array as `details`, responded with status 400
+- Any other error → wrapped as `UnexpectedError`, responded with status 500 and the fixed body `{ code: "UNEXPECTED", reason: "UNHANDLED_ERROR", detail: "An unexpected error occurred" }`
+
+The wrapper SHALL NOT expose `error.message` (internal, can contain IDs) in HTTP responses. Only `error.detail` (de-identified) SHALL be serialized. The response body SHALL NOT contain an `error` string field (legacy format).
+
+Success responses SHALL continue to return the entity directly (no envelope, no change from current behavior).
+
+#### Scenario: AppError is serialized to structured response
+
+- **WHEN** a use case throws `new ConflictError("ALREADY_INVITED", "This player already has a pending invitation", "Player 6721a already invited to team abc")`
+- **THEN** the HTTP response status SHALL be `409`
+- **THEN** the response body SHALL be `{ "code": "CONFLICT", "reason": "ALREADY_INVITED", "detail": "This player already has a pending invitation" }`
+- **THEN** the response body SHALL NOT contain the string `"6721a"` or `"abc"`
+
+#### Scenario: ZodError is converted to ValidationError
+
+- **WHEN** request body parsing throws a `ZodError` with issues `[{ path: ["email"], message: "Invalid email" }]`
+- **THEN** the HTTP response status SHALL be `400`
+- **THEN** the response body SHALL be `{ "code": "VALIDATION", "reason": "INVALID_INPUT", "detail": "Request data failed validation", "details": [{ "path": ["email"], "message": "Invalid email" }] }`
+
+#### Scenario: Unknown error is wrapped as UnexpectedError
+
+- **WHEN** an unexpected `TypeError` is thrown within the handler
+- **THEN** the HTTP response status SHALL be `500`
+- **THEN** the response body SHALL be `{ "code": "UNEXPECTED", "reason": "UNHANDLED_ERROR", "detail": "An unexpected error occurred" }`
+- **THEN** the response body SHALL NOT contain the original error message or stack trace
+
+---
+
+### Requirement: withAuth route wrapper
+
+The system SHALL provide a `withAuth` higher-order function in `src/lib/api/wrappers.ts` that extends `withErrorHandler` with session validation. It SHALL:
+
+1. Call `auth.api.getSession({ headers: await headers() })` to validate the session
+2. If no valid session: throw `AuthenticationError(AuthReason.SESSION_REQUIRED, "Authentication is required to access this resource")`
+3. If session valid: pass `{ userId: session.user.id }` to the handler via a context parameter
+
+The thrown `AuthenticationError` SHALL be caught by the outer `withErrorHandler` and serialized as a standard error response.
+
+#### Scenario: Authenticated request passes userId to handler
+
+- **WHEN** a request with a valid session (user ID `"user123"`) hits a `withAuth`-wrapped route
+- **THEN** the handler SHALL receive `{ userId: "user123" }` as the second argument
+
+#### Scenario: Unauthenticated request returns 401
+
+- **WHEN** a request with no session or an invalid session hits a `withAuth`-wrapped route
+- **THEN** the HTTP response status SHALL be `401`
+- **THEN** the response body SHALL be `{ "code": "AUTHENTICATION", "reason": "SESSION_REQUIRED", "detail": "Authentication is required to access this resource" }`
+
+---
+
+### Requirement: Structured error logging
+
+The `withErrorHandler` wrapper SHALL emit a structured JSON log event via `console.error()` for every caught error.
+
+For operational errors (`AppError`): log level `"warn"` with fields `code`, `reason`, `message` (internal), `path`, `method`, `timestamp`.
+
+For unexpected errors (non-`AppError`): log level `"error"` with fields `code: "UNEXPECTED"`, `reason: "UNHANDLED_ERROR"`, `message`, `stack`, `path`, `method`, `timestamp`.
+
+Logs SHALL use `console.error()` (not `console.log()`) to ensure they are not stripped by the `removeConsole` production configuration.
+
+#### Scenario: Operational error produces warn-level log
+
+- **WHEN** a `NotFoundError` is caught by `withErrorHandler`
+- **THEN** a JSON log with `"level": "warn"` SHALL be emitted via `console.error()`
+- **THEN** the log SHALL contain `code`, `reason`, `message`, `path`, `method`, and `timestamp` fields
+
+#### Scenario: Unexpected error produces error-level log
+
+- **WHEN** an unknown `TypeError` is caught by `withErrorHandler`
+- **THEN** a JSON log with `"level": "error"` SHALL be emitted via `console.error()`
+- **THEN** the log SHALL contain the original error `stack` trace
+
+---
+
+### Requirement: Proxy API authentication gate
+
+`src/proxy.ts` SHALL be extended to return a `401` JSON response for unauthenticated API requests. The proxy SHALL:
+
+1. Check if the request path starts with `/api` and is not an auth route (`/api/auth/*`)
+2. If the session cookie is absent: return `{ code: "AUTHENTICATION", reason: "SESSION_REQUIRED", detail: "Authentication is required" }` with status `401`
+3. If the session cookie is present: pass the request through to the Node.js runtime
+
+This check SHALL run in Edge Runtime and SHALL NOT perform database queries. It is an optimistic check only — the `withAuth` wrapper performs definitive session validation.
+
+#### Scenario: Unauthenticated API request blocked by proxy
+
+- **WHEN** a request to `/api/teams` arrives without a session cookie
+- **THEN** the proxy SHALL return HTTP 401 with the structured error response
+- **THEN** the request SHALL NOT reach the Node.js route handler
+
+#### Scenario: Auth API routes are excluded from proxy check
+
+- **WHEN** a request to `/api/auth/sign-in` arrives without a session cookie
+- **THEN** the proxy SHALL pass the request through without blocking
+
+#### Scenario: Authenticated API request passes through proxy
+
+- **WHEN** a request to `/api/teams` arrives with a valid session cookie
+- **THEN** the proxy SHALL pass the request through to the route handler
+
+---
+
+### Requirement: API client and frontend error consumption
+
+The system SHALL provide a unified API client in `src/lib/api/api-client.ts` that wraps `fetch` for all HTTP methods. On non-OK responses, it SHALL parse the response body and throw a structured error object with `code`, `reason`, `detail`, `details` (optional), and `status` fields.
+
+The SWR fetcher in `src/hooks/use-data.ts` SHALL use `apiClient` as its fetcher. Manual fetch calls (POST, PATCH, DELETE) in components SHALL also use `apiClient` instead of raw `fetch`.
+
+Components SHALL determine user-facing toast messages by switching on `error.code` and `error.reason`, using component-local zh-TW strings. The `error.detail` (en-US) SHALL serve as a fallback when no matching zh-TW string exists for a given reason.
+
+#### Scenario: apiClient throws structured error on failure
+
+- **WHEN** `apiClient("/api/teams/abc/players", { method: "POST", body })` receives a 409 response with `{ code: "CONFLICT", reason: "ALREADY_INVITED", detail: "This player already has a pending invitation" }`
+- **THEN** the thrown error SHALL have `status: 409`, `code: "CONFLICT"`, `reason: "ALREADY_INVITED"`, `detail: "This player already has a pending invitation"`
+
+#### Scenario: SWR hook uses apiClient
+
+- **WHEN** a SWR hook fetches `/api/profiles` and receives a 404 response
+- **THEN** the SWR `error` SHALL have `status: 404`, `code: "NOT_FOUND"`, and `reason` fields
+
+#### Scenario: Component displays zh-TW toast with reason-based message
+
+- **WHEN** a component catches an error with `reason: "ALREADY_INVITED"`
+- **THEN** it SHALL display the component-local zh-TW string mapped to that reason (e.g., "此球員已有待處理的邀請")
+
+#### Scenario: Component falls back to error.detail
+
+- **WHEN** a component catches an error with a `reason` that has no mapped zh-TW string
+- **THEN** it SHALL display `error.detail` as the toast message
