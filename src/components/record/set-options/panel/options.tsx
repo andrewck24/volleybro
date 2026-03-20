@@ -17,8 +17,10 @@ import {
 import { PanelContent } from "@/components/ui/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Player, type Record } from "@/entities/record";
+import { useToast } from "@/components/ui/use-toast";
 import { useRecord } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import {
   SetOptionsFormSchema,
   type SetOptionsFormValues,
@@ -33,6 +35,7 @@ import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
 export const Options = ({ recordId }: { recordId: string }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const { lineups } = useAppSelector((state) => state.lineup);
   const { setIndex } = useAppSelector((state) => state.record);
   const { hasPairedReplacePosition } = useReplacePosition();
@@ -64,19 +67,23 @@ export const Options = ({ recordId }: { recordId: string }) => {
   });
 
   const onSubmit = async (data: SetOptionsFormValues) => {
-    const result = await apiClient<Record>(
-      `/api/records/${recordId}/sets?si=${setIndex}`,
-      {
-        method: isNewSet ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lineup: lineups[0],
-          options: data,
-        }),
-      },
-    );
-    mutate(result, false);
-    if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
+    try {
+      const result = await apiClient<Record>(
+        `/api/records/${recordId}/sets?si=${setIndex}`,
+        {
+          method: isNewSet ? "POST" : "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lineup: lineups[0],
+            options: data,
+          }),
+        },
+      );
+      mutate(result, false);
+      if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
+    } catch (error) {
+      showErrorToast(error, toast);
+    }
   };
 
   useEffect(() => {
