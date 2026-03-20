@@ -134,3 +134,14 @@
   - 4xx operational errors → toast title "操作失敗" + `error.detail` as description (user-actionable)
   - 5xx / UNEXPECTED → branded volleyball zh-TW message "哎呀，發球掛網了！" (does NOT expose raw detail)
   - Note: some mutation scenarios (e.g. form submission conflict) may benefit from dialog/alert-dialog instead of toast for clearer user guidance — follow-up needed
+
+## 14. Error Presentation by Mutation Severity — AlertDialog for High-Stakes Mutations (Presentation Layer)
+
+> Audit of 17 `showErrorToast` call sites identified 5 high-stakes irreversible actions where a dismissible toast is insufficient — users may miss the error and assume the action succeeded. These actions already use AlertDialog for confirmation; errors should persist within the dialog flow. Match recording operations keep `showErrorToast` as interim; optimistic UI with ambient sync indicators deferred to a separate change.
+
+- [x] 14.1 Write tests for AlertDialog error state behavior — verify dialog stays open on API failure, shows inline error message, and allows retry (presentation layer)
+- [x] [P] 14.2 Update `membership-section.tsx` `handleRemove` — on API error, keep AlertDialog open and display error inline in dialog footer instead of calling `showErrorToast` (presentation layer)
+- [x] [P] 14.3 Update `membership-section.tsx` `handleTransferOwnership` — on API error, keep AlertDialog open and display error inline in dialog footer instead of calling `showErrorToast` (presentation layer)
+- [x] [P] 14.4 Update `team/info/index.tsx` `handleLeaveTeam` — on API error, keep AlertDialog open and display error inline in dialog footer instead of calling `showErrorToast` (presentation layer)
+- [x] [P] 14.5 Update `invitation-list.tsx` and `user/invitations/index.tsx` `handleAccept` — add inline error feedback on acceptance failure so users know the invitation was NOT accepted (presentation layer)
+- [x] 14.6 Run `npm test && npm run lint && npm run build` — verify no regressions

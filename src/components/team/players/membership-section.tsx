@@ -3,7 +3,6 @@
 import { RoleSelect } from "@/components/team/role-select";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -20,7 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,17 +43,24 @@ export function MembershipSection({
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+
   const revalidate = () => {
     mutate(`/api/players/${player._id}`);
     mutate(`/api/teams/${teamId}/players`);
   };
 
   const handleRemove = async () => {
+    setRemoveError(null);
     try {
       await apiClient(`/api/players/${player._id}`, {
         method: "DELETE",
       });
 
+      setRemoveOpen(false);
       toast({
         title: "成員已移除",
         description: `${player.name} 已從隊伍中移除`,
@@ -62,11 +68,12 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
-      showErrorToast(err, toast);
+      setRemoveError(getErrorMessage(err));
     }
   };
 
   const handleTransferOwnership = async () => {
+    setTransferError(null);
     try {
       await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
@@ -74,13 +81,14 @@ export function MembershipSection({
         body: JSON.stringify({ newOwnerId: player._id }),
       });
 
+      setTransferOpen(false);
       toast({
         title: "所有權已移轉",
         description: `${player.name} 已成為新隊長`,
       });
       revalidate();
     } catch (err) {
-      showErrorToast(err, toast);
+      setTransferError(getErrorMessage(err));
     }
   };
 
@@ -103,7 +111,13 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移除成員</h3>
-            <AlertDialog>
+            <AlertDialog
+              open={removeOpen}
+              onOpenChange={(open) => {
+                setRemoveOpen(open);
+                if (!open) setRemoveError(null);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
                   移除成員
@@ -119,12 +133,15 @@ export function MembershipSection({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
+                  {removeError && (
+                    <p className="w-full text-sm text-destructive">
+                      {removeError}
+                    </p>
+                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button variant="destructive" onClick={handleRemove}>
-                      確認移除
-                    </Button>
-                  </AlertDialogAction>
+                  <Button variant="destructive" onClick={handleRemove}>
+                    確認移除
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -137,7 +154,13 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
-            <AlertDialog>
+            <AlertDialog
+              open={transferOpen}
+              onOpenChange={(open) => {
+                setTransferOpen(open);
+                if (!open) setTransferError(null);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
                   移轉所有權給此球員
@@ -153,15 +176,18 @@ export function MembershipSection({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
+                  {transferError && (
+                    <p className="w-full text-sm text-destructive">
+                      {transferError}
+                    </p>
+                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button
-                      variant="destructive"
-                      onClick={handleTransferOwnership}
-                    >
-                      確認移轉
-                    </Button>
-                  </AlertDialogAction>
+                  <Button
+                    variant="destructive"
+                    onClick={handleTransferOwnership}
+                  >
+                    確認移轉
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

@@ -2,7 +2,6 @@
 import LoadingCard from "@/components/custom/loading/card";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -17,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
 import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { getErrorMessage } from "@/lib/api/error-toast";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -34,6 +33,8 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const { toast } = useToast();
   const router = useRouter();
   const [isLeaving, setIsLeaving] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
   if (isTeamLoading || isPlayersLoading || isUserLoading)
     return <LoadingCard />;
@@ -49,6 +50,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
 
   const handleLeaveTeam = async () => {
     setIsLeaving(true);
+    setLeaveError(null);
     try {
       await apiClient(`/api/players/${currentUserPlayer._id}/invitations`, {
         method: "PATCH",
@@ -56,11 +58,12 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
         body: JSON.stringify({ action: "leave" }),
       });
 
+      setLeaveOpen(false);
       toast({ title: "已離開隊伍" });
       mutate();
       router.push("/user/invitations");
     } catch (err) {
-      showErrorToast(err, toast);
+      setLeaveError(getErrorMessage(err));
     } finally {
       setIsLeaving(false);
     }
@@ -90,7 +93,13 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
           <Separator />
           <div className="space-y-2 p-4">
             <h3 className="text-sm font-medium text-destructive">離開隊伍</h3>
-            <AlertDialog>
+            <AlertDialog
+              open={leaveOpen}
+              onOpenChange={(open) => {
+                setLeaveOpen(open);
+                if (!open) setLeaveError(null);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button
                   variant="destructive"
@@ -108,12 +117,19 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
+                  {leaveError && (
+                    <p className="w-full text-sm text-destructive">
+                      {leaveError}
+                    </p>
+                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button variant="destructive" onClick={handleLeaveTeam}>
-                      確認離開
-                    </Button>
-                  </AlertDialogAction>
+                  <Button
+                    variant="destructive"
+                    onClick={handleLeaveTeam}
+                    disabled={isLeaving}
+                  >
+                    確認離開
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

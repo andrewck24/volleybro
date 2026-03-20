@@ -15,6 +15,7 @@ Error handling is fragmented across the codebase: ~50 throw points use generic `
 - Delete legacy `src/lib/errors/` system (`ApiError`, `handleApiError`, `withErrorHandler` — replaced by new implementation).
 - Update frontend `FetchError` handling to consume `code` + `reason` from structured error responses.
 - Improve frontend 500 error UX — replace plain text error messages with branded, empathetic error UI including: empathy-driven heading, brief plain-language explanation, call-to-action (retry/go home), and contact channel. Tone: witty & branded (volleyball-themed humor) to soften negative experience.
+- Differentiate error presentation by severity — high-stakes irreversible mutations (remove member, transfer ownership, leave team, accept invitation) surface errors persistently within their existing AlertDialog flow so users cannot miss that the action failed; minor/recoverable operations continue using `showErrorToast`. Match recording operations use `showErrorToast` as an interim solution; a future change will introduce optimistic UI with ambient sync indicators for the recording flow.
 
 ## Capabilities
 
@@ -37,4 +38,5 @@ Error handling is fragmented across the codebase: ~50 throw points use generic `
   - Routes: All API routes in `src/app/api/` (~10 files)
   - Proxy: `src/proxy.ts`
   - Frontend: `src/hooks/use-data.ts`, error-handling components
+  - Presentation: `src/components/team/players/membership-section.tsx`, `src/components/team/info/index.tsx`, `src/components/team/invitation-list.tsx`, `src/components/user/invitations/index.tsx` (AlertDialog error state)
   - Deleted: `src/lib/errors/` (entire directory), `src/applications/errors/` (moved to entities)

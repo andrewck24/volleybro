@@ -187,6 +187,26 @@ Current frontend error handling displays plain text messages (e.g., `"發生錯�
 
 **Scope**: `ApiClientError` with `status >= 500` or `code === "UNEXPECTED"`. Reusable inline error component for data loading; dialog/toast patterns for mutations.
 
+### Error presentation by mutation severity
+
+An audit of all 17 `showErrorToast` call sites (smoke test 13.5) revealed that a single toast-based pattern is insufficient for all mutation contexts. Error presentation is now differentiated by severity:
+
+**Low-stakes / recoverable** → `showErrorToast` (toast). Covers: create player, edit player info, send/cancel invitation, update role, save lineup, reject invitation.
+
+**High-stakes / irreversible discrete actions** → Persistent error within existing AlertDialog flow. Covers:
+
+| Component | Action | AlertDialog exists? | Change needed |
+| :--- | :--- | :--- | :--- |
+| `membership-section.tsx` | Remove member | Yes (確認移除) | Show error in dialog instead of toast |
+| `membership-section.tsx` | Transfer ownership | Yes (確認移轉) | Show error in dialog instead of toast |
+| `team/info/index.tsx` | Leave team | Yes (確認離開) | Show error in dialog instead of toast |
+| `invitation-list.tsx` | Accept invitation | No | Add error state feedback (not just toast) |
+| `user/invitations/index.tsx` | Accept invitation | No | Add error state feedback (not just toast) |
+
+The pattern: when an API call fails inside an AlertDialog's confirm handler, keep the dialog open and display the error inline (e.g., red text + retry button inside the dialog footer) instead of closing the dialog and showing a toast.
+
+**Real-time recording mutations** → `showErrorToast` as interim solution. A separate future change will introduce optimistic UI with ambient sync status indicators (Google Docs "Saving..." pattern) and inline error markers per rally/substitution. This is deferred because it requires local-first state architecture (Redux/IndexedDB), background sync queue, and conflict resolution for sequential recording dependencies (rotation order, serve rights).
+
 ## Risks / Trade-offs
 
 - **[Large blast radius]** → Mitigated by domain-by-domain migration with build verification at each step. Use cases that haven't been migrated yet will still throw generic `Error`, which `withErrorHandler` catches as `UnexpectedError` (500) — safe but imprecise until migrated.
