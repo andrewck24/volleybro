@@ -110,8 +110,8 @@
 
 ## 12. Final Verification
 
-- [ ] 12.1 Run `npm test` — all tests pass
-- [ ] 12.2 Run `npm run lint` — no new lint errors
-- [ ] 12.3 Run `npm run build` — build succeeds
+- [x] 12.1 Run `npm test` — all tests pass
+- [x] 12.2 Run `npm run lint` — no new lint errors
+- [x] 12.3 Run `npm run build` — build succeeds
 - [ ] 12.4 Manual smoke test: trigger each error category (401, 403, 404, 409, 500) and verify structured JSON response
 - [ ] 12.5 Manual smoke test: verify frontend toast displays correct zh-TW message for known reasons and falls back to detail for unknown reasons
