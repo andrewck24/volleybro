@@ -3,6 +3,8 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { RecordReason } from "@/entities/errors/reasons/record";
 import {
   createRallyHelper,
   updateRallyHelper,
@@ -37,8 +39,8 @@ export class CreateRallyUseCase {
     const record = await this.recordRepository.findOne({
       _id: recordId,
     });
-    if (!record) throw new Error("Record not found");
-    if (!record.sets[setIndex]) throw new Error("Set not found");
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
+    if (!record.sets[setIndex]) throw new NotFoundError(RecordReason.SET_NOT_FOUND, "Set not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
@@ -84,8 +86,8 @@ export class UpdateRallyUseCase {
     const record = await this.recordRepository.findOne({
       _id: params.recordId,
     });
-    if (!record) throw new Error("Record not found");
-    if (!record.sets[params.setIndex]) throw new Error("Set not found");
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
+    if (!record.sets[params.setIndex]) throw new NotFoundError(RecordReason.SET_NOT_FOUND, "Set not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),

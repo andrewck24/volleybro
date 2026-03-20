@@ -1,5 +1,6 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { Player, PlayerRole } from "@/entities/player";
+import { AuthorizationError } from "@/entities/errors/app-error";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
 describe("AuthorizationService", () => {
@@ -80,15 +81,15 @@ describe("AuthorizationService", () => {
 
       await expect(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
-      ).rejects.toThrow("User does not have role(MEMBER) privileges");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should throw error if user not found in team", async () => {
+    it("should throw AuthorizationError if user not found in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
-      ).rejects.toThrow("User not found in team");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should allow ADMIN role for ADMIN", async () => {
@@ -109,7 +110,7 @@ describe("AuthorizationService", () => {
 
       await expect(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.ADMIN),
-      ).rejects.toThrow("User does not have role(ADMIN) privileges");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should allow OWNER role for OWNER", async () => {
@@ -123,7 +124,7 @@ describe("AuthorizationService", () => {
 
       await expect(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.OWNER),
-      ).rejects.toThrow("User does not have role(OWNER) privileges");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
   });
 
@@ -150,7 +151,7 @@ describe("AuthorizationService", () => {
       );
     });
 
-    it("should throw error if user is not admin", async () => {
+    it("should throw AuthorizationError if user is not admin", async () => {
       const member: Player = {
         ...mockPlayer,
         role: PlayerRole.MEMBER,
@@ -159,15 +160,15 @@ describe("AuthorizationService", () => {
 
       await expect(
         service.verifyIsTeamAdmin("team-1", "user-1"),
-      ).rejects.toThrow("User is not admin of the team");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should throw error if user has no player record in team", async () => {
+    it("should throw AuthorizationError if user has no player record in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.verifyIsTeamAdmin("team-1", "user-1"),
-      ).rejects.toThrow("User is not admin of the team");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
   });
 
@@ -180,20 +181,20 @@ describe("AuthorizationService", () => {
       expect(mockPlayerRepository.findTeamOwner).toHaveBeenCalledWith("team-1");
     });
 
-    it("should throw error if user is not owner", async () => {
+    it("should throw AuthorizationError if user is not owner", async () => {
       mockPlayerRepository.findTeamOwner.mockResolvedValue(mockOwner);
 
       await expect(
         service.verifyIsTeamOwner("team-1", "user-1"),
-      ).rejects.toThrow("User is not owner of the team");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should throw error if team has no owner", async () => {
+    it("should throw AuthorizationError if team has no owner", async () => {
       mockPlayerRepository.findTeamOwner.mockResolvedValue(null);
 
       await expect(
         service.verifyIsTeamOwner("team-1", "user-1"),
-      ).rejects.toThrow("User is not owner of the team");
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
   });
 
@@ -209,20 +210,20 @@ describe("AuthorizationService", () => {
       );
     });
 
-    it("should throw error if user does not have role", async () => {
+    it("should throw AuthorizationError if user does not have role", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
       await expect(
         service.verifyPlayerRole("team-1", "user-1", PlayerRole.OWNER),
-      ).rejects.toThrow(`User does not have role ${PlayerRole.OWNER} in team`);
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should throw error if user not in team", async () => {
+    it("should throw AuthorizationError if user not in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(
         service.verifyPlayerRole("team-1", "user-1", PlayerRole.ADMIN),
-      ).rejects.toThrow(`User does not have role ${PlayerRole.ADMIN} in team`);
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
   });
 

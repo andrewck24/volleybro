@@ -4,27 +4,22 @@
  * DELETE /api/players/{playerId}/memberships - Cancel invitation
  */
 
-import * as membershipController from '@/interface/controllers/player/membership.controller';
-import { ManagePlayerMembershipSchema, UpdatePlayerRoleSchema } from '@/lib/validations/player';
-import { PlayerSchema } from '@/lib/validations/player';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { ZodError } from 'zod';
-import type { PlayerRole } from '@/entities/player';
+import type { PlayerRole } from "@/entities/player";
+import * as membershipController from "@/interface/controllers/player/membership.controller";
+import { withAuth } from "@/lib/api/wrappers";
+import {
+  ManagePlayerMembershipSchema,
+  PlayerSchema,
+  UpdatePlayerRoleSchema,
+} from "@/lib/validations/player";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
-) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-    const { playerId } = await params;
+export const POST = (
+  _req: NextRequest,
+  props: { params: Promise<{ playerId: string }> },
+) =>
+  withAuth(async (req, { userId }) => {
+    const { playerId } = await props.params;
 
     const body = await req.json();
     const validatedData = ManagePlayerMembershipSchema.parse(body);
@@ -33,28 +28,19 @@ export async function POST(
       playerId,
       validatedData.email,
       validatedData.role as PlayerRole,
-      userId
+      userId,
     );
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 201 });
-  } catch (error) {
-    return handleError(error);
-  }
-}
+  })(_req);
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
-) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-    const { playerId } = await params;
+export const PATCH = (
+  _req: NextRequest,
+  props: { params: Promise<{ playerId: string }> },
+) =>
+  withAuth(async (req, { userId }) => {
+    const { playerId } = await props.params;
 
     const body = await req.json();
     const validatedData = UpdatePlayerRoleSchema.parse(body);
@@ -62,68 +48,25 @@ export async function PATCH(
     const player = await membershipController.updateRole(
       playerId,
       validatedData.role as PlayerRole,
-      userId
+      userId,
     );
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  } catch (error) {
-    return handleError(error);
-  }
-}
+  })(_req);
 
-export async function DELETE(
+export const DELETE = (
   _req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
-) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  props: { params: Promise<{ playerId: string }> },
+) =>
+  withAuth(async (_req, { userId }) => {
+    const { playerId } = await props.params;
 
-    const userId = session.user.id;
-    const { playerId } = await params;
-
-    const player = await membershipController.cancelInvitation(playerId, userId);
+    const player = await membershipController.cancelInvitation(
+      playerId,
+      userId,
+    );
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
-  } catch (error) {
-    return handleError(error);
-  }
-}
-
-function handleError(error: unknown) {
-  if (error instanceof ZodError) {
-    return NextResponse.json(
-      { error: 'Invalid request data', details: error.issues },
-      { status: 400 }
-    );
-  }
-
-  if (error instanceof Error) {
-    if (error.message.includes('not admin') || error.message.includes('not authorized')) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-
-    if (error.message.includes('not found')) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-
-    if (
-      error.message.includes('already') ||
-      error.message.includes('not an invited') ||
-      error.message.includes('not invited')
-    ) {
-      return NextResponse.json({ error: error.message }, { status: 409 });
-    }
-
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  return NextResponse.json(
-    { error: 'Internal server error' },
-    { status: 500 }
-  );
-}
+  })(_req);

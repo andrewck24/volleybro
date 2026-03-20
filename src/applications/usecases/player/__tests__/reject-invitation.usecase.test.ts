@@ -1,6 +1,7 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
 import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
+import { NotFoundError, AuthorizationError } from "@/entities/errors/app-error";
 
 describe("RejectInvitationUseCase", () => {
   let usecase: RejectInvitationUseCase;
@@ -59,8 +60,8 @@ describe("RejectInvitationUseCase", () => {
   it("should throw error if userId does not match invited recipient", async () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-    await expect(usecase.execute("player-1", "wrong-user")).rejects.toThrow(
-      "User is not the invited recipient",
+    await expect(usecase.execute("player-1", "wrong-user")).rejects.toBeInstanceOf(
+      AuthorizationError,
     );
     expect(mockPlayerRepository.update).not.toHaveBeenCalled();
   });
@@ -68,8 +69,8 @@ describe("RejectInvitationUseCase", () => {
   it("should throw error if player not found", async () => {
     mockPlayerRepository.findById.mockResolvedValue(null);
 
-    await expect(usecase.execute("nonexistent", "user-1")).rejects.toThrow(
-      "Player record not found",
+    await expect(usecase.execute("nonexistent", "user-1")).rejects.toBeInstanceOf(
+      NotFoundError,
     );
   });
 
@@ -81,8 +82,8 @@ describe("RejectInvitationUseCase", () => {
     };
     mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
-    await expect(usecase.execute("player-1", "user-1")).rejects.toThrow(
-      "No invitation found for this player",
+    await expect(usecase.execute("player-1", "user-1")).rejects.toBeInstanceOf(
+      NotFoundError,
     );
   });
 

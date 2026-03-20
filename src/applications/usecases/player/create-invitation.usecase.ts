@@ -5,6 +5,9 @@ import type { IPlayerRepository } from '@/applications/repositories/player.repos
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { Player } from '@/entities/player';
 import { PlayerRole, PlayerStatus } from '@/entities/player';
+import { NotFoundError, ConflictError, UnexpectedError } from '@/entities/errors/app-error';
+import { PlayerReason } from '@/entities/errors/reasons/player';
+import { CommonReason } from '@/entities/errors/reasons/common';
 
 /**
  * CreateInvitationUseCase - Invite a NONE player: status NONE → INVITED
@@ -26,14 +29,14 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
   ): Promise<Player> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
-      throw new Error('Player not found');
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, 'Player not found');
     }
 
     if (player.status === PlayerStatus.INVITED) {
-      throw new Error('Player already has an invitation');
+      throw new ConflictError(PlayerReason.ALREADY_INVITED, 'Player already has a pending invitation');
     }
     if (player.status === PlayerStatus.JOINED) {
-      throw new Error('Player is already a joined member');
+      throw new ConflictError(PlayerReason.ALREADY_MEMBER, 'Player is already a member of this team');
     }
 
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
@@ -45,7 +48,7 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
     });
 
     if (!updated) {
-      throw new Error('Failed to create invitation');
+      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, 'Failed to create invitation');
     }
 
     return updated;

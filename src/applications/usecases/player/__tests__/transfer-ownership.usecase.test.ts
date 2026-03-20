@@ -3,6 +3,7 @@ import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { TransferOwnershipUseCase } from "../transfer-ownership.usecase";
 import type { ITransferOwnershipUseCase } from "../transfer-ownership.usecase.interface";
+import { NotFoundError, AuthorizationError, ConflictError, UnexpectedError } from "@/entities/errors/app-error";
 
 describe("TransferOwnershipUseCase", () => {
   let useCase: ITransferOwnershipUseCase;
@@ -85,18 +86,14 @@ describe("TransferOwnershipUseCase", () => {
     it("should reject if current owner not found in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Current owner not found in team",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if user does not have OWNER role", async () => {
       const adminPlayer = { ...currentOwner, role: PlayerRole.ADMIN };
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(adminPlayer);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Only current owner can transfer ownership",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should reject if new owner player not found", async () => {
@@ -105,9 +102,7 @@ describe("TransferOwnershipUseCase", () => {
       );
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Player not found",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if new owner is not in same team", async () => {
@@ -117,9 +112,7 @@ describe("TransferOwnershipUseCase", () => {
       );
       mockPlayerRepository.findById.mockResolvedValue(otherTeamPlayer);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Target player is not in this team",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if new owner is not a joined member", async () => {
@@ -129,9 +122,7 @@ describe("TransferOwnershipUseCase", () => {
       );
       mockPlayerRepository.findById.mockResolvedValue(purePlayer);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Target player must be a joined member",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(ConflictError);
     });
 
     it("should reject if update fails", async () => {
@@ -141,9 +132,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(newOwner);
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toThrow(
-        "Failed to update new owner",
-      );
+      await expect(useCase.execute(teamId, newOwnerId, userId)).rejects.toBeInstanceOf(UnexpectedError);
     });
   });
 });

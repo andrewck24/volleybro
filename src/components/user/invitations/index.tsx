@@ -1,4 +1,5 @@
 "use client";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiPlus } from "react-icons/fi";
 import { RiGroupLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
@@ -16,62 +17,53 @@ import { useUser } from "@/hooks/use-data";
 import { useUserPlayers } from "@/hooks/use-data";
 import { PlayerStatus } from "@/entities/player";
 import { useToast } from "@/components/ui/use-toast";
+import { apiClient } from "@/lib/api/api-client";
+import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const router = useRouter();
   const { user } = useUser();
   const { players, isLoading, mutate } = useUserPlayers(user?._id);
   const { toast } = useToast();
+  const [errorMap, setErrorMap] = useState<Record<string, string>>({});
 
   const invitedPlayers = players.filter(
     (p) => p.status === PlayerStatus.INVITED
   );
 
   const handleAccept = async (playerId: string): Promise<void> => {
+    setErrorMap((prev) => {
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
     try {
-      const res = await fetch(`/api/players/${playerId}/invitations`, {
+      await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "accept" }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "接受邀請失敗");
-      }
-
       toast({ title: "邀請已接受", description: "您已加入隊伍" });
       mutate();
     } catch (err) {
-      toast({
-        title: "接受邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
+      showErrorToast(err, toast);
     }
   };
 
   const handleReject = async (playerId: string): Promise<void> => {
     try {
-      const res = await fetch(`/api/players/${playerId}/invitations`, {
+      await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reject" }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "拒絕邀請失敗");
-      }
-
       toast({ title: "邀請已拒絕" });
       mutate();
     } catch (err) {
-      toast({
-        title: "拒絕邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     }
   };
 
@@ -89,30 +81,41 @@ export const Invitations = ({ className }: { className?: string }) => {
             </TableRow>
           ) : (
             invitedPlayers.map((player) => (
-              <TableRow key={player._id}>
-                <TableCell className="w-6 [&>svg]:size-6">
-                  <RiGroupLine />
-                </TableCell>
-                <TableCell
-                  onClick={() =>
-                    player.teamId && router.push(`/team/${player.teamId}`)
-                  }
-                >
-                  {player.name}
-                </TableCell>
-                <TableCell
-                  className="w-6 [&>svg]:size-6 text-primary"
-                  onClick={() => handleAccept(player._id)}
-                >
-                  <RiCheckLine />
-                </TableCell>
-                <TableCell
-                  className="w-6 [&>svg]:size-6 text-destructive"
-                  onClick={() => handleReject(player._id)}
-                >
-                  <RiCloseLine />
-                </TableCell>
-              </TableRow>
+              <React.Fragment key={player._id}>
+                <TableRow>
+                  <TableCell className="w-6 [&>svg]:size-6">
+                    <RiGroupLine />
+                  </TableCell>
+                  <TableCell
+                    onClick={() =>
+                      player.teamId && router.push(`/team/${player.teamId}`)
+                    }
+                  >
+                    {player.name}
+                  </TableCell>
+                  <TableCell
+                    className="w-6 [&>svg]:size-6 text-primary"
+                    onClick={() => handleAccept(player._id)}
+                  >
+                    <RiCheckLine />
+                  </TableCell>
+                  <TableCell
+                    className="w-6 [&>svg]:size-6 text-destructive"
+                    onClick={() => handleReject(player._id)}
+                  >
+                    <RiCloseLine />
+                  </TableCell>
+                </TableRow>
+                {errorMap[player._id] && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="pt-0 pb-2">
+                      <p className="text-sm text-destructive">
+                        {errorMap[player._id]}
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </React.Fragment>
             ))
           )}
         </TableBody>

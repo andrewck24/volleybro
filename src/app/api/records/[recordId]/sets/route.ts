@@ -4,15 +4,15 @@ import {
   updateSetController,
 } from "@/interface/controllers/record/set.controller";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { withErrorHandler } from "@/lib/api/wrappers";
 
-export const POST = async (
-  req: NextRequest,
-  props: { params: Promise<{ recordId: string }> }
-) => {
-  try {
+export const POST = (
+  _req: NextRequest,
+  props: { params: Promise<{ recordId: string }> },
+) =>
+  withErrorHandler(async (req) => {
     await connectToMongoDB();
-    const params = await props.params;
-    const { recordId } = params;
+    const { recordId } = await props.params;
     const request = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
@@ -28,25 +28,19 @@ export const POST = async (
     const record = await createSetController(input);
 
     return NextResponse.json(record, { status: 201 });
-  } catch (error) {
-    console.log("[CREATE SET]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
+  })(_req);
 
-export const PUT = async (
-  req: NextRequest,
-  props: { params: Promise<{ recordId: string }> }
-) => {
-  try {
+export const PUT = (
+  _req: NextRequest,
+  props: { params: Promise<{ recordId: string }> },
+) =>
+  withErrorHandler(async (req) => {
     await connectToMongoDB();
-    const params = await props.params;
-    const { recordId } = params;
+    const { recordId } = await props.params;
     const request = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
 
-    // TODO: update lineup of the set (without increasing substitution count)
     const input = {
       params: { recordId, setIndex },
       data: { options: request.options },
@@ -55,8 +49,4 @@ export const PUT = async (
     const record = await updateSetController(input);
 
     return NextResponse.json(record, { status: 200 });
-  } catch (error) {
-    console.log("[UPDATE SET]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
+  })(_req);

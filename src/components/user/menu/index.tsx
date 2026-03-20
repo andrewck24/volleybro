@@ -15,6 +15,7 @@ import {
 } from "react-icons/ri";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardDescription } from "@/components/ui/card";
+import { apiClient } from "@/lib/api/api-client";
 import { DarkMode } from "@/components/user/menu/dark-mode";
 
 const Menu = ({ className }: { className?: string }) => {
@@ -30,7 +31,7 @@ const Menu = ({ className }: { className?: string }) => {
 
   const handleSwitchTeam = async (teamId: string) => {
     try {
-      await fetch("/api/profiles", {
+      await apiClient("/api/profiles", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTeamId: teamId }),
@@ -38,7 +39,7 @@ const Menu = ({ className }: { className?: string }) => {
       mutateProfile();
       router.push(`/team/${teamId}`);
     } catch {
-      // ignore
+      /* ignore */
     }
   };
 

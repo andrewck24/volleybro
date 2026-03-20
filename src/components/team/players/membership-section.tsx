@@ -3,7 +3,6 @@
 import { RoleSelect } from "@/components/team/role-select";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -19,6 +18,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { apiClient } from "@/lib/api/api-client";
+import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -42,22 +43,24 @@ export function MembershipSection({
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
+
   const revalidate = () => {
     mutate(`/api/players/${player._id}`);
     mutate(`/api/teams/${teamId}/players`);
   };
 
   const handleRemove = async () => {
+    setRemoveError(null);
     try {
-      const res = await fetch(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player._id}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "移除失敗");
-      }
-
+      setRemoveOpen(false);
       toast({
         title: "成員已移除",
         description: `${player.name} 已從隊伍中移除`,
@@ -65,38 +68,27 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
-      toast({
-        title: "移除失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      setRemoveError(getErrorMessage(err));
     }
   };
 
   const handleTransferOwnership = async () => {
+    setTransferError(null);
     try {
-      const res = await fetch(`/api/teams/${teamId}/ownership`, {
+      await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newOwnerId: player._id }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "移轉失敗");
-      }
-
+      setTransferOpen(false);
       toast({
         title: "所有權已移轉",
         description: `${player.name} 已成為新隊長`,
       });
       revalidate();
     } catch (err) {
-      toast({
-        title: "移轉失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      setTransferError(getErrorMessage(err));
     }
   };
 
@@ -119,7 +111,13 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移除成員</h3>
-            <AlertDialog>
+            <AlertDialog
+              open={removeOpen}
+              onOpenChange={(open) => {
+                setRemoveOpen(open);
+                if (!open) setRemoveError(null);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
                   移除成員
@@ -135,12 +133,15 @@ export function MembershipSection({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
+                  {removeError && (
+                    <p className="w-full text-sm text-destructive">
+                      {removeError}
+                    </p>
+                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button variant="destructive" onClick={handleRemove}>
-                      確認移除
-                    </Button>
-                  </AlertDialogAction>
+                  <Button variant="destructive" onClick={handleRemove}>
+                    確認移除
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -153,7 +154,13 @@ export function MembershipSection({
           <Separator />
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-destructive">移轉所有權</h3>
-            <AlertDialog>
+            <AlertDialog
+              open={transferOpen}
+              onOpenChange={(open) => {
+                setTransferOpen(open);
+                if (!open) setTransferError(null);
+              }}
+            >
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
                   移轉所有權給此球員
@@ -169,15 +176,18 @@ export function MembershipSection({
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
+                  {transferError && (
+                    <p className="w-full text-sm text-destructive">
+                      {transferError}
+                    </p>
+                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button
-                      variant="destructive"
-                      onClick={handleTransferOwnership}
-                    >
-                      確認移轉
-                    </Button>
-                  </AlertDialogAction>
+                  <Button
+                    variant="destructive"
+                    onClick={handleTransferOwnership}
+                  >
+                    確認移轉
+                  </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -214,13 +224,10 @@ function InviteSection({
     setSearchDone(false);
 
     try {
-      const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFoundUser(data);
-      } else {
-        setFoundUser(null);
-      }
+      const data = await apiClient<FoundUser>(
+        `/api/users?email=${encodeURIComponent(email)}`,
+      );
+      setFoundUser(data);
     } catch {
       setFoundUser(null);
     } finally {
@@ -234,16 +241,11 @@ function InviteSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "邀請失敗");
-      }
 
       toast({ title: "邀請已發送", description: `已向 ${email} 發送邀請` });
       setEmail("");
@@ -252,11 +254,7 @@ function InviteSection({
       setSearchDone(false);
       onSuccess();
     } catch (err) {
-      toast({
-        title: "邀請失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }
@@ -339,23 +337,14 @@ function InvitedSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "DELETE",
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "取消失敗");
-      }
 
       toast({ title: "邀請已取消" });
       onSuccess();
     } catch (err) {
-      toast({
-        title: "取消失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }
@@ -413,16 +402,11 @@ function JoinedSection({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player._id}/memberships`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "變更失敗");
-      }
 
       toast({
         title: "角色已變更",
@@ -430,11 +414,7 @@ function JoinedSection({
       });
       onSuccess();
     } catch (err) {
-      toast({
-        title: "變更失敗",
-        description: err instanceof Error ? err.message : "發生錯誤",
-        variant: "destructive",
-      });
+      showErrorToast(err, toast);
     } finally {
       setIsSubmitting(false);
     }

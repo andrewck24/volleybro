@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole } from "@/entities/player";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
@@ -75,16 +77,11 @@ export function CreateForm({ teamId }: CreateFormProps) {
     try {
       const validated = CreatePlayerSchema.parse(formData);
 
-      const res = await fetch(`/api/teams/${teamId}/players`, {
+      await apiClient(`/api/teams/${teamId}/players`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "新增失敗");
-      }
 
       toast({ title: "成功", description: "球員已新增" });
       mutate(`/api/teams/${teamId}/players`);
@@ -96,12 +93,8 @@ export function CreateForm({ teamId }: CreateFormProps) {
           newErrors[issue.path.join(".")] = issue.message;
         });
         setErrors(newErrors);
-      } else if (error instanceof Error) {
-        toast({
-          title: "新增失敗",
-          description: error.message,
-          variant: "destructive",
-        });
+      } else {
+        showErrorToast(error, toast);
       }
     } finally {
       setIsSubmitting(false);

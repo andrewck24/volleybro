@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingCard from "@/components/custom/loading/card";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,6 +19,8 @@ import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
@@ -29,13 +32,12 @@ interface EditFormProps {
 }
 
 export function EditForm({ teamId, playerId }: EditFormProps) {
-  const { player, isLoading, error } = usePlayer(playerId);
+  const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
   if (isLoading) return <LoadingCard />;
-  if (error)
-    return <div className="p-4 text-sm text-destructive">載入失敗</div>;
+  if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
@@ -104,16 +106,11 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
       };
       const validated = UpdatePlayerInfoSchema.parse(data);
 
-      const res = await fetch(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
-
-      if (!res.ok) {
-        const resData = await res.json();
-        throw new Error(resData.error || "更新失敗");
-      }
 
       toast({ title: "已更新", description: "球員資訊已更新" });
       mutate(`/api/players/${player._id}`);
@@ -125,12 +122,8 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
           newErrors[issue.path.join(".")] = issue.message;
         });
         setErrors(newErrors);
-      } else if (error instanceof Error) {
-        toast({
-          title: "更新失敗",
-          description: error.message,
-          variant: "destructive",
-        });
+      } else {
+        showErrorToast(error, toast);
       }
     } finally {
       setIsSubmitting(false);

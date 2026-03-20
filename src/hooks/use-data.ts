@@ -4,6 +4,7 @@ import type { Profile } from "@/entities/profile";
 import type { MatchResult, Record } from "@/entities/record";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
+import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 
@@ -16,34 +17,10 @@ import useSWRInfinite from "swr/infinite";
  * - Improve consistency across all data hooks
  */
 
-class FetchError extends Error {
-  info: any;
-  status: number;
+export { ApiClientError };
 
-  constructor(message: string, info: any, status: number) {
-    super(message);
-    this.info = info;
-    this.status = status;
-  }
-}
-
-const defaultFetcher = async (url: string) => {
-  const res = await fetch(url);
-
-  // If the status code is not in the range 200-299,
-  // try to parse and throw it.
-  if (!res.ok) {
-    const info = await res.json();
-    const error = new FetchError(
-      "An error occurred while fetching the data.",
-      info,
-      res.status,
-    );
-    throw error;
-  }
-
-  return res.json();
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const defaultFetcher = (url: string) => apiClient<any>(url);
 
 const useHasCache = (key: string) => {
   const { cache } = useSWRConfig();
@@ -76,7 +53,7 @@ const SWR_CONFIG = {
 export const useUser = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     User,
-    FetchError
+    ApiClientError
   >("/api/users", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
 
   return { user: data, error, isLoading, isValidating, mutate };
@@ -85,7 +62,7 @@ export const useUser = (fetcher = defaultFetcher, options = {}) => {
 export const useProfile = (fetcher = defaultFetcher, options = {}) => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Profile,
-    FetchError
+    ApiClientError
   >("/api/profiles", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
 
   return { profile: data, error, isLoading, isValidating, mutate };
@@ -99,7 +76,7 @@ export const useUserPlayers = (
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Player[],
-    FetchError
+    ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
   return { players: data ?? [], error, isLoading, isValidating, mutate };
@@ -131,7 +108,7 @@ export const useTeam = (
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Team,
-    FetchError
+    ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
@@ -150,7 +127,7 @@ export const useTeamPlayers = (
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Player[],
-    FetchError
+    ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.LIST,
     revalidateOnMount: !hasCache,
@@ -169,7 +146,7 @@ export const usePlayer = (
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Player,
-    FetchError
+    ApiClientError
   >(playerId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
@@ -188,7 +165,7 @@ export const useRecord = (
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Record,
-    FetchError
+    ApiClientError
   >(recordId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,

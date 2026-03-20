@@ -19,6 +19,7 @@ discuss? → propose → apply ⇄ ingest → archive
 
 - `discuss` is optional — skip if requirements are clear
 - Requirements change mid-work? Plan mode → `ingest` → resume `apply`
+- Commit after each completed task group during `apply`, then run `/simplify`, then continue with next task group
 
 ## Parked Changes
 

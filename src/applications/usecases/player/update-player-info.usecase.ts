@@ -4,6 +4,9 @@ import type { IUpdatePlayerInfoUseCase } from './update-player-info.usecase.inte
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import type { Player } from '@/entities/player';
+import { NotFoundError, UnexpectedError } from '@/entities/errors/app-error';
+import { PlayerReason } from '@/entities/errors/reasons/player';
+import { CommonReason } from '@/entities/errors/reasons/common';
 
 @injectable()
 export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
@@ -26,7 +29,7 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
     // 1. 取得球員，確認存在
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
-      throw new Error('Player not found');
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found");
     }
 
     // 2. 驗證權限 - 必須是該隊伍的 ADMIN 或 OWNER
@@ -51,7 +54,7 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
     );
 
     if (!updatedPlayer) {
-      throw new Error('Failed to update player info');
+      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to update player info");
     }
 
     return updatedPlayer;

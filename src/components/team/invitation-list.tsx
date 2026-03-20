@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { PlayerStatus, type Player } from '@/entities/player';
 import { useToast } from '@/components/ui/use-toast';
+import { getErrorMessage, showErrorToast } from '@/lib/api/error-toast';
 import { ROLE_LABELS } from '@/lib/constants/labels';
 
 interface InvitationListProps {
@@ -41,6 +42,7 @@ export function InvitationList({
 }: InvitationListProps) {
   const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [errorMap, setErrorMap] = useState<Record<string, string>>({});
 
   // Filter only pending invitations
   const pendingInvitations = invitations.filter(
@@ -49,6 +51,11 @@ export function InvitationList({
 
   const handleAccept = async (playerId: string) => {
     setProcessingId(playerId);
+    setErrorMap((prev) => {
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
     try {
       await onAccept(playerId);
       // T124: Show success toast notification
@@ -57,13 +64,8 @@ export function InvitationList({
         description: '您已加入隊伍',
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '接受邀請失敗，請重試';
-      // T124: Show error toast notification
-      toast({
-        title: '接受邀請失敗',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
+      showErrorToast(err, toast);
     } finally {
       setProcessingId(null);
     }
@@ -79,13 +81,7 @@ export function InvitationList({
         description: '您已拒絕了該邀請',
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '拒絕邀請失敗，請重試';
-      // T124: Show error toast notification
-      toast({
-        title: '拒絕邀請失敗',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      showErrorToast(err, toast);
     } finally {
       setProcessingId(null);
     }
@@ -117,42 +113,49 @@ export function InvitationList({
           {pendingInvitations.map((invitation) => (
             <div
               key={invitation._id}
-              className="flex items-center justify-between rounded-lg border p-4"
+              className="rounded-lg border p-4"
             >
-              <div className="flex-1">
-                <h3 className="font-medium">團隊邀請</h3>
-                <div className="mt-1 space-y-1 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <span>您被邀請以</span>
-                    <Badge variant="secondary">
-                      {ROLE_LABELS[invitation.role] || invitation.role}
-                    </Badge>
-                    <span>身份加入隊伍</span>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h3 className="font-medium">團隊邀請</h3>
+                  <div className="mt-1 space-y-1 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span>您被邀請以</span>
+                      <Badge variant="secondary">
+                        {ROLE_LABELS[invitation.role] || invitation.role}
+                      </Badge>
+                      <span>身份加入隊伍</span>
+                    </div>
+                    {invitation.email && (
+                      <p>邀請電子郵件：{invitation.email}</p>
+                    )}
                   </div>
-                  {invitation.email && (
-                    <p>邀請電子郵件：{invitation.email}</p>
-                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleReject(invitation._id)}
+                    disabled={isLoading || isSubmitting || processingId !== null}
+                    aria-busy={processingId === invitation._id}
+                  >
+                    拒絕
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAccept(invitation._id)}
+                    disabled={isLoading || isSubmitting || processingId !== null}
+                    aria-busy={processingId === invitation._id}
+                  >
+                    接受
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReject(invitation._id)}
-                  disabled={isLoading || isSubmitting || processingId !== null}
-                  aria-busy={processingId === invitation._id}
-                >
-                  拒絕
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleAccept(invitation._id)}
-                  disabled={isLoading || isSubmitting || processingId !== null}
-                  aria-busy={processingId === invitation._id}
-                >
-                  接受
-                </Button>
-              </div>
+              {errorMap[invitation._id] && (
+                <p className="mt-2 text-sm text-destructive">
+                  {errorMap[invitation._id]}
+                </p>
+              )}
             </div>
           ))}
         </div>

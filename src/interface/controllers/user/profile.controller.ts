@@ -11,6 +11,8 @@ import {
   type IUpdateProfileOutput,
 } from "@/applications/usecases/user/profile.usecase";
 import type { Profile } from "@/entities/profile";
+import { ValidationError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import { z } from "zod";
 
 // ============ Controller Layer Validation Schemas ============
@@ -32,19 +34,6 @@ export const UpdateProfileRequestSchema = z
 
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
 
-/**
- * Controller Layer Validation Error
- */
-export class ValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly details?: unknown,
-  ) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
-
 export const getProfileController = async (
   input: IGetProfileInput,
 ): Promise<IGetProfileOutput> => {
@@ -56,16 +45,11 @@ export const getProfileController = async (
 
 export const createProfileController = async (
   input: ICreateProfileInput,
-): Promise<Profile | undefined> => {
+): Promise<Profile> => {
   const createProfileUseCase = container.get<CreateProfileUseCase>(
     TYPES.CreateProfileUseCase,
   );
-  const result = await createProfileUseCase.execute(input);
-  if (result.ok === false) {
-    console.error("[createProfileController] Failed to create profile:", result.error);
-    return undefined;
-  }
-  return result.value;
+  return await createProfileUseCase.execute(input);
 };
 
 /**
@@ -81,7 +65,12 @@ export const updateProfileController = async (
   const validation = UpdateProfileRequestSchema.safeParse(input.updates);
 
   if (!validation.success) {
-    throw new ValidationError("Invalid request format", validation.error.issues);
+    throw new ValidationError(
+      CommonReason.INVALID_INPUT,
+      "Invalid request format",
+      undefined,
+      validation.error.issues,
+    );
   }
 
   // 委派給 Use Case 執行業務邏輯

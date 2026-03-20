@@ -1,8 +1,4 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import {
-  NotFoundError,
-  TransientError,
-} from "@/applications/errors/app-error";
 import { LinkPendingInvitationsUseCase } from "../link-pending-invitations.usecase";
 
 describe("LinkPendingInvitationsUseCase", () => {
@@ -30,26 +26,24 @@ describe("LinkPendingInvitationsUseCase", () => {
     useCase = new LinkPendingInvitationsUseCase(mockPlayerRepository);
   });
 
-  it("should return ok with count of linked invitations on success", async () => {
+  it("should return count of linked invitations on success", async () => {
     mockPlayerRepository.linkUserToInvitations.mockResolvedValue(3);
 
     const result = await useCase.execute("test@example.com", "user-1");
 
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toBe(3);
+    expect(result).toBe(3);
     expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenCalledWith(
       "test@example.com",
       "user-1"
     );
   });
 
-  it("should return ok with 0 when no invitations are found", async () => {
+  it("should return 0 when no invitations are found", async () => {
     mockPlayerRepository.linkUserToInvitations.mockResolvedValue(0);
 
     const result = await useCase.execute("noone@example.com", "user-2");
 
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value).toBe(0);
+    expect(result).toBe(0);
   });
 
   it("should be idempotent — second execution returns 0 without error", async () => {
@@ -60,23 +54,17 @@ describe("LinkPendingInvitationsUseCase", () => {
     const first = await useCase.execute("test@example.com", "user-1");
     const second = await useCase.execute("test@example.com", "user-1");
 
-    expect(first.ok).toBe(true);
-    expect(second.ok).toBe(true);
-    if (first.ok) expect(first.value).toBe(2);
-    if (second.ok) expect(second.value).toBe(0);
+    expect(first).toBe(2);
+    expect(second).toBe(0);
   });
 
-  it("should return TransientError when DB operation fails", async () => {
+  it("should propagate errors thrown by repository", async () => {
     mockPlayerRepository.linkUserToInvitations.mockRejectedValue(
       new Error("DB connection lost")
     );
 
-    const result = await useCase.execute("test@example.com", "user-1");
-
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBeInstanceOf(TransientError);
-      expect(result.error.isTransient).toBe(true);
-    }
+    await expect(
+      useCase.execute("test@example.com", "user-1")
+    ).rejects.toThrow();
   });
 });

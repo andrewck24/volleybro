@@ -1,4 +1,4 @@
-import { NotFoundError, ValidationError } from "@/applications/errors/app-error";
+import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { SearchUserUseCase } from "../search-user.usecase";
 

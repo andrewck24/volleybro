@@ -1,92 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 
-export const GET = async (
-  req: NextRequest,
-  props: { params: Promise<{ teamId: string }> }
-) => {
-  try {
+export const GET = (
+  _req: NextRequest,
+  props: { params: Promise<{ teamId: string }> },
+) =>
+  withErrorHandler(async (req) => {
+    const { teamId } = await props.params;
     await connectToMongoDB();
-    const params = await props.params;
-    const { teamId } = params;
 
     const team = await Team.findById(teamId);
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "Team not found",
+      );
     }
 
     return NextResponse.json(team, { status: 200 });
-  } catch (error) {
-    console.error("[GET /api/teams/:teamId]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-};
+  })(_req);
 
-export const PATCH = async (
-  req: NextRequest,
-  props: { params: Promise<{ teamId: string }> }
-) => {
-  try {
-    const params = await props.params;
-    const { teamId } = params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
+export const PATCH = (
+  _req: NextRequest,
+  props: { params: Promise<{ teamId: string }> },
+) =>
+  withAuth(async (req, { userId }) => {
+    const { teamId } = await props.params;
     await connectToMongoDB();
 
-    const { name, nickname } = await req.json();
     const team = await Team.findById(teamId);
     if (!team) {
-      return NextResponse.json({ error: "Team not found" }, { status: 404 });
-    }
-
-    // Check if user is admin/owner of the team using PlayerRepository
-    const playerRepository = container.get<IPlayerRepository>(
-      TYPES.PlayerRepository
-    );
-    const player = await playerRepository.findByTeamIdAndUserId(
-      teamId,
-      session.user.id
-    );
-    if (!player) {
-      return NextResponse.json(
-        { error: "You are not authorized to update this team" },
-        { status: 401 }
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "Team not found",
       );
     }
 
-    // Check if user has admin or owner role
-    const isAdmin =
-      player.role === "ADMIN" || player.role === "OWNER";
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "You are not authorized to update this team" },
-        { status: 401 }
-      );
-    }
+    const authorizationService = container.get<IAuthorizationService>(
+      TYPES.AuthorizationService,
+    );
+    await authorizationService.verifyIsTeamAdmin(teamId, userId);
 
+    const { name, nickname } = await req.json();
     if (name) team.name = name;
     if (nickname) team.nickname = nickname;
 
     await team.save();
 
     return NextResponse.json(team, { status: 200 });
-  } catch (error) {
-    console.error("[PATCH /api/teams/:teamId]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-};
+  })(_req);

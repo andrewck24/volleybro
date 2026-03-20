@@ -4,6 +4,7 @@ import { CancelInvitationUseCase } from '../cancel-invitation.usecase';
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
 import { PlayerStatus } from '@/entities/player';
+import { NotFoundError, ConflictError, UnexpectedError } from '@/entities/errors/app-error';
 
 describe('CancelInvitationUseCase', () => {
   let useCase: ICancelInvitationUseCase;
@@ -76,8 +77,8 @@ describe('CancelInvitationUseCase', () => {
     it('should reject if player not found', async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute('player_999', 'user_456')).rejects.toThrow(
-        'Player not found'
+      await expect(useCase.execute('player_999', 'user_456')).rejects.toBeInstanceOf(
+        NotFoundError
       );
     });
 
@@ -117,8 +118,8 @@ describe('CancelInvitationUseCase', () => {
       mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
 
-      await expect(useCase.execute('player_123', 'user_456')).rejects.toThrow(
-        'Player is not an invited member'
+      await expect(useCase.execute('player_123', 'user_456')).rejects.toBeInstanceOf(
+        ConflictError
       );
     });
 
@@ -138,8 +139,8 @@ describe('CancelInvitationUseCase', () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(useCase.execute('player_123', 'user_456')).rejects.toThrow(
-        'Failed to cancel invitation'
+      await expect(useCase.execute('player_123', 'user_456')).rejects.toBeInstanceOf(
+        UnexpectedError
       );
     });
   });

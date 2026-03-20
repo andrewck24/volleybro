@@ -3,6 +3,8 @@ import type { IAcceptInvitationUseCase } from '@/applications/usecases/player/ac
 import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
 import { PlayerStatus } from '@/entities/player';
 import { TYPES } from '@/infrastructure/di/types';
+import { NotFoundError, ConflictError, AuthorizationError } from '@/entities/errors/app-error';
+import { PlayerReason } from '@/entities/errors/reasons/player';
 
 /**
  * AcceptInvitationUseCase Implementation
@@ -19,19 +21,19 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
     const player = await this.playerRepository.findById(playerId);
 
     if (!player) {
-      throw new Error('Player record not found');
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, 'Player not found');
     }
 
     if (player.status === PlayerStatus.JOINED) {
-      throw new Error('Player is already a joined member');
+      throw new ConflictError(PlayerReason.ALREADY_MEMBER, 'Player is already a member of this team');
     }
 
     if (player.status !== PlayerStatus.INVITED) {
-      throw new Error('No invitation found for this player');
+      throw new NotFoundError(PlayerReason.NOT_INVITED, 'No pending invitation found for this player');
     }
 
     if (player.userId !== userId) {
-      throw new Error('User is not the invited recipient');
+      throw new AuthorizationError(PlayerReason.NOT_RECIPIENT, 'You are not the invited recipient');
     }
 
     await this.playerRepository.update(playerId, {

@@ -2,87 +2,50 @@
  * PATCH /api/players/{playerId}/invitations - Accept, reject, or leave
  */
 
-import * as invitationController from '@/interface/controllers/player/invitation.controller';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
-import { ZodError, z } from 'zod';
+import * as invitationController from "@/interface/controllers/player/invitation.controller";
+import { withAuth } from "@/lib/api/wrappers";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
-const PatchInvitationSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('accept') }),
-  z.object({ action: z.literal('reject') }),
-  z.object({ action: z.literal('leave') }),
+const PatchInvitationSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("accept") }),
+  z.object({ action: z.literal("reject") }),
+  z.object({ action: z.literal("leave") }),
 ]);
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ playerId: string }> }
-) {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-    const { playerId } = await params;
+export const PATCH = (
+  _req: NextRequest,
+  props: { params: Promise<{ playerId: string }> },
+) =>
+  withAuth(async (req, { userId }) => {
+    const { playerId } = await props.params;
 
     const body = await req.json();
     const { action } = PatchInvitationSchema.parse(body);
 
     switch (action) {
-      case 'accept': {
+      case "accept": {
         await invitationController.acceptInvitation(playerId, userId);
         return NextResponse.json(
-          { success: true, message: 'Invitation accepted' },
-          { status: 200 }
+          { success: true, message: "Invitation accepted" },
+          { status: 200 },
         );
       }
 
-      case 'reject': {
+      case "reject": {
         await invitationController.rejectInvitation(playerId, userId);
         return NextResponse.json(
-          { success: true, message: 'Invitation rejected' },
-          { status: 200 }
+          { success: true, message: "Invitation rejected" },
+          { status: 200 },
         );
       }
 
-      case 'leave': {
+      case "leave": {
         await invitationController.leaveTeam(playerId, userId);
         return NextResponse.json(
-          { success: true, message: 'Left team successfully' },
-          { status: 200 }
+          { success: true, message: "Left team successfully" },
+          { status: 200 },
         );
       }
     }
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    if (error instanceof Error) {
-      if (error.message.includes('not found')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
-      }
-
-      if (
-        error.message.includes('already') ||
-        error.message.includes('No invitation') ||
-        error.message.includes('not invited') ||
-        error.message.includes('Owner cannot')
-      ) {
-        return NextResponse.json({ error: error.message }, { status: 409 });
-      }
-
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+  })(_req);

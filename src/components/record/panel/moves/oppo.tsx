@@ -1,6 +1,8 @@
 "use client";
 import { Container, MoveButton } from "@/components/record/panel/moves";
+import { useToast } from "@/components/ui/use-toast";
 import { useRecord } from "@/hooks/use-data";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { createRally } from "@/lib/features/record/actions/create-rally";
 import { updateRally } from "@/lib/features/record/actions/update-rally";
 import {
@@ -14,6 +16,7 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiSendPlaneLine } from "react-icons/ri";
 
 export const OppoMoves = ({ recordId }: { recordId: string }) => {
+  const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.record);
   const {
@@ -60,7 +63,7 @@ export const OppoMoves = ({ recordId }: { recordId: string }) => {
       try {
         mode === "general" ? create() : update();
       } catch (error) {
-        console.error("[POST /api/records]", error);
+        showErrorToast(error, toast);
       }
     }
   };

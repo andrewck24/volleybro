@@ -1,5 +1,6 @@
 import { inject, injectable } from "inversify";
-import { NotFoundError } from "@/applications/errors/app-error";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
@@ -18,7 +19,7 @@ export class GetUserByIdUseCase {
     if (!user) {
       return {
         ok: false,
-        error: new NotFoundError(`User with id ${userId} not found`),
+        error: new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "User not found", `User with id ${userId} not found`),
       };
     }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingCard from "@/components/custom/loading/card";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,11 +11,10 @@ import { POSITION_LABELS, ROLE_LABELS } from "@/lib/constants/labels";
 import { FiEdit2, FiUser } from "react-icons/fi";
 
 export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
-  const { player, isLoading, error } = usePlayer(playerId);
+  const { player, isLoading, error, mutate } = usePlayer(playerId);
 
   if (isLoading) return <LoadingCard />;
-  if (error)
-    return <div className="p-4 text-sm text-destructive">載入失敗</div>;
+  if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
