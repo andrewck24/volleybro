@@ -1,4 +1,4 @@
-import type { Player } from '@/entities/player';
+import type { Player, Position } from "@/entities/player";
 
 export interface IUpdatePlayerInfoUseCase {
   /**
@@ -14,8 +14,8 @@ export interface IUpdatePlayerInfoUseCase {
     updates: {
       name?: string;
       number?: number;
-      position?: string;
+      position?: Position;
     },
-    userId: string
+    userId: string,
   ): Promise<Player>;
 }

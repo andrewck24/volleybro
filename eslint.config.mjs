@@ -62,6 +62,7 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "public/sw.js", // Generated service worker by @serwist/next
     "docs/archive/**", // Archived migration scripts
+    "openspec/changes/archive/**", // Archived change proposals
   ]),
 ]);
 

@@ -1,7 +1,7 @@
 export interface IBaseRepository<T> {
-  find(filter: { [key: string]: any }): Promise<T[]>;
-  findOne(filter: { [key: string]: any }): Promise<T | undefined>;
-  create(data: any): Promise<T>;
-  update(filter: { [key: string]: any }, data: any): Promise<T>;
-  delete(filter: { [key: string]: any }): Promise<boolean>;
+  find(filter: Record<string, unknown>): Promise<T[]>;
+  findOne(filter: Record<string, unknown>): Promise<T | undefined>;
+  create(data: Partial<T>): Promise<T>;
+  update(filter: Record<string, unknown>, data: Partial<T>): Promise<T>;
+  delete(filter: Record<string, unknown>): Promise<boolean>;
 }
