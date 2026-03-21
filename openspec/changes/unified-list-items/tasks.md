@@ -29,4 +29,4 @@
 
 ## 7. Verification
 
-- [ ] 7.1 Run `npm test`, `npm run lint`, `npm run build` — all must pass
+- [x] 7.1 Run `npm test`, `npm run lint`, `npm run build` — all must pass
