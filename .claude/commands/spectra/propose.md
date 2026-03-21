@@ -235,7 +235,7 @@ If no argument is provided, the workflow will extract requirements from conversa
     - Validation result
 
     Use **AskUserQuestion tool** to ask what to do next. This ensures the workflow stops even when auto-accept is enabled. Provide exactly these options:
-    - **First option (will be auto-selected)**: "Park" — Execute `spectra park "<name>"` to stash the change, then inform the user they can run `/spectra:apply <change-name>` when ready (which will auto-unpark).
+    - **First option (will be auto-selected)**: "Park" — Execute `spectra park "<name>"` to park the change, then inform the user they can run `/spectra:apply <change-name>` when ready (which will auto-unpark).
     - **Second option**: "Apply" — Invoke `/spectra:apply <change-name>` to start implementation.
 
     If **AskUserQuestion tool** is not available, execute `spectra park "<name>"` and inform the user to run `/spectra:apply <change-name>` when ready. Then STOP — do not continue.
