@@ -1,7 +1,7 @@
 "use client";
 import { MatchInfo } from "@/components/record/match";
 import { MatchInfoForm } from "@/components/record/new/info-form";
-import { RosterTable } from "@/components/record/new/roster-table";
+import { RosterList } from "@/components/record/new/roster-list";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -171,7 +171,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
                 </CardBtnGroup>
               </CardTitle>
             </CardHeader>
-            <RosterTable roster={roster} />
+            <RosterList roster={roster} />
           </Card>
           <DialogFooter className="flex w-full flex-col">
             <DialogClose asChild>

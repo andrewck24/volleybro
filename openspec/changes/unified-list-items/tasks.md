@@ -24,8 +24,8 @@
 
 ## 6. RosterTable → RosterList (Presentation layer)
 
-- [ ] 6.1 Rename roster-table.tsx to roster-list.tsx, refactor to use PersonItem — number in metadata, ListBadge in action slot, remove Table structure (RosterList uses PersonItem instead of Table, RosterTable → RosterList)
-- [ ] 6.2 Update import in `src/components/record/new/index.tsx`
+- [x] 6.1 Rename roster-table.tsx to roster-list.tsx, refactor to use PersonItem — number in metadata, ListBadge in action slot, remove Table structure (RosterList uses PersonItem instead of Table, RosterTable → RosterList)
+- [x] 6.2 Update import in `src/components/record/new/index.tsx`
 
 ## 7. Verification
 
