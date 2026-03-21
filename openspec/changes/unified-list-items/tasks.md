@@ -15,7 +15,7 @@
 
 ## 4. Refactor Menu Team List (Presentation layer)
 
-- [ ] 4.1 Refactor Menu team list to use TeamItem with onClick — replace Button items, show team name instead of player name, active team visual distinction (Menu team list displays team names using TeamItem, Menu team list refactor)
+- [x] 4.1 Refactor Menu team list to use TeamItem with onClick — replace Button items, show team name instead of player name, active team visual distinction (Menu team list displays team names using TeamItem, Menu team list refactor)
 
 ## 5. Refactor PlayersList (Presentation layer)
 

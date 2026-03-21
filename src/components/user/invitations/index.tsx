@@ -73,7 +73,7 @@ export const Invitations = ({ className }: { className?: string }) => {
       <Message />
       <div className="flex flex-col">
         {isLoading ? (
-          <div className="px-3 py-2 text-muted-foreground">Loading...</div>
+          <div className="px-3 py-2 text-muted-foreground">載入中...</div>
         ) : (
           invitedPlayers.map((player) => (
             <React.Fragment key={player._id}>

@@ -10,11 +10,11 @@ import {
   RiArrowDownWideLine,
   RiSettings4Line,
   RiUserLine,
-  RiGroupLine,
   RiUserAddLine,
 } from "react-icons/ri";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardDescription } from "@/components/ui/card";
+import { TeamItem } from "@/components/custom/team-item";
 import { apiClient } from "@/lib/api/api-client";
 import { DarkMode } from "@/components/user/menu/dark-mode";
 
@@ -83,17 +83,14 @@ const Menu = ({ className }: { className?: string }) => {
             <>
               <CardDescription>已加入隊伍</CardDescription>
               {joinedPlayers.map((p) => (
-                <Button
+                <TeamItem
                   key={p._id}
-                  variant={
-                    profile?.activeTeamId === p.teamId ? "default" : "ghost"
-                  }
-                  size="wide"
+                  teamId={p.teamId!}
                   onClick={() => handleSwitchTeam(p.teamId!)}
-                >
-                  <RiGroupLine />
-                  <span className="flex justify-start flex-1">{p.name}</span>
-                </Button>
+                  className={cn(
+                    profile?.activeTeamId === p.teamId && "bg-primary text-primary-foreground"
+                  )}
+                />
               ))}
             </>
           )}
