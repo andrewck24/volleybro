@@ -1,10 +1,10 @@
 ## 1. Jest Projects Configuration for Environment Isolation
 
-- [ ] [P] 1.1 Split setup files by environment — create `jest.setup.backend.ts` with DB-only mocks (mongodb, mongoose, bson, fetch, console suppression) extracted from current `jest.setup.ts`
-- [ ] [P] 1.2 Split setup files by environment — create `jest.setup.frontend.ts` with browser/React mocks (@testing-library/jest-dom, jest-axe, IntersectionObserver, ResizeObserver, matchMedia, next/link, next/image, motion/react, motion/react-m, fetch, console suppression) extracted from current `jest.setup.ts`
-- [ ] 1.3 Rewrite `jest.config.ts` to use Jest `projects` array with two sub-projects: `backend` (node env, matches entities/applications/infrastructure/interface/app/api) and `frontend` (jsdom env, matches components/lib). Apply split setup files per project.
-- [ ] 1.4 Remove original `jest.setup.ts` after migration
-- [ ] 1.5 Run `npm test`, `npm run lint`, `npm run build` — verify all 67 tests pass with new config
+- [x] [P] 1.1 Split setup files by environment — create `jest.setup.backend.ts` with DB-only mocks (mongodb, mongoose, bson, fetch, console suppression) extracted from current `jest.setup.ts`
+- [x] [P] 1.2 Split setup files by environment — create `jest.setup.frontend.ts` with browser/React mocks (@testing-library/jest-dom, jest-axe, IntersectionObserver, ResizeObserver, matchMedia, next/link, next/image, motion/react, motion/react-m, fetch, console suppression) extracted from current `jest.setup.ts`
+- [x] 1.3 Rewrite `jest.config.ts` to use Jest `projects` array with two sub-projects: `backend` (node env, matches entities/applications/infrastructure/interface/app/api) and `frontend` (jsdom env, matches components/lib). Apply split setup files per project.
+- [x] 1.4 Remove original `jest.setup.ts` after migration
+- [x] 1.5 Run `npm test`, `npm run lint`, `npm run build` — verify all 67 tests pass with new config
 
 ## 2. Mock Factory Functions for Repository Interfaces and Auth Services
 
