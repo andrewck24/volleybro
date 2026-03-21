@@ -3,7 +3,12 @@ import type { GlobalConfig } from "semantic-release";
 const config: Partial<GlobalConfig> = {
   branches: ["main"],
   plugins: [
-    "@semantic-release/commit-analyzer",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        releaseRules: [{ breaking: true, release: "minor" }],
+      },
+    ],
     "@semantic-release/release-notes-generator",
     "@semantic-release/github",
     ["@semantic-release/npm", { npmPublish: false }],
