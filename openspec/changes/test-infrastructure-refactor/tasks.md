@@ -8,15 +8,15 @@
 
 ## 2. Mock Factory Functions for Repository Interfaces and Auth Services
 
-- [ ] [P] 2.1 Create `src/__tests__/helpers/mock-repositories.ts` with `createMockPlayerRepository()`, `createMockTeamRepository()`, `createMockRecordRepository()`, `createMockUserRepository()` — typed as `jest.Mocked<I*Repository>`
-- [ ] [P] 2.2 Create mock factory functions for auth services: `createMockAuthenticationService()`, `createMockAuthorizationService()` in `src/__tests__/helpers/mock-services.ts`
-- [ ] [P] 2.3 Create `src/__tests__/helpers/index.ts` re-exporting all factories
-- [ ] 2.4 Run `npm test`, `npm run lint`, `npm run build` — verify new helpers compile and export correctly
+- [x] [P] 2.1 Create `src/__tests__/helpers/mock-repositories.ts` with `createMockPlayerRepository()`, `createMockTeamRepository()`, `createMockRecordRepository()`, `createMockUserRepository()` — typed as `jest.Mocked<I*Repository>`
+- [x] [P] 2.2 Create mock factory functions for auth services: `createMockAuthenticationService()`, `createMockAuthorizationService()` in `src/__tests__/helpers/mock-services.ts`
+- [x] [P] 2.3 Create `src/__tests__/helpers/index.ts` re-exporting all factories
+- [x] 2.4 Run `npm test`, `npm run lint`, `npm run build` — verify new helpers compile and export correctly
 
 ## 3. Fixture Factory Functions for Test Entities
 
-- [ ] 3.1 Create `src/__tests__/helpers/fixtures.ts` with `createPlayer()`, `createTeam()`, `createRecord()`, `createUser()` fixture factories accepting `Partial<T>` overrides
-- [ ] 3.2 Run `npm test`, `npm run lint`, `npm run build` — verify fixture factories compile
+- [x] 3.1 Create `src/__tests__/helpers/fixtures.ts` with `createPlayer()`, `createTeam()`, `createRecord()`, `createUser()` fixture factories accepting `Partial<T>` overrides
+- [x] 3.2 Run `npm test`, `npm run lint`, `npm run build` — verify fixture factories compile
 
 ## 4. Migrate UseCase Tests (Application Layer — Classical Style)
 
