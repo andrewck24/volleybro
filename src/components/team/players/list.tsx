@@ -2,7 +2,9 @@
 
 import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import { ListItem } from "@/components/team/players/list-item";
+import { PersonItem } from "@/components/custom/person-item";
+import type { Player } from "@/entities/player";
+import { POSITION_LABELS } from "@/lib/constants/labels";
 import { useTeamPlayers } from "@/hooks/use-data";
 
 interface PlayersListProps {
@@ -33,8 +35,35 @@ export function PlayersList({ teamId }: PlayersListProps) {
   return (
     <div className="flex flex-col gap-2">
       {orderedPlayers.map((player) => (
-        <ListItem key={player._id} player={player} teamId={teamId} />
+        <PersonItem
+          key={player._id}
+          name={player.name}
+          href={`/team/${teamId}/players/${player._id}`}
+        >
+          <PlayerMetadata player={player} />
+        </PersonItem>
       ))}
     </div>
+  );
+}
+
+function PlayerMetadata({ player }: { player: Player }) {
+  const positionLabel = player.position
+    ? POSITION_LABELS[player.position]
+    : undefined;
+
+  return (
+    <>
+      {player.number && (
+        <span className="shrink-0 text-sm text-muted-foreground">
+          #{player.number}
+        </span>
+      )}
+      {positionLabel && (
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {positionLabel}
+        </span>
+      )}
+    </>
   );
 }
