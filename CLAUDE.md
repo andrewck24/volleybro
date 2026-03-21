@@ -19,7 +19,6 @@ discuss? → propose → apply ⇄ ingest → archive
 
 - `discuss` is optional — skip if requirements are clear
 - Requirements change mid-work? Plan mode → `ingest` → resume `apply`
-- Commit after each completed task group during `apply`, then run `/simplify`, then continue with next task group
 
 ## Parked Changes
 
@@ -27,10 +26,9 @@ Changes can be parked（暫存）— temporarily moved out of `openspec/changes/
 
 <!-- SPECTRA:END -->
 
-# VolleyBro Project Architecture
+## VolleyBro Introduction
 
 VolleyBro is a volleyball team management and match recording web application built with **Clean Architecture** principles.
-For a detailed version, see the [Architecture Documentation](./docs/architecture/index.md).
 
 ## Technology Stack
 
@@ -43,11 +41,7 @@ For a detailed version, see the [Architecture Documentation](./docs/architecture
 - **PWA**: @serwist/next (configurator mode) for Progressive Web App features
 - **Testing**: Jest, Storybook (to be refactored with optimal testing tools)
 
-Detailed tech-stack info [docs](./docs/architecture/tech-stack.md)
-
 ## Clean Architecture Layers
-
-Detailed source tree info [docs](./docs/architecture/source-tree.md)
 
 1. **Domain Layer** (`src/entities/`)
    - Core business entities: User, Team, Member, Record, Match, Set
@@ -109,8 +103,6 @@ Components are organized by domain and purpose (features):
 
 ## Code Style Guidelines
 
-Detailed coding standards [docs](./docs/architecture/coding-standards.md)
-
 - **Code Formatting**: Prettier with Airbnb JavaScript/TypeScript style guide
 - **Linting**: ESLint configured with Airbnb rules
 - Follow existing TypeScript patterns and interfaces
@@ -120,10 +112,11 @@ Detailed coding standards [docs](./docs/architecture/coding-standards.md)
 
 ## Pre-commit Checklist
 
-**IMPORTANT**: Before every commit, ensure the following steps pass:
+**IMPORTANT**: Commit after each completed task section during `apply`. Before every commit, ensure the following steps pass:
 
 1. `npm test` - All tests must pass
 2. `npm run lint` - No linting errors
 3. `npm run build` - Build succeeds without errors
 4. Check for TypeScript errors in IDE
 5. Verify no breaking changes to existing functionality
+6. run `/simplify`
