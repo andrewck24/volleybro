@@ -19,8 +19,8 @@
 
 ## 5. Refactor PlayersList (Presentation layer)
 
-- [ ] 5.1 Refactor PlayersList to use PersonItem — replace ListItem import, pass number and position as children/metadata
-- [ ] 5.2 Remove old `src/components/team/players/list-item.tsx` after migration
+- [x] 5.1 Refactor PlayersList to use PersonItem — replace ListItem import, pass number and position as children/metadata
+- [x] 5.2 Remove old `src/components/team/players/list-item.tsx` after migration
 
 ## 6. RosterTable → RosterList (Presentation layer)
 
