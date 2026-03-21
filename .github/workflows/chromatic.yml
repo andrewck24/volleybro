@@ -1,5 +1,7 @@
 # Workflow name
 name: "Chromatic Publish"
+permissions:
+  contents: read
 
 # Event for the workflow
 on:
