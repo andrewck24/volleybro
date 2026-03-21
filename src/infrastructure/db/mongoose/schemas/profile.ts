@@ -9,10 +9,7 @@ import {
 
 export interface ProfileDocument extends Document {
   userId: Types.ObjectId;
-  teams: {
-    joined: Types.ObjectId[];
-    inviting: Types.ObjectId[];
-  };
+  activeTeamId?: Types.ObjectId;
   info?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
 }
@@ -25,21 +22,10 @@ const profileSchema = new Schema<ProfileDocument>(
       required: true,
       unique: true,
     },
-    teams: {
-      joined: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Team",
-          required: false,
-        },
-      ],
-      inviting: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Team",
-          required: false,
-        },
-      ],
+    activeTeamId: {
+      type: Schema.Types.ObjectId,
+      ref: "Team",
+      required: false,
     },
     info: {
       type: Object,

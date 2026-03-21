@@ -3,6 +3,8 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { RecordReason } from "@/entities/errors/reasons/record";
 import {
   type Record,
   type Entry,
@@ -11,7 +13,8 @@ import {
   EntryType,
   PlayerStatsClass,
 } from "@/entities/record";
-import { Role, type Lineup } from "@/entities/team";
+import { type Lineup } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 
 export interface ICreateSubstitutionInput {
   params: { recordId: string; setIndex: number; entryIndex: number };
@@ -39,12 +42,12 @@ export class CreateSubstitutionUseCase {
     const record = await this.recordRepository.findOne({
       _id: params.recordId,
     });
-    if (!record) throw new Error("Record not found");
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     const side = substitution.team === Side.HOME ? "home" : "away";

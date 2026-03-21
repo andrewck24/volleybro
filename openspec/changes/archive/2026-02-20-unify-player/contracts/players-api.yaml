@@ -1,0 +1,998 @@
+openapi: 3.1.0
+info:
+  title: VolleyBro Players API
+  version: 1.0.0
+  description: |
+    統一 Player 實體 API 合約規範
+
+    ## 核心概念
+
+    - **Player**: 統一的球員實體，涵蓋三種狀態
+      - `INVITED`: 已邀請但未加入 (email ✓, userId ✗)
+      - `JOINED`: 已加入的成員 (userId ✓)
+      - `PURE_PLAYER`: 純球員資料 (email ✗, userId ✗)
+
+    - **PlayerRole**: 球員角色
+      - `MEMBER`: 一般成員
+      - `ADMIN`: 管理員
+      - `OWNER`: 擁有者（每隊唯一）
+
+    ## 權限規則
+
+    - OWNER: 所有操作權限
+    - ADMIN: 可管理 MEMBER（邀請、移除、編輯資料），無法變更 OWNER/ADMIN 角色
+    - MEMBER: 僅可編輯自己的資料、離開隊伍
+
+    ## 狀態轉換規則
+
+    - `PURE_PLAYER` → `INVITED`: invite action
+    - `INVITED` → `JOINED`: accept action
+    - `INVITED` → (deleted): reject/cancel action
+    - `JOINED` → (deleted): leave action
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Player Operations
+    description: 球員個體的 CRUD 與狀態變更
+  - name: Team Players
+    description: 隊伍成員管理
+  - name: User Players
+    description: 使用者的球員關聯查詢
+
+paths:
+  /api/players/{playerId}:
+    get:
+      tags:
+        - Player Operations
+      summary: 取得球員詳細資訊
+      description: |
+        取得單一球員的完整資訊
+
+        **權限要求**:
+        - OWNER/ADMIN: 可查看任何隊伍成員
+        - MEMBER: 僅可查看同隊球員
+      operationId: getPlayer
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '200':
+          description: 成功取得球員資訊
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+              examples:
+                joinedPlayer:
+                  $ref: '#/components/examples/JoinedPlayerExample'
+                invitedPlayer:
+                  $ref: '#/components/examples/InvitedPlayerExample'
+                purePlayer:
+                  $ref: '#/components/examples/PurePlayerExample'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags:
+        - Player Operations
+      summary: 刪除球員
+      description: |
+        刪除球員記錄（僅限未被任何比賽記錄引用的球員）
+
+        **權限要求**:
+        - OWNER/ADMIN: 可刪除任何球員
+        - MEMBER: 無權限
+
+        **業務規則**:
+        - 若球員被 Record 引用，返回 409 錯誤
+        - 刪除後無法復原
+      operationId: deletePlayer
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      responses:
+        '204':
+          description: 成功刪除
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: 球員已被比賽記錄引用，無法刪除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "PLAYER_IN_USE"
+                message: "球員已被 3 場比賽記錄引用，無法刪除"
+                details:
+                  recordCount: 3
+
+  /api/players/{playerId}/info:
+    patch:
+      tags:
+        - Player Operations
+      summary: 更新球員基本資訊
+      description: |
+        更新球員的姓名、號碼、位置等基本資訊
+
+        **權限要求**:
+        - OWNER/ADMIN: 可編輯任何球員
+        - MEMBER: 僅可編輯自己的資料（userId 匹配）
+
+        **業務規則**:
+        - 不觸發任何通知
+        - 姓名不可為空字串
+        - 號碼範圍 0-99
+      operationId: updatePlayerInfo
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlayerInfoRequest'
+            examples:
+              updateNameAndNumber:
+                summary: 更新姓名與號碼
+                value:
+                  name: "王小明"
+                  number: 12
+              updatePosition:
+                summary: 更新位置
+                value:
+                  position: "OH"
+      responses:
+        '200':
+          description: 成功更新
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/players/{playerId}/role:
+    patch:
+      tags:
+        - Player Operations
+      summary: 更新球員角色
+      description: |
+        變更球員的權限角色
+
+        **權限要求**:
+        - OWNER: 可變更任何人（除了 OWNER → OWNER）
+        - ADMIN: 無權限
+        - MEMBER: 無權限
+
+        **業務規則**:
+        - 每隊僅有一位 OWNER
+        - 轉移 OWNER 需使用 transfer-ownership 端點
+        - **未來整合**: 觸發角色變更通知給被變更者
+
+        **狀態要求**:
+        - 僅限 `JOINED` 狀態的球員
+      operationId: updatePlayerRole
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlayerRoleRequest'
+            examples:
+              promoteToAdmin:
+                summary: 提升為管理員
+                value:
+                  role: "ADMIN"
+              demoteToMember:
+                summary: 降級為一般成員
+                value:
+                  role: "MEMBER"
+      responses:
+        '200':
+          description: 成功更新角色
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: 權限不足或違反角色規則
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                notOwner:
+                  summary: 非 OWNER 無權變更角色
+                  value:
+                    error: "FORBIDDEN"
+                    message: "僅 OWNER 可變更成員角色"
+                cannotTransferOwner:
+                  summary: 嘗試直接變更 OWNER
+                  value:
+                    error: "INVALID_OPERATION"
+                    message: "OWNER 轉移需使用 transfer-ownership 端點"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: 球員狀態不符合要求
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "INVALID_STATE"
+                message: "僅 JOINED 狀態的球員可變更角色"
+
+  /api/players/{playerId}/status:
+    patch:
+      tags:
+        - Player Operations
+      summary: 變更球員狀態
+      description: |
+        處理球員的狀態轉換（邀請、接受、拒絕、取消、離隊）
+
+        **Action 說明**:
+        - `invite`: 邀請球員（PURE_PLAYER → INVITED）
+        - `accept`: 接受邀請（INVITED → JOINED）
+        - `reject`: 拒絕邀請（INVITED → deleted）
+        - `cancel`: 取消邀請（INVITED → deleted）
+        - `leave`: 離開隊伍（JOINED → deleted）
+
+        **權限要求**:
+        - `invite`: OWNER/ADMIN
+        - `accept`: 被邀請者本人（email 匹配）
+        - `reject`: 被邀請者本人（email 匹配）
+        - `cancel`: OWNER/ADMIN
+        - `leave`: 球員本人（userId 匹配）且非 OWNER
+
+        **未來整合**:
+        - `invite`, `cancel` 觸發邀請通知
+        - `accept`, `reject` 觸發接受/拒絕通知
+      operationId: updatePlayerStatus
+      parameters:
+        - $ref: '#/components/parameters/PlayerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlayerStatusRequest'
+            examples:
+              invite:
+                summary: 邀請球員
+                value:
+                  action: "invite"
+                  email: "player@example.com"
+              accept:
+                summary: 接受邀請
+                value:
+                  action: "accept"
+              reject:
+                summary: 拒絕邀請
+                value:
+                  action: "reject"
+              cancel:
+                summary: 取消邀請
+                value:
+                  action: "cancel"
+              leave:
+                summary: 離開隊伍
+                value:
+                  action: "leave"
+      responses:
+        '200':
+          description: 狀態變更成功
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Player'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "球員已成功離隊"
+              examples:
+                afterInvite:
+                  summary: 邀請後（INVITED 狀態）
+                  value:
+                    _id: "player_123"
+                    name: "王小明"
+                    email: "player@example.com"
+                    teamId: "team_456"
+                    role: "MEMBER"
+                    createdAt: "2025-12-20T10:00:00Z"
+                    updatedAt: "2025-12-20T10:00:00Z"
+                afterAccept:
+                  summary: 接受後（JOINED 狀態）
+                  value:
+                    _id: "player_123"
+                    name: "王小明"
+                    userId: "user_789"
+                    teamId: "team_456"
+                    role: "MEMBER"
+                    createdAt: "2025-12-20T10:00:00Z"
+                    updatedAt: "2025-12-20T10:05:00Z"
+                afterLeave:
+                  summary: 離隊後（已刪除）
+                  value:
+                    message: "球員已成功離隊"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: 權限不足或違反狀態轉換規則
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ownerCannotLeave:
+                  summary: OWNER 無法離隊
+                  value:
+                    error: "FORBIDDEN"
+                    message: "OWNER 無法離隊，請先轉移所有權"
+                emailMismatch:
+                  summary: 非本人操作邀請
+                  value:
+                    error: "FORBIDDEN"
+                    message: "僅被邀請者本人可接受或拒絕邀請"
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          description: 狀態轉換衝突
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidTransition:
+                  summary: 無效的狀態轉換
+                  value:
+                    error: "INVALID_STATE_TRANSITION"
+                    message: "JOINED 狀態無法執行 accept 操作"
+                duplicateEmail:
+                  summary: Email 已被邀請
+                  value:
+                    error: "DUPLICATE_INVITATION"
+                    message: "此 Email 已在隊伍中或已被邀請"
+
+  /api/teams/{teamId}/players:
+    get:
+      tags:
+        - Team Players
+      summary: 取得隊伍所有球員
+      description: |
+        取得指定隊伍的所有球員（包含 INVITED, JOINED, PURE_PLAYER 三種狀態）
+
+        **權限要求**:
+        - OWNER/ADMIN/MEMBER: 可查看所屬隊伍成員
+
+        **回應資料**:
+        - 依 createdAt 排序
+        - 包含狀態推斷資訊
+      operationId: getTeamPlayers
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+        - name: status
+          in: query
+          description: 過濾球員狀態
+          required: false
+          schema:
+            type: string
+            enum: [INVITED, JOINED, PURE_PLAYER]
+          example: "JOINED"
+        - name: role
+          in: query
+          description: 過濾球員角色
+          required: false
+          schema:
+            type: string
+            enum: [MEMBER, ADMIN, OWNER]
+          example: "ADMIN"
+      responses:
+        '200':
+          description: 成功取得球員列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  players:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Player'
+                  total:
+                    type: integer
+                    description: 總球員數
+                    example: 15
+              examples:
+                mixedPlayers:
+                  summary: 混合狀態的球員列表
+                  value:
+                    players:
+                      - _id: "player_1"
+                        name: "王大明"
+                        number: 10
+                        position: "OH"
+                        userId: "user_123"
+                        teamId: "team_456"
+                        role: "OWNER"
+                        createdAt: "2025-01-01T00:00:00Z"
+                        updatedAt: "2025-01-01T00:00:00Z"
+                      - _id: "player_2"
+                        name: "李小華"
+                        email: "player2@example.com"
+                        teamId: "team_456"
+                        role: "MEMBER"
+                        createdAt: "2025-01-02T00:00:00Z"
+                        updatedAt: "2025-01-02T00:00:00Z"
+                      - _id: "player_3"
+                        name: "陳球員"
+                        number: 5
+                        position: "MB"
+                        teamId: "team_456"
+                        createdAt: "2025-01-03T00:00:00Z"
+                        updatedAt: "2025-01-03T00:00:00Z"
+                    total: 3
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: 隊伍不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "NOT_FOUND"
+                message: "隊伍不存在"
+
+    post:
+      tags:
+        - Team Players
+      summary: 建立球員
+      description: |
+        為隊伍建立新球員
+
+        **業務規則**:
+        - 若提供 `email`：建立 INVITED 狀態球員（邀請）
+        - 若無 `email`：建立 PURE_PLAYER 狀態球員
+        - `role` 預設為 `MEMBER`
+
+        **權限要求**:
+        - OWNER/ADMIN: 可建立球員
+        - MEMBER: 無權限
+
+        **未來整合**:
+        - 有 email 時觸發邀請通知
+      operationId: createPlayer
+      parameters:
+        - $ref: '#/components/parameters/TeamIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlayerRequest'
+            examples:
+              invitePlayer:
+                summary: 邀請球員（有 email）
+                value:
+                  name: "王小明"
+                  email: "player@example.com"
+                  number: 12
+                  position: "OH"
+                  role: "MEMBER"
+              createPurePlayer:
+                summary: 建立純球員（無 email）
+                value:
+                  name: "陳球員"
+                  number: 5
+                  position: "MB"
+      responses:
+        '201':
+          description: 成功建立球員
+          headers:
+            Location:
+              description: 新建立球員的資源位置
+              schema:
+                type: string
+                example: "/api/players/player_123"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Player'
+              examples:
+                invitedPlayer:
+                  $ref: '#/components/examples/InvitedPlayerExample'
+                purePlayer:
+                  $ref: '#/components/examples/PurePlayerExample'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          description: 隊伍不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "NOT_FOUND"
+                message: "隊伍不存在"
+        '409':
+          description: Email 已被邀請
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "DUPLICATE_INVITATION"
+                message: "此 Email 已在隊伍中或已被邀請"
+
+  /api/users/{userId}/players:
+    get:
+      tags:
+        - User Players
+      summary: 取得使用者的所有球員關聯
+      description: |
+        取得使用者的所有球員記錄，包含：
+        - 已加入的隊伍（JOINED，userId 匹配）
+        - 收到的邀請（INVITED，email 匹配）
+
+        **權限要求**:
+        - 僅限本人查詢（userId 匹配當前登入使用者）
+
+        **回應資料**:
+        - 依 createdAt 降冪排序
+        - 包含 team 基本資訊（populate）
+      operationId: getUserPlayers
+      parameters:
+        - $ref: '#/components/parameters/UserIdParam'
+        - name: status
+          in: query
+          description: 過濾球員狀態
+          required: false
+          schema:
+            type: string
+            enum: [INVITED, JOINED]
+          example: "INVITED"
+      responses:
+        '200':
+          description: 成功取得使用者的球員列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  players:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/Player'
+                        - type: object
+                          properties:
+                            team:
+                              $ref: '#/components/schemas/TeamSummary'
+                  joined:
+                    type: integer
+                    description: 已加入的隊伍數
+                    example: 3
+                  invited:
+                    type: integer
+                    description: 待處理的邀請數
+                    example: 1
+              examples:
+                userPlayers:
+                  summary: 使用者的球員列表
+                  value:
+                    players:
+                      - _id: "player_1"
+                        name: "王大明"
+                        userId: "user_123"
+                        teamId: "team_456"
+                        role: "OWNER"
+                        number: 10
+                        position: "OH"
+                        team:
+                          _id: "team_456"
+                          name: "台北雄鷹"
+                        createdAt: "2025-01-01T00:00:00Z"
+                        updatedAt: "2025-01-01T00:00:00Z"
+                      - _id: "player_2"
+                        name: "王大明"
+                        email: "wang@example.com"
+                        teamId: "team_789"
+                        role: "MEMBER"
+                        team:
+                          _id: "team_789"
+                          name: "新竹風城"
+                        createdAt: "2025-01-05T00:00:00Z"
+                        updatedAt: "2025-01-05T00:00:00Z"
+                    joined: 1
+                    invited: 1
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: 無權查詢他人資料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "FORBIDDEN"
+                message: "僅可查詢本人的球員資料"
+
+components:
+  parameters:
+    PlayerIdParam:
+      name: playerId
+      in: path
+      description: 球員 ID（MongoDB ObjectId）
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{24}$'
+        example: "507f1f77bcf86cd799439011"
+
+    TeamIdParam:
+      name: teamId
+      in: path
+      description: 隊伍 ID（MongoDB ObjectId）
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-f0-9]{24}$'
+        example: "507f191e810c19729de860ea"
+
+    UserIdParam:
+      name: userId
+      in: path
+      description: 使用者 ID（Better Auth User ID）
+      required: true
+      schema:
+        type: string
+        example: "user_2aB3cD4eF5gH6iJ7kL8mN9oP"
+
+  schemas:
+    Player:
+      type: object
+      required:
+        - _id
+        - name
+        - createdAt
+        - updatedAt
+      properties:
+        _id:
+          type: string
+          description: 球員唯一識別碼（MongoDB ObjectId）
+          example: "507f1f77bcf86cd799439011"
+        name:
+          type: string
+          minLength: 1
+          description: 球員姓名
+          example: "王小明"
+        number:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: 球衣號碼
+          example: 12
+        position:
+          type: string
+          enum: ["", "OH", "MB", "OP", "S", "L"]
+          description: |
+            球員位置
+            - OH: Outside Hitter (主攻)
+            - MB: Middle Blocker (攔中)
+            - OP: Opposite Hitter (舉對)
+            - S: Setter (舉球員)
+            - L: Libero (自由球員)
+          example: "OH"
+        teamId:
+          type: string
+          description: 所屬隊伍 ID
+          example: "507f191e810c19729de860ea"
+        userId:
+          type: string
+          description: 關聯的使用者 ID（JOINED 狀態時存在）
+          example: "user_2aB3cD4eF5gH6iJ7kL8mN9oP"
+        email:
+          type: string
+          format: email
+          description: 邀請用 Email（INVITED 狀態時存在）
+          example: "player@example.com"
+        role:
+          type: string
+          enum: ["MEMBER", "ADMIN", "OWNER"]
+          description: |
+            球員角色
+            - MEMBER: 一般成員
+            - ADMIN: 管理員
+            - OWNER: 擁有者
+          example: "MEMBER"
+        createdAt:
+          type: string
+          format: date-time
+          description: 建立時間
+          example: "2025-12-20T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最後更新時間
+          example: "2025-12-20T10:00:00Z"
+
+    TeamSummary:
+      type: object
+      required:
+        - _id
+        - name
+      properties:
+        _id:
+          type: string
+          description: 隊伍 ID
+          example: "507f191e810c19729de860ea"
+        name:
+          type: string
+          description: 隊伍名稱
+          example: "台北雄鷹"
+
+    CreatePlayerRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: 球員姓名
+          example: "王小明"
+        number:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: 球衣號碼
+          example: 12
+        position:
+          type: string
+          enum: ["", "OH", "MB", "OP", "S", "L"]
+          description: 球員位置
+          example: "OH"
+        role:
+          type: string
+          enum: ["MEMBER", "ADMIN", "OWNER"]
+          default: "MEMBER"
+          description: 球員角色（預設 MEMBER）
+          example: "MEMBER"
+        email:
+          type: string
+          format: email
+          description: 邀請用 Email（有提供則建立 INVITED 狀態）
+          example: "player@example.com"
+
+    UpdatePlayerInfoRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: 球員姓名
+          example: "王小明"
+        number:
+          type: integer
+          minimum: 0
+          maximum: 99
+          description: 球衣號碼
+          example: 12
+        position:
+          type: string
+          enum: ["", "OH", "MB", "OP", "S", "L"]
+          description: 球員位置
+          example: "OH"
+
+    UpdatePlayerRoleRequest:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum: ["MEMBER", "ADMIN", "OWNER"]
+          description: 新角色（OWNER 轉移需使用專用端點）
+          example: "ADMIN"
+
+    UpdatePlayerStatusRequest:
+      oneOf:
+        - type: object
+          required:
+            - action
+            - email
+          properties:
+            action:
+              type: string
+              enum: ["invite"]
+              description: 邀請球員（PURE_PLAYER → INVITED）
+            email:
+              type: string
+              format: email
+              description: 邀請用 Email
+              example: "player@example.com"
+        - type: object
+          required:
+            - action
+          properties:
+            action:
+              type: string
+              enum: ["accept"]
+              description: 接受邀請（INVITED → JOINED）
+        - type: object
+          required:
+            - action
+          properties:
+            action:
+              type: string
+              enum: ["reject"]
+              description: 拒絕邀請（INVITED → deleted）
+        - type: object
+          required:
+            - action
+          properties:
+            action:
+              type: string
+              enum: ["cancel"]
+              description: 取消邀請（INVITED → deleted）
+        - type: object
+          required:
+            - action
+          properties:
+            action:
+              type: string
+              enum: ["leave"]
+              description: 離開隊伍（JOINED → deleted，OWNER 無法執行）
+      discriminator:
+        propertyName: action
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: 錯誤代碼
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "資料驗證失敗"
+        details:
+          type: object
+          description: 詳細錯誤資訊
+          additionalProperties: true
+
+  responses:
+    UnauthorizedError:
+      description: 未授權（未登入）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "請先登入"
+
+    ForbiddenError:
+      description: 權限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "FORBIDDEN"
+            message: "權限不足"
+
+    NotFoundError:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "球員不存在"
+
+    ValidationError:
+      description: 資料驗證失敗
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalidName:
+              summary: 姓名驗證失敗
+              value:
+                error: "VALIDATION_ERROR"
+                message: "資料驗證失敗"
+                details:
+                  name: "姓名為必填"
+            invalidNumber:
+              summary: 號碼範圍錯誤
+              value:
+                error: "VALIDATION_ERROR"
+                message: "資料驗證失敗"
+                details:
+                  number: "號碼必須介於 0-99"
+
+  examples:
+    JoinedPlayerExample:
+      summary: 已加入的球員（JOINED）
+      value:
+        _id: "507f1f77bcf86cd799439011"
+        name: "王小明"
+        number: 12
+        position: "OH"
+        userId: "user_2aB3cD4eF5gH6iJ7kL8mN9oP"
+        teamId: "507f191e810c19729de860ea"
+        role: "MEMBER"
+        createdAt: "2025-12-20T10:00:00Z"
+        updatedAt: "2025-12-20T10:00:00Z"
+
+    InvitedPlayerExample:
+      summary: 已邀請但未加入（INVITED）
+      value:
+        _id: "507f1f77bcf86cd799439012"
+        name: "李小華"
+        email: "player@example.com"
+        teamId: "507f191e810c19729de860ea"
+        role: "MEMBER"
+        createdAt: "2025-12-20T11:00:00Z"
+        updatedAt: "2025-12-20T11:00:00Z"
+
+    PurePlayerExample:
+      summary: 純球員資料（PURE_PLAYER）
+      value:
+        _id: "507f1f77bcf86cd799439013"
+        name: "陳球員"
+        number: 5
+        position: "MB"
+        teamId: "507f191e810c19729de860ea"
+        createdAt: "2025-12-20T12:00:00Z"
+        updatedAt: "2025-12-20T12:00:00Z"
+
+  securitySchemes:
+    BetterAuth:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+      description: Better Auth session token (httpOnly cookie)
+
+security:
+  - BetterAuth: []

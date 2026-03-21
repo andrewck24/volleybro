@@ -1,0 +1,8 @@
+{
+  "$schema": "../schemas.json#/definitions/CreatePlayerRequest",
+  "name": "王小明",
+  "email": "wang.xiaoming@example.com",
+  "number": 12,
+  "position": "OH",
+  "role": "MEMBER"
+}

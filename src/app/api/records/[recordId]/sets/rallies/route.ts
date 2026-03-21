@@ -4,15 +4,15 @@ import {
   updateRallyController,
 } from "@/interface/controllers/record/rally.controller";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { withErrorHandler } from "@/lib/api/wrappers";
 
-export const POST = async (
-  req: NextRequest,
-  props: { params: Promise<{ recordId: string }> }
-) => {
-  try {
+export const POST = (
+  _req: NextRequest,
+  props: { params: Promise<{ recordId: string }> },
+) =>
+  withErrorHandler(async (req) => {
     await connectToMongoDB();
-    const params = await props.params;
-    const { recordId } = params;
+    const { recordId } = await props.params;
     const rally = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
@@ -23,20 +23,15 @@ export const POST = async (
       data: rally,
     });
     return NextResponse.json(entries, { status: 200 });
-  } catch (error) {
-    console.log("[POST /api/records/sets/rallies]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
+  })(_req);
 
-export const PUT = async (
-  req: NextRequest,
-  props: { params: Promise<{ recordId: string }> }
-) => {
-  try {
+export const PUT = (
+  _req: NextRequest,
+  props: { params: Promise<{ recordId: string }> },
+) =>
+  withErrorHandler(async (req) => {
     await connectToMongoDB();
-    const params = await props.params;
-    const { recordId } = params;
+    const { recordId } = await props.params;
     const rally = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
@@ -47,8 +42,4 @@ export const PUT = async (
       data: rally,
     });
     return NextResponse.json(entries, { status: 200 });
-  } catch (error) {
-    console.log("[PUT /api/records/sets/rallies]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
+  })(_req);

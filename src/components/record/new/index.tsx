@@ -1,7 +1,7 @@
 "use client";
 import { MatchInfo } from "@/components/record/match";
 import { MatchInfoForm } from "@/components/record/new/info-form";
-import { RosterTable } from "@/components/record/new/roster-table";
+import { RosterList } from "@/components/record/new/roster-list";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useTeam, useTeamMembers } from "@/hooks/use-data";
+import { useToast } from "@/components/ui/use-toast";
+import { useTeam, useTeamPlayers } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import type { TMatchInfoForm } from "@/lib/features/record/types";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -25,10 +28,11 @@ import { useSWRConfig } from "swr";
 
 export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   const router = useRouter();
+  const { toast } = useToast();
   const [view, setView] = useState("");
   const { mutate } = useSWRConfig();
   const { team, isLoading: isTeamLoading } = useTeam(teamId);
-  const { members, isLoading: isMembersLoading } = useTeamMembers(teamId);
+  const { players, isLoading: isPlayersLoading } = useTeamPlayers(teamId);
 
   const [lineupIndex, setLineupIndex] = useState(0);
   const handleViewChange = (view: string) => {
@@ -52,11 +56,11 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     weather: { temperature: "" },
   });
 
-  const players = useMemo(() => {
+  const roster = useMemo(() => {
     const getPlayerData = (list: string) => {
-      if (!team || !members) return [];
+      if (!team || !players) return [];
       return team.lineups[lineupIndex][list].map((player) => {
-        const member = members.find((member) => member._id === player._id);
+        const member = players.find((p) => p._id === player._id);
         return {
           _id: member._id,
           name: member.name,
@@ -71,8 +75,10 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
-      .sort((a: any, b: any) => a.number - b.number);
-  }, [team, members, lineupIndex]);
+      .sort(
+        (a: { number: number }, b: { number: number }) => a.number - b.number,
+      );
+  }, [team, players, lineupIndex]);
 
   const createRecord = async () => {
     const infoData = {
@@ -87,33 +93,34 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
     };
 
     try {
-      const res = await fetch(`/api/records?ti=${teamId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          info: infoData,
-          teams: {
-            home: {
-              _id: teamId,
-              name: info.teams.home.name,
-              players,
-              lineup: team.lineups[lineupIndex],
+      const record = await apiClient<{ _id: string }>(
+        `/api/records?ti=${teamId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            info: infoData,
+            teams: {
+              home: {
+                _id: teamId,
+                name: info.teams.home.name,
+                roster,
+                lineup: team.lineups[lineupIndex],
+              },
+              away: { name: info.teams.away.name },
             },
-            away: { name: info.teams.away.name },
-          },
-        }),
-      });
+          }),
+        },
+      );
 
-      const record = await res.json();
-      if (record.error) throw new Error(record.error);
       mutate(`/api/records/${record._id}`, record, false);
       return router.push(`/match/${record._id}`);
     } catch (err) {
-      console.log(err);
+      showErrorToast(err, toast);
     }
   };
 
-  if (isTeamLoading || isMembersLoading) {
+  if (isTeamLoading || isPlayersLoading) {
     return (
       <>
         <DialogHeader>
@@ -164,7 +171,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
                 </CardBtnGroup>
               </CardTitle>
             </CardHeader>
-            <RosterTable roster={players} />
+            <RosterList roster={roster} />
           </Card>
           <DialogFooter className="flex w-full flex-col">
             <DialogClose asChild>

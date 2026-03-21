@@ -1,4 +1,5 @@
 "use client";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import LoadingCard from "@/components/custom/loading/card";
 import LoadingCourt from "@/components/custom/loading/court";
 import { StatsForOneSet } from "@/components/match/stats";
@@ -30,7 +31,7 @@ const Record = ({
   recordId: string;
   setIndex: number;
 }) => {
-  const { record, isLoading, error } = useRecord(recordId);
+  const { record, isLoading, error, mutate } = useRecord(recordId);
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
@@ -46,10 +47,10 @@ const Record = ({
     if (record) dispatch(recordActions.initialize({ record, setIndex }));
   }, [recordId, setIndex, record, dispatch]);
 
-  if (error) throw error;
+  if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || _id !== recordId) {
     return (
-      <div className="flex size-full max-w-[640px] flex-col items-center justify-start gap-1 overflow-hidden">
+      <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
         <RecordHeader />
         <LoadingCourt />
         <Card className="grid w-full p-2">
@@ -65,7 +66,7 @@ const Record = ({
   }
 
   return (
-    <div className="flex size-full max-w-[640px] flex-col items-center justify-start gap-1 overflow-hidden">
+    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
       <RecordHeader recordId={recordId} handleOptionOpen={handleOptionOpen} />
       <RecordCourt recordId={recordId} mode="general" />
       <RecordPreview

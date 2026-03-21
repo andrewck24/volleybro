@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSubstitutionController } from "@/interface/controllers/record/substitution.controller";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { withErrorHandler } from "@/lib/api/wrappers";
 
-export const POST = async (
-  req: NextRequest,
-  props: { params: Promise<{ recordId: string }> }
-) => {
-  try {
+export const POST = (
+  _req: NextRequest,
+  props: { params: Promise<{ recordId: string }> },
+) =>
+  withErrorHandler(async (req) => {
     await connectToMongoDB();
-    const params = await props.params;
-    const { recordId } = params;
+    const { recordId } = await props.params;
     const substitution = await req.json();
     const searchParams = req.nextUrl.searchParams;
     const setIndex = parseInt(searchParams.get("si") || "0", 10);
@@ -20,8 +20,4 @@ export const POST = async (
       data: substitution,
     });
     return NextResponse.json(entries, { status: 200 });
-  } catch (error) {
-    console.log("[POST /api/records/sets/substitutions]", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-};
+  })(_req);

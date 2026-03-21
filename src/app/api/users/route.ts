@@ -1,27 +1,20 @@
+import { withAuth } from "@/lib/api/wrappers";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import User from "@/infrastructure/db/mongoose/schemas/user";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
+import { getUserController } from "@/interface/controllers/user/user.controller";
+import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const GET = async () => {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const GET = withAuth(async (request: NextRequest, { userId }) => {
+  const { searchParams } = request.nextUrl;
+  const email = searchParams.get("email");
 
-    await connectToMongoDB();
-    const user = await User.findById(session.user.id);
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+  await connectToMongoDB();
 
-    return NextResponse.json(user, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error }, { status: 500 });
+  const result = await getUserController(userId, email);
+  if (result.ok === false) {
+    throw result.error;
   }
-};
+
+  return NextResponse.json(result.value, { status: 200 });
+});

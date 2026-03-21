@@ -4,7 +4,9 @@ import type { IRecordRepository } from "@/applications/repositories/record.repos
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import type { Record } from "@/entities/record";
-import { Role } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { RecordReason } from "@/entities/errors/reasons/record";
 
 export interface IFindRecordInput {
   params: { _id: string };
@@ -31,11 +33,12 @@ export class FindRecordUseCase {
     const record = await this.recordRepository.findOne({
       _id: params._id,
     });
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     return record;
@@ -71,7 +74,7 @@ export class CreateRecordUseCase {
     await this.authorizationService.verifyTeamRole(
       params.teamId.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     const record = await this.recordRepository.create({

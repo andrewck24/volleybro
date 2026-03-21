@@ -1,15 +1,19 @@
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { RiLoopRightLine } from "react-icons/ri";
 import {
-  Court,
-  Outside,
-  Inside,
-  PlayerCard,
   AdjustButton,
+  Court,
+  Inside,
+  Outside,
+  PlayerCard,
 } from "@/components/custom/court";
+import { lineupActions } from "@/lib/features/team/lineup-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { RiLoopRightLine } from "react-icons/ri";
 
-export const LineupCourt = ({ members }) => {
+interface LineupCourtProps {
+  players: { _id: string; name: string; number?: number }[];
+}
+
+export const LineupCourt = ({ players }: LineupCourtProps) => {
   const dispatch = useAppDispatch();
   const { lineups, status } = useAppSelector((state) => state.lineup);
 
@@ -26,17 +30,17 @@ export const LineupCourt = ({ members }) => {
         )}
         {lineups[status.lineupIndex]?.liberos &&
           lineups[status.lineupIndex].liberos.map((libero, index) => {
-            const member = members?.find((m) => m._id === libero._id);
-            const player = member
+            const player = players?.find((p) => p._id === libero._id);
+            const lineupPlayer = player
               ? {
-                  ...member,
+                  ...player,
                   position: libero?.position || "",
                 }
               : null;
             return (
               <PlayerCard
                 key={index}
-                player={player}
+                player={lineupPlayer}
                 toggled={
                   status.editingMember.list === "liberos" &&
                   status.editingMember.zone === index + 1
@@ -49,7 +53,7 @@ export const LineupCourt = ({ members }) => {
                       _id: libero?._id || null,
                       list: "liberos",
                       zone: index + 1,
-                    })
+                    }),
                   )
                 }
               />
@@ -71,7 +75,7 @@ export const LineupCourt = ({ members }) => {
                   _id: null,
                   list: "liberos",
                   zone: lineups[status.lineupIndex]?.liberos.length + 1,
-                })
+                }),
               )
             }
           />
@@ -80,17 +84,17 @@ export const LineupCourt = ({ members }) => {
       <Inside>
         {lineups[status.lineupIndex]?.starting &&
           lineups[status.lineupIndex].starting.map((starting, index) => {
-            const member = members?.find((m) => m._id === starting._id);
-            const player = member
+            const player = players?.find((p) => p._id === starting._id);
+            const lineupPlayer = player
               ? {
-                  ...member,
+                  ...player,
                   position: starting?.position || "",
                 }
               : null;
             return (
               <PlayerCard
                 key={index}
-                player={player}
+                player={lineupPlayer}
                 toggled={
                   status.editingMember.list === "starting" &&
                   status.editingMember.zone === index + 1
@@ -103,7 +107,7 @@ export const LineupCourt = ({ members }) => {
                       _id: starting?._id || null,
                       list: "starting",
                       zone: index + 1,
-                    })
+                    }),
                   )
                 }
               />

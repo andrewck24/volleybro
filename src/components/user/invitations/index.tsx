@@ -1,10 +1,9 @@
 "use client";
-import { useRouter } from "next/navigation";
-import { useProfile, useUserTeams } from "@/hooks/use-data";
+import React, { useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { RiGroupLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
+import { RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Link } from "@/components/ui/button";
+import { Button, Link } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
@@ -12,31 +11,57 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { TeamItem } from "@/components/custom/team-item";
+import { useUser } from "@/hooks/use-data";
+import { useUserPlayers } from "@/hooks/use-data";
+import { PlayerStatus } from "@/entities/player";
+import { useToast } from "@/components/ui/use-toast";
+import { apiClient } from "@/lib/api/api-client";
+import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 
 export const Invitations = ({ className }: { className?: string }) => {
-  const router = useRouter();
-  const { profile, mutate: mutateProfile } = useProfile();
-  const { teams, isLoading, mutate: mutateUserTeams } = useUserTeams();
+  const { user } = useUser();
+  const { players, isLoading, mutate } = useUserPlayers(user?._id);
+  const { toast } = useToast();
+  const [errorMap, setErrorMap] = useState<Record<string, string>>({});
 
-  const handleAccept = async (teamId, accept) => {
-    if (!window.confirm(accept ? "確認接受邀請？" : "確認拒絕邀請？")) return;
-    const action = accept ? "accept" : "reject";
+  const invitedPlayers = players.filter(
+    (p) => p.status === PlayerStatus.INVITED
+  );
+
+  const handleAccept = async (playerId: string): Promise<void> => {
+    setErrorMap((prev) => {
+      const next = { ...prev };
+      delete next[playerId];
+      return next;
+    });
     try {
-      const response = await fetch(
-        `/api/users/teams?action=${action}&teamId=${teamId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      const userTeams = await response.json();
-      mutateUserTeams();
-      mutateProfile({ ...profile, teams: userTeams }, false);
+      await apiClient(`/api/players/${playerId}/invitations`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "accept" }),
+      });
 
-      return accept ? router.push(`/team/${teamId}`) : null;
-    } catch (error) {
-      console.log(error);
+      toast({ title: "邀請已接受", description: "您已加入隊伍" });
+      mutate();
+    } catch (err) {
+      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
+      showErrorToast(err, toast);
+    }
+  };
+
+  const handleReject = async (playerId: string): Promise<void> => {
+    try {
+      await apiClient(`/api/players/${playerId}/invitations`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject" }),
+      });
+
+      toast({ title: "邀請已拒絕" });
+      mutate();
+    } catch (err) {
+      showErrorToast(err, toast);
     }
   };
 
@@ -45,39 +70,48 @@ export const Invitations = ({ className }: { className?: string }) => {
       <CardHeader>
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
-      {profile && !profile?.teams?.joined?.length && <Message />}
-      <Table>
-        <TableBody className="text-xl">
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={4}>Loading...</TableCell>
-            </TableRow>
-          ) : (
-            teams.inviting.map((team) => (
-              <TableRow key={team._id}>
-                <TableCell className="w-6 [&>svg]:size-6">
-                  <RiGroupLine />
-                </TableCell>
-                <TableCell onClick={() => router.push(`/team/${team._id}`)}>
-                  {team.name}
-                </TableCell>
-                <TableCell
-                  className="w-6 [&>svg]:size-6 text-primary"
-                  onClick={() => handleAccept(team._id, true)}
-                >
-                  <RiCheckLine />
-                </TableCell>
-                <TableCell
-                  className="w-6 [&>svg]:size-6 text-destructive"
-                  onClick={() => handleAccept(team._id, false)}
-                >
-                  <RiCloseLine />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <Message />
+      <div className="flex flex-col">
+        {isLoading ? (
+          <div className="px-3 py-2 text-muted-foreground">載入中...</div>
+        ) : (
+          invitedPlayers.map((player) => (
+            <React.Fragment key={player._id}>
+              <TeamItem
+                teamId={player.teamId!}
+                href={`/team/${player.teamId}`}
+                action={
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary"
+                      onClick={() => handleAccept(player._id)}
+                      aria-label="接受邀請"
+                    >
+                      <RiCheckLine className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleReject(player._id)}
+                      aria-label="拒絕邀請"
+                    >
+                      <RiCloseLine className="h-5 w-5" />
+                    </Button>
+                  </div>
+                }
+              />
+              {errorMap[player._id] && (
+                <p className="px-3 pb-2 text-sm text-destructive">
+                  {errorMap[player._id]}
+                </p>
+              )}
+            </React.Fragment>
+          ))
+        )}
+      </div>
       <Separator content="沒有找到你的隊伍嗎？你可以..." />
       <Link size="lg" href="/team/new">
         <FiPlus />

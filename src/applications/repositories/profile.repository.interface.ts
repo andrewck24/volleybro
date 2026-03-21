@@ -3,15 +3,8 @@ import type { IBaseRepository } from "@/applications/repositories/base.repositor
 
 export interface IProfileRepository extends IBaseRepository<Profile> {
   findByUserId(userId: string): Promise<Profile | null>;
-  updateTeams(
+  updateActiveTeamId(
     userId: string,
-    teams: Profile["teams"]
-  ): Promise<Profile | null>;
-  addTeamToJoined(userId: string, teamId: string): Promise<Profile | null>;
-  addTeamToInviting(userId: string, teamId: string): Promise<Profile | null>;
-  removeTeamFromJoined(userId: string, teamId: string): Promise<Profile | null>;
-  removeTeamFromInviting(
-    userId: string,
-    teamId: string
+    activeTeamId: string | null,
   ): Promise<Profile | null>;
 }

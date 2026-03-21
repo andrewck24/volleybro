@@ -3,13 +3,16 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { RecordReason } from "@/entities/errors/reasons/record";
 import {
   type Record,
   type Set,
   PlayerStatsClass,
   TeamStatsClass,
 } from "@/entities/record";
-import { type Lineup, Role } from "@/entities/team";
+import { type Lineup } from "@/entities/team";
+import { PlayerRole } from "@/entities/player";
 
 export interface ICreateSetInput {
   params: { recordId: string; setIndex: number };
@@ -38,12 +41,12 @@ export class CreateSetUseCase {
     const record = await this.recordRepository.findOne({
       _id: params.recordId,
     });
-    if (!record) throw new Error("Record not found");
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     // 新增上場選手(在 lineups 中)對應局數的 stats 物件（在開新局、換人時）
@@ -104,12 +107,12 @@ export class UpdateSetUseCase {
     const record = await this.recordRepository.findOne({
       _id: params.recordId,
     });
-    if (!record) throw new Error("Record not found");
+    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-      Role.MEMBER
+       PlayerRole.MEMBER
     );
 
     record.sets[params.setIndex].options = data.options;

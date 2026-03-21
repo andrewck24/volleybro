@@ -19,10 +19,14 @@
 /public/swe-worker*
 
 # AI agents
-.claude/*
-.gemini/*
-.github/chatmodes/*
-.bmad-core/*
+.claude/settings.*
+.agent/
+.gemini/
+.github/chatmodes/
+.github/prompts/
+.github/skills/
+.spectra/
+openspec/.vector-search.db
 
 # misc
 .DS_Store
@@ -51,3 +55,4 @@ next-env.d.ts
 # storybook
 *storybook.log
 storybook-static
+openspec/.vector-search.db*

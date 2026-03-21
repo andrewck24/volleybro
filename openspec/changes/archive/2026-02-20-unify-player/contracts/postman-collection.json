@@ -1,0 +1,372 @@
+{
+  "info": {
+    "name": "VolleyBro Players API",
+    "description": "統一 Player 實體 API 測試集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "teamId",
+      "value": "507f191e810c19729de860ea",
+      "type": "string"
+    },
+    {
+      "key": "playerId",
+      "value": "507f1f77bcf86cd799439011",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user_2aB3cD4eF5gH6iJ7kL8mN9oP",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Player Operations",
+      "item": [
+        {
+          "name": "Get Player",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}"]
+            },
+            "description": "取得單一球員的詳細資訊"
+          }
+        },
+        {
+          "name": "Update Player Info",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"王大明\",\n  \"number\": 10,\n  \"position\": \"OH\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "info"]
+            },
+            "description": "更新球員基本資訊（姓名、號碼、位置）"
+          }
+        },
+        {
+          "name": "Update Player Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "role"]
+            },
+            "description": "更新球員角色（僅 OWNER 可操作）"
+          }
+        },
+        {
+          "name": "Invite Player (Status)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"invite\",\n  \"email\": \"newplayer@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "status"]
+            },
+            "description": "邀請球員（PURE_PLAYER → INVITED）"
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "status"]
+            },
+            "description": "接受邀請（INVITED → JOINED）"
+          }
+        },
+        {
+          "name": "Reject Invitation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"reject\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "status"]
+            },
+            "description": "拒絕邀請（INVITED → deleted）"
+          }
+        },
+        {
+          "name": "Cancel Invitation",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"cancel\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "status"]
+            },
+            "description": "取消邀請（INVITED → deleted）"
+          }
+        },
+        {
+          "name": "Leave Team",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"leave\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}", "status"]
+            },
+            "description": "離開隊伍（JOINED → deleted，OWNER 無法執行）"
+          }
+        },
+        {
+          "name": "Delete Player",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/{{playerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "players", "{{playerId}}"]
+            },
+            "description": "刪除球員（僅限未被比賽記錄引用的球員）"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Team Players",
+      "item": [
+        {
+          "name": "Get Team Players",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"]
+            },
+            "description": "取得隊伍所有球員"
+          }
+        },
+        {
+          "name": "Get Team Players (Filter by Status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players?status=JOINED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "JOINED"
+                }
+              ]
+            },
+            "description": "取得隊伍特定狀態的球員"
+          }
+        },
+        {
+          "name": "Get Team Players (Filter by Role)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players?role=ADMIN",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "ADMIN"
+                }
+              ]
+            },
+            "description": "取得隊伍特定角色的球員"
+          }
+        },
+        {
+          "name": "Create Player (Invite)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"王小明\",\n  \"email\": \"wang.xiaoming@example.com\",\n  \"number\": 12,\n  \"position\": \"OH\",\n  \"role\": \"MEMBER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"]
+            },
+            "description": "建立球員並邀請（有 email）"
+          }
+        },
+        {
+          "name": "Create Player (Pure)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"陳球員\",\n  \"number\": 5,\n  \"position\": \"MB\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teams/{{teamId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "teams", "{{teamId}}", "players"]
+            },
+            "description": "建立純球員資料（無 email）"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Players",
+      "item": [
+        {
+          "name": "Get User Players",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/players",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "players"]
+            },
+            "description": "取得使用者的所有球員關聯（已加入 + 邀請）"
+          }
+        },
+        {
+          "name": "Get User Invitations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/players?status=INVITED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "players"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "INVITED"
+                }
+              ]
+            },
+            "description": "取得使用者收到的邀請"
+          }
+        },
+        {
+          "name": "Get User Joined Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/players?status=JOINED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "players"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "JOINED"
+                }
+              ]
+            },
+            "description": "取得使用者已加入的隊伍"
+          }
+        }
+      ]
+    }
+  ]
+}
