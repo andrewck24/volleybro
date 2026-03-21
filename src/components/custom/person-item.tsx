@@ -28,7 +28,7 @@ export function PersonItem({
 }: PersonItemProps) {
   const content = (
     <>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current opacity-50">
         {image ? (
           <Image
             src={image}
@@ -38,7 +38,7 @@ export function PersonItem({
             className="h-9 w-9 rounded-full object-cover"
           />
         ) : (
-          <FiUser className="h-4 w-4 text-muted-foreground" />
+          <FiUser className="h-4 w-4" />
         )}
       </div>
       <div className="flex min-w-0 flex-1 items-center gap-2">
