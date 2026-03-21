@@ -1,12 +1,12 @@
 ## 1. PersonItem Component (Presentation layer)
 
-- [ ] [P] 1.1 Write tests for PersonItem component — renders name, avatar fallback, image, href as Link, onClick as button, static as div, action slot stopPropagation (PersonItem component renders person information in a unified layout)
-- [ ] [P] 1.2 Implement PersonItem component structure at `src/components/custom/person-item.tsx` — horizontal flex, h-12, avatar circle, truncated name, children metadata slot, action slot with event isolation
+- [x] [P] 1.1 Write tests for PersonItem component — renders name, avatar fallback, image, href as Link, onClick as button, static as div, action slot stopPropagation (PersonItem component renders person information in a unified layout)
+- [x] [P] 1.2 Implement PersonItem component structure at `src/components/custom/person-item.tsx` — horizontal flex, h-12, avatar circle, truncated name, children metadata slot, action slot with event isolation
 
 ## 2. TeamItem Component (Presentation layer)
 
-- [ ] [P] 2.1 Write tests for TeamItem component — fetches team name via useTeam, shows skeleton while loading, renders team name, supports href/onClick navigation pattern (TeamItem component displays team information fetched by teamId)
-- [ ] [P] 2.2 Implement TeamItem component structure at `src/components/custom/team-item.tsx` — uses useTeam(teamId), RiGroupLine icon, same visual layout as PersonItem, loading skeleton
+- [x] [P] 2.1 Write tests for TeamItem component — fetches team name via useTeam, shows skeleton while loading, renders team name, supports href/onClick navigation pattern (TeamItem component displays team information fetched by teamId)
+- [x] [P] 2.2 Implement TeamItem component structure at `src/components/custom/team-item.tsx` — uses useTeam(teamId), RiGroupLine icon, same visual layout as PersonItem, loading skeleton
 
 ## 3. Refactor Invitations (Presentation layer)
 
