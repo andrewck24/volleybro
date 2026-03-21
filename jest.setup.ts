@@ -62,7 +62,13 @@ jest.mock("next/image", () => ({
   __esModule: true,
   default: ({ src, alt, width, height, ...rest }: ImageProps) => {
     // Filter out special props from next/image
-    const { fill, priority, quality, sizes, ...imgProps } = rest;
+    const {
+      fill: _fill,
+      priority: _priority,
+      quality: _quality,
+      sizes: _sizes,
+      ...imgProps
+    } = rest;
 
     return React.createElement("img", {
       src: typeof src === "string" ? src : "",
@@ -74,77 +80,57 @@ jest.mock("next/image", () => ({
   },
 }));
 
-// Mock motion/react components
-jest.mock("motion/react", () => {
-  const filterMotionProps = (props: any) => {
-    const {
-      initial,
-      animate,
-      exit,
-      whileInView,
-      transition,
-      variants,
-      viewport,
-      style,
-      ...rest
-    } = props;
-    return rest;
-  };
+// Shared helper to strip motion-specific props before rendering plain HTML elements
+function filterMotionProps(
+  props: Record<string, unknown>,
+): Record<string, unknown> {
+  const {
+    initial: _initial,
+    animate: _animate,
+    exit: _exit,
+    whileInView: _whileInView,
+    transition: _transition,
+    variants: _variants,
+    viewport: _viewport,
+    style: _style,
+    ...rest
+  } = props;
+  return rest;
+}
 
-  return {
-    __esModule: true,
-    motion: {
-      section: ({ children, ...props }: any) =>
-        React.createElement("section", filterMotionProps(props), children),
-      div: ({ children, ...props }: any) =>
-        React.createElement("div", filterMotionProps(props), children),
-      h1: ({ children, ...props }: any) =>
-        React.createElement("h1", filterMotionProps(props), children),
-      p: ({ children, ...props }: any) =>
-        React.createElement("p", filterMotionProps(props), children),
-      span: ({ children, ...props }: any) =>
-        React.createElement("span", filterMotionProps(props), children),
-    },
-    // 新增 LazyMotion 相關支援
-    LazyMotion: ({ children }: any) => children,
-    domAnimation: {},
-    useReducedMotion: () => false,
-    // Note: hooks mocking is handled in individual test files using jest.mocked()
-  };
-});
+type MockComponentProps = Record<string, unknown> & {
+  children?: React.ReactNode;
+};
+
+function createMotionComponent(tag: string) {
+  const Component = ({ children, ...props }: MockComponentProps) =>
+    React.createElement(tag, filterMotionProps(props), children);
+  Component.displayName = `motion.${tag}`;
+  return Component;
+}
+
+const MOTION_TAGS = ["section", "div", "h1", "p", "span"] as const;
+
+function buildMotionComponents() {
+  return Object.fromEntries(
+    MOTION_TAGS.map((tag) => [tag, createMotionComponent(tag)]),
+  );
+}
+
+// Mock motion/react components
+jest.mock("motion/react", () => ({
+  __esModule: true,
+  motion: buildMotionComponents(),
+  LazyMotion: ({ children }: MockComponentProps) => children,
+  domAnimation: {},
+  useReducedMotion: () => false,
+}));
 
 // Mock motion/react-m components
-jest.mock("motion/react-m", () => {
-  const filterMotionProps = (props: any) => {
-    const {
-      initial,
-      animate,
-      exit,
-      whileInView,
-      transition,
-      variants,
-      viewport,
-      style,
-      ...rest
-    } = props;
-    return rest;
-  };
-
-  // motion/react-m 直接匯出 HTML 元素，不是包在 m 物件中
-  return {
-    __esModule: true,
-    section: ({ children, ...props }: any) =>
-      React.createElement("section", filterMotionProps(props), children),
-    div: ({ children, ...props }: any) =>
-      React.createElement("div", filterMotionProps(props), children),
-    h1: ({ children, ...props }: any) =>
-      React.createElement("h1", filterMotionProps(props), children),
-    p: ({ children, ...props }: any) =>
-      React.createElement("p", filterMotionProps(props), children),
-    span: ({ children, ...props }: any) =>
-      React.createElement("span", filterMotionProps(props), children),
-  };
-});
+jest.mock("motion/react-m", () => ({
+  __esModule: true,
+  ...buildMotionComponents(),
+}));
 
 // Mock MongoDB modules to avoid ES module issues
 jest.mock("mongodb", () => ({
@@ -249,17 +235,12 @@ jest.mock("bson", () => ({
 // Basic warning suppression - only for harmless third-party warnings
 // TODO items are documented in CLAUDE.md and should be checked during each test run
 const originalError = console.error;
-console.error = (...args: any[]) => {
-  const message = args[0];
-
-  // Only suppress truly harmless warnings that cannot be fixed immediately
-  const harmlessWarnings = [
-    "DeprecationWarning", // Third-party library deprecation warnings
-    "Warning: ReactDOM.render is deprecated", // Testing library internal warnings
-  ];
-
-  if (harmlessWarnings.some((warning) => message?.includes(warning))) return;
-
-  // All other warnings (including TODO items) should be visible for tracking
+const harmlessWarnings = [
+  "DeprecationWarning", // Third-party library deprecation warnings
+  "Warning: ReactDOM.render is deprecated", // Testing library internal warnings
+];
+console.error = (...args: unknown[]) => {
+  const message = typeof args[0] === "string" ? args[0] : "";
+  if (harmlessWarnings.some((warning) => message.includes(warning))) return;
   originalError.call(console, ...args);
 };

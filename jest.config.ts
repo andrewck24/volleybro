@@ -24,4 +24,15 @@ const config: Config = {
   moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
 };
 
-export default createJestConfig(config);
+// next/jest prepends its own transformIgnorePatterns that ignore all node_modules.
+// We must override AFTER createJestConfig resolves to allow inversify (ESM-only) to be transformed.
+const resolveConfig = createJestConfig(config);
+
+export default async function jestConfig() {
+  const resolved = await resolveConfig();
+  resolved.transformIgnorePatterns = [
+    "/node_modules/(?!(inversify|@inversifyjs)/)",
+    "^.+\\.module\\.(css|sass|scss)$",
+  ];
+  return resolved;
+}

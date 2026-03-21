@@ -23,6 +23,7 @@ Replace the `useRef` pattern in `ReduxProvider` with a module-level lazy singlet
 ### Fix 3: Production code `no-explicit-any`
 
 Replace `any` with proper types in 3 production files:
+
 - `src/applications/repositories/base.repository.interface.ts`
 - `src/applications/usecases/player/update-player-info.usecase.ts`
 - `src/components/custom/court/index.tsx`
