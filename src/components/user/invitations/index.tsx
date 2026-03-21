@@ -1,10 +1,9 @@
 "use client";
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { FiPlus } from "react-icons/fi";
-import { RiGroupLine, RiCheckLine, RiCloseLine } from "react-icons/ri";
+import { RiCheckLine, RiCloseLine } from "react-icons/ri";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Link } from "@/components/ui/button";
+import { Button, Link } from "@/components/ui/button";
 import {
   Card,
   CardHeader,
@@ -12,7 +11,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { TeamItem } from "@/components/custom/team-item";
 import { useUser } from "@/hooks/use-data";
 import { useUserPlayers } from "@/hooks/use-data";
 import { PlayerStatus } from "@/entities/player";
@@ -21,7 +20,6 @@ import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 
 export const Invitations = ({ className }: { className?: string }) => {
-  const router = useRouter();
   const { user } = useUser();
   const { players, isLoading, mutate } = useUserPlayers(user?._id);
   const { toast } = useToast();
@@ -73,53 +71,47 @@ export const Invitations = ({ className }: { className?: string }) => {
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
       <Message />
-      <Table>
-        <TableBody className="text-xl">
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={4}>Loading...</TableCell>
-            </TableRow>
-          ) : (
-            invitedPlayers.map((player) => (
-              <React.Fragment key={player._id}>
-                <TableRow>
-                  <TableCell className="w-6 [&>svg]:size-6">
-                    <RiGroupLine />
-                  </TableCell>
-                  <TableCell
-                    onClick={() =>
-                      player.teamId && router.push(`/team/${player.teamId}`)
-                    }
-                  >
-                    {player.name}
-                  </TableCell>
-                  <TableCell
-                    className="w-6 [&>svg]:size-6 text-primary"
-                    onClick={() => handleAccept(player._id)}
-                  >
-                    <RiCheckLine />
-                  </TableCell>
-                  <TableCell
-                    className="w-6 [&>svg]:size-6 text-destructive"
-                    onClick={() => handleReject(player._id)}
-                  >
-                    <RiCloseLine />
-                  </TableCell>
-                </TableRow>
-                {errorMap[player._id] && (
-                  <TableRow>
-                    <TableCell colSpan={4} className="pt-0 pb-2">
-                      <p className="text-sm text-destructive">
-                        {errorMap[player._id]}
-                      </p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </React.Fragment>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <div className="flex flex-col">
+        {isLoading ? (
+          <div className="px-3 py-2 text-muted-foreground">Loading...</div>
+        ) : (
+          invitedPlayers.map((player) => (
+            <React.Fragment key={player._id}>
+              <TeamItem
+                teamId={player.teamId!}
+                href={`/team/${player.teamId}`}
+                action={
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary"
+                      onClick={() => handleAccept(player._id)}
+                      aria-label="接受邀請"
+                    >
+                      <RiCheckLine className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleReject(player._id)}
+                      aria-label="拒絕邀請"
+                    >
+                      <RiCloseLine className="h-5 w-5" />
+                    </Button>
+                  </div>
+                }
+              />
+              {errorMap[player._id] && (
+                <p className="px-3 pb-2 text-sm text-destructive">
+                  {errorMap[player._id]}
+                </p>
+              )}
+            </React.Fragment>
+          ))
+        )}
+      </div>
       <Separator content="沒有找到你的隊伍嗎？你可以..." />
       <Link size="lg" href="/team/new">
         <FiPlus />

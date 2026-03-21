@@ -10,8 +10,8 @@
 
 ## 3. Refactor Invitations (Presentation layer)
 
-- [ ] 3.1 Refactor Invitations to use TeamItem in flex list layout — replace Table structure, display team name instead of player name, accept/reject in action slot (Invitations display team names using TeamItem, Invitations refactor to flex list)
-- [ ] 3.2 Update Invitations tests if existing
+- [x] 3.1 Refactor Invitations to use TeamItem in flex list layout — replace Table structure, display team name instead of player name, accept/reject in action slot (Invitations display team names using TeamItem, Invitations refactor to flex list)
+- [x] 3.2 Update Invitations tests if existing
 
 ## 4. Refactor Menu Team List (Presentation layer)
 
