@@ -3,7 +3,7 @@ import { UserRepositoryImpl } from "@/infrastructure/db/repositories/user.reposi
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/user", () => {
-  const mockModel = jest.fn().mockImplementation((data: unknown) => ({
+  const mockModel = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
     ...data,
     save: jest.fn().mockResolvedValue(data),
     toJSON: jest.fn().mockReturnValue(data),

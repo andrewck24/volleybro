@@ -4,7 +4,7 @@ import { Record as RecordModel } from "@/infrastructure/db/mongoose/schemas/reco
 import { EntryType } from "@/entities/record";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/record", () => {
-  const mockModel = jest.fn().mockImplementation((data: unknown) => ({
+  const mockModel = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
     ...data,
     save: jest.fn().mockResolvedValue(data),
     toJSON: jest.fn().mockReturnValue(data),

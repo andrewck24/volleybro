@@ -8,6 +8,7 @@ import {
   PositionSchema,
 } from '../player';
 import { PlayerRole, PlayerStatus, Position } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
 
 describe('Player Validation Schemas', () => {
   describe('PlayerRoleSchema', () => {
@@ -260,19 +261,11 @@ describe('Player Validation Schemas', () => {
 
   describe('PlayerSchema', () => {
     it('should validate complete player object', () => {
-      const player = {
-        _id: 'player-1',
+      const player = createPlayer({
         name: 'John Doe',
         number: 10,
-        position: Position.OH,
-        status: PlayerStatus.JOINED,
-        teamId: 'team-1',
-        userId: 'user-1',
         email: 'john@example.com',
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       const result = PlayerSchema.parse(player);
       expect(result._id).toBe('player-1');
@@ -280,13 +273,13 @@ describe('Player Validation Schemas', () => {
     });
 
     it('should accept player with minimal fields', () => {
-      const player = {
+      const player = createPlayer({
         _id: 'player-2',
         name: 'Pure Player',
         status: PlayerStatus.NONE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        teamId: undefined,
+        userId: undefined,
+      });
 
       const result = PlayerSchema.parse(player);
       expect(result._id).toBe('player-2');

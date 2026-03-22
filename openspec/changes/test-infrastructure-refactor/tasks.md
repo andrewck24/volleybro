@@ -37,9 +37,9 @@
 
 ## 6. Migrate Component and Lib Tests (Frontend)
 
-- [ ] [P] 6.1 Migrate component tests (12 files in `src/components/`): adopt fixture factories where applicable, verify they work under jsdom project
-- [ ] [P] 6.2 Migrate lib tests (9 files in `src/lib/`): adopt fixture factories where applicable
-- [ ] 6.3 Run `npm test`, `npm run lint`, `npm run build` — verify all frontend tests pass
+- [x] [P] 6.1 Migrate component tests (4 files in `src/components/team/__tests__/`): replaced inline Player objects with `createPlayer()`, fixed `position: string` → `Position` enum type errors
+- [x] [P] 6.2 Migrate lib tests (2 files: `player.test.ts`, `auth-hook.test.ts`): adopted `createPlayer()` and `createProfile()` fixture factories
+- [x] 6.3 Run `npm test`, `npm run lint`, `npm run build` — verify all frontend tests pass
 
 ## 7. Final Verification
 

@@ -1,6 +1,7 @@
 import { TransientError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
 import { handleUserCreated } from "@/lib/auth-hook";
+import { createProfile } from "@/__tests__/helpers";
 
 // Mock the DI container dependencies
 jest.mock("@/infrastructure/di/inversify.config", () => ({
@@ -38,7 +39,7 @@ describe("handleUserCreated (auth hook)", () => {
   });
 
   it("should create profile then link pending invitations on success", async () => {
-    const mockProfile = { _id: "profile-1", userId: "user-1" };
+    const mockProfile = createProfile();
     mockCreateProfileExecute.mockResolvedValue(mockProfile);
     mockLinkInvitationsExecute.mockResolvedValue(2);
 
@@ -52,7 +53,7 @@ describe("handleUserCreated (auth hook)", () => {
   });
 
   it("should retry LinkPendingInvitationsUseCase once on transient failure", async () => {
-    const mockProfile = { _id: "profile-1", userId: "user-1" };
+    const mockProfile = createProfile();
     mockCreateProfileExecute.mockResolvedValue(mockProfile);
     mockLinkInvitationsExecute
       .mockRejectedValueOnce(
@@ -66,7 +67,7 @@ describe("handleUserCreated (auth hook)", () => {
   });
 
   it("should log and continue if both link invitations attempts fail", async () => {
-    const mockProfile = { _id: "profile-1", userId: "user-1" };
+    const mockProfile = createProfile();
     mockCreateProfileExecute.mockResolvedValue(mockProfile);
     mockLinkInvitationsExecute.mockRejectedValue(
       new TransientError(CommonReason.UNHANDLED_ERROR, "DB timeout")

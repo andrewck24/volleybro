@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MembershipSection } from "@/components/team/players/membership-section";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
 
 // Mock apiClient
@@ -61,19 +61,10 @@ function createApiError(
   return new ApiClientError(detail, { code: code as any, reason, detail, status });
 }
 
-const joinedPlayer = {
-  _id: "player-1",
-  name: "Test Player",
+const joinedPlayer = createPlayer({
   number: 7,
-  position: "OH",
-  status: PlayerStatus.JOINED,
-  teamId: "team-1",
-  role: PlayerRole.MEMBER,
   email: "test@example.com",
-  userId: "user-1",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {

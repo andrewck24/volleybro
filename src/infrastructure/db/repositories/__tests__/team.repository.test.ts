@@ -3,7 +3,7 @@ import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.reposi
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/team", () => {
-  const mockModel = jest.fn().mockImplementation((data: unknown) => ({
+  const mockModel = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
     ...data,
     save: jest.fn().mockResolvedValue(data),
     toJSON: jest.fn().mockReturnValue(data),
