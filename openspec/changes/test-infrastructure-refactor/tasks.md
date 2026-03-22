@@ -20,11 +20,11 @@
 
 ## 4. Migrate UseCase Tests (Application Layer — Classical Style)
 
-- [ ] [P] 4.1 Migrate player usecase tests (13 files in `src/applications/usecases/player/__tests__/`): replace inline repository/service mocks with factories, replace inline entity data with fixture factories, remove `toHaveBeenCalledWith` behavior assertions — keep only state verification
-- [ ] [P] 4.2 Migrate record usecase tests (`src/applications/usecases/record/__tests__/record-errors.test.ts`): adopt mock factories and fixture factories, remove behavior assertions
-- [ ] [P] 4.3 Migrate team usecase tests (`src/applications/usecases/team/__tests__/`): adopt mock factories and fixture factories, remove behavior assertions
-- [ ] [P] 4.4 Migrate user usecase tests (3 files in `src/applications/usecases/user/__tests__/`): adopt mock factories and fixture factories, remove behavior assertions
-- [ ] 4.5 Run `npm test`, `npm run lint`, `npm run build` — verify all usecase tests pass with layer-based testing strategy applied
+- [x] [P] 4.1 Migrate player usecase tests (13 files in `src/applications/usecases/player/__tests__/`): replace inline repository/service mocks with factories, replace inline entity data with fixture factories, remove `toHaveBeenCalledWith` behavior assertions — keep only state verification
+- [x] [P] 4.2 Migrate record usecase tests (`src/applications/usecases/record/__tests__/record-errors.test.ts`): adopt mock factories and fixture factories, remove behavior assertions
+- [x] [P] 4.3 Migrate team usecase tests (`src/applications/usecases/team/__tests__/`): adopt mock factories and fixture factories, remove behavior assertions
+- [x] [P] 4.4 Migrate user usecase tests (3 files in `src/applications/usecases/user/__tests__/`): adopt mock factories and fixture factories, remove behavior assertions
+- [x] 4.5 Run `npm test`, `npm run lint`, `npm run build` — verify all usecase tests pass with layer-based testing strategy applied
 
 ## 5. Migrate Infrastructure and API Route Tests
 

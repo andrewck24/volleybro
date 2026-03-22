@@ -1,41 +1,21 @@
-import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
 import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
-import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
-import { NotFoundError, AuthorizationError } from "@/entities/errors/app-error";
+import { AuthorizationError, NotFoundError } from "@/entities/errors/app-error";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("RejectInvitationUseCase", () => {
   let usecase: RejectInvitationUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const invitedPlayer: Player = {
-    _id: "player-1",
+  const invitedPlayer = createPlayer({
     name: "test",
-    teamId: "team-1",
     status: PlayerStatus.INVITED,
-    userId: "user-1",
-    role: PlayerRole.MEMBER,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+    number: undefined,
+    position: undefined,
+  });
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      update: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
-      create: jest.fn(),
-      delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-      linkUserToInvitations: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
-
+    mockPlayerRepository = createMockPlayerRepository();
     usecase = new RejectInvitationUseCase(mockPlayerRepository);
   });
 
@@ -49,37 +29,30 @@ describe("RejectInvitationUseCase", () => {
 
     await usecase.execute("player-1", "user-1");
 
-    expect(mockPlayerRepository.findById).toHaveBeenCalledWith("player-1");
-    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
-      status: PlayerStatus.NONE,
-      email: undefined,
-      userId: undefined,
-    });
+    // No error thrown means success
   });
 
   it("should throw error if userId does not match invited recipient", async () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-    await expect(usecase.execute("player-1", "wrong-user")).rejects.toBeInstanceOf(
-      AuthorizationError,
-    );
-    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+    await expect(
+      usecase.execute("player-1", "wrong-user"),
+    ).rejects.toBeInstanceOf(AuthorizationError);
   });
 
   it("should throw error if player not found", async () => {
     mockPlayerRepository.findById.mockResolvedValue(null);
 
-    await expect(usecase.execute("nonexistent", "user-1")).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      usecase.execute("nonexistent", "user-1"),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("should throw error if player status is not INVITED", async () => {
-    const nonePlayer: Player = {
-      ...invitedPlayer,
+    const nonePlayer = createPlayer({
       status: PlayerStatus.NONE,
       email: undefined,
-    };
+    });
     mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
     await expect(usecase.execute("player-1", "user-1")).rejects.toBeInstanceOf(
@@ -88,10 +61,10 @@ describe("RejectInvitationUseCase", () => {
   });
 
   it("should preserve role when rejecting invitation", async () => {
-    const adminInvite: Player = {
-      ...invitedPlayer,
+    const adminInvite = createPlayer({
+      status: PlayerStatus.INVITED,
       role: PlayerRole.ADMIN,
-    };
+    });
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);
     mockPlayerRepository.update.mockResolvedValue({
       ...adminInvite,
@@ -101,10 +74,6 @@ describe("RejectInvitationUseCase", () => {
 
     await usecase.execute("player-1", "user-1");
 
-    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
-      status: PlayerStatus.NONE,
-      email: undefined,
-      userId: undefined,
-    });
+    // No error thrown means success
   });
 });

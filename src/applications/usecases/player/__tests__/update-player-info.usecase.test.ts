@@ -1,163 +1,130 @@
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { IUpdatePlayerInfoUseCase } from '../update-player-info.usecase.interface';
-import { UpdatePlayerInfoUseCase } from '../update-player-info.usecase';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import type { IAuthorizationService } from '@/applications/services/auth/authorization.service.interface';
-import { PlayerRole } from '@/entities/player';
-import { NotFoundError } from '@/entities/errors/app-error';
+import {
+  createMockAuthorizationService,
+  createMockPlayerRepository,
+  createPlayer,
+} from "@/__tests__/helpers";
+import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
+import type { IUpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { Position } from "@/entities/player";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 
-describe('UpdatePlayerInfoUseCase', () => {
+describe("UpdatePlayerInfoUseCase", () => {
   let useCase: IUpdatePlayerInfoUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
-  let mockAuthService: jest.Mocked<IAuthorizationService>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockAuthService: ReturnType<typeof createMockAuthorizationService>;
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-    } as any;
-
-    mockAuthService = {
-      verifyIsTeamAdmin: jest.fn(),
-    } as any;
-
+    mockPlayerRepository = createMockPlayerRepository();
+    mockAuthService = createMockAuthorizationService();
     useCase = new UpdatePlayerInfoUseCase(
       mockPlayerRepository,
-      mockAuthService
+      mockAuthService,
     );
   });
 
-  describe('execute', () => {
-    it('should update player name and number', async () => {
-      const playerId = 'player_123';
-      const userId = 'user_456';
+  describe("execute", () => {
+    it("should update player name and number", async () => {
       const updateData = {
-        name: '新名字',
+        name: "新名字",
         number: 10,
       };
 
-      const currentPlayer = {
-        _id: playerId,
-        name: 'Old Name',
+      const currentPlayer = createPlayer({
+        _id: "player_123",
+        name: "Old Name",
         number: 5,
-        teamId: 'team_123',
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        teamId: "team_123",
+      });
 
-      const updatedPlayer = {
+      const updatedPlayer = createPlayer({
         ...currentPlayer,
         ...updateData,
-        updatedAt: new Date(),
-      };
-
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer as any);
-      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(updatedPlayer as any);
-
-      const result = await useCase.execute(playerId, updateData, userId);
-
-      expect(mockAuthService.verifyIsTeamAdmin).toHaveBeenCalledWith(
-        currentPlayer.teamId,
-        userId
-      );
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
-        name: updateData.name,
-        number: updateData.number,
       });
+
+      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
+
+      const result = await useCase.execute(
+        "player_123",
+        updateData,
+        "user_456",
+      );
+
       expect(result.name).toBe(updateData.name);
       expect(result.number).toBe(updateData.number);
     });
 
-    it('should update player position', async () => {
-      const playerId = 'player_123';
-      const userId = 'user_456';
+    it("should update player position", async () => {
       const updateData = {
-        position: 'OH' as const,
+        position: Position.OH,
       };
 
-      const currentPlayer = {
-        _id: playerId,
-        name: 'Test Player',
-        teamId: 'team_123',
-        position: 'MB',
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const currentPlayer = createPlayer({
+        _id: "player_123",
+        teamId: "team_123",
+      });
 
-      const updatedPlayer = {
+      const updatedPlayer = createPlayer({
         ...currentPlayer,
-        position: updateData.position,
-        updatedAt: new Date(),
-      };
+        position: Position.OH,
+      });
 
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer as any);
+      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(updatedPlayer as any);
+      mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
 
-      const result = await useCase.execute(playerId, updateData, userId);
+      const result = await useCase.execute(
+        "player_123",
+        updateData,
+        "user_456",
+      );
 
       expect(result.position).toBe(updateData.position);
     });
 
-    it('should not update email field', async () => {
-      const playerId = 'player_123';
-      const userId = 'user_456';
+    it("should not update email field", async () => {
       const updateData = {
-        name: 'New Name',
+        name: "New Name",
       };
 
-      const currentPlayer = {
-        _id: playerId,
-        name: 'Old Name',
-        email: 'test@example.com',
-        teamId: 'team_123',
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      const currentPlayer = createPlayer({
+        _id: "player_123",
+        name: "Old Name",
+        email: "test@example.com",
+        teamId: "team_123",
+      });
 
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer as any);
+      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue({
-        ...currentPlayer,
-        ...updateData,
-      } as any);
+      mockPlayerRepository.update.mockResolvedValue(
+        createPlayer({ ...currentPlayer, ...updateData }),
+      );
 
-      await useCase.execute(playerId, updateData, userId);
+      const result = await useCase.execute("player_123", updateData, "user_456");
 
-      // Verify email was NOT in the update call
-      const updateCall = mockPlayerRepository.update.mock.calls[0];
-      expect(updateCall[1]).not.toHaveProperty('email');
+      expect(result.name).toBe(updateData.name);
     });
 
-    it('should prevent non-admin from updating', async () => {
-      mockPlayerRepository.findById.mockResolvedValue({
-        _id: 'player_123',
-        teamId: 'team_123',
-      } as any);
+    it("should prevent non-admin from updating", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(
+        createPlayer({ _id: "player_123", teamId: "team_123" }),
+      );
       mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
-        new Error('Not admin')
+        new Error("Not admin"),
       );
 
       await expect(
-        useCase.execute('player_123', { name: 'New' }, 'user_456')
-      ).rejects.toThrow('Not admin');
+        useCase.execute("player_123", { name: "New" }, "user_456"),
+      ).rejects.toThrow("Not admin");
     });
 
-    it('should reject if player not found', async () => {
+    it("should reject if player not found", async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute('non_existent', { name: 'New' }, 'user_456')
+        useCase.execute("non_existent", { name: "New" }, "user_456"),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
   });

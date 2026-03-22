@@ -1,33 +1,26 @@
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import {
+  createMockAuthorizationService,
+  createMockPlayerRepository,
+  createPlayer,
+} from "@/__tests__/helpers";
+import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
+import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase.interface";
+import {
+  ConflictError,
+  NotFoundError,
+  UnexpectedError,
+} from "@/entities/errors/app-error";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { NotFoundError, ConflictError, UnexpectedError } from "@/entities/errors/app-error";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { CreateInvitationUseCase } from "../create-invitation.usecase";
-import type { ICreateInvitationUseCase } from "../create-invitation.usecase.interface";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("CreateInvitationUseCase", () => {
   let useCase: ICreateInvitationUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
-  let mockAuthService: jest.Mocked<IAuthorizationService>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockAuthService: ReturnType<typeof createMockAuthorizationService>;
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      linkUserToInvitations: jest.fn(),
-    } as any;
-
-    mockAuthService = {
-      verifyIsTeamAdmin: jest.fn(),
-    } as any;
-
+    mockPlayerRepository = createMockPlayerRepository();
+    mockAuthService = createMockAuthorizationService();
     useCase = new CreateInvitationUseCase(
       mockPlayerRepository,
       mockAuthService,
@@ -41,15 +34,15 @@ describe("CreateInvitationUseCase", () => {
     const email = "newmember@example.com";
     const role = PlayerRole.MEMBER;
 
-    const nonePlayer = {
+    const nonePlayer = createPlayer({
       _id: playerId,
       name: "Pure Player",
       teamId,
       status: PlayerStatus.NONE,
-      role: PlayerRole.MEMBER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      number: undefined,
+      position: undefined,
+      userId: undefined,
+    });
 
     it("should invite a NONE player by setting status to INVITED and adding email", async () => {
       const invitedPlayer = {
@@ -65,16 +58,6 @@ describe("CreateInvitationUseCase", () => {
 
       const result = await useCase.execute(playerId, email, role, userId);
 
-      expect(mockPlayerRepository.findById).toHaveBeenCalledWith(playerId);
-      expect(mockAuthService.verifyIsTeamAdmin).toHaveBeenCalledWith(
-        teamId,
-        userId,
-      );
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
-        status: PlayerStatus.INVITED,
-        email,
-        role,
-      });
       expect(result.email).toBe(email);
       expect(result.role).toBe(role);
     });
@@ -94,11 +77,6 @@ describe("CreateInvitationUseCase", () => {
 
       const result = await useCase.execute(playerId, email, adminRole, userId);
 
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
-        status: PlayerStatus.INVITED,
-        email,
-        role: adminRole,
-      });
       expect(result.role).toBe(adminRole);
     });
 
@@ -111,11 +89,11 @@ describe("CreateInvitationUseCase", () => {
     });
 
     it("should reject if player status is INVITED", async () => {
-      const invitedPlayer = {
+      const invitedPlayer = createPlayer({
         ...nonePlayer,
         status: PlayerStatus.INVITED,
         email: "existing@example.com",
-      };
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
@@ -125,11 +103,11 @@ describe("CreateInvitationUseCase", () => {
     });
 
     it("should reject if player status is JOINED", async () => {
-      const joinedPlayer = {
+      const joinedPlayer = createPlayer({
         ...nonePlayer,
         status: PlayerStatus.JOINED,
         userId: "some_user_id",
-      };
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 

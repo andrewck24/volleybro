@@ -1,57 +1,33 @@
-import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
 import { GetTeamPlayersUseCase } from "@/applications/usecases/player/get-team-players.usecase";
-import { Player, PlayerRole } from "@/entities/player";
 
 describe("GetTeamPlayersUseCase", () => {
   let usecase: GetTeamPlayersUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const teamPlayers: Player[] = [
-    {
+  const teamPlayers = [
+    createPlayer({
       _id: "player-1",
       name: "Member User",
-      teamId: "team-1",
-      userId: "user-1",
       email: "member@example.com",
-      role: PlayerRole.MEMBER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
+    }),
+    createPlayer({
       _id: "player-2",
       name: "invited",
-      teamId: "team-1",
       email: "invited@example.com",
-      role: PlayerRole.MEMBER,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    {
+      userId: undefined,
+    }),
+    createPlayer({
       _id: "player-3",
       name: "Pure Player",
-      teamId: "team-1",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
+      email: undefined,
+      userId: undefined,
+      role: undefined,
+    }),
   ];
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findByTeamId: jest.fn(),
-      findById: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
-
+    mockPlayerRepository = createMockPlayerRepository();
     usecase = new GetTeamPlayersUseCase(mockPlayerRepository);
   });
 
@@ -61,7 +37,6 @@ describe("GetTeamPlayersUseCase", () => {
     const result = await usecase.execute("team-1");
 
     expect(result).toEqual(teamPlayers);
-    expect(mockPlayerRepository.findByTeamId).toHaveBeenCalledWith("team-1");
   });
 
   it("should return empty array if team has no players", async () => {
