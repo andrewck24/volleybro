@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { PlayerRole } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
 
 jest.mock('@/infrastructure/di/inversify.config');
 jest.mock('@/lib/auth-client');
@@ -11,7 +12,7 @@ describe('Memberships API Route - /api/players/[playerId]/memberships', () => {
 
   describe('POST - Create invitation for PURE_PLAYER', () => {
     it('should validate email and role in request body', () => {
-      const validBody = { email: 'test@example.com', role: 'MEMBER' };
+      const validBody = { email: 'test@example.com', role: PlayerRole.MEMBER };
       expect(validBody.email).toBeDefined();
       expect(validBody.role).toBeDefined();
     });
@@ -29,15 +30,16 @@ describe('Memberships API Route - /api/players/[playerId]/memberships', () => {
     });
 
     it('should return 201 on successful invitation', () => {
+      const player = createPlayer({
+        _id: 'player_123',
+        name: 'Pure Player',
+        role: PlayerRole.MEMBER,
+        teamId: 'team_789',
+      });
+
       const response = {
         status: 201,
-        data: {
-          _id: 'player_123',
-          name: 'Pure Player',
-          email: 'test@example.com',
-          role: PlayerRole.MEMBER,
-          teamId: 'team_789',
-        },
+        data: { ...player, email: 'test@example.com' },
       };
 
       expect(response.status).toBe(201);
@@ -84,14 +86,15 @@ describe('Memberships API Route - /api/players/[playerId]/memberships', () => {
 
   describe('PATCH - Update player role', () => {
     it('should update role to ADMIN', () => {
+      const player = createPlayer({
+        _id: 'player_123',
+        role: PlayerRole.ADMIN,
+        teamId: 'team_123',
+      });
+
       const response = {
         status: 200,
-        data: {
-          _id: 'player_123',
-          name: 'Test Player',
-          role: PlayerRole.ADMIN,
-          teamId: 'team_123',
-        },
+        data: player,
       };
 
       expect(response.status).toBe(200);
@@ -123,14 +126,15 @@ describe('Memberships API Route - /api/players/[playerId]/memberships', () => {
 
   describe('DELETE - Cancel invitation', () => {
     it('should cancel invitation for INVITED player', () => {
+      const player = createPlayer({
+        _id: 'player_123',
+        name: 'Invited Player',
+        teamId: 'team_789',
+      });
+
       const response = {
         status: 200,
-        data: {
-          _id: 'player_123',
-          name: 'Invited Player',
-          email: undefined,
-          teamId: 'team_789',
-        },
+        data: { ...player, email: undefined },
       };
 
       expect(response.status).toBe(200);

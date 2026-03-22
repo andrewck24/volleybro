@@ -1,7 +1,9 @@
-import { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { User } from "@/entities/user";
 import { AuthenticationError } from "@/entities/errors/app-error";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
+import {
+  createMockUserRepository,
+  createUser,
+} from "@/__tests__/helpers";
 
 jest.mock("@/lib/auth", () => ({
   auth: {
@@ -16,31 +18,17 @@ jest.mock("next/headers", () => ({
 }));
 
 import { auth } from "@/lib/auth";
-const mockGetSession = auth.api.getSession as jest.Mock;
+const mockGetSession = auth.api.getSession as unknown as jest.Mock;
 
 describe("AuthenticationService", () => {
   let service: AuthenticationService;
-  let mockUserRepository: jest.Mocked<IUserRepository>;
+  let mockUserRepository: ReturnType<typeof createMockUserRepository>;
 
-  const mockUser: User = {
-    _id: "user-1",
-    name: "Test User",
-    email: "test@example.com",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  const mockUser = createUser();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUserRepository = {
-      findById: jest.fn(),
-      findOne: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      find: jest.fn(),
-    } as jest.Mocked<IUserRepository>;
-
+    mockUserRepository = createMockUserRepository();
     service = new AuthenticationService(mockUserRepository);
   });
 

@@ -28,12 +28,12 @@
 
 ## 5. Migrate Infrastructure and API Route Tests
 
-- [ ] [P] 5.1 Consolidate infrastructure test directories — merge `src/infrastructure/db/repositories/tests/__tests__/*.test.ts` into `src/infrastructure/db/repositories/__tests__/` and update imports
-- [ ] [P] 5.2 Move `src/infrastructure/db/repositories/tests/helpers/` utilities (`createMockDocument`, `setupModelMocks`) into `src/__tests__/helpers/`, fix `no-explicit-any` lint errors in the moved helpers, update all imports, and remove empty `tests/` directory
-- [ ] [P] 5.3 Migrate infrastructure tests (files in `src/infrastructure/`): adopt mock factories and fixture factories where applicable
-- [ ] [P] 5.4 Migrate API route tests (files in `src/app/api/`): adopt mock factories and fixture factories where applicable
-- [ ] 5.5 Unskip `record.repository.test.ts` (remove `describe.skip`) and fix complex mocking issues that caused it to be skipped
-- [ ] 5.6 Run `npm test`, `npm run lint`, `npm run build` — verify all infrastructure and API route tests pass
+- [x] [P] 5.1 Consolidate infrastructure test directories — merge `src/infrastructure/db/repositories/tests/__tests__/*.test.ts` into `src/infrastructure/db/repositories/__tests__/` and update imports
+- [x] [P] 5.2 Move `src/infrastructure/db/repositories/tests/helpers/` utilities (`createMockDocument`, `setupModelMocks`) into `src/__tests__/helpers/`, fix `no-explicit-any` lint errors in the moved helpers, update all imports, and remove empty `tests/` directory
+- [x] [P] 5.3 Migrate infrastructure tests (files in `src/infrastructure/`): adopt mock factories and fixture factories where applicable
+- [x] [P] 5.4 Migrate API route tests (files in `src/app/api/`): adopt mock factories and fixture factories where applicable
+- [x] 5.5 Unskip `record.repository.test.ts`, `team.repository.test.ts`, `user.repository.test.ts` (remove `describe.skip`) and fix complex mocking issues — replaced auto-mock + setupModelMocks with manual mock factories
+- [x] 5.6 Run `npm test`, `npm run lint`, `npm run build` — verify all infrastructure and API route tests pass
 
 ## 6. Migrate Component and Lib Tests (Frontend)
 

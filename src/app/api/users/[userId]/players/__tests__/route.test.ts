@@ -5,6 +5,9 @@
  * These are contract/behavior tests, not full integration tests
  */
 
+import { PlayerRole } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
+
 jest.mock('@/infrastructure/di/inversify.config');
 jest.mock('@/lib/auth-client');
 
@@ -12,20 +15,20 @@ describe('Users Players API Route', () => {
   describe('GET - List user players', () => {
     it('should retrieve all teams/players for authenticated user', () => {
       const players = [
-        {
+        createPlayer({
           _id: 'player-1',
           name: 'User Name',
           teamId: 'team-1',
           userId: 'user-1',
-          role: 'ADMIN',
-        },
-        {
+          role: PlayerRole.ADMIN,
+        }),
+        createPlayer({
           _id: 'player-2',
           name: 'User Name',
           teamId: 'team-2',
           userId: 'user-1',
-          role: 'MEMBER',
-        },
+          role: PlayerRole.MEMBER,
+        }),
       ];
 
       expect(players.length).toBe(2);
@@ -33,7 +36,7 @@ describe('Users Players API Route', () => {
     });
 
     it('should return empty array for user with no teams', () => {
-      const players: { _id: string; name: string; teamId: string; role: string }[] = [];
+      const players: ReturnType<typeof createPlayer>[] = [];
 
       expect(players.length).toBe(0);
       expect(Array.isArray(players)).toBe(true);
@@ -56,21 +59,20 @@ describe('Users Players API Route', () => {
 
     it('should include pending invitations', () => {
       const players = [
-        {
+        createPlayer({
           _id: 'player-1',
           name: 'User Name',
           teamId: 'team-1',
           userId: 'user-1',
-          email: 'user@example.com',
-          role: 'MEMBER',
-        },
-        {
+          role: PlayerRole.MEMBER,
+        }),
+        createPlayer({
           _id: 'player-2',
           name: 'User Name',
           teamId: 'team-2',
-          email: 'user@example.com',
-          role: 'ADMIN',
-        },
+          userId: undefined,
+          role: PlayerRole.ADMIN,
+        }),
       ];
 
       expect(players.length).toBe(2);
@@ -79,13 +81,13 @@ describe('Users Players API Route', () => {
 
     it('should return 200 with players array on success', () => {
       const players = [
-        {
+        createPlayer({
           _id: 'player-1',
           name: 'Test User',
           teamId: 'team-1',
           userId: 'user-1',
-          role: 'ADMIN',
-        },
+          role: PlayerRole.ADMIN,
+        }),
       ];
 
       expect(players).toBeDefined();
@@ -94,32 +96,32 @@ describe('Users Players API Route', () => {
 
     it('should handle users with mixed role statuses', () => {
       const players = [
-        {
+        createPlayer({
           _id: 'player-1',
           name: 'User',
           teamId: 'team-1',
           userId: 'user-1',
-          role: 'OWNER',
-        },
-        {
+          role: PlayerRole.OWNER,
+        }),
+        createPlayer({
           _id: 'player-2',
           name: 'User',
           teamId: 'team-2',
           userId: 'user-1',
-          role: 'ADMIN',
-        },
-        {
+          role: PlayerRole.ADMIN,
+        }),
+        createPlayer({
           _id: 'player-3',
           name: 'User',
           teamId: 'team-3',
           userId: 'user-1',
-          role: 'MEMBER',
-        },
+          role: PlayerRole.MEMBER,
+        }),
       ];
 
-      expect(players.filter((p) => p.role === 'OWNER').length).toBe(1);
-      expect(players.filter((p) => p.role === 'ADMIN').length).toBe(1);
-      expect(players.filter((p) => p.role === 'MEMBER').length).toBe(1);
+      expect(players.filter((p) => p.role === PlayerRole.OWNER).length).toBe(1);
+      expect(players.filter((p) => p.role === PlayerRole.ADMIN).length).toBe(1);
+      expect(players.filter((p) => p.role === PlayerRole.MEMBER).length).toBe(1);
     });
 
     it('should return 200 status on success', () => {
@@ -138,13 +140,13 @@ describe('Users Players API Route', () => {
     });
 
     it('should validate response structure', () => {
-      const player = {
+      const player = createPlayer({
         _id: 'player-1',
         name: 'Test User',
         teamId: 'team-1',
         userId: 'user-1',
-        role: 'ADMIN',
-      };
+        role: PlayerRole.ADMIN,
+      });
 
       expect(player).toHaveProperty('_id');
       expect(player).toHaveProperty('name');
