@@ -27,7 +27,8 @@ describe("CreatePlayerUseCase", () => {
       const input = {
         name: "陳球員",
         number: 5,
-        position: "MB" as const,
+        position: Position.MB,
+        role: PlayerRole.MEMBER,
       };
 
       const createdPlayer = createPlayer({
@@ -82,6 +83,7 @@ describe("CreatePlayerUseCase", () => {
       const userId = "user_456";
       const input = {
         name: "Test Player",
+        role: PlayerRole.MEMBER,
       };
 
       mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
@@ -99,6 +101,7 @@ describe("CreatePlayerUseCase", () => {
       const input = {
         name: "Test Player",
         email: "test@example.com",
+        role: PlayerRole.MEMBER,
       };
 
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
@@ -121,6 +124,7 @@ describe("CreatePlayerUseCase", () => {
       const userId = "user_456";
       const input = {
         name: "Test Player",
+        role: PlayerRole.MEMBER,
       };
 
       const createdPlayer = createPlayer({
