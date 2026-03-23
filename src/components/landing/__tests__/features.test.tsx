@@ -1,5 +1,6 @@
 import { Features } from "@/components/landing/features";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 
 // Mock dependencies
 jest.mock("@/components/match/stats/teams-stats/points", () => ({
@@ -7,17 +8,27 @@ jest.mock("@/components/match/stats/teams-stats/points", () => ({
 }));
 
 jest.mock("@/components/ui/chart", () => ({
-  ChartContainer: ({ children, className, ...props }: any) => (
+  ChartContainer: ({
+    children,
+    className,
+    ...props
+  }: {
+    children?: ReactNode;
+    className?: string;
+    [key: string]: unknown;
+  }) => (
     <div className={className} {...props}>
       {children}
     </div>
   ),
-  ChartTooltip: ({ children }: any) => <div>{children}</div>,
+  ChartTooltip: ({ children }: { children?: ReactNode }) => (
+    <div>{children}</div>
+  ),
   ChartTooltipContent: () => <div>Mock Tooltip</div>,
 }));
 
 jest.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => (
+  ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
     <div data-testid="responsive-container">{children}</div>
   ),
   RadarChart: () => <div data-testid="mock-radar-chart">Mock Radar Chart</div>,

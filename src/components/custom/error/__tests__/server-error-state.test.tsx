@@ -1,23 +1,48 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
+import type { ReactNode, MouseEventHandler } from "react";
 
 // Mock UI components
 jest.mock("@/components/ui/alert", () => ({
-  Alert: ({ children, className, ...props }: any) => (
+  Alert: ({
+    children,
+    className,
+    ...props
+  }: {
+    children?: ReactNode;
+    className?: string;
+    [key: string]: unknown;
+  }) => (
     <div role="alert" className={className} {...props}>
       {children}
     </div>
   ),
-  AlertTitle: ({ children, ...props }: any) => (
-    <h5 {...props}>{children}</h5>
-  ),
-  AlertDescription: ({ children, ...props }: any) => (
-    <div {...props}>{children}</div>
-  ),
+  AlertTitle: ({
+    children,
+    ...props
+  }: {
+    children?: ReactNode;
+    [key: string]: unknown;
+  }) => <h5 {...props}>{children}</h5>,
+  AlertDescription: ({
+    children,
+    ...props
+  }: {
+    children?: ReactNode;
+    [key: string]: unknown;
+  }) => <div {...props}>{children}</div>,
 }));
 
 jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    ...props
+  }: {
+    children?: ReactNode;
+    onClick?: MouseEventHandler<HTMLButtonElement>;
+    [key: string]: unknown;
+  }) => (
     <button onClick={onClick} {...props}>
       {children}
     </button>

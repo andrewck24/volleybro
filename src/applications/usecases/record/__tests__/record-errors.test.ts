@@ -16,6 +16,8 @@ import {
 } from "@/applications/usecases/record/set.usecase";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/record/substitution.usecase";
 import { NotFoundError } from "@/entities/errors/app-error";
+import { Rally, Set, Substitution } from "@/entities/record";
+import { Lineup } from "@/entities/team";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockRecordRepository: ReturnType<typeof createMockRecordRepository>;
@@ -42,7 +44,7 @@ describe("CreateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -61,7 +63,7 @@ describe("CreateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -79,7 +81,7 @@ describe("UpdateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -98,7 +100,7 @@ describe("UpdateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -131,7 +133,7 @@ describe("CreateSetUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0 },
-        data: { lineup: {} as any, options: {} as any },
+        data: { lineup: {} as unknown as Lineup, options: {} as unknown as Set["options"] },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -149,7 +151,7 @@ describe("UpdateSetUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0 },
-        data: { options: {} as any },
+        data: { options: {} as unknown as Set["options"] },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -167,7 +169,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Substitution,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

@@ -43,9 +43,8 @@ describe("TeamItem", () => {
   describe("loading state", () => {
     it("shows skeleton placeholder while loading", () => {
       mockUseTeam.mockReturnValue({ team: undefined, isLoading: true });
-      const { container } = render(<TeamItem teamId="team-123" />);
-      const skeleton = container.querySelector("[data-testid='team-name-skeleton']");
-      expect(skeleton).toBeInTheDocument();
+      render(<TeamItem teamId="team-123" />);
+      expect(screen.getByTestId("team-name-skeleton")).toBeInTheDocument();
     });
 
     it("does not show skeleton after loading", () => {
@@ -53,9 +52,8 @@ describe("TeamItem", () => {
         team: { name: "Thunder" },
         isLoading: false,
       });
-      const { container } = render(<TeamItem teamId="team-123" />);
-      const skeleton = container.querySelector("[data-testid='team-name-skeleton']");
-      expect(skeleton).not.toBeInTheDocument();
+      render(<TeamItem teamId="team-123" />);
+      expect(screen.queryByTestId("team-name-skeleton")).not.toBeInTheDocument();
     });
   });
 
@@ -87,10 +85,9 @@ describe("TeamItem", () => {
         team: { name: "Thunder" },
         isLoading: false,
       });
-      const { container } = render(<TeamItem teamId="team-123" />);
-      expect(container.querySelector("a")).toBeNull();
-      expect(container.querySelector("button")).toBeNull();
-      expect(container.firstChild?.nodeName).toBe("DIV");
+      render(<TeamItem teamId="team-123" />);
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
   });
 

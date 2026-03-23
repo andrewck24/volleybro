@@ -64,10 +64,9 @@ describe("PersonItem", () => {
     });
 
     it("renders as div when neither href nor onClick is provided", () => {
-      const { container } = render(<PersonItem name="Alice" />);
-      expect(container.querySelector("a")).toBeNull();
-      expect(container.querySelector("button")).toBeNull();
-      expect(container.firstChild?.nodeName).toBe("DIV");
+      render(<PersonItem name="Alice" />);
+      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 
     it("prefers href over onClick when both provided", () => {

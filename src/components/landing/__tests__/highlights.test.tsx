@@ -1,6 +1,7 @@
 import { Highlights } from "@/components/landing/highlights";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import { useScroll, useTransform, useSpring } from "motion/react";
 
 // Mock motion/react hooks - match Features component exactly
 jest.mock("motion/react", () => ({
@@ -13,7 +14,7 @@ jest.mock("motion/react", () => ({
 
 // Mock utils
 jest.mock("@/lib/utils", () => ({
-  cn: (...classes: any[]) => classes.filter(Boolean).join(" "),
+  cn: (...classes: unknown[]) => classes.filter(Boolean).join(" "),
 }));
 
 // Mock react-icons
@@ -347,8 +348,6 @@ describe("Highlights Component Tests", () => {
 
   describe("Motion.js Integration and Animation Hooks", () => {
     it("should call scroll-related motion hooks for desktop animation", () => {
-      const { useScroll, useTransform, useSpring } = require("motion/react");
-
       render(<Highlights />);
 
       // Verify hooks are called for desktop scroll animation

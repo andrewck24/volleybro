@@ -1,9 +1,9 @@
-import type { Record, MatchResult } from "@/entities/record";
+import type { Record as RecordEntity, MatchResult } from "@/entities/record";
 import type { IBaseRepository } from "@/applications/repositories/base.repository.interface";
 
-export interface IRecordRepository extends IBaseRepository<Record> {
+export interface IRecordRepository extends IBaseRepository<RecordEntity> {
   findMatchesWithPagination(
-    filter: { [key: string]: any },
+    filter: { $and?: unknown[]; [key: string]: unknown },
     options: {
       lastId?: string;
       limit?: number;

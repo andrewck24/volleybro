@@ -1,4 +1,4 @@
-import { Document, Model } from "mongoose";
+import { Document, Model, type QueryFilter } from "mongoose";
 import {
   AppError,
   ConflictError,
@@ -55,7 +55,7 @@ export function translateRepositoryError(error: unknown): AppError {
 export class BaseMongoRepository<T, M extends Document> {
   constructor(protected readonly model: Model<M>) {}
 
-  async find(filter: Record<string, any>): Promise<T[]> {
+  async find(filter: QueryFilter<M>): Promise<T[]> {
     try {
       const docs = await this.model.find(filter);
       if (!docs) return null;
@@ -65,7 +65,7 @@ export class BaseMongoRepository<T, M extends Document> {
     }
   }
 
-  async findOne(filter: Record<string, any>): Promise<T | null> {
+  async findOne(filter: QueryFilter<M>): Promise<T | null> {
     try {
       const doc = await this.model.findOne(filter);
       if (!doc) return null;
@@ -86,14 +86,16 @@ export class BaseMongoRepository<T, M extends Document> {
   }
 
   async update(
-    filter: string | Record<string, any>,
+    filter: string | QueryFilter<M>,
     data: Partial<T>
   ): Promise<T | null> {
     try {
       const query = typeof filter === "string" ? { _id: filter } : filter;
-      const doc = await this.model.findOneAndReplace(query, data as any, {
-        new: true,
-      });
+      const doc = await this.model.findOneAndReplace(
+        query,
+        data as unknown as M,
+        { new: true },
+      );
       if (!doc) return null;
       return doc.toJSON() as unknown as T;
     } catch (error) {
@@ -101,7 +103,7 @@ export class BaseMongoRepository<T, M extends Document> {
     }
   }
 
-  async delete(filter: string | Record<string, any>): Promise<boolean> {
+  async delete(filter: string | QueryFilter<M>): Promise<boolean> {
     try {
       const query = typeof filter === "string" ? { _id: filter } : filter;
       const result = await this.model.findOneAndDelete(query);

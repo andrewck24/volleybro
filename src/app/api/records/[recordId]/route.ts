@@ -7,7 +7,7 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ recordId: string }> },
 ) =>
-  withErrorHandler(async (req) => {
+  withErrorHandler(async (_req) => {
     await connectToMongoDB();
     const { recordId } = await props.params;
     const input = { params: { _id: recordId } };

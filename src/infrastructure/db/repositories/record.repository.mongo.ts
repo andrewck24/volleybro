@@ -3,12 +3,12 @@ import {
   Record as RecordModel,
   RecordDocument,
 } from "@/infrastructure/db/mongoose/schemas/record";
-import { Record, MatchResult, EntryType } from "@/entities/record";
+import { Record as RecordEntity, MatchResult, EntryType } from "@/entities/record";
 import { BaseMongoRepository } from "@/infrastructure/db/repositories";
 import mongoose from "mongoose";
 
 export class RecordRepositoryImpl
-  extends BaseMongoRepository<Record, RecordDocument>
+  extends BaseMongoRepository<RecordEntity, RecordDocument>
   implements IRecordRepository
 {
   constructor() {
@@ -16,7 +16,7 @@ export class RecordRepositoryImpl
   }
 
   async findMatchesWithPagination(
-    filter: { [key: string]: any } = {},
+    filter: { $and?: unknown[]; [key: string]: unknown } = {},
     options: {
       lastId?: string;
       limit?: number;

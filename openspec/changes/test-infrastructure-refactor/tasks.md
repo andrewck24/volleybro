@@ -73,14 +73,14 @@
 
 ## 10. Test File Fixes (Test layer)
 
-- [ ] [P] 10.1 Fix `src/lib/api/__tests__/wrappers.test.ts`: remove unused `AuthenticationError` import, fix `as jest.Mock` → `as unknown as jest.Mock`, add `return undefined as never` after `schema.parse()`
-- [ ] [P] 10.2 Fix component test mock `any` types (~10 files): replace `(props: any)` with typed props in `jest.mock` callbacks — `cta-button.test.tsx`, `header.test.tsx`, `features.test.tsx`, `server-error-state.test.tsx`, `cta-section.test.tsx`, `highlights.test.tsx`, `alert-dialog-error-state.test.tsx`, `invitation-list-error-state.test.tsx`, `team-info-error-state.test.tsx`, `hero.test.tsx`
-- [ ] [P] 10.3 Fix `src/components/custom/__tests__/person-item.test.tsx` and `team-item.test.tsx`: replace `container.querySelector()` with `screen` queries (testing-library/no-node-access + no-container)
-- [ ] [P] 10.4 Fix `src/infrastructure/db/repositories/__tests__/record.repository.test.ts`: `(stage: any)` → `(stage: Record<string, unknown>)`
-- [ ] [P] 10.5 Fix `src/applications/usecases/record/__tests__/record-errors.test.ts`: `{} as any` → use fixture factories or `as unknown as T`
-- [ ] [P] 10.6 Fix `src/components/landing/__tests__/highlights.test.tsx`: convert `require("motion/react")` to import
-- [ ] [P] 10.7 Fix `src/__tests__/helpers/fixtures.ts`: remove unused import if applicable
-- [ ] 10.8 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+- [x] [P] 10.1 Fix `src/lib/api/__tests__/wrappers.test.ts`: remove unused `AuthenticationError` import, fix `as jest.Mock` → `as unknown as jest.Mock`, add `return undefined as never` after `schema.parse()`
+- [x] [P] 10.2 Fix component test mock `any` types (~10 files): replace `(props: any)` with typed props in `jest.mock` callbacks — `cta-button.test.tsx`, `header.test.tsx`, `features.test.tsx`, `server-error-state.test.tsx`, `cta-section.test.tsx`, `highlights.test.tsx`, `alert-dialog-error-state.test.tsx`, `invitation-list-error-state.test.tsx`, `team-info-error-state.test.tsx`, `hero.test.tsx`
+- [x] [P] 10.3 Fix `src/components/custom/__tests__/person-item.test.tsx` and `team-item.test.tsx`: replace `container.querySelector()` with `screen` queries (testing-library/no-node-access + no-container)
+- [x] [P] 10.4 Fix `src/infrastructure/db/repositories/__tests__/record.repository.test.ts`: `(stage: any)` → `(stage: Record<string, unknown>)`
+- [x] [P] 10.5 Fix `src/applications/usecases/record/__tests__/record-errors.test.ts`: `{} as any` → use fixture factories or `as unknown as T`
+- [x] [P] 10.6 Fix `src/components/landing/__tests__/highlights.test.tsx`: convert `require("motion/react")` to import
+- [x] [P] 10.7 Fix `src/__tests__/helpers/fixtures.ts`: remove unused import if applicable
+- [x] 10.8 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
 
 ## 11. Final Verification (Phase 2)
 

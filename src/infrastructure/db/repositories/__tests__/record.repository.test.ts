@@ -1,14 +1,16 @@
-import { Types } from "mongoose";
-import { RecordRepositoryImpl } from "@/infrastructure/db/repositories/record.repository.mongo";
-import { Record as RecordModel } from "@/infrastructure/db/mongoose/schemas/record";
 import { EntryType } from "@/entities/record";
+import { Record as RecordModel } from "@/infrastructure/db/mongoose/schemas/record";
+import { RecordRepositoryImpl } from "@/infrastructure/db/repositories/record.repository.mongo";
+import { Types } from "mongoose";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/record", () => {
-  const mockModel = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
-    ...data,
-    save: jest.fn().mockResolvedValue(data),
-    toJSON: jest.fn().mockReturnValue(data),
-  }));
+  const mockModel = jest
+    .fn()
+    .mockImplementation((data: Record<string, unknown>) => ({
+      ...data,
+      save: jest.fn().mockResolvedValue(data),
+      toJSON: jest.fn().mockReturnValue(data),
+    }));
 
   Object.assign(mockModel, {
     find: jest.fn(),
@@ -212,7 +214,7 @@ describe("RecordRepositoryImpl", () => {
 
       const result = await repository.findMatchesWithPagination(
         filter,
-        options
+        options,
       );
 
       expect(mockAggregate).toHaveBeenCalled();
@@ -233,11 +235,12 @@ describe("RecordRepositoryImpl", () => {
 
       await repository.findMatchesWithPagination(filter, options);
 
-      const aggregateCall = mockAggregate.mock
-        .calls[0][0];
+      const aggregateCall = mockAggregate.mock.calls[0][0];
 
       // Verify that filter conditions include the cursor
-      const matchStage = aggregateCall.find((stage: any) => stage.$match);
+      const matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
       expect(matchStage.$match).toHaveProperty("_id");
       expect(matchStage.$match._id.$lt).toBeDefined();
     });
@@ -273,7 +276,7 @@ describe("RecordRepositoryImpl", () => {
 
       const result = await repository.findMatchesWithPagination(
         filter,
-        options
+        options,
       );
 
       expect(result.hasMore).toBe(true);
@@ -290,9 +293,10 @@ describe("RecordRepositoryImpl", () => {
 
       await repository.findMatchesWithPagination(filter);
 
-      const aggregateCall = mockAggregate.mock
-        .calls[0][0];
-      const matchStage = aggregateCall.find((stage: any) => stage.$match);
+      const aggregateCall = mockAggregate.mock.calls[0][0];
+      const matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
 
       expect(matchStage.$match.team_id.toHexString()).toBe(stringId);
     });
@@ -424,9 +428,10 @@ describe("RecordRepositoryImpl", () => {
 
       await repository.findMatchesWithPagination(existingAndCondition, options);
 
-      const aggregateCall = mockAggregate.mock
-      .calls[0][0];
-      const matchStage = aggregateCall.find((stage: any) => stage.$match);
+      const aggregateCall = mockAggregate.mock.calls[0][0];
+      const matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
 
       // Verify that original $and conditions are preserved and new conditions are added to the $and array
       expect(matchStage.$match.$and).toHaveLength(2);
@@ -434,7 +439,7 @@ describe("RecordRepositoryImpl", () => {
       expect(matchStage.$match.$and[1]).toHaveProperty("_id");
       expect(matchStage.$match.$and[1]._id.$lt).toBeDefined();
       expect(matchStage.$match.$and[1]._id.$lt.toString()).toEqual(
-      new Types.ObjectId(lastId).toString()
+        new Types.ObjectId(lastId).toString(),
       );
     });
 
@@ -448,16 +453,17 @@ describe("RecordRepositoryImpl", () => {
 
       await repository.findMatchesWithPagination(simpleFilter, options);
 
-      const aggregateCall = mockAggregate.mock
-      .calls[0][0];
-      const matchStage = aggregateCall.find((stage: any) => stage.$match);
+      const aggregateCall = mockAggregate.mock.calls[0][0];
+      const matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
 
       // Verify that original conditions are preserved and new conditions are added at the top level of the filter
       expect(matchStage.$match).not.toHaveProperty("$and");
       expect(matchStage.$match.status).toBe("active");
       expect(matchStage.$match._id.$lt).toBeDefined();
       expect(matchStage.$match._id.$lt.toString()).toEqual(
-      new Types.ObjectId(lastId).toString()
+        new Types.ObjectId(lastId).toString(),
       );
     });
 
@@ -469,12 +475,14 @@ describe("RecordRepositoryImpl", () => {
 
       // Test descending order (-1) - should use $lt
       await repository.findMatchesWithPagination(
-      { team_id: mockTeamId },
-      { lastId, sortDirection: -1 }
+        { team_id: mockTeamId },
+        { lastId, sortDirection: -1 },
       );
 
       let aggregateCall = mockAggregate.mock.calls[0][0];
-      let matchStage = aggregateCall.find((stage: any) => stage.$match);
+      let matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
       expect(matchStage.$match._id.$lt).toBeDefined();
 
       // Clear mocks
@@ -483,13 +491,15 @@ describe("RecordRepositoryImpl", () => {
 
       // Test ascending order (1) - should use $gt
       await repository.findMatchesWithPagination(
-      { team_id: mockTeamId },
-      { lastId, sortDirection: 1 }
+        { team_id: mockTeamId },
+        { lastId, sortDirection: 1 },
       );
 
       aggregateCall = mockAggregate.mock.calls[0][0];
-      matchStage = aggregateCall.find((stage: any) => stage.$match);
+      matchStage = aggregateCall.find(
+        (stage: Record<string, unknown>) => stage.$match,
+      );
       expect(matchStage.$match._id.$gt).toBeDefined();
     });
-    });
+  });
 });

@@ -1,6 +1,6 @@
-import { type ApiError, parseApiError } from "./parse-api-error";
+import { type ApiError, parseApiError } from "@/lib/api/parse-api-error";
 
-export { type ApiError } from "./parse-api-error";
+export { type ApiError };
 
 export class ApiClientError extends Error {
   constructor(

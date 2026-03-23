@@ -15,7 +15,6 @@ import {
   MatchCategory,
   MoveType,
   EntryType,
-  Side,
 } from "@/entities/record";
 import type { User } from "@/entities/user";
 import type { Profile } from "@/entities/profile";

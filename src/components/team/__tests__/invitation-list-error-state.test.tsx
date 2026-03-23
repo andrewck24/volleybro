@@ -4,6 +4,7 @@ import { InvitationList } from "@/components/team/invitation-list";
 import { PlayerStatus } from "@/entities/player";
 import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
+import type { AppErrorCode } from "@/entities/errors/app-error";
 
 // Mock useToast
 const mockToast = jest.fn();
@@ -23,7 +24,7 @@ function createApiError(
   detail: string
 ) {
   return new ApiClientError(detail, {
-    code: code as any,
+    code: code as AppErrorCode,
     reason,
     detail,
     status,
