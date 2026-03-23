@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -36,7 +37,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [isInstallable, setIsInstallable] = useState(false);
   const [platform, setPlatform] = useState<Platform>("mobile");
   const [isStandalone, setIsStandalone] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   useEffect(() => {
     const currentPlatform = checkPlatform();
@@ -57,7 +58,6 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
       };
 
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      setMounted(true);
 
       return () => {
         window.removeEventListener(
@@ -66,8 +66,6 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
         );
       };
     }
-
-    setMounted(true);
   }, []);
 
   const handleInstallClick = async () => {

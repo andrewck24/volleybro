@@ -59,17 +59,17 @@
 - [x] [P] 8.8 Fix `src/components/layout/nav/links.tsx`: unused `session` → `_session`
 - [x] [P] 8.9 Fix `src/lib/hooks/usePullToRefresh.ts:26`: `() => {} | void` → `() => void`
 - [x] [P] 8.10 Fix `src/components/record/panel/moves/oppo.tsx`: ternary unused expression → `if/else`
-- [ ] 8.11 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+- [x] 8.11 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
 
 ## 9. Delete Unused Code + `set-state-in-effect` Fixes (Presentation layer)
 
-- [ ] [P] 9.1 Delete unused `src/components/ui/drawer.tsx` and `src/lib/hooks/useMediaQuery.ts`, remove any barrel re-exports
-- [ ] [P] 9.2 Create `src/lib/hooks/useHydrated.ts` using `useSyncExternalStore` (server returns `false`, client returns `true`)
-- [ ] [P] 9.3 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/ui/flip-words.tsx` (both components)
-- [ ] [P] 9.4 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/features/index.tsx`
-- [ ] [P] 9.5 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/footer/dark-mode.tsx`
-- [ ] 9.6 Fix `src/components/landing/cta-button.tsx`: refactor `useEffect` that reads `window.navigator` — move platform detection to `useSyncExternalStore` or lazy `useState` initializer
-- [ ] 9.7 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+- [x] [P] 9.1 Delete unused `src/components/ui/drawer.tsx` and `src/lib/hooks/useMediaQuery.ts`, remove any barrel re-exports; also uninstall `vaul` package (only used by drawer)
+- [x] [P] 9.2 Create `src/lib/hooks/useHydrated.ts` using `useSyncExternalStore` (server returns `false`, client returns `true`)
+- [x] [P] 9.3 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/ui/flip-words.tsx` (both components)
+- [x] [P] 9.4 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/features/index.tsx`
+- [x] [P] 9.5 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/footer/dark-mode.tsx`
+- [x] 9.6 Fix `src/components/landing/cta-button.tsx`: replace `mounted` state with `useHydrated()`; platform detection remains in `useEffect` (requires browser APIs)
+- [x] 9.7 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
 
 ## 10. Test File Fixes (Test layer)
 
