@@ -43,6 +43,6 @@
 
 ## 7. Final Verification
 
-- [ ] 7.1 Run full `npm test` — confirm all 67 tests pass, review coverage output
-- [ ] 7.2 Run `npm run lint` and `npm run build` — no errors
-- [ ] 7.3 Verify no remaining `as any` casts in mock definitions that are now covered by factories
+- [x] 7.1 Run full `npm test` — 61 suites, 587 tests, 0 skipped (up from 58 suites, 551 tests, 36 skipped)
+- [x] 7.2 Run `npm run lint` and `npm run build` — build passes, lint has 89 pre-existing errors only
+- [x] 7.3 Verify no remaining `as any` casts in mock definitions that are now covered by factories — remaining `as any` are intentional (error-path tests, API error codes)

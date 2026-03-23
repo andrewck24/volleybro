@@ -1,201 +1,122 @@
-# 專案總覽 (Project Overview)
+<!-- SPECTRA:START v1.0.1 -->
 
-VolleyBro
-是一款專為排球隊伍設計的賽事紀錄與隊伍管理網頁應用程式。旨在取代傳統的紙筆記錄，為教練、球隊管理者和球員提供一個高效、數位化的平台。
+# Spectra Instructions
 
-## 核心目標
+This project uses Spectra for Spec-Driven Development(SDD). Specs live in `openspec/specs/`, change proposals in `openspec/changes/`.
 
-- 高效賽事紀錄: 提供直觀的介面，即時記錄比賽得分、球員表現（如發球、攻擊、攔網）等詳細數據。
-- 全面球隊管理: 支援球隊創建、成員管理、權限分配及賽前陣容設定。
-- 數據驅動分析: 將比賽數據轉化為視覺化圖表與統計報告，幫助球隊分析表現。
-- 跨平台體驗: 支援桌面與行動裝置，並具備 PWA (Progressive Web App) 功能，可安裝至主畫面。
+## Use `/spectra:*` skills when:
 
-## 核心技術棧 (Core Technology Stack)
+- A discussion needs structure before coding → `/spectra:discuss`
+- User wants to plan, propose, or design a change → `/spectra:propose`
+- Tasks are ready to implement → `/spectra:apply`
+- There's an in-progress change to continue → `/spectra:ingest`
+- User asks about specs or how something works → `/spectra:ask`
+- Implementation is done → `/spectra:archive`
 
-- 框架 (Framework): Next.js 14+ (React)
-- 語言 (Language): TypeScript
-- 後端 API: Next.js API Routes
-- 資料庫 (Database): MongoDB
-- ORM: Mongoose
-- 身份驗證 (Authentication): NextAuth.js (Auth.js)，支援 Email 和 Google 登入。
-- UI 組件庫: Shadcn/UI 搭配 Tailwind CSS
-- 狀態管理 (State Management): Redux Toolkit (用於複雜狀態) + SWR (用於資料獲取與快取)
-- 依賴注入 (DI): InversifyJS
-- 測試 (Testing): Jest (統一 jsdom 環境) & Storybook (UI 組件開發與測試)
-- PWA: @serwist/next
-- 程式碼品質: ESLint (語法檢查) & Prettier (程式碼格式化)
-- 版本與發布: Semantic Release (自動化版本管理與日誌生成)
-- 後端服務: Vercel (部署與托管)
-- 資料庫服務: MongoDB Atlas (雲端資料庫)
+## Workflow
 
-## 專案架構 (Project Architecture)
+discuss? → propose → apply ⇄ ingest → archive
 
-本專案採用受乾淨架構 (Clean Architecture) 或 領域驅動設計 (DDD) 啟發的分層架構，確保關注點分離、高內聚、低耦合。
+- `discuss` is optional — skip if requirements are clear
+- Requirements change mid-work? Plan mode → `ingest` → resume `apply`
 
-依賴關係流向: Infrastructure -> Application -> Entities
+## Parked Changes
 
-1. `src/entities` - 領域層 (Domain Layer)
-   - 職責: 包含最核心的業務邏輯、規則和資料結構（實體），如 User, Team, Record。
-   - 特性: 完全獨立，不依賴任何外部框架或資料庫。
+Changes can be parked（暫存）— temporarily moved out of `openspec/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `/spectra:apply` and `/spectra:ingest` skills handle parked changes automatically.
 
-2. `src/applications` - 應用層 (Application Layer)
-   - 職責: 編排領域層的實體來完成具體的使用案例 (Use Cases)，例如「創建一場比賽」。
-   - 包含: usecases/ (業務流程), repositories/ (資料儲存的抽象介面)。
+<!-- SPECTRA:END -->
 
-3. `src/infrastructure` - 基礎設施層 (Infrastructure Layer)
-   - 職責: 實作應用層定義的介面，處理所有與外部世界的互動。
-   - 包含: db/ (MongoDB 連線與 Schema), services/ (外部服務的具體實作), di/ (依賴注入容器設定)。
+## VolleyBro Introduction
 
-4. `src/app` & `src/components` - 展現層 (Presentation Layer)
-   - 職責: 處理 UI 渲染、使用者互動和 HTTP 請求。
-   - `src/app`: Next.js App Router，負責路由 (page.tsx)、佈局 (layout.tsx) 和後端 API 端點 (api/)。
-   - `src/components`: 可重用的 React 組件，按 ui/ (通用), custom/ (專案特有), 及功能模組 (如 home, match) 組織。
+VolleyBro is a volleyball team management and match recording web application built with **Clean Architecture** principles.
 
-## 主要功能模組 (Key Feature Modules)
+## Technology Stack
 
-- 使用者管理: 註冊、登入/登出、個人資料編輯、球隊邀請處理。
-- 球隊管理: 創建/編輯球隊、成員管理（新增、邀請、權限設定）、陣容配置。
-- 賽事紀錄: 創建比賽、設定規則、逐球記錄（得分、失分、球員表現）、球員替換、暫停/挑戰等事件記錄。
-- 數據分析: 提供賽後統計數據、視覺化圖表和歷史紀錄查詢。
+- **Frontend**: Next.js 16+ (React 19), TypeScript
+- **UI**: Shadcn/UI components + Tailwind CSS
+- **State Management**: Redux Toolkit + SWR for data fetching + React Hook Form
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: Better Auth with Google OAuth
+- **Dependency Injection**: InversifyJS
+- **PWA**: @serwist/next (configurator mode) for Progressive Web App features
+- **Testing**: Jest, Storybook (to be refactored with optimal testing tools)
 
-## 資料模型 (Data Models)
+## Clean Architecture Layers
 
-- `User`: 儲存使用者基本資料及與球隊的關聯 (teams.joined, teams.inviting)。
-- `Team`: 儲存球隊資訊，包含成員列表 (members) 和多個陣容 (lineups)。
-- `Member`: 代表一位球隊成員，包含姓名、背號等。
-- `Record`: 核心模型，代表一場完整的賽事紀錄，內嵌比賽資訊 (info)、雙方隊伍資料 (teams) 和所有局的紀錄 (sets)。
-- `Set`: 代表比賽中的一局，包含該局的陣容、逐球紀錄 (entries) 等。
-- `Entry`: 代表一局中的單一事件，如 Rally (回合), Substitution (替換) 等。
+1. **Domain Layer** (`src/entities/`)
+   - Core business entities: User, Team, Member, Record, Match, Set
+   - Pure business logic with no external dependencies
 
-## 開發與維運指令 (Development & Operational Scripts)
+2. **Application Layer** (`src/applications/`)
+   - `usecases/` - Business use cases (CreateRecord, UpdateRally, etc.)
+   - `repositories/` - Abstract interfaces for data access
+   - `services/` - Abstract interfaces for external services
 
-```bash
-  1 # 安裝專案依賴
-  2 npm install
-  3
-  4 # 啟動本地開發伺服器 (http://localhost:3000)
-  5 npm run dev
-  6
-  7 # 執行 ESLint 進行程式碼檢查
-  8 npm run lint
-  9
-  10 # 執行 Prettier 進行程式碼格式化
-  11 npm run format
-  12
-  13 # 執行 Jest 進行單元測試
-  14 npm run test
-  15
-  16 # 啟動 Storybook UI 組件工作台
-  17 npm run storybook
-  18
-  19 # 為生產環境建置專案
-  20 npm run build
-  21
-  22 # 啟動生產模式伺服器
-  23 npm run start
-```
+3. **Infrastructure Layer** (`src/infrastructure/`)
+   - `db/repositories/` - MongoDB repository implementations
+   - `services/` - Authentication and authorization services
+   - `di/` - InversifyJS dependency injection container
 
-## 程式碼風格與慣例 (Coding Style & Conventions)
+4. **Interface Layer** (`src/interface/controllers/`)
+   - API controllers that orchestrate use cases
 
-1. 格式化與風格: 嚴格遵守 .prettierrc 和 .eslintrc.json 的設定。提交前請確保已執行 npm run format 和 npm run lint。
-2. 架構: 新增功能時，必須遵循現有的分層架構。業務邏輯應放在 applications 和 entities 層，UI 相關程式碼放在 components 和 app 層。
-3. TypeScript: 所有新程式碼都應使用 TypeScript 並提供適當的型別定義。避免使用 any 型別。
-4. 組件: 盡可能創建可重用的組件。通用、無狀態的 UI 組件應放在 src/components/ui。
+5. **Presentation Layer**
+   - `src/app/` - Next.js App Router (pages, layouts, API routes)
+   - `src/components/` - React UI components organized by domain
 
-## 版本控制與提交訊息 (Version Control & Commit Messages)
+## Component Organization
 
-本專案使用 Conventional Commits 規範來撰寫提交訊息，這有助於 semantic-release 自動產生 CHANGELOG.md 並管理版本號。
+Components are organized by domain and purpose (features):
 
-提交格式: `<type>(<scope>): <subject>`
+- `src/components/ui/` - Reusable UI components (Shadcn/UI based)
+- `src/components/custom/` - Project-specific reusable components
+- `src/components/auth/` - Authentication-related components
+- `src/components/team/` - Team management components
+- `src/components/record/` - Match recording components
+- `src/components/match/` - Match viewing/analysis components
+- `src/components/landing/` - Landing page components
 
-- `feat`: 新增功能 (A new feature)
-- `fix`: 修復錯誤 (A bug fix)
-- `docs`: 只修改文件 (Documentation only changes)
-- `style`: 不影響程式碼意義的修改 (e.g., white-space, formatting)
-- `refactor`: 重構程式碼，既不是新增功能也不是修復錯誤
-- `perf`: 提升效能的修改 (A code change that improves performance)
-- `test`: 新增或修改測試
-- `build`: 影響建置系統或外部依賴的修改 (e.g., gulp, npm)
-- `ci`: CI 設定檔與腳本的修改 (e.g., Travis, Circle)
-- `chore`: 其他不修改 src 或 test 檔案的變動
+## Key Features
 
-範例:
-1 feat(record): add set and match completion detection
-2 fix(auth): resolve type conflicts by consolidating auth type declarations
-3 docs(readme): update project architecture diagram
+1. **User Management**: Registration, authentication, profile management, team invitations
+2. **Team Management**: Create/edit teams, member management, lineup configuration
+3. **Match Recording**: Real-time match recording with detailed statistics
+4. **Data Analysis**: Match statistics, visualizations, and historical data
 
-## 測試策略與配置 (Testing Strategy & Configuration)
+## Database Design
 
-### 當前測試環境 (Current Testing Environment)
+- **User**: Authentication data managed by Better Auth
+- **Profile**: User's personal information and preferences
+- **Player**: References userId, teamId with player information
+- **Team**: Contains lineups array, team information
+- **Record**: Embeds complete match data including teams and sets
 
-**狀態**: ✅ **已更新** - 統一測試環境已建立 (2024-08-11)
+## Authentication Flow
 
-- **測試環境**: 統一的 `jsdom` 環境（適用於所有測試）
-- **測試框架**: Jest + Next.js 整合 (`next/jest`)
-- **覆蓋率**: Landing page 元件達到 95%+ 測試覆蓋率
-- **設定檔**: 單一 `jest.setup.ts` 統一配置
+- Better Auth with Google OAuth provider (configured in `src/lib/auth.ts`)
+- Client-side authentication using Better Auth React client (`src/lib/auth-client.ts`)
+- Server-side session validation via `auth.api.getSession()` in API routes
+- User and Profile separation:
+  - **User**: Authentication data (Better Auth managed)
+  - **Profile**: Business data (application managed, linked via userId)
+- Profile auto-creation on first access to `/api/profiles`
 
-### 關鍵技術決策 (Key Technical Decisions)
+## Code Style Guidelines
 
-#### 1. 統一 jsdom 環境 vs 分離前後端測試環境
+- **Code Formatting**: Prettier with Airbnb JavaScript/TypeScript style guide
+- **Linting**: ESLint configured with Airbnb rules
+- Follow existing TypeScript patterns and interfaces
+- Use established component patterns from `src/components/ui/`
+- Implement new features following Clean Architecture layers
+- Authentication logic should use existing Auth.js patterns
 
-**選擇**: 統一使用 `jsdom` 環境
+## Pre-commit Checklist
 
-**理由**:
-- 符合 Next.js 官方最佳實踐建議
-- 簡化配置維護，避免 ES 模組與 CommonJS 語法衝突
-- 通用元件測試更貼近實際運行環境
-- Clean Architecture 各層級與環境無關
+**IMPORTANT**: Commit after each completed task section during `apply`. Before every commit, ensure the following steps pass:
 
-#### 2. MongoDB Mock 策略（短期方案）
-
-**問題**: BSON ES 模組導致 Jest 解析錯誤
-
-**解決方案**: 在 `jest.setup.ts` 中 mock `mongodb`、`mongoose` 和 `bson` 模組
-
-**優點**:
-- 避免 `transformIgnorePatterns` 複雜配置
-- 測試執行速度更快
-- 真正的單元測試隔離
-
-**未來考慮**:
-- 中期：評估 `@shelf/jest-mongodb` 用於整合測試
-- 長期：考慮遷移至 Vitest 以獲得更好的 ES 模組支援
-
-#### 3. 替代方案評估
-
-- ❌ `transformIgnorePatterns`: Next.js 覆寫複雜，維護負擔重
-- ✅ `@shelf/jest-mongodb`: Jest 官方預設（未來考慮）
-- ✅ Vitest 遷移: 更好的 ES 模組支援（長期選項）
-
-### 測試結構 (Test Structure)
-
-```
-src/
-├── components/landing/__tests__/     # 元件單元測試
-├── infrastructure/__tests__/         # 基礎設施層測試（已 mock）
-├── applications/__tests__/           # 用例測試
-├── entities/__tests__/               # 領域邏輯測試
-└── lib/features/*/test/             # 功能特定輔助測試
-```
-
-### 測試指令 (Testing Commands)
-
-- `npm test` - 執行所有測試
-- `npm run test:watch` - 監控模式執行測試
-- `npm run test:coverage` - 生成覆蓋率報告
-
-### 測試類型與工具 (Test Types & Tools)
-
-1. **單元測試 (Unit Tests)**: Jest + React Testing Library
-2. **整合測試 (Integration Tests)**: Jest（元件間互動測試）
-3. **E2E 測試 (End-to-End Tests)**: Playwright（跨瀏覽器測試）
-4. **視覺測試 (Visual Tests)**: Storybook + Chromatic
-5. **無障礙測試 (Accessibility Tests)**: jest-axe
-
-### CI/CD 整合 (CI/CD Integration)
-
-GitHub Actions 工作流程確保：
-- 所有元件測試通過後才執行 E2E 測試
-- 測試覆蓋率維持在 95% 以上
-- 自動生成測試報告和覆蓋率徽章
+1. `npm test` - All tests must pass
+2. `npx tsc --noEmit` - TypeScript compiles without errors
+3. `npm run lint` - No linting errors
+4. `npm run build` - Build succeeds without errors
+5. Verify no breaking changes to existing functionality
+6. run `/simplify`
