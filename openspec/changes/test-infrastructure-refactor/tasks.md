@@ -84,7 +84,7 @@
 
 ## 11. Final Verification (Phase 2)
 
-- [ ] 11.1 Run full `npm test` — all 587 tests pass, 0 skipped
-- [ ] 11.2 Run `npm run lint` — exactly 4 warnings (schema `no-unused-vars` only), 0 errors
-- [ ] 11.3 Run `npx tsc --noEmit` — 0 errors
-- [ ] 11.4 Run `npm run build` — succeeds
+- [x] 11.1 Run full `npm test` — all 587 tests pass, 0 skipped
+- [x] 11.2 Run `npm run lint` — exactly 4 warnings (schema `no-unused-vars` only), 0 errors
+- [x] 11.3 Run `npx tsc --noEmit` — 0 errors
+- [x] 11.4 Run `npm run build` — succeeds
