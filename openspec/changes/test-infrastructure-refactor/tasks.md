@@ -41,8 +41,50 @@
 - [x] [P] 6.2 Migrate lib tests (2 files: `player.test.ts`, `auth-hook.test.ts`): adopted `createPlayer()` and `createProfile()` fixture factories
 - [x] 6.3 Run `npm test`, `npm run lint`, `npm run build` — verify all frontend tests pass
 
-## 7. Final Verification
+## 7. Final Verification (Phase 1)
 
 - [x] 7.1 Run full `npm test` — 61 suites, 587 tests, 0 skipped (up from 58 suites, 551 tests, 36 skipped)
 - [x] 7.2 Run `npm run lint` and `npm run build` — build passes, lint has 89 pre-existing errors only
 - [x] 7.3 Verify no remaining `as any` casts in mock definitions that are now covered by factories — remaining `as any` are intentional (error-path tests, API error codes)
+
+## 8. Source File Quick Fixes + FilterQuery Upgrade (Infrastructure/Application/Presentation layers)
+
+- [x] [P] 8.1 Upgrade `src/infrastructure/db/repositories/base.repository.mongo.ts`: import `FilterQuery` from `mongoose`, replace `Record<string, any>` → `FilterQuery<M>` on `find`, `findOne`, `update`, `delete` params; fix `data as any` on line 94
+- [x] [P] 8.2 Fix `src/applications/repositories/record.repository.interface.ts`: `{ [key: string]: any }` → `Record<string, unknown>` in `findMatchesWithPagination` filter param
+- [x] [P] 8.3 Fix `src/infrastructure/db/repositories/record.repository.mongo.ts:19`: `{ [key: string]: any }` → `Record<string, unknown>` to match interface
+- [x] [P] 8.4 Fix `src/lib/data/mongodb.ts:27`: `let` → `const` (never reassigned)
+- [x] [P] 8.5 Bug fix `src/components/ui/calendar.tsx:213`: add missing `onNextClick={onNextClick}` to `<Nav>` props
+- [x] [P] 8.6 Fix `src/components/ui/use-toast.ts:18`: prefix unused `actionTypes` → `_actionTypes`
+- [x] [P] 8.7 Fix `src/lib/features/record/record-slice.ts:212`: `substitution` → `_substitution` (intentional omit pattern)
+- [x] [P] 8.8 Fix `src/components/layout/nav/links.tsx`: unused `session` → `_session`
+- [x] [P] 8.9 Fix `src/lib/hooks/usePullToRefresh.ts:26`: `() => {} | void` → `() => void`
+- [x] [P] 8.10 Fix `src/components/record/panel/moves/oppo.tsx`: ternary unused expression → `if/else`
+- [ ] 8.11 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+
+## 9. Delete Unused Code + `set-state-in-effect` Fixes (Presentation layer)
+
+- [ ] [P] 9.1 Delete unused `src/components/ui/drawer.tsx` and `src/lib/hooks/useMediaQuery.ts`, remove any barrel re-exports
+- [ ] [P] 9.2 Create `src/lib/hooks/useHydrated.ts` using `useSyncExternalStore` (server returns `false`, client returns `true`)
+- [ ] [P] 9.3 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/ui/flip-words.tsx` (both components)
+- [ ] [P] 9.4 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/features/index.tsx`
+- [ ] [P] 9.5 Replace `mounted` state + `useEffect` → `useHydrated()` in `src/components/landing/footer/dark-mode.tsx`
+- [ ] 9.6 Fix `src/components/landing/cta-button.tsx`: refactor `useEffect` that reads `window.navigator` — move platform detection to `useSyncExternalStore` or lazy `useState` initializer
+- [ ] 9.7 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+
+## 10. Test File Fixes (Test layer)
+
+- [ ] [P] 10.1 Fix `src/lib/api/__tests__/wrappers.test.ts`: remove unused `AuthenticationError` import, fix `as jest.Mock` → `as unknown as jest.Mock`, add `return undefined as never` after `schema.parse()`
+- [ ] [P] 10.2 Fix component test mock `any` types (~10 files): replace `(props: any)` with typed props in `jest.mock` callbacks — `cta-button.test.tsx`, `header.test.tsx`, `features.test.tsx`, `server-error-state.test.tsx`, `cta-section.test.tsx`, `highlights.test.tsx`, `alert-dialog-error-state.test.tsx`, `invitation-list-error-state.test.tsx`, `team-info-error-state.test.tsx`, `hero.test.tsx`
+- [ ] [P] 10.3 Fix `src/components/custom/__tests__/person-item.test.tsx` and `team-item.test.tsx`: replace `container.querySelector()` with `screen` queries (testing-library/no-node-access + no-container)
+- [ ] [P] 10.4 Fix `src/infrastructure/db/repositories/__tests__/record.repository.test.ts`: `(stage: any)` → `(stage: Record<string, unknown>)`
+- [ ] [P] 10.5 Fix `src/applications/usecases/record/__tests__/record-errors.test.ts`: `{} as any` → use fixture factories or `as unknown as T`
+- [ ] [P] 10.6 Fix `src/components/landing/__tests__/highlights.test.tsx`: convert `require("motion/react")` to import
+- [ ] [P] 10.7 Fix `src/__tests__/helpers/fixtures.ts`: remove unused import if applicable
+- [ ] 10.8 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — verify all pass
+
+## 11. Final Verification (Phase 2)
+
+- [ ] 11.1 Run full `npm test` — all 587 tests pass, 0 skipped
+- [ ] 11.2 Run `npm run lint` — exactly 4 warnings (schema `no-unused-vars` only), 0 errors
+- [ ] 11.3 Run `npx tsc --noEmit` — 0 errors
+- [ ] 11.4 Run `npm run build` — succeeds

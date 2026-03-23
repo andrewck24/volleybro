@@ -22,7 +22,7 @@ The test suite uses a single `jsdom` environment for all 61 test files, forcing 
 
 ## Impact
 
-- Affected code:
+- Affected code (test infrastructure refactor — completed):
   - `jest.config.ts` — rewritten to use `projects` array
   - `jest.setup.ts` — split into `jest.setup.backend.ts` + `jest.setup.frontend.ts` (original removed)
   - `src/__tests__/helpers/mock-repositories.ts` — new file (mock factories)
@@ -32,3 +32,20 @@ The test suite uses a single `jsdom` environment for all 61 test files, forcing 
   - `src/interface/controllers/**/*.test.ts` — adopt mock factories (retain behavior verification)
   - `src/infrastructure/db/repositories/tests/**/*.test.ts` — adopt mock factories
   - All 61 test files may need minor adjustments for environment-specific setup imports
+- Affected code (lint & TypeScript error fixes — Phase 2):
+  - `src/infrastructure/db/repositories/base.repository.mongo.ts` — `Record<string, any>` → `FilterQuery<M>` from Mongoose
+  - `src/applications/repositories/record.repository.interface.ts` — `{ [key: string]: any }` → `Record<string, unknown>`
+  - `src/infrastructure/db/repositories/record.repository.mongo.ts` — matching interface type fix
+  - `src/lib/data/mongodb.ts` — `let` → `const`
+  - `src/components/ui/calendar.tsx` — bug fix: missing `onNextClick` prop forwarding
+  - `src/components/ui/use-toast.ts`, `src/lib/features/record/record-slice.ts`, `src/components/layout/nav/links.tsx` — unused variable fixes
+  - `src/lib/hooks/usePullToRefresh.ts` — empty interface type fix
+  - `src/components/record/panel/moves/oppo.tsx` — unused expression fix
+  - `src/components/ui/drawer.tsx`, `src/lib/hooks/useMediaQuery.ts` — deleted (unused code)
+  - `src/lib/hooks/useHydrated.ts` — new file (`useSyncExternalStore` hydration hook)
+  - `src/components/ui/flip-words.tsx`, `src/components/landing/features/index.tsx`, `src/components/landing/footer/dark-mode.tsx`, `src/components/landing/cta-button.tsx` — replace `set-state-in-effect` pattern with `useHydrated()`
+  - `src/lib/api/__tests__/wrappers.test.ts` — fix 2 TS errors + unused import
+  - ~10 component test files — `(props: any)` → typed props in mock callbacks
+  - `src/components/custom/__tests__/person-item.test.tsx`, `team-item.test.tsx` — replace `container.querySelector()` with `screen` queries
+  - `src/infrastructure/db/repositories/__tests__/record.repository.test.ts` — `(stage: any)` → typed
+  - `src/applications/usecases/record/__tests__/record-errors.test.ts` — `{} as any` → fixture factories
