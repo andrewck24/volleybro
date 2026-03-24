@@ -108,11 +108,9 @@ function createDefaultSet(): Set {
     entries: [
       {
         type: EntryType.RALLY,
-        data: {
-          win: true,
-          home: { score: 1, type: MoveType.ATTACK, num: 1 },
-          away: { score: 0, type: MoveType.RECEPTION, num: 1 },
-        },
+        win: true,
+        home: { score: 1, type: MoveType.ATTACK, num: 1 },
+        away: { score: 0, type: MoveType.RECEPTION, num: 1 },
       },
     ],
   };

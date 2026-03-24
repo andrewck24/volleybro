@@ -176,22 +176,40 @@ export type Timeout = {
 
 export type Challenge = {
   team: Side;
-  type: string;
+  challengeType: string;
   success: boolean;
 };
 
 export enum EntryType {
-  RALLY,
-  SUBSTITUTION,
-  TIMEOUT,
-  CHALLENGE,
+  RALLY = "Rally",
+  SUBSTITUTION = "Substitution",
+  TIMEOUT = "Timeout",
+  CHALLENGE = "Challenge",
 }
 
-export type Entry =
-  | { type: EntryType.RALLY; data: Rally }
-  | { type: EntryType.SUBSTITUTION; data: Substitution }
-  | { type: EntryType.TIMEOUT; data: Timeout }
-  | { type: EntryType.CHALLENGE; data: Challenge };
+export type RallyEntry = { type: EntryType.RALLY } & Rally;
+export type SubstitutionEntry = { type: EntryType.SUBSTITUTION } & Substitution;
+export type TimeoutEntry = { type: EntryType.TIMEOUT } & Timeout;
+export type ChallengeEntry = { type: EntryType.CHALLENGE } & Challenge;
+
+export type Entry = RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
+
+export const createRallyEntry = (rally: Rally): RallyEntry => ({
+  type: EntryType.RALLY,
+  ...rally,
+});
+export const createSubstitutionEntry = (sub: Substitution): SubstitutionEntry => ({
+  type: EntryType.SUBSTITUTION,
+  ...sub,
+});
+export const createTimeoutEntry = (timeout: Timeout): TimeoutEntry => ({
+  type: EntryType.TIMEOUT,
+  ...timeout,
+});
+export const createChallengeEntry = (challenge: Challenge): ChallengeEntry => ({
+  type: EntryType.CHALLENGE,
+  ...challenge,
+});
 
 export type Set = {
   win: boolean;

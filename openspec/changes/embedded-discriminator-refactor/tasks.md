@@ -1,8 +1,8 @@
 ## 1. Domain Layer — Entity type changes
 
-- [ ] 1.1 Convert EntryType to semantic string enum and rename Challenge.type to Challenge.challengeType (domain layer: `src/entities/record.ts`)
-- [ ] 1.2 Flatten entry structure and remove `data` wrapper — define `RallyEntry`, `SubstitutionEntry`, `TimeoutEntry`, `ChallengeEntry` variant types, and add entry construction helpers (domain layer: `src/entities/record.ts`)
-- [ ] 1.3 Update entity-layer tests and test fixtures for flat entry structure and string enum (`src/__tests__/helpers/fixtures.ts`)
+- [x] 1.1 Convert EntryType to semantic string enum and rename Challenge.type to Challenge.challengeType (domain layer: `src/entities/record.ts`)
+- [x] 1.2 Flatten entry structure and remove `data` wrapper — define `RallyEntry`, `SubstitutionEntry`, `TimeoutEntry`, `ChallengeEntry` variant types, and add entry construction helpers (domain layer: `src/entities/record.ts`)
+- [x] 1.3 Update entity-layer tests and test fixtures for flat entry structure and string enum (`src/__tests__/helpers/fixtures.ts`)
 
 ## 2. Infrastructure Layer — Mongoose schema and repository
 

@@ -64,14 +64,14 @@ export enum EntryType {
 
 // After
 export enum EntryType {
-  Rally = "Rally",
-  Substitution = "Substitution",
-  Timeout = "Timeout",
-  Challenge = "Challenge",
+  RALLY = "Rally",
+  SUBSTITUTION = "Substitution",
+  TIMEOUT = "Timeout",
+  CHALLENGE = "Challenge",
 }
 ```
 
-**Why:** Mongoose `discriminator(name, schema)` stores `name` as the `type` field value — it's inherently string-based. Numeric discriminator names are undocumented and fragile. PascalCase semantic string values align with Mongoose discriminator conventions and are readable in database queries.
+**Why:** Mongoose `discriminator(name, schema)` stores `name` as the `type` field value — it's inherently string-based. Numeric discriminator names are undocumented and fragile. String values (`"Rally"` etc.) align with Mongoose discriminator conventions and are readable in database queries. Keys use SCREAMING_SNAKE_CASE per TypeScript enum convention.
 
 **Alternative rejected:** Keep numeric enum and register discriminators as `"0"`, `"1"` — fragile, unreadable, undocumented behavior.
 
