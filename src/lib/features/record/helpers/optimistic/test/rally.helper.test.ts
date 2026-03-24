@@ -172,7 +172,7 @@ describe("rally.helper.ts", () => {
 
       expect(result.record.sets[0].entries[1]).toEqual({
         type: EntryType.RALLY,
-        data: mockRally,
+        ...mockRally,
       });
     });
 
@@ -247,7 +247,7 @@ describe("rally.helper.ts", () => {
 
       expect(result.record.sets[0].entries[0]).toEqual({
         type: EntryType.RALLY,
-        data: newRally,
+        ...newRally,
       });
     });
 

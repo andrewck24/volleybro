@@ -28,4 +28,4 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — all must pass with zero errors
+- [x] 6.1 Run `npm test`, `npx tsc --noEmit`, `npm run lint`, `npm run build` — all must pass with zero errors

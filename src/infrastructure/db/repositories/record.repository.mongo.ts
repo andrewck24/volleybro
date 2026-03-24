@@ -4,7 +4,7 @@ import {
   RecordDocument,
 } from "@/infrastructure/db/mongoose/schemas/record";
 import { Record as RecordEntity, MatchResult, EntryType } from "@/entities/record";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 import mongoose from "mongoose";
 
 export class RecordRepositoryImpl

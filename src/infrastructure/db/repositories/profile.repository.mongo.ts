@@ -4,7 +4,7 @@ import {
   Profile as ProfileModel,
   type ProfileDocument,
 } from "@/infrastructure/db/mongoose/schemas/profile";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 
 export class ProfileRepositoryImpl
   extends BaseMongoRepository<Profile, ProfileDocument>
