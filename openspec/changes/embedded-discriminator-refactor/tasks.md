@@ -12,8 +12,8 @@
 
 ## 3. Application Layer — Use cases
 
-- [ ] [P] 3.1 Update record use cases for flat entry construction — rally, substitution, timeout, challenge use cases (`src/applications/usecases/record/`)
-- [ ] [P] 3.2 Update use case tests for flat entry structure (`src/applications/usecases/record/__tests__/`)
+- [x] [P] 3.1 Update record use cases for flat entry construction — rally, substitution, timeout, challenge use cases (`src/applications/usecases/record/`)
+- [x] [P] 3.2 Update use case tests for flat entry structure (`src/applications/usecases/record/__tests__/`)
 
 ## 4. Presentation Layer — Redux, helpers, components
 
