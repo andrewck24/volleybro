@@ -24,7 +24,7 @@
 
 ## 5. Migration Script
 
-- [ ] 5.1 Write migration script in change directory — numeric-to-string type conversion, flatten `data` fields, rename challenge `type` to `challengeType` (`openspec/changes/embedded-discriminator-refactor/migrate.ts`)
+- [x] 5.1 Write migration script in change directory — numeric-to-string type conversion, flatten `data` fields, rename challenge `type` to `challengeType` (`openspec/changes/embedded-discriminator-refactor/migrate.ts`)
 
 ## 6. Verification
 
