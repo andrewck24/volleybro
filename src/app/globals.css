@@ -108,7 +108,7 @@
     @apply box-border overscroll-x-none border-border outline-ring/50;
   }
   body {
-    @apply h-lvh w-screen max-w-full overscroll-y-contain bg-accent text-foreground transition-colors select-none;
+    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-accent text-foreground transition-colors select-none;
   }
 }
 
@@ -168,8 +168,8 @@
   animation: 300ms slide-from-left;
 }
 
-/* Hide scrollbar on mobile devices */
-@media (max-width: 768px) and (display-mode: standalone) {
+/* Hide scrollbar on touch devices in PWA mode */
+@media (pointer: coarse) and (display-mode: standalone) {
   /* Webkit browsers (iOS Safari, Chrome) */
   ::-webkit-scrollbar {
     display: none;
