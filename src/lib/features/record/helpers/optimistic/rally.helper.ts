@@ -2,7 +2,7 @@ import {
   getServingStatus,
   matchPhaseHelper,
 } from "@/lib/features/record/helpers";
-import { type Record, type Rally, EntryType } from "@/entities/record";
+import { type Record, type Rally, EntryType, createRallyEntry } from "@/entities/record";
 
 export const createRallyHelper = (
   params: { recordId: string; setIndex: number; entryIndex: number },
@@ -18,10 +18,7 @@ export const createRallyHelper = (
   if (recording.win && !isServing)
     record.teams.home.stats[setIndex].rotation += 1;
 
-  record.sets[setIndex].entries[entryIndex] = {
-    type: EntryType.RALLY,
-    data: recording,
-  };
+  record.sets[setIndex].entries[entryIndex] = createRallyEntry(recording);
 
   const phase = processMatchPhase(record, setIndex, entryIndex, recording);
 
@@ -39,15 +36,12 @@ export const updateRallyHelper = (
   if (originalEntry.type !== EntryType.RALLY) {
     throw new Error("Entry is not a rally");
   }
-  const originalRally = originalEntry.data as Rally;
+  const { type: _type, ...originalRally } = originalEntry;
 
   discardOriginalStats(record, setIndex, originalRally);
   updateStats(record, setIndex, recording);
 
-  record.sets[setIndex].entries[entryIndex] = {
-    type: EntryType.RALLY,
-    data: recording,
-  };
+  record.sets[setIndex].entries[entryIndex] = createRallyEntry(recording);
 
   // 若有更新 rally 之得分結果，則重新計算 rotation
   if (originalRally.win !== recording.win) updateRotation(record, setIndex);
@@ -115,9 +109,8 @@ const updateRotation = (record: Record, setIndex: number) => {
   let isServing = set.options.serve === "home";
   for (const entry of set.entries) {
     if (entry.type !== EntryType.RALLY) continue;
-    const rally = entry.data as Rally;
-    if (rally.win && !isServing) rotation += 1;
-    isServing = rally.win;
+    if (entry.win && !isServing) rotation += 1;
+    isServing = entry.win;
   }
   record.teams.home.stats[setIndex].rotation = rotation;
 };

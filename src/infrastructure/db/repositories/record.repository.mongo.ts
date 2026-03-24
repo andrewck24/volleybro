@@ -4,7 +4,7 @@ import {
   RecordDocument,
 } from "@/infrastructure/db/mongoose/schemas/record";
 import { Record as RecordEntity, MatchResult, EntryType } from "@/entities/record";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 import mongoose from "mongoose";
 
 export class RecordRepositoryImpl
@@ -100,14 +100,14 @@ export class RecordRepositoryImpl
               $map: {
                 input: "$setLastRallies",
                 as: "lastRally",
-                in: "$$lastRally.data.home.score",
+                in: "$$lastRally.home.score",
               },
             },
             "teams.away.scores": {
               $map: {
                 input: "$setLastRallies",
                 as: "lastRally",
-                in: "$$lastRally.data.away.score",
+                in: "$$lastRally.away.score",
               },
             },
             "teams.home.sets": {

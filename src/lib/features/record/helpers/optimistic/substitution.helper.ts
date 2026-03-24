@@ -2,8 +2,8 @@ import {
   type Record,
   type Substitution,
   Side,
-  EntryType,
   PlayerStatsClass,
+  createSubstitutionEntry,
 } from "@/entities/record";
 
 export const createSubstitutionHelper = (
@@ -65,10 +65,7 @@ export const createSubstitutionHelper = (
   }
 
   record.teams[side].stats[setIndex].substitution++;
-  record.sets[setIndex].entries[entryIndex] = {
-    type: EntryType.SUBSTITUTION,
-    data: substitution,
-  };
+  record.sets[setIndex].entries[entryIndex] = createSubstitutionEntry(substitution);
 
   return record;
 };

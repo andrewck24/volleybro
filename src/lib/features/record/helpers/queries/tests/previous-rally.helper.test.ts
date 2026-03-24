@@ -33,10 +33,10 @@ describe("getPreviousRally", () => {
   };
 
   const mockEntries: Entry[] = [
-    { type: EntryType.RALLY, data: mockRally1 },
-    { type: EntryType.SUBSTITUTION, data: mockSubstitution },
-    { type: EntryType.TIMEOUT, data: mockTimeout },
-    { type: EntryType.RALLY, data: mockRally2 },
+    { type: EntryType.RALLY, ...mockRally1 },
+    { type: EntryType.SUBSTITUTION, ...mockSubstitution },
+    { type: EntryType.TIMEOUT, ...mockTimeout },
+    { type: EntryType.RALLY, ...mockRally2 },
   ];
 
   beforeEach(() => jest.clearAllMocks());
@@ -52,8 +52,8 @@ describe("getPreviousRally", () => {
   it("should return null when there's no RALLY entry before the specified entryIndex", () => {
     // Create test data with only substitution and timeout
     const noRallyEntries: Entry[] = [
-      { type: EntryType.SUBSTITUTION, data: mockSubstitution },
-      { type: EntryType.TIMEOUT, data: mockTimeout },
+      { type: EntryType.SUBSTITUTION, ...mockSubstitution },
+      { type: EntryType.TIMEOUT, ...mockTimeout },
     ];
 
     const result = getPreviousRally(noRallyEntries, 2);
@@ -63,12 +63,12 @@ describe("getPreviousRally", () => {
   it("should return the most recent RALLY before the specified entryIndex", () => {
     // Before index 3, the most recent RALLY is mockRally1 at index 0
     const result = getPreviousRally(mockEntries, 3);
-    expect(result).toEqual(mockRally1);
+    expect(result).toEqual({ type: EntryType.RALLY, ...mockRally1 });
   });
 
   it("should return the previous RALLY when there are multiple non-RALLY entries", () => {
     // Before index 3, there are two non-RALLY entries, then one RALLY
     const result = getPreviousRally(mockEntries, 4);
-    expect(result).toEqual(mockRally2);
+    expect(result).toEqual({ type: EntryType.RALLY, ...mockRally2 });
   });
 });

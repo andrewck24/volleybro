@@ -276,22 +276,18 @@ const challengeSchema = new Schema({
     type: Number,
     enum: Object.values(Side).filter((v) => typeof v === "number"),
   },
-  type: { type: String },
+  challengeType: { type: String },
   success: { type: Boolean },
 });
 
 interface EntryDocument extends Document {
   type: EntryType;
-  data: object;
 }
 
-const entrySchema = new Schema<EntryDocument>({
-  type: {
-    type: Number,
-    enum: Object.values(EntryType).filter((v) => typeof v === "number"),
-  },
-  data: { type: Schema.Types.Mixed },
-});
+const entrySchema = new Schema<EntryDocument>(
+  { type: { type: String, required: true, enum: Object.values(EntryType) } },
+  { discriminatorKey: "type", _id: false },
+);
 
 interface SetDocument extends Document {
   win: boolean;
@@ -322,8 +318,16 @@ const setSchema = new Schema<SetDocument>({
       end: { type: String },
     },
   },
-  entries: [{ type: entrySchema }],
+  entries: [entrySchema],
 });
+
+const entriesPath = setSchema.path(
+  "entries",
+) as Schema.Types.DocumentArray;
+entriesPath.discriminator(EntryType.RALLY, rallySchema);
+entriesPath.discriminator(EntryType.SUBSTITUTION, substitutionSchema);
+entriesPath.discriminator(EntryType.TIMEOUT, timeoutSchema);
+entriesPath.discriminator(EntryType.CHALLENGE, challengeSchema);
 
 export interface RecordDocument extends Document {
   win: boolean;

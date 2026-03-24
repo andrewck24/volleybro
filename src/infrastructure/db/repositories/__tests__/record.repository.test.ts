@@ -331,8 +331,10 @@ describe("RecordRepositoryImpl", () => {
             options: { serve: "home" },
             entries: [
               {
-                type: EntryType.RALLY, // Rally type
-                data: { win: true, home: { score: 25 }, away: { score: 20 } },
+                type: EntryType.RALLY,
+                win: true,
+                home: { score: 25 },
+                away: { score: 20 },
               },
             ],
           },
@@ -343,7 +345,9 @@ describe("RecordRepositoryImpl", () => {
             entries: [
               {
                 type: EntryType.RALLY,
-                data: { win: false, home: { score: 22 }, away: { score: 25 } },
+                win: false,
+                home: { score: 22 },
+                away: { score: 25 },
               },
             ],
           },
@@ -354,7 +358,9 @@ describe("RecordRepositoryImpl", () => {
             entries: [
               {
                 type: EntryType.RALLY,
-                data: { win: true, home: { score: 25 }, away: { score: 18 } },
+                win: true,
+                home: { score: 25 },
+                away: { score: 18 },
               },
             ],
           },
