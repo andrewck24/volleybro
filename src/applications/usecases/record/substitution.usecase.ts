@@ -117,7 +117,7 @@ export class CreateSubstitutionUseCase {
     const startingPlayer = lineup.starting.find(
       (p) => p._id.toString() === substitution.players.in
     );
-    if (!!startingPlayer.sub?.entryIndex?.in !== undefined) {
+    if (startingPlayer.sub?.entryIndex?.in !== undefined) {
       const player = record.teams[side].players.find(
         (p) => p._id.toString() === substitution.players.in
       );
