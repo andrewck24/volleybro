@@ -115,8 +115,8 @@ Components are organized by domain and purpose (features):
 **IMPORTANT**: Commit after each completed task section during `apply`. Before every commit, ensure the following steps pass:
 
 1. `npm test` - All tests must pass
-2. `npm run lint` - No linting errors
-3. `npm run build` - Build succeeds without errors
-4. Check for TypeScript errors in IDE
+2. `npx tsc --noEmit` - TypeScript compiles without errors
+3. `npm run lint` - No linting errors
+4. `npm run build` - Build succeeds without errors
 5. Verify no breaking changes to existing functionality
 6. run `/simplify`

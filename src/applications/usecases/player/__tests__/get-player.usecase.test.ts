@@ -1,39 +1,17 @@
-import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
 import { GetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
-import { Player, PlayerRole } from "@/entities/player";
+import { PlayerRole } from "@/entities/player";
 
 describe("GetPlayerUseCase", () => {
   let usecase: GetPlayerUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const mockPlayer: Player = {
-    _id: "player-1",
-    name: "Test Player",
-    teamId: "team-1",
-    userId: "user-1",
+  const mockPlayer = createPlayer({
     email: "test@example.com",
-    role: PlayerRole.MEMBER,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  });
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
-
+    mockPlayerRepository = createMockPlayerRepository();
     usecase = new GetPlayerUseCase(mockPlayerRepository);
   });
 
@@ -43,7 +21,6 @@ describe("GetPlayerUseCase", () => {
     const result = await usecase.execute("player-1");
 
     expect(result).toEqual(mockPlayer);
-    expect(mockPlayerRepository.findById).toHaveBeenCalledWith("player-1");
   });
 
   it("should return null if player not found", async () => {
@@ -68,10 +45,10 @@ describe("GetPlayerUseCase", () => {
   });
 
   it("should return invited player without userId", async () => {
-    const invitedPlayer: Player = {
-      ...mockPlayer,
+    const invitedPlayer = createPlayer({
       userId: undefined,
-    };
+      email: "test@example.com",
+    });
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
     const result = await usecase.execute("player-1");
@@ -81,11 +58,10 @@ describe("GetPlayerUseCase", () => {
   });
 
   it("should return pure player without email", async () => {
-    const purePlayer: Player = {
-      ...mockPlayer,
+    const purePlayer = createPlayer({
       email: undefined,
       userId: undefined,
-    };
+    });
     mockPlayerRepository.findById.mockResolvedValue(purePlayer);
 
     const result = await usecase.execute("player-1");

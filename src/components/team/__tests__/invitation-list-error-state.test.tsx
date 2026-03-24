@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InvitationList } from "@/components/team/invitation-list";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
+import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
+import type { AppErrorCode } from "@/entities/errors/app-error";
 
 // Mock useToast
 const mockToast = jest.fn();
@@ -22,26 +24,21 @@ function createApiError(
   detail: string
 ) {
   return new ApiClientError(detail, {
-    code: code as any,
+    code: code as AppErrorCode,
     reason,
     detail,
     status,
   });
 }
 
-const pendingInvitation = {
-  _id: "player-1",
+const pendingInvitation = createPlayer({
   name: "Team A",
   number: 0,
-  position: "",
+  position: undefined,
   status: PlayerStatus.INVITED,
-  teamId: "team-1",
-  role: PlayerRole.MEMBER,
   email: "user@example.com",
   userId: undefined,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 describe("InvitationList — inline error feedback on accept failure", () => {
   beforeEach(() => {

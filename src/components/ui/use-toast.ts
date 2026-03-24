@@ -15,13 +15,6 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement;
 };
 
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const;
-
 let count = 0;
 
 function genId() {
@@ -29,23 +22,21 @@ function genId() {
   return count.toString();
 }
 
-type ActionType = typeof actionTypes;
-
 type Action =
   | {
-      type: ActionType["ADD_TOAST"];
+      type: "ADD_TOAST";
       toast: ToasterToast;
     }
   | {
-      type: ActionType["UPDATE_TOAST"];
+      type: "UPDATE_TOAST";
       toast: Partial<ToasterToast>;
     }
   | {
-      type: ActionType["DISMISS_TOAST"];
+      type: "DISMISS_TOAST";
       toastId?: ToasterToast["id"];
     }
   | {
-      type: ActionType["REMOVE_TOAST"];
+      type: "REMOVE_TOAST";
       toastId?: ToasterToast["id"];
     };
 
@@ -83,7 +74,7 @@ export const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
+          t.id === action.toast.id ? { ...t, ...action.toast } : t,
         ),
       };
 
@@ -108,7 +99,7 @@ export const reducer = (state: State, action: Action): State => {
                 ...t,
                 open: false,
               }
-            : t
+            : t,
         ),
       };
     }
@@ -188,4 +179,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+export { toast, useToast };

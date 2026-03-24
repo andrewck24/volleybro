@@ -209,7 +209,7 @@ const setRecordingSubstitution: CaseReducer<
 
 const resetRecordingSubstitution: CaseReducer<ReduxRecordState> = (state) => {
   const { mode } = state;
-  const { substitution, ...rest } = state[mode].recording;
+  const { substitution: _substitution, ...rest } = state[mode].recording;
   state[mode].recording = { ...rest };
   state[mode].status.panel = "home";
 };

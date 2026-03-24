@@ -15,7 +15,7 @@ import {
 import { ActionButton } from "@/components/layout/nav/action-button";
 import { useActiveTeamId } from "@/hooks/use-data";
 
-export const NavLinks = ({ session }) => {
+export const NavLinks = ({ session: _session }) => {
   const pathname = usePathname();
   const defaultTeamId = useActiveTeamId();
 

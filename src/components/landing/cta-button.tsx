@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -34,22 +35,20 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
-  const [platform, setPlatform] = useState<Platform>("mobile");
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [platform] = useState<Platform>(() =>
+    typeof window !== "undefined" ? checkPlatform() : "mobile",
+  );
+  const [isStandalone] = useState<boolean>(() =>
+    typeof window !== "undefined"
+      ? "standalone" in window.navigator &&
+        (window.navigator as NavigatorStandalone).standalone === true
+      : false,
+  );
+  const mounted = useHydrated();
 
   useEffect(() => {
-    const currentPlatform = checkPlatform();
-    setPlatform(currentPlatform);
-
-    // 檢查是否已經安裝為 PWA
-    const isInStandalone =
-      "standalone" in window.navigator &&
-      (window.navigator as NavigatorStandalone).standalone === true;
-    setIsStandalone(isInStandalone);
-
     // 非 Apple 平台使用 beforeinstallprompt
-    if (currentPlatform === "mobile") {
+    if (platform === "mobile") {
       const handleBeforeInstallPrompt = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -57,7 +56,6 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
       };
 
       window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      setMounted(true);
 
       return () => {
         window.removeEventListener(
@@ -66,9 +64,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
         );
       };
     }
-
-    setMounted(true);
-  }, []);
+  }, [platform]);
 
   const handleInstallClick = async () => {
     if (platform === "mobile" && deferredPrompt) {

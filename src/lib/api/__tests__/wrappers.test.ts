@@ -1,12 +1,11 @@
-import { z } from "zod";
 import {
-  AuthenticationError,
   ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/entities/errors/app-error";
 import { AuthReason } from "@/entities/errors/reasons/auth";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
+import { z } from "zod";
 
 // Mock next/server to avoid Request/Response polyfill issues in jsdom
 jest.mock("next/server", () => ({
@@ -34,7 +33,7 @@ jest.mock("next/headers", () => ({
 }));
 
 import { auth } from "@/lib/auth";
-const mockGetSession = auth.api.getSession as jest.Mock;
+const mockGetSession = auth.api.getSession as unknown as jest.Mock;
 
 // Minimal request stub — wrappers only need url and method for logging
 const makeRequest = () =>
@@ -42,7 +41,9 @@ const makeRequest = () =>
 
 // Helper to call handler and get response shape
 async function call(
-  handler: (req: never) => Promise<{ status: number; json: () => Promise<unknown> }>,
+  handler: (
+    req: never,
+  ) => Promise<{ status: number; json: () => Promise<unknown> }>,
 ) {
   const res = await handler(makeRequest());
   const body = await res.json();
@@ -120,10 +121,16 @@ describe("withErrorHandler", () => {
       const schema = z.object({ email: z.string().email() });
       const handler = withErrorHandler(async () => {
         schema.parse({ email: "not-an-email" });
+        return undefined as never;
       });
 
       const { status, body } = await call(handler as never);
-      const b = body as { code: string; reason: string; detail: string; details: unknown[] };
+      const b = body as {
+        code: string;
+        reason: string;
+        detail: string;
+        details: unknown[];
+      };
 
       expect(status).toBe(400);
       expect(b.code).toBe("VALIDATION");
@@ -153,7 +160,10 @@ describe("withErrorHandler", () => {
 
   describe("success passthrough", () => {
     it("returns handler response unchanged on success", async () => {
-      const mockResponse = { status: 200, json: async () => ({ id: "team-1" }) };
+      const mockResponse = {
+        status: 200,
+        json: async () => ({ id: "team-1" }),
+      };
       const handler = withErrorHandler(async () => mockResponse as never);
 
       const { status, body } = await call(handler as never);
@@ -179,7 +189,10 @@ describe("withErrorHandler structured logging", () => {
 
   it("emits warn-level JSON log via console.error for AppError", async () => {
     const handler = withErrorHandler(async () => {
-      throw new NotFoundError("PLAYER_NOT_FOUND", "The specified player does not exist");
+      throw new NotFoundError(
+        "PLAYER_NOT_FOUND",
+        "The specified player does not exist",
+      );
     });
 
     await handler(makeRequest() as never);

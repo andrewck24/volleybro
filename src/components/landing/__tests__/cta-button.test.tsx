@@ -2,10 +2,23 @@ import { CTAButton } from "@/components/landing/cta-button";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
+import type { ReactNode, MouseEventHandler } from "react";
 
 // Mock UI components
 jest.mock("@/components/ui/button", () => ({
-  Button: ({ children, onClick, className, variant, ...props }: any) => (
+  Button: ({
+    children,
+    onClick,
+    className,
+    variant,
+    ...props
+  }: {
+    children?: ReactNode;
+    onClick?: MouseEventHandler<HTMLButtonElement>;
+    className?: string;
+    variant?: string;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="button"
       onClick={onClick}
@@ -16,7 +29,17 @@ jest.mock("@/components/ui/button", () => ({
       {children}
     </button>
   ),
-  Link: ({ children, href, className, variant }: any) => (
+  Link: ({
+    children,
+    href,
+    className,
+    variant,
+  }: {
+    children?: ReactNode;
+    href?: string;
+    className?: string;
+    variant?: string;
+  }) => (
     <a
       data-testid="link"
       href={href}
@@ -29,26 +52,28 @@ jest.mock("@/components/ui/button", () => ({
 }));
 
 jest.mock("@/components/ui/dialog", () => ({
-  Dialog: ({ children }: any) => <div data-testid="dialog">{children}</div>,
-  DialogTrigger: ({ children }: any) => (
+  Dialog: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="dialog">{children}</div>
+  ),
+  DialogTrigger: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-trigger">{children}</div>
   ),
-  DialogContent: ({ children }: any) => (
+  DialogContent: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-content">{children}</div>
   ),
-  DialogHeader: ({ children }: any) => (
+  DialogHeader: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-header">{children}</div>
   ),
-  DialogTitle: ({ children }: any) => (
+  DialogTitle: ({ children }: { children?: ReactNode }) => (
     <h2 data-testid="dialog-title">{children}</h2>
   ),
-  DialogDescription: ({ children }: any) => (
+  DialogDescription: ({ children }: { children?: ReactNode }) => (
     <p data-testid="dialog-description">{children}</p>
   ),
-  DialogFooter: ({ children }: any) => (
+  DialogFooter: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-footer">{children}</div>
   ),
-  DialogClose: ({ children }: any) => (
+  DialogClose: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-close">{children}</div>
   ),
 }));
@@ -62,7 +87,11 @@ jest.mock("react-icons/ri", () => ({
 }));
 
 describe("CTAButton Component", () => {
-  let mockBeforeInstallPrompt: any;
+  let mockBeforeInstallPrompt: {
+    preventDefault: jest.Mock;
+    prompt: jest.Mock;
+    userChoice: Promise<{ outcome: string }>;
+  };
 
   beforeEach(() => {
     // Reset navigator.userAgent mock

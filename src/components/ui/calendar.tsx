@@ -210,6 +210,7 @@ const Calendar = ({
             startMonth={startMonth}
             endMonth={endMonth}
             onPrevClick={onPrevClick}
+            onNextClick={onNextClick}
           />
         ),
         CaptionLabel: (props) => (

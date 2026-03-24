@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { globalActions } from "@/lib/features/global-slice";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useEffect, useRef } from "react";
 
 /**
  * A custom hook that implements pull-to-refresh functionality for touch devices.
@@ -23,10 +23,10 @@ import { globalActions } from "@/lib/features/global-slice";
  * 2. A 300ms delay is applied
  * 3. The refreshing state is reset
  */
-export const usePullToRefresh = (refresh: () => {} | void) => {
+export const usePullToRefresh = (refresh: () => void) => {
   const dispatch = useAppDispatch();
   const { isRefreshing, isPulling, isDisabled } = useAppSelector(
-    (state) => state.global.refresh
+    (state) => state.global.refresh,
   );
   const touchStartY = useRef(0);
   const scrollStartY = useRef(0);
@@ -84,7 +84,7 @@ export const usePullToRefresh = (refresh: () => {} | void) => {
 
 export const useRefreshState = () => {
   const { isRefreshing, isPulling } = useAppSelector(
-    (state) => state.global.refresh
+    (state) => state.global.refresh,
   );
   return { isRefreshing, isPulling };
 };

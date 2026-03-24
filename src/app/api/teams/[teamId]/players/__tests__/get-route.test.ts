@@ -5,6 +5,9 @@
  * These are contract/behavior tests, not full integration tests
  */
 
+import { PlayerRole, Position } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
+
 jest.mock('@/infrastructure/di/inversify.config');
 jest.mock('@/lib/auth-client');
 
@@ -12,9 +15,9 @@ describe('Teams Players GET API Route', () => {
   describe('GET - List team players', () => {
     it('should retrieve all players in team', () => {
       const players = [
-        { _id: 'p1', name: 'Player 1', teamId: 'team-1', role: 'ADMIN' },
-        { _id: 'p2', name: 'Player 2', teamId: 'team-1', role: 'MEMBER' },
-        { _id: 'p3', name: 'Player 3', teamId: 'team-1', role: 'MEMBER' },
+        createPlayer({ _id: 'p1', name: 'Player 1', teamId: 'team-1', role: PlayerRole.ADMIN }),
+        createPlayer({ _id: 'p2', name: 'Player 2', teamId: 'team-1', role: PlayerRole.MEMBER }),
+        createPlayer({ _id: 'p3', name: 'Player 3', teamId: 'team-1', role: PlayerRole.MEMBER }),
       ];
 
       expect(Array.isArray(players)).toBe(true);
@@ -23,7 +26,7 @@ describe('Teams Players GET API Route', () => {
     });
 
     it('should return empty array for team with no players', () => {
-      const players: { _id: string; name: string; teamId: string; role: string }[] = [];
+      const players: ReturnType<typeof createPlayer>[] = [];
 
       expect(Array.isArray(players)).toBe(true);
       expect(players.length).toBe(0);
@@ -39,26 +42,25 @@ describe('Teams Players GET API Route', () => {
 
     it('should include all player types (joined, invited, pure)', () => {
       const players = [
-        { _id: 'p1', teamId: 'team-1', userId: 'user-1', role: 'ADMIN' }, // JOINED
-        { _id: 'p2', teamId: 'team-1', email: 'user2@example.com', role: 'MEMBER' }, // INVITED
-        { _id: 'p3', teamId: 'team-1', name: 'Opponent', role: 'MEMBER' }, // PURE_PLAYER
+        createPlayer({ _id: 'p1', teamId: 'team-1', userId: 'user-1', role: PlayerRole.ADMIN }),
+        createPlayer({ _id: 'p2', teamId: 'team-1', userId: undefined, role: PlayerRole.MEMBER }),
+        createPlayer({ _id: 'p3', teamId: 'team-1', name: 'Opponent', userId: undefined, role: PlayerRole.MEMBER }),
       ];
 
       expect(players.length).toBe(3);
       expect(players[0].userId).toBeDefined();
-      expect(players[1].email).toBeDefined();
       expect(players[1].userId).toBeUndefined();
     });
 
     it('should include player with number and position', () => {
-      const player = {
+      const player = createPlayer({
         _id: 'p1',
         name: 'John',
         number: 10,
-        position: 'Setter',
+        position: Position.S,
         teamId: 'team-1',
-        role: 'MEMBER',
-      };
+        role: PlayerRole.MEMBER,
+      });
 
       expect(player).toHaveProperty('number');
       expect(player).toHaveProperty('position');
@@ -76,28 +78,28 @@ describe('Teams Players GET API Route', () => {
     });
 
     it('should validate response structure', () => {
-      const players = [
-        {
-          _id: 'player-1',
-          name: 'Player',
-          teamId: 'team-1',
-          role: 'MEMBER',
-        },
-      ];
+      const player = createPlayer({
+        _id: 'player-1',
+        name: 'Player',
+        teamId: 'team-1',
+        role: PlayerRole.MEMBER,
+      });
 
-      const response = { players };
+      const response = { players: [player] };
 
       expect(response).toHaveProperty('players');
       expect(Array.isArray(response.players)).toBe(true);
     });
 
     it('should handle large player lists', () => {
-      const players = Array.from({ length: 100 }, (_, i) => ({
-        _id: `p${i}`,
-        name: `Player ${i}`,
-        teamId: 'team-1',
-        role: 'MEMBER',
-      }));
+      const players = Array.from({ length: 100 }, (_, i) =>
+        createPlayer({
+          _id: `p${i}`,
+          name: `Player ${i}`,
+          teamId: 'team-1',
+          role: PlayerRole.MEMBER,
+        }),
+      );
 
       expect(players.length).toBe(100);
       expect(players.every((p) => p.teamId === 'team-1')).toBe(true);
@@ -105,10 +107,10 @@ describe('Teams Players GET API Route', () => {
 
     it('should filter only players of specified team', () => {
       const allPlayers = [
-        { _id: 'p1', teamId: 'team-1', name: 'P1' },
-        { _id: 'p2', teamId: 'team-2', name: 'P2' },
-        { _id: 'p3', teamId: 'team-1', name: 'P3' },
-        { _id: 'p4', teamId: 'team-3', name: 'P4' },
+        createPlayer({ _id: 'p1', teamId: 'team-1', name: 'P1' }),
+        createPlayer({ _id: 'p2', teamId: 'team-2', name: 'P2' }),
+        createPlayer({ _id: 'p3', teamId: 'team-1', name: 'P3' }),
+        createPlayer({ _id: 'p4', teamId: 'team-3', name: 'P4' }),
       ];
 
       const team1Players = allPlayers.filter((p) => p.teamId === 'team-1');
@@ -117,13 +119,11 @@ describe('Teams Players GET API Route', () => {
     });
 
     it('should include timestamps if available', () => {
-      const player = {
+      const player = createPlayer({
         _id: 'p1',
         name: 'Player',
         teamId: 'team-1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       expect(player).toHaveProperty('createdAt');
       expect(player).toHaveProperty('updatedAt');

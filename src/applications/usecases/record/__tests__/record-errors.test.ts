@@ -1,40 +1,35 @@
-import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
-import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
-import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import {
+  createMockAuthenticationService,
+  createMockAuthorizationService,
+  createMockRecordRepository,
+  createRecord,
+  createUser,
+} from "@/__tests__/helpers";
+import {
+  CreateRallyUseCase,
+  UpdateRallyUseCase,
+} from "@/applications/usecases/record/rally.usecase";
+import { FindRecordUseCase } from "@/applications/usecases/record/record.usecase";
+import {
+  CreateSetUseCase,
+  UpdateSetUseCase,
+} from "@/applications/usecases/record/set.usecase";
+import { CreateSubstitutionUseCase } from "@/applications/usecases/record/substitution.usecase";
 import { NotFoundError } from "@/entities/errors/app-error";
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import { CreateRallyUseCase } from "../rally.usecase";
-import { UpdateRallyUseCase } from "../rally.usecase";
-import { FindRecordUseCase } from "../record.usecase";
-import { CreateSetUseCase } from "../set.usecase";
-import { UpdateSetUseCase } from "../set.usecase";
-import { CreateSubstitutionUseCase } from "../substitution.usecase";
+import { Rally, Set, Substitution } from "@/entities/record";
+import { Lineup } from "@/entities/team";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 
-const mockRecord = {
-  _id: "record-1",
-  team_id: "team-1",
-  sets: [{ entries: [], lineups: { home: {} } }],
-};
-
-const mockAuthService = {
-  verifySession: jest.fn().mockResolvedValue({ _id: "user-1" }),
-} as any;
-
-const mockAuthzService = {
-  verifyTeamRole: jest.fn().mockResolvedValue(undefined),
-} as any;
-
-let mockRecordRepository: jest.Mocked<IRecordRepository>;
+let mockRecordRepository: ReturnType<typeof createMockRecordRepository>;
+let mockAuthService: ReturnType<typeof createMockAuthenticationService>;
+let mockAuthzService: ReturnType<typeof createMockAuthorizationService>;
 
 beforeEach(() => {
-  mockRecordRepository = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    find: jest.fn(),
-    findById: jest.fn(),
-  } as any;
+  mockRecordRepository = createMockRecordRepository();
+  mockAuthService = createMockAuthenticationService();
+  mockAuthzService = createMockAuthorizationService();
+  mockAuthService.verifySession.mockResolvedValue(createUser());
+  mockAuthzService.verifyTeamRole.mockResolvedValue(undefined);
 });
 
 describe("CreateRallyUseCase", () => {
@@ -49,14 +44,14 @@ describe("CreateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("throws NotFoundError when set not found", async () => {
     mockRecordRepository.findOne.mockResolvedValue({
-      ...mockRecord,
+      ...createRecord(),
       sets: [],
     });
     const useCase = new CreateRallyUseCase(
@@ -68,7 +63,7 @@ describe("CreateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -86,14 +81,14 @@ describe("UpdateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("throws NotFoundError when set not found", async () => {
     mockRecordRepository.findOne.mockResolvedValue({
-      ...mockRecord,
+      ...createRecord(),
       sets: [],
     });
     const useCase = new UpdateRallyUseCase(
@@ -105,7 +100,7 @@ describe("UpdateRallyUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -138,7 +133,7 @@ describe("CreateSetUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0 },
-        data: { lineup: {} as any, options: {} as any },
+        data: { lineup: {} as unknown as Lineup, options: {} as unknown as Set["options"] },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -156,7 +151,7 @@ describe("UpdateSetUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0 },
-        data: { options: {} as any },
+        data: { options: {} as unknown as Set["options"] },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -174,7 +169,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { recordId: "record-1", setIndex: 0, entryIndex: 0 },
-        data: {} as any,
+        data: {} as unknown as Substitution,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

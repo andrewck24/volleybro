@@ -1,15 +1,24 @@
 import { CTASection } from "@/components/landing/cta-section";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import type { ReactNode } from "react";
 
 // Mock dependencies
 jest.mock("@/components/landing/cta-button", () => ({
-  CTAButton: ({ children, className, size, ...props }: any) => (
+  CTAButton: ({
+    children,
+    className,
+    size,
+  }: {
+    children?: ReactNode;
+    className?: string;
+    size?: string;
+    [key: string]: unknown;
+  }) => (
     <button
       data-testid="cta-section-button"
       className={className}
       data-size={size}
-      {...props}
     >
       {children || "立即開始使用"}
     </button>

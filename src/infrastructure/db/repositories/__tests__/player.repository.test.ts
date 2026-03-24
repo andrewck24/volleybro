@@ -1,6 +1,7 @@
-import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
+import { createPlayer } from "@/__tests__/helpers";
 
 // Mock the PlayerModel
 jest.mock("@/infrastructure/db/mongoose/schemas/player", () => ({
@@ -18,15 +19,7 @@ jest.mock("@/infrastructure/db/mongoose/schemas/player", () => ({
 
 describe("PlayerRepository", () => {
   let repository: PlayerRepositoryImpl;
-  const mockPlayer: Player = {
-    _id: "player-1",
-    name: "Test Player",
-    status: PlayerStatus.NONE,
-    teamId: "team-1",
-    role: PlayerRole.MEMBER,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  const mockPlayer = createPlayer({ status: PlayerStatus.NONE });
 
   beforeEach(() => {
     repository = new PlayerRepositoryImpl();

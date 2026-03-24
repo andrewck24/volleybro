@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MembershipSection } from "@/components/team/players/membership-section";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
+import type { AppErrorCode } from "@/entities/errors/app-error";
 
 // Mock apiClient
 const mockApiClient = jest.fn();
@@ -39,7 +40,15 @@ jest.mock("@/lib/api/error-toast", () => ({
 
 // Mock RoleSelect
 jest.mock("@/components/team/role-select", () => ({
-  RoleSelect: ({ value, onChange, disabled }: any) => (
+  RoleSelect: ({
+    value,
+    onChange,
+    disabled,
+  }: {
+    value?: string;
+    onChange: (value: string) => void;
+    disabled?: boolean;
+  }) => (
     <select
       data-testid="role-select"
       value={value}
@@ -58,22 +67,13 @@ function createApiError(
   reason: string,
   detail: string
 ) {
-  return new ApiClientError(detail, { code: code as any, reason, detail, status });
+  return new ApiClientError(detail, { code: code as AppErrorCode, reason, detail, status });
 }
 
-const joinedPlayer = {
-  _id: "player-1",
-  name: "Test Player",
+const joinedPlayer = createPlayer({
   number: 7,
-  position: "OH",
-  status: PlayerStatus.JOINED,
-  teamId: "team-1",
-  role: PlayerRole.MEMBER,
   email: "test@example.com",
-  userId: "user-1",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {

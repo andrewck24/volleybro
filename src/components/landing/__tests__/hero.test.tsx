@@ -1,18 +1,30 @@
 import { Hero } from "@/components/landing/hero";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import type { ReactNode } from "react";
 
 // Mock dependencies
 jest.mock("@/components/landing/cta-button", () => ({
-  CTAButton: ({ className, size, ...props }: any) => (
-    <button data-testid="cta-button" className={className} {...props}>
+  CTAButton: ({
+    className,
+  }: {
+    className?: string;
+    [key: string]: unknown;
+  }) => (
+    <button data-testid="cta-button" className={className}>
       開始使用
     </button>
   ),
 }));
 
 jest.mock("@/components/ui/badge", () => ({
-  Badge: ({ children, className }: any) => (
+  Badge: ({
+    children,
+    className,
+  }: {
+    children?: ReactNode;
+    className?: string;
+  }) => (
     <div data-testid="badge" className={className}>
       {children}
     </div>
@@ -20,7 +32,13 @@ jest.mock("@/components/ui/badge", () => ({
 }));
 
 jest.mock("@/components/ui/flip-words", () => ({
-  FlipWords: ({ words, className }: any) => (
+  FlipWords: ({
+    words,
+    className,
+  }: {
+    words: string[];
+    className?: string;
+  }) => (
     <span data-testid="flip-words" className={className}>
       {words[0]}
     </span>

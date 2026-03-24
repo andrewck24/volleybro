@@ -12,7 +12,7 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
-  withErrorHandler(async (req) => {
+  withErrorHandler(async (_req) => {
     const { teamId } = await props.params;
     await connectToMongoDB();
 

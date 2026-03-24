@@ -3,15 +3,22 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 
 // Mock CTA Button
 jest.mock("@/components/landing/cta-button", () => ({
-  CTAButton: ({ className, ...props }: any) => (
-    <button className={className} {...props}>
+  CTAButton: ({
+    className,
+    "data-testid": dataTestId,
+  }: {
+    className?: string;
+    "data-testid"?: string;
+    [key: string]: unknown;
+  }) => (
+    <button className={className} data-testid={dataTestId}>
       開始使用
     </button>
   ),
 }));
 
 describe("Header Component", () => {
-  let mockScrollEventListeners: ((event?: any) => void)[] = [];
+  let mockScrollEventListeners: (() => void)[] = [];
 
   beforeEach(() => {
     // Reset scroll listeners array
@@ -31,21 +38,27 @@ describe("Header Component", () => {
     });
 
     // Mock addEventListener to capture scroll listeners
-    window.addEventListener = jest.fn((event: string, listener: any) => {
-      if (event === "scroll") {
-        mockScrollEventListeners.push(listener);
-      }
-    });
+    window.addEventListener = jest.fn(
+      (event: string, listener: EventListenerOrEventListenerObject) => {
+        if (event === "scroll") {
+          mockScrollEventListeners.push(listener as () => void);
+        }
+      },
+    );
 
     // Mock removeEventListener
-    window.removeEventListener = jest.fn((event: string, listener: any) => {
-      if (event === "scroll") {
-        const index = mockScrollEventListeners.indexOf(listener);
-        if (index > -1) {
-          mockScrollEventListeners.splice(index, 1);
+    window.removeEventListener = jest.fn(
+      (event: string, listener: EventListenerOrEventListenerObject) => {
+        if (event === "scroll") {
+          const index = mockScrollEventListeners.indexOf(
+            listener as () => void,
+          );
+          if (index > -1) {
+            mockScrollEventListeners.splice(index, 1);
+          }
         }
-      }
-    });
+      },
+    );
 
     jest.clearAllMocks();
   });
