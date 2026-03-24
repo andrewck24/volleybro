@@ -1,3 +1,13 @@
+## [0.11.1](https://github.com/andrewck24/volleybro/compare/v0.11.0...v0.11.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* **lint:** resolve all lint and TypeScript errors (Phase 2) ([21dc89f](https://github.com/andrewck24/volleybro/commit/21dc89f41faf9f65b3a0ab0da5e7d54bbd03b2bd))
+* **record:** address PR review — fix substitution condition bug and improve migration script ([ca5074e](https://github.com/andrewck24/volleybro/commit/ca5074e4445124853d9efc8d518cbb0207b96604))
+* **record:** remove BaseMongoRepository from barrel index and fix circular imports ([4229dc9](https://github.com/andrewck24/volleybro/commit/4229dc9ea9430479d5ba142f994981c217ea8fac))
+* **test:** resolve type errors in create-player and search-user usecase tests ([219dff6](https://github.com/andrewck24/volleybro/commit/219dff6f52d04fc67908e363118b1816d484fb07))
+
 # [0.11.0](https://github.com/andrewck24/volleybro/compare/v0.10.0...v0.11.0) (2026-03-21)
 
 
