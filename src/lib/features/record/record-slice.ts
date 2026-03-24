@@ -1,12 +1,8 @@
 import {
   EntryType,
-  Rally,
   Side,
-  type Challenge,
   type RallyDetail,
   type Record,
-  type Substitution,
-  type Timeout,
 } from "@/entities/record";
 import {
   getPreviousScores,
@@ -209,7 +205,7 @@ const setRecordingSubstitution: CaseReducer<
 
 const resetRecordingSubstitution: CaseReducer<ReduxRecordState> = (state) => {
   const { mode } = state;
-  const { substitution, ...rest } = state[mode].recording;
+  const { substitution: _substitution, ...rest } = state[mode].recording;
   state[mode].recording = { ...rest };
   state[mode].status.panel = "home";
 };
@@ -271,30 +267,25 @@ const setEditingEntryStatus: CaseReducer<
 
   state.mode = "editing";
   state.editing.recording = {
-    win: entry.type === EntryType.RALLY ? (entry.data as Rally).win : null,
+    win: entry.type === EntryType.RALLY ? entry.win : null,
     home:
       entry.type === EntryType.RALLY
-        ? (entry.data as Rally).home
+        ? entry.home
         : entry.type === EntryType.SUBSTITUTION
           ? {
               ...rallyDetailState,
-              player: {
-                _id: (entry.data as Substitution).players.out,
-                zone: 0,
-              },
+              player: { _id: entry.players.out, zone: 0 },
             }
           : rallyDetailState,
     away:
-      entry.type === EntryType.RALLY
-        ? (entry.data as Rally).away
-        : rallyDetailState,
+      entry.type === EntryType.RALLY ? entry.away : rallyDetailState,
     ...(entry.type === EntryType.SUBSTITUTION
-      ? { substitution: entry.data as Substitution }
+      ? { substitution: entry }
       : entry.type === EntryType.TIMEOUT
-        ? { timeout: entry.data as Timeout }
+        ? { timeout: entry }
         : entry.type === EntryType.CHALLENGE
-          ? { challenge: entry.data as Challenge }
-          : entry.data),
+          ? { challenge: entry }
+          : {}),
   };
   state.editing.status = {
     ...state.editing.status,

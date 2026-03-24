@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TeamInfo from "@/components/team/info/index";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
+import type { AppErrorCode } from "@/entities/errors/app-error";
 
 // Mock apiClient
 const mockApiClient = jest.fn();
@@ -31,19 +32,10 @@ jest.mock("@/lib/api/error-toast", () => ({
 
 // Mock use-data hooks
 const currentUser = { _id: "user-1", name: "Current User" };
-const currentPlayer = {
-  _id: "player-1",
+const currentPlayer = createPlayer({
   name: "Current User",
-  number: 1,
-  position: "S",
-  status: PlayerStatus.JOINED,
-  teamId: "team-1",
-  role: PlayerRole.MEMBER,
   email: "user@example.com",
-  userId: "user-1",
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+});
 
 const mockMutate = jest.fn();
 jest.mock("@/hooks/use-data", () => ({
@@ -76,7 +68,7 @@ function createApiError(
   detail: string
 ) {
   return new ApiClientError(detail, {
-    code: code as any,
+    code: code as AppErrorCode,
     reason,
     detail,
     status,

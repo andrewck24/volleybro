@@ -1,4 +1,5 @@
 "use client";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import * as m from "motion/react-m";
@@ -15,11 +16,11 @@ export const FlipWords = ({
 }) => {
   const [currentWord, setCurrentWord] = useState(words[0] || "");
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   const startAnimation = useCallback(() => {
     if (words.length === 0) return;
-    
+
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
@@ -27,8 +28,6 @@ export const FlipWords = ({
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted || words.length === 0) return;
@@ -126,11 +125,11 @@ export const FlipLetters = ({
 }) => {
   const [currentWord, setCurrentWord] = useState(words[0] || "");
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   const startAnimation = useCallback(() => {
     if (words.length === 0) return;
-    
+
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
@@ -138,8 +137,6 @@ export const FlipLetters = ({
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted || words.length === 0) return;

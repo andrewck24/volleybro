@@ -1,4 +1,4 @@
-import { type Record, EntryType, Rally } from "@/entities/record";
+import { type Record, EntryType } from "@/entities/record";
 import { type LineupPlayer } from "@/entities/team";
 import { useRecord } from "@/hooks/use-data";
 import type { ReduxStatus } from "@/lib/features/record/types";
@@ -92,7 +92,7 @@ const getEditingModeLineup = (
     (acc, entry) => {
       if (
         entry.type === EntryType.RALLY &&
-        (entry.data as Rally)?.win !== acc.isServing
+        entry.win !== acc.isServing
       ) {
         return {
           isServing: !acc.isServing,

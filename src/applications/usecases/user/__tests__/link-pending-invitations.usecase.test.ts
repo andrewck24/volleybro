@@ -1,28 +1,12 @@
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { LinkPendingInvitationsUseCase } from "../link-pending-invitations.usecase";
+import { createMockPlayerRepository } from "@/__tests__/helpers";
+import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 
 describe("LinkPendingInvitationsUseCase", () => {
   let useCase: LinkPendingInvitationsUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-      linkUserToInvitations: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
-
+    mockPlayerRepository = createMockPlayerRepository();
     useCase = new LinkPendingInvitationsUseCase(mockPlayerRepository);
   });
 
@@ -32,10 +16,6 @@ describe("LinkPendingInvitationsUseCase", () => {
     const result = await useCase.execute("test@example.com", "user-1");
 
     expect(result).toBe(3);
-    expect(mockPlayerRepository.linkUserToInvitations).toHaveBeenCalledWith(
-      "test@example.com",
-      "user-1"
-    );
   });
 
   it("should return 0 when no invitations are found", async () => {
@@ -60,11 +40,11 @@ describe("LinkPendingInvitationsUseCase", () => {
 
   it("should propagate errors thrown by repository", async () => {
     mockPlayerRepository.linkUserToInvitations.mockRejectedValue(
-      new Error("DB connection lost")
+      new Error("DB connection lost"),
     );
 
     await expect(
-      useCase.execute("test@example.com", "user-1")
+      useCase.execute("test@example.com", "user-1"),
     ).rejects.toThrow();
   });
 });

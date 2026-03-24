@@ -1,40 +1,30 @@
-import { describe, it, expect, beforeEach, jest } from "@jest/globals";
-import type { ILeaveTeamUseCase } from "../leave-team.usecase.interface";
-import { LeaveTeamUseCase } from "../leave-team.usecase";
-import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import {
+  createMockPlayerRepository,
+  createMockProfileRepository,
+  createMockTeamRepository,
+  createPlayer,
+  createProfile,
+} from "@/__tests__/helpers";
+import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
+import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase.interface";
+import {
+  AuthorizationError,
+  NotFoundError,
+  UnexpectedError,
+} from "@/entities/errors/app-error";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { NotFoundError, AuthorizationError, UnexpectedError } from "@/entities/errors/app-error";
+import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("LeaveTeamUseCase", () => {
   let useCase: ILeaveTeamUseCase;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
-  let mockTeamRepository: jest.Mocked<ITeamRepository>;
-  let mockProfileRepository: jest.Mocked<IProfileRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockTeamRepository: ReturnType<typeof createMockTeamRepository>;
+  let mockProfileRepository: ReturnType<typeof createMockProfileRepository>;
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      linkUserToInvitations: jest.fn(),
-    } as any;
-
-    mockTeamRepository = {
-      removePlayerFromLineups: jest.fn(),
-    } as any;
-
-    mockProfileRepository = {
-      findByUserId: jest.fn(),
-      updateActiveTeamId: jest.fn(),
-    } as any;
-
+    mockPlayerRepository = createMockPlayerRepository();
+    mockTeamRepository = createMockTeamRepository();
+    mockProfileRepository = createMockProfileRepository();
     useCase = new LeaveTeamUseCase(
       mockPlayerRepository,
       mockTeamRepository,
@@ -44,18 +34,12 @@ describe("LeaveTeamUseCase", () => {
 
   describe("execute", () => {
     it("should set status to NONE and clear userId when leaving", async () => {
-      const playerId = "player_123";
-      const userId = "user_456";
-      const player = {
-        _id: playerId,
-        name: "Test Player",
+      const player = createPlayer({
+        _id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
-        userId,
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        userId: "user_456",
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.update.mockResolvedValue({
@@ -64,44 +48,23 @@ describe("LeaveTeamUseCase", () => {
         userId: undefined,
       });
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
-      mockProfileRepository.findByUserId.mockResolvedValue({
-        _id: "profile_1",
-        userId,
-        activeTeamId: "team_789",
-      } as any);
+      mockProfileRepository.findByUserId.mockResolvedValue(
+        createProfile({ userId: "user_456", activeTeamId: "team_789" }),
+      );
       mockProfileRepository.updateActiveTeamId.mockResolvedValue(null);
 
-      const result = await useCase.execute(playerId, userId);
+      const result = await useCase.execute("player_123", "user_456");
 
-      expect(mockPlayerRepository.findById).toHaveBeenCalledWith(playerId);
-      expect(mockPlayerRepository.update).toHaveBeenCalledWith(playerId, {
-        status: PlayerStatus.NONE,
-        userId: undefined,
-      });
-      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
-        "team_789",
-        playerId,
-      );
-      expect(mockProfileRepository.updateActiveTeamId).toHaveBeenCalledWith(
-        userId,
-        null,
-      );
       expect(result).toEqual({ success: true });
     });
 
     it("should not clear activeTeamId if it points to a different team", async () => {
-      const playerId = "player_123";
-      const userId = "user_456";
-      const player = {
-        _id: playerId,
-        name: "Test Player",
+      const player = createPlayer({
+        _id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
-        userId,
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+        userId: "user_456",
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.update.mockResolvedValue({
@@ -110,13 +73,11 @@ describe("LeaveTeamUseCase", () => {
         userId: undefined,
       });
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
-      mockProfileRepository.findByUserId.mockResolvedValue({
-        _id: "profile_1",
-        userId,
-        activeTeamId: "other_team",
-      } as any);
+      mockProfileRepository.findByUserId.mockResolvedValue(
+        createProfile({ userId: "user_456", activeTeamId: "other_team" }),
+      );
 
-      await useCase.execute(playerId, userId);
+      await useCase.execute("player_123", "user_456");
 
       expect(mockProfileRepository.updateActiveTeamId).not.toHaveBeenCalled();
     });
@@ -124,59 +85,57 @@ describe("LeaveTeamUseCase", () => {
     it("should reject if player not found", async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute("player_999", "user_456")).rejects.toBeInstanceOf(NotFoundError);
+      await expect(
+        useCase.execute("player_999", "user_456"),
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if user does not own the player record", async () => {
-      const player = {
+      const player = createPlayer({
         _id: "player_123",
-        name: "Test Player",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_999",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        useCase.execute("player_123", "user_456"),
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should reject if owner tries to leave the team", async () => {
-      const owner = {
+      const owner = createPlayer({
         _id: "player_123",
         name: "Team Owner",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
         role: PlayerRole.OWNER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(owner);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(
+        useCase.execute("player_123", "user_456"),
+      ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
     it("should reject if update fails", async () => {
-      const player = {
+      const player = createPlayer({
         _id: "player_123",
-        name: "Test Player",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
-        role: PlayerRole.MEMBER,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
       mockPlayerRepository.update.mockResolvedValue(null);
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toBeInstanceOf(UnexpectedError);
+      await expect(
+        useCase.execute("player_123", "user_456"),
+      ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });
 });

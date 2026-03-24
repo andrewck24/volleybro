@@ -4,7 +4,7 @@ import {
   UserDocument,
 } from "@/infrastructure/db/mongoose/schemas/user";
 import { User } from "@/entities/user";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 
 export class UserRepositoryImpl
   extends BaseMongoRepository<User, UserDocument>

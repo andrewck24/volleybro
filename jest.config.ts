@@ -1,6 +1,7 @@
 /**
- * For a detailed explanation regarding each configuration property, visit:
- * https://jestjs.io/docs/configuration
+ * Jest configuration with two projects for environment isolation:
+ * - backend: node environment for entities, applications, infrastructure, interface, API routes
+ * - frontend: jsdom environment for components and lib
  */
 
 import type { Config } from "jest";
@@ -8,31 +9,57 @@ import nextJest from "next/jest";
 
 const createJestConfig = nextJest({ dir: "./" });
 
-const config: Config = {
-  collectCoverage: true,
-  coverageDirectory: "coverage",
-  coverageProvider: "v8",
-  testEnvironment: "jsdom",
-  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-  testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
-  testMatch: ["<rootDir>/src/**/*.{spec,test}.{js,jsx,ts,tsx}"],
-  collectCoverageFrom: [
-    "src/**/*.{ts,tsx}",
-    "!src/**/*.d.ts",
-    "!src/types/**/*",
-  ],
-  moduleNameMapper: { "^@/(.*)$": "<rootDir>/src/$1" },
-};
-
-// next/jest prepends its own transformIgnorePatterns that ignore all node_modules.
-// We must override AFTER createJestConfig resolves to allow inversify (ESM-only) to be transformed.
-const resolveConfig = createJestConfig(config);
-
+// next/jest resolves transform/moduleNameMapper; inject into each project for TS support
 export default async function jestConfig() {
-  const resolved = await resolveConfig();
-  resolved.transformIgnorePatterns = [
-    "/node_modules/(?!(inversify|@inversifyjs)/)",
-    "^.+\\.module\\.(css|sass|scss)$",
-  ];
-  return resolved;
+  const nextResolved = await createJestConfig({})();
+
+  const sharedConfig: Partial<Config> = {
+    transform: nextResolved.transform,
+    moduleNameMapper: {
+      ...nextResolved.moduleNameMapper,
+      "^@/(.*)$": "<rootDir>/src/$1",
+    },
+    transformIgnorePatterns: [
+      "/node_modules/(?!(inversify|@inversifyjs)/)",
+      "^.+\\.module\\.(css|sass|scss)$",
+    ],
+    testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+    collectCoverageFrom: [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
+      "!src/types/**/*",
+    ],
+  };
+
+  const backendProject: Config = {
+    ...sharedConfig,
+    displayName: "backend",
+    testEnvironment: "node",
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.backend.ts"],
+    testMatch: [
+      "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
+    ],
+  };
+
+  const frontendProject: Config = {
+    ...sharedConfig,
+    displayName: "frontend",
+    testEnvironment: "jsdom",
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.frontend.ts"],
+    testMatch: [
+      "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
+    ],
+  };
+
+  return {
+    collectCoverage: true,
+    coverageDirectory: "coverage",
+    coverageProvider: "v8",
+    projects: [backendProject, frontendProject],
+  } satisfies Config;
 }

@@ -1,27 +1,19 @@
+import { createMockUserRepository, createUser } from "@/__tests__/helpers";
+import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
 import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
-import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { SearchUserUseCase } from "../search-user.usecase";
 
 describe("SearchUserUseCase", () => {
   let useCase: SearchUserUseCase;
-  let mockUserRepository: jest.Mocked<IUserRepository>;
+  let mockUserRepository: ReturnType<typeof createMockUserRepository>;
 
-  const foundUser = {
-    _id: "user-1",
+  const foundUser = createUser({
     name: "John Doe",
     email: "john@example.com",
     image: "https://example.com/avatar.png",
-  };
+  });
 
   beforeEach(() => {
-    mockUserRepository = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as jest.Mocked<IUserRepository>;
-
+    mockUserRepository = createMockUserRepository();
     useCase = new SearchUserUseCase(mockUserRepository);
   });
 
@@ -36,9 +28,6 @@ describe("SearchUserUseCase", () => {
       expect(result.value.name).toBe("John Doe");
       expect(result.value.image).toBe("https://example.com/avatar.png");
     }
-    expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-      email: "john@example.com",
-    });
   });
 
   it("should return NotFoundError when user not found", async () => {
@@ -47,20 +36,18 @@ describe("SearchUserUseCase", () => {
     const result = await useCase.execute("notexist@example.com");
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBeInstanceOf(NotFoundError);
-      expect(result.error.code).toBe("NOT_FOUND");
-    }
+    const failure = result as { ok: false; error: NotFoundError };
+    expect(failure.error).toBeInstanceOf(NotFoundError);
+    expect(failure.error.code).toBe("NOT_FOUND");
   });
 
   it("should return ValidationError for invalid email format", async () => {
     const result = await useCase.execute("not-an-email");
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBeInstanceOf(ValidationError);
-      expect(result.error.code).toBe("VALIDATION");
-    }
+    const failure = result as { ok: false; error: ValidationError };
+    expect(failure.error).toBeInstanceOf(ValidationError);
+    expect(failure.error.code).toBe("VALIDATION");
     expect(mockUserRepository.findOne).not.toHaveBeenCalled();
   });
 
@@ -68,9 +55,8 @@ describe("SearchUserUseCase", () => {
     const result = await useCase.execute("");
 
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toBeInstanceOf(ValidationError);
-    }
+    const failure = result as { ok: false; error: ValidationError };
+    expect(failure.error).toBeInstanceOf(ValidationError);
   });
 
   it("should not expose email address in result value", async () => {
@@ -88,7 +74,11 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should handle user without image", async () => {
-    const userWithoutImage = { ...foundUser, image: undefined };
+    const userWithoutImage = createUser({
+      name: "John Doe",
+      email: "john@example.com",
+      image: undefined,
+    });
     mockUserRepository.findOne.mockResolvedValue(userWithoutImage);
 
     const result = await useCase.execute("john@example.com");

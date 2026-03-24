@@ -7,14 +7,12 @@ describe("getServingStatus", () => {
       entries: [
         {
           type: EntryType.RALLY,
-          data: {
-            win: true,
-            home: { score: 10, type: MoveType.SERVING, num: 1 },
-            away: { score: 8, type: MoveType.RECEPTION, num: 1 },
-          },
+          win: true,
+          home: { score: 10, type: MoveType.SERVING, num: 1 },
+          away: { score: 8, type: MoveType.RECEPTION, num: 1 },
         },
       ],
-    } as Set;
+    } as unknown as Set;
 
     const entryIndex = 1; // Look for rally before entryIndex
 
@@ -28,14 +26,12 @@ describe("getServingStatus", () => {
       entries: [
         {
           type: EntryType.RALLY,
-          data: {
-            win: false,
-            home: { score: 8, type: MoveType.RECEPTION, num: 1 },
-            away: { score: 10, type: MoveType.SERVING, num: 1 },
-          },
+          win: false,
+          home: { score: 8, type: MoveType.RECEPTION, num: 1 },
+          away: { score: 10, type: MoveType.SERVING, num: 1 },
         },
       ],
-    } as Set;
+    } as unknown as Set;
 
     const entryIndex = 1;
 
@@ -50,10 +46,10 @@ describe("getServingStatus", () => {
       entries: [
         {
           type: EntryType.TIMEOUT, // Non-RALLY type
-          data: {},
+          team: 0,
         },
       ],
-    } as Set;
+    } as unknown as Set;
 
     const entryIndex = 1;
 

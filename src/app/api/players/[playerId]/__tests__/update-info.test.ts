@@ -1,17 +1,19 @@
 import { describe, it, expect } from '@jest/globals';
+import { Position } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
 
 describe('PATCH /api/players/[playerId]/info - Update Player Info', () => {
   it('should update player name and number', async () => {
+    const updatedPlayer = createPlayer({
+      _id: 'player_123',
+      name: '新名字',
+      number: 10,
+      teamId: 'team_123',
+    });
+
     const response = {
       status: 200,
-      data: {
-        _id: 'player_123',
-        name: '新名字',
-        number: 10,
-        position: 'OH',
-        teamId: 'team_123',
-        updatedAt: new Date().toISOString(),
-      },
+      data: updatedPlayer,
     };
 
     expect(response.status).toBe(200);
@@ -20,19 +22,19 @@ describe('PATCH /api/players/[playerId]/info - Update Player Info', () => {
   });
 
   it('should update position only', async () => {
+    const updatedPlayer = createPlayer({
+      _id: 'player_123',
+      position: Position.MB,
+      teamId: 'team_123',
+    });
+
     const response = {
       status: 200,
-      data: {
-        _id: 'player_123',
-        name: 'Test Player',
-        position: 'MB',
-        teamId: 'team_123',
-        updatedAt: new Date().toISOString(),
-      },
+      data: updatedPlayer,
     };
 
     expect(response.status).toBe(200);
-    expect(response.data.position).toBe('MB');
+    expect(response.data.position).toBe(Position.MB);
   });
 
   it('should return 400 for empty update data', async () => {

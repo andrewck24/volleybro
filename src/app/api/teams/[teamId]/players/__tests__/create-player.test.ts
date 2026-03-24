@@ -1,53 +1,57 @@
 import { describe, it, expect } from '@jest/globals';
 import type { CreatePlayerInput } from '@/lib/validations/player';
-import { PlayerRole } from '@/entities/player';
+import { PlayerRole, Position } from '@/entities/player';
+import { createPlayer } from '@/__tests__/helpers';
 
 describe('POST /api/teams/[teamId]/players (Create Pure Player)', () => {
   it('should create a pure player without email', async () => {
     const input: CreatePlayerInput = {
       name: '陳球員',
       number: 5,
-      position: 'MB',
+      position: Position.MB,
+      role: PlayerRole.MEMBER,
     };
 
-    // Mock the API call
+    const player = createPlayer({
+      _id: 'player_new_001',
+      name: input.name,
+      number: input.number,
+      position: input.position,
+      teamId: 'team_123',
+      role: PlayerRole.MEMBER,
+    });
+
     const response = {
       status: 201,
-      data: {
-        _id: 'player_new_001',
-        name: input.name,
-        number: input.number,
-        position: input.position,
-        teamId: 'team_123',
-        role: PlayerRole.MEMBER,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: player,
     };
 
     expect(response.status).toBe(201);
     expect(response.data.role).toBe(PlayerRole.MEMBER);
-    expect(response.data.email).toBeUndefined();
+    expect((response.data as Record<string, unknown>).email).toBeUndefined();
   });
 
   it('should create an invited player with email', async () => {
     const input: CreatePlayerInput = {
       name: '王小明',
       number: 10,
-      position: 'OH',
+      position: Position.OH,
       email: 'wang@example.com',
       role: PlayerRole.ADMIN,
     };
 
+    const player = createPlayer({
+      _id: 'player_invited_001',
+      name: input.name,
+      number: input.number,
+      position: input.position,
+      role: input.role,
+      teamId: 'team_123',
+    });
+
     const response = {
       status: 201,
-      data: {
-        _id: 'player_invited_001',
-        ...input,
-        teamId: 'team_123',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      data: { ...player, email: input.email },
     };
 
     expect(response.status).toBe(201);

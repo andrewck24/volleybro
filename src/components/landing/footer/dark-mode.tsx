@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useTheme } from "next-themes";
 import {
   RiSunLine,
@@ -12,12 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 
 export const DarkMode = () => {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) {
     return (

@@ -61,7 +61,11 @@ export const OppoMoves = ({ recordId }: { recordId: string }) => {
       dispatch(recordActions.setRecordingAwayMove(move));
     } else {
       try {
-        mode === "general" ? create() : update();
+        if (mode === "general") {
+          create();
+        } else {
+          update();
+        }
       } catch (error) {
         showErrorToast(error, toast);
       }

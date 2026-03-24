@@ -10,8 +10,8 @@ import {
   type Entry,
   type Substitution,
   Side,
-  EntryType,
   PlayerStatsClass,
+  createSubstitutionEntry,
 } from "@/entities/record";
 import { type Lineup } from "@/entities/team";
 import { PlayerRole } from "@/entities/player";
@@ -117,7 +117,7 @@ export class CreateSubstitutionUseCase {
     const startingPlayer = lineup.starting.find(
       (p) => p._id.toString() === substitution.players.in
     );
-    if (!!startingPlayer.sub?.entryIndex?.in !== undefined) {
+    if (startingPlayer.sub?.entryIndex?.in !== undefined) {
       const player = record.teams[side].players.find(
         (p) => p._id.toString() === substitution.players.in
       );
@@ -125,9 +125,6 @@ export class CreateSubstitutionUseCase {
     }
 
     record.teams[side].stats[setIndex].substitution++;
-    record.sets[setIndex].entries[entryIndex] = {
-      type: EntryType.SUBSTITUTION,
-      data: substitution,
-    };
+    record.sets[setIndex].entries[entryIndex] = createSubstitutionEntry(substitution);
   }
 }

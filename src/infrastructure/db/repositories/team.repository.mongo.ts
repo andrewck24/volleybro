@@ -4,7 +4,7 @@ import {
   TeamDocument,
 } from "@/infrastructure/db/mongoose/schemas/team";
 import { Team } from "@/entities/team";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories";
+import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 import { Types } from "mongoose";
 
 export class TeamRepositoryImpl

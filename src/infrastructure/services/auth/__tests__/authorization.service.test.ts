@@ -1,58 +1,32 @@
-import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { Player, PlayerRole } from "@/entities/player";
+import { PlayerRole } from "@/entities/player";
 import { AuthorizationError } from "@/entities/errors/app-error";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
+import {
+  createMockPlayerRepository,
+  createPlayer,
+} from "@/__tests__/helpers";
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
-  let mockPlayerRepository: jest.Mocked<IPlayerRepository>;
+  let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const mockPlayer: Player = {
-    _id: "player-1",
-    name: "Test User",
-    teamId: "team-1",
-    userId: "user-1",
-    email: "test@example.com",
-    role: PlayerRole.ADMIN,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  const mockPlayer = createPlayer({ role: PlayerRole.ADMIN });
 
-  const mockOwner: Player = {
+  const mockOwner = createPlayer({
     _id: "player-2",
     name: "Owner",
-    teamId: "team-1",
     userId: "owner-user",
     role: PlayerRole.OWNER,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  });
 
   beforeEach(() => {
-    mockPlayerRepository = {
-      findById: jest.fn(),
-      findByTeamId: jest.fn(),
-      findByUserId: jest.fn(),
-      findByEmail: jest.fn(),
-      findInvitedByTeamIdAndEmail: jest.fn(),
-      findByTeamIdAndUserId: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      countByTeamId: jest.fn(),
-      findTeamOwner: jest.fn(),
-      findAdminsByTeamId: jest.fn(),
-      existsInvitation: jest.fn(),
-    } as jest.Mocked<IPlayerRepository>;
-
-    service = new AuthorizationService(
-      mockPlayerRepository,
-    );
+    mockPlayerRepository = createMockPlayerRepository();
+    service = new AuthorizationService(mockPlayerRepository);
   });
 
   describe("verifyTeamRole", () => {
     it("should allow MEMBER role when player has any role", async () => {
-      const member: Player = { ...mockPlayer, role: PlayerRole.MEMBER };
+      const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
       await service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER);
@@ -76,7 +50,7 @@ describe("AuthorizationService", () => {
     });
 
     it("should reject MEMBER role when player has no role (pure player)", async () => {
-      const purePlayer: Player = { ...mockPlayer, role: undefined };
+      const purePlayer = createPlayer({ role: undefined });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
 
       await expect(
@@ -105,7 +79,7 @@ describe("AuthorizationService", () => {
     });
 
     it("should reject ADMIN role for MEMBER", async () => {
-      const member: Player = { ...mockPlayer, role: PlayerRole.MEMBER };
+      const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
       await expect(
@@ -152,10 +126,7 @@ describe("AuthorizationService", () => {
     });
 
     it("should throw AuthorizationError if user is not admin", async () => {
-      const member: Player = {
-        ...mockPlayer,
-        role: PlayerRole.MEMBER,
-      };
+      const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
       await expect(
@@ -245,10 +216,7 @@ describe("AuthorizationService", () => {
     });
 
     it("should return null if player has no role", async () => {
-      const purePlayer: Player = {
-        ...mockPlayer,
-        role: undefined,
-      };
+      const purePlayer = createPlayer({ role: undefined });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
 
       const role = await service.getPlayerRole("team-1", "user-1");

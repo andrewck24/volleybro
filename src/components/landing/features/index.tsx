@@ -3,9 +3,10 @@ import { AnalyticsFeatures } from "@/components/landing/features/analytics";
 import { RecordingFeatures } from "@/components/landing/features/recording";
 import { TeamFeatures } from "@/components/landing/features/team";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 
 export const Features = () => {
   return (
@@ -103,7 +104,7 @@ export const FeatureDemoImage = ({
   alt,
 }: FeatureDemoImageProps) => {
   const { resolvedTheme: theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [imageLoaded, setImageLoaded] = useState(false);
 
   // Memoize theme-dependent values to avoid recalculation on every render
@@ -112,8 +113,6 @@ export const FeatureDemoImage = ({
     const imageSrc = `/landing/features/${feature}-demo-${number}-${isDark ? "dark" : "light"}.png`;
     return { isDark, imageSrc };
   }, [theme, feature, number]);
-
-  useEffect(() => setMounted(true), []);
 
   if (!mounted) {
     return (
