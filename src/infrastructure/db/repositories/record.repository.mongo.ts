@@ -100,14 +100,14 @@ export class RecordRepositoryImpl
               $map: {
                 input: "$setLastRallies",
                 as: "lastRally",
-                in: "$$lastRally.data.home.score",
+                in: "$$lastRally.home.score",
               },
             },
             "teams.away.scores": {
               $map: {
                 input: "$setLastRallies",
                 as: "lastRally",
-                in: "$$lastRally.data.away.score",
+                in: "$$lastRally.away.score",
               },
             },
             "teams.home.sets": {

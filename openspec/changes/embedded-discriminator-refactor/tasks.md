@@ -6,9 +6,9 @@
 
 ## 2. Infrastructure Layer — Mongoose schema and repository
 
-- [ ] 2.1 Implement discriminator wiring pattern — remove `data: Mixed`, register `rallySchema`, `substitutionSchema`, `timeoutSchema`, `challengeSchema` as embedded discriminators on `entries` DocumentArray (infra layer: `src/infrastructure/db/mongoose/schemas/record.ts`)
-- [ ] 2.2 Update `record.repository.mongo.ts` aggregation pipeline for flat entry structure and string `type` values (infra layer)
-- [ ] 2.3 Update repository tests for embedded discriminator validation and flat entries (`src/infrastructure/db/repositories/__tests__/record.repository.test.ts`)
+- [x] 2.1 Implement discriminator wiring pattern — remove `data: Mixed`, register `rallySchema`, `substitutionSchema`, `timeoutSchema`, `challengeSchema` as embedded discriminators on `entries` DocumentArray (infra layer: `src/infrastructure/db/mongoose/schemas/record.ts`)
+- [x] 2.2 Update `record.repository.mongo.ts` aggregation pipeline for flat entry structure and string `type` values (infra layer)
+- [x] 2.3 Update repository tests for embedded discriminator validation and flat entries (`src/infrastructure/db/repositories/__tests__/record.repository.test.ts`)
 
 ## 3. Application Layer — Use cases
 
