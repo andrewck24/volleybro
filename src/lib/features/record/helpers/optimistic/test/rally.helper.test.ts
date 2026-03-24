@@ -4,7 +4,7 @@ import {
 } from "@/lib/features/record/helpers";
 import { Position } from "@/entities/team";
 import { EntryType, MoveType as M } from "@/entities/record";
-import type { Rally, Record } from "@/entities/record";
+import type { Rally, RallyEntry, Record } from "@/entities/record";
 
 describe("rally.helper.ts", () => {
   const mockRally: Rally = {
@@ -62,7 +62,6 @@ describe("rally.helper.ts", () => {
         entries: [
           {
             type: EntryType.RALLY,
-            data: {
               win: true,
               home: {
                 score: 0,
@@ -75,7 +74,6 @@ describe("rally.helper.ts", () => {
                 type: M.RECEPTION,
                 num: 1,
                 player: { _id: "rival-1", zone: 1 },
-              },
             },
           },
         ],
@@ -200,7 +198,7 @@ describe("rally.helper.ts", () => {
       const mockRecord = createMockRecord();
 
       // add a lost rally before the winning rally for rotation
-      (mockRecord.sets[0].entries[0].data as Rally).win = false;
+      (mockRecord.sets[0].entries[0] as RallyEntry).win = false;
 
       const result = createRallyHelper(mockParams, mockRally, mockRecord);
 
@@ -329,7 +327,6 @@ describe("rally.helper.ts", () => {
       // Add a second rally so we can see rotation change
       mockRecord.sets[0].entries.push({
         type: EntryType.RALLY,
-        data: {
           win: true,
           home: {
             score: 2,
@@ -342,7 +339,6 @@ describe("rally.helper.ts", () => {
             type: M.DEFENSE,
             num: 1,
             player: { _id: "rival-1", zone: 1 },
-          },
         },
       });
 
@@ -618,10 +614,7 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 23 },
         };
 
-        mockRecord.sets[0].entries[0] = {
-          type: EntryType.RALLY,
-          data: winningRally,
-        };
+        mockRecord.sets[0].entries[0] = { type: EntryType.RALLY, ...winningRally };
         mockRecord.sets[0].win = true; // 已經標記為主隊勝
 
         // 修改這個記錄，改為客隊贏

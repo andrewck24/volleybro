@@ -6,7 +6,7 @@ describe("matchPhaseHelper", () => {
     const mockRecord = {
       sets: [{ entries: [] }],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 0);
 
@@ -17,7 +17,7 @@ describe("matchPhaseHelper", () => {
     const mockRecord = {
       sets: [],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 0);
 
@@ -31,17 +31,16 @@ describe("matchPhaseHelper", () => {
           entries: [
             {
               type: EntryType.RALLY,
-              data: {
                 win: true,
                 home: { score: 20, type: MoveType.SERVING, num: 1 },
                 away: { score: 18, type: MoveType.RECEPTION, num: 1 },
-              },
+
             },
           ],
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 1);
 
@@ -55,17 +54,16 @@ describe("matchPhaseHelper", () => {
           entries: [
             {
               type: EntryType.RALLY,
-              data: {
                 win: true,
                 home: { score: 24, type: MoveType.SERVING, num: 1 },
                 away: { score: 22, type: MoveType.RECEPTION, num: 1 },
-              },
+
             },
           ],
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 1);
 
@@ -79,17 +77,16 @@ describe("matchPhaseHelper", () => {
           entries: [
             {
               type: EntryType.RALLY,
-              data: {
                 win: true,
                 home: { score: 26, type: MoveType.SERVING, num: 1 },
                 away: { score: 25, type: MoveType.RECEPTION, num: 1 },
-              },
+
             },
           ],
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 1);
 
@@ -103,17 +100,16 @@ describe("matchPhaseHelper", () => {
           entries: [
             {
               type: EntryType.RALLY,
-              data: {
                 win: true,
                 home: { score: 25, type: MoveType.SERVING, num: 1 },
                 away: { score: 23, type: MoveType.RECEPTION, num: 1 },
-              },
+
             },
           ],
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 0, 1);
 
@@ -128,17 +124,16 @@ describe("matchPhaseHelper", () => {
           entries: [
             {
               type: EntryType.RALLY,
-              data: {
                 win: true,
                 home: { score: 14, type: MoveType.SERVING, num: 1 },
                 away: { score: 12, type: MoveType.RECEPTION, num: 1 },
-              },
+
             },
           ],
         },
       ],
       info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
-    } as Record;
+    } as unknown as Record;
 
     const result = matchPhaseHelper(mockRecord, 2, 1); // Last set (index 4)
 

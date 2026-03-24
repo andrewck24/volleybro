@@ -4,8 +4,6 @@ import {
   EntryType,
   type Player,
   type Entry as TEntry,
-  type Rally as TRally,
-  type Substitution as TSubstitution,
 } from "@/entities/record";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +21,10 @@ export const Entry = ({
   return (
     <EntryContainer onClick={onClick} className={className}>
       {entry.type === EntryType.RALLY ? (
-        <Rally data={entry.data as TRally} players={players} />
-      ) : (
-        <Substitution data={entry.data as TSubstitution} players={players} />
-      )}
+        <Rally data={entry} players={players} />
+      ) : entry.type === EntryType.SUBSTITUTION ? (
+        <Substitution data={entry} players={players} />
+      ) : null}
     </EntryContainer>
   );
 };

@@ -31,12 +31,12 @@ export const RecordPreview = ({
   const lastEntry = record.sets[setIndex].entries[entryIndex - 1];
   const isEditing = recording.home.player._id || recording.home.type;
   const recordingEntry: IEntry = recording.substitution
-    ? { type: EntryType.SUBSTITUTION, data: recording.substitution }
+    ? { type: EntryType.SUBSTITUTION, ...recording.substitution }
     : recording.timeout
-      ? { type: EntryType.TIMEOUT, data: recording.timeout }
+      ? { type: EntryType.TIMEOUT, ...recording.timeout }
       : recording.challenge
-        ? { type: EntryType.CHALLENGE, data: recording.challenge }
-        : { type: EntryType.RALLY, data: recording };
+        ? { type: EntryType.CHALLENGE, ...recording.challenge }
+        : { type: EntryType.RALLY, ...recording };
   const entry = isEditing || entryIndex === 0 ? recordingEntry : lastEntry;
 
   return (

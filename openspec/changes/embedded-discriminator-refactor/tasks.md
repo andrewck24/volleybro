@@ -17,10 +17,10 @@
 
 ## 4. Presentation Layer — Redux, helpers, components
 
-- [ ] 4.1 Update Redux record-slice for flat entry access — remove all `entry.data as Type` casts (`src/lib/features/record/record-slice.ts`)
-- [ ] [P] 4.2 Update record helpers — optimistic update helpers and query helpers for flat entries (`src/lib/features/record/helpers/`)
-- [ ] [P] 4.3 Update record components — entry rendering and entry construction (`src/components/record/`)
-- [ ] [P] 4.4 Update record hooks for flat entry access (`src/lib/features/record/hooks/`)
+- [x] 4.1 Update Redux record-slice for flat entry access — remove all `entry.data as Type` casts (`src/lib/features/record/record-slice.ts`)
+- [x] [P] 4.2 Update record helpers — optimistic update helpers and query helpers for flat entries (`src/lib/features/record/helpers/`)
+- [x] [P] 4.3 Update record components — entry rendering and entry construction (`src/components/record/`)
+- [x] [P] 4.4 Update record hooks for flat entry access (`src/lib/features/record/hooks/`)
 
 ## 5. Migration Script
 
