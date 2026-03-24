@@ -57,55 +57,55 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
 
   return (
     <PanelContent>
-        <CardHeader className="h-9 flex-row items-center justify-start">
+      <CardHeader className="h-9 w-full flex-row items-center justify-start">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 [&>svg]:size-5"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
+          }
+        >
+          <RiArrowLeftWideLine />
+        </Button>
+        <CardTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</CardTitle>
+      </CardHeader>
+      {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
+        const player = players.find((p) => p._id === lineupPlayer._id);
+        return (
           <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 [&>svg]:size-5"
-            onClick={() =>
-              dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
-            }
+            key={player?._id}
+            variant={isEditingStarting ? "outline" : "default"}
+            size="wide"
+            onClick={() => handleSubstituteClick(player, index)}
+            className="text-xl"
           >
-            <RiArrowLeftWideLine />
+            <RiUserFollowLine />
+            <span className="flex basis-8 justify-end font-semibold">
+              {player?.number || " "}
+            </span>
+            {player?.name}
           </Button>
-          <CardTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</CardTitle>
-        </CardHeader>
-        {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
-          const player = players.find((p) => p._id === lineupPlayer._id);
-          return (
-            <Button
-              key={player?._id}
-              variant={isEditingStarting ? "outline" : "default"}
-              size="wide"
-              onClick={() => handleSubstituteClick(player, index)}
-              className="text-xl"
-            >
-              <RiUserFollowLine />
-              <span className="flex basis-8 justify-end font-semibold">
-                {player?.number || " "}
-              </span>
-              {player?.name}
-            </Button>
-          );
-        })}
-        <Separator content="以上為正式比賽 12 + 2 人名單" />
-        {others.map((player, index) => {
-          return (
-            <Button
-              key={player._id}
-              variant="outline"
-              size="wide"
-              onClick={() => handleOtherClick(player, index)}
-              className="text-xl"
-            >
-              <RiUserLine />
-              <span className="flex basis-8 justify-end font-semibold">
-                {player?.number}
-              </span>
-              {player?.name}
-            </Button>
-          );
-        })}
+        );
+      })}
+      <Separator content="以上為正式比賽 12 + 2 人名單" />
+      {others.map((player, index) => {
+        return (
+          <Button
+            key={player._id}
+            variant="outline"
+            size="wide"
+            onClick={() => handleOtherClick(player, index)}
+            className="text-xl"
+          >
+            <RiUserLine />
+            <span className="flex basis-8 justify-end font-semibold">
+              {player?.number}
+            </span>
+            {player?.name}
+          </Button>
+        );
+      })}
     </PanelContent>
   );
 };

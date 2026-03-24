@@ -1,6 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { PanelContent } from "@/components/ui/panel";
 import { Position } from "@/entities/team";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
@@ -40,40 +40,38 @@ export const Positions = () => {
 
   return (
     <PanelContent>
-      <Card className="size-full p-0">
-        <CardHeader className="h-9 flex-row items-center justify-start">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 [&>svg]:size-5"
-            onClick={() =>
-              dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
-            }
-          >
-            <RiArrowLeftWideLine />
-          </Button>
-          <CardTitle>選擇位置</CardTitle>
-        </CardHeader>
-        {positions.map((position) => (
-          <Button
-            key={position.value}
-            variant={toggledPosition === position.value ? "default" : "outline"}
-            size="wide"
-            onClick={() =>
-              dispatch(lineupActions.setPlayerPosition(position.value))
-            }
-            disabled={
-              position.value === "L" ? !isEditingLiberos : isEditingLiberos
-            }
-            className="text-xl"
-          >
-            <span className="flex basis-8 justify-end font-semibold">
-              {position.value}
-            </span>
-            <span className="flex flex-1 justify-start">{position.text}</span>
-          </Button>
-        ))}
-      </Card>
+      <CardHeader className="h-9 w-full flex-row items-center justify-start">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 [&>svg]:size-5"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.PLAYERINFO))
+          }
+        >
+          <RiArrowLeftWideLine />
+        </Button>
+        <CardTitle>選擇位置</CardTitle>
+      </CardHeader>
+      {positions.map((position) => (
+        <Button
+          key={position.value}
+          variant={toggledPosition === position.value ? "default" : "outline"}
+          size="wide"
+          onClick={() =>
+            dispatch(lineupActions.setPlayerPosition(position.value))
+          }
+          disabled={
+            position.value === "L" ? !isEditingLiberos : isEditingLiberos
+          }
+          className="text-xl"
+        >
+          <span className="flex basis-8 justify-end font-semibold">
+            {position.value}
+          </span>
+          <span className="flex flex-1 justify-start">{position.text}</span>
+        </Button>
+      ))}
     </PanelContent>
   );
 };
