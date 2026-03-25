@@ -29,71 +29,69 @@ export const PlayerInfo = ({
 
   return (
     <PanelContent>
-        <CardHeader className="h-9 flex-row items-center justify-start">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 [&>svg]:size-5"
-            onClick={() =>
-              dispatch(lineupActions.setOptionMode(LineupOptionMode.NONE))
-            }
-          >
-            <RiArrowLeftWideLine />
-          </Button>
-          <CardTitle>球員資訊</CardTitle>
-          <Button
-            variant="ghost"
-            className="h-7 text-lg text-primary [&>svg]:size-5"
-            onClick={() =>
-              dispatch(
-                lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES),
-              )
-            }
-          >
-            <RiRepeat2Line />
-            更換球員
-          </Button>
-        </CardHeader>
-        <Table>
-          <TableBody className="text-xl">
-            <TableRow>
-              <TableCell>
-                <RiHashtag />
-              </TableCell>
-              <TableCell className="w-16">背號</TableCell>
-              <TableCell>{player?.number}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <RiUserLine />
-              </TableCell>
-              <TableCell>姓名</TableCell>
-              <TableCell>{player?.name}</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <BsGrid3X2Gap />
-              </TableCell>
-              <TableCell>位置</TableCell>
-              <TableCell>{lineupPlayer?.position}</TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 [&>svg]:size-5"
-                  onClick={() =>
-                    dispatch(
-                      lineupActions.setOptionMode(LineupOptionMode.POSITIONS),
-                    )
-                  }
-                >
-                  <RiEditBoxLine />
-                </Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-        {/* TODO: Add data statistics table here  */}
+      <CardHeader className="h-9 w-full flex-row items-center justify-start">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-7 [&>svg]:size-5"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.NONE))
+          }
+        >
+          <RiArrowLeftWideLine />
+        </Button>
+        <CardTitle>球員資訊</CardTitle>
+        <Button
+          variant="ghost"
+          className="h-7 text-lg text-primary [&>svg]:size-5"
+          onClick={() =>
+            dispatch(lineupActions.setOptionMode(LineupOptionMode.SUBSTITUTES))
+          }
+        >
+          <RiRepeat2Line />
+          更換球員
+        </Button>
+      </CardHeader>
+      <Table>
+        <TableBody className="text-xl">
+          <TableRow>
+            <TableCell>
+              <RiHashtag />
+            </TableCell>
+            <TableCell className="w-16">背號</TableCell>
+            <TableCell>{player?.number}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>
+              <RiUserLine />
+            </TableCell>
+            <TableCell>姓名</TableCell>
+            <TableCell>{player?.name}</TableCell>
+          </TableRow>
+          <TableRow>
+            <TableCell>
+              <BsGrid3X2Gap />
+            </TableCell>
+            <TableCell>位置</TableCell>
+            <TableCell>{lineupPlayer?.position}</TableCell>
+            <TableCell>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 [&>svg]:size-5"
+                onClick={() =>
+                  dispatch(
+                    lineupActions.setOptionMode(LineupOptionMode.POSITIONS),
+                  )
+                }
+              >
+                <RiEditBoxLine />
+              </Button>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+      {/* TODO: Add data statistics table here  */}
     </PanelContent>
   );
 };
