@@ -1,3 +1,12 @@
+## [0.11.2](https://github.com/andrewck24/volleybro/compare/v0.11.1...v0.11.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* **ci:** add track_progress to claude-code-review for PR comments ([73bf00c](https://github.com/andrewck24/volleybro/commit/73bf00cd7e6725c9254d348e6e54fa25e6c9bd81))
+* **lineup:** fix misaligned header components in lineup panel ([8457d7b](https://github.com/andrewck24/volleybro/commit/8457d7b8a694a68598571fc3f2600e294cb5facb))
+* **styles:** use pointer media query to detect touch devices for scrollbar hiding ([38e49d6](https://github.com/andrewck24/volleybro/commit/38e49d6c93a97d01973812ac242ae88eb8805242))
+
 ## [0.11.1](https://github.com/andrewck24/volleybro/compare/v0.11.0...v0.11.1) (2026-03-24)
 
 
