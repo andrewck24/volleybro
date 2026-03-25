@@ -7,6 +7,7 @@ The project lacks a documented testing strategy. Developers make ad-hoc decision
 - Create `docs/testing-strategy.md` with a layer-based testing table covering Entity, UseCase, Infrastructure, Controller, and Component layers
 - Define testing school (Classical vs London) and mock boundaries per layer
 - Establish frontend testing split: Jest for behavioral tests (no CSS assertions), Storybook + Chromatic for visual regression
+- Define story coverage requirements per component layer (ui/ = required, custom/ = required, domain/ = not required)
 - Create `docs/maintenance-policy.md` with dependency update rules (snapshot updates, major version bumps, mock drift)
 - Add cross-references in `CLAUDE.md` and `README.md` to point developers to the new docs
 

@@ -30,4 +30,7 @@
   - `src/components/custom/__tests__/person-item.test.tsx` (update tests)
   - `src/components/custom/__tests__/team-item.test.tsx` (update tests)
   - Consumers importing LoadingCourt (import path update)
+  - `src/components/ui/sheet.tsx` (delete — zero consumers)
+  - `src/components/ui/panel.tsx` (relocate to `custom/panel/` — only used in court-related pages)
+  - `src/components/ui/flip-words.tsx` (relocate to `landing/` — only used in landing/hero)
   - `docs/architecture.md` (new)

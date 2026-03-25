@@ -94,11 +94,11 @@ Interactive variants (Link/button) automatically add `hover:bg-accent`. Static v
 
 `ListItem` root handles the wrapper logic internally based on props:
 
-| Props provided | Renders as | Hover style |
-|---|---|---|
-| `href` | `<Link>` | `hover:bg-accent` |
+| Props provided      | Renders as | Hover style       |
+| ------------------- | ---------- | ----------------- |
+| `href`              | `<Link>`   | `hover:bg-accent` |
 | `onClick` (no href) | `<button>` | `hover:bg-accent` |
-| neither | `<div>` | none |
+| neither             | `<div>`    | none              |
 
 This is the same priority logic currently in `PersonItem` and `TeamItem`, centralized once.
 
@@ -133,12 +133,13 @@ Two-column layout: `[(icon placeholder)(---text placeholder---)]`. Uses the same
 Move `custom/loading/court.tsx` content into `custom/court/index.tsx` as a named export `LoadingCourt`. The court file already exports a `LoadingCard` sub-component used by `LoadingCourt`, so co-locating eliminates the cross-directory dependency.
 
 Update 2 consumers:
+
 - `src/components/team/lineup/index.tsx`
 - `src/components/record/index.tsx`
 
 ### File Organization
 
-```
+```text
 src/components/custom/
 ├── list-item/
 │   ├── index.tsx              # ListItem, ListItemIcon, ListItemImage,
@@ -155,15 +156,39 @@ src/components/custom/
 └── ...
 ```
 
+### Component Relocations and Cleanup
+
+Three `ui/` components violate the layer boundary rules documented below:
+
+1. **Delete `ui/sheet.tsx`** — zero consumers in the codebase; unused Shadcn component
+2. **Relocate `ui/panel.tsx` → `custom/panel/`** — only used in court-related pages (team/lineup, record/set-options, record/panel); contains domain-aware layout logic, not a generic primitive
+3. **Relocate `ui/flip-words.tsx` → `landing/flip-words.tsx`** — only used in `landing/hero.tsx`; a single-domain animation component, not a reusable primitive
+
+For panel relocation, update all 9 import paths:
+
+- `src/components/team/lineup/panel/positions.tsx`
+- `src/components/team/lineup/panel/player-info.tsx`
+- `src/components/team/lineup/panel/substitutes.tsx`
+- `src/components/team/lineup/panel/index.tsx`
+- `src/components/team/lineup/panel/options/index.tsx`
+- `src/components/record/set-options/panel/index.tsx`
+- `src/components/record/set-options/panel/substitutes.tsx`
+- `src/components/record/set-options/panel/options.tsx`
+- `src/components/record/panel/index.tsx`
+
+For flip-words relocation, update 1 import path:
+
+- `src/components/landing/hero.tsx`
+
 ### Component Layer Boundary Documentation
 
 Create `docs/architecture.md` with a component organization section:
 
-| Layer | Location | Domain Knowledge | Examples |
-|-------|----------|-----------------|----------|
-| `ui/` | `src/components/ui/` | None — zero business logic | Button, Card, Badge, Dialog |
-| `custom/` | `src/components/custom/` | Allowed — Next.js Link, app hooks, data-testid | ListItem, PersonItem, TeamItem, Court |
-| `{domain}/` | `src/components/{team,record,...}/` | Full domain context | LineupPanel, InvitationList |
+| Layer       | Location                            | Domain Knowledge                               | Examples                              |
+| ----------- | ----------------------------------- | ---------------------------------------------- | ------------------------------------- |
+| `ui/`       | `src/components/ui/`                | None — zero business logic                     | Button, Card, Badge, Dialog           |
+| `custom/`   | `src/components/custom/`            | Allowed — Next.js Link, app hooks, data-testid | ListItem, PersonItem, TeamItem, Court |
+| `{domain}/` | `src/components/{team,record,...}/` | Full domain context                            | LineupPanel, InvitationList           |
 
 **Rule of thumb**: Could be published as a generic npm package → `ui/`. Reused across 2+ domain folders with app-specific behavior → `custom/`. Used in only one domain → `{domain}/`.
 

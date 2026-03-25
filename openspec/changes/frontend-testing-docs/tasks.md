@@ -3,8 +3,9 @@
 - [ ] 1.1 Create `docs/testing-strategy.md` with the layer-based testing table (Entity/UseCase/Infrastructure/Controller/Component), including school emphasis (state verification vs behavior verification)
 - [ ] [P] 1.2 Write the frontend testing split section (Jest behavioral vs Storybook/Chromatic visual regression)
 - [ ] [P] 1.3 Write the mock boundaries section (what lives in setup files vs. inline)
-- [ ] [P] 1.4 Add a quick reference cheat sheet following the document structure from design
-- [ ] 1.5 Verify: `npm run lint && npm run build`
+- [ ] [P] 1.4 Write the story coverage requirements section (ui/ = required, custom/ = required, domain/ = not required)
+- [ ] [P] 1.5 Add a quick reference cheat sheet following the document structure from design
+- [ ] 1.6 Verify: `npm run lint && npm run build`
 
 ## 2. Maintenance Policy Document (Documentation)
 

@@ -57,6 +57,18 @@ Initial sections for `docs/maintenance-policy.md`:
 
 **Rationale:** Test infrastructure silently drifts from production dependencies without explicit rules. Separating this into its own document allows non-testing maintenance rules to be added later.
 
+### Story coverage requirements
+
+`docs/testing-strategy.md` will include a **Story Coverage Requirements** section defining which component layers require Storybook stories:
+
+| Layer        | Story Required                           | Location              |
+| ------------ | ---------------------------------------- | --------------------- |
+| `ui/`        | Yes — every component                    | `src/stories/ui/`     |
+| `custom/`    | Yes — cross-domain composites            | `src/stories/custom/` |
+| `{domain}/`  | No — behavioral via Jest, visual via E2E | —                     |
+
+This codifies the decision from the `storybook-modernization` discussion and ensures new components get stories from day one.
+
 ### Document structure
 
 ```text
