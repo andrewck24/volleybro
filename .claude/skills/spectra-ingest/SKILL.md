@@ -149,7 +149,57 @@ Update an existing Spectra change — from a plan file or conversation context.
 
    Continue until all `applyRequires` artifacts are complete. Show progress: "✓ Created <artifact-id>"
 
-6. **Analyze-Fix Loop** (max 2 iterations)
+6. **Inline Self-Review** (before CLI analysis)
+
+   After updating all artifacts, scan them manually. Fix issues inline, then proceed to the CLI analyzer.
+
+   **Check 1: No Placeholders**
+
+   These patterns are artifact failures — fix each one before proceeding:
+   - "TBD", "TODO", "FIXME", "implement later", "details to follow"
+   - Vague instructions: "Add appropriate error handling", "Handle edge cases", "Write tests for the above"
+   - Delegation by reference: "Similar to Task N" without repeating specifics
+   - Steps describing WHAT without HOW: "Implement the authentication flow" (what flow? what steps?)
+   - Empty template sections left unfilled
+   - Weasel quantities: "some", "various", "several" when a specific number or list is needed
+
+   **Check 2: Internal Consistency**
+   - Does every capability in the proposal have a corresponding spec?
+   - Does the design reference only capabilities from the proposal?
+   - Do tasks cover all design decisions, and nothing outside proposal scope?
+   - Are file paths consistent across proposal Impact, design, and tasks?
+
+   **Check 3: Scope Check**
+   - More than 15 pending tasks → consider decomposing into multiple changes
+   - Any single task would take more than 1 hour → split it
+   - Touches more than 3 unrelated subsystems → consider splitting
+
+   **Check 4: Ambiguity Check**
+   - Are success/failure conditions testable and specific?
+   - Are boundary conditions defined (empty input, max limits, error cases)?
+   - Could "the system" refer to multiple components? Be explicit.
+
+   **Check 5: Preservation Check** (ingest-specific)
+   - Are all completed tasks `[x]` still present and unchanged?
+   - Were existing `[P]` markers preserved on tasks that still qualify?
+   - Was existing content merged (not replaced)?
+
+---
+
+## Rationalization Table
+
+| What You're Thinking                                             | What You Should Do                                                            |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| "The existing artifacts are close enough, just adjust the tasks" | Read the new context carefully. "Close enough" means you're missing something |
+| "The proposal doesn't need updating, the change is the same"     | If new context exists, the proposal likely needs updates. At minimum, check   |
+| "I can merge these tasks, they're basically the same"            | Keep tasks granular. Merged tasks are harder to track                         |
+| "The completed tasks still apply, no need to review"             | Verify they're still relevant to updated scope. Don't blindly keep stale work |
+| "This spec change is minor, skip the scenario update"            | If the requirement changed, the scenario must change                          |
+| "The conversation didn't discuss this artifact, so skip it"      | Absence of discussion doesn't mean absence of impact. Check                   |
+
+---
+
+7. **Analyze-Fix Loop** (max 2 iterations)
 
    ```bash
    spectra analyze <name> --json
@@ -166,7 +216,7 @@ Update an existing Spectra change — from a plan file or conversation context.
       - Show remaining findings as a summary
       - Proceed normally (do NOT block)
 
-7. **Validation**
+8. **Validation**
 
    ```bash
    spectra validate "<name>"
@@ -174,7 +224,7 @@ Update an existing Spectra change — from a plan file or conversation context.
 
    If validation fails, fix errors and re-validate.
 
-8. **Summary and next steps**
+9. **Summary and next steps**
 
    Show:
    - Source used: plan file (`<path>`) or conversation context

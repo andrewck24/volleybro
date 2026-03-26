@@ -25,7 +25,7 @@ Have a focused discussion about a topic and reach a conclusion.
 
 ## How to Discuss
 
-**One question at a time.** Don't dump a list of 10 questions. Ask the most important one, listen, then follow up. Let the conversation breathe.
+**One question at a time.** Don't dump a list of 10 questions. Ask the most important one, listen, then follow up. Let the conversation breathe. If the user's initial description or previous answers already cover a question, skip it — don't ask what you already know.
 
 **Propose concrete options.** When exploring approaches, present 2-3 specific options with trade-offs — not abstract possibilities. Use comparison tables when helpful:
 
@@ -53,6 +53,44 @@ System diagrams, state machines, data flows, dependency graphs — whatever help
 
 **Be direct.** If you have a recommendation, say it. Don't hedge endlessly. "I'd go with option B because..." is more useful than "all options have merit."
 
+**No empty validation.** Never pad responses with hollow affirmations. These add nothing and erode trust:
+
+- ~~"That's an interesting approach"~~ → State what specifically is interesting and why
+- ~~"There are many ways to think about this"~~ → Name the 2-3 concrete ways and their trade-offs
+- ~~"That could work"~~ → Explain why it would or wouldn't work, and under what conditions
+- ~~"Great question"~~ → Just answer the question
+- ~~"You raise a good point"~~ → Engage with the point directly
+
+If you agree, say why. If you disagree, say why. Empty agreement is worse than honest pushback.
+
+**Push for specifics.** When the user gives a vague answer, don't accept it — dig deeper. The goal is to reach decisions concrete enough to implement.
+
+Bad vs. good:
+
+```
+User: "We should make it more modular"
+Bad:  "That sounds good. How would you like to proceed?"
+Good: "What would you split out? Are we talking separate crates,
+       feature flags, or a plugin interface? Each has very different
+       cost."
+```
+
+```
+User: "Performance might be an issue"
+Bad:  "Good point, we should keep performance in mind."
+Good: "What's the threshold? Are we talking sub-100ms response time,
+       handling 1000 concurrent users, or keeping memory under a
+       budget? The answer changes the architecture."
+```
+
+```
+User: "We need better error handling"
+Bad:  "Agreed, error handling is important."
+Good: "Which errors are causing problems now? Are users seeing
+       crashes, silent failures, or unhelpful messages? Let's look
+       at the actual error paths."
+```
+
 ---
 
 ## Convergence
@@ -70,6 +108,13 @@ The conclusion should be one of:
 - **Direction consensus**: "The auth refactor should split into gateway + provider"
 - **Next-step recommendation**: "We need to spike the plugin API first to validate the approach"
 - **Explicit deferral**: "We don't have enough info yet. Specifically, we need to know X before deciding"
+
+**If the user wants to move faster.** Sometimes the user signals impatience — "let's just go with X", "I don't want to overthink this", "can we move on?". Respect their pace:
+
+1. **First time**: Briefly flag if there's an important unresolved question — one sentence, not a lecture. "Before we commit to X, worth noting that Y could affect Z. Want to address it or move forward?"
+2. **If they push again**: Respect it. Skip remaining questions, go straight to convergence with the best conclusion you can form from what's been discussed. Don't push back a second time.
+
+The goal is thoroughness, not interrogation. One nudge maximum.
 
 ---
 
@@ -89,7 +134,19 @@ If the user mentioned a specific change name, read its artifacts for context.
 
 ### Capture decisions
 
-When decisions are made during discussion, offer to capture them:
+When the discussion converges, **proactively present a conclusion summary**. Don't wait to be asked — propose it, and let the user opt out.
+
+Summary format:
+
+```
+## Conclusion
+
+**Decision**: [What was decided]
+**Rationale**: [Why — the key trade-off that drove this]
+**Capture to**: [Where this should be recorded]
+```
+
+Where to capture:
 
 | Insight Type               | Where to Capture             |
 | -------------------------- | ---------------------------- |
@@ -98,7 +155,7 @@ When decisions are made during discussion, offer to capture them:
 | Scope changed              | `proposal.md`                |
 | New work identified        | `tasks.md`                   |
 
-Offer once, then move on. Don't pressure.
+Present the summary and say something like "I'll capture this to design.md unless you'd rather not." Default to capturing — the user can decline.
 
 ### Transition to action
 

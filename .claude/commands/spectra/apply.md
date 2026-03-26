@@ -139,6 +139,7 @@ Implement tasks from a Spectra change.
      1. **Reuse** — search adjacent modules and shared utilities for existing implementations before writing new code
      2. **Quality** — derive values from existing state instead of duplicating; use existing types and constants over new literals
      3. **Efficiency** — parallelize independent async operations; avoid unnecessary awaits; match operation scope to actual need
+     4. **No Placeholders in artifacts** — if the design or spec for this task contains placeholder language (TBD, TODO, "add appropriate handling"), pause and fix the artifact first or flag to the user. Do not implement against vague requirements.
    - Make the code changes required
    - Keep changes minimal and focused
    - Mark task complete in the tasks file: `- [ ]` → `- [x]`
@@ -151,6 +152,21 @@ Implement tasks from a Spectra change.
    - Implementation reveals a design issue → suggest updating artifacts
    - Error or blocker encountered → report and wait for guidance
    - User interrupts
+
+---
+
+## Rationalization Table
+
+| What You're Thinking                                       | What You Should Do                                                               |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| "This task is trivial, I don't need to re-read the design" | Re-read. Context compression loses details. 30s of reading saves 30min of rework |
+| "I already know how this works, skip the code search"      | Search anyway. Someone may have added a utility since you last looked            |
+| "The test is obvious, I'll add it after implementation"    | If TDD is enabled, test first. If not, still write it before marking done        |
+| "This is just a small refactor, no test needed"            | Small refactors are how regressions sneak in. Write the test                     |
+| "The artifact says X but Y makes more sense"               | Pause and suggest updating the artifact. Don't silently deviate                  |
+| "I'll fix this other thing I noticed while I'm here"       | Finish current task first. Address the other thing separately                    |
+
+---
 
 8. **Final check**
 

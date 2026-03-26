@@ -1,8 +1,4 @@
 schema: spec-driven
-locale: en
-tdd: true
-parallel_tasks: true
-audit: true
 
 context: |
   Domain: Volleyball team management and match recording web application
