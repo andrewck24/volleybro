@@ -1,8 +1,8 @@
 ## 1. TypeScript Upgrade and tsconfig.json Changes
 
-- [ ] 1.1 Upgrade `typescript` from `^5.9.3` to `6.0.2` in `package.json` and run `npm install`
-- [ ] 1.2 Apply tsconfig.json Changes and experimentalDecorators Decision: set `target` to `es2025`, set `strict` to `true`, remove `dom.iterable` from `lib`, add `noUncheckedSideEffectImports: true`; keep `experimentalDecorators` and `emitDecoratorMetadata` per experimentalDecorators Decision (required by InversifyJS) and add TODO comment for future TS7 migration
-- [ ] 1.3 Verify Toolchain Compatibility Verification: run `npx tsc --version` (confirm 6.0.2), `npm run lint`, `npm test`, `npm run build`; if any toolchain package fails, upgrade it before proceeding
+- [x] 1.1 Upgrade `typescript` from `^5.9.3` to `^6.0.2` in `package.json` and run `npm install`
+- [x] 1.2 Apply tsconfig.json Changes and experimentalDecorators Decision: set `target` to `es2025`, set `strict` to `true`, remove `dom.iterable` from `lib`, add `noUncheckedSideEffectImports: true`; keep `experimentalDecorators` and `emitDecoratorMetadata` per experimentalDecorators Decision (required by InversifyJS) and add TODO comment for future TS7 migration
+- [x] 1.3 Verify Toolchain Compatibility Verification: run `npx tsc --version` (confirm 6.0.2), `npm run lint`, `npm test`, `npm run build`; if any toolchain package fails, upgrade it before proceeding
 
 ## 2. Strict Mode Fix Strategy — Domain Layer
 
