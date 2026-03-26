@@ -6,8 +6,8 @@
 
 ## 2. Strict Mode Fix Strategy — Domain Layer
 
-- [ ] 2.1 Fix strict mode errors in `src/entities/` following the Strict Mode Fix Strategy: add type annotations, null guards, and type narrowing for TS18048/TS2345/TS2322/TS7053 errors
-- [ ] 2.2 Verify: `npx tsc --noEmit && npm test`
+- [x] 2.1 Fix strict mode errors in `src/entities/` following the Strict Mode Fix Strategy: add type annotations, null guards, and type narrowing for TS18048/TS2345/TS2322/TS7053 errors
+- [x] 2.2 Verify: `npx tsc --noEmit && npm test`
 
 ## 3. Strict Mode Fix Strategy — Application Layer
 
