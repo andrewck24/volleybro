@@ -52,6 +52,7 @@ export class CreateSubstitutionUseCase {
 
     const side = substitution.team === Side.HOME ? "home" : "away";
     const lineup = record.sets[params.setIndex].lineups[side];
+    if (!lineup) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Lineup not found");
 
     this.updateLineup(lineup, substitution, params.entryIndex);
     this.updateRecordStats(record, side, input);
@@ -83,7 +84,7 @@ export class CreateSubstitutionUseCase {
                 ...lineup.starting[startingIndex].sub.entryIndex,
                 out: entryIndex,
               }
-            : { in: entryIndex, out: null },
+            : { in: entryIndex },
       },
     };
 
@@ -98,14 +99,14 @@ export class CreateSubstitutionUseCase {
                 ...lineup.substitutes[subIndex].sub.entryIndex,
                 out: entryIndex,
               }
-            : { in: entryIndex, out: null },
+            : { in: entryIndex },
       },
     };
   }
 
   private updateRecordStats(
     record: Record,
-    side: string,
+    side: "home" | "away",
     input: ICreateSubstitutionInput
   ) {
     const {
@@ -113,11 +114,12 @@ export class CreateSubstitutionUseCase {
       data: substitution,
     } = input;
     const lineup = record.sets[setIndex].lineups[side];
+    if (!lineup) return;
 
     const startingPlayer = lineup.starting.find(
       (p) => p._id.toString() === substitution.players.in
     );
-    if (startingPlayer.sub?.entryIndex?.in !== undefined) {
+    if (startingPlayer?.sub?.entryIndex?.in !== undefined) {
       const player = record.teams[side].players.find(
         (p) => p._id.toString() === substitution.players.in
       );

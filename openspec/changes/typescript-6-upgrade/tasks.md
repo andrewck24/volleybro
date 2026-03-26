@@ -11,8 +11,8 @@
 
 ## 3. Strict Mode Fix Strategy — Application Layer
 
-- [ ] 3.1 Fix strict mode errors in `src/applications/` following the Strict Mode Fix Strategy: add type annotations, null guards, and explicit types for use case parameters and repository interfaces
-- [ ] 3.2 Verify: `npx tsc --noEmit && npm test`
+- [x] 3.1 Fix strict mode errors in `src/applications/` following the Strict Mode Fix Strategy: add type annotations, null guards, and explicit types for use case parameters and repository interfaces
+- [x] 3.2 Verify: `npx tsc --noEmit && npm test`
 
 ## 4. Strict Mode Fix Strategy — Infrastructure Layer
 

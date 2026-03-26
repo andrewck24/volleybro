@@ -78,7 +78,7 @@ export class CreateRecordUseCase {
     );
 
     const record = await this.recordRepository.create({
-      win: null,
+      win: false,
       team_id: params.teamId,
       info: data.info,
       teams: { home: { ...data.teams.home }, away: { ...data.teams.away } },
