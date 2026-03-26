@@ -4,8 +4,6 @@
  * DELETE /api/players/{playerId} - Remove Player
  */
 
-import { NotFoundError } from "@/entities/errors/app-error";
-import { PlayerReason } from "@/entities/errors/reasons/player";
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { withAuth } from "@/lib/api/wrappers";
 import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
@@ -19,14 +17,6 @@ export const GET = (
     const { playerId } = await props.params;
 
     const player = await playerController.getPlayer(playerId);
-
-    if (!player) {
-      throw new NotFoundError(
-        PlayerReason.PLAYER_NOT_FOUND,
-        "Player not found",
-      );
-    }
-
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
   })(_req);

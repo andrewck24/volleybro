@@ -21,8 +21,8 @@
 
 ## 5. Strict Mode Fix Strategy — Interface Layer
 
-- [ ] 5.1 Fix strict mode errors in `src/interface/` following the Strict Mode Fix Strategy: add type annotations for controller parameters and response types
-- [ ] 5.2 Verify: `npx tsc --noEmit && npm test`
+- [x] 5.1 Fix strict mode errors in `src/interface/` following the Strict Mode Fix Strategy: add type annotations for controller parameters and response types
+- [x] 5.2 Verify: `npx tsc --noEmit && npm test`
 
 ## 6. Strict Mode Fix Strategy — Presentation Layer (Record & Lib)
 
