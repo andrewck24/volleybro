@@ -16,8 +16,8 @@
 
 ## 4. Strict Mode Fix Strategy — Infrastructure Layer
 
-- [ ] 4.1 Fix strict mode errors in `src/infrastructure/` following the Strict Mode Fix Strategy: add type annotations and null guards for MongoDB repository implementations and service classes
-- [ ] 4.2 Verify: `npx tsc --noEmit && npm test`
+- [x] 4.1 Fix strict mode errors in `src/infrastructure/` following the Strict Mode Fix Strategy: add type annotations and null guards for MongoDB repository implementations and service classes
+- [x] 4.2 Verify: `npx tsc --noEmit && npm test`
 
 ## 5. Strict Mode Fix Strategy — Interface Layer
 

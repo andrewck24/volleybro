@@ -1,3 +1,4 @@
+import { NotFoundError } from "@/entities/errors/app-error";
 import { EntryType } from "@/entities/record";
 import { Record as RecordModel } from "@/infrastructure/db/mongoose/schemas/record";
 import { RecordRepositoryImpl } from "@/infrastructure/db/repositories/record.repository.mongo";
@@ -64,12 +65,12 @@ describe("RecordRepositoryImpl", () => {
       expect(result).toEqual([mockRecordData]);
     });
 
-    it("should return null when no records are found", async () => {
-      (RecordModel.find as jest.Mock).mockResolvedValue(null);
+    it("should return empty array when no records are found", async () => {
+      (RecordModel.find as jest.Mock).mockResolvedValue([]);
 
       const result = await repository.find({ team_id: nonExistentId });
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
   });
 
@@ -84,12 +85,12 @@ describe("RecordRepositoryImpl", () => {
       expect(result).toEqual(mockRecordData);
     });
 
-    it("should return null when record is not found", async () => {
+    it("should return undefined when record is not found", async () => {
       (RecordModel.findOne as jest.Mock).mockResolvedValue(null);
 
       const result = await repository.findOne({ _id: "nonexistent" });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -115,7 +116,7 @@ describe("RecordRepositoryImpl", () => {
       ...mockRecordData,
       _id: mockRecordIdString,
       team_id: mockTeamIdString,
-      info: { name: "Updated Record", ...mockRecordData.info },
+      info: { name: "Updated Record", scoring: mockRecordData.info.scoring },
     };
 
     it("should update and return the updated record", async () => {
@@ -131,15 +132,12 @@ describe("RecordRepositoryImpl", () => {
       expect(result).toEqual(updatedRecordData);
     });
 
-    it("should return null when record is not found", async () => {
+    it("should throw NotFoundError when record is not found", async () => {
       (RecordModel.findOneAndReplace as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.update(
-        { _id: nonExistentId },
-        updatedRecordData,
-      );
-
-      expect(result).toBeNull();
+      await expect(
+        repository.update({ _id: nonExistentId }, updatedRecordData),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -221,7 +219,7 @@ describe("RecordRepositoryImpl", () => {
       expect(result).toEqual({
         data: mockMatchResults,
         hasMore: false,
-        lastId: mockMatchResults[1]._id,
+        lastId: String(mockMatchResults[1]._id),
       });
     });
 
@@ -421,7 +419,7 @@ describe("RecordRepositoryImpl", () => {
       // Verify empty result handling
       expect(result.data).toEqual([]);
       expect(result.hasMore).toBe(false);
-      expect(result.lastId).toBeUndefined();
+      expect(result.lastId).toBe("");
     });
 
     it("should add cursor conditions to existing $and conditions", async () => {
