@@ -14,7 +14,7 @@ import {
   FormRadioGroup,
   FormRadioItem,
 } from "@/components/ui/form";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { Player, type Record } from "@/entities/record";

@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import { Separator } from "@/components/ui/separator";
 import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";

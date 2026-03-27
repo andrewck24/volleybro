@@ -1,6 +1,6 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
-import { FlipWords } from "@/components/ui/flip-words";
+import { FlipWords } from "@/components/landing/flip-words";
 import Image from "next/image";
 import { useRef } from "react";
 import { RiDeviceLine, RiGlobalLine, RiSpeedLine } from "react-icons/ri";

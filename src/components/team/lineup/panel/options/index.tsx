@@ -6,7 +6,7 @@ import {
 import { LineupError } from "@/components/team/lineup/panel/options/lineup-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import {
   Table,
   TableBody,
