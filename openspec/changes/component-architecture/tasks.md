@@ -16,10 +16,10 @@
 
 ## 3. Refactor TeamItem to Compose Shadcn Item (Presentation Layer)
 
-- [ ] 3.1 Update team-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
-- [ ] [P] 3.2 Refactor `TeamItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `TeamItemSkeleton` export per skeleton co-location design
-- [ ] 3.3 Update all TeamItem consumers (user/invitations, user/menu) to use new composition API — invitations adopt action footer pattern per design
-- [ ] 3.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
+- [x] 3.1 Update team-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
+- [x] [P] 3.2 Refactor `TeamItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `TeamItemSkeleton` export per skeleton co-location design
+- [x] 3.3 Update all TeamItem consumers (user/invitations, user/menu) to use new composition API — invitations adopt action footer pattern per design
+- [x] 3.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
 
 ## 4. LoadingCourt Relocation (Presentation Layer)
 

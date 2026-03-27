@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { TeamItem } from "@/components/custom/team-item";
+import { Item } from "@/components/ui/item";
+import NextLink from "next/link";
 import { useUser } from "@/hooks/use-data";
 import { useUserPlayers } from "@/hooks/use-data";
 import { PlayerStatus } from "@/entities/player";
@@ -77,32 +79,31 @@ export const Invitations = ({ className }: { className?: string }) => {
         ) : (
           invitedPlayers.map((player) => (
             <React.Fragment key={player._id}>
-              <TeamItem
-                teamId={player.teamId!}
-                href={`/team/${player.teamId}`}
-                action={
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-primary"
-                      onClick={() => handleAccept(player._id)}
-                      aria-label="接受邀請"
-                    >
-                      <RiCheckLine className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() => handleReject(player._id)}
-                      aria-label="拒絕邀請"
-                    >
-                      <RiCloseLine className="h-5 w-5" />
-                    </Button>
-                  </div>
-                }
-              />
+              <Item asChild>
+                <NextLink href={`/team/${player.teamId}`}>
+                  <TeamItem teamId={player.teamId!} />
+                </NextLink>
+              </Item>
+              <div className="flex items-center gap-1 pl-12 pb-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-primary"
+                  onClick={() => handleAccept(player._id)}
+                  aria-label="接受邀請"
+                >
+                  <RiCheckLine className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  onClick={() => handleReject(player._id)}
+                  aria-label="拒絕邀請"
+                >
+                  <RiCloseLine className="h-5 w-5" />
+                </Button>
+              </div>
               {errorMap[player._id] && (
                 <p className="px-3 pb-2 text-sm text-destructive">
                   {errorMap[player._id]}

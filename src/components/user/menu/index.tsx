@@ -15,6 +15,7 @@ import {
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardDescription } from "@/components/ui/card";
 import { TeamItem } from "@/components/custom/team-item";
+import { Item } from "@/components/ui/item";
 import { apiClient } from "@/lib/api/api-client";
 import { DarkMode } from "@/components/user/menu/dark-mode";
 
@@ -83,14 +84,18 @@ const Menu = ({ className }: { className?: string }) => {
             <>
               <CardDescription>已加入隊伍</CardDescription>
               {joinedPlayers.map((p) => (
-                <TeamItem
+                <Item
                   key={p._id}
-                  teamId={p.teamId!}
-                  onClick={() => handleSwitchTeam(p.teamId!)}
+                  asChild
                   className={cn(
-                    profile?.activeTeamId === p.teamId && "bg-primary text-primary-foreground"
+                    profile?.activeTeamId === p.teamId &&
+                      "bg-primary text-primary-foreground"
                   )}
-                />
+                >
+                  <button onClick={() => handleSwitchTeam(p.teamId!)}>
+                    <TeamItem teamId={p.teamId!} />
+                  </button>
+                </Item>
               ))}
             </>
           )}
