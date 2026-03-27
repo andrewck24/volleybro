@@ -37,6 +37,6 @@
 
 ## 6. Component Layer Boundary Documentation
 
-- [ ] 6.1 Create `docs/architecture.md` with component layer boundary documentation table (`ui/` vs `custom/` vs `{domain}/`) and rule of thumb per design
-- [ ] 6.2 Review whether any other docs need updating based on this change
-- [ ] 6.3 Final verification: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 6.1 Create `docs/architecture.md` with component layer boundary documentation table (`ui/` vs `custom/` vs `{domain}/`) and rule of thumb per design
+- [x] 6.2 Review whether any other docs need updating based on this change
+- [x] 6.3 Final verification: `npm test && npx tsc --noEmit && npm run lint && npm run build`
