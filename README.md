@@ -77,9 +77,9 @@ This project uses a clean architecture and implements dependency injection with 
 
 ### Frontend & Framework
 
-- **Next.js 15+** with App Router
+- **Next.js 16+** with App Router
 - **React 19** with Server Components
-- **TypeScript 5.x** with strict mode
+- **TypeScript 6.x** with strict mode
 - **Shadcn/UI** components library
 - **Tailwind CSS** for styling
 - **Serwist** for Progressive Web App (PWA) features
@@ -100,7 +100,7 @@ This project uses a clean architecture and implements dependency injection with 
 
 - **Jest** for unit and integration testing
 - **React Testing Library** for component testing
-- **451 tests passing** with comprehensive coverage
+- **586 tests passing** with comprehensive coverage
 - **ESLint** for code quality
 - **TypeScript strict mode** enabled
 - **Storybook** for component development and documentation

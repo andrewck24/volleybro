@@ -39,5 +39,5 @@
 
 ## 8. Final Verification and Documentation
 
-- [ ] 8.1 Full verification: `npm test && npx tsc --noEmit && npm run lint && npm run build`
-- [ ] 8.2 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on this change
+- [x] 8.1 Full verification: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 8.2 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on this change
