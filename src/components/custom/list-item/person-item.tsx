@@ -2,12 +2,7 @@ import Image from "next/image";
 import type { ReactNode } from "react";
 import { FiUser } from "react-icons/fi";
 
-import {
-  Item,
-  ItemContent,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface PersonItemProps {

@@ -1,23 +1,23 @@
 "use client";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useUser, useProfile, useUserPlayers } from "@/hooks/use-data";
+import { TeamItem } from "@/components/custom/list-item/team-item";
+import { Button, Link } from "@/components/ui/button";
+import { Card, CardDescription } from "@/components/ui/card";
+import { Item } from "@/components/ui/item";
+import { DarkMode } from "@/components/user/menu/dark-mode";
 import { PlayerStatus } from "@/entities/player";
+import { useProfile, useUser, useUserPlayers } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import {
   RiArrowDownWideLine,
   RiSettings4Line,
-  RiUserLine,
   RiUserAddLine,
+  RiUserLine,
 } from "react-icons/ri";
-import { Button, Link } from "@/components/ui/button";
-import { Card, CardDescription } from "@/components/ui/card";
-import { TeamItem } from "@/components/custom/team-item";
-import { Item } from "@/components/ui/item";
-import { apiClient } from "@/lib/api/api-client";
-import { DarkMode } from "@/components/user/menu/dark-mode";
 
 const Menu = ({ className }: { className?: string }) => {
   const router = useRouter();
@@ -27,7 +27,7 @@ const Menu = ({ className }: { className?: string }) => {
   const [extendTeams, setExtendTeams] = useState(false);
 
   const joinedPlayers = players.filter(
-    (p) => p.status === PlayerStatus.JOINED && p.teamId
+    (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
 
   const handleSwitchTeam = async (teamId: string) => {
@@ -59,7 +59,7 @@ const Menu = ({ className }: { className?: string }) => {
           <RiUserLine />
         )}
         {!user ? (
-          <span className="h-6 rounded-md animate-pulse bg-muted w-[16rem]" />
+          <span className="h-6 w-[16rem] animate-pulse rounded-md bg-muted" />
         ) : (
           user?.name
         )}
@@ -70,11 +70,11 @@ const Menu = ({ className }: { className?: string }) => {
         onClick={() => setExtendTeams(!extendTeams)}
       >
         <RiUserAddLine />
-        <span className="flex justify-start flex-1">隊伍與邀請</span>
+        <span className="flex flex-1 justify-start">隊伍與邀請</span>
         <RiArrowDownWideLine
           className={cn(
             "transition-transform duration-200",
-            extendTeams && "rotate-180"
+            extendTeams && "rotate-180",
           )}
         />
       </Button>
@@ -89,7 +89,7 @@ const Menu = ({ className }: { className?: string }) => {
                   asChild
                   className={cn(
                     profile?.activeTeamId === p.teamId &&
-                      "bg-primary text-primary-foreground"
+                      "bg-primary text-primary-foreground",
                   )}
                 >
                   <button onClick={() => handleSwitchTeam(p.teamId!)}>

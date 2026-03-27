@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 
-import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import { PersonItem } from "@/components/custom/person-item";
+import { PersonItem } from "@/components/custom/list-item/person-item";
+import LoadingCard from "@/components/custom/loading/card";
 import { Item } from "@/components/ui/item";
 import type { Player } from "@/entities/player";
-import { POSITION_LABELS } from "@/lib/constants/labels";
 import { useTeamPlayers } from "@/hooks/use-data";
+import { POSITION_LABELS } from "@/lib/constants/labels";
 
 interface PlayersListProps {
   teamId: string;

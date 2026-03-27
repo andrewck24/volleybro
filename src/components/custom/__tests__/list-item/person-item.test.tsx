@@ -1,11 +1,11 @@
-import Link from "next/link";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import Link from "next/link";
 
 import {
   PersonItem,
   PersonItemSkeleton,
-} from "@/components/custom/person-item";
+} from "@/components/custom/list-item/person-item";
 import { Item, ItemActions } from "@/components/ui/item";
 
 jest.mock("react-icons/fi", () => ({
@@ -20,7 +20,7 @@ describe("PersonItem", () => {
       render(
         <Item>
           <PersonItem name="Alice" />
-        </Item>
+        </Item>,
       );
       expect(screen.getByText("Alice")).toBeInTheDocument();
     });
@@ -29,7 +29,7 @@ describe("PersonItem", () => {
       render(
         <Item>
           <PersonItem name="Alice" />
-        </Item>
+        </Item>,
       );
       expect(screen.getByTestId("fi-user-icon")).toBeInTheDocument();
     });
@@ -38,7 +38,7 @@ describe("PersonItem", () => {
       render(
         <Item>
           <PersonItem name="Alice" image="/avatar.png" />
-        </Item>
+        </Item>,
       );
       expect(screen.getByRole("img")).toHaveAttribute("alt", "Alice");
     });
@@ -49,7 +49,7 @@ describe("PersonItem", () => {
           <PersonItem name="Alice">
             <span data-testid="metadata">#7 OH</span>
           </PersonItem>
-        </Item>
+        </Item>,
       );
       expect(screen.getByTestId("metadata")).toBeInTheDocument();
     });
@@ -62,11 +62,11 @@ describe("PersonItem", () => {
           <Link href="/team/123/players/456">
             <PersonItem name="Alice" />
           </Link>
-        </Item>
+        </Item>,
       );
       expect(screen.getByRole("link")).toHaveAttribute(
         "href",
-        "/team/123/players/456"
+        "/team/123/players/456",
       );
       expect(screen.getByText("Alice")).toBeInTheDocument();
     });
@@ -80,7 +80,7 @@ describe("PersonItem", () => {
           <ItemActions>
             <button data-testid="action-btn">Edit</button>
           </ItemActions>
-        </Item>
+        </Item>,
       );
       expect(screen.getByTestId("action-btn")).toBeInTheDocument();
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
@@ -92,7 +92,7 @@ describe("PersonItem", () => {
       const { container } = render(
         <Item>
           <PersonItem name="Alice" />
-        </Item>
+        </Item>,
       );
       expect(await axe(container)).toHaveNoViolations();
     });
@@ -103,7 +103,7 @@ describe("PersonItem", () => {
           <Link href="/team/123/players/456">
             <PersonItem name="Alice" />
           </Link>
-        </Item>
+        </Item>,
       );
       expect(await axe(container)).toHaveNoViolations();
     });
@@ -115,7 +115,7 @@ describe("PersonItem", () => {
           <ItemActions>
             <button>Edit</button>
           </ItemActions>
-        </Item>
+        </Item>,
       );
       expect(await axe(container)).toHaveNoViolations();
     });
@@ -125,8 +125,12 @@ describe("PersonItem", () => {
 describe("PersonItemSkeleton", () => {
   it("renders media and content placeholders", () => {
     render(<PersonItemSkeleton />);
-    expect(screen.getByTestId("person-item-skeleton-media")).toBeInTheDocument();
-    expect(screen.getByTestId("person-item-skeleton-content")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("person-item-skeleton-media"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("person-item-skeleton-content"),
+    ).toBeInTheDocument();
   });
 
   it("has no axe violations", async () => {

@@ -1,25 +1,24 @@
 "use client";
-import React, { useState } from "react";
-import { FiPlus } from "react-icons/fi";
-import { RiCheckLine, RiCloseLine } from "react-icons/ri";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { TeamItem } from "@/components/custom/list-item/team-item";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, Link } from "@/components/ui/button";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { TeamItem } from "@/components/custom/team-item";
 import { Item } from "@/components/ui/item";
-import NextLink from "next/link";
-import { useUser } from "@/hooks/use-data";
-import { useUserPlayers } from "@/hooks/use-data";
-import { PlayerStatus } from "@/entities/player";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
+import { PlayerStatus } from "@/entities/player";
+import { useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
+import NextLink from "next/link";
+import React, { useState } from "react";
+import { FiPlus } from "react-icons/fi";
+import { RiCheckLine, RiCloseLine } from "react-icons/ri";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const { user } = useUser();
@@ -28,7 +27,7 @@ export const Invitations = ({ className }: { className?: string }) => {
   const [errorMap, setErrorMap] = useState<Record<string, string>>({});
 
   const invitedPlayers = players.filter(
-    (p) => p.status === PlayerStatus.INVITED
+    (p) => p.status === PlayerStatus.INVITED,
   );
 
   const handleAccept = async (playerId: string): Promise<void> => {
@@ -84,7 +83,7 @@ export const Invitations = ({ className }: { className?: string }) => {
                   <TeamItem teamId={player.teamId!} />
                 </NextLink>
               </Item>
-              <div className="flex items-center gap-1 pl-12 pb-2">
+              <div className="flex items-center gap-1 pb-2 pl-12">
                 <Button
                   variant="ghost"
                   size="icon"

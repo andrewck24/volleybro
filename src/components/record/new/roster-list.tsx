@@ -1,6 +1,6 @@
+import { PersonItem } from "@/components/custom/list-item/person-item";
 import { Badge } from "@/components/ui/badge";
 import { Item, ItemActions } from "@/components/ui/item";
-import { PersonItem } from "@/components/custom/person-item";
 import type { TableRosterPlayer } from "@/lib/features/record/types";
 
 export const RosterList = ({ roster }: { roster: TableRosterPlayer[] }) => {

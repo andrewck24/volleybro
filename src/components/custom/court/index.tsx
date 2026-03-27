@@ -226,16 +226,14 @@ export const LoadingCourt = ({ className }: { className?: string }) => {
     <Court className={className}>
       <Outside>
         <AdjustButton />
-        <LoadingCard />
-        <LoadingCard />
+        {Array.from({ length: 2 }).map((_, i) => (
+          <LoadingCard key={i} />
+        ))}
       </Outside>
       <Inside>
-        <LoadingCard />
-        <LoadingCard />
-        <LoadingCard />
-        <LoadingCard />
-        <LoadingCard />
-        <LoadingCard />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <LoadingCard key={i} />
+        ))}
       </Inside>
     </Court>
   );
