@@ -1,15 +1,11 @@
-import {
-  EntryType,
-  Side,
-  type RallyDetail,
-  type Record,
-} from "@/entities/record";
+import { EntryType, Side, type Record } from "@/entities/record";
 import {
   getPreviousScores,
   getServingStatus,
   matchPhaseHelper,
 } from "@/lib/features/record/helpers";
 import type {
+  ReduxRecording,
   ReduxRecordState,
   ReduxStatus,
 } from "@/lib/features/record/types";
@@ -30,7 +26,7 @@ const statusState: ReduxStatus = {
   panel: "home",
 };
 
-const rallyDetailState: RallyDetail = {
+const rallyDetailState: ReduxRecording["home"] = {
   score: 0,
   type: null,
   num: null,
@@ -101,7 +97,7 @@ const setRecordingPlayer: CaseReducer<
 > = (state, action) => {
   const { mode } = state;
   const { _id, zone } = action.payload;
-  const isSamePlayer = _id === state[mode].recording.home.player._id;
+  const isSamePlayer = _id === state[mode].recording.home.player?._id;
 
   state[mode].status.panel = "home";
   state[mode].recording = {
@@ -168,7 +164,7 @@ const confirmRecordingRally: CaseReducer<
       away: state[mode].recording.away.score,
     },
     entryIndex: entryIndex + 1,
-    isServing: state[mode].recording.win,
+    isServing: state[mode].recording.win ?? false,
     inProgress,
     isSetPoint,
     panel: "home",
@@ -193,7 +189,7 @@ const setRecordingSubstitution: CaseReducer<
 > = (state, action) => {
   const { mode } = state;
   const inPlayer = action.payload;
-  const { _id: outPlayer } = state[mode].recording.home.player;
+  const outPlayer = state[mode].recording.home.player?._id ?? "";
   state[mode].recording = {
     ...state[mode].recording,
     substitution: {
@@ -277,8 +273,7 @@ const setEditingEntryStatus: CaseReducer<
               player: { _id: entry.players.out, zone: 0 },
             }
           : rallyDetailState,
-    away:
-      entry.type === EntryType.RALLY ? entry.away : rallyDetailState,
+    away: entry.type === EntryType.RALLY ? entry.away : rallyDetailState,
     ...(entry.type === EntryType.SUBSTITUTION
       ? { substitution: entry }
       : entry.type === EntryType.TIMEOUT

@@ -1,6 +1,7 @@
 "use client";
 import { Container, MoveButton } from "@/components/record/panel/moves";
 import { useToast } from "@/components/ui/use-toast";
+import type { Rally } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { createRally } from "@/lib/features/record/actions/create-rally";
@@ -11,7 +12,7 @@ import {
 } from "@/lib/features/record/helpers";
 import { recordActions } from "@/lib/features/record/record-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { scoringMoves } from "@/lib/scoring-moves";
+import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiSendPlaneLine } from "react-icons/ri";
 
@@ -26,37 +27,51 @@ export const OppoMoves = ({ recordId }: { recordId: string }) => {
   const { record, mutate } = useRecord(recordId);
 
   const oppoMoves = scoringMoves.filter((option) =>
-    scoringMoves[recording.home.num]?.outcome.includes(option.num),
+    scoringMoves[recording.home.num ?? -1]?.outcome.includes(option.num),
   );
 
   const create = () => {
     const { record: updatedRecord, phase } = createRallyHelper(
       { recordId, setIndex, entryIndex },
-      recording,
-      record,
+      recording as Rally,
+      record!,
     );
-    mutate(createRally({ recordId, setIndex, entryIndex }, recording, record), {
-      revalidate: false,
-      optimisticData: updatedRecord,
-    });
+    mutate(
+      createRally(
+        { recordId, setIndex, entryIndex },
+        recording as Rally,
+        record!,
+      ),
+      {
+        revalidate: false,
+        optimisticData: updatedRecord,
+      },
+    );
     dispatch(recordActions.confirmRecordingRally(phase));
   };
 
   const update = () => {
     const { record: updatedRecord, phase } = updateRallyHelper(
       { recordId, setIndex, entryIndex },
-      recording,
-      record,
+      recording as Rally,
+      record!,
     );
-    mutate(updateRally({ recordId, setIndex, entryIndex }, recording, record), {
-      revalidate: false,
-      optimisticData: updatedRecord,
-    });
+    mutate(
+      updateRally(
+        { recordId, setIndex, entryIndex },
+        recording as Rally,
+        record!,
+      ),
+      {
+        revalidate: false,
+        optimisticData: updatedRecord,
+      },
+    );
     dispatch(recordActions.confirmRecordingRally(phase));
     dispatch(recordActions.setRecordMode("general"));
   };
 
-  const onOppoClick = async (move) => {
+  const onOppoClick = async (move: ScoringMove) => {
     if (recording.away.num !== move.num) {
       dispatch(recordActions.setRecordingAwayMove(move));
     } else {

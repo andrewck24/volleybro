@@ -26,9 +26,9 @@
 
 ## 6. Strict Mode Fix Strategy — Presentation Layer (Record & Lib)
 
-- [ ] 6.1 Fix strict mode errors in `src/components/record/` following the Strict Mode Fix Strategy: add null guards and type narrowing for record panel, set-options, substitutes, and moves components
-- [ ] 6.2 Fix strict mode errors in `src/lib/features/record/` following the Strict Mode Fix Strategy: add type annotations and null guards for record-related Redux slices and utilities
-- [ ] 6.3 Verify: `npx tsc --noEmit && npm test`
+- [x] 6.1 Fix strict mode errors in `src/components/record/` following the Strict Mode Fix Strategy: add null guards and type narrowing for record panel, set-options, substitutes, and moves components
+- [x] 6.2 Fix strict mode errors in `src/lib/features/record/` following the Strict Mode Fix Strategy: add type annotations and null guards for record-related Redux slices and utilities
+- [x] 6.3 Verify: `npx tsc --noEmit && npm test`
 
 ## 7. Strict Mode Fix Strategy — Presentation Layer (Remaining Components & App)
 

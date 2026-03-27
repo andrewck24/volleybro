@@ -14,7 +14,7 @@ export const RecordHeader = ({
   const router = useRouter();
 
   return (
-    <header className="fixed top-0 z-10 flex h-[env(safe-area-inset-top)+5.5rem] w-full max-w-[640px] items-center justify-between">
+    <header className="fixed top-0 z-10 flex h-[env(safe-area-inset-top)+5.5rem] w-full max-w-160 items-center justify-between">
       <div className="flex w-full items-center justify-between gap-2 rounded-b-lg bg-card px-2 pt-[env(safe-area-inset-top)] shadow-sm">
         <Button
           variant="ghost"
@@ -24,10 +24,14 @@ export const RecordHeader = ({
           <RiArrowLeftLine />
           <span className="sr-only">Back</span>
         </Button>
-        <Scores
-          recordId={recordId}
-          onClick={handleOptionOpen && (() => handleOptionOpen("overview"))}
-        />
+        {recordId && handleOptionOpen ? (
+          <Scores
+            recordId={recordId}
+            onClick={() => handleOptionOpen("overview")}
+          />
+        ) : (
+          <div className="flex h-21 flex-1" />
+        )}
         {handleOptionOpen ? (
           <Button
             variant="ghost"

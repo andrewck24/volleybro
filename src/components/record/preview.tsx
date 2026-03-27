@@ -19,7 +19,7 @@ export const RecordPreview = ({
   className?: string;
 }) => {
   const { record } = useRecord(recordId);
-  const { players } = record.teams.home;
+  const { players } = record!.teams.home;
   const { setIndex } = useAppSelector((state) => state.record);
   const {
     recording,
@@ -28,15 +28,15 @@ export const RecordPreview = ({
 
   if (!inProgress) return null;
 
-  const lastEntry = record.sets[setIndex].entries[entryIndex - 1];
-  const isEditing = recording.home.player._id || recording.home.type;
+  const lastEntry = record!.sets[setIndex].entries[entryIndex - 1];
+  const isEditing = recording.home.player?._id || recording.home.type;
   const recordingEntry: IEntry = recording.substitution
     ? { type: EntryType.SUBSTITUTION, ...recording.substitution }
     : recording.timeout
       ? { type: EntryType.TIMEOUT, ...recording.timeout }
       : recording.challenge
         ? { type: EntryType.CHALLENGE, ...recording.challenge }
-        : { type: EntryType.RALLY, ...recording };
+        : ({ type: EntryType.RALLY, ...recording } as IEntry);
   const entry = isEditing || entryIndex === 0 ? recordingEntry : lastEntry;
 
   return (
@@ -44,7 +44,9 @@ export const RecordPreview = ({
       <Entry
         entry={entry}
         players={players}
-        onClick={handleOptionOpen ? () => handleOptionOpen("summary") : null}
+        onClick={
+          handleOptionOpen ? () => handleOptionOpen("summary") : undefined
+        }
         className={isEditing ? "animate-pulse duration-1000" : ""}
       />
     </Card>

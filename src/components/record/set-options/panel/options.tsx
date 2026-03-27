@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/form";
 import { PanelContent } from "@/components/ui/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Player, type Record } from "@/entities/record";
 import { useToast } from "@/components/ui/use-toast";
+import { Player, type Record } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
@@ -30,7 +30,7 @@ import { useAppSelector } from "@/lib/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
 export const Options = ({ recordId }: { recordId: string }) => {
@@ -41,7 +41,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   const { hasPairedReplacePosition } = useReplacePosition();
   const { record, mutate } = useRecord(recordId);
   const isNewSet = setIndex === record?.sets.length;
-  const members = record.teams.home.players;
+  const members = record?.teams.home.players ?? [];
 
   const defaultValues = useMemo<SetOptionsFormValues>(
     () => ({
@@ -120,7 +120,11 @@ export const Options = ({ recordId }: { recordId: string }) => {
   );
 };
 
-const ServingTeam = ({ form }) => {
+const ServingTeam = ({
+  form,
+}: {
+  form: UseFormReturn<SetOptionsFormValues>;
+}) => {
   return (
     <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
       <CardHeader className="w-full">
@@ -166,12 +170,13 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
           {lineups[0]?.substitutes &&
             lineups[0].substitutes.map((player) => {
               const member = members?.find((m) => m._id === player._id);
+              if (!member) return null;
               return (
                 <TableRow key={member._id}>
                   <TableCell className="w-6 [&>svg]:size-6">
                     <RiUserLine />
                   </TableCell>
-                  <TableCell className="w-[2.5rem] text-left">
+                  <TableCell className="w-10 text-left">
                     {member?.number}
                   </TableCell>
                   <TableCell className="text-lg">{member?.name}</TableCell>

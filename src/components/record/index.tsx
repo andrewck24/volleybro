@@ -38,7 +38,7 @@ const Record = ({
   const { _id, general } = useAppSelector((state) => state.record);
 
   const handleOptionOpen = (tabValue: string) => {
-    dispatch(recordActions.initialize({ record, setIndex }));
+    dispatch(recordActions.initialize({ record: record!, setIndex }));
     setTabValue(tabValue);
     setDialogOpen(true);
   };

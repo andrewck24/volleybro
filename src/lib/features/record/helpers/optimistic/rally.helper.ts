@@ -1,13 +1,21 @@
 import {
+  type PlayerStats,
+  type Rally,
+  type Record,
+  EntryType,
+  createRallyEntry,
+} from "@/entities/record";
+
+type StatEntry = { success: number; error: number };
+import {
   getServingStatus,
   matchPhaseHelper,
 } from "@/lib/features/record/helpers";
-import { type Record, type Rally, EntryType, createRallyEntry } from "@/entities/record";
 
 export const createRallyHelper = (
   params: { recordId: string; setIndex: number; entryIndex: number },
   recording: Rally,
-  record: Record
+  record: Record,
 ) => {
   const { setIndex, entryIndex } = params;
 
@@ -28,7 +36,7 @@ export const createRallyHelper = (
 export const updateRallyHelper = (
   params: { recordId: string; setIndex: number; entryIndex: number },
   recording: Rally,
-  record: Record
+  record: Record,
 ) => {
   const { setIndex, entryIndex } = params;
   const entries = record.sets[setIndex]?.entries;
@@ -54,52 +62,64 @@ export const updateRallyHelper = (
 const discardOriginalStats = (
   record: Record,
   setIndex: number,
-  originalRally: Rally
+  originalRally: Rally,
 ) => {
   const { win, home, away } = originalRally;
   const homePlayerIndex = record.teams.home.players.findIndex(
-    (player) => player._id === home.player._id
+    (player) => player._id === home.player?._id,
   );
   const homePlayer = record.teams.home.players[homePlayerIndex];
   const homeTeam = record.teams.home;
   const awayTeam = record.teams.away;
 
+  const homeStat = homeTeam.stats[setIndex][home.type] as StatEntry;
+  const awayStat = awayTeam.stats[setIndex][away.type] as StatEntry;
   if (win) {
     if (homePlayerIndex !== -1) {
-      homePlayer.stats[setIndex][home.type].success -= 1;
+      (
+        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+      ).success -= 1;
     }
-    homeTeam.stats[setIndex][home.type].success -= 1;
-    awayTeam.stats[setIndex][away.type].error -= 1;
+    homeStat.success -= 1;
+    awayStat.error -= 1;
   } else {
     if (homePlayerIndex !== -1) {
-      homePlayer.stats[setIndex][home.type].error -= 1;
+      (
+        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+      ).error -= 1;
     }
-    homeTeam.stats[setIndex][home.type].error -= 1;
-    awayTeam.stats[setIndex][away.type].success -= 1;
+    homeStat.error -= 1;
+    awayStat.success -= 1;
   }
 };
 
 const updateStats = (record: Record, setIndex: number, recording: Rally) => {
   const { win, home, away } = recording;
   const homePlayerIndex = record.teams.home.players.findIndex(
-    (player) => player._id === home.player._id
+    (player) => player._id === home.player?._id,
   );
   const homePlayer = record.teams.home.players[homePlayerIndex];
   const homeTeam = record.teams.home;
   const awayTeam = record.teams.away;
 
+  const homeStat = homeTeam.stats[setIndex][home.type] as StatEntry;
+  const awayStat = awayTeam.stats[setIndex][away.type] as StatEntry;
   if (win) {
     if (homePlayerIndex !== -1) {
-      homePlayer.stats[setIndex][home.type].success += 1;
+      (
+        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+      ).success += 1;
     }
-    homeTeam.stats[setIndex][home.type].success += 1;
-    awayTeam.stats[setIndex][away.type].error += 1;
+    homeStat.success += 1;
+    awayStat.error += 1;
   } else {
     if (homePlayerIndex !== -1) {
-      homePlayer.stats[setIndex][home.type].error += 1;
+      (
+        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+      ).error += 1;
     }
-    homeTeam.stats[setIndex][home.type].error += 1;
-    awayTeam.stats[setIndex][away.type].success += 1;
+    homeStat.error += 1;
+    awayStat.success += 1;
   }
 };
 
@@ -119,7 +139,7 @@ const processMatchPhase = (
   record: Record,
   setIndex: number,
   entryIndex: number,
-  recording: Rally
+  recording: Rally,
 ) => {
   const phase = matchPhaseHelper(record, setIndex, entryIndex + 1);
 
@@ -137,7 +157,7 @@ const processMatchPhase = (
     // If the match is finished, calculate the overall match result
     const homeSetsWonCount = record.sets.filter((set) => set.win).length;
     const awaySetsWonCount = record.sets.filter(
-      (set) => set.win === false
+      (set) => set.win === false,
     ).length;
     const setsCount = record.info.scoring.setCount;
 

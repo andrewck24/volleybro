@@ -49,14 +49,14 @@ export const RecordCourt = ({
         {liberos.map((player, index) => (
           <PlayerCard
             key={index}
-            player={player}
-            toggled={recording.home.player._id === player._id}
+            player={player as Parameters<typeof PlayerCard>[0]["player"]}
+            toggled={recording.home.player?._id === player._id}
             list="liberos"
             zone={-(index + 1)}
             onClick={() => {}}
           >
             {player.sub?._id && !player.sub?.entryIndex?.out && (
-              <SubIndicator number={player.sub.number} />
+              <SubIndicator number={player.sub.number ?? 0} />
             )}
           </PlayerCard>
         ))}
@@ -65,21 +65,21 @@ export const RecordCourt = ({
         {starting.map((player, index) => (
           <PlayerCard
             key={index}
-            player={player}
-            toggled={recording.home.player._id === player._id}
+            player={player as Parameters<typeof PlayerCard>[0]["player"]}
+            toggled={recording.home.player?._id === player._id}
             list="starting"
             zone={index + 1}
             onClick={() =>
               dispatch(
                 recordActions.setRecordingPlayer({
-                  _id: player._id,
+                  _id: player._id!,
                   zone: index + 1,
                 }),
               )
             }
           >
             {player.sub?._id && !player.sub?.entryIndex?.out && (
-              <SubIndicator number={player.sub.number} />
+              <SubIndicator number={player.sub.number ?? 0} />
             )}
           </PlayerCard>
         ))}

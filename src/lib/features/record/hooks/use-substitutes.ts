@@ -9,12 +9,14 @@ export const useSubstitutes = (
   const { record } = useRecord(recordId);
   const { setIndex, entryIndex, recording } = state;
 
+  if (!record) return [];
+
   const substitutes =
     entryIndex === record.sets[setIndex].entries.length
       ? gerGeneralModeSubstitutes(record, recording, setIndex)
       : getEditingModeSubstitutes(record, recording, setIndex, entryIndex);
 
-  return substitutes;
+  return substitutes.filter((s): s is NonNullable<typeof s> => s != null);
 };
 
 // 取得一般模式下的替補球員清單
@@ -25,7 +27,7 @@ const gerGeneralModeSubstitutes = (
 ) => {
   const { starting, substitutes } = record.sets[setIndex].lineups.home;
   const { players } = record.teams.home;
-  const startingId = recording.home.player._id;
+  const startingId = recording.home.player?._id;
 
   const player = starting.find((p) => p._id === startingId);
 
@@ -34,7 +36,7 @@ const gerGeneralModeSubstitutes = (
 
   // 若是替補球員，只能與原本的球員互換
   if (player?.sub?.entryIndex?.in) {
-    return [players.find((p) => p._id === player.sub._id)];
+    return [players.find((p) => p._id === player.sub?._id)];
   }
 
   // 取得可替補球員清單
@@ -57,7 +59,7 @@ const getEditingModeSubstitutes = (
 ) => {
   const { starting, substitutes } = record.sets[setIndex].lineups.home;
   const { players } = record.teams.home;
-  const startingId = recording.home.player._id;
+  const startingId = recording.home.player?._id;
 
   // 找出目前選取的球員
   const player =
@@ -72,10 +74,10 @@ const getEditingModeSubstitutes = (
   if (sub?.entryIndex?.out && sub.entryIndex.out < entryIndex) return [];
 
   // 若所編輯的時間點為替補狀態，則只能與原本的球員互換
-  if (sub?.entryIndex?.in < entryIndex) {
+  if ((sub?.entryIndex?.in ?? Infinity) < entryIndex) {
     return [
       players.find(
-        (p) => p._id === (sub.entryIndex.out ? player._id : sub._id),
+        (p) => p._id === (sub?.entryIndex?.out ? player._id : sub?._id),
       ),
     ];
   }
