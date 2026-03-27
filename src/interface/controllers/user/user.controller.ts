@@ -1,9 +1,14 @@
+import type { Result } from "@/applications/types/result";
+import type { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
+import type {
+  SearchUserOutput,
+  SearchUserUseCase,
+} from "@/applications/usecases/user/search-user.usecase";
+import { AuthenticationError } from "@/entities/errors/app-error";
+import { AuthReason } from "@/entities/errors/reasons/auth";
+import type { User } from "@/entities/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import type { SearchUserUseCase, SearchUserOutput } from "@/applications/usecases/user/search-user.usecase";
-import type { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
-import type { Result } from "@/applications/types/result";
-import type { User } from "@/entities/user";
 
 /**
  * Get user by ID or search by email.
@@ -20,7 +25,12 @@ export const getUserController = async (
     return useCase.execute(email);
   }
 
-  const targetId = actorId;
+  if (!actorId) {
+    throw new AuthenticationError(
+      AuthReason.SESSION_REQUIRED,
+      "Actor ID is required to look up user",
+    );
+  }
   const useCase = container.get<GetUserByIdUseCase>(TYPES.GetUserByIdUseCase);
-  return useCase.execute(targetId);
+  return useCase.execute(actorId);
 };

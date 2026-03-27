@@ -1,7 +1,8 @@
+import { createPlayer } from "@/__tests__/helpers";
+import { NotFoundError } from "@/entities/errors/app-error";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";
-import { createPlayer } from "@/__tests__/helpers";
 
 // Mock the PlayerModel
 jest.mock("@/infrastructure/db/mongoose/schemas/player", () => ({
@@ -166,7 +167,10 @@ describe("PlayerRepository", () => {
 
       expect(PlayerModel.updateMany).toHaveBeenCalledWith(
         { email: "alice@example.com", status: PlayerStatus.INVITED },
-        { $set: { userId: "user-1", status: PlayerStatus.INVITED }, $unset: { email: "" } },
+        {
+          $set: { userId: "user-1", status: PlayerStatus.INVITED },
+          $unset: { email: "" },
+        },
       );
       expect(count).toBe(2);
     });
@@ -206,7 +210,11 @@ describe("PlayerRepository", () => {
     });
 
     it("should $unset fields with undefined values", async () => {
-      const updates = { status: PlayerStatus.NONE, userId: undefined, email: undefined };
+      const updates = {
+        status: PlayerStatus.NONE,
+        userId: undefined,
+        email: undefined,
+      };
       const mockExec = jest.fn().mockResolvedValue({
         toObject: () => ({ ...mockPlayer, status: PlayerStatus.NONE }),
       });
@@ -227,15 +235,15 @@ describe("PlayerRepository", () => {
       expect(result?.status).toBe(PlayerStatus.NONE);
     });
 
-    it("should return null if player not found during update", async () => {
+    it("should throw NotFoundError if player not found during update", async () => {
       const mockExec = jest.fn().mockResolvedValue(null);
       (PlayerModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
         exec: mockExec,
       });
 
-      const result = await repository.update("nonexistent", {});
-
-      expect(result).toBeNull();
+      await expect(repository.update("nonexistent", {})).rejects.toThrow(
+        NotFoundError,
+      );
     });
   });
 

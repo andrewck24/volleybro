@@ -23,8 +23,14 @@ export const PlayerInfo = ({
   const dispatch = useAppDispatch();
   const { status, lineups } = useAppSelector((state) => state.lineup);
   const { lineupIndex, editingMember } = status;
+  const activeList = (editingMember.list || "starting") as
+    | "starting"
+    | "liberos"
+    | "substitutes";
   const lineupPlayer =
-    lineups[lineupIndex][editingMember.list][editingMember.zone - 1];
+    editingMember.zone != null
+      ? lineups[lineupIndex][activeList][editingMember.zone - 1]
+      : undefined;
   const player = players.find((member) => member._id === editingMember._id);
 
   return (

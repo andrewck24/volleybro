@@ -22,7 +22,7 @@ export const Stats = ({ recordId }: { recordId: string }) => {
         <CardTitle>
           數據總覽
           <SetSwitch
-            sets={record.sets}
+            sets={record!.sets}
             setIndex={setIndex}
             setSetIndex={setSetIndex}
           />
@@ -36,7 +36,7 @@ export const Stats = ({ recordId }: { recordId: string }) => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={record.teams} setIndex={setIndex} />
+          <TeamsStats teams={record!.teams} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>
@@ -63,7 +63,7 @@ export const StatsForOneSet = ({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={record.teams} setIndex={setIndex} />
+          <TeamsStats teams={record!.teams} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>

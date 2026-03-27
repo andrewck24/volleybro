@@ -92,9 +92,10 @@ const setEditingPlayer: CaseReducer<
 const removeEditingPlayer: CaseReducer<ReduxLineupState> = (state) => {
   const { lineupIndex } = state.status;
   const { list, zone } = state.status.editingMember;
+  if (zone == null) return;
   if (list === "starting") {
     state.lineups[lineupIndex].starting[zone - 1] = {
-      ...state.lineups[lineupIndex][list][zone - 1],
+      ...state.lineups[lineupIndex].starting[zone - 1],
       _id: null,
     };
   } else {
@@ -121,14 +122,16 @@ const replaceEditingPlayer: CaseReducer<
   const { lineupIndex } = state.status;
   const { _id, list, zone } = action.payload;
   const editingMember = state.status.editingMember;
-  if (list) state.lineups[lineupIndex][list].splice(zone - 1, 1);
+  if (list && zone != null) state.lineups[lineupIndex][list].splice(zone - 1, 1);
   if (list && editingMember._id) {
     state.lineups[lineupIndex][list].push({ _id: editingMember._id });
   }
-  state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
-    ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
-    _id,
-  };
+  if (editingMember.list && editingMember.zone != null) {
+    state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
+      ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
+      _id,
+    };
+  }
   state.status.edited = true;
   state.status.editingMember._id = _id;
   state.status.optionMode = LineupOptionMode.PLAYERINFO;
@@ -162,10 +165,12 @@ const setPlayerPosition: CaseReducer<
 > = (state, action) => {
   const { lineupIndex, editingMember } = state.status;
   const position = action.payload;
-  state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
-    ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
-    position,
-  };
+  if (editingMember.list && editingMember.zone != null) {
+    state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
+      ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
+      position,
+    };
+  }
   state.status = {
     ...state.status,
     edited: true,

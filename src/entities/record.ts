@@ -212,7 +212,7 @@ export const createChallengeEntry = (challenge: Challenge): ChallengeEntry => ({
 });
 
 export type Set = {
-  win: boolean;
+  win: boolean | null;
   lineups: {
     home: Lineup;
     away?: Lineup;
@@ -229,7 +229,7 @@ export type Set = {
 
 export type Record = {
   _id: string;
-  win: boolean;
+  win: boolean | null;
   team_id: string;
   info: Match;
   teams: {

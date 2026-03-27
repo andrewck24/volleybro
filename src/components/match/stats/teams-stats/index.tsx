@@ -1,6 +1,10 @@
 "use client";
 import { Points } from "@/components/match/stats/teams-stats/points";
-import { type Record, type TeamStats, TeamStatsClass } from "@/entities/record";
+import {
+  type Record as TRecord,
+  type TeamStats,
+  TeamStatsClass,
+} from "@/entities/record";
 import type { ITeamsStats } from "@/lib/features/record/types";
 import { useMemo } from "react";
 
@@ -8,7 +12,7 @@ export const TeamsStats = ({
   teams,
   setIndex,
 }: {
-  teams: Record["teams"];
+  teams: TRecord["teams"];
   setIndex: number;
 }) => {
   const teamsStats = useMemo<ITeamsStats>(
@@ -24,7 +28,7 @@ export const TeamsStats = ({
 };
 
 export const getTeamsStats = (
-  teams: Record["teams"],
+  teams: TRecord["teams"],
   setIndex: number,
 ): ITeamsStats => {
   if (teams.home.stats.length === 0 || teams.away.stats.length === 0) {
@@ -48,13 +52,20 @@ export const getTeamsStats = (
 
 const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
   return statsArr.reduce((acc, stats) => {
-    for (const key in stats) {
-      if (typeof stats[key] === "object" && stats[key] !== null) {
-        acc[key] = acc[key] || { success: 0, error: 0 };
-        acc[key].success += stats[key].success;
-        acc[key].error += stats[key].error;
-      } else if (typeof stats[key] === "number") {
-        acc[key] = (acc[key] || 0) + stats[key];
+    const s = stats as Record<string, unknown>;
+    const a = acc as Record<string, unknown>;
+    for (const key in s) {
+      if (typeof s[key] === "object" && s[key] !== null) {
+        const sv = s[key] as { success: number; error: number };
+        const av = (a[key] as
+          | { success: number; error: number }
+          | undefined) ?? { success: 0, error: 0 };
+        a[key] = {
+          success: av.success + sv.success,
+          error: av.error + sv.error,
+        };
+      } else if (typeof s[key] === "number") {
+        a[key] = ((a[key] as number | undefined) ?? 0) + (s[key] as number);
       }
     }
     return acc;

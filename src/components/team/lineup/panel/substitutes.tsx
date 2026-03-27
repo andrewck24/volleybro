@@ -72,9 +72,10 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
       </CardHeader>
       {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
         const player = players.find((p) => p._id === lineupPlayer._id);
+        if (!player) return null;
         return (
           <Button
-            key={player?._id}
+            key={player._id}
             variant={isEditingStarting ? "outline" : "default"}
             size="wide"
             onClick={() => handleSubstituteClick(player, index)}

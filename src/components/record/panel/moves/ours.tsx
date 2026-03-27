@@ -16,7 +16,7 @@ export const OursMoves = () => {
   const dispatch = useAppDispatch();
   const recordState = useAppSelector((state) => state.record);
   const { recording } = recordState[recordState.mode];
-  const { zone } = recording.home.player;
+  const zone = recording.home.player?.zone ?? 0;
   const oursMoves =
     zone === 0 ? errorMoves : zone === 1 || zone >= 5 ? backMoves : frontMoves;
 
@@ -25,7 +25,7 @@ export const OursMoves = () => {
   };
 
   return (
-    <Container className={zone === 0 && "grid-cols-1"}>
+    <Container className={zone === 0 ? "grid-cols-1" : undefined}>
       {oursMoves.map((move) => (
         <MoveButton
           key={`${move.type}-${move.num}`}

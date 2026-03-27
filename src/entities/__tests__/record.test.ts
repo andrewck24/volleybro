@@ -1,4 +1,6 @@
-import { PlayerStatsClass, TeamStatsClass, MoveType } from "../record";
+import { MoveType, PlayerStatsClass, TeamStatsClass } from "@/entities/record";
+
+type PlayerStatsMoveType = Exclude<MoveType, MoveType.UNFORCED>;
 
 describe("PlayerStatsClass", () => {
   let stats: PlayerStatsClass;
@@ -8,7 +10,7 @@ describe("PlayerStatsClass", () => {
   });
 
   it("should initialize with zero values", () => {
-    const moveTypes = [
+    const moveTypes: PlayerStatsMoveType[] = [
       MoveType.SERVING,
       MoveType.BLOCKING,
       MoveType.ATTACK,

@@ -1,26 +1,26 @@
 "use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import {
-  RiHome5Line,
-  RiHome5Fill,
-  RiGroupLine,
-  RiGroupFill,
-  RiNotification2Line,
-  RiNotification2Fill,
-  RiMenuLine,
-  RiMenuFill,
-} from "react-icons/ri";
 import { ActionButton } from "@/components/layout/nav/action-button";
 import { useActiveTeamId } from "@/hooks/use-data";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  RiGroupFill,
+  RiGroupLine,
+  RiHome5Fill,
+  RiHome5Line,
+  RiMenuFill,
+  RiMenuLine,
+  RiNotification2Fill,
+  RiNotification2Line,
+} from "react-icons/ri";
 
-export const NavLinks = ({ session: _session }) => {
+export const NavLinks = (_props: { session?: unknown }) => {
   const pathname = usePathname();
   const defaultTeamId = useActiveTeamId();
 
   return (
-    <nav className="fixed bottom-0 left-0 flex flex-row items-center justify-center w-full pb-[calc(env(safe-area-inset-bottom)-1rem)] bg-card">
+    <nav className="fixed bottom-0 left-0 flex w-full flex-row items-center justify-center bg-card pb-[calc(env(safe-area-inset-bottom)-1rem)]">
       <NavLink
         href="/home"
         active={pathname === "/home"}
@@ -37,7 +37,7 @@ export const NavLinks = ({ session: _session }) => {
       >
         隊伍
       </NavLink>
-      <ActionButton teamId={defaultTeamId} />
+      {defaultTeamId && <ActionButton teamId={defaultTeamId} />}
       <NavLink
         href="/notifications"
         active={pathname.startsWith("/notifications")}
@@ -77,11 +77,11 @@ const NavLink = ({
     <Link
       href={href}
       className={cn(
-        "flex flex-col items-center justify-center flex-1 h-full pt-2",
-        "no-underline text-foreground [&>svg]:size-7 text-xs",
+        "flex h-full flex-1 flex-col items-center justify-center pt-2",
+        "text-xs text-foreground no-underline [&>svg]:size-7",
         "transition-all duration-200 ease-in-out",
-        active && "pt-1 font-semibold border-t-4 border-primary text-primary",
-        className
+        active && "border-t-4 border-primary pt-1 font-semibold text-primary",
+        className,
       )}
     >
       {active ? activeIcon : inactiveIcon}

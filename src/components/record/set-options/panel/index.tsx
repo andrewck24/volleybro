@@ -15,7 +15,7 @@ export const SetOptionsPanel = ({ recordId }: { recordId: string }) => {
   return (
     <Panel>
       {optionMode === LineupOptionMode.PLAYERINFO ? (
-        <PlayerInfo players={record.teams.home.players} />
+        <PlayerInfo players={record?.teams.home.players ?? []} />
       ) : optionMode === LineupOptionMode.SUBSTITUTES ? (
         <Substitutes recordId={recordId} />
       ) : optionMode === LineupOptionMode.POSITIONS ? (

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { recordActions } from "@/lib/features/record/record-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import type { ScoringMove } from "@/lib/scoring-moves";
 import { cn } from "@/lib/utils";
 import { RiEditBoxLine } from "react-icons/ri";
 export const RecordMoves = ({
@@ -25,7 +26,7 @@ export const RecordMoves = ({
           onClick={() => dispatch(recordActions.setPanel("home"))}
           className={cn(
             "overflow-hidden border-b-2 border-l-2 border-primary p-1 text-nowrap transition-all",
-            status.panel === "home" ? "w-full" : "w-[2rem]",
+            status.panel === "home" ? "w-full" : "w-8",
           )}
         >
           <RiEditBoxLine className="w-6 min-w-6" />
@@ -39,7 +40,7 @@ export const RecordMoves = ({
               ? "w-full"
               : recording.home.num === null
                 ? "sr-only w-0"
-                : "w-[2rem]",
+                : "w-8",
           )}
         >
           <RiEditBoxLine className="w-6 min-w-6" />
@@ -69,7 +70,17 @@ export const Container = ({
   );
 };
 
-export const MoveButton = ({ move, toggled, onClick, children }) => {
+export const MoveButton = ({
+  move,
+  toggled,
+  onClick,
+  children,
+}: {
+  move: ScoringMove;
+  toggled: boolean;
+  onClick: (move: ScoringMove) => void;
+  children?: React.ReactNode;
+}) => {
   const WIN_STYLE =
     "bg-primary/30 text-foreground [&>svg]:text-primary shadow-sm hover:bg-primary/80";
   const LOSE_STYLE =

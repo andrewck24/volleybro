@@ -59,12 +59,16 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
   const roster = useMemo(() => {
     const getPlayerData = (list: string) => {
       if (!team || !players) return [];
-      return team.lineups[lineupIndex][list].map((player) => {
+      return (
+        team.lineups[lineupIndex][
+          list as "starting" | "liberos" | "substitutes"
+        ] as { _id: string }[]
+      ).map((player) => {
         const member = players.find((p) => p._id === player._id);
         return {
-          _id: member._id,
-          name: member.name,
-          number: member.number,
+          _id: member?._id ?? "",
+          name: member?.name ?? "",
+          number: member?.number ?? 0,
           list,
         };
       });
@@ -105,7 +109,7 @@ export const NewRecordForm = ({ teamId }: { teamId: string }) => {
                 _id: teamId,
                 name: info.teams.home.name,
                 roster,
-                lineup: team.lineups[lineupIndex],
+                lineup: team?.lineups[lineupIndex],
               },
               away: { name: info.teams.away.name },
             },

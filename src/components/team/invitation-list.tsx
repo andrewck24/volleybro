@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PlayerStatus, type Player } from '@/entities/player';
-import { useToast } from '@/components/ui/use-toast';
-import { getErrorMessage, showErrorToast } from '@/lib/api/error-toast';
-import { ROLE_LABELS } from '@/lib/constants/labels';
+} from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { PlayerStatus, type Player } from "@/entities/player";
+import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
+import { ROLE_LABELS } from "@/lib/constants/labels";
+import { useState } from "react";
 
 interface InvitationListProps {
   invitations: Player[];
@@ -46,7 +46,7 @@ export function InvitationList({
 
   // Filter only pending invitations
   const pendingInvitations = invitations.filter(
-    (player) => player.status === PlayerStatus.INVITED
+    (player) => player.status === PlayerStatus.INVITED,
   );
 
   const handleAccept = async (playerId: string) => {
@@ -60,8 +60,8 @@ export function InvitationList({
       await onAccept(playerId);
       // T124: Show success toast notification
       toast({
-        title: '邀請已接受',
-        description: '您已加入隊伍',
+        title: "邀請已接受",
+        description: "您已加入隊伍",
       });
     } catch (err) {
       setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
@@ -77,8 +77,8 @@ export function InvitationList({
       await onReject(playerId);
       // T124: Show success toast notification
       toast({
-        title: '邀請已拒絕',
-        description: '您已拒絕了該邀請',
+        title: "邀請已拒絕",
+        description: "您已拒絕了該邀請",
       });
     } catch (err) {
       showErrorToast(err, toast);
@@ -92,9 +92,7 @@ export function InvitationList({
       <Card>
         <CardHeader>
           <CardTitle>待決邀請</CardTitle>
-          <CardDescription>
-            您目前沒有任何待決的邀請
-          </CardDescription>
+          <CardDescription>您目前沒有任何待決的邀請</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -111,10 +109,7 @@ export function InvitationList({
       <CardContent>
         <div className="space-y-3">
           {pendingInvitations.map((invitation) => (
-            <div
-              key={invitation._id}
-              className="rounded-lg border p-4"
-            >
+            <div key={invitation._id} className="rounded-lg border p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h3 className="font-medium">團隊邀請</h3>
@@ -122,7 +117,9 @@ export function InvitationList({
                     <div className="flex items-center gap-1">
                       <span>您被邀請以</span>
                       <Badge variant="secondary">
-                        {ROLE_LABELS[invitation.role] || invitation.role}
+                        {invitation.role != null
+                          ? ROLE_LABELS[invitation.role] || invitation.role
+                          : ""}
                       </Badge>
                       <span>身份加入隊伍</span>
                     </div>
@@ -136,7 +133,9 @@ export function InvitationList({
                     variant="outline"
                     size="sm"
                     onClick={() => handleReject(invitation._id)}
-                    disabled={isLoading || isSubmitting || processingId !== null}
+                    disabled={
+                      isLoading || isSubmitting || processingId !== null
+                    }
                     aria-busy={processingId === invitation._id}
                   >
                     拒絕
@@ -144,7 +143,9 @@ export function InvitationList({
                   <Button
                     size="sm"
                     onClick={() => handleAccept(invitation._id)}
-                    disabled={isLoading || isSubmitting || processingId !== null}
+                    disabled={
+                      isLoading || isSubmitting || processingId !== null
+                    }
                     aria-busy={processingId === invitation._id}
                   >
                     接受

@@ -17,7 +17,7 @@ export const MatchResult = ({ match }: { match: TMatchResult }) => {
       <div className="flex grow-0 flex-row items-center justify-center gap-2 md:flex-col">
         <p className="flex-1">{match.info.name || "no title"}</p>
         <p>
-          {match.info.time.date
+          {match.info.time?.date
             ? format(new Date(match.info.time.date), "MMM. dd")
             : "no date"}
         </p>
@@ -62,7 +62,7 @@ export const MatchInfo = ({ info, ...props }: MatchInfoProps) => {
           </p>
         </div>
         <div>
-          {info.time.date instanceof Date
+          {info.time?.date instanceof Date
             ? format(info.time.date, "MMM. dd")
             : "時間未定"}
         </div>

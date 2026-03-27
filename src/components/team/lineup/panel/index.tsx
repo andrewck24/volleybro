@@ -27,7 +27,7 @@ export const LineupPanel = ({
   ]);
   const others = players
     .filter((player) => !listedIds.has(player._id))
-    .sort((a, b) => a.number - b.number);
+    .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
 
   return (
     <Panel className="px-4 py-2">

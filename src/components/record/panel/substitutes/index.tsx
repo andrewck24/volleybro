@@ -39,15 +39,15 @@ export const Substitutes = ({
       mutate(
         createSubstitution(
           { recordId, setIndex, entryIndex },
-          recording.substitution,
-          record,
+          recording.substitution!,
+          record!,
         ),
         {
           revalidate: false,
           optimisticData: createSubstitutionHelper(
             { recordId, setIndex, entryIndex },
-            recording.substitution,
-            record,
+            recording.substitution!,
+            record!,
           ),
         },
       );
@@ -73,29 +73,29 @@ export const Substitutes = ({
       </CardHeader>
       <CardContent className="flex-1">
         {substitutes.map((substitute) => {
-          const toggled =
-            recording?.substitution?.players?.in === substitute._id;
-          return (
-            <Button
-              key={substitute._id}
-              variant={toggled ? "default" : "outline"}
-              size="wide"
-              className="text-xl"
-              onClick={() =>
-                dispatch(
-                  recordActions.setRecordingSubstitution(
-                    toggled ? null : substitute._id,
-                  ),
-                )
-              }
-            >
-              <span className="flex basis-8 justify-end font-semibold">
-                {substitute.number}
-              </span>
-              {substitute.name}
-            </Button>
-          );
-        })}
+            const toggled =
+              recording?.substitution?.players?.in === substitute._id;
+            return (
+              <Button
+                key={substitute._id}
+                variant={toggled ? "default" : "outline"}
+                size="wide"
+                className="text-xl"
+                onClick={() =>
+                  toggled
+                    ? dispatch(recordActions.resetRecordingSubstitution())
+                    : dispatch(
+                        recordActions.setRecordingSubstitution(substitute._id),
+                      )
+                }
+              >
+                <span className="flex basis-8 justify-end font-semibold">
+                  {substitute.number}
+                </span>
+                {substitute.name}
+              </Button>
+            );
+          })}
       </CardContent>
       <Button size="lg" className="text-xl" onClick={onSubmit}>
         <RiCheckLine />

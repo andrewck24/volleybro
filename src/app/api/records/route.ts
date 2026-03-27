@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createRecordController } from "@/interface/controllers/record/record.controller";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { createRecordController } from "@/interface/controllers/record/record.controller";
 import { withErrorHandler } from "@/lib/api/wrappers";
+import { NextRequest, NextResponse } from "next/server";
 
 export const POST = withErrorHandler(async (req: NextRequest) => {
   await connectToMongoDB();
   const request = await req.json();
   const searchParams = req.nextUrl.searchParams;
-  const teamId = searchParams.get("ti");
+  const teamId = searchParams.get("ti") ?? "";
 
   const input = {
     params: { teamId },

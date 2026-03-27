@@ -11,7 +11,7 @@ export const useLineup = (
   const { entryIndex, isServing, inProgress } = status;
   const { record } = useRecord(recordId);
 
-  if (!inProgress) return { starting: [], liberos: [] };
+  if (!inProgress || !record) return { starting: [], liberos: [] };
 
   const { entries, lineups } = record.sets[setIndex];
 
@@ -90,10 +90,7 @@ const getEditingModeLineup = (
   // Calculate serving and rotation
   const { rotation } = set.entries.slice(0, entryIndex).reduce(
     (acc, entry) => {
-      if (
-        entry.type === EntryType.RALLY &&
-        entry.win !== acc.isServing
-      ) {
+      if (entry.type === EntryType.RALLY && entry.win !== acc.isServing) {
         return {
           isServing: !acc.isServing,
           rotation: (acc.rotation + 1) % 6,
@@ -108,14 +105,14 @@ const getEditingModeLineup = (
 
   const mapPlayer = (player: LineupPlayer) => {
     // Whether this player has been substituted in the game
-    const hasSub = player?.sub?.entryIndex?.in < entryIndex;
+    const hasSub = (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex;
     // Current game state shows this player is a substitute
     const isSub =
       player?.sub?.entryIndex?.in !== undefined &&
       !player?.sub?.entryIndex?.out;
     // At the editing point, this player was a substitute
     const wasSub =
-      player?.sub?.entryIndex?.in < entryIndex &&
+      (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex &&
       (!player?.sub?.entryIndex?.out ||
         player?.sub?.entryIndex?.out >= entryIndex);
     // When a player (LineupPlayer) is substituted, their _id and sub._id are swapped

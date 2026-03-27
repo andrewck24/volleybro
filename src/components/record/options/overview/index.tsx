@@ -6,7 +6,7 @@ import { useAppSelector } from "@/lib/redux/hooks";
 export const RecordOptionsOverview = ({ recordId }: { recordId: string }) => {
   const { record } = useRecord(recordId);
   const { setIndex } = useAppSelector((state) => state.record);
-  const { home, away } = record.teams;
+  const { home, away } = record!.teams;
 
   return (
     <>

@@ -42,7 +42,7 @@ export const LineupOptions = ({
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
   const othersCount = others.length;
 
-  const handlelineupIndexClick = (index) => {
+  const handlelineupIndexClick = (index: number) => {
     if (index === status.lineupIndex) return;
     if (hasPairedSwitchPosition) {
       dispatch(lineupActions.setLineupIndex(index));

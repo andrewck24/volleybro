@@ -4,13 +4,15 @@
       "@/*": ["./src/*"]
     },
     "types": ["node", "@serwist/next/typings", "reflect-metadata"],
-    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
+    "lib": ["dom", "esnext", "webworker"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
+    "noUncheckedSideEffectImports": true,
     "noEmit": true,
     "incremental": true,
     "module": "esnext",
+    // TODO: remove experimentalDecorators and emitDecoratorMetadata when migrating off InversifyJS decorators or to TS7
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
@@ -23,7 +25,7 @@
         "name": "next"
       }
     ],
-    "target": "ES2017"
+    "target": "es2025"
   },
   "include": [
     "next-env.d.ts",

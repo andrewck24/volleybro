@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("CreateRallyUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new CreateRallyUseCase(
       mockRecordRepository,
       mockAuthService,
@@ -71,7 +71,7 @@ describe("CreateRallyUseCase", () => {
 
 describe("UpdateRallyUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new UpdateRallyUseCase(
       mockRecordRepository,
       mockAuthService,
@@ -108,7 +108,7 @@ describe("UpdateRallyUseCase", () => {
 
 describe("FindRecordUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new FindRecordUseCase(
       mockRecordRepository,
       mockAuthService,
@@ -123,7 +123,7 @@ describe("FindRecordUseCase", () => {
 
 describe("CreateSetUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new CreateSetUseCase(
       mockRecordRepository,
       mockAuthService,
@@ -141,7 +141,7 @@ describe("CreateSetUseCase", () => {
 
 describe("UpdateSetUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new UpdateSetUseCase(
       mockRecordRepository,
       mockAuthService,
@@ -159,7 +159,7 @@ describe("UpdateSetUseCase", () => {
 
 describe("CreateSubstitutionUseCase", () => {
   it("throws NotFoundError when record not found", async () => {
-    mockRecordRepository.findOne.mockResolvedValue(null);
+    mockRecordRepository.findOne.mockResolvedValue(undefined);
     const useCase = new CreateSubstitutionUseCase(
       mockRecordRepository,
       mockAuthService,
