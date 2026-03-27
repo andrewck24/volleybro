@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+
 import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { PersonItem } from "@/components/custom/person-item";
+import { Item } from "@/components/ui/item";
 import type { Player } from "@/entities/player";
 import { POSITION_LABELS } from "@/lib/constants/labels";
 import { useTeamPlayers } from "@/hooks/use-data";
@@ -35,13 +38,13 @@ export function PlayersList({ teamId }: PlayersListProps) {
   return (
     <div className="flex flex-col gap-2">
       {orderedPlayers.map((player) => (
-        <PersonItem
-          key={player._id}
-          name={player.name}
-          href={`/team/${teamId}/players/${player._id}`}
-        >
-          <PlayerMetadata player={player} />
-        </PersonItem>
+        <Item key={player._id} asChild>
+          <Link href={`/team/${teamId}/players/${player._id}`}>
+            <PersonItem name={player.name}>
+              <PlayerMetadata player={player} />
+            </PersonItem>
+          </Link>
+        </Item>
       ))}
     </div>
   );

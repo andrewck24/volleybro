@@ -1,8 +1,13 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import Link from "next/link";
+import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
-import { PersonItem } from "@/components/custom/person-item";
 
-// Mock react-icons
+import {
+  PersonItem,
+  PersonItemSkeleton,
+} from "@/components/custom/person-item";
+import { Item, ItemActions } from "@/components/ui/item";
+
 jest.mock("react-icons/fi", () => ({
   FiUser: (props: React.SVGAttributes<SVGElement>) => (
     <svg data-testid="fi-user-icon" {...props} />
@@ -12,139 +17,120 @@ jest.mock("react-icons/fi", () => ({
 describe("PersonItem", () => {
   describe("rendering", () => {
     it("renders name text", () => {
-      render(<PersonItem name="Alice" />);
+      render(
+        <Item>
+          <PersonItem name="Alice" />
+        </Item>
+      );
       expect(screen.getByText("Alice")).toBeInTheDocument();
     });
 
     it("renders avatar fallback icon when no image provided", () => {
-      render(<PersonItem name="Alice" />);
+      render(
+        <Item>
+          <PersonItem name="Alice" />
+        </Item>
+      );
       expect(screen.getByTestId("fi-user-icon")).toBeInTheDocument();
     });
 
     it("renders avatar image when image prop is provided", () => {
-      render(<PersonItem name="Alice" image="/avatar.png" />);
-      const img = screen.getByRole("img");
-      expect(img).toHaveAttribute("src", "/avatar.png");
-      expect(img).toHaveAttribute("alt", "Alice");
+      render(
+        <Item>
+          <PersonItem name="Alice" image="/avatar.png" />
+        </Item>
+      );
+      expect(screen.getByRole("img")).toHaveAttribute("alt", "Alice");
     });
 
-    it("renders children in metadata area", () => {
+    it("renders children in content area", () => {
       render(
-        <PersonItem name="Alice">
-          <span data-testid="metadata">#7 OH</span>
-        </PersonItem>
+        <Item>
+          <PersonItem name="Alice">
+            <span data-testid="metadata">#7 OH</span>
+          </PersonItem>
+        </Item>
       );
       expect(screen.getByTestId("metadata")).toBeInTheDocument();
     });
+  });
 
-    it("renders action slot content", () => {
+  describe("navigable form (asChild)", () => {
+    it("renders as link via Item asChild + Link", () => {
       render(
-        <PersonItem
-          name="Alice"
-          action={<button data-testid="action-btn">Edit</button>}
-        />
+        <Item asChild>
+          <Link href="/team/123/players/456">
+            <PersonItem name="Alice" />
+          </Link>
+        </Item>
+      );
+      expect(screen.getByRole("link")).toHaveAttribute(
+        "href",
+        "/team/123/players/456"
+      );
+      expect(screen.getByText("Alice")).toBeInTheDocument();
+    });
+  });
+
+  describe("static with actions form", () => {
+    it("renders interactive ItemActions without link", () => {
+      render(
+        <Item>
+          <PersonItem name="Alice" />
+          <ItemActions>
+            <button data-testid="action-btn">Edit</button>
+          </ItemActions>
+        </Item>
       );
       expect(screen.getByTestId("action-btn")).toBeInTheDocument();
-    });
-  });
-
-  describe("navigation pattern", () => {
-    it("renders as Link when href is provided", () => {
-      render(<PersonItem name="Alice" href="/team/123/players/456" />);
-      const link = screen.getByRole("link");
-      expect(link).toHaveAttribute("href", "/team/123/players/456");
-    });
-
-    it("renders as button when onClick is provided", () => {
-      const handleClick = jest.fn();
-      render(<PersonItem name="Alice" onClick={handleClick} />);
-      const button = screen.getByRole("button");
-      fireEvent.click(button);
-      expect(handleClick).toHaveBeenCalledTimes(1);
-    });
-
-    it("renders as div when neither href nor onClick is provided", () => {
-      render(<PersonItem name="Alice" />);
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
-      expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    });
-
-    it("prefers href over onClick when both provided", () => {
-      const handleClick = jest.fn();
-      render(
-        <PersonItem
-          name="Alice"
-          href="/team/123"
-          onClick={handleClick}
-        />
-      );
-      expect(screen.getByRole("link")).toBeInTheDocument();
-    });
-  });
-
-  describe("action slot event isolation", () => {
-    it("action button click does not trigger parent Link navigation", () => {
-      const actionClick = jest.fn();
-      render(
-        <PersonItem
-          name="Alice"
-          href="/team/123"
-          action={
-            <button data-testid="action-btn" onClick={actionClick}>
-              Edit
-            </button>
-          }
-        />
-      );
-
-      const actionBtn = screen.getByTestId("action-btn");
-      fireEvent.click(actionBtn);
-      expect(actionClick).toHaveBeenCalledTimes(1);
-    });
-
-    it("action button click does not trigger parent onClick", () => {
-      const parentClick = jest.fn();
-      const actionClick = jest.fn();
-      render(
-        <PersonItem
-          name="Alice"
-          onClick={parentClick}
-          action={
-            <button data-testid="action-btn" onClick={actionClick}>
-              Edit
-            </button>
-          }
-        />
-      );
-
-      const actionBtn = screen.getByTestId("action-btn");
-      fireEvent.click(actionBtn);
-      expect(actionClick).toHaveBeenCalledTimes(1);
-      expect(parentClick).not.toHaveBeenCalled();
     });
   });
 
   describe("accessibility", () => {
-    it("has no axe violations (static)", async () => {
-      const { container } = render(<PersonItem name="Alice" />);
-      const results = await axe(container);
-      expect(results).toHaveNoViolations();
+    it("has no axe violations (static item)", async () => {
+      const { container } = render(
+        <Item>
+          <PersonItem name="Alice" />
+        </Item>
+      );
+      expect(await axe(container)).toHaveNoViolations();
     });
 
-    it("has no axe violations (link)", async () => {
+    it("has no axe violations (navigable form)", async () => {
       const { container } = render(
-        <PersonItem name="Alice" href="/team/123" />
+        <Item asChild>
+          <Link href="/team/123/players/456">
+            <PersonItem name="Alice" />
+          </Link>
+        </Item>
       );
-      const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expect(await axe(container)).toHaveNoViolations();
     });
 
-    it("has no axe violations (button)", async () => {
+    it("has no axe violations (static with actions)", async () => {
       const { container } = render(
-        <PersonItem name="Alice" onClick={() => {}} />
+        <Item>
+          <PersonItem name="Alice" />
+          <ItemActions>
+            <button>Edit</button>
+          </ItemActions>
+        </Item>
       );
-      const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      expect(await axe(container)).toHaveNoViolations();
     });
+  });
+});
+
+describe("PersonItemSkeleton", () => {
+  it("renders media and content placeholders", () => {
+    render(<PersonItemSkeleton />);
+    expect(screen.getByTestId("person-item-skeleton-media")).toBeInTheDocument();
+    expect(screen.getByTestId("person-item-skeleton-content")).toBeInTheDocument();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(<PersonItemSkeleton />);
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

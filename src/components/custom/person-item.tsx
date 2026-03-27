@@ -1,91 +1,50 @@
-"use client";
-
 import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { FiUser } from "react-icons/fi";
 
-import { cn } from "@/lib/utils";
+import {
+  Item,
+  ItemContent,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface PersonItemProps {
   name: string;
   image?: string;
-  href?: string;
-  onClick?: () => void;
   children?: ReactNode;
-  action?: ReactNode;
-  className?: string;
 }
 
-export function PersonItem({
-  name,
-  image,
-  href,
-  onClick,
-  children,
-  action,
-  className,
-}: PersonItemProps) {
-  const content = (
+export function PersonItem({ name, image, children }: PersonItemProps) {
+  return (
     <>
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current opacity-50">
+      <ItemMedia variant="image">
         {image ? (
-          <Image
-            src={image}
-            alt={name}
-            width={36}
-            height={36}
-            className="h-9 w-9 rounded-full object-cover"
-          />
+          <Image src={image} alt={name} width={40} height={40} />
         ) : (
-          <FiUser className="h-4 w-4" />
+          <div className="flex h-full w-full items-center justify-center">
+            <FiUser className="h-4 w-4" />
+          </div>
         )}
-      </div>
-      <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate font-medium">{name}</span>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle>{name}</ItemTitle>
         {children}
-      </div>
-      {action && (
-        <div
-          className="shrink-0"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.stopPropagation();
-            }
-          }}
-          role="presentation"
-        >
-          {action}
-        </div>
-      )}
+      </ItemContent>
     </>
   );
+}
 
-  const baseClassName = cn(
-    "flex h-12 w-full items-center gap-3 rounded-md px-3",
-    className
+export function PersonItemSkeleton() {
+  return (
+    <Item>
+      <ItemMedia variant="image" data-testid="person-item-skeleton-media">
+        <Skeleton className="h-full w-full" />
+      </ItemMedia>
+      <ItemContent data-testid="person-item-skeleton-content">
+        <Skeleton className="h-4 w-24" />
+      </ItemContent>
+    </Item>
   );
-
-  if (href) {
-    return (
-      <Link href={href} className={cn(baseClassName, "hover:bg-accent")}>
-        {content}
-      </Link>
-    );
-  }
-
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(baseClassName, "hover:bg-accent text-left")}
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return <div className={baseClassName}>{content}</div>;
 }

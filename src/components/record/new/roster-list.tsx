@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Item, ItemActions } from "@/components/ui/item";
 import { PersonItem } from "@/components/custom/person-item";
 import type { TableRosterPlayer } from "@/lib/features/record/types";
 
@@ -6,17 +7,18 @@ export const RosterList = ({ roster }: { roster: TableRosterPlayer[] }) => {
   return (
     <div className="flex flex-col">
       {roster.map((player) => (
-        <PersonItem
-          key={player._id}
-          name={player.name}
-          action={<ListBadge list={player.list} />}
-        >
-          {player.number != null && (
-            <span className="shrink-0 text-sm text-muted-foreground">
-              #{player.number}
-            </span>
-          )}
-        </PersonItem>
+        <Item key={player._id}>
+          <PersonItem name={player.name}>
+            {player.number != null && (
+              <span className="shrink-0 text-sm text-muted-foreground">
+                #{player.number}
+              </span>
+            )}
+          </PersonItem>
+          <ItemActions>
+            <ListBadge list={player.list} />
+          </ItemActions>
+        </Item>
       ))}
     </div>
   );

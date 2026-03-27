@@ -9,10 +9,10 @@
 
 ## 2. Refactor PersonItem to Compose Shadcn Item (Presentation Layer)
 
-- [ ] 2.1 Update person-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
-- [ ] [P] 2.2 Refactor `PersonItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `PersonItemSkeleton` export per PersonItem and TeamItem as custom wrappers and skeleton co-location design
-- [ ] 2.3 Update all PersonItem consumers (players/list.tsx, record/new/roster-list.tsx) to use new composition API per two item forms design
-- [ ] 2.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
+- [x] 2.1 Update person-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
+- [x] [P] 2.2 Refactor `PersonItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `PersonItemSkeleton` export per PersonItem and TeamItem as custom wrappers and skeleton co-location design
+- [x] 2.3 Update all PersonItem consumers (players/list.tsx, record/new/roster-list.tsx) to use new composition API per two item forms design
+- [x] 2.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
 
 ## 3. Refactor TeamItem to Compose Shadcn Item (Presentation Layer)
 
@@ -33,7 +33,7 @@
 - [ ] 5.1 Delete `src/components/ui/sheet.tsx` (zero consumers) per component relocations and cleanup design
 - [ ] [P] 5.2 Relocate `src/components/ui/panel.tsx` to `src/components/custom/panel/index.tsx`, update all 9 import paths per component relocations and cleanup design
 - [ ] [P] 5.3 Relocate `src/components/ui/flip-words.tsx` to `src/components/landing/flip-words.tsx`, update `landing/hero.tsx` import per component relocations and cleanup design
-- [ ] 5.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [ ] 5.4 Run `/simplify`, and verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 6. Component Layer Boundary Documentation
 
