@@ -23,10 +23,10 @@
 
 ## 4. LoadingCourt Relocation (Presentation Layer)
 
-- [ ] 4.1 Move `LoadingCourt` from `custom/loading/court.tsx` into `custom/court/index.tsx` as named export, per LoadingCourt relocation design
-- [ ] [P] 4.2 Update import paths in `team/lineup/index.tsx` and `record/index.tsx`
-- [ ] 4.3 Delete `custom/loading/court.tsx`
-- [ ] 4.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 4.1 Move `LoadingCourt` from `custom/loading/court.tsx` into `custom/court/index.tsx` as named export, per LoadingCourt relocation design
+- [x] [P] 4.2 Update import paths in `team/lineup/index.tsx` and `record/index.tsx`
+- [x] 4.3 Delete `custom/loading/court.tsx`
+- [x] 4.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 5. Component Relocations and Cleanup (Presentation Layer)
 

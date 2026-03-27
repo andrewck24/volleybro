@@ -220,3 +220,23 @@ export const AdjustButton = ({
     </div>
   );
 };
+
+export const LoadingCourt = ({ className }: { className?: string }) => {
+  return (
+    <Court className={className}>
+      <Outside>
+        <AdjustButton />
+        <LoadingCard />
+        <LoadingCard />
+      </Outside>
+      <Inside>
+        <LoadingCard />
+        <LoadingCard />
+        <LoadingCard />
+        <LoadingCard />
+        <LoadingCard />
+        <LoadingCard />
+      </Inside>
+    </Court>
+  );
+};

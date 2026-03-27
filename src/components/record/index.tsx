@@ -1,7 +1,7 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import LoadingCard from "@/components/custom/loading/card";
-import LoadingCourt from "@/components/custom/loading/court";
+import { LoadingCourt } from "@/components/custom/court";
 import { StatsForOneSet } from "@/components/match/stats";
 import { RecordCourt } from "@/components/record/court";
 import { RecordHeader } from "@/components/record/header";
