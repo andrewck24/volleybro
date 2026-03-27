@@ -28,11 +28,11 @@ VolleyBro is a modern application built on [Next.js](https://nextjs.org/), desig
 
 ### Core Features (完成 / Completed)
 
-- **球員管理系統** ✅: 完整的球員實體管理、邀請流程、角色管理（隊長、管理員、成員）
-  - Player Management System ✅: Complete player entity management, invitation workflow, role management (Team Captain, Admin, Member)
+- **球員管理系統**: 完整的球員實體管理、邀請流程、角色管理（隊長、管理員、成員）
+  - Player Management System: Complete player entity management, invitation workflow, role management (Team Captain, Admin, Member)
 
-- **隊伍管理** ✅: 建立隊伍、邀請成員、管理球員身份與權限、查看隊伍成員列表
-  - Team Management ✅: Create teams, invite members, manage player status and permissions, view team member list
+- **隊伍管理**: 建立隊伍、邀請成員、管理球員身份與權限、查看隊伍成員列表
+  - Team Management: Create teams, invite members, manage player status and permissions, view team member list
 
 - **賽事紀錄：** 詳細記錄比賽數據，包括得分、替換、拉力等資訊。
   - Match Recording: Detailed recording of match data, including scores, substitutions, rallies, etc.
@@ -40,11 +40,8 @@ VolleyBro is a modern application built on [Next.js](https://nextjs.org/), desig
 - **用戶認證：** 使用 Better Auth 與 Google OAuth 進行安全登入。
   - User Authentication: Secure login using Better Auth with Google OAuth.
 
-- **現代化 UI 與無障礙設計** ✅: 使用 Tailwind CSS 及自訂元件打造流暢的使用者介面，完全支援 WCAG 2.1 AA 無障礙標準
-  - Modern UI & Accessibility ✅: Built with Tailwind CSS and custom components, full WCAG 2.1 AA accessibility compliance
-
-- **即時通知** ✅: 所有使用者操作提供 Toast 通知反饋（邀請、接受、拒絕、升級、移除等）
-  - Real-time Notifications ✅: Toast notifications for all user actions (invitations, accept, reject, promote, remove, etc.)
+- **現代化 UI 與無障礙設計**: 使用 Tailwind CSS 及自訂元件打造流暢的使用者介面，完全支援 WCAG 2.1 AA 無障礙標準
+  - Modern UI & Accessibility: Built with Tailwind CSS and custom components, full WCAG 2.1 AA accessibility compliance
 
 ## 專案架構 / Project Structure
 
