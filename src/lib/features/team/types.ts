@@ -1,5 +1,5 @@
-import { z } from "zod";
 import { type Lineup, Position } from "@/entities/team";
+import { z } from "zod";
 
 // For Forms
 export const LiberoReplaceFormSchema = z.object({
@@ -22,9 +22,9 @@ export type ReduxLineupStatus = {
   lineupIndex: number;
   optionMode: LineupOptionMode;
   editingMember: {
-    _id: string;
-    list: string;
-    zone: number;
+    _id: string | null;
+    list: "starting" | "liberos" | "substitutes" | "";
+    zone: number | null;
   };
 };
 

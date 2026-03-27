@@ -1,20 +1,20 @@
-import { injectable, inject } from "inversify";
-import { TYPES } from "@/infrastructure/di/types";
 import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { NotFoundError } from "@/entities/errors/app-error";
 import { RecordReason } from "@/entities/errors/reasons/record";
+import { PlayerRole } from "@/entities/player";
 import {
-  type Record,
   type Entry,
+  type Record,
   type Substitution,
-  Side,
   PlayerStatsClass,
+  Side,
   createSubstitutionEntry,
 } from "@/entities/record";
 import { type Lineup } from "@/entities/team";
-import { PlayerRole } from "@/entities/player";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
 
 export interface ICreateSubstitutionInput {
   params: { recordId: string; setIndex: number; entryIndex: number };
@@ -30,11 +30,11 @@ export class CreateSubstitutionUseCase {
     @inject(TYPES.AuthenticationService)
     private authenticationService: IAuthenticationService,
     @inject(TYPES.AuthorizationService)
-    private authorizationService: IAuthorizationService
+    private authorizationService: IAuthorizationService,
   ) {}
 
   async execute(
-    input: ICreateSubstitutionInput
+    input: ICreateSubstitutionInput,
   ): Promise<ICreateSubstitutionOutput> {
     const { params, data: substitution } = input;
     const user = await this.authenticationService.verifySession();
@@ -42,17 +42,25 @@ export class CreateSubstitutionUseCase {
     const record = await this.recordRepository.findOne({
       _id: params.recordId,
     });
-    if (!record) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Record not found");
+    if (!record)
+      throw new NotFoundError(
+        RecordReason.RECORD_NOT_FOUND,
+        "Record not found",
+      );
 
     await this.authorizationService.verifyTeamRole(
       record.team_id.toString(),
       user._id.toString(),
-       PlayerRole.MEMBER
+      PlayerRole.MEMBER,
     );
 
     const side = substitution.team === Side.HOME ? "home" : "away";
     const lineup = record.sets[params.setIndex].lineups[side];
-    if (!lineup) throw new NotFoundError(RecordReason.RECORD_NOT_FOUND, "Lineup not found");
+    if (!lineup)
+      throw new NotFoundError(
+        RecordReason.RECORD_NOT_FOUND,
+        "Lineup not found",
+      );
 
     this.updateLineup(lineup, substitution, params.entryIndex);
     this.updateRecordStats(record, side, input);
@@ -64,13 +72,13 @@ export class CreateSubstitutionUseCase {
   private updateLineup(
     lineup: Lineup,
     substitution: Substitution,
-    entryIndex: number
+    entryIndex: number,
   ) {
     const startingIndex = lineup.starting.findIndex(
-      (p) => p._id.toString() === substitution.players.out
+      (p) => p._id?.toString() === substitution.players.out,
     );
     const subIndex = lineup.substitutes.findIndex(
-      (p) => p._id.toString() === substitution.players.in
+      (p) => p._id?.toString() === substitution.players.in,
     );
 
     lineup.starting[startingIndex] = {
@@ -107,7 +115,7 @@ export class CreateSubstitutionUseCase {
   private updateRecordStats(
     record: Record,
     side: "home" | "away",
-    input: ICreateSubstitutionInput
+    input: ICreateSubstitutionInput,
   ) {
     const {
       params: { setIndex, entryIndex },
@@ -117,16 +125,17 @@ export class CreateSubstitutionUseCase {
     if (!lineup) return;
 
     const startingPlayer = lineup.starting.find(
-      (p) => p._id.toString() === substitution.players.in
+      (p) => p._id?.toString() === substitution.players.in,
     );
     if (startingPlayer?.sub?.entryIndex?.in !== undefined) {
       const player = record.teams[side].players.find(
-        (p) => p._id.toString() === substitution.players.in
+        (p) => p._id?.toString() === substitution.players.in,
       );
       if (player) player.stats[setIndex] = new PlayerStatsClass();
     }
 
     record.teams[side].stats[setIndex].substitution++;
-    record.sets[setIndex].entries[entryIndex] = createSubstitutionEntry(substitution);
+    record.sets[setIndex].entries[entryIndex] =
+      createSubstitutionEntry(substitution);
   }
 }

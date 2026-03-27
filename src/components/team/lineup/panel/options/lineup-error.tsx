@@ -6,7 +6,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export const LineupError = ({ open, setOpen }) => {
+export const LineupError = ({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) => {
   return (
     <Dialog open={open} onOpenChange={() => setOpen(false)}>
       <DialogContent>

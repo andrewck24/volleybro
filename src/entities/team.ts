@@ -10,7 +10,7 @@ export enum Position {
 }
 
 export type LineupPlayer = {
-  _id: string;
+  _id: string | null;
   position?: Position;
   sub?: { _id: string; entryIndex: { in?: number; out?: number } };
 };

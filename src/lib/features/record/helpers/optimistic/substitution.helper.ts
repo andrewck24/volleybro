@@ -17,10 +17,10 @@ export const createSubstitutionHelper = (
 
   // Update lineup
   const startingIndex = lineup.starting.findIndex(
-    (p) => p._id.toString() === substitution.players.out,
+    (p) => p._id?.toString() === substitution.players.out,
   );
   const subIndex = lineup.substitutes.findIndex(
-    (p) => p._id.toString() === substitution.players.in,
+    (p) => p._id?.toString() === substitution.players.in,
   );
 
   lineup.starting[startingIndex] = {
@@ -55,7 +55,7 @@ export const createSubstitutionHelper = (
 
   // Update record stats
   const startingPlayer = lineup.starting.find(
-    (p) => p._id.toString() === substitution.players.in,
+    (p) => p._id?.toString() === substitution.players.in,
   );
   if (startingPlayer?.sub?.entryIndex?.in !== undefined) {
     const player = record.teams[side].players.find(

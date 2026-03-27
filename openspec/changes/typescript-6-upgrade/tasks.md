@@ -32,10 +32,10 @@
 
 ## 7. Strict Mode Fix Strategy — Presentation Layer (Remaining Components & App)
 
-- [ ] 7.1 Fix strict mode errors in remaining `src/components/` directories (auth, team, match, home, custom, ui) following the Strict Mode Fix Strategy
-- [ ] 7.2 Fix strict mode errors in `src/app/` following the Strict Mode Fix Strategy: add type annotations for page and layout components
-- [ ] 7.3 Fix strict mode errors in any remaining files (tests, config, etc.) following the Strict Mode Fix Strategy
-- [ ] 7.4 Verify: `npx tsc --noEmit && npm test`
+- [x] 7.1 Fix strict mode errors in remaining `src/components/` directories (auth, team, match, home, custom, ui) following the Strict Mode Fix Strategy
+- [x] 7.2 Fix strict mode errors in `src/app/` following the Strict Mode Fix Strategy: add type annotations for page and layout components
+- [x] 7.3 Fix strict mode errors in any remaining files (tests, config, etc.) following the Strict Mode Fix Strategy
+- [x] 7.4 Verify: `npx tsc --noEmit && npm test`
 
 ## 8. Final Verification and Documentation
 

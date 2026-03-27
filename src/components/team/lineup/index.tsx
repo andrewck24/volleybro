@@ -14,20 +14,23 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 import { RiSaveLine } from "react-icons/ri";
 
-const Lineup = ({ teamId }) => {
+const Lineup = ({ teamId }: { teamId: string }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { team, mutate } = useTeam(teamId);
   const { players } = useTeamPlayers(teamId);
 
-  const handleSave = async (lineups) => {
+  const handleSave = async (lineups: Lineup[]) => {
     try {
-      const data = await apiClient<Lineup[]>(`/api/teams/${team._id}/lineups`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lineups),
-      });
-      mutate({ ...team, lineups: data }, false);
+      const data = await apiClient<Lineup[]>(
+        `/api/teams/${team!._id}/lineups`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lineups),
+        },
+      );
+      mutate({ ...team!, lineups: data }, false);
       return toast({
         title: "儲存成功",
         description: "已成功儲存陣容設定。",

@@ -15,9 +15,9 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
+import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage } from "@/lib/api/error-toast";
-import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiEditBoxLine, RiGroupLine, RiInformationLine } from "react-icons/ri";
@@ -40,11 +40,11 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     return <LoadingCard />;
 
   const contents = [
-    { key: "簡稱", value: team.nickname, icon: <RiInformationLine /> },
-    { key: "人數", value: players.length, icon: <RiGroupLine /> },
+    { key: "簡稱", value: team!.nickname, icon: <RiInformationLine /> },
+    { key: "人數", value: players!.length, icon: <RiGroupLine /> },
   ];
   const currentUserPlayer = players?.find((p) => p.userId === user?._id);
-  const isAdmin = canManageTeam(currentUserPlayer);
+  const isAdmin = currentUserPlayer ? canManageTeam(currentUserPlayer) : false;
   const isJoined = currentUserPlayer?.status === PlayerStatus.JOINED;
   const isOwner = currentUserPlayer?.role === PlayerRole.OWNER;
 
@@ -52,7 +52,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     setIsLeaving(true);
     setLeaveError(null);
     try {
-      await apiClient(`/api/players/${currentUserPlayer._id}/invitations`, {
+      await apiClient(`/api/players/${currentUserPlayer!._id}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "leave" }),
@@ -84,7 +84,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
         ))}
       </div>
       {isAdmin && (
-        <Link href={`/team/${team._id}/edit`}>
+        <Link href={`/team/${team!._id}/edit`}>
           <RiEditBoxLine /> 編輯隊伍資訊
         </Link>
       )}

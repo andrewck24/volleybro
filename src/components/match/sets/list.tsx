@@ -37,7 +37,7 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
   };
 
   const handleEditOpen = (setIndex: number) => {
-    dispatch(recordActions.initialize({ record, setIndex }));
+    dispatch(recordActions.initialize({ record: record!, setIndex }));
     setSetIndex(setIndex);
     setEditOpen(true);
   };
@@ -56,7 +56,7 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
           />
         ))}
       </Accordion>
-      <Button size="lg" onClick={() => handleOptionsOpen(record.sets.length)}>
+      <Button size="lg" onClick={() => handleOptionsOpen(record!.sets.length)}>
         <RiAddLine />
         新增一局
       </Button>
