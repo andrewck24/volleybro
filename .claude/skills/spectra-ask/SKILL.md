@@ -1,6 +1,6 @@
 ---
 name: spectra-ask
-description: "Query openspec/ documents and answer questions"
+description: "Query openspec/documents and answer questions"
 disallowedTools: [Edit, Write]
 license: MIT
 compatibility: Requires spectra CLI.

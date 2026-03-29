@@ -26,7 +26,68 @@ Have a focused discussion about a topic and reach a conclusion.
 
 ---
 
+## Before You Speak
+
+Before asking anything, do a quick codebase scout to decide how to run this discussion.
+
+### Step 1: Extract search terms
+
+Pull 2-5 keywords from the user's topic. For "search should support fuzzy matching", that's `search`, `fuzzy`, `match`. For "should we add a plugin system", that's `plugin`, `extension`, `module`.
+
+### Step 2: Scout the codebase
+
+Use Grep and Glob to find related source files (not docs, not tests — source code). Spend no more than a few seconds on this. Read up to 5 of the most relevant files found.
+
+### Step 3: Pick a mode
+
+- **3+ related source files found** → **Assumptions mode**: you have enough context to form opinions. List your assumptions, let the user correct.
+- **Fewer than 3 related source files found** → **Interview mode**: not enough code to base assumptions on. Fall through to "How to Discuss" below and ask questions one at a time.
+
+Announce which mode you picked and why: "Found `search.rs`, `SearchPanel.svelte`, `search-store.ts` — I have enough context to list my assumptions." or "Didn't find much related code — I'll ask questions instead."
+
+### Assumptions mode
+
+When you enter assumptions mode, present 3-5 assumptions. Each one MUST include:
+
+1. **Approach**: what you'd do and why
+2. **Evidence**: file path(s) that informed this assumption
+3. **If wrong**: concrete consequence of getting this wrong
+
+Example:
+
+```
+### My assumptions
+
+1. **New IPC command goes in `commands/search.rs`**
+   Evidence: existing search commands are in `src-tauri/src/commands/search.rs`
+   If wrong: we'd need to create a new module and register it
+
+2. **Use the existing `SearchStore` for state**
+   Evidence: `src/lib/stores/search-store.ts` already manages search state
+   If wrong: parallel state would cause sync bugs
+
+3. **Fuzzy matching runs in Rust, not frontend**
+   Evidence: current search scoring is in `search.rs:calculate_score()`
+   If wrong: moving to frontend means rewriting the scoring logic in TypeScript
+```
+
+After presenting, ask: **"Which of these are wrong?"**
+
+- If the user says all are fine → proceed to Convergence with these as established context.
+- If the user flags corrections → for each one, ask ONE focused follow-up question to understand their intent, then proceed to Convergence with the corrected understanding.
+
+### Mode switching
+
+The user can switch modes at any time during the discussion:
+
+- **"Ask me questions instead"** / **"one at a time"** → switch to interview mode (the "How to Discuss" section below)
+- **"Just list your assumptions"** / **"what do you think?"** → run the codebase scout if not done yet, then switch to assumptions mode
+
+---
+
 ## How to Discuss
+
+_This section applies to interview mode — either chosen automatically (insufficient code context) or switched to manually by the user._
 
 **One question at a time.** Don't dump a list of 10 questions. Ask the most important one, listen, then follow up. Let the conversation breathe. If the user's initial description or previous answers already cover a question, skip it — don't ask what you already know.
 

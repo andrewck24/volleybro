@@ -83,7 +83,7 @@ Ask these questions:
 
 Now — and only now — fix the bug.
 
-1. **Write a failing test** that reproduces the bug. If `tdd: true` is set in `openspec/config.yaml`, fetch TDD instructions via `spectra instructions --skill tdd` and follow the Red-Green-Refactor cycle
+1. **Write a failing test** that reproduces the bug. If `tdd: true` is set in `.spectra.yaml`, fetch TDD instructions via `spectra instructions --skill tdd` and follow the Red-Green-Refactor cycle
 2. **Make the minimum change** to fix the root cause — not the symptoms
 3. **Run the test** — confirm it passes
 4. **Run the full test suite** — ensure no regressions

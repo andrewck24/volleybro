@@ -99,6 +99,37 @@ Implement tasks from a Spectra change.
    - If `state: "all_done"`: congratulate, suggest archive
    - Otherwise: proceed to implementation
 
+3b. **Preflight check**
+
+If the apply instructions JSON includes a `preflight` field, act on its `status`:
+
+- **`"clean"`**: silently continue — no output needed.
+- **`"warnings"`**: display a brief summary, then continue automatically:
+  ```
+  ⚠ Preflight warnings:
+  - Drifted files (modified after change was created): <list paths>
+  - Change is <N> days old
+  Continuing...
+  ```
+  Only show the lines that are relevant (skip drifted if none, skip staleness if not stale).
+- **`"critical"`**: display missing files with their source artifact, then use the **AskUserQuestion tool** to ask the user:
+
+  ```
+  ⚠ Preflight: missing files detected
+  - <path> (referenced in <source artifact>)
+  - ...
+  These files are referenced in the change artifacts but no longer exist on disk.
+  ```
+
+  Options: "Continue anyway" / "Stop"
+  If the user chooses "Stop", end the workflow.
+
+  If there is no AskUserQuestion tool available:
+  Display the same information as plain text and ask whether to continue or stop.
+  Wait for the user's response.
+
+If the `preflight` field is absent (blocked or all_done states), skip this step.
+
 4. **Read context files**
 
    Read the files listed in `contextFiles` from the apply instructions output.
@@ -108,7 +139,7 @@ Implement tasks from a Spectra change.
 
 5. **Check project preferences**
 
-   Read `openspec/config.yaml` in the project root.
+   Read `.spectra.yaml` in the project root.
    If `tdd: true` is set, apply TDD discipline throughout implementation:
    - For each task, write a failing test FIRST, then implement to make it pass
    - Fetch TDD instructions by running `spectra instructions --skill tdd`, then follow the Red-Green-Refactor cycle
