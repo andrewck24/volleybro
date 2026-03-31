@@ -21,9 +21,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Player, PlayerStatus } from "@/entities/player";
 import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
-import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
+import { showErrorToast } from "@/lib/api/error-toast";
 import NextLink from "next/link";
-import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "react-icons/ri";
 
@@ -52,18 +51,11 @@ export const Invitations = ({ className }: { className?: string }) => {
 function InvitationList({ userId }: { userId?: string }) {
   const { players, isLoading, mutate } = useUserPlayers(userId);
   const { toast } = useToast();
-  const [errorMap, setErrorMap] = useState<Record<string, string>>({});
-
   const invitedPlayers = players.filter(
     (p) => p.status === PlayerStatus.INVITED,
   );
 
   const handleAccept = async (playerId: string): Promise<void> => {
-    setErrorMap((prev) => {
-      const next = { ...prev };
-      delete next[playerId];
-      return next;
-    });
     try {
       await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
@@ -74,7 +66,6 @@ function InvitationList({ userId }: { userId?: string }) {
       toast({ title: "邀請已接受", description: "您已加入隊伍" });
       mutate();
     } catch (err) {
-      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
       showErrorToast(err, toast);
     }
   };
@@ -90,7 +81,6 @@ function InvitationList({ userId }: { userId?: string }) {
       toast({ title: "邀請已拒絕" });
       mutate();
     } catch (err) {
-      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
       showErrorToast(err, toast);
     }
   };
@@ -113,7 +103,6 @@ function InvitationList({ userId }: { userId?: string }) {
           player={player}
           handleAccept={handleAccept}
           handleReject={handleReject}
-          errorMap={errorMap}
         />
       ))}
     </ItemGroup>
@@ -124,12 +113,10 @@ function InvitationItem({
   player,
   handleAccept,
   handleReject,
-  errorMap,
 }: {
   player: Player;
   handleAccept: (id: string) => void;
   handleReject: (id: string) => void;
-  errorMap: Record<string, string>;
 }) {
   const { team, isLoading } = useTeam(player.teamId!);
   if (isLoading) return <InvitationItemSkeleton />;
@@ -168,11 +155,6 @@ function InvitationItem({
           </Button>
         </ItemFooter>
       </ItemContent>
-      {errorMap[player._id] && (
-        <p className="px-3 pb-2 text-sm text-destructive">
-          {errorMap[player._id]}
-        </p>
-      )}
     </Item>
   );
 }

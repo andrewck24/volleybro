@@ -5,7 +5,6 @@ import { RiGroupLine } from "react-icons/ri";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Item,
   ItemActions,
@@ -18,9 +17,10 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const meta = {
-  title: "Design System/Item",
+  title: "Design System/Atoms/Item",
   component: Item,
   parameters: { layout: "centered" },
   tags: ["autodocs"],
