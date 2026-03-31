@@ -1,6 +1,6 @@
-import { render, screen, fireEvent } from "@testing-library/react";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import type { ReactNode, MouseEventHandler } from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import type { MouseEventHandler, ReactNode } from "react";
 
 // Mock UI components
 jest.mock("@/components/ui/alert", () => ({
@@ -68,7 +68,9 @@ describe("ServerErrorState", () => {
     const handleRetry = jest.fn();
     render(<ServerErrorState onRetry={handleRetry} />);
 
-    expect(screen.getByRole("button", { name: /再試一次/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /再試一次/ }),
+    ).toBeInTheDocument();
   });
 
   it("does NOT render retry button when onRetry is omitted", () => {

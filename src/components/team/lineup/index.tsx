@@ -1,6 +1,6 @@
 "use client";
 import LoadingCard from "@/components/custom/loading/card";
-import LoadingCourt from "@/components/custom/loading/court";
+import { LoadingCourt } from "@/components/custom/court";
 import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";

@@ -23,10 +23,11 @@ Restructure `src/stories/` to mirror the component layer hierarchy:
 src/stories/
 ├── ui/                    ← mirrors components/ui/
 │   ├── button.stories.tsx
+│   ├── item.stories.tsx
 │   └── ...
 └── custom/                ← mirrors components/custom/
-    ├── list-item.stories.tsx
-    └── ...
+    ├── court.stories.tsx
+    └── logo.stories.tsx
 ```
 
 - Move existing stories from `src/stories/*.stories.tsx` to `src/stories/ui/`
@@ -46,7 +47,7 @@ Delete all Storybook default templates:
 ### Coverage gap fill
 
 - **`ui/`**: Add stories for 7 missing components — popover, accordion, form, chart, alert-dialog, calendar, toaster
-- **`custom/`**: Add stories for cross-domain composites after `component-architecture` change is applied (ListItem, court, logo)
+- **`custom/`**: Add stories for cross-domain composites after `component-architecture` change is applied (court, logo)
 
 ### Accessibility addon
 
@@ -62,13 +63,13 @@ Update `.github/workflows/chromatic.yml`: Node `lts/*`, `npm ci`.
 
 ## Dependencies
 
-- **Depends on `component-architecture`**: The `custom/` story coverage tasks require `component-architecture` to be applied first (ListItem compound pattern, panel/flip-words relocation, sheet deletion).
+- **Depends on `component-architecture`**: The story coverage tasks require `component-architecture` to be applied first (Item primitive story, panel/flip-words relocation, sheet deletion).
 
 ## Impact
 
 - src/stories/ (restructure: flat → `ui/` + `custom/` subdirectories)
 - src/stories/ui/\*.stories.tsx (move existing + add 7 new)
-- src/stories/custom/\*.stories.tsx (new — ListItem, court, logo)
+- src/stories/custom/\*.stories.tsx (new — court, logo)
 - src/stories/ scaffold files (delete)
 - .storybook/main.ts (add addon-a11y)
 - package.json + package-lock.json (Storybook/Chromatic package updates + addon-a11y)

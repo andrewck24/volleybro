@@ -220,3 +220,21 @@ export const AdjustButton = ({
     </div>
   );
 };
+
+export const LoadingCourt = ({ className }: { className?: string }) => {
+  return (
+    <Court className={className}>
+      <Outside>
+        <AdjustButton />
+        {Array.from({ length: 2 }).map((_, i) => (
+          <LoadingCard key={i} />
+        ))}
+      </Outside>
+      <Inside>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <LoadingCard key={i} />
+        ))}
+      </Inside>
+    </Court>
+  );
+};

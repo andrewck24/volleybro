@@ -3,7 +3,7 @@ import { Options } from "@/components/record/set-options/panel/options";
 import { Substitutes } from "@/components/record/set-options/panel/substitutes";
 import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
 import { Positions } from "@/components/team/lineup/panel/positions";
-import { Panel } from "@/components/ui/panel";
+import { Panel } from "@/components/custom/panel";
 import { useRecord } from "@/hooks/use-data";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";

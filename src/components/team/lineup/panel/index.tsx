@@ -3,7 +3,7 @@ import { LineupOptions } from "@/components/team/lineup/panel/options";
 import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
 import { Positions } from "@/components/team/lineup/panel/positions";
 import { Substitutes } from "@/components/team/lineup/panel/substitutes";
-import { Panel } from "@/components/ui/panel";
+import { Panel } from "@/components/custom/panel";
 import type { Player } from "@/entities/player";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
