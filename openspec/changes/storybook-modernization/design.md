@@ -12,7 +12,7 @@ Storybook 10.3.1 and Chromatic 15.3.0 are already installed. The current setup w
 
 The `.storybook/main.ts` glob (`../src/**/*.stories.@(js|jsx|mjs|ts|tsx)`) already picks up stories from any location under `src/`, so file moves require no config change.
 
-**Dependency**: This change depends on `component-architecture` being applied first. The `custom/` story coverage tasks require ListItem compound pattern, panel relocation to `custom/`, flip-words relocation to `landing/`, and sheet deletion to be completed.
+**Dependency**: This change depends on `component-architecture` being applied first. The story coverage tasks require the Item primitive story, panel relocation to `custom/`, flip-words relocation to `landing/`, and sheet deletion to be completed.
 
 ## Goals / Non-Goals
 
@@ -20,7 +20,7 @@ The `.storybook/main.ts` glob (`../src/**/*.stories.@(js|jsx|mjs|ts|tsx)`) alrea
 
 - Restructure story files into a layered directory mirroring component organization
 - Achieve 100% story coverage for `ui/` components
-- Add stories for `custom/` cross-domain composites (ListItem, court, logo)
+- Add stories for `custom/` cross-domain composites (court, logo)
 - Remove Storybook scaffold boilerplate
 - Add `@storybook/addon-a11y` for visual accessibility auditing
 - Update Storybook/Chromatic packages to latest
@@ -44,10 +44,10 @@ src/stories/
 ├── ui/                         ← mirrors components/ui/
 │   ├── button.stories.tsx
 │   ├── card.stories.tsx
+│   ├── item.stories.tsx        ← moved from root after component-architecture
 │   ├── accordion.stories.tsx   ← new
 │   └── ...
 └── custom/                     ← mirrors components/custom/
-    ├── list-item.stories.tsx   ← new (after component-architecture)
     ├── court.stories.tsx       ← new
     └── logo.stories.tsx        ← new
 ```
@@ -61,7 +61,7 @@ src/stories/
 - Component classification:
   - **Atoms**: Single-purpose primitives (Button, Input, Label, Badge, Separator, Calendar)
   - **Molecules**: Composed from atoms (Card, Dialog, Alert, AlertDialog, Accordion, Form, Select, Tabs, Table, RadioGroup, Popover, Toast/Toaster, Chart, Description)
-  - **Composites**: Cross-domain composed components (ListItem, Court, Logo) — title: `Design System/Composites/...`
+  - **Composites**: Cross-domain composed components (Court, Logo) — title: `Design System/Composites/...`
 
 ### Scaffold cleanup
 

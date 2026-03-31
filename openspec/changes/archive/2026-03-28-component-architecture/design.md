@@ -1,10 +1,10 @@
 ## Context
 
-`PersonItem` and `TeamItem` in `src/components/custom/` share ~80% identical code: avatar/icon slot, text + metadata area, action slot with `stopPropagation` event isolation, and a three-way wrapper pattern (Link → button → div). Both use the same Tailwind classes (`h-12 flex items-center gap-3 rounded-md px-3`). The only differences are the leading visual (avatar image vs group icon) and data source (props vs `useTeam` hook).
+The project originally introduced `PersonItem` and `TeamItem` wrappers to unify list-row visuals. After implementation review, those wrappers proved too black-box for the actual usage patterns: consumers still needed to reason about layout variants, and the abstraction hid simple Shadcn composition behind extra files and tests.
 
-The original custom `ListItem` compound component attempted to centralize the three-way wrapper (Link/button/div) based on `href`/`onClick` props. However, this approach causes nested interactive element violations: when the wrapper renders as `<button>` or `<div role="button">` and `ListItemAction` contains interactive buttons (e.g., accept/reject), axe reports `nested-interactive`. The `<a>` (Link) case has the same issue. This is a fundamental HTML/ARIA constraint — not solvable by changing the wrapper element type.
+The deeper issue was never "missing wrappers", but rather choosing the right primitive boundary. Shadcn `Item` already provides the correct base structure. What consumers need is direct access to that structure, plus a very small amount of shared boilerplate where it is truly domain-agnostic.
 
-Shadcn/UI recently introduced an `Item` compound component (2025-10) that sidesteps this entirely through the `asChild` pattern: consumers choose the root element, and the two modes (navigable vs static-with-actions) are made mutually exclusive by design.
+Shadcn/UI recently introduced an `Item` compound component (2025-10) that fits this need well: consumers choose the root element with `asChild`, and domain components own their data-fetching, loading, and action semantics.
 
 The `custom/loading/` directory holds `LoadingCourt` and `LoadingCard` as standalone skeleton files. `LoadingCourt` is tightly coupled to the court component and should be co-located. `LoadingCard` is a generic skeleton used by 9+ consumers across domains — it stays in place and will be replaced by per-component skeletons in a separate change (future change `loading-states`).
 
@@ -15,8 +15,8 @@ There is no documented boundary between `ui/` (Shadcn-level primitives, zero dom
 **Goals:**
 
 - Install Shadcn `Item` as the base list-item primitive in `ui/item.tsx`
-- Refactor `PersonItem` and `TeamItem` to compose Shadcn `Item` primitives with two distinct item forms
-- Co-locate skeleton exports within each item component file
+- Let consumers compose `Item` primitives directly instead of routing through thin wrappers
+- Add only the smallest domain-agnostic helper surface to `ui/item.tsx` where repetition is mechanical (`ItemAvatar`)
 - Relocate `LoadingCourt` into `custom/court/`
 - Document `ui/` vs `custom/` boundary in `docs/architecture.md`
 
@@ -40,115 +40,72 @@ Replace the custom `ListItem` compound component with the official Shadcn `Item`
 - `ItemActions` — trailing slot for actions or status indicators
 - `ItemFooter` — below-content area for secondary actions
 
-**Rationale**: Shadcn Item solves the nested interactive problem by design — `asChild` lets consumers control the root element, making navigable and static-with-actions forms naturally mutually exclusive. It also aligns with the project's existing Shadcn patterns (Button, Card, Badge).
+**Rationale**: Shadcn Item gives the project a single row-layout vocabulary without introducing another app-specific abstraction layer. It aligns with existing Shadcn patterns and keeps composition visible at the call site.
 
-### Two Item Forms
+### Direct Consumer Composition
 
-Items are categorized into two mutually exclusive forms based on whether the right side contains interactive elements:
+Consumers compose rows directly from `Item` primitives. The wrappers `PersonItem` and `TeamItem` are removed.
 
-| Form                    | Right side                                    | Clickable area                     | Root element                            | Footer                              |
-| ----------------------- | --------------------------------------------- | ---------------------------------- | --------------------------------------- | ----------------------------------- |
-| **Navigable**           | Status only (icons, badges — non-interactive) | Entire row                         | `Item asChild` → `<Link>` or `<button>` | Allowed (outside `asChild` wrapper) |
-| **Static with actions** | `ItemActions` with interactive buttons        | None (row itself is not clickable) | `Item` (plain `<div>`)                  | Not applicable                      |
-
-**Navigable form** — used when the item represents a navigation target:
+**Player rows** use direct composition with `ItemAvatar` for the only repeated generic piece:
 
 ```tsx
 <Item asChild>
-  <Link href="/team/123/players/456">
-    <ItemMedia variant="icon">
-      <FiUser />
+  <Link href={`/team/${teamId}/players/${player._id}`}>
+    <ItemMedia variant="image">
+      <ItemAvatar alt={player.name} fallback={<FiUser />} />
     </ItemMedia>
     <ItemContent>
-      <ItemTitle>Alice Chen</ItemTitle>
-      <ItemDescription>#7 OH</ItemDescription>
+      <ItemTitle>{player.name}</ItemTitle>
+      <ItemDescription>{player.number != null && `#${player.number}`}</ItemDescription>
     </ItemContent>
-    <ItemActions>
-      <Badge>先發</Badge>  {/* non-interactive status indicator */}
-    </ItemActions>
   </Link>
 </Item>
 ```
 
-**Static with actions form** — used when the item has interactive controls on the right:
+**Team rows** stay local to the consuming domain component because they own `useTeam(teamId)` and loading state:
 
 ```tsx
-<Item>
+<Item asChild>
+  <Button onClick={() => onClick(teamId)}>
+    <ItemMedia variant="icon">
+      <RiGroupLine />
+    </ItemMedia>
+    <ItemContent>
+      <ItemTitle>
+        {isLoading ? <Skeleton className="h-4 w-24" /> : team?.name}
+      </ItemTitle>
+    </ItemContent>
+  </Button>
+</Item>
+```
+
+**Rationale**: This keeps imports centralized around `ui/item` while avoiding black-box wrappers. Data-fetching and loading remain where the data is consumed, which makes behavior easier to understand and change.
+
+### Invitation Overlay Pattern
+
+Invitations need the entire item to navigate, except for accept/reject buttons. The final pattern keeps a link covering the row while placing the action buttons above it in stacking order:
+
+```tsx
+<Item className="relative items-start hover:bg-accent/50">
+  <Link
+    href={`/team/${teamId}`}
+    className="absolute inset-0 z-0"
+    aria-label="前往隊伍"
+  />
   <ItemMedia variant="icon">
     <RiGroupLine />
   </ItemMedia>
   <ItemContent>
     <ItemTitle>Thunder</ItemTitle>
+    <ItemFooter className="relative z-10 w-fit">
+      <Button onClick={handleAccept}>Accept</Button>
+      <Button onClick={handleReject}>Reject</Button>
+    </ItemFooter>
   </ItemContent>
-  <ItemActions>
-    <Button variant="ghost" size="icon" onClick={handleEdit}>
-      <FiSettings />
-    </Button>
-  </ItemActions>
 </Item>
 ```
 
-**Rationale**: This avoids nested interactive violations entirely. No `stopPropagation` hacks needed — if the row is navigable, actions are non-interactive; if actions are interactive, the row is static.
-
-### Action Footer Pattern
-
-For items that need both navigation AND action buttons (e.g., team invitation accept/reject), the action buttons are placed in a footer area **outside** the navigable `asChild` wrapper. This follows the Facebook notification pattern (image provided as reference):
-
-```tsx
-{/* Outer wrapper — visual grouping only */}
-<div>
-  <Item asChild>
-    <Link href={`/team/${teamId}`}>
-      <ItemMedia variant="icon">
-        <RiGroupLine />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle>{teamName}</ItemTitle>
-      </ItemContent>
-    </Link>
-  </Item>
-  {/* Footer sits outside <Link>, no nested interactive */}
-  <div className="flex gap-1 pl-12 pb-2">
-    <Button onClick={handleAccept}>Accept</Button>
-    <Button onClick={handleReject}>Reject</Button>
-  </div>
-</div>
-```
-
-The `pl-12` aligns the footer with the content area (past the media column). This pattern is encapsulated inside the `custom/` wrapper (e.g., `TeamItem` with a `footer` prop) so consumers don't need to manage the layout themselves.
-
-**Rationale**: Places interactive buttons outside the navigable area entirely, eliminating nested interactive violations. The footer is a sibling to the link, not a child.
-
-### PersonItem and TeamItem as Custom Wrappers
-
-`PersonItem` and `TeamItem` remain in `custom/list-item/` as thin wrappers that compose Shadcn `Item` primitives. They provide domain-specific convenience:
-
-- `PersonItem`: accepts `name`, `image`, `children` props; renders avatar/icon media, name title, metadata
-- `TeamItem`: accepts `teamId`; uses `useTeam` hook internally; renders group icon media, team name title
-
-Both accept `asChild` to let consumers control the root element for navigation. The `action` prop is removed — consumers use `ItemActions` or the footer pattern directly via composition.
-
-### Skeleton Co-location
-
-Each item component exports a named skeleton alongside its main export:
-
-```tsx
-// person-item.tsx
-export function PersonItemSkeleton() {
-  return (
-    <Item>
-      <ItemMedia variant="icon">
-        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
-      </ItemMedia>
-      <ItemContent>
-        <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-      </ItemContent>
-    </Item>
-  );
-}
-```
-
-Two-column layout: `[(icon placeholder)(---text placeholder---)]`. Uses the same Item primitives so layout stays in sync.
+**Rationale**: This preserves "whole row is a link except buttons" behavior while still satisfying axe, because the buttons are not descendants of the link element.
 
 ### LoadingCourt Relocation
 
@@ -163,21 +120,20 @@ Update 2 consumers:
 
 ```text
 src/components/ui/
-├── item.tsx                   # Shadcn Item (installed via CLI)
+├── avatar.tsx                 # Shared avatar primitive
+├── item.tsx                   # Shadcn Item + tiny shared helpers such as ItemAvatar
 └── ...
 
 src/components/custom/
-├── list-item/
-│   ├── person-item.tsx        # PersonItem + PersonItemSkeleton (composes Shadcn Item)
-│   ├── team-item.tsx          # TeamItem + TeamItemSkeleton (composes Shadcn Item)
-│   └── __tests__/
-│       ├── person-item.test.tsx
-│       └── team-item.test.tsx
 ├── court/
 │   ├── index.tsx              # Court (barrel export LoadingCourt)
 │   └── loading.tsx            # LoadingCourt (re-exported in index.tsx)
 ├── loading/
 │   └── card.tsx               # LoadingCard (kept until future change `loading-states`)
+└── ...
+
+src/stories/
+├── item.stories.tsx           # Item primitive composition examples, including invitations
 └── ...
 ```
 
@@ -212,7 +168,7 @@ Create `docs/architecture.md` with a component organization section:
 | Layer       | Location                            | Domain Knowledge                               | Examples                          |
 | ----------- | ----------------------------------- | ---------------------------------------------- | --------------------------------- |
 | `ui/`       | `src/components/ui/`                | None — zero business logic                     | Button, Card, Badge, Dialog, Item |
-| `custom/`   | `src/components/custom/`            | Allowed — Next.js Link, app hooks, data-testid | PersonItem, TeamItem, Court       |
+| `custom/`   | `src/components/custom/`            | Allowed — Next.js Link, app hooks, data-testid | Court                             |
 | `{domain}/` | `src/components/{team,record,...}/` | Full domain context                            | LineupPanel, InvitationList       |
 
 **Rule of thumb**: Could be published as a generic npm package → `ui/`. Reused across 2+ domain folders with app-specific behavior → `custom/`. Used in only one domain → `{domain}/`.
@@ -223,5 +179,5 @@ This document will be iteratively expanded by future changes per the config.yaml
 
 - **[Risk] Shadcn Item is a newer component (2025-10)**: May have less community battle-testing → Mitigation: it follows the same Radix Slot + CVA pattern as other established Shadcn components; the source code is copied into the project and can be modified if needed.
 - **[Risk] LoadingCard left in `custom/loading/`**: The directory isn't fully cleaned up → Mitigation: future change `loading-states` will systematically replace all LoadingCard consumers with co-located skeletons, then delete the directory.
-- **[Risk] Skeleton drift**: Co-located skeletons may fall out of sync after visual changes → Mitigation: Skeletons compose the same Item primitives, so layout changes propagate automatically. Only placeholder dimensions (icon size, text width) could drift.
-- **[Risk] Consumer migration**: Removing the `action` prop from PersonItem/TeamItem requires updating all consumers to use composition → Mitigation: only 4 consumers exist (invitations, user menu, players list, roster list), all identified and migration path documented.
+- **[Risk] Repeated consumer code**: Direct composition repeats some markup for avatar fallback and team loading → Mitigation: only generic repetition (`ItemAvatar`) is centralized; data-fetching and action layout stay local to improve readability.
+- **[Risk] Overlay-link invitation pattern**: The clickable layer relies on stacking order → Mitigation: Storybook now documents this exact composition, and buttons explicitly sit above the link layer via `z-index`.

@@ -1,14 +1,19 @@
 "use client";
 
-import Link from "next/link";
-
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import { PersonItem } from "@/components/custom/list-item/person-item";
-import LoadingCard from "@/components/custom/loading/card";
-import { Item } from "@/components/ui/item";
-import type { Player } from "@/entities/player";
+import {
+  Item,
+  ItemAvatar,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamPlayers } from "@/hooks/use-data";
-import { POSITION_LABELS } from "@/lib/constants/labels";
+import Link from "next/link";
+import { FiUser } from "react-icons/fi";
 
 interface PlayersListProps {
   teamId: string;
@@ -17,14 +22,14 @@ interface PlayersListProps {
 export function PlayersList({ teamId }: PlayersListProps) {
   const { players, isLoading, error, mutate } = useTeamPlayers(teamId);
 
-  if (isLoading) return <LoadingCard />;
+  if (isLoading) return <PlayerListSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
 
   if (!players || players.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
+      <ItemGroup className="p-4 text-center text-sm text-muted-foreground">
         尚未新增任何球員
-      </div>
+      </ItemGroup>
     );
   }
 
@@ -36,37 +41,40 @@ export function PlayersList({ teamId }: PlayersListProps) {
   });
 
   return (
-    <div className="flex flex-col gap-2">
+    <ItemGroup className="flex flex-col">
       {orderedPlayers.map((player) => (
         <Item key={player._id} asChild>
           <Link href={`/team/${teamId}/players/${player._id}`}>
-            <PersonItem name={player.name}>
-              <PlayerMetadata player={player} />
-            </PersonItem>
+            <ItemMedia variant="image">
+              <ItemAvatar alt={player.name} fallback={<FiUser />} />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle className="h-5 text-base">{player.name}</ItemTitle>
+              <ItemDescription className="h-5">
+                {player.number != null && `#${player.number}`}
+              </ItemDescription>
+            </ItemContent>
           </Link>
         </Item>
       ))}
-    </div>
+    </ItemGroup>
   );
 }
 
-function PlayerMetadata({ player }: { player: Player }) {
-  const positionLabel = player.position
-    ? POSITION_LABELS[player.position]
-    : undefined;
-
+function PlayerListSkeleton() {
   return (
-    <>
-      {player.number && (
-        <span className="shrink-0 text-sm text-muted-foreground">
-          #{player.number}
-        </span>
-      )}
-      {positionLabel && (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {positionLabel}
-        </span>
-      )}
-    </>
+    <ItemGroup className="flex flex-col">
+      {[...Array(8)].map((_, i) => (
+        <Item key={i}>
+          <ItemMedia variant="image">
+            <Skeleton className="h-full w-full rounded-full" />
+          </ItemMedia>
+          <ItemContent>
+            <Skeleton className="my-0.5 h-4 w-24" />
+            <Skeleton className="my-0.5 h-4 w-20" />
+          </ItemContent>
+        </Item>
+      ))}
+    </ItemGroup>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-import { TeamItem } from "@/components/custom/list-item/team-item";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, Link } from "@/components/ui/button";
 import {
@@ -8,21 +7,50 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Item } from "@/components/ui/item";
+import {
+  Item,
+  ItemContent,
+  ItemFooter,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { PlayerStatus } from "@/entities/player";
-import { useUser, useUserPlayers } from "@/hooks/use-data";
+import { Player, PlayerStatus } from "@/entities/player";
+import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 import NextLink from "next/link";
-import React, { useState } from "react";
+import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
-import { RiCheckLine, RiCloseLine } from "react-icons/ri";
+import { RiCheckLine, RiCloseLine, RiGroupLine } from "react-icons/ri";
 
 export const Invitations = ({ className }: { className?: string }) => {
   const { user } = useUser();
-  const { players, isLoading, mutate } = useUserPlayers(user?._id);
+
+  return (
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>隊伍邀請</CardTitle>
+      </CardHeader>
+      <Message />
+      <InvitationList userId={user?._id} />
+      <Separator content="沒有找到你的隊伍嗎？你可以..." />
+      <Link size="lg" href="/team/new">
+        <FiPlus />
+        建立隊伍
+      </Link>
+      <CardDescription className="text-center">
+        或聯絡你的隊伍管理者
+      </CardDescription>
+    </Card>
+  );
+};
+
+function InvitationList({ userId }: { userId?: string }) {
+  const { players, isLoading, mutate } = useUserPlayers(userId);
   const { toast } = useToast();
   const [errorMap, setErrorMap] = useState<Record<string, string>>({});
 
@@ -66,63 +94,104 @@ export const Invitations = ({ className }: { className?: string }) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <ItemGroup className="flex flex-col">
+        <InvitationItemSkeleton />
+        <InvitationItemSkeleton />
+        <InvitationItemSkeleton />
+      </ItemGroup>
+    );
+  }
+
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>隊伍邀請</CardTitle>
-      </CardHeader>
-      <Message />
-      <div className="flex flex-col">
-        {isLoading ? (
-          <div className="px-3 py-2 text-muted-foreground">載入中...</div>
-        ) : (
-          invitedPlayers.map((player) => (
-            <React.Fragment key={player._id}>
-              <Item asChild>
-                <NextLink href={`/team/${player.teamId}`}>
-                  <TeamItem teamId={player.teamId!} />
-                </NextLink>
-              </Item>
-              <div className="flex items-center gap-1 pb-2 pl-12">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-primary"
-                  onClick={() => handleAccept(player._id)}
-                  aria-label="接受邀請"
-                >
-                  <RiCheckLine className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  onClick={() => handleReject(player._id)}
-                  aria-label="拒絕邀請"
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </Button>
-              </div>
-              {errorMap[player._id] && (
-                <p className="px-3 pb-2 text-sm text-destructive">
-                  {errorMap[player._id]}
-                </p>
-              )}
-            </React.Fragment>
-          ))
-        )}
-      </div>
-      <Separator content="沒有找到你的隊伍嗎？你可以..." />
-      <Link size="lg" href="/team/new">
-        <FiPlus />
-        建立隊伍
-      </Link>
-      <CardDescription className="text-center">
-        或聯絡你的隊伍管理者
-      </CardDescription>
-    </Card>
+    <ItemGroup className="flex flex-col">
+      {invitedPlayers.map((player) => (
+        <InvitationItem
+          key={player._id}
+          player={player}
+          handleAccept={handleAccept}
+          handleReject={handleReject}
+          errorMap={errorMap}
+        />
+      ))}
+    </ItemGroup>
   );
-};
+}
+
+function InvitationItem({
+  player,
+  handleAccept,
+  handleReject,
+  errorMap,
+}: {
+  player: Player;
+  handleAccept: (id: string) => void;
+  handleReject: (id: string) => void;
+  errorMap: Record<string, string>;
+}) {
+  const { team, isLoading } = useTeam(player.teamId!);
+  if (isLoading) return <InvitationItemSkeleton />;
+
+  return (
+    <Item className="relative items-start hover:bg-accent/50">
+      <NextLink
+        href={`/team/${player.teamId}`}
+        className="absolute inset-0 z-0"
+        aria-label="前往隊伍"
+      />
+      <ItemMedia variant="icon">
+        <RiGroupLine className="h-4 w-4" />
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="h-8">{team?.name}</ItemTitle>
+        <ItemFooter className="relative z-10 flex w-fit items-center gap-2">
+          <Button
+            size="sm"
+            className="pr-3 pl-2"
+            onClick={() => handleAccept(player._id)}
+            aria-label="接受邀請"
+          >
+            <RiCheckLine className="size-5" />
+            接受邀請
+          </Button>
+          <Button
+            variant="secondary"
+            className="pr-3 pl-2"
+            size="sm"
+            onClick={() => handleReject(player._id)}
+            aria-label="拒絕邀請"
+          >
+            <RiCloseLine className="size-5" />
+            拒絕邀請
+          </Button>
+        </ItemFooter>
+      </ItemContent>
+      {errorMap[player._id] && (
+        <p className="px-3 pb-2 text-sm text-destructive">
+          {errorMap[player._id]}
+        </p>
+      )}
+    </Item>
+  );
+}
+
+function InvitationItemSkeleton() {
+  return (
+    <Item className="items-start hover:bg-accent/50">
+      <ItemMedia variant="icon">
+        <Skeleton className="size-4" />
+      </ItemMedia>
+      <ItemContent>
+        <Skeleton className="my-2 h-4 w-32" />
+        <ItemFooter className="flex w-fit items-center gap-2">
+          <Skeleton className="h-8 w-23" />
+          <Skeleton className="h-8 w-23" />
+        </ItemFooter>
+      </ItemContent>
+    </Item>
+  );
+}
 
 const Message = () => {
   return (

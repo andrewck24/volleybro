@@ -1,13 +1,13 @@
 ## Why
 
-`person-item.tsx` and `team-item.tsx` share ~80% identical layout code (avatar + text + action slot, three-way Link/button/div wrapper, stopPropagation on action slot). This duplication makes consistent updates error-prone. The custom three-way wrapper pattern (Link/button/div) causes nested interactive element violations (`<button>` inside `<a>` or `<button>`) that fail axe accessibility audits. Additionally, the boundary between `ui/` and `custom/` folders lacks clear documentation.
+The original list-row implementations mixed layout, navigation wrappers, and action-slot event isolation in bespoke components. This made a11y fixes and visual consistency harder to maintain. The project also lacked a clear boundary between `ui/` primitives and app-specific composition in domain components.
 
 ## What Changes
 
 - Install Shadcn Item component (`ui/item.tsx`) as the base list-item primitive, replacing the custom `ListItem` compound component
-- Refactor `PersonItem` and `TeamItem` to compose Shadcn `Item` primitives, using `asChild` for navigation and two distinct item forms (navigable vs static-with-actions)
-- Adopt a footer pattern for items that need both navigation and action buttons (e.g., invitation accept/reject), placing interactive buttons outside the navigable area to comply with a11y
-- Co-locate skeleton exports within each item component file
+- Add small domain-agnostic helpers to `ui/item.tsx` where they reduce repeated boilerplate, such as `ItemAvatar`
+- Remove `PersonItem` / `TeamItem` thin wrappers and have consumers compose `Item`, `ItemMedia`, `ItemContent`, `ItemTitle`, `ItemDescription`, and `ItemFooter` directly
+- Keep the invitations row fully linkable except for action buttons by using an overlay link plus higher-layer buttons, which preserves axe compliance without nested interactive descendants
 - Relocate `LoadingCourt` from `custom/loading/court.tsx` into `custom/court/` (co-locate with its parent component)
 - Keep `custom/loading/card.tsx` (LoadingCard) in place — will be replaced by per-component skeletons in future change (loading-states)
 - Create `docs/architecture.md` documenting the `ui/` vs `custom/` component layer boundary (to be iteratively expanded by future changes)
@@ -16,7 +16,7 @@
 
 ### New Capabilities
 
-(none — Item is a Shadcn UI primitive; PersonItem/TeamItem are internal layout wrappers without business rules; their contracts are defined in design.md)
+(none — Item remains a Shadcn UI primitive; this change clarifies composition guidance and file boundaries)
 
 ### Modified Capabilities
 
@@ -26,13 +26,14 @@
 
 - Affected code:
   - `src/components/ui/item.tsx` (new — Shadcn Item component installed via CLI)
-  - `src/components/custom/list-item/` (remove custom ListItem, replace with thin wrappers composing Shadcn Item)
-  - `src/components/custom/person-item.tsx` → `src/components/custom/list-item/person-item.tsx` (refactor to compose Item)
-  - `src/components/custom/team-item.tsx` → `src/components/custom/list-item/team-item.tsx` (refactor to compose Item)
-  - `src/components/custom/__tests__/person-item.test.tsx` (update tests)
-  - `src/components/custom/__tests__/team-item.test.tsx` (update tests)
-  - `src/components/user/invitations/index.tsx` (adopt footer pattern for accept/reject)
-  - Consumers importing PersonItem/TeamItem (import path update)
+  - `src/components/ui/avatar.tsx` (new — shared avatar primitive used by item consumers)
+  - `src/components/team/players/list.tsx` (compose Item primitives directly for player rows)
+  - `src/components/record/new/roster-list.tsx` (compose Item primitives directly for static roster rows)
+  - `src/components/user/menu/index.tsx` (compose Item primitives directly for joined-team rows)
+  - `src/components/user/invitations/index.tsx` (compose Item primitives directly; overlay link keeps the item clickable except buttons)
+  - `src/components/custom/list-item/` (deleted — thin wrappers removed)
+  - `src/components/custom/__tests__/list-item/` (deleted — wrapper tests removed with components)
+  - `src/stories/item.stories.tsx` (Storybook coverage for Item primitives and invitation composition)
   - `src/components/custom/loading/court.tsx` (relocate into `custom/court/`)
   - Consumers importing LoadingCourt (import path update)
   - `src/components/ui/sheet.tsx` (delete — zero consumers)

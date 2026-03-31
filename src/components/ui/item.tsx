@@ -2,6 +2,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +37,13 @@ const itemVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
+        primary: "bg-primary text-primary-foreground hover:bg-primary/90",
         outline: "border-border",
         muted: "bg-muted/50",
       },
       size: {
-        default: "gap-4 p-4",
-        sm: "gap-2.5 px-4 py-3",
+        lg: "gap-4 p-3",
+        default: "gap-2.5 p-2",
       },
     },
     defaultVariants: {
@@ -100,6 +102,25 @@ function ItemMedia({
       className={cn(itemMediaVariants({ variant, className }))}
       {...props}
     />
+  );
+}
+
+function ItemAvatar({
+  className,
+  src,
+  alt,
+  fallback,
+}: {
+  className?: string;
+  src?: string;
+  alt?: string;
+  fallback: React.ReactNode;
+}) {
+  return (
+    <Avatar className={cn("size-10", className)}>
+      <AvatarImage src={src} alt={alt} />
+      <AvatarFallback>{fallback}</AvatarFallback>
+    </Avatar>
   );
 }
 
@@ -171,7 +192,7 @@ function ItemFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="item-footer"
       className={cn(
-        "flex basis-full items-center justify-between gap-2",
+        "flex basis-full items-center justify-start gap-2",
         className,
       )}
       {...props}
@@ -182,6 +203,7 @@ function ItemFooter({ className, ...props }: React.ComponentProps<"div">) {
 export {
   Item,
   ItemActions,
+  ItemAvatar,
   ItemContent,
   ItemDescription,
   ItemFooter,

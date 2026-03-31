@@ -4,21 +4,21 @@
 - [x] ~~1.2 Implement ListItem compound component set~~ (superseded — replaced by Shadcn Item)
 - [x] 1.3 Install Shadcn Item component via `npx shadcn@latest add item` into `src/components/ui/item.tsx`, verify it includes Item, ItemMedia, ItemContent, ItemTitle, ItemDescription, ItemActions, ItemFooter, ItemGroup, ItemSeparator
 - [x] 1.4 Remove custom `src/components/custom/list-item/index.tsx` and `src/components/custom/list-item/__tests__/list-item.test.tsx` (superseded by Shadcn Item), per file organization design
-- [x] 1.5 Write Storybook story for Shadcn Item in `src/stories/custom/list-item.stories.tsx` — cover two item forms (navigable with `asChild`, static with `ItemActions`), action footer pattern, variant/size combinations per design
+- [x] 1.5 Write Storybook story for Shadcn Item in `src/stories/item.stories.tsx` — cover direct consumer composition, invitation overlay-link pattern, variant/size combinations per design
 - [x] 1.6 Verify: `npm test && npx tsc --noEmit && npm run lint`
 
-## 2. Refactor PersonItem to Compose Shadcn Item (Presentation Layer)
+## 2. Remove Thin Item Wrappers (Presentation Layer)
 
-- [x] 2.1 Update person-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
-- [x] [P] 2.2 Refactor `PersonItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `PersonItemSkeleton` export per PersonItem and TeamItem as custom wrappers and skeleton co-location design
-- [x] 2.3 Update all PersonItem consumers (players/list.tsx, record/new/roster-list.tsx) to use new composition API per two item forms design
+- [x] 2.1 Delete `src/components/custom/list-item/person-item.tsx` and `src/components/custom/list-item/team-item.tsx`
+- [x] [P] 2.2 Delete wrapper tests under `src/components/custom/__tests__/list-item/`
+- [x] 2.3 Update player and roster consumers to compose `Item` primitives directly
 - [x] 2.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
 
-## 3. Refactor TeamItem to Compose Shadcn Item (Presentation Layer)
+## 3. Compose Team Rows in Domain Components (Presentation Layer)
 
-- [x] 3.1 Update team-item tests to verify composition with Shadcn Item, two item forms, and skeleton co-location per design
-- [x] [P] 3.2 Refactor `TeamItem` to compose Shadcn Item primitives (ItemMedia, ItemContent, ItemTitle), support `asChild` for navigable form, add co-located `TeamItemSkeleton` export per skeleton co-location design
-- [x] 3.3 Update all TeamItem consumers (user/invitations, user/menu) to use new composition API — invitations adopt action footer pattern per design
+- [x] 3.1 Add generic helper support in `src/components/ui/item.tsx` for direct composition (`ItemAvatar`)
+- [x] [P] 3.2 Update `user/menu/index.tsx` to compose joined-team rows locally with `useTeam`
+- [x] 3.3 Update `user/invitations/index.tsx` to compose invitation rows locally and keep the row clickable except for action buttons
 - [x] 3.4 Verify: `npm test && npx tsc --noEmit && npm run lint`
 
 ## 4. LoadingCourt Relocation (Presentation Layer)
