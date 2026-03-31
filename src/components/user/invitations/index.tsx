@@ -90,6 +90,7 @@ function InvitationList({ userId }: { userId?: string }) {
       toast({ title: "邀請已拒絕" });
       mutate();
     } catch (err) {
+      setErrorMap((prev) => ({ ...prev, [playerId]: getErrorMessage(err) }));
       showErrorToast(err, toast);
     }
   };

@@ -11,7 +11,7 @@ function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
     <div
       role="list"
       data-slot="item-group"
-      className={cn("group/item-group flex flex-col", className)}
+      className={cn("group/item-group flex flex-col gap-2", className)}
       {...props}
     />
   );
@@ -32,11 +32,11 @@ function ItemSeparator({
 }
 
 const itemVariants = cva(
-  "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-accent/50",
+  "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_a]:transition-colors [&_a]:hover:bg-accent/50",
   {
     variants: {
       variant: {
-        default: "bg-transparent",
+        default: "bg-transparent text-foreground hover:bg-accent/50",
         primary: "bg-primary text-primary-foreground hover:bg-primary/90",
         outline: "border-border",
         muted: "bg-muted/50",

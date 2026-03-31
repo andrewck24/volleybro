@@ -38,11 +38,7 @@ const Menu = ({ className }: { className?: string }) => {
           alt={user?.name}
           fallback={<RiUserLine />}
         />
-        {!user ? (
-          <span className="h-6 w-[16rem] animate-pulse rounded-md bg-muted" />
-        ) : (
-          user?.name
-        )}
+        {!user ? <Skeleton className="h-6 w-64" /> : user?.name}
       </Button>
       <TeamList userId={user?._id} />
       <Button variant="secondary" size="wide">
@@ -144,10 +140,7 @@ function TeamItem({
         <ItemContent>
           <ItemTitle>
             {isLoading ? (
-              <Skeleton
-                data-testid="team-name-skeleton"
-                className="h-4 w-24"
-              />
+              <Skeleton data-testid="team-name-skeleton" className="h-4 w-24" />
             ) : (
               team?.name
             )}

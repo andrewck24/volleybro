@@ -19,6 +19,20 @@ When a view needs list-row presentation, prefer composing `ui/item` primitives d
 - Shared visual building blocks belong in `ui/item.tsx` when they are domain-agnostic, such as `ItemAvatar`
 - Data-fetching and loading states stay in the domain component that owns the query, even if this duplicates a small amount of layout code across consumers
 
+### Item Interaction Forms
+
+Use one of these explicit interaction forms when composing an item:
+
+- `Item asChild` for fully navigable rows, where the interactive root is the `Link` or `Button`
+- Plain `Item` plus `ItemActions` or `ItemFooter` for static rows with inline actions
+- Overlay-link rows for mixed cases like invitations, where the row should navigate but inline buttons must stay clickable
+
+For the overlay-link form, the contract is:
+
+- The navigation link is an absolutely positioned sibling inside the `Item` with `absolute inset-0 z-0`
+- Any inline action container must opt out of the overlay by using a higher stacking context such as `relative z-10`
+- This pattern is reserved for cases where the whole row should navigate except a small set of inline controls
+
 ### Testing Conventions
 
 - Use `data-testid` (kebab-case) when structural queries are needed in tests — do not use `container.querySelector` or direct DOM access
