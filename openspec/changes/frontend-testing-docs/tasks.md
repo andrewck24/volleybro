@@ -9,13 +9,17 @@
 
 ## 2. Maintenance Policy Document (Documentation)
 
-- [ ] 2.1 Create `docs/maintenance-policy.md` with the maintenance policy document sections (snapshot updates, major version bumps, mock drift)
-- [ ] 2.2 Verify: `npm run lint && npm run build`
+- [x] 2.1 Create `docs/maintenance-policy.md` with two sections: (1) Major Version Bumps — general rule for any package: dedicated branch, run full suite, follow official migration guide; (2) Mock Drift — general rule: after upgrading any mocked dependency, verify mock surface still matches real API (no snapshot section — project has no snapshot tests yet)
+- [x] 2.2 Verify: `npm run lint && npm run build`
 
-## 3. Cross-References and Documentation Updates
+## 3. Contributing Guide (Documentation)
 
-- [ ] 3.1 Update `CLAUDE.md` Testing section to reference `docs/testing-strategy.md` and `docs/maintenance-policy.md`
-- [ ] [P] 3.2 Update `README.md` Testing & Quality Assurance section to reference the new docs
-- [ ] [P] 3.3 If `docs/architecture.md` exists (from `component-architecture` change), add cross-reference to testing strategy
-- [ ] 3.4 Review whether `openspec/config.yaml` needs updating based on this change
-- [ ] 3.5 Final verification: `npm run test && npx tsc --noEmit && npm run lint && npm run build`
+- [ ] 3.1 Create `CONTRIBUTING.md` as contributor entry point with: (1) Branch & PR workflow (feature/fix branches → dev, PR title in English + zh-TW summary); (2) Conventional commit types table (feat/fix/docs/refactor/test/chore/build/ci/perf/style with descriptions and examples); (3) Code style section (Airbnb + ESLint + Prettier, link to `npm run lint`); (4) Testing section linking to `docs/testing-strategy.md`; (5) Maintenance section linking to `docs/maintenance-policy.md`
+- [ ] [P] 3.2 Simplify `README.md`: replace the entire 貢獻指南/Contribution Guidelines section (commit convention, code style subsections) with a single line linking to `CONTRIBUTING.md`; keep the Testing & Quality Assurance section but add a reference to `CONTRIBUTING.md` for testing guidance
+- [ ] [P] 3.3 Update `CLAUDE.md` Testing section to reference `docs/testing-strategy.md` and `docs/maintenance-policy.md`
+
+## 4. Cross-References and Final Verification
+
+- [ ] 4.1 If `docs/architecture.md` exists (from `component-architecture` change), add cross-reference to testing strategy and CONTRIBUTING.md
+- [ ] 4.2 Review whether `openspec/config.yaml` needs updating based on this change
+- [ ] 4.3 Final verification: `npm run test && npx tsc --noEmit && npm run lint && npm run build`

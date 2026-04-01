@@ -47,13 +47,16 @@ A single table maps each Clean Architecture layer to its testing school, mock bo
 
 ### Maintenance policy document
 
-Dependency update rules (snapshot updates, major version bumps, mock drift) belong in a separate `docs/maintenance-policy.md` rather than inside the testing strategy. This keeps `testing-strategy.md` focused on _how to write tests_ while `maintenance-policy.md` covers _how to keep tooling healthy_. The maintenance policy will be iterated by future changes (e.g., `storybook-modernization`, `typescript-6-upgrade`).
+Dependency update rules (major version bumps, mock drift) belong in a separate `docs/maintenance-policy.md` rather than inside the testing strategy. This keeps `testing-strategy.md` focused on _how to write tests_ while `maintenance-policy.md` covers _how to keep tooling healthy_. The maintenance policy will be iterated by future changes (e.g., `storybook-modernization`, `typescript-6-upgrade`).
+
+Rules are **general** — they apply to any package upgrade, not specific to MongoDB/Mongoose. Examples are used for illustration only.
 
 Initial sections for `docs/maintenance-policy.md`:
 
-1. **Snapshot updates**: Re-run and inspect; approve only if changes are expected
-2. **Major version bumps** (Jest, RTL, Storybook): Create a dedicated branch, run full suite, review breaking changes
-3. **Mock drift**: When upgrading MongoDB/Mongoose, verify `jest.setup.backend.ts` mocks still match the real API surface
+1. **Major version bumps** (any package): Create a dedicated branch, run full suite, follow the official migration guide, review breaking changes
+2. **Mock drift**: After upgrading any dependency that sits behind a mock boundary, verify the mock surface still matches the real API
+
+**Snapshot updates not included**: The project currently has no Jest snapshot tests. If snapshots are introduced in the future, a dedicated maintenance rule should be added at that time.
 
 **Rationale:** Test infrastructure silently drifts from production dependencies without explicit rules. Separating this into its own document allows non-testing maintenance rules to be added later.
 
@@ -80,9 +83,14 @@ docs/testing-strategy.md
 └── Quick Reference (cheat sheet)
 
 docs/maintenance-policy.md
-├── Snapshot Updates
-├── Major Version Bumps
-└── Mock Drift
+├── Major Version Bumps (general, any package)
+└── Mock Drift (general, any mocked dependency)
+
+CONTRIBUTING.md  ← entry point for contributors
+├── Branch & PR workflow
+├── Conventional Commit convention (types, scope, examples)
+├── Code style (Airbnb + ESLint + Prettier)
+└── Links → docs/testing-strategy.md, docs/maintenance-policy.md
 ```
 
 ## Risks / Trade-offs
