@@ -42,10 +42,10 @@
 
 ## 7. Co-located Skeleton Pattern — Home Components and Cleanup (Presentation Layer)
 
-- [ ] 7.1 Create `HomeSkeleton` in `src/components/home/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
-- [ ] [P] 7.2 Create `MatchesSkeleton` in `src/components/home/matches.tsx`, replace `LoadingCard` import
-- [ ] 7.3 Delete `src/components/custom/loading/card.tsx` and `src/components/custom/loading/` directory
-- [ ] 7.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 7.1 Create `HomeSkeleton` in `src/components/home/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
+- [x] [P] 7.2 Create `MatchesSkeleton` in `src/components/home/matches.tsx`, replace `LoadingCard` import
+- [x] 7.3 Delete `src/components/custom/loading/card.tsx` and `src/components/custom/loading/` directory
+- [x] 7.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 8. Final Verification and Documentation
 
