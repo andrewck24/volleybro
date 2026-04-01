@@ -3,7 +3,17 @@ import { useEffect, useRef } from "react";
 import { useUser, useMatches } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { MatchResult } from "@/components/record/match";
-import LoadingCard from "@/components/custom/loading/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function MatchesSkeleton() {
+  return (
+    <div className="w-full space-y-2">
+      {Array.from({ length: 3 }, (_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-md" />
+      ))}
+    </div>
+  );
+}
 
 export const TeamMatches = ({ teamId }: { teamId: string }) => {
   const { mutate: mutateUser } = useUser();
@@ -61,7 +71,7 @@ export const TeamMatches = ({ teamId }: { teamId: string }) => {
     };
   }, [isLoading, isReachingEnd, isLoadingMore, setSize, matches?.length]);
 
-  if (isLoading && !matches?.length) return <LoadingCard className="w-full" />;
+  if (isLoading && !matches?.length) return <MatchesSkeleton />;
 
   return (
     <>
@@ -75,7 +85,7 @@ export const TeamMatches = ({ teamId }: { teamId: string }) => {
               </div>
             );
           })}
-          {isLoadingMore && <LoadingCard className="w-full mt-2" />}
+          {isLoadingMore && <MatchesSkeleton />}
         </>
       ) : (
         <p>沒有比賽</p>
