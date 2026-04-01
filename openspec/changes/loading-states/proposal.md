@@ -5,7 +5,7 @@ Users receive no visual feedback during form submissions and async actions acros
 ## What Changes
 
 - Extend the existing Shadcn `Button` component with `loading?: boolean` and `loadingText?: string` props for standardized submission feedback
-- Fix 8 submitting-state gaps: sign-in (Google OAuth button), user invitations (accept/reject), record set-options, record substitutes panel, record opponent moves, match info form, membership remove, membership transfer-ownership
+- Fix 5 submitting-state gaps: sign-in (Google OAuth button), user invitations (accept/reject), record set-options, membership remove, membership transfer-ownership; record substitutes, opponent moves, and match info form are excluded as they use optimistic updates or pure local state
 - Replace all 10 `LoadingCard` consumers with per-component co-located skeletons that match each component's actual layout
 - Delete `src/components/custom/loading/` directory entirely (both `card.tsx` and directory)
 
@@ -26,9 +26,6 @@ Users receive no visual feedback during form submissions and async actions acros
   - `src/components/auth/sign-in/form.tsx` (add submitting state)
   - `src/components/user/invitations/index.tsx` (add processing state for accept/reject)
   - `src/components/record/set-options/panel/options.tsx` (add submitting state)
-  - `src/components/record/panel/substitutes/index.tsx` (add submitting state)
-  - `src/components/record/panel/moves/oppo.tsx` (add disabled state during rally creation)
-  - `src/components/record/new/info-form.tsx` (add submitting state)
   - `src/components/team/players/membership-section.tsx` (add loading states for remove/transfer)
   - `src/components/team/lineup/index.tsx` (replace LoadingCard with co-located skeleton)
   - `src/components/team/players/list.tsx` (replace LoadingCard)

@@ -2,6 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import Link, { type LinkProps as NextLinkProps } from "next/link";
+import { RiLoader4Line } from "react-icons/ri";
 
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,8 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
+  loadingText?: string;
 }
 
 const Button = ({
@@ -48,15 +51,31 @@ const Button = ({
   variant,
   size,
   asChild = false,
+  loading = false,
+  loadingText,
+  disabled,
+  children,
   ...props
 }: ButtonProps) => {
   const Comp = asChild ? Slot : "button";
+  const isLoading = !asChild && loading;
   return (
     <Comp
       data-slot="Button"
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || isLoading}
+      aria-busy={isLoading ? true : undefined}
       {...props}
-    />
+    >
+      {isLoading ? (
+        <>
+          <RiLoader4Line className="animate-spin" />
+          {loadingText ?? children}
+        </>
+      ) : (
+        children
+      )}
+    </Comp>
   );
 };
 

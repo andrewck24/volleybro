@@ -1,8 +1,8 @@
 ## 1. Button Loading Props (Presentation Layer)
 
-- [ ] 1.1 Write tests for Button `loading` and `loadingText` props behavior (TDD)
-- [ ] 1.2 Extend `src/components/ui/button.tsx` with Button Loading Props: add `loading?: boolean` and `loadingText?: string` per design, using `RiLoader4Line` spinner; ignore `loading` when `asChild` is true
-- [ ] 1.3 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 1.1 Write tests for Button `loading` and `loadingText` props behavior (TDD)
+- [x] 1.2 Extend `src/components/ui/button.tsx` with Button Loading Props: add `loading?: boolean` and `loadingText?: string` per design, using `RiLoader4Line` spinner; ignore `loading` when `asChild` is true
+- [x] 1.3 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 2. Submitting State Fixes — Auth & User (Presentation Layer)
 
@@ -14,11 +14,8 @@
 ## 3. Submitting State Fixes — Record (Presentation Layer)
 
 - [ ] 3.1 Write tests for record panel Submitting State Fix Pattern (TDD)
-- [ ] [P] 3.2 Fix `src/components/record/set-options/panel/options.tsx`: add `isSubmitting` state and `loading` prop
-- [ ] [P] 3.3 Fix `src/components/record/panel/substitutes/index.tsx`: add `isSubmitting` state and `loading` prop
-- [ ] [P] 3.4 Fix `src/components/record/panel/moves/oppo.tsx`: add `isProcessing` state and `disabled` prop
-- [ ] [P] 3.5 Fix `src/components/record/new/info-form.tsx`: add `isSubmitting` state and `loading` prop
-- [ ] 3.6 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [ ] 3.2 Fix `src/components/record/set-options/panel/options.tsx`: add `isSubmitting` state and `loading` prop
+- [ ] 3.3 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 4. Submitting State Fixes — Team (Presentation Layer)
 
