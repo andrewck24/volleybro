@@ -325,9 +325,11 @@ function InviteSection({
         <Button
           type="submit"
           className="w-full"
-          disabled={isSubmitting || !email}
+          disabled={!email}
+          loading={isSubmitting}
+          loadingText="發送中..."
         >
-          {isSubmitting ? "發送中..." : "發送邀請"}
+          發送邀請
         </Button>
       </form>
     </div>
@@ -386,9 +388,10 @@ function InvitedSection({
         variant="outline"
         className="w-full"
         onClick={handleCancel}
-        disabled={isSubmitting}
+        loading={isSubmitting}
+        loadingText="取消中..."
       >
-        {isSubmitting ? "取消中..." : "取消邀請"}
+        取消邀請
       </Button>
     </div>
   );
@@ -454,9 +457,11 @@ function JoinedSection({
       <Button
         className="w-full"
         onClick={handleUpdateRole}
-        disabled={isSubmitting || role === player.role}
+        disabled={role === player.role}
+        loading={isSubmitting}
+        loadingText="變更中..."
       >
-        {isSubmitting ? "變更中..." : "變更角色"}
+        變更角色
       </Button>
     </div>
   );

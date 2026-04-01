@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useUser, useMatches } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { MatchResult } from "@/components/record/match";
@@ -26,34 +26,25 @@ export const TeamMatches = ({ teamId }: { teamId: string }) => {
     setSize,
   } = useMatches(teamId);
 
-  const mutate = () => {
+  const mutate = useCallback(() => {
     mutateUser();
     mutateTeamRecords();
-  };
+  }, [mutateUser, mutateTeamRecords]);
 
   usePullToRefresh(mutate);
 
-  // 設置無限滾動的觀察元素參考
-  const observerRef = useRef<IntersectionObserver | null>(null);
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
-  // 設置 Intersection Observer
   useEffect(() => {
     if (isLoading) return;
 
-    const loadMoreItems = () => {
-      if (!isReachingEnd && !isLoadingMore) {
-        setSize((prev) => prev + 1);
-      }
-    };
-
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMoreItems();
+        if (entries[0].isIntersecting && !isReachingEnd && !isLoadingMore) {
+          setSize((prev) => prev + 1);
         }
       },
-      { threshold: 1 } // 元素進入視圖10%時觸發
+      { threshold: 1 }
     );
 
     const currentElement = lastItemRef.current;
@@ -61,12 +52,7 @@ export const TeamMatches = ({ teamId }: { teamId: string }) => {
       observer.observe(currentElement);
     }
 
-    observerRef.current = observer;
-
     return () => {
-      if (currentElement) {
-        observer.unobserve(currentElement);
-      }
       observer.disconnect();
     };
   }, [isLoading, isReachingEnd, isLoadingMore, setSize, matches?.length]);
