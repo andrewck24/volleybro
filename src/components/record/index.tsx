@@ -1,6 +1,5 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import LoadingCard from "@/components/custom/loading/card";
 import { LoadingCourt } from "@/components/custom/court";
 import { StatsForOneSet } from "@/components/match/stats";
 import { RecordCourt } from "@/components/record/court";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { useRecord } from "@/hooks/use-data";
 import { recordActions } from "@/lib/features/record/record-slice";
@@ -49,16 +49,7 @@ const Record = ({
 
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (isLoading || _id !== recordId) {
-    return (
-      <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
-        <RecordHeader />
-        <LoadingCourt />
-        <Card className="grid w-full p-2">
-          <div className="h-8 rounded-md bg-muted motion-safe:animate-pulse" />
-        </Card>
-        <LoadingCard className="w-full flex-1 pb-4" />
-      </div>
-    );
+    return <RecordSkeleton />;
   }
 
   if (!general.status.inProgress) {
@@ -89,6 +80,26 @@ const Record = ({
     </div>
   );
 };
+
+export function RecordSkeleton() {
+  return (
+    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
+      <RecordHeader />
+      <LoadingCourt />
+      <Card className="grid w-full p-2">
+        <Skeleton className="h-8 w-full" />
+      </Card>
+      <div className="w-full flex-1 rounded-lg border bg-card p-4 pb-4">
+        <Skeleton className="mb-4 h-6 w-32" />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const Interval = ({
   recordId,

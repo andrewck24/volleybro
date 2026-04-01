@@ -35,10 +35,10 @@
 
 ## 6. Co-located Skeleton Pattern — Record & Match Components (Presentation Layer)
 
-- [ ] 6.1 Create `RecordSkeleton` in `src/components/record/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
-- [ ] [P] 6.2 Create `MatchSetsSkeleton` in `src/components/match/sets/index.tsx`, replace `LoadingCard` import
-- [ ] [P] 6.3 Create `MatchSkeleton` in `src/components/match/index.tsx`, replace `LoadingCard` import
-- [ ] 6.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 6.1 Create `RecordSkeleton` in `src/components/record/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
+- [x] [P] 6.2 Create `MatchSetsSkeleton` in `src/components/match/sets/index.tsx`, replace `LoadingCard` import
+- [x] [P] 6.3 Create `MatchSkeleton` in `src/components/match/index.tsx`, replace `LoadingCard` import
+- [x] 6.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 7. Co-located Skeleton Pattern — Home Components and Cleanup (Presentation Layer)
 
