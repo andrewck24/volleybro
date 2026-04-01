@@ -29,7 +29,7 @@ import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-positi
 import { useAppSelector } from "@/lib/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
@@ -40,6 +40,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   const { setIndex } = useAppSelector((state) => state.record);
   const { hasPairedReplacePosition } = useReplacePosition();
   const { record, mutate } = useRecord(recordId);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isNewSet = setIndex === record?.sets.length;
   const members = record?.teams.home.players ?? [];
 
@@ -67,6 +68,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   });
 
   const onSubmit = async (data: SetOptionsFormValues) => {
+    setIsSubmitting(true);
     try {
       const result = await apiClient<Record>(
         `/api/records/${recordId}/sets?si=${setIndex}`,
@@ -83,6 +85,8 @@ export const Options = ({ recordId }: { recordId: string }) => {
       if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
     } catch (error) {
       showErrorToast(error, toast);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -109,6 +113,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
                 <ActionButton
                   isNewSet={isNewSet}
                   disabled={!hasPairedReplacePosition}
+                  loading={isSubmitting}
                 />
               </DialogClose>
             </DialogFooter>
@@ -192,12 +197,14 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
 const ActionButton = ({
   isNewSet,
   disabled,
+  loading,
 }: {
   isNewSet: boolean;
   disabled: boolean;
+  loading: boolean;
 }) => {
   return (
-    <Button type="submit" size="lg" disabled={disabled}>
+    <Button type="submit" size="lg" disabled={disabled} loading={loading}>
       {isNewSet ? (
         <>
           開始新一局

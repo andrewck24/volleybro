@@ -13,9 +13,9 @@
 
 ## 3. Submitting State Fixes — Record (Presentation Layer)
 
-- [ ] 3.1 Write tests for record panel Submitting State Fix Pattern (TDD)
-- [ ] 3.2 Fix `src/components/record/set-options/panel/options.tsx`: add `isSubmitting` state and `loading` prop
-- [ ] 3.3 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 3.1 Write tests for record panel Submitting State Fix Pattern (TDD)
+- [x] 3.2 Fix `src/components/record/set-options/panel/options.tsx`: add `isSubmitting` state and `loading` prop
+- [x] 3.3 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 4. Submitting State Fixes — Team (Presentation Layer)
 
