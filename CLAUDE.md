@@ -120,3 +120,5 @@ Components are organized by domain and purpose (features):
 4. `npm run build` - Build succeeds without errors
 5. Verify no breaking changes to existing functionality
 6. run `/simplify`
+
+See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.

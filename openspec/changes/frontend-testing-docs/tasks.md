@@ -14,9 +14,9 @@
 
 ## 3. Contributing Guide (Documentation)
 
-- [ ] 3.1 Create `CONTRIBUTING.md` as contributor entry point with: (1) Branch & PR workflow (feature/fix branches → dev, PR title in English + zh-TW summary); (2) Conventional commit types table (feat/fix/docs/refactor/test/chore/build/ci/perf/style with descriptions and examples); (3) Code style section (Airbnb + ESLint + Prettier, link to `npm run lint`); (4) Testing section linking to `docs/testing-strategy.md`; (5) Maintenance section linking to `docs/maintenance-policy.md`
-- [ ] [P] 3.2 Simplify `README.md`: replace the entire 貢獻指南/Contribution Guidelines section (commit convention, code style subsections) with a single line linking to `CONTRIBUTING.md`; keep the Testing & Quality Assurance section but add a reference to `CONTRIBUTING.md` for testing guidance
-- [ ] [P] 3.3 Update `CLAUDE.md` Testing section to reference `docs/testing-strategy.md` and `docs/maintenance-policy.md`
+- [x] 3.1 Create `CONTRIBUTING.md` as contributor entry point with: (1) Branch & PR workflow (feature/fix branches → dev, PR title in English + zh-TW summary); (2) Conventional commit types table (feat/fix/docs/refactor/test/chore/build/ci/perf/style with descriptions and examples); (3) Code style section (Airbnb + ESLint + Prettier, link to `npm run lint`); (4) Testing section linking to `docs/testing-strategy.md`; (5) Maintenance section linking to `docs/maintenance-policy.md`
+- [x] [P] 3.2 Simplify `README.md`: replace the entire 貢獻指南/Contribution Guidelines section (commit convention, code style subsections) with a single line linking to `CONTRIBUTING.md`; keep the Testing & Quality Assurance section but add a reference to `CONTRIBUTING.md` for testing guidance
+- [x] [P] 3.3 Update `CLAUDE.md` Testing section to reference `docs/testing-strategy.md` and `docs/maintenance-policy.md`
 
 ## 4. Cross-References and Final Verification
 

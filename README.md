@@ -106,6 +106,8 @@ This project uses a clean architecture and implements dependency injection with 
 - **Storybook** for component development and documentation
 - **Prettier** for code formatting
 
+> For testing conventions and strategy, see [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/testing-strategy.md](./docs/testing-strategy.md).
+
 ### Running Tests
 
 ```bash
@@ -189,73 +191,9 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 
 ## 貢獻指南 / Contribution Guidelines
 
-歡迎所有開發者參與貢獻，請遵循以下流程：
+請參閱 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解分支規範、commit 規範、程式碼風格與測試要求。
 
-1. Fork 此專案至您的 GitHub 帳戶。
-2. 建立新分支（例如：`feature/your-feature`）。
-3. 開發完成後，提交 Pull Request，並清楚說明修改內容。
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository to your GitHub account.
-2. Create a new branch (e.g., `feature/your-feature`).
-3. After development, submit a pull request with a clear description of your changes.
-
-### Git Commit 規範 / Git Commit Convention
-
-所有 commit 訊息必須遵循 [Angular Commit Message 規範](https://github.com/angular/angular/blob/master/CONTRIBUTING.md#-commit-message-format)。常見類型包括：
-
-- `build:` 用於變更建置系統或外部依賴
-- `ci:` 用於變更 CI 設定
-- `docs:` 用於變更文件
-- `feat:` 用於新增功能
-- `fix:` 用於修正 bug
-- `style:` 用於格式修正，不影響程式邏輯
-- `refactor:` 用於重構程式碼
-- `test:` 用於新增或修正測試
-
-commit 訊息格式範例：
-
-```txt
-feat(core): implement dependency injection with InversifyJS
-fix(ui): correct team selection dropdown behavior
-docs(readme): update installation instructions
-```
-
-All commit messages must follow the [Angular Commit Message Convention](https://github.com/angular/angular/blob/master/CONTRIBUTING.md#-commit-message-format). Common types include:
-
-- `build:` Changes that affect the build system or external dependencies
-- `ci:` Changes to our CI configuration files and scripts
-- `docs:` Documentation only changes
-- `feat:` A new feature
-- `fix:` A bug fix
-- `perf:` A code change that improves performance
-- `refactor:` A code change that neither fixes a bug nor adds a feature
-- `test:` Adding missing tests or correcting existing tests
-
-Example commit message format:
-
-```txt
-feat(core): implement dependency injection with InversifyJS
-fix(ui): correct team selection dropdown behavior
-docs(readme): update installation instructions
-```
-
-### 程式碼風格 / Code Style
-
-本專案的程式碼風格採用 [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript) 為基礎。提交前請確保您的程式碼：
-
-- 符合 Airbnb JavaScript/TypeScript 風格指南
-- 通過 ESLint 檢查 (`npm run lint`)
-- 使用適當的型別定義（TypeScript）
-- 包含必要的測試（如適用）
-
-The project follows the [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript) as its coding standard. Before submitting, please ensure your code:
-
-- Complies with the Airbnb JavaScript/TypeScript style guide
-- Passes ESLint checks (`npm run lint`)
-- Uses proper type definitions (TypeScript)
-- Includes necessary tests (if applicable)
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, commit convention, code style, and testing requirements.
 
 ## 授權條款 / License
 
