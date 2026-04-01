@@ -1,5 +1,4 @@
 "use client";
-import LoadingCard from "@/components/custom/loading/card";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
@@ -37,7 +37,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
   if (isTeamLoading || isPlayersLoading || isUserLoading)
-    return <LoadingCard />;
+    return <TeamInfoSkeleton />;
 
   const contents = [
     { key: "簡稱", value: team!.nickname, icon: <RiInformationLine /> },
@@ -139,5 +139,24 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     </Card>
   );
 };
+
+export function TeamInfoSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-6 w-24" />
+      </CardHeader>
+      <div className="divide-y">
+        {Array.from({ length: 2 }, (_, i) => (
+          <div key={i} className="flex items-center gap-4 py-2">
+            <Skeleton className="size-6" />
+            <Skeleton className="h-5 w-12" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 export default TeamInfo;

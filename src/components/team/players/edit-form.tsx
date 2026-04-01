@@ -1,10 +1,10 @@
 "use client";
 
-import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,7 +36,7 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading) return <LoadingCard />;
+  if (isLoading) return <PlayerEditFormSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
@@ -62,6 +62,23 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
           />
         </>
       )}
+    </Card>
+  );
+}
+
+export function PlayerEditFormSkeleton() {
+  return (
+    <Card className="py-8">
+      <div className="space-y-4">
+        <Skeleton className="h-4 w-16" />
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-9 w-full" />
+          </div>
+        ))}
+        <Skeleton className="h-9 w-full" />
+      </div>
     </Card>
   );
 }

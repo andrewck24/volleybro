@@ -26,12 +26,12 @@
 
 ## 5. Co-located Skeleton Pattern — Team Components (Presentation Layer)
 
-- [ ] 5.1 Create `LineupSkeleton` in `src/components/team/lineup/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
-- [ ] [P] 5.2 Create `PlayersListSkeleton` in `src/components/team/players/list.tsx`, replace `LoadingCard` import
-- [ ] [P] 5.3 Create `PlayerInfoSkeleton` in `src/components/team/players/info.tsx`, replace `LoadingCard` import
-- [ ] [P] 5.4 Create `PlayerEditFormSkeleton` in `src/components/team/players/edit-form.tsx`, replace `LoadingCard` import
-- [ ] [P] 5.5 Create `TeamInfoSkeleton` in `src/components/team/info/index.tsx`, replace `LoadingCard` import
-- [ ] 5.6 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 5.1 Create `LineupSkeleton` in `src/components/team/lineup/index.tsx` per Co-located Skeleton Pattern and LoadingCard Replacement Map, replace `LoadingCard` import
+- [x] [P] 5.2 Create `PlayersListSkeleton` in `src/components/team/players/list.tsx`, replace `LoadingCard` import
+- [x] [P] 5.3 Create `PlayerInfoSkeleton` in `src/components/team/players/info.tsx`, replace `LoadingCard` import
+- [x] [P] 5.4 Create `PlayerEditFormSkeleton` in `src/components/team/players/edit-form.tsx`, replace `LoadingCard` import
+- [x] [P] 5.5 Create `TeamInfoSkeleton` in `src/components/team/info/index.tsx`, replace `LoadingCard` import
+- [x] 5.6 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 6. Co-located Skeleton Pattern — Record & Match Components (Presentation Layer)
 

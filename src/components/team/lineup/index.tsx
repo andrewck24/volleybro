@@ -1,9 +1,9 @@
 "use client";
-import LoadingCard from "@/components/custom/loading/card";
 import { LoadingCourt } from "@/components/custom/court";
 import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
@@ -67,15 +67,7 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   }, [team, dispatch]);
 
   if (!team || !players || !lineups.length) {
-    return (
-      <>
-        <LoadingCourt />
-        <LoadingCard className="w-full flex-1" />
-        <div className="flex w-full flex-col px-4">
-          <Button size="lg" className="motion-safe:animate-pulse" />
-        </div>
-      </>
-    );
+    return <LineupSkeleton />;
   }
 
   return (
@@ -100,5 +92,24 @@ const Lineup = ({ teamId }: { teamId: string }) => {
     </>
   );
 };
+
+export function LineupSkeleton() {
+  return (
+    <>
+      <LoadingCourt />
+      <div className="w-full flex-1 rounded-lg border bg-card p-4">
+        <Skeleton className="mb-4 h-6 w-32" />
+        <div className="space-y-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      </div>
+      <div className="flex w-full flex-col px-4">
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </>
+  );
+}
 
 export default Lineup;

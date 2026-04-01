@@ -1,10 +1,10 @@
 "use client";
 
-import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Player } from "@/entities/player";
 import { usePlayer } from "@/hooks/use-data";
 import { POSITION_LABELS, ROLE_LABELS } from "@/lib/constants/labels";
@@ -13,7 +13,7 @@ import { FiEdit2, FiUser } from "react-icons/fi";
 export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
 
-  if (isLoading) return <LoadingCard />;
+  if (isLoading) return <PlayerInfoSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
@@ -69,6 +69,29 @@ function PlayerDetails({ player, teamId }: { player: Player; teamId: string }) {
 interface PlayerInfoProps {
   teamId: string;
   playerId: string;
+}
+
+export function PlayerInfoSkeleton() {
+  return (
+    <Card className="py-8">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+      </div>
+      <div className="divide-y">
+        {Array.from({ length: 3 }, (_, i) => (
+          <div key={i} className="flex justify-between py-1.5">
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-10 w-full" />
+    </Card>
+  );
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
