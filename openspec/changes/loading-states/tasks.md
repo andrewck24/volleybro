@@ -19,10 +19,10 @@
 
 ## 4. Submitting State Fixes — Team (Presentation Layer)
 
-- [ ] 4.1 Write tests for membership Submitting State Fix Pattern (TDD)
-- [ ] [P] 4.2 Fix `src/components/team/players/membership-section.tsx` remove action: add `isRemoving` state and `loading` prop
-- [ ] [P] 4.3 Fix `src/components/team/players/membership-section.tsx` transfer action: add `isTransferring` state and `loading` prop
-- [ ] 4.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 4.1 Write tests for membership Submitting State Fix Pattern (TDD)
+- [x] [P] 4.2 Fix `src/components/team/players/membership-section.tsx` remove action: add `isRemoving` state and `loading` prop
+- [x] [P] 4.3 Fix `src/components/team/players/membership-section.tsx` transfer action: add `isTransferring` state and `loading` prop
+- [x] 4.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 5. Co-located Skeleton Pattern — Team Components (Presentation Layer)
 

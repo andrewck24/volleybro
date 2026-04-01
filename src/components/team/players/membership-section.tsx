@@ -45,8 +45,10 @@ export function MembershipSection({
 
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   const revalidate = () => {
     mutate(`/api/players/${player._id}`);
@@ -55,6 +57,7 @@ export function MembershipSection({
 
   const handleRemove = async () => {
     setRemoveError(null);
+    setIsRemoving(true);
     try {
       await apiClient(`/api/players/${player._id}`, {
         method: "DELETE",
@@ -69,11 +72,14 @@ export function MembershipSection({
       router.push(`/team/${teamId}`);
     } catch (err) {
       setRemoveError(getErrorMessage(err));
+    } finally {
+      setIsRemoving(false);
     }
   };
 
   const handleTransferOwnership = async () => {
     setTransferError(null);
+    setIsTransferring(true);
     try {
       await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
@@ -89,6 +95,8 @@ export function MembershipSection({
       revalidate();
     } catch (err) {
       setTransferError(getErrorMessage(err));
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -119,7 +127,7 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className="w-full" disabled={isRemoving}>
                   移除成員
                 </Button>
               </AlertDialogTrigger>
@@ -139,7 +147,11 @@ export function MembershipSection({
                     </p>
                   )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <Button variant="destructive" onClick={handleRemove}>
+                  <Button
+                    variant="destructive"
+                    onClick={handleRemove}
+                    loading={isRemoving}
+                  >
                     確認移除
                   </Button>
                 </AlertDialogFooter>
@@ -162,7 +174,7 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className="w-full" disabled={isTransferring}>
                   移轉所有權給此球員
                 </Button>
               </AlertDialogTrigger>
@@ -185,6 +197,7 @@ export function MembershipSection({
                   <Button
                     variant="destructive"
                     onClick={handleTransferOwnership}
+                    loading={isTransferring}
                   >
                     確認移轉
                   </Button>
