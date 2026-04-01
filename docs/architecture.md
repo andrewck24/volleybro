@@ -1,5 +1,7 @@
 # Architecture
 
+See also: [Testing Strategy](./testing-strategy.md) · [Contributing Guide](../CONTRIBUTING.md)
+
 ## Component Organization
 
 Components are organized into three layers with distinct responsibilities and boundary rules.
@@ -39,5 +41,7 @@ For the overlay-link form, the contract is:
 - Use `getByRole`, `getByText`, `getByTestId` from Testing Library for all assertions
 - Use `<Link />` from `next/link` in tests instead of `<a>` elements to satisfy `@next/next/no-html-link-for-pages`
 - New components and skeletons should add `data-testid` markers to testable structural elements on creation
+
+For full testing conventions per Clean Architecture layer, see [docs/testing-strategy.md](./testing-strategy.md).
 
 This document is iteratively expanded by each change that introduces architectural decisions.

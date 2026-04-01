@@ -20,6 +20,6 @@
 
 ## 4. Cross-References and Final Verification
 
-- [ ] 4.1 If `docs/architecture.md` exists (from `component-architecture` change), add cross-reference to testing strategy and CONTRIBUTING.md
-- [ ] 4.2 Review whether `openspec/config.yaml` needs updating based on this change
-- [ ] 4.3 Final verification: `npm run test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 4.1 If `docs/architecture.md` exists (from `component-architecture` change), add cross-reference to testing strategy and CONTRIBUTING.md
+- [x] 4.2 Review whether `openspec/config.yaml` needs updating based on this change
+- [x] 4.3 Final verification: `npm run test && npx tsc --noEmit && npm run lint && npm run build`
