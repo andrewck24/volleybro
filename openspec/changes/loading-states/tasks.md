@@ -6,10 +6,10 @@
 
 ## 2. Submitting State Fixes — Auth & User (Presentation Layer)
 
-- [ ] 2.1 Write tests for sign-in and user invitations Submitting State Fix Pattern (TDD)
-- [ ] [P] 2.2 Fix `src/components/auth/sign-in/form.tsx`: add `isSubmitting` state and `loading` prop to Google OAuth button
-- [ ] [P] 2.3 Fix `src/components/user/invitations/index.tsx`: add `processingId` state for accept/reject buttons with `loading`/`disabled` props
-- [ ] 2.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 2.1 Write tests for sign-in and user invitations Submitting State Fix Pattern (TDD)
+- [x] [P] 2.2 Fix `src/components/auth/sign-in/form.tsx`: add `isSubmitting` state and `loading` prop to Google OAuth button
+- [x] [P] 2.3 Fix `src/components/user/invitations/index.tsx`: add `processingId` state for accept/reject buttons with `loading`/`disabled` props
+- [x] 2.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 3. Submitting State Fixes — Record (Presentation Layer)
 
