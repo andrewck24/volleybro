@@ -20,7 +20,7 @@ Each layer has a designated testing school and defined mock boundaries.
 
 ### School Emphasis
 
-**Classical (state verification)** — Assert on the _output_ or _resulting state_ after exercising the SUT with real collaborators. Catches integration issues but tests may be slower and harder to diagnose. This is the default school for all layers except Controller.
+**Classical (state verification)** — Assert on the _output_ or _resulting state_ after exercising the SUT with real collaborators. Catches integration issues but tests may be slower, and failures may span multiple collaborators, making root causes harder to isolate. This is the default school for all layers except Controller.
 
 **London (behavior verification)** — Assert that the SUT _called the right collaborators with the right arguments_. Provides precise failure messages but couples tests to implementation details. Used only for Controller, where testing through real use cases would duplicate application-layer coverage.
 

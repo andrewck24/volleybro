@@ -169,7 +169,7 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
    npm test
    ```
 
-   確保所有 451 項測試通過 / Ensure all 451 tests pass
+   確保所有 586 項測試通過 / Ensure all 586 tests pass
 
 5. **啟動開發伺服器 / Run the development server**
 

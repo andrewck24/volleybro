@@ -20,34 +20,36 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 
 **Format:**
 
-```
+```text
 <type>(<scope>): <short description>
 ```
 
 **Types:**
 
-| Type       | When to use                                              |
-| ---------- | -------------------------------------------------------- |
-| `feat`     | A new feature                                            |
-| `fix`      | A bug fix                                                |
-| `docs`     | Documentation only changes                               |
-| `refactor` | Code change that neither fixes a bug nor adds a feature  |
-| `test`     | Adding or correcting tests                               |
-| `chore`    | Maintenance tasks (deps, config, tooling)                |
-| `build`    | Changes to build system or external dependencies         |
-| `ci`       | Changes to CI configuration                              |
-| `perf`     | Performance improvements                                 |
-| `style`    | Formatting changes only (no logic change)                |
+| Type       | When to use                                             |
+| ---------- | ------------------------------------------------------- |
+| `feat`     | A new feature                                           |
+| `fix`      | A bug fix                                               |
+| `docs`     | Documentation only changes                              |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test`     | Adding or correcting tests                              |
+| `chore`    | Maintenance tasks (deps, config, tooling)               |
+| `build`    | Changes to build system or external dependencies        |
+| `ci`       | Changes to CI configuration                             |
+| `perf`     | Performance improvements                                |
+| `style`    | Formatting changes only (no logic change)               |
 
 **Examples:**
 
-```
+```text
 feat(team): add player invitation flow
 fix(record): correct set score calculation on substitution
 docs(contributing): add branch naming convention
 refactor(ui): extract ItemFooter into standalone component
 test(usecases): add coverage for CreateRecord edge cases
 chore(deps): upgrade mongoose to v8
+perf(record): reduce rally list re-renders with memoization
+style(components): apply prettier formatting to team directory
 ```
 
 ---

@@ -19,11 +19,11 @@ When upgrading any package to a new major version:
 
 **Verification checklist before merging a major upgrade PR:**
 
-- [ ] `npm test` — all tests pass
-- [ ] `npx tsc --noEmit` — no TypeScript errors
-- [ ] `npm run lint` — no lint errors
-- [ ] `npm run build` — production build succeeds
-- [ ] Migration guide steps completed and noted in the PR description
+- `npm test` — all tests pass
+- `npx tsc --noEmit` — no TypeScript errors
+- `npm run lint` — no lint errors
+- `npm run build` — production build succeeds
+- Migration guide steps completed and noted in the PR description
 
 ---
 
