@@ -8,8 +8,10 @@ The project lacks a documented testing strategy. Developers make ad-hoc decision
 - Define testing school (Classical vs London) and mock boundaries per layer
 - Establish frontend testing split: Jest for behavioral tests (no CSS assertions), Storybook + Chromatic for visual regression
 - Define story coverage requirements per component layer (ui/ = required, custom/ = required, domain/ = not required)
-- Create `docs/maintenance-policy.md` with dependency update rules (snapshot updates, major version bumps, mock drift)
-- Add cross-references in `CLAUDE.md` and `README.md` to point developers to the new docs
+- Create `docs/maintenance-policy.md` with general dependency update rules (major version bumps, mock drift) applicable to any package
+- Create `CONTRIBUTING.md` as contributor entry point: conventional commit convention, code style, branch/PR workflow, and links to `docs/testing-strategy.md` and `docs/maintenance-policy.md`
+- Migrate contribution-related content from `README.md` (contribution guidelines, commit convention, code style sections) to `CONTRIBUTING.md`; replace with a single reference link
+- Add cross-references in `CLAUDE.md` to point developers to the new docs
 
 ## Capabilities
 
@@ -25,6 +27,7 @@ The project lacks a documented testing strategy. Developers make ad-hoc decision
 
 - docs/testing-strategy.md (new)
 - docs/maintenance-policy.md (new)
+- CONTRIBUTING.md (new)
 - docs/architecture.md (cross-reference if created by `component-architecture` change)
-- CLAUDE.md (add testing docs reference)
-- README.md (update Testing & Quality Assurance section)
+- CLAUDE.md (add testing and maintenance docs reference)
+- README.md (simplify: remove contribution guidelines, commit convention, code style sections; replace with link to CONTRIBUTING.md)
