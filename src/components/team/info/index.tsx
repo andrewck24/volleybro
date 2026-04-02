@@ -147,15 +147,17 @@ export function TeamInfoSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <Skeleton className="h-6 w-24" />
+        <Skeleton className="my-1 h-5 w-24" /> {/* CardTitle: text-base glyph */}
       </CardHeader>
       <div className="divide-y">
         {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="flex items-center gap-4 py-2">
-            <Skeleton className="size-6" />
-            <Skeleton className="h-5 w-12" />
-            <Skeleton className="h-5 w-16" />
-          </div>
+          <Item key={i} className="py-2 text-xl">
+            <Skeleton className="my-1 size-6" /> {/* icon: text-xl leading */}
+            <ItemContent>
+              <Skeleton className="my-1 h-6 w-12" /> {/* label: text-xl glyph h-6 */}
+            </ItemContent>
+            <Skeleton className="my-1 h-6 w-16" /> {/* value */}
+          </Item>
         ))}
       </div>
     </Card>

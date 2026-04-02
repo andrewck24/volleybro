@@ -81,16 +81,25 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
 export function PlayerEditFormSkeleton() {
   return (
     <Card className="py-8">
-      <div className="space-y-4">
-        <Skeleton className="h-4 w-16" />
-        {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-9 w-full" />
-          </div>
-        ))}
-        <Skeleton className="h-9 w-full" />
-      </div>
+      <form className="space-y-4">
+        <Skeleton className="my-0.5 h-4 w-16" /> {/* section title: text-sm */}
+        {/* 姓名 */}
+        <div className="space-y-2">
+          <Skeleton className="my-0.5 h-4 w-12" /> {/* Label */}
+          <Skeleton className="h-9 w-full" /> {/* Input */}
+        </div>
+        {/* 背號 */}
+        <div className="space-y-2">
+          <Skeleton className="my-0.5 h-4 w-8" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        {/* 位置 */}
+        <div className="space-y-2">
+          <Skeleton className="my-0.5 h-4 w-8" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+        <Skeleton className="h-9 w-full" /> {/* submit button */}
+      </form>
     </Card>
   );
 }

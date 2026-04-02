@@ -102,20 +102,34 @@ export function PlayerInfoSkeleton() {
     <Card className="py-8">
       <div className="flex items-center gap-4">
         <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-5 w-16" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="my-1 h-6 w-32" /> {/* name: text-xl glyph h-6, my-1 leading */}
+          <div className="mt-1 flex gap-2">
+            <Skeleton className="h-5 w-16 rounded-full" /> {/* badge */}
+          </div>
         </div>
       </div>
       <div className="divide-y">
-        {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="flex justify-between py-1.5">
-            <Skeleton className="h-4 w-12" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-        ))}
+        <Item>
+          <ItemContent>
+            <Skeleton className="my-0.5 h-4 w-12" /> {/* label: text-sm */}
+          </ItemContent>
+          <Skeleton className="my-0.5 h-4 w-16" /> {/* value */}
+        </Item>
+        <Item>
+          <ItemContent>
+            <Skeleton className="my-0.5 h-4 w-12" />
+          </ItemContent>
+          <Skeleton className="my-0.5 h-4 w-20" />
+        </Item>
+        <Item>
+          <ItemContent>
+            <Skeleton className="my-0.5 h-4 w-16" />
+          </ItemContent>
+          <Skeleton className="my-0.5 h-4 w-36" />
+        </Item>
       </div>
-      <Skeleton className="h-10 w-full" />
+      <Skeleton className="h-10 w-full" /> {/* edit button */}
     </Card>
   );
 }

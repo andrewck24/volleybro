@@ -86,16 +86,16 @@ export function RecordSkeleton() {
     <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
       <RecordHeader />
       <LoadingCourt />
+      {/* mirrors RecordPreview: Card grid w-full p-2 */}
       <Card className="grid w-full p-2">
         <Skeleton className="h-8 w-full" />
       </Card>
-      <div className="w-full flex-1 rounded-lg border bg-card p-4 pb-4">
-        <Skeleton className="mb-4 h-6 w-32" />
-        <div className="space-y-2">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
+      {/* mirrors RecordPanel: Panel slot (bg-card flex-1) */}
+      <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden bg-card">
+        <Skeleton className="my-0.5 h-5 w-32" />
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
       </div>
     </div>
   );

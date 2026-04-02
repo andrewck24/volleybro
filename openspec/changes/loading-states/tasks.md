@@ -62,14 +62,14 @@
 
 ## 10. Structural Fidelity Rework — Skeleton Rework (Presentation Layer)
 
-- [ ] [P] 10.1 Rework `PlayerInfoSkeleton` in `src/components/team/players/info.tsx`: mirror `PlayerDetails` `Item`/`ItemContent` slot structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
-- [ ] [P] 10.2 Rework `TeamInfoSkeleton` in `src/components/team/info/index.tsx`: mirror `TeamInfo` `Item`/`ItemContent` slot structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
-- [ ] [P] 10.3 Rework `PlayerEditFormSkeleton` in `src/components/team/players/edit-form.tsx`: add `<form>` wrapper, use `Label`-matching `Skeleton` rows, apply `my-*` to text-mirroring elements per Structural Fidelity Standard
-- [ ] [P] 10.4 Rework `LineupSkeleton` in `src/components/team/lineup/index.tsx`: replace panel raw div with slot-mirroring structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
-- [ ] [P] 10.5 Rework `RecordSkeleton` in `src/components/record/index.tsx`: replace generic preview/panel blocks with slot-mirroring structures for `RecordPreview` and `RecordPanel` per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
-- [ ] [P] 10.6 Rework `MatchSetsSkeleton` in `src/components/match/sets/index.tsx`: replace inner raw divs with slot-mirroring structures per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
-- [ ] [P] 10.7 Rework `MatchSkeleton` in `src/components/match/index.tsx`: replace raw div header and generic Card blocks with slot-mirroring structures per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
-- [ ] 10.8 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] [P] 10.1 Rework `PlayerInfoSkeleton` in `src/components/team/players/info.tsx`: mirror `PlayerDetails` `Item`/`ItemContent` slot structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
+- [x] [P] 10.2 Rework `TeamInfoSkeleton` in `src/components/team/info/index.tsx`: mirror `TeamInfo` `Item`/`ItemContent` slot structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
+- [x] [P] 10.3 Rework `PlayerEditFormSkeleton` in `src/components/team/players/edit-form.tsx`: add `<form>` wrapper, use `Label`-matching `Skeleton` rows, apply `my-*` to text-mirroring elements per Structural Fidelity Standard
+- [x] [P] 10.4 Rework `LineupSkeleton` in `src/components/team/lineup/index.tsx`: replace panel raw div with slot-mirroring structure per Structural Fidelity Standard; apply `my-*` to text-mirroring `Skeleton` elements
+- [x] [P] 10.5 Rework `RecordSkeleton` in `src/components/record/index.tsx`: replace generic preview/panel blocks with slot-mirroring structures for `RecordPreview` and `RecordPanel` per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
+- [x] [P] 10.6 Rework `MatchSetsSkeleton` in `src/components/match/sets/index.tsx`: replace inner raw divs with slot-mirroring structures per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
+- [x] [P] 10.7 Rework `MatchSkeleton` in `src/components/match/index.tsx`: replace raw div header and generic Card blocks with slot-mirroring structures per Structural Fidelity Standard; apply `my-*` to text-mirroring elements
+- [x] 10.8 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 11. Home Matches Refactor (Presentation Layer)
 
