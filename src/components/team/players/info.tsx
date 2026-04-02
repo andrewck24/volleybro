@@ -4,6 +4,13 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Item, ItemContent } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Player } from "@/entities/player";
 import { usePlayer } from "@/hooks/use-data";
@@ -17,9 +24,14 @@ export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        找不到球員
-      </div>
+      <Empty>
+        <EmptyMedia variant="icon">
+          <FiUser />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>找不到球員</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
 
   return <PlayerDetails player={player} teamId={teamId} />;
@@ -46,12 +58,26 @@ function PlayerDetails({ player, teamId }: { player: Player; teamId: string }) {
       </div>
 
       <div className="divide-y">
-        <InfoRow
-          label="背號"
-          value={player.number != null ? `#${player.number}` : undefined}
-        />
-        <InfoRow label="位置" value={positionLabel} />
-        <InfoRow label="電子郵件" value={player.email} />
+        <Item>
+          <ItemContent>
+            <span className="text-sm text-muted-foreground">背號</span>
+          </ItemContent>
+          <span className="text-sm font-medium">
+            {player.number != null ? `#${player.number}` : undefined}
+          </span>
+        </Item>
+        <Item>
+          <ItemContent>
+            <span className="text-sm text-muted-foreground">位置</span>
+          </ItemContent>
+          <span className="text-sm font-medium">{positionLabel}</span>
+        </Item>
+        <Item>
+          <ItemContent>
+            <span className="text-sm text-muted-foreground">電子郵件</span>
+          </ItemContent>
+          <span className="text-sm font-medium">{player.email}</span>
+        </Item>
       </div>
 
       <Link
@@ -94,11 +120,3 @@ export function PlayerInfoSkeleton() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
-  return (
-    <div className="flex justify-between py-1.5">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
-    </div>
-  );
-}

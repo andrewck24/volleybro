@@ -4,6 +4,12 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +29,7 @@ import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
+import { FiUser } from "react-icons/fi";
 import { useSWRConfig } from "swr";
 import { ZodError } from "zod";
 
@@ -40,9 +47,14 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        找不到球員
-      </div>
+      <Empty>
+        <EmptyMedia variant="icon">
+          <FiUser />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>找不到球員</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
 
   const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?._id);

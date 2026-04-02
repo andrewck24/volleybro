@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Item, ItemContent } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
@@ -76,11 +77,13 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       </CardHeader>
       <div className="divide-y">
         {contents.map(({ key, value, icon }) => (
-          <div key={key} className="flex items-center gap-4 py-2 text-xl">
+          <Item key={key} className="py-2 text-xl">
             <div className="size-6 [&>svg]:size-6">{icon}</div>
-            <div className="text-muted-foreground">{key}</div>
-            <div className="font-medium">{value}</div>
-          </div>
+            <ItemContent>
+              <span className="text-muted-foreground">{key}</span>
+            </ItemContent>
+            <span className="font-medium">{value}</span>
+          </Item>
         ))}
       </div>
       {isAdmin && (

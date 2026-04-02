@@ -55,10 +55,10 @@
 
 ## 9. Structural Fidelity Rework — Item Refactor and Empty States (Presentation Layer)
 
-- [ ] [P] 9.1 Item Refactor — PlayerInfo and TeamInfo (part 1): refactor `src/components/team/players/info.tsx` `PlayerDetails` info rows from raw divs to `Item`/`ItemContent` slots; apply Not-Found → Empty Pattern: replace "找不到球員" raw text with `Empty` component
-- [ ] [P] 9.2 Not-Found → Empty Pattern in `src/components/team/players/edit-form.tsx`: replace "找不到球員" raw text with `Empty` component
-- [ ] [P] 9.3 Item Refactor — TeamInfo: refactor `src/components/team/info/index.tsx` `TeamInfo` info rows from raw divs to `Item`/`ItemContent` slots
-- [ ] 9.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] [P] 9.1 Item Refactor — PlayerInfo and TeamInfo (part 1): refactor `src/components/team/players/info.tsx` `PlayerDetails` info rows from raw divs to `Item`/`ItemContent` slots; apply Not-Found → Empty Pattern: replace "找不到球員" raw text with `Empty` component
+- [x] [P] 9.2 Not-Found → Empty Pattern in `src/components/team/players/edit-form.tsx`: replace "找不到球員" raw text with `Empty` component
+- [x] [P] 9.3 Item Refactor — TeamInfo: refactor `src/components/team/info/index.tsx` `TeamInfo` info rows from raw divs to `Item`/`ItemContent` slots
+- [x] 9.4 Verify: `npm test && npx tsc --noEmit && npm run lint && npm run build`
 
 ## 10. Structural Fidelity Rework — Skeleton Rework (Presentation Layer)
 
