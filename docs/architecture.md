@@ -44,4 +44,38 @@ For the overlay-link form, the contract is:
 
 For full testing conventions per Clean Architecture layer, see [docs/testing-strategy.md](./testing-strategy.md).
 
+### Button Loading Props
+
+`ui/button.tsx` accepts `loading?: boolean` and `loadingText?: string`:
+
+- When `loading` is `true`: button is auto-disabled, a `RiLoader4Line animate-spin` spinner is prepended, `aria-busy="true"` is set, and text is replaced with `loadingText` if provided.
+- `loading` is ignored when `asChild` is true (the Slot renders a child element, so spinner injection doesn't apply).
+
+### Submitting State Pattern
+
+For async button actions, manage loading feedback locally — no global loading context:
+
+1. Add `const [isSubmitting, setIsSubmitting] = useState(false)` in the component
+2. Wrap the async handler with `setIsSubmitting(true)` / `setIsSubmitting(false)` in try/finally
+3. Pass `loading={isSubmitting}` (and optionally `loadingText`) to the `Button`
+
+For components with multiple independent action buttons (e.g., accept/reject), use a `processingId` pattern instead: `loading={processingId === id}` + `disabled={processingId !== null}`.
+
+### Co-located Skeleton Pattern
+
+Each component that has a loading state exports a co-located `*Skeleton` named function from the same file. Generic skeletons (e.g., `LoadingCard`) are not used — each skeleton structurally mirrors its real component.
+
+**Structural Fidelity Standard**:
+
+1. **Same wrapper** — use the same top-level container (`Item`, `Card`, etc.)
+2. **Same structural slots** — use the same slot components (`ItemHeader`/`ItemContent`/`ItemFooter`, `CardHeader`, etc.) with identical className props
+3. **Per-content `Skeleton`** — each `<Skeleton>` corresponds to one specific piece of real content; no "one blob per section"
+4. **Height + `my-*` alignment** — Tailwind `text-*` adds line-height space around the visual glyph; match `Skeleton` height to glyph height (e.g., `h-6` for `text-xl`) and add `my-*` equal to the leading offset (e.g., `my-1`)
+5. **Approximate real widths** — `Skeleton` width should approximate the rendered width of the real element
+6. **`hover:bg-transparent` on interactive slots** — when a skeleton uses an `Item` or other interactive container, add `hover:bg-transparent` to suppress the hover state
+
+### Empty State Primitive
+
+Use `src/components/ui/empty.tsx` for "not found" and empty list fallbacks instead of raw text. Composable slots: `Empty`, `EmptyHeader`, `EmptyMedia` (`icon`/`default` variants), `EmptyTitle`, `EmptyDescription`, `EmptyContent`.
+
 This document is iteratively expanded by each change that introduces architectural decisions.

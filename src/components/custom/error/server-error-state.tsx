@@ -7,14 +7,15 @@ interface ServerErrorStateProps {
   className?: string;
 }
 
-export function ServerErrorState({ onRetry, className }: ServerErrorStateProps) {
+export function ServerErrorState({
+  onRetry,
+  className,
+}: ServerErrorStateProps) {
   return (
     <Alert variant="destructive" className={className}>
       <RiAlertLine />
       <AlertTitle>哎呀！球掉了...</AlertTitle>
-      <AlertDescription>
-        伺服器暫時無法處理請求，請稍後再試
-      </AlertDescription>
+      <AlertDescription>伺服器暫時無法處理請求，請稍後再試</AlertDescription>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
           <RiRefreshLine />

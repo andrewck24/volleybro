@@ -5,12 +5,11 @@ import type { MatchResult, Record } from "@/entities/record";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 
 /**
- * T126: Performance Optimization - SWR Configuration
- *
  * Centralized SWR configuration to:
  * - Reduce redundant API requests
  * - Optimize cache strategies per resource type
@@ -27,7 +26,7 @@ const useHasCache = (key: string) => {
   return cache.get(key) !== undefined;
 };
 
-// T126: Optimized SWR configuration presets
+// Optimized SWR configuration presets
 // Deduplication intervals prevent redundant requests when multiple components mount simultaneously
 const SWR_CONFIG = {
   // Default config for single-resource fetches (user, team, record)
@@ -87,16 +86,35 @@ export const useUserPlayers = (
  * Falls back to the first JOINED player's teamId when profile.activeTeamId is null.
  */
 export const useActiveTeamId = () => {
-  const { user } = useUser();
-  const { profile } = useProfile();
-  const { players } = useUserPlayers(user?._id);
+  const {
+    user,
+    isLoading: userLoading,
+    error: userError,
+    mutate: mutateUser,
+  } = useUser();
+  const {
+    profile,
+    isLoading: profileLoading,
+    error: profileError,
+    mutate: mutateProfile,
+  } = useProfile();
+  const { players, isLoading: playersLoading } = useUserPlayers(user?._id);
 
-  if (profile?.activeTeamId) return profile.activeTeamId;
+  const isLoading =
+    userLoading || profileLoading || (!profile?.activeTeamId && playersLoading);
+  const error = userError ?? profileError;
+  const mutate = useCallback(
+    () => Promise.all([mutateUser(), mutateProfile()]),
+    [mutateUser, mutateProfile],
+  );
+
+  if (profile?.activeTeamId)
+    return { teamId: profile.activeTeamId, isLoading, error, mutate };
 
   const firstJoined = players.find(
     (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
-  return firstJoined?.teamId ?? undefined;
+  return { teamId: firstJoined?.teamId, isLoading, error, mutate };
 };
 
 export const useTeam = (
@@ -176,7 +194,7 @@ export const useRecord = (
 };
 
 export const useMatches = (
-  teamId: string,
+  teamId: string | undefined,
   fetcher = defaultFetcher,
   options = {},
 ) => {
@@ -184,13 +202,9 @@ export const useMatches = (
     pageIndex: number,
     previousPageData: { hasMore: boolean; lastId: string } | null,
   ) => {
-    // Reached the end
+    if (!teamId) return null;
     if (previousPageData && !previousPageData.hasMore) return null;
-
-    // First page, no teamId query param needed
     if (pageIndex === 0) return `/api/matches?ti=${teamId}`;
-
-    // Add the lastId from the previous page
     return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
   };
 

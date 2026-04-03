@@ -23,6 +23,7 @@ import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import NextLink from "next/link";
+import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "react-icons/ri";
 
@@ -51,37 +52,33 @@ export const Invitations = ({ className }: { className?: string }) => {
 function InvitationList({ userId }: { userId?: string }) {
   const { players, isLoading, mutate } = useUserPlayers(userId);
   const { toast } = useToast();
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const invitedPlayers = players.filter(
     (p) => p.status === PlayerStatus.INVITED,
   );
 
-  const handleAccept = async (playerId: string): Promise<void> => {
+  const handleInvitation = async (
+    playerId: string,
+    action: "accept" | "reject",
+  ): Promise<void> => {
+    setProcessingId(playerId);
     try {
       await apiClient(`/api/players/${playerId}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "accept" }),
+        body: JSON.stringify({ action }),
       });
 
-      toast({ title: "邀請已接受", description: "您已加入隊伍" });
+      toast(
+        action === "accept"
+          ? { title: "邀請已接受", description: "您已加入隊伍" }
+          : { title: "邀請已拒絕" },
+      );
       mutate();
     } catch (err) {
       showErrorToast(err, toast);
-    }
-  };
-
-  const handleReject = async (playerId: string): Promise<void> => {
-    try {
-      await apiClient(`/api/players/${playerId}/invitations`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reject" }),
-      });
-
-      toast({ title: "邀請已拒絕" });
-      mutate();
-    } catch (err) {
-      showErrorToast(err, toast);
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -101,8 +98,8 @@ function InvitationList({ userId }: { userId?: string }) {
         <InvitationItem
           key={player._id}
           player={player}
-          handleAccept={handleAccept}
-          handleReject={handleReject}
+          processingId={processingId}
+          handleInvitation={handleInvitation}
         />
       ))}
     </ItemGroup>
@@ -111,12 +108,12 @@ function InvitationList({ userId }: { userId?: string }) {
 
 function InvitationItem({
   player,
-  handleAccept,
-  handleReject,
+  processingId,
+  handleInvitation,
 }: {
   player: Player;
-  handleAccept: (id: string) => void;
-  handleReject: (id: string) => void;
+  processingId: string | null;
+  handleInvitation: (id: string, action: "accept" | "reject") => void;
 }) {
   const { team, isLoading } = useTeam(player.teamId!);
   if (isLoading) return <InvitationItemSkeleton />;
@@ -137,8 +134,10 @@ function InvitationItem({
           <Button
             size="sm"
             className="pr-3 pl-2"
-            onClick={() => handleAccept(player._id)}
+            onClick={() => handleInvitation(player._id, "accept")}
             aria-label="接受邀請"
+            loading={processingId === player._id}
+            disabled={processingId !== null}
           >
             <RiCheckLine className="size-5" />
             接受邀請
@@ -147,8 +146,10 @@ function InvitationItem({
             variant="secondary"
             className="pr-3 pl-2"
             size="sm"
-            onClick={() => handleReject(player._id)}
+            onClick={() => handleInvitation(player._id, "reject")}
             aria-label="拒絕邀請"
+            loading={processingId === player._id}
+            disabled={processingId !== null}
           >
             <RiCloseLine className="size-5" />
             拒絕邀請

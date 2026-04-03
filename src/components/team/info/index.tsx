@@ -1,5 +1,4 @@
 "use client";
-import LoadingCard from "@/components/custom/loading/card";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -12,7 +11,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
@@ -37,7 +38,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const [leaveError, setLeaveError] = useState<string | null>(null);
 
   if (isTeamLoading || isPlayersLoading || isUserLoading)
-    return <LoadingCard />;
+    return <TeamInfoSkeleton />;
 
   const contents = [
     { key: "簡稱", value: team!.nickname, icon: <RiInformationLine /> },
@@ -74,15 +75,17 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       <CardHeader>
         <CardTitle>隊伍資訊</CardTitle>
       </CardHeader>
-      <div className="divide-y">
+      <ItemGroup className="gap-1">
         {contents.map(({ key, value, icon }) => (
-          <div key={key} className="flex items-center gap-4 py-2 text-xl">
+          <Item key={key} className="py-2 text-xl">
             <div className="size-6 [&>svg]:size-6">{icon}</div>
-            <div className="text-muted-foreground">{key}</div>
-            <div className="font-medium">{value}</div>
-          </div>
+            <ItemContent>
+              <span className="text-muted-foreground">{key}</span>
+            </ItemContent>
+            <span className="font-medium">{value}</span>
+          </Item>
         ))}
-      </div>
+      </ItemGroup>
       {isAdmin && (
         <Link href={`/team/${team!._id}/edit`}>
           <RiEditBoxLine /> 編輯隊伍資訊
@@ -126,7 +129,8 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                   <Button
                     variant="destructive"
                     onClick={handleLeaveTeam}
-                    disabled={isLeaving}
+                    loading={isLeaving}
+                    loadingText="離開中..."
                   >
                     確認離開
                   </Button>
@@ -139,5 +143,24 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     </Card>
   );
 };
+
+export function TeamInfoSkeleton() {
+  return (
+    <Card>
+      <Skeleton className="my-1 h-7 w-28" /> {/* CardTitle */}
+      <ItemGroup className="gap-1">
+        {Array.from({ length: 2 }, (_, i) => (
+          <Item key={i} className="py-2 hover:bg-transparent">
+            <Skeleton className="my-1 size-6" /> {/* icon: text-xl leading */}
+            <ItemContent>
+              <Skeleton className="my-1 h-6 w-12" />
+            </ItemContent>
+            <Skeleton className="my-1 h-6 w-16" /> {/* value */}
+          </Item>
+        ))}
+      </ItemGroup>
+    </Card>
+  );
+}
 
 export default TeamInfo;

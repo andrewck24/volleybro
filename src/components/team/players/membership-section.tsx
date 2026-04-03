@@ -45,8 +45,10 @@ export function MembershipSection({
 
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   const revalidate = () => {
     mutate(`/api/players/${player._id}`);
@@ -55,6 +57,7 @@ export function MembershipSection({
 
   const handleRemove = async () => {
     setRemoveError(null);
+    setIsRemoving(true);
     try {
       await apiClient(`/api/players/${player._id}`, {
         method: "DELETE",
@@ -69,11 +72,14 @@ export function MembershipSection({
       router.push(`/team/${teamId}`);
     } catch (err) {
       setRemoveError(getErrorMessage(err));
+    } finally {
+      setIsRemoving(false);
     }
   };
 
   const handleTransferOwnership = async () => {
     setTransferError(null);
+    setIsTransferring(true);
     try {
       await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
@@ -89,6 +95,8 @@ export function MembershipSection({
       revalidate();
     } catch (err) {
       setTransferError(getErrorMessage(err));
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -119,7 +127,7 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className="w-full" disabled={isRemoving}>
                   移除成員
                 </Button>
               </AlertDialogTrigger>
@@ -139,7 +147,11 @@ export function MembershipSection({
                     </p>
                   )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
-                  <Button variant="destructive" onClick={handleRemove}>
+                  <Button
+                    variant="destructive"
+                    onClick={handleRemove}
+                    loading={isRemoving}
+                  >
                     確認移除
                   </Button>
                 </AlertDialogFooter>
@@ -162,7 +174,7 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className="w-full" disabled={isTransferring}>
                   移轉所有權給此球員
                 </Button>
               </AlertDialogTrigger>
@@ -185,6 +197,7 @@ export function MembershipSection({
                   <Button
                     variant="destructive"
                     onClick={handleTransferOwnership}
+                    loading={isTransferring}
                   >
                     確認移轉
                   </Button>
@@ -284,9 +297,11 @@ function InviteSection({
               type="button"
               variant="outline"
               onClick={handleSearch}
-              disabled={isSearching || !email}
+              disabled={!email}
+              loading={isSearching}
+              loadingText="搜尋中..."
             >
-              {isSearching ? "搜尋中..." : "搜尋"}
+              搜尋
             </Button>
           </div>
         </div>
@@ -312,9 +327,11 @@ function InviteSection({
         <Button
           type="submit"
           className="w-full"
-          disabled={isSubmitting || !email}
+          disabled={!email}
+          loading={isSubmitting}
+          loadingText="發送中..."
         >
-          {isSubmitting ? "發送中..." : "發送邀請"}
+          發送邀請
         </Button>
       </form>
     </div>
@@ -373,9 +390,10 @@ function InvitedSection({
         variant="outline"
         className="w-full"
         onClick={handleCancel}
-        disabled={isSubmitting}
+        loading={isSubmitting}
+        loadingText="取消中..."
       >
-        {isSubmitting ? "取消中..." : "取消邀請"}
+        取消邀請
       </Button>
     </div>
   );
@@ -441,9 +459,11 @@ function JoinedSection({
       <Button
         className="w-full"
         onClick={handleUpdateRole}
-        disabled={isSubmitting || role === player.role}
+        disabled={role === player.role}
+        loading={isSubmitting}
+        loadingText="變更中..."
       >
-        {isSubmitting ? "變更中..." : "變更角色"}
+        變更角色
       </Button>
     </div>
   );

@@ -22,7 +22,7 @@ interface PlayersListProps {
 export function PlayersList({ teamId }: PlayersListProps) {
   const { players, isLoading, error, mutate } = useTeamPlayers(teamId);
 
-  if (isLoading) return <PlayerListSkeleton />;
+  if (isLoading) return <PlayersListSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
 
   if (!players || players.length === 0) {
@@ -61,7 +61,7 @@ export function PlayersList({ teamId }: PlayersListProps) {
   );
 }
 
-function PlayerListSkeleton() {
+export function PlayersListSkeleton() {
   return (
     <ItemGroup className="flex flex-col">
       {[...Array(8)].map((_, i) => (

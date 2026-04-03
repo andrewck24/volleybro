@@ -59,6 +59,7 @@ jest.mock("react-icons/ri", () => ({
   RiEditBoxLine: () => <span>edit</span>,
   RiGroupLine: () => <span>group</span>,
   RiInformationLine: () => <span>info</span>,
+  RiLoader4Line: () => <span>loading</span>,
 }));
 
 function createApiError(

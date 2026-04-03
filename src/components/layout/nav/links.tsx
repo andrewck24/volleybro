@@ -17,7 +17,7 @@ import {
 
 export const NavLinks = (_props: { session?: unknown }) => {
   const pathname = usePathname();
-  const defaultTeamId = useActiveTeamId();
+  const { teamId: defaultTeamId } = useActiveTeamId();
 
   return (
     <nav className="fixed bottom-0 left-0 flex w-full flex-row items-center justify-center bg-card pb-[calc(env(safe-area-inset-bottom)-1rem)]">
