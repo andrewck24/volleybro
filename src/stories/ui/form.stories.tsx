@@ -1,6 +1,5 @@
-"use client";
-
 import type { Meta, StoryObj } from "@storybook/nextjs";
+import { fn } from "storybook/test";
 import { useForm } from "react-hook-form";
 import {
   Form,
@@ -30,7 +29,7 @@ export const Default: Story = {
     });
 
     return (
-      <Form form={form} onSubmit={form.handleSubmit(() => {})} className="w-80">
+      <Form form={form} onSubmit={form.handleSubmit(fn())} className="w-80">
         <FormField
           control={form.control}
           name="name"
@@ -75,7 +74,7 @@ export const WithValidation: Story = {
     return (
       <Form
         form={form}
-        onSubmit={form.handleSubmit(() => {})}
+        onSubmit={form.handleSubmit(fn())}
         className="w-80"
       >
         <FormField

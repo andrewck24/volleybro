@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
+import { fn } from "storybook/test";
 import {
   Court,
   Outside,
@@ -33,6 +34,8 @@ const liberos = [
   { _id: "8", name: "Henry", number: 4, position: "L" },
 ];
 
+const emptyZones = [0, 1, 2];
+
 export const Default: Story = {
   render: () => (
     <div className="w-80">
@@ -46,7 +49,7 @@ export const Default: Story = {
               toggled={false}
               list="libero"
               zone={0}
-              onClick={() => {}}
+              onClick={fn()}
             />
           ))}
         </Outside>
@@ -58,7 +61,7 @@ export const Default: Story = {
               toggled={false}
               list="starting"
               zone={i + 1}
-              onClick={() => {}}
+              onClick={fn()}
             />
           ))}
         </Inside>
@@ -86,7 +89,7 @@ export const EmptySlots: Story = {
             toggled={false}
             list="libero"
             zone={0}
-            onClick={() => {}}
+            onClick={fn()}
           />
           <PlaceholderCard />
         </Outside>
@@ -98,17 +101,17 @@ export const EmptySlots: Story = {
               toggled={false}
               list="starting"
               zone={i + 1}
-              onClick={() => {}}
+              onClick={fn()}
             />
           ))}
-          {Array.from({ length: 3 }).map((_, i) => (
+          {emptyZones.map((_, i) => (
             <PlayerCard
               key={`empty-${i}`}
               player={null}
               toggled={false}
               list="starting"
               zone={i + 4}
-              onClick={() => {}}
+              onClick={fn()}
             />
           ))}
         </Inside>
