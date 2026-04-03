@@ -13,10 +13,10 @@
 
 ## 3. File Architecture Migration (ui/)
 
-- [ ] 3.1 Create `src/stories/ui/` directory
-- [ ] 3.2 Move all existing `ui/` component stories from `src/stories/*.stories.tsx` to `src/stories/ui/`, renaming to kebab-case where needed
-- [ ] [P] 3.3 Move `src/stories/colors.mdx` to `src/stories/ui/colors.mdx`
-- [ ] 3.4 Verify: `npm run build-storybook`
+- [x] 3.1 Create `src/stories/ui/` directory
+- [x] 3.2 Move all existing `ui/` component stories from `src/stories/*.stories.tsx` to `src/stories/ui/`, renaming to kebab-case where needed
+- [x] [P] 3.3 Move `src/stories/colors.mdx` to `src/stories/ui/colors.mdx`
+- [x] 3.4 Verify: `npm run build-storybook`
 
 ## 4. Coverage Gap Fill (ui/)
 
