@@ -37,8 +37,7 @@ const barConfig = {
   losses: { label: "Losses", color: "hsl(var(--chart-2))" },
 } satisfies ChartConfig;
 
-export const Bar_: Story = {
-  name: "Bar",
+export const BarChart_: Story = {
   render: () => (
     <ChartContainer config={barConfig} className="h-64 w-96">
       <BarChart data={barData}>
@@ -65,8 +64,7 @@ const lineConfig = {
   score: { label: "Score", color: "hsl(var(--chart-1))" },
 } satisfies ChartConfig;
 
-export const Line_: Story = {
-  name: "Line",
+export const LineChart_: Story = {
   render: () => (
     <ChartContainer config={lineConfig} className="h-64 w-96">
       <LineChart data={lineData}>

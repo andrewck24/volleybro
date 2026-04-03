@@ -44,6 +44,6 @@
 
 ## 7. Final Verification and Documentation
 
-- [ ] 7.1 Run `npm test && npx tsc --noEmit && npm run lint && npm run build`
-- [ ] [P] 7.2 Run `npm run build-storybook` — full build verification
-- [ ] 7.3 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the change
+- [x] 7.1 Run `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] [P] 7.2 Run `npm run build-storybook` — full build verification
+- [x] 7.3 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the change

@@ -8,10 +8,9 @@ import {
 
 const meta = {
   title: "Design System/Molecules/Accordion",
-  component: Accordion,
   parameters: { layout: "centered" },
   tags: ["autodocs"],
-} satisfies Meta<typeof Accordion>;
+} satisfies Meta;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
