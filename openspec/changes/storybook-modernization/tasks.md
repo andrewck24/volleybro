@@ -39,8 +39,8 @@
 
 ## 6. CI Workflow Update
 
-- [ ] 6.1 Update `.github/workflows/chromatic.yml`: `node-version: "lts/*"`, `npm install` → `npm ci`
-- [ ] 6.2 Verify: lint workflow file syntax
+- [x] 6.1 Update `.github/workflows/chromatic.yml`: `node-version: "lts/*"`, `npm install` → `npm ci`
+- [x] 6.2 Verify: lint workflow file syntax
 
 ## 7. Final Verification and Documentation
 
