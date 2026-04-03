@@ -8,8 +8,8 @@
 
 ## 2. Scaffold Cleanup
 
-- [ ] 2.1 Delete Storybook default templates: `src/stories/Header.tsx`, `Header.stories.ts`, `header.css`, `Page.tsx`, `Page.stories.ts`, `page.css`, `Configure.mdx`, `assets/` directory
-- [ ] 2.2 Verify: `npm run build-storybook`
+- [x] 2.1 Delete Storybook default templates: `src/stories/Header.tsx`, `Header.stories.ts`, `header.css`, `Page.tsx`, `Page.stories.ts`, `page.css`, `Configure.mdx`, `assets/` directory
+- [x] 2.2 Verify: `npm run build-storybook`
 
 ## 3. File Architecture Migration (ui/)
 
