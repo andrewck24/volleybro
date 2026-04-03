@@ -20,39 +20,53 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  render: function ToasterExample() {
+export const MultipleToasts: Story = {
+  render: function MultipleToastsExample() {
     const { toast } = useToast();
     return (
-      <Button
-        onClick={() =>
-          toast({
-            title: "Notification",
-            description: "This is a toaster notification.",
-          })
-        }
-      >
-        Show Toaster
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={() =>
+            toast({ title: "Saved", description: "Changes saved." })
+          }
+        >
+          Info Toast
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={() =>
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Something went wrong.",
+            })
+          }
+        >
+          Error Toast
+        </Button>
+      </div>
     );
   },
 };
 
-export const Destructive: Story = {
-  render: function ToasterDestructiveExample() {
+export const WithAction: Story = {
+  render: function ToasterWithActionExample() {
     const { toast } = useToast();
     return (
       <Button
-        variant="destructive"
         onClick={() =>
           toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Something went wrong.",
+            title: "Update Available",
+            description: "A new version is ready to install.",
+            action: (
+              <Button variant="outline" size="sm">
+                Update Now
+              </Button>
+            ),
           })
         }
       >
-        Show Error Toaster
+        Toast with Action
       </Button>
     );
   },

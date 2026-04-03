@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import {
   Bar,
-  BarChart,
+  BarChart as RechartsBarChart,
   CartesianGrid,
   Line,
-  LineChart,
+  LineChart as RechartsLineChart,
   XAxis,
   YAxis,
 } from "recharts";
@@ -37,17 +37,17 @@ const barConfig = {
   losses: { label: "Losses", color: "hsl(var(--chart-2))" },
 } satisfies ChartConfig;
 
-export const BarChart_: Story = {
+export const BarChart: Story = {
   render: () => (
     <ChartContainer config={barConfig} className="h-64 w-96">
-      <BarChart data={barData}>
+      <RechartsBarChart data={barData}>
         <CartesianGrid vertical={false} />
         <XAxis dataKey="month" tickLine={false} axisLine={false} />
         <YAxis tickLine={false} axisLine={false} />
         <ChartTooltip content={<ChartTooltipContent />} />
         <Bar dataKey="wins" fill="var(--color-wins)" radius={4} />
         <Bar dataKey="losses" fill="var(--color-losses)" radius={4} />
-      </BarChart>
+      </RechartsBarChart>
     </ChartContainer>
   ),
 };
@@ -64,10 +64,10 @@ const lineConfig = {
   score: { label: "Score", color: "hsl(var(--chart-1))" },
 } satisfies ChartConfig;
 
-export const LineChart_: Story = {
+export const LineChart: Story = {
   render: () => (
     <ChartContainer config={lineConfig} className="h-64 w-96">
-      <LineChart data={lineData}>
+      <RechartsLineChart data={lineData}>
         <CartesianGrid vertical={false} />
         <XAxis dataKey="round" tickLine={false} axisLine={false} />
         <YAxis tickLine={false} axisLine={false} />
@@ -78,7 +78,7 @@ export const LineChart_: Story = {
           strokeWidth={2}
           dot={false}
         />
-      </LineChart>
+      </RechartsLineChart>
     </ChartContainer>
   ),
 };
