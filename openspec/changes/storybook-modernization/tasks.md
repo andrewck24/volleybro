@@ -20,14 +20,14 @@
 
 ## 4. Coverage Gap Fill (ui/)
 
-- [ ] 4.1 Add `src/stories/ui/popover.stories.tsx`
-- [ ] [P] 4.2 Add `src/stories/ui/accordion.stories.tsx`
-- [ ] [P] 4.3 Add `src/stories/ui/form.stories.tsx` — use minimal representative schema
-- [ ] [P] 4.4 Add `src/stories/ui/chart.stories.tsx` — use static data
-- [ ] [P] 4.5 Add `src/stories/ui/alert-dialog.stories.tsx`
-- [ ] [P] 4.6 Add `src/stories/ui/calendar.stories.tsx`
-- [ ] [P] 4.7 Add `src/stories/ui/toaster.stories.tsx`
-- [ ] 4.8 Verify: `npm run build-storybook`
+- [x] 4.1 Add `src/stories/ui/popover.stories.tsx`
+- [x] [P] 4.2 Add `src/stories/ui/accordion.stories.tsx`
+- [x] [P] 4.3 Add `src/stories/ui/form.stories.tsx` — use minimal representative schema
+- [x] [P] 4.4 Add `src/stories/ui/chart.stories.tsx` — use static data
+- [x] [P] 4.5 Add `src/stories/ui/alert-dialog.stories.tsx`
+- [x] [P] 4.6 Add `src/stories/ui/calendar.stories.tsx`
+- [x] [P] 4.7 Add `src/stories/ui/toaster.stories.tsx`
+- [x] 4.8 Verify: `npm run build-storybook`
 
 ## 5. Coverage Gap Fill (custom/) — requires `component-architecture` applied
 
