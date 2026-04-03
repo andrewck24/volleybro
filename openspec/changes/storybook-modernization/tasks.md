@@ -31,11 +31,11 @@
 
 ## 5. Coverage Gap Fill (custom/) — requires `component-architecture` applied
 
-- [ ] 5.1 Create `src/stories/custom/` directory
-- [ ] 5.2 Add `src/stories/custom/court.stories.tsx`
-- [ ] [P] 5.3 Add `src/stories/custom/logo.stories.tsx`
-- [ ] [P] 5.4 Move `src/stories/item.stories.tsx` to `src/stories/ui/item.stories.tsx`
-- [ ] 5.5 Verify: `npm run build-storybook`
+- [x] 5.1 Create `src/stories/custom/` directory
+- [x] 5.2 Add `src/stories/custom/court.stories.tsx`
+- [x] [P] 5.3 Add `src/stories/custom/logo.stories.tsx`
+- [x] [P] 5.4 Move `src/stories/item.stories.tsx` to `src/stories/ui/item.stories.tsx`
+- [x] 5.5 Verify: `npm run build-storybook`
 
 ## 6. CI Workflow Update
 
