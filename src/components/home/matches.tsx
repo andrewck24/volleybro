@@ -196,7 +196,7 @@ function MatchSkeleton() {
 
 function NoMatches() {
   return (
-    <Empty className="border">
+    <Empty className="border border-dashed">
       <EmptyMedia variant="icon">
         <RiGroupLine />
       </EmptyMedia>
