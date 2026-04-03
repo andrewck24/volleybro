@@ -129,7 +129,8 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                   <Button
                     variant="destructive"
                     onClick={handleLeaveTeam}
-                    disabled={isLeaving}
+                    loading={isLeaving}
+                    loadingText="離開中..."
                   >
                     確認離開
                   </Button>

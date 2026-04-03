@@ -297,9 +297,11 @@ function InviteSection({
               type="button"
               variant="outline"
               onClick={handleSearch}
-              disabled={isSearching || !email}
+              disabled={!email}
+              loading={isSearching}
+              loadingText="搜尋中..."
             >
-              {isSearching ? "搜尋中..." : "搜尋"}
+              搜尋
             </Button>
           </div>
         </div>

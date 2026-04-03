@@ -140,7 +140,7 @@ function TeamInfo({
         <RiGroupLine />
         {isHome ? team.name || "我方" : team.name || "對手"}
       </span>
-      <div className="flex flex-0 flex-row items-center gap-2">
+      <div className="flex flex-none flex-row items-center gap-2">
         <span className="text-3xl font-medium">{team.sets}</span>
         {team.scores.map(
           (score, index) =>
