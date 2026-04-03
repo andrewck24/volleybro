@@ -81,5 +81,5 @@
 
 ## 12. Final Verification and Documentation
 
-- [ ] 12.1 Full verification: run `/simplify`, and verify `npm test && npx tsc --noEmit && npm run lint && npm run build`
-- [ ] 12.2 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on this change
+- [x] 12.1 Full verification: run `/simplify`, and verify `npm test && npx tsc --noEmit && npm run lint && npm run build`
+- [x] 12.2 Review whether `docs/`, `README.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on this change
