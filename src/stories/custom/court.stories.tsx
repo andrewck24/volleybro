@@ -13,8 +13,15 @@ import {
 const meta = {
   title: "Design System/Composites/Court",
   component: Court,
-  parameters: { layout: "centered" },
+  parameters: { layout: "fullscreen" },
   tags: ["autodocs"],
+  decorators: [
+    (Story) => (
+      <div className="flex size-full max-w-160 flex-col items-center justify-start p-4">
+        <Story />
+      </div>
+    ),
+  ],
 } satisfies Meta<typeof Court>;
 
 export default meta;
@@ -38,84 +45,76 @@ const emptyZones = [0, 1, 2];
 
 export const Default: Story = {
   render: () => (
-    <div className="w-80">
-      <Court>
-        <Outside>
-          <AdjustButton />
-          {liberos.map((p) => (
-            <PlayerCard
-              key={p._id}
-              player={p}
-              toggled={false}
-              list="libero"
-              zone={0}
-              onClick={fn()}
-            />
-          ))}
-        </Outside>
-        <Inside>
-          {players.map((p, i) => (
-            <PlayerCard
-              key={p._id}
-              player={p}
-              toggled={false}
-              list="starting"
-              zone={i + 1}
-              onClick={fn()}
-            />
-          ))}
-        </Inside>
-      </Court>
-    </div>
-  ),
-};
-
-export const Loading: Story = {
-  render: () => (
-    <div className="w-80">
-      <LoadingCourt />
-    </div>
-  ),
-};
-
-export const EmptySlots: Story = {
-  render: () => (
-    <div className="w-80">
-      <Court>
-        <Outside>
-          <AdjustButton />
+    <Court>
+      <Outside>
+        <AdjustButton />
+        {liberos.map((p) => (
           <PlayerCard
-            player={null}
+            key={p._id}
+            player={p}
             toggled={false}
             list="libero"
             zone={0}
             onClick={fn()}
           />
-          <PlaceholderCard />
-        </Outside>
-        <Inside>
-          {players.slice(0, 3).map((p, i) => (
-            <PlayerCard
-              key={p._id}
-              player={p}
-              toggled={false}
-              list="starting"
-              zone={i + 1}
-              onClick={fn()}
-            />
-          ))}
-          {emptyZones.map((_, i) => (
-            <PlayerCard
-              key={`empty-${i}`}
-              player={null}
-              toggled={false}
-              list="starting"
-              zone={i + 4}
-              onClick={fn()}
-            />
-          ))}
-        </Inside>
-      </Court>
-    </div>
+        ))}
+      </Outside>
+      <Inside>
+        {players.map((p, i) => (
+          <PlayerCard
+            key={p._id}
+            player={p}
+            toggled={false}
+            list="starting"
+            zone={i + 1}
+            onClick={fn()}
+          />
+        ))}
+      </Inside>
+    </Court>
+  ),
+};
+
+export const Loading: Story = {
+  render: () => <LoadingCourt />,
+};
+
+export const EmptySlots: Story = {
+  render: () => (
+    <Court>
+      <Outside>
+        <AdjustButton />
+        <PlayerCard
+          player={null}
+          toggled={false}
+          list="libero"
+          zone={0}
+          onClick={fn()}
+        />
+        <PlaceholderCard />
+      </Outside>
+      <Inside>
+        {players.slice(0, 3).map((p, i) => (
+          <PlayerCard
+            key={p._id}
+            player={p}
+            toggled={false}
+            list="starting"
+            zone={i + 1}
+            onClick={fn()}
+          />
+        ))}
+        {emptyZones.map((_, i) => (
+          <PlayerCard
+            key={`empty-${i}`}
+            player={null}
+            toggled={false}
+            list="starting"
+            zone={i + 4}
+            onClick={fn()}
+          />
+        ))}
+      </Inside>
+    </Court>
   ),
 };
