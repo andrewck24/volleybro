@@ -1,10 +1,10 @@
 ## 1. Package Updates and Addon Setup
 
-- [ ] 1.1 Update Storybook packages to ^10.3.3 (`storybook`, `@storybook/addon-docs`, `@storybook/addon-onboarding`, `@storybook/addon-themes`, `@storybook/nextjs`, `eslint-plugin-storybook`)
-- [ ] [P] 1.2 Update `@chromatic-com/storybook` to ^5.1.0
-- [ ] [P] 1.3 Update `chromatic` to ^16.0.0 — check changelog for breaking changes before updating
-- [ ] 1.4 Install `@storybook/addon-a11y` and add to `.storybook/main.ts` addons array
-- [ ] 1.5 Verify: `npm run build-storybook`
+- [x] 1.1 Update Storybook packages to ^10.3.3 (`storybook`, `@storybook/addon-docs`, `@storybook/addon-onboarding`, `@storybook/addon-themes`, `@storybook/nextjs`, `eslint-plugin-storybook`)
+- [x] [P] 1.2 Update `@chromatic-com/storybook` to ^5.1.0
+- [x] [P] 1.3 Update `chromatic` to ^16.0.0 — check changelog for breaking changes before updating
+- [x] 1.4 Install `@storybook/addon-a11y` and add to `.storybook/main.ts` addons array
+- [x] 1.5 Verify: `npm run build-storybook`
 
 ## 2. Scaffold Cleanup
 
