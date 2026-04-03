@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button, Link } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Item, ItemContent } from "@/components/ui/item";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
@@ -75,7 +75,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       <CardHeader>
         <CardTitle>隊伍資訊</CardTitle>
       </CardHeader>
-      <div className="divide-y">
+      <ItemGroup className="gap-1">
         {contents.map(({ key, value, icon }) => (
           <Item key={key} className="py-2 text-xl">
             <div className="size-6 [&>svg]:size-6">{icon}</div>
@@ -85,7 +85,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
             <span className="font-medium">{value}</span>
           </Item>
         ))}
-      </div>
+      </ItemGroup>
       {isAdmin && (
         <Link href={`/team/${team!._id}/edit`}>
           <RiEditBoxLine /> 編輯隊伍資訊
@@ -146,20 +146,18 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
 export function TeamInfoSkeleton() {
   return (
     <Card>
-      <CardHeader>
-        <Skeleton className="my-1 h-5 w-24" /> {/* CardTitle: text-base glyph */}
-      </CardHeader>
-      <div className="divide-y">
+      <Skeleton className="my-1 h-7 w-28" /> {/* CardTitle */}
+      <ItemGroup className="gap-1">
         {Array.from({ length: 2 }, (_, i) => (
-          <Item key={i} className="py-2 text-xl">
+          <Item key={i} className="py-2 hover:bg-transparent">
             <Skeleton className="my-1 size-6" /> {/* icon: text-xl leading */}
             <ItemContent>
-              <Skeleton className="my-1 h-6 w-12" /> {/* label: text-xl glyph h-6 */}
+              <Skeleton className="my-1 h-6 w-12" />
             </ItemContent>
             <Skeleton className="my-1 h-6 w-16" /> {/* value */}
           </Item>
         ))}
-      </div>
+      </ItemGroup>
     </Card>
   );
 }

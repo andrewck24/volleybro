@@ -10,7 +10,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
@@ -78,28 +78,24 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
   );
 }
 
-export function PlayerEditFormSkeleton() {
+function PlayerEditFormSkeleton() {
   return (
-    <Card className="py-8">
-      <form className="space-y-4">
-        <Skeleton className="my-0.5 h-4 w-16" /> {/* section title: text-sm */}
-        {/* 姓名 */}
-        <div className="space-y-2">
-          <Skeleton className="my-0.5 h-4 w-12" /> {/* Label */}
-          <Skeleton className="h-9 w-full" /> {/* Input */}
-        </div>
-        {/* 背號 */}
-        <div className="space-y-2">
-          <Skeleton className="my-0.5 h-4 w-8" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        {/* 位置 */}
-        <div className="space-y-2">
-          <Skeleton className="my-0.5 h-4 w-8" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-        <Skeleton className="h-9 w-full" /> {/* submit button */}
-      </form>
+    <Card className="space-y-4 py-8">
+      <Skeleton className="mt-0.5 mb-4.5 h-4 w-16" />{" "}
+      {/* section title: text-sm */}
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-12" /> {/* Label */}
+        <Skeleton className="h-9 w-full" /> {/* Input */}
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-8" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-8" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <Skeleton className="h-9 w-full" /> {/* submit button */}
     </Card>
   );
 }
@@ -171,7 +167,6 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="text-sm font-medium">基本資訊</h3>
-
       <div className="space-y-2">
         <Label htmlFor="edit-name">
           姓名 <span className="text-red-500">*</span>
