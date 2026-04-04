@@ -109,6 +109,35 @@ Update `.github/workflows/chromatic.yml`:
 - `npm install` → `npm ci` (CI best practice: deterministic installs)
 - Preserve existing `paths` filter and `[skip chromatic]` condition
 
+### Story variant coverage criteria
+
+Each story file should cover the component's **visually distinct states** that Chromatic needs to screenshot-diff. Variants are only added when the component's prop API actually supports the state.
+
+**Priority matrix** (add variant if component supports it):
+
+| State category | When to add | Example |
+| --- | --- | --- |
+| Loading | Component has `loading` prop or a Loading sub-component | Button `loading={true}` |
+| Error display | Component renders error messages via props/form state | Form with `setError()` called |
+| Empty / no data | Component renders differently with zero items | Table with 0 rows |
+| Disabled | Component has `disabled` prop not yet shown | Select `disabled` |
+| Long content / overflow | Component might clip or scroll with long text | Dialog with scrollable body |
+| Variant exhaustion | Component has `variant` prop with uncovered values | AlertDialog non-destructive |
+
+**What NOT to add**:
+- Loading/error/empty states that the component doesn't support (would require wrapping logic)
+- Variants that differ only in data content, not visual structure
+- Play functions or interaction assertions (Jest + RTL scope)
+
+### Testing strategy positioning (docs update)
+
+Add a subsection to `docs/testing-strategy.md` under "Storybook + Chromatic (visual regression)" that explicitly states:
+
+1. Stories do not include `play()` functions — Storybook is not used for interaction testing
+2. `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
+3. The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels
+4. This avoids duplicate coverage and keeps story files focused on visual documentation
+
 ## Risks / Trade-offs
 
 | Risk                                                  | Likelihood | Mitigation                                                                                                   |
