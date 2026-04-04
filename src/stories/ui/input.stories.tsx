@@ -16,9 +16,7 @@ export const Default: Story = {
 };
 
 export const WithValue: Story = {
-  render: () => (
-    <Input value="Default text" onChange={() => {}} className="w-[300px]" />
-  ),
+  render: () => <Input defaultValue="Default text" className="w-[300px]" />,
 };
 
 export const Disabled: Story = {

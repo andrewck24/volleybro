@@ -109,7 +109,8 @@ export const WithErrors: Story = {
     useEffect(() => {
       form.setError("name", { message: "Name is required" });
       form.setError("email", { message: "Invalid email address" });
-    }, [form]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
       <Form form={form} onSubmit={form.handleSubmit(fn())} className="w-80">

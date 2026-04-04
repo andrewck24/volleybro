@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { ToastAction } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 
 const meta = {
@@ -59,9 +60,7 @@ export const WithAction: Story = {
             title: "Update Available",
             description: "A new version is ready to install.",
             action: (
-              <Button variant="outline" size="sm">
-                Update Now
-              </Button>
+              <ToastAction altText="Update Now">Update Now</ToastAction>
             ),
           })
         }

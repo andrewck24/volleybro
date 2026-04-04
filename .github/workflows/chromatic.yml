@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - "package.json"
+      - ".storybook/**"
       - "src/components/ui/**"
       - "src/components/custom/**"
       - "src/components/layout/**"
