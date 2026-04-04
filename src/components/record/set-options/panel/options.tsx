@@ -1,11 +1,12 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import {
   LiberoReplaceDialog,
   LiberoReplaceTrigger,
 } from "@/components/team/lineup/panel/options/libero-replace";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -14,7 +15,6 @@ import {
   FormRadioGroup,
   FormRadioItem,
 } from "@/components/ui/form";
-import { PanelContent } from "@/components/custom/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { Player, type Record } from "@/entities/record";
@@ -41,6 +41,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   const { hasPairedReplacePosition } = useReplacePosition();
   const { record, mutate } = useRecord(recordId);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [liberoDialogOpen, setLiberoDialogOpen] = useState(false);
   const isNewSet = setIndex === record?.sets.length;
   const members = record?.teams.home.players ?? [];
 
@@ -82,6 +83,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
         },
       );
       mutate(result, false);
+      setLiberoDialogOpen(false);
       if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
     } catch (error) {
       showErrorToast(error, toast);
@@ -97,7 +99,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   return (
     <PanelContent className="overflow-y-hidden">
       <Card className="size-full overflow-y-hidden p-0">
-        <Dialog>
+        <Dialog open={liberoDialogOpen} onOpenChange={setLiberoDialogOpen}>
           <Form
             form={form}
             onSubmit={form.handleSubmit(onSubmit)}
@@ -109,13 +111,11 @@ export const Options = ({ recordId }: { recordId: string }) => {
               <SubstitutesTable members={members} />
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <ActionButton
-                  isNewSet={isNewSet}
-                  disabled={!hasPairedReplacePosition}
-                  loading={isSubmitting}
-                />
-              </DialogClose>
+              <ActionButton
+                isNewSet={isNewSet}
+                disabled={!hasPairedReplacePosition}
+                loading={isSubmitting}
+              />
             </DialogFooter>
           </Form>
           <LiberoReplaceDialog />
