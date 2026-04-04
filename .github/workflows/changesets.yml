@@ -27,8 +27,9 @@ jobs:
 
       - uses: changesets/action@v1
         with:
-          commit: "chore: update versions"
-          title: "chore: update versions"
+          version: pnpm run release:version
+          commit: "release: update versions"
+          title: "release: update versions"
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

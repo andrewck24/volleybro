@@ -1,6 +1,6 @@
 {
   "name": "volleybro",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.0",
@@ -15,11 +15,15 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "npx chromatic",
-    "migrate:auth": "ts-node -r tsconfig-paths/register --transpile-only --compiler-options '{\"module\":\"commonjs\"}' scripts/migrate-auth-data.ts",
-    "verify:indexes": "tsx scripts/verify-indexes.ts"
+    "release:version": "changeset version && node .changeset/changelog-postprocess.cjs"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["core-js-pure", "esbuild", "sharp", "unrs-resolver"]
+    "onlyBuiltDependencies": [
+      "core-js-pure",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",

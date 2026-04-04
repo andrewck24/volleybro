@@ -55,6 +55,11 @@
 
 - [x] 7.1 Run `pnpm changeset` interactively: select patch bump, write summary "Migrate package manager from npm to pnpm and replace semantic-release with changesets"
 - [x] 7.2 Commit the generated `.changeset/*.md` file: `chore: add changeset for pnpm migration`
-- [ ] 7.3 Run `pnpm changeset version` to apply the version bump (expected: patch → v0.12.1) and update `docs/CHANGELOG.md`
-- [ ] 7.4 Run `pnpm install` to update `pnpm-lock.yaml` after version bump
-- [ ] 7.5 Commit: `chore: release v0.12.1`
+- [x] 7.2a Implement custom changelog formatter (Option A):
+  - `.changeset/changelog-fn.js` — verbatim body formatter, referenced in `config.json`
+  - `.changeset/changelog-postprocess.js` — fixes version headers and merges duplicate `###` type headings
+  - Add `release:version` script to `package.json`
+  - Update `changesets.yml`: use `version: pnpm run release:version`, `commit/title: "release: update versions"`
+- [x] 7.3 Run `pnpm run release:version` to apply the version bump (expected: patch → v0.12.1) and generate root `CHANGELOG.md`
+- [x] 7.4 Run `pnpm install` to update `pnpm-lock.yaml` after version bump
+- [x] 7.5 Commit: `release: 0.12.1`
