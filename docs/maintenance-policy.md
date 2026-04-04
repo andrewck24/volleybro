@@ -14,15 +14,15 @@ When upgrading any package to a new major version:
 2. Read the package's official **migration guide** and apply all required changes
 3. Run the full test suite and fix all failures before merging
 4. Update any affected setup files (`jest.setup.backend.ts`, `jest.setup.frontend.ts`, config files) if the upgrade changes their API
-5. Verify the production build still succeeds (`npm run build`)
+5. Verify the production build still succeeds (`pnpm build`)
 6. Get a second review on the diff — major upgrades are high blast-radius
 
 **Verification checklist before merging a major upgrade PR:**
 
-- `npm test` — all tests pass
-- `npx tsc --noEmit` — no TypeScript errors
-- `npm run lint` — no lint errors
-- `npm run build` — production build succeeds
+- `pnpm test` — all tests pass
+- `pnpm exec tsc --noEmit` — no TypeScript errors
+- `pnpm lint` — no lint errors
+- `pnpm build` — production build succeeds
 - Migration guide steps completed and noted in the PR description
 
 ---

@@ -61,8 +61,8 @@ This project follows the [Airbnb JavaScript Style Guide](https://github.com/airb
 Before submitting:
 
 ```bash
-npm run lint      # must pass with zero warnings
-npx tsc --noEmit  # must pass with zero errors
+pnpm lint             # must pass with zero warnings
+pnpm exec tsc --noEmit  # must pass with zero errors
 ```
 
 Key conventions:
@@ -85,8 +85,20 @@ Consult **[docs/testing-strategy.md](./docs/testing-strategy.md)** before writin
 Run the full suite before opening a PR:
 
 ```bash
-npm test
+pnpm test
 ```
+
+---
+
+## Versioning
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management. When submitting a PR that includes a user-visible change or version bump, run:
+
+```bash
+pnpm changeset
+```
+
+Select the bump type (patch/minor/major) and write a short summary. Commit the generated `.changeset/*.md` file along with your changes. PRs that omit a changeset when required will not trigger an automated version PR.
 
 ---
 

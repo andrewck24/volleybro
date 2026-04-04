@@ -109,13 +109,13 @@ This project uses a clean architecture and implements dependency injection with 
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run tests in watch mode
-npm run test:watch
+pnpm test:watch
 
 # Generate coverage report
-npm run test:coverage
+pnpm test:coverage
 ```
 
 ### Storybook 元件庫 / Storybook Component Library
@@ -132,7 +132,7 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 ### 前置需求 / Prerequisites
 
 - Node.js（建議使用 v20 以上版本）/ Node.js (v20+ recommended)
-- npm 或 yarn 套件管理工具 / npm or yarn
+- pnpm 套件管理工具 / pnpm package manager
 
 ### 設定步驟 / Setup Steps
 
@@ -146,9 +146,7 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 2. **安裝相依套件 / Install dependencies**
 
    ```bash
-   npm install
-   # 或使用 yarn / or using yarn:
-   yarn install
+   pnpm install
    ```
 
 3. **環境變數設定 / Environment Variables**  
@@ -163,7 +161,7 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 4. **運行測試 / Run tests**
 
    ```bash
-   npm test
+   pnpm test
    ```
 
    確保所有 586 項測試通過 / Ensure all 586 tests pass
@@ -171,9 +169,7 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 5. **啟動開發伺服器 / Run the development server**
 
    ```bash
-   npm run dev
-   # 或使用 yarn:
-   yarn dev
+   pnpm dev
    ```
 
    開啟 [http://localhost:3000](http://localhost:3000) 以檢視專案運行狀態。
@@ -182,8 +178,8 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
 6. **編譯生產版本 / Build for production**
 
    ```bash
-   npm run build
-   npm start
+   pnpm build
+   pnpm start
    ```
 
 ## 貢獻指南 / Contribution Guidelines
