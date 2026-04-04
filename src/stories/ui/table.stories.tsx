@@ -107,3 +107,25 @@ export const Simple: Story = {
     </Table>
   ),
 };
+
+export const Empty: Story = {
+  render: () => (
+    <Table>
+      <TableCaption>No data available</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Order ID</TableHead>
+          <TableHead>Payment Status</TableHead>
+          <TableHead>Amount</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+            No results found.
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  ),
+};

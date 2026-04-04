@@ -41,8 +41,11 @@ Frontend component tests are split across two tools with distinct responsibiliti
 - Catch layout, spacing, color, and responsive breakpoint regressions via screenshot diffing
 - Stories serve as living documentation and visual test cases
 - Run Chromatic on CI to gate visual changes
+- Stories do **not** include `play()` functions — Storybook is not used for interaction testing
+- `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
+- The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels
 
-**Why the split?** CSS assertions in Jest are brittle — a class rename breaks the test with no actual visual difference. Chromatic catches real regressions by comparing rendered pixels.
+**Why the split?** CSS assertions in Jest are brittle — a class rename breaks the test with no actual visual difference. Chromatic catches real regressions by comparing rendered pixels. Adding play functions to stories would duplicate the behavioral coverage that Jest + RTL already provides.
 
 ---
 

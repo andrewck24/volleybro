@@ -77,18 +77,6 @@ export const Wide: Story = {
       <Button {...args} />
     </div>
   ),
-  decorators: (Story) => (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100%",
-      }}
-    >
-      <Story />
-    </div>
-  ),
 };
 
 export const IconOnly: Story = {
@@ -96,4 +84,12 @@ export const IconOnly: Story = {
     size: "icon",
     children: <RiHome2Fill />,
   },
+};
+
+export const Loading: Story = {
+  args: { loading: true, loadingText: "Saving..." },
+};
+
+export const LoadingDestructive: Story = {
+  args: { variant: "destructive", loading: true, loadingText: "Deleting..." },
 };

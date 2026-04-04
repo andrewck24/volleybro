@@ -49,6 +49,29 @@ Delete all Storybook default templates:
 - **`ui/`**: Add stories for 7 missing components — popover, accordion, form, chart, alert-dialog, calendar, toaster
 - **`custom/`**: Add stories for cross-domain composites after `component-architecture` change is applied (court, logo)
 
+### Story variant coverage
+
+Many existing stories only have 1–2 variants covering the happy path. For Chromatic to catch visual regressions on edge cases, key boundary states need story variants. Focus on states the component **actually supports via props** (not hypothetical states):
+
+- **Button**: `loading` prop is supported but has no story variant
+- **Form**: No error-state variant — only happy path and validation rules (errors not visually shown)
+- **Table**: No empty-state variant (zero rows)
+- **Select**: No `disabled` variant
+- **Dialog**: No long/scrollable content variant
+- **AlertDialog**: Only 1 variant (destructive); missing non-destructive confirmation
+- **Chart**: No empty-data variant
+
+**Scope boundary**: Only add variants for visual states that are already supported by the component API. Do not add play functions — interaction testing belongs to Jest + RTL per `docs/testing-strategy.md`.
+
+### Testing strategy clarification
+
+Update `docs/testing-strategy.md` to make the Storybook positioning explicit:
+
+- Storybook stories do **not** include play functions (no interaction tests)
+- Stories serve as **visual regression targets** (Chromatic) and **living documentation**
+- Behavioral testing of interactions is exclusively handled by Jest + RTL
+- This avoids duplicating coverage between Storybook play functions and Jest + RTL
+
 ### Accessibility addon
 
 Install and configure `@storybook/addon-a11y` for visual accessibility auditing in Storybook UI, complementing existing `jest-axe` CI checks.
@@ -68,9 +91,10 @@ Update `.github/workflows/chromatic.yml`: Node `lts/*`, `npm ci`.
 ## Impact
 
 - src/stories/ (restructure: flat → `ui/` + `custom/` subdirectories)
-- src/stories/ui/\*.stories.tsx (move existing + add 7 new)
+- src/stories/ui/\*.stories.tsx (move existing + add 7 new + add boundary variants)
 - src/stories/custom/\*.stories.tsx (new — court, logo)
 - src/stories/ scaffold files (delete)
 - .storybook/main.ts (add addon-a11y)
 - package.json + package-lock.json (Storybook/Chromatic package updates + addon-a11y)
 - .github/workflows/chromatic.yml (Node lts/\*, npm ci)
+- docs/testing-strategy.md (clarify Storybook positioning: no play functions)

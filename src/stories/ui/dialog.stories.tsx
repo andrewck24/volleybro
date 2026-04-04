@@ -63,3 +63,33 @@ export const Large: Story = {
     </Dialog>
   ),
 };
+
+export const LongContent: Story = {
+  render: () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>Long Content Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Terms of Service</DialogTitle>
+          <DialogDescription>Please review the following terms</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[300px] overflow-y-auto py-4 text-sm leading-relaxed">
+          {Array.from({ length: 10 }, (_, i) => (
+            <p key={i} className="mb-4">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
+              ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+              aliquip ex ea commodo consequat.
+            </p>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="secondary">Decline</Button>
+          <Button>Accept</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  ),
+};
