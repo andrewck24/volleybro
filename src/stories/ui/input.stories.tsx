@@ -26,7 +26,7 @@ export const Disabled: Story = {
 export const LongValue: Story = {
   render: () => (
     <Input
-      value="This is a very long input value that exceeds the visible width of the input field to demonstrate text overflow behavior"
+      defaultValue="This is a very long input value that exceeds the visible width of the input field to demonstrate text overflow behavior"
       className="w-75"
     />
   ),
