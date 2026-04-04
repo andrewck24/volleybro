@@ -1,25 +1,25 @@
 ## 1. pnpm Installation
 
-- [ ] 1.1 Delete `package-lock.json` from the repo
-- [ ] 1.2 Run `pnpm import` to generate `pnpm-lock.yaml` from the deleted lock file (uses npm registry metadata)
-- [ ] 1.3 Run `pnpm install` and confirm no resolution errors
-- [ ] 1.4 Create `.npmrc` at repo root with `shamefully-hoist=true` (decision: Use `shamefully-hoist=true` in `.npmrc`)
-- [ ] 1.5 Run `pnpm build` to verify all dependencies resolve correctly under pnpm's node_modules layout; fix any resolution failures before proceeding
-- [ ] 1.6 Commit: `chore(deps): migrate package manager to pnpm`
+- [x] 1.1 Delete `package-lock.json` from the repo
+- [x] 1.2 Run `pnpm import` to generate `pnpm-lock.yaml` from the deleted lock file (uses npm registry metadata)
+- [x] 1.3 Run `pnpm install` and confirm no resolution errors
+- [x] 1.4 Create `.npmrc` at repo root with `shamefully-hoist=true` (decision: Use `shamefully-hoist=true` in `.npmrc`)
+- [x] 1.5 Run `pnpm build` to verify all dependencies resolve correctly under pnpm's node_modules layout; fix any resolution failures before proceeding
+- [x] 1.6 Commit: `chore(deps): migrate package manager to pnpm`
 
 ## 2. Package.json and Lockfile Config
 
-- [ ] 2.1 Add `"packageManager": "pnpm@10.15.1"` field to `package.json` (decision: `pnpm/action-setup@v4` reads `packageManager` field)
-- [ ] 2.2 [P] Remove all `@semantic-release/*` devDependencies from `package.json` and run `pnpm install`
-- [ ] 2.3 [P] Add `@changesets/cli` as a devDependency: `pnpm add -D @changesets/cli`
-- [ ] 2.4 Run `pnpm changeset init` to generate `.changeset/config.json`
-- [ ] 2.5 Add `package-lock.json` to `.gitignore` to prevent accidental npm usage from reintroducing it
-- [ ] 2.6 Commit: `chore(deps): replace semantic-release with changesets`
+- [x] 2.1 Add `"packageManager": "pnpm@10.15.1"` field to `package.json` (decision: `pnpm/action-setup@v4` reads `packageManager` field)
+- [x] 2.2 [P] Remove all `@semantic-release/*` devDependencies from `package.json` and run `pnpm install`
+- [x] 2.3 [P] Add `@changesets/cli` as a devDependency: `pnpm add -D @changesets/cli`
+- [x] 2.4 Run `pnpm changeset init` to generate `.changeset/config.json`
+- [x] 2.5 Add `package-lock.json` to `.gitignore` to prevent accidental npm usage from reintroducing it
+- [x] 2.6 Commit: `chore(deps): replace semantic-release with changesets`
 
 ## 3. Remove semantic-release Artifacts
 
-- [ ] 3.1 Delete `release.config.ts` (decision: Delete `release.config.ts` entirely)
-- [ ] 3.2 Delete `.github/workflows/release.yml` — do not rename/edit; the structure is fundamentally different from changesets (decision: Replace `release.yml` with `changesets.yml` (not rename/edit))
+- [x] 3.1 Delete `release.config.ts` (decision: Delete `release.config.ts` entirely)
+- [x] 3.2 Delete `.github/workflows/release.yml` — do not rename/edit; the structure is fundamentally different from changesets (decision: Replace `release.yml` with `changesets.yml` (not rename/edit))
 - [ ] 3.3 Commit: `chore(ci): remove semantic-release config and workflow`
 
 ## 4. Create changesets Workflow
