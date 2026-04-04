@@ -83,42 +83,6 @@ Components are organized by domain and purpose (features):
 3. **Match Recording**: Real-time match recording with detailed statistics
 4. **Data Analysis**: Match statistics, visualizations, and historical data
 
-## Database Design
-
-- **User**: Authentication data managed by Better Auth
-- **Profile**: User's personal information and preferences
-- **Player**: References userId, teamId with player information
-- **Team**: Contains lineups array, team information
-- **Record**: Embeds complete match data including teams and sets
-
-## Authentication Flow
-
-- Better Auth with Google OAuth provider (configured in `src/lib/auth.ts`)
-- Client-side authentication using Better Auth React client (`src/lib/auth-client.ts`)
-- Server-side session validation via `auth.api.getSession()` in API routes
-- User and Profile separation:
-  - **User**: Authentication data (Better Auth managed)
-  - **Profile**: Business data (application managed, linked via userId)
-- Profile auto-creation on first access to `/api/profiles`
-
-## Code Style Guidelines
-
-- **Code Formatting**: Prettier with Airbnb JavaScript/TypeScript style guide
-- **Linting**: ESLint configured with Airbnb rules
-- Follow existing TypeScript patterns and interfaces
-- Use established component patterns from `src/components/ui/`
-- Implement new features following Clean Architecture layers
-- Authentication logic should use existing Auth.js patterns
-
-## Pre-commit Checklist
-
-**IMPORTANT**: Commit after each completed task section during `apply`. Before every commit, ensure the following steps pass:
-
-1. `npm test` - All tests must pass
-2. `npx tsc --noEmit` - TypeScript compiles without errors
-3. `npm run lint` - No linting errors
-4. `npm run build` - Build succeeds without errors
-5. Verify no breaking changes to existing functionality
-6. run `/simplify`
+**IMPORTANT**: Commit changes after each section completed, with all tests/lint/type/build checks passing and `/simplify` applied.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.
