@@ -32,7 +32,9 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
     }
 
     // 2. 驗證權限 - 必須是該隊伍的 ADMIN 或 OWNER
-    await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     // 3. 更新角色
     const updatedPlayer = await this.playerRepository.update(playerId, {

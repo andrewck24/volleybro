@@ -61,7 +61,9 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     }
 
-    await this.teamRepository.removePlayerFromLineups(player.teamId!, playerId);
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     // Clear activeTeamId if it points to the team the user just left
     const profile = await this.profileRepository.findByUserId(userId);

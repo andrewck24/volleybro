@@ -52,7 +52,9 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
       );
     }
 
-    await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     const updated = await this.playerRepository.update(playerId, {
       status: PlayerStatus.INVITED,

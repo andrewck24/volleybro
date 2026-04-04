@@ -31,7 +31,9 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
       );
     }
 
-    await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     if (player.status !== PlayerStatus.INVITED) {
       throw new ConflictError(

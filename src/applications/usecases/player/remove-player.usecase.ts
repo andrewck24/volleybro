@@ -33,7 +33,9 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     }
 
     // 2. Verify user is admin of team
-    await this.authService.verifyIsTeamAdmin(player.teamId!, userId);
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     // 3. Delete player record
     const deleted = await this.playerRepository.delete(playerId);
@@ -45,7 +47,7 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     }
 
     // 4. Remove player from team lineups
-    await this.teamRepository.removePlayerFromLineups(player.teamId!, playerId);
+    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     return { success: true };
   }

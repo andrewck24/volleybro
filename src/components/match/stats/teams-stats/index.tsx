@@ -50,22 +50,24 @@ export const getTeamsStats = (
   };
 };
 
+type StatValue = { success: number; error: number } | number;
+
 const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
   return statsArr.reduce((acc, stats) => {
-    const s = stats as Record<string, unknown>;
-    const a = acc as Record<string, unknown>;
-    for (const key in s) {
-      if (typeof s[key] === "object" && s[key] !== null) {
-        const sv = s[key] as { success: number; error: number };
-        const av = (a[key] as
-          | { success: number; error: number }
-          | undefined) ?? { success: 0, error: 0 };
-        a[key] = {
-          success: av.success + sv.success,
-          error: av.error + sv.error,
+    for (const key of Object.keys(stats) as (keyof TeamStats)[]) {
+      const sv = stats[key] as StatValue;
+      const av = acc[key] as StatValue | undefined;
+      if (typeof sv === "object") {
+        const avObj = (av as { success: number; error: number } | undefined) ?? {
+          success: 0,
+          error: 0,
         };
-      } else if (typeof s[key] === "number") {
-        a[key] = ((a[key] as number | undefined) ?? 0) + (s[key] as number);
+        (acc[key] as { success: number; error: number }) = {
+          success: avObj.success + sv.success,
+          error: avObj.error + sv.error,
+        };
+      } else {
+        (acc[key] as number) = ((av as number | undefined) ?? 0) + sv;
       }
     }
     return acc;

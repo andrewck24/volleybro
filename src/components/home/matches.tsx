@@ -42,8 +42,8 @@ export function Matches() {
 
   const isLoading = teamIdLoading || matchesLoading;
   const mutate = useCallback(
-    () => Promise.all([mutateTeamId(), mutateMatches()]),
-    [mutateTeamId, mutateMatches],
+    () => Promise.all([mutateTeamId(), ...(teamId ? [mutateMatches()] : [])]),
+    [teamId, mutateTeamId, mutateMatches],
   );
 
   usePullToRefresh(mutate);
