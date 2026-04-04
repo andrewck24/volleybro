@@ -1,6 +1,6 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
-import { FlipWords } from "@/components/ui/flip-words";
+import { FlipWords } from "@/components/landing/flip-words";
 import Image from "next/image";
 import { useRef } from "react";
 import { RiDeviceLine, RiGlobalLine, RiSpeedLine } from "react-icons/ri";
@@ -13,7 +13,7 @@ export const Hero = () => {
     <section
       ref={heroRef}
       data-testid="hero-section"
-      className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden bg-gradient-to-b from-transparent to-primary/50 pt-10 md:px-[5%]"
+      className="relative flex h-[calc(100vh-3.25rem)] w-full flex-col items-start justify-start overflow-hidden bg-linear-to-b from-transparent to-primary/50 pt-10 md:px-[5%]"
     >
       <BackgroundDecorations />
       <div className="relative z-10 flex size-full flex-1 flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">

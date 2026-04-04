@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import { useRecord } from "@/hooks/use-data";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
@@ -12,7 +12,7 @@ export const Substitutes = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
   const { record } = useRecord(recordId);
   const { lineups, status } = useAppSelector((state) => state.lineup);
-  const members = record.teams.home.players;
+  const members = record?.teams.home.players ?? [];
 
   return (
     <PanelContent>
@@ -32,6 +32,7 @@ export const Substitutes = ({ recordId }: { recordId: string }) => {
         </CardHeader>
         {lineups[status.lineupIndex].substitutes.map((player, index) => {
           const member = members.find((m) => m._id === player._id);
+          if (!member) return null;
           return (
             <Button
               key={member._id}

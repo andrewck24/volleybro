@@ -6,7 +6,7 @@ import {
 import { LineupError } from "@/components/team/lineup/panel/options/lineup-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import {
   Table,
   TableBody,
@@ -42,7 +42,7 @@ export const LineupOptions = ({
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
   const othersCount = others.length;
 
-  const handlelineupIndexClick = (index) => {
+  const handlelineupIndexClick = (index: number) => {
     if (index === status.lineupIndex) return;
     if (hasPairedSwitchPosition) {
       dispatch(lineupActions.setLineupIndex(index));

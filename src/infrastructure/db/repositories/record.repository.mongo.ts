@@ -1,9 +1,13 @@
 import { IRecordRepository } from "@/applications/repositories/record.repository.interface";
 import {
-  Record as RecordModel,
+  EntryType,
+  MatchResult,
+  Record as RecordEntity,
+} from "@/entities/record";
+import {
   RecordDocument,
+  Record as RecordModel,
 } from "@/infrastructure/db/mongoose/schemas/record";
-import { Record as RecordEntity, MatchResult, EntryType } from "@/entities/record";
 import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
 import mongoose from "mongoose";
 
@@ -22,7 +26,7 @@ export class RecordRepositoryImpl
       limit?: number;
       sortField?: string;
       sortDirection?: 1 | -1;
-    } = {}
+    } = {},
   ): Promise<{ data: MatchResult[]; hasMore: boolean; lastId: string }> {
     // 設定默認參數
     const {
@@ -54,7 +58,7 @@ export class RecordRepositoryImpl
     const results = await this.model
       .aggregate<MatchResult>([
         // 第一步：篩選條件
-        { $match: filter },
+        { $match: filter } as mongoose.PipelineStage,
 
         // 第二步：排序
         { $sort: { [sortField]: sortDirection } },
@@ -157,7 +161,12 @@ export class RecordRepositoryImpl
     return {
       data,
       hasMore,
-      lastId: data.length > 0 ? data[data.length - 1][sortField] : lastId,
+      lastId:
+        data.length > 0
+          ? String(
+              (data[data.length - 1] as Record<string, unknown>)[sortField],
+            )
+          : (lastId ?? ""),
     };
   }
 }

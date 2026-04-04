@@ -1,9 +1,9 @@
 "use client";
-import LoadingCard from "@/components/custom/loading/card";
-import LoadingCourt from "@/components/custom/loading/court";
+import { LoadingCourt } from "@/components/custom/court";
 import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
@@ -14,20 +14,23 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 import { RiSaveLine } from "react-icons/ri";
 
-const Lineup = ({ teamId }) => {
+const Lineup = ({ teamId }: { teamId: string }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { team, mutate } = useTeam(teamId);
   const { players } = useTeamPlayers(teamId);
 
-  const handleSave = async (lineups) => {
+  const handleSave = async (lineups: Lineup[]) => {
     try {
-      const data = await apiClient<Lineup[]>(`/api/teams/${team._id}/lineups`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lineups),
-      });
-      mutate({ ...team, lineups: data }, false);
+      const data = await apiClient<Lineup[]>(
+        `/api/teams/${team!._id}/lineups`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lineups),
+        },
+      );
+      mutate({ ...team!, lineups: data }, false);
       return toast({
         title: "儲存成功",
         description: "已成功儲存陣容設定。",
@@ -64,15 +67,7 @@ const Lineup = ({ teamId }) => {
   }, [team, dispatch]);
 
   if (!team || !players || !lineups.length) {
-    return (
-      <>
-        <LoadingCourt />
-        <LoadingCard className="w-full flex-1" />
-        <div className="flex w-full flex-col px-4">
-          <Button size="lg" className="motion-safe:animate-pulse" />
-        </div>
-      </>
-    );
+    return <LineupSkeleton />;
   }
 
   return (
@@ -97,5 +92,24 @@ const Lineup = ({ teamId }) => {
     </>
   );
 };
+
+export function LineupSkeleton() {
+  return (
+    <>
+      <LoadingCourt />
+      {/* mirrors LineupPanel: Panel slot with px-4 py-2 */}
+      <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden bg-card px-4 py-2">
+        <Skeleton className="my-0.5 h-5 w-32" />
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </div>
+      {/* mirrors save button row */}
+      <div className="flex w-full flex-col px-4 pt-2">
+        <Skeleton className="h-11 w-full" /> {/* size="lg" button */}
+      </div>
+    </>
+  );
+}
 
 export default Lineup;

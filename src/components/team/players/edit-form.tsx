@@ -1,10 +1,15 @@
 "use client";
 
-import LoadingCard from "@/components/custom/loading/card";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import type { Player } from "@/entities/player";
 import { PlayerRole, canManageTeam } from "@/entities/player";
@@ -23,6 +29,7 @@ import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
+import { FiUser } from "react-icons/fi";
 import { useSWRConfig } from "swr";
 import { ZodError } from "zod";
 
@@ -36,13 +43,18 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading) return <LoadingCard />;
+  if (isLoading) return <PlayerEditFormSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!player)
     return (
-      <div className="p-4 text-center text-sm text-muted-foreground">
-        找不到球員
-      </div>
+      <Empty>
+        <EmptyMedia variant="icon">
+          <FiUser />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>找不到球員</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
 
   const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?._id);
@@ -62,6 +74,28 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
           />
         </>
       )}
+    </Card>
+  );
+}
+
+function PlayerEditFormSkeleton() {
+  return (
+    <Card className="space-y-4 py-8">
+      <Skeleton className="mt-0.5 mb-4.5 h-4 w-16" />{" "}
+      {/* section title: text-sm */}
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-12" /> {/* Label */}
+        <Skeleton className="h-9 w-full" /> {/* Input */}
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-8" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="my-0.5 h-4 w-8" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <Skeleton className="h-9 w-full" /> {/* submit button */}
     </Card>
   );
 }
@@ -133,7 +167,6 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h3 className="text-sm font-medium">基本資訊</h3>
-
       <div className="space-y-2">
         <Label htmlFor="edit-name">
           姓名 <span className="text-red-500">*</span>

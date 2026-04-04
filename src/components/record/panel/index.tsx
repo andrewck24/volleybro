@@ -1,7 +1,7 @@
 "use client";
 import { RecordMoves } from "@/components/record/panel/moves";
 import { Substitutes } from "@/components/record/panel/substitutes";
-import { Panel } from "@/components/ui/panel";
+import { Panel } from "@/components/custom/panel";
 import type { ReduxRecordState } from "@/lib/features/record/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 

@@ -59,7 +59,7 @@ export const EntryText = ({
   <p
     className={cn(
       "flex h-6 flex-1 flex-row items-center gap-1 px-1 text-[1.375rem]",
-      "max-w-[calc(100%-9rem)] border-l-[0.125rem]",
+      "max-w-[calc(100%-9rem)] border-l-2",
       "stroke-[3px] [&>svg]:size-6",
       className,
     )}

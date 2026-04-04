@@ -1,6 +1,7 @@
 import type {
   Challenge,
   Rally,
+  RallyDetail,
   Substitution,
   TeamStats,
   Timeout,
@@ -78,7 +79,15 @@ export type ReduxStatus = {
   panel: "home" | "away" | "substitutes";
 };
 
-export type ReduxRecording = Rally & {
+type ReduxRallyDetail = Omit<RallyDetail, "type" | "num"> & {
+  type: RallyDetail["type"] | null;
+  num: RallyDetail["num"] | null;
+};
+
+export type ReduxRecording = Omit<Rally, "win" | "home" | "away"> & {
+  win: Rally["win"] | null;
+  home: ReduxRallyDetail;
+  away: ReduxRallyDetail;
   substitution?: Substitution;
   timeout?: Timeout;
   challenge?: Challenge;

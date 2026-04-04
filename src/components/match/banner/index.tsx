@@ -12,9 +12,9 @@ export const Banner = ({ recordId }: { recordId: string }) => {
 
   return (
     <div className="flex w-full flex-col items-center justify-center bg-card px-4 py-2">
-      <Info info={record.info} />
+      <Info info={record!.info} />
       <Teams recordId={recordId} />
-      <Scores sets={record.sets} />
+      <Scores sets={record!.sets} />
       <div className="grid w-full grid-cols-2 gap-2 py-2">
         <Button onClick={() => {}} variant="outline" size="lg">
           <RiInformationLine />
@@ -36,12 +36,14 @@ const Info = ({ info }: { info: Match }) => {
     <div className="flex w-full flex-col items-center justify-center px-4 pt-2 text-muted-foreground">
       <p>
         {name || "未知賽事"}
-        {phase !== MatchPhase.NONE && ` - ${getPhaseText(phase)}`}
+        {phase != null &&
+          phase !== MatchPhase.NONE &&
+          ` - ${getPhaseText(phase)}`}
         {number && ` - #${number}`}
       </p>
       <p>
-        {location.hall || "未知場地"}
-        {location.city && `, ${location.city}`}
+        {location?.hall || "未知場地"}
+        {location?.city && `, ${location.city}`}
       </p>
     </div>
   );

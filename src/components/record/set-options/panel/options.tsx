@@ -1,11 +1,12 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import {
   LiberoReplaceDialog,
   LiberoReplaceTrigger,
 } from "@/components/team/lineup/panel/options/libero-replace";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogClose, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -14,10 +15,9 @@ import {
   FormRadioGroup,
   FormRadioItem,
 } from "@/components/ui/form";
-import { PanelContent } from "@/components/ui/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Player, type Record } from "@/entities/record";
 import { useToast } from "@/components/ui/use-toast";
+import { Player, type Record } from "@/entities/record";
 import { useRecord } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
@@ -29,8 +29,8 @@ import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-positi
 import { useAppSelector } from "@/lib/redux/hooks";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { RiArrowRightLine, RiSaveLine, RiUserLine } from "react-icons/ri";
 
 export const Options = ({ recordId }: { recordId: string }) => {
@@ -40,8 +40,10 @@ export const Options = ({ recordId }: { recordId: string }) => {
   const { setIndex } = useAppSelector((state) => state.record);
   const { hasPairedReplacePosition } = useReplacePosition();
   const { record, mutate } = useRecord(recordId);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [liberoDialogOpen, setLiberoDialogOpen] = useState(false);
   const isNewSet = setIndex === record?.sets.length;
-  const members = record.teams.home.players;
+  const members = record?.teams.home.players ?? [];
 
   const defaultValues = useMemo<SetOptionsFormValues>(
     () => ({
@@ -67,6 +69,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   });
 
   const onSubmit = async (data: SetOptionsFormValues) => {
+    setIsSubmitting(true);
     try {
       const result = await apiClient<Record>(
         `/api/records/${recordId}/sets?si=${setIndex}`,
@@ -80,9 +83,12 @@ export const Options = ({ recordId }: { recordId: string }) => {
         },
       );
       mutate(result, false);
+      setLiberoDialogOpen(false);
       if (isNewSet) router.push(`/record/${recordId}?si=${setIndex}`);
     } catch (error) {
       showErrorToast(error, toast);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -93,7 +99,7 @@ export const Options = ({ recordId }: { recordId: string }) => {
   return (
     <PanelContent className="overflow-y-hidden">
       <Card className="size-full overflow-y-hidden p-0">
-        <Dialog>
+        <Dialog open={liberoDialogOpen} onOpenChange={setLiberoDialogOpen}>
           <Form
             form={form}
             onSubmit={form.handleSubmit(onSubmit)}
@@ -105,12 +111,11 @@ export const Options = ({ recordId }: { recordId: string }) => {
               <SubstitutesTable members={members} />
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <ActionButton
-                  isNewSet={isNewSet}
-                  disabled={!hasPairedReplacePosition}
-                />
-              </DialogClose>
+              <ActionButton
+                isNewSet={isNewSet}
+                disabled={!hasPairedReplacePosition}
+                loading={isSubmitting}
+              />
             </DialogFooter>
           </Form>
           <LiberoReplaceDialog />
@@ -120,7 +125,11 @@ export const Options = ({ recordId }: { recordId: string }) => {
   );
 };
 
-const ServingTeam = ({ form }) => {
+const ServingTeam = ({
+  form,
+}: {
+  form: UseFormReturn<SetOptionsFormValues>;
+}) => {
   return (
     <section className="flex w-full flex-col items-center justify-center gap-2 pb-2">
       <CardHeader className="w-full">
@@ -166,12 +175,13 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
           {lineups[0]?.substitutes &&
             lineups[0].substitutes.map((player) => {
               const member = members?.find((m) => m._id === player._id);
+              if (!member) return null;
               return (
                 <TableRow key={member._id}>
                   <TableCell className="w-6 [&>svg]:size-6">
                     <RiUserLine />
                   </TableCell>
-                  <TableCell className="w-[2.5rem] text-left">
+                  <TableCell className="w-10 text-left">
                     {member?.number}
                   </TableCell>
                   <TableCell className="text-lg">{member?.name}</TableCell>
@@ -187,12 +197,14 @@ const SubstitutesTable = ({ members }: { members: Player[] }) => {
 const ActionButton = ({
   isNewSet,
   disabled,
+  loading,
 }: {
   isNewSet: boolean;
   disabled: boolean;
+  loading: boolean;
 }) => {
   return (
-    <Button type="submit" size="lg" disabled={disabled}>
+    <Button type="submit" size="lg" disabled={disabled} loading={loading}>
       {isNewSet ? (
         <>
           開始新一局

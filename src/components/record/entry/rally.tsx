@@ -13,7 +13,7 @@ export const Rally = ({
   players: Player[];
 }) => {
   const { win, home, away } = data;
-  const playerNumber = players.find((p) => p._id === home.player._id)?.number;
+  const playerNumber = players.find((p) => p._id === home.player?._id)?.number;
 
   return (
     <>

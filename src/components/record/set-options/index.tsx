@@ -24,8 +24,8 @@ export const SetOptions = ({
 
   useEffect(() => {
     const lineup =
-      record?.sets[setIndex]?.lineups?.home || record.teams.home.lineup;
-    dispatch(lineupActions.initialize([lineup]));
+      record?.sets[setIndex]?.lineups?.home ?? record?.teams.home.lineup;
+    if (lineup) dispatch(lineupActions.initialize([lineup]));
   }, [record, setIndex, dispatch]);
 
   return (
@@ -38,7 +38,7 @@ export const SetOptions = ({
           設定第 {setIndex + 1} 局的陣容
         </DialogDescription>
       </DialogHeader>
-      <LineupCourt players={record.teams.home.players} />
+      <LineupCourt players={record?.teams.home.players ?? []} />
       <SetOptionsPanel recordId={recordId} />
     </DialogContent>
   );

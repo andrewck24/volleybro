@@ -1,4 +1,6 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import { Player, PlayerStatus } from "@/entities/player";
 import {
   PlayerModel,
@@ -59,7 +61,7 @@ export class PlayerRepositoryImpl
     return this.toPlayer(newPlayer);
   }
 
-  async update(id: string, updates: Partial<Player>): Promise<Player | null> {
+  async update(id: string, updates: Partial<Player>): Promise<Player> {
     const $set: Record<string, unknown> = {};
     const $unset: Record<string, string> = {};
 
@@ -78,7 +80,13 @@ export class PlayerRepositoryImpl
     const updated = await this.model
       .findByIdAndUpdate(id, updateOps, { new: true })
       .exec();
-    return updated ? this.toPlayer(updated) : null;
+    if (!updated) {
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "The player to update was not found",
+      );
+    }
+    return this.toPlayer(updated);
   }
 
   async delete(id: string): Promise<boolean> {

@@ -9,11 +9,13 @@ export const RecordOptionsSummary = ({ recordId }: { recordId: string }) => {
   const dispatch = useAppDispatch();
   const { record } = useRecord(recordId);
   const { setIndex } = useAppSelector((state) => state.record);
-  const { entries } = record.sets[setIndex];
-  const { players } = record.teams.home;
+  const { entries } = record!.sets[setIndex];
+  const { players } = record!.teams.home;
 
   const handleEntryClick = (entryIndex: number) => {
-    dispatch(recordActions.setEditingEntryStatus({ record, entryIndex }));
+    dispatch(
+      recordActions.setEditingEntryStatus({ record: record!, entryIndex }),
+    );
   };
 
   return (

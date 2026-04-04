@@ -1,13 +1,16 @@
-import { Types } from "mongoose";
-import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";
+import { NotFoundError } from "@/entities/errors/app-error";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
+import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";
+import { Types } from "mongoose";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/team", () => {
-  const mockModel = jest.fn().mockImplementation((data: Record<string, unknown>) => ({
-    ...data,
-    save: jest.fn().mockResolvedValue(data),
-    toJSON: jest.fn().mockReturnValue(data),
-  }));
+  const mockModel = jest
+    .fn()
+    .mockImplementation((data: Record<string, unknown>) => ({
+      ...data,
+      save: jest.fn().mockResolvedValue(data),
+      toJSON: jest.fn().mockReturnValue(data),
+    }));
 
   Object.assign(mockModel, {
     find: jest.fn(),
@@ -49,12 +52,12 @@ describe("TeamRepositoryImpl", () => {
       expect(result).toEqual([mockTeamData]);
     });
 
-    it("should return null if no teams found", async () => {
-      (TeamModel.find as jest.Mock).mockResolvedValue(null);
+    it("should return empty array if no teams found", async () => {
+      (TeamModel.find as jest.Mock).mockResolvedValue([]);
 
       const result = await repository.find({ name: "Non Existent" });
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
   });
 
@@ -67,12 +70,12 @@ describe("TeamRepositoryImpl", () => {
       expect(result).toEqual(mockTeamData);
     });
 
-    it("should return null if team not found", async () => {
+    it("should return undefined if team not found", async () => {
       (TeamModel.findOne as jest.Mock).mockResolvedValue(null);
 
       const result = await repository.findOne({ _id: nonExistentIdString });
 
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
@@ -99,33 +102,30 @@ describe("TeamRepositoryImpl", () => {
 
     it("should update and return the updated team", async () => {
       (TeamModel.findOneAndReplace as jest.Mock).mockResolvedValue(
-        mockDoc(updatedTeamData)
+        mockDoc(updatedTeamData),
       );
 
       const result = await repository.update(
         { _id: mockTeamId },
-        updatedTeamData
+        updatedTeamData,
       );
 
       expect(result).toEqual(updatedTeamData);
     });
 
-    it("should return null when team is not found", async () => {
+    it("should throw NotFoundError when team is not found", async () => {
       (TeamModel.findOneAndReplace as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.update(
-        { _id: nonExistentId },
-        updatedTeamData
-      );
-
-      expect(result).toBeNull();
+      await expect(
+        repository.update({ _id: nonExistentId }, updatedTeamData),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
   describe("delete", () => {
     it("should return true when deletion is successful", async () => {
       (TeamModel.findOneAndDelete as jest.Mock).mockResolvedValue(
-        mockDoc(mockTeamData)
+        mockDoc(mockTeamData),
       );
 
       const result = await repository.delete({ _id: mockTeamId });

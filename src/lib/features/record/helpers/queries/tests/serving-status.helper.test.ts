@@ -1,5 +1,5 @@
-import { getServingStatus } from "@/lib/features/record/helpers";
 import { type Set, EntryType, MoveType } from "@/entities/record";
+import { getServingStatus } from "@/lib/features/record/helpers";
 
 describe("getServingStatus", () => {
   it("should return true when previous Rally was won", () => {
@@ -62,7 +62,7 @@ describe("getServingStatus", () => {
     const mockSet = {
       options: { serve: "away" },
       entries: [],
-    } as Set;
+    } as unknown as Set;
 
     const entryIndex = 0;
 

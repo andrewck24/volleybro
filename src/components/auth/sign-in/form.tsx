@@ -11,7 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { RiAlertLine } from "react-icons/ri";
 
@@ -27,7 +27,7 @@ const SignInError = () => {
 
   if (urlError)
     return (
-      <Alert variant="destructive" hidden={!urlError}>
+      <Alert variant="destructive">
         <RiAlertLine />
         <AlertTitle>登入失敗</AlertTitle>
         <AlertDescription>{errorMessage}</AlertDescription>
@@ -36,11 +36,20 @@ const SignInError = () => {
 };
 
 const SignInForm = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleGoogleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/home",
-    });
+    setIsSubmitting(true);
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/home",
+      });
+    } catch {
+      // sign-in errors are surfaced via URL error params after redirect
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -59,6 +68,7 @@ const SignInForm = () => {
           size="lg"
           className="w-full text-foreground"
           onClick={handleGoogleSignIn}
+          loading={isSubmitting}
         >
           <FcGoogle />
           使用 Google 帳戶繼續

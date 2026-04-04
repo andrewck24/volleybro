@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import { Separator } from "@/components/ui/separator";
 import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
@@ -72,9 +72,10 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
       </CardHeader>
       {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
         const player = players.find((p) => p._id === lineupPlayer._id);
+        if (!player) return null;
         return (
           <Button
-            key={player?._id}
+            key={player._id}
             variant={isEditingStarting ? "outline" : "default"}
             size="wide"
             onClick={() => handleSubstituteClick(player, index)}

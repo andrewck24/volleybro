@@ -6,8 +6,6 @@ import type { IPlayerRepository } from "@/applications/repositories/player.repos
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import type { Team } from "@/entities/team";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { UnexpectedError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
 
 @injectable()
 export class CreateTeamUseCase implements ICreateTeamUseCase {
@@ -38,10 +36,6 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
         substitutes: [],
       }),
     });
-
-    if (!team) {
-      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to create team");
-    }
 
     await this.playerRepository.create({
       name: userName,

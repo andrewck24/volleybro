@@ -1,7 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/ui/panel";
+import { PanelContent } from "@/components/custom/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
@@ -23,8 +23,14 @@ export const PlayerInfo = ({
   const dispatch = useAppDispatch();
   const { status, lineups } = useAppSelector((state) => state.lineup);
   const { lineupIndex, editingMember } = status;
+  const activeList = (editingMember.list || "starting") as
+    | "starting"
+    | "liberos"
+    | "substitutes";
   const lineupPlayer =
-    lineups[lineupIndex][editingMember.list][editingMember.zone - 1];
+    editingMember.zone != null
+      ? lineups[lineupIndex][activeList][editingMember.zone - 1]
+      : undefined;
   const player = players.find((member) => member._id === editingMember._id);
 
   return (

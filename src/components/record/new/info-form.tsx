@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { useEffect } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm, type Resolver, type UseFormReturn } from "react-hook-form";
 import { RiCalendarLine, RiCheckLine } from "react-icons/ri";
 
 export const MatchInfoForm = ({
@@ -85,7 +85,7 @@ export const MatchInfoForm = ({
   );
 };
 
-const BasicInfoFields = ({ form }) => {
+const BasicInfoFields = ({ form }: { form: UseFormReturn<TMatchInfoForm> }) => {
   return (
     <>
       <FormField
@@ -167,7 +167,7 @@ const BasicInfoFields = ({ form }) => {
   );
 };
 
-const MatchInfoFields = ({ form }) => {
+const MatchInfoFields = ({ form }: { form: UseFormReturn<TMatchInfoForm> }) => {
   return (
     <AccordionItem value="match">
       <AccordionTrigger>比賽資訊</AccordionTrigger>
@@ -248,7 +248,11 @@ const MatchInfoFields = ({ form }) => {
   );
 };
 
-const TimeLocationFields = ({ form }) => {
+const TimeLocationFields = ({
+  form,
+}: {
+  form: UseFormReturn<TMatchInfoForm>;
+}) => {
   return (
     <AccordionItem value="timelocation">
       <AccordionTrigger>時間地點</AccordionTrigger>
@@ -294,7 +298,11 @@ const TimeLocationFields = ({ form }) => {
   );
 };
 
-const MatchRulesFields = ({ form }) => {
+const MatchRulesFields = ({
+  form,
+}: {
+  form: UseFormReturn<TMatchInfoForm>;
+}) => {
   return (
     <AccordionItem value="rules">
       <AccordionTrigger>比賽規則</AccordionTrigger>

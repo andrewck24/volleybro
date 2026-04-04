@@ -1,9 +1,6 @@
+import { createMockUserRepository, createUser } from "@/__tests__/helpers";
 import { AuthenticationError } from "@/entities/errors/app-error";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
-import {
-  createMockUserRepository,
-  createUser,
-} from "@/__tests__/helpers";
 
 jest.mock("@/lib/auth", () => ({
   auth: {
@@ -45,7 +42,7 @@ describe("AuthenticationService", () => {
   describe("user not found → AuthenticationError", () => {
     it("throws AuthenticationError when user does not exist in repository", async () => {
       mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
-      mockUserRepository.findOne.mockResolvedValue(null);
+      mockUserRepository.findOne.mockResolvedValue(undefined);
 
       await expect(service.verifySession()).rejects.toBeInstanceOf(
         AuthenticationError,

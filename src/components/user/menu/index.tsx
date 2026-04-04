@@ -1,32 +1,63 @@
 "use client";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useUser, useProfile, useUserPlayers } from "@/hooks/use-data";
+import { Button, Link } from "@/components/ui/button";
+import { Card, CardDescription } from "@/components/ui/card";
+import {
+  Item,
+  ItemAvatar,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DarkMode } from "@/components/user/menu/dark-mode";
 import { PlayerStatus } from "@/entities/player";
+import { useProfile, useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import {
   RiArrowDownWideLine,
+  RiGroupLine,
   RiSettings4Line,
-  RiUserLine,
   RiUserAddLine,
+  RiUserLine,
 } from "react-icons/ri";
-import { Button, Link } from "@/components/ui/button";
-import { Card, CardDescription } from "@/components/ui/card";
-import { TeamItem } from "@/components/custom/team-item";
-import { apiClient } from "@/lib/api/api-client";
-import { DarkMode } from "@/components/user/menu/dark-mode";
 
 const Menu = ({ className }: { className?: string }) => {
-  const router = useRouter();
   const { user } = useUser();
+
+  return (
+    <Card className={className}>
+      <Button size="wide">
+        <ItemAvatar
+          className="size-6"
+          src={user?.image}
+          alt={user?.name}
+          fallback={<RiUserLine />}
+        />
+        {!user ? <Skeleton className="h-6 w-64" /> : user?.name}
+      </Button>
+      <TeamList userId={user?._id} />
+      <Button variant="secondary" size="wide">
+        <RiSettings4Line />
+        設定
+      </Button>
+      <DarkMode />
+    </Card>
+  );
+};
+
+function TeamList({ userId }: { userId?: string }) {
+  const router = useRouter();
   const { profile, mutate: mutateProfile } = useProfile();
-  const { players } = useUserPlayers(user?._id);
+  const { players } = useUserPlayers(userId);
   const [extendTeams, setExtendTeams] = useState(false);
 
   const joinedPlayers = players.filter(
-    (p) => p.status === PlayerStatus.JOINED && p.teamId
+    (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
 
   const handleSwitchTeam = async (teamId: string) => {
@@ -44,36 +75,18 @@ const Menu = ({ className }: { className?: string }) => {
   };
 
   return (
-    <Card className={className}>
-      <Button size="wide">
-        {user?.image ? (
-          <Image
-            src={user.image}
-            alt={user.name}
-            width={24}
-            height={24}
-            className="rounded-full"
-          />
-        ) : (
-          <RiUserLine />
-        )}
-        {!user ? (
-          <span className="h-6 rounded-md animate-pulse bg-muted w-[16rem]" />
-        ) : (
-          user?.name
-        )}
-      </Button>
+    <ItemGroup>
       <Button
         variant="secondary"
         size="wide"
         onClick={() => setExtendTeams(!extendTeams)}
       >
         <RiUserAddLine />
-        <span className="flex justify-start flex-1">隊伍與邀請</span>
+        <span className="flex flex-1 justify-start">隊伍與邀請</span>
         <RiArrowDownWideLine
           className={cn(
             "transition-transform duration-200",
-            extendTeams && "rotate-180"
+            extendTeams && "rotate-180",
           )}
         />
       </Button>
@@ -86,10 +99,10 @@ const Menu = ({ className }: { className?: string }) => {
                 <TeamItem
                   key={p._id}
                   teamId={p.teamId!}
-                  onClick={() => handleSwitchTeam(p.teamId!)}
-                  className={cn(
-                    profile?.activeTeamId === p.teamId && "bg-primary text-primary-foreground"
-                  )}
+                  variant={
+                    profile?.activeTeamId === p.teamId ? "primary" : "default"
+                  }
+                  onClick={handleSwitchTeam}
                 />
               ))}
             </>
@@ -103,13 +116,39 @@ const Menu = ({ className }: { className?: string }) => {
           </Link>
         </>
       )}
-      <Button variant="secondary" size="wide">
-        <RiSettings4Line />
-        設定
-      </Button>
-      <DarkMode />
-    </Card>
+    </ItemGroup>
   );
-};
+}
+
+function TeamItem({
+  teamId,
+  variant,
+  onClick,
+}: {
+  teamId: string;
+  variant: "primary" | "default";
+  onClick: (teamId: string) => void;
+}) {
+  const { team, isLoading } = useTeam(teamId);
+
+  return (
+    <Item asChild variant={variant}>
+      <Button className="h-fit" onClick={() => onClick(teamId)}>
+        <ItemMedia variant="icon">
+          <RiGroupLine className="h-4 w-4" />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>
+            {isLoading ? (
+              <Skeleton data-testid="team-name-skeleton" className="h-4 w-24" />
+            ) : (
+              team?.name
+            )}
+          </ItemTitle>
+        </ItemContent>
+      </Button>
+    </Item>
+  );
+}
 
 export default Menu;

@@ -1,4 +1,3 @@
-import { Document, Model, type QueryFilter } from "mongoose";
 import {
   AppError,
   ConflictError,
@@ -7,6 +6,7 @@ import {
   UnexpectedError,
 } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
+import { Document, Model } from "mongoose";
 
 const NETWORK_ERROR_NAMES = new Set([
   "MongoNetworkError",
@@ -22,7 +22,10 @@ export function translateRepositoryError(error: unknown): AppError {
         error.message,
       );
     }
-    if (error.name === "MongoServerError" && (error as { code?: unknown }).code === 11000) {
+    if (
+      error.name === "MongoServerError" &&
+      (error as { code?: unknown }).code === 11000
+    ) {
       return new ConflictError(
         CommonReason.DUPLICATE_RESOURCE,
         "A resource with the same identifier already exists",
@@ -55,20 +58,19 @@ export function translateRepositoryError(error: unknown): AppError {
 export class BaseMongoRepository<T, M extends Document> {
   constructor(protected readonly model: Model<M>) {}
 
-  async find(filter: QueryFilter<M>): Promise<T[]> {
+  async find(filter: Record<string, unknown>): Promise<T[]> {
     try {
       const docs = await this.model.find(filter);
-      if (!docs) return null;
       return docs.map((doc) => doc.toJSON() as unknown as T);
     } catch (error) {
       throw translateRepositoryError(error);
     }
   }
 
-  async findOne(filter: QueryFilter<M>): Promise<T | null> {
+  async findOne(filter: Record<string, unknown>): Promise<T | undefined> {
     try {
       const doc = await this.model.findOne(filter);
-      if (!doc) return null;
+      if (!doc) return undefined;
       return doc.toJSON() as unknown as T;
     } catch (error) {
       throw translateRepositoryError(error);
@@ -86,24 +88,28 @@ export class BaseMongoRepository<T, M extends Document> {
   }
 
   async update(
-    filter: string | QueryFilter<M>,
-    data: Partial<T>
-  ): Promise<T | null> {
+    filter: string | Record<string, unknown>,
+    data: Partial<T>,
+  ): Promise<T> {
+    let doc;
     try {
       const query = typeof filter === "string" ? { _id: filter } : filter;
-      const doc = await this.model.findOneAndReplace(
-        query,
-        data as unknown as M,
-        { new: true },
-      );
-      if (!doc) return null;
-      return doc.toJSON() as unknown as T;
+      doc = await this.model.findOneAndReplace(query, data as unknown as M, {
+        new: true,
+      });
     } catch (error) {
       throw translateRepositoryError(error);
     }
+    if (!doc) {
+      throw new NotFoundError(
+        CommonReason.RESOURCE_NOT_FOUND,
+        "The resource to update was not found",
+      );
+    }
+    return doc.toJSON() as unknown as T;
   }
 
-  async delete(filter: string | QueryFilter<M>): Promise<boolean> {
+  async delete(filter: string | Record<string, unknown>): Promise<boolean> {
     try {
       const query = typeof filter === "string" ? { _id: filter } : filter;
       const result = await this.model.findOneAndDelete(query);

@@ -1,7 +1,7 @@
+import { createProfile } from "@/__tests__/helpers";
 import { TransientError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
 import { handleUserCreated } from "@/lib/auth-hook";
-import { createProfile } from "@/__tests__/helpers";
 
 // Mock the DI container dependencies
 jest.mock("@/infrastructure/di/inversify.config", () => ({
@@ -27,7 +27,8 @@ describe("handleUserCreated (auth hook)", () => {
     mockCreateProfileExecute = jest.fn();
     mockLinkInvitationsExecute = jest.fn();
 
-    mockContainer.get.mockImplementation((token: symbol) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockContainer.get.mockImplementation((token: any) => {
       if (token.toString() === "Symbol(CreateProfileUseCase)") {
         return { execute: mockCreateProfileExecute };
       }
@@ -48,7 +49,7 @@ describe("handleUserCreated (auth hook)", () => {
     expect(mockCreateProfileExecute).toHaveBeenCalledWith({ userId: "user-1" });
     expect(mockLinkInvitationsExecute).toHaveBeenCalledWith(
       "test@example.com",
-      "user-1"
+      "user-1",
     );
   });
 
@@ -57,7 +58,7 @@ describe("handleUserCreated (auth hook)", () => {
     mockCreateProfileExecute.mockResolvedValue(mockProfile);
     mockLinkInvitationsExecute
       .mockRejectedValueOnce(
-        new TransientError(CommonReason.UNHANDLED_ERROR, "DB timeout")
+        new TransientError(CommonReason.UNHANDLED_ERROR, "DB timeout"),
       )
       .mockResolvedValueOnce(1);
 
@@ -70,11 +71,11 @@ describe("handleUserCreated (auth hook)", () => {
     const mockProfile = createProfile();
     mockCreateProfileExecute.mockResolvedValue(mockProfile);
     mockLinkInvitationsExecute.mockRejectedValue(
-      new TransientError(CommonReason.UNHANDLED_ERROR, "DB timeout")
+      new TransientError(CommonReason.UNHANDLED_ERROR, "DB timeout"),
     );
 
     await expect(
-      handleUserCreated({ id: "user-1", email: "test@example.com" })
+      handleUserCreated({ id: "user-1", email: "test@example.com" }),
     ).resolves.not.toThrow();
 
     expect(mockLinkInvitationsExecute).toHaveBeenCalledTimes(2);
@@ -84,7 +85,7 @@ describe("handleUserCreated (auth hook)", () => {
     mockCreateProfileExecute.mockRejectedValue(new Error("DB timeout"));
 
     await expect(
-      handleUserCreated({ id: "user-1", email: "test@example.com" })
+      handleUserCreated({ id: "user-1", email: "test@example.com" }),
     ).resolves.not.toThrow();
 
     expect(mockLinkInvitationsExecute).not.toHaveBeenCalled();

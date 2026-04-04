@@ -1,7 +1,7 @@
-import { createSubstitutionHelper } from "@/lib/features/record/helpers";
-import { Position } from "@/entities/team";
+import type { Record, Substitution } from "@/entities/record";
 import { EntryType, MoveType, Side } from "@/entities/record";
-import type { Substitution, Record } from "@/entities/record";
+import { Position } from "@/entities/team";
+import { createSubstitutionHelper } from "@/lib/features/record/helpers";
 
 describe("substitution.helper.ts", () => {
   const mockSubstitution: Substitution = {
@@ -160,7 +160,7 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         mockParams,
         mockSubstitution,
-        mockRecord
+        mockRecord,
       );
 
       expect(result.sets[0].entries[1]).toEqual({
@@ -175,16 +175,16 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         mockParams,
         mockSubstitution,
-        mockRecord
+        mockRecord,
       );
 
       // Check that the player in the starting lineup has been replaced
       const updatedStarting = result.sets[0].lineups.home.starting[0];
       expect(updatedStarting._id).toBe("player-8");
       expect(updatedStarting.position).toBe(Position.OH);
-      expect(updatedStarting.sub._id).toBe("player-1");
-      expect(updatedStarting.sub.entryIndex.in).toBe(1);
-      expect(updatedStarting.sub.entryIndex.out).toBe(null);
+      expect(updatedStarting.sub!._id).toBe("player-1");
+      expect(updatedStarting.sub!.entryIndex!.in).toBe(1);
+      expect(updatedStarting.sub!.entryIndex!.out).toBeUndefined();
     });
 
     test("should update substitutes list with replaced player", () => {
@@ -193,16 +193,16 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         mockParams,
         mockSubstitution,
-        mockRecord
+        mockRecord,
       );
 
       // Check that the substitutes list now contains the player who left the court
       const updatedSub = result.sets[0].lineups.home.substitutes[0];
       expect(updatedSub._id).toBe("player-1");
       expect(updatedSub.position).toBe(Position.OH);
-      expect(updatedSub.sub._id).toBe("player-8");
-      expect(updatedSub.sub.entryIndex.in).toBe(1);
-      expect(updatedSub.sub.entryIndex.out).toBe(null);
+      expect(updatedSub.sub!._id).toBe("player-8");
+      expect(updatedSub.sub!.entryIndex!.in).toBe(1);
+      expect(updatedSub.sub!.entryIndex!.out).toBeUndefined();
     });
 
     test("should decrease team substitution count", () => {
@@ -212,7 +212,7 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         mockParams,
         mockSubstitution,
-        mockRecord
+        mockRecord,
       );
 
       expect(result.teams.home.stats[0].substitution).toBe(7);
@@ -229,7 +229,7 @@ describe("substitution.helper.ts", () => {
           _id: "player-1",
           entryIndex: {
             in: 1,
-            out: null,
+            out: undefined,
           },
         },
       };
@@ -241,7 +241,7 @@ describe("substitution.helper.ts", () => {
           _id: "player-8",
           entryIndex: {
             in: 1,
-            out: null,
+            out: undefined,
           },
         },
       };
@@ -258,15 +258,15 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         { ...mockParams, entryIndex: 2 },
         secondSubstitution,
-        mockRecord
+        mockRecord,
       );
 
       // Check that the starting lineup is restored but with substitution history preserved
       const updatedStarting = result.sets[0].lineups.home.starting[0];
       expect(updatedStarting._id).toBe("player-1");
-      expect(updatedStarting.sub._id).toBe("player-8");
-      expect(updatedStarting.sub.entryIndex.in).toBe(1);
-      expect(updatedStarting.sub.entryIndex.out).toBe(2);
+      expect(updatedStarting.sub!._id).toBe("player-8");
+      expect(updatedStarting.sub!.entryIndex!.in).toBe(1);
+      expect(updatedStarting.sub!.entryIndex!.out).toBe(2);
     });
 
     test("should handle away team substitution", () => {
@@ -283,13 +283,13 @@ describe("substitution.helper.ts", () => {
       const result = createSubstitutionHelper(
         mockParams,
         awaySubstitution,
-        mockRecord
+        mockRecord,
       );
 
       // Check updates to the away team lineup
-      const updatedStarting = result.sets[0].lineups.away.starting[0];
+      const updatedStarting = result.sets[0].lineups.away!.starting[0];
       expect(updatedStarting._id).toBe("rival-2");
-      expect(updatedStarting.sub._id).toBe("rival-1");
+      expect(updatedStarting.sub!._id).toBe("rival-1");
 
       // Check that the away team substitution count is incremented
       expect(result.teams.away.stats[0].substitution).toBe(7);

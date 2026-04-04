@@ -31,7 +31,7 @@ jest.mock("@/components/ui/badge", () => ({
   ),
 }));
 
-jest.mock("@/components/ui/flip-words", () => ({
+jest.mock("@/components/landing/flip-words", () => ({
   FlipWords: ({
     words,
     className,

@@ -1,13 +1,17 @@
-import { injectable, inject } from 'inversify';
-import { TYPES } from '@/infrastructure/di/types';
-import type { ILeaveTeamUseCase } from './leave-team.usecase.interface';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import type { ITeamRepository } from '@/applications/repositories/team.repository.interface';
-import type { IProfileRepository } from '@/applications/repositories/profile.repository.interface';
-import { PlayerRole, PlayerStatus } from '@/entities/player';
-import { NotFoundError, AuthorizationError, UnexpectedError } from '@/entities/errors/app-error';
-import { PlayerReason } from '@/entities/errors/reasons/player';
-import { CommonReason } from '@/entities/errors/reasons/common';
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import {
+  AuthorizationError,
+  NotFoundError,
+  UnexpectedError,
+} from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
+import { PlayerReason } from "@/entities/errors/reasons/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
+import type { ILeaveTeamUseCase } from "./leave-team.usecase.interface";
 
 @injectable()
 export class LeaveTeamUseCase implements ILeaveTeamUseCase {
@@ -17,24 +21,33 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     @inject(TYPES.TeamRepository)
     private teamRepository: ITeamRepository,
     @inject(TYPES.ProfileRepository)
-    private profileRepository: IProfileRepository
+    private profileRepository: IProfileRepository,
   ) {}
 
   async execute(
     playerId: string,
-    userId: string
+    userId: string,
   ): Promise<{ success: boolean }> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player not found");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player not found",
+      );
     }
 
     if (player.userId !== userId) {
-      throw new AuthorizationError(PlayerReason.CANNOT_LEAVE_OWN_RECORD, "You cannot leave a player record that does not belong to you");
+      throw new AuthorizationError(
+        PlayerReason.CANNOT_LEAVE_OWN_RECORD,
+        "You cannot leave a player record that does not belong to you",
+      );
     }
 
     if (player.role === PlayerRole.OWNER) {
-      throw new AuthorizationError(PlayerReason.OWNER_CANNOT_LEAVE, "Team owner cannot leave the team");
+      throw new AuthorizationError(
+        PlayerReason.OWNER_CANNOT_LEAVE,
+        "Team owner cannot leave the team",
+      );
     }
 
     const updated = await this.playerRepository.update(playerId, {
@@ -42,9 +55,14 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       userId: undefined,
     });
     if (!updated) {
-      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to leave team");
+      throw new UnexpectedError(
+        CommonReason.UNHANDLED_ERROR,
+        "Failed to leave team",
+      );
     }
 
+    if (!player.teamId)
+      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     // Clear activeTeamId if it points to the team the user just left

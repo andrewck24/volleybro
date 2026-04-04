@@ -1,6 +1,10 @@
 "use client";
 import { Points } from "@/components/match/stats/teams-stats/points";
-import { type Record, type TeamStats, TeamStatsClass } from "@/entities/record";
+import {
+  type Record as TRecord,
+  type TeamStats,
+  TeamStatsClass,
+} from "@/entities/record";
 import type { ITeamsStats } from "@/lib/features/record/types";
 import { useMemo } from "react";
 
@@ -8,7 +12,7 @@ export const TeamsStats = ({
   teams,
   setIndex,
 }: {
-  teams: Record["teams"];
+  teams: TRecord["teams"];
   setIndex: number;
 }) => {
   const teamsStats = useMemo<ITeamsStats>(
@@ -24,7 +28,7 @@ export const TeamsStats = ({
 };
 
 export const getTeamsStats = (
-  teams: Record["teams"],
+  teams: TRecord["teams"],
   setIndex: number,
 ): ITeamsStats => {
   if (teams.home.stats.length === 0 || teams.away.stats.length === 0) {
@@ -46,15 +50,24 @@ export const getTeamsStats = (
   };
 };
 
+type StatValue = { success: number; error: number } | number;
+
 const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
   return statsArr.reduce((acc, stats) => {
-    for (const key in stats) {
-      if (typeof stats[key] === "object" && stats[key] !== null) {
-        acc[key] = acc[key] || { success: 0, error: 0 };
-        acc[key].success += stats[key].success;
-        acc[key].error += stats[key].error;
-      } else if (typeof stats[key] === "number") {
-        acc[key] = (acc[key] || 0) + stats[key];
+    for (const key of Object.keys(stats) as (keyof TeamStats)[]) {
+      const sv = stats[key] as StatValue;
+      const av = acc[key] as StatValue | undefined;
+      if (typeof sv === "object") {
+        const avObj = (av as { success: number; error: number } | undefined) ?? {
+          success: 0,
+          error: 0,
+        };
+        (acc[key] as { success: number; error: number }) = {
+          success: avObj.success + sv.success,
+          error: avObj.error + sv.error,
+        };
+      } else {
+        (acc[key] as number) = ((av as number | undefined) ?? 0) + sv;
       }
     }
     return acc;
