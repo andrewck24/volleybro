@@ -7,7 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
-const REPO = "https://github.com/AndrewCK24/volleybro";
+const REPO = "https://github.com/andrewck24/volleybro";
 const CHANGELOG = path.resolve(__dirname, "../CHANGELOG.md");
 
 function prevGitVersion(current) {
