@@ -1,3 +1,42 @@
+# [0.12.0](https://github.com/andrewck24/volleybro/compare/v0.11.2...v0.12.0) (2026-04-04)
+
+
+### Bug Fixes
+
+* address code review findings — validation errors, teamId guards, sumTeamStats types, mutate guard ([8efa31d](https://github.com/andrewck24/volleybro/commit/8efa31d217ff8e2c9acc89570a2862c6ca713d4c))
+* **applications:** fix strict mode type errors in application layer ([44567c2](https://github.com/andrewck24/volleybro/commit/44567c2a37cb9dc07502f4ff66ba3a59d816abc3))
+* **components:** address item review feedback ([f67bead](https://github.com/andrewck24/volleybro/commit/f67bead37f251d39563fe623f5df771f74d071d5))
+* **deps:** add overrides to allow ts-jest with TypeScript 6 ([964b65b](https://github.com/andrewck24/volleybro/commit/964b65b2f72e208f3229b317dc6613d2402413d1))
+* **entities:** fix strict mode type errors in domain layer ([eb45ee7](https://github.com/andrewck24/volleybro/commit/eb45ee7bb945e7b5c1e5d5b80f0b17f3756ae165))
+* **infrastructure:** fix strict mode type errors in infrastructure layer ([d213d48](https://github.com/andrewck24/volleybro/commit/d213d48974dadc631a3bc325c5f9aa243911f1be))
+* **interface:** fix strict mode type errors in interface layer ([7278d52](https://github.com/andrewck24/volleybro/commit/7278d52bf79ee9bf5a44cf18ef20cf805d737496))
+* **record:** apply strict mode fixes to record components and lib ([3d6e4e5](https://github.com/andrewck24/volleybro/commit/3d6e4e5e6501f019cec2ba2e862888b4215a6c52))
+* **record:** close libero dialog programmatically on submit success only ([e386c78](https://github.com/andrewck24/volleybro/commit/e386c7843e711d7a3bdd5dd69ba3636c24f84752))
+* **storybook:** address code review findings ([39c04c6](https://github.com/andrewck24/volleybro/commit/39c04c6f3fcf9213f5b101a18a837e7aed4ceb98))
+* **storybook:** address code review findings ([db6e712](https://github.com/andrewck24/volleybro/commit/db6e71249fab0d798c5648a7bf9e6f3b0bf6627b))
+* **storybook:** fix court story layout to match production ([b72b87f](https://github.com/andrewck24/volleybro/commit/b72b87f99c1a44777a8abd91fdf47c00680315f2))
+* **storybook:** replace controlled value with defaultValue in LongValue story ([6c3e375](https://github.com/andrewck24/volleybro/commit/6c3e375f6f529b16e1843cd895919ba667f26f0e))
+* **storybook:** resolve TS and lint issues in new story files ([04bf8e2](https://github.com/andrewck24/volleybro/commit/04bf8e20b2b4f2ceee59656681bd0c98fc2edc48))
+* **team,match:** apply strict mode fixes to team and match components (Section 7) ([864665d](https://github.com/andrewck24/volleybro/commit/864665d110e1e4d2eb3df4a1fd0562b75f33a226))
+* **test:** add missing createdAt/updatedAt to basePlayer in membership-section-loading test ([dc8bcf1](https://github.com/andrewck24/volleybro/commit/dc8bcf1c256168b0197ccfcd0f372b08026aeb84))
+* **ui:** address code review issues — flex-none, empty-media slot, loading prop consistency ([bd2dc85](https://github.com/andrewck24/volleybro/commit/bd2dc85c46b08179461fa1fca3bee5cdc1f15b6c))
+* **ui:** fix EmptyDescription element type and remove implicit border-dashed from Empty base ([aeaa233](https://github.com/andrewck24/volleybro/commit/aeaa233f15cd8b11ece86c867be1243c822550ba))
+* use SET_NOT_FOUND reason for lineup error and fix non-standard w-30 class ([66a0b61](https://github.com/andrewck24/volleybro/commit/66a0b61809ffa3b98aa4996f3e49df2470990442))
+
+
+### Features
+
+* **auth,user:** add submitting state to sign-in and invitations ([fe6bfd9](https://github.com/andrewck24/volleybro/commit/fe6bfd950e3dfa9eeb58c0ececd209ef5ddcf8c8))
+* **home:** replace LoadingCard with co-located skeleton components; delete LoadingCard ([dd2e6d4](https://github.com/andrewck24/volleybro/commit/dd2e6d448bd81dcbf0fb77f7306d50fa1376afce))
+* **record,match:** replace LoadingCard with co-located skeleton components ([facc92a](https://github.com/andrewck24/volleybro/commit/facc92aeb5ffa94ed34e49fe4a3000aec2c6014e))
+* **record:** add isSubmitting state to set-options panel ([405df74](https://github.com/andrewck24/volleybro/commit/405df746b118fe851f9297fc8d1169d9840b3dde))
+* **storybook:** add boundary-state story variants and clarify testing strategy ([9c5cc49](https://github.com/andrewck24/volleybro/commit/9c5cc4905ee44b052075395dd0abea9f344d8f99))
+* **storybook:** add custom component stories and complete migration ([0d193f8](https://github.com/andrewck24/volleybro/commit/0d193f8458a7df36dd7f1bfa3cad5d14a035986a))
+* **storybook:** add stories for 7 missing ui components ([f28112e](https://github.com/andrewck24/volleybro/commit/f28112e80429b5e0c1496af6e39e12b590f7aba8))
+* **team:** add loading states to membership remove and transfer actions ([aa98120](https://github.com/andrewck24/volleybro/commit/aa98120bc618f2f5980308f762a51c44c0ce8fcf))
+* **team:** replace LoadingCard with co-located skeleton components ([5b1100f](https://github.com/andrewck24/volleybro/commit/5b1100f6dcb93f977ee76648353b832eaec1661a))
+* **ui:** add loading and loadingText props to Button ([19b4f43](https://github.com/andrewck24/volleybro/commit/19b4f439faceebe7a2a1157b16662dac0ed3ba43))
+
 ## [0.11.2](https://github.com/andrewck24/volleybro/compare/v0.11.1...v0.11.2) (2026-03-25)
 
 
