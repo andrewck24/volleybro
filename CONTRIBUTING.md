@@ -62,7 +62,7 @@ Before submitting:
 
 ```bash
 pnpm lint             # must pass with zero warnings
-pnpm exec tsc --noEmit  # must pass with zero errors
+pnpm typecheck        # must pass with zero errors
 ```
 
 Key conventions:

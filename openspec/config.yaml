@@ -58,7 +58,7 @@ rules:
   tasks:
     - Each task should specify which architecture layer(s) it touches
     - Include TDD step (write tests first) as part of implementation tasks
-    - Add "pnpm test, pnpm lint, pnpm exec tsc --noEmit, pnpm build" as a verification task
+    - Add "pnpm test, pnpm lint, pnpm typecheck, pnpm build" as a verification task
     - Break tasks into sections that respect layer boundaries
     - Commit changes after each section completed and passes tests/lint/type/build checks
     - Include a final task to review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` needs updating based on the change, and update relevant documentation if so
