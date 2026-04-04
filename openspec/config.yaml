@@ -4,7 +4,7 @@ context: |
   Domain: Volleyball team management and match recording web application
   Language: TypeScript 6.x (strict mode enabled, decorators enabled via experimentalDecorators)
   Runtime: Node.js 20+
-  Package manager: npm
+  Package manager: pnpm
 
   Frontend:
   - Next.js 16+ (App Router, RSC), React 19
@@ -58,7 +58,7 @@ rules:
   tasks:
     - Each task should specify which architecture layer(s) it touches
     - Include TDD step (write tests first) as part of implementation tasks
-    - Add "npm run test, npm run lint, npx tsc -noEmit, npm run build" as a verification task
+    - Add "pnpm test, pnpm lint, pnpm typecheck, pnpm build" as a verification task
     - Break tasks into sections that respect layer boundaries
     - Commit changes after each section completed and passes tests/lint/type/build checks
     - Include a final task to review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` needs updating based on the change, and update relevant documentation if so

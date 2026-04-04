@@ -57,3 +57,6 @@ next-env.d.ts
 *storybook.log
 storybook-static
 openspec/.vector-search.db*
+
+# npm lockfile (using pnpm)
+package-lock.json
