@@ -178,13 +178,13 @@ function MatchSkeleton() {
       <ItemContent className="w-full text-xl">
         <div className="flex flex-row gap-2">
           <Skeleton className="my-1 size-6" />
-          <Skeleton className="my-1 mr-auto h-6 w-30" />
-          <Skeleton className="my-1 h-7 w-30" />
+          <Skeleton className="my-1 mr-auto h-6 w-32" />
+          <Skeleton className="my-1 h-7 w-32" />
         </div>
         <div className="flex flex-row gap-2">
           <Skeleton className="my-1 size-6" />
-          <Skeleton className="my-1 mr-auto h-6 w-30" />
-          <Skeleton className="my-1 h-7 w-30" />
+          <Skeleton className="my-1 mr-auto h-6 w-32" />
+          <Skeleton className="my-1 h-7 w-32" />
         </div>
       </ItemContent>
       <ItemFooter className="flex w-full flex-row items-center justify-end">

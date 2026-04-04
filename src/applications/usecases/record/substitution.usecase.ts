@@ -58,7 +58,7 @@ export class CreateSubstitutionUseCase {
     const lineup = record.sets[params.setIndex].lineups[side];
     if (!lineup)
       throw new NotFoundError(
-        RecordReason.RECORD_NOT_FOUND,
+        RecordReason.SET_NOT_FOUND,
         "Lineup not found",
       );
 
