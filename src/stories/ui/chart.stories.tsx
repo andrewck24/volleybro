@@ -82,3 +82,21 @@ export const LineChart: Story = {
     </ChartContainer>
   ),
 };
+
+const emptyConfig = {
+  value: { label: "Value", color: "hsl(var(--chart-1))" },
+} satisfies ChartConfig;
+
+export const EmptyData: Story = {
+  render: () => (
+    <ChartContainer config={emptyConfig} className="h-64 w-96">
+      <RechartsBarChart data={[]}>
+        <CartesianGrid vertical={false} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} />
+        <YAxis tickLine={false} axisLine={false} />
+        <ChartTooltip content={<ChartTooltipContent />} />
+        <Bar dataKey="value" fill="var(--color-value)" radius={4} />
+      </RechartsBarChart>
+    </ChartContainer>
+  ),
+};

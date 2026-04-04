@@ -40,3 +40,18 @@ export const Range: Story = {
     );
   },
 };
+
+export const WithDisabledDates: Story = {
+  render: function CalendarDisabledExample() {
+    const [date, setDate] = useState<Date | undefined>(new Date());
+    return (
+      <Calendar
+        mode="single"
+        selected={date}
+        onSelect={setDate}
+        disabled={{ dayOfWeek: [0, 6] }}
+        className="rounded-md border"
+      />
+    );
+  },
+};

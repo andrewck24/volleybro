@@ -97,3 +97,11 @@ export const IconOnly: Story = {
     children: <RiHome2Fill />,
   },
 };
+
+export const Loading: Story = {
+  args: { loading: true, loadingText: "Saving..." },
+};
+
+export const LoadingDestructive: Story = {
+  args: { variant: "destructive", loading: true, loadingText: "Deleting..." },
+};

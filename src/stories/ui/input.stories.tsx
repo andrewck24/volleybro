@@ -24,3 +24,13 @@ export const WithValue: Story = {
 export const Disabled: Story = {
   render: () => <Input disabled value="Disabled state" className="w-[300px]" />,
 };
+
+export const LongValue: Story = {
+  render: () => (
+    <Input
+      value="This is a very long input value that exceeds the visible width of the input field to demonstrate text overflow behavior"
+      onChange={() => {}}
+      className="w-[300px]"
+    />
+  ),
+};

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 import { useForm } from "react-hook-form";
@@ -86,6 +87,54 @@ export const WithValidation: Story = {
               <FormLabel>Username</FormLabel>
               <FormControl>
                 <Input placeholder="Enter username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full">
+          Submit
+        </Button>
+      </Form>
+    );
+  },
+};
+
+export const WithErrors: Story = {
+  render: function FormWithErrors() {
+    const form = useForm<{ name: string; email: string }>({
+      defaultValues: { name: "", email: "invalid" },
+    });
+
+    useEffect(() => {
+      form.setError("name", { message: "Name is required" });
+      form.setError("email", { message: "Invalid email address" });
+    }, [form]);
+
+    return (
+      <Form form={form} onSubmit={form.handleSubmit(fn())} className="w-80">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter your name" {...field} />
+              </FormControl>
+              <FormDescription>Your display name.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="Enter your email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

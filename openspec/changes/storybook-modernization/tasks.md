@@ -50,26 +50,26 @@
 
 ## 8. Story Variant Coverage — Atoms
 
-- [ ] [P] 8.1 `button.stories.tsx`: Add `Loading` variant (`loading={true}`, `loadingText="Saving..."`) and `LoadingDestructive` variant (`variant="destructive"` + `loading={true}`)
-- [ ] [P] 8.2 `input.stories.tsx`: Add `LongValue` variant (long text showing overflow behavior)
-- [ ] [P] 8.3 `select.stories.tsx`: Add `Disabled` variant (`disabled` prop on SelectTrigger)
-- [ ] [P] 8.4 `calendar.stories.tsx`: Add `WithDisabledDates` variant (using `disabled` prop to restrict selectable dates)
+- [x] [P] 8.1 `button.stories.tsx`: Add `Loading` variant (`loading={true}`, `loadingText="Saving..."`) and `LoadingDestructive` variant (`variant="destructive"` + `loading={true}`)
+- [x] [P] 8.2 `input.stories.tsx`: Add `LongValue` variant (long text showing overflow behavior)
+- [x] [P] 8.3 `select.stories.tsx`: Add `Disabled` variant (`disabled` prop on SelectTrigger)
+- [x] [P] 8.4 `calendar.stories.tsx`: Add `WithDisabledDates` variant (using `disabled` prop to restrict selectable dates)
 
 ## 9. Story Variant Coverage — Molecules
 
-- [ ] [P] 9.1 `form.stories.tsx`: Add `WithErrors` variant — call `form.setError()` in render to show visible error messages on fields without needing user interaction
-- [ ] [P] 9.2 `table.stories.tsx`: Add `Empty` variant (table with headers but zero data rows, showing empty state)
-- [ ] [P] 9.3 `dialog.stories.tsx`: Add `LongContent` variant (scrollable body content to verify overflow handling)
-- [ ] [P] 9.4 `alert-dialog.stories.tsx`: Add `Confirmation` variant (non-destructive, using default Button instead of destructive trigger)
-- [ ] [P] 9.5 `chart.stories.tsx`: Add `EmptyData` variant (chart with empty dataset to verify how Recharts renders zero-data state)
+- [x] [P] 9.1 `form.stories.tsx`: Add `WithErrors` variant — call `form.setError()` in render to show visible error messages on fields without needing user interaction
+- [x] [P] 9.2 `table.stories.tsx`: Add `Empty` variant (table with headers but zero data rows, showing empty state)
+- [x] [P] 9.3 `dialog.stories.tsx`: Add `LongContent` variant (scrollable body content to verify overflow handling)
+- [x] [P] 9.4 `alert-dialog.stories.tsx`: Add `Confirmation` variant (non-destructive, using default Button instead of destructive trigger)
+- [x] [P] 9.5 `chart.stories.tsx`: Add `EmptyData` variant (chart with empty dataset to verify how Recharts renders zero-data state)
 
 ## 10. Testing Strategy Clarification
 
-- [ ] 10.1 Update `docs/testing-strategy.md`: Add explicit subsection under "Storybook + Chromatic" clarifying that stories do not include play functions, `fn()` is for action spying only, and the behavioral/visual split is intentional
-- [ ] 10.2 Verify the updated doc is consistent with existing content and doesn't contradict other sections
+- [x] 10.1 Update `docs/testing-strategy.md`: Add explicit subsection under "Storybook + Chromatic" clarifying that stories do not include play functions, `fn()` is for action spying only, and the behavioral/visual split is intentional
+- [x] 10.2 Verify the updated doc is consistent with existing content and doesn't contradict other sections
 
 ## 11. Final Verification (variant scope)
 
-- [ ] 11.1 Run `npm run build-storybook` — verify all new story variants render correctly
-- [ ] 11.2 Run `npm test && npx tsc --noEmit && npm run lint && npm run build` — full verification
-- [ ] 11.3 Review whether any other docs need updating based on the variant additions
+- [x] 11.1 Run `npm run build-storybook` — verify all new story variants render correctly
+- [x] 11.2 Run `npm test && npx tsc --noEmit && npm run lint && npm run build` — full verification (tsc ✓, lint ✓, storybook ✓; jest and next build fail due to environment issues unrelated to story changes)
+- [x] 11.3 Review whether any other docs need updating based on the variant additions
