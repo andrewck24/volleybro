@@ -20,7 +20,7 @@ export default async function jestConfig() {
       "^@/(.*)$": "<rootDir>/src/$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!(inversify|@inversifyjs)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
