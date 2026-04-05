@@ -61,8 +61,8 @@ This project follows the [Airbnb JavaScript Style Guide](https://github.com/airb
 Before submitting:
 
 ```bash
-npm run lint      # must pass with zero warnings
-npx tsc --noEmit  # must pass with zero errors
+pnpm lint             # must pass with zero warnings
+pnpm typecheck        # must pass with zero errors
 ```
 
 Key conventions:
@@ -85,8 +85,38 @@ Consult **[docs/testing-strategy.md](./docs/testing-strategy.md)** before writin
 Run the full suite before opening a PR:
 
 ```bash
-npm test
+pnpm test
 ```
+
+---
+
+## Versioning
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management. When submitting a PR that includes a user-visible change or version bump, run:
+
+```bash
+pnpm changeset
+```
+
+Select the bump type (patch/minor/major), then write the changeset body in Keep-a-Changelog format. The body becomes the CHANGELOG.md entry directly — write it for humans, not machines.
+
+**Format:**
+
+```markdown
+### Changed
+
+#### Infrastructure
+
+- Migrate package manager from npm to pnpm
+```
+
+Use only these `###` headings: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Add `####` domain sub-headings (e.g. `Team`, `Record`, `CI`, `Infrastructure`) when entries span multiple areas.
+
+Omit internal refactors, test additions, linting fixes, and dep upgrades with no user-visible effect. Always include toolchain changes that affect contributor setup.
+
+Commit the generated `.changeset/*.md` file along with your changes. PRs that omit a changeset when required will not trigger an automated version PR.
+
+> Agent users: the [`writing-changelog` skill](.claude/skills/writing-changelog/SKILL.md) is available in this project to guide changeset authoring.
 
 ---
 
