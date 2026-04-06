@@ -16,7 +16,7 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { MatchResult as TMatchResult } from "@/entities/record";
+import type { MatchResult as TMatchResult } from "@/entities/game";
 import { useActiveTeamId, useMatches } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { format } from "date-fns";
@@ -81,7 +81,7 @@ export function Matches() {
     <ItemGroup>
       {matches.map((match, index) => (
         <Match
-          key={match._id}
+          key={match.id}
           match={match}
           ref={index === matches.length - 1 ? lastItemRef : null}
         />
@@ -105,7 +105,7 @@ function Match({ match, ref, ...props }: MatchProps) {
       asChild
       {...props}
     >
-      <Link href={`/match/${match._id}`}>
+      <Link href={`/match/${match.id}`}>
         <ItemHeader className="flex w-full flex-row items-center justify-center gap-2">
           <span className="flex-1">{match.info.name || "Regular Game"}</span>
           <span>

@@ -1,4 +1,4 @@
-import { Player } from '@/entities/player';
+import { Player } from "@/entities/player";
 
 /**
  * GetUserPlayersUseCase Interface
@@ -8,7 +8,7 @@ export interface IGetUserPlayersUseCase {
   /**
    * Get all players/teams for a user, including pending invitations
    * @param userId User ID
-   * @returns Array of Player records (teams and invitations)
+   * @returns Array of Player (teams and invitations)
    */
   execute(userId: string): Promise<Player[]>;
 }

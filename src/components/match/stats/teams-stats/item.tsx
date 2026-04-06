@@ -1,6 +1,6 @@
 import { Figures } from "@/components/custom/stats/figures";
-import { MoveType } from "@/entities/record";
-import type { ITeamsStats } from "@/lib/features/record/types";
+import { MoveType } from "@/entities/game";
+import type { ITeamsStats } from "@/lib/features/game/types";
 
 export const StatsItem = ({
   label,

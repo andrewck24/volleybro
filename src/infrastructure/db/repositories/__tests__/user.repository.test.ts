@@ -29,7 +29,7 @@ describe("UserRepositoryImpl", () => {
   const nonExistentId = new Types.ObjectId();
   const nonExistentIdString = nonExistentId.toHexString();
   const mockUserData = {
-    _id: mockUserId,
+    id: mockUserId,
     name: "Test User",
     email: "test@test.com",
   };
@@ -65,7 +65,7 @@ describe("UserRepositoryImpl", () => {
     it("should return a single user", async () => {
       (UserModel.findOne as jest.Mock).mockResolvedValue(mockDoc(mockUserData));
 
-      const result = await repository.findOne({ _id: mockUserIdString });
+      const result = await repository.findOne({ id: mockUserIdString });
 
       expect(result).toEqual(mockUserData);
     });
@@ -73,7 +73,7 @@ describe("UserRepositoryImpl", () => {
     it("should return undefined if user not found", async () => {
       (UserModel.findOne as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.findOne({ _id: nonExistentIdString });
+      const result = await repository.findOne({ id: nonExistentIdString });
 
       expect(result).toBeUndefined();
     });
@@ -83,12 +83,12 @@ describe("UserRepositoryImpl", () => {
     it("should create and return a new user", async () => {
       const result = await repository.create({
         ...mockUserData,
-        _id: mockUserIdString,
+        id: mockUserIdString,
       });
 
       expect(result).toEqual({
         ...mockUserData,
-        _id: mockUserIdString,
+        id: mockUserIdString,
       });
     });
   });
@@ -96,7 +96,7 @@ describe("UserRepositoryImpl", () => {
   describe("update", () => {
     const updatedUserData = {
       ...mockUserData,
-      _id: mockUserIdString,
+      id: mockUserIdString,
       name: "Updated Name",
     };
 
@@ -106,7 +106,7 @@ describe("UserRepositoryImpl", () => {
       );
 
       const result = await repository.update(
-        { _id: mockUserIdString },
+        { id: mockUserIdString },
         updatedUserData,
       );
 
@@ -117,7 +117,7 @@ describe("UserRepositoryImpl", () => {
       (UserModel.findOneAndReplace as jest.Mock).mockResolvedValue(null);
 
       await expect(
-        repository.update({ _id: nonExistentId }, updatedUserData),
+        repository.update({ id: nonExistentId }, updatedUserData),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -128,7 +128,7 @@ describe("UserRepositoryImpl", () => {
         mockDoc(mockUserData),
       );
 
-      const result = await repository.delete({ _id: mockUserId });
+      const result = await repository.delete({ id: mockUserId });
 
       expect(result).toBe(true);
     });
@@ -136,7 +136,7 @@ describe("UserRepositoryImpl", () => {
     it("should return false if user not found", async () => {
       (UserModel.findOneAndDelete as jest.Mock).mockResolvedValue(null);
 
-      const result = await repository.delete({ _id: nonExistentId });
+      const result = await repository.delete({ id: nonExistentId });
 
       expect(result).toBe(false);
     });

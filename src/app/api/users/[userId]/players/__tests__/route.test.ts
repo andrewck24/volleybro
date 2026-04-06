@@ -16,14 +16,14 @@ describe("Users Players API Route", () => {
     it("should retrieve all teams/players for authenticated user", () => {
       const players = [
         createPlayer({
-          _id: "player-1",
+          id: "player-1",
           name: "User Name",
           teamId: "team-1",
           userId: "user-1",
           role: PlayerRole.ADMIN,
         }),
         createPlayer({
-          _id: "player-2",
+          id: "player-2",
           name: "User Name",
           teamId: "team-2",
           userId: "user-1",
@@ -60,14 +60,14 @@ describe("Users Players API Route", () => {
     it("should include pending invitations", () => {
       const players = [
         createPlayer({
-          _id: "player-1",
+          id: "player-1",
           name: "User Name",
           teamId: "team-1",
           userId: "user-1",
           role: PlayerRole.MEMBER,
         }),
         createPlayer({
-          _id: "player-2",
+          id: "player-2",
           name: "User Name",
           teamId: "team-2",
           userId: undefined,
@@ -82,7 +82,7 @@ describe("Users Players API Route", () => {
     it("should return 200 with players array on success", () => {
       const players = [
         createPlayer({
-          _id: "player-1",
+          id: "player-1",
           name: "Test User",
           teamId: "team-1",
           userId: "user-1",
@@ -97,21 +97,21 @@ describe("Users Players API Route", () => {
     it("should handle users with mixed role statuses", () => {
       const players = [
         createPlayer({
-          _id: "player-1",
+          id: "player-1",
           name: "User",
           teamId: "team-1",
           userId: "user-1",
           role: PlayerRole.OWNER,
         }),
         createPlayer({
-          _id: "player-2",
+          id: "player-2",
           name: "User",
           teamId: "team-2",
           userId: "user-1",
           role: PlayerRole.ADMIN,
         }),
         createPlayer({
-          _id: "player-3",
+          id: "player-3",
           name: "User",
           teamId: "team-3",
           userId: "user-1",
@@ -143,14 +143,14 @@ describe("Users Players API Route", () => {
 
     it("should validate response structure", () => {
       const player = createPlayer({
-        _id: "player-1",
+        id: "player-1",
         name: "Test User",
         teamId: "team-1",
         userId: "user-1",
         role: PlayerRole.ADMIN,
       });
 
-      expect(player).toHaveProperty("_id");
+      expect(player).toHaveProperty("id");
       expect(player).toHaveProperty("name");
       expect(player).toHaveProperty("teamId");
       expect(player).toHaveProperty("role");

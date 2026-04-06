@@ -5,18 +5,18 @@ import { Header } from "@/components/match/header";
 import { SetsList } from "@/components/match/sets/list";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRecord } from "@/hooks/use-data";
+import { useGame } from "@/hooks/use-data";
 
-const SetsOverview = ({ recordId }: { recordId: string }) => {
-  const { record, error, isLoading, mutate } = useRecord(recordId);
+const SetsOverview = ({ gameId }: { gameId: string }) => {
+  const { game, error, isLoading, mutate } = useGame(gameId);
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (isLoading || !record) return <MatchSetsSkeleton />;
+  if (isLoading || !game) return <MatchSetsSkeleton />;
 
   return (
     <Card className="w-full">
-      <Header title="各局紀錄" url={`/match/${recordId}`} />
-      <Teams recordId={recordId} />
-      <SetsList recordId={recordId} />
+      <Header title="各局紀錄" url={`/match/${gameId}`} />
+      <Teams gameId={gameId} />
+      <SetsList gameId={gameId} />
     </Card>
   );
 };
@@ -48,7 +48,10 @@ export function MatchSetsSkeleton() {
       {/* mirrors SetsList: Accordion items */}
       <div className="flex flex-col gap-2 px-4 pb-4">
         {Array.from({ length: 3 }, (_, i) => (
-          <div key={i} className="flex items-center justify-between rounded-md border p-4">
+          <div
+            key={i}
+            className="flex items-center justify-between rounded-md border p-4"
+          >
             <Skeleton className="my-0.5 h-6 w-8" /> {/* score */}
             <Skeleton className="my-0.5 h-5 w-16" /> {/* set label */}
             <Skeleton className="my-0.5 h-6 w-8" />

@@ -1,27 +1,27 @@
 import {
+  EntryType,
+  type Game,
+  type Team as GameTeam,
+  type Match,
+  MatchCategory,
+  MatchDivision,
+  MatchPhase,
+  MoveType,
+  type Set,
+} from "@/entities/game";
+import {
   type Player,
   PlayerRole,
   PlayerStatus,
   Position,
 } from "@/entities/player";
-import type { Team } from "@/entities/team";
-import {
-  type Record,
-  type Set,
-  type Match,
-  type Team as RecordTeam,
-  MatchPhase,
-  MatchDivision,
-  MatchCategory,
-  MoveType,
-  EntryType,
-} from "@/entities/record";
-import type { User } from "@/entities/user";
 import type { Profile } from "@/entities/profile";
+import type { Team } from "@/entities/team";
+import type { User } from "@/entities/user";
 
 export function createPlayer(overrides?: Partial<Player>): Player {
   return {
-    _id: "player-1",
+    id: "player-1",
     name: "Test Player",
     number: 1,
     position: Position.OH,
@@ -37,7 +37,7 @@ export function createPlayer(overrides?: Partial<Player>): Player {
 
 export function createTeam(overrides?: Partial<Team>): Team {
   return {
-    _id: "team-1",
+    id: "team-1",
     name: "Test Team",
     lineups: [],
     createdAt: new Date("2025-01-01"),
@@ -48,7 +48,7 @@ export function createTeam(overrides?: Partial<Team>): Team {
 
 export function createUser(overrides?: Partial<User>): User {
   return {
-    _id: "user-1",
+    id: "user-1",
     name: "Test User",
     email: "test@example.com",
     emailVerified: true,
@@ -60,7 +60,7 @@ export function createUser(overrides?: Partial<User>): User {
 
 export function createProfile(overrides?: Partial<Profile>): Profile {
   return {
-    _id: "profile-1",
+    id: "profile-1",
     userId: "user-1",
     activeTeamId: "team-1",
     createdAt: new Date("2025-01-01"),
@@ -80,12 +80,10 @@ function createDefaultMatch(): Match {
   };
 }
 
-function createDefaultRecordTeam(
-  overrides?: Partial<RecordTeam>,
-): RecordTeam {
+function createDefaultGameTeam(overrides?: Partial<GameTeam>): GameTeam {
   return {
-    _id: "record-team-1",
-    name: "Record Team",
+    id: "game-team-1",
+    name: "Game Team",
     players: [],
     staffs: [],
     stats: [],
@@ -116,15 +114,15 @@ function createDefaultSet(): Set {
   };
 }
 
-export function createRecord(overrides?: Partial<Record>): Record {
+export function createGame(overrides?: Partial<Game>): Game {
   return {
-    _id: "record-1",
+    id: "game-1",
     win: true,
-    team_id: "team-1",
+    teamId: "team-1",
     info: createDefaultMatch(),
     teams: {
-      home: createDefaultRecordTeam({ _id: "team-1", name: "Home Team" }),
-      away: createDefaultRecordTeam({ _id: "team-2", name: "Away Team" }),
+      home: createDefaultGameTeam({ id: "team-1", name: "Home Team" }),
+      away: createDefaultGameTeam({ id: "team-2", name: "Away Team" }),
     },
     sets: [createDefaultSet()],
     ...overrides,

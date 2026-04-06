@@ -12,7 +12,7 @@ import { TYPES } from "@/infrastructure/di/types";
 
 /**
  * Get user by ID or search by email.
- * - email provided → SearchUserUseCase (exact match, returns { _id, name, image })
+ * - email provided → SearchUserUseCase (exact match, returns { id, name, image })
  * - no email       → GetUserByIdUseCase with actorId (self-lookup, returns full User)
  * Route layer resolves actorId from session and passes id/email from query params.
  */

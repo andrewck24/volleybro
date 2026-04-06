@@ -1,7 +1,7 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
+import { SetOptions } from "@/components/game/set-options";
 import { SetEdit } from "@/components/match/sets/edit";
-import { SetOptions } from "@/components/record/set-options";
 import {
   Accordion,
   AccordionContent,
@@ -10,10 +10,10 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import type { Set } from "@/entities/record";
-import { useRecord } from "@/hooks/use-data";
-import { getPreviousRally } from "@/lib/features/record/helpers";
-import { recordActions } from "@/lib/features/record/record-slice";
+import type { Set } from "@/entities/game";
+import { useGame } from "@/hooks/use-data";
+import { gameActions } from "@/lib/features/game/game-slice";
+import { getPreviousRally } from "@/lib/features/game/helpers";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,9 +24,9 @@ import {
   RiMoreLine,
 } from "react-icons/ri";
 
-export const SetsList = ({ recordId }: { recordId: string }) => {
+export const SetsList = ({ gameId }: { gameId: string }) => {
   const dispatch = useAppDispatch();
-  const { record } = useRecord(recordId);
+  const { game } = useGame(gameId);
   const [setIndex, setSetIndex] = useState<number>(0);
   const [optionsOpen, setOptionsOpen] = useState<boolean>(false);
   const [editOpen, setEditOpen] = useState<boolean>(false);
@@ -37,7 +37,7 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
   };
 
   const handleEditOpen = (setIndex: number) => {
-    dispatch(recordActions.initialize({ record: record!, setIndex }));
+    dispatch(gameActions.initialize({ game: game!, setIndex }));
     setSetIndex(setIndex);
     setEditOpen(true);
   };
@@ -45,10 +45,10 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
   return (
     <>
       <Accordion type="single" collapsible className="flex flex-col gap-2">
-        {record?.sets.map((set, index) => (
+        {game?.sets.map((set, index) => (
           <SetItem
             key={index}
-            recordId={recordId}
+            gameId={gameId}
             set={set}
             setIndex={index}
             handleOptionsOpen={handleOptionsOpen}
@@ -56,28 +56,28 @@ export const SetsList = ({ recordId }: { recordId: string }) => {
           />
         ))}
       </Accordion>
-      <Button size="lg" onClick={() => handleOptionsOpen(record!.sets.length)}>
+      <Button size="lg" onClick={() => handleOptionsOpen(game!.sets.length)}>
         <RiAddLine />
         新增一局
       </Button>
       <Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
-        <SetOptions recordId={recordId} setIndex={setIndex} />
+        <SetOptions gameId={gameId} setIndex={setIndex} />
       </Dialog>
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <SetEdit recordId={recordId} setIndex={setIndex} />
+        <SetEdit gameId={gameId} setIndex={setIndex} />
       </Dialog>
     </>
   );
 };
 
 const SetItem = ({
-  recordId,
+  gameId,
   set,
   setIndex,
   handleOptionsOpen,
   handleEditOpen,
 }: {
-  recordId: string;
+  gameId: string;
   set: Set;
   setIndex: number;
   handleOptionsOpen: (setIndex: number) => void;
@@ -115,7 +115,7 @@ const SetItem = ({
           ) : (
             <Button
               size="lg"
-              onClick={() => router.push(`/record/${recordId}?si=${setIndex}`)}
+              onClick={() => router.push(`/game/${gameId}?si=${setIndex}`)}
             >
               進入比賽
               <RiArrowRightLine className="size-6" />

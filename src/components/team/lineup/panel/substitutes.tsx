@@ -1,7 +1,7 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/custom/panel";
 import { Separator } from "@/components/ui/separator";
 import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
@@ -31,13 +31,13 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({
-          _id: player._id,
+          id: player.id,
           list: "substitutes",
           zone: index + 1,
         }),
       );
     } else {
-      dispatch(lineupActions.removeSubstitutePlayer(player._id));
+      dispatch(lineupActions.removeSubstitutePlayer(player.id));
     }
   };
 
@@ -45,13 +45,13 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({
-          _id: player._id,
+          id: player.id,
           list: "",
           zone: index + 1,
         }),
       );
     } else if (!isSubstituteFull) {
-      dispatch(lineupActions.addSubstitutePlayer(player._id));
+      dispatch(lineupActions.addSubstitutePlayer(player.id));
     }
   };
 
@@ -71,11 +71,11 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
         <CardTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</CardTitle>
       </CardHeader>
       {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
-        const player = players.find((p) => p._id === lineupPlayer._id);
+        const player = players.find((p) => p.id === lineupPlayer.id);
         if (!player) return null;
         return (
           <Button
-            key={player._id}
+            key={player.id}
             variant={isEditingStarting ? "outline" : "default"}
             size="wide"
             onClick={() => handleSubstituteClick(player, index)}
@@ -93,7 +93,7 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
       {others.map((player, index) => {
         return (
           <Button
-            key={player._id}
+            key={player.id}
             variant="outline"
             size="wide"
             onClick={() => handleOtherClick(player, index)}

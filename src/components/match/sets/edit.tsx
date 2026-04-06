@@ -1,6 +1,6 @@
 "use client";
-import { EntriesEdit } from "@/components/record/options/edit";
-import { RecordOptionsSummary } from "@/components/record/options/summary";
+import { EntriesEdit } from "@/components/game/options/edit";
+import { GameOptionsSummary } from "@/components/game/options/summary";
 import {
   DialogContent,
   DialogDescription,
@@ -10,13 +10,13 @@ import { useAppSelector } from "@/lib/redux/hooks";
 import { DialogTitle } from "@radix-ui/react-dialog";
 
 export const SetEdit = ({
-  recordId,
+  gameId,
   setIndex,
 }: {
-  recordId: string;
+  gameId: string;
   setIndex: number;
 }) => {
-  const { mode } = useAppSelector((state) => state.record);
+  const { mode } = useAppSelector((state) => state.game);
 
   return (
     <DialogContent size="lg" closeButton={mode === "general"}>
@@ -28,10 +28,10 @@ export const SetEdit = ({
               逐球紀錄頁面
             </DialogDescription>
           </DialogHeader>
-          <RecordOptionsSummary recordId={recordId} />
+          <GameOptionsSummary gameId={gameId} />
         </>
       ) : (
-        <EntriesEdit recordId={recordId} />
+        <EntriesEdit gameId={gameId} />
       )}
     </DialogContent>
   );

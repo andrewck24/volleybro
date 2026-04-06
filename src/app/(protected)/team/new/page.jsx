@@ -1,7 +1,7 @@
 "use client";
-import { useSWRConfig } from "swr";
-import { useRouter } from "next/navigation";
 import TeamForm from "@/components/team/form";
+import { useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 
 const NewTeamPage = () => {
   const router = useRouter();
@@ -16,8 +16,8 @@ const NewTeamPage = () => {
       });
 
       const team = await res.json();
-      mutate(`/api/teams/${team._id}`, team, false);
-      return router.push(`/team/${team._id}?tab=about`);
+      mutate(`/api/teams/${team.id}`, team, false);
+      return router.push(`/team/${team.id}?tab=about`);
     } catch (err) {
       console.log(err);
       // TODO: 改為彈出式警告

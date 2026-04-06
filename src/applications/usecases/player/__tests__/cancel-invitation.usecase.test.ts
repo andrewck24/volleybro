@@ -30,7 +30,7 @@ describe("CancelInvitationUseCase", () => {
   describe("execute", () => {
     it("should cancel invitation by setting status to NONE and clearing email/userId", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
@@ -62,7 +62,7 @@ describe("CancelInvitationUseCase", () => {
 
     it("should reject if user is not team admin", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
@@ -80,7 +80,7 @@ describe("CancelInvitationUseCase", () => {
 
     it("should reject if player status is not INVITED", async () => {
       const nonePlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.NONE,
         teamId: "team_789",
       });
@@ -95,7 +95,7 @@ describe("CancelInvitationUseCase", () => {
 
     it("should reject if update fails", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",

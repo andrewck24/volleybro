@@ -22,14 +22,11 @@ const Lineup = ({ teamId }: { teamId: string }) => {
 
   const handleSave = async (lineups: Lineup[]) => {
     try {
-      const data = await apiClient<Lineup[]>(
-        `/api/teams/${team!._id}/lineups`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(lineups),
-        },
-      );
+      const data = await apiClient<Lineup[]>(`/api/teams/${team!.id}/lineups`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(lineups),
+      });
       mutate({ ...team!, lineups: data }, false);
       return toast({
         title: "儲存成功",
@@ -49,14 +46,14 @@ const Lineup = ({ teamId }: { teamId: string }) => {
     liberoReplaceMode === 0 ||
     (liberoReplacePosition === "OP"
       ? lineups[status.lineupIndex]?.starting.some(
-          (player) => player._id && player.position === "OP",
+          (player) => player.id && player.position === "OP",
         )
       : lineups[status.lineupIndex]?.starting.some((player, index) => {
           const oppositeIndex = index >= 3 ? index - 3 : index + 3;
           return (
-            player._id &&
+            player.id &&
             player.position === liberoReplacePosition &&
-            lineups[status.lineupIndex].starting[oppositeIndex]._id &&
+            lineups[status.lineupIndex].starting[oppositeIndex].id &&
             lineups[status.lineupIndex].starting[oppositeIndex].position ===
               liberoReplacePosition
           );

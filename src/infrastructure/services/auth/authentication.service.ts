@@ -1,12 +1,12 @@
-import { injectable, inject } from "inversify";
-import { headers } from "next/headers";
-import { TYPES } from "@/infrastructure/di/types";
-import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { User } from "@/entities/user";
+import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import { AuthenticationError } from "@/entities/errors/app-error";
 import { AuthReason } from "@/entities/errors/reasons/auth";
+import { User } from "@/entities/user";
+import { TYPES } from "@/infrastructure/di/types";
 import { auth } from "@/lib/auth";
+import { inject, injectable } from "inversify";
+import { headers } from "next/headers";
 
 @injectable()
 export class AuthenticationService implements IAuthenticationService {
@@ -19,7 +19,7 @@ export class AuthenticationService implements IAuthenticationService {
     if (!session) throw new AuthenticationError(AuthReason.INVALID_SESSION, "Invalid or expired session");
 
     const user = await this.userRepository.findOne({
-      _id: session.user.id,
+      id: session.user.id,
     });
     if (!user) throw new AuthenticationError(AuthReason.USER_NOT_FOUND, "Authenticated user account not found");
 

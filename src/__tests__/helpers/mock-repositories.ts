@@ -1,8 +1,8 @@
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
-import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 
 export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
   return {
@@ -34,7 +34,7 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
   };
 }
 
-export function createMockRecordRepository(): jest.Mocked<IRecordRepository> {
+export function createMockGameRepository(): jest.Mocked<IGameRepository> {
   return {
     find: jest.fn(),
     findOne: jest.fn(),

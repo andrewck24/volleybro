@@ -17,7 +17,7 @@ import {
 } from "react-icons/ri";
 
 const iconMap = {
-  record: RiPencilFill,
+  game: RiPencilFill,
   chart: RiBarChartBoxAiFill,
   team: RiTeamFill,
   device: RiDeviceFill,
@@ -29,7 +29,7 @@ const highlights = [
   {
     title: "提供簡單易用的賽事記錄工具",
     description: "讓教練能夠快速記錄比賽數據，告別繁瑣的紙筆作業",
-    icon: "record" as const,
+    icon: "game" as const,
   },
   {
     title: "透過強大的數據分析功能",
@@ -62,7 +62,7 @@ export const Highlights = () => {
       <section
         ref={targetRef}
         data-testid="highlights-section"
-        className="relative isolate bg-gradient-to-b from-primary/50 to-transparent py-16 md:h-[300vh] md:[contain:layout_style_paint]"
+        className="relative isolate bg-linear-to-b from-primary/50 to-transparent py-16 md:h-[300vh] md:contain-[layout_style_paint]"
       >
         {/* Mobile: Static vertical layout */}
         <div className="container mx-auto px-4 md:hidden">
@@ -115,9 +115,9 @@ const HighlightCard = ({
       className={cn(
         "relative overflow-hidden rounded-3xl shadow-2xl",
         "flex flex-col items-center justify-center",
-        "bg-gradient-to-b from-primary/20 via-background/95 to-background",
+        "bg-linear-to-b from-primary/20 via-background/95 to-background",
         "border border-border p-8 backdrop-blur-sm",
-        "aspect-[3/2] w-full", // Mobile: landscape ratio (w > h)
+        "aspect-3/2 w-full", // Mobile: landscape ratio (w > h)
         "md:aspect-[1/2.17] md:h-[45vh] md:w-[55vw] lg:w-[45vw]", // Desktop: portrait ratio
       )}
     >

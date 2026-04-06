@@ -24,7 +24,7 @@ describe("SearchUserUseCase", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value._id).toBe("user-1");
+      expect(result.value.id).toBe("user-1");
       expect(result.value.name).toBe("John Doe");
       expect(result.value.image).toBe("https://example.com/avatar.png");
     }
@@ -67,7 +67,7 @@ describe("SearchUserUseCase", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       const keys = Object.keys(result.value);
-      expect(keys).toContain("_id");
+      expect(keys).toContain("id");
       expect(keys).toContain("name");
       expect(keys).not.toContain("email");
     }

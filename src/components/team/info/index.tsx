@@ -44,7 +44,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     { key: "簡稱", value: team!.nickname, icon: <RiInformationLine /> },
     { key: "人數", value: players!.length, icon: <RiGroupLine /> },
   ];
-  const currentUserPlayer = players?.find((p) => p.userId === user?._id);
+  const currentUserPlayer = players?.find((p) => p.userId === user?.id);
   const isAdmin = currentUserPlayer ? canManageTeam(currentUserPlayer) : false;
   const isJoined = currentUserPlayer?.status === PlayerStatus.JOINED;
   const isOwner = currentUserPlayer?.role === PlayerRole.OWNER;
@@ -53,7 +53,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     setIsLeaving(true);
     setLeaveError(null);
     try {
-      await apiClient(`/api/players/${currentUserPlayer!._id}/invitations`, {
+      await apiClient(`/api/players/${currentUserPlayer!.id}/invitations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "leave" }),
@@ -87,7 +87,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
         ))}
       </ItemGroup>
       {isAdmin && (
-        <Link href={`/team/${team!._id}/edit`}>
+        <Link href={`/team/${team!.id}/edit`}>
           <RiEditBoxLine /> 編輯隊伍資訊
         </Link>
       )}

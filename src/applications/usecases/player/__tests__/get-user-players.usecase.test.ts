@@ -8,12 +8,12 @@ describe("GetUserPlayersUseCase", () => {
 
   const mockPlayers = [
     createPlayer({
-      _id: "player-1",
+      id: "player-1",
       name: "User",
       status: PlayerStatus.JOINED,
     }),
     createPlayer({
-      _id: "player-2",
+      id: "player-2",
       name: "User",
       teamId: "team-2",
       status: PlayerStatus.JOINED,

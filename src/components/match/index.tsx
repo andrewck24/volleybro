@@ -5,18 +5,18 @@ import { Header } from "@/components/match/header";
 import { Stats } from "@/components/match/stats";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRecord } from "@/hooks/use-data";
+import { useGame } from "@/hooks/use-data";
 
-const Match = ({ recordId }: { recordId: string }) => {
-  const { record, error, isLoading, mutate } = useRecord(recordId);
+const Match = ({ gameId }: { gameId: string }) => {
+  const { game, error, isLoading, mutate } = useGame(gameId);
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (isLoading || !record) return <MatchSkeleton />;
+  if (isLoading || !game) return <MatchSkeleton />;
 
   return (
     <>
       <Header title="賽事總覽" url="/home" />
-      <Banner recordId={recordId} />
-      <Stats recordId={recordId} />
+      <Banner gameId={gameId} />
+      <Stats gameId={gameId} />
     </>
   );
 };
@@ -27,7 +27,7 @@ export function MatchSkeleton() {
       {/* mirrors Header: fixed top bar with back button + title */}
       <div className="flex h-[calc(env(safe-area-inset-top)+3rem)] w-full items-center gap-4 border-b-2 border-accent bg-card px-[5%] pt-[env(safe-area-inset-top)]">
         <Skeleton className="size-9 rounded-md" /> {/* back button */}
-        <Skeleton className="my-0.5 flex-1 h-5 w-24" /> {/* title */}
+        <Skeleton className="my-0.5 h-5 w-24 flex-1" /> {/* title */}
       </div>
       {/* mirrors Banner: bg-card flex-col */}
       <div className="flex w-full flex-col items-center justify-center bg-card px-4 py-2">

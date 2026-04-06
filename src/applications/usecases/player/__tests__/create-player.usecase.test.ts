@@ -32,7 +32,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_new_001",
+        id: "player_new_001",
         name: input.name,
         number: input.number,
         position: Position.MB,
@@ -59,7 +59,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_invited_001",
+        id: "player_invited_001",
         name: input.name,
         email: input.email,
         role: input.role,
@@ -107,7 +107,7 @@ describe("CreatePlayerUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(
         createPlayer({
-          _id: "player_123",
+          id: "player_123",
           name: "Test",
           teamId,
           email: input.email,
@@ -128,7 +128,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_new_002",
+        id: "player_new_002",
         name: input.name,
         teamId,
         status: PlayerStatus.NONE,

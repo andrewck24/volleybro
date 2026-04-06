@@ -4,7 +4,7 @@
  */
 export interface IRejectInvitationUseCase {
   /**
-   * Reject invitation and clear email from player record
+   * Reject invitation and clear email from player entry
    * @param playerId Player ID with pending invitation
    * @param userId User ID of the invitee (must match invitation email)
    */

@@ -29,7 +29,7 @@ describe("RemovePlayerUseCase", () => {
   describe("execute", () => {
     it("should remove player from team", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });
@@ -54,7 +54,7 @@ describe("RemovePlayerUseCase", () => {
 
     it("should reject if user is not team admin", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });
@@ -71,7 +71,7 @@ describe("RemovePlayerUseCase", () => {
 
     it("should reject if delete fails", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });

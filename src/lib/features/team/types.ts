@@ -22,7 +22,7 @@ export type ReduxLineupStatus = {
   lineupIndex: number;
   optionMode: LineupOptionMode;
   editingMember: {
-    _id: string | null;
+    id: string | null;
     list: "starting" | "liberos" | "substitutes" | "";
     zone: number | null;
   };

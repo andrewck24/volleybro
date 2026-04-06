@@ -8,13 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Set } from "@/entities/record";
-import { useRecord } from "@/hooks/use-data";
+import type { Set } from "@/entities/game";
+import { useGame } from "@/hooks/use-data";
 import { useState } from "react";
 
-export const Stats = ({ recordId }: { recordId: string }) => {
+export const Stats = ({ gameId }: { gameId: string }) => {
   const [setIndex, setSetIndex] = useState(-1);
-  const { record } = useRecord(recordId);
+  const { game } = useGame(gameId);
 
   return (
     <Card className="w-full">
@@ -22,7 +22,7 @@ export const Stats = ({ recordId }: { recordId: string }) => {
         <CardTitle>
           數據總覽
           <SetSwitch
-            sets={record!.sets}
+            sets={game!.sets}
             setIndex={setIndex}
             setSetIndex={setSetIndex}
           />
@@ -36,7 +36,7 @@ export const Stats = ({ recordId }: { recordId: string }) => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={record!.teams} setIndex={setIndex} />
+          <TeamsStats teams={game!.teams} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>
@@ -45,13 +45,13 @@ export const Stats = ({ recordId }: { recordId: string }) => {
 };
 
 export const StatsForOneSet = ({
-  recordId,
+  gameId,
   setIndex,
 }: {
-  recordId: string;
+  gameId: string;
   setIndex: number;
 }) => {
-  const { record } = useRecord(recordId);
+  const { game } = useGame(gameId);
 
   return (
     <Card className="w-full">
@@ -63,7 +63,7 @@ export const StatsForOneSet = ({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={record!.teams} setIndex={setIndex} />
+          <TeamsStats teams={game!.teams} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>

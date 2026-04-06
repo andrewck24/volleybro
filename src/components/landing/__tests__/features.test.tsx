@@ -51,12 +51,12 @@ describe("Features Component", () => {
     it("should contain three main feature containers", () => {
       render(<Features />);
 
-      // Should have three main containers: Recording, Analytics, Team
-      const recordingFeatures = screen.getByTestId("recording-features");
+      // Should have three main containers: Game, Analytics, Team
+      const gameFeatures = screen.getByTestId("game-features");
       const analyticsFeatures = screen.getByTestId("analytics-features");
       const teamFeatures = screen.getByTestId("team-features");
 
-      expect(recordingFeatures).toBeInTheDocument();
+      expect(gameFeatures).toBeInTheDocument();
       expect(analyticsFeatures).toBeInTheDocument();
       expect(teamFeatures).toBeInTheDocument();
     });
@@ -66,15 +66,15 @@ describe("Features Component", () => {
     it("should render all required demo areas", () => {
       render(<Features />);
 
-      const recordingDemo1 = screen.getByTestId("demo-area-recording-1");
-      const recordingDemo2 = screen.getByTestId("demo-area-recording-2");
+      const gameDemo1 = screen.getByTestId("demo-area-game-1");
+      const gameDemo2 = screen.getByTestId("demo-area-game-2");
       const analyticsDemo1 = screen.getByTestId("demo-area-analytics-1");
       const analyticsDemo2 = screen.getByTestId("demo-area-analytics-2");
       const teamDemo1 = screen.getByTestId("demo-area-team-1");
       const teamDemo2 = screen.getByTestId("demo-area-team-2");
 
-      expect(recordingDemo1).toBeInTheDocument();
-      expect(recordingDemo2).toBeInTheDocument();
+      expect(gameDemo1).toBeInTheDocument();
+      expect(gameDemo2).toBeInTheDocument();
       expect(analyticsDemo1).toBeInTheDocument();
       expect(analyticsDemo2).toBeInTheDocument();
       expect(teamDemo1).toBeInTheDocument();
@@ -115,62 +115,62 @@ describe("Features Component", () => {
 
       const demoAreas = screen.getAllByTestId(/demo-area-/);
       demoAreas.forEach((area) => {
-        expect(area).toHaveClass("aspect-[3/4]");
+        expect(area).toHaveClass("aspect-3/4");
         expect(area).toHaveClass("lg:aspect-auto");
         expect(area).toHaveClass("lg:h-full");
       });
     });
   });
 
-  describe("RecordingFeatures", () => {
-    it("should render two recording feature cards", () => {
+  describe("GameFeatures", () => {
+    it("should render two game feature cards", () => {
       render(<Features />);
 
-      const recordingCard1 = screen.getByTestId("recording-card-1");
-      const recordingCard2 = screen.getByTestId("recording-card-2");
+      const gameCard1 = screen.getByTestId("game-card-1");
+      const gameCard2 = screen.getByTestId("game-card-2");
 
-      expect(recordingCard1).toBeInTheDocument();
-      expect(recordingCard2).toBeInTheDocument();
+      expect(gameCard1).toBeInTheDocument();
+      expect(gameCard2).toBeInTheDocument();
     });
 
-    it("should display correct content for recording tool card", () => {
+    it("should display correct content for game tool card", () => {
       render(<Features />);
 
-      const toolCard = screen.getByTestId("recording-card-1");
+      const toolCard = screen.getByTestId("game-card-1");
       expect(toolCard).toHaveTextContent("簡單易用的賽事記錄工具");
       expect(toolCard).toHaveTextContent(
         "讓教練能夠快速記錄比賽數據，告別繁瑣的紙筆作業",
       );
     });
 
-    it("should display correct content for record browsing card", () => {
+    it("should display correct content for game browsing card", () => {
       render(<Features />);
 
-      const browsingCard = screen.getByTestId("recording-card-2");
+      const browsingCard = screen.getByTestId("game-card-2");
       expect(browsingCard).toHaveTextContent("即時瀏覽每筆賽事紀錄");
       expect(browsingCard).toHaveTextContent(
         "所有記錄即時同步，隨時查看歷史數據和比賽分析",
       );
     });
 
-    it("should use right-image layout for both recording cards", () => {
+    it("should use right-image layout for both game cards", () => {
       render(<Features />);
 
-      const recordingCard1 = screen.getByTestId("recording-card-1");
-      const recordingCard2 = screen.getByTestId("recording-card-2");
+      const gameCard1 = screen.getByTestId("game-card-1");
+      const gameCard2 = screen.getByTestId("game-card-2");
 
-      expect(recordingCard1).toHaveClass("lg:flex-row");
-      expect(recordingCard2).toHaveClass("lg:flex-row");
+      expect(gameCard1).toHaveClass("lg:flex-row");
+      expect(gameCard2).toHaveClass("lg:flex-row");
     });
 
-    it("should render FeatureDemoImage components for both recording cards", () => {
+    it("should render FeatureDemoImage components for both game cards", () => {
       render(<Features />);
 
-      const recordingImage1 = screen.getByTestId("recording-demo-image-1");
-      const recordingImage2 = screen.getByTestId("recording-demo-image-2");
+      const gameImage1 = screen.getByTestId("game-demo-image-1");
+      const gameImage2 = screen.getByTestId("game-demo-image-2");
 
-      expect(recordingImage1).toBeInTheDocument();
-      expect(recordingImage2).toBeInTheDocument();
+      expect(gameImage1).toBeInTheDocument();
+      expect(gameImage2).toBeInTheDocument();
     });
   });
 
@@ -321,13 +321,13 @@ describe("Features Component", () => {
     it("should render all FeatureDemoImage components with correct test IDs", () => {
       render(<Features />);
 
-      const recordingImage1 = screen.getByTestId("recording-demo-image-1");
-      const recordingImage2 = screen.getByTestId("recording-demo-image-2");
+      const gameImage1 = screen.getByTestId("game-demo-image-1");
+      const gameImage2 = screen.getByTestId("game-demo-image-2");
       const teamImage1 = screen.getByTestId("team-demo-image-1");
       const teamImage2 = screen.getByTestId("team-demo-image-2");
 
-      expect(recordingImage1).toBeInTheDocument();
-      expect(recordingImage2).toBeInTheDocument();
+      expect(gameImage1).toBeInTheDocument();
+      expect(gameImage2).toBeInTheDocument();
       expect(teamImage1).toBeInTheDocument();
       expect(teamImage2).toBeInTheDocument();
     });

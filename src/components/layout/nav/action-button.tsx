@@ -1,10 +1,10 @@
 "use client";
 
+import { NewGameForm } from "@/components/game/new";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { RiAddBoxLine } from "react-icons/ri";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
-import { NewRecordForm } from "@/components/record/new";
 
 export const ActionButton = ({ teamId }: { teamId: string }) => {
   return (
@@ -13,7 +13,7 @@ export const ActionButton = ({ teamId }: { teamId: string }) => {
         <AddButton />
       </DialogTrigger>
       <DialogContent size="lg">
-        <NewRecordForm teamId={teamId} />
+        <NewGameForm teamId={teamId} />
       </DialogContent>
     </Dialog>
   );
@@ -23,9 +23,9 @@ const AddButton = ({ ...props }) => {
   return (
     <Button
       className={cn(
-        "flex flex-col items-center justify-center flex-1 h-full pt-2",
-        "text-foreground [&>svg]:size-10 text-xs",
-        "transition-all duration-200 ease-in-out"
+        "flex h-full flex-1 flex-col items-center justify-center pt-2",
+        "text-xs text-foreground [&>svg]:size-10",
+        "transition-all duration-200 ease-in-out",
       )}
       variant="ghost"
       {...props}

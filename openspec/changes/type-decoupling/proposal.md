@@ -96,3 +96,13 @@ Additionally, the domain entity `Record` conflicts with TypeScript's built-in `R
 - **DI container**: `src/infrastructure/di/`
 - **Tests**: All test files in affected directories
 - **Estimated total**: ~130 files
+
+## Implementation Notes (2026-04-06)
+
+- Additional review-driven cleanups were applied that are aligned with this change intent but were not explicitly enumerated in task checkboxes:
+  - Fixture/test naming and literal ids cleanup (`createRecord`, `record-*` remnants).
+  - UI symbol cleanup for renamed directories (`Record*` component names under `components/game`).
+  - Landing section rename (`RecordingFeatures` → `GameFeatures`) with related tests and assets.
+  - Persistence symbol cleanup in renamed schema/repository files (`recordSchema`/`RecordModel` → `gameSchema`/`GameModel`).
+  - Player-domain wording cleanup from `player record` to context-appropriate terms (`player`, `player entry`, `player membership`) and reason code alignment.
+  - Entry flow state semantics update from `recording` to `entryDraft` to better represent mutable pre-submit entry state.

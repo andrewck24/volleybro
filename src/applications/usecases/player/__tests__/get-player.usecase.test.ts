@@ -36,7 +36,7 @@ describe("GetPlayerUseCase", () => {
 
     const result = await usecase.execute("player-1");
 
-    expect(result?._id).toBe("player-1");
+    expect(result?.id).toBe("player-1");
     expect(result?.name).toBe("Test Player");
     expect(result?.teamId).toBe("team-1");
     expect(result?.userId).toBe("user-1");

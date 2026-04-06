@@ -21,7 +21,7 @@ describe("CreateProfileUseCase", () => {
 
     const result = await useCase.execute({ userId: "user-1" });
 
-    expect(result._id).toBe("profile-1");
+    expect(result.id).toBe("profile-1");
     expect(result.userId).toBe("user-1");
   });
 
@@ -30,7 +30,7 @@ describe("CreateProfileUseCase", () => {
 
     const result = await useCase.execute({ userId: "user-1" });
 
-    expect(result._id).toBe("profile-1");
+    expect(result.id).toBe("profile-1");
     expect(mockProfileRepository.create).not.toHaveBeenCalled();
   });
 

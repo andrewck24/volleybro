@@ -1,10 +1,7 @@
-import { PlayerRole } from "@/entities/player";
+import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
 import { AuthorizationError } from "@/entities/errors/app-error";
+import { PlayerRole } from "@/entities/player";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
-import {
-  createMockPlayerRepository,
-  createPlayer,
-} from "@/__tests__/helpers";
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
@@ -13,7 +10,7 @@ describe("AuthorizationService", () => {
   const mockPlayer = createPlayer({ role: PlayerRole.ADMIN });
 
   const mockOwner = createPlayer({
-    _id: "player-2",
+    id: "player-2",
     name: "Owner",
     userId: "owner-user",
     role: PlayerRole.OWNER,
@@ -134,7 +131,7 @@ describe("AuthorizationService", () => {
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
-    it("should throw AuthorizationError if user has no player record in team", async () => {
+    it("should throw AuthorizationError if user has no player in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(

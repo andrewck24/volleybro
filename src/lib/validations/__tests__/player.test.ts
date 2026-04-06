@@ -1,117 +1,117 @@
+import { createPlayer } from "@/__tests__/helpers";
+import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import {
-  PlayerSchema,
   CreatePlayerSchema,
+  PlayerRoleSchema,
+  PlayerSchema,
+  PositionSchema,
   UpdatePlayerInfoSchema,
   UpdatePlayerRoleSchema,
   UpdatePlayerStatusSchema,
-  PlayerRoleSchema,
-  PositionSchema,
-} from '../player';
-import { PlayerRole, PlayerStatus, Position } from '@/entities/player';
-import { createPlayer } from '@/__tests__/helpers';
+} from "../player";
 
-describe('Player Validation Schemas', () => {
-  describe('PlayerRoleSchema', () => {
-    it('should accept valid role enums', () => {
+describe("Player Validation Schemas", () => {
+  describe("PlayerRoleSchema", () => {
+    it("should accept valid role enums", () => {
       expect(PlayerRoleSchema.parse(PlayerRole.MEMBER)).toBe(PlayerRole.MEMBER);
       expect(PlayerRoleSchema.parse(PlayerRole.ADMIN)).toBe(PlayerRole.ADMIN);
       expect(PlayerRoleSchema.parse(PlayerRole.OWNER)).toBe(PlayerRole.OWNER);
     });
 
-    it('should reject invalid roles', () => {
-      expect(() => PlayerRoleSchema.parse('INVALID')).toThrow();
-      expect(() => PlayerRoleSchema.parse('member')).toThrow();
+    it("should reject invalid roles", () => {
+      expect(() => PlayerRoleSchema.parse("INVALID")).toThrow();
+      expect(() => PlayerRoleSchema.parse("member")).toThrow();
     });
   });
 
-  describe('PositionSchema', () => {
-    it('should accept valid position enums', () => {
+  describe("PositionSchema", () => {
+    it("should accept valid position enums", () => {
       expect(PositionSchema.parse(Position.OH)).toBe(Position.OH);
       expect(PositionSchema.parse(Position.MB)).toBe(Position.MB);
       expect(PositionSchema.parse(Position.NONE)).toBe(Position.NONE);
     });
 
-    it('should reject invalid positions', () => {
-      expect(() => PositionSchema.parse('INVALID')).toThrow();
+    it("should reject invalid positions", () => {
+      expect(() => PositionSchema.parse("INVALID")).toThrow();
     });
   });
 
-  describe('CreatePlayerSchema', () => {
-    it('should accept valid player creation input', () => {
+  describe("CreatePlayerSchema", () => {
+    it("should accept valid player creation input", () => {
       const input = {
-        name: 'John Doe',
+        name: "John Doe",
         number: 10,
         position: Position.OH,
         role: PlayerRole.MEMBER,
-        email: 'john@example.com',
+        email: "john@example.com",
       };
 
       const result = CreatePlayerSchema.parse(input);
       expect(result).toEqual(input);
     });
 
-    it('should accept player creation without email (pure player)', () => {
+    it("should accept player creation without email (pure player)", () => {
       const input = {
-        name: 'Opponent Player',
+        name: "Opponent Player",
         number: 7,
         position: Position.S,
       };
 
       const result = CreatePlayerSchema.parse(input);
-      expect(result.name).toBe('Opponent Player');
+      expect(result.name).toBe("Opponent Player");
       expect(result.email).toBeUndefined();
       expect(result.role).toBe(PlayerRole.MEMBER);
     });
 
-    it('should use default role MEMBER if not provided', () => {
+    it("should use default role MEMBER if not provided", () => {
       const input = {
-        name: 'Member',
+        name: "Member",
       };
 
       const result = CreatePlayerSchema.parse(input);
       expect(result.role).toBe(PlayerRole.MEMBER);
     });
 
-    it('should reject empty name', () => {
+    it("should reject empty name", () => {
       const input = {
-        name: '',
+        name: "",
       };
 
       expect(() => CreatePlayerSchema.parse(input)).toThrow();
     });
 
-    it('should reject invalid number (out of range)', () => {
+    it("should reject invalid number (out of range)", () => {
       const input = {
-        name: 'Player',
+        name: "Player",
         number: 100,
       };
 
       expect(() => CreatePlayerSchema.parse(input)).toThrow();
     });
 
-    it('should reject invalid email format', () => {
+    it("should reject invalid email format", () => {
       const input = {
-        name: 'Player',
-        email: 'invalid-email',
+        name: "Player",
+        email: "invalid-email",
       };
 
       expect(() => CreatePlayerSchema.parse(input)).toThrow();
     });
   });
 
-  describe('UpdatePlayerInfoSchema', () => {
-    it('should accept partial updates', () => {
+  describe("UpdatePlayerInfoSchema", () => {
+    it("should accept partial updates", () => {
       const input = {
-        name: 'Updated Name',
+        name: "Updated Name",
       };
 
       const result = UpdatePlayerInfoSchema.parse(input);
-      expect(result.name).toBe('Updated Name');
+      expect(result.name).toBe("Updated Name");
     });
 
-    it('should accept all fields', () => {
+    it("should accept all fields", () => {
       const input = {
-        name: 'John',
+        name: "John",
         number: 5,
         position: Position.MB,
       };
@@ -120,15 +120,15 @@ describe('Player Validation Schemas', () => {
       expect(result).toEqual(input);
     });
 
-    it('should reject empty name', () => {
+    it("should reject empty name", () => {
       const input = {
-        name: '',
+        name: "",
       };
 
       expect(() => UpdatePlayerInfoSchema.parse(input)).toThrow();
     });
 
-    it('should reject invalid number', () => {
+    it("should reject invalid number", () => {
       const input = {
         number: 150,
       };
@@ -136,14 +136,14 @@ describe('Player Validation Schemas', () => {
       expect(() => UpdatePlayerInfoSchema.parse(input)).toThrow();
     });
 
-    it('should allow empty object (no updates)', () => {
+    it("should allow empty object (no updates)", () => {
       const result = UpdatePlayerInfoSchema.parse({});
       expect(result).toEqual({});
     });
   });
 
-  describe('UpdatePlayerRoleSchema', () => {
-    it('should accept valid role', () => {
+  describe("UpdatePlayerRoleSchema", () => {
+    it("should accept valid role", () => {
       const input = {
         role: PlayerRole.ADMIN,
       };
@@ -152,143 +152,143 @@ describe('Player Validation Schemas', () => {
       expect(result.role).toBe(PlayerRole.ADMIN);
     });
 
-    it('should reject invalid role', () => {
+    it("should reject invalid role", () => {
       const input = {
-        role: 'INVALID',
+        role: "INVALID",
       };
 
       expect(() => UpdatePlayerRoleSchema.parse(input)).toThrow();
     });
   });
 
-  describe('UpdatePlayerStatusSchema', () => {
-    describe('invite action', () => {
-      it('should accept valid invite request', () => {
+  describe("UpdatePlayerStatusSchema", () => {
+    describe("invite action", () => {
+      it("should accept valid invite request", () => {
         const input = {
-          action: 'invite' as const,
-          email: 'newmember@example.com',
+          action: "invite" as const,
+          email: "newmember@example.com",
         };
 
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('invite');
-        if (result.action === 'invite') {
-          expect(result.email).toBe('newmember@example.com');
+        expect(result.action).toBe("invite");
+        if (result.action === "invite") {
+          expect(result.email).toBe("newmember@example.com");
         }
       });
 
-      it('should reject invalid email', () => {
+      it("should reject invalid email", () => {
         const input = {
-          action: 'invite' as const,
-          email: 'not-an-email',
+          action: "invite" as const,
+          email: "not-an-email",
         };
 
         expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
       });
 
-      it('should reject invite without email', () => {
+      it("should reject invite without email", () => {
         const input = {
-          action: 'invite',
+          action: "invite",
         };
 
         expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
       });
     });
 
-    describe('cancel action', () => {
-      it('should accept cancel request', () => {
+    describe("cancel action", () => {
+      it("should accept cancel request", () => {
         const input = {
-          action: 'cancel' as const,
+          action: "cancel" as const,
         };
 
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('cancel');
+        expect(result.action).toBe("cancel");
       });
 
-      it('should reject cancel with extra properties', () => {
+      it("should reject cancel with extra properties", () => {
         const input = {
-          action: 'cancel',
-          extra: 'data',
+          action: "cancel",
+          extra: "data",
         };
 
         // Should either strip or throw - Zod by default strips unknown properties
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('cancel');
-        expect('extra' in result).toBe(false);
+        expect(result.action).toBe("cancel");
+        expect("extra" in result).toBe(false);
       });
     });
 
-    describe('accept action', () => {
-      it('should accept accept request', () => {
+    describe("accept action", () => {
+      it("should accept accept request", () => {
         const input = {
-          action: 'accept' as const,
+          action: "accept" as const,
         };
 
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('accept');
+        expect(result.action).toBe("accept");
       });
     });
 
-    describe('reject action', () => {
-      it('should accept reject request', () => {
+    describe("reject action", () => {
+      it("should accept reject request", () => {
         const input = {
-          action: 'reject' as const,
+          action: "reject" as const,
         };
 
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('reject');
+        expect(result.action).toBe("reject");
       });
     });
 
-    describe('leave action', () => {
-      it('should accept leave request', () => {
+    describe("leave action", () => {
+      it("should accept leave request", () => {
         const input = {
-          action: 'leave' as const,
+          action: "leave" as const,
         };
 
         const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe('leave');
+        expect(result.action).toBe("leave");
       });
     });
 
-    it('should reject invalid action', () => {
+    it("should reject invalid action", () => {
       const input = {
-        action: 'invalid',
+        action: "invalid",
       };
 
       expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
     });
   });
 
-  describe('PlayerSchema', () => {
-    it('should validate complete player object', () => {
+  describe("PlayerSchema", () => {
+    it("should validate complete player object", () => {
       const player = createPlayer({
-        name: 'John Doe',
+        name: "John Doe",
         number: 10,
-        email: 'john@example.com',
+        email: "john@example.com",
       });
 
       const result = PlayerSchema.parse(player);
-      expect(result._id).toBe('player-1');
-      expect(result.name).toBe('John Doe');
+      expect(result.id).toBe("player-1");
+      expect(result.name).toBe("John Doe");
     });
 
-    it('should accept player with minimal fields', () => {
+    it("should accept player with minimal fields", () => {
       const player = createPlayer({
-        _id: 'player-2',
-        name: 'Pure Player',
+        id: "player-2",
+        name: "Pure Player",
         status: PlayerStatus.NONE,
         teamId: undefined,
         userId: undefined,
       });
 
       const result = PlayerSchema.parse(player);
-      expect(result._id).toBe('player-2');
+      expect(result.id).toBe("player-2");
       expect(result.userId).toBeUndefined();
     });
 
-    it('should reject missing required name', () => {
+    it("should reject missing required name", () => {
       const player = {
-        _id: 'player-3',
+        id: "player-3",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -296,9 +296,9 @@ describe('Player Validation Schemas', () => {
       expect(() => PlayerSchema.parse(player)).toThrow();
     });
 
-    it('should reject missing _id', () => {
+    it("should reject missing id", () => {
       const player = {
-        name: 'Player',
+        name: "Player",
         createdAt: new Date(),
         updatedAt: new Date(),
       };

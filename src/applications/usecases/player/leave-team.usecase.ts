@@ -38,8 +38,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
 
     if (player.userId !== userId) {
       throw new AuthorizationError(
-        PlayerReason.CANNOT_LEAVE_OWN_RECORD,
-        "You cannot leave a player record that does not belong to you",
+        PlayerReason.NOT_PLAYER_OWNER,
+        "You cannot leave a player that does not belong to you",
       );
     }
 
@@ -62,7 +62,10 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     }
 
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     // Clear activeTeamId if it points to the team the user just left

@@ -2,8 +2,8 @@ import {
   StatsItem,
   TotalStatsItem,
 } from "@/components/match/stats/teams-stats/item";
-import { MoveType } from "@/entities/record";
-import type { ITeamsStats } from "@/lib/features/record/types";
+import { MoveType } from "@/entities/game";
+import type { ITeamsStats } from "@/lib/features/game/types";
 
 export const Points = ({ stats }: { stats: ITeamsStats }) => {
   return (

@@ -20,7 +20,7 @@ export class PlayerRepositoryImpl
     const obj = doc.toObject();
     return {
       ...obj,
-      _id: obj._id.toString(),
+      id: obj.id.toString(),
       teamId: obj.teamId?.toString(),
       userId: obj.userId?.toString(),
     };
@@ -55,7 +55,7 @@ export class PlayerRepositoryImpl
   }
 
   async create(
-    player: Omit<Player, "_id" | "createdAt" | "updatedAt">,
+    player: Omit<Player, "id" | "createdAt" | "updatedAt">,
   ): Promise<Player> {
     const newPlayer = await this.model.create(player);
     return this.toPlayer(newPlayer);

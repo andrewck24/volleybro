@@ -57,7 +57,7 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
       </Empty>
     );
 
-  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?._id);
+  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
   const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
   const showMembership = currentUserPlayer && canManageTeam(currentUserPlayer);
 
@@ -140,14 +140,14 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
       };
       const validated = UpdatePlayerInfoSchema.parse(data);
 
-      await apiClient(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
 
       toast({ title: "已更新", description: "球員資訊已更新" });
-      mutate(`/api/players/${player._id}`);
+      mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
     } catch (error) {
       if (error instanceof ZodError) {

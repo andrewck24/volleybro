@@ -1,12 +1,17 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
+  UnexpectedError,
+} from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
+import { PlayerReason } from "@/entities/errors/reasons/player";
 import type { Player } from "@/entities/player";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 import type { ITransferOwnershipUseCase } from "./transfer-ownership.usecase.interface";
-import { NotFoundError, AuthorizationError, ConflictError, UnexpectedError } from "@/entities/errors/app-error";
-import { PlayerReason } from "@/entities/errors/reasons/player";
-import { CommonReason } from "@/entities/errors/reasons/common";
 
 @injectable()
 export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
@@ -26,27 +31,42 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       userId,
     );
     if (!currentOwner) {
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Current owner not found in team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Current owner not found in team",
+      );
     }
 
     // 2. Verify current user has OWNER role
     if (currentOwner.role !== PlayerRole.OWNER) {
-      throw new AuthorizationError(PlayerReason.NOT_TEAM_OWNER, "Only the current team owner can transfer ownership");
+      throw new AuthorizationError(
+        PlayerReason.NOT_TEAM_OWNER,
+        "Only the current team owner can transfer ownership",
+      );
     }
 
     // 3. Get new owner and verify they're in the same team
     const newOwner = await this.playerRepository.findById(newOwnerId);
     if (!newOwner) {
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Target player not found");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Target player not found",
+      );
     }
 
     if (newOwner.teamId !== teamId) {
-      throw new NotFoundError(PlayerReason.TARGET_NOT_IN_TEAM, "Target player is not in this team");
+      throw new NotFoundError(
+        PlayerReason.TARGET_NOT_IN_TEAM,
+        "Target player is not in this team",
+      );
     }
 
     // 4. Verify new owner is a JOINED member (has userId)
     if (!newOwner.userId) {
-      throw new ConflictError(PlayerReason.TARGET_NOT_MEMBER, "Target player must be an active member of the team");
+      throw new ConflictError(
+        PlayerReason.TARGET_NOT_MEMBER,
+        "Target player must be an active member of the team",
+      );
     }
 
     // 5. Transfer: update new owner to OWNER, demote current owner to ADMIN
@@ -55,11 +75,14 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
     });
 
     if (!updatedNewOwner) {
-      throw new UnexpectedError(CommonReason.UNHANDLED_ERROR, "Failed to update new owner");
+      throw new UnexpectedError(
+        CommonReason.UNHANDLED_ERROR,
+        "Failed to update new owner",
+      );
     }
 
     // 6. Demote current owner to ADMIN
-    await this.playerRepository.update(currentOwner._id, {
+    await this.playerRepository.update(currentOwner.id, {
       role: PlayerRole.ADMIN,
     });
 

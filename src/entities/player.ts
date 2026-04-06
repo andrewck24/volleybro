@@ -39,7 +39,7 @@ export enum PlayerStatus {
 }
 
 export type Player = {
-  _id: string;
+  id: string;
   name: string;
   number?: number;
   position?: Position;
@@ -62,7 +62,10 @@ export function validatePlayerStatus(player: Player): void {
   switch (status) {
     case PlayerStatus.NONE:
       if (userId || email) {
-        throw new ValidationError(CommonReason.INVALID_INPUT, "NONE status must not have userId or email");
+        throw new ValidationError(
+          CommonReason.INVALID_INPUT,
+          "NONE status must not have userId or email",
+        );
       }
       break;
     case PlayerStatus.INVITED:
@@ -81,14 +84,23 @@ export function validatePlayerStatus(player: Player): void {
       break;
     case PlayerStatus.JOINED:
       if (!userId) {
-        throw new ValidationError(CommonReason.INVALID_INPUT, "JOINED status must have userId");
+        throw new ValidationError(
+          CommonReason.INVALID_INPUT,
+          "JOINED status must have userId",
+        );
       }
       if (email) {
-        throw new ValidationError(CommonReason.INVALID_INPUT, "JOINED status must not have email");
+        throw new ValidationError(
+          CommonReason.INVALID_INPUT,
+          "JOINED status must not have email",
+        );
       }
       break;
     default:
-      throw new ValidationError(CommonReason.INVALID_INPUT, `Unknown player status: ${status}`);
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        `Unknown player status: ${status}`,
+      );
   }
 }
 

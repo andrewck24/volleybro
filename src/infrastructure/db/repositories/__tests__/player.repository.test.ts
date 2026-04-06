@@ -144,7 +144,7 @@ describe("PlayerRepository", () => {
         teamId: "team-1",
       };
       (PlayerModel.create as jest.Mock).mockResolvedValue({
-        toObject: () => ({ ...playerInput, _id: "new-id" }),
+        toObject: () => ({ ...playerInput, id: "new-id" }),
       });
 
       const result = await repository.create(playerInput);

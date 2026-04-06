@@ -7,18 +7,18 @@ describe("GetTeamPlayersUseCase", () => {
 
   const teamPlayers = [
     createPlayer({
-      _id: "player-1",
+      id: "player-1",
       name: "Member User",
       email: "member@example.com",
     }),
     createPlayer({
-      _id: "player-2",
+      id: "player-2",
       name: "invited",
       email: "invited@example.com",
       userId: undefined,
     }),
     createPlayer({
-      _id: "player-3",
+      id: "player-3",
       name: "Pure Player",
       email: undefined,
       userId: undefined,
@@ -66,7 +66,7 @@ describe("GetTeamPlayersUseCase", () => {
     const result = await usecase.execute("team-1");
 
     result.forEach((player) => {
-      expect(player._id).toBeDefined();
+      expect(player.id).toBeDefined();
       expect(player.name).toBeDefined();
       expect(player.teamId).toBe("team-1");
       expect(player.createdAt).toBeDefined();

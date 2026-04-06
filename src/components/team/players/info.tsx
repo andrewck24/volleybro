@@ -78,7 +78,7 @@ export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
       <Link
         variant="outline"
         className="w-full"
-        href={`/team/${teamId}/players/${player._id}/edit`}
+        href={`/team/${teamId}/players/${player.id}/edit`}
       >
         <FiEdit2 />
         編輯球員

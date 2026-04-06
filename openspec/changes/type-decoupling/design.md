@@ -178,3 +178,13 @@ All Mongoose repository methods that currently bypass `translateRepositoryError(
 - **Mongoose model name kept as `"Record"` with collection `"records"`** → Avoids database migration. The TypeScript-side rename is purely a code concern. If the collection name becomes confusing later, a MongoDB rename can be done independently.
 - **Presentation Zod schemas duplicate domain type structure** → Intentional. The duplication is the decoupling. Changes to domain types that don't affect the API response require no frontend changes.
 - **`toEntity()` mapper maintenance** → Each repository must keep its mapper in sync with entity changes. Mitigated by TypeScript strict mode catching any field mismatches at compile time.
+
+## Implementation Notes (2026-04-06)
+
+- During implementation review, several naming drifts were corrected to preserve language consistency after `Record`→`Game` migration:
+  - Residual `Record*` and `*Record*` symbols in tests/components were removed.
+  - Landing page feature naming was normalized from `RecordingFeatures` to `GameFeatures`.
+  - Mongoose schema/repository local symbols were normalized (`recordSchema`/`RecordModel` → `gameSchema`/`GameModel`) to match file/domain names.
+  - Player-layer user-facing wording and test descriptions replaced `player record` with context-specific terms (`player`, `player entry`, `player membership`), and reason code names were aligned.
+  - Entry flow state naming was refined from `recording` to `entryDraft` to reflect draft semantics before entry confirmation.
+- These adjustments are consistent with the proposal intent (terminology decoupling and domain-language alignment), while extending beyond the initially explicit mechanical rename checklist items.

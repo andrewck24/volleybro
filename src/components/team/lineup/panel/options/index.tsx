@@ -1,4 +1,5 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import {
   LiberoReplaceDialog,
   LiberoReplaceTrigger,
@@ -6,7 +7,6 @@ import {
 import { LineupError } from "@/components/team/lineup/panel/options/lineup-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/custom/panel";
 import {
   Table,
   TableBody,
@@ -104,9 +104,9 @@ export const LineupOptions = ({
           <TableBody className="text-xl">
             {lineups[status.lineupIndex]?.substitutes &&
               lineups[status.lineupIndex].substitutes.map((lineupPlayer) => {
-                const player = players?.find((p) => p._id === lineupPlayer._id);
+                const player = players?.find((p) => p.id === lineupPlayer.id);
                 return (
-                  <TableRow key={player?._id}>
+                  <TableRow key={player?.id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>
@@ -147,7 +147,7 @@ export const LineupOptions = ({
             {others &&
               others.map((player) => {
                 return (
-                  <TableRow key={player._id}>
+                  <TableRow key={player.id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>

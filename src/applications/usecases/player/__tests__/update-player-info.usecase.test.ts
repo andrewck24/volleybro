@@ -31,7 +31,7 @@ describe("UpdatePlayerInfoUseCase", () => {
       };
 
       const currentPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         name: "Old Name",
         number: 5,
         teamId: "team_123",
@@ -62,7 +62,7 @@ describe("UpdatePlayerInfoUseCase", () => {
       };
 
       const currentPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_123",
       });
 
@@ -90,7 +90,7 @@ describe("UpdatePlayerInfoUseCase", () => {
       };
 
       const currentPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         name: "Old Name",
         email: "test@example.com",
         teamId: "team_123",
@@ -102,14 +102,18 @@ describe("UpdatePlayerInfoUseCase", () => {
         createPlayer({ ...currentPlayer, ...updateData }),
       );
 
-      const result = await useCase.execute("player_123", updateData, "user_456");
+      const result = await useCase.execute(
+        "player_123",
+        updateData,
+        "user_456",
+      );
 
       expect(result.name).toBe(updateData.name);
     });
 
     it("should prevent non-admin from updating", async () => {
       mockPlayerRepository.findById.mockResolvedValue(
-        createPlayer({ _id: "player_123", teamId: "team_123" }),
+        createPlayer({ id: "player_123", teamId: "team_123" }),
       );
       mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
         new Error("Not admin"),

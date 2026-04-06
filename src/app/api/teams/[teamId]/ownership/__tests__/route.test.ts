@@ -1,5 +1,5 @@
-import { PlayerRole } from "@/entities/player";
 import { createPlayer } from "@/__tests__/helpers";
+import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 jest.mock("@/infrastructure/di/inversify.config");
@@ -14,7 +14,7 @@ describe("Ownership API Route - /api/teams/[teamId]/ownership", () => {
     it("should transfer ownership to specified player", () => {
       const body = { newOwnerId: "player_456" };
       const player = createPlayer({
-        _id: "player_456",
+        id: "player_456",
         name: "New Owner",
         role: PlayerRole.OWNER,
         teamId: "team_789",

@@ -36,7 +36,7 @@ export const Invitations = ({ className }: { className?: string }) => {
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
       <Message />
-      <InvitationList userId={user?._id} />
+      <InvitationList userId={user?.id} />
       <Separator content="沒有找到你的隊伍嗎？你可以..." />
       <Link size="lg" href="/team/new">
         <FiPlus />
@@ -96,7 +96,7 @@ function InvitationList({ userId }: { userId?: string }) {
     <ItemGroup className="flex flex-col">
       {invitedPlayers.map((player) => (
         <InvitationItem
-          key={player._id}
+          key={player.id}
           player={player}
           processingId={processingId}
           handleInvitation={handleInvitation}
@@ -134,9 +134,9 @@ function InvitationItem({
           <Button
             size="sm"
             className="pr-3 pl-2"
-            onClick={() => handleInvitation(player._id, "accept")}
+            onClick={() => handleInvitation(player.id, "accept")}
             aria-label="接受邀請"
-            loading={processingId === player._id}
+            loading={processingId === player.id}
             disabled={processingId !== null}
           >
             <RiCheckLine className="size-5" />
@@ -146,9 +146,9 @@ function InvitationItem({
             variant="secondary"
             className="pr-3 pl-2"
             size="sm"
-            onClick={() => handleInvitation(player._id, "reject")}
+            onClick={() => handleInvitation(player.id, "reject")}
             aria-label="拒絕邀請"
-            loading={processingId === player._id}
+            loading={processingId === player.id}
             disabled={processingId !== null}
           >
             <RiCloseLine className="size-5" />

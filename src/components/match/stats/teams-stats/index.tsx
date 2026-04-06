@@ -1,18 +1,18 @@
 "use client";
 import { Points } from "@/components/match/stats/teams-stats/points";
 import {
-  type Record as TRecord,
+  type Game as TGame,
   type TeamStats,
   TeamStatsClass,
-} from "@/entities/record";
-import type { ITeamsStats } from "@/lib/features/record/types";
+} from "@/entities/game";
+import type { ITeamsStats } from "@/lib/features/game/types";
 import { useMemo } from "react";
 
 export const TeamsStats = ({
   teams,
   setIndex,
 }: {
-  teams: TRecord["teams"];
+  teams: TGame["teams"];
   setIndex: number;
 }) => {
   const teamsStats = useMemo<ITeamsStats>(
@@ -28,7 +28,7 @@ export const TeamsStats = ({
 };
 
 export const getTeamsStats = (
-  teams: TRecord["teams"],
+  teams: TGame["teams"],
   setIndex: number,
 ): ITeamsStats => {
   if (teams.home.stats.length === 0 || teams.away.stats.length === 0) {
@@ -58,7 +58,9 @@ const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
       const sv = stats[key] as StatValue;
       const av = acc[key] as StatValue | undefined;
       if (typeof sv === "object") {
-        const avObj = (av as { success: number; error: number } | undefined) ?? {
+        const avObj = (av as
+          | { success: number; error: number }
+          | undefined) ?? {
           success: 0,
           error: 0,
         };

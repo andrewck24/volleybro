@@ -1,14 +1,14 @@
+import {
+  AdjustButton,
+  Court,
+  Inside,
+  LoadingCourt,
+  Outside,
+  PlaceholderCard,
+  PlayerCard,
+} from "@/components/custom/court";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
-import {
-  Court,
-  Outside,
-  Inside,
-  PlayerCard,
-  LoadingCourt,
-  PlaceholderCard,
-  AdjustButton,
-} from "@/components/custom/court";
 
 const meta = {
   title: "Design System/Composites/Court",
@@ -28,17 +28,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const players = [
-  { _id: "1", name: "Alice", number: 1, position: "S" },
-  { _id: "2", name: "Bob", number: 5, position: "OH" },
-  { _id: "3", name: "Carol", number: 9, position: "MB" },
-  { _id: "4", name: "Dave", number: 11, position: "MB" },
-  { _id: "5", name: "Eve", number: 7, position: "OH" },
-  { _id: "6", name: "Frank", number: 3, position: "L" },
+  { id: "1", name: "Alice", number: 1, position: "S" },
+  { id: "2", name: "Bob", number: 5, position: "OH" },
+  { id: "3", name: "Carol", number: 9, position: "MB" },
+  { id: "4", name: "Dave", number: 11, position: "MB" },
+  { id: "5", name: "Eve", number: 7, position: "OH" },
+  { id: "6", name: "Frank", number: 3, position: "L" },
 ];
 
 const liberos = [
-  { _id: "7", name: "Grace", number: 2, position: "L" },
-  { _id: "8", name: "Henry", number: 4, position: "L" },
+  { id: "7", name: "Grace", number: 2, position: "L" },
+  { id: "8", name: "Henry", number: 4, position: "L" },
 ];
 
 const emptyZones = [0, 1, 2];
@@ -50,7 +50,7 @@ export const Default: Story = {
         <AdjustButton />
         {liberos.map((p) => (
           <PlayerCard
-            key={p._id}
+            key={p.id}
             player={p}
             toggled={false}
             list="libero"
@@ -62,7 +62,7 @@ export const Default: Story = {
       <Inside>
         {players.map((p, i) => (
           <PlayerCard
-            key={p._id}
+            key={p.id}
             player={p}
             toggled={false}
             list="starting"
@@ -96,7 +96,7 @@ export const EmptySlots: Story = {
       <Inside>
         {players.slice(0, 3).map((p, i) => (
           <PlayerCard
-            key={p._id}
+            key={p.id}
             player={p}
             toggled={false}
             list="starting"

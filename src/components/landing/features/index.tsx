@@ -1,12 +1,12 @@
 "use client";
 import { AnalyticsFeatures } from "@/components/landing/features/analytics";
-import { RecordingFeatures } from "@/components/landing/features/recording";
+import { GameFeatures } from "@/components/landing/features/game";
 import { TeamFeatures } from "@/components/landing/features/team";
-import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export const Features = () => {
   return (
@@ -14,15 +14,14 @@ export const Features = () => {
       data-testid="features-section"
       className="flex w-full flex-col items-center justify-center gap-12 px-6 py-12 lg:px-12"
     >
-      <RecordingFeatures />
+      <GameFeatures />
       <AnalyticsFeatures />
       <TeamFeatures />
     </section>
   );
 };
 
-interface FeatureCardsContainerProps
-  extends React.HTMLAttributes<HTMLDivElement> {
+interface FeatureCardsContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
@@ -82,7 +81,7 @@ export const FeatureCard = ({
       <div
         data-testid={demoTestId}
         className={cn(
-          "flex aspect-[3/4] w-full flex-1 items-center justify-center rounded-lg p-2 md:aspect-square lg:aspect-auto lg:h-full",
+          "flex aspect-3/4 w-full flex-1 items-center justify-center rounded-lg p-2 md:aspect-square lg:aspect-auto lg:h-full",
           gradientClass,
         )}
       >
@@ -93,7 +92,7 @@ export const FeatureCard = ({
 };
 
 interface FeatureDemoImageProps {
-  feature: "recording" | "team";
+  feature: "game" | "team";
   number: number;
   alt: string;
 }
@@ -116,18 +115,18 @@ export const FeatureDemoImage = ({
 
   if (!mounted) {
     return (
-      <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl bg-background">
+      <div className="relative aspect-18/39 h-full overflow-hidden rounded-3xl bg-background">
         <div className="flex h-full w-full animate-pulse items-center justify-center bg-muted" />
       </div>
     );
   }
 
   return (
-    <div className="relative aspect-[18/39] h-full overflow-hidden rounded-3xl">
+    <div className="relative aspect-18/39 h-full overflow-hidden rounded-3xl">
       <div
         className={cn(
           "absolute inset-0 flex size-full items-center justify-center transition-opacity duration-300",
-          imageLoaded ? "opacity-0" : "animate-pulse opacity-100 bg-muted",
+          imageLoaded ? "opacity-0" : "animate-pulse bg-muted opacity-100",
         )}
       />
       <Image

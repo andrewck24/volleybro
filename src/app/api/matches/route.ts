@@ -1,7 +1,7 @@
 import { ValidationError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import { findMatchesController } from "@/interface/controllers/record/match.controller";
+import { findMatchesController } from "@/interface/controllers/game/match.controller";
 import { withErrorHandler } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
 

@@ -1,5 +1,5 @@
-import type { Set } from "@/entities/record";
-import { getPreviousRally } from "@/lib/features/record/helpers";
+import type { Set } from "@/entities/game";
+import { getPreviousRally } from "@/lib/features/game/helpers";
 import { cn } from "@/lib/utils";
 
 export const Scores = ({ sets }: { sets: Set[] }) => {

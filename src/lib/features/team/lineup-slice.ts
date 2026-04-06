@@ -1,28 +1,28 @@
+import type { Lineup, Position } from "@/entities/team";
+import {
+  LineupOptionMode,
+  type ReduxLineupState,
+  type ReduxLineupStatus,
+} from "@/lib/features/team/types";
 import {
   createSlice,
   type CaseReducer,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { Lineup, Position } from "@/entities/team";
-import {
-  type ReduxLineupState,
-  type ReduxLineupStatus,
-  LineupOptionMode,
-} from "@/lib/features/team/types";
 
 const initialState: ReduxLineupState = {
   status: {
     edited: false,
     lineupIndex: 0,
     optionMode: LineupOptionMode.NONE,
-    editingMember: { _id: null, list: "", zone: null },
+    editingMember: { id: null, list: "", zone: null },
   },
   lineups: [],
 };
 
 const initialize: CaseReducer<ReduxLineupState, PayloadAction<Lineup[]>> = (
   state,
-  action
+  action,
 ) => {
   const lineups = action.payload;
   return {
@@ -42,7 +42,7 @@ const rotateLineup: CaseReducer<ReduxLineupState> = (state) => {
 
 const setLineupIndex: CaseReducer<ReduxLineupState, PayloadAction<number>> = (
   state,
-  action
+  action,
 ) => {
   state.status.lineupIndex = action.payload;
 };
@@ -74,7 +74,7 @@ const setEditingPlayer: CaseReducer<
   ReduxLineupState,
   PayloadAction<ReduxLineupStatus["editingMember"]>
 > = (state, action) => {
-  const { _id, list, zone } = action.payload;
+  const { id, list, zone } = action.payload;
   if (
     list === state.status.editingMember.list &&
     zone === state.status.editingMember.zone
@@ -82,8 +82,8 @@ const setEditingPlayer: CaseReducer<
     state.status.editingMember = initialState.status.editingMember;
     state.status.optionMode = LineupOptionMode.NONE;
   } else {
-    state.status.editingMember = { _id, list, zone };
-    state.status.optionMode = _id
+    state.status.editingMember = { id, list, zone };
+    state.status.optionMode = id
       ? LineupOptionMode.PLAYERINFO
       : LineupOptionMode.SUBSTITUTES;
   }
@@ -96,7 +96,7 @@ const removeEditingPlayer: CaseReducer<ReduxLineupState> = (state) => {
   if (list === "starting") {
     state.lineups[lineupIndex].starting[zone - 1] = {
       ...state.lineups[lineupIndex].starting[zone - 1],
-      _id: null,
+      id: null,
     };
   } else {
     state.lineups[lineupIndex].liberos.splice(zone - 1, 1);
@@ -120,20 +120,21 @@ const replaceEditingPlayer: CaseReducer<
   PayloadAction<ReduxLineupStatus["editingMember"]>
 > = (state, action) => {
   const { lineupIndex } = state.status;
-  const { _id, list, zone } = action.payload;
+  const { id, list, zone } = action.payload;
   const editingMember = state.status.editingMember;
-  if (list && zone != null) state.lineups[lineupIndex][list].splice(zone - 1, 1);
-  if (list && editingMember._id) {
-    state.lineups[lineupIndex][list].push({ _id: editingMember._id });
+  if (list && zone != null)
+    state.lineups[lineupIndex][list].splice(zone - 1, 1);
+  if (list && editingMember.id) {
+    state.lineups[lineupIndex][list].push({ id: editingMember.id });
   }
   if (editingMember.list && editingMember.zone != null) {
     state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
       ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
-      _id,
+      id,
     };
   }
   state.status.edited = true;
-  state.status.editingMember._id = _id;
+  state.status.editingMember.id = id;
   state.status.optionMode = LineupOptionMode.PLAYERINFO;
 };
 
@@ -142,8 +143,8 @@ const addSubstitutePlayer: CaseReducer<
   PayloadAction<string>
 > = (state, action) => {
   const { lineupIndex } = state.status;
-  const _id = action.payload;
-  state.lineups[lineupIndex].substitutes.push({ _id });
+  const id = action.payload;
+  state.lineups[lineupIndex].substitutes.push({ id });
   state.status.edited = true;
 };
 
@@ -152,10 +153,10 @@ const removeSubstitutePlayer: CaseReducer<
   PayloadAction<string>
 > = (state, action) => {
   const { lineupIndex } = state.status;
-  const _id = action.payload;
+  const id = action.payload;
   state.lineups[lineupIndex].substitutes = state.lineups[
     lineupIndex
-  ].substitutes.filter((player) => player._id !== _id);
+  ].substitutes.filter((player) => player.id !== id);
   state.status.edited = true;
 };
 

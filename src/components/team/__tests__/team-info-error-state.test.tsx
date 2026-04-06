@@ -1,9 +1,9 @@
+import { createPlayer } from "@/__tests__/helpers";
+import TeamInfo from "@/components/team/info/index";
+import type { AppErrorCode } from "@/entities/errors/app-error";
+import { ApiClientError } from "@/lib/api/api-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import TeamInfo from "@/components/team/info/index";
-import { createPlayer } from "@/__tests__/helpers";
-import { ApiClientError } from "@/lib/api/api-client";
-import type { AppErrorCode } from "@/entities/errors/app-error";
 
 // Mock apiClient
 const mockApiClient = jest.fn();
@@ -31,7 +31,7 @@ jest.mock("@/lib/api/error-toast", () => ({
 }));
 
 // Mock use-data hooks
-const currentUser = { _id: "user-1", name: "Current User" };
+const currentUser = { id: "user-1", name: "Current User" };
 const currentPlayer = createPlayer({
   name: "Current User",
   email: "user@example.com",
@@ -40,7 +40,7 @@ const currentPlayer = createPlayer({
 const mockMutate = jest.fn();
 jest.mock("@/hooks/use-data", () => ({
   useTeam: () => ({
-    team: { _id: "team-1", name: "Test Team", nickname: "TT" },
+    team: { id: "team-1", name: "Test Team", nickname: "TT" },
     isLoading: false,
   }),
   useTeamPlayers: () => ({
@@ -66,7 +66,7 @@ function createApiError(
   status: number,
   code: string,
   reason: string,
-  detail: string
+  detail: string,
 ) {
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
@@ -88,8 +88,8 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
         403,
         "AUTHORIZATION",
         "NOT_ALLOWED",
-        "Cannot leave team as owner"
-      )
+        "Cannot leave team as owner",
+      ),
     );
 
     render(<TeamInfo teamId="team-1" />);
@@ -103,14 +103,12 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
     // Error message should appear inline in dialog
     await waitFor(() => {
       expect(
-        screen.getByText("Cannot leave team as owner")
+        screen.getByText("Cannot leave team as owner"),
       ).toBeInTheDocument();
     });
 
     // Dialog should still be visible
-    expect(
-      screen.getByText("確定要離開這個隊伍嗎？")
-    ).toBeInTheDocument();
+    expect(screen.getByText("確定要離開這個隊伍嗎？")).toBeInTheDocument();
 
     expect(mockShowErrorToast).not.toHaveBeenCalled();
   });
@@ -122,8 +120,8 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
         500,
         "UNEXPECTED",
         "UNHANDLED_ERROR",
-        "An unexpected error occurred"
-      )
+        "An unexpected error occurred",
+      ),
     );
 
     render(<TeamInfo teamId="team-1" />);

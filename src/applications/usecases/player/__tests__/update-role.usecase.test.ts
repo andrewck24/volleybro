@@ -27,7 +27,7 @@ describe("UpdateRoleUseCase", () => {
       const userId = "user_456";
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         teamId: "team_123",
       });
 
@@ -51,7 +51,7 @@ describe("UpdateRoleUseCase", () => {
       const newRole = PlayerRole.MEMBER;
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         name: "Test Admin",
         teamId: "team_123",
         role: PlayerRole.ADMIN,
@@ -77,7 +77,7 @@ describe("UpdateRoleUseCase", () => {
       const userId = "user_456";
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         teamId: "team_123",
       });
 

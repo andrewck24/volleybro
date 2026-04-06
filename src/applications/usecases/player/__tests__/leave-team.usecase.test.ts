@@ -35,7 +35,7 @@ describe("LeaveTeamUseCase", () => {
   describe("execute", () => {
     it("should set status to NONE and clear userId when leaving", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
@@ -60,7 +60,7 @@ describe("LeaveTeamUseCase", () => {
 
     it("should not clear activeTeamId if it points to a different team", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",
@@ -90,9 +90,9 @@ describe("LeaveTeamUseCase", () => {
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it("should reject if user does not own the player record", async () => {
+    it("should reject if user does not own the player", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_999",
@@ -107,7 +107,7 @@ describe("LeaveTeamUseCase", () => {
 
     it("should reject if owner tries to leave the team", async () => {
       const owner = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         name: "Team Owner",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
@@ -124,7 +124,7 @@ describe("LeaveTeamUseCase", () => {
 
     it("should reject if update fails", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         status: PlayerStatus.JOINED,
         userId: "user_456",

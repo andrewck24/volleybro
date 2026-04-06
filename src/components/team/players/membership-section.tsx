@@ -51,7 +51,7 @@ export function MembershipSection({
   const [isTransferring, setIsTransferring] = useState(false);
 
   const revalidate = () => {
-    mutate(`/api/players/${player._id}`);
+    mutate(`/api/players/${player.id}`);
     mutate(`/api/teams/${teamId}/players`);
   };
 
@@ -59,7 +59,7 @@ export function MembershipSection({
     setRemoveError(null);
     setIsRemoving(true);
     try {
-      await apiClient(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player.id}`, {
         method: "DELETE",
       });
 
@@ -84,7 +84,7 @@ export function MembershipSection({
       await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newOwnerId: player._id }),
+        body: JSON.stringify({ newOwnerId: player.id }),
       });
 
       setTransferOpen(false);
@@ -127,7 +127,11 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full" disabled={isRemoving}>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isRemoving}
+                >
                   移除成員
                 </Button>
               </AlertDialogTrigger>
@@ -174,7 +178,11 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full" disabled={isTransferring}>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isTransferring}
+                >
                   移轉所有權給此球員
                 </Button>
               </AlertDialogTrigger>
@@ -211,7 +219,7 @@ export function MembershipSection({
   );
 }
 
-type FoundUser = { _id: string; name: string; image?: string };
+type FoundUser = { id: string; name: string; image?: string };
 
 // --- NONE: invite section with user search ---
 function InviteSection({
@@ -254,7 +262,7 @@ function InviteSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role }),
@@ -354,7 +362,7 @@ function InvitedSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "DELETE",
       });
 
@@ -420,7 +428,7 @@ function JoinedSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),

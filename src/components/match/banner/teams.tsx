@@ -1,17 +1,17 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
-import type { Set, Team } from "@/entities/record";
-import { useRecord } from "@/hooks/use-data";
+import type { Set, Team } from "@/entities/game";
+import { useGame } from "@/hooks/use-data";
 import { RiGroupLine } from "react-icons/ri";
 
-export const Teams = ({ recordId }: { recordId: string }) => {
-  const { record } = useRecord(recordId);
+export const Teams = ({ gameId }: { gameId: string }) => {
+  const { game } = useGame(gameId);
 
   return (
     <div className="flex w-full flex-row items-center justify-center gap-2 py-2">
-      <TeamAvatar team={record!.teams.home} isHome={true} />
-      <SetScore sets={record!.sets} />
-      <TeamAvatar team={record!.teams.away} isHome={false} />
+      <TeamAvatar team={game!.teams.home} isHome={true} />
+      <SetScore sets={game!.sets} />
+      <TeamAvatar team={game!.teams.away} isHome={false} />
     </div>
   );
 };

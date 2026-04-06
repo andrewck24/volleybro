@@ -1,7 +1,7 @@
 export {
+  createMockGameRepository,
   createMockPlayerRepository,
   createMockProfileRepository,
-  createMockRecordRepository,
   createMockTeamRepository,
   createMockUserRepository,
 } from "@/__tests__/helpers/mock-repositories";
@@ -12,9 +12,9 @@ export {
 } from "@/__tests__/helpers/mock-services";
 
 export {
+  createGame,
   createPlayer,
   createProfile,
-  createRecord,
   createTeam,
   createUser,
 } from "@/__tests__/helpers/fixtures";

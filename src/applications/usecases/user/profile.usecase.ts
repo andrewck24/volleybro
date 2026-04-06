@@ -1,9 +1,9 @@
-import { inject, injectable } from "inversify";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
-import type { Profile } from "@/entities/profile";
 import { ValidationError } from "@/entities/errors/app-error";
 import { ProfileReason } from "@/entities/errors/reasons/profile";
+import type { Profile } from "@/entities/profile";
 import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
 
 // ============ Get Profile Use Case ============
 
@@ -58,7 +58,7 @@ export class CreateProfileUseCase {
 
 export interface IUpdateProfileInput {
   userId: string;
-  updates: Partial<Omit<Profile, "_id" | "userId">>;
+  updates: Partial<Omit<Profile, "id" | "userId">>;
 }
 
 export type IUpdateProfileOutput = Profile | null;
@@ -73,10 +73,10 @@ export class UpdateProfileUseCase {
   async execute(input: IUpdateProfileInput): Promise<IUpdateProfileOutput> {
     const { userId, updates } = input;
 
-    if ("userId" in updates || "_id" in updates) {
+    if ("userId" in updates || "id" in updates) {
       throw new ValidationError(
         ProfileReason.INVALID_EMAIL,
-        "Cannot update userId or _id fields",
+        "Cannot update userId or id fields",
       );
     }
 
@@ -86,7 +86,7 @@ export class UpdateProfileUseCase {
     }
 
     const updatedProfile = await this.profileRepository.update(
-      { _id: existingProfile._id },
+      { id: existingProfile.id },
       { ...existingProfile, ...updates },
     );
 

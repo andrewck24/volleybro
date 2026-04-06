@@ -1,7 +1,7 @@
+import type { Game, MatchResult } from "@/entities/game";
 import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
-import type { MatchResult, Record } from "@/entities/record";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
@@ -29,7 +29,7 @@ const useHasCache = (key: string) => {
 // Optimized SWR configuration presets
 // Deduplication intervals prevent redundant requests when multiple components mount simultaneously
 const SWR_CONFIG = {
-  // Default config for single-resource fetches (user, team, record)
+  // Default config for single-resource fetches (user, team, game)
   DEFAULT: {
     dedupingInterval: 5 * 60 * 1000, // 5 minutes - prevent concurrent requests
     focusThrottleInterval: 5 * 60 * 1000, // 5 minutes - prevent refetch on window focus
@@ -98,7 +98,7 @@ export const useActiveTeamId = () => {
     error: profileError,
     mutate: mutateProfile,
   } = useProfile();
-  const { players, isLoading: playersLoading } = useUserPlayers(user?._id);
+  const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
 
   const isLoading =
     userLoading || profileLoading || (!profile?.activeTeamId && playersLoading);
@@ -174,23 +174,23 @@ export const usePlayer = (
   return { player: data, error, isLoading, isValidating, mutate };
 };
 
-export const useRecord = (
-  recordId: string,
+export const useGame = (
+  gameId: string,
   fetcher = defaultFetcher,
   options = {},
 ) => {
-  const key = `/api/records/${recordId}`;
+  const key = `/api/games/${gameId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Record,
+    Game,
     ApiClientError
-  >(recordId ? key : null, fetcher, {
+  >(gameId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
     ...options,
   });
 
-  return { record: data, error, isLoading, isValidating, mutate };
+  return { game: data, error, isLoading, isValidating, mutate };
 };
 
 export const useMatches = (

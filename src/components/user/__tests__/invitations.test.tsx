@@ -1,6 +1,6 @@
 import { Invitations } from "@/components/user/invitations/index";
-import { apiClient } from "@/lib/api/api-client";
 import { PlayerStatus } from "@/entities/player";
+import { apiClient } from "@/lib/api/api-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
@@ -8,17 +8,17 @@ import React from "react";
 const mockMutate = jest.fn();
 
 jest.mock("@/hooks/use-data", () => ({
-  useUser: () => ({ user: { _id: "user-1" } }),
+  useUser: () => ({ user: { id: "user-1" } }),
   useUserPlayers: () => ({
     players: [
-      { _id: "player-1", teamId: "team-1", status: PlayerStatus.INVITED },
-      { _id: "player-2", teamId: "team-2", status: PlayerStatus.INVITED },
+      { id: "player-1", teamId: "team-1", status: PlayerStatus.INVITED },
+      { id: "player-2", teamId: "team-2", status: PlayerStatus.INVITED },
     ],
     isLoading: false,
     mutate: mockMutate,
   }),
   useTeam: (teamId: string) => ({
-    team: { _id: teamId, name: `Team ${teamId}` },
+    team: { id: teamId, name: `Team ${teamId}` },
     isLoading: false,
   }),
 }));
@@ -37,9 +37,13 @@ jest.mock("@/components/ui/use-toast", () => ({
 
 jest.mock("next/link", () => ({
   __esModule: true,
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => <a href={href}>{children}</a>,
 }));
 
 jest.mock("react-icons/ri", () => ({

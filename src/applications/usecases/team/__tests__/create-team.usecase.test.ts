@@ -40,6 +40,6 @@ describe("CreateTeamUseCase", () => {
       "John Doe",
     );
 
-    expect(result._id).toBe("team-1");
+    expect(result.id).toBe("team-1");
   });
 });

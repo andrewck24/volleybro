@@ -4,7 +4,7 @@ import { FiPlus } from "react-icons/fi";
 import { RiRepeat2Line } from "react-icons/ri";
 
 type CardPlayer = {
-  _id: string;
+  id: string;
   name: string;
   number?: number;
   position: string;

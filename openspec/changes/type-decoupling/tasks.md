@@ -2,15 +2,27 @@
 
 All layers touched simultaneously via find-replace. No logic changes. Implements the `Record` renamed to `Game` with full path migration decision.
 
-- [ ] 1.1 Rename entity file `src/entities/record.ts` → `game.ts`. Rename type `Record` → `Game`, all `_id: string` → `id: string` in every entity type (`Game`, `Player`, `Staff`, `Team`, `MatchResult`, `RallyDetail`, `LineupPlayer`), `team_id` → `teamId` in `Game`. Update `src/entities/player.ts`, `team.ts`, `user.ts`, `profile.ts` with `id` instead of `_id`. Rename `src/entities/errors/reasons/record.ts` → `game.ts`, `RecordReason` → `GameReason` (domain-scoped reason enums requirement).
-- [ ] 1.2 Rename application layer paths and types: `src/applications/repositories/record.repository.interface.ts` → `game.repository.interface.ts` (rename `IRecordRepository` → `IGameRepository`); `src/applications/usecases/record/` → `game/`. Update all `Record`/`_id`/`team_id`/`RecordReason` references in use case and repository interface files.
-- [ ] 1.3 Rename infrastructure paths and types: `src/infrastructure/db/mongoose/schemas/record.ts` → `game.ts` (`RecordDocument` → `GameDocument`, model name `"Record"` → `"Game"`, collection `"records"` → `"games"`); `src/infrastructure/db/repositories/record.repository.mongo.ts` → `game.repository.mongo.ts` (`RecordRepositoryImpl` → `GameRepositoryImpl`); `src/infrastructure/db/repositories/index.ts` export; `src/infrastructure/di/types.ts` symbols (`RecordRepository` → `GameRepository`, all Record use case symbols → Game); `src/infrastructure/di/inversify.config.ts` imports and bindings.
-- [ ] 1.4 Rename interface layer: `src/interface/controllers/record/` → `game/`. Update controller file names and all internal `Record`/`_id`/`team_id` references.
-- [ ] 1.5 Rename API routes: `src/app/api/records/` → `games/`, route param `[recordId]` → `[gameId]` in all nested routes. Update `src/app/api/matches/route.ts` and any other route files referencing Record types.
-- [ ] 1.6 Rename page routes: `src/app/record/[recordId]/` → `game/[gameId]/`; `src/app/match/[recordId]/` → `match/[gameId]/`. Update page params.
-- [ ] 1.7 Rename presentation paths and types: `src/components/record/` → `game/`; `src/lib/features/record/` → `game/` (slice name `"record"` → `"game"`, `recordActions` → `gameActions`, `ReduxRecordState` → `ReduxGameState`); `src/hooks/use-data.ts` (`useRecord` → `useGame`, SWR key `/api/records/` → `/api/games/`). Update all `_id` references to `id` in components, hooks, helpers, actions, and Redux slice.
-- [ ] 1.8 Update all test files across all layers to use new names, paths, and `id` instead of `_id`. Update `src/lib/scoring-moves.ts` import path.
+- [x] 1.1 Rename entity file `src/entities/record.ts` → `game.ts`. Rename type `Record` → `Game`, all `_id: string` → `id: string` in every entity type (`Game`, `Player`, `Staff`, `Team`, `MatchResult`, `RallyDetail`, `LineupPlayer`), `team_id` → `teamId` in `Game`. Update `src/entities/player.ts`, `team.ts`, `user.ts`, `profile.ts` with `id` instead of `_id`. Rename `src/entities/errors/reasons/record.ts` → `game.ts`, `RecordReason` → `GameReason` (domain-scoped reason enums requirement).
+- [x] 1.2 Rename application layer paths and types: `src/applications/repositories/record.repository.interface.ts` → `game.repository.interface.ts` (rename `IRecordRepository` → `IGameRepository`); `src/applications/usecases/record/` → `game/`. Update all `Record`/`_id`/`team_id`/`RecordReason` references in use case and repository interface files.
+- [x] 1.3 Rename infrastructure paths and types: `src/infrastructure/db/mongoose/schemas/record.ts` → `game.ts` (`RecordDocument` → `GameDocument`, model name `"Record"` → `"Game"`, collection `"records"` → `"games"`); `src/infrastructure/db/repositories/record.repository.mongo.ts` → `game.repository.mongo.ts` (`RecordRepositoryImpl` → `GameRepositoryImpl`); `src/infrastructure/db/repositories/index.ts` export; `src/infrastructure/di/types.ts` symbols (`RecordRepository` → `GameRepository`, all Record use case symbols → Game); `src/infrastructure/di/inversify.config.ts` imports and bindings.
+- [x] 1.4 Rename interface layer: `src/interface/controllers/record/` → `game/`. Update controller file names and all internal `Record`/`_id`/`team_id` references.
+- [x] 1.5 Rename API routes: `src/app/api/records/` → `games/`, route param `[recordId]` → `[gameId]` in all nested routes. Update `src/app/api/matches/route.ts` and any other route files referencing Record types.
+- [x] 1.6 Rename page routes: `src/app/record/[recordId]/` → `game/[gameId]/`; `src/app/match/[recordId]/` → `match/[gameId]/`. Update page params.
+- [x] 1.7 Rename presentation paths and types: `src/components/record/` → `game/`; `src/lib/features/record/` → `game/` (slice name `"record"` → `"game"`, `recordActions` → `gameActions`, `ReduxRecordState` → `ReduxGameState`); `src/hooks/use-data.ts` (`useRecord` → `useGame`, SWR key `/api/records/` → `/api/games/`). Update all `_id` references to `id` in components, hooks, helpers, actions, and Redux slice.
+- [x] 1.8 Update all test files across all layers to use new names, paths, and `id` instead of `_id`. Update `src/lib/scoring-moves.ts` import path.
 - [ ] 1.9 Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor: rename Record to Game and replace _id with id across all layers` with a detailed commit message presenting the purposes of the task section and the scope of changes.
+
+### Review Notes (2026-04-06)
+
+- Review-driven naming refinements were applied beyond strict mechanical path/type rename scope:
+  - Test fixtures and ids: remove `createRecord`, `record-*` literal ids in fixtures/tests.
+  - Component symbols: remove remaining `Record*` names under `src/components/game/`.
+  - Landing feature naming: `RecordingFeatures` → `GameFeatures` with related tests/assets.
+  - Schema/repository variable naming: `recordSchema`/`RecordModel` family renamed to `gameSchema`/`GameModel`.
+  - Player wording: remove `player record` phrasing in error messages, comments, and test descriptions; simplify to `player`/`player entry`/`player membership` by context.
+  - Player reason code rename: `CANNOT_LEAVE_OWN_RECORD` → `NOT_PLAYER_OWNER`.
+  - Entry flow semantics refinement: `recording` state/actions/types renamed to `entryDraft`/`setEntryDraft*`/`ReduxEntryDraft`, and entry flow components use local `draft` alias for shorter JSX lines.
+- Verification for this review set is complete (`pnpm lint`, `pnpm typecheck`, `pnpm test` all pass). Commit step remains intentionally deferred for manual review.
 
 ## 2. Repository interface refactor: domain-language methods and entity mappers
 

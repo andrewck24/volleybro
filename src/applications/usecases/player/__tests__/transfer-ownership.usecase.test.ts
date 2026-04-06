@@ -19,7 +19,7 @@ describe("TransferOwnershipUseCase", () => {
   const newOwnerId = "player_002";
 
   const currentOwner = createPlayer({
-    _id: "player_001",
+    id: "player_001",
     name: "Current Owner",
     teamId,
     userId,
@@ -27,7 +27,7 @@ describe("TransferOwnershipUseCase", () => {
   });
 
   const newOwner = createPlayer({
-    _id: newOwnerId,
+    id: newOwnerId,
     name: "New Owner",
     teamId,
     userId: "user_789",

@@ -1,7 +1,7 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/custom/panel";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode } from "@/lib/features/team/types";
@@ -18,7 +18,7 @@ import {
 export const PlayerInfo = ({
   players,
 }: {
-  players: { _id: string; name: string; number?: number }[];
+  players: { id: string; name: string; number?: number }[];
 }) => {
   const dispatch = useAppDispatch();
   const { status, lineups } = useAppSelector((state) => state.lineup);
@@ -31,7 +31,7 @@ export const PlayerInfo = ({
     editingMember.zone != null
       ? lineups[lineupIndex][activeList][editingMember.zone - 1]
       : undefined;
-  const player = players.find((member) => member._id === editingMember._id);
+  const player = players.find((member) => member.id === editingMember.id);
 
   return (
     <PanelContent>

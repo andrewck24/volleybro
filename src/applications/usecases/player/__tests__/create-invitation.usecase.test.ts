@@ -35,7 +35,7 @@ describe("CreateInvitationUseCase", () => {
     const role = PlayerRole.MEMBER;
 
     const nonePlayer = createPlayer({
-      _id: playerId,
+      id: playerId,
       name: "Pure Player",
       teamId,
       status: PlayerStatus.NONE,

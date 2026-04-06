@@ -34,10 +34,13 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
 
     // 2. Verify user is admin of team
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
-    // 3. Delete player record
+    // 3. Delete player
     const deleted = await this.playerRepository.delete(playerId);
     if (!deleted) {
       throw new UnexpectedError(
