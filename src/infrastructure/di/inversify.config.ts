@@ -20,11 +20,11 @@ import {
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
+import { FindGameSummariesUseCase } from "@/applications/usecases/game/game-summaries.usecase";
 import {
   CreateGameUseCase,
   FindGameUseCase,
 } from "@/applications/usecases/game/game.usecase";
-import { FindMatchesUseCase } from "@/applications/usecases/game/matches.usecase";
 import {
   CreateRallyUseCase,
   UpdateRallyUseCase,
@@ -112,8 +112,8 @@ container
   .bind<CreateGameUseCase>(TYPES.CreateGameUseCase)
   .to(CreateGameUseCase);
 container
-  .bind<FindMatchesUseCase>(TYPES.FindMatchesUseCase)
-  .to(FindMatchesUseCase);
+  .bind<FindGameSummariesUseCase>(TYPES.FindGameSummariesUseCase)
+  .to(FindGameSummariesUseCase);
 container.bind<CreateSetUseCase>(TYPES.CreateSetUseCase).to(CreateSetUseCase);
 container.bind<UpdateSetUseCase>(TYPES.UpdateSetUseCase).to(UpdateSetUseCase);
 container

@@ -1,4 +1,4 @@
-import type { Game, MatchResult } from "@/entities/game";
+import type { Game, GameSummary } from "@/entities/game";
 import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
@@ -193,7 +193,7 @@ export const useGame = (
   return { game: data, error, isLoading, isValidating, mutate };
 };
 
-export const useMatches = (
+export const useGameSummaries = (
   teamId: string | undefined,
   fetcher = defaultFetcher,
   options = {},
@@ -204,13 +204,13 @@ export const useMatches = (
   ) => {
     if (!teamId) return null;
     if (previousPageData && !previousPageData.hasMore) return null;
-    if (pageIndex === 0) return `/api/matches?ti=${teamId}`;
-    return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
+    if (pageIndex === 0) return `/api/games?ti=${teamId}`;
+    return `/api/games?ti=${teamId}&li=${previousPageData!.lastId}`;
   };
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =
     useSWRInfinite<{
-      matches: MatchResult[];
+      matches: GameSummary[];
       hasMore: boolean;
       lastId: string;
     }>(getKey, fetcher, {

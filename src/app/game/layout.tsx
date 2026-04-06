@@ -1,6 +1,6 @@
 const GameLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <main className="flex size-full flex-col items-center justify-start pt-[calc(env(safe-area-inset-top)+5.5rem)]">
+    <main className="flex w-full flex-col items-center justify-center gap-2 pt-[calc(env(safe-area-inset-top)+3rem)] pb-[env(safe-area-inset-bottom)]">
       {children}
     </main>
   );

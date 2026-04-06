@@ -158,7 +158,7 @@ describe("GameRepositoryImpl", () => {
   });
 
   describe("findMatchesWithPagination", () => {
-    const mockMatchResults = [
+    const mockGameSummaries = [
       {
         id: new Types.ObjectId(),
         win: true,
@@ -200,7 +200,7 @@ describe("GameRepositoryImpl", () => {
     ];
 
     it("should return paginated match results", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockMatchResults);
+      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
       mockAggregate.mockReturnValue({ exec: mockExec });
 
       const filter = { teamId: mockTeamId };
@@ -213,14 +213,14 @@ describe("GameRepositoryImpl", () => {
 
       expect(mockAggregate).toHaveBeenCalled();
       expect(result).toEqual({
-        data: mockMatchResults,
+        data: mockGameSummaries,
         hasMore: false,
-        lastId: String(mockMatchResults[1].id),
+        lastId: String(mockGameSummaries[1].id),
       });
     });
 
     it("should handle cursor-based pagination correctly", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockMatchResults);
+      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
       mockAggregate.mockReturnValue({ exec: mockExec });
 
       const lastId = new Types.ObjectId().toHexString();
@@ -262,7 +262,7 @@ describe("GameRepositoryImpl", () => {
 
       const mockExec = jest
         .fn()
-        .mockResolvedValue([...mockMatchResults, extraResult]);
+        .mockResolvedValue([...mockGameSummaries, extraResult]);
       mockAggregate.mockReturnValue({ exec: mockExec });
 
       const filter = { teamId: mockTeamId };
@@ -279,7 +279,7 @@ describe("GameRepositoryImpl", () => {
     });
 
     it("should convert string id to ObjectId", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockMatchResults);
+      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
       mockAggregate.mockReturnValue({ exec: mockExec });
 
       const stringId = mockTeamId.toHexString();
@@ -295,7 +295,7 @@ describe("GameRepositoryImpl", () => {
       expect(matchStage.$match.teamId.toHexString()).toBe(stringId);
     });
 
-    it("should correctly transform raw Game to MatchResult format", async () => {
+    it("should correctly transform raw Game to GameSummary format", async () => {
       // Mock a complete raw Game object
       const originalGame = {
         id: new Types.ObjectId(),
@@ -361,8 +361,8 @@ describe("GameRepositoryImpl", () => {
         ],
       };
 
-      // Expected MatchResult after aggregation pipeline transformation
-      const expectedMatchResult = {
+      // Expected GameSummary after aggregation pipeline transformation
+      const expectedGameSummary = {
         id: originalGame.id,
         win: true,
         info: { name: "Test Match" },
@@ -383,7 +383,7 @@ describe("GameRepositoryImpl", () => {
       };
 
       // Mock the aggregation pipeline result
-      const mockExec = jest.fn().mockResolvedValue([expectedMatchResult]);
+      const mockExec = jest.fn().mockResolvedValue([expectedGameSummary]);
       mockAggregate.mockReturnValue({ exec: mockExec });
 
       // Call the method under test
@@ -393,7 +393,7 @@ describe("GameRepositoryImpl", () => {
 
       // Verify the format and content of the result
       expect(result.data.length).toBe(1);
-      expect(result.data[0]).toEqual(expectedMatchResult);
+      expect(result.data[0]).toEqual(expectedGameSummary);
 
       // Verify key transformed data is correct
       const match = result.data[0];

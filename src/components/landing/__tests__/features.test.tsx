@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 
 // Mock dependencies
-jest.mock("@/components/match/stats/teams-stats/points", () => ({
+jest.mock("@/components/game/stats/teams-stats/points", () => ({
   Points: () => <div data-testid="mock-points-chart">Mock Points Chart</div>,
 }));
 

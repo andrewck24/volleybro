@@ -1,7 +1,7 @@
 import type { Game } from "@/entities/game";
 import { getPreviousRally } from "@/lib/features/game/helpers";
 
-export const matchPhaseHelper = (
+export const gamePhaseHelper = (
   game: Game,
   setIndex: number,
   entryIndex: number,

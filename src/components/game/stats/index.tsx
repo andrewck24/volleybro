@@ -1,5 +1,5 @@
 "use client";
-import { TeamsStats } from "@/components/match/stats/teams-stats";
+import { TeamsStats } from "@/components/game/stats/teams-stats";
 import { Button } from "@/components/ui/button";
 import {
   Card,

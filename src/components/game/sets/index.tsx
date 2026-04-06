@@ -1,8 +1,8 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import { Teams } from "@/components/match/banner/teams";
-import { Header } from "@/components/match/header";
-import { SetsList } from "@/components/match/sets/list";
+import { Teams } from "@/components/game/banner/teams";
+import { Header } from "@/components/game/overview-header";
+import { SetsList } from "@/components/game/sets/list";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
@@ -14,7 +14,7 @@ const SetsOverview = ({ gameId }: { gameId: string }) => {
 
   return (
     <Card className="w-full">
-      <Header title="各局紀錄" url={`/match/${gameId}`} />
+      <Header title="各局紀錄" url={`/game/${gameId}`} />
       <Teams gameId={gameId} />
       <SetsList gameId={gameId} />
     </Card>

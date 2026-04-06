@@ -1,4 +1,4 @@
-import { matchPhaseHelper } from "@/lib/features/game/helpers/queries/match-phase.helper";
+import { gamePhaseHelper } from "@/lib/features/game/helpers/queries/game-phase.helper";
 import { getPreviousRally } from "@/lib/features/game/helpers/queries/previous-rally.helper";
 import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-scores.helper";
 import { getServingStatus } from "@/lib/features/game/helpers/queries/serving-status.helper";
@@ -12,9 +12,9 @@ import { createSubstitutionHelper } from "@/lib/features/game/helpers/optimistic
 export {
   createRallyHelper,
   createSubstitutionHelper,
+  gamePhaseHelper,
   getPreviousRally,
   getPreviousScores,
   getServingStatus,
-  matchPhaseHelper,
   updateRallyHelper,
 };

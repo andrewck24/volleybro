@@ -245,7 +245,7 @@ export type Game = {
   sets: Set[];
 };
 
-export type MatchResult = {
+export type GameSummary = {
   id: string;
   win: boolean;
   info: Match;

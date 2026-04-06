@@ -375,7 +375,7 @@ describe("rally.helper.ts", () => {
     });
   });
 
-  describe("processMatchPhase logic", () => {
+  describe("processGamePhase logic", () => {
     describe("set completion", () => {
       it("should mark the set as not completed when scores are below winning threshold", () => {
         const mockGame = createMockGame();

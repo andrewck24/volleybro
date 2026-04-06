@@ -1,16 +1,16 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
-import { Banner } from "@/components/match/banner";
-import { Header } from "@/components/match/header";
-import { Stats } from "@/components/match/stats";
+import { Banner } from "@/components/game/banner";
+import { Header } from "@/components/game/overview-header";
+import { Stats } from "@/components/game/stats";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
 
-const Match = ({ gameId }: { gameId: string }) => {
+const GameOverview = ({ gameId }: { gameId: string }) => {
   const { game, error, isLoading, mutate } = useGame(gameId);
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (isLoading || !game) return <MatchSkeleton />;
+  if (isLoading || !game) return <GameOverviewSkeleton />;
 
   return (
     <>
@@ -21,7 +21,7 @@ const Match = ({ gameId }: { gameId: string }) => {
   );
 };
 
-export function MatchSkeleton() {
+export function GameOverviewSkeleton() {
   return (
     <>
       {/* mirrors Header: fixed top bar with back button + title */}
@@ -82,4 +82,4 @@ export function MatchSkeleton() {
   );
 }
 
-export default Match;
+export default GameOverview;

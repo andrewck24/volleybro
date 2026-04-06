@@ -84,7 +84,7 @@ export const Options = ({ gameId }: { gameId: string }) => {
       );
       mutate(result, false);
       setLiberoDialogOpen(false);
-      if (isNewSet) router.push(`/game/${gameId}?si=${setIndex}`);
+      if (isNewSet) router.push(`/game/${gameId}/sets/${setIndex}/entry`);
     } catch (error) {
       showErrorToast(error, toast);
     } finally {

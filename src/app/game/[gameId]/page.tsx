@@ -1,13 +1,12 @@
-import Game from "@/components/game";
+import GameOverview from "@/components/game/overview";
 
-const GamePage = async (props: {
+const GameOverviewPage = async (props: {
   params: Promise<{ gameId: string }>;
-  searchParams: Promise<{ si: string }>;
 }) => {
-  const { gameId } = await props.params;
-  const { si } = await props.searchParams;
+  const params = await props.params;
+  const { gameId } = params;
 
-  return <Game gameId={gameId} setIndex={Number(si)} />;
+  return <GameOverview gameId={gameId} />;
 };
 
-export default GamePage;
+export default GameOverviewPage;

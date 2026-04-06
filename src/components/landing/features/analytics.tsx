@@ -1,8 +1,8 @@
+import { Points } from "@/components/game/stats/teams-stats/points";
 import {
   FeatureCard,
   FeatureCardsContainer,
 } from "@/components/landing/features";
-import { Points } from "@/components/match/stats/teams-stats/points";
 import {
   ChartContainer,
   ChartTooltip,

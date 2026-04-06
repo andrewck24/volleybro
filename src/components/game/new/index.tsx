@@ -115,7 +115,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
       });
 
       mutate(`/api/games/${game.id}`, game, false);
-      return router.push(`/match/${game.id}`);
+      return router.push(`/game/${game.id}`);
     } catch (err) {
       showErrorToast(err, toast);
     }

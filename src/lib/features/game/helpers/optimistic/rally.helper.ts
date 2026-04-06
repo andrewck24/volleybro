@@ -5,10 +5,7 @@ import {
   EntryType,
   createRallyEntry,
 } from "@/entities/game";
-import {
-  getServingStatus,
-  matchPhaseHelper,
-} from "@/lib/features/game/helpers";
+import { gamePhaseHelper, getServingStatus } from "@/lib/features/game/helpers";
 
 type StatEntry = { success: number; error: number };
 
@@ -28,7 +25,7 @@ export const createRallyHelper = (
 
   game.sets[setIndex].entries[entryIndex] = createRallyEntry(entryDraft);
 
-  const phase = processMatchPhase(game, setIndex, entryIndex, entryDraft);
+  const phase = processGamePhase(game, setIndex, entryIndex, entryDraft);
 
   return { game, phase };
 };
@@ -54,7 +51,7 @@ export const updateRallyHelper = (
   // 若有更新 rally 之得分結果，則重新計算 rotation
   if (originalRally.win !== entryDraft.win) updateRotation(game, setIndex);
 
-  const phase = processMatchPhase(game, setIndex, entryIndex, entryDraft);
+  const phase = processGamePhase(game, setIndex, entryIndex, entryDraft);
 
   return { game, phase };
 };
@@ -135,13 +132,13 @@ const updateRotation = (game: Game, setIndex: number) => {
   game.teams.home.stats[setIndex].rotation = rotation;
 };
 
-const processMatchPhase = (
+const processGamePhase = (
   game: Game,
   setIndex: number,
   entryIndex: number,
   entryDraft: Rally,
 ) => {
-  const phase = matchPhaseHelper(game, setIndex, entryIndex + 1);
+  const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
 
   if (phase.inProgress) {
     // Reset win status if the set/match is still in progress

@@ -1,5 +1,5 @@
 "use client";
-import { Points } from "@/components/match/stats/teams-stats/points";
+import { Points } from "@/components/game/stats/teams-stats/points";
 import {
   type Game as TGame,
   type TeamStats,

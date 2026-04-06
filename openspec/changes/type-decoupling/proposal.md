@@ -49,13 +49,28 @@ Additionally, the domain entity `Record` conflicts with TypeScript's built-in `R
 
 ### URL and path rename
 
-- **BREAKING**: Rename page route `src/app/record/[recordId]/` to `src/app/game/[gameId]/`
-- **BREAKING**: Rename page route param `src/app/match/[recordId]/` to `src/app/match/[gameId]/`
+- **BREAKING**: Restructure page routes under unified `/game/[gameId]/` namespace: overview at `/game/[gameId]/`, sets at `/game/[gameId]/sets/`, entry (recording) at `/game/[gameId]/sets/[setIndex]/entry/`
+- **BREAKING**: Remove `/match/[gameId]/` page route (absorbed into `/game/[gameId]/`)
 - **BREAKING**: Rename API routes `src/app/api/records/` to `src/app/api/games/`
+- **BREAKING**: Consolidate `GET /api/matches?ti=X&li=Y` into `GET /api/games?ti=X&li=Y` (same controller directory, different controller function)
 - Rename component directory `src/components/record/` to `src/components/game/`
+- Absorb `src/components/match/` into `src/components/game/` (game overview/stats/sets components)
 - Rename Redux feature `src/lib/features/record/` to `src/lib/features/game/`
-- Rename hooks: `use-data.ts` references updated, record-specific hooks renamed
-- Update all SWR keys and API fetch URLs
+- Rename hooks: `useRecord` to `useGame`, `useMatches` to `useGameSummaries`; update SWR keys to `/api/games/`
+- API routes retain `?si=N&ei=M` searchParams for setIndex/entryIndex (RESTful params migration deferred to a separate change)
+
+### Match namespace clarification
+
+The term `match` is reserved for the future `tournament` entity that links two opposing teams' game records via a shared UID. Current uses of "match" that actually refer to game results or game review are renamed:
+
+- `MatchResult` entity type to `GameSummary` (presentation-oriented summary of a completed `Game`)
+- `FindMatchesUseCase` to `FindGameSummariesUseCase`; `IFindMatchesInput/Output` to `IFindGameSummariesInput/Output`
+- `findMatchesController` to `findGameSummariesController`; `match.controller.ts` to `game-summary.controller.ts`
+- `matchPhaseHelper` to `gamePhaseHelper`; `processMatchPhase` to `processGamePhase` (avoids collision with `MatchPhase` enum which describes tournament bracket phase)
+- `Matches` home component to `GameHistory`
+- DI symbol `FindMatchesUseCase` to `FindGameSummariesUseCase`
+
+The following correctly reference tournament match metadata and are NOT renamed: `Match` type, `MatchPhase`/`MatchDivision`/`MatchCategory` enums, `MatchInfo` component, `MatchInfoFormSchema`, `MatchDocument`/`matchSchema`, `src/lib/constants/match.ts`.
 
 ### Dead code cleanup
 

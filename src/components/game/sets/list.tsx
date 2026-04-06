@@ -1,7 +1,7 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
 import { SetOptions } from "@/components/game/set-options";
-import { SetEdit } from "@/components/match/sets/edit";
+import { SetEdit } from "@/components/game/sets/edit";
 import {
   Accordion,
   AccordionContent,
@@ -115,7 +115,7 @@ const SetItem = ({
           ) : (
             <Button
               size="lg"
-              onClick={() => router.push(`/game/${gameId}?si=${setIndex}`)}
+              onClick={() => router.push(`/game/${gameId}/sets/${setIndex}/entry`)}
             >
               進入比賽
               <RiArrowRightLine className="size-6" />

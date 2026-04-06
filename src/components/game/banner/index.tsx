@@ -1,6 +1,6 @@
 "use client";
-import { Scores } from "@/components/match/banner/scores";
-import { Teams } from "@/components/match/banner/teams";
+import { Scores } from "@/components/game/banner/scores";
+import { Teams } from "@/components/game/banner/teams";
 import { Button, Link } from "@/components/ui/button";
 import { Match, MatchPhase } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
@@ -20,7 +20,7 @@ export const Banner = ({ gameId }: { gameId: string }) => {
           <RiInformationLine />
           賽事資訊
         </Button>
-        <Link href={`/match/${gameId}/sets`} size="lg">
+        <Link href={`/game/${gameId}/sets`} size="lg">
           <RiFileListLine />
           賽事記錄
         </Link>

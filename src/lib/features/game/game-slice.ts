@@ -1,8 +1,8 @@
 import { EntryType, Side, type Game } from "@/entities/game";
 import {
+  gamePhaseHelper,
   getPreviousScores,
   getServingStatus,
-  matchPhaseHelper,
 } from "@/lib/features/game/helpers";
 import type {
   ReduxEntryDraft,
@@ -63,7 +63,7 @@ const initialize: CaseReducer<
   const { game, setIndex } = action.payload;
   const set = game.sets[setIndex];
   const entryIndex = set?.entries?.length || 0;
-  const { inProgress, isSetPoint } = matchPhaseHelper(
+  const { inProgress, isSetPoint } = gamePhaseHelper(
     game,
     setIndex,
     entryIndex,
@@ -255,7 +255,7 @@ const setEditingEntryStatus: CaseReducer<
   const { game, entryIndex } = action.payload;
   const set = game.sets[setIndex];
   const entry = set.entries[entryIndex];
-  const { inProgress, isSetPoint } = matchPhaseHelper(
+  const { inProgress, isSetPoint } = gamePhaseHelper(
     game,
     setIndex,
     entryIndex,

@@ -8,7 +8,7 @@ import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
 import { GamePreview } from "@/components/game/preview";
 import { SetOptions } from "@/components/game/set-options";
-import { StatsForOneSet } from "@/components/match/stats";
+import { StatsForOneSet } from "@/components/game/stats";
 import {
   Accordion,
   AccordionContent,

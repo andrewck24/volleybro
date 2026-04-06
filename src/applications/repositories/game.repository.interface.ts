@@ -1,5 +1,5 @@
 import type { IBaseRepository } from "@/applications/repositories/base.repository.interface";
-import type { Game, MatchResult } from "@/entities/game";
+import type { Game, GameSummary } from "@/entities/game";
 
 export interface IGameRepository extends IBaseRepository<Game> {
   findMatchesWithPagination(
@@ -10,5 +10,5 @@ export interface IGameRepository extends IBaseRepository<Game> {
       sortField?: string;
       sortDirection?: 1 | -1;
     },
-  ): Promise<{ data: MatchResult[]; hasMore: boolean; lastId: string }>;
+  ): Promise<{ data: GameSummary[]; hasMore: boolean; lastId: string }>;
 }

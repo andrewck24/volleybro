@@ -1,7 +1,7 @@
 import {
   StatsItem,
   TotalStatsItem,
-} from "@/components/match/stats/teams-stats/item";
+} from "@/components/game/stats/teams-stats/item";
 import { MoveType } from "@/entities/game";
 import type { ITeamsStats } from "@/lib/features/game/types";
 

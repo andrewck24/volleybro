@@ -1,23 +1,23 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import type { MatchResult } from "@/entities/game";
+import type { GameSummary } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
-export interface IFindMatchesInput {
+export interface IFindGameSummariesInput {
   params: { teamId: string; lastId?: string; limit?: number };
 }
 
-export type IFindMatchesOutput = {
-  matches: MatchResult[];
+export type IFindGameSummariesOutput = {
+  matches: GameSummary[];
   hasMore: boolean;
   lastId: string;
 };
 
 @injectable()
-export class FindMatchesUseCase {
+export class FindGameSummariesUseCase {
   constructor(
     @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
     @inject(TYPES.AuthenticationService)
@@ -27,8 +27,8 @@ export class FindMatchesUseCase {
   ) {}
 
   async execute(
-    input: IFindMatchesInput,
-  ): Promise<IFindMatchesOutput | undefined> {
+    input: IFindGameSummariesInput,
+  ): Promise<IFindGameSummariesOutput | undefined> {
     const { params } = input;
     const user = await this.authenticationService.verifySession();
 

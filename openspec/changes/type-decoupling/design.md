@@ -93,6 +93,46 @@ The `entities/game.ts` file also renames `team_id` to `teamId` to align with the
 
 The Mongoose model name changes from `"Record"` to `"Game"` and the collection name from `"records"` to `"games"`. This requires a MongoDB collection rename migration (`db.records.renameCollection("games")`). The risk is acceptable given the application is pre-launch with limited data. A migration script is included in the tasks. The schema file renames to `game.ts`, model registration becomes `model<GameDocument>("Game", gameSchema, "games")`.
 
+### Match namespace clarification: game-result/review concepts renamed
+
+The term "match" has two semantic uses in the codebase. Tournament metadata (`Match` type, `MatchPhase`/`MatchDivision`/`MatchCategory` enums) correctly describes the competitive event and is retained unchanged — it will become its own entity when the tournament feature is built. However, uses of "match" meaning "viewing/browsing completed game records" are renamed to avoid future namespace collision:
+
+| Current                        | New                              | Reason                                                                                            |
+| ------------------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `MatchResult` type             | `GameSummary`                    | Presentation-oriented summary of a completed `Game`, not a tournament match                       |
+| `FindMatchesUseCase`           | `FindGameSummariesUseCase`       | Retrieves game summaries for history, not tournament matches                                      |
+| `IFindMatchesInput/Output`     | `IFindGameSummariesInput/Output` | Use case I/O types                                                                                |
+| `findMatchesController`        | `findGameSummariesController`    | Controller function                                                                               |
+| `match.controller.ts`          | `game-summary.controller.ts`     | Controller file                                                                                   |
+| `matchPhaseHelper`             | `gamePhaseHelper`                | Calculates game scoring state; avoids collision with `MatchPhase` enum (tournament bracket phase) |
+| `processMatchPhase`            | `processGamePhase`               | Helper in rally optimistic update                                                                 |
+| `Matches` component            | `GameHistory`                    | Home page game history list                                                                       |
+| `useMatches` hook              | `useGameSummaries`               | SWR hook for game summaries                                                                       |
+| DI symbol `FindMatchesUseCase` | `FindGameSummariesUseCase`       | Inversify symbol                                                                                  |
+
+### Unified game page route structure
+
+All game-related pages are consolidated under `/game/[gameId]/`:
+
+| Current                 | New                                     | Purpose                                   |
+| ----------------------- | --------------------------------------- | ----------------------------------------- |
+| `/match/[gameId]/`      | `/game/[gameId]/`                       | Game overview (banner, teams, scores)     |
+| `/match/[gameId]/sets/` | `/game/[gameId]/sets/`                  | Sets list with per-set details            |
+| `/game/[gameId]?si=N`   | `/game/[gameId]/sets/[setIndex]/entry/` | Entry (recording) page for a specific set |
+
+The `/match/` page route is removed entirely, reserving it for the future tournament feature. The entry page switches from `searchParams` (`?si=N`) to route params (`[setIndex]`), but API routes retain `?si=N&ei=M` searchParams — RESTful params migration for API routes is deferred to a separate change.
+
+Layout considerations: the overview (`/game/[gameId]/`) and entry (`/game/[gameId]/sets/[setIndex]/entry/`) pages currently use different layouts (different padding, alignment). The unified route structure uses a shared `game` layout with per-page layout adjustments via nested layouts or CSS.
+
+### API endpoint consolidation for game summaries
+
+`GET /api/matches?ti=X&li=Y` is consolidated into `GET /api/games?ti=X&li=Y`. The `/api/games/route.ts` GET handler dispatches to the appropriate controller based on query params:
+
+- With `ti` param: delegates to `findGameSummariesController` (paginated game summary list)
+- Without `ti` param (existing): delegates to `findGameController` (single game by teamId)
+
+The `/api/matches/route.ts` file is deleted. The `findGameSummariesController` and `findGameController` are separate functions in `src/interface/controllers/game/`.
+
 ### Delete `IBaseRepository`, all repos use domain-language interfaces
 
 `IBaseRepository<T>` with `filter: Record<string, unknown>` is deleted. Each repository interface defines its own domain-specific methods following the existing `IPlayerRepository` pattern:

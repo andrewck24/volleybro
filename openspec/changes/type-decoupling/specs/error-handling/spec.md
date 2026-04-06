@@ -29,7 +29,7 @@ Every public method on a Mongoose repository implementation SHALL wrap its body 
 
 #### Scenario: Custom repository method translates errors
 
-- **WHEN** a custom repository method (e.g., `PlayerRepositoryImpl.findTeamOwner()`, `GameRepositoryImpl.findMatchesWithPagination()`) encounters a Mongoose error
+- **WHEN** a custom repository method (e.g., `PlayerRepositoryImpl.findTeamOwner()`, `GameRepositoryImpl.findGameSummaries()`) encounters a Mongoose error
 - **THEN** the method SHALL catch the error and call `translateRepositoryError()` before re-throwing
 - **THEN** the raw Mongoose error SHALL NOT propagate to the use case layer
 

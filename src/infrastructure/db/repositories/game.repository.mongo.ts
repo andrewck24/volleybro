@@ -1,5 +1,5 @@
 import { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { EntryType, Game, MatchResult } from "@/entities/game";
+import { EntryType, Game, GameSummary } from "@/entities/game";
 import {
   GameDocument,
   Game as GameModel,
@@ -23,7 +23,7 @@ export class GameRepositoryImpl
       sortField?: string;
       sortDirection?: 1 | -1;
     } = {},
-  ): Promise<{ data: MatchResult[]; hasMore: boolean; lastId: string }> {
+  ): Promise<{ data: GameSummary[]; hasMore: boolean; lastId: string }> {
     // 設定默認參數
     const {
       lastId,
@@ -52,7 +52,7 @@ export class GameRepositoryImpl
 
     // 多取一條用來判斷是否有下一頁
     const results = await this.model
-      .aggregate<MatchResult>([
+      .aggregate<GameSummary>([
         // 第一步：篩選條件
         { $match: filter } as mongoose.PipelineStage,
 

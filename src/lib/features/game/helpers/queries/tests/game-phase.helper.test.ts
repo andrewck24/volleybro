@@ -1,14 +1,14 @@
 import { type Game, EntryType, MoveType } from "@/entities/game";
-import { matchPhaseHelper } from "@/lib/features/game/helpers";
+import { gamePhaseHelper } from "@/lib/features/game/helpers";
 
-describe("matchPhaseHelper", () => {
+describe("gamePhaseHelper", () => {
   test("should return in progress when no entries exist but first set is created", () => {
     const mockGame = {
       sets: [{ entries: [] }],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 0);
+    const result = gamePhaseHelper(mockGame, 0, 0);
 
     expect(result).toEqual({ inProgress: true, isSetPoint: false });
   });
@@ -19,7 +19,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 0);
+    const result = gamePhaseHelper(mockGame, 0, 0);
 
     expect(result).toEqual({ inProgress: false, isSetPoint: false });
   });
@@ -41,7 +41,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 1);
+    const result = gamePhaseHelper(mockGame, 0, 1);
 
     expect(result).toEqual({ inProgress: true, isSetPoint: false });
   });
@@ -63,7 +63,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 1);
+    const result = gamePhaseHelper(mockGame, 0, 1);
 
     expect(result).toEqual({ inProgress: true, isSetPoint: true });
   });
@@ -85,7 +85,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 1);
+    const result = gamePhaseHelper(mockGame, 0, 1);
 
     expect(result).toEqual({ inProgress: true, isSetPoint: true });
   });
@@ -107,7 +107,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 0, 1);
+    const result = gamePhaseHelper(mockGame, 0, 1);
 
     expect(result).toEqual({ inProgress: false, isSetPoint: false });
   });
@@ -130,7 +130,7 @@ describe("matchPhaseHelper", () => {
       info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
     } as unknown as Game;
 
-    const result = matchPhaseHelper(mockGame, 2, 1); // Last set (index 4)
+    const result = gamePhaseHelper(mockGame, 2, 1); // Last set (index 4)
 
     expect(result).toEqual({ inProgress: true, isSetPoint: true });
   });

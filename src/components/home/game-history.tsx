@@ -16,15 +16,15 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { MatchResult as TMatchResult } from "@/entities/game";
-import { useActiveTeamId, useMatches } from "@/hooks/use-data";
+import type { GameSummary as TGameSummary } from "@/entities/game";
+import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Ref, useCallback, useEffect, useRef } from "react";
 import { RiArrowRightWideLine, RiGroupLine } from "react-icons/ri";
 
-export function Matches() {
+export function GameHistory() {
   const {
     teamId,
     isLoading: teamIdLoading,
@@ -38,7 +38,7 @@ export function Matches() {
     isReachingEnd,
     isLoadingMore,
     setSize,
-  } = useMatches(teamId);
+  } = useGameSummaries(teamId);
 
   const isLoading = teamIdLoading || matchesLoading;
   const mutate = useCallback(
@@ -72,7 +72,7 @@ export function Matches() {
     };
   }, [isLoading, isReachingEnd, isLoadingMore, setSize, matches?.length]);
 
-  if (isLoading && !matches?.length) return <MatchesSkeleton />;
+  if (isLoading && !matches?.length) return <GameHistorySkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!teamId && !isLoading) return <GuidesForNewUser />;
   if (!matches?.length) return <NoMatches />;
@@ -92,7 +92,7 @@ export function Matches() {
 }
 
 interface MatchProps extends React.HTMLAttributes<HTMLDivElement> {
-  match: TMatchResult;
+  match: TGameSummary;
   ref?: Ref<HTMLDivElement>;
 }
 
@@ -105,7 +105,7 @@ function Match({ match, ref, ...props }: MatchProps) {
       asChild
       {...props}
     >
-      <Link href={`/match/${match.id}`}>
+      <Link href={`/game/${match.id}`}>
         <ItemHeader className="flex w-full flex-row items-center justify-center gap-2">
           <span className="flex-1">{match.info.name || "Regular Game"}</span>
           <span>
@@ -131,7 +131,7 @@ function TeamInfo({
   team,
   isHome,
 }: {
-  team: TMatchResult["teams"]["home"];
+  team: TGameSummary["teams"]["home"];
   isHome: boolean;
 }) {
   return (
@@ -158,7 +158,7 @@ function TeamInfo({
   );
 }
 
-function MatchesSkeleton() {
+function GameHistorySkeleton() {
   return (
     <ItemGroup>
       {Array.from({ length: 6 }, (_, i) => (
