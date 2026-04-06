@@ -108,32 +108,35 @@ interface PlayerStatsDocument extends Document {
   };
 }
 
-const playerStatsSchema = new Schema<PlayerStatsDocument>({
-  [MoveType.SERVING]: {
-    success: { type: Number },
-    error: { type: Number },
+const playerStatsSchema = new Schema<PlayerStatsDocument>(
+  {
+    [MoveType.SERVING]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.ATTACK]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.BLOCKING]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.RECEPTION]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.DEFENSE]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.SETTING]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
   },
-  [MoveType.ATTACK]: {
-    success: { type: Number },
-    error: { type: Number },
-  },
-  [MoveType.BLOCKING]: {
-    success: { type: Number },
-    error: { type: Number },
-  },
-  [MoveType.RECEPTION]: {
-    success: { type: Number },
-    error: { type: Number },
-  },
-  [MoveType.DEFENSE]: {
-    success: { type: Number },
-    error: { type: Number },
-  },
-  [MoveType.SETTING]: {
-    success: { type: Number },
-    error: { type: Number },
-  },
-});
+  { _id: false },
+);
 
 interface PlayerDocument extends Document {
   _id: Types.ObjectId;
@@ -183,19 +186,28 @@ interface TeamStatsDocument extends Document {
   challenge: number;
 }
 
-const teamStatsSchema = new Schema<TeamStatsDocument>({
-  [MoveType.SERVING]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.ATTACK]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.BLOCKING]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.RECEPTION]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.DEFENSE]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.SETTING]: { success: { type: Number }, error: { type: Number } },
-  [MoveType.UNFORCED]: { success: { type: Number }, error: { type: Number } },
-  rotation: { type: Number },
-  timeout: { type: Number },
-  substitution: { type: Number },
-  challenge: { type: Number },
-});
+const teamStatsSchema = new Schema<TeamStatsDocument>(
+  {
+    [MoveType.SERVING]: { success: { type: Number }, error: { type: Number } },
+    [MoveType.ATTACK]: { success: { type: Number }, error: { type: Number } },
+    [MoveType.BLOCKING]: { success: { type: Number }, error: { type: Number } },
+    [MoveType.RECEPTION]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    [MoveType.DEFENSE]: { success: { type: Number }, error: { type: Number } },
+    [MoveType.SETTING]: { success: { type: Number }, error: { type: Number } },
+    [MoveType.UNFORCED]: {
+      success: { type: Number },
+      error: { type: Number },
+    },
+    rotation: { type: Number },
+    timeout: { type: Number },
+    substitution: { type: Number },
+    challenge: { type: Number },
+  },
+  { _id: false },
+);
 
 interface TeamDocument extends Document {
   _id: Types.ObjectId;
@@ -228,18 +240,21 @@ interface RallyDetailDocument extends Document {
   };
 }
 
-const rallyDetailSchema = new Schema<RallyDetailDocument>({
-  score: { type: Number },
-  type: {
-    type: Number,
-    enum: Object.values(MoveType).filter((v) => typeof v === "number"),
+const rallyDetailSchema = new Schema<RallyDetailDocument>(
+  {
+    score: { type: Number },
+    type: {
+      type: Number,
+      enum: Object.values(MoveType).filter((v) => typeof v === "number"),
+    },
+    num: { type: Number },
+    player: {
+      _id: { type: Schema.Types.ObjectId, ref: "Player" },
+      zone: { type: Number },
+    },
   },
-  num: { type: Number },
-  player: {
-    _id: { type: Schema.Types.ObjectId, ref: "Player" },
-    zone: { type: Number },
-  },
-});
+  { _id: false },
+);
 
 interface RallyDocument extends Document {
   win: boolean;
@@ -253,32 +268,41 @@ const rallySchema = new Schema<RallyDocument>({
   away: { type: rallyDetailSchema },
 });
 
-const substitutionSchema = new Schema({
-  team: {
-    type: Number,
-    enum: Object.values(Side).filter((v) => typeof v === "number"),
+const substitutionSchema = new Schema(
+  {
+    team: {
+      type: Number,
+      enum: Object.values(Side).filter((v) => typeof v === "number"),
+    },
+    players: {
+      in: { type: Schema.Types.ObjectId, ref: "Player" },
+      out: { type: Schema.Types.ObjectId, ref: "Player" },
+    },
   },
-  players: {
-    in: { type: Schema.Types.ObjectId, ref: "Player" },
-    out: { type: Schema.Types.ObjectId, ref: "Player" },
-  },
-});
+  { _id: false },
+);
 
-const timeoutSchema = new Schema({
-  team: {
-    type: Number,
-    enum: Object.values(Side).filter((v) => typeof v === "number"),
+const timeoutSchema = new Schema(
+  {
+    team: {
+      type: Number,
+      enum: Object.values(Side).filter((v) => typeof v === "number"),
+    },
   },
-});
+  { _id: false },
+);
 
-const challengeSchema = new Schema({
-  team: {
-    type: Number,
-    enum: Object.values(Side).filter((v) => typeof v === "number"),
+const challengeSchema = new Schema(
+  {
+    team: {
+      type: Number,
+      enum: Object.values(Side).filter((v) => typeof v === "number"),
+    },
+    challengeType: { type: String },
+    success: { type: Boolean },
   },
-  challengeType: { type: String },
-  success: { type: Boolean },
-});
+  { _id: false },
+);
 
 interface EntryDocument extends Document {
   type: EntryType;
