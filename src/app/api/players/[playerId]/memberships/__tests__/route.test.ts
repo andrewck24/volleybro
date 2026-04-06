@@ -62,7 +62,7 @@ describe("Memberships API Route - /api/players/[playerId]/memberships", () => {
     it("should return 403 if user is not team admin", () => {
       const response = {
         status: 403,
-        error: "User is not admin of this team",
+        error: "User is not an admin of this team",
       };
       expect(response.status).toBe(403);
     });
@@ -114,7 +114,10 @@ describe("Memberships API Route - /api/players/[playerId]/memberships", () => {
     });
 
     it("should return 403 if user is not team admin", () => {
-      const response = { status: 403, error: "User is not admin" };
+      const response = {
+        status: 403,
+        error: "User is not an admin of this team",
+      };
       expect(response.status).toBe(403);
     });
 
@@ -155,7 +158,10 @@ describe("Memberships API Route - /api/players/[playerId]/memberships", () => {
     });
 
     it("should return 403 if user is not team admin", () => {
-      const response = { status: 403, error: "User is not admin" };
+      const response = {
+        status: 403,
+        error: "User is not an admin of this team",
+      };
       expect(response.status).toBe(403);
     });
 

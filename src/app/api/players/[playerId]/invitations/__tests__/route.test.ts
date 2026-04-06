@@ -34,7 +34,7 @@ describe("Invitations API Route - /api/players/[playerId]/invitations", () => {
     it("should return 409 if player is already joined", () => {
       const response = {
         status: 409,
-        error: "Player is already a joined member",
+        error: "Player is already a member",
       };
       expect(response.status).toBe(409);
     });
@@ -42,7 +42,7 @@ describe("Invitations API Route - /api/players/[playerId]/invitations", () => {
     it("should return 409 if no invitation exists", () => {
       const response = {
         status: 409,
-        error: "No invitation found for this player",
+        error: "No invitation found for player",
       };
       expect(response.status).toBe(409);
     });
@@ -69,7 +69,7 @@ describe("Invitations API Route - /api/players/[playerId]/invitations", () => {
     it("should return 409 if no invitation exists", () => {
       const response = {
         status: 409,
-        error: "No invitation found for this player",
+        error: "No invitation found for player",
       };
       expect(response.status).toBe(409);
     });
