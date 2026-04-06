@@ -145,7 +145,7 @@ interface PlayerDocument extends Document {
 const playerSchema = new Schema<PlayerDocument>({
   _id: {
     type: Schema.Types.ObjectId,
-    ref: "Member",
+    ref: "Player",
   },
   name: { type: String },
   number: { type: Number },
@@ -162,7 +162,7 @@ interface StaffDocument extends Document {
 const staffSchema = new Schema<StaffDocument>({
   _id: {
     type: Schema.Types.ObjectId,
-    ref: "Member",
+    ref: "Player",
   },
   name: { type: String },
   number: { type: Number },
@@ -236,7 +236,7 @@ const rallyDetailSchema = new Schema<RallyDetailDocument>({
   },
   num: { type: Number },
   player: {
-    _id: { type: Schema.Types.ObjectId, ref: "Member" },
+    _id: { type: Schema.Types.ObjectId, ref: "Player" },
     zone: { type: Number },
   },
 });
@@ -259,8 +259,8 @@ const substitutionSchema = new Schema({
     enum: Object.values(Side).filter((v) => typeof v === "number"),
   },
   players: {
-    in: { type: Schema.Types.ObjectId, ref: "Member" },
-    out: { type: Schema.Types.ObjectId, ref: "Member" },
+    in: { type: Schema.Types.ObjectId, ref: "Player" },
+    out: { type: Schema.Types.ObjectId, ref: "Player" },
   },
 });
 
