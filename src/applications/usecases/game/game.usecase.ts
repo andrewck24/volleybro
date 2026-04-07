@@ -28,9 +28,7 @@ export class FindGameUseCase {
     const { params } = input;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: params.id,
-    });
+    const game = await this.gameRepository.findById(params.id);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
@@ -81,6 +79,7 @@ export class CreateGameUseCase {
       teamId: params.teamId,
       info: data.info,
       teams: { home: { ...data.teams.home }, away: { ...data.teams.away } },
+      sets: [],
     });
 
     return game;

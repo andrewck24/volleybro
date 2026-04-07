@@ -1,24 +1,17 @@
-import { NotFoundError } from "@/entities/errors/app-error";
+import { mockDoc, mockExec } from "@/__tests__/helpers";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";
 import { Types } from "mongoose";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/team", () => {
-  const mockModel = jest
-    .fn()
-    .mockImplementation((data: Record<string, unknown>) => ({
-      ...data,
-      save: jest.fn().mockResolvedValue(data),
-      toJSON: jest.fn().mockReturnValue(data),
-    }));
-
+  const mockModel = jest.fn();
   Object.assign(mockModel, {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    findOneAndReplace: jest.fn(),
-    findOneAndDelete: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
+    updateOne: jest.fn(),
   });
-
   return { Team: mockModel };
 });
 
@@ -26,117 +19,96 @@ describe("TeamRepositoryImpl", () => {
   let repository: TeamRepositoryImpl;
   const mockTeamId = new Types.ObjectId();
   const mockTeamIdString = mockTeamId.toHexString();
-  const nonExistentId = new Types.ObjectId();
-  const nonExistentIdString = nonExistentId.toHexString();
+  const nonExistentIdString = new Types.ObjectId().toHexString();
   const mockTeamData = {
-    id: mockTeamId,
+    _id: mockTeamId,
     name: "Test Team",
-    members: [],
+    lineups: [],
   };
-
-  const mockDoc = (data: Record<string, unknown>) => ({
-    toJSON: jest.fn().mockReturnValue(data),
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
     repository = new TeamRepositoryImpl();
   });
 
-  describe("find", () => {
-    it("should return array of teams", async () => {
-      (TeamModel.find as jest.Mock).mockResolvedValue([mockDoc(mockTeamData)]);
+  describe("findById", () => {
+    it("should return a team when found", async () => {
+      (TeamModel.findById as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(mockTeamData)),
+      );
 
-      const result = await repository.find({ name: "Test Team" });
+      const result = await repository.findById(mockTeamIdString);
 
-      expect(result).toEqual([mockTeamData]);
+      expect(result).toMatchObject({ id: mockTeamIdString, name: "Test Team" });
     });
 
-    it("should return empty array if no teams found", async () => {
-      (TeamModel.find as jest.Mock).mockResolvedValue([]);
+    it("should return null when team not found", async () => {
+      (TeamModel.findById as jest.Mock).mockReturnValue(mockExec(null));
 
-      const result = await repository.find({ name: "Non Existent" });
+      const result = await repository.findById(nonExistentIdString);
 
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("findOne", () => {
-    it("should return a single team", async () => {
-      (TeamModel.findOne as jest.Mock).mockResolvedValue(mockDoc(mockTeamData));
-
-      const result = await repository.findOne({ id: mockTeamIdString });
-
-      expect(result).toEqual(mockTeamData);
-    });
-
-    it("should return undefined if team not found", async () => {
-      (TeamModel.findOne as jest.Mock).mockResolvedValue(null);
-
-      const result = await repository.findOne({ id: nonExistentIdString });
-
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
   });
 
   describe("create", () => {
     it("should create and return a new team", async () => {
+      (TeamModel.create as jest.Mock).mockResolvedValue(mockDoc(mockTeamData));
+
       const result = await repository.create({
-        ...mockTeamData,
-        id: mockTeamIdString,
+        name: "Test Team",
+        lineups: [],
       });
 
-      expect(result).toEqual({
-        ...mockTeamData,
-        id: mockTeamIdString,
-      });
+      expect(result).toMatchObject({ name: "Test Team" });
     });
   });
 
   describe("update", () => {
-    const updatedTeamData = {
-      ...mockTeamData,
-      id: mockTeamIdString,
-      name: "Updated Team Name",
-    };
+    const updatedTeamData = { ...mockTeamData, name: "Updated Team Name" };
 
     it("should update and return the updated team", async () => {
-      (TeamModel.findOneAndReplace as jest.Mock).mockResolvedValue(
-        mockDoc(updatedTeamData),
+      (TeamModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(updatedTeamData)),
       );
 
-      const result = await repository.update(
-        { id: mockTeamId },
-        updatedTeamData,
-      );
+      const result = await repository.update(mockTeamIdString, {
+        name: "Updated Team Name",
+      });
 
-      expect(result).toEqual(updatedTeamData);
+      expect(result).toMatchObject({ name: "Updated Team Name" });
     });
 
-    it("should throw NotFoundError when team is not found", async () => {
-      (TeamModel.findOneAndReplace as jest.Mock).mockResolvedValue(null);
+    it("should return null when team is not found", async () => {
+      (TeamModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(null),
+      );
 
-      await expect(
-        repository.update({ id: nonExistentId }, updatedTeamData),
-      ).rejects.toThrow(NotFoundError);
+      const result = await repository.update(nonExistentIdString, {
+        name: "X",
+      });
+
+      expect(result).toBeNull();
     });
   });
 
   describe("delete", () => {
     it("should return true when deletion is successful", async () => {
-      (TeamModel.findOneAndDelete as jest.Mock).mockResolvedValue(
-        mockDoc(mockTeamData),
+      (TeamModel.findByIdAndDelete as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(mockTeamData)),
       );
 
-      const result = await repository.delete({ id: mockTeamId });
+      const result = await repository.delete(mockTeamIdString);
 
       expect(result).toBe(true);
     });
 
-    it("should return false when deletion fails", async () => {
-      (TeamModel.findOneAndDelete as jest.Mock).mockResolvedValue(null);
+    it("should return false when team not found", async () => {
+      (TeamModel.findByIdAndDelete as jest.Mock).mockReturnValue(
+        mockExec(null),
+      );
 
-      const result = await repository.delete({ id: nonExistentId });
+      const result = await repository.delete(nonExistentIdString);
 
       expect(result).toBe(false);
     });

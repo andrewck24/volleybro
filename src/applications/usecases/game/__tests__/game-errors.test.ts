@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("CreateRallyUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new CreateRallyUseCase(
       mockGameRepository,
       mockAuthService,
@@ -50,7 +50,7 @@ describe("CreateRallyUseCase", () => {
   });
 
   it("throws NotFoundError when set not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue({
+    mockGameRepository.findById.mockResolvedValue({
       ...createGame(),
       sets: [],
     });
@@ -71,7 +71,7 @@ describe("CreateRallyUseCase", () => {
 
 describe("UpdateRallyUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new UpdateRallyUseCase(
       mockGameRepository,
       mockAuthService,
@@ -87,7 +87,7 @@ describe("UpdateRallyUseCase", () => {
   });
 
   it("throws NotFoundError when set not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue({
+    mockGameRepository.findById.mockResolvedValue({
       ...createGame(),
       sets: [],
     });
@@ -108,7 +108,7 @@ describe("UpdateRallyUseCase", () => {
 
 describe("FindGameUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new FindGameUseCase(
       mockGameRepository,
       mockAuthService,
@@ -123,7 +123,7 @@ describe("FindGameUseCase", () => {
 
 describe("CreateSetUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new CreateSetUseCase(
       mockGameRepository,
       mockAuthService,
@@ -144,7 +144,7 @@ describe("CreateSetUseCase", () => {
 
 describe("UpdateSetUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new UpdateSetUseCase(
       mockGameRepository,
       mockAuthService,
@@ -162,7 +162,7 @@ describe("UpdateSetUseCase", () => {
 
 describe("CreateSubstitutionUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
-    mockGameRepository.findOne.mockResolvedValue(undefined);
+    mockGameRepository.findById.mockResolvedValue(null);
     const useCase = new CreateSubstitutionUseCase(
       mockGameRepository,
       mockAuthService,

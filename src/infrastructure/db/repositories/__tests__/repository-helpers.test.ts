@@ -4,7 +4,7 @@ import {
   TransientError,
   UnexpectedError,
 } from "@/entities/errors/app-error";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/base.repository.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
 
 describe("Repository error translation", () => {
   describe("CastError → NotFoundError", () => {

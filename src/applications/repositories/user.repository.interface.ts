@@ -1,4 +1,6 @@
-import { User } from "@/entities/user";
-import type { IBaseRepository } from "@/applications/repositories/base.repository.interface";
+import type { User } from "@/entities/user";
 
-export interface IUserRepository extends IBaseRepository<User> {}
+export interface IUserRepository {
+  findById(id: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>;
+}

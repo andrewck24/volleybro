@@ -141,7 +141,7 @@ const processGamePhase = (
   const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
 
   if (phase.inProgress) {
-    // Reset win status if the set/match is still in progress
+    // Reset win status if the set/game is still in progress
     if (typeof game.sets[setIndex].win === "boolean") {
       game.sets[setIndex].win = null;
     }
@@ -151,7 +151,7 @@ const processGamePhase = (
     const { home, away } = entryDraft;
     game.sets[setIndex].win = home.score > away.score;
 
-    // If the match is finished, calculate the overall match result
+    // If the game is finished, calculate the overall game result
     const homeSetsWonCount = game.sets.filter((set) => set.win).length;
     const awaySetsWonCount = game.sets.filter(
       (set) => set.win === false,

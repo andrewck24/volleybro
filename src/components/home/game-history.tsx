@@ -32,18 +32,18 @@ export function GameHistory() {
     mutate: mutateTeamId,
   } = useActiveTeamId();
   const {
-    matches,
-    mutate: mutateMatches,
-    isLoading: matchesLoading,
+    gameSummaries,
+    mutate: mutateSummaries,
+    isLoading: summariesLoading,
     isReachingEnd,
     isLoadingMore,
     setSize,
   } = useGameSummaries(teamId);
 
-  const isLoading = teamIdLoading || matchesLoading;
+  const isLoading = teamIdLoading || summariesLoading;
   const mutate = useCallback(
-    () => Promise.all([mutateTeamId(), ...(teamId ? [mutateMatches()] : [])]),
-    [teamId, mutateTeamId, mutateMatches],
+    () => Promise.all([mutateTeamId(), ...(teamId ? [mutateSummaries()] : [])]),
+    [teamId, mutateTeamId, mutateSummaries],
   );
 
   usePullToRefresh(mutate);
@@ -70,20 +70,20 @@ export function GameHistory() {
     return () => {
       observer.disconnect();
     };
-  }, [isLoading, isReachingEnd, isLoadingMore, setSize, matches?.length]);
+  }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries?.length]);
 
-  if (isLoading && !matches?.length) return <GameHistorySkeleton />;
+  if (isLoading && !gameSummaries?.length) return <GameHistorySkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;
   if (!teamId && !isLoading) return <GuidesForNewUser />;
-  if (!matches?.length) return <NoMatches />;
+  if (!gameSummaries?.length) return <NoMatches />;
 
   return (
     <ItemGroup>
-      {matches.map((match, index) => (
+      {gameSummaries.map((match, index) => (
         <Match
           key={match.id}
           match={match}
-          ref={index === matches.length - 1 ? lastItemRef : null}
+          ref={index === gameSummaries.length - 1 ? lastItemRef : null}
         />
       ))}
       {isLoadingMore && <MatchSkeleton />}

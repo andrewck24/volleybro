@@ -19,7 +19,4 @@ export {
   createUser,
 } from "@/__tests__/helpers/fixtures";
 
-export {
-  createMockDocument,
-  setupModelMocks,
-} from "@/__tests__/helpers/mock-mongoose";
+export { mockDoc, mockExec } from "@/__tests__/helpers/mock-mongoose";

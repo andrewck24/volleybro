@@ -210,7 +210,7 @@ export const useGameSummaries = (
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =
     useSWRInfinite<{
-      matches: GameSummary[];
+      gameSummaries: GameSummary[];
       hasMore: boolean;
       lastId: string;
     }>(getKey, fetcher, {
@@ -218,14 +218,16 @@ export const useGameSummaries = (
       ...options,
     });
 
-  const matches = data ? data.flatMap((page) => page.matches || []) : [];
-  const isEmpty = data?.[0]?.matches?.length === 0;
+  const gameSummaries = data
+    ? data.flatMap((page) => page.gameSummaries || [])
+    : [];
+  const isEmpty = data?.[0]?.gameSummaries?.length === 0;
   const isReachingEnd = isEmpty || (data && !data[data.length - 1]?.hasMore);
   const isLoadingMore =
     isLoading || (size > 0 && data && typeof data[size - 1] === "undefined");
 
   return {
-    matches,
+    gameSummaries,
     error,
     isLoading,
     isValidating,

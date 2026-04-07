@@ -32,7 +32,7 @@ export class SearchUserUseCase {
       };
     }
 
-    const user = await this.userRepository.findOne({ email });
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       return {

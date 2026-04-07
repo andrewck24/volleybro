@@ -38,9 +38,7 @@ export class CreateSetUseCase {
     const { params, data } = input;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: params.gameId,
-    });
+    const game = await this.gameRepository.findById(params.gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
@@ -72,12 +70,9 @@ export class CreateSetUseCase {
       entries: [],
     };
 
-    const updatedGame = await this.gameRepository.update(
-      { id: params.gameId },
-      game,
-    );
+    const updatedGame = await this.gameRepository.update(params.gameId, game);
 
-    return updatedGame;
+    return updatedGame ?? undefined;
   }
 }
 
@@ -105,9 +100,7 @@ export class UpdateSetUseCase {
     const { params, data } = input;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: params.gameId,
-    });
+    const game = await this.gameRepository.findById(params.gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
@@ -120,11 +113,8 @@ export class UpdateSetUseCase {
     game.sets[params.setIndex].options = data.options;
     // TODO: new feature: update lineup of the set (without increasing substitution count)
 
-    const updatedGame = await this.gameRepository.update(
-      { id: params.gameId },
-      game,
-    );
+    const updatedGame = await this.gameRepository.update(params.gameId, game);
 
-    return updatedGame;
+    return updatedGame ?? undefined;
   }
 }

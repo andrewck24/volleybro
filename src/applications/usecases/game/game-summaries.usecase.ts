@@ -11,7 +11,7 @@ export interface IFindGameSummariesInput {
 }
 
 export type IFindGameSummariesOutput = {
-  matches: GameSummary[];
+  gameSummaries: GameSummary[];
   hasMore: boolean;
   lastId: string;
 };
@@ -38,15 +38,14 @@ export class FindGameSummariesUseCase {
       PlayerRole.MEMBER,
     );
 
-    const results = await this.gameRepository.findMatchesWithPagination(
-      { teamId: params.teamId },
-      { lastId: params.lastId },
-    );
+    const results = await this.gameRepository.findGameSummaries(params.teamId, {
+      lastId: params.lastId,
+    });
 
-    const { data: matches, hasMore, lastId } = results;
+    const { data: gameSummaries, hasMore, lastId } = results;
 
     return {
-      matches,
+      gameSummaries,
       hasMore,
       lastId,
     };

@@ -11,17 +11,23 @@ import { headers } from "next/headers";
 @injectable()
 export class AuthenticationService implements IAuthenticationService {
   constructor(
-    @inject(TYPES.UserRepository) private userRepository: IUserRepository
+    @inject(TYPES.UserRepository) private userRepository: IUserRepository,
   ) {}
 
   async verifySession(): Promise<User> {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session) throw new AuthenticationError(AuthReason.INVALID_SESSION, "Invalid or expired session");
+    if (!session)
+      throw new AuthenticationError(
+        AuthReason.INVALID_SESSION,
+        "Invalid or expired session",
+      );
 
-    const user = await this.userRepository.findOne({
-      id: session.user.id,
-    });
-    if (!user) throw new AuthenticationError(AuthReason.USER_NOT_FOUND, "Authenticated user account not found");
+    const user = await this.userRepository.findById(session.user.id);
+    if (!user)
+      throw new AuthenticationError(
+        AuthReason.USER_NOT_FOUND,
+        "Authenticated user account not found",
+      );
 
     return user;
   }

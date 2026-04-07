@@ -5,8 +5,6 @@ import type { Profile } from "@/entities/profile";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
-// ============ Get Profile Use Case ============
-
 export interface IGetProfileInput {
   userId: string;
 }
@@ -27,8 +25,6 @@ export class GetProfileUseCase {
     return profile;
   }
 }
-
-// ============ Create Profile Use Case ============
 
 export interface ICreateProfileInput {
   userId: string;
@@ -53,8 +49,6 @@ export class CreateProfileUseCase {
     return profile;
   }
 }
-
-// ============ Update Profile Use Case ============
 
 export interface IUpdateProfileInput {
   userId: string;
@@ -86,7 +80,7 @@ export class UpdateProfileUseCase {
     }
 
     const updatedProfile = await this.profileRepository.update(
-      { id: existingProfile.id },
+      existingProfile.id,
       { ...existingProfile, ...updates },
     );
 

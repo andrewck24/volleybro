@@ -25,8 +25,7 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
 
 export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -36,33 +35,27 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
 
 export function createMockGameRepository(): jest.Mocked<IGameRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findById: jest.fn(),
+    findByTeamId: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-    findMatchesWithPagination: jest.fn(),
+    findGameSummaries: jest.fn(),
   };
 }
 
 export function createMockUserRepository(): jest.Mocked<IUserRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
+    findById: jest.fn(),
+    findByEmail: jest.fn(),
   };
 }
 
 export function createMockProfileRepository(): jest.Mocked<IProfileRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findByUserId: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
-    findByUserId: jest.fn(),
     updateActiveTeamId: jest.fn(),
   };
 }

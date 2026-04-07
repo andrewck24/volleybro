@@ -1,14 +1,13 @@
-import type { IBaseRepository } from "@/applications/repositories/base.repository.interface";
 import type { Game, GameSummary } from "@/entities/game";
 
-export interface IGameRepository extends IBaseRepository<Game> {
-  findMatchesWithPagination(
-    filter: { $and?: unknown[]; [key: string]: unknown },
-    options: {
-      lastId?: string;
-      limit?: number;
-      sortField?: string;
-      sortDirection?: 1 | -1;
-    },
+export interface IGameRepository {
+  findById(id: string): Promise<Game | null>;
+  findByTeamId(teamId: string): Promise<Game | null>;
+  create(data: Omit<Game, "id">): Promise<Game>;
+  update(id: string, data: Partial<Game>): Promise<Game | null>;
+  delete(id: string): Promise<boolean>;
+  findGameSummaries(
+    teamId: string,
+    options?: { lastId?: string; limit?: number },
   ): Promise<{ data: GameSummary[]; hasMore: boolean; lastId: string }>;
 }

@@ -493,8 +493,8 @@ describe("rally.helper.ts", () => {
       });
     });
 
-    describe("match completion", () => {
-      it("should mark the match as completed when a team wins majority of sets (3-0)", () => {
+    describe("game completion", () => {
+      it("should mark the game as completed when a team wins majority of sets (3-0)", () => {
         const mockGame = createMockGame();
         // 已經有兩局主隊獲勝
         mockGame.sets[0].win = true;
@@ -529,7 +529,7 @@ describe("rally.helper.ts", () => {
         expect(result.game.win).toBe(true); // 主隊贏了比賽
       });
 
-      it("should mark the match as completed when a team wins majority of sets (2-3)", () => {
+      it("should mark the game as completed when a team wins majority of sets (2-3)", () => {
         const mockGame = createMockGame();
         // 2-2平局狀態
         mockGame.sets[0].win = true;
@@ -566,7 +566,7 @@ describe("rally.helper.ts", () => {
         expect(result.game.win).toBe(false); // 客隊贏了比賽
       });
 
-      it("should not mark the match as completed when no team has won majority of sets yet (2-1)", () => {
+      it("should not mark the game as completed when no team has won majority of sets yet (2-1)", () => {
         const mockGame = createMockGame();
         // 2-1領先狀態
         mockGame.sets[0].win = true;
@@ -604,7 +604,7 @@ describe("rally.helper.ts", () => {
 
     // 測試更新賽事紀錄時的邏輯
     describe("when updating rally", () => {
-      it("should recalculate set and match status when rally is updated", () => {
+      it("should recalculate set and game status when rally is updated", () => {
         const mockGame = createMockGame();
         // 先增加一個決勝得分的記錄
         const winningRally: Rally = {

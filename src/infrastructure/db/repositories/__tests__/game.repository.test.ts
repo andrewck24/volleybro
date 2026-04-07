@@ -1,29 +1,21 @@
+import { mockDoc, mockExec } from "@/__tests__/helpers";
 import { NotFoundError } from "@/entities/errors/app-error";
-import { EntryType } from "@/entities/game";
 import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { Types } from "mongoose";
 
 jest.mock("@/infrastructure/db/mongoose/schemas/game", () => {
-  const mockModel = jest
-    .fn()
-    .mockImplementation((data: Record<string, unknown>) => ({
-      ...data,
-      save: jest.fn().mockResolvedValue(data),
-      toJSON: jest.fn().mockReturnValue(data),
-    }));
-
+  const mockModel = jest.fn();
   Object.assign(mockModel, {
-    find: jest.fn(),
+    findById: jest.fn(),
     findOne: jest.fn(),
-    findOneAndReplace: jest.fn(),
-    findOneAndDelete: jest.fn(),
+    create: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
+    findByIdAndDelete: jest.fn(),
     aggregate: jest.fn(),
   });
-
   return { Game: mockModel };
 });
-
 const mockAggregate = GameModel.aggregate as jest.Mock;
 
 describe("GameRepositoryImpl", () => {
@@ -32,73 +24,94 @@ describe("GameRepositoryImpl", () => {
   const mockGameIdString = mockGameId.toHexString();
   const mockTeamId = new Types.ObjectId();
   const mockTeamIdString = mockTeamId.toHexString();
-  const nonExistentId = new Types.ObjectId();
+  const nonExistentIdString = new Types.ObjectId().toHexString();
+
   const mockGameData = {
-    id: mockGameId,
-    teamId: mockTeamId,
+    _id: mockGameId,
+    teamId: mockTeamIdString,
+    win: false,
     info: {
       name: "Test Game",
-      scoring: {
-        setCount: 3,
-        decidingSetPoints: 15,
+      scoring: { setCount: 3, decidingSetPoints: 15 },
+    },
+    teams: {
+      home: {
+        id: mockTeamIdString,
+        name: "Home",
+        players: [],
+        staffs: [],
+        stats: [],
+      },
+      away: {
+        id: mockTeamIdString,
+        name: "Away",
+        players: [],
+        staffs: [],
+        stats: [],
       },
     },
+    sets: [],
   };
-
-  const mockDoc = (data: Record<string, unknown>) => ({
-    toJSON: jest.fn().mockReturnValue(data),
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
     repository = new GameRepositoryImpl();
   });
 
-  describe("find", () => {
-    it("should return an array of games", async () => {
-      (GameModel.find as jest.Mock).mockResolvedValue([mockDoc(mockGameData)]);
+  describe("findById", () => {
+    it("should return a game when found", async () => {
+      (GameModel.findById as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(mockGameData)),
+      );
 
-      const result = await repository.find({ teamId: mockTeamId });
+      const result = await repository.findById(mockGameIdString);
 
-      expect(result).toEqual([mockGameData]);
+      expect(result).toMatchObject({
+        id: mockGameIdString,
+        teamId: mockTeamIdString,
+      });
     });
 
-    it("should return empty array when no games are found", async () => {
-      (GameModel.find as jest.Mock).mockResolvedValue([]);
+    it("should return null when game not found", async () => {
+      (GameModel.findById as jest.Mock).mockReturnValue(mockExec(null));
 
-      const result = await repository.find({ teamId: nonExistentId });
+      const result = await repository.findById(nonExistentIdString);
 
-      expect(result).toEqual([]);
+      expect(result).toBeNull();
     });
   });
 
-  describe("findOne", () => {
-    it("should return a single game", async () => {
-      (GameModel.findOne as jest.Mock).mockResolvedValue(mockDoc(mockGameData));
+  describe("findByTeamId", () => {
+    it("should return a game when found by teamId", async () => {
+      (GameModel.findOne as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(mockGameData)),
+      );
 
-      const result = await repository.findOne({ id: mockGameIdString });
+      const result = await repository.findByTeamId(mockTeamIdString);
 
-      expect(result).toEqual(mockGameData);
+      expect(result).toMatchObject({ teamId: mockTeamIdString });
     });
 
-    it("should return undefined when game is not found", async () => {
-      (GameModel.findOne as jest.Mock).mockResolvedValue(null);
+    it("should return null when no game found for teamId", async () => {
+      (GameModel.findOne as jest.Mock).mockReturnValue(mockExec(null));
 
-      const result = await repository.findOne({ id: "nonexistent" });
+      const result = await repository.findByTeamId(nonExistentIdString);
 
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
   });
 
   describe("create", () => {
     it("should create and return a new game", async () => {
-      const createData = {
-        ...mockGameData,
-        id: mockGameIdString,
-        teamId: mockTeamIdString,
-      };
+      (GameModel.create as jest.Mock).mockResolvedValue(mockDoc(mockGameData));
 
-      const result = await repository.create(createData);
+      const result = await repository.create({
+        win: false,
+        teamId: mockTeamIdString,
+        info: mockGameData.info,
+        teams: mockGameData.teams,
+        sets: [],
+      });
 
       expect(result).toMatchObject({
         id: mockGameIdString,
@@ -110,68 +123,69 @@ describe("GameRepositoryImpl", () => {
   describe("update", () => {
     const updatedGameData = {
       ...mockGameData,
-      id: mockGameIdString,
-      teamId: mockTeamIdString,
       info: { name: "Updated Game", scoring: mockGameData.info.scoring },
     };
 
     it("should update and return the updated game", async () => {
-      (GameModel.findOneAndReplace as jest.Mock).mockResolvedValue(
-        mockDoc(updatedGameData),
+      (GameModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(updatedGameData)),
       );
 
-      const result = await repository.update(
-        { id: mockGameId },
-        updatedGameData,
-      );
+      const result = await repository.update(mockGameIdString, {
+        info: updatedGameData.info,
+      });
 
-      expect(result).toEqual(updatedGameData);
+      expect(result).toMatchObject({ info: { name: "Updated Game" } });
     });
 
     it("should throw NotFoundError when game is not found", async () => {
-      (GameModel.findOneAndReplace as jest.Mock).mockResolvedValue(null);
+      (GameModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(null),
+      );
 
       await expect(
-        repository.update({ id: nonExistentId }, updatedGameData),
+        repository.update(nonExistentIdString, { win: true }),
       ).rejects.toThrow(NotFoundError);
     });
   });
 
   describe("delete", () => {
     it("should return true when deletion is successful", async () => {
-      (GameModel.findOneAndDelete as jest.Mock).mockResolvedValue(
-        mockDoc(mockGameData),
+      (GameModel.findByIdAndDelete as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(mockGameData)),
       );
 
-      const result = await repository.delete({ id: mockGameId });
+      const result = await repository.delete(mockGameIdString);
 
       expect(result).toBe(true);
     });
 
-    it("should return false when deletion fails", async () => {
-      (GameModel.findOneAndDelete as jest.Mock).mockResolvedValue(null);
+    it("should return false when game not found", async () => {
+      (GameModel.findByIdAndDelete as jest.Mock).mockReturnValue(
+        mockExec(null),
+      );
 
-      const result = await repository.delete({ id: nonExistentId });
+      const result = await repository.delete(nonExistentIdString);
 
       expect(result).toBe(false);
     });
   });
 
-  describe("findMatchesWithPagination", () => {
+  describe("findGameSummaries", () => {
     const mockGameSummaries = [
       {
-        id: new Types.ObjectId(),
+        id: new Types.ObjectId().toHexString(),
         win: true,
-        info: { name: "Match 1" },
+        info: { name: "Game 1" },
         teams: {
           home: {
-            id: new Types.ObjectId(),
+            id: mockTeamIdString,
             name: "Home Team 1",
             sets: 3,
             scores: [25, 25, 25],
           },
           away: {
-            id: new Types.ObjectId(),
+            id: mockTeamIdString,
             name: "Away Team 1",
             sets: 0,
             scores: [20, 18, 15],
@@ -179,327 +193,114 @@ describe("GameRepositoryImpl", () => {
         },
       },
       {
-        id: new Types.ObjectId(),
+        id: new Types.ObjectId().toHexString(),
         win: false,
-        info: { name: "Match 2" },
+        info: { name: "Game 2" },
         teams: {
           home: {
-            id: new Types.ObjectId(),
+            id: mockTeamIdString,
             name: "Home Team 2",
             sets: 2,
-            scores: [25, 25, 20, 16, 8],
+            scores: [25, 25, 20, 16],
           },
           away: {
-            id: new Types.ObjectId(),
+            id: mockTeamIdString,
             name: "Away Team 2",
             sets: 3,
-            scores: [23, 23, 25, 25, 15],
+            scores: [23, 23, 25, 25],
           },
         },
       },
     ];
 
-    it("should return paginated match results", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
-      mockAggregate.mockReturnValue({ exec: mockExec });
+    it("should return paginated results", async () => {
+      mockAggregate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue(mockGameSummaries),
+      });
 
-      const filter = { teamId: mockTeamId };
-      const options = { limit: 2 };
-
-      const result = await repository.findMatchesWithPagination(
-        filter,
-        options,
-      );
+      const result = await repository.findGameSummaries(mockTeamIdString, {
+        limit: 2,
+      });
 
       expect(mockAggregate).toHaveBeenCalled();
-      expect(result).toEqual({
-        data: mockGameSummaries,
-        hasMore: false,
-        lastId: String(mockGameSummaries[1].id),
-      });
+      expect(result.data).toEqual(mockGameSummaries);
+      expect(result.hasMore).toBe(false);
+      expect(result.lastId).toBe(mockGameSummaries[1].id);
     });
 
-    it("should handle cursor-based pagination correctly", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      const lastId = new Types.ObjectId().toHexString();
-      const filter = { teamId: mockTeamId };
-      const options = { lastId, limit: 2 };
-
-      await repository.findMatchesWithPagination(filter, options);
-
-      const aggregateCall = mockAggregate.mock.calls[0][0];
-
-      // Verify that filter conditions include the cursor
-      const matchStage = aggregateCall.find(
-        (stage: Record<string, unknown>) => stage.$match,
-      );
-      expect(matchStage.$match).toHaveProperty("id");
-      expect(matchStage.$match.id.$lt).toBeDefined();
-    });
-
-    it("should mark hasMore as true when results exceed limit", async () => {
+    it("should mark hasMore true when results exceed limit", async () => {
       const extraResult = {
-        id: new Types.ObjectId(),
-        win: true,
-        info: { name: "Extra Match" },
-        teams: {
-          home: {
-            id: new Types.ObjectId(),
-            name: "Home Team Extra",
-            sets: 3,
-            scores: [25, 25, 25],
-          },
-          away: {
-            id: new Types.ObjectId(),
-            name: "Away Team Extra",
-            sets: 0,
-            scores: [20, 18, 15],
-          },
-        },
+        ...mockGameSummaries[0],
+        id: new Types.ObjectId().toHexString(),
       };
+      mockAggregate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue([...mockGameSummaries, extraResult]),
+      });
 
-      const mockExec = jest
-        .fn()
-        .mockResolvedValue([...mockGameSummaries, extraResult]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      const filter = { teamId: mockTeamId };
-      const options = { limit: 2 };
-
-      const result = await repository.findMatchesWithPagination(
-        filter,
-        options,
-      );
+      const result = await repository.findGameSummaries(mockTeamIdString, {
+        limit: 2,
+      });
 
       expect(result.hasMore).toBe(true);
       expect(result.data.length).toBe(2);
-      expect(result.data).not.toContain(extraResult);
     });
 
-    it("should convert string id to ObjectId", async () => {
-      const mockExec = jest.fn().mockResolvedValue(mockGameSummaries);
-      mockAggregate.mockReturnValue({ exec: mockExec });
+    it("should add cursor filter when lastId provided", async () => {
+      mockAggregate.mockReturnValue({ exec: jest.fn().mockResolvedValue([]) });
 
-      const stringId = mockTeamId.toHexString();
-      const filter = { teamId: stringId };
-
-      await repository.findMatchesWithPagination(filter);
+      const lastId = "aabbccddeeff00112233aabb";
+      await repository.findGameSummaries(mockTeamIdString, { lastId });
 
       const aggregateCall = mockAggregate.mock.calls[0][0];
       const matchStage = aggregateCall.find(
         (stage: Record<string, unknown>) => stage.$match,
       );
-
-      expect(matchStage.$match.teamId.toHexString()).toBe(stringId);
+      expect(matchStage.$match._id).toBeDefined();
+      expect(matchStage.$match._id.$lt).toBeDefined();
     });
 
-    it("should correctly transform raw Game to GameSummary format", async () => {
-      // Mock a complete raw Game object
-      const originalGame = {
-        id: new Types.ObjectId(),
-        win: true,
-        teamId: mockTeamId,
-        info: { name: "Test Match" },
-        teams: {
-          home: {
-            id: new Types.ObjectId(),
-            name: "Home Team",
-            players: [],
-            staffs: [],
-            stats: [],
-          },
-          away: {
-            id: new Types.ObjectId(),
-            name: "Away Team",
-            players: [],
-            staffs: [],
-            stats: [],
-          },
-        },
-        sets: [
-          {
-            win: true, // Home team wins
-            lineups: { home: {}, away: {} },
-            options: { serve: "home" },
-            entries: [
-              {
-                type: EntryType.RALLY,
-                win: true,
-                home: { score: 25 },
-                away: { score: 20 },
-              },
-            ],
-          },
-          {
-            win: false, // Home team loses
-            lineups: { home: {}, away: {} },
-            options: { serve: "home" },
-            entries: [
-              {
-                type: EntryType.RALLY,
-                win: false,
-                home: { score: 22 },
-                away: { score: 25 },
-              },
-            ],
-          },
-          {
-            win: true, // Home team wins
-            lineups: { home: {}, away: {} },
-            options: { serve: "away" },
-            entries: [
-              {
-                type: EntryType.RALLY,
-                win: true,
-                home: { score: 25 },
-                away: { score: 18 },
-              },
-            ],
-          },
-        ],
-      };
+    it("should return empty result with original lastId when no games", async () => {
+      mockAggregate.mockReturnValue({ exec: jest.fn().mockResolvedValue([]) });
 
-      // Expected GameSummary after aggregation pipeline transformation
-      const expectedGameSummary = {
-        id: originalGame.id,
-        win: true,
-        info: { name: "Test Match" },
-        teams: {
-          home: {
-            id: originalGame.teams.home.id,
-            name: "Home Team",
-            sets: 2, // Won 2 sets
-            scores: [25, 22, 25], // Scores per set
-          },
-          away: {
-            id: originalGame.teams.away.id,
-            name: "Away Team",
-            sets: 1, // Won 1 set
-            scores: [20, 25, 18], // Scores per set
-          },
-        },
-      };
-
-      // Mock the aggregation pipeline result
-      const mockExec = jest.fn().mockResolvedValue([expectedGameSummary]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      // Call the method under test
-      const result = await repository.findMatchesWithPagination({
-        teamId: mockTeamId,
+      const lastId = mockGameIdString;
+      const result = await repository.findGameSummaries(mockTeamIdString, {
+        lastId,
       });
 
-      // Verify the format and content of the result
-      expect(result.data.length).toBe(1);
-      expect(result.data[0]).toEqual(expectedGameSummary);
-
-      // Verify key transformed data is correct
-      const match = result.data[0];
-      expect(match.teams.home.sets).toBe(2);
-      expect(match.teams.away.sets).toBe(1);
-      expect(match.teams.home.scores).toEqual([25, 22, 25]);
-      expect(match.teams.away.scores).toEqual([20, 25, 18]);
-    });
-
-    it("should handle the case with no matches", async () => {
-      // Mock empty return result
-      const mockExec = jest.fn().mockResolvedValue([]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      const result = await repository.findMatchesWithPagination({
-        teamId: mockTeamId,
-      });
-
-      // Verify empty result handling
       expect(result.data).toEqual([]);
       expect(result.hasMore).toBe(false);
-      expect(result.lastId).toBe("");
+      expect(result.lastId).toBe(lastId);
     });
 
-    it("should add cursor conditions to existing $and conditions", async () => {
-      const mockExec = jest.fn().mockResolvedValue([]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
+    it("should correctly aggregate game data to GameSummary format", async () => {
+      const expectedSummary = {
+        id: mockGameIdString,
+        win: true,
+        info: { name: "Test Game" },
+        teams: {
+          home: {
+            id: mockTeamIdString,
+            name: "Home Team",
+            sets: 2,
+            scores: [25, 22, 25],
+          },
+          away: {
+            id: mockTeamIdString,
+            name: "Away Team",
+            sets: 1,
+            scores: [20, 25, 18],
+          },
+        },
+      };
+      mockAggregate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue([expectedSummary]),
+      });
 
-      const lastId = new Types.ObjectId().toHexString();
-      const existingAndCondition = { $and: [{ status: "active" }] };
-      const options = { lastId, sortField: "id" };
+      const result = await repository.findGameSummaries(mockTeamIdString);
 
-      await repository.findMatchesWithPagination(existingAndCondition, options);
-
-      const aggregateCall = mockAggregate.mock.calls[0][0];
-      const matchStage = aggregateCall.find(
-        (stage: Record<string, unknown>) => stage.$match,
-      );
-
-      // Verify that original $and conditions are preserved and new conditions are added to the $and array
-      expect(matchStage.$match.$and).toHaveLength(2);
-      expect(matchStage.$match.$and[0]).toEqual({ status: "active" });
-      expect(matchStage.$match.$and[1]).toHaveProperty("id");
-      expect(matchStage.$match.$and[1].id.$lt).toBeDefined();
-      expect(matchStage.$match.$and[1].id.$lt.toString()).toEqual(
-        new Types.ObjectId(lastId).toString(),
-      );
-    });
-
-    it("should directly add cursor conditions when filter object has no $and", async () => {
-      const mockExec = jest.fn().mockResolvedValue([]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      const lastId = new Types.ObjectId().toHexString();
-      const simpleFilter = { status: "active" };
-      const options = { lastId, sortField: "id" };
-
-      await repository.findMatchesWithPagination(simpleFilter, options);
-
-      const aggregateCall = mockAggregate.mock.calls[0][0];
-      const matchStage = aggregateCall.find(
-        (stage: Record<string, unknown>) => stage.$match,
-      );
-
-      // Verify that original conditions are preserved and new conditions are added at the top level of the filter
-      expect(matchStage.$match).not.toHaveProperty("$and");
-      expect(matchStage.$match.status).toBe("active");
-      expect(matchStage.$match.id.$lt).toBeDefined();
-      expect(matchStage.$match.id.$lt.toString()).toEqual(
-        new Types.ObjectId(lastId).toString(),
-      );
-    });
-
-    it("should use correct comparison operators based on sortDirection", async () => {
-      const mockExec = jest.fn().mockResolvedValue([]);
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      const lastId = new Types.ObjectId().toHexString();
-
-      // Test descending order (-1) - should use $lt
-      await repository.findMatchesWithPagination(
-        { teamId: mockTeamId },
-        { lastId, sortDirection: -1 },
-      );
-
-      let aggregateCall = mockAggregate.mock.calls[0][0];
-      let matchStage = aggregateCall.find(
-        (stage: Record<string, unknown>) => stage.$match,
-      );
-      expect(matchStage.$match.id.$lt).toBeDefined();
-
-      // Clear mocks
-      jest.clearAllMocks();
-      mockAggregate.mockReturnValue({ exec: mockExec });
-
-      // Test ascending order (1) - should use $gt
-      await repository.findMatchesWithPagination(
-        { teamId: mockTeamId },
-        { lastId, sortDirection: 1 },
-      );
-
-      aggregateCall = mockAggregate.mock.calls[0][0];
-      matchStage = aggregateCall.find(
-        (stage: Record<string, unknown>) => stage.$match,
-      );
-      expect(matchStage.$match.id.$gt).toBeDefined();
+      expect(result.data.length).toBe(1);
+      expect(result.data[0].teams.home.sets).toBe(2);
+      expect(result.data[0].teams.away.sets).toBe(1);
     });
   });
 });

@@ -18,7 +18,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return minimal user info when found by email", async () => {
-    mockUserRepository.findOne.mockResolvedValue(foundUser);
+    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
     const result = await useCase.execute("john@example.com");
 
@@ -31,7 +31,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return NotFoundError when user not found", async () => {
-    mockUserRepository.findOne.mockResolvedValue(undefined);
+    mockUserRepository.findByEmail.mockResolvedValue(null);
 
     const result = await useCase.execute("notexist@example.com");
 
@@ -48,7 +48,7 @@ describe("SearchUserUseCase", () => {
     const failure = result as { ok: false; error: ValidationError };
     expect(failure.error).toBeInstanceOf(ValidationError);
     expect(failure.error.code).toBe("VALIDATION");
-    expect(mockUserRepository.findOne).not.toHaveBeenCalled();
+    expect(mockUserRepository.findByEmail).not.toHaveBeenCalled();
   });
 
   it("should return ValidationError for empty email", async () => {
@@ -60,7 +60,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should not expose email address in result value", async () => {
-    mockUserRepository.findOne.mockResolvedValue(foundUser);
+    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
     const result = await useCase.execute("john@example.com");
 
@@ -79,7 +79,7 @@ describe("SearchUserUseCase", () => {
       email: "john@example.com",
       image: undefined,
     });
-    mockUserRepository.findOne.mockResolvedValue(userWithoutImage);
+    mockUserRepository.findByEmail.mockResolvedValue(userWithoutImage);
 
     const result = await useCase.execute("john@example.com");
 

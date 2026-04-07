@@ -14,7 +14,7 @@ export class GetUserByIdUseCase {
   ) {}
 
   async execute(userId: string): Promise<Result<User>> {
-    const user = await this.userRepository.findOne({ id: userId });
+    const user = await this.userRepository.findById(userId);
 
     if (!user) {
       return {

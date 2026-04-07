@@ -39,9 +39,7 @@ export class CreateSubstitutionUseCase {
     const { params, data: substitution } = input;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: params.gameId,
-    });
+    const game = await this.gameRepository.findById(params.gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
 
@@ -59,7 +57,7 @@ export class CreateSubstitutionUseCase {
     this.updateLineup(lineup, substitution, params.entryIndex);
     this.updateGameStats(game, side, input);
 
-    await this.gameRepository.update({ id: params.gameId }, game);
+    await this.gameRepository.update(params.gameId, game);
     return game.sets[params.setIndex].entries;
   }
 

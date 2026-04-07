@@ -36,9 +36,7 @@ export class CreateRallyUseCase {
     const { gameId, setIndex } = params;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: gameId,
-    });
+    const game = await this.gameRepository.findById(gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
     if (!game.sets[setIndex])
@@ -56,7 +54,7 @@ export class CreateRallyUseCase {
 
     const { game: updatedGame } = createRallyHelper(params, rally, game);
 
-    await this.gameRepository.update({ id: gameId }, updatedGame);
+    await this.gameRepository.update(gameId, updatedGame);
 
     return game.sets[setIndex].entries;
   }
@@ -85,9 +83,7 @@ export class UpdateRallyUseCase {
     const { params, data: rally } = input;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findOne({
-      id: params.gameId,
-    });
+    const game = await this.gameRepository.findById(params.gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
     if (!game.sets[params.setIndex])
@@ -101,7 +97,7 @@ export class UpdateRallyUseCase {
 
     const { game: updatedGame } = updateRallyHelper(params, rally, game);
 
-    await this.gameRepository.update({ id: game.id }, updatedGame);
+    await this.gameRepository.update(game.id, updatedGame);
 
     return updatedGame.sets[params.setIndex].entries;
   }
