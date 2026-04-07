@@ -11,7 +11,17 @@ import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { ICreateInvitationUseCase } from "./create-invitation.usecase.interface";
+
+export interface ICreateInvitationInput {
+  playerId: string;
+  email: string;
+  role: PlayerRole;
+  userId: string;
+}
+
+export interface ICreateInvitationUseCase {
+  execute(input: ICreateInvitationInput): Promise<Player>;
+}
 
 /**
  * CreateInvitationUseCase - Invite a NONE player: status NONE → INVITED
@@ -25,12 +35,12 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
     private authService: IAuthorizationService,
   ) {}
 
-  async execute(
-    playerId: string,
-    email: string,
-    role: PlayerRole,
-    userId: string,
-  ): Promise<Player> {
+  async execute({
+    playerId,
+    email,
+    role,
+    userId,
+  }: ICreateInvitationInput): Promise<Player> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -53,7 +63,10 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
     }
 
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     const updated = await this.playerRepository.update(playerId, {

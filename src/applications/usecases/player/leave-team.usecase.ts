@@ -11,7 +11,15 @@ import { PlayerReason } from "@/entities/errors/reasons/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { ILeaveTeamUseCase } from "./leave-team.usecase.interface";
+
+export interface ILeaveTeamInput {
+  playerId: string;
+  userId: string;
+}
+
+export interface ILeaveTeamUseCase {
+  execute(input: ILeaveTeamInput): Promise<{ success: boolean }>;
+}
 
 @injectable()
 export class LeaveTeamUseCase implements ILeaveTeamUseCase {
@@ -24,10 +32,10 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     private profileRepository: IProfileRepository,
   ) {}
 
-  async execute(
-    playerId: string,
-    userId: string,
-  ): Promise<{ success: boolean }> {
+  async execute({
+    playerId,
+    userId,
+  }: ILeaveTeamInput): Promise<{ success: boolean }> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(

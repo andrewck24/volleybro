@@ -6,7 +6,16 @@ import { PlayerReason } from "@/entities/errors/reasons/player";
 import type { Player, PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { IUpdateRoleUseCase } from "./update-role.usecase.interface";
+
+export interface IUpdateRoleInput {
+  playerId: string;
+  newRole: PlayerRole;
+  userId: string;
+}
+
+export interface IUpdateRoleUseCase {
+  execute(input: IUpdateRoleInput): Promise<Player>;
+}
 
 @injectable()
 export class UpdateRoleUseCase implements IUpdateRoleUseCase {
@@ -17,11 +26,11 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
     private authService: IAuthorizationService,
   ) {}
 
-  async execute(
-    playerId: string,
-    newRole: PlayerRole,
-    userId: string,
-  ): Promise<Player> {
+  async execute({
+    playerId,
+    newRole,
+    userId,
+  }: IUpdateRoleInput): Promise<Player> {
     // 1. 取得球員，確認存在
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
@@ -33,7 +42,10 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
 
     // 2. 驗證權限 - 必須是該隊伍的 ADMIN 或 OWNER
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     // 3. 更新角色

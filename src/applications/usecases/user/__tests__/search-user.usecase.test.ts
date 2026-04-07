@@ -20,7 +20,7 @@ describe("SearchUserUseCase", () => {
   it("should return minimal user info when found by email", async () => {
     mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -33,7 +33,7 @@ describe("SearchUserUseCase", () => {
   it("should return NotFoundError when user not found", async () => {
     mockUserRepository.findByEmail.mockResolvedValue(null);
 
-    const result = await useCase.execute("notexist@example.com");
+    const result = await useCase.execute({ email: "notexist@example.com" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: NotFoundError };
@@ -42,7 +42,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return ValidationError for invalid email format", async () => {
-    const result = await useCase.execute("not-an-email");
+    const result = await useCase.execute({ email: "not-an-email" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: ValidationError };
@@ -52,7 +52,7 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return ValidationError for empty email", async () => {
-    const result = await useCase.execute("");
+    const result = await useCase.execute({ email: "" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: ValidationError };
@@ -62,7 +62,7 @@ describe("SearchUserUseCase", () => {
   it("should not expose email address in result value", async () => {
     mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -81,7 +81,7 @@ describe("SearchUserUseCase", () => {
     });
     mockUserRepository.findByEmail.mockResolvedValue(userWithoutImage);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {

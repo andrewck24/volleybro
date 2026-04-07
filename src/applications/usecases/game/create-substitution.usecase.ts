@@ -23,8 +23,12 @@ export interface ICreateSubstitutionInput {
 
 export type ICreateSubstitutionOutput = Entry[];
 
+export interface ICreateSubstitutionUseCase {
+  execute(input: ICreateSubstitutionInput): Promise<ICreateSubstitutionOutput>;
+}
+
 @injectable()
-export class CreateSubstitutionUseCase {
+export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
   constructor(
     @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
     @inject(TYPES.AuthenticationService)

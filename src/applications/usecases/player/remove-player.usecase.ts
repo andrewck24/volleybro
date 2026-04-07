@@ -6,7 +6,15 @@ import { CommonReason } from "@/entities/errors/reasons/common";
 import { PlayerReason } from "@/entities/errors/reasons/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { IRemovePlayerUseCase } from "./remove-player.usecase.interface";
+
+export interface IRemovePlayerInput {
+  playerId: string;
+  userId: string;
+}
+
+export interface IRemovePlayerUseCase {
+  execute(input: IRemovePlayerInput): Promise<{ success: boolean }>;
+}
 
 @injectable()
 export class RemovePlayerUseCase implements IRemovePlayerUseCase {
@@ -19,10 +27,10 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     private teamRepository: ITeamRepository,
   ) {}
 
-  async execute(
-    playerId: string,
-    userId: string,
-  ): Promise<{ success: boolean }> {
+  async execute({
+    playerId,
+    userId,
+  }: IRemovePlayerInput): Promise<{ success: boolean }> {
     // 1. Get player
     const player = await this.playerRepository.findById(playerId);
     if (!player) {

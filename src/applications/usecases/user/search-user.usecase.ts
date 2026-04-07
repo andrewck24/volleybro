@@ -6,22 +6,32 @@ import { ProfileReason } from "@/entities/errors/reasons/profile";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
-export type SearchUserOutput = {
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export interface ISearchUserInput {
+  email: string;
+}
+
+export type ISearchUserOutput = {
   id: string;
   name: string;
   image?: string;
 };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export interface ISearchUserUseCase {
+  execute(input: ISearchUserInput): Promise<Result<ISearchUserOutput>>;
+}
 
 @injectable()
-export class SearchUserUseCase {
+export class SearchUserUseCase implements ISearchUserUseCase {
   constructor(
     @inject(TYPES.UserRepository)
     private userRepository: IUserRepository,
   ) {}
 
-  async execute(email: string): Promise<Result<SearchUserOutput>> {
+  async execute({
+    email,
+  }: ISearchUserInput): Promise<Result<ISearchUserOutput>> {
     if (!email || !EMAIL_REGEX.test(email)) {
       return {
         ok: false,

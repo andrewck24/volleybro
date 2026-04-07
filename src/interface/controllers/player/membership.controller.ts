@@ -1,9 +1,18 @@
-import { container } from '@/infrastructure/di/inversify.config';
-import { TYPES } from '@/infrastructure/di/types';
-import type { ICreateInvitationUseCase } from '@/applications/usecases/player/create-invitation.usecase.interface';
-import type { IUpdateRoleUseCase } from '@/applications/usecases/player/update-role.usecase.interface';
-import type { ICancelInvitationUseCase } from '@/applications/usecases/player/cancel-invitation.usecase.interface';
-import type { Player, PlayerRole } from '@/entities/player';
+import type {
+  ICancelInvitationInput,
+  ICancelInvitationUseCase,
+} from "@/applications/usecases/player/cancel-invitation.usecase";
+import type {
+  ICreateInvitationInput,
+  ICreateInvitationUseCase,
+} from "@/applications/usecases/player/create-invitation.usecase";
+import type {
+  IUpdateRoleInput,
+  IUpdateRoleUseCase,
+} from "@/applications/usecases/player/update-role.usecase";
+import type { Player } from "@/entities/player";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
 
 /**
  * Membership Controller - 隊籍管理（管理者操作）
@@ -11,32 +20,24 @@ import type { Player, PlayerRole } from '@/entities/player';
  */
 
 export const createInvitation = async (
-  playerId: string,
-  email: string,
-  role: PlayerRole,
-  userId: string
+  input: ICreateInvitationInput,
 ): Promise<Player> => {
   const useCase = container.get<ICreateInvitationUseCase>(
-    TYPES.CreateInvitationUseCase
+    TYPES.CreateInvitationUseCase,
   );
-  return await useCase.execute(playerId, email, role, userId);
+  return await useCase.execute(input);
 };
 
-export const updateRole = async (
-  playerId: string,
-  role: PlayerRole,
-  userId: string
-): Promise<Player> => {
+export const updateRole = async (input: IUpdateRoleInput): Promise<Player> => {
   const useCase = container.get<IUpdateRoleUseCase>(TYPES.UpdateRoleUseCase);
-  return await useCase.execute(playerId, role, userId);
+  return await useCase.execute(input);
 };
 
 export const cancelInvitation = async (
-  playerId: string,
-  userId: string
+  input: ICancelInvitationInput,
 ): Promise<Player> => {
   const useCase = container.get<ICancelInvitationUseCase>(
-    TYPES.CancelInvitationUseCase
+    TYPES.CancelInvitationUseCase,
   );
-  return await useCase.execute(playerId, userId);
+  return await useCase.execute(input);
 };

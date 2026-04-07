@@ -1,30 +1,26 @@
 import {
-  CreateRallyUseCase,
-  UpdateRallyUseCase,
   type ICreateRallyInput,
   type ICreateRallyOutput,
+  type ICreateRallyUseCase,
+} from "@/applications/usecases/game/create-rally.usecase";
+import {
   type IUpdateRallyInput,
   type IUpdateRallyOutput,
-} from "@/applications/usecases/game/rally.usecase";
+  type IUpdateRallyUseCase,
+} from "@/applications/usecases/game/update-rally.usecase";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
 export const createRallyController = async (
   input: ICreateRallyInput,
 ): Promise<ICreateRallyOutput | undefined> => {
-  const createRallyUseCase = container.get<CreateRallyUseCase>(
-    TYPES.CreateRallyUseCase,
-  );
-
-  return await createRallyUseCase.execute(input);
+  const useCase = container.get<ICreateRallyUseCase>(TYPES.CreateRallyUseCase);
+  return await useCase.execute(input);
 };
 
 export const updateRallyController = async (
   input: IUpdateRallyInput,
 ): Promise<IUpdateRallyOutput | undefined> => {
-  const updateRallyUseCase = container.get<UpdateRallyUseCase>(
-    TYPES.UpdateRallyUseCase,
-  );
-
-  return await updateRallyUseCase.execute(input);
+  const useCase = container.get<IUpdateRallyUseCase>(TYPES.UpdateRallyUseCase);
+  return await useCase.execute(input);
 };

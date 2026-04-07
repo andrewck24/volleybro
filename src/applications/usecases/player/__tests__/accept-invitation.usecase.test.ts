@@ -32,7 +32,7 @@ describe("AcceptInvitationUseCase", () => {
       email: undefined,
     });
 
-    await usecase.execute("player-1", "user-1");
+    await usecase.execute({ playerId: "player-1", userId: "user-1" });
 
     // No error thrown means success
   });
@@ -41,7 +41,7 @@ describe("AcceptInvitationUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
     await expect(
-      usecase.execute("player-1", "wrong-user"),
+      usecase.execute({ playerId: "player-1", userId: "wrong-user" }),
     ).rejects.toBeInstanceOf(AuthorizationError);
   });
 
@@ -49,7 +49,7 @@ describe("AcceptInvitationUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(null);
 
     await expect(
-      usecase.execute("nonexistent", "user-1"),
+      usecase.execute({ playerId: "nonexistent", userId: "user-1" }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -61,9 +61,9 @@ describe("AcceptInvitationUseCase", () => {
     });
     mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 
-    await expect(usecase.execute("player-1", "user-1")).rejects.toBeInstanceOf(
-      ConflictError,
-    );
+    await expect(
+      usecase.execute({ playerId: "player-1", userId: "user-1" }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
   it("should throw error if player status is NONE (no invitation)", async () => {
@@ -73,9 +73,9 @@ describe("AcceptInvitationUseCase", () => {
     });
     mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
-    await expect(usecase.execute("player-1", "user-1")).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      usecase.execute({ playerId: "player-1", userId: "user-1" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("should preserve role when accepting invitation", async () => {
@@ -91,7 +91,7 @@ describe("AcceptInvitationUseCase", () => {
       email: undefined,
     });
 
-    await usecase.execute("player-1", "user-1");
+    await usecase.execute({ playerId: "player-1", userId: "user-1" });
 
     // No error thrown means success
   });

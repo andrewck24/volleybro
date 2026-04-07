@@ -11,7 +11,15 @@ import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { ICancelInvitationUseCase } from "./cancel-invitation.usecase.interface";
+
+export interface ICancelInvitationInput {
+  playerId: string;
+  userId: string;
+}
+
+export interface ICancelInvitationUseCase {
+  execute(input: ICancelInvitationInput): Promise<Player>;
+}
 
 @injectable()
 export class CancelInvitationUseCase implements ICancelInvitationUseCase {
@@ -22,7 +30,7 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
     private authService: IAuthorizationService,
   ) {}
 
-  async execute(playerId: string, userId: string): Promise<Player> {
+  async execute({ playerId, userId }: ICancelInvitationInput): Promise<Player> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -32,7 +40,10 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
     }
 
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     if (player.status !== PlayerStatus.INVITED) {

@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { IUpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
 import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
-import type { IUpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase.interface";
 import { NotFoundError } from "@/entities/errors/app-error";
 import { Position } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -46,11 +46,11 @@ describe("UpdatePlayerInfoUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
 
-      const result = await useCase.execute(
-        "player_123",
-        updateData,
-        "user_456",
-      );
+      const result = await useCase.execute({
+        playerId: "player_123",
+        updates: updateData,
+        userId: "user_456",
+      });
 
       expect(result.name).toBe(updateData.name);
       expect(result.number).toBe(updateData.number);
@@ -75,11 +75,11 @@ describe("UpdatePlayerInfoUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
 
-      const result = await useCase.execute(
-        "player_123",
-        updateData,
-        "user_456",
-      );
+      const result = await useCase.execute({
+        playerId: "player_123",
+        updates: updateData,
+        userId: "user_456",
+      });
 
       expect(result.position).toBe(updateData.position);
     });
@@ -102,11 +102,11 @@ describe("UpdatePlayerInfoUseCase", () => {
         createPlayer({ ...currentPlayer, ...updateData }),
       );
 
-      const result = await useCase.execute(
-        "player_123",
-        updateData,
-        "user_456",
-      );
+      const result = await useCase.execute({
+        playerId: "player_123",
+        updates: updateData,
+        userId: "user_456",
+      });
 
       expect(result.name).toBe(updateData.name);
     });
@@ -120,7 +120,11 @@ describe("UpdatePlayerInfoUseCase", () => {
       );
 
       await expect(
-        useCase.execute("player_123", { name: "New" }, "user_456"),
+        useCase.execute({
+          playerId: "player_123",
+          updates: { name: "New" },
+          userId: "user_456",
+        }),
       ).rejects.toThrow("Not admin");
     });
 
@@ -128,7 +132,11 @@ describe("UpdatePlayerInfoUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("non_existent", { name: "New" }, "user_456"),
+        useCase.execute({
+          playerId: "non_existent",
+          updates: { name: "New" },
+          userId: "user_456",
+        }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
   });

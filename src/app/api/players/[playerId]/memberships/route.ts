@@ -1,9 +1,3 @@
-/**
- * POST /api/players/{playerId}/memberships - Invite existing PURE_PLAYER
- * PATCH /api/players/{playerId}/memberships - Update player role
- * DELETE /api/players/{playerId}/memberships - Cancel invitation
- */
-
 import type { PlayerRole } from "@/entities/player";
 import * as membershipController from "@/interface/controllers/player/membership.controller";
 import { withAuth } from "@/lib/api/wrappers";
@@ -13,6 +7,12 @@ import {
   UpdatePlayerRoleSchema,
 } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * POST /api/players/{playerId}/memberships - Invite existing PURE_PLAYER
+ * PATCH /api/players/{playerId}/memberships - Update player role
+ * DELETE /api/players/{playerId}/memberships - Cancel invitation
+ */
 
 export const POST = (
   _req: NextRequest,
@@ -24,12 +24,12 @@ export const POST = (
     const body = await req.json();
     const validatedData = ManagePlayerMembershipSchema.parse(body);
 
-    const player = await membershipController.createInvitation(
+    const player = await membershipController.createInvitation({
       playerId,
-      validatedData.email,
-      validatedData.role as PlayerRole,
+      email: validatedData.email,
+      role: validatedData.role as PlayerRole,
       userId,
-    );
+    });
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 201 });
@@ -45,11 +45,11 @@ export const PATCH = (
     const body = await req.json();
     const validatedData = UpdatePlayerRoleSchema.parse(body);
 
-    const player = await membershipController.updateRole(
+    const player = await membershipController.updateRole({
       playerId,
-      validatedData.role as PlayerRole,
+      newRole: validatedData.role as PlayerRole,
       userId,
-    );
+    });
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
@@ -62,10 +62,10 @@ export const DELETE = (
   withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
 
-    const player = await membershipController.cancelInvitation(
+    const player = await membershipController.cancelInvitation({
       playerId,
       userId,
-    );
+    });
 
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });

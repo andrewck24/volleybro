@@ -20,35 +20,27 @@ import {
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
-import { FindGameSummariesUseCase } from "@/applications/usecases/game/game-summaries.usecase";
-import {
-  CreateGameUseCase,
-  FindGameUseCase,
-} from "@/applications/usecases/game/game.usecase";
-import {
-  CreateRallyUseCase,
-  UpdateRallyUseCase,
-} from "@/applications/usecases/game/rally.usecase";
-import {
-  CreateSetUseCase,
-  UpdateSetUseCase,
-} from "@/applications/usecases/game/set.usecase";
-import { CreateSubstitutionUseCase } from "@/applications/usecases/game/substitution.usecase";
-import {
-  AcceptInvitationUseCase,
-  CancelInvitationUseCase,
-  CreateInvitationUseCase,
-  CreatePlayerUseCase,
-  GetPlayerUseCase,
-  GetTeamPlayersUseCase,
-  GetUserPlayersUseCase,
-  LeaveTeamUseCase,
-  RejectInvitationUseCase,
-  RemovePlayerUseCase,
-  TransferOwnershipUseCase,
-  UpdatePlayerInfoUseCase,
-  UpdateRoleUseCase,
-} from "@/applications/usecases/player";
+import { CreateGameUseCase } from "@/applications/usecases/game/create-game.usecase";
+import { CreateRallyUseCase } from "@/applications/usecases/game/create-rally.usecase";
+import { CreateSetUseCase } from "@/applications/usecases/game/create-set.usecase";
+import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
+import { FindGameSummariesUseCase } from "@/applications/usecases/game/find-game-summaries.usecase";
+import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
+import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
+import { UpdateSetUseCase } from "@/applications/usecases/game/update-set.usecase";
+import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
+import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
+import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
+import { CreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
+import { GetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
+import { GetTeamPlayersUseCase } from "@/applications/usecases/player/get-team-players.usecase";
+import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
+import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
+import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
+import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
+import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
+import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
+import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
 import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
 import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";

@@ -24,8 +24,12 @@ export interface ICreateSetInput {
 
 export interface ICreateSetOutput extends Game {}
 
+export interface ICreateSetUseCase {
+  execute(input: ICreateSetInput): Promise<ICreateSetOutput | undefined>;
+}
+
 @injectable()
-export class CreateSetUseCase {
+export class CreateSetUseCase implements ICreateSetUseCase {
   constructor(
     @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
     @inject(TYPES.AuthenticationService)
@@ -48,7 +52,6 @@ export class CreateSetUseCase {
       PlayerRole.MEMBER,
     );
 
-    // 新增上場選手(在 lineups 中)對應局數的 stats 物件（在開新局、換人時）
     const startingPlayers = data.lineup.starting.map((player) => player.id);
     const liberoPlayers = data.lineup.liberos.map((player) => player.id);
     const activePlayerIds = new Set([...startingPlayers, ...liberoPlayers]);
@@ -69,49 +72,6 @@ export class CreateSetUseCase {
       options: data.options,
       entries: [],
     };
-
-    const updatedGame = await this.gameRepository.update(params.gameId, game);
-
-    return updatedGame;
-  }
-}
-
-export interface IUpdateSetInput {
-  params: { gameId: string; setIndex: number };
-  data: {
-    // lineup: Lineup;
-    options: Set["options"];
-  };
-}
-
-export interface IUpdateSetOutput extends Game {}
-
-@injectable()
-export class UpdateSetUseCase {
-  constructor(
-    @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
-    @inject(TYPES.AuthenticationService)
-    private authenticationService: IAuthenticationService,
-    @inject(TYPES.AuthorizationService)
-    private authorizationService: IAuthorizationService,
-  ) {}
-
-  async execute(input: IUpdateSetInput): Promise<IUpdateSetOutput | undefined> {
-    const { params, data } = input;
-    const user = await this.authenticationService.verifySession();
-
-    const game = await this.gameRepository.findById(params.gameId);
-    if (!game)
-      throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
-
-    await this.authorizationService.verifyTeamRole(
-      game.teamId.toString(),
-      user.id.toString(),
-      PlayerRole.MEMBER,
-    );
-
-    game.sets[params.setIndex].options = data.options;
-    // TODO: new feature: update lineup of the set (without increasing substitution count)
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 

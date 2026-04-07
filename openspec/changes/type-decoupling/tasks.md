@@ -58,11 +58,11 @@ Eliminate MongoDB query semantics from application layer. Implements the entity 
 
 Implements the use case file structure: 1-file-per-class with co-located interface decision.
 
-- [ ] 3.1 Split game domain multi-class use case files to 1-file-per-class: `record.usecase.ts` → `find-game.usecase.ts` + `create-game.usecase.ts`; `rally.usecase.ts` → `create-rally.usecase.ts` + `update-rally.usecase.ts`; `set.usecase.ts` → `create-set.usecase.ts` + `update-set.usecase.ts`; `substitution.usecase.ts` → `create-substitution.usecase.ts`; `game-summaries.usecase.ts` → `find-game-summaries.usecase.ts`. Each file co-locates its interface and class.
-- [ ] 3.2 Merge all standalone `.usecase.interface.ts` files in `player/` and `team/` domains into their corresponding `.usecase.ts` (interface above class, both exported). Delete `.usecase.interface.ts` files. Update barrel `index.ts` in each domain.
-- [ ] 3.3 Update DI container (`inversify.config.ts`, `types.ts`) to register all 8 split game use cases with correct imports.
-- [ ] 3.4 Split `record-errors.test.ts` into per-use-case test files under `game/__tests__/`. Update test imports.
-- [ ] 3.5 Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor(applications): unify use case file structure to one class per file` with a detailed commit message presenting the purposes of the task section and the scope of changes.
+- [x] 3.1 Split game domain multi-class use case files to 1-file-per-class: `record.usecase.ts` → `find-game.usecase.ts` + `create-game.usecase.ts`; `rally.usecase.ts` → `create-rally.usecase.ts` + `update-rally.usecase.ts`; `set.usecase.ts` → `create-set.usecase.ts` + `update-set.usecase.ts`; `substitution.usecase.ts` → `create-substitution.usecase.ts`; `game-summaries.usecase.ts` → `find-game-summaries.usecase.ts`. Each file co-locates its interface and class.
+- [x] 3.2 Merge all standalone `.usecase.interface.ts` files in `player/` and `team/` domains into their corresponding `.usecase.ts` (interface above class, both exported). Delete `.usecase.interface.ts` files. Update barrel `index.ts` in each domain.
+- [x] 3.3 Update DI container (`inversify.config.ts`, `types.ts`) to register all 8 split game use cases with correct imports.
+- [x] 3.4 Split `record-errors.test.ts` into per-use-case test files under `game/__tests__/`. Update test imports.
+- [x] 3.5 Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor(applications): unify use case file structure to one class per file` with a detailed commit message presenting the purposes of the task section and the scope of changes.
 
 ## 4. Presentation type decoupling: Zod response schemas and view types
 
@@ -85,3 +85,7 @@ Decouple presentation layer from domain entities per the presentation types via 
 - [ ] 5.2 Add "Type Boundary Drift" section to `docs/maintenance-policy.md`: document the maintenance policy for keeping domain entity types, API response Zod schemas, and presentation view types in sync when domain models change.
 - [ ] 5.3 Update `CLAUDE.md` component organization section: `record/` → `game/`, remove `match/` (absorbed into `game/`). Update `openspec/config.yaml` if any references to `record` or `match` remain. Review and update `README.md`, `CONTRIBUTING.md`, `docs/` for record-related and match-related paths or types.
 - [ ] 5.4 Run final `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `docs: add migration script and update documentation for type-decoupling` with a detailed commit message presenting the purposes of the task section and the scope of changes.
+
+## Follow-up (Out of Scope for This Change)
+
+- [ ] F1. DB connection lifecycle refactor is tracked in separate change `db-connect-composition-root` (wrapper/composition root approach via `withDb`/infra wrapper). Do not mix into `type-decoupling` implementation scope.

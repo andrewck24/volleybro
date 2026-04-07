@@ -1,8 +1,8 @@
+import type { ILinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
+import type { CreateProfileUseCase } from "@/applications/usecases/user/profile.usecase";
+import { TransientError } from "@/entities/errors/app-error";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import type { CreateProfileUseCase } from "@/applications/usecases/user/profile.usecase";
-import type { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
-import { TransientError } from "@/entities/errors/app-error";
 
 /**
  * Hook handler for Better Auth `user.create.after` event.
@@ -19,7 +19,7 @@ export async function handleUserCreated(user: {
   email: string;
 }): Promise<void> {
   const createProfileUseCase = container.get<CreateProfileUseCase>(
-    TYPES.CreateProfileUseCase
+    TYPES.CreateProfileUseCase,
   );
 
   try {
@@ -28,44 +28,50 @@ export async function handleUserCreated(user: {
   } catch (error) {
     console.error(
       `[Auth Hook] Failed to create profile for user ${user.id}:`,
-      error
+      error,
     );
     return;
   }
 
-  const linkUseCase = container.get<LinkPendingInvitationsUseCase>(
-    TYPES.LinkPendingInvitationsUseCase
+  const linkUseCase = container.get<ILinkPendingInvitationsUseCase>(
+    TYPES.LinkPendingInvitationsUseCase,
   );
 
   try {
-    const count = await linkUseCase.execute(user.email, user.id);
+    const count = await linkUseCase.execute({
+      email: user.email,
+      userId: user.id,
+    });
     if (count > 0) {
       console.log(
-        `[Auth Hook] Linked ${count} pending invitation(s) for ${user.email}`
+        `[Auth Hook] Linked ${count} pending invitation(s) for ${user.email}`,
       );
     }
   } catch (firstError) {
     if (firstError instanceof TransientError) {
       console.warn(
-        `[Auth Hook] Transient error linking invitations, retrying once...`
+        `[Auth Hook] Transient error linking invitations, retrying once...`,
       );
       try {
-        const count = await linkUseCase.execute(user.email, user.id);
+        const count = await linkUseCase.execute({
+          email: user.email,
+          userId: user.id,
+        });
         if (count > 0) {
           console.log(
-            `[Auth Hook] Linked ${count} pending invitation(s) for ${user.email}`
+            `[Auth Hook] Linked ${count} pending invitation(s) for ${user.email}`,
           );
         }
       } catch (retryError) {
         console.error(
           `[Auth Hook] Failed to link pending invitations for ${user.email}:`,
-          retryError
+          retryError,
         );
       }
     } else {
       console.error(
         `[Auth Hook] Failed to link pending invitations for ${user.email}:`,
-        firstError
+        firstError,
       );
     }
   }

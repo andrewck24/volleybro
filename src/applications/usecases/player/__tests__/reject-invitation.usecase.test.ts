@@ -27,7 +27,7 @@ describe("RejectInvitationUseCase", () => {
       email: undefined,
     });
 
-    await usecase.execute("player-1", "user-1");
+    await usecase.execute({ playerId: "player-1", userId: "user-1" });
 
     // No error thrown means success
   });
@@ -36,7 +36,7 @@ describe("RejectInvitationUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
     await expect(
-      usecase.execute("player-1", "wrong-user"),
+      usecase.execute({ playerId: "player-1", userId: "wrong-user" }),
     ).rejects.toBeInstanceOf(AuthorizationError);
   });
 
@@ -44,7 +44,7 @@ describe("RejectInvitationUseCase", () => {
     mockPlayerRepository.findById.mockResolvedValue(null);
 
     await expect(
-      usecase.execute("nonexistent", "user-1"),
+      usecase.execute({ playerId: "nonexistent", userId: "user-1" }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -55,9 +55,9 @@ describe("RejectInvitationUseCase", () => {
     });
     mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
-    await expect(usecase.execute("player-1", "user-1")).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      usecase.execute({ playerId: "player-1", userId: "user-1" }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("should preserve role when rejecting invitation", async () => {
@@ -72,7 +72,7 @@ describe("RejectInvitationUseCase", () => {
       email: undefined,
     });
 
-    await usecase.execute("player-1", "user-1");
+    await usecase.execute({ playerId: "player-1", userId: "user-1" });
 
     // No error thrown means success
   });

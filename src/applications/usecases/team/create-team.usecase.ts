@@ -5,10 +5,22 @@ import { PlayerRole, PlayerStatus } from "@/entities/player";
 import type { Team } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type {
-  CreateTeamInput,
-  ICreateTeamUseCase,
-} from "./create-team.usecase.interface";
+
+export interface CreateTeamInput {
+  name: string;
+  nickname?: string;
+}
+
+export interface ICreateTeamInput {
+  name: string;
+  nickname?: string;
+  userId: string;
+  userName: string;
+}
+
+export interface ICreateTeamUseCase {
+  execute(input: ICreateTeamInput): Promise<Team>;
+}
 
 @injectable()
 export class CreateTeamUseCase implements ICreateTeamUseCase {
@@ -21,14 +33,15 @@ export class CreateTeamUseCase implements ICreateTeamUseCase {
     private profileRepository: IProfileRepository,
   ) {}
 
-  async execute(
-    input: CreateTeamInput,
-    userId: string,
-    userName: string,
-  ): Promise<Team> {
+  async execute({
+    name,
+    nickname,
+    userId,
+    userName,
+  }: ICreateTeamInput): Promise<Team> {
     const team = await this.teamRepository.create({
-      name: input.name,
-      nickname: input.nickname,
+      name: name,
+      nickname: nickname,
       lineups: new Array(3).fill({
         options: {
           liberoReplaceMode: 0,

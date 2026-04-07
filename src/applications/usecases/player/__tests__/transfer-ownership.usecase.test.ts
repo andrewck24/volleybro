@@ -1,6 +1,6 @@
 import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
+import type { ITransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
-import type { ITransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase.interface";
 import {
   AuthorizationError,
   ConflictError,
@@ -49,7 +49,7 @@ describe("TransferOwnershipUseCase", () => {
         .mockResolvedValueOnce({ ...newOwner, role: PlayerRole.OWNER })
         .mockResolvedValueOnce({ ...currentOwner, role: PlayerRole.ADMIN });
 
-      const result = await useCase.execute(teamId, newOwnerId, userId);
+      const result = await useCase.execute({ teamId, newOwnerId, userId });
 
       expect(result.role).toBe(PlayerRole.OWNER);
     });
@@ -58,7 +58,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -70,7 +70,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(adminPlayer);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
@@ -81,7 +81,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -93,7 +93,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(otherTeamPlayer);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -105,7 +105,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(purePlayer);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -117,7 +117,7 @@ describe("TransferOwnershipUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(null);
 
       await expect(
-        useCase.execute(teamId, newOwnerId, userId),
+        useCase.execute({ teamId, newOwnerId, userId }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

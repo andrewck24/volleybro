@@ -1,15 +1,15 @@
 import {
-  FindGameSummariesUseCase,
   type IFindGameSummariesInput,
   type IFindGameSummariesOutput,
-} from "@/applications/usecases/game/game-summaries.usecase";
+  type IFindGameSummariesUseCase,
+} from "@/applications/usecases/game/find-game-summaries.usecase";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
 export const findGameSummariesController = async (
   input: IFindGameSummariesInput,
 ): Promise<IFindGameSummariesOutput | undefined> => {
-  const useCase = container.get<FindGameSummariesUseCase>(
+  const useCase = container.get<IFindGameSummariesUseCase>(
     TYPES.FindGameSummariesUseCase,
   );
   return await useCase.execute(input);

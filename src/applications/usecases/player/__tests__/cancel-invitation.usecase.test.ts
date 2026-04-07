@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
-import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase.interface";
 import {
   ConflictError,
   NotFoundError,
@@ -47,7 +47,10 @@ describe("CancelInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(cancelledPlayer);
 
-      const result = await useCase.execute("player_123", "user_456");
+      const result = await useCase.execute({
+        playerId: "player_123",
+        userId: "user_456",
+      });
 
       expect(result.email).toBeUndefined();
     });
@@ -56,7 +59,7 @@ describe("CancelInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_999", "user_456"),
+        useCase.execute({ playerId: "player_999", userId: "user_456" }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -73,9 +76,9 @@ describe("CancelInvitationUseCase", () => {
         new Error("User not authorized"),
       );
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "User not authorized",
-      );
+      await expect(
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
+      ).rejects.toThrow("User not authorized");
     });
 
     it("should reject if player status is not INVITED", async () => {
@@ -89,7 +92,7 @@ describe("CancelInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -106,7 +109,7 @@ describe("CancelInvitationUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

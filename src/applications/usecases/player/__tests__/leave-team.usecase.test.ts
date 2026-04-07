@@ -5,8 +5,8 @@ import {
   createPlayer,
   createProfile,
 } from "@/__tests__/helpers";
+import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
-import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase.interface";
 import {
   AuthorizationError,
   NotFoundError,
@@ -53,7 +53,7 @@ describe("LeaveTeamUseCase", () => {
       );
       mockProfileRepository.updateActiveTeamId.mockResolvedValue(null);
 
-      const result = await useCase.execute("player_123", "user_456");
+      const result = await useCase.execute({ playerId: "player_123", userId: "user_456" });
 
       expect(result).toEqual({ success: true });
     });
@@ -77,7 +77,7 @@ describe("LeaveTeamUseCase", () => {
         createProfile({ userId: "user_456", activeTeamId: "other_team" }),
       );
 
-      await useCase.execute("player_123", "user_456");
+      await useCase.execute({ playerId: "player_123", userId: "user_456" });
 
       expect(mockProfileRepository.updateActiveTeamId).not.toHaveBeenCalled();
     });
@@ -86,7 +86,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_999", "user_456"),
+        useCase.execute({ playerId: "player_999", userId: "user_456" }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -101,7 +101,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(player);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
@@ -118,7 +118,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(owner);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
@@ -134,7 +134,7 @@ describe("LeaveTeamUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

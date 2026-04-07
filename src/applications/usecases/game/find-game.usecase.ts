@@ -14,8 +14,12 @@ export interface IFindGameInput {
 
 export type IFindGameOutput = Game;
 
+export interface IFindGameUseCase {
+  execute(input: IFindGameInput): Promise<IFindGameOutput | undefined>;
+}
+
 @injectable()
-export class FindGameUseCase {
+export class FindGameUseCase implements IFindGameUseCase {
   constructor(
     @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
     @inject(TYPES.AuthenticationService)
@@ -37,50 +41,6 @@ export class FindGameUseCase {
       user.id.toString(),
       PlayerRole.MEMBER,
     );
-
-    return game;
-  }
-}
-
-export interface ICreateGameInput {
-  params: { teamId: string };
-  data: {
-    info: Game["info"];
-    teams: Game["teams"];
-  };
-}
-
-export interface ICreateGameOutput extends Game {}
-
-@injectable()
-export class CreateGameUseCase {
-  constructor(
-    @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
-    @inject(TYPES.AuthenticationService)
-    private authenticationService: IAuthenticationService,
-    @inject(TYPES.AuthorizationService)
-    private authorizationService: IAuthorizationService,
-  ) {}
-
-  async execute(
-    input: ICreateGameInput,
-  ): Promise<ICreateGameOutput | undefined> {
-    const { params, data } = input;
-    const user = await this.authenticationService.verifySession();
-
-    await this.authorizationService.verifyTeamRole(
-      params.teamId.toString(),
-      user.id.toString(),
-      PlayerRole.MEMBER,
-    );
-
-    const game = await this.gameRepository.create({
-      win: false,
-      teamId: params.teamId,
-      info: data.info,
-      teams: { home: { ...data.teams.home }, away: { ...data.teams.away } },
-      sets: [],
-    });
 
     return game;
   }

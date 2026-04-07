@@ -47,10 +47,10 @@ describe("handleUserCreated (auth hook)", () => {
     await handleUserCreated({ id: "user-1", email: "test@example.com" });
 
     expect(mockCreateProfileExecute).toHaveBeenCalledWith({ userId: "user-1" });
-    expect(mockLinkInvitationsExecute).toHaveBeenCalledWith(
-      "test@example.com",
-      "user-1",
-    );
+    expect(mockLinkInvitationsExecute).toHaveBeenCalledWith({
+      email: "test@example.com",
+      userId: "user-1",
+    });
   });
 
   it("should retry LinkPendingInvitationsUseCase once on transient failure", async () => {

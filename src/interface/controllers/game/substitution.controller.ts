@@ -1,17 +1,16 @@
 import {
-  CreateSubstitutionUseCase,
   type ICreateSubstitutionInput,
   type ICreateSubstitutionOutput,
-} from "@/applications/usecases/game/substitution.usecase";
+  type ICreateSubstitutionUseCase,
+} from "@/applications/usecases/game/create-substitution.usecase";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
 export const createSubstitutionController = async (
   input: ICreateSubstitutionInput,
 ): Promise<ICreateSubstitutionOutput | undefined> => {
-  const createSubstitutionUseCase = container.get<CreateSubstitutionUseCase>(
+  const useCase = container.get<ICreateSubstitutionUseCase>(
     TYPES.CreateSubstitutionUseCase,
   );
-
-  return await createSubstitutionUseCase.execute(input);
+  return await useCase.execute(input);
 };

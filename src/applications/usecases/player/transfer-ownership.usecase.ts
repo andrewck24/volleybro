@@ -11,7 +11,16 @@ import type { Player } from "@/entities/player";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { ITransferOwnershipUseCase } from "./transfer-ownership.usecase.interface";
+
+export interface ITransferOwnershipInput {
+  teamId: string;
+  newOwnerId: string;
+  userId: string;
+}
+
+export interface ITransferOwnershipUseCase {
+  execute(input: ITransferOwnershipInput): Promise<Player>;
+}
 
 @injectable()
 export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
@@ -20,11 +29,11 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
     private playerRepository: IPlayerRepository,
   ) {}
 
-  async execute(
-    teamId: string,
-    newOwnerId: string,
-    userId: string,
-  ): Promise<Player> {
+  async execute({
+    teamId,
+    newOwnerId,
+    userId,
+  }: ITransferOwnershipInput): Promise<Player> {
     // 1. Find current owner by teamId + userId
     const currentOwner = await this.playerRepository.findByTeamIdAndUserId(
       teamId,

@@ -13,7 +13,10 @@ describe("LinkPendingInvitationsUseCase", () => {
   it("should return count of linked invitations on success", async () => {
     mockPlayerRepository.linkUserToInvitations.mockResolvedValue(3);
 
-    const result = await useCase.execute("test@example.com", "user-1");
+    const result = await useCase.execute({
+      email: "test@example.com",
+      userId: "user-1",
+    });
 
     expect(result).toBe(3);
   });
@@ -21,7 +24,10 @@ describe("LinkPendingInvitationsUseCase", () => {
   it("should return 0 when no invitations are found", async () => {
     mockPlayerRepository.linkUserToInvitations.mockResolvedValue(0);
 
-    const result = await useCase.execute("noone@example.com", "user-2");
+    const result = await useCase.execute({
+      email: "noone@example.com",
+      userId: "user-2",
+    });
 
     expect(result).toBe(0);
   });
@@ -31,8 +37,14 @@ describe("LinkPendingInvitationsUseCase", () => {
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(0);
 
-    const first = await useCase.execute("test@example.com", "user-1");
-    const second = await useCase.execute("test@example.com", "user-1");
+    const first = await useCase.execute({
+      email: "test@example.com",
+      userId: "user-1",
+    });
+    const second = await useCase.execute({
+      email: "test@example.com",
+      userId: "user-1",
+    });
 
     expect(first).toBe(2);
     expect(second).toBe(0);
@@ -44,7 +56,7 @@ describe("LinkPendingInvitationsUseCase", () => {
     );
 
     await expect(
-      useCase.execute("test@example.com", "user-1"),
+      useCase.execute({ email: "test@example.com", userId: "user-1" }),
     ).rejects.toThrow();
   });
 });
