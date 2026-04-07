@@ -25,7 +25,10 @@ export const POST = withErrorHandler(async (req: NextRequest) => {
   await connectToMongoDB();
   const request = await req.json();
   const searchParams = req.nextUrl.searchParams;
-  const teamId = searchParams.get("ti") ?? "";
+  const teamId = searchParams.get("ti");
+
+  if (!teamId)
+    throw new ValidationError(CommonReason.INVALID_INPUT, "teamId is required");
 
   const input = {
     params: { teamId },

@@ -51,8 +51,8 @@ export class CreateRallyUseCase implements ICreateRallyUseCase {
 
     const { game: updatedGame } = createRallyHelper(params, rally, game);
 
-    await this.gameRepository.update(gameId, updatedGame);
+    const persistedGame = await this.gameRepository.update(gameId, updatedGame);
 
-    return game.sets[setIndex].entries;
+    return persistedGame.sets[setIndex].entries;
   }
 }
