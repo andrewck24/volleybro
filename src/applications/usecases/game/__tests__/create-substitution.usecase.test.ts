@@ -1,4 +1,5 @@
 import {
+  createGame,
   createMockAuthenticationService,
   createMockAuthorizationService,
   createMockGameRepository,
@@ -24,6 +25,25 @@ beforeEach(() => {
 describe("CreateSubstitutionUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
     mockGameRepository.findById.mockResolvedValue(null);
+    const useCase = new CreateSubstitutionUseCase(
+      mockGameRepository,
+      mockAuthService,
+      mockAuthzService,
+    );
+
+    await expect(
+      useCase.execute({
+        params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+        data: {} as unknown as Substitution,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("throws NotFoundError when set not found", async () => {
+    mockGameRepository.findById.mockResolvedValue({
+      ...createGame(),
+      sets: [],
+    });
     const useCase = new CreateSubstitutionUseCase(
       mockGameRepository,
       mockAuthService,

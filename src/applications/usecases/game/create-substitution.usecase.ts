@@ -53,6 +53,9 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       PlayerRole.MEMBER,
     );
 
+    if (!game.sets[params.setIndex])
+      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
+
     const side = substitution.team === Side.HOME ? "home" : "away";
     const lineup = game.sets[params.setIndex].lineups[side];
     if (!lineup)
@@ -61,8 +64,8 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
     this.updateLineup(lineup, substitution, params.entryIndex);
     this.updateGameStats(game, side, input);
 
-    await this.gameRepository.update(params.gameId, game);
-    return game.sets[params.setIndex].entries;
+    const persistedGame = await this.gameRepository.update(params.gameId, game);
+    return persistedGame.sets[params.setIndex].entries;
   }
 
   private updateLineup(
