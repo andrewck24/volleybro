@@ -21,6 +21,7 @@ jest.mock("@/infrastructure/db/mongoose/schemas/player", () => ({
 describe("PlayerRepository", () => {
   let repository: PlayerRepositoryImpl;
   const mockPlayer = createPlayer({ status: PlayerStatus.NONE });
+  const mockPlayerRaw = { _id: mockPlayer.id, ...mockPlayer };
 
   beforeEach(() => {
     repository = new PlayerRepositoryImpl();
@@ -30,14 +31,14 @@ describe("PlayerRepository", () => {
   describe("findById", () => {
     it("should return player by id", async () => {
       const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => mockPlayer,
+        toObject: () => mockPlayerRaw,
       });
       (PlayerModel.findById as jest.Mock).mockReturnValue({ exec: mockExec });
 
       const result = await repository.findById("player-1");
 
       expect(PlayerModel.findById).toHaveBeenCalledWith("player-1");
-      expect(result).toEqual(mockPlayer);
+      expect(result).toMatchObject(mockPlayer);
     });
 
     it("should return null if player not found", async () => {
@@ -54,14 +55,14 @@ describe("PlayerRepository", () => {
     it("should return all players in a team", async () => {
       const mockExec = jest
         .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayer }]);
+        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
       (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
 
       const result = await repository.findByTeamId("team-1");
 
       expect(PlayerModel.find).toHaveBeenCalledWith({ teamId: "team-1" });
       expect(result).toHaveLength(1);
-      expect(result[0]).toEqual(mockPlayer);
+      expect(result[0]).toMatchObject(mockPlayer);
     });
 
     it("should return empty array if no players in team", async () => {
@@ -78,7 +79,7 @@ describe("PlayerRepository", () => {
     it("should return all players for a user", async () => {
       const mockExec = jest
         .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayer }]);
+        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
       (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
 
       const result = await repository.findByUserId("user-1");
@@ -92,7 +93,7 @@ describe("PlayerRepository", () => {
     it("should return players by email", async () => {
       const mockExec = jest
         .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayer }]);
+        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
       (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
 
       const result = await repository.findByEmail("test@example.com");
@@ -107,7 +108,7 @@ describe("PlayerRepository", () => {
   describe("findInvitedByTeamIdAndEmail", () => {
     it("should return invited player", async () => {
       const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => mockPlayer,
+        toObject: () => mockPlayerRaw,
       });
       (PlayerModel.findOne as jest.Mock).mockReturnValue({ exec: mockExec });
 
@@ -120,7 +121,7 @@ describe("PlayerRepository", () => {
         teamId: "team-1",
         email: "test@example.com",
       });
-      expect(result).toEqual(mockPlayer);
+      expect(result).toMatchObject(mockPlayer);
     });
 
     it("should return null if invitation not found", async () => {
@@ -144,7 +145,7 @@ describe("PlayerRepository", () => {
         teamId: "team-1",
       };
       (PlayerModel.create as jest.Mock).mockResolvedValue({
-        toObject: () => ({ ...playerInput, _id: "new-id" }),
+        toObject: () => ({ _id: "new-id", ...playerInput }),
       });
 
       const result = await repository.create(playerInput);
@@ -193,7 +194,7 @@ describe("PlayerRepository", () => {
     it("should update and return updated player", async () => {
       const updates = { role: PlayerRole.ADMIN };
       const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => ({ ...mockPlayer, ...updates }),
+        toObject: () => ({ _id: mockPlayer.id, ...mockPlayer, ...updates }),
       });
       (PlayerModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
         exec: mockExec,
@@ -216,7 +217,7 @@ describe("PlayerRepository", () => {
         email: undefined,
       };
       const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => ({ ...mockPlayer, status: PlayerStatus.NONE }),
+        toObject: () => ({ _id: mockPlayer.id, ...mockPlayer, status: PlayerStatus.NONE }),
       });
       (PlayerModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
         exec: mockExec,
@@ -290,7 +291,7 @@ describe("PlayerRepository", () => {
 
   describe("findTeamOwner", () => {
     it("should return team owner", async () => {
-      const owner = { ...mockPlayer, role: PlayerRole.OWNER };
+      const owner = { _id: mockPlayer.id, ...mockPlayer, role: PlayerRole.OWNER };
       const mockExec = jest.fn().mockResolvedValue({
         toObject: () => owner,
       });
@@ -310,7 +311,7 @@ describe("PlayerRepository", () => {
     it("should return all admins and owner in team", async () => {
       const mockExec = jest
         .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayer }]);
+        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
       (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
 
       const result = await repository.findAdminsByTeamId("team-1");

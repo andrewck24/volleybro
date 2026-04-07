@@ -14,7 +14,7 @@ export const PositionSchema = z.nativeEnum(Position);
  * Complete Player schema for internal use
  */
 export const PlayerSchema = z.object({
-  _id: z.string(),
+  id: z.string(),
   name: z.string().min(1, "Name is required"),
   number: z.number().int().min(0).max(99).optional(),
   position: PositionSchema.optional(),

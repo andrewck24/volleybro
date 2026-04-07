@@ -30,7 +30,7 @@ Changes can be parked（暫存）— temporarily moved out of `openspec/changes/
 
 VolleyBro is a volleyball team management and match recording web application built with **Clean Architecture** principles.
 
-## Technology Stack
+### Technology Stack
 
 - **Frontend**: Next.js 16+ (React 19), TypeScript
 - **UI**: Shadcn/UI components + Tailwind CSS
@@ -41,14 +41,14 @@ VolleyBro is a volleyball team management and match recording web application bu
 - **PWA**: @serwist/next (configurator mode) for Progressive Web App features
 - **Testing**: Jest, Storybook (to be refactored with optimal testing tools)
 
-## Clean Architecture Layers
+### Clean Architecture Layers
 
 1. **Domain Layer** (`src/entities/`)
-   - Core business entities: User, Team, Member, Record, Match, Set
+   - Core business entities: User, Team, Member, Game, Match, Set
    - Pure business logic with no external dependencies
 
 2. **Application Layer** (`src/applications/`)
-   - `usecases/` - Business use cases (CreateRecord, UpdateRally, etc.)
+   - `usecases/` - Business use cases (CreateGame, UpdateRally, etc.)
    - `repositories/` - Abstract interfaces for data access
    - `services/` - Abstract interfaces for external services
 
@@ -64,7 +64,7 @@ VolleyBro is a volleyball team management and match recording web application bu
    - `src/app/` - Next.js App Router (pages, layouts, API routes)
    - `src/components/` - React UI components organized by domain
 
-## Component Organization
+### Component Organization
 
 Components are organized by domain and purpose (features):
 
@@ -72,16 +72,15 @@ Components are organized by domain and purpose (features):
 - `src/components/custom/` - Project-specific reusable components
 - `src/components/auth/` - Authentication-related components
 - `src/components/team/` - Team management components
-- `src/components/record/` - Match recording components
-- `src/components/match/` - Match viewing/analysis components
+- `src/components/game/` - Game recording, overview, and analysis components
 - `src/components/landing/` - Landing page components
 
-## Key Features
+### Key Features
 
 1. **User Management**: Registration, authentication, profile management, team invitations
 2. **Team Management**: Create/edit teams, member management, lineup configuration
-3. **Match Recording**: Real-time match recording with detailed statistics
-4. **Data Analysis**: Match statistics, visualizations, and historical data
+3. **Game Recording**: Real-time game recording with detailed statistics
+4. **Data Analysis**: Game statistics, visualizations, and historical data
 
 **IMPORTANT**: Commit changes after each section completed, with all tests/lint/type/build checks passing and `/simplify` applied.
 

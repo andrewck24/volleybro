@@ -4,8 +4,8 @@ import {
   createMockTeamRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
-import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase.interface";
 import { NotFoundError, UnexpectedError } from "@/entities/errors/app-error";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -29,7 +29,7 @@ describe("RemovePlayerUseCase", () => {
   describe("execute", () => {
     it("should remove player from team", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });
@@ -39,7 +39,10 @@ describe("RemovePlayerUseCase", () => {
       mockPlayerRepository.delete.mockResolvedValue(true);
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
 
-      const result = await useCase.execute("player_123", "user_456");
+      const result = await useCase.execute({
+        playerId: "player_123",
+        userId: "user_456",
+      });
 
       expect(result).toEqual({ success: true });
     });
@@ -48,13 +51,13 @@ describe("RemovePlayerUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_999", "user_456"),
+        useCase.execute({ playerId: "player_999", userId: "user_456" }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if user is not team admin", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });
@@ -64,14 +67,14 @@ describe("RemovePlayerUseCase", () => {
         new Error("User not authorized"),
       );
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "User not authorized",
-      );
+      await expect(
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
+      ).rejects.toThrow("User not authorized");
     });
 
     it("should reject if delete fails", async () => {
       const player = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         teamId: "team_789",
         userId: "user_different",
       });
@@ -81,7 +84,7 @@ describe("RemovePlayerUseCase", () => {
       mockPlayerRepository.delete.mockResolvedValue(false);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

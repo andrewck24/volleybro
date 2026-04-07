@@ -1,0 +1,123 @@
+## Why
+
+The codebase has three categories of type boundary violations that break Clean Architecture's dependency rule:
+
+1. **MongoDB `_id` leaks into every layer** — All entities use `_id: string`, coupling the domain model to MongoDB's naming convention. Every component, hook, use case, and controller references `_id` directly.
+2. **Presentation layer imports domain entities directly** — 32 component files and 28 lib files import from `@/entities/`, forcing frontend code to handle domain-level optional/nullable semantics and causing domain model changes to ripple into every component.
+3. **Repository interfaces leak MongoDB query semantics** — `IBaseRepository` exposes `filter: Record<string, unknown>` in the application layer, and `IRecordRepository.findMatchesWithPagination` uses MongoDB-specific `$and` / `[key: string]: unknown` filter shapes.
+
+Additionally, the domain entity `Record` conflicts with TypeScript's built-in `Record<K,V>` utility type, requiring `Record as RecordEntity` aliasing across 15+ files.
+
+## What Changes
+
+### Entity layer
+
+- **BREAKING**: Rename `Record` entity to `Game` across the entire codebase (entity, repository interfaces, use cases, controllers, API routes, components, hooks, Redux slice, tests)
+- **BREAKING**: Replace `_id: string` with `id: string` in all entity types (`Player`, `Game`, `Team`, `User`, `Profile`, `Staff`, `LineupPlayer`, `MatchResult`, `RallyDetail`)
+- Rename `entities/record.ts` to `entities/game.ts`; rename `team_id` to `teamId` in `Game` entity
+
+### Use case layer
+
+- Merge `.usecase.interface.ts` into corresponding `.usecase.ts` files (interface defined above class, both exported); delete all standalone `.usecase.interface.ts` files
+- Split multi-class use case files in `record/` (now `game/`) to 1-file-per-class pattern, matching player/team/user domains:
+  - `record.usecase.ts` → `find-game.usecase.ts` + `create-game.usecase.ts`
+  - `rally.usecase.ts` → `create-rally.usecase.ts` + `update-rally.usecase.ts`
+  - `set.usecase.ts` → `create-set.usecase.ts` + `update-set.usecase.ts`
+  - `substitution.usecase.ts` → `create-substitution.usecase.ts`
+  - `matches.usecase.ts` → `find-matches.usecase.ts`
+- Rename `src/applications/usecases/record/` to `src/applications/usecases/game/`
+- Split `record-errors.test.ts` into per-use-case test files
+
+### Repository interfaces
+
+- Delete `IBaseRepository` and `base.repository.interface.ts`
+- Rewrite `IRecordRepository` as `IGameRepository` with domain-language methods (following `IPlayerRepository` pattern)
+- Rewrite `ITeamRepository`, `IProfileRepository`, `IUserRepository` with domain-language methods; no `Record<string, unknown>` filters
+
+### Infrastructure layer
+
+- Add `_id` ↔ `id` mapping in all Mongoose repository implementations
+- Implement new domain-language methods matching refactored interfaces
+- Ensure all custom repository methods wrap errors with `translateRepositoryError()`
+
+### Presentation type layer
+
+- Introduce API response Zod schemas in `src/lib/features/*/types.ts` as the single source of truth for frontend types
+- Derive `*View` types via `z.infer` (e.g., `GameView`, `PlayerView`, `TeamView`)
+- Components import only from `@/lib/features/*/types` for data shapes; direct `@/entities/*` imports restricted to enums (`MoveType`, `EntryType`, `Side`, `Position`, `PlayerRole`, `PlayerStatus`)
+- Eliminate type assertions at layer boundaries
+
+### URL and path rename
+
+- **BREAKING**: Restructure page routes under unified `/game/[gameId]/` namespace: overview at `/game/[gameId]/`, sets at `/game/[gameId]/sets/`, entry (recording) at `/game/[gameId]/sets/[setIndex]/entry/`
+- **BREAKING**: Remove `/match/[gameId]/` page route (absorbed into `/game/[gameId]/`)
+- **BREAKING**: Rename API routes `src/app/api/records/` to `src/app/api/games/`
+- **BREAKING**: Consolidate `GET /api/matches?ti=X&li=Y` into `GET /api/games?ti=X&li=Y` (same controller directory, different controller function)
+- Rename component directory `src/components/record/` to `src/components/game/`
+- Absorb `src/components/match/` into `src/components/game/` (game overview/stats/sets components)
+- Rename Redux feature `src/lib/features/record/` to `src/lib/features/game/`
+- Rename hooks: `useRecord` to `useGame`, `useMatches` to `useGameSummaries`; update SWR keys to `/api/games/`
+- API routes retain `?si=N&ei=M` searchParams for setIndex/entryIndex (RESTful params migration deferred to a separate change)
+
+### Match namespace clarification
+
+The term `match` is reserved for the future `tournament` entity that links two opposing teams' game records via a shared UID. Current uses of "match" that actually refer to game results or game review are renamed:
+
+- `MatchResult` entity type to `GameSummary` (presentation-oriented summary of a completed `Game`)
+- `FindMatchesUseCase` to `FindGameSummariesUseCase`; `IFindMatchesInput/Output` to `IFindGameSummariesInput/Output`
+- `findMatchesController` to `findGameSummariesController`; `match.controller.ts` to `game-summary.controller.ts`
+- `matchPhaseHelper` to `gamePhaseHelper`; `processMatchPhase` to `processGamePhase` (avoids collision with `MatchPhase` enum which describes tournament bracket phase)
+- `Matches` home component to `GameHistory`
+- DI symbol `FindMatchesUseCase` to `FindGameSummariesUseCase`
+
+The following correctly reference tournament match metadata and are NOT renamed: `Match` type, `MatchPhase`/`MatchDivision`/`MatchCategory` enums, `MatchInfo` component, `MatchInfoFormSchema`, `MatchDocument`/`matchSchema`, `src/lib/constants/match.ts`.
+
+### Dead code cleanup
+
+- Remove impossible `if (!result)` guards after repository calls with non-null return types
+- Remove `Record as RecordEntity` aliasing workarounds
+
+## Non-Goals
+
+- Use case test coverage expansion (separate change: `refactor-record-usecases`)
+- API integration tests (separate change: `api-integration-tests`)
+- Monorepo structural migration (separate change: `monorepo-split`)
+- i18n setup (separate change)
+- Changing database schema or MongoDB document structure (Mongoose schemas handle `_id`/`id` mapping)
+- Changing authentication or authorization logic
+
+## Capabilities
+
+### New Capabilities
+
+(none)
+
+### Modified Capabilities
+
+- `error-handling`: Infrastructure error translation coverage extends to all custom repository methods that currently bypass `translateRepositoryError()`
+
+## Impact
+
+- **Entities**: `src/entities/record.ts` (renamed to `game.ts`), `player.ts`, `team.ts`, `user.ts`, `profile.ts`
+- **Repository interfaces**: All 6 files in `src/applications/repositories/` (`base` deleted, others rewritten)
+- **Use cases**: All files in `src/applications/usecases/record/` (renamed to `game/`, multi-class files split to 1-file-per-class); all `.usecase.interface.ts` merged into `.usecase.ts` across player/team/user domains; `record-errors.test.ts` split into per-use-case test files
+- **Infrastructure repos**: All 6 files in `src/infrastructure/db/repositories/`
+- **Controllers**: `src/interface/controllers/record/` (renamed to `game/`)
+- **API routes**: `src/app/api/records/` (renamed to `games/`), plus `matches/`, `teams/`, `players/`, `profiles/`
+- **Pages**: `src/app/record/` (renamed to `game/`), `src/app/match/`
+- **Components**: `src/components/record/` (renamed to `game/`, 26 files), `match/` (12 files), `team/` (10 files), `home/`, `user/`
+- **Lib features**: `src/lib/features/record/` (renamed to `game/`, 20 files), `team/`
+- **Hooks**: `src/hooks/use-data.ts`
+- **DI container**: `src/infrastructure/di/`
+- **Tests**: All test files in affected directories
+- **Estimated total**: ~130 files
+
+## Implementation Notes (2026-04-06)
+
+- Additional review-driven cleanups were applied that are aligned with this change intent but were not explicitly enumerated in task checkboxes:
+  - Fixture/test naming and literal ids cleanup (`createRecord`, `record-*` remnants).
+  - UI symbol cleanup for renamed directories (`Record*` component names under `components/game`).
+  - Landing section rename (`RecordingFeatures` → `GameFeatures`) with related tests and assets.
+  - Persistence symbol cleanup in renamed schema/repository files (`recordSchema`/`RecordModel` → `gameSchema`/`GameModel`).
+  - Player-domain wording cleanup from `player record` to context-appropriate terms (`player`, `player entry`, `player membership`) and reason code alignment.
+  - Entry flow state semantics update from `recording` to `entryDraft` to better represent mutable pre-submit entry state.

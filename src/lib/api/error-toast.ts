@@ -34,7 +34,7 @@ export function getErrorMessage(error: unknown): string {
 
 /**
  * Show an error toast appropriate for mutation failures
- * (form submissions, match recording, etc.)
+ * (form submissions, game recording, etc.)
  *
  * - Server / unexpected errors → branded volleyball-themed empathetic message with retry guidance (zh-TW)
  * - Operational errors (4xx) → user-actionable message from error.detail

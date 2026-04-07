@@ -5,11 +5,11 @@ import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
+import type { LineupView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 import { RiSaveLine } from "react-icons/ri";
@@ -20,10 +20,10 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   const { team, mutate } = useTeam(teamId);
   const { players } = useTeamPlayers(teamId);
 
-  const handleSave = async (lineups: Lineup[]) => {
+  const handleSave = async (lineups: LineupView[]) => {
     try {
-      const data = await apiClient<Lineup[]>(
-        `/api/teams/${team!._id}/lineups`,
+      const data = await apiClient<LineupView[]>(
+        `/api/teams/${team!.id}/lineups`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -49,14 +49,14 @@ const Lineup = ({ teamId }: { teamId: string }) => {
     liberoReplaceMode === 0 ||
     (liberoReplacePosition === "OP"
       ? lineups[status.lineupIndex]?.starting.some(
-          (player) => player._id && player.position === "OP",
+          (player) => player.id && player.position === "OP",
         )
       : lineups[status.lineupIndex]?.starting.some((player, index) => {
           const oppositeIndex = index >= 3 ? index - 3 : index + 3;
           return (
-            player._id &&
+            player.id &&
             player.position === liberoReplacePosition &&
-            lineups[status.lineupIndex].starting[oppositeIndex]._id &&
+            lineups[status.lineupIndex].starting[oppositeIndex].id &&
             lineups[status.lineupIndex].starting[oppositeIndex].position ===
               liberoReplacePosition
           );

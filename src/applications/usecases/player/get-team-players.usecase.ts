@@ -1,8 +1,15 @@
-import { inject, injectable } from 'inversify';
-import type { IGetTeamPlayersUseCase } from '@/applications/usecases/player/get-team-players.usecase.interface';
-import type { IPlayerRepository } from '@/applications/repositories/player.repository.interface';
-import { TYPES } from '@/infrastructure/di/types';
-import { Player } from '@/entities/player';
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { Player } from "@/entities/player";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
+
+export interface IGetTeamPlayersInput {
+  teamId: string;
+}
+
+export interface IGetTeamPlayersUseCase {
+  execute(input: IGetTeamPlayersInput): Promise<Player[]>;
+}
 
 /**
  * GetTeamPlayersUseCase Implementation
@@ -12,10 +19,10 @@ import { Player } from '@/entities/player';
 export class GetTeamPlayersUseCase implements IGetTeamPlayersUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
-    private playerRepository: IPlayerRepository
+    private playerRepository: IPlayerRepository,
   ) {}
 
-  async execute(teamId: string): Promise<Player[]> {
+  async execute({ teamId }: IGetTeamPlayersInput): Promise<Player[]> {
     return this.playerRepository.findByTeamId(teamId);
   }
 }

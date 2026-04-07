@@ -40,7 +40,7 @@ const Menu = ({ className }: { className?: string }) => {
         />
         {!user ? <Skeleton className="h-6 w-64" /> : user?.name}
       </Button>
-      <TeamList userId={user?._id} />
+      <TeamList userId={user?.id} />
       <Button variant="secondary" size="wide">
         <RiSettings4Line />
         設定
@@ -97,7 +97,7 @@ function TeamList({ userId }: { userId?: string }) {
               <CardDescription>已加入隊伍</CardDescription>
               {joinedPlayers.map((p) => (
                 <TeamItem
-                  key={p._id}
+                  key={p.id}
                   teamId={p.teamId!}
                   variant={
                     profile?.activeTeamId === p.teamId ? "primary" : "default"

@@ -1,4 +1,4 @@
-import { TeamStats } from "@/entities/record";
+import { TeamStats } from "@/entities/game";
 
 export enum Position {
   NONE = "",
@@ -10,9 +10,9 @@ export enum Position {
 }
 
 export type LineupPlayer = {
-  _id: string | null;
+  id: string | null;
   position?: Position;
-  sub?: { _id: string; entryIndex: { in?: number; out?: number } };
+  sub?: { id: string; entryIndex: { in?: number; out?: number } };
 };
 
 export type Lineup = {
@@ -30,7 +30,7 @@ export type Lineup = {
 };
 
 export type Team = {
-  _id: string;
+  id: string;
   name: string;
   nickname?: string;
   lineups: Lineup[];

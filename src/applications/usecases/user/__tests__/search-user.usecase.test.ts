@@ -18,22 +18,22 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return minimal user info when found by email", async () => {
-    mockUserRepository.findOne.mockResolvedValue(foundUser);
+    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value._id).toBe("user-1");
+      expect(result.value.id).toBe("user-1");
       expect(result.value.name).toBe("John Doe");
       expect(result.value.image).toBe("https://example.com/avatar.png");
     }
   });
 
   it("should return NotFoundError when user not found", async () => {
-    mockUserRepository.findOne.mockResolvedValue(undefined);
+    mockUserRepository.findByEmail.mockResolvedValue(null);
 
-    const result = await useCase.execute("notexist@example.com");
+    const result = await useCase.execute({ email: "notexist@example.com" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: NotFoundError };
@@ -42,17 +42,17 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should return ValidationError for invalid email format", async () => {
-    const result = await useCase.execute("not-an-email");
+    const result = await useCase.execute({ email: "not-an-email" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: ValidationError };
     expect(failure.error).toBeInstanceOf(ValidationError);
     expect(failure.error.code).toBe("VALIDATION");
-    expect(mockUserRepository.findOne).not.toHaveBeenCalled();
+    expect(mockUserRepository.findByEmail).not.toHaveBeenCalled();
   });
 
   it("should return ValidationError for empty email", async () => {
-    const result = await useCase.execute("");
+    const result = await useCase.execute({ email: "" });
 
     expect(result.ok).toBe(false);
     const failure = result as { ok: false; error: ValidationError };
@@ -60,14 +60,14 @@ describe("SearchUserUseCase", () => {
   });
 
   it("should not expose email address in result value", async () => {
-    mockUserRepository.findOne.mockResolvedValue(foundUser);
+    mockUserRepository.findByEmail.mockResolvedValue(foundUser);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       const keys = Object.keys(result.value);
-      expect(keys).toContain("_id");
+      expect(keys).toContain("id");
       expect(keys).toContain("name");
       expect(keys).not.toContain("email");
     }
@@ -79,9 +79,9 @@ describe("SearchUserUseCase", () => {
       email: "john@example.com",
       image: undefined,
     });
-    mockUserRepository.findOne.mockResolvedValue(userWithoutImage);
+    mockUserRepository.findByEmail.mockResolvedValue(userWithoutImage);
 
-    const result = await useCase.execute("john@example.com");
+    const result = await useCase.execute({ email: "john@example.com" });
 
     expect(result.ok).toBe(true);
     if (result.ok) {

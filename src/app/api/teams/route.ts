@@ -1,7 +1,7 @@
-import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import { createTeamController } from "@/interface/controllers/team/team.controller";
 import { AuthenticationError } from "@/entities/errors/app-error";
 import { AuthReason } from "@/entities/errors/reasons/auth";
+import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
+import { createTeamController } from "@/interface/controllers/team/team.controller";
 import { withErrorHandler } from "@/lib/api/wrappers";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -27,11 +27,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   await connectToMongoDB();
 
-  const team = await createTeamController(
-    { name, nickname },
-    session.user.id,
-    session.user.name,
-  );
+  const team = await createTeamController({
+    name,
+    nickname,
+    userId: session.user.id,
+    userName: session.user.name,
+  });
 
   return NextResponse.json(team, { status: 201 });
 });

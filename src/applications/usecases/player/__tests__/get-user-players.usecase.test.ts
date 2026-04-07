@@ -8,12 +8,12 @@ describe("GetUserPlayersUseCase", () => {
 
   const mockPlayers = [
     createPlayer({
-      _id: "player-1",
+      id: "player-1",
       name: "User",
       status: PlayerStatus.JOINED,
     }),
     createPlayer({
-      _id: "player-2",
+      id: "player-2",
       name: "User",
       teamId: "team-2",
       status: PlayerStatus.JOINED,
@@ -29,7 +29,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should return all players for a user", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result).toEqual(mockPlayers);
   });
@@ -37,7 +37,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should return empty array if user has no players", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue([]);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result).toEqual([]);
   });
@@ -45,7 +45,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should return multiple players for user", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result).toHaveLength(2);
     expect(result[0].teamId).toBe("team-1");
@@ -55,7 +55,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should include both MEMBER and ADMIN roles", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result[0].role).toBe(PlayerRole.MEMBER);
     expect(result[1].role).toBe(PlayerRole.ADMIN);
@@ -64,7 +64,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should include status field in results", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result.every((p) => p.status === PlayerStatus.JOINED)).toBe(true);
   });
@@ -72,7 +72,7 @@ describe("GetUserPlayersUseCase", () => {
   it("should include userId field in results", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
-    const result = await usecase.execute("user-1");
+    const result = await usecase.execute({ userId: "user-1" });
 
     expect(result.every((p) => p.userId === "user-1")).toBe(true);
   });

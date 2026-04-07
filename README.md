@@ -4,7 +4,7 @@ VolleyBro 是一個專為排球球隊設計的賽事紀錄與隊伍管理應用�
 
 獲取最新版本的 [VolleyBro](https://volleybro.vercel.app/)。
 
-VolleyBro is a volleyball team management and match recording application that helps coaches and managers easily record match data, manage team members, and set up game lineups.
+VolleyBro is a volleyball team management and game recording application that helps coaches and managers easily record game data, manage team members, and set up game lineups.
 
 Get the latest version of [VolleyBro](https://volleybro.vercel.app/).
 
@@ -22,7 +22,7 @@ Get the latest version of [VolleyBro](https://volleybro.vercel.app/).
 
 VolleyBro 是一個基於 [Next.js](https://nextjs.org/) 的現代化應用程式，專注於排球賽事紀錄與球隊管理。系統整合用戶認證、賽事紀錄、陣容管理及即時通知等功能，確保使用者能夠輕鬆掌握比賽數據。
 
-VolleyBro is a modern application built on [Next.js](https://nextjs.org/), designed for volleyball match recording and team management. The system integrates user authentication, match data recording, lineup management, and real-time notifications to help users easily keep track of match data.
+VolleyBro is a modern application built on [Next.js](https://nextjs.org/), designed for volleyball game recording and team management. The system integrates user authentication, game data recording, lineup management, and real-time notifications to help users easily keep track of game data.
 
 ## 主要功能 / Key Features
 
@@ -35,7 +35,7 @@ VolleyBro is a modern application built on [Next.js](https://nextjs.org/), desig
   - Team Management: Create teams, invite members, manage player status and permissions, view team member list
 
 - **賽事紀錄：** 詳細記錄比賽數據，包括得分、替換、拉力等資訊。
-  - Match Recording: Detailed recording of match data, including scores, substitutions, rallies, etc.
+  - Game Recording: Detailed recording of game data, including scores, substitutions, rallies, etc.
 
 - **用戶認證：** 使用 Better Auth 與 Google OAuth 進行安全登入。
   - User Authentication: Secure login using Better Auth with Google OAuth.
@@ -55,7 +55,7 @@ andrewck24-volleybro/
 └── src/                 // 源碼目錄 / Source code directory
     ├── app/             // Next.js 頁面與路由 / Pages and routing
     ├── components/      // 可重用 UI 元件 / Reusable UI components
-    ├── entities/        // 領域實體定義（如隊伍、賽事紀錄） / Entity definitions (e.g., team, record)
+    ├── entities/        // 領域實體定義（如隊伍、比賽） / Entity definitions (e.g., team, game)
     ├── hooks/           // React hooks
     ├── infrastructure/  // 基礎架構層 / Infrastructure layer
     │   ├── db/          // 資料庫相關（Mongoose 連線、Schema 定義）/ Database related (Mongoose connection, Schema definitions)

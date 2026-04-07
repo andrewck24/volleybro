@@ -92,13 +92,13 @@ describe("Teams Players API Route", () => {
     it("should return array of players", () => {
       const players = [
         createPlayer({
-          _id: "p1",
+          id: "p1",
           name: "Player 1",
           teamId: "team-1",
           role: PlayerRole.ADMIN,
         }),
         createPlayer({
-          _id: "p2",
+          id: "p2",
           name: "Player 2",
           teamId: "team-1",
           role: PlayerRole.MEMBER,
@@ -119,14 +119,14 @@ describe("Teams Players API Route", () => {
 
     it("should validate response structure", () => {
       const player = createPlayer({
-        _id: "player-1",
+        id: "player-1",
         name: "Test User",
         teamId: "team-1",
         userId: "user-1",
         role: PlayerRole.ADMIN,
       });
 
-      expect(player).toHaveProperty("_id");
+      expect(player).toHaveProperty("id");
       expect(player).toHaveProperty("name");
       expect(player).toHaveProperty("teamId");
       expect(player).toHaveProperty("role");
@@ -142,9 +142,9 @@ describe("Teams Players API Route", () => {
 
     it("should filter players by teamId", () => {
       const allPlayers = [
-        createPlayer({ _id: "p1", teamId: "team-1", name: "P1" }),
-        createPlayer({ _id: "p2", teamId: "team-2", name: "P2" }),
-        createPlayer({ _id: "p3", teamId: "team-1", name: "P3" }),
+        createPlayer({ id: "p1", teamId: "team-1", name: "P1" }),
+        createPlayer({ id: "p2", teamId: "team-2", name: "P2" }),
+        createPlayer({ id: "p3", teamId: "team-1", name: "P3" }),
       ];
 
       const team1Players = allPlayers.filter((p) => p.teamId === "team-1");

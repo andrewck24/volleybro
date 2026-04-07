@@ -7,18 +7,18 @@ describe("GetTeamPlayersUseCase", () => {
 
   const teamPlayers = [
     createPlayer({
-      _id: "player-1",
+      id: "player-1",
       name: "Member User",
       email: "member@example.com",
     }),
     createPlayer({
-      _id: "player-2",
+      id: "player-2",
       name: "invited",
       email: "invited@example.com",
       userId: undefined,
     }),
     createPlayer({
-      _id: "player-3",
+      id: "player-3",
       name: "Pure Player",
       email: undefined,
       userId: undefined,
@@ -34,7 +34,7 @@ describe("GetTeamPlayersUseCase", () => {
   it("should return all players in team", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute("team-1");
+    const result = await usecase.execute({ teamId: "team-1" });
 
     expect(result).toEqual(teamPlayers);
   });
@@ -42,7 +42,7 @@ describe("GetTeamPlayersUseCase", () => {
   it("should return empty array if team has no players", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue([]);
 
-    const result = await usecase.execute("team-1");
+    const result = await usecase.execute({ teamId: "team-1" });
 
     expect(result).toEqual([]);
   });
@@ -50,7 +50,7 @@ describe("GetTeamPlayersUseCase", () => {
   it("should include members, invitees, and pure players", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute("team-1");
+    const result = await usecase.execute({ teamId: "team-1" });
 
     expect(result).toHaveLength(3);
     expect(result[0].userId).toBeDefined(); // Member
@@ -63,10 +63,10 @@ describe("GetTeamPlayersUseCase", () => {
   it("should include all player information", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute("team-1");
+    const result = await usecase.execute({ teamId: "team-1" });
 
     result.forEach((player) => {
-      expect(player._id).toBeDefined();
+      expect(player.id).toBeDefined();
       expect(player.name).toBeDefined();
       expect(player.teamId).toBe("team-1");
       expect(player.createdAt).toBeDefined();

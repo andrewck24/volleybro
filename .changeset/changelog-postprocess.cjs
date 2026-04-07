@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Run after `changeset version` (via the release:version script) to:
 // 1. Fix version headers:  ## X.Y.Z  →  ## [X.Y.Z](compare-link) YYYY-MM-DD
 // 2. Merge duplicate ### type headings within each version block

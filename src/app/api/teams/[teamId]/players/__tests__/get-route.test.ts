@@ -16,19 +16,19 @@ describe("Teams Players GET API Route", () => {
     it("should retrieve all players in team", () => {
       const players = [
         createPlayer({
-          _id: "p1",
+          id: "p1",
           name: "Player 1",
           teamId: "team-1",
           role: PlayerRole.ADMIN,
         }),
         createPlayer({
-          _id: "p2",
+          id: "p2",
           name: "Player 2",
           teamId: "team-1",
           role: PlayerRole.MEMBER,
         }),
         createPlayer({
-          _id: "p3",
+          id: "p3",
           name: "Player 3",
           teamId: "team-1",
           role: PlayerRole.MEMBER,
@@ -58,19 +58,19 @@ describe("Teams Players GET API Route", () => {
     it("should include all player types (joined, invited, pure)", () => {
       const players = [
         createPlayer({
-          _id: "p1",
+          id: "p1",
           teamId: "team-1",
           userId: "user-1",
           role: PlayerRole.ADMIN,
         }),
         createPlayer({
-          _id: "p2",
+          id: "p2",
           teamId: "team-1",
           userId: undefined,
           role: PlayerRole.MEMBER,
         }),
         createPlayer({
-          _id: "p3",
+          id: "p3",
           teamId: "team-1",
           name: "Opponent",
           userId: undefined,
@@ -85,7 +85,7 @@ describe("Teams Players GET API Route", () => {
 
     it("should include player with number and position", () => {
       const player = createPlayer({
-        _id: "p1",
+        id: "p1",
         name: "John",
         number: 10,
         position: Position.S,
@@ -110,7 +110,7 @@ describe("Teams Players GET API Route", () => {
 
     it("should validate response structure", () => {
       const player = createPlayer({
-        _id: "player-1",
+        id: "player-1",
         name: "Player",
         teamId: "team-1",
         role: PlayerRole.MEMBER,
@@ -125,7 +125,7 @@ describe("Teams Players GET API Route", () => {
     it("should handle large player lists", () => {
       const players = Array.from({ length: 100 }, (_, i) =>
         createPlayer({
-          _id: `p${i}`,
+          id: `p${i}`,
           name: `Player ${i}`,
           teamId: "team-1",
           role: PlayerRole.MEMBER,
@@ -138,10 +138,10 @@ describe("Teams Players GET API Route", () => {
 
     it("should filter only players of specified team", () => {
       const allPlayers = [
-        createPlayer({ _id: "p1", teamId: "team-1", name: "P1" }),
-        createPlayer({ _id: "p2", teamId: "team-2", name: "P2" }),
-        createPlayer({ _id: "p3", teamId: "team-1", name: "P3" }),
-        createPlayer({ _id: "p4", teamId: "team-3", name: "P4" }),
+        createPlayer({ id: "p1", teamId: "team-1", name: "P1" }),
+        createPlayer({ id: "p2", teamId: "team-2", name: "P2" }),
+        createPlayer({ id: "p3", teamId: "team-1", name: "P3" }),
+        createPlayer({ id: "p4", teamId: "team-3", name: "P4" }),
       ];
 
       const team1Players = allPlayers.filter((p) => p.teamId === "team-1");
@@ -151,7 +151,7 @@ describe("Teams Players GET API Route", () => {
 
     it("should include timestamps if available", () => {
       const player = createPlayer({
-        _id: "p1",
+        id: "p1",
         name: "Player",
         teamId: "team-1",
       });

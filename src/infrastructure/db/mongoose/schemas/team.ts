@@ -1,3 +1,4 @@
+import { Position } from "@/entities/team";
 import {
   Schema,
   model,
@@ -6,7 +7,6 @@ import {
   type Model,
   type Types,
 } from "mongoose";
-import { Position } from "@/entities/team";
 
 export interface LineupDocument extends Document {
   options: {
@@ -38,8 +38,24 @@ export interface LineupDocument extends Document {
   }[];
 }
 
-export const lineupSchema = new Schema<LineupDocument>({
-  options: {
+const entryIndexSchema = new Schema(
+  {
+    in: { type: Number },
+    out: { type: Number },
+  },
+  { _id: false },
+);
+
+const subSchema = new Schema(
+  {
+    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    entryIndex: { type: entryIndexSchema },
+  },
+  { _id: false },
+);
+
+const lineupOptionsSchema = new Schema(
+  {
     liberoReplaceMode: { type: Number, enum: [0, 1, 2], default: 0 },
     liberoReplacePosition: {
       type: String,
@@ -47,35 +63,40 @@ export const lineupSchema = new Schema<LineupDocument>({
       default: Position.NONE,
     },
   },
-  starting: [
-    {
-      _id: { type: Schema.Types.ObjectId, ref: "Player" },
-      position: { type: String, enum: Position },
-      sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Player" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
-      },
-    },
-  ],
-  liberos: [
-    {
-      _id: { type: Schema.Types.ObjectId, ref: "Player" },
-      position: { type: String, enum: Position },
-      sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Player" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
-      },
-    },
-  ],
-  substitutes: [
-    {
-      _id: { type: Schema.Types.ObjectId, ref: "Player" },
-      sub: {
-        _id: { type: Schema.Types.ObjectId, ref: "Player" },
-        entryIndex: { in: { type: Number }, out: { type: Number } },
-      },
-    },
-  ],
+  { _id: false },
+);
+
+const startingPlayerSchema = new Schema(
+  {
+    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    position: { type: String, enum: Position },
+    sub: { type: subSchema },
+  },
+  { _id: false },
+);
+
+const liberoPlayerSchema = new Schema(
+  {
+    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    position: { type: String, enum: Position },
+    sub: { type: subSchema },
+  },
+  { _id: false },
+);
+
+const substitutePlayerSchema = new Schema(
+  {
+    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    sub: { type: subSchema },
+  },
+  { _id: false },
+);
+
+export const lineupSchema = new Schema<LineupDocument>({
+  options: { type: lineupOptionsSchema },
+  starting: [{ type: startingPlayerSchema }],
+  liberos: [{ type: liberoPlayerSchema }],
+  substitutes: [{ type: substitutePlayerSchema }],
 });
 
 export interface TeamDocument extends Document {
@@ -94,7 +115,7 @@ const teamSchema = new Schema<TeamDocument>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Team =

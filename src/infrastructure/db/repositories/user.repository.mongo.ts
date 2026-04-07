@@ -1,16 +1,35 @@
 import { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import {
-  User as UserModel,
-  UserDocument,
-} from "@/infrastructure/db/mongoose/schemas/user";
 import { User } from "@/entities/user";
-import { BaseMongoRepository } from "@/infrastructure/db/repositories/base.repository.mongo";
+import {
+  UserDocument,
+  User as UserModel,
+} from "@/infrastructure/db/mongoose/schemas/user";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
 
-export class UserRepositoryImpl
-  extends BaseMongoRepository<User, UserDocument>
-  implements IUserRepository
-{
-  constructor() {
-    super(UserModel);
+export class UserRepositoryImpl implements IUserRepository {
+  private toUser(doc: UserDocument): User {
+    const obj = doc.toObject();
+    return {
+      ...obj,
+      id: obj._id.toString(),
+    };
+  }
+
+  async findById(id: string): Promise<User | null> {
+    try {
+      const doc = await UserModel.findById(id).exec();
+      return doc ? this.toUser(doc) : null;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    try {
+      const doc = await UserModel.findOne({ email }).exec();
+      return doc ? this.toUser(doc) : null;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
   }
 }

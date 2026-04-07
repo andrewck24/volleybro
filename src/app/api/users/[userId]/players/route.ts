@@ -23,7 +23,9 @@ export const GET = (
       );
     }
 
-    const players = await playerController.getUserPlayers(targetUserId);
+    const players = await playerController.getUserPlayers({
+      userId: targetUserId,
+    });
 
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 

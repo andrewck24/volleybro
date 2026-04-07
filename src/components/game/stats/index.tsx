@@ -1,0 +1,104 @@
+"use client";
+import { TeamsStats } from "@/components/game/stats/teams-stats";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardBtnGroup,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useGame } from "@/hooks/use-data";
+import type { SetView } from "@/lib/features/game/types";
+import { useState } from "react";
+
+export const Stats = ({ gameId }: { gameId: string }) => {
+  const [setIndex, setSetIndex] = useState(-1);
+  const { game } = useGame(gameId);
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>
+          數據總覽
+          <SetSwitch
+            sets={game!.sets}
+            setIndex={setIndex}
+            setSetIndex={setSetIndex}
+          />
+        </CardTitle>
+      </CardHeader>
+      <Tabs defaultValue="team-stats" className="relative w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="team-stats">隊伍數據</TabsTrigger>
+          <TabsTrigger value="box-score" disabled>
+            個人數據
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="team-stats">
+          <TeamsStats teams={game!.teams} setIndex={setIndex} />
+        </TabsContent>
+        <TabsContent value="box-score"></TabsContent>
+      </Tabs>
+    </Card>
+  );
+};
+
+export const StatsForOneSet = ({
+  gameId,
+  setIndex,
+}: {
+  gameId: string;
+  setIndex: number;
+}) => {
+  const { game } = useGame(gameId);
+
+  return (
+    <Card className="w-full">
+      <Tabs defaultValue="team-stats" className="relative w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="team-stats">隊伍數據</TabsTrigger>
+          <TabsTrigger value="box-score" disabled>
+            個人數據
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="team-stats">
+          <TeamsStats teams={game!.teams} setIndex={setIndex} />
+        </TabsContent>
+        <TabsContent value="box-score"></TabsContent>
+      </Tabs>
+    </Card>
+  );
+};
+
+const SetSwitch = ({
+  sets,
+  setIndex,
+  setSetIndex,
+}: {
+  sets: SetView[];
+  setIndex: number;
+  setSetIndex: (index: number) => void;
+}) => {
+  return (
+    <CardBtnGroup>
+      <Button
+        variant={setIndex === -1 ? "default" : "outline"}
+        className="size-9"
+        onClick={() => setSetIndex(-1)}
+      >
+        All
+      </Button>
+      {sets.map((_, index) => (
+        <Button
+          key={index}
+          variant={setIndex === index ? "default" : "outline"}
+          className="size-9"
+          onClick={() => setSetIndex(index)}
+        >
+          {index + 1}
+        </Button>
+      ))}
+    </CardBtnGroup>
+  );
+};

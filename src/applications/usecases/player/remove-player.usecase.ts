@@ -6,7 +6,15 @@ import { CommonReason } from "@/entities/errors/reasons/common";
 import { PlayerReason } from "@/entities/errors/reasons/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { IRemovePlayerUseCase } from "./remove-player.usecase.interface";
+
+export interface IRemovePlayerInput {
+  playerId: string;
+  userId: string;
+}
+
+export interface IRemovePlayerUseCase {
+  execute(input: IRemovePlayerInput): Promise<{ success: boolean }>;
+}
 
 @injectable()
 export class RemovePlayerUseCase implements IRemovePlayerUseCase {
@@ -19,10 +27,10 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
     private teamRepository: ITeamRepository,
   ) {}
 
-  async execute(
-    playerId: string,
-    userId: string,
-  ): Promise<{ success: boolean }> {
+  async execute({
+    playerId,
+    userId,
+  }: IRemovePlayerInput): Promise<{ success: boolean }> {
     // 1. Get player
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
@@ -34,10 +42,13 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
 
     // 2. Verify user is admin of team
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
-    // 3. Delete player record
+    // 3. Delete player
     const deleted = await this.playerRepository.delete(playerId);
     if (!deleted) {
       throw new UnexpectedError(

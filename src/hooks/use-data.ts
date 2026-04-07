@@ -1,10 +1,9 @@
-import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
-import type { MatchResult, Record } from "@/entities/record";
-import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import type { GameSummaryView, GameView } from "@/lib/features/game/types";
+import type { PlayerView, TeamView } from "@/lib/features/team/types";
 import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
@@ -29,7 +28,7 @@ const useHasCache = (key: string) => {
 // Optimized SWR configuration presets
 // Deduplication intervals prevent redundant requests when multiple components mount simultaneously
 const SWR_CONFIG = {
-  // Default config for single-resource fetches (user, team, record)
+  // Default config for single-resource fetches (user, team, game)
   DEFAULT: {
     dedupingInterval: 5 * 60 * 1000, // 5 minutes - prevent concurrent requests
     focusThrottleInterval: 5 * 60 * 1000, // 5 minutes - prevent refetch on window focus
@@ -74,7 +73,7 @@ export const useUserPlayers = (
 ) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player[],
+    PlayerView[],
     ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
@@ -98,7 +97,7 @@ export const useActiveTeamId = () => {
     error: profileError,
     mutate: mutateProfile,
   } = useProfile();
-  const { players, isLoading: playersLoading } = useUserPlayers(user?._id);
+  const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
 
   const isLoading =
     userLoading || profileLoading || (!profile?.activeTeamId && playersLoading);
@@ -125,7 +124,7 @@ export const useTeam = (
   const key = `/api/teams/${teamId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Team,
+    TeamView,
     ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -144,7 +143,7 @@ export const useTeamPlayers = (
   const key = `/api/teams/${teamId}/players`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player[],
+    PlayerView[],
     ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.LIST,
@@ -163,7 +162,7 @@ export const usePlayer = (
   const key = `/api/players/${playerId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player,
+    PlayerView,
     ApiClientError
   >(playerId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -174,26 +173,26 @@ export const usePlayer = (
   return { player: data, error, isLoading, isValidating, mutate };
 };
 
-export const useRecord = (
-  recordId: string,
+export const useGame = (
+  gameId: string,
   fetcher = defaultFetcher,
   options = {},
 ) => {
-  const key = `/api/records/${recordId}`;
+  const key = `/api/games/${gameId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Record,
+    GameView,
     ApiClientError
-  >(recordId ? key : null, fetcher, {
+  >(gameId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
     ...options,
   });
 
-  return { record: data, error, isLoading, isValidating, mutate };
+  return { game: data, error, isLoading, isValidating, mutate };
 };
 
-export const useMatches = (
+export const useGameSummaries = (
   teamId: string | undefined,
   fetcher = defaultFetcher,
   options = {},
@@ -204,13 +203,13 @@ export const useMatches = (
   ) => {
     if (!teamId) return null;
     if (previousPageData && !previousPageData.hasMore) return null;
-    if (pageIndex === 0) return `/api/matches?ti=${teamId}`;
-    return `/api/matches?ti=${teamId}&li=${previousPageData!.lastId}`;
+    if (pageIndex === 0) return `/api/games?ti=${teamId}`;
+    return `/api/games?ti=${teamId}&li=${previousPageData!.lastId}`;
   };
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =
     useSWRInfinite<{
-      matches: MatchResult[];
+      gameSummaries: GameSummaryView[];
       hasMore: boolean;
       lastId: string;
     }>(getKey, fetcher, {
@@ -218,14 +217,16 @@ export const useMatches = (
       ...options,
     });
 
-  const matches = data ? data.flatMap((page) => page.matches || []) : [];
-  const isEmpty = data?.[0]?.matches?.length === 0;
+  const gameSummaries = data
+    ? data.flatMap((page) => page.gameSummaries || [])
+    : [];
+  const isEmpty = data?.[0]?.gameSummaries?.length === 0;
   const isReachingEnd = isEmpty || (data && !data[data.length - 1]?.hasMore);
   const isLoadingMore =
     isLoading || (size > 0 && data && typeof data[size - 1] === "undefined");
 
   return {
-    matches,
+    gameSummaries,
     error,
     isLoading,
     isValidating,

@@ -22,11 +22,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import type { Player } from "@/entities/player";
-import { PlayerRole, canManageTeam } from "@/entities/player";
+import { PlayerRole } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
+import type { PlayerView } from "@/lib/features/team/types";
 import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { useState } from "react";
 import { FiUser } from "react-icons/fi";
@@ -57,9 +57,12 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
       </Empty>
     );
 
-  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?._id);
+  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
   const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
-  const showMembership = currentUserPlayer && canManageTeam(currentUserPlayer);
+  const showMembership =
+    currentUserPlayer &&
+    (currentUserPlayer.role === PlayerRole.OWNER ||
+      currentUserPlayer.role === PlayerRole.ADMIN);
 
   return (
     <Card className="py-8">
@@ -100,7 +103,13 @@ function PlayerEditFormSkeleton() {
   );
 }
 
-function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
+function InfoSection({
+  player,
+  teamId,
+}: {
+  player: PlayerView;
+  teamId: string;
+}) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
   const [formData, setFormData] = useState({
@@ -140,14 +149,14 @@ function InfoSection({ player, teamId }: { player: Player; teamId: string }) {
       };
       const validated = UpdatePlayerInfoSchema.parse(data);
 
-      await apiClient(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
 
       toast({ title: "已更新", description: "球員資訊已更新" });
-      mutate(`/api/players/${player._id}`);
+      mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
     } catch (error) {
       if (error instanceof ZodError) {

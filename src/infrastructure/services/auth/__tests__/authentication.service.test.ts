@@ -42,7 +42,7 @@ describe("AuthenticationService", () => {
   describe("user not found → AuthenticationError", () => {
     it("throws AuthenticationError when user does not exist in repository", async () => {
       mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
-      mockUserRepository.findOne.mockResolvedValue(undefined);
+      mockUserRepository.findById.mockResolvedValue(null);
 
       await expect(service.verifySession()).rejects.toBeInstanceOf(
         AuthenticationError,
@@ -53,7 +53,7 @@ describe("AuthenticationService", () => {
   describe("valid session", () => {
     it("returns user when session and user are valid", async () => {
       mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
-      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.findById.mockResolvedValue(mockUser);
 
       const result = await service.verifySession();
       expect(result).toBe(mockUser);

@@ -1,47 +1,64 @@
-import { inject, injectable } from "inversify";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
+import type { Result } from "@/applications/types/result";
 import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
 import { ProfileReason } from "@/entities/errors/reasons/profile";
-import type { Result } from "@/applications/types/result";
 import { TYPES } from "@/infrastructure/di/types";
-import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
+import { inject, injectable } from "inversify";
 
-export type SearchUserOutput = {
-  _id: string;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export interface ISearchUserInput {
+  email: string;
+}
+
+export type ISearchUserOutput = {
+  id: string;
   name: string;
   image?: string;
 };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export interface ISearchUserUseCase {
+  execute(input: ISearchUserInput): Promise<Result<ISearchUserOutput>>;
+}
 
 @injectable()
-export class SearchUserUseCase {
+export class SearchUserUseCase implements ISearchUserUseCase {
   constructor(
     @inject(TYPES.UserRepository)
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
   ) {}
 
-  async execute(email: string): Promise<Result<SearchUserOutput>> {
+  async execute({
+    email,
+  }: ISearchUserInput): Promise<Result<ISearchUserOutput>> {
     if (!email || !EMAIL_REGEX.test(email)) {
       return {
         ok: false,
-        error: new ValidationError(ProfileReason.INVALID_EMAIL, "Invalid email format"),
+        error: new ValidationError(
+          ProfileReason.INVALID_EMAIL,
+          "Invalid email format",
+        ),
       };
     }
 
-    const user = await this.userRepository.findOne({ email });
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       return {
         ok: false,
-        error: new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "User not found", `User with email ${email} not found`),
+        error: new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "User not found",
+          `User with email ${email} not found`,
+        ),
       };
     }
 
     return {
       ok: true,
       value: {
-        _id: user._id,
+        id: user.id,
         name: user.name,
         image: user.image,
       },

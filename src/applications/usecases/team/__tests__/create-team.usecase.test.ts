@@ -34,12 +34,13 @@ describe("CreateTeamUseCase", () => {
     mockPlayerRepository.create.mockResolvedValue(createPlayer());
     mockProfileRepository.updateActiveTeamId.mockResolvedValue(null);
 
-    const result = await useCase.execute(
-      { name: "Test Team", nickname: "TT" },
-      "user-1",
-      "John Doe",
-    );
+    const result = await useCase.execute({
+      name: "Test Team",
+      nickname: "TT",
+      userId: "user-1",
+      userName: "John Doe",
+    });
 
-    expect(result._id).toBe("team-1");
+    expect(result.id).toBe("team-1");
   });
 });

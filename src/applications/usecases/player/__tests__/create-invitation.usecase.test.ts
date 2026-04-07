@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
-import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase.interface";
 import {
   ConflictError,
   NotFoundError,
@@ -35,7 +35,7 @@ describe("CreateInvitationUseCase", () => {
     const role = PlayerRole.MEMBER;
 
     const nonePlayer = createPlayer({
-      _id: playerId,
+      id: playerId,
       name: "Pure Player",
       teamId,
       status: PlayerStatus.NONE,
@@ -56,7 +56,7 @@ describe("CreateInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
 
-      const result = await useCase.execute(playerId, email, role, userId);
+      const result = await useCase.execute({ playerId, email, role, userId });
 
       expect(result.email).toBe(email);
       expect(result.role).toBe(role);
@@ -75,7 +75,12 @@ describe("CreateInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(invitedPlayer);
 
-      const result = await useCase.execute(playerId, email, adminRole, userId);
+      const result = await useCase.execute({
+        playerId,
+        email,
+        role: adminRole,
+        userId,
+      });
 
       expect(result.role).toBe(adminRole);
     });
@@ -84,7 +89,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute(playerId, email, role, userId),
+        useCase.execute({ playerId, email, role, userId }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -98,7 +103,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
       await expect(
-        useCase.execute(playerId, email, role, userId),
+        useCase.execute({ playerId, email, role, userId }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -112,7 +117,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 
       await expect(
-        useCase.execute(playerId, email, role, userId),
+        useCase.execute({ playerId, email, role, userId }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -123,7 +128,7 @@ describe("CreateInvitationUseCase", () => {
       );
 
       await expect(
-        useCase.execute(playerId, email, role, userId),
+        useCase.execute({ playerId, email, role, userId }),
       ).rejects.toThrow("User is not admin of this team");
     });
 
@@ -133,7 +138,7 @@ describe("CreateInvitationUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(null);
 
       await expect(
-        useCase.execute(playerId, email, role, userId),
+        useCase.execute({ playerId, email, role, userId }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

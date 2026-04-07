@@ -9,7 +9,7 @@ import {
 } from "@/entities/player";
 
 const basePlayer = (overrides: Partial<Player> = {}): Player => ({
-  _id: "player-1",
+  id: "player-1",
   name: "Test Player",
   status: PlayerStatus.NONE,
   createdAt: new Date(),

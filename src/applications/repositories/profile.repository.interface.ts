@@ -1,8 +1,11 @@
 import type { Profile } from "@/entities/profile";
-import type { IBaseRepository } from "@/applications/repositories/base.repository.interface";
 
-export interface IProfileRepository extends IBaseRepository<Profile> {
+export interface IProfileRepository {
   findByUserId(userId: string): Promise<Profile | null>;
+  create(
+    data: Omit<Profile, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Profile>;
+  update(id: string, updates: Partial<Profile>): Promise<Profile>;
   updateActiveTeamId(
     userId: string,
     activeTeamId: string | null,

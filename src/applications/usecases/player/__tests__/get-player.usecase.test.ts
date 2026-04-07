@@ -18,7 +18,7 @@ describe("GetPlayerUseCase", () => {
   it("should return player by ID", async () => {
     mockPlayerRepository.findById.mockResolvedValue(mockPlayer);
 
-    const result = await usecase.execute("player-1");
+    const result = await usecase.execute({ playerId: "player-1" });
 
     expect(result).toEqual(mockPlayer);
   });
@@ -26,7 +26,7 @@ describe("GetPlayerUseCase", () => {
   it("should return null if player not found", async () => {
     mockPlayerRepository.findById.mockResolvedValue(null);
 
-    const result = await usecase.execute("nonexistent");
+    const result = await usecase.execute({ playerId: "nonexistent" });
 
     expect(result).toBeNull();
   });
@@ -34,9 +34,9 @@ describe("GetPlayerUseCase", () => {
   it("should return complete player information", async () => {
     mockPlayerRepository.findById.mockResolvedValue(mockPlayer);
 
-    const result = await usecase.execute("player-1");
+    const result = await usecase.execute({ playerId: "player-1" });
 
-    expect(result?._id).toBe("player-1");
+    expect(result?.id).toBe("player-1");
     expect(result?.name).toBe("Test Player");
     expect(result?.teamId).toBe("team-1");
     expect(result?.userId).toBe("user-1");
@@ -51,7 +51,7 @@ describe("GetPlayerUseCase", () => {
     });
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
-    const result = await usecase.execute("player-1");
+    const result = await usecase.execute({ playerId: "player-1" });
 
     expect(result?.userId).toBeUndefined();
     expect(result?.email).toBeDefined();
@@ -64,7 +64,7 @@ describe("GetPlayerUseCase", () => {
     });
     mockPlayerRepository.findById.mockResolvedValue(purePlayer);
 
-    const result = await usecase.execute("player-1");
+    const result = await usecase.execute({ playerId: "player-1" });
 
     expect(result?.email).toBeUndefined();
     expect(result?.userId).toBeUndefined();

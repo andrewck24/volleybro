@@ -2,7 +2,7 @@ export const TYPES = {
   // repositories
   UserRepository: Symbol.for("UserRepository"),
   TeamRepository: Symbol.for("TeamRepository"),
-  RecordRepository: Symbol.for("RecordRepository"),
+  GameRepository: Symbol.for("GameRepository"),
   ProfileRepository: Symbol.for("ProfileRepository"),
   PlayerRepository: Symbol.for("PlayerRepository"),
 
@@ -22,10 +22,10 @@ export const TYPES = {
   SearchUserUseCase: Symbol.for("SearchUserUseCase"),
   GetUserByIdUseCase: Symbol.for("GetUserByIdUseCase"),
 
-  // record usecases
-  FindRecordUseCase: Symbol.for("FindRecordUseCase"),
-  CreateRecordUseCase: Symbol.for("CreateRecordUseCase"),
-  FindMatchesUseCase: Symbol.for("FindMatchesUseCase"),
+  // game usecases
+  FindGameUseCase: Symbol.for("FindGameUseCase"),
+  CreateGameUseCase: Symbol.for("CreateGameUseCase"),
+  FindGameSummariesUseCase: Symbol.for("FindGameSummariesUseCase"),
   CreateSetUseCase: Symbol.for("CreateSetUseCase"),
   UpdateSetUseCase: Symbol.for("UpdateSetUseCase"),
   CreateRallyUseCase: Symbol.for("CreateRallyUseCase"),

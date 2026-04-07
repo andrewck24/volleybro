@@ -1,0 +1,171 @@
+# Changeset & Release Workflow
+
+This document describes the end-to-end flow from code change to published release in VolleyBro.
+
+## Branching Model
+
+```text
+feat/xxx ──PR──> dev ──PR──> main
+                               |
+                           release:version
+                           commit + tag + push
+```
+
+- **feat/fix branches**: where implementation happens (spectra:apply)
+- **dev**: integration branch; accumulates completed features
+- **main**: release branch; every merge triggers a version bump
+
+## Lifecycle Overview
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  FEAT BRANCH                                                │
+│                                                             │
+│  1. spectra:apply    -- implement the change                │
+│  2. spectra:archive  -- finalize the change                 │
+│  3. pnpm changeset   -- create .changeset/<id>.md           │
+│  4. git add + commit -- "chore: add changeset for <name>"   │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  FEAT -> DEV PR                                             │
+│                                                             │
+│  5. Create PR to dev (gh pr create --base dev)              │
+│  6. Review: code + changeset body                           │
+│  7. Merge -- changeset .md enters dev                       │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  DEV -> MAIN PR                                             │
+│                                                             │
+│  8. Create PR from dev to main                              │
+│  9. Review: accumulated changes                             │
+│  10. Merge -- all pending changesets enter main             │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  RELEASE (on main)                                          │
+│                                                             │
+│  11. pnpm release:version                                   │
+│      - changeset version  (bump package.json, update        │
+│        CHANGELOG.md, delete consumed .changeset/*.md)       │
+│      - node changelog-postprocess.cjs  (fix headers,        │
+│        merge duplicate sections)                            │
+│  12. git add -A && git commit -m "release: <version>"       │
+│  13. git tag v<version>                                     │
+│  14. git push && git push --tags                            │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Step-by-Step Details
+
+### Step 3: Creating a Changeset
+
+Run on the feat branch, after `spectra:archive`:
+
+```bash
+pnpm changeset
+```
+
+The interactive CLI prompts for:
+
+1. **Bump type** -- patch / minor / major
+2. **Summary** -- this becomes the changeset body
+
+Write the body following the format in `SKILL.md`. Derive content from the change's `proposal.md` and `tasks.md`.
+
+The command creates `.changeset/<random-id>.md` with frontmatter (package + bump type) and your body.
+
+### Step 4: Committing the Changeset
+
+```bash
+git add .changeset/<id>.md
+git commit -m "chore: add changeset for <change-name>"
+```
+
+`commit` is set to `false` in `.changeset/config.json` -- nothing is auto-committed.
+
+### Steps 5-7: PR to dev
+
+Standard PR flow. Reviewers should check the changeset body for:
+
+- Correct bump type
+- User-facing language (not implementation details)
+- Correct `###` headings per SKILL.md
+
+### Steps 8-10: PR to main
+
+When dev has accumulated enough changes for a release, create PR from dev to main. Multiple changeset files may be present -- `changeset version` will merge them into a single version bump.
+
+### Step 11: Running release:version
+
+On main, after merge:
+
+```bash
+pnpm release:version
+```
+
+This runs two things sequentially:
+
+1. `changeset version` -- reads all `.changeset/*.md` files, bumps `package.json` version, appends entries to `CHANGELOG.md`, deletes consumed changeset files
+2. `node .changeset/changelog-postprocess.cjs` -- reformats version headers to `## [X.Y.Z](compare-link) YYYY-MM-DD` and merges duplicate `###` headings
+
+### Steps 12-14: Commit, Tag, Push
+
+```bash
+git add -A
+git commit -m "release: $(node -p \"require('./package.json').version\")"
+git tag "v$(node -p \"require('./package.json').version\")"
+git push && git push --tags
+```
+
+## Toolchain Architecture
+
+```text
+.changeset/
+  config.json               -- changesets configuration (commit: false)
+  changelog-fn.cjs          -- custom formatter: returns body verbatim
+  changelog-postprocess.cjs -- post-version: fix headers + merge sections
+  *.md                      -- pending changeset files (consumed by version)
+```
+
+- **changelog-fn.cjs**: Implements `getReleaseLine` that returns `changeset.summary.trim()`. No commit links, no formatting -- the body you write is the body that ships.
+- **changelog-postprocess.cjs**: Runs after `changeset version`. Converts bare `## X.Y.Z` headers to `## [X.Y.Z](compare-link) YYYY-MM-DD` and merges duplicate `###` type headings that occur when multiple changesets share the same category.
+
+## Multiple Changesets per Release
+
+When several feat branches merge into dev before a release:
+
+```text
+feat/auth-fix   ->  .changeset/abc.md  (patch, ### Fixed)
+feat/new-search ->  .changeset/def.md  (minor, ### Added)
+feat/ui-update  ->  .changeset/ghi.md  (patch, ### Changed)
+```
+
+After `pnpm release:version`:
+
+- Version bumps to the highest semver (minor wins over patch)
+- All three bodies merge into one CHANGELOG entry
+- Postprocess merges any duplicate `###` headings
+
+## When NOT to Create a Changeset
+
+- Pure refactors with no behavior change
+- Test-only changes
+- Documentation-only changes
+- Linting / formatting fixes
+- CI pipeline changes (unless they affect contributors)
+
+Use `pnpm changeset --empty` if CI requires a changeset file but the change has no user impact.
+
+## FAQ
+
+**Q: What if I forgot to create a changeset on the feat branch?**
+A: Create it on dev before the PR to main. The changeset just needs to exist before `release:version` runs.
+
+**Q: Can I edit a changeset after creating it?**
+A: Yes. It's a plain markdown file in `.changeset/`. Edit and commit.
+
+**Q: What if the same `###` heading appears in multiple changesets?**
+A: The postprocess script merges them. Each heading appears exactly once in the final CHANGELOG.
+
+**Q: How do I check what's pending before a release?**
+A: `pnpm changeset status --verbose` shows all pending changesets and the projected version bump.

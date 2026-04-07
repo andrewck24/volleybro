@@ -1,6 +1,9 @@
-import { withAuth } from "@/lib/api/wrappers";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import { getUserController } from "@/interface/controllers/user/user.controller";
+import {
+  getUserByIdController,
+  searchUserController,
+} from "@/interface/controllers/user/user.controller";
+import { withAuth } from "@/lib/api/wrappers";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +14,9 @@ export const GET = withAuth(async (request: NextRequest, { userId }) => {
 
   await connectToMongoDB();
 
-  const result = await getUserController(userId, email);
+  const result = email
+    ? await searchUserController({ email })
+    : await getUserByIdController({ userId });
   if (result.ok === false) {
     throw result.error;
   }

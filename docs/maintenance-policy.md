@@ -39,3 +39,30 @@ Test mocks can silently diverge from the real API they represent. When a mocked 
 **Example:** When upgrading MongoDB/Mongoose, review `jest.setup.backend.ts` and any inline repository mocks to verify all mocked methods still exist on the real driver.
 
 **Rule:** A mock of a removed API passes silently while production code fails. Always verify mock surfaces explicitly after any dependency upgrade that touches a mocked boundary.
+
+---
+
+## Type Boundary Drift
+
+When domain models change, keep type boundaries synchronized across three layers:
+
+1. Domain entity types in `src/entities/`
+2. API response schemas in `src/lib/features/*/types.ts` (`*ResponseSchema`)
+3. Presentation view types inferred from schemas (`*View`)
+
+Follow this policy for every domain type update:
+
+1. Update domain entities first (`id`, enums, field names, optionality)
+2. Update corresponding Zod response schemas to reflect actual controller response shape
+3. Regenerate inferred view types (`z.infer`) and migrate presentation usage to `*View`
+4. Keep enum imports from entities value-only; do not import entity data shapes in `src/components/` or `src/lib/features/`
+5. Update tests at layer boundaries to use view types and remove unnecessary casts
+6. Run full verification:
+   - `pnpm test`
+   - `pnpm lint`
+   - `pnpm typecheck`
+   - `pnpm build`
+
+Review gate:
+
+- Any PR that changes entity fields or names must include corresponding `types.ts` schema/view updates, or an explicit note explaining why no boundary update is required.

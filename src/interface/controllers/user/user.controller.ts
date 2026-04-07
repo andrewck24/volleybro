@@ -1,36 +1,35 @@
 import type { Result } from "@/applications/types/result";
-import type { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
 import type {
-  SearchUserOutput,
-  SearchUserUseCase,
+  IGetUserByIdInput,
+  IGetUserByIdUseCase,
+} from "@/applications/usecases/user/get-user-by-id.usecase";
+import type {
+  ISearchUserInput,
+  ISearchUserOutput,
+  ISearchUserUseCase,
 } from "@/applications/usecases/user/search-user.usecase";
-import { AuthenticationError } from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
 import type { User } from "@/entities/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 
 /**
- * Get user by ID or search by email.
- * - email provided → SearchUserUseCase (exact match, returns { _id, name, image })
- * - no email       → GetUserByIdUseCase with actorId (self-lookup, returns full User)
- * Route layer resolves actorId from session and passes id/email from query params.
+ * Search user by email.
+ * Route layer validates and passes search criteria.
  */
-export const getUserController = async (
-  actorId?: string,
-  email?: string | null,
-): Promise<Result<User | SearchUserOutput>> => {
-  if (email) {
-    const useCase = container.get<SearchUserUseCase>(TYPES.SearchUserUseCase);
-    return useCase.execute(email);
-  }
+export const searchUserController = async (
+  input: ISearchUserInput,
+): Promise<Result<ISearchUserOutput>> => {
+  const useCase = container.get<ISearchUserUseCase>(TYPES.SearchUserUseCase);
+  return useCase.execute(input);
+};
 
-  if (!actorId) {
-    throw new AuthenticationError(
-      AuthReason.SESSION_REQUIRED,
-      "Actor ID is required to look up user",
-    );
-  }
-  const useCase = container.get<GetUserByIdUseCase>(TYPES.GetUserByIdUseCase);
-  return useCase.execute(actorId);
+/**
+ * Get user by ID.
+ * Route layer resolves current user identity and passes it in.
+ */
+export const getUserByIdController = async (
+  input: IGetUserByIdInput,
+): Promise<Result<User>> => {
+  const useCase = container.get<IGetUserByIdUseCase>(TYPES.GetUserByIdUseCase);
+  return useCase.execute(input);
 };

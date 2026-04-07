@@ -1,5 +1,5 @@
 export type Profile = {
-  _id: string;
+  id: string;
   userId: string;
   activeTeamId?: string;
   info?: Record<string, unknown>;

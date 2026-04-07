@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
-import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase.interface";
 import {
   ConflictError,
   NotFoundError,
@@ -30,7 +30,7 @@ describe("CancelInvitationUseCase", () => {
   describe("execute", () => {
     it("should cancel invitation by setting status to NONE and clearing email/userId", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
@@ -47,7 +47,10 @@ describe("CancelInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(cancelledPlayer);
 
-      const result = await useCase.execute("player_123", "user_456");
+      const result = await useCase.execute({
+        playerId: "player_123",
+        userId: "user_456",
+      });
 
       expect(result.email).toBeUndefined();
     });
@@ -56,13 +59,13 @@ describe("CancelInvitationUseCase", () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_999", "user_456"),
+        useCase.execute({ playerId: "player_999", userId: "user_456" }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if user is not team admin", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
@@ -73,14 +76,14 @@ describe("CancelInvitationUseCase", () => {
         new Error("User not authorized"),
       );
 
-      await expect(useCase.execute("player_123", "user_456")).rejects.toThrow(
-        "User not authorized",
-      );
+      await expect(
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
+      ).rejects.toThrow("User not authorized");
     });
 
     it("should reject if player status is not INVITED", async () => {
       const nonePlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.NONE,
         teamId: "team_789",
       });
@@ -89,13 +92,13 @@ describe("CancelInvitationUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
     it("should reject if update fails", async () => {
       const invitedPlayer = createPlayer({
-        _id: "player_123",
+        id: "player_123",
         status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
@@ -106,7 +109,7 @@ describe("CancelInvitationUseCase", () => {
       mockPlayerRepository.update.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("player_123", "user_456"),
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
       ).rejects.toBeInstanceOf(UnexpectedError);
     });
   });

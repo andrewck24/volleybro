@@ -1,6 +1,6 @@
 "use client";
-import { Matches } from "@/components/home/matches";
+import { GameHistory } from "@/components/home/game-history";
 
-const Home = () => <Matches />;
+const Home = () => <GameHistory />;
 
 export default Home;

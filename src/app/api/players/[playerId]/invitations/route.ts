@@ -1,11 +1,11 @@
-/**
- * PATCH /api/players/{playerId}/invitations - Accept, reject, or leave
- */
-
 import * as invitationController from "@/interface/controllers/player/invitation.controller";
 import { withAuth } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+/**
+ * PATCH /api/players/{playerId}/invitations - Accept, reject, or leave
+ */
 
 const PatchInvitationSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept") }),
@@ -25,7 +25,7 @@ export const PATCH = (
 
     switch (action) {
       case "accept": {
-        await invitationController.acceptInvitation(playerId, userId);
+        await invitationController.acceptInvitation({ playerId, userId });
         return NextResponse.json(
           { success: true, message: "Invitation accepted" },
           { status: 200 },
@@ -33,7 +33,7 @@ export const PATCH = (
       }
 
       case "reject": {
-        await invitationController.rejectInvitation(playerId, userId);
+        await invitationController.rejectInvitation({ playerId, userId });
         return NextResponse.json(
           { success: true, message: "Invitation rejected" },
           { status: 200 },
@@ -41,7 +41,7 @@ export const PATCH = (
       }
 
       case "leave": {
-        await invitationController.leaveTeam(playerId, userId);
+        await invitationController.leaveTeam({ playerId, userId });
         return NextResponse.json(
           { success: true, message: "Left team successfully" },
           { status: 200 },

@@ -1,0 +1,74 @@
+import { EntryType, MoveType } from "@/entities/game";
+import { getServingStatus } from "@/lib/features/game/helpers";
+import type { SetView } from "@/lib/features/game/types";
+
+describe("getServingStatus", () => {
+  it("should return true when previous Rally was won", () => {
+    const mockSet = {
+      entries: [
+        {
+          type: EntryType.RALLY,
+          win: true,
+          home: { score: 10, type: MoveType.SERVING, num: 1 },
+          away: { score: 8, type: MoveType.RECEPTION, num: 1 },
+        },
+      ],
+    } as unknown as SetView;
+
+    const entryIndex = 1; // Look for rally before entryIndex
+
+    const isServing = getServingStatus(mockSet, entryIndex);
+
+    expect(isServing).toBe(true);
+  });
+
+  it("should return false when previous Rally was lost", () => {
+    const mockSet = {
+      entries: [
+        {
+          type: EntryType.RALLY,
+          win: false,
+          home: { score: 8, type: MoveType.RECEPTION, num: 1 },
+          away: { score: 10, type: MoveType.SERVING, num: 1 },
+        },
+      ],
+    } as unknown as SetView;
+
+    const entryIndex = 1;
+
+    const isServing = getServingStatus(mockSet, entryIndex);
+
+    expect(isServing).toBe(false);
+  });
+
+  it("should return initial serve setting when no previous Rally exists", () => {
+    const mockSet = {
+      options: { serve: "home" },
+      entries: [
+        {
+          type: EntryType.TIMEOUT, // Non-RALLY type
+          team: 0,
+        },
+      ],
+    } as unknown as SetView;
+
+    const entryIndex = 1;
+
+    const isServing = getServingStatus(mockSet, entryIndex);
+
+    expect(isServing).toBe(true);
+  });
+
+  it("should return initial serve setting when entryIndex is 0", () => {
+    const mockSet = {
+      options: { serve: "away" },
+      entries: [],
+    } as unknown as SetView;
+
+    const entryIndex = 0;
+
+    const isServing = getServingStatus(mockSet, entryIndex);
+
+    expect(isServing).toBe(false);
+  });
+});

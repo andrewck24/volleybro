@@ -46,7 +46,7 @@ context: |
   - ESLint (Airbnb + next/core-web-vitals) + Prettier (with tailwindcss plugin)
   - Path aliases: @/* for absolute imports from src/
   - API pattern: auth check → authorization → Zod validation → controller → use case → response
-  - Components organized by domain: ui/, custom/, auth/, team/, record/, match/, landing/
+  - Components organized by domain: ui/, custom/, auth/, team/, game/, landing/
 
 rules:
   specs:

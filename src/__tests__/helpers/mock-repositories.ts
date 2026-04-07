@@ -1,8 +1,8 @@
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import type { IRecordRepository } from "@/applications/repositories/record.repository.interface";
-import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 
 export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
   return {
@@ -25,8 +25,7 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
 
 export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -34,35 +33,28 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
   };
 }
 
-export function createMockRecordRepository(): jest.Mocked<IRecordRepository> {
+export function createMockGameRepository(): jest.Mocked<IGameRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-    findMatchesWithPagination: jest.fn(),
+    findGameSummaries: jest.fn(),
   };
 }
 
 export function createMockUserRepository(): jest.Mocked<IUserRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
+    findById: jest.fn(),
+    findByEmail: jest.fn(),
   };
 }
 
 export function createMockProfileRepository(): jest.Mocked<IProfileRepository> {
   return {
-    find: jest.fn(),
-    findOne: jest.fn(),
+    findByUserId: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
-    findByUserId: jest.fn(),
     updateActiveTeamId: jest.fn(),
   };
 }

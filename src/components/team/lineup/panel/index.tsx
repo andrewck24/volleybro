@@ -1,15 +1,15 @@
 "use client";
+import { Panel } from "@/components/custom/panel";
 import { LineupOptions } from "@/components/team/lineup/panel/options";
 import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
 import { Positions } from "@/components/team/lineup/panel/positions";
 import { Substitutes } from "@/components/team/lineup/panel/substitutes";
-import { Panel } from "@/components/custom/panel";
-import type { Player } from "@/entities/player";
+import type { PlayerView } from "@/lib/features/team/types";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
 interface LineupPanelProps {
-  players: Player[];
+  players: PlayerView[];
   hasPairedSwitchPosition: boolean;
 }
 
@@ -21,12 +21,12 @@ export const LineupPanel = ({
   const { optionMode } = status;
   const { starting, liberos, substitutes } = lineups[status.lineupIndex];
   const listedIds = new Set([
-    ...starting.map((player) => player._id),
-    ...liberos.map((player) => player._id),
-    ...substitutes.map((player) => player._id),
+    ...starting.map((player) => player.id),
+    ...liberos.map((player) => player.id),
+    ...substitutes.map((player) => player.id),
   ]);
   const others = players
-    .filter((player) => !listedIds.has(player._id))
+    .filter((player) => !listedIds.has(player.id))
     .sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
 
   return (

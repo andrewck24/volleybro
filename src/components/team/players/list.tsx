@@ -43,8 +43,8 @@ export function PlayersList({ teamId }: PlayersListProps) {
   return (
     <ItemGroup className="flex flex-col">
       {orderedPlayers.map((player) => (
-        <Item key={player._id} asChild>
-          <Link href={`/team/${teamId}/players/${player._id}`}>
+        <Item key={player.id} asChild>
+          <Link href={`/team/${teamId}/players/${player.id}`}>
             <ItemMedia variant="image">
               <ItemAvatar alt={player.name} fallback={<FiUser />} />
             </ItemMedia>

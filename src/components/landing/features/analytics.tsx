@@ -1,16 +1,16 @@
+import { Points } from "@/components/game/stats/teams-stats/points";
 import {
   FeatureCard,
   FeatureCardsContainer,
 } from "@/components/landing/features";
-import { Points } from "@/components/match/stats/teams-stats/points";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { MoveType } from "@/entities/record";
-import type { ITeamsStats } from "@/lib/features/record/types";
+import { MoveType } from "@/entities/game";
+import type { ITeamsStats } from "@/lib/features/game/types";
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
 
 // Mock data for analytics demos

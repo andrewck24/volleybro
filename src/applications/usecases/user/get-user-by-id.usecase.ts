@@ -1,25 +1,37 @@
-import { inject, injectable } from "inversify";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
+import type { Result } from "@/applications/types/result";
 import { NotFoundError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
-import type { Result } from "@/applications/types/result";
-import { TYPES } from "@/infrastructure/di/types";
-import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { User } from "@/entities/user";
+import { TYPES } from "@/infrastructure/di/types";
+import { inject, injectable } from "inversify";
+
+export interface IGetUserByIdInput {
+  userId: string;
+}
+
+export interface IGetUserByIdUseCase {
+  execute(input: IGetUserByIdInput): Promise<Result<User>>;
+}
 
 @injectable()
-export class GetUserByIdUseCase {
+export class GetUserByIdUseCase implements IGetUserByIdUseCase {
   constructor(
     @inject(TYPES.UserRepository)
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
   ) {}
 
-  async execute(userId: string): Promise<Result<User>> {
-    const user = await this.userRepository.findOne({ _id: userId });
+  async execute({ userId }: IGetUserByIdInput): Promise<Result<User>> {
+    const user = await this.userRepository.findById(userId);
 
     if (!user) {
       return {
         ok: false,
-        error: new NotFoundError(CommonReason.RESOURCE_NOT_FOUND, "User not found", `User with id ${userId} not found`),
+        error: new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "User not found",
+          `User with id ${userId} not found`,
+        ),
       };
     }
 

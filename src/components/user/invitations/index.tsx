@@ -18,10 +18,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { Player, PlayerStatus } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
 import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
+import type { PlayerView } from "@/lib/features/team/types";
 import NextLink from "next/link";
 import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -36,7 +37,7 @@ export const Invitations = ({ className }: { className?: string }) => {
         <CardTitle>隊伍邀請</CardTitle>
       </CardHeader>
       <Message />
-      <InvitationList userId={user?._id} />
+      <InvitationList userId={user?.id} />
       <Separator content="沒有找到你的隊伍嗎？你可以..." />
       <Link size="lg" href="/team/new">
         <FiPlus />
@@ -96,7 +97,7 @@ function InvitationList({ userId }: { userId?: string }) {
     <ItemGroup className="flex flex-col">
       {invitedPlayers.map((player) => (
         <InvitationItem
-          key={player._id}
+          key={player.id}
           player={player}
           processingId={processingId}
           handleInvitation={handleInvitation}
@@ -111,7 +112,7 @@ function InvitationItem({
   processingId,
   handleInvitation,
 }: {
-  player: Player;
+  player: PlayerView;
   processingId: string | null;
   handleInvitation: (id: string, action: "accept" | "reject") => void;
 }) {
@@ -134,9 +135,9 @@ function InvitationItem({
           <Button
             size="sm"
             className="pr-3 pl-2"
-            onClick={() => handleInvitation(player._id, "accept")}
+            onClick={() => handleInvitation(player.id, "accept")}
             aria-label="接受邀請"
-            loading={processingId === player._id}
+            loading={processingId === player.id}
             disabled={processingId !== null}
           >
             <RiCheckLine className="size-5" />
@@ -146,9 +147,9 @@ function InvitationItem({
             variant="secondary"
             className="pr-3 pl-2"
             size="sm"
-            onClick={() => handleInvitation(player._id, "reject")}
+            onClick={() => handleInvitation(player.id, "reject")}
             aria-label="拒絕邀請"
-            loading={processingId === player._id}
+            loading={processingId === player.id}
             disabled={processingId !== null}
           >
             <RiCloseLine className="size-5" />

@@ -16,17 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
+import type { PlayerView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 
 interface MembershipSectionProps {
-  player: Player;
+  player: PlayerView;
   teamId: string;
   isCurrentOwner: boolean;
 }
@@ -51,7 +51,7 @@ export function MembershipSection({
   const [isTransferring, setIsTransferring] = useState(false);
 
   const revalidate = () => {
-    mutate(`/api/players/${player._id}`);
+    mutate(`/api/players/${player.id}`);
     mutate(`/api/teams/${teamId}/players`);
   };
 
@@ -59,7 +59,7 @@ export function MembershipSection({
     setRemoveError(null);
     setIsRemoving(true);
     try {
-      await apiClient(`/api/players/${player._id}`, {
+      await apiClient(`/api/players/${player.id}`, {
         method: "DELETE",
       });
 
@@ -84,7 +84,7 @@ export function MembershipSection({
       await apiClient(`/api/teams/${teamId}/ownership`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newOwnerId: player._id }),
+        body: JSON.stringify({ newOwnerId: player.id }),
       });
 
       setTransferOpen(false);
@@ -127,7 +127,11 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full" disabled={isRemoving}>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isRemoving}
+                >
                   移除成員
                 </Button>
               </AlertDialogTrigger>
@@ -174,7 +178,11 @@ export function MembershipSection({
               }}
             >
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full" disabled={isTransferring}>
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  disabled={isTransferring}
+                >
                   移轉所有權給此球員
                 </Button>
               </AlertDialogTrigger>
@@ -211,7 +219,7 @@ export function MembershipSection({
   );
 }
 
-type FoundUser = { _id: string; name: string; image?: string };
+type FoundUser = { id: string; name: string; image?: string };
 
 // --- NONE: invite section with user search ---
 function InviteSection({
@@ -219,7 +227,7 @@ function InviteSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -254,7 +262,7 @@ function InviteSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role }),
@@ -344,7 +352,7 @@ function InvitedSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -354,7 +362,7 @@ function InvitedSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "DELETE",
       });
 
@@ -405,7 +413,7 @@ function JoinedSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -420,7 +428,7 @@ function JoinedSection({
     setIsSubmitting(true);
 
     try {
-      await apiClient(`/api/players/${player._id}/memberships`, {
+      await apiClient(`/api/players/${player.id}/memberships`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role }),

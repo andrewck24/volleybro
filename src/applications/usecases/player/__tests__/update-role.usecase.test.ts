@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
-import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase.interface";
 import { NotFoundError } from "@/entities/errors/app-error";
 import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -27,7 +27,7 @@ describe("UpdateRoleUseCase", () => {
       const userId = "user_456";
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         teamId: "team_123",
       });
 
@@ -40,7 +40,7 @@ describe("UpdateRoleUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
 
-      const result = await useCase.execute(playerId, newRole, userId);
+      const result = await useCase.execute({ playerId, newRole, userId });
 
       expect(result.role).toBe(newRole);
     });
@@ -51,7 +51,7 @@ describe("UpdateRoleUseCase", () => {
       const newRole = PlayerRole.MEMBER;
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         name: "Test Admin",
         teamId: "team_123",
         role: PlayerRole.ADMIN,
@@ -66,7 +66,7 @@ describe("UpdateRoleUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
 
-      const result = await useCase.execute(playerId, newRole, userId);
+      const result = await useCase.execute({ playerId, newRole, userId });
 
       expect(result.role).toBe(newRole);
     });
@@ -77,7 +77,7 @@ describe("UpdateRoleUseCase", () => {
       const userId = "user_456";
 
       const currentPlayer = createPlayer({
-        _id: playerId,
+        id: playerId,
         teamId: "team_123",
       });
 
@@ -86,16 +86,20 @@ describe("UpdateRoleUseCase", () => {
         new Error("User is not admin"),
       );
 
-      await expect(useCase.execute(playerId, newRole, userId)).rejects.toThrow(
-        "User is not admin",
-      );
+      await expect(
+        useCase.execute({ playerId, newRole, userId }),
+      ).rejects.toThrow("User is not admin");
     });
 
     it("should reject if player not found", async () => {
       mockPlayerRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("non_existent", PlayerRole.ADMIN, "user_456"),
+        useCase.execute({
+          playerId: "non_existent",
+          newRole: PlayerRole.ADMIN,
+          userId: "user_456",
+        }),
       ).rejects.toBeInstanceOf(NotFoundError);
     });
   });

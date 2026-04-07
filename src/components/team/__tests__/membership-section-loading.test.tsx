@@ -1,6 +1,6 @@
 import { MembershipSection } from "@/components/team/players/membership-section";
-import { apiClient } from "@/lib/api/api-client";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { apiClient } from "@/lib/api/api-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -28,7 +28,7 @@ jest.mock("react-icons/ri", () => ({
 const mockApiClient = apiClient as jest.Mock;
 
 const basePlayer = {
-  _id: "player-1",
+  id: "player-1",
   name: "Alice",
   teamId: "team-1",
   role: PlayerRole.MEMBER,
@@ -43,7 +43,9 @@ describe("MembershipSection — remove loading state", () => {
   it("shows loading and disables confirm button while removing", async () => {
     let resolveApi!: () => void;
     mockApiClient.mockReturnValue(
-      new Promise<void>((resolve) => { resolveApi = resolve; }),
+      new Promise<void>((resolve) => {
+        resolveApi = resolve;
+      }),
     );
 
     const user = userEvent.setup();
@@ -65,7 +67,9 @@ describe("MembershipSection — remove loading state", () => {
     expect(screen.getByTestId("spinner")).toBeInTheDocument();
 
     resolveApi();
-    await waitFor(() => expect(screen.queryByTestId("spinner")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByTestId("spinner")).not.toBeInTheDocument(),
+    );
   });
 
   it("re-enables confirm button after remove error", async () => {
@@ -94,7 +98,9 @@ describe("MembershipSection — transfer loading state", () => {
   it("shows loading and disables confirm button while transferring", async () => {
     let resolveApi!: () => void;
     mockApiClient.mockReturnValue(
-      new Promise<void>((resolve) => { resolveApi = resolve; }),
+      new Promise<void>((resolve) => {
+        resolveApi = resolve;
+      }),
     );
 
     const user = userEvent.setup();
@@ -106,7 +112,9 @@ describe("MembershipSection — transfer loading state", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /移轉所有權給此球員/ }));
+    await user.click(
+      screen.getByRole("button", { name: /移轉所有權給此球員/ }),
+    );
     const confirmBtn = screen.getByRole("button", { name: /確認移轉/ });
     expect(confirmBtn).toBeEnabled();
 
@@ -116,7 +124,9 @@ describe("MembershipSection — transfer loading state", () => {
     expect(screen.getByTestId("spinner")).toBeInTheDocument();
 
     resolveApi();
-    await waitFor(() => expect(screen.queryByTestId("spinner")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByTestId("spinner")).not.toBeInTheDocument(),
+    );
   });
 
   it("re-enables confirm button after transfer error", async () => {
@@ -131,7 +141,9 @@ describe("MembershipSection — transfer loading state", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /移轉所有權給此球員/ }));
+    await user.click(
+      screen.getByRole("button", { name: /移轉所有權給此球員/ }),
+    );
     const confirmBtn = screen.getByRole("button", { name: /確認移轉/ });
     await user.click(confirmBtn);
 

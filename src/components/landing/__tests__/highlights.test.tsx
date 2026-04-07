@@ -1,7 +1,7 @@
 import { Highlights } from "@/components/landing/highlights";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
-import { useScroll, useTransform, useSpring } from "motion/react";
+import { useScroll, useSpring, useTransform } from "motion/react";
 
 // Mock motion/react hooks - match Features component exactly
 jest.mock("motion/react", () => ({
@@ -32,7 +32,7 @@ describe("Highlights Component Tests", () => {
     {
       title: "提供簡單易用的賽事記錄工具",
       description: "讓教練能夠快速記錄比賽數據，告別繁瑣的紙筆作業",
-      icon: "record",
+      icon: "game",
     },
     {
       title: "透過強大的數據分析功能",
@@ -142,7 +142,7 @@ describe("Highlights Component Tests", () => {
       it("should display icon badges for each feature type", () => {
         render(<Highlights />);
 
-        const iconTypes = ["record", "chart", "team", "device"];
+        const iconTypes = ["game", "chart", "team", "device"];
         iconTypes.forEach((iconType) => {
           const badges = screen.getAllByTestId(`highlight-badge-${iconType}`);
           expect(badges.length).toBeGreaterThanOrEqual(2); // Mobile + Desktop
@@ -168,7 +168,7 @@ describe("Highlights Component Tests", () => {
 
         const section = screen.getByTestId("highlights-section");
         expect(section).toHaveClass("md:h-[300vh]");
-        expect(section).toHaveClass("md:[contain:layout_style_paint]");
+        expect(section).toHaveClass("md:contain-[layout_style_paint]");
       });
 
       it("should have proper gap classes for desktop container", () => {
@@ -196,7 +196,7 @@ describe("Highlights Component Tests", () => {
 
         expect(mobileCards).toHaveLength(4);
         mobileCards.forEach((card) => {
-          expect(card).toHaveClass("aspect-[3/2]", "w-full");
+          expect(card).toHaveClass("aspect-3/2", "w-full");
         });
       });
 
@@ -214,7 +214,7 @@ describe("Highlights Component Tests", () => {
         expect(allCards).toHaveLength(8); // 4 mobile + 4 desktop
         allCards.forEach((card) => {
           // All cards should have mobile-first responsive classes
-          expect(card).toHaveClass("aspect-[3/2]", "w-full"); // Mobile default
+          expect(card).toHaveClass("aspect-3/2", "w-full"); // Mobile default
           expect(card).toHaveClass("md:aspect-[1/2.17]", "md:h-[45vh]"); // Desktop responsive
         });
       });
@@ -236,7 +236,7 @@ describe("Highlights Component Tests", () => {
         const cards = screen.getAllByTestId("highlight-card");
         cards.forEach((card) => {
           expect(card).toHaveClass("rounded-3xl", "shadow-2xl");
-          expect(card).toHaveClass("bg-gradient-to-b");
+          expect(card).toHaveClass("bg-linear-to-b");
           expect(card).toHaveClass("border", "backdrop-blur-sm");
         });
       });
@@ -244,7 +244,7 @@ describe("Highlights Component Tests", () => {
       it("should render icon badges with consistent styling", () => {
         render(<Highlights />);
 
-        const iconTypes = ["record", "chart", "team", "device"];
+        const iconTypes = ["game", "chart", "team", "device"];
         iconTypes.forEach((iconType) => {
           const badges = screen.getAllByTestId(`highlight-badge-${iconType}`);
           badges.forEach((badge) => {
@@ -329,7 +329,7 @@ describe("Highlights Component Tests", () => {
 
         const section = screen.getByTestId("highlights-section");
         expect(section).toHaveClass(
-          "bg-gradient-to-b",
+          "bg-linear-to-b",
           "from-primary/50",
           "to-transparent",
         );

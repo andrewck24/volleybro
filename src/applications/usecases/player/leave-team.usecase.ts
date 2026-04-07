@@ -11,7 +11,15 @@ import { PlayerReason } from "@/entities/errors/reasons/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { ILeaveTeamUseCase } from "./leave-team.usecase.interface";
+
+export interface ILeaveTeamInput {
+  playerId: string;
+  userId: string;
+}
+
+export interface ILeaveTeamUseCase {
+  execute(input: ILeaveTeamInput): Promise<{ success: boolean }>;
+}
 
 @injectable()
 export class LeaveTeamUseCase implements ILeaveTeamUseCase {
@@ -24,10 +32,10 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     private profileRepository: IProfileRepository,
   ) {}
 
-  async execute(
-    playerId: string,
-    userId: string,
-  ): Promise<{ success: boolean }> {
+  async execute({
+    playerId,
+    userId,
+  }: ILeaveTeamInput): Promise<{ success: boolean }> {
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -38,8 +46,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
 
     if (player.userId !== userId) {
       throw new AuthorizationError(
-        PlayerReason.CANNOT_LEAVE_OWN_RECORD,
-        "You cannot leave a player record that does not belong to you",
+        PlayerReason.NOT_PLAYER_OWNER,
+        "You cannot leave a player that does not belong to you",
       );
     }
 
@@ -62,7 +70,10 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     }
 
     if (!player.teamId)
-      throw new NotFoundError(PlayerReason.PLAYER_NOT_FOUND, "Player has no team");
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     // Clear activeTeamId if it points to the team the user just left

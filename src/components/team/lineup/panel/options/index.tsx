@@ -1,4 +1,5 @@
 "use client";
+import { PanelContent } from "@/components/custom/panel";
 import {
   LiberoReplaceDialog,
   LiberoReplaceTrigger,
@@ -6,7 +7,6 @@ import {
 import { LineupError } from "@/components/team/lineup/panel/options/lineup-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { PanelContent } from "@/components/custom/panel";
 import {
   Table,
   TableBody,
@@ -15,17 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { LineupOptionMode } from "@/lib/features/team/types";
+import { LineupOptionMode, type PlayerView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { Dialog } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { RiUserLine } from "react-icons/ri";
 
 interface LineupOptionsProps {
-  players: Player[];
-  others: Player[];
+  players: PlayerView[];
+  others: PlayerView[];
   hasPairedSwitchPosition: boolean;
 }
 
@@ -104,9 +103,9 @@ export const LineupOptions = ({
           <TableBody className="text-xl">
             {lineups[status.lineupIndex]?.substitutes &&
               lineups[status.lineupIndex].substitutes.map((lineupPlayer) => {
-                const player = players?.find((p) => p._id === lineupPlayer._id);
+                const player = players?.find((p) => p.id === lineupPlayer.id);
                 return (
-                  <TableRow key={player?._id}>
+                  <TableRow key={player?.id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>
@@ -147,7 +146,7 @@ export const LineupOptions = ({
             {others &&
               others.map((player) => {
                 return (
-                  <TableRow key={player._id}>
+                  <TableRow key={player.id}>
                     <TableCell className="w-6 [&>svg]:size-6">
                       <RiUserLine />
                     </TableCell>

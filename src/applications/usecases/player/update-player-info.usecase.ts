@@ -6,7 +6,16 @@ import { PlayerReason } from "@/entities/errors/reasons/player";
 import { type Player, type Position } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
-import type { IUpdatePlayerInfoUseCase } from "./update-player-info.usecase.interface";
+
+export interface IUpdatePlayerInfoInput {
+  playerId: string;
+  updates: { name?: string; number?: number; position?: Position };
+  userId: string;
+}
+
+export interface IUpdatePlayerInfoUseCase {
+  execute(input: IUpdatePlayerInfoInput): Promise<Player>;
+}
 
 @injectable()
 export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
@@ -17,15 +26,11 @@ export class UpdatePlayerInfoUseCase implements IUpdatePlayerInfoUseCase {
     private authService: IAuthorizationService,
   ) {}
 
-  async execute(
-    playerId: string,
-    updates: {
-      name?: string;
-      number?: number;
-      position?: Position;
-    },
-    userId: string,
-  ): Promise<Player> {
+  async execute({
+    playerId,
+    updates,
+    userId,
+  }: IUpdatePlayerInfoInput): Promise<Player> {
     // 1. 取得球員，確認存在
     const player = await this.playerRepository.findById(playerId);
     if (!player) {

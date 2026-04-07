@@ -1,4 +1,4 @@
-import { Player } from '@/entities/player';
+import { Player } from "@/entities/player";
 
 /**
  * IPlayerRepository Interface
@@ -29,12 +29,17 @@ export interface IPlayerRepository {
   /**
    * Find invited players for a team (email exists, userId doesn't)
    */
-  findInvitedByTeamIdAndEmail(teamId: string, email: string): Promise<Player | null>;
+  findInvitedByTeamIdAndEmail(
+    teamId: string,
+    email: string,
+  ): Promise<Player | null>;
 
   /**
    * Create new player
    */
-  create(player: Omit<Player, '_id' | 'createdAt' | 'updatedAt'>): Promise<Player>;
+  create(
+    player: Omit<Player, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Player>;
 
   /**
    * Update player
@@ -75,7 +80,7 @@ export interface IPlayerRepository {
   /**
    * Batch-link pending INVITED players (by email) to a registered userId.
    * Uses updateMany: sets userId, clears email, idempotent.
-   * Returns the number of records modified.
+   * Returns the number of players modified.
    */
   linkUserToInvitations(email: string, userId: string): Promise<number>;
 }

@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { RiLoopRightLine } from "react-icons/ri";
 
 interface LineupCourtProps {
-  players: { _id: string; name: string; number?: number }[];
+  players: { id: string; name: string; number?: number }[];
 }
 
 export const LineupCourt = ({ players }: LineupCourtProps) => {
@@ -30,7 +30,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
         )}
         {lineups[status.lineupIndex]?.liberos &&
           lineups[status.lineupIndex].liberos.map((libero, index) => {
-            const player = players?.find((p) => p._id === libero._id);
+            const player = players?.find((p) => p.id === libero.id);
             const lineupPlayer = player
               ? {
                   ...player,
@@ -50,7 +50,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
                 onClick={() =>
                   dispatch(
                     lineupActions.setEditingPlayer({
-                      _id: libero?._id || null,
+                      id: libero?.id || null,
                       list: "liberos",
                       zone: index + 1,
                     }),
@@ -72,7 +72,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
             onClick={() =>
               dispatch(
                 lineupActions.setEditingPlayer({
-                  _id: null,
+                  id: null,
                   list: "liberos",
                   zone: lineups[status.lineupIndex]?.liberos.length + 1,
                 }),
@@ -84,7 +84,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
       <Inside>
         {lineups[status.lineupIndex]?.starting &&
           lineups[status.lineupIndex].starting.map((starting, index) => {
-            const player = players?.find((p) => p._id === starting._id);
+            const player = players?.find((p) => p.id === starting.id);
             const lineupPlayer = player
               ? {
                   ...player,
@@ -104,7 +104,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
                 onClick={() =>
                   dispatch(
                     lineupActions.setEditingPlayer({
-                      _id: starting?._id || null,
+                      id: starting?.id || null,
                       list: "starting",
                       zone: index + 1,
                     }),

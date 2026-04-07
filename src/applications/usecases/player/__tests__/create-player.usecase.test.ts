@@ -3,8 +3,8 @@ import {
   createMockPlayerRepository,
   createPlayer,
 } from "@/__tests__/helpers";
+import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
 import { CreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
-import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase.interface";
 import { ConflictError } from "@/entities/errors/app-error";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
@@ -32,7 +32,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_new_001",
+        id: "player_new_001",
         name: input.name,
         number: input.number,
         position: Position.MB,
@@ -44,7 +44,7 @@ describe("CreatePlayerUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.create.mockResolvedValue(createdPlayer);
 
-      const result = await useCase.execute(teamId, input, userId);
+      const result = await useCase.execute({ teamId, data: input, userId });
 
       expect(result).toEqual(createdPlayer);
     });
@@ -59,7 +59,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_invited_001",
+        id: "player_invited_001",
         name: input.name,
         email: input.email,
         role: input.role,
@@ -73,7 +73,7 @@ describe("CreatePlayerUseCase", () => {
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
       mockPlayerRepository.create.mockResolvedValue(createdPlayer);
 
-      const result = await useCase.execute(teamId, input, userId);
+      const result = await useCase.execute({ teamId, data: input, userId });
 
       expect(result).toEqual(createdPlayer);
     });
@@ -90,9 +90,9 @@ describe("CreatePlayerUseCase", () => {
         new Error("User not authorized"),
       );
 
-      await expect(useCase.execute(teamId, input, userId)).rejects.toThrow(
-        "User not authorized",
-      );
+      await expect(
+        useCase.execute({ teamId, data: input, userId }),
+      ).rejects.toThrow("User not authorized");
     });
 
     it("should reject if email already invited in team", async () => {
@@ -107,7 +107,7 @@ describe("CreatePlayerUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(
         createPlayer({
-          _id: "player_123",
+          id: "player_123",
           name: "Test",
           teamId,
           email: input.email,
@@ -115,7 +115,7 @@ describe("CreatePlayerUseCase", () => {
       );
 
       await expect(
-        useCase.execute(teamId, input, userId),
+        useCase.execute({ teamId, data: input, userId }),
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -128,7 +128,7 @@ describe("CreatePlayerUseCase", () => {
       };
 
       const createdPlayer = createPlayer({
-        _id: "player_new_002",
+        id: "player_new_002",
         name: input.name,
         teamId,
         status: PlayerStatus.NONE,
@@ -140,7 +140,7 @@ describe("CreatePlayerUseCase", () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
       mockPlayerRepository.create.mockResolvedValue(createdPlayer);
 
-      const result = await useCase.execute(teamId, input, userId);
+      const result = await useCase.execute({ teamId, data: input, userId });
 
       expect(result.role).toBe(PlayerRole.MEMBER);
     });

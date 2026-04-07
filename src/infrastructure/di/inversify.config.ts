@@ -1,70 +1,62 @@
-import "reflect-metadata";
-import { Container } from "inversify";
 import { TYPES } from "@/infrastructure/di/types";
+import { Container } from "inversify";
+import "reflect-metadata";
 
-import { IUserRepository } from "@/applications/repositories/user.repository.interface";
-import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import { IRecordRepository } from "@/applications/repositories/record.repository.interface";
-import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 
-import { UserRepositoryImpl } from "@/infrastructure/db/repositories";
-import { TeamRepositoryImpl } from "@/infrastructure/db/repositories";
-import { RecordRepositoryImpl } from "@/infrastructure/db/repositories";
-import { ProfileRepositoryImpl } from "@/infrastructure/db/repositories";
-import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories";
+import {
+  GameRepositoryImpl,
+  PlayerRepositoryImpl,
+  ProfileRepositoryImpl,
+  TeamRepositoryImpl,
+  UserRepositoryImpl,
+} from "@/infrastructure/db/repositories";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
+import { CreateGameUseCase } from "@/applications/usecases/game/create-game.usecase";
+import { CreateRallyUseCase } from "@/applications/usecases/game/create-rally.usecase";
+import { CreateSetUseCase } from "@/applications/usecases/game/create-set.usecase";
+import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
+import { FindGameSummariesUseCase } from "@/applications/usecases/game/find-game-summaries.usecase";
+import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
+import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
+import { UpdateSetUseCase } from "@/applications/usecases/game/update-set.usecase";
+import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
+import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
+import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
+import { CreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
+import { GetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
+import { GetTeamPlayersUseCase } from "@/applications/usecases/player/get-team-players.usecase";
+import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
+import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
+import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
+import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
+import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
+import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
+import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
+import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
+import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 import {
-  GetProfileUseCase,
   CreateProfileUseCase,
+  GetProfileUseCase,
   UpdateProfileUseCase,
 } from "@/applications/usecases/user/profile.usecase";
-import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
-import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
-import {
-  FindRecordUseCase,
-  CreateRecordUseCase,
-} from "@/applications/usecases/record/record.usecase";
-import { FindMatchesUseCase } from "@/applications/usecases/record/matches.usecase";
-import {
-  CreateSetUseCase,
-  UpdateSetUseCase,
-} from "@/applications/usecases/record/set.usecase";
-import {
-  CreateRallyUseCase,
-  UpdateRallyUseCase,
-} from "@/applications/usecases/record/rally.usecase";
-import { CreateSubstitutionUseCase } from "@/applications/usecases/record/substitution.usecase";
-import {
-  CreateInvitationUseCase,
-  GetUserPlayersUseCase,
-  AcceptInvitationUseCase,
-  RejectInvitationUseCase,
-  GetTeamPlayersUseCase,
-  GetPlayerUseCase,
-  CreatePlayerUseCase,
-  UpdateRoleUseCase,
-  UpdatePlayerInfoUseCase,
-  LeaveTeamUseCase,
-  TransferOwnershipUseCase,
-  RemovePlayerUseCase,
-  CancelInvitationUseCase,
-} from "@/applications/usecases/player";
 
 const container = new Container();
 
 // register repositories
 container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepositoryImpl);
 container.bind<ITeamRepository>(TYPES.TeamRepository).to(TeamRepositoryImpl);
-container
-  .bind<IRecordRepository>(TYPES.RecordRepository)
-  .to(RecordRepositoryImpl);
+container.bind<IGameRepository>(TYPES.GameRepository).to(GameRepositoryImpl);
 container
   .bind<IProfileRepository>(TYPES.ProfileRepository)
   .to(ProfileRepositoryImpl);
@@ -106,16 +98,14 @@ container
   .bind<GetUserByIdUseCase>(TYPES.GetUserByIdUseCase)
   .to(GetUserByIdUseCase);
 
-// record usecases
+// game usecases
+container.bind<FindGameUseCase>(TYPES.FindGameUseCase).to(FindGameUseCase);
 container
-  .bind<FindRecordUseCase>(TYPES.FindRecordUseCase)
-  .to(FindRecordUseCase);
+  .bind<CreateGameUseCase>(TYPES.CreateGameUseCase)
+  .to(CreateGameUseCase);
 container
-  .bind<CreateRecordUseCase>(TYPES.CreateRecordUseCase)
-  .to(CreateRecordUseCase);
-container
-  .bind<FindMatchesUseCase>(TYPES.FindMatchesUseCase)
-  .to(FindMatchesUseCase);
+  .bind<FindGameSummariesUseCase>(TYPES.FindGameSummariesUseCase)
+  .to(FindGameSummariesUseCase);
 container.bind<CreateSetUseCase>(TYPES.CreateSetUseCase).to(CreateSetUseCase);
 container.bind<UpdateSetUseCase>(TYPES.UpdateSetUseCase).to(UpdateSetUseCase);
 container
@@ -144,9 +134,7 @@ container
 container
   .bind<GetTeamPlayersUseCase>(TYPES.GetTeamPlayersUseCase)
   .to(GetTeamPlayersUseCase);
-container
-  .bind<GetPlayerUseCase>(TYPES.GetPlayerUseCase)
-  .to(GetPlayerUseCase);
+container.bind<GetPlayerUseCase>(TYPES.GetPlayerUseCase).to(GetPlayerUseCase);
 container
   .bind<CreatePlayerUseCase>(TYPES.CreatePlayerUseCase)
   .to(CreatePlayerUseCase);
@@ -156,9 +144,7 @@ container
 container
   .bind<UpdatePlayerInfoUseCase>(TYPES.UpdatePlayerInfoUseCase)
   .to(UpdatePlayerInfoUseCase);
-container
-  .bind<LeaveTeamUseCase>(TYPES.LeaveTeamUseCase)
-  .to(LeaveTeamUseCase);
+container.bind<LeaveTeamUseCase>(TYPES.LeaveTeamUseCase).to(LeaveTeamUseCase);
 container
   .bind<TransferOwnershipUseCase>(TYPES.TransferOwnershipUseCase)
   .to(TransferOwnershipUseCase);
