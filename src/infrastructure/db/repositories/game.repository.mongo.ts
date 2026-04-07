@@ -30,15 +30,6 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  async findByTeamId(teamId: string): Promise<Game | null> {
-    try {
-      const doc = await this.model.findOne({ teamId }).exec();
-      return doc ? this.toGame(doc) : null;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async create(data: Omit<Game, "id">): Promise<Game> {
     try {
       const doc = await this.model.create(data as object);
@@ -48,10 +39,10 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  async update(id: string, data: Partial<Game>): Promise<Game | null> {
+  async update(id: string, data: Partial<Game>): Promise<Game> {
     try {
       const doc = await this.model
-        .findByIdAndUpdate(id, data, { new: true })
+        .findByIdAndUpdate(id, { $set: data }, { new: true })
         .exec();
       if (!doc)
         throw new NotFoundError(

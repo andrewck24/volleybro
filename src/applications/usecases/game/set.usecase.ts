@@ -72,7 +72,7 @@ export class CreateSetUseCase {
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 
-    return updatedGame ?? undefined;
+    return updatedGame;
   }
 }
 
@@ -115,6 +115,6 @@ export class UpdateSetUseCase {
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 
-    return updatedGame ?? undefined;
+    return updatedGame;
   }
 }

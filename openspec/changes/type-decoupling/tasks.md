@@ -41,6 +41,19 @@ Eliminate MongoDB query semantics from application layer. Implements the entity 
 - [x] 2.5 Update all use cases that call repository methods to use new domain-language method signatures (e.g., `findById(id)` instead of `findOne({ _id: id })`). Remove dead defensive code: impossible `if (!result)` guards after repository calls with non-null return types.
 - [x] 2.6 Update affected tests (repository tests, use case tests that mock repository calls). Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor(infrastructure): replace generic repository interfaces with domain-language methods` with a detailed commit message presenting the purposes of the task section and the scope of changes.
 
+### Review Notes (2026-04-07)
+
+- Review-driven improvements applied after `/simplify` audit:
+  - Unified `update()` contract across all repositories: `update()` now throws `NotFoundError` instead of returning `null` when the target entity is not found. Return type changed from `Promise<T | null>` to `Promise<T>` in `IGameRepository`, `ITeamRepository`, and `IProfileRepository` (player repo already followed this pattern). Removed dead `?? undefined` guards in `set.usecase.ts`.
+  - Removed unused `IGameRepository.findByTeamId` method (no use case caller existed).
+  - Added `{ $set: data }` wrapper in `GameRepositoryImpl.update()` to use field-level MongoDB updates instead of full document replacement. This is a minimal efficiency improvement; further options documented below.
+  - Extracted duplicated `mockExec`/`mockDoc` test helpers to shared `src/__tests__/helpers/mock-mongoose.ts`, replacing the outdated `createMockDocument`/`setupModelMocks`.
+  - Replaced string literals `"OWNER"`, `"ADMIN"` with `PlayerRole` enum in `player.repository.mongo.ts`.
+- `GameRepositoryImpl.update()` efficiency improvement options for future consideration:
+  - **Field-level `$set` wrapping** (applied): wrap `findByIdAndUpdate` data with `{ $set: data }` so MongoDB performs field-level updates rather than full document replacement. Minimal change, modest improvement.
+  - **Use case passes partial data**: change use case callers to pass only modified fields (e.g., `{ sets: updatedSets }`) instead of the entire game object. Requires use case refactoring but avoids transmitting unchanged fields.
+  - **Dedicated array-operation repository methods**: add methods like `pushRallyToSet(gameId, setIndex, rally)` using MongoDB `$push`/positional operators for element-level array writes. Best efficiency for high-frequency operations (rally entry), but increases interface surface area.
+
 ## 3. Use case restructure: 1-file-per-class, merge interfaces
 
 Implements the use case file structure: 1-file-per-class with co-located interface decision.

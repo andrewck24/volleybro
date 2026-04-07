@@ -1,4 +1,5 @@
 import { mockDoc, mockExec } from "@/__tests__/helpers";
+import { NotFoundError } from "@/entities/errors/app-error";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";
 import { Types } from "mongoose";
@@ -79,16 +80,14 @@ describe("TeamRepositoryImpl", () => {
       expect(result).toMatchObject({ name: "Updated Team Name" });
     });
 
-    it("should return null when team is not found", async () => {
+    it("should throw NotFoundError when team is not found", async () => {
       (TeamModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
         mockExec(null),
       );
 
-      const result = await repository.update(nonExistentIdString, {
-        name: "X",
-      });
-
-      expect(result).toBeNull();
+      await expect(
+        repository.update(nonExistentIdString, { name: "X" }),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 

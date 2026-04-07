@@ -1,4 +1,6 @@
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import type { Profile } from "@/entities/profile";
 import {
   Profile as ProfileModel,
@@ -37,12 +39,17 @@ export class ProfileRepositoryImpl implements IProfileRepository {
     }
   }
 
-  async update(id: string, updates: Partial<Profile>): Promise<Profile | null> {
+  async update(id: string, updates: Partial<Profile>): Promise<Profile> {
     try {
       const doc = await ProfileModel.findByIdAndUpdate(id, updates, {
         new: true,
       });
-      return doc ? this.toProfile(doc) : null;
+      if (!doc)
+        throw new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "The profile to update was not found",
+        );
+      return this.toProfile(doc);
     } catch (error) {
       throw translateRepositoryError(error);
     }

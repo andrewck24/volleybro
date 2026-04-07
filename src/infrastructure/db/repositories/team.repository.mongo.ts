@@ -1,4 +1,6 @@
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import { NotFoundError } from "@/entities/errors/app-error";
+import { CommonReason } from "@/entities/errors/reasons/common";
 import { Team, type LineupPlayer } from "@/entities/team";
 import {
   TeamDocument,
@@ -70,12 +72,17 @@ export class TeamRepositoryImpl implements ITeamRepository {
     }
   }
 
-  async update(id: string, updates: Partial<Team>): Promise<Team | null> {
+  async update(id: string, updates: Partial<Team>): Promise<Team> {
     try {
       const doc = await TeamModel.findByIdAndUpdate(id, updates, {
         new: true,
       }).exec();
-      return doc ? this.toTeam(doc) : null;
+      if (!doc)
+        throw new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "The team to update was not found",
+        );
+      return this.toTeam(doc);
     } catch (error) {
       throw translateRepositoryError(error);
     }

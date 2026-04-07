@@ -8,7 +8,6 @@ jest.mock("@/infrastructure/db/mongoose/schemas/game", () => {
   const mockModel = jest.fn();
   Object.assign(mockModel, {
     findById: jest.fn(),
-    findOne: jest.fn(),
     create: jest.fn(),
     findByIdAndUpdate: jest.fn(),
     findByIdAndDelete: jest.fn(),
@@ -76,26 +75,6 @@ describe("GameRepositoryImpl", () => {
       (GameModel.findById as jest.Mock).mockReturnValue(mockExec(null));
 
       const result = await repository.findById(nonExistentIdString);
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("findByTeamId", () => {
-    it("should return a game when found by teamId", async () => {
-      (GameModel.findOne as jest.Mock).mockReturnValue(
-        mockExec(mockDoc(mockGameData)),
-      );
-
-      const result = await repository.findByTeamId(mockTeamIdString);
-
-      expect(result).toMatchObject({ teamId: mockTeamIdString });
-    });
-
-    it("should return null when no game found for teamId", async () => {
-      (GameModel.findOne as jest.Mock).mockReturnValue(mockExec(null));
-
-      const result = await repository.findByTeamId(nonExistentIdString);
 
       expect(result).toBeNull();
     });

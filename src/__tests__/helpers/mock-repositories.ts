@@ -36,7 +36,6 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
 export function createMockGameRepository(): jest.Mocked<IGameRepository> {
   return {
     findById: jest.fn(),
-    findByTeamId: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
