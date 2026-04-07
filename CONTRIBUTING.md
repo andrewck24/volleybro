@@ -43,12 +43,12 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 
 ```text
 feat(team): add player invitation flow
-fix(record): correct set score calculation on substitution
+fix(game): correct set score calculation on substitution
 docs(contributing): add branch naming convention
 refactor(ui): extract ItemFooter into standalone component
 test(usecases): add coverage for CreateRecord edge cases
 chore(deps): upgrade mongoose to v8
-perf(record): reduce rally list re-renders with memoization
+perf(game): reduce rally list re-renders with memoization
 style(components): apply prettier formatting to team directory
 ```
 
@@ -110,7 +110,7 @@ Select the bump type (patch/minor/major), then write the changeset body in Keep-
 - Migrate package manager from npm to pnpm
 ```
 
-Use only these `###` headings: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Add `####` domain sub-headings (e.g. `Team`, `Record`, `CI`, `Infrastructure`) when entries span multiple areas.
+Use only these `###` headings: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Add `####` domain sub-headings (e.g. `Team`, `Game`, `CI`, `Infrastructure`) when entries span multiple areas.
 
 Omit internal refactors, test additions, linting fixes, and dep upgrades with no user-visible effect. Always include toolchain changes that affect contributor setup.
 

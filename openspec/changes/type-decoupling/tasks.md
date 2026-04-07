@@ -81,10 +81,10 @@ Decouple presentation layer from domain entities per the presentation types via 
 
 ## 5. Migration script and documentation
 
-- [ ] 5.1 Create MongoDB migration script at `scripts/migrate-rename-records-to-games.ts`: `db.records.renameCollection("games")`. Document usage and rollback in script header.
-- [ ] 5.2 Add "Type Boundary Drift" section to `docs/maintenance-policy.md`: document the maintenance policy for keeping domain entity types, API response Zod schemas, and presentation view types in sync when domain models change.
-- [ ] 5.3 Update `CLAUDE.md` component organization section: `record/` → `game/`, remove `match/` (absorbed into `game/`). Update `openspec/config.yaml` if any references to `record` or `match` remain. Review and update `README.md`, `CONTRIBUTING.md`, `docs/` for record-related and match-related paths or types.
-- [ ] 5.4 Run final `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `docs: add migration script and update documentation for type-decoupling` with a detailed commit message presenting the purposes of the task section and the scope of changes.
+- [x] 5.1 Create MongoDB migration script at `openspec/changes/type-decoupling/migrate-rename-records-to-games.ts`: `db.records.renameCollection("games")`. Document usage and rollback in script header.
+- [x] 5.2 Add "Type Boundary Drift" section to `docs/maintenance-policy.md`: document the maintenance policy for keeping domain entity types, API response Zod schemas, and presentation view types in sync when domain models change.
+- [x] 5.3 Update `CLAUDE.md` component organization section: `record/` → `game/`, remove `match/` (absorbed into `game/`). Update `openspec/config.yaml` if any references to `record` or `match` remain. Review and update `README.md`, `CONTRIBUTING.md`, `docs/` for record-related and match-related paths or types.
+- [x] 5.4 Run final `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `docs: add migration script and update documentation for type-decoupling` with a detailed commit message presenting the purposes of the task section and the scope of changes.
 
 ## Follow-up (Out of Scope for This Change)
 
