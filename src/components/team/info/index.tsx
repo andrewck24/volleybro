@@ -15,7 +15,7 @@ import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { canManageTeam, PlayerRole, PlayerStatus } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage } from "@/lib/api/error-toast";
@@ -45,7 +45,10 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
     { key: "人數", value: players!.length, icon: <RiGroupLine /> },
   ];
   const currentUserPlayer = players?.find((p) => p.userId === user?.id);
-  const isAdmin = currentUserPlayer ? canManageTeam(currentUserPlayer) : false;
+  const isAdmin = currentUserPlayer
+    ? currentUserPlayer.role === PlayerRole.OWNER ||
+      currentUserPlayer.role === PlayerRole.ADMIN
+    : false;
   const isJoined = currentUserPlayer?.status === PlayerStatus.JOINED;
   const isOwner = currentUserPlayer?.role === PlayerRole.OWNER;
 

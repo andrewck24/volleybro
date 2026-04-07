@@ -1,7 +1,7 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
-import type { Set, Team } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import type { GameTeamView, SetView } from "@/lib/features/game/types";
 import { RiGroupLine } from "react-icons/ri";
 
 export const Teams = ({ gameId }: { gameId: string }) => {
@@ -16,7 +16,13 @@ export const Teams = ({ gameId }: { gameId: string }) => {
   );
 };
 
-const TeamAvatar = ({ team, isHome }: { team?: Team; isHome: boolean }) => {
+const TeamAvatar = ({
+  team,
+  isHome,
+}: {
+  team?: GameTeamView;
+  isHome: boolean;
+}) => {
   return (
     <div className="flex w-20 flex-col items-center justify-center gap-2">
       <RiGroupLine className="size-15" />
@@ -27,7 +33,7 @@ const TeamAvatar = ({ team, isHome }: { team?: Team; isHome: boolean }) => {
   );
 };
 
-const SetScore = ({ sets }: { sets: Set[] }) => {
+const SetScore = ({ sets }: { sets: SetView[] }) => {
   const homeSetsWon = sets.filter((set) => set.win === true).length;
   const awaySetsWon = sets.filter((set) => set.win === false).length;
   const isHomeWin = homeSetsWon > awaySetsWon;

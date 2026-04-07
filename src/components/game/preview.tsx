@@ -1,9 +1,9 @@
 "use client";
 import { Entry } from "@/components/game/entry";
 import { Card } from "@/components/ui/card";
-import { type Entry as IEntry, EntryType } from "@/entities/game";
+import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import type { ReduxGameState } from "@/lib/features/game/types";
+import type { EntryView, ReduxGameState } from "@/lib/features/game/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 
@@ -30,13 +30,36 @@ export const GamePreview = ({
 
   const lastEntry = game!.sets[setIndex].entries[entryIndex - 1];
   const isEditing = draft.home.player?.id || draft.home.type;
-  const draftEntry: IEntry = draft.substitution
+  const draftRallyEntry =
+    draft.win !== null &&
+    draft.home.type !== null &&
+    draft.home.num !== null &&
+    draft.away.type !== null &&
+    draft.away.num !== null
+      ? {
+          type: EntryType.RALLY as const,
+          win: draft.win,
+          home: {
+            score: draft.home.score,
+            type: draft.home.type,
+            num: draft.home.num,
+            ...(draft.home.player ? { player: draft.home.player } : {}),
+          },
+          away: {
+            score: draft.away.score,
+            type: draft.away.type,
+            num: draft.away.num,
+            ...(draft.away.player ? { player: draft.away.player } : {}),
+          },
+        }
+      : null;
+  const draftEntry: EntryView = draft.substitution
     ? { type: EntryType.SUBSTITUTION, ...draft.substitution }
     : draft.timeout
       ? { type: EntryType.TIMEOUT, ...draft.timeout }
       : draft.challenge
         ? { type: EntryType.CHALLENGE, ...draft.challenge }
-        : ({ type: EntryType.RALLY, ...draft } as IEntry);
+        : (draftRallyEntry ?? lastEntry);
   const entry = isEditing || entryIndex === 0 ? draftEntry : lastEntry;
 
   return (

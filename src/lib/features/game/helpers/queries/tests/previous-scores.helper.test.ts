@@ -1,9 +1,10 @@
-import { type Entry, EntryType, MoveType, Side } from "@/entities/game";
+import { EntryType, MoveType, Side } from "@/entities/game";
 import { getPreviousScores } from "@/lib/features/game/helpers";
+import type { EntryView } from "@/lib/features/game/types";
 
 describe("getPreviousScores", () => {
   it("should return correct scores when previous Rally exists", () => {
-    const mockEntries: Entry[] = [
+    const mockEntries: EntryView[] = [
       {
         type: EntryType.RALLY,
         win: true,
@@ -21,7 +22,7 @@ describe("getPreviousScores", () => {
 
   it("should return zero scores when no previous Rally exists", () => {
     // Create Game object without Rally
-    const mockEntries: Entry[] = [
+    const mockEntries: EntryView[] = [
       {
         type: EntryType.TIMEOUT, // Non-RALLY type
         team: Side.HOME,
@@ -36,7 +37,7 @@ describe("getPreviousScores", () => {
   });
 
   it("should return zero scores when entryIndex is 0", () => {
-    const mockEntries: Entry[] = [];
+    const mockEntries: EntryView[] = [];
 
     const entryIndex = 0; // No previous entry
 
@@ -46,7 +47,7 @@ describe("getPreviousScores", () => {
   });
 
   it("should get scores from most recent Rally when multiple entries exist", () => {
-    const mockEntries: Entry[] = [
+    const mockEntries: EntryView[] = [
       {
         type: EntryType.RALLY,
         win: true,

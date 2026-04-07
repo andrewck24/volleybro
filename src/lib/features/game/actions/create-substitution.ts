@@ -1,9 +1,9 @@
-import type { Game, Substitution } from "@/entities/game";
+import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 export const createSubstitution = async (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: Substitution,
-  game: Game,
+  substitution: SubstitutionView,
+  game: GameView,
 ) => {
   const { gameId, setIndex, entryIndex } = params;
   try {

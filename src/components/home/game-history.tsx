@@ -16,8 +16,8 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { GameSummary as TGameSummary } from "@/entities/game";
 import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
+import type { GameSummaryView } from "@/lib/features/game/types";
 import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -92,7 +92,7 @@ export function GameHistory() {
 }
 
 interface MatchProps extends React.HTMLAttributes<HTMLDivElement> {
-  match: TGameSummary;
+  match: GameSummaryView;
   ref?: Ref<HTMLDivElement>;
 }
 
@@ -131,7 +131,7 @@ function TeamInfo({
   team,
   isHome,
 }: {
-  team: TGameSummary["teams"]["home"];
+  team: GameSummaryView["teams"]["home"];
   isHome: boolean;
 }) {
   return (

@@ -1,9 +1,9 @@
-import type { Game, Rally } from "@/entities/game";
+import type { GameView, RallyView } from "@/lib/features/game/types";
 
 export const updateRally = async (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: Rally,
-  game: Game,
+  entryDraft: RallyView,
+  game: GameView,
 ) => {
   const { gameId, setIndex, entryIndex } = params;
   try {

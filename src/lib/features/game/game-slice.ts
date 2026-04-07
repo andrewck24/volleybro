@@ -1,10 +1,11 @@
-import { EntryType, Side, type Game } from "@/entities/game";
+import { EntryType, Side } from "@/entities/game";
 import {
   gamePhaseHelper,
   getPreviousScores,
   getServingStatus,
 } from "@/lib/features/game/helpers";
 import type {
+  GameView,
   ReduxEntryDraft,
   ReduxGameState,
   ReduxStatus,
@@ -58,7 +59,7 @@ const initialState: ReduxGameState = {
 // Define the reducers
 const initialize: CaseReducer<
   ReduxGameState,
-  PayloadAction<{ game: Game; setIndex: number }>
+  PayloadAction<{ game: GameView; setIndex: number }>
 > = (state, action) => {
   const { game, setIndex } = action.payload;
   const set = game.sets[setIndex];
@@ -249,7 +250,7 @@ const resetEntryDraft: CaseReducer<ReduxGameState> = (state) => {
 
 const setEditingEntryStatus: CaseReducer<
   ReduxGameState,
-  PayloadAction<{ game: Game; entryIndex: number }>
+  PayloadAction<{ game: GameView; entryIndex: number }>
 > = (state, action) => {
   const { setIndex } = state;
   const { game, entryIndex } = action.payload;

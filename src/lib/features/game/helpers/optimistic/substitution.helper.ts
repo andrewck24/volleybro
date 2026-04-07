@@ -1,15 +1,14 @@
-import {
-  type Game,
-  type Substitution,
-  PlayerStatsClass,
-  Side,
-  createSubstitutionEntry,
-} from "@/entities/game";
+import { EntryType, MoveType, Side } from "@/entities/game";
+import type {
+  GamePlayerView,
+  GameView,
+  SubstitutionView,
+} from "@/lib/features/game/types";
 
 export const createSubstitutionHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: Substitution,
-  game: Game,
+  substitution: SubstitutionView,
+  game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
   const side = substitution.team === Side.HOME ? "home" : "away";
@@ -61,12 +60,25 @@ export const createSubstitutionHelper = (
     const player = game.teams[side].players.find(
       (p) => p.id.toString() === substitution.players.in,
     );
-    if (player) player.stats[setIndex] = new PlayerStatsClass();
+    if (player) {
+      player.stats[setIndex] = createEmptyPlayerStats();
+    }
   }
 
   game.teams[side].stats[setIndex].substitution++;
-  game.sets[setIndex].entries[entryIndex] =
-    createSubstitutionEntry(substitution);
+  game.sets[setIndex].entries[entryIndex] = {
+    type: EntryType.SUBSTITUTION,
+    ...substitution,
+  };
 
   return game;
 };
+
+const createEmptyPlayerStats = (): GamePlayerView["stats"][number] => ({
+  [MoveType.SERVING]: { success: 0, error: 0 },
+  [MoveType.BLOCKING]: { success: 0, error: 0 },
+  [MoveType.ATTACK]: { success: 0, error: 0 },
+  [MoveType.RECEPTION]: { success: 0, error: 0 },
+  [MoveType.DEFENSE]: { success: 0, error: 0 },
+  [MoveType.SETTING]: { success: 0, error: 0 },
+});

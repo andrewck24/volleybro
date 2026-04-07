@@ -1,18 +1,14 @@
-import {
-  type Game,
-  type PlayerStats,
-  type Rally,
-  EntryType,
-  createRallyEntry,
-} from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { gamePhaseHelper, getServingStatus } from "@/lib/features/game/helpers";
+import type { GameView, RallyView } from "@/lib/features/game/types";
 
 type StatEntry = { success: number; error: number };
+type PlayerMoveType = Exclude<MoveType, MoveType.UNFORCED>;
 
 export const createRallyHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: Rally,
-  game: Game,
+  entryDraft: RallyView,
+  game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
 
@@ -23,7 +19,10 @@ export const createRallyHelper = (
   if (entryDraft.win && !isServing)
     game.teams.home.stats[setIndex].rotation += 1;
 
-  game.sets[setIndex].entries[entryIndex] = createRallyEntry(entryDraft);
+  game.sets[setIndex].entries[entryIndex] = {
+    type: EntryType.RALLY,
+    ...entryDraft,
+  };
 
   const phase = processGamePhase(game, setIndex, entryIndex, entryDraft);
 
@@ -32,8 +31,8 @@ export const createRallyHelper = (
 
 export const updateRallyHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: Rally,
-  game: Game,
+  entryDraft: RallyView,
+  game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
   const entries = game.sets[setIndex]?.entries;
@@ -46,7 +45,10 @@ export const updateRallyHelper = (
   discardOriginalStats(game, setIndex, originalRally);
   updateStats(game, setIndex, entryDraft);
 
-  game.sets[setIndex].entries[entryIndex] = createRallyEntry(entryDraft);
+  game.sets[setIndex].entries[entryIndex] = {
+    type: EntryType.RALLY,
+    ...entryDraft,
+  };
 
   // 若有更新 rally 之得分結果，則重新計算 rotation
   if (originalRally.win !== entryDraft.win) updateRotation(game, setIndex);
@@ -57,9 +59,9 @@ export const updateRallyHelper = (
 };
 
 const discardOriginalStats = (
-  game: Game,
+  game: GameView,
   setIndex: number,
-  originalRally: Rally,
+  originalRally: RallyView,
 ) => {
   const { win, home, away } = originalRally;
   const homePlayerIndex = game.teams.home.players.findIndex(
@@ -74,7 +76,7 @@ const discardOriginalStats = (
   if (win) {
     if (homePlayerIndex !== -1) {
       (
-        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
       ).success -= 1;
     }
     homeStat.success -= 1;
@@ -82,7 +84,7 @@ const discardOriginalStats = (
   } else {
     if (homePlayerIndex !== -1) {
       (
-        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
       ).error -= 1;
     }
     homeStat.error -= 1;
@@ -90,7 +92,11 @@ const discardOriginalStats = (
   }
 };
 
-const updateStats = (game: Game, setIndex: number, entryDraft: Rally) => {
+const updateStats = (
+  game: GameView,
+  setIndex: number,
+  entryDraft: RallyView,
+) => {
   const { win, home, away } = entryDraft;
   const homePlayerIndex = game.teams.home.players.findIndex(
     (player) => player.id === home.player?.id,
@@ -104,7 +110,7 @@ const updateStats = (game: Game, setIndex: number, entryDraft: Rally) => {
   if (win) {
     if (homePlayerIndex !== -1) {
       (
-        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
       ).success += 1;
     }
     homeStat.success += 1;
@@ -112,7 +118,7 @@ const updateStats = (game: Game, setIndex: number, entryDraft: Rally) => {
   } else {
     if (homePlayerIndex !== -1) {
       (
-        homePlayer.stats[setIndex][home.type as keyof PlayerStats] as StatEntry
+        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
       ).error += 1;
     }
     homeStat.error += 1;
@@ -120,7 +126,7 @@ const updateStats = (game: Game, setIndex: number, entryDraft: Rally) => {
   }
 };
 
-const updateRotation = (game: Game, setIndex: number) => {
+const updateRotation = (game: GameView, setIndex: number) => {
   const set = game.sets[setIndex];
   let rotation = 0;
   let isServing = set.options.serve === "home";
@@ -133,10 +139,10 @@ const updateRotation = (game: Game, setIndex: number) => {
 };
 
 const processGamePhase = (
-  game: Game,
+  game: GameView,
   setIndex: number,
   entryIndex: number,
-  entryDraft: Rally,
+  entryDraft: RallyView,
 ) => {
   const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
 

@@ -1,8 +1,8 @@
-import type { Game } from "@/entities/game";
 import { getPreviousRally } from "@/lib/features/game/helpers";
+import type { GameView } from "@/lib/features/game/types";
 
 export const gamePhaseHelper = (
-  game: Game,
+  game: GameView,
   setIndex: number,
   entryIndex: number,
 ): {

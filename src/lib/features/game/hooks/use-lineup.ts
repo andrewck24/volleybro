@@ -1,7 +1,7 @@
-import { type Game, EntryType } from "@/entities/game";
-import { type LineupPlayer } from "@/entities/team";
+import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import type { ReduxStatus } from "@/lib/features/game/types";
+import type { GameView, ReduxStatus } from "@/lib/features/game/types";
+import type { LineupView } from "@/lib/features/team/types";
 
 export const useLineup = (
   gameId: string,
@@ -36,7 +36,7 @@ export const useLineup = (
   return lineup;
 };
 
-const getGeneralModeLineup = (game: Game, setIndex: number) => {
+const getGeneralModeLineup = (game: GameView, setIndex: number) => {
   const { starting, liberos } = structuredClone(
     game.sets[setIndex].lineups.home,
   );
@@ -80,7 +80,7 @@ const getGeneralModeLineup = (game: Game, setIndex: number) => {
 };
 
 const getEditingModeLineup = (
-  game: Game,
+  game: GameView,
   setIndex: number,
   entryIndex: number,
 ) => {
@@ -103,7 +103,7 @@ const getEditingModeLineup = (
 
   const { starting, liberos } = structuredClone(set.lineups.home);
 
-  const mapPlayer = (player: LineupPlayer) => {
+  const mapPlayer = (player: LineupView["starting"][number]) => {
     // Whether this player has been substituted in the game
     const hasSub = (player?.sub?.entryIndex?.in ?? Infinity) < entryIndex;
     // Current game state shows this player is a substitute

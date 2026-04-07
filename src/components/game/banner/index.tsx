@@ -2,9 +2,10 @@
 import { Scores } from "@/components/game/banner/scores";
 import { Teams } from "@/components/game/banner/teams";
 import { Button, Link } from "@/components/ui/button";
-import { Match, MatchPhase } from "@/entities/game";
+import { MatchPhase } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { phase as phaseText } from "@/lib/constants/match";
+import type { MatchView } from "@/lib/features/game/types";
 import { RiFileListLine, RiInformationLine } from "react-icons/ri";
 
 export const Banner = ({ gameId }: { gameId: string }) => {
@@ -29,7 +30,7 @@ export const Banner = ({ gameId }: { gameId: string }) => {
   );
 };
 
-const Info = ({ info }: { info: Match }) => {
+const Info = ({ info }: { info: MatchView }) => {
   const { name, phase, number, location } = info;
 
   return (

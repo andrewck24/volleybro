@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
-import { Player, type Game } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import {
+  type GamePlayerView,
+  type GameView,
   SetOptionsFormSchema,
   type SetOptionsFormValues,
 } from "@/lib/features/game/types";
@@ -71,7 +72,7 @@ export const Options = ({ gameId }: { gameId: string }) => {
   const onSubmit = async (data: SetOptionsFormValues) => {
     setIsSubmitting(true);
     try {
-      const result = await apiClient<Game>(
+      const result = await apiClient<GameView>(
         `/api/games/${gameId}/sets?si=${setIndex}`,
         {
           method: isNewSet ? "POST" : "PUT",
@@ -157,7 +158,7 @@ const ServingTeam = ({
   );
 };
 
-const SubstitutesTable = ({ members }: { members: Player[] }) => {
+const SubstitutesTable = ({ members }: { members: GamePlayerView[] }) => {
   const { lineups } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[0]?.liberos.length;
   const substituteCount = lineups[0]?.substitutes.length;

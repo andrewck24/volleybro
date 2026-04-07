@@ -1,13 +1,13 @@
-import type { Game, Rally, RallyEntry } from "@/entities/game";
 import { EntryType, MoveType as M } from "@/entities/game";
 import { Position } from "@/entities/team";
 import {
   createRallyHelper,
   updateRallyHelper,
 } from "@/lib/features/game/helpers";
+import type { EntryView, GameView, RallyView } from "@/lib/features/game/types";
 
 describe("rally.helper.ts", () => {
-  const mockRally: Rally = {
+  const mockRally: RallyView = {
     win: true,
     home: {
       score: 1,
@@ -23,7 +23,7 @@ describe("rally.helper.ts", () => {
     },
   };
 
-  const createMockGame = (): Game => ({
+  const createMockGame = (): GameView => ({
     id: "game-1",
     win: null,
     teamId: "team-1",
@@ -198,7 +198,9 @@ describe("rally.helper.ts", () => {
       const mockGame = createMockGame();
 
       // add a lost rally before the winning rally for rotation
-      (mockGame.sets[0].entries[0] as RallyEntry).win = false;
+      (
+        mockGame.sets[0].entries[0] as EntryView & { type: EntryType.RALLY }
+      ).win = false;
 
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
@@ -224,7 +226,7 @@ describe("rally.helper.ts", () => {
       entryIndex: 0,
     };
 
-    const newRally: Rally = {
+    const newRally: RallyView = {
       win: true,
       home: {
         score: 1,
@@ -276,7 +278,7 @@ describe("rally.helper.ts", () => {
     it("should update player and team stats when changing a rally from lost to won", () => {
       const mockGame = createMockGame();
       const mockParams = { gameId: "game-1", setIndex: 0, entryIndex: 1 };
-      const lostRally: Rally = {
+      const lostRally: RallyView = {
         win: false,
         home: {
           score: 1,
@@ -343,7 +345,7 @@ describe("rally.helper.ts", () => {
       });
 
       // Change the first rally from win to loss
-      const newRally: Rally = {
+      const newRally: RallyView = {
         win: false, // Changed from true to false
         home: {
           score: 0,
@@ -379,7 +381,7 @@ describe("rally.helper.ts", () => {
     describe("set completion", () => {
       it("should mark the set as not completed when scores are below winning threshold", () => {
         const mockGame = createMockGame();
-        const mockRallyLowScore: Rally = {
+        const mockRallyLowScore: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 20 },
@@ -400,7 +402,7 @@ describe("rally.helper.ts", () => {
       it("should mark the set as completed when home team reaches winning score with 2-point lead", () => {
         const mockGame = createMockGame();
         // 建立25-23得分情境
-        const mockRallyHomeWin: Rally = {
+        const mockRallyHomeWin: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 25 },
@@ -420,7 +422,7 @@ describe("rally.helper.ts", () => {
       it("should mark the set as completed when away team reaches winning score with 2-point lead", () => {
         const mockGame = createMockGame();
         // 建立23-25得分情境
-        const mockRallyAwayWin: Rally = {
+        const mockRallyAwayWin: RallyView = {
           ...mockRally,
           win: false,
           home: { ...mockRally.home, score: 23 },
@@ -440,7 +442,7 @@ describe("rally.helper.ts", () => {
       it("should detect a set point correctly", () => {
         const mockGame = createMockGame();
         // 建立24-22得分情境 (set point)
-        const mockRallySetPoint: Rally = {
+        const mockRallySetPoint: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 24 },
@@ -469,7 +471,7 @@ describe("rally.helper.ts", () => {
         });
 
         // 決勝局主隊15-13獲勝
-        const fifthSet: Rally = {
+        const fifthSet: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 15 },
@@ -505,7 +507,7 @@ describe("rally.helper.ts", () => {
         });
 
         // 主隊第三局獲勝 25-20
-        const thirdSetWin: Rally = {
+        const thirdSetWin: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 25 },
@@ -542,7 +544,7 @@ describe("rally.helper.ts", () => {
         });
 
         // 客隊決勝局獲勝 13-15
-        const fifthSetLoss: Rally = {
+        const fifthSetLoss: RallyView = {
           ...mockRally,
           win: false,
           home: { ...mockRally.home, score: 13 },
@@ -578,7 +580,7 @@ describe("rally.helper.ts", () => {
         });
 
         // 主隊獲勝這球但比賽未結束
-        const fourthSet: Rally = {
+        const fourthSet: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 10 },
@@ -607,7 +609,7 @@ describe("rally.helper.ts", () => {
       it("should recalculate set and game status when rally is updated", () => {
         const mockGame = createMockGame();
         // 先增加一個決勝得分的記錄
-        const winningRally: Rally = {
+        const winningRally: RallyView = {
           ...mockRally,
           win: true,
           home: { ...mockRally.home, score: 25 },
@@ -621,7 +623,7 @@ describe("rally.helper.ts", () => {
         mockGame.sets[0].win = true; // 已經標記為主隊勝
 
         // 修改這個記錄，改為客隊贏
-        const updatedRally: Rally = {
+        const updatedRally: RallyView = {
           ...winningRally,
           win: false,
           home: { ...winningRally.home, score: 23 },

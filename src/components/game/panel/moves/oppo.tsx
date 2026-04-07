@@ -1,7 +1,6 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useToast } from "@/components/ui/use-toast";
-import type { Rally } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { createRally } from "@/lib/features/game/actions/create-rally";
@@ -11,6 +10,7 @@ import {
   createRallyHelper,
   updateRallyHelper,
 } from "@/lib/features/game/helpers";
+import type { RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
@@ -33,11 +33,11 @@ export const OppoMoves = ({ gameId }: { gameId: string }) => {
   const create = () => {
     const { game: updatedGame, phase } = createRallyHelper(
       { gameId, setIndex, entryIndex },
-      draft as Rally,
+      draft as RallyView,
       game!,
     );
     mutate(
-      createRally({ gameId, setIndex, entryIndex }, draft as Rally, game!),
+      createRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
       {
         revalidate: false,
         optimisticData: updatedGame,
@@ -49,11 +49,11 @@ export const OppoMoves = ({ gameId }: { gameId: string }) => {
   const update = () => {
     const { game: updatedGame, phase } = updateRallyHelper(
       { gameId, setIndex, entryIndex },
-      draft as Rally,
+      draft as RallyView,
       game!,
     );
     mutate(
-      updateRally({ gameId, setIndex, entryIndex }, draft as Rally, game!),
+      updateRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
       {
         revalidate: false,
         optimisticData: updatedGame,

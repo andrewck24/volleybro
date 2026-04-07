@@ -1,18 +1,18 @@
 "use client";
 import { Points } from "@/components/game/stats/teams-stats/points";
-import {
-  type Game as TGame,
-  type TeamStats,
-  TeamStatsClass,
-} from "@/entities/game";
-import type { ITeamsStats } from "@/lib/features/game/types";
+import { MoveType } from "@/entities/game";
+import type {
+  GameView,
+  ITeamsStats,
+  TeamStatsView,
+} from "@/lib/features/game/types";
 import { useMemo } from "react";
 
 export const TeamsStats = ({
   teams,
   setIndex,
 }: {
-  teams: TGame["teams"];
+  teams: GameView["teams"];
   setIndex: number;
 }) => {
   const teamsStats = useMemo<ITeamsStats>(
@@ -28,13 +28,13 @@ export const TeamsStats = ({
 };
 
 export const getTeamsStats = (
-  teams: TGame["teams"],
+  teams: GameView["teams"],
   setIndex: number,
 ): ITeamsStats => {
   if (teams.home.stats.length === 0 || teams.away.stats.length === 0) {
     return {
-      home: new TeamStatsClass(),
-      away: new TeamStatsClass(),
+      home: createEmptyTeamStats(),
+      away: createEmptyTeamStats(),
     };
   }
   const isCalculatingAll = setIndex === -1;
@@ -52,9 +52,9 @@ export const getTeamsStats = (
 
 type StatValue = { success: number; error: number } | number;
 
-const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
+const sumTeamStats = (statsArr: TeamStatsView[]): TeamStatsView => {
   return statsArr.reduce((acc, stats) => {
-    for (const key of Object.keys(stats) as (keyof TeamStats)[]) {
+    for (const key of Object.keys(stats) as (keyof TeamStatsView)[]) {
       const sv = stats[key] as StatValue;
       const av = acc[key] as StatValue | undefined;
       if (typeof sv === "object") {
@@ -73,5 +73,19 @@ const sumTeamStats = (statsArr: TeamStats[]): TeamStats => {
       }
     }
     return acc;
-  }, {} as TeamStats);
+  }, createEmptyTeamStats());
 };
+
+const createEmptyTeamStats = (): TeamStatsView => ({
+  [MoveType.SERVING]: { success: 0, error: 0 },
+  [MoveType.BLOCKING]: { success: 0, error: 0 },
+  [MoveType.ATTACK]: { success: 0, error: 0 },
+  [MoveType.RECEPTION]: { success: 0, error: 0 },
+  [MoveType.DEFENSE]: { success: 0, error: 0 },
+  [MoveType.SETTING]: { success: 0, error: 0 },
+  [MoveType.UNFORCED]: { success: 0, error: 0 },
+  rotation: 0,
+  timeout: 2,
+  substitution: 6,
+  challenge: 2,
+});

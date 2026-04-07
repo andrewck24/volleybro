@@ -18,10 +18,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { Player, PlayerStatus } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
 import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
+import type { PlayerView } from "@/lib/features/team/types";
 import NextLink from "next/link";
 import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
@@ -111,7 +112,7 @@ function InvitationItem({
   processingId,
   handleInvitation,
 }: {
-  player: Player;
+  player: PlayerView;
   processingId: string | null;
   handleInvitation: (id: string, action: "accept" | "reject") => void;
 }) {

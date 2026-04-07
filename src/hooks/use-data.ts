@@ -1,10 +1,9 @@
-import type { Game, GameSummary } from "@/entities/game";
-import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
-import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import type { GameSummaryView, GameView } from "@/lib/features/game/types";
+import type { PlayerView, TeamView } from "@/lib/features/team/types";
 import { useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
@@ -74,7 +73,7 @@ export const useUserPlayers = (
 ) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player[],
+    PlayerView[],
     ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
@@ -125,7 +124,7 @@ export const useTeam = (
   const key = `/api/teams/${teamId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Team,
+    TeamView,
     ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -144,7 +143,7 @@ export const useTeamPlayers = (
   const key = `/api/teams/${teamId}/players`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player[],
+    PlayerView[],
     ApiClientError
   >(key, fetcher, {
     ...SWR_CONFIG.LIST,
@@ -163,7 +162,7 @@ export const usePlayer = (
   const key = `/api/players/${playerId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Player,
+    PlayerView,
     ApiClientError
   >(playerId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -182,7 +181,7 @@ export const useGame = (
   const key = `/api/games/${gameId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    Game,
+    GameView,
     ApiClientError
   >(gameId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
@@ -210,7 +209,7 @@ export const useGameSummaries = (
 
   const { data, error, isLoading, isValidating, mutate, size, setSize } =
     useSWRInfinite<{
-      gameSummaries: GameSummary[];
+      gameSummaries: GameSummaryView[];
       hasMore: boolean;
       lastId: string;
     }>(getKey, fetcher, {

@@ -3,9 +3,8 @@ import { PanelContent } from "@/components/custom/panel";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { LineupOptionMode } from "@/lib/features/team/types";
+import { LineupOptionMode, type PlayerView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   RiArrowLeftWideLine,
@@ -14,8 +13,8 @@ import {
 } from "react-icons/ri";
 
 interface SubstitutesProps {
-  players: Player[];
-  others: Player[];
+  players: PlayerView[];
+  others: PlayerView[];
 }
 
 export const Substitutes = ({ players, others }: SubstitutesProps) => {
@@ -27,7 +26,7 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
   const isSubstituteFull = substituteCount >= substituteLimit;
   const isEditingStarting = !!status.editingMember.zone;
 
-  const handleSubstituteClick = (player: Player, index: number) => {
+  const handleSubstituteClick = (player: PlayerView, index: number) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({
@@ -41,7 +40,7 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
     }
   };
 
-  const handleOtherClick = (player: Player, index: number) => {
+  const handleOtherClick = (player: PlayerView, index: number) => {
     if (isEditingStarting) {
       dispatch(
         lineupActions.replaceEditingPlayer({

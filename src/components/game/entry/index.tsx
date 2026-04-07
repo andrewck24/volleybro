@@ -1,6 +1,7 @@
 import { Rally } from "@/components/game/entry/rally";
 import { Substitution } from "@/components/game/entry/substitution";
-import { EntryType, type Player, type Entry as TEntry } from "@/entities/game";
+import { EntryType } from "@/entities/game";
+import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
 
 export const Entry = ({
@@ -9,8 +10,8 @@ export const Entry = ({
   onClick,
   className,
 }: {
-  entry: TEntry;
-  players: Player[];
+  entry: EntryView;
+  players: GamePlayerView[];
   onClick?: () => void;
   className?: string;
 }) => {

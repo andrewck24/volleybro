@@ -1,6 +1,7 @@
 import { Figure } from "@/components/custom/stats/figures";
 import { EntryPlayerNumber, EntryText } from "@/components/game/entry";
-import { type Player, type Rally as TRally, MoveType } from "@/entities/game";
+import { MoveType } from "@/entities/game";
+import type { GamePlayerView, RallyView } from "@/lib/features/game/types";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiUserLine } from "react-icons/ri";
@@ -9,8 +10,8 @@ export const Rally = ({
   data,
   players,
 }: {
-  data: TRally;
-  players: Player[];
+  data: RallyView;
+  players: GamePlayerView[];
 }) => {
   const { win, home, away } = data;
   const playerNumber = players.find((p) => p.id === home.player?.id)?.number;

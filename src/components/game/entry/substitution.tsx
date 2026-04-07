@@ -1,17 +1,17 @@
 import { Figure } from "@/components/custom/stats/figures";
 import { EntryPlayerNumber, EntryText } from "@/components/game/entry";
-import {
-  type Player,
-  type Substitution as TSubstitution,
-} from "@/entities/game";
+import type {
+  GamePlayerView,
+  SubstitutionView,
+} from "@/lib/features/game/types";
 import { RiArrowDownWideLine, RiArrowUpWideLine } from "react-icons/ri";
 
 export const Substitution = ({
   data,
   players,
 }: {
-  data: TSubstitution;
-  players: Player[];
+  data: SubstitutionView;
+  players: GamePlayerView[];
 }) => {
   const inPlayer = players.find((p) => p.id === data.players.in);
   const outPlayer = players.find((p) => p.id === data.players.out);

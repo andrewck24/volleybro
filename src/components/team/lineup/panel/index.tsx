@@ -4,12 +4,12 @@ import { LineupOptions } from "@/components/team/lineup/panel/options";
 import { PlayerInfo } from "@/components/team/lineup/panel/player-info";
 import { Positions } from "@/components/team/lineup/panel/positions";
 import { Substitutes } from "@/components/team/lineup/panel/substitutes";
-import type { Player } from "@/entities/player";
+import type { PlayerView } from "@/lib/features/team/types";
 import { LineupOptionMode } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 
 interface LineupPanelProps {
-  players: Player[];
+  players: PlayerView[];
   hasPairedSwitchPosition: boolean;
 }
 

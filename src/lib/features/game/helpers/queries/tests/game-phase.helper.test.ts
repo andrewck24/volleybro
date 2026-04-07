@@ -1,12 +1,13 @@
-import { type Game, EntryType, MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { gamePhaseHelper } from "@/lib/features/game/helpers";
+import type { GameView } from "@/lib/features/game/types";
 
 describe("gamePhaseHelper", () => {
   test("should return in progress when no entries exist but first set is created", () => {
     const mockGame = {
       sets: [{ entries: [] }],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 0);
 
@@ -17,7 +18,7 @@ describe("gamePhaseHelper", () => {
     const mockGame = {
       sets: [],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 0);
 
@@ -39,7 +40,7 @@ describe("gamePhaseHelper", () => {
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 1);
 
@@ -61,7 +62,7 @@ describe("gamePhaseHelper", () => {
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 1);
 
@@ -83,7 +84,7 @@ describe("gamePhaseHelper", () => {
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 1);
 
@@ -105,7 +106,7 @@ describe("gamePhaseHelper", () => {
         },
       ],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 0, 1);
 
@@ -128,7 +129,7 @@ describe("gamePhaseHelper", () => {
         },
       ],
       info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
-    } as unknown as Game;
+    } as unknown as GameView;
 
     const result = gamePhaseHelper(mockGame, 2, 1); // Last set (index 4)
 

@@ -5,11 +5,11 @@ import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import type { Lineup } from "@/entities/team";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
+import type { LineupView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect } from "react";
 import { RiSaveLine } from "react-icons/ri";
@@ -20,13 +20,16 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   const { team, mutate } = useTeam(teamId);
   const { players } = useTeamPlayers(teamId);
 
-  const handleSave = async (lineups: Lineup[]) => {
+  const handleSave = async (lineups: LineupView[]) => {
     try {
-      const data = await apiClient<Lineup[]>(`/api/teams/${team!.id}/lineups`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(lineups),
-      });
+      const data = await apiClient<LineupView[]>(
+        `/api/teams/${team!.id}/lineups`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lineups),
+        },
+      );
       mutate({ ...team!, lineups: data }, false);
       return toast({
         title: "儲存成功",

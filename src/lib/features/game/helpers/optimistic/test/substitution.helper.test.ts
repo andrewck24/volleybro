@@ -1,10 +1,10 @@
-import type { Game, Substitution } from "@/entities/game";
 import { EntryType, MoveType, Side } from "@/entities/game";
 import { Position } from "@/entities/team";
 import { createSubstitutionHelper } from "@/lib/features/game/helpers";
+import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 describe("substitution.helper.ts", () => {
-  const mockSubstitution: Substitution = {
+  const mockSubstitution: SubstitutionView = {
     team: Side.HOME,
     players: {
       in: "player-8", // Substitute player entering
@@ -12,7 +12,7 @@ describe("substitution.helper.ts", () => {
     },
   };
 
-  const createMockGame = (): Game => ({
+  const createMockGame = (): GameView => ({
     id: "game-1",
     win: false,
     teamId: "team-1",
@@ -247,7 +247,7 @@ describe("substitution.helper.ts", () => {
       };
 
       // Now perform a second substitution, original player returns to court
-      const secondSubstitution: Substitution = {
+      const secondSubstitution: SubstitutionView = {
         team: Side.HOME,
         players: {
           in: "player-1", // Original player returning to court
@@ -272,7 +272,7 @@ describe("substitution.helper.ts", () => {
     test("should handle away team substitution", () => {
       const mockGame = createMockGame();
 
-      const awaySubstitution: Substitution = {
+      const awaySubstitution: SubstitutionView = {
         team: Side.AWAY,
         players: {
           in: "rival-2",

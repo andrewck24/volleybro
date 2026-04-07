@@ -1,6 +1,5 @@
-import type { Game } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import type { ReduxEntryDraft } from "@/lib/features/game/types";
+import type { GameView, ReduxEntryDraft } from "@/lib/features/game/types";
 
 export const useSubstitutes = (
   gameId: string,
@@ -21,7 +20,7 @@ export const useSubstitutes = (
 
 // 取得一般模式下的替補球員清單
 const gerGeneralModeSubstitutes = (
-  game: Game,
+  game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
 ) => {
@@ -52,7 +51,7 @@ const gerGeneralModeSubstitutes = (
 
 // 取得編輯模式下的替補球員清單
 const getEditingModeSubstitutes = (
-  game: Game,
+  game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
   entryIndex: number,

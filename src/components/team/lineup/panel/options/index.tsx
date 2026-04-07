@@ -15,17 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Player } from "@/entities/player";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
-import { LineupOptionMode } from "@/lib/features/team/types";
+import { LineupOptionMode, type PlayerView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { Dialog } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { RiUserLine } from "react-icons/ri";
 
 interface LineupOptionsProps {
-  players: Player[];
-  others: Player[];
+  players: PlayerView[];
+  others: PlayerView[];
   hasPairedSwitchPosition: boolean;
 }
 

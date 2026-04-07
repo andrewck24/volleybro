@@ -68,16 +68,16 @@ Implements the use case file structure: 1-file-per-class with co-located interfa
 
 Decouple presentation layer from domain entities per the presentation types via Zod response schemas decision. Components stop importing entity data shapes.
 
-- [ ] 4.1 Create game domain Zod response schemas in `src/lib/features/game/types.ts`: `GameResponseSchema`, `GameTeamResponseSchema`, `SetResponseSchema`, `GameSummaryResponseSchema`. Derive view types: `GameView`, `GameTeamView`, `SetView`, `GameSummaryView` via `z.infer`. All use `id: string`. Migrate existing `MatchInfoFormSchema`, form types, and Redux types in the same file to use `id`.
-- [ ] 4.2 Create player/team domain Zod response schemas in `src/lib/features/team/types.ts`: `PlayerResponseSchema` → `PlayerView`, `TeamResponseSchema` → `TeamView`, `LineupResponseSchema` → `LineupView`. All use `id: string`.
-- [ ] 4.3 Update `src/components/game/` (26 files): replace `@/entities/game` data shape imports with `GameView`, `SetView`, etc. from `@/lib/features/game/types`. Keep enum imports (`MoveType`, `EntryType`, `Side`) from `@/entities/game`.
-- [ ] 4.4 Update game overview/stats/sets components (now in `src/components/game/`, absorbed from former `src/components/match/`): replace entity imports with `SetView`, `GameTeamView`, `GameSummaryView` from feature types. Keep enum imports from `@/entities/game`.
-- [ ] 4.5 Update `src/components/team/` (10 files): replace `@/entities/player` and `@/entities/team` data shape imports with `PlayerView`, `TeamView`, `LineupView` from `@/lib/features/team/types`. Keep enum imports (`PlayerRole`, `PlayerStatus`, `Position`) from entities.
-- [ ] 4.6 Update `src/components/home/game-history.tsx`, `src/components/user/` (invitations, menu), `src/components/landing/features/analytics.tsx`: replace entity data shape imports with view types; keep enum-only imports from entities.
-- [ ] 4.7 Update `src/lib/features/game/` helpers, actions, hooks: use `GameView` where appropriate for presentation-layer logic. Update `src/lib/features/team/lineup-slice.ts` to use `LineupView`.
-- [ ] 4.8 Update `src/hooks/use-data.ts`: change return types to view types (`GameView`, `GameSummaryView`).
-- [ ] 4.9 Update all component and feature test files to use view types. Eliminate any remaining type assertions (`as` casts) at layer boundaries.
-- [ ] 4.10 Verify no remaining `@/entities/*` data shape imports in `src/components/` or `src/lib/features/` (enum imports are allowed). Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor(presentation): decouple presentation layer from domain entity types` with a detailed commit message presenting the purposes of the task section and the scope of changes.
+- [x] 4.1 Create game domain Zod response schemas in `src/lib/features/game/types.ts`: `GameResponseSchema`, `GameTeamResponseSchema`, `SetResponseSchema`, `GameSummaryResponseSchema`. Derive view types: `GameView`, `GameTeamView`, `SetView`, `GameSummaryView` via `z.infer`. All use `id: string`. Migrate existing `MatchInfoFormSchema`, form types, and Redux types in the same file to use `id`.
+- [x] 4.2 Create player/team domain Zod response schemas in `src/lib/features/team/types.ts`: `PlayerResponseSchema` → `PlayerView`, `TeamResponseSchema` → `TeamView`, `LineupResponseSchema` → `LineupView`. All use `id: string`.
+- [x] 4.3 Update `src/components/game/` (26 files): replace `@/entities/game` data shape imports with `GameView`, `SetView`, etc. from `@/lib/features/game/types`. Keep enum imports (`MoveType`, `EntryType`, `Side`) from `@/entities/game`.
+- [x] 4.4 Update game overview/stats/sets components (now in `src/components/game/`, absorbed from former `src/components/match/`): replace entity imports with `SetView`, `GameTeamView`, `GameSummaryView` from feature types. Keep enum imports from `@/entities/game`.
+- [x] 4.5 Update `src/components/team/` (10 files): replace `@/entities/player` and `@/entities/team` data shape imports with `PlayerView`, `TeamView`, `LineupView` from `@/lib/features/team/types`. Keep enum imports (`PlayerRole`, `PlayerStatus`, `Position`) from entities.
+- [x] 4.6 Update `src/components/home/game-history.tsx`, `src/components/user/` (invitations, menu), `src/components/landing/features/analytics.tsx`: replace entity data shape imports with view types; keep enum-only imports from entities.
+- [x] 4.7 Update `src/lib/features/game/` helpers, actions, hooks: use `GameView` where appropriate for presentation-layer logic. Update `src/lib/features/team/lineup-slice.ts` to use `LineupView`.
+- [x] 4.8 Update `src/hooks/use-data.ts`: change return types to view types (`GameView`, `GameSummaryView`).
+- [x] 4.9 Update all component and feature test files to use view types. Eliminate any remaining type assertions (`as` casts) at layer boundaries.
+- [x] 4.10 Verify no remaining `@/entities/*` data shape imports in `src/components/` or `src/lib/features/` (enum imports are allowed). Run `pnpm test && pnpm lint && pnpm typecheck && pnpm build`. Commit: `refactor(presentation): decouple presentation layer from domain entity types` with a detailed commit message presenting the purposes of the task section and the scope of changes.
 
 ## 5. Migration script and documentation
 
@@ -88,4 +88,4 @@ Decouple presentation layer from domain entities per the presentation types via 
 
 ## Follow-up (Out of Scope for This Change)
 
-- [ ] F1. DB connection lifecycle refactor is tracked in separate change `db-connect-composition-root` (wrapper/composition root approach via `withDb`/infra wrapper). Do not mix into `type-decoupling` implementation scope.
+- F1. DB connection lifecycle refactor is tracked in separate change `db-connect-composition-root` (wrapper/composition root approach via `withDb`/infra wrapper). Do not mix into `type-decoupling` implementation scope.

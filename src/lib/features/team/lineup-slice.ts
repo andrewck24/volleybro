@@ -1,6 +1,7 @@
-import type { Lineup, Position } from "@/entities/team";
+import { Position } from "@/entities/team";
 import {
   LineupOptionMode,
+  type LineupView,
   type ReduxLineupState,
   type ReduxLineupStatus,
 } from "@/lib/features/team/types";
@@ -20,7 +21,7 @@ const initialState: ReduxLineupState = {
   lineups: [],
 };
 
-const initialize: CaseReducer<ReduxLineupState, PayloadAction<Lineup[]>> = (
+const initialize: CaseReducer<ReduxLineupState, PayloadAction<LineupView[]>> = (
   state,
   action,
 ) => {
@@ -60,7 +61,7 @@ const setOptionMode: CaseReducer<
 
 const setLiberoReplace: CaseReducer<
   ReduxLineupState,
-  PayloadAction<Lineup["options"]>
+  PayloadAction<LineupView["options"]>
 > = (state, action) => {
   const { lineupIndex } = state.status;
   const { liberoReplaceMode, liberoReplacePosition } = action.payload;

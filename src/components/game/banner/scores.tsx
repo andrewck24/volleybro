@@ -1,8 +1,8 @@
-import type { Set } from "@/entities/game";
 import { getPreviousRally } from "@/lib/features/game/helpers";
+import type { SetView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
 
-export const Scores = ({ sets }: { sets: Set[] }) => {
+export const Scores = ({ sets }: { sets: SetView[] }) => {
   return (
     <div className="flex flex-1 flex-row items-center justify-center gap-2">
       {sets.map((set, index) => (
@@ -12,7 +12,7 @@ export const Scores = ({ sets }: { sets: Set[] }) => {
   );
 };
 
-const Score = ({ set }: { set: Set }) => {
+const Score = ({ set }: { set: SetView }) => {
   const previousRally = getPreviousRally(set.entries, set.entries.length);
   const homeScore = previousRally?.home.score || 0;
   const awayScore = previousRally?.away.score || 0;

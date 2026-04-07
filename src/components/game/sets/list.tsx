@@ -10,10 +10,10 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import type { Set } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { getPreviousRally } from "@/lib/features/game/helpers";
+import type { SetView } from "@/lib/features/game/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -78,7 +78,7 @@ const SetItem = ({
   handleEditOpen,
 }: {
   gameId: string;
-  set: Set;
+  set: SetView;
   setIndex: number;
   handleOptionsOpen: (setIndex: number) => void;
   handleEditOpen: (setIndex: number) => void;
@@ -115,7 +115,9 @@ const SetItem = ({
           ) : (
             <Button
               size="lg"
-              onClick={() => router.push(`/game/${gameId}/sets/${setIndex}/entry`)}
+              onClick={() =>
+                router.push(`/game/${gameId}/sets/${setIndex}/entry`)
+              }
             >
               進入比賽
               <RiArrowRightLine className="size-6" />

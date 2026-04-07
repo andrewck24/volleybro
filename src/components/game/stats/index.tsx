@@ -8,8 +8,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Set } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import type { SetView } from "@/lib/features/game/types";
 import { useState } from "react";
 
 export const Stats = ({ gameId }: { gameId: string }) => {
@@ -76,7 +76,7 @@ const SetSwitch = ({
   setIndex,
   setSetIndex,
 }: {
-  sets: Set[];
+  sets: SetView[];
   setIndex: number;
   setSetIndex: (index: number) => void;
 }) => {

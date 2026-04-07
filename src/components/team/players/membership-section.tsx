@@ -16,17 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { apiClient } from "@/lib/api/api-client";
 import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
+import type { PlayerView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
 
 interface MembershipSectionProps {
-  player: Player;
+  player: PlayerView;
   teamId: string;
   isCurrentOwner: boolean;
 }
@@ -227,7 +227,7 @@ function InviteSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -352,7 +352,7 @@ function InvitedSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {
@@ -413,7 +413,7 @@ function JoinedSection({
   onSuccess,
   toast,
 }: {
-  player: Player;
+  player: PlayerView;
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>["toast"];
 }) {

@@ -1,5 +1,6 @@
-import { type Set, EntryType, MoveType } from "@/entities/game";
+import { EntryType, MoveType } from "@/entities/game";
 import { getServingStatus } from "@/lib/features/game/helpers";
+import type { SetView } from "@/lib/features/game/types";
 
 describe("getServingStatus", () => {
   it("should return true when previous Rally was won", () => {
@@ -12,7 +13,7 @@ describe("getServingStatus", () => {
           away: { score: 8, type: MoveType.RECEPTION, num: 1 },
         },
       ],
-    } as unknown as Set;
+    } as unknown as SetView;
 
     const entryIndex = 1; // Look for rally before entryIndex
 
@@ -31,7 +32,7 @@ describe("getServingStatus", () => {
           away: { score: 10, type: MoveType.SERVING, num: 1 },
         },
       ],
-    } as unknown as Set;
+    } as unknown as SetView;
 
     const entryIndex = 1;
 
@@ -49,7 +50,7 @@ describe("getServingStatus", () => {
           team: 0,
         },
       ],
-    } as unknown as Set;
+    } as unknown as SetView;
 
     const entryIndex = 1;
 
@@ -62,7 +63,7 @@ describe("getServingStatus", () => {
     const mockSet = {
       options: { serve: "away" },
       entries: [],
-    } as unknown as Set;
+    } as unknown as SetView;
 
     const entryIndex = 0;
 
