@@ -11,11 +11,13 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
   const searchParams = req.nextUrl.searchParams;
   const teamId = searchParams.get("ti");
   const lastId = searchParams.get("li") ?? undefined;
+  const limitRaw = searchParams.get("lm");
+  const limit = limitRaw ? Number(limitRaw) : 10;
 
   if (!teamId)
     throw new ValidationError(CommonReason.INVALID_INPUT, "teamId is required");
 
-  const input = { params: { teamId, lastId } };
+  const input = { params: { teamId, lastId, limit } };
   const results = await findGameSummariesController(input);
 
   return NextResponse.json(results);

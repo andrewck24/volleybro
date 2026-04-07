@@ -11,7 +11,7 @@
  *   do not require data backfill in persisted documents.
  *
  * Usage:
- *   MONGODB_URI="mongodb://..." pnpm ts-node openspec/changes/type-decoupling/migrate-rename-records-to-games.ts
+ *   MONGODB_URI="mongodb://..." pnpm ts-node openspec/changes/archive/2026-04-08-type-decoupling/migrate-rename-records-to-games.ts
  *
  * Optional:
  *   MONGODB_DB_NAME="volleybro" (override DB name from URI)

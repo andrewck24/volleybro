@@ -50,8 +50,8 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
 
     const { game: updatedGame } = updateRallyHelper(params, rally, game);
 
-    await this.gameRepository.update(game.id, updatedGame);
+    const persistedGame = await this.gameRepository.update(game.id, updatedGame);
 
-    return updatedGame.sets[params.setIndex].entries;
+    return persistedGame.sets[params.setIndex].entries;
   }
 }

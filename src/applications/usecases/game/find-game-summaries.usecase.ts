@@ -46,6 +46,7 @@ export class FindGameSummariesUseCase implements IFindGameSummariesUseCase {
 
     const results = await this.gameRepository.findGameSummaries(params.teamId, {
       lastId: params.lastId,
+      limit: params.limit,
     });
 
     const { data: gameSummaries, hasMore, lastId } = results;
