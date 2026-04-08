@@ -1,5 +1,18 @@
 # VolleyBro CHANGELOG
 
+## [0.13.0](https://github.com/andrewck24/volleybro/compare/v0.12.1...v0.13.0) 2026-04-07
+
+### Changed
+
+#### Game
+
+- Rename "Record" domain to "Game" across all routes, pages, and APIs; previous URLs under `/record/` now resolve at `/game/`
+
+#### Infrastructure
+
+- Replace `_id` with `id` in all domain entity types
+- Rewrite repository interfaces with domain-language methods, removing generic MongoDB query filters
+
 ## [0.12.1](https://github.com/AndrewCK24/volleybro/compare/v0.12.0...v0.12.1) 2026-04-05
 
 ### Changed
