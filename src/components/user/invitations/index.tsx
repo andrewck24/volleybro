@@ -120,7 +120,7 @@ function InvitationItem({
   if (isLoading) return <InvitationItemSkeleton />;
 
   return (
-    <Item className="relative items-start hover:bg-accent/50">
+    <Item className="relative items-start hover:bg-muted/50">
       <NextLink
         href={`/team/${player.teamId}`}
         className="absolute inset-0 z-0"
@@ -163,7 +163,7 @@ function InvitationItem({
 
 function InvitationItemSkeleton() {
   return (
-    <Item className="items-start hover:bg-accent/50">
+    <Item className="items-start hover:bg-muted/50">
       <ItemMedia variant="icon">
         <Skeleton className="size-4" />
       </ItemMedia>

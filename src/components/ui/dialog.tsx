@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
 import { RiCloseLine } from "react-icons/ri";
 
 import { cn } from "@/lib/utils";
@@ -30,7 +30,8 @@ const DialogOverlay = ({
 );
 
 const dialogContentVariants = cva(
-  "fixed left-[50%] z-50 flex flex-col w-full translate-x-[-50%] translate-y-[-50%] gap-2 bg-card p-6 shadow-lg duration-200 overflow-x-hidden overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-md sm:rounded-lg sm:max-w-lg",
+  /* experimental: ring technique - outer ring replaces implicit border */
+  "fixed left-[50%] z-50 flex flex-col w-full translate-x-[-50%] translate-y-[-50%] gap-2 bg-card p-6 shadow-lg ring-1 ring-foreground/10 duration-200 overflow-x-hidden overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-md sm:rounded-lg sm:max-w-lg",
   {
     variants: {
       size: {
@@ -139,14 +140,6 @@ const DialogFooter = ({
 );
 
 export {
-  Dialog,
-  DialogPortal,
-  DialogOverlay,
-  DialogTrigger,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
+  Dialog, DialogClose,
+  DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger
 };

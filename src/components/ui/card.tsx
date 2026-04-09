@@ -9,8 +9,8 @@ const Card = ({
   <div
     data-slot="Card"
     className={cn(
-      "flex flex-col gap-2 bg-card text-card-foreground shadow-sm px-4 py-2",
-      className
+      "flex flex-col gap-2 rounded-lg bg-card px-4 py-2 text-card-foreground shadow-sm ring-1 ring-foreground/10",
+      className,
     )}
     {...props}
   />
@@ -23,8 +23,8 @@ const CardHeader = ({
   <div
     data-slot="CardHeader"
     className={cn(
-      "flex flex-col justify-center items-start py-2 gap-2",
-      className
+      "flex flex-col items-start justify-center gap-2 py-2",
+      className,
     )}
     {...props}
   />
@@ -37,8 +37,8 @@ const CardTitle = ({
   <h3
     data-slot="CardTitle"
     className={cn(
-      "w-full flex flex-row justify-start items-center text-xl font-medium leading-none tracking-tight gap-1",
-      className
+      "flex w-full flex-row items-center justify-start gap-1 text-xl leading-none font-medium tracking-tight",
+      className,
     )}
     {...props}
   />
@@ -51,8 +51,8 @@ const CardBtnGroup = ({
   <div
     data-slot="CardBtnGroup"
     className={cn(
-      "flex-1 flex flex-row justify-end items-center gap-2",
-      className
+      "flex flex-1 flex-row items-center justify-end gap-2",
+      className,
     )}
     {...props}
   />
@@ -75,7 +75,7 @@ const CardContent = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     data-slot="CardContent"
-    className={cn("flex flex-col gap-2 justify-start items-center", className)}
+    className={cn("flex flex-col items-center justify-start gap-2", className)}
     {...props}
   />
 );
@@ -93,10 +93,10 @@ const CardFooter = ({
 
 export {
   Card,
-  CardHeader,
-  CardFooter,
-  CardTitle,
   CardBtnGroup,
-  CardDescription,
   CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 };
