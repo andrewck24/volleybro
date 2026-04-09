@@ -2,7 +2,7 @@
     "name": "VolleyBro",
     "short_name": "VolleyBro",
     "theme_color": "#10687e",
-    "background_color": "#dddcdd",
+    "background_color": "#f6f4f5",
     "display": "standalone",
     "orientation": "portrait",
     "scope": "/",
