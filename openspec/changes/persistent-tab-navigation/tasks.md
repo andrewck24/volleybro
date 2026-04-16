@@ -1,11 +1,11 @@
 ## 1. Parallel Routes layout structure
 
-- [ ] 1.1 Set up parallel routes as the tab container: create `src/app/(protected)/@home/` slot directory and move `home/page.tsx` into it; add `default.tsx` for each slot segment returning null
-- [ ] 1.2 Create `src/app/(protected)/@notifications/` slot with `default.tsx` for each slot segment; move `notifications/page.tsx` into it
-- [ ] 1.3 Create `src/app/(protected)/@user/` slot with `default.tsx` for each slot segment; move `user/page.tsx` and `user/invitations/` into it
-- [ ] 1.4 Create `src/app/(protected)/@team/` slot with `default.tsx` for each slot segment; move `team/page.tsx`, `team/[teamId]/`, and all nested routes into it
-- [ ] 1.5 Add slot default fallback: verify every route segment directory inside each slot has a `default.tsx` returning null; add any missing ones
-- [ ] 1.6 Rewrite `src/app/(protected)/layout.tsx` as a server component accepting all four slot props and passing them to a client tab container
+- [x] 1.1 Set up parallel routes as the tab container: create `src/app/(protected)/@home/` slot directory and move `home/page.tsx` into it; add `default.tsx` for each slot segment returning null
+- [x] 1.2 Create `src/app/(protected)/@notifications/` slot with `default.tsx` for each slot segment; move `notifications/page.tsx` into it
+- [x] 1.3 Create `src/app/(protected)/@user/` slot with `default.tsx` for each slot segment; move `user/page.tsx` and `user/invitations/` into it
+- [x] 1.4 Create `src/app/(protected)/@team/` slot with `default.tsx` for each slot segment; move `team/page.tsx`, `team/[teamId]/`, and all nested routes into it
+- [x] 1.5 Add slot default fallback: verify every route segment directory inside each slot has a `default.tsx` returning null; add any missing ones
+- [x] 1.6 Rewrite `src/app/(protected)/layout.tsx` as a server component accepting all four slot props and passing them to a client tab container
 
 ## 2. Tab container client component
 
