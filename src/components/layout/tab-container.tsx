@@ -1,4 +1,5 @@
 "use client";
+import { BottomNav } from "@/components/layout/nav/bottom-nav";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -43,7 +44,6 @@ export const TabContainer = ({ home, notifications, user, team }: TabContainerPr
     setTabCurrentRoute((prev) => ({ ...prev, [activeTab]: pathname }));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- wired to nav in Section 3
   const switchTab: TabSwitchProps["onTabSwitch"] = (newTab) => {
     const direction =
       TAB_ORDER.indexOf(newTab) > TAB_ORDER.indexOf(activeTab) ? "forward" : "backward";
@@ -74,6 +74,7 @@ export const TabContainer = ({ home, notifications, user, team }: TabContainerPr
           </div>
         ))}
       </div>
+      <BottomNav activeTab={activeTab} onTabSwitch={switchTab} />
     </div>
   );
 };
