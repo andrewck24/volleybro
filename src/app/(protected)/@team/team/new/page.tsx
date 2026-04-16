@@ -25,7 +25,7 @@ const NewTeamPage = () => {
     }
   };
 
-  return <TeamForm onSubmit={onSubmit} className="w-full" />;
+  return <TeamForm team={undefined} onSubmit={onSubmit} className="w-full" />;
 };
 
 export default NewTeamPage;

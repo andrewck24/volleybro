@@ -9,6 +9,7 @@ const STORAGE_KEY = "sidenav-collapsed";
 
 export const SideNav = ({ activeTab, onTabSwitch }: TabSwitchProps) => {
   const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return true;
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === null ? true : stored === "true";
   });
