@@ -1,5 +1,6 @@
 "use client";
 import { BottomNav } from "@/components/layout/nav/bottom-nav";
+import { SideNav } from "@/components/layout/nav/side-nav";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -63,16 +64,19 @@ export const TabContainer = ({ home, notifications, user, team }: TabContainerPr
 
   return (
     <div className="flex h-dvh flex-col">
-      <div className="relative flex-1 overflow-hidden">
-        {TAB_ORDER.map((tab) => (
-          <div
-            key={tab}
-            className={activeTab === tab ? "block" : "hidden"}
-            style={{ viewTransitionName: activeTab === tab ? "tab-content" : undefined }}
-          >
-            {slots[tab]}
-          </div>
-        ))}
+      <div className="flex flex-1 overflow-hidden">
+        <SideNav activeTab={activeTab} onTabSwitch={switchTab} />
+        <div className="relative flex-1 overflow-auto">
+          {TAB_ORDER.map((tab) => (
+            <div
+              key={tab}
+              className={activeTab === tab ? "block" : "hidden"}
+              style={{ viewTransitionName: activeTab === tab ? "tab-content" : undefined }}
+            >
+              {slots[tab]}
+            </div>
+          ))}
+        </div>
       </div>
       <BottomNav activeTab={activeTab} onTabSwitch={switchTab} />
     </div>

@@ -1,28 +1,24 @@
 "use client";
+import { NAV_ITEMS } from "@/components/layout/nav/nav-items";
 import { cn } from "@/lib/utils";
 import type { Tab, TabSwitchProps } from "@/components/layout/tab-container";
-import {
-  RiGroupFill,
-  RiGroupLine,
-  RiHome5Fill,
-  RiHome5Line,
-  RiMenuFill,
-  RiMenuLine,
-  RiNotification2Fill,
-  RiNotification2Line,
-} from "react-icons/ri";
+
+const LEFT_TABS: Tab[] = ["home", "team"];
+const RIGHT_TABS: Tab[] = ["notifications", "user"];
 
 export const NavLinksLeft = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
   <>
-    <NavButton tab="home" active={activeTab === "home"} onTabSwitch={onTabSwitch} activeIcon={<RiHome5Fill />} inactiveIcon={<RiHome5Line />} />
-    <NavButton tab="team" active={activeTab === "team"} onTabSwitch={onTabSwitch} activeIcon={<RiGroupFill />} inactiveIcon={<RiGroupLine />} />
+    {NAV_ITEMS.filter((item) => LEFT_TABS.includes(item.tab)).map(({ tab, activeIcon, inactiveIcon }) => (
+      <NavButton key={tab} tab={tab} active={activeTab === tab} onTabSwitch={onTabSwitch} activeIcon={activeIcon} inactiveIcon={inactiveIcon} />
+    ))}
   </>
 );
 
 export const NavLinksRight = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
   <>
-    <NavButton tab="notifications" active={activeTab === "notifications"} onTabSwitch={onTabSwitch} activeIcon={<RiNotification2Fill />} inactiveIcon={<RiNotification2Line />} />
-    <NavButton tab="user" active={activeTab === "user"} onTabSwitch={onTabSwitch} activeIcon={<RiMenuFill />} inactiveIcon={<RiMenuLine />} />
+    {NAV_ITEMS.filter((item) => RIGHT_TABS.includes(item.tab)).map(({ tab, activeIcon, inactiveIcon }) => (
+      <NavButton key={tab} tab={tab} active={activeTab === tab} onTabSwitch={onTabSwitch} activeIcon={activeIcon} inactiveIcon={inactiveIcon} />
+    ))}
   </>
 );
 
