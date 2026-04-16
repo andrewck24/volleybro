@@ -40,7 +40,7 @@ const config: ChartConfig = {
 };
 ```
 
-## Edge Definition (Ring Technique)
+## Depth, Elevation & Edge Definition
 
 Based on Steve Schoger's approach: use CSS `ring` instead of `border` for container edges.
 
@@ -48,14 +48,36 @@ Based on Steve Schoger's approach: use CSS `ring` instead of `border` for contai
 
 `border` + `shadow` together creates a muddy transition zone. `ring` (which is a `box-shadow`) composes cleanly with drop shadows.
 
-### Patterns
+### Depth & Elevation
+
+The app has two elevation levels relative to the page body (`bg-accent`):
+
+| Level | Context | Shadow | Ring |
+| ----- | ------- | ------ | ---- |
+| **Level 1** | Directly on body (`bg-accent`) | `shadow-sm` | per variant |
+| **Level 2** | Inside Card, Dialog, or other elevated containers | none | per variant |
+
+Shadow presence is the only depth signal. Ring is purely an edge definition tool and is not tied to elevation.
+
+Level 2 shadow suppression is handled globally in `globals.css` via CSS selectors — components do not manage this themselves:
+
+```css
+[data-slot="Card"] [data-slot="item"],
+[data-slot="DialogContent"] [data-slot="item"] {
+  box-shadow: none;
+}
+```
+
+When adding a new elevated container that can hold `Item`, add its `data-slot` to this selector list.
+
+### Ring Patterns
 
 | Pattern                 | Classes                                | When to use                                             |
 | ----------------------- | -------------------------------------- | ------------------------------------------------------- |
 | **Outer ring**          | `ring-1 ring-foreground/10`            | Elevated containers with shadow (Card, Dialog, Popover) |
 | **Inset ring**          | `ring-1 ring-inset ring-foreground/5`  | Subtle edge on light backgrounds (Alert default)        |
 | **Inset ring (input)**  | `ring-1 ring-inset ring-foreground/10` | Form inputs (Input, Select trigger)                     |
-| **Interactive surface** | `shadow-sm ring-1 ring-foreground/10`  | Item-style list rows on `bg-background`                 |
+| **Interactive surface** | `shadow-sm ring-1 ring-foreground/10`  | Item outline variant — edge visible without shadow      |
 | **Shadow-only surface** | `shadow-sm ring-1 ring-transparent`    | Non-outline variants when outline variant exists        |
 
 `ring-foreground/10` adapts automatically: black at 10% in light mode, near-white at 10% in dark mode.
@@ -66,7 +88,8 @@ Based on Steve Schoger's approach: use CSS `ring` instead of `border` for contai
 
 - `Card` - `shadow-sm ring-1 ring-foreground/10`
 - `Header` - `shadow-sm ring-1 ring-foreground/5`
-- `Item (default)` - `bg-card + shadow-sm + ring-1`, for table-to-item migration surfaces
+- `Item (default)` - `shadow-sm ring-1 ring-transparent` (shadow suppressed at Level 2 via CSS)
+- `Item (outline)` - `shadow-xs ring-1 ring-foreground/10 ring-inset`
 
 **Experimental** (marked with `/* experimental: ring technique */` comments, may revert to `border`):
 

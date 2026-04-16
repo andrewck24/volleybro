@@ -145,6 +145,12 @@
   body {
     @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-accent text-foreground transition-colors select-none;
   }
+
+  /* Elevation: suppress Item shadow inside elevated containers (Level 2) */
+  [data-slot="Card"] [data-slot="item"],
+  [data-slot="DialogContent"] [data-slot="item"] {
+    box-shadow: none;
+  }
 }
 
 /* View Transitions Animations */
