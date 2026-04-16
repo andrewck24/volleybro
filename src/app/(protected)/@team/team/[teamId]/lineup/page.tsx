@@ -1,12 +1,17 @@
 "use client";
+import { Header } from "@/components/layout/header";
 import Lineup from "@/components/team/lineup";
 import { use } from "react";
 
 const LineupPage = (props: { params: Promise<{ teamId: string }> }) => {
-  const params = use(props.params);
-  const { teamId } = params;
+  const { teamId } = use(props.params);
 
-  return <Lineup teamId={teamId} />;
+  return (
+    <>
+      <Header title="陣容設定" backHref={`/team/${teamId}`} />
+      <Lineup teamId={teamId} />
+    </>
+  );
 };
 
 export default LineupPage;
