@@ -25,13 +25,14 @@ export const ActionButton = ({
   );
 };
 
-export const AddButton = ({
+const AddButton = ({
   className,
   ...props
 }: React.ComponentProps<typeof Button>) => {
   return (
     <Button
       className={cn(
+        "-mt-5 md:mt-0 md:w-full md:rounded-xl",
         "relative flex size-13 shrink-0 items-center justify-center rounded-full",
         "bg-primary text-primary-foreground shadow-lg ring-1 ring-gray-950/10 dark:ring-white/20 [&>svg]:size-7",
         "transition-color duration-200 ease-in-out hover:bg-primary/90",
