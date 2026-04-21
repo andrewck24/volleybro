@@ -27,7 +27,7 @@
 ## 5. View transition animation CSS
 
 - [x] 5.1 Add `view-transition-name: tab-content` to the slot container wrapper in `tab-container.tsx`
-- [x] 5.2 Add global CSS rules in `globals.css` for `[data-direction="forward"]` and `[data-direction="backward"]` targeting `::view-transition-old(tab-content)` and `::view-transition-new(tab-content)` with slide-left/slide-right keyframe animations at 300ms ease (directional tab-switch animation)
+- [x] 5.2 Update global CSS in `globals.css` for tab-switch animation to match iOS UITabBarController sliding behavior — both old and new views slide simultaneously: forward transition: old view slides out to the left (`translateX(0) → translateX(-100%)`), new view slides in from the right (`translateX(100%) → translateX(0)`); backward transition: old view slides out to the right (`translateX(0) → translateX(100%)`), new view slides in from the left (`translateX(-100%) → translateX(0)`); animation duration 300ms ease; add `slide-to-left` and `slide-to-right` keyframes for the outgoing views; `slide-from-right` and `slide-from-left` already exist — reuse or update as needed; keep all rules inside `@media (width < 768px)` block; remove any opacity fade from the old view since the simultaneous slide replaces it
 
 ## 6. Per-page Header component
 

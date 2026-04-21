@@ -169,23 +169,37 @@
 
 @keyframes slide-from-right {
   from {
-    transform: translateX(50%);
-    opacity: 0;
+    transform: translateX(100%);
   }
   to {
     transform: translateX(0);
-    opacity: 1;
   }
 }
 
 @keyframes slide-from-left {
   from {
-    transform: translateX(-50%);
-    opacity: 0;
+    transform: translateX(-100%);
   }
   to {
     transform: translateX(0);
-    opacity: 1;
+  }
+}
+
+@keyframes slide-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -222,7 +236,7 @@
 /* Tab-switch directional slide animation (mobile only) */
 @media (width < 768px) {
   [data-direction="forward"]::view-transition-old(tab-content) {
-    animation: 300ms ease slide-from-right reverse;
+    animation: 300ms ease slide-to-left;
   }
 
   [data-direction="forward"]::view-transition-new(tab-content) {
@@ -230,7 +244,7 @@
   }
 
   [data-direction="backward"]::view-transition-old(tab-content) {
-    animation: 300ms ease slide-from-left reverse;
+    animation: 300ms ease slide-to-right;
   }
 
   [data-direction="backward"]::view-transition-new(tab-content) {
