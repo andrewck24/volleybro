@@ -139,6 +139,10 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   * {
     @apply box-border overscroll-x-none border-border outline-ring/50;
   }
@@ -165,7 +169,7 @@
 
 @keyframes slide-from-right {
   from {
-    transform: translateX(50px);
+    transform: translateX(50%);
     opacity: 0;
   }
   to {
@@ -176,7 +180,7 @@
 
 @keyframes slide-from-left {
   from {
-    transform: translateX(-50px);
+    transform: translateX(-50%);
     opacity: 0;
   }
   to {
@@ -209,21 +213,29 @@
   animation: 300ms slide-from-left;
 }
 
-/* Tab-switch directional slide animation */
-[data-direction="forward"]::view-transition-old(tab-content) {
-  animation: 300ms ease slide-from-right reverse;
+/* Keep bottom-nav fixed during tab transitions */
+::view-transition-old(bottom-nav),
+::view-transition-new(bottom-nav) {
+  animation: none;
 }
 
-[data-direction="forward"]::view-transition-new(tab-content) {
-  animation: 300ms ease slide-from-right;
-}
+/* Tab-switch directional slide animation (mobile only) */
+@media (width < 768px) {
+  [data-direction="forward"]::view-transition-old(tab-content) {
+    animation: 300ms ease slide-from-right reverse;
+  }
 
-[data-direction="backward"]::view-transition-old(tab-content) {
-  animation: 300ms ease slide-from-left reverse;
-}
+  [data-direction="forward"]::view-transition-new(tab-content) {
+    animation: 300ms ease slide-from-right;
+  }
 
-[data-direction="backward"]::view-transition-new(tab-content) {
-  animation: 300ms ease slide-from-left;
+  [data-direction="backward"]::view-transition-old(tab-content) {
+    animation: 300ms ease slide-from-left reverse;
+  }
+
+  [data-direction="backward"]::view-transition-new(tab-content) {
+    animation: 300ms ease slide-from-left;
+  }
 }
 
 /* Hide scrollbar on touch devices in PWA mode */

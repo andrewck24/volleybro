@@ -10,18 +10,19 @@
 ## 2. Tab container client component
 
 - [x] 2.1 Create `src/components/layout/tab-container.tsx`: apply CSS visibility toggle for active tab — render all four slots simultaneously with `display: block` / `display: none` (Tailwind `block` / `hidden`) based on `activeTab` state
-- [x] 2.2 Implement per-tab current route tracking with URL as single source of truth: call `usePathname()` once in `tab-container.tsx`; implement `resolveTabFromPath(pathname): Tab`; in a `useEffect([pathname])` derive `activeTab` from pathname and update only `tabCurrentRoute[resolvedTab]` — do NOT set `activeTab` as independent state driven by `switchTab()`
-- [x] 2.3 Implement `switchTab(newTab)` using NavLinks as tab-toggle buttons with `router.replace`: determine direction by index comparison against `activeTab`, set `data-direction`, call `document.startViewTransition` (with fallback), call `router.replace(tabCurrentRoute[newTab], { scroll: false })` — `activeTab` updates automatically via the pathname `useEffect`
+- [x] 2.2 Implement per-tab current route tracking with URL as single source of truth: `tabCurrentRoute` stored as `useRef` (not `useState`) to avoid re-renders; call `usePathname()` once; implement `resolveTabFromPath(pathname): Tab`; in `useEffect([pathname])` update `tabCurrentRoute.current[activeTab]` only for non-team tabs; team tab always navigates to `/team/${teamId}` (or `/team`) via `useActiveTeamId()` — do NOT track team's sub-route
+- [x] 2.3 Implement `switchTab(newTab)` with `useCallback`: early-return if `newTab === activeTab`; save `scrollPositions.current[activeTab]` before switching; determine direction by index comparison, set `data-direction`, call `document.startViewTransition` (with fallback), call `router.replace(route, { scroll: false })`; after navigation, restore `scrollPositions.current[newTab]` in `useEffect([pathname])` via double-rAF to allow DOM layout to settle
+- [x] 2.4 Refactor `TabContainer` layout from `flex h-dvh flex-col` + overflow to `min-h-dvh` with content offset via padding (`pt-12 pb-20 md:pb-2 md:pl-15`) to accommodate fixed `NavigationBar`; apply safe-area insets on the outer wrapper
 
-## 3. Bottom navigation (mobile)
+## 3. Navigation components
 
-- [x] 3.1 Create `src/components/layout/nav/bottom-nav.tsx`: four tab buttons with `activeTab` and `onTabSwitch` props; apply `pb-[env(safe-area-inset-bottom)]` for iOS safe area; hide at `≥ md` via `md:hidden` (responsive navigation layout)
-- [x] 3.2 Refactor `src/components/layout/nav/links.tsx`: convert from `<Link href="...">` elements to tab-toggle buttons calling `onTabSwitch`; remove all `href` props
+- [x] 3.1 ~~Create `src/components/layout/nav/bottom-nav.tsx`~~ **Replaced**: consolidated into unified `src/components/layout/nav/index.tsx` (`NavigationBar`) — renders as floating bottom pill on mobile (`< md`) and fixed left icon-only column on desktop (`≥ md`) via responsive Tailwind classes; iOS safe area applied via `pb-[max(env(safe-area-inset-bottom),0.5rem)]`
+- [x] 3.2 ~~Refactor `src/components/layout/nav/links.tsx`~~ **Replaced**: nav item definitions and `NavButton` component extracted to `src/components/layout/nav/items.tsx`; `NavButtonsLeft` and `NavButtonsRight` replace `NavLinksLeft`/`NavLinksRight`; icon-only layout (no label text rendered) for both breakpoints
 
 ## 4. Sidenav (desktop)
 
-- [x] 4.1 Create `src/components/layout/nav/side-nav.tsx`: render four tab buttons in a vertical layout; read/write `collapsed` state to `localStorage` for collapse state persistence across refresh; hide at `< md` via `hidden md:flex` (collapsible sidenav)
-- [x] 4.2 Implement expand/collapse toggle in sidenav: animate width between 200px (expanded, icon + label) and 40px (collapsed, icon only) via CSS `transition-width 300ms`
+- [x] 4.1 ~~Create `src/components/layout/nav/side-nav.tsx`: render four tab buttons in a vertical layout; read/write `collapsed` state to `localStorage` for collapse state persistence across refresh; hide at `< md` via `hidden md:flex` (collapsible sidenav)~~ **Replaced**: unified `NavigationBar` in `src/components/layout/nav/index.tsx` handles both mobile and desktop via responsive Tailwind classes; desktop renders as a fixed left-side icon-only nav (w-16, no collapse)
+- [x] 4.2 ~~Implement expand/collapse toggle in sidenav: animate width between 200px (expanded, icon + label) and 40px (collapsed, icon only) via CSS `transition-width 300ms`~~ **Removed**: collapse feature dropped in favour of a fixed-width icon-only sidenav (Threads-style desktop layout); no localStorage state needed
 
 ## 5. View transition animation CSS
 

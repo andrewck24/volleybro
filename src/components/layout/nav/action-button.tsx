@@ -6,26 +6,36 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { RiAddBoxLine } from "react-icons/ri";
 
-export const ActionButton = ({ teamId }: { teamId: string }) => {
+export const ActionButton = ({
+  teamId,
+  className,
+}: {
+  teamId?: string;
+  className?: string;
+}) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <AddButton />
+        <AddButton className={className} disabled={!teamId} />
       </DialogTrigger>
       <DialogContent size="lg">
-        <NewGameForm teamId={teamId} />
+        {teamId && <NewGameForm teamId={teamId} />}
       </DialogContent>
     </Dialog>
   );
 };
 
-const AddButton = ({ ...props }) => {
+export const AddButton = ({
+  className,
+  ...props
+}: React.ComponentProps<typeof Button>) => {
   return (
     <Button
       className={cn(
-        "relative -mt-5 flex size-12 shrink-0 items-center justify-center rounded-full",
+        "relative flex size-13 shrink-0 items-center justify-center rounded-full",
         "bg-primary text-primary-foreground shadow-lg ring-1 ring-gray-950/10 dark:ring-white/20 [&>svg]:size-7",
-        "transition-all duration-200 ease-in-out hover:bg-primary/90",
+        "transition-color duration-200 ease-in-out hover:bg-primary/90",
+        className,
       )}
       variant="default"
       size="icon"

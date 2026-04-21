@@ -59,6 +59,7 @@ URL is the single source of truth. `usePathname()` is called once at the top of 
 
 ```ts
 const pathname = usePathname();
+const activeTab = resolveTabFromPath(pathname); // derived — not state
 
 function resolveTabFromPath(path: string): Tab {
   if (path.startsWith("/team")) return "team";
@@ -67,31 +68,41 @@ function resolveTabFromPath(path: string): Tab {
   return "home";
 }
 
+// useRef: no re-render on update; only home/notifications/user tracked
+const tabCurrentRoute = useRef<Record<Exclude<Tab, "team">, string>>({
+  home: "/home",
+  notifications: "/notifications",
+  user: "/user",
+});
+
 useEffect(() => {
-  const tab = resolveTabFromPath(pathname);
-  setActiveTab(tab);
-  setTabCurrentRoute(prev => ({ ...prev, [tab]: pathname }));
-}, [pathname]);
+  if (activeTab !== "team") {
+    tabCurrentRoute.current[activeTab] = pathname;
+  }
+  // scroll restore handled here too (see View transition section)
+}, [activeTab, pathname]);
 ```
 
-This approach is safe under all navigation sources — browser back/forward, programmatic `router.push`, hard refresh, and hydration — because `activeTab` is always derived from the URL, never held as independent local state. A pathname change from any source will correctly identify which tab it belongs to and update only that tab's entry in `tabCurrentRoute`.
+`activeTab` is a **derived value** from `pathname`, not state. `tabCurrentRoute` uses `useRef` instead of `useState` — route tracking is a side-effect that does not need to trigger re-renders.
 
-Non-active tabs retain their last-known routes untouched regardless of how the URL changes.
+The team tab does not track sub-routes. `switchTab("team")` always navigates to `/team/${teamId}` (falling back to `/team`) using `useActiveTeamId()`. This avoids stale deep-team URLs when team membership changes.
 
 **Why not derive `activeTab` from a separate local state driven by `switchTab()`:** If `activeTab` is independent of the URL, browser back/forward bypasses `switchTab()` entirely, causing `activeTab` and `pathname` to diverge. The URL-derived approach eliminates this class of desync.
 
-### Responsive nav: bottom nav (mobile) vs. sidenav (desktop)
+### Scroll position restoration
 
-The `(protected)` layout renders:
+`scrollPositions` is a `useRef<Record<Exclude<Tab, "team">, number>>` tracking the last `window.scrollY` for each non-team tab. Before calling `router.replace`, `switchTab` saves the current scroll position. After the pathname `useEffect` confirms the tab switch, a double-rAF (`requestAnimationFrame` × 2) restores `window.scrollTo({ top: targetY, behavior: "auto" })`. Two frames are needed because `router.replace({ scroll: false })` requires two animation frames for DOM layout to settle before scroll coordinates are accurate.
 
-- `<BottomNav>` — visible only at `< md` via Tailwind (`md:hidden`)
-- `<SideNav>` — visible only at `≥ md` via Tailwind (`hidden md:flex`)
+### Responsive nav: unified NavigationBar
 
-Both components receive the same `activeTab`, `tabCurrentRoute`, and `onTabSwitch` props. They share the same tab-toggle logic.
+A single `<NavigationBar>` component (`src/components/layout/nav/index.tsx`) handles both mobile and desktop via responsive Tailwind classes — no separate `BottomNav` / `SideNav` components.
 
-`<BottomNav>` applies `pb-[env(safe-area-inset-bottom)]` for iOS PWA safe area.
+- **Mobile (`< md`)**: fixed floating pill at the bottom of the screen; `pb-[max(env(safe-area-inset-bottom),0.5rem)]` for iOS safe area
+- **Desktop (`≥ md`)**: fixed left column (w-16), full viewport height, icon-only, no collapse
 
-`<SideNav>` maintains local `collapsed` state (stored in `localStorage` for persistence across refreshes). Collapsed: icon only (40px wide). Expanded: icon + label (200px wide). Transition via CSS `width` with `transition-width`.
+**Why remove collapsible sidenav:** The collapse feature added state complexity (localStorage read on mount, CSS width transition, toggle button) without meaningful UX benefit given the icon-only mobile layout is already familiar. The Threads-style fixed-width icon column is simpler and visually consistent across breakpoints.
+
+**Why a single component:** Eliminates duplicate nav item definitions and shared prop drilling. Responsive classes handle layout differences; `NavButton` appearance adapts via the same class set.
 
 ### View transition animation
 
