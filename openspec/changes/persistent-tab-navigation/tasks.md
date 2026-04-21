@@ -10,8 +10,8 @@
 ## 2. Tab container client component
 
 - [x] 2.1 Create `src/components/layout/tab-container.tsx`: apply CSS visibility toggle for active tab — render all four slots simultaneously with `display: block` / `display: none` (Tailwind `block` / `hidden`) based on `activeTab` state
-- [x] 2.2 Implement per-tab current route tracking with URL as single source of truth: `tabCurrentRoute` stored as `useRef` (not `useState`) to avoid re-renders; call `usePathname()` once; implement `resolveTabFromPath(pathname): Tab`; in `useEffect([pathname])` update `tabCurrentRoute.current[activeTab]` only for non-team tabs; team tab always navigates to `/team/${teamId}` (or `/team`) via `useActiveTeamId()` — do NOT track team's sub-route
-- [x] 2.3 Implement `switchTab(newTab)` with `useCallback`: early-return if `newTab === activeTab`; save `scrollPositions.current[activeTab]` before switching; determine direction by index comparison, set `data-direction`, call `document.startViewTransition` (with fallback), call `router.replace(route, { scroll: false })`; after navigation, restore `scrollPositions.current[newTab]` in `useEffect([pathname])` via double-rAF to allow DOM layout to settle
+- [x] 2.2 Implement per-tab current route tracking with URL as single source of truth: `tabCurrentRoute` stored as `useRef<Record<Tab, string>>` (not `useState`) to avoid re-renders; call `usePathname()` once; implement `resolveTabFromPath(pathname): Tab`; in `useEffect([pathname])` update `tabCurrentRoute.current[activeTab]` unconditionally for all four tabs; `switchTab` navigates to `tabCurrentRoute.current[newTab]` for all tabs including team; remove `useActiveTeamId` import from `tab-container.tsx`
+- [x] 2.3 Implement `switchTab(newTab)` with `useCallback`: early-return if `newTab === activeTab`; save `scrollPositions.current[activeTab]` (type `Record<Tab, number>`, all four tabs) before switching; determine direction by index comparison, set `data-direction`, call `document.startViewTransition` (with fallback), call `router.replace(route, { scroll: false })`; after navigation, restore `scrollPositions.current[newTab]` in `useEffect([pathname])` via double-rAF to allow DOM layout to settle
 - [x] 2.4 Refactor `TabContainer` layout from `flex h-dvh flex-col` + overflow to `min-h-dvh` with content offset via padding (`pt-12 pb-20 md:pb-2 md:pl-15`) to accommodate fixed `NavigationBar`; apply safe-area insets on the outer wrapper
 
 ## 3. Navigation components
@@ -39,11 +39,17 @@
 - [x] 6.6 Update `src/app/(protected)/@team/team/[teamId]/page.tsx`: add `<Header title="球隊" />`; static metadata (team-switcher deferred)
 - [x] 6.7 Update all remaining deep team pages (`players/[playerId]/page.tsx`, `players/[playerId]/edit/page.tsx`, `lineup/page.tsx`): add `<Header title="..." backHref="..."/>` and `export const metadata`
 
-## 7. Verification
+## 8. Tab container refactor — uniform team tracking
 
-- [x] 7.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and confirm all pass
-- [ ] 7.2 Manually verify tab DOM persistence: navigate to a deep route in Team tab, switch to Home tab and back, confirm Team tab returns to the same route without refetch
-- [ ] 7.3 Manually verify URL synchronization on tab switch: confirm URL updates correctly on every tab switch and hard refresh restores the correct tab
-- [ ] 7.4 Manually verify collapsible sidenav on desktop: toggle collapse, reload page, confirm state persists
-- [ ] 7.5 Manually verify directional tab-switch animation on a supported browser; confirm instant fallback on unsupported environments
-- [x] 7.6 Review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the new routing structure; update if necessary
+- [x] 8.1 Refactor `src/components/layout/tab-container.tsx`: change `tabCurrentRoute` type to `Record<Tab, string>` with `team: "/team"` as initial fallback; change `scrollPositions` type to `Record<Tab, number>` with `team: 0`; add `useEffect([teamId])` that sets `tabCurrentRoute.current["team"] = \`/team/${teamId}\`` only when `teamId` resolves and the current value is still the bare `"/team"` fallback; remove the `if (activeTab !== "team")` guard in `useEffect([pathname])` so all four tabs update unconditionally; update `switchTab` to remove the team special-case route logic — navigate to `tabCurrentRoute.current[newTab]` for all tabs uniformly; keep `useActiveTeamId` import for the initial seed effect
+- [x] 8.2 Move team-switching logic to `src/app/(protected)/@team/team/[teamId]/page.tsx` Header: replace `<Header title="球隊" />` with a client component that renders a team-switcher trigger in `children`; the switcher shows current team name (from `useTeam(teamId)`) and opens a drawer listing all joined teams (from `useUserPlayers`); selecting a team calls PATCH `/api/profiles` to update `activeTeamId`, then calls `router.replace("/team/${newTeamId}")` — this naturally resets `tabCurrentRoute.current["team"]` via the existing `useEffect([pathname])` in `tab-container.tsx`
+- [x] 8.3 Remove `TeamList` and `TeamItem` components from `src/components/user/menu/index.tsx`; remove `useProfile`, `useUserPlayers`, `useRouter` imports if no longer used elsewhere in the file; verify the user menu still renders correctly without the team list
+
+## 9. Verification
+
+- [x] 9.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and confirm all pass
+- [ ] 9.2 Manually verify tab DOM persistence: navigate to a deep route in Team tab, switch to Home tab and back, confirm Team tab returns to the same sub-route without refetch
+- [ ] 9.3 Manually verify URL synchronization on tab switch: confirm URL updates correctly on every tab switch and hard refresh restores the correct tab
+- [ ] 9.4 Manually verify team-switcher in team Header: switch teams, confirm URL resets to `/team/${newTeamId}` and user menu no longer shows team list
+- [ ] 9.5 Manually verify directional tab-switch animation on a supported browser; confirm instant fallback on unsupported environments
+- [x] 9.6 Review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the new routing structure; update if necessary

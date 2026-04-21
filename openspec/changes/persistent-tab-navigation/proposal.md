@@ -20,7 +20,7 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
 - Per-tab history stack (browser history naturally handles back navigation since all pages are reached from parent routes)
 - Swipe-back gesture interception (PWA standalone mode has no browser navigation bar)
 - Redux-managed routing (Next.js router is the source of truth)
-- Scroll position restoration (preserved automatically since DOM is not unmounted)
+- Scroll position restoration for same-tab navigations (e.g. scrolling within a page and then navigating deeper)
 - SEO optimization for tab routes
 - Desktop sidenav pinned/unpinned behavior (always visible, never overlay)
 - Lineup page overlay presentation (deferred to `lineup-overlay` change)
@@ -49,3 +49,5 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
   - `src/components/layout/nav/side-nav.tsx` — desktop collapsible sidenav
   - `src/components/layout/header.tsx` — new shared Header shell component
   - All `page.tsx` files within `(protected)` — add `<Header>` with page-specific content
+  - `src/app/(protected)/@team/team/[teamId]/page.tsx` — Header contains team-switcher drawer (replaces `TeamList` in user menu)
+  - `src/components/user/menu/index.tsx` — `TeamList` component removed; team switching moved to team tab Header

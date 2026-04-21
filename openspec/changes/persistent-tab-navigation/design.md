@@ -68,30 +68,43 @@ function resolveTabFromPath(path: string): Tab {
   return "home";
 }
 
-// useRef: no re-render on update; only home/notifications/user tracked
-const tabCurrentRoute = useRef<Record<Exclude<Tab, "team">, string>>({
+// useRef: no re-render on update; all four tabs tracked uniformly
+const tabCurrentRoute = useRef<Record<Tab, string>>({
   home: "/home",
+  team: "/team",
   notifications: "/notifications",
   user: "/user",
 });
 
 useEffect(() => {
-  if (activeTab !== "team") {
-    tabCurrentRoute.current[activeTab] = pathname;
-  }
+  tabCurrentRoute.current[activeTab] = pathname;
   // scroll restore handled here too (see View transition section)
 }, [activeTab, pathname]);
 ```
 
 `activeTab` is a **derived value** from `pathname`, not state. `tabCurrentRoute` uses `useRef` instead of `useState` — route tracking is a side-effect that does not need to trigger re-renders.
 
-The team tab does not track sub-routes. `switchTab("team")` always navigates to `/team/${teamId}` (falling back to `/team`) using `useActiveTeamId()`. This avoids stale deep-team URLs when team membership changes.
+All four tabs including `team` are tracked uniformly. `switchTab("team")` navigates to `tabCurrentRoute.current["team"]` just like any other tab.
+
+`tabCurrentRoute.current["team"]` is initialized to `"/team"` because `useActiveTeamId()` resolves asynchronously via SWR — `teamId` is `undefined` at mount time. A dedicated `useEffect([teamId])` sets the correct initial value once `teamId` resolves, but only if the route is still the bare `"/team"` fallback (i.e. the user has not yet navigated within the team tab):
+
+```ts
+useEffect(() => {
+  if (teamId && tabCurrentRoute.current["team"] === "/team") {
+    tabCurrentRoute.current["team"] = `/team/${teamId}`;
+  }
+}, [teamId]);
+```
+
+After this one-time initialization, `useEffect([pathname])` takes over and tracks the team tab's sub-route unconditionally.
+
+Team switching (PATCH `activeTeamId` + navigate) is handled entirely in the team tab Header component. The handler calls `router.replace("/team/${newTeamId}")` directly after the API call succeeds. This pathname change flows into `tab-container.tsx` via `usePathname()`, updating `tabCurrentRoute.current["team"]` to the new team root through the existing `useEffect([pathname])`. No special logic in the tab container is needed beyond retaining `useActiveTeamId` for the initial route seed.
 
 **Why not derive `activeTab` from a separate local state driven by `switchTab()`:** If `activeTab` is independent of the URL, browser back/forward bypasses `switchTab()` entirely, causing `activeTab` and `pathname` to diverge. The URL-derived approach eliminates this class of desync.
 
 ### Scroll position restoration
 
-`scrollPositions` is a `useRef<Record<Exclude<Tab, "team">, number>>` tracking the last `window.scrollY` for each non-team tab. Before calling `router.replace`, `switchTab` saves the current scroll position. After the pathname `useEffect` confirms the tab switch, a double-rAF (`requestAnimationFrame` × 2) restores `window.scrollTo({ top: targetY, behavior: "auto" })`. Two frames are needed because `router.replace({ scroll: false })` requires two animation frames for DOM layout to settle before scroll coordinates are accurate.
+`scrollPositions` is a `useRef<Record<Tab, number>>` tracking the last `window.scrollY` for all four tabs. Before calling `router.replace`, `switchTab` saves the current scroll position. After the pathname `useEffect` confirms the tab switch, a double-rAF (`requestAnimationFrame` × 2) restores `window.scrollTo({ top: targetY, behavior: "auto" })`. Two frames are needed because `router.replace({ scroll: false })` requires two animation frames for DOM layout to settle before scroll coordinates are accurate.
 
 ### Responsive nav: unified NavigationBar
 

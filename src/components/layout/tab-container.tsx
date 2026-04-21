@@ -37,24 +37,30 @@ export const TabContainer = ({
   const router = useRouter();
   const activeTab = resolveTabFromPath(pathname);
   const { teamId } = useActiveTeamId();
-  const tabCurrentRoute = useRef<Record<Exclude<Tab, "team">, string>>({
+  const tabCurrentRoute = useRef<Record<Tab, string>>({
     home: "/home",
+    team: "/team",
     notifications: "/notifications",
     user: "/user",
   });
-  const scrollPositions = useRef<Record<Exclude<Tab, "team">, number>>({
+  const scrollPositions = useRef<Record<Tab, number>>({
     home: 0,
+    team: 0,
     notifications: 0,
     user: 0,
   });
   const pendingRestoreTab = useRef<Tab | null>(null);
 
   useEffect(() => {
-    if (activeTab !== "team") {
-      tabCurrentRoute.current[activeTab] = pathname;
+    if (teamId && tabCurrentRoute.current["team"] === "/team") {
+      tabCurrentRoute.current["team"] = `/team/${teamId}`;
     }
+  }, [teamId]);
+
+  useEffect(() => {
+    tabCurrentRoute.current[activeTab] = pathname;
     if (pendingRestoreTab.current !== activeTab) return;
-    const targetY = scrollPositions.current[activeTab as Exclude<Tab, "team">];
+    const targetY = scrollPositions.current[activeTab];
     pendingRestoreTab.current = null;
     // double-rAF: router.replace({ scroll: false }) needs two frames for DOM layout to settle
     requestAnimationFrame(() => {
@@ -67,9 +73,7 @@ export const TabContainer = ({
   const switchTab: TabSwitchProps["onTabSwitch"] = useCallback(
     (newTab) => {
       if (newTab === activeTab) return;
-      if (activeTab !== "team") {
-        scrollPositions.current[activeTab] = window.scrollY;
-      }
+      scrollPositions.current[activeTab] = window.scrollY;
       pendingRestoreTab.current = newTab;
 
       const direction =
@@ -78,12 +82,7 @@ export const TabContainer = ({
           : "backward";
       document.documentElement.dataset.direction = direction;
 
-      const route =
-        newTab === "team"
-          ? teamId
-            ? `/team/${teamId}`
-            : "/team"
-          : tabCurrentRoute.current[newTab];
+      const route = tabCurrentRoute.current[newTab];
       const navigate = () => router.replace(route, { scroll: false });
 
       if (typeof document.startViewTransition === "function") {
@@ -92,7 +91,7 @@ export const TabContainer = ({
         navigate();
       }
     },
-    [activeTab, teamId, router],
+    [activeTab, router],
   );
 
   const slots: Record<Tab, React.ReactNode> = {
