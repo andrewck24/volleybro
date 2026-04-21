@@ -41,15 +41,23 @@
 
 ## 8. Tab container refactor — uniform team tracking
 
-- [x] 8.1 Refactor `src/components/layout/tab-container.tsx`: change `tabCurrentRoute` type to `Record<Tab, string>` with `team: "/team"` as initial fallback; change `scrollPositions` type to `Record<Tab, number>` with `team: 0`; add `useEffect([teamId])` that sets `tabCurrentRoute.current["team"] = \`/team/${teamId}\`` only when `teamId` resolves and the current value is still the bare `"/team"` fallback; remove the `if (activeTab !== "team")` guard in `useEffect([pathname])` so all four tabs update unconditionally; update `switchTab` to remove the team special-case route logic — navigate to `tabCurrentRoute.current[newTab]` for all tabs uniformly; keep `useActiveTeamId` import for the initial seed effect
+- [x] 8.1 Refactor `src/components/layout/tab-container.tsx`: change `tabCurrentRoute` type to `Record<Tab, string>` with `team: "/team"` as initial fallback; change `scrollPositions` type to `Record<Tab, number>` with `team: 0`; add `useEffect([teamId])` that sets `tabCurrentRoute.current["team"] = \`/team/${teamId}\``only when`teamId`resolves and the current value is still the bare`"/team"`fallback; remove the`if (activeTab !== "team")`guard in`useEffect([pathname])`so all four tabs update unconditionally; update`switchTab`to remove the team special-case route logic — navigate to`tabCurrentRoute.current[newTab]`for all tabs uniformly; keep`useActiveTeamId` import for the initial seed effect
 - [x] 8.2 Move team-switching logic to `src/app/(protected)/@team/team/[teamId]/page.tsx` Header: replace `<Header title="球隊" />` with a client component that renders a team-switcher trigger in `children`; the switcher shows current team name (from `useTeam(teamId)`) and opens a drawer listing all joined teams (from `useUserPlayers`); selecting a team calls PATCH `/api/profiles` to update `activeTeamId`, then calls `router.replace("/team/${newTeamId}")` — this naturally resets `tabCurrentRoute.current["team"]` via the existing `useEffect([pathname])` in `tab-container.tsx`
 - [x] 8.3 Remove `TeamList` and `TeamItem` components from `src/components/user/menu/index.tsx`; remove `useProfile`, `useUserPlayers`, `useRouter` imports if no longer used elsewhere in the file; verify the user menu still renders correctly without the team list
 
-## 9. Verification
+## 9. Dead code removal
 
-- [x] 9.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and confirm all pass
-- [ ] 9.2 Manually verify tab DOM persistence: navigate to a deep route in Team tab, switch to Home tab and back, confirm Team tab returns to the same sub-route without refetch
-- [ ] 9.3 Manually verify URL synchronization on tab switch: confirm URL updates correctly on every tab switch and hard refresh restores the correct tab
-- [ ] 9.4 Manually verify team-switcher in team Header: switch teams, confirm URL resets to `/team/${newTeamId}` and user menu no longer shows team list
-- [ ] 9.5 Manually verify directional tab-switch animation on a supported browser; confirm instant fallback on unsupported environments
-- [x] 9.6 Review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the new routing structure; update if necessary
+- [x] 9.1 Delete `src/app/(protected)/home/` directory (replaced by `@home` slot)
+- [x] 9.2 Delete `src/app/(protected)/notifications/` directory (replaced by `@notifications` slot)
+- [x] 9.3 Delete `src/app/(protected)/user/` directory (replaced by `@user` slot)
+- [x] 9.4 Delete `src/app/(protected)/team/` directory (replaced by `@team` slot)
+- [x] 9.5 Run `pnpm build` to confirm no import errors after deletion
+
+## 10. Verification
+
+- [x] 10.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and confirm all pass
+- [x] 10.2 Manually verify tab DOM persistence: navigate to a deep route in Team tab, switch to Home tab and back, confirm Team tab returns to the same sub-route without refetch
+- [x] 10.3 Manually verify URL synchronization on tab switch: confirm URL updates correctly on every tab switch and hard refresh restores the correct tab
+- [x] 10.4 Manually verify team-switcher in team Header: switch teams, confirm URL resets to `/team/${newTeamId}` and user menu no longer shows team list
+- [x] 10.5 Manually verify directional tab-switch animation on a supported browser; confirm instant fallback on unsupported environments
+- [x] 10.6 Review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the new routing structure; update if necessary

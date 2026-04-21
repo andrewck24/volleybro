@@ -24,6 +24,7 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
 - SEO optimization for tab routes
 - Desktop sidenav pinned/unpinned behavior (always visible, never overlay)
 - Lineup page overlay presentation (deferred to `lineup-overlay` change)
+- Replacing edit pages (`/team/[teamId]/edit`, `/team/[teamId]/players/[playerId]/edit`, `/team/new`, `/team/[teamId]/players/new`) with dialog/drawer components (deferred to a future change; pages remain as full-page routes inside their respective slots)
 
 ## Capabilities
 
@@ -51,3 +52,7 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
   - All `page.tsx` files within `(protected)` — add `<Header>` with page-specific content
   - `src/app/(protected)/@team/team/[teamId]/page.tsx` — Header contains team-switcher drawer (replaces `TeamList` in user menu)
   - `src/components/user/menu/index.tsx` — `TeamList` component removed; team switching moved to team tab Header
+  - `src/app/(protected)/home/` — dead code directory to be removed (replaced by `@home` slot)
+  - `src/app/(protected)/team/` — dead code directory to be removed (replaced by `@team` slot)
+  - `src/app/(protected)/notifications/` — dead code directory to be removed (replaced by `@notifications` slot)
+  - `src/app/(protected)/user/` — dead code directory to be removed (replaced by `@user` slot)
