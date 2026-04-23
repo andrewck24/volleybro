@@ -20,11 +20,29 @@ export const Header = ({
   const router = useRouter();
 
   const handleBack = () => {
-    if (backHref && history.length <= 1) {
-      router.push(backHref);
-    } else {
+    if (!backHref) {
       router.back();
+      return;
     }
+
+    const referrer = document.referrer;
+    if (!referrer) {
+      router.push(backHref);
+      return;
+    }
+
+    try {
+      const referrerUrl = new URL(referrer);
+      if (referrerUrl.origin !== window.location.origin) {
+        router.push(backHref);
+        return;
+      }
+    } catch {
+      router.push(backHref);
+      return;
+    }
+
+    router.back();
   };
 
   return (

@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +7,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import {
   Item,
   ItemContent,
@@ -15,8 +15,9 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
-import { useTeam, useUser, useUserPlayers, useProfile } from "@/hooks/use-data";
+import { useProfile, useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -33,7 +34,7 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
           {isLoading ? (
             <Skeleton className="h-6 w-24" />
           ) : (
-            team?.name ?? "球隊"
+            (team?.name ?? "球隊")
           )}
           <RiArrowDownWideLine className="size-5 shrink-0" />
         </Button>
@@ -59,6 +60,7 @@ function TeamList({
   const { user } = useUser();
   const { profile, mutate: mutateProfile } = useProfile();
   const { players } = useUserPlayers(user?.id);
+  const { toast } = useToast();
 
   const joinedPlayers = players.filter(
     (p) => p.status === PlayerStatus.JOINED && p.teamId,
@@ -75,11 +77,15 @@ function TeamList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTeamId: newTeamId }),
       });
-      mutateProfile();
+      await mutateProfile();
       onSelect();
       router.replace(`/team/${newTeamId}`);
     } catch {
-      /* ignore */
+      toast({
+        title: "切換失敗",
+        description: "球隊切換未儲存，請稍後再試。",
+        variant: "destructive",
+      });
     }
   };
 
