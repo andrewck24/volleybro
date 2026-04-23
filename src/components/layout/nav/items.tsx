@@ -49,10 +49,11 @@ const RIGHT_TABS: Tab[] = ["notifications", "user"];
 export const NavButtonsLeft = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
   <>
     {NAV_ITEMS.filter((item) => LEFT_TABS.includes(item.tab)).map(
-      ({ tab, activeIcon, inactiveIcon }) => (
+      ({ tab, label, activeIcon, inactiveIcon }) => (
         <NavButton
           key={tab}
           tab={tab}
+          label={label}
           active={activeTab === tab}
           onTabSwitch={onTabSwitch}
           activeIcon={activeIcon}
@@ -66,10 +67,11 @@ export const NavButtonsLeft = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
 export const NavButtonsRight = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
   <>
     {NAV_ITEMS.filter((item) => RIGHT_TABS.includes(item.tab)).map(
-      ({ tab, activeIcon, inactiveIcon }) => (
+      ({ tab, label, activeIcon, inactiveIcon }) => (
         <NavButton
           key={tab}
           tab={tab}
+          label={label}
           active={activeTab === tab}
           onTabSwitch={onTabSwitch}
           activeIcon={activeIcon}
@@ -82,6 +84,7 @@ export const NavButtonsRight = ({ activeTab, onTabSwitch }: TabSwitchProps) => (
 
 const NavButton = ({
   tab,
+  label,
   active,
   onTabSwitch,
   activeIcon,
@@ -89,6 +92,7 @@ const NavButton = ({
   className,
 }: {
   tab: Tab;
+  label: string;
   active: boolean;
   onTabSwitch: (tab: Tab) => void;
   activeIcon?: React.ReactNode;
@@ -96,6 +100,7 @@ const NavButton = ({
   className?: string;
 }) => (
   <button
+    aria-label={label}
     onClick={() => onTabSwitch(tab)}
     className={cn(
       "flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-3xl pt-1",
