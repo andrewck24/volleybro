@@ -92,7 +92,7 @@ const SetItem = ({
       value={setIndex.toString()}
       className="rounded-md border last:border"
     >
-      <AccordionTrigger className="flex flex-1 items-center justify-center gap-2 border-0 p-4 hover:bg-accent/80 [&>svg]:size-6">
+      <AccordionTrigger className="flex flex-1 items-center justify-center gap-2 border-0 p-4 hover:bg-muted/50 [&>svg]:size-6">
         <Figure value={rally ? rally.home.score : 0} />
         <span className="flex flex-1 justify-center text-lg">{`第 ${setIndex + 1} 局`}</span>
         <Figure value={rally ? rally.away.score : 0} />

@@ -7,23 +7,23 @@ export const Main = ({ children }: { children: React.ReactNode }) => {
   return (
     <main
       style={{
-        paddingTop: `calc(env(safe-area-inset-top) + 3rem)`,
-        paddingRight: `env(safe-area-inset-right)`,
-        paddingLeft: `env(safe-area-inset-left)`,
+        paddingTop: `calc(env(safe-area-inset-top) + 3.25rem)`,
+        paddingRight: `calc(env(safe-area-inset-right) + 0.5rem)`,
+        paddingLeft: `calc(env(safe-area-inset-left) + 0.5rem)`,
       }}
     >
       <div
-        className={`flex items-center justify-center transition-all duration-300 -pb-2 ${
+        className={`-pb-2 flex items-center justify-center transition-all duration-300 ${
           isPulling || isRefreshing ? "h-12 opacity-100" : "h-0 opacity-0"
         }`}
       >
         <div
-          className={`size-6 border-2 rounded-full border-primary border-t-transparent ${
+          className={`size-6 rounded-full border-2 border-primary border-t-transparent ${
             isRefreshing ? "animate-spin" : ""
           }`}
         />
       </div>
-      <div className="w-full max-w-[640px] flex flex-col h-fit mx-auto pb-16 gap-1">
+      <div className="mx-auto flex h-fit w-full max-w-160 flex-col gap-1 pb-[calc(env(safe-area-inset-bottom)+5rem)]">
         {children}
       </div>
     </main>

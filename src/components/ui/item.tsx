@@ -32,14 +32,17 @@ function ItemSeparator({
 }
 
 const itemVariants = cva(
-  "group/item flex flex-wrap items-center rounded-md border border-transparent text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_a]:transition-colors [&_a]:hover:bg-accent/50",
+  "group/item flex flex-wrap items-center rounded-md text-sm transition-[background-color,color,box-shadow] duration-100 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&_a]:transition-colors [&_a]:hover:bg-muted/40",
   {
     variants: {
       variant: {
-        default: "bg-transparent text-foreground hover:bg-accent/50",
-        primary: "bg-primary text-primary-foreground hover:bg-primary/90",
-        outline: "border-border",
-        muted: "bg-muted/50",
+        default:
+          "bg-card text-foreground shadow-sm ring-1 ring-transparent hover:bg-muted/50",
+        primary:
+          "bg-primary text-primary-foreground shadow-sm ring-1 ring-transparent hover:bg-primary/90",
+        outline:
+          "bg-card text-foreground shadow-xs ring-1 ring-foreground/10 ring-inset hover:bg-muted/40",
+        muted: "bg-muted/60 text-foreground shadow-xs ring-1 ring-transparent",
       },
       size: {
         lg: "gap-4 p-3",
@@ -79,7 +82,7 @@ const itemMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "size-8 rounded-sm border bg-muted [&_svg:not([class*='size-'])]:size-4",
+        icon: "size-8 rounded-sm bg-muted ring-1 ring-foreground/10 ring-inset [&_svg:not([class*='size-'])]:size-4",
         image:
           "size-10 overflow-hidden rounded-sm [&_img]:size-full [&_img]:object-cover",
       },

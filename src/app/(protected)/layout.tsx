@@ -1,15 +1,7 @@
-import { Header } from "@/components/layout/header";
-import { Main } from "@/components/layout/main";
-import { Nav } from "@/components/layout/nav";
+import { TabContainer, type TabContainerProps } from "@/components/layout/tab-container";
 
-const ProtectedLayout = async ({ children }: { children: React.ReactNode }) => {
-  return (
-    <>
-      <Header />
-      <Main>{children}</Main>
-      <Nav />
-    </>
-  );
+const ProtectedLayout = (props: TabContainerProps) => {
+  return <TabContainer {...props} />;
 };
 
 export default ProtectedLayout;
