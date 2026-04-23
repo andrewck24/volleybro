@@ -227,8 +227,12 @@
   animation: 300ms slide-from-left;
 }
 
-/* Keep bottom-nav fixed during tab transitions */
-::view-transition-old(bottom-nav),
+/* Keep navbar visible but avoid old/new stacking (which darkens ring/shadow) */
+::view-transition-old(bottom-nav) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-group(bottom-nav),
 ::view-transition-new(bottom-nav) {
   animation: none;
 }
