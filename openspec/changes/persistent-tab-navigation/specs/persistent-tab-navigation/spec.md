@@ -33,7 +33,7 @@ The system SHALL call `router.replace` with the target tab's current route and `
 #### Scenario: Scroll position preserved on tab switch
 
 - **WHEN** a user scrolls down a page in Tab A, switches to Tab B, and switches back to Tab A
-- **THEN** Tab A's scroll position SHALL remain at the same position as when the user left
+- **THEN** Tab A's scroll position SHALL remain at the same position as when the user left, restored synchronously within the view transition so the user does not observe an intermediate scroll-to-top frame
 
 ### Requirement: Per-tab current route tracking
 
@@ -59,6 +59,49 @@ The system SHALL use URL as the single source of truth for both `activeTab` and 
 
 - **WHEN** the user performs a hard refresh while the Team tab is active at `/team/abc`
 - **THEN** the Team tab SHALL restore to `/team/abc`, and all other tabs SHALL initialize to their root routes
+
+### Requirement: Per-pathname scroll position restoration
+
+The system SHALL store scroll positions in a map keyed by pathname, not by tab. When the user navigates from a parent pathname (e.g. `/team/abc`) to a child pathname (e.g. `/team/abc/players/xyz`) within the same tab, the system SHALL save the parent's current `window.scrollY` before scrolling the new pathname to 0. When the user returns from a child pathname to a previously-visited pathname (via back button or swipe-back gesture), the system SHALL restore the saved `window.scrollY` for that pathname. If the new pathname has no saved value, the system SHALL scroll to 0.
+
+#### Scenario: Parent to child resets scroll to 0
+
+- **WHEN** a user scrolls `/team/abc` to `scrollY = 2000` and navigates to `/team/abc/players/xyz`
+- **THEN** `scrollPositions["/team/abc"]` SHALL be set to `2000`
+- **THEN** the new pathname SHALL be rendered at `scrollY = 0`
+
+#### Scenario: Child to parent restores saved scroll
+
+- **WHEN** a user is at `/team/abc/players/xyz` with a saved `scrollPositions["/team/abc"] = 2000`, and presses the back button
+- **THEN** the pathname SHALL change to `/team/abc` and `window.scrollY` SHALL be restored to `2000`
+- **THEN** the restoration SHALL happen instantly (no visible scroll animation)
+
+#### Scenario: Navigating to an unvisited pathname scrolls to 0
+
+- **WHEN** a user navigates to a pathname with no entry in `scrollPositions`
+- **THEN** the system SHALL scroll to `scrollY = 0`
+
+#### Scenario: Tab-switch scroll is keyed by pathname
+
+- **WHEN** a user is at `/team/abc/players/xyz` with `scrollY = 500`, switches to Home, then switches back to Team
+- **THEN** the system SHALL use `scrollPositions["/team/abc/players/xyz"]` (not a tab-level key) to restore `scrollY = 500`
+
+### Requirement: Tap-active-tab resets tab
+
+When the user taps a navigation item in `NavigationBar` that matches the currently active tab, the system SHALL reset that tab to its root route and scroll to 0, and SHALL clear any saved scroll positions belonging to that tab. The root route for Home, Notifications, and User tabs is `/home`, `/notifications`, and `/user` respectively. The root route for the Team tab is `/team/${activeTeamId}` when `activeTeamId` is known, otherwise `/team`.
+
+#### Scenario: Tap active tab while at tab root
+
+- **WHEN** the user is at `/home` with `scrollY = 1500` and taps the Home tab button
+- **THEN** the URL SHALL remain `/home`
+- **THEN** `window.scrollY` SHALL animate smoothly to `0`
+
+#### Scenario: Tap active tab while on a child route
+
+- **WHEN** the user is at `/team/abc/players/xyz` and taps the Team tab button
+- **THEN** the URL SHALL update to `/team/abc` (the team tab root for the active team)
+- **THEN** `window.scrollY` SHALL be `0` with no visible scroll animation
+- **THEN** all entries in `scrollPositions` whose pathname resolves to the Team tab SHALL be cleared
 
 ### Requirement: Responsive navigation layout
 
@@ -97,7 +140,7 @@ The sidenav SHALL support two states: expanded (icon + label, 200px wide) and co
 
 ### Requirement: Directional tab-switch animation
 
-The system SHALL play a directional slide animation when switching tabs. Switching to a tab with a higher index (right) SHALL slide the new content in from the right and old content out to the left. Switching to a tab with a lower index (left) SHALL reverse the direction. The animation SHALL use the View Transitions API (`document.startViewTransition`) where available and SHALL fall back to an instant switch without animation on unsupported browsers.
+The system SHALL play a directional slide animation when switching tabs in standalone PWA on viewports narrower than 768px. Switching to a tab with a higher index (right) SHALL slide the new content in from the right and old content out to the left. Switching to a tab with a lower index (left) SHALL reverse the direction. The animation SHALL use the View Transitions API (`document.startViewTransition`) where available and SHALL fall back to an instant switch without animation on unsupported browsers. Outside standalone PWA (desktop browsers, mobile browser tabs), tab switching SHALL be instant with `::view-transition-group(tab-content)`, `::view-transition-old(tab-content)`, and `::view-transition-new(tab-content)` all set to `animation: none` to suppress both cross-fade and the default position/size interpolation of the view-transition-group pseudo-element.
 
 #### Scenario: Forward tab switch animation
 
@@ -113,6 +156,12 @@ The system SHALL play a directional slide animation when switching tabs. Switchi
 
 - **WHEN** `document.startViewTransition` is not available (e.g., iOS < 18)
 - **THEN** the tab switch SHALL complete instantly with no animation and no JavaScript error
+
+#### Scenario: Non-PWA tab switch is instant
+
+- **WHEN** the app is running in a non-standalone browser context (e.g., desktop Chrome, mobile browser tab)
+- **THEN** tab switching SHALL produce no visible animation — neither cross-fade nor directional slide nor scroll interpolation
+- **THEN** the old and new tab content SHALL swap in a single frame
 
 ### Requirement: Per-page Header
 

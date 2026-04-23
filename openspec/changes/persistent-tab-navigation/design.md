@@ -102,9 +102,84 @@ Team switching (PATCH `activeTeamId` + navigate) is handled entirely in the team
 
 **Why not derive `activeTab` from a separate local state driven by `switchTab()`:** If `activeTab` is independent of the URL, browser back/forward bypasses `switchTab()` entirely, causing `activeTab` and `pathname` to diverge. The URL-derived approach eliminates this class of desync.
 
-### Scroll position restoration
+### Scroll position restoration (per-pathname)
 
-`scrollPositions` is a `useRef<Record<Tab, number>>` tracking the last `window.scrollY` for all four tabs. Before calling `router.replace`, `switchTab` saves the current scroll position. After the pathname `useEffect` confirms the tab switch, a double-rAF (`requestAnimationFrame` × 2) restores `window.scrollTo({ top: targetY, behavior: "auto" })`. Two frames are needed because `router.replace({ scroll: false })` requires two animation frames for DOM layout to settle before scroll coordinates are accurate.
+Scroll positions are keyed by **pathname**, not by tab. This unifies tab-switch scroll, parent→child navigation, and child→parent back navigation under one mechanism.
+
+```ts
+const scrollPositions = useRef<Record<string, number>>({});
+const prevPathRef = useRef<string>(pathname);
+```
+
+**Tab switch (handled synchronously in `switchTab`):**
+
+```ts
+// Save current pathname's scroll before the URL changes
+scrollPositions.current[pathname] = window.scrollY;
+const route = tabCurrentRoute.current[newTab];
+const targetY = scrollPositions.current[route] ?? 0;
+
+const transition = document.startViewTransition(() => {
+  flushSync(() => setPendingTab(newTab));
+  // DOM is committed; new document height reflects the new tab
+  window.scrollTo({ top: targetY, behavior: "instant" });
+  return router.replace(route, { scroll: false });
+});
+```
+
+`scrollTo` must run **after** `flushSync` (new tab is `display: block`, old tab is `display: none`) and **before** `router.replace` so the view transition's new-state snapshot captures the correct scroll position. Calling `scrollTo` inside the `flushSync` callback runs it against the pre-commit DOM and may be clamped by the old layout.
+
+**Sub-path navigation within the same tab (handled in `useEffect([pathname])`):**
+
+```ts
+useEffect(() => {
+  const prev = prevPathRef.current;
+  if (prev === pathname) return;
+  prevPathRef.current = pathname;
+
+  if (resolveTabFromPath(prev) !== resolveTabFromPath(pathname)) return; // tab switch, already handled
+
+  scrollPositions.current[prev] = window.scrollY;
+  window.scrollTo({
+    top: scrollPositions.current[pathname] ?? 0,
+    behavior: "instant",
+  });
+}, [pathname]);
+```
+
+In Next.js parallel routes, sub-path navigations within a slot do not unmount the tab container; `window.scrollY` is preserved across the transition. The effect fires after the new pathname is committed, at which point:
+
+- The previous pathname's scroll is captured (it has not yet been overwritten by anything)
+- If the new pathname has a saved value → restore it (child→parent back)
+- Otherwise → `scrollTo(0)` (parent→child forward)
+
+**Why per-pathname rather than per-tab:** A per-tab map cannot distinguish between `/team/abc` and `/team/abc/players/xyz` — both belong to the Team tab. A per-pathname map naturally supports the hierarchy.
+
+### Tap-active-tab to reset
+
+`NavigationBar`'s tab button handler detects `newTab === activeTab` and resets the tab to its root instead of no-oping:
+
+```ts
+if (newTab === activeTab) {
+  const root = newTab === "team" && teamId ? `/team/${teamId}` : `/${newTab}`;
+  tabCurrentRoute.current[newTab] = root;
+  // Clear saved scroll for all paths belonging to this tab
+  for (const key of Object.keys(scrollPositions.current)) {
+    if (resolveTabFromPath(key) === newTab) delete scrollPositions.current[key];
+  }
+  if (pathname === root) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } else {
+    router.replace(root, { scroll: false });
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  return;
+}
+```
+
+Clearing the tab's saved scroll positions prevents stale restore values after the reset; the next parent→child navigation starts fresh.
+
+**Why `smooth` only when already at root:** When the tab is already showing its root route, tapping the tab should produce a visible scroll-to-top animation (native iOS tab behavior). When the tab is deep, the user expects an instant reset of both route and scroll.
 
 ### Responsive nav: unified NavigationBar
 
@@ -119,23 +194,36 @@ A single `<NavigationBar>` component (`src/components/layout/nav/index.tsx`) han
 
 ### View transition animation
 
-Tab switching wraps the `activeTab` state update in `document.startViewTransition()`:
+Tab switching wraps the `activeTab` state update in `document.startViewTransition()`. To prevent the activeTab from briefly reverting between `transition.finished` and the pathname update (observed in Chrome), the transition target is tracked in `pendingTab` state, set synchronously via `flushSync` inside the transition callback.
 
 ```ts
 const direction = newTab > activeTab ? "forward" : "backward";
 document.documentElement.dataset.direction = direction;
-const navigate = () => router.replace(tabCurrentRoute[newTab], { scroll: false });
-document.startViewTransition?.(navigate) ?? navigate();
+const transition = document.startViewTransition(() => {
+  flushSync(() => setPendingTab(newTab));
+  window.scrollTo({ top: targetY, behavior: "instant" });
+  return router.replace(route, { scroll: false });
+});
+transition.finished.then(() => {
+  if (currentPathTabRef.current === newTab) clearPendingTab(newTab);
+});
 ```
 
-`activeTab` updates automatically via the `useEffect([pathname])` after `router.replace` changes the URL. It is not set directly inside `switchTab()`.
+`pendingTab` is cleared only when both the animation finishes AND the pathname-derived tab matches — preventing a one-frame `activeTab` revert if either signal lags.
 
 CSS targets `view-transition-name: tab-content` on the slot container:
 
 - `forward`: old slides left, new slides in from right
 - `backward`: old slides right, new slides in from left
 
-Animation duration: 300ms ease. Fallback (no View Transitions API support): instant switch, no animation.
+Animation duration: 300ms ease.
+
+**Animation restricted to standalone PWA.** Directional slide rules live inside `@media (display-mode: standalone) and (width < 768px)`. Outside standalone PWA (desktop Chrome, mobile browser tabs), the `::view-transition-group`, `::view-transition-old`, and `::view-transition-new` for `tab-content` are all set to `animation: none`. This avoids two Chrome-specific visual issues:
+
+1. A flash of the old tab's content after the 300ms slide completes (caused by Chrome resolving `transition.finished` before Next.js pathname propagation).
+2. A "phantom scroll" effect where `::view-transition-group(tab-content)` interpolates the element's viewport position from the old scroll offset to the new scroll offset, producing an unwanted sliding motion during tab switches with different scroll positions. Setting `animation: none` on the group (not just old/new) is required because the group has its own default position/size interpolation animation that is independent of the cross-fade.
+
+Fallback (no View Transitions API support): instant switch, no animation.
 
 ### Per-page Header
 

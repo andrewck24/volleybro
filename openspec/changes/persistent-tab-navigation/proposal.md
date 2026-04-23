@@ -10,17 +10,18 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
 - Nav is always visible regardless of route depth — no conditional hiding
 - On `≥ md` (768px+): render a collapsible sidenav (icon + label when expanded, icon-only when collapsed) instead of the bottom nav
 - On `< md`: render bottom nav with `padding-bottom: env(safe-area-inset-bottom)` for iOS safe area
-- Tab-switch animation using `document.startViewTransition()` with directional CSS (slide left/right based on tab order index); graceful fallback for unsupported browsers
+- Tab-switch animation using `document.startViewTransition()` with directional CSS (slide left/right based on tab order index); graceful fallback for unsupported browsers. Animation is restricted to standalone PWA via `@media (display-mode: standalone)`; in non-PWA environments (desktop Chrome) the transition is instant to avoid a viewport-position slide caused by Chrome's race between `transition.finished` and Next.js pathname propagation
 - Each page (`page.tsx`) renders its own `<Header>` with a shared shell component for visual consistency; layout no longer owns the header
 - All deep routes moved inside their respective `@<tab>` slot directories so navigating deep does not unmount other tabs
 - Each route segment inside a slot provides a `default.tsx` for hard-refresh fallback
+- Scroll position restoration keyed by pathname (not by tab): entering a child route scrolls to 0, returning to the parent restores the parent's saved scroll; scroll is stored in `Record<string, number>` keyed on pathname
+- Tapping the active tab in `NavigationBar` resets that tab to its root route and scrolls to 0 (iOS-style "tap tab to scroll-to-top")
 
 ## Non-Goals
 
 - Per-tab history stack (browser history naturally handles back navigation since all pages are reached from parent routes)
 - Swipe-back gesture interception (PWA standalone mode has no browser navigation bar)
 - Redux-managed routing (Next.js router is the source of truth)
-- Scroll position restoration for same-tab navigations (e.g. scrolling within a page and then navigating deeper)
 - SEO optimization for tab routes
 - Desktop sidenav pinned/unpinned behavior (always visible, never overlay)
 - Lineup page overlay presentation (deferred to `lineup-overlay` change)
@@ -45,6 +46,9 @@ VolleyBro is a PWA used like a native app. The current bottom navbar resets each
   - `src/app/(protected)/@team/` — new slot directory (moved from `team/`)
   - `src/app/(protected)/@notifications/` — new slot directory (moved from `notifications/`)
   - `src/app/(protected)/@user/` — new slot directory (moved from `user/`)
+  - `src/components/layout/tab-container.tsx` — owns per-pathname scroll map; intercepts sub-path navigation via `useEffect([pathname])` to save parent scroll and scroll new pathname to saved value or 0
+  - `src/components/layout/nav/index.tsx` — `NavigationBar` adds tap-active-tab-to-reset behavior
+  - `src/app/globals.css` — disables `::view-transition-group(tab-content)` animation outside standalone PWA
   - `src/components/layout/nav/links.tsx` — converted from `<Link>` to tab-toggle buttons with `router.replace`
   - `src/components/layout/nav/bottom-nav.tsx` — mobile bottom nav shell
   - `src/components/layout/nav/side-nav.tsx` — desktop collapsible sidenav

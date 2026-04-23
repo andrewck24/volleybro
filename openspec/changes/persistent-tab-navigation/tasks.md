@@ -61,3 +61,30 @@
 - [x] 10.4 Manually verify team-switcher in team Header: switch teams, confirm URL resets to `/team/${newTeamId}` and user menu no longer shows team list
 - [x] 10.5 Manually verify directional tab-switch animation on a supported browser; confirm instant fallback on unsupported environments
 - [x] 10.6 Review whether `docs/`, `README.md`, `CONTRIBUTING.md`, `openspec/config.yaml`, and `CLAUDE.md` need updating based on the new routing structure; update if necessary
+
+## 11. View transition animation reliability fix
+
+- [x] 11.1 Add `pendingTab` state to `tab-container.tsx`: `useState<Tab | null>(null)`; derive `activeTab = pendingTab ?? resolveTabFromPath(pathname)`; inside `startViewTransition` callback call `setPendingTab(newTab)` synchronously before returning `router.replace(...)` so the DOM updates within the transition frame; clear `pendingTab` in `useEffect([activeTab, pathname])` via `setPendingTab(null)`
+
+## 12. Per-pathname scroll position restoration
+
+- [x] 12.1 Implement per-pathname scroll position restoration: refactor `scrollPositions` in `src/components/layout/tab-container.tsx` from `useRef<Record<Tab, number>>` to `useRef<Record<string, number>>` keyed by pathname; remove the four-tab initial literal (start from `{}`); add `prevPathRef = useRef<string>(pathname)` to track the last observed pathname
+- [x] 12.2 Update `switchTab` to save the current pathname's scroll before navigation: replace `scrollPositions.current[activeTab] = window.scrollY` with `scrollPositions.current[pathname] = window.scrollY`; resolve `targetY` by reading `scrollPositions.current[tabCurrentRoute.current[newTab]] ?? 0` and pass it to the synchronous `window.scrollTo` call inside the `startViewTransition` callback (keep the existing `flushSync` → `scrollTo` → `router.replace` ordering)
+- [x] 12.3 Replace the `useEffect([pathname])` scroll logic in `tab-container.tsx`: on pathname change, early-return if `resolveTabFromPath(prev) !== resolveTabFromPath(pathname)` (tab switch, already handled by `switchTab`); otherwise save `scrollPositions.current[prev] = window.scrollY` then call `window.scrollTo({ top: scrollPositions.current[pathname] ?? 0, behavior: "instant" })`; update `prevPathRef.current = pathname` after reading it
+- [x] 12.4 Manually verify scroll behavior on a supported PWA environment: (a) parent `/team/[teamId]` scrolled down → navigate to child player page → child starts at scrollY=0; (b) press back → parent restores to saved scrollY; (c) tab switch between tabs with different scroll depths works exactly as before
+- [x] 12.5 Manually verify on desktop Chrome (non-PWA): no phantom scroll animation during tab switch; scroll restoration on parent/child navigation is instant (no smooth-scroll)
+
+## 13. Tap-active-tab resets tab
+
+- [x] 13.1 Implement tap-active-tab resets tab: update `NavigationBar` tab-button handler in `src/components/layout/nav/index.tsx` (or wherever `onTabSwitch` is invoked from the tab buttons): detect `newTab === activeTab`; if true, compute the tab root (`/team/${teamId}` for the team tab when `teamId` is known, otherwise `/${newTab}`); if `pathname === root`, call `window.scrollTo({ top: 0, behavior: "smooth" })` without navigating; otherwise call `router.replace(root, { scroll: false })` then `window.scrollTo({ top: 0, behavior: "instant" })`
+- [x] 13.2 In the same tap-active-tab branch, clear all entries in `scrollPositions.current` whose pathname resolves to `newTab` via `resolveTabFromPath`, and reset `tabCurrentRoute.current[newTab]` to the tab root; expose these refs from `tab-container.tsx` to `NavigationBar` via a callback prop (e.g. `onResetTab`) or lift the reset logic into `switchTab` by keeping the early-return-on-same-tab branch but executing the reset before returning
+- [ ] 13.3 Manually verify: (a) at tab root with scrollY > 0, tap active tab → smooth scroll to top, URL unchanged; (b) on a deep child route, tap active tab → URL resets to tab root, scrollY=0 immediately; (c) after reset, navigating away and back to a previously-visited child path does NOT restore stale scroll
+
+## 14. View transition group animation suppression
+
+- [x] 14.1 In `src/app/globals.css`, extend the "Disable default cross-fade" rule outside standalone PWA to also target `::view-transition-group(tab-content)` so the group's default position/size interpolation is disabled alongside the old/new cross-fade; verify no phantom scroll animation appears on desktop Chrome tab switch
+
+## 15. Verification
+
+- [x] 15.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` and confirm all pass
+- [x] 15.2 Apply `/simplify` to review changed files in `src/components/layout/tab-container.tsx`, `src/components/layout/nav/index.tsx`, and `src/app/globals.css`; address any flagged reuse/quality/efficiency issues before committing

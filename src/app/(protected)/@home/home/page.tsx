@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "首頁" };
 const HomePage = () => {
   return (
     <>
-      <Header className="text-primary" title="VolleyBro" />
+      <Header className="font-medium text-primary" title="VolleyBro" />
       <Home />
     </>
   );

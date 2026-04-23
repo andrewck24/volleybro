@@ -233,8 +233,15 @@
   animation: none;
 }
 
-/* Tab-switch directional slide animation (mobile only) */
-@media (width < 768px) {
+/* Disable default cross-fade and group position/size animation for tab-content outside standalone PWA */
+::view-transition-group(tab-content),
+::view-transition-old(tab-content),
+::view-transition-new(tab-content) {
+  animation: none;
+}
+
+/* Tab-switch directional slide animation (standalone PWA only) */
+@media (display-mode: standalone) and (width < 768px) {
   [data-direction="forward"]::view-transition-old(tab-content) {
     animation: 300ms ease slide-to-left;
   }

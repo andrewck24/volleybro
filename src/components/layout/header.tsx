@@ -50,7 +50,7 @@ export const Header = ({
         )}
         <div className="flex flex-1 items-center justify-center">
           {children ?? (
-            <h1 className="m-0 text-center text-xl font-medium">{title}</h1>
+            <h1 className="m-0 text-center text-xl">{title}</h1>
           )}
         </div>
         <div className="size-8 shrink-0" />
