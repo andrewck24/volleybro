@@ -78,7 +78,7 @@
 
 - [x] 13.1 Implement tap-active-tab resets tab: update `NavigationBar` tab-button handler in `src/components/layout/nav/index.tsx` (or wherever `onTabSwitch` is invoked from the tab buttons): detect `newTab === activeTab`; if true, compute the tab root (`/team/${teamId}` for the team tab when `teamId` is known, otherwise `/${newTab}`); if `pathname === root`, call `window.scrollTo({ top: 0, behavior: "smooth" })` without navigating; otherwise call `router.replace(root, { scroll: false })` then `window.scrollTo({ top: 0, behavior: "instant" })`
 - [x] 13.2 In the same tap-active-tab branch, clear all entries in `scrollPositions.current` whose pathname resolves to `newTab` via `resolveTabFromPath`, and reset `tabCurrentRoute.current[newTab]` to the tab root; expose these refs from `tab-container.tsx` to `NavigationBar` via a callback prop (e.g. `onResetTab`) or lift the reset logic into `switchTab` by keeping the early-return-on-same-tab branch but executing the reset before returning
-- [ ] 13.3 Manually verify: (a) at tab root with scrollY > 0, tap active tab → smooth scroll to top, URL unchanged; (b) on a deep child route, tap active tab → URL resets to tab root, scrollY=0 immediately; (c) after reset, navigating away and back to a previously-visited child path does NOT restore stale scroll
+- [x] 13.3 Manually verify: (a) at tab root with scrollY > 0, tap active tab → smooth scroll to top, URL unchanged; (b) on a deep child route, tap active tab → URL resets to tab root, scrollY=0 immediately; (c) after reset, navigating away and back to a previously-visited child path does NOT restore stale scroll
 
 ## 14. View transition group animation suppression
 
