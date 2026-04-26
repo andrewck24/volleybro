@@ -115,6 +115,100 @@ Alternative considered: hybrid React state + direct DOM mutation on the consumer
 
 Rollback: revert the change. The legacy hook code path is fully removed by step 3, so rollback is a single revert.
 
+### Minimum refresh display via concurrent Promise.all
+
+When `onRefresh()` resolves very quickly (e.g., warm SWR cache), the volleyball bounce animation flashes too briefly for users to perceive that a refresh happened. A `minRefreshDisplay` option (default `300` ms) guarantees the animation stays visible for at least that duration while still waiting for the refresh to fully complete.
+
+Implementation: replace `await onRefreshRef.current()` with:
+
+```ts
+await Promise.all([
+  onRefreshRef.current(),
+  new Promise(r => setTimeout(r, minRefreshDisplay)),
+]);
+```
+
+`Promise.all` waits for **both** the refresh callback and the timer to settle. `isRefreshing` stays `true` until both are done — meaning the animation is always shown for at least `minRefreshDisplay` ms, and always waits for the data to finish loading regardless of how long it takes. `isRefreshingRef.current` remains `true` throughout, so the concurrent-gesture guard continues to work.
+
+No changes are needed in `PullRefreshIndicator` — it renders the animation as long as `isRefreshing` is `true`.
+
+Alternative considered: tracking `Date.now()` at refresh start and computing remaining time in the `finally` block. Rejected — more complex and equivalent in effect; the `Promise.all` idiom directly expresses "wait for the longer of the two."
+
+Alternative considered: enforcing the minimum in `PullRefreshIndicator` by delaying the visual transition. Rejected — hook state would reset before the animation ends, allowing a concurrent refresh to begin while the previous animation is still playing.
+
+### Refresh error surfaces to consumer via `onError` callback and `refreshError` state
+
+When `onRefresh()` rejects (network failure, server error) or the `refreshTimeout` elapses before both the callback and the minimum-display timer settle, the hook surfaces the failure through two mechanisms:
+
+1. **`onError?: (error: unknown) => void`** option — called synchronously in the catch block with the raw error. Consumers use this to show a toast when stale data is already displayed.
+2. **`refreshError: unknown`** added to the returned state — set to the caught error and reset to `null` when the next pull gesture begins. Consumers use this to render `<ServerErrorState>` when no cached data exists.
+
+Consumer decision logic:
+
+- `if (hasData && refreshError) → showErrorToast(error, toast)` via `onError`
+- `if (!hasData && (swrError || refreshError)) → <ServerErrorState />`
+
+The two mechanisms are complementary: `onError` fires immediately (ephemeral toast), `refreshError` persists in state until the next gesture (fallback UI when there is nothing to show).
+
+Alternative considered: a single `onError` callback with no `refreshError` state, requiring consumers to manage their own local error state. Rejected — every consumer would duplicate the same `useState(null)` + `useEffect` pattern; returning `refreshError` from the hook keeps that logic in one place.
+
+### Timeout via `Promise.race` wrapping the existing `Promise.all`
+
+The `refreshTimeout` option (default `8000` ms) caps the total wait time for a refresh. The existing `Promise.all([callback, minDisplayTimer])` is wrapped in a `Promise.race` against a timeout promise. Both timers use stored IDs so `clearTimeout` can be called in `finally` — this prevents the 8 s timeout setTimeout from lingering as a dangling callback after a normal refresh completes:
+
+```ts
+export class RefreshTimeoutError extends Error {
+  constructor() { super("refresh timeout"); this.name = "RefreshTimeoutError"; }
+}
+
+let minDisplayId: ReturnType<typeof setTimeout> | undefined;
+let timeoutId: ReturnType<typeof setTimeout> | undefined;
+const minDisplayTimer = new Promise<void>(r => { minDisplayId = setTimeout(r, minRefreshDisplay); });
+const timeoutTimer = new Promise<never>((_, reject) => {
+  timeoutId = setTimeout(() => reject(new RefreshTimeoutError()), refreshTimeout);
+});
+
+try {
+  await Promise.race([
+    Promise.all([onRefreshRef.current(), minDisplayTimer]),
+    timeoutTimer,
+  ]);
+} catch (error) { /* onError, refreshError */ } finally {
+  clearTimeout(minDisplayId);
+  clearTimeout(timeoutId);
+  /* reset isRefreshing state */
+}
+```
+
+`clearTimeout(timeoutId)` is the critical call: every successful refresh (which finishes before 8 s) would otherwise leave an 8 s dangling `setTimeout` that fires unnecessarily — a cumulative drain on the mobile event loop. `clearTimeout(minDisplayId)` is a no-op in most paths (the 300 ms timer has already fired) but is included for symmetry and correctness on the timeout path.
+
+When `timeoutTimer` wins the race, the hook catches a `RefreshTimeoutError`, calls `onError`, and sets `refreshError`. The underlying SWR `mutate()` remains in-flight; SWR 2.x does not pass an `AbortSignal` to fetchers, and all PTR-triggered calls are idempotent GET revalidations, so the in-flight request completing later is safe — SWR updates its cache and triggers a re-render normally. Re-entry (a second pull while the timed-out request is still in-flight) is accepted: each `onTouchEnd` closure writes to `isRefreshingRef` independently, and SWR processes both GET responses without data inconsistency. `AbortController` support is deferred to a separate change if mutation-style callbacks are ever introduced.
+
+`RefreshTimeoutError` is an exported class so that `showErrorToast` can branch on it: `error instanceof RefreshTimeoutError → "連線逾時，請稍後再試"`. No new `onTimeout` callback is introduced — unified `onError` with type discrimination avoids premature abstraction.
+
+### Unified `onError` with `showErrorToast` branching rather than split `onTimeout`
+
+A single `onError` callback handles both refresh failures and timeouts. `showErrorToast` (in `src/lib/api/error-toast.ts`) gains a `RefreshTimeoutError` branch that renders "連線逾時，請稍後再試" — consistent with its existing server-error and operational-error branches.
+
+A dedicated `onTimeout` callback was considered. Rejected: at the current two-consumer scale, splitting the API adds indirection with no concrete benefit. The abstraction should be introduced if three or more call sites produce identical `onTimeout` implementations.
+
+### `game-history.tsx` conditional rendering flattened to early returns
+
+`game-history.tsx` previously used an inline `renderContent()` helper to manage five conditional states (loading, error, no team, no data, data). This pattern adds a layer of indirection — readers must locate the helper definition before understanding the render tree.
+
+The component is refactored to use early returns at the top of the component body, matching the pattern used in `team/index.tsx`. Each early-return branch includes `<PullRefreshIndicator>` as the first child so the indicator is always present at the same DOM position. The `refreshError` check is naturally expressed as one of these early returns:
+
+```tsx
+if (!hasData && (error || refreshError)) return (
+  <div ref={containerRef}>
+    <PullRefreshIndicator state={refreshState} />
+    <ServerErrorState onRetry={() => mutate()} />
+  </div>
+);
+```
+
+The `renderContent()` function is deleted entirely.
+
 ## Open Questions
 
 None. All design choices have been resolved through prior discussion.

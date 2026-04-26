@@ -46,7 +46,7 @@ export function PullRefreshIndicator({ state }: PullRefreshIndicatorProps) {
       aria-hidden
     >
       <MdOutlineSportsVolleyball
-        className={isRefreshing ? "animate-spin animate-volleyball-bounce" : ""}
+        className={isRefreshing ? "animate-volleyball-bounce animate-spin" : ""}
         style={{
           opacity,
           scale,

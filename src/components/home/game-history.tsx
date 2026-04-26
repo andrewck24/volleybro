@@ -1,6 +1,7 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
+import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator";
 import {
   Empty,
   EmptyDescription,
@@ -16,7 +17,6 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator";
 import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import type { GameSummaryView } from "@/lib/features/game/types";

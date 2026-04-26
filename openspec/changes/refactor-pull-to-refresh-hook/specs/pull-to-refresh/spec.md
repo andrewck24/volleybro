@@ -95,6 +95,46 @@ While `onRefresh` is awaited (the returned `isRefreshing` state is `true`), addi
 - **WHEN** `isRefreshing` is `true` (a refresh is in progress) and the user pulls down past `threshold` and releases again
 - **THEN** `onRefresh` is NOT invoked a second time
 
+### Requirement: Refresh errors surface to consumers via callback and state
+
+When the refresh operation fails — either because `onRefresh` rejects (network error, server error) or because the `refreshTimeout` elapses — the hook MUST:
+
+1. Invoke the `onError` option callback (if provided) with the caught error.
+2. Set `refreshError` (`unknown | null`) in the returned state to the caught error object.
+3. Reset `refreshError` to `null` when the next pull gesture begins (`touchstart` fires).
+
+The hook MUST export a `RefreshTimeoutError` class. When the `refreshTimeout` deadline is reached before both `onRefresh` and the minimum-display timer settle, the hook MUST reject with a `new RefreshTimeoutError()` instance. This allows consumers and utilities such as `showErrorToast` to discriminate timeout failures from network or server errors.
+
+The `onError` callback and `refreshError` state serve complementary roles: `onError` is ephemeral (used to show a toast while stale data remains visible); `refreshError` persists until the next gesture (used to render a fallback error UI when no data exists).
+
+The `onError` callback MUST be called before `isRefreshing` is set to `false`, so that consumers can inspect `isRefreshing` within the callback if needed.
+
+#### Scenario: `onError` called and `refreshError` set on refresh failure
+
+- **WHEN** `onRefresh` rejects with any error
+- **THEN** the `onError` callback is invoked with that error
+- **AND** `refreshError` in the returned state is set to that error
+- **AND** `isRefreshing` becomes `false`
+
+#### Scenario: `onError` called with `RefreshTimeoutError` on timeout
+
+- **GIVEN** `refreshTimeout = 8000`
+- **WHEN** 8000 ms elapse before the refresh settles
+- **THEN** the `onError` callback is invoked with a `RefreshTimeoutError` instance
+- **AND** `refreshError` is set to that `RefreshTimeoutError`
+
+#### Scenario: `refreshError` cleared on next gesture
+
+- **GIVEN** `refreshError` is non-null from a previous failed refresh
+- **WHEN** the user begins a new pull gesture (`touchstart` fires)
+- **THEN** `refreshError` is reset to `null`
+
+#### Scenario: No `onError` call on successful refresh
+
+- **WHEN** `onRefresh` resolves within `refreshTimeout`
+- **THEN** `onError` is NOT called
+- **AND** `refreshError` remains `null`
+
 ### Requirement: Snap-back animation uses transient CSS transition on the indicator wrapper
 
 When the touch gesture ends, the `PullRefreshIndicator` wrapper MUST receive a `height` CSS transition so the snap-back from the current `pullDistance` to `0` is animated smoothly. The transition MUST be removed on `transitionend` so subsequent `touchmove`-driven `pullDistance` updates apply immediately without lag.
@@ -124,7 +164,7 @@ The transition MUST be applied to the indicator wrapper element, NOT to the cons
 The hook SHALL return `{ isPulling, isRefreshing, pullDistance, progress }` where:
 
 - `isPulling: boolean` is `true` between `touchstart` and `touchend` whenever `pullDistance > 0`.
-- `isRefreshing: boolean` is `true` from the moment `onRefresh` is invoked until the returned promise resolves; `false` otherwise.
+- `isRefreshing: boolean` is `true` from the moment `onRefresh` is invoked until both the returned promise resolves AND the `minRefreshDisplay` timer (default 300 ms) elapses; `false` otherwise.
 - `pullDistance: number` is the current damped vertical displacement in pixels.
 - `progress: number` is `pullDistance / threshold`, clamped to `[0, 1]`.
 
@@ -141,6 +181,28 @@ These values MUST be exposed via React state so consumers re-render when they ch
 - **GIVEN** `threshold = 80` and `maxPull = 128`
 - **WHEN** the user pulls past threshold to a damped `pullDistance` of 120
 - **THEN** `progress` returns `1` (not 1.5)
+
+### Requirement: Refresh animation displays for a minimum duration
+
+The hook SHALL keep `isRefreshing` true for at least `minRefreshDisplay` milliseconds (default `300`) after invoking `onRefresh`, even if the callback resolves before that duration elapses. The hook MUST also wait for `onRefresh` to fully resolve before setting `isRefreshing` to `false`, regardless of how long that takes.
+
+The minimum display timer and the `onRefresh` callback MUST run concurrently (not sequentially), so that the total wait time is `max(onRefresh duration, minRefreshDisplay)` rather than their sum.
+
+The `minRefreshDisplay` value MUST be configurable via the hook's `options` parameter. When not provided, it defaults to `300`.
+
+#### Scenario: Fast refresh holds animation for minimum duration
+
+- **GIVEN** `minRefreshDisplay = 300`
+- **WHEN** `onRefresh` resolves after 50 ms
+- **THEN** `isRefreshing` remains `true` for at least 300 ms from the moment it was set
+- **AND** `isRefreshing` becomes `false` after approximately 300 ms
+
+#### Scenario: Slow refresh holds animation until data is ready
+
+- **GIVEN** `minRefreshDisplay = 300`
+- **WHEN** `onRefresh` resolves after 1000 ms
+- **THEN** `isRefreshing` remains `true` until `onRefresh` resolves (approximately 1000 ms)
+- **AND** `isRefreshing` becomes `false` without any additional delay beyond what `onRefresh` required
 
 ### Requirement: PullRefreshIndicator component renders gesture and refresh visuals as a flow-layout sibling
 

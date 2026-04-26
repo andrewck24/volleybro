@@ -1,5 +1,5 @@
-import { renderHook, act } from "@testing-library/react";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { act, renderHook } from "@testing-library/react";
 
 jest.mock("@/lib/pwa", () => ({
   isStandalone: jest.fn(),
@@ -38,9 +38,7 @@ describe("usePullToRefresh", () => {
       mockIsStandalone.mockReturnValue(false);
       const addEventListenerSpy = jest.spyOn(el, "addEventListener");
 
-      const { result } = renderHook(() =>
-        usePullToRefresh(ref, jest.fn()),
-      );
+      const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));
 
       expect(result.current).toEqual({
         isPulling: false,
@@ -115,7 +113,11 @@ describe("usePullToRefresh", () => {
   describe("state updates", () => {
     it("updates pullDistance and progress on touchmove", () => {
       const { result } = renderHook(() =>
-        usePullToRefresh(ref, jest.fn(), { threshold: 80, maxPull: 128, resistance: 0.4 }),
+        usePullToRefresh(ref, jest.fn(), {
+          threshold: 80,
+          maxPull: 128,
+          resistance: 0.4,
+        }),
       );
 
       act(() => {
@@ -133,9 +135,7 @@ describe("usePullToRefresh", () => {
     });
 
     it("ignores upward pull (negative dy)", () => {
-      const { result } = renderHook(() =>
-        usePullToRefresh(ref, jest.fn()),
-      );
+      const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));
 
       act(() => {
         el.dispatchEvent(makeTouchEvent("touchstart", 100));
@@ -171,7 +171,11 @@ describe("usePullToRefresh", () => {
 
     it("clamps progress to 1 when pullDistance exceeds threshold", () => {
       const { result } = renderHook(() =>
-        usePullToRefresh(ref, jest.fn(), { threshold: 80, maxPull: 128, resistance: 0.4 }),
+        usePullToRefresh(ref, jest.fn(), {
+          threshold: 80,
+          maxPull: 128,
+          resistance: 0.4,
+        }),
       );
 
       act(() => {
@@ -207,7 +211,9 @@ describe("usePullToRefresh", () => {
       renderHook(() => usePullToRefresh(ref, jest.fn()));
 
       expect(spy).toHaveBeenCalledTimes(1);
-      expect(spy).toHaveBeenCalledWith("touchstart", expect.any(Function), { passive: true });
+      expect(spy).toHaveBeenCalledWith("touchstart", expect.any(Function), {
+        passive: true,
+      });
     });
 
     it("removes move/end/cancel listeners after touchend", () => {
@@ -223,7 +229,10 @@ describe("usePullToRefresh", () => {
 
       expect(removeSpy).toHaveBeenCalledWith("touchmove", expect.any(Function));
       expect(removeSpy).toHaveBeenCalledWith("touchend", expect.any(Function));
-      expect(removeSpy).toHaveBeenCalledWith("touchcancel", expect.any(Function));
+      expect(removeSpy).toHaveBeenCalledWith(
+        "touchcancel",
+        expect.any(Function),
+      );
     });
   });
 });
