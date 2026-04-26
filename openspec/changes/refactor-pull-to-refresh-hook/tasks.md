@@ -23,10 +23,10 @@
 
 ## 4. Legacy removal
 
-- [ ] 4.1 Delete `src/lib/hooks/usePullToRefresh.ts` (legacy hook and global-slice are removed)
-- [ ] 4.2 Delete `src/lib/features/global-slice.ts` and remove the `globalReducer` import + registration from `src/lib/redux/store.ts` (legacy hook and global-slice are removed)
-- [ ] 4.3 Delete `src/components/layout/main.tsx` (orphaned by the persistent-tab-navigation change; legacy hook and global-slice are removed)
-- [ ] 4.4 Run `pnpm typecheck` to verify no remaining imports of removed files
+- [x] 4.1 Delete `src/lib/hooks/usePullToRefresh.ts` (legacy hook and global-slice are removed)
+- [x] 4.2 Delete `src/lib/features/global-slice.ts` and remove the `globalReducer` import + registration from `src/lib/redux/store.ts` (legacy hook and global-slice are removed)
+- [x] 4.3 Delete `src/components/layout/main.tsx` (orphaned by the persistent-tab-navigation change; legacy hook and global-slice are removed)
+- [x] 4.4 Run `pnpm typecheck` to verify no remaining imports of removed files
 
 ## 5. Verification
 

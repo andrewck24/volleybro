@@ -1,12 +1,10 @@
 import gameReducer from "@/lib/features/game/game-slice";
-import globalReducer from "@/lib/features/global-slice";
 import lineupReducer from "@/lib/features/team/lineup-slice";
 import { configureStore } from "@reduxjs/toolkit";
 
 export const makeStore = () => {
   return configureStore({
     reducer: {
-      global: globalReducer,
       lineup: lineupReducer,
       game: gameReducer,
     },
