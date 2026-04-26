@@ -7,6 +7,7 @@ export interface PullToRefreshOptions {
   maxPull?: number;
   resistance?: number;
   pwaOnly?: boolean;
+  minRefreshDisplay?: number;
 }
 
 export interface PullToRefreshState {
@@ -32,6 +33,9 @@ function appr(dy: number, max: number, k: number): number {
  * - The hook activates only in PWA standalone mode
  *   (`matchMedia("(display-mode: standalone)")` or iOS `navigator.standalone`).
  *   In non-standalone contexts it returns zero-state and registers no listeners.
+ * - `minRefreshDisplay`: Minimum milliseconds `isRefreshing` stays `true` after
+ *   `onRefresh` is invoked. Timer and callback run concurrently; total wait is
+ *   `max(onRefresh duration, minRefreshDisplay)`. Default: 300.
  */
 export function usePullToRefresh(
   ref: RefObject<HTMLElement | null>,
@@ -43,6 +47,7 @@ export function usePullToRefresh(
     maxPull = 128,
     resistance = 0.4,
     pwaOnly = true,
+    minRefreshDisplay = 300,
   } = options ?? {};
 
   const [state, setState] = useState<PullToRefreshState>({
@@ -106,7 +111,10 @@ export function usePullToRefresh(
             progress: 1,
           });
           try {
-            await onRefreshRef.current();
+            await Promise.all([
+              onRefreshRef.current(),
+              new Promise<void>((r) => setTimeout(r, minRefreshDisplay)),
+            ]);
           } finally {
             isRefreshingRef.current = false;
             setState({
@@ -147,7 +155,7 @@ export function usePullToRefresh(
       el.removeEventListener("touchstart", onTouchStart);
       gestureCleanupRef.current?.();
     };
-  }, [ref, threshold, maxPull, resistance, pwaOnly]);
+  }, [ref, threshold, maxPull, resistance, pwaOnly, minRefreshDisplay]);
 
   return state;
 }

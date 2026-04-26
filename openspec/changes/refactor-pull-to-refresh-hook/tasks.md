@@ -48,10 +48,10 @@ Context: post-implementation testing showed the absolute-positioned indicator ov
 
 ## 7. Minimum refresh display duration
 
-- [ ] 7.1 Write failing tests first (TDD): in `src/hooks/__tests__/use-pull-to-refresh.test.ts`, add two tests — (a) when `onRefresh` resolves in 50 ms and `minRefreshDisplay = 300`, assert `isRefreshing` is still `true` at 200 ms and `false` after ~300 ms; (b) when `onRefresh` resolves in 500 ms and `minRefreshDisplay = 300`, assert `isRefreshing` becomes `false` at ~500 ms (no extra delay). Use `jest.useFakeTimers()` and `jest.advanceTimersByTimeAsync()` to control time without real waits.
-- [ ] 7.2 Update `src/hooks/use-pull-to-refresh.ts`: add `minRefreshDisplay?: number` (default `300`) to `PullToRefreshOptions`; in `onTouchEnd`, replace `await onRefreshRef.current()` with `await Promise.all([onRefreshRef.current(), new Promise(r => setTimeout(r, minRefreshDisplay))])` so the timer and callback run concurrently; `isRefreshing` stays `true` until both settle (refresh animation displays for a minimum duration; minimum refresh display via concurrent Promise.all).
-- [ ] 7.3 Update the JSDoc on `usePullToRefresh` to document `minRefreshDisplay`: "Minimum milliseconds `isRefreshing` stays `true` after `onRefresh` is invoked. Timer and callback run concurrently; total wait is `max(onRefresh duration, minRefreshDisplay)`. Default: 300."
-- [ ] 7.4 Run `pnpm test`, `pnpm lint`, `pnpm typecheck` and confirm all pass.
+- [x] 7.1 Write failing tests first (TDD): in `src/hooks/__tests__/use-pull-to-refresh.test.ts`, add two tests — (a) when `onRefresh` resolves in 50 ms and `minRefreshDisplay = 300`, assert `isRefreshing` is still `true` at 200 ms and `false` after ~300 ms; (b) when `onRefresh` resolves in 500 ms and `minRefreshDisplay = 300`, assert `isRefreshing` becomes `false` at ~500 ms (no extra delay). Use `jest.useFakeTimers()` and `jest.advanceTimersByTimeAsync()` to control time without real waits.
+- [x] 7.2 Update `src/hooks/use-pull-to-refresh.ts`: add `minRefreshDisplay?: number` (default `300`) to `PullToRefreshOptions`; in `onTouchEnd`, replace `await onRefreshRef.current()` with `await Promise.all([onRefreshRef.current(), new Promise(r => setTimeout(r, minRefreshDisplay))])` so the timer and callback run concurrently; `isRefreshing` stays `true` until both settle (refresh animation displays for a minimum duration; minimum refresh display via concurrent Promise.all).
+- [x] 7.3 Update the JSDoc on `usePullToRefresh` to document `minRefreshDisplay`: "Minimum milliseconds `isRefreshing` stays `true` after `onRefresh` is invoked. Timer and callback run concurrently; total wait is `max(onRefresh duration, minRefreshDisplay)`. Default: 300."
+- [x] 7.4 Run `pnpm test`, `pnpm lint`, `pnpm typecheck` and confirm all pass.
 
 ## 8. Refresh error handling, timeout, and consumer refactor
 

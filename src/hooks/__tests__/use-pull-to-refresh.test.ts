@@ -205,6 +205,95 @@ describe("usePullToRefresh", () => {
     });
   });
 
+  describe("minRefreshDisplay", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("keeps isRefreshing true for minRefreshDisplay when onRefresh resolves faster", async () => {
+      const onRefresh = jest.fn().mockImplementation(
+        () => new Promise<void>((resolve) => setTimeout(resolve, 50)),
+      );
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          minRefreshDisplay: 300,
+        }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      expect(result.current.isRefreshing).toBe(true);
+
+      // onRefresh resolves at 50ms but minRefreshDisplay = 300
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(50);
+      });
+      expect(result.current.isRefreshing).toBe(true);
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(150);
+      });
+      expect(result.current.isRefreshing).toBe(true);
+
+      // Past 300ms total — both settled
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(100);
+      });
+      expect(result.current.isRefreshing).toBe(false);
+    });
+
+    it("waits for onRefresh when it takes longer than minRefreshDisplay", async () => {
+      const onRefresh = jest.fn().mockImplementation(
+        () => new Promise<void>((resolve) => setTimeout(resolve, 500)),
+      );
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          minRefreshDisplay: 300,
+        }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      expect(result.current.isRefreshing).toBe(true);
+
+      // minRefreshDisplay elapsed but onRefresh still running
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(300);
+      });
+      expect(result.current.isRefreshing).toBe(true);
+
+      // onRefresh resolves at 500ms — no extra delay
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(200);
+      });
+      expect(result.current.isRefreshing).toBe(false);
+    });
+  });
+
   describe("lazy listener attach", () => {
     it("attaches only touchstart at mount", () => {
       const spy = jest.spyOn(el, "addEventListener");
