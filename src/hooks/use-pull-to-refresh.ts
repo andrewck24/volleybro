@@ -1,4 +1,5 @@
 "use client";
+import { isStandalone } from "@/lib/pwa";
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 
 export interface PullToRefreshOptions {
@@ -17,14 +18,6 @@ export interface PullToRefreshState {
 
 function appr(dy: number, max: number, k: number): number {
   return max * (1 - Math.exp((-k * dy) / max));
-}
-
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
 }
 
 /**
@@ -60,23 +53,22 @@ export function usePullToRefresh(
 
   const isRefreshingRef = useRef(false);
   const startYRef = useRef(0);
+  const dampedRef = useRef(0);
+  const gestureCleanupRef = useRef<(() => void) | null>(null);
 
-  const resetElement = useCallback(
-    (el: HTMLElement, animate: boolean) => {
-      if (animate) {
-        el.style.transition = "transform 0.2s ease-out";
-        const onTransitionEnd = (e: TransitionEvent) => {
-          if (e.propertyName === "transform") {
-            el.style.transition = "";
-            el.removeEventListener("transitionend", onTransitionEnd);
-          }
-        };
-        el.addEventListener("transitionend", onTransitionEnd);
-      }
-      el.style.transform = "translateY(0)";
-    },
-    [],
-  );
+  const resetElement = useCallback((el: HTMLElement, animate: boolean) => {
+    if (animate) {
+      el.style.transition = "transform 0.2s ease-out";
+      const onTransitionEnd = (e: TransitionEvent) => {
+        if (e.propertyName === "transform") {
+          el.style.transition = "";
+          el.removeEventListener("transitionend", onTransitionEnd);
+        }
+      };
+      el.addEventListener("transitionend", onTransitionEnd);
+    }
+    el.style.transform = "translateY(0)";
+  }, []);
 
   useEffect(() => {
     if (pwaOnly && !isStandalone()) return;
@@ -87,12 +79,14 @@ export function usePullToRefresh(
     const onTouchStart = (e: TouchEvent) => {
       if (isRefreshingRef.current) return;
       startYRef.current = e.touches[0].clientY;
+      dampedRef.current = 0;
 
       const onTouchMove = (ev: TouchEvent) => {
         const dy = ev.touches[0].clientY - startYRef.current;
         if (dy <= 0) return;
 
         const damped = appr(dy, maxPull, resistance);
+        dampedRef.current = damped;
         el.style.transition = "";
         el.style.transform = `translateY(${damped}px)`;
 
@@ -105,13 +99,16 @@ export function usePullToRefresh(
         });
       };
 
-      const onTouchEnd = async () => {
-        const currentDy =
-          parseFloat(el.style.transform.replace("translateY(", "")) || 0;
-
+      const cleanup = () => {
         el.removeEventListener("touchmove", onTouchMove);
         el.removeEventListener("touchend", onTouchEnd);
         el.removeEventListener("touchcancel", onTouchCancel);
+        gestureCleanupRef.current = null;
+      };
+
+      const onTouchEnd = async () => {
+        const currentDy = dampedRef.current;
+        cleanup();
 
         if (currentDy >= threshold && !isRefreshingRef.current) {
           isRefreshingRef.current = true;
@@ -145,9 +142,7 @@ export function usePullToRefresh(
       };
 
       const onTouchCancel = () => {
-        el.removeEventListener("touchmove", onTouchMove);
-        el.removeEventListener("touchend", onTouchEnd);
-        el.removeEventListener("touchcancel", onTouchCancel);
+        cleanup();
         el.style.transition = "";
         resetElement(el, false);
         setState({
@@ -161,11 +156,13 @@ export function usePullToRefresh(
       el.addEventListener("touchmove", onTouchMove, { passive: true });
       el.addEventListener("touchend", onTouchEnd);
       el.addEventListener("touchcancel", onTouchCancel);
+      gestureCleanupRef.current = cleanup;
     };
 
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     return () => {
       el.removeEventListener("touchstart", onTouchStart);
+      gestureCleanupRef.current?.();
     };
   }, [ref, onRefresh, threshold, maxPull, resistance, pwaOnly, resetElement]);
 

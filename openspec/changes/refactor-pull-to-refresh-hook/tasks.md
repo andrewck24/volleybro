@@ -30,7 +30,7 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `simplify` and confirm all pass
+- [x] 5.1 Run `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `simplify` and confirm all pass
 - [ ] 5.2 Manually verify in PWA standalone mode (iOS Safari add-to-home-screen + Android Chrome PWA): pull down on `home` and `team` tabs, indicator appears with damped motion, refresh fires on threshold crossed release, snap-back is smooth
 - [ ] 5.3 Manually verify in regular mobile browser (Safari/Chrome, not standalone): hook is inactive, native browser pull-to-refresh works as expected, no custom indicator appears
 - [ ] 5.4 Manually verify under `TabContainer`: pulling on the active tab does not affect hidden tabs; switching tabs and pulling on the new tab triggers only that tab's refresh

@@ -8,7 +8,7 @@ interface PullRefreshIndicatorProps {
 export function PullRefreshIndicator({ state }: PullRefreshIndicatorProps) {
   const { isPulling, isRefreshing, progress } = state;
 
-  const opacity = isPulling || isRefreshing ? (isRefreshing ? 1 : progress) : 0;
+  const opacity = isRefreshing ? 1 : isPulling ? progress : 0;
   const scale = isRefreshing ? 1 : 0.6 + 0.4 * progress;
   const rotate = isRefreshing ? undefined : `${180 * progress}deg`;
 

@@ -6,16 +6,16 @@ import TeamPlayers from "@/components/team/players";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 
 const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
   const defaultTab = tab || "players";
   const { mutate: mutateTeam } = useTeam(teamId);
   const { mutate: mutatePlayers } = useTeamPlayers(teamId);
-  const mutate = async () => {
+  const mutate = useCallback(async () => {
     mutateTeam();
     mutatePlayers();
-  };
+  }, [mutateTeam, mutatePlayers]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const refreshState = usePullToRefresh(containerRef, mutate);
 
