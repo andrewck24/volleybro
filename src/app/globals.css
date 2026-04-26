@@ -263,6 +263,29 @@
   }
 }
 
+/* Pull-to-refresh bounce animation */
+@keyframes volleyball-bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+@layer utilities {
+  .animate-volleyball-bounce {
+    animation: volleyball-bounce 0.4s ease-in-out alternate infinite;
+  }
+}
+
+/* Pull-to-refresh indicator: hidden outside standalone PWA */
+.pull-refresh-indicator {
+  @media not all and (display-mode: standalone) {
+    display: none;
+  }
+}
+
 /* Hide scrollbar on touch devices in PWA mode */
 @media (pointer: coarse) and (display-mode: standalone) {
   /* Webkit browsers (iOS Safari, Chrome) */

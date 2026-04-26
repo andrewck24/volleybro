@@ -11,10 +11,10 @@
 
 ## 2. Indicator component
 
-- [ ] 2.1 [P] Create `src/components/layout/pull-refresh-indicator.tsx`: accept the hook's returned state object; render `MdOutlineSportsVolleyball` from `react-icons/md`; absolutely positioned at top of parent so it does not move when content is translated
-- [ ] 2.2 [P] Implement indicator visual: volleyball icon with rotate + scale during pull, spin + bounce during refresh — interpolate `opacity 0→1`, `scale 0.6→1.0`, `rotate 0deg→180deg` against `progress`; layer `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)`) when `isRefreshing` is true (PullRefreshIndicator component renders gesture and refresh visuals)
-- [ ] 2.3 [P] Add `@keyframes volleyball-bounce` and `animate-volleyball-bounce` utility to `src/app/globals.css`
-- [ ] 2.4 [P] Add CSS guard to indicator: `@media not all and (display-mode: standalone) { display: none }` so the indicator never appears in non-PWA contexts
+- [x] 2.1 [P] Create `src/components/layout/pull-refresh-indicator.tsx`: accept the hook's returned state object; render `MdOutlineSportsVolleyball` from `react-icons/md`; absolutely positioned at top of parent so it does not move when content is translated
+- [x] 2.2 [P] Implement indicator visual: volleyball icon with rotate + scale during pull, spin + bounce during refresh — interpolate `opacity 0→1`, `scale 0.6→1.0`, `rotate 0deg→180deg` against `progress`; layer `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)`) when `isRefreshing` is true (PullRefreshIndicator component renders gesture and refresh visuals)
+- [x] 2.3 [P] Add `@keyframes volleyball-bounce` and `animate-volleyball-bounce` utility to `src/app/globals.css`
+- [x] 2.4 [P] Add CSS guard to indicator: `@media not all and (display-mode: standalone) { display: none }` so the indicator never appears in non-PWA contexts
 
 ## 3. Consumer migration
 
