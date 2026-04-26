@@ -20,7 +20,7 @@ const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
   const refreshState = usePullToRefresh(containerRef, mutate);
 
   return (
-    <div ref={containerRef} className="relative flex flex-col">
+    <div ref={containerRef} className="flex flex-col">
       <PullRefreshIndicator state={refreshState} />
       <TeamHero teamId={teamId} />
       <Tabs defaultValue={defaultTab} className="w-full">

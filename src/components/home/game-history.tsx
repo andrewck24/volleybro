@@ -94,7 +94,7 @@ export function GameHistory() {
   }
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef}>
       <PullRefreshIndicator state={refreshState} />
       {renderContent()}
     </div>

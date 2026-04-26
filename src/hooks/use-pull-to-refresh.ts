@@ -1,6 +1,6 @@
 "use client";
 import { isStandalone } from "@/lib/pwa";
-import { RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 
 export interface PullToRefreshOptions {
   threshold?: number;
@@ -24,8 +24,9 @@ function appr(dy: number, max: number, k: number): number {
  * A ref-scoped, PWA-aware pull-to-refresh hook.
  *
  * Contract:
- * - The hook owns `transform` on the passed ref element. Consumers MUST NOT set
- *   `transform` on that element — direct DOM mutation is used for perf.
+ * - The hook owns no DOM mutation. Consumers render `<PullRefreshIndicator />`
+ *   to visualize state — the indicator reads `pullDistance` and applies it to
+ *   its own wrapper element's `height`.
  * - Listeners are bound to the passed ref element, never to `window` or `document`,
  *   so multiple tab instances do not cross-fire.
  * - The hook activates only in PWA standalone mode
@@ -55,20 +56,8 @@ export function usePullToRefresh(
   const startYRef = useRef(0);
   const dampedRef = useRef(0);
   const gestureCleanupRef = useRef<(() => void) | null>(null);
-
-  const resetElement = useCallback((el: HTMLElement, animate: boolean) => {
-    if (animate) {
-      el.style.transition = "transform 0.2s ease-out";
-      const onTransitionEnd = (e: TransitionEvent) => {
-        if (e.propertyName === "transform") {
-          el.style.transition = "";
-          el.removeEventListener("transitionend", onTransitionEnd);
-        }
-      };
-      el.addEventListener("transitionend", onTransitionEnd);
-    }
-    el.style.transform = "translateY(0)";
-  }, []);
+  const onRefreshRef = useRef(onRefresh);
+  onRefreshRef.current = onRefresh;
 
   useEffect(() => {
     if (pwaOnly && !isStandalone()) return;
@@ -87,8 +76,6 @@ export function usePullToRefresh(
 
         const damped = appr(dy, maxPull, resistance);
         dampedRef.current = damped;
-        el.style.transition = "";
-        el.style.transform = `translateY(${damped}px)`;
 
         const progress = Math.min(damped / threshold, 1);
         setState({
@@ -118,9 +105,8 @@ export function usePullToRefresh(
             pullDistance: currentDy,
             progress: 1,
           });
-          resetElement(el, true);
           try {
-            await onRefresh();
+            await onRefreshRef.current();
           } finally {
             isRefreshingRef.current = false;
             setState({
@@ -131,7 +117,6 @@ export function usePullToRefresh(
             });
           }
         } else {
-          resetElement(el, true);
           setState({
             isPulling: false,
             isRefreshing: false,
@@ -143,8 +128,6 @@ export function usePullToRefresh(
 
       const onTouchCancel = () => {
         cleanup();
-        el.style.transition = "";
-        resetElement(el, false);
         setState({
           isPulling: false,
           isRefreshing: false,
@@ -164,7 +147,7 @@ export function usePullToRefresh(
       el.removeEventListener("touchstart", onTouchStart);
       gestureCleanupRef.current?.();
     };
-  }, [ref, onRefresh, threshold, maxPull, resistance, pwaOnly, resetElement]);
+  }, [ref, threshold, maxPull, resistance, pwaOnly]);
 
   return state;
 }
