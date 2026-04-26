@@ -14,12 +14,12 @@ This change refactors the hook into a ref-scoped, PWA-aware, animation-driven im
 ## What Changes
 
 - **NEW** `src/hooks/use-pull-to-refresh.ts` — ref-based hook accepting a target element ref, a refresh callback, and options (`threshold`, `maxPull`, `resistance`, `pwaOnly`). Returns `{ isPulling, isRefreshing, pullDistance, progress }` as local React state.
-- **NEW** `src/components/layout/pull-refresh-indicator.tsx` — visual indicator using `MdOutlineSportsVolleyball`, rendered as an absolutely-positioned sibling to the pulled content. Animates rotate/scale/opacity tied to pull progress; spins + bounces during refresh.
-- Hook implementation details (informed by Strict Mode pull-to-refresh article):
+- **NEW** `src/components/layout/pull-refresh-indicator.tsx` — visual indicator using `MdOutlineSportsVolleyball`, rendered as a flow-layout sibling above the pulled content. The wrapper's `height` animates with `pullDistance` and pushes content down through normal document flow; the icon animates rotate/scale/opacity tied to pull progress and spins + bounces during refresh. The hook does not write `transform` to any consumer DOM node.
+- Hook implementation details (informed by Strict Mode pull-to-refresh article and the legacy `Main` flow-layout pattern):
   - Lazy listener attach: `touchmove`/`touchend` are registered only after `touchstart`, removed on `touchend`.
   - Listeners bound to the passed `ref` element, not `window`.
-  - Exponential damping: `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` (default `MAX=128`, `k=0.4`) so over-pull asymptotes naturally.
-  - Dynamic CSS transition management: `transform` transition is added on `touchend`, removed on `transitionend`, so it does not interfere with the next gesture.
+  - Exponential damping: `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` (default `MAX=128`, `k=0.4`) so over-pull asymptotes naturally; the damped value drives the indicator wrapper's `height` (not a `transform` on consumer content).
+  - Dynamic CSS transition management: `height` transition is added to the indicator wrapper on `touchend`, removed on `transitionend`, so it does not interfere with the next gesture.
   - PWA-only gating via `matchMedia("(display-mode: standalone)")` and iOS `navigator.standalone`. Non-standalone environments early-return at mount and never register listeners.
 - **BREAKING** Remove `src/lib/hooks/usePullToRefresh.ts` (replaced by `src/hooks/use-pull-to-refresh.ts`).
 - **BREAKING** Remove `src/lib/features/global-slice.ts` and its `globalReducer` registration in `src/lib/redux/store.ts`. The slice has no other consumers.

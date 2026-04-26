@@ -9,6 +9,7 @@ Constraints:
 - All four tab slots are mounted simultaneously under `TabContainer`. Anything bound to `window` will fire across hidden tabs.
 - The protected app is intended to run as a PWA. In standalone mode, the browser's native pull-to-refresh is suppressed, so a custom implementation is needed; in regular browser mode, native pull-to-refresh exists and a custom one would double-fire.
 - Each tab refreshes a different SWR key; there is no single global "refresh" verb.
+- **All tabs share a single scroll area: `window`.** `TabContainer` does not introduce per-tab scroll containers; the active tab content is laid out in normal document flow under `window` scroll. This invariant must be preserved.
 - The project already imports `react-icons/md` (used in `src/components/game/header/scores.tsx` for the volleyball glyph), so we can reuse `MdOutlineSportsVolleyball` rather than ship custom SVG.
 
 Stakeholders: end users running the app as a PWA on iOS/Android.
@@ -49,11 +50,13 @@ Alternative considered: keeping all three listeners always. Rejected — the leg
 
 `pullDistance = MAX * (1 - exp(-k * dy / MAX))` with `MAX = 128` and `k = 0.4`. This produces a soft asymptote so the user can pull as hard as they want without the indicator running off-screen, and gives a tactile "rubber band" feel matching native iOS/Android. Values are tunable through hook options.
 
+The damped `pullDistance` drives the **indicator's height** (and `progress` drives icon transform), not a `transform: translateY` on the consumer's content container. See "Indicator is a flow-layout sibling" below for why content does not move.
+
 Alternative considered: hard cap (`Math.min(dy, MAX)`). Rejected — produces an abrupt, unphysical stop instead of progressive resistance.
 
 ### Apply CSS transition only on release, remove on `transitionend`
 
-While the user is pulling, `transform` is updated every `touchmove`; any `transition` would smear those updates and produce visible lag behind the finger. On `touchend`, the hook adds `transition: transform 0.2s ease-out` so the snap-back is animated, then a `transitionend` listener removes the transition so the next gesture starts in immediate-update mode.
+While the user is pulling, the indicator's `height` is updated every `touchmove`; any `transition` would smear those updates and produce visible lag behind the finger. On `touchend`, the hook adds `transition: height 0.2s ease-out` to the indicator element so the snap-back is animated, then a `transitionend` listener removes the transition so the next gesture starts in immediate-update mode.
 
 Alternative considered: leaving `transition` permanently set. Rejected — finger tracking becomes laggy and the gesture feels broken.
 
@@ -63,30 +66,43 @@ At hook mount, check both signals. If neither is true, return zero-state and ski
 
 Alternative considered: always-on with `event.preventDefault()` to suppress native. Rejected — `preventDefault` on `touchmove` requires a non-passive listener, which Chrome warns against and which conflicts with smooth scrolling.
 
-### Per-tab indicator ownership instead of `TabContainer`-level
+### Indicator is a flow-layout sibling that pushes content down (not absolute, not transform-on-content)
 
-Each consumer (`game-history.tsx`, `team/index.tsx`) wraps its scroll content with a container `div` (the ref target) and renders `<PullRefreshIndicator state={state} />` as a sibling absolutely positioned to the top of the container. `TabContainer` itself is unchanged.
+Each consumer (`game-history.tsx`, `team/index.tsx`) renders `<PullRefreshIndicator state={state} />` as a **flow-layout sibling above** the content (not `position: absolute`). The indicator's outer wrapper has `height: <pullDistance>px` (or `0` when idle), so as the user pulls, the indicator wrapper grows and pushes the content below it down through normal document flow. Content itself is **not** translated; the hook does not write `transform` to any consumer DOM node.
 
-Alternative considered: a `RefreshContext` letting any descendant register a mutate callback that `TabContainer` reads. Rejected — adds context plumbing, indirection between mutate site and gesture handler, and is undermotivated for two current consumers.
+This matches the legacy `Main`-based pattern (an in-flow indicator slot animated via `h-0 → h-12`) which worked correctly under window-scroll. It also resolves three issues with an absolute-positioned indicator:
+
+1. The consumer's container starts directly under the fixed header, leaving no negative-margin headroom for an absolutely-positioned indicator to live above the content — so absolute placement (e.g. `top-2`) overlaps the first row.
+2. Any `transform: translateY` on the consumer's container would translate the absolute child along with it, defeating the "indicator stays put while content slides down" intent.
+3. Translating the consumer container does not match window-scroll semantics: there is no per-tab scroll viewport whose content is being "pulled"; the gesture target is the page itself, and the natural feedback is to insert a region at the top of the flow.
+
+Hook still binds touch listeners to a passed `RefObject<HTMLElement>` (the consumer's outer wrapper) so hidden tabs do not fire. `TabContainer` is unchanged. `PullRefreshIndicator` lives per-consumer; only the active tab is `display: block`, so per-tab indicators do not stack.
+
+Alternative considered: a `RefreshContext` letting any descendant register a mutate callback that `TabContainer` reads, with a single indicator hoisted to `TabContainer`. Rejected — adds context plumbing, indirection between mutate site and gesture handler, and is undermotivated for two current consumers.
+
+Alternative considered: keep `transform: translateY` on the consumer container plus `position: absolute; top: -<pullDistance>px` on the indicator so they move in lock-step from "above the viewport" into view. Rejected — equivalent visual to flow-layout height animation but requires two coordinated style writes per frame and breaks the moment a consumer wraps the ref in any `overflow: hidden` ancestor.
 
 ### Indicator visual: volleyball icon with rotate + scale during pull, spin + bounce during refresh
 
-Reuses `MdOutlineSportsVolleyball` (already in the codebase). During pull, `rotate`, `scale`, `opacity` interpolate against `progress` (0 → 1). During refresh, two CSS animations layer: `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)`). Indicator container is `absolute` positioned at the top of the parent; it does not move when the content slides down.
+Reuses `MdOutlineSportsVolleyball` (already in the codebase). During pull, `rotate`, `scale`, `opacity` interpolate against `progress` (0 → 1). During refresh, two CSS animations layer: `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)`). The icon is centered inside the height-animated wrapper described above, so it appears to slide down with the wrapper while the content below moves down by the same amount.
 
 Alternative considered: arc/progressive stroke (Strict Mode-style) or three-dot trail. Rejected — the volleyball variant has higher product brand identity and matches an existing icon already used for scores.
 
-### Hook returns `{ isPulling, isRefreshing, pullDistance, progress }` as React state
+### Hook returns `{ isPulling, isRefreshing, pullDistance, progress }` as React state, drives indicator height via the same state
 
-State is held in `useState` so the indicator component re-renders when values change. `pullDistance` is the post-damping value; `progress = pullDistance / threshold` clamped to `[0, 1]`. The hook also imperatively sets `transform` on the ref element via direct DOM mutation (not React state) on every `touchmove` to avoid render thrash on each pixel.
+State is held in `useState` so the indicator component re-renders when values change. `pullDistance` is the post-damping value; `progress = pullDistance / threshold` clamped to `[0, 1]`. The hook does **not** mutate any consumer DOM node directly; the indicator reads `pullDistance` from state and applies it to its own wrapper `height` via inline style. The snap-back transition is also applied to the indicator wrapper (not to a consumer container) on `touchend` and removed on `transitionend`.
 
-Alternative considered: pure-DOM with no React state, exposing values only via ref-callback. Rejected — the indicator needs React-driven rendering for `MdOutlineSportsVolleyball` props (`rotate` etc.) and React state is a more idiomatic boundary. The hybrid (state for UI thresholds, direct DOM for transform tracking) is a deliberate trade-off.
+Per-pixel re-renders during pull are acceptable: only the indicator wrapper and icon re-render, both are leaf nodes with cheap inline-style updates, and React 19 batches `touchmove`-driven `setState` calls efficiently. If profiling later shows render thrash, an opt-in escape hatch (imperative `ref` write to the indicator wrapper) can be added without changing the public hook contract.
+
+Alternative considered: hybrid React state + direct DOM mutation on the consumer's container (the original design). Rejected because the consumer's container is no longer the animated element — the indicator wrapper is — and the indicator already lives in a leaf component where state-driven rendering is cheap.
 
 ## Risks / Trade-offs
 
 - **Risk: PWA detection misfires on edge browsers (Firefox PWA, desktop Edge PWA).** → Mitigation: `matchMedia` is the W3C standard and is the same signal Serwist uses; iOS `navigator.standalone` is a well-known Apple-specific fallback. Document the gate clearly in a JSDoc on the hook so future devs know when it activates.
-- **Risk: Hybrid React state + direct DOM mutation could desync if a consumer reads `pullDistance` and tries to apply its own `transform`.** → Mitigation: JSDoc on the hook explicitly states the hook owns `transform` on the ref element; consumers must not set `transform` on it.
+- **Risk: Per-`touchmove` `setState` could cause render thrash.** → Mitigation: only the leaf `PullRefreshIndicator` and its icon re-render; `pullDistance` flows through `useState` and the indicator wrapper applies it via inline style. If profiling shows real cost, an imperative escape hatch on the indicator ref is a backwards-compatible follow-up.
 - **Risk: Removing `global-slice` could surprise future developers expecting global UI state to live there.** → Mitigation: This change deletes the slice file outright; any future global UI state will need its own slice with a clear consumer.
-- **Risk: `transitionend` listener could leak if `touchcancel` fires before `touchend`.** → Mitigation: `touchcancel` runs the same cleanup path as `touchend`, including removing the temporary transition immediately rather than waiting for `transitionend`.
+- **Risk: `transitionend` listener could leak if `touchcancel` fires before `touchend`.** → Mitigation: `touchcancel` runs the same cleanup path as `touchend`, including removing the temporary `height` transition on the indicator wrapper immediately rather than waiting for `transitionend`.
+- **Risk: Layout shift when the indicator wrapper's `height` animates may visually jitter `IntersectionObserver`-based infinite scroll triggers (e.g., `lastItemRef` in `game-history.tsx`).** → Mitigation: indicator only animates while a touch gesture is active or refresh is in flight; observers re-evaluate on layout change but cannot fire spuriously without the sentinel actually crossing the viewport boundary, which the gesture itself does not cause.
 
 ## Migration Plan
 

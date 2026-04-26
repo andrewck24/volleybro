@@ -45,14 +45,16 @@ The hook MUST register `touchmove`, `touchend`, and `touchcancel` listeners only
 
 ### Requirement: Pull motion uses exponential damping
 
-While the user pulls down, the visual displacement of the ref element MUST follow `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` where `dy` is the raw vertical distance from the initial touch, and the defaults are `MAX = 128` and `k = 0.4`. Both values MUST be configurable via hook options (`maxPull`, `resistance`).
+While the user pulls down, the reported `pullDistance` MUST follow `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` where `dy` is the raw vertical distance from the initial touch, and the defaults are `MAX = 128` and `k = 0.4`. Both values MUST be configurable via hook options (`maxPull`, `resistance`).
+
+The hook MUST NOT write `transform` (or any other style) to the consumer's content container. Visual feedback is produced by the `PullRefreshIndicator` component, which reads `pullDistance` from the returned state and applies it to its own wrapper element's `height`.
 
 Negative `dy` (upward motion) MUST NOT produce any displacement.
 
-#### Scenario: Damped pull asymptotes to maxPull
+#### Scenario: Damped pullDistance asymptotes to maxPull
 
 - **WHEN** the user pulls down with raw `dy` values increasing without bound
-- **THEN** the resulting displacement asymptotically approaches `maxPull` and never exceeds it
+- **THEN** the resulting `pullDistance` asymptotically approaches `maxPull` and never exceeds it
 
 ##### Example: damping behavior with defaults
 
@@ -68,7 +70,7 @@ Negative `dy` (upward motion) MUST NOT produce any displacement.
 #### Scenario: Upward pull is ignored
 
 - **WHEN** the user moves their finger upward (raw `dy < 0`)
-- **THEN** the ref element's `transform` is not updated and `pullDistance` stays at 0
+- **THEN** `pullDistance` stays at `0` and no style is written to the ref element
 
 ### Requirement: Refresh callback fires when threshold is crossed at release
 
@@ -86,34 +88,36 @@ While `onRefresh` is awaited (the returned `isRefreshing` state is `true`), addi
 
 - **WHEN** the user pulls down to a damped `pullDistance < threshold` and then releases
 - **THEN** `onRefresh` is NOT invoked
-- **AND** the ref element animates back to its initial position
+- **AND** `pullDistance` animates back to `0` (snap-back), collapsing the indicator wrapper
 
 #### Scenario: Concurrent refresh attempts are ignored
 
 - **WHEN** `isRefreshing` is `true` (a refresh is in progress) and the user pulls down past `threshold` and releases again
 - **THEN** `onRefresh` is NOT invoked a second time
 
-### Requirement: Snap-back animation uses transient CSS transition
+### Requirement: Snap-back animation uses transient CSS transition on the indicator wrapper
 
-When the touch gesture ends, the hook MUST add a `transform` CSS transition to the ref element so the snap-back is animated smoothly. The hook MUST remove the transition on `transitionend` so subsequent `touchmove` updates apply immediately without lag.
+When the touch gesture ends, the `PullRefreshIndicator` wrapper MUST receive a `height` CSS transition so the snap-back from the current `pullDistance` to `0` is animated smoothly. The transition MUST be removed on `transitionend` so subsequent `touchmove`-driven `pullDistance` updates apply immediately without lag.
 
 The transition MUST NOT be applied during active pulling (between `touchstart` and `touchend`).
+
+The transition MUST be applied to the indicator wrapper element, NOT to the consumer's content container.
 
 #### Scenario: Transition is added on release
 
 - **WHEN** `touchend` fires
-- **THEN** the ref element's inline `transition` style includes `transform`
-- **AND** the inline `transform` is reset to `translateY(0)`
+- **THEN** the indicator wrapper's inline `transition` style includes `height`
+- **AND** `pullDistance` in the returned state is reset to `0` (driving the wrapper's `height` to `0`)
 
 #### Scenario: Transition is removed after snap-back
 
-- **WHEN** the snap-back animation completes (`transitionend` fires for the `transform` property)
-- **THEN** the ref element's inline `transition` style is cleared
+- **WHEN** the snap-back animation completes (`transitionend` fires for the `height` property)
+- **THEN** the indicator wrapper's inline `transition` style is cleared
 
 #### Scenario: No transition during active pull
 
 - **WHEN** the user is actively pulling (between `touchstart` and `touchend`)
-- **THEN** the ref element's inline `transition` style does not include `transform`
+- **THEN** the indicator wrapper's inline `transition` style does not include `height`
 
 ### Requirement: Hook returns observable React state
 
@@ -138,22 +142,32 @@ These values MUST be exposed via React state so consumers re-render when they ch
 - **WHEN** the user pulls past threshold to a damped `pullDistance` of 120
 - **THEN** `progress` returns `1` (not 1.5)
 
-### Requirement: PullRefreshIndicator component renders gesture and refresh visuals
+### Requirement: PullRefreshIndicator component renders gesture and refresh visuals as a flow-layout sibling
 
 The system SHALL provide a `PullRefreshIndicator` component that accepts the hook's returned state object and renders the `MdOutlineSportsVolleyball` icon with the following behavior:
 
 - During pull (`isPulling` true, `isRefreshing` false): icon `opacity`, `scale`, and `rotate` interpolate based on `progress` (0 → 1). Specifically: opacity `0 → 1`, scale `0.6 → 1.0`, rotate `0deg → 180deg`.
 - During refresh (`isRefreshing` true): icon plays continuous `animate-spin` (linear rotation) layered with a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)` ease-in-out alternate).
-- Inactive (`isPulling` false AND `isRefreshing` false): component renders nothing OR renders with `opacity: 0`; indicator MUST NOT visually obstruct content.
+- Inactive (`isPulling` false AND `isRefreshing` false): wrapper has `height: 0` and renders no visible icon; indicator MUST NOT visually obstruct content.
 
-The component MUST be absolutely positioned so it does NOT move when the parent's content is translated downward by the hook.
+The component MUST render as a flow-layout sibling above the consumer's content, NOT as `position: absolute`. Its outer wrapper MUST set `height` to `pullDistance` (in pixels, clamped to `maxPull`) when `isPulling` or `isRefreshing` is true, and `0` otherwise. As `height` grows, the consumer's content below the indicator MUST be pushed down via normal document flow.
+
+The component MUST NOT cause the consumer's content container to receive any `transform` or other layout-affecting style from the hook; only the indicator's own wrapper element animates.
 
 The component MUST also wrap its visible output in a CSS guard equivalent to `@media not all and (display-mode: standalone)` → `display: none`, as a defense-in-depth fallback so the indicator never appears in non-PWA contexts even if the hook were misused.
 
 #### Scenario: Indicator hidden when idle
 
 - **WHEN** `isPulling` is `false` AND `isRefreshing` is `false`
-- **THEN** the indicator is not visible to the user
+- **THEN** the indicator wrapper's `height` is `0`
+- **AND** the indicator is not visible to the user
+- **AND** the consumer's content occupies the same layout position it would without the indicator
+
+#### Scenario: Indicator pushes content down during pull
+
+- **WHEN** `pullDistance` is `40` while `isPulling` is `true`
+- **THEN** the indicator wrapper's `height` is `40px`
+- **AND** the consumer's content immediately below the wrapper is offset downward by `40px` via flow layout (no `transform` is applied to the content)
 
 #### Scenario: Indicator interpolates with progress during pull
 
