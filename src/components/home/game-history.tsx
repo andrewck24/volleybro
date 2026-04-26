@@ -16,9 +16,10 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator";
 import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
 import type { GameSummaryView } from "@/lib/features/game/types";
-import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Ref, useCallback, useEffect, useRef } from "react";
@@ -46,7 +47,8 @@ export function GameHistory() {
     [teamId, mutateTeamId, mutateSummaries],
   );
 
-  usePullToRefresh(mutate);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const refreshState = usePullToRefresh(containerRef, mutate);
 
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,22 +74,30 @@ export function GameHistory() {
     };
   }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries?.length]);
 
-  if (isLoading && !gameSummaries?.length) return <GameHistorySkeleton />;
-  if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (!teamId && !isLoading) return <GuidesForNewUser />;
-  if (!gameSummaries?.length) return <NoMatches />;
+  function renderContent() {
+    if (isLoading && !gameSummaries?.length) return <GameHistorySkeleton />;
+    if (error) return <ServerErrorState onRetry={() => mutate()} />;
+    if (!teamId && !isLoading) return <GuidesForNewUser />;
+    if (!gameSummaries?.length) return <NoMatches />;
+    return (
+      <ItemGroup>
+        {gameSummaries.map((match, index) => (
+          <Match
+            key={match.id}
+            match={match}
+            ref={index === gameSummaries.length - 1 ? lastItemRef : null}
+          />
+        ))}
+        {isLoadingMore && <MatchSkeleton />}
+      </ItemGroup>
+    );
+  }
 
   return (
-    <ItemGroup>
-      {gameSummaries.map((match, index) => (
-        <Match
-          key={match.id}
-          match={match}
-          ref={index === gameSummaries.length - 1 ? lastItemRef : null}
-        />
-      ))}
-      {isLoadingMore && <MatchSkeleton />}
-    </ItemGroup>
+    <div ref={containerRef} className="relative">
+      <PullRefreshIndicator state={refreshState} />
+      {renderContent()}
+    </div>
   );
 }
 

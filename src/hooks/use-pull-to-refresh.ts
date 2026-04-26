@@ -41,7 +41,7 @@ function isStandalone(): boolean {
  */
 export function usePullToRefresh(
   ref: RefObject<HTMLElement | null>,
-  onRefresh: () => Promise<void> | void,
+  onRefresh: () => Promise<unknown> | unknown,
   options?: PullToRefreshOptions,
 ): PullToRefreshState {
   const {

@@ -1,10 +1,12 @@
 "use client";
+import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator";
 import TeamHero from "@/components/team/hero";
 import TeamInfo from "@/components/team/info";
 import TeamPlayers from "@/components/team/players";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
-import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
+import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { useRef } from "react";
 
 const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
   const defaultTab = tab || "players";
@@ -14,10 +16,12 @@ const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
     mutateTeam();
     mutatePlayers();
   };
-  usePullToRefresh(mutate);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const refreshState = usePullToRefresh(containerRef, mutate);
 
   return (
-    <div className="flex flex-col">
+    <div ref={containerRef} className="relative flex flex-col">
+      <PullRefreshIndicator state={refreshState} />
       <TeamHero teamId={teamId} />
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">

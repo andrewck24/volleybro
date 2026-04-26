@@ -18,8 +18,8 @@
 
 ## 3. Consumer migration
 
-- [ ] 3.1 Update `src/components/home/game-history.tsx`: import the new hook from `src/hooks/use-pull-to-refresh.ts`; create container ref; pass ref + `mutate`; render `<PullRefreshIndicator />` per per-tab indicator ownership instead of `TabContainer`-level
-- [ ] 3.2 Update `src/components/team/index.tsx`: import the new hook; create container ref; pass ref + `mutate`; render `<PullRefreshIndicator />` per per-tab indicator ownership instead of `TabContainer`-level
+- [x] 3.1 Update `src/components/home/game-history.tsx`: import the new hook from `src/hooks/use-pull-to-refresh.ts`; create container ref; pass ref + `mutate`; render `<PullRefreshIndicator />` per per-tab indicator ownership instead of `TabContainer`-level
+- [x] 3.2 Update `src/components/team/index.tsx`: import the new hook; create container ref; pass ref + `mutate`; render `<PullRefreshIndicator />` per per-tab indicator ownership instead of `TabContainer`-level
 
 ## 4. Legacy removal
 
