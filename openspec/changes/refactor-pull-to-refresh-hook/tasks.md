@@ -1,13 +1,13 @@
 ## 1. Hook implementation
 
-- [ ] 1.1 Create `src/hooks/use-pull-to-refresh.ts` skeleton: accept `(ref, onRefresh, options?)` with `threshold`, `maxPull`, `resistance`, `pwaOnly` options; bind touch listeners to the passed ref element (not `window`)
-- [ ] 1.2 Implement PWA-only gating via `matchMedia("(display-mode: standalone)")` plus iOS `navigator.standalone`: hook activates only in PWA standalone mode; non-standalone returns zero-state and registers no listeners
-- [ ] 1.3 Implement lazy attach `touchmove` / `touchend` only after `touchstart`: register `touchstart` at mount; register `touchmove`/`touchend`/`touchcancel` inside `touchstart` and remove them on end/cancel
-- [ ] 1.4 Implement exponential damping for over-pull (`appr` function): apply `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` to `dy` before setting `transform`; ignore upward (negative) `dy`; expose `MAX`/`k` via `maxPull`/`resistance` options (pull motion uses exponential damping)
-- [ ] 1.5 Implement React state observation so the hook returns `{ isPulling, isRefreshing, pullDistance, progress }` as React state with `progress` clamped to `[0, 1]` (hook returns observable React state)
-- [ ] 1.6 Implement refresh callback fires when threshold is crossed at release: invoke `onRefresh` exactly once on `touchend` when damped distance >= threshold; set `isRefreshing` true while awaiting; ignore concurrent gestures while refreshing
-- [ ] 1.7 Apply CSS transition only on release, remove on `transitionend`: add inline `transition: transform 0.2s ease-out` on `touchend`, attach a one-shot `transitionend` listener to clear it; ensure no transition during active pulling (snap-back animation uses transient CSS transition)
-- [ ] 1.8 Add JSDoc documenting the hook contract, including: hook owns `transform` on the ref element (consumers must not set it), hook activates only in PWA standalone mode, and the listener-scope guarantee (hook binds touch listeners to the passed ref element)
+- [x] 1.1 Create `src/hooks/use-pull-to-refresh.ts` skeleton: accept `(ref, onRefresh, options?)` with `threshold`, `maxPull`, `resistance`, `pwaOnly` options; bind touch listeners to the passed ref element (not `window`)
+- [x] 1.2 Implement PWA-only gating via `matchMedia("(display-mode: standalone)")` plus iOS `navigator.standalone`: hook activates only in PWA standalone mode; non-standalone returns zero-state and registers no listeners
+- [x] 1.3 Implement lazy attach `touchmove` / `touchend` only after `touchstart`: register `touchstart` at mount; register `touchmove`/`touchend`/`touchcancel` inside `touchstart` and remove them on end/cancel
+- [x] 1.4 Implement exponential damping for over-pull (`appr` function): apply `appr(dy) = MAX * (1 - exp(-k * dy / MAX))` to `dy` before setting `transform`; ignore upward (negative) `dy`; expose `MAX`/`k` via `maxPull`/`resistance` options (pull motion uses exponential damping)
+- [x] 1.5 Implement React state observation so the hook returns `{ isPulling, isRefreshing, pullDistance, progress }` as React state with `progress` clamped to `[0, 1]` (hook returns observable React state)
+- [x] 1.6 Implement refresh callback fires when threshold is crossed at release: invoke `onRefresh` exactly once on `touchend` when damped distance >= threshold; set `isRefreshing` true while awaiting; ignore concurrent gestures while refreshing
+- [x] 1.7 Apply CSS transition only on release, remove on `transitionend`: add inline `transition: transform 0.2s ease-out` on `touchend`, attach a one-shot `transitionend` listener to clear it; ensure no transition during active pulling (snap-back animation uses transient CSS transition)
+- [x] 1.8 Add JSDoc documenting the hook contract, including: hook owns `transform` on the ref element (consumers must not set it), hook activates only in PWA standalone mode, and the listener-scope guarantee (hook binds touch listeners to the passed ref element)
 
 ## 2. Indicator component
 
