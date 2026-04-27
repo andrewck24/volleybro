@@ -26,6 +26,7 @@ const idleState: PullToRefreshState = {
   isRefreshing: false,
   pullDistance: 0,
   progress: 0,
+  refreshError: null,
 };
 
 function makeState(overrides: Partial<PullToRefreshState>): PullToRefreshState {

@@ -1,5 +1,6 @@
 import { ApiClientError } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
+import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
 const makeApiClientError = (
@@ -84,6 +85,18 @@ describe("showErrorToast", () => {
           variant: "destructive",
         }),
       );
+    });
+  });
+
+  describe("RefreshTimeoutError → 連線逾時 message", () => {
+    it("shows 連線逾時 title and retry description for RefreshTimeoutError", () => {
+      showErrorToast(new RefreshTimeoutError(), mockToast);
+
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "連線逾時",
+        description: "請稍後再試，若問題持續請確認網路連線。",
+        variant: "destructive",
+      });
     });
   });
 

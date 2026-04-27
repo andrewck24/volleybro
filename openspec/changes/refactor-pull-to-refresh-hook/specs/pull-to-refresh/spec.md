@@ -164,7 +164,7 @@ The transition MUST be applied to the indicator wrapper element, NOT to the cons
 The hook SHALL return `{ isPulling, isRefreshing, pullDistance, progress }` where:
 
 - `isPulling: boolean` is `true` between `touchstart` and `touchend` whenever `pullDistance > 0`.
-- `isRefreshing: boolean` is `true` from the moment `onRefresh` is invoked until both the returned promise resolves AND the `minRefreshDisplay` timer (default 300 ms) elapses; `false` otherwise.
+- `isRefreshing: boolean` is `true` from the moment `onRefresh` is invoked until both the returned promise resolves AND the `minRefreshDisplay` timer (default 1000 ms) elapses; `false` otherwise.
 - `pullDistance: number` is the current damped vertical displacement in pixels.
 - `progress: number` is `pullDistance / threshold`, clamped to `[0, 1]`.
 
@@ -184,22 +184,22 @@ These values MUST be exposed via React state so consumers re-render when they ch
 
 ### Requirement: Refresh animation displays for a minimum duration
 
-The hook SHALL keep `isRefreshing` true for at least `minRefreshDisplay` milliseconds (default `300`) after invoking `onRefresh`, even if the callback resolves before that duration elapses. The hook MUST also wait for `onRefresh` to fully resolve before setting `isRefreshing` to `false`, regardless of how long that takes.
+The hook SHALL keep `isRefreshing` true for at least `minRefreshDisplay` milliseconds (default `1000`) after invoking `onRefresh`, even if the callback resolves before that duration elapses. The hook MUST also wait for `onRefresh` to fully resolve before setting `isRefreshing` to `false`, regardless of how long that takes.
 
 The minimum display timer and the `onRefresh` callback MUST run concurrently (not sequentially), so that the total wait time is `max(onRefresh duration, minRefreshDisplay)` rather than their sum.
 
-The `minRefreshDisplay` value MUST be configurable via the hook's `options` parameter. When not provided, it defaults to `300`.
+The `minRefreshDisplay` value MUST be configurable via the hook's `options` parameter. When not provided, it defaults to `1000`.
 
 #### Scenario: Fast refresh holds animation for minimum duration
 
-- **GIVEN** `minRefreshDisplay = 300`
+- **GIVEN** `minRefreshDisplay = 1000`
 - **WHEN** `onRefresh` resolves after 50 ms
-- **THEN** `isRefreshing` remains `true` for at least 300 ms from the moment it was set
-- **AND** `isRefreshing` becomes `false` after approximately 300 ms
+- **THEN** `isRefreshing` remains `true` for at least 1000 ms from the moment it was set
+- **AND** `isRefreshing` becomes `false` after approximately 1000 ms
 
 #### Scenario: Slow refresh holds animation until data is ready
 
-- **GIVEN** `minRefreshDisplay = 300`
+- **GIVEN** `minRefreshDisplay = 1000`
 - **WHEN** `onRefresh` resolves after 1000 ms
 - **THEN** `isRefreshing` remains `true` until `onRefresh` resolves (approximately 1000 ms)
 - **AND** `isRefreshing` becomes `false` without any additional delay beyond what `onRefresh` required
@@ -209,7 +209,7 @@ The `minRefreshDisplay` value MUST be configurable via the hook's `options` para
 The system SHALL provide a `PullRefreshIndicator` component that accepts the hook's returned state object and renders the `MdOutlineSportsVolleyball` icon with the following behavior:
 
 - During pull (`isPulling` true, `isRefreshing` false): icon `opacity`, `scale`, and `rotate` interpolate based on `progress` (0 → 1). Specifically: opacity `0 → 1`, scale `0.6 → 1.0`, rotate `0deg → 180deg`.
-- During refresh (`isRefreshing` true): icon plays continuous `animate-spin` (linear rotation) layered with a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)` ease-in-out alternate).
+- During refresh (`isRefreshing` true): icon plays continuous `animate-spin` (linear rotation) layered with a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -16px)` ease-in-out alternate).
 - Inactive (`isPulling` false AND `isRefreshing` false): wrapper has `height: 0` and renders no visible icon; indicator MUST NOT visually obstruct content.
 
 The component MUST render as a flow-layout sibling above the consumer's content, NOT as `position: absolute`. Its outer wrapper MUST set `height` to `pullDistance` (in pixels, clamped to `maxPull`) when `isPulling` or `isRefreshing` is true, and `0` otherwise. As `height` grows, the consumer's content below the indicator MUST be pushed down via normal document flow.

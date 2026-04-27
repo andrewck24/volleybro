@@ -84,7 +84,7 @@ Alternative considered: keep `transform: translateY` on the consumer container p
 
 ### Indicator visual: volleyball icon with rotate + scale during pull, spin + bounce during refresh
 
-Reuses `MdOutlineSportsVolleyball` (already in the codebase). During pull, `rotate`, `scale`, `opacity` interpolate against `progress` (0 → 1). During refresh, two CSS animations layer: `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -3px)`). The icon is centered inside the height-animated wrapper described above, so it appears to slide down with the wrapper while the content below moves down by the same amount.
+Reuses `MdOutlineSportsVolleyball` (already in the codebase). During pull, `rotate`, `scale`, `opacity` interpolate against `progress` (0 → 1). During refresh, two CSS animations layer: `animate-spin` plus a custom `animate-volleyball-bounce` keyframe (`translateY(0 ↔ -16px)`). The icon is centered inside the height-animated wrapper described above, so it appears to slide down with the wrapper while the content below moves down by the same amount.
 
 Alternative considered: arc/progressive stroke (Strict Mode-style) or three-dot trail. Rejected — the volleyball variant has higher product brand identity and matches an existing icon already used for scores.
 
@@ -117,7 +117,7 @@ Rollback: revert the change. The legacy hook code path is fully removed by step 
 
 ### Minimum refresh display via concurrent Promise.all
 
-When `onRefresh()` resolves very quickly (e.g., warm SWR cache), the volleyball bounce animation flashes too briefly for users to perceive that a refresh happened. A `minRefreshDisplay` option (default `300` ms) guarantees the animation stays visible for at least that duration while still waiting for the refresh to fully complete.
+When `onRefresh()` resolves very quickly (e.g., warm SWR cache), the volleyball bounce animation flashes too briefly for users to perceive that a refresh happened. A `minRefreshDisplay` option (default `1000` ms) guarantees the animation stays visible for at least that duration while still waiting for the refresh to fully complete.
 
 Implementation: replace `await onRefreshRef.current()` with:
 
@@ -180,7 +180,7 @@ try {
 }
 ```
 
-`clearTimeout(timeoutId)` is the critical call: every successful refresh (which finishes before 8 s) would otherwise leave an 8 s dangling `setTimeout` that fires unnecessarily — a cumulative drain on the mobile event loop. `clearTimeout(minDisplayId)` is a no-op in most paths (the 300 ms timer has already fired) but is included for symmetry and correctness on the timeout path.
+`clearTimeout(timeoutId)` is the critical call: every successful refresh (which finishes before 8 s) would otherwise leave an 8 s dangling `setTimeout` that fires unnecessarily — a cumulative drain on the mobile event loop. `clearTimeout(minDisplayId)` is a no-op in most paths (the 1000 ms timer has already fired) but is included for symmetry and correctness on the timeout path.
 
 When `timeoutTimer` wins the race, the hook catches a `RefreshTimeoutError`, calls `onError`, and sets `refreshError`. The underlying SWR `mutate()` remains in-flight; SWR 2.x does not pass an `AbortSignal` to fetchers, and all PTR-triggered calls are idempotent GET revalidations, so the in-flight request completing later is safe — SWR updates its cache and triggers a re-render normally. Re-entry (a second pull while the timed-out request is still in-flight) is accepted: each `onTouchEnd` closure writes to `isRefreshingRef` independently, and SWR processes both GET responses without data inconsistency. `AbortController` support is deferred to a separate change if mutation-style callbacks are ever introduced.
 

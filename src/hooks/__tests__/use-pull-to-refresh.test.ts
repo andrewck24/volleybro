@@ -1,4 +1,7 @@
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import {
+  RefreshTimeoutError,
+  usePullToRefresh,
+} from "@/hooks/use-pull-to-refresh";
 import { act, renderHook } from "@testing-library/react";
 
 jest.mock("@/lib/pwa", () => ({
@@ -45,6 +48,7 @@ describe("usePullToRefresh", () => {
         isRefreshing: false,
         pullDistance: 0,
         progress: 0,
+        refreshError: null,
       });
       expect(addEventListenerSpy).not.toHaveBeenCalled();
     });
@@ -222,7 +226,7 @@ describe("usePullToRefresh", () => {
       const { result } = renderHook(() =>
         usePullToRefresh(ref, onRefresh, {
           threshold: 80,
-          minRefreshDisplay: 300,
+          minRefreshDisplay: 1000,
         }),
       );
 
@@ -238,7 +242,7 @@ describe("usePullToRefresh", () => {
 
       expect(result.current.isRefreshing).toBe(true);
 
-      // onRefresh resolves at 50ms but minRefreshDisplay = 300
+      // onRefresh resolves at 50ms but minRefreshDisplay = 1000
       await act(async () => {
         await jest.advanceTimersByTimeAsync(50);
       });
@@ -249,7 +253,7 @@ describe("usePullToRefresh", () => {
       });
       expect(result.current.isRefreshing).toBe(true);
 
-      // Past 300ms total — both settled
+      // Past 1000ms total — both settled
       await act(async () => {
         await jest.advanceTimersByTimeAsync(100);
       });
@@ -264,7 +268,7 @@ describe("usePullToRefresh", () => {
       const { result } = renderHook(() =>
         usePullToRefresh(ref, onRefresh, {
           threshold: 80,
-          minRefreshDisplay: 300,
+          minRefreshDisplay: 1000,
         }),
       );
 
@@ -282,7 +286,7 @@ describe("usePullToRefresh", () => {
 
       // minRefreshDisplay elapsed but onRefresh still running
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(300);
+        await jest.advanceTimersByTimeAsync(1000);
       });
       expect(result.current.isRefreshing).toBe(true);
 
@@ -291,6 +295,164 @@ describe("usePullToRefresh", () => {
         await jest.advanceTimersByTimeAsync(200);
       });
       expect(result.current.isRefreshing).toBe(false);
+    });
+  });
+
+  describe("error handling", () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("calls onError and sets refreshError when onRefresh rejects", async () => {
+      const cause = new Error("network failure");
+      const onRefresh = jest.fn().mockRejectedValue(cause);
+      const onError = jest.fn();
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, { threshold: 80, onError }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(onError).toHaveBeenCalledWith(cause);
+      expect(result.current.refreshError).toBe(cause);
+      expect(result.current.isRefreshing).toBe(false);
+    });
+
+    it("calls onError with RefreshTimeoutError after refreshTimeout ms", async () => {
+      const onRefresh = jest.fn().mockImplementation(
+        () => new Promise<void>(() => {}),
+      );
+      const onError = jest.fn();
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          refreshTimeout: 8000,
+          onError,
+        }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(8000);
+      });
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError.mock.calls[0][0]).toBeInstanceOf(RefreshTimeoutError);
+      expect(result.current.refreshError).toBeInstanceOf(RefreshTimeoutError);
+    });
+
+    it("resets refreshError to null on the next touchstart", async () => {
+      const cause = new Error("fail");
+      const onRefresh = jest.fn().mockRejectedValue(cause);
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, { threshold: 80 }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(result.current.refreshError).toBe(cause);
+
+      // New gesture clears refreshError
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      expect(result.current.refreshError).toBeNull();
+    });
+
+    it("does not call onError when onRefresh resolves successfully", async () => {
+      const onRefresh = jest.fn().mockResolvedValue(undefined);
+      const onError = jest.fn();
+
+      renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          onError,
+          refreshTimeout: 8000,
+        }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("clears all timers after successful refresh (no dangling timeouts)", async () => {
+      const onRefresh = jest.fn().mockResolvedValue(undefined);
+
+      renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          refreshTimeout: 8000,
+        }),
+      );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(jest.getTimerCount()).toBe(0);
     });
   });
 

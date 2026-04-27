@@ -269,7 +269,7 @@
     transform: translateY(0);
   }
   to {
-    transform: translateY(-3px);
+    transform: translateY(-16px);
   }
 }
 

@@ -17,8 +17,10 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
 import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
+import { showErrorToast } from "@/lib/api/error-toast";
 import type { GameSummaryView } from "@/lib/features/game/types";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -26,6 +28,7 @@ import { Ref, useCallback, useEffect, useRef } from "react";
 import { RiArrowRightWideLine, RiGroupLine } from "react-icons/ri";
 
 export function GameHistory() {
+  const { toast } = useToast();
   const {
     teamId,
     isLoading: teamIdLoading,
@@ -48,7 +51,12 @@ export function GameHistory() {
   );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const refreshState = usePullToRefresh(containerRef, mutate);
+  const refreshState = usePullToRefresh(containerRef, mutate, {
+    onError: (err) => {
+      if (gameSummaries?.length) showErrorToast(err, toast);
+    },
+  });
+  const { refreshError } = refreshState;
 
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -74,11 +82,13 @@ export function GameHistory() {
     };
   }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries?.length]);
 
+  const hasData = !!gameSummaries?.length;
+
   function renderContent() {
-    if (isLoading && !gameSummaries?.length) return <GameHistorySkeleton />;
-    if (error) return <ServerErrorState onRetry={() => mutate()} />;
+    if (isLoading && !hasData) return <GameHistorySkeleton />;
+    if (!hasData && (error || refreshError)) return <ServerErrorState onRetry={() => mutate()} />;
     if (!teamId && !isLoading) return <GuidesForNewUser />;
-    if (!gameSummaries?.length) return <NoMatches />;
+    if (!hasData) return <NoMatches />;
     return (
       <ItemGroup>
         {gameSummaries.map((match, index) => (
