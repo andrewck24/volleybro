@@ -45,6 +45,7 @@ The system SHALL provide exactly seven concrete subclasses of `AppError`:
 - **THEN** `error instanceof Error` SHALL return true
 
 ---
+
 ### Requirement: AppErrorCode type union
 
 The system SHALL define an `AppErrorCode` type as a union of string literals: `"VALIDATION" | "AUTHENTICATION" | "AUTHORIZATION" | "NOT_FOUND" | "CONFLICT" | "TRANSIENT" | "UNEXPECTED"`.
@@ -55,6 +56,7 @@ The system SHALL define an `AppErrorCode` type as a union of string literals: `"
 - **THEN** its `code` property SHALL be assignable to `AppErrorCode`
 
 ---
+
 ### Requirement: ValidationError with details field
 
 `ValidationError` SHALL accept an optional `details` parameter (fourth argument) for carrying structured validation information such as Zod issue arrays. Other error subclasses SHALL NOT have a `details` field.
@@ -71,6 +73,7 @@ The system SHALL define an `AppErrorCode` type as a union of string literals: `"
 - **THEN** `error.details` SHALL be `undefined`
 
 ---
+
 ### Requirement: UnexpectedError with originalError field
 
 `UnexpectedError` SHALL accept an optional `originalError` parameter for preserving the original caught error. This field SHALL be used for logging only and SHALL NOT be serialized to HTTP responses.
@@ -82,6 +85,7 @@ The system SHALL define an `AppErrorCode` type as a union of string literals: `"
 - **THEN** `error.httpStatus` SHALL be `500`
 
 ---
+
 ### Requirement: TransientError with source metadata
 
 `TransientError` SHALL accept an optional `options` object with `source` (string identifying the failing infrastructure component) and `retryable` (boolean hint for callers). These fields SHALL be used for server-side logging and retry decisions only and SHALL NOT be serialized to HTTP responses.
@@ -94,6 +98,7 @@ The system SHALL define an `AppErrorCode` type as a union of string literals: `"
 - **THEN** `error.httpStatus` SHALL be `503`
 
 ---
+
 ### Requirement: Domain-scoped reason enums
 
 The system SHALL define reason enums grouped by domain entity in `src/entities/errors/reasons/`. Each domain entity that throws errors SHALL have a corresponding reason enum file. A shared `CommonReason` enum SHALL exist for cross-domain values.
@@ -113,7 +118,6 @@ The `RecordReason` enum SHALL be renamed to `GameReason` and its file SHALL move
 
 - **WHEN** an error reason is not specific to any single domain entity
 - **THEN** it SHALL be defined in `CommonReason` at `src/entities/errors/reasons/common.ts`
-
 
 <!-- @trace
 source: type-decoupling
@@ -465,6 +469,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Only AppError subclasses shall be thrown
 
 All application code (use cases, services, repositories) SHALL throw only `AppError` subclasses. Throwing `new Error("message")` directly SHALL be prohibited. Infrastructure layers SHALL catch external library errors (Mongoose, Better Auth) and translate them into the appropriate `AppError` subclass before re-throwing.
@@ -498,7 +503,6 @@ Every public method on a Mongoose repository implementation SHALL wrap its body 
 - **THEN** the method SHALL catch the error and call `translateRepositoryError()` before re-throwing
 - **THEN** the raw Mongoose error SHALL NOT propagate to the use case layer
 
-
 <!-- @trace
 source: type-decoupling
 updated: 2026-04-08
@@ -849,6 +853,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: withErrorHandler route wrapper and HTTP error response format
 
 The system SHALL provide a `withErrorHandler` higher-order function in `src/lib/api/wrappers.ts` (Route Handler layer) that wraps Next.js route handler functions (`GET`, `POST`, `PATCH`, `DELETE` exports).
@@ -884,6 +889,7 @@ Success responses SHALL continue to return the entity directly (no envelope, no 
 - **THEN** the response body SHALL NOT contain the original error message or stack trace
 
 ---
+
 ### Requirement: withAuth route wrapper
 
 The system SHALL provide a `withAuth` higher-order function in `src/lib/api/wrappers.ts` that extends `withErrorHandler` with session validation. It SHALL:
@@ -906,6 +912,7 @@ The thrown `AuthenticationError` SHALL be caught by the outer `withErrorHandler`
 - **THEN** the response body SHALL be `{ "code": "AUTHENTICATION", "reason": "SESSION_REQUIRED", "detail": "Authentication is required to access this resource" }`
 
 ---
+
 ### Requirement: Structured error logging
 
 The `withErrorHandler` wrapper SHALL emit a structured JSON log event via `console.error()` for every caught error.
@@ -929,6 +936,7 @@ Logs SHALL use `console.error()` (not `console.log()`) to ensure they are not st
 - **THEN** the log SHALL contain the original error `stack` trace
 
 ---
+
 ### Requirement: Proxy API authentication gate
 
 `src/proxy.ts` SHALL be extended to return a `401` JSON response for unauthenticated API requests. The proxy SHALL:
@@ -956,6 +964,7 @@ This check SHALL run in Edge Runtime and SHALL NOT perform database queries. It 
 - **THEN** the proxy SHALL pass the request through to the route handler
 
 ---
+
 ### Requirement: API client and frontend error consumption
 
 The system SHALL provide a unified API client in `src/lib/api/api-client.ts` that wraps `fetch` for all HTTP methods. On non-OK responses, it SHALL parse the response body and throw a structured error object with `code`, `reason`, `detail`, `details` (optional), and `status` fields.
