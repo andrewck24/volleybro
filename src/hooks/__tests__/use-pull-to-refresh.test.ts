@@ -249,26 +249,26 @@ describe("usePullToRefresh", () => {
       expect(result.current.isRefreshing).toBe(true);
 
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(150);
+        await jest.advanceTimersByTimeAsync(700);
       });
       expect(result.current.isRefreshing).toBe(true);
 
       // Past 1000ms total — both settled
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(100);
+        await jest.advanceTimersByTimeAsync(250);
       });
       expect(result.current.isRefreshing).toBe(false);
     });
 
     it("waits for onRefresh when it takes longer than minRefreshDisplay", async () => {
       const onRefresh = jest.fn().mockImplementation(
-        () => new Promise<void>((resolve) => setTimeout(resolve, 500)),
+        () => new Promise<void>((resolve) => setTimeout(resolve, 1500)),
       );
 
       const { result } = renderHook(() =>
         usePullToRefresh(ref, onRefresh, {
           threshold: 80,
-          minRefreshDisplay: 1000,
+          minRefreshDisplay: 300,
         }),
       );
 
@@ -286,13 +286,13 @@ describe("usePullToRefresh", () => {
 
       // minRefreshDisplay elapsed but onRefresh still running
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(1000);
+        await jest.advanceTimersByTimeAsync(300);
       });
       expect(result.current.isRefreshing).toBe(true);
 
-      // onRefresh resolves at 500ms — no extra delay
+      // onRefresh resolves at 1500ms — no extra delay
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(200);
+        await jest.advanceTimersByTimeAsync(1200);
       });
       expect(result.current.isRefreshing).toBe(false);
     });

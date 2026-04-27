@@ -1,7 +1,6 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
-import { PullRefreshIndicator } from "@/components/layout/pull-refresh-indicator";
 import {
   Empty,
   EmptyDescription,
@@ -17,46 +16,36 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/ui/use-toast";
-import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
-import { usePullToRefresh } from "@/hooks/use-pull-to-refresh";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { useGameSummaries } from "@/hooks/use-data";
 import type { GameSummaryView } from "@/lib/features/game/types";
 import { format } from "date-fns";
 import Link from "next/link";
-import { Ref, useCallback, useEffect, useRef } from "react";
+import { Ref, useEffect, useRef } from "react";
 import { RiArrowRightWideLine, RiGroupLine } from "react-icons/ri";
 
-export function GameHistory() {
-  const { toast } = useToast();
-  const {
-    teamId,
-    isLoading: teamIdLoading,
-    error,
-    mutate: mutateTeamId,
-  } = useActiveTeamId();
+interface GameHistoryProps {
+  teamId: string | undefined;
+  isLoading: boolean;
+  refreshError: unknown | null;
+}
+
+export function GameHistory({
+  teamId,
+  isLoading: teamIdLoading,
+  refreshError,
+}: GameHistoryProps) {
   const {
     gameSummaries,
-    mutate: mutateSummaries,
+    mutate,
     isLoading: summariesLoading,
+    error,
     isReachingEnd,
     isLoadingMore,
     setSize,
   } = useGameSummaries(teamId);
 
   const isLoading = teamIdLoading || summariesLoading;
-  const mutate = useCallback(
-    () => Promise.all([mutateTeamId(), ...(teamId ? [mutateSummaries()] : [])]),
-    [teamId, mutateTeamId, mutateSummaries],
-  );
-
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const refreshState = usePullToRefresh(containerRef, mutate, {
-    onError: (err) => {
-      if (gameSummaries?.length) showErrorToast(err, toast);
-    },
-  });
-  const { refreshError } = refreshState;
+  const hasData = !!gameSummaries.length;
 
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -80,34 +69,24 @@ export function GameHistory() {
     return () => {
       observer.disconnect();
     };
-  }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries?.length]);
+  }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries.length]);
 
-  const hasData = !!gameSummaries?.length;
-
-  function renderContent() {
-    if (isLoading && !hasData) return <GameHistorySkeleton />;
-    if (!hasData && (error || refreshError)) return <ServerErrorState onRetry={() => mutate()} />;
-    if (!teamId && !isLoading) return <GuidesForNewUser />;
-    if (!hasData) return <NoMatches />;
-    return (
-      <ItemGroup>
-        {gameSummaries.map((match, index) => (
-          <Match
-            key={match.id}
-            match={match}
-            ref={index === gameSummaries.length - 1 ? lastItemRef : null}
-          />
-        ))}
-        {isLoadingMore && <MatchSkeleton />}
-      </ItemGroup>
-    );
-  }
-
+  if (isLoading && !hasData) return <GameHistorySkeleton />;
+  if (!hasData && (error || refreshError))
+    return <ServerErrorState onRetry={() => mutate()} />;
+  if (!teamId && !isLoading) return <GuidesForNewUser />;
+  if (!hasData) return <NoMatches />;
   return (
-    <div ref={containerRef}>
-      <PullRefreshIndicator state={refreshState} />
-      {renderContent()}
-    </div>
+    <ItemGroup>
+      {gameSummaries.map((match, index) => (
+        <Match
+          key={match.id}
+          match={match}
+          ref={index === gameSummaries.length - 1 ? lastItemRef : null}
+        />
+      ))}
+      {isLoadingMore && <MatchSkeleton />}
+    </ItemGroup>
   );
 }
 
