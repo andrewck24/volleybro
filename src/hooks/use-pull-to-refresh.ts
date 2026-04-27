@@ -24,7 +24,7 @@ export interface PullToRefreshState {
   isRefreshing: boolean;
   pullDistance: number;
   progress: number;
-  refreshError: unknown | null;
+  refreshError: unknown;
 }
 
 function appr(dy: number, max: number, k: number): number {
@@ -92,6 +92,7 @@ export function usePullToRefresh(
 
     const onTouchStart = (e: TouchEvent) => {
       if (isRefreshingRef.current) return;
+      if ((document.scrollingElement?.scrollTop ?? window.scrollY) > 0) return;
       startYRef.current = e.touches[0].clientY;
       dampedRef.current = 0;
       setState((s) => ({ ...s, refreshError: null }));
@@ -147,11 +148,18 @@ export function usePullToRefresh(
             );
           });
 
+          let refreshError: unknown;
+          let didError = false;
+          const wrapped = Promise.resolve(onRefreshRef.current()).catch((e) => {
+            refreshError = e;
+            didError = true;
+          });
           try {
             await Promise.race([
-              Promise.all([onRefreshRef.current(), minDisplayTimer]),
+              Promise.all([wrapped, minDisplayTimer]),
               timeoutTimer,
             ]);
+            if (didError) throw refreshError;
           } catch (error) {
             onErrorRef.current?.(error);
             setState((s) => ({ ...s, refreshError: error }));

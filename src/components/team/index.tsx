@@ -15,10 +15,10 @@ const Team = ({ teamId, tab }: { teamId: string; tab: string }) => {
   const defaultTab = tab || "players";
   const { mutate: mutateTeam } = useTeam(teamId);
   const { mutate: mutatePlayers } = useTeamPlayers(teamId);
-  const mutate = useCallback(async () => {
-    mutateTeam();
-    mutatePlayers();
-  }, [mutateTeam, mutatePlayers]);
+  const mutate = useCallback(
+    () => Promise.all([mutateTeam(), mutatePlayers()]),
+    [mutateTeam, mutatePlayers],
+  );
   const containerRef = useRef<HTMLDivElement | null>(null);
   const refreshState = usePullToRefresh(containerRef, mutate, {
     onError: (err) => showErrorToast(err, toast),

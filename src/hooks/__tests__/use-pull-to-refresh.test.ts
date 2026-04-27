@@ -219,9 +219,11 @@ describe("usePullToRefresh", () => {
     });
 
     it("keeps isRefreshing true for minRefreshDisplay when onRefresh resolves faster", async () => {
-      const onRefresh = jest.fn().mockImplementation(
-        () => new Promise<void>((resolve) => setTimeout(resolve, 50)),
-      );
+      const onRefresh = jest
+        .fn()
+        .mockImplementation(
+          () => new Promise<void>((resolve) => setTimeout(resolve, 50)),
+        );
 
       const { result } = renderHook(() =>
         usePullToRefresh(ref, onRefresh, {
@@ -261,9 +263,11 @@ describe("usePullToRefresh", () => {
     });
 
     it("waits for onRefresh when it takes longer than minRefreshDisplay", async () => {
-      const onRefresh = jest.fn().mockImplementation(
-        () => new Promise<void>((resolve) => setTimeout(resolve, 1500)),
-      );
+      const onRefresh = jest
+        .fn()
+        .mockImplementation(
+          () => new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+        );
 
       const { result } = renderHook(() =>
         usePullToRefresh(ref, onRefresh, {
@@ -335,10 +339,50 @@ describe("usePullToRefresh", () => {
       expect(result.current.isRefreshing).toBe(false);
     });
 
-    it("calls onError with RefreshTimeoutError after refreshTimeout ms", async () => {
-      const onRefresh = jest.fn().mockImplementation(
-        () => new Promise<void>(() => {}),
+    it("holds isRefreshing for minRefreshDisplay even when onRefresh rejects fast", async () => {
+      const cause = new Error("fast fail");
+      const onRefresh = jest
+        .fn()
+        .mockImplementation(
+          () =>
+            new Promise<void>((_, reject) =>
+              setTimeout(() => reject(cause), 50),
+            ),
+        );
+
+      const { result } = renderHook(() =>
+        usePullToRefresh(ref, onRefresh, {
+          threshold: 80,
+          minRefreshDisplay: 1000,
+        }),
       );
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 315));
+      });
+      act(() => {
+        el.dispatchEvent(new TouchEvent("touchend", { bubbles: true }));
+      });
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(50);
+      });
+      expect(result.current.isRefreshing).toBe(true);
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(950);
+      });
+      expect(result.current.isRefreshing).toBe(false);
+      expect(result.current.refreshError).toBe(cause);
+    });
+
+    it("calls onError with RefreshTimeoutError after refreshTimeout ms", async () => {
+      const onRefresh = jest
+        .fn()
+        .mockImplementation(() => new Promise<void>(() => {}));
       const onError = jest.fn();
 
       const { result } = renderHook(() =>
@@ -453,6 +497,33 @@ describe("usePullToRefresh", () => {
       });
 
       expect(jest.getTimerCount()).toBe(0);
+    });
+  });
+
+  describe("scroll-top guard", () => {
+    it("does not activate pulling when page is scrolled below top", () => {
+      const fakeScrollEl = { scrollTop: 100 } as Element;
+      Object.defineProperty(document, "scrollingElement", {
+        configurable: true,
+        get: () => fakeScrollEl,
+      });
+
+      try {
+        const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));
+
+        act(() => {
+          el.dispatchEvent(makeTouchEvent("touchstart", 0));
+        });
+        act(() => {
+          el.dispatchEvent(makeTouchEvent("touchmove", 200));
+        });
+
+        expect(result.current.isPulling).toBe(false);
+        expect(result.current.pullDistance).toBe(0);
+      } finally {
+        delete (document as unknown as { scrollingElement?: unknown })
+          .scrollingElement;
+      }
     });
   });
 
