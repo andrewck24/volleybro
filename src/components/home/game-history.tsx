@@ -26,7 +26,7 @@ import { RiArrowRightWideLine, RiGroupLine } from "react-icons/ri";
 interface GameHistoryProps {
   teamId: string | undefined;
   isLoading: boolean;
-  refreshError: unknown | null;
+  refreshError: unknown;
 }
 
 export function GameHistory({
