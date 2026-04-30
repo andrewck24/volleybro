@@ -15,4 +15,4 @@
 
 ## 4. Spec update
 
-- [ ] [P] 4.1 Merge the delta spec at `openspec/changes/frontend-auth-redirect/specs/error-handling/spec.md` into `openspec/specs/error-handling/spec.md` by replacing the existing "API client and frontend error consumption" requirement with the updated version and appending the new "Frontend 401 authentication gate" requirement. (Covers: Frontend 401 authentication gate, API client and frontend error consumption)
+- [x] [P] 4.1 Merge the delta spec at `openspec/changes/frontend-auth-redirect/specs/error-handling/spec.md` into `openspec/specs/error-handling/spec.md` by replacing the existing "API client and frontend error consumption" requirement with the updated version and appending the new "Frontend 401 authentication gate" requirement. (Covers: Frontend 401 authentication gate, API client and frontend error consumption)
