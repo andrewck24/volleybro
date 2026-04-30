@@ -53,6 +53,7 @@ export default async function jestConfig() {
     testMatch: [
       "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/hooks/**/*.{spec,test}.{js,jsx,ts,tsx}",
     ],
   };
 

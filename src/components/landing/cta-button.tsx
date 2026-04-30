@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { isStandalone } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -27,10 +28,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-interface NavigatorStandalone extends Navigator {
-  standalone?: boolean;
-}
-
 export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -38,12 +35,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [platform] = useState<Platform>(() =>
     typeof window !== "undefined" ? checkPlatform() : "mobile",
   );
-  const [isStandalone] = useState<boolean>(() =>
-    typeof window !== "undefined"
-      ? "standalone" in window.navigator &&
-        (window.navigator as NavigatorStandalone).standalone === true
-      : false,
-  );
+  const [isPwa] = useState<boolean>(() => isStandalone());
   const mounted = useHydrated();
 
   useEffect(() => {
@@ -97,7 +89,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   }
 
   // 如果已經以 PWA 模式運行，不顯示安裝按鈕
-  if (isStandalone || platform === "desktop") {
+  if (isPwa || platform === "desktop") {
     return (
       <Link
         href="/home"

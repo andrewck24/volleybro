@@ -1,4 +1,4 @@
-<!-- SPECTRA:START v1.0.1 -->
+<!-- SPECTRA:START v1.0.2 -->
 
 # Spectra Instructions
 
@@ -12,6 +12,7 @@ This project uses Spectra for Spec-Driven Development(SDD). Specs live in `opens
 - There's an in-progress change to continue → `$spectra-ingest`
 - User asks about specs or how something works → `$spectra-ask`
 - Implementation is done → `$spectra-archive`
+- Commit only files related to a specific change → `$spectra-commit`
 
 ## Workflow
 
@@ -82,6 +83,6 @@ Components are organized by domain and purpose (features):
 3. **Game Recording**: Real-time game recording with detailed statistics
 4. **Data Analysis**: Game statistics, visualizations, and historical data
 
-**IMPORTANT**: Commit changes after each section completed, with all tests/lint/type/build checks passing and `/simplify` applied.
+**IMPORTANT**: Commit changes after each task section completed, with all tests/lint/type/build checks passing and `/simplify` applied.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.

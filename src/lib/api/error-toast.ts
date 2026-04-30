@@ -1,4 +1,5 @@
 import { ApiClientError } from "@/lib/api/api-client";
+import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 
 type ToastFn = (opts: {
   title: string;
@@ -41,6 +42,15 @@ export function getErrorMessage(error: unknown): string {
  * - Unknown errors → generic fallback
  */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
+  if (error instanceof RefreshTimeoutError) {
+    toast({
+      title: "連線逾時",
+      description: "請稍後再試，若問題持續請確認網路連線。",
+      variant: "destructive",
+    });
+    return;
+  }
+
   if (error instanceof ApiClientError) {
     if (isServerError(error)) {
       toast({
