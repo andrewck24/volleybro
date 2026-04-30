@@ -5,8 +5,8 @@
 
 ## 2. SWRProvider component
 
-- [ ] [P] 2.1 Create `src/components/layout/swr-provider.tsx` as a `"use client"` component. It SHALL call `useRouter()` and `useToast()`, construct an `onError` callback that calls `handle401Redirect` when `error instanceof ApiClientError && error.status === 401` and `showErrorToast(error, toast)` for all other errors, then render `<SWRConfig value={{ onError }}>{children}</SWRConfig>`. (Covers: Frontend 401 authentication gate, SWR GET receives 401)
-- [ ] [P] 2.2 In `src/app/layout.tsx`, import `SWRProvider` and wrap the existing `<ReduxProvider>` subtree so that `<SWRProvider>` is the outermost client boundary. Verify the component tree order is: `<SWRProvider><ReduxProvider>...<ThemeProvider>...</ThemeProvider></ReduxProvider></SWRProvider>`. (Covers: Frontend 401 authentication gate, Landing and public pages unaffected)
+- [x] [P] 2.1 Create `src/components/layout/swr-provider.tsx` as a `"use client"` component. It SHALL call `useRouter()` and `useToast()`, construct an `onError` callback that calls `handle401Redirect` when `error instanceof ApiClientError && error.status === 401` and `showErrorToast(error, toast)` for all other errors, then render `<SWRConfig value={{ onError }}>{children}</SWRConfig>`. (Covers: Frontend 401 authentication gate, SWR GET receives 401)
+- [x] [P] 2.2 In `src/app/layout.tsx`, import `SWRProvider` and wrap the existing `<ReduxProvider>` subtree so that `<SWRProvider>` is the outermost client boundary. Verify the component tree order is: `<SWRProvider><ReduxProvider>...<ThemeProvider>...</ThemeProvider></ReduxProvider></SWRProvider>`. (Covers: Frontend 401 authentication gate, Landing and public pages unaffected)
 
 ## 3. Mutation catch path audit
 
