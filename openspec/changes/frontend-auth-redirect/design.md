@@ -14,6 +14,7 @@ SWR's `onError` callback runs outside React component context, which means `useR
 - All SWR 401 errors trigger a session-expiry toast and redirect to `/auth/sign-in`
 - All mutation 401 errors trigger the same toast and redirect
 - Single implementation point — no per-component 401 handling required
+- Zero changes to existing UI components
 
 **Non-Goals:**
 - Handling 401 on the proxy/server side (already implemented in `src/proxy.ts`)
@@ -22,36 +23,45 @@ SWR's `onError` callback runs outside React component context, which means `useR
 
 ## Decisions
 
-### SWRProvider as client component with useRouter
+### apiClient fires a custom DOM event on 401
 
-**Decision**: Create `src/components/layout/swr-provider.tsx` as a `"use client"` component. It calls `useRouter()` and `useToast()`, then passes an `onError` callback into `<SWRConfig>`.
+**Decision**: In `src/lib/api/api-client.ts`, before throwing `ApiClientError`, check if `res.status === 401` and if `typeof window !== 'undefined'`, then dispatch `new CustomEvent('api:unauthorized')`. The throw still happens immediately after.
 
-**Why**: SWR's `onError` must close over `router` and `toast`. These are React hooks and must be called within a component. A dedicated provider component is the standard Next.js App Router pattern for sharing SWR config globally.
+**Why**: This decouples 401 signalling from component responsibility. Every caller of `apiClient` — SWR fetcher and mutation handlers alike — gets the event for free without any per-call handling. Server-side calls (if any) are guarded by the `typeof window` check.
 
-**Alternative rejected**: Using `window.location.href = '/auth/sign-in'` in a plain module-level config avoids the component wrapper but bypasses Next.js router (loses prefetching, scroll restoration, and transition behaviour).
+**Alternative rejected**: Per-component `useRouter` + explicit 401 check before `showErrorToast`. Blast radius: 11 components currently, grows with every new mutation. Each new component requires remembering to add the pattern. Violates SRP — UI components should not contain authentication redirect logic.
+
+### SWRProvider listens for the custom event to handle redirect
+
+**Decision**: `src/components/layout/swr-provider.tsx` adds a `useEffect` that registers a `window` event listener for `'api:unauthorized'`. The listener calls `handle401Redirect(router, toast)`. The `SWRConfig` `onError` delegates to `showErrorToast` only (which early-returns for 401 via its existing guard, preventing double-toast).
+
+**Why**: `SWRProvider` already holds `useRouter()` and `useToast()` for the SWR `onError`. Reusing it as the event handler requires no new component or provider. The event listener pattern is the standard browser mechanism for cross-boundary signalling without prop drilling.
+
+**Alternative rejected**: Putting the event listener in a separate `AuthProvider`. Adds an extra component layer with no benefit — `SWRProvider` already exists and has the required hooks.
 
 ### Mount SWRProvider in root layout
 
-**Decision**: Add `<SWRProvider>` inside the existing `<ReduxProvider>` in `src/app/layout.tsx` so it covers all routes, including `/game` which is outside the `/(protected)` group.
+**Decision**: `<SWRProvider>` wraps `<ReduxProvider>` in `src/app/layout.tsx`, covering all routes including `/game` (outside `/(protected)`). Already implemented.
 
-**Why**: Both `/(protected)` and `/game` are authenticated routes. A single mount at the root eliminates duplication. Landing page routes (`/`) do not call authenticated APIs, so the `onError` handler will never fire there.
+**Why**: Single mount point. Landing pages do not call authenticated APIs, so the event listener never fires there.
 
-### Centralise 401 handling in a shared utility
+### handle401Redirect utility remains in error-toast.ts
 
-**Decision**: Extract a `handle401Redirect(router, toast)` function into `src/lib/api/error-toast.ts`. Both `SWRProvider`'s `onError` and mutation catch paths call this utility.
+**Decision**: `handle401Redirect(router, toast)` stays exported from `src/lib/api/error-toast.ts`. It is the single place that fires the toast and calls `router.push('/auth/sign-in')`. Only `SWRProvider`'s event listener calls it.
 
-**Why**: Keeps the redirect + toast logic in one place. Mutation components currently catch errors and call `showErrorToast` directly — they can call `handle401Redirect` before delegating to `showErrorToast` for non-401 errors. Update `showErrorToast` to skip 401 (since the caller will have already handled it), preventing double-toasting.
+**Why**: Keeps toast + redirect logic co-located with other error display utilities. Single call site means the behaviour is easy to find and modify.
 
 ### Toast fires simultaneously with redirect, no delay
 
-**Decision**: Call `toast(...)` and `router.push('/auth/sign-in')` in the same synchronous block with no `setTimeout`.
+**Decision**: `handle401Redirect` calls `toast(...)` and `router.push('/auth/sign-in')` in the same synchronous block.
 
-**Why**: The `<Toaster>` root layout component does not unmount during client-side navigation, so the toast remains visible after the route change. A delay would complicate cleanup and serves no UX purpose.
+**Why**: `<Toaster>` is in the root layout, does not unmount during client-side navigation, so the toast remains visible after the route change.
 
 ## Risks / Trade-offs
 
-- [Risk] SWR retries on error by default — if retry fires before redirect completes, a second toast may appear → Mitigation: `showErrorToast` skips 401; SWR's retry will also 401 but `handle401Redirect` checks if already redirecting (or accept the duplicate as negligible given the redirect is immediate)
-- [Risk] Components with per-route mutation catch paths may not call `handle401Redirect` → Mitigation: Covered by task — audit all mutation catch blocks and update to call `handle401Redirect` first
+- [Risk] SWR retries on error by default — if retry fires before redirect completes, a second `'api:unauthorized'` event fires → Mitigation: `showErrorToast` skips 401; the redirect is near-instant so the window is negligible. Accept as low-impact.
+- [Risk] `window` unavailable in SSR — `apiClient` is called from client components only in this app, but the guard `typeof window !== 'undefined'` ensures safety if ever called server-side.
+- [Risk] Event listener not cleaned up → Mitigation: `useEffect` returns a cleanup function that calls `window.removeEventListener`.
 
 ## Open Questions
 
