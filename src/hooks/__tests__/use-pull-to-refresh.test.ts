@@ -501,29 +501,32 @@ describe("usePullToRefresh", () => {
   });
 
   describe("scroll-top guard", () => {
-    it("does not activate pulling when page is scrolled below top", () => {
-      const fakeScrollEl = { scrollTop: 100 } as Element;
+    beforeEach(() => {
       Object.defineProperty(document, "scrollingElement", {
         configurable: true,
-        get: () => fakeScrollEl,
+        get: () => ({ scrollTop: 100 }),
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(document, "scrollingElement", {
+        configurable: true,
+        get: () => null,
+      });
+    });
+
+    it("does not activate pulling when page is scrolled below top", () => {
+      const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));
+
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchstart", 0));
+      });
+      act(() => {
+        el.dispatchEvent(makeTouchEvent("touchmove", 200));
       });
 
-      try {
-        const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));
-
-        act(() => {
-          el.dispatchEvent(makeTouchEvent("touchstart", 0));
-        });
-        act(() => {
-          el.dispatchEvent(makeTouchEvent("touchmove", 200));
-        });
-
-        expect(result.current.isPulling).toBe(false);
-        expect(result.current.pullDistance).toBe(0);
-      } finally {
-        delete (document as unknown as { scrollingElement?: unknown })
-          .scrollingElement;
-      }
+      expect(result.current.isPulling).toBe(false);
+      expect(result.current.pullDistance).toBe(0);
     });
   });
 

@@ -83,6 +83,13 @@ export function usePullToRefresh(
   onRefreshRef.current = onRefresh;
   const onErrorRef = useRef(options?.onError);
   onErrorRef.current = options?.onError;
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (pwaOnly && !isStandalone()) return;
@@ -162,18 +169,22 @@ export function usePullToRefresh(
             if (didError) throw refreshError;
           } catch (error) {
             onErrorRef.current?.(error);
-            setState((s) => ({ ...s, refreshError: error }));
+            if (mountedRef.current) {
+              setState((s) => ({ ...s, refreshError: error }));
+            }
           } finally {
             clearTimeout(minDisplayId);
             clearTimeout(timeoutId);
             isRefreshingRef.current = false;
-            setState((s) => ({
-              ...s,
-              isPulling: false,
-              isRefreshing: false,
-              pullDistance: 0,
-              progress: 0,
-            }));
+            if (mountedRef.current) {
+              setState((s) => ({
+                ...s,
+                isPulling: false,
+                isRefreshing: false,
+                pullDistance: 0,
+                progress: 0,
+              }));
+            }
           }
         } else {
           setState((s) => ({
