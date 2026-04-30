@@ -5,8 +5,8 @@
 
 ## 2. apiClient event + SWRProvider listener
 
-- [ ] 2.1 In `src/lib/api/api-client.ts`, in the non-OK response path, before throwing `ApiClientError`, add: `if (res.status === 401 && typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('api:unauthorized')); }`. The throw SHALL still execute immediately after. (Covers: Frontend 401 authentication gate, Mutation catch path receives 401)
-- [ ] 2.2 In `src/components/layout/swr-provider.tsx`, add a `useEffect` that registers a `window` event listener for `'api:unauthorized'`. The listener SHALL call `handle401Redirect(router, toast)`. The effect cleanup SHALL call `window.removeEventListener`. The existing `SWRConfig` `onError` SHALL be simplified to call `showErrorToast(error, toast)` only — the 401 early-return in `showErrorToast` prevents double-toasting. (Covers: Frontend 401 authentication gate, SWR GET receives 401)
+- [x] 2.1 In `src/lib/api/api-client.ts`, in the non-OK response path, before throwing `ApiClientError`, add: `if (res.status === 401 && typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('api:unauthorized')); }`. The throw SHALL still execute immediately after. (Covers: Frontend 401 authentication gate, Mutation catch path receives 401)
+- [x] 2.2 In `src/components/layout/swr-provider.tsx`, add a `useEffect` that registers a `window` event listener for `'api:unauthorized'`. The listener SHALL call `handle401Redirect(router, toast)`. The effect cleanup SHALL call `window.removeEventListener`. The existing `SWRConfig` `onError` SHALL be simplified to call `showErrorToast(error, toast)` only — the 401 early-return in `showErrorToast` prevents double-toasting. (Covers: Frontend 401 authentication gate, SWR GET receives 401)
 
 ## 3. SWRProvider mount (already complete)
 

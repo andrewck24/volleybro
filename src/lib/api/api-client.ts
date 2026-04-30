@@ -36,6 +36,9 @@ export async function apiClient<T = unknown>(
 
   if (!res.ok) {
     const info = await parseApiError(res);
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("api:unauthorized"));
+    }
     throw new ApiClientError(info.detail, info);
   }
 
