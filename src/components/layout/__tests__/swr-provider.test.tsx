@@ -1,8 +1,6 @@
-"use client";
-
 import React from "react";
 import { render, act } from "@testing-library/react";
-import { ApiClientError } from "@/lib/api/api-client";
+import { API_UNAUTHORIZED_EVENT, ApiClientError } from "@/lib/api/api-client";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
 let capturedOnError: ((error: unknown) => void) | undefined;
@@ -96,7 +94,7 @@ describe("SWRProvider", () => {
         </SWRProvider>,
       );
       act(() => {
-        window.dispatchEvent(new CustomEvent("api:unauthorized"));
+        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
       });
       expect(mockHandle401Redirect).toHaveBeenCalledTimes(1);
     });
@@ -109,7 +107,7 @@ describe("SWRProvider", () => {
       );
       unmount();
       act(() => {
-        window.dispatchEvent(new CustomEvent("api:unauthorized"));
+        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
       });
       expect(mockHandle401Redirect).not.toHaveBeenCalled();
     });

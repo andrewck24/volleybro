@@ -1,6 +1,5 @@
 import { ApiClientError } from "@/lib/api/api-client";
 import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 type ToastFn = (opts: {
   title: string;
@@ -9,7 +8,7 @@ type ToastFn = (opts: {
 }) => void;
 
 export function handle401Redirect(
-  router: AppRouterInstance,
+  router: { push: (href: string) => void },
   toast: ToastFn,
 ): void {
   toast({

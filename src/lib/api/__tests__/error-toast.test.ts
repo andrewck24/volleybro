@@ -2,7 +2,6 @@ import { ApiClientError } from "@/lib/api/api-client";
 import { handle401Redirect, showErrorToast } from "@/lib/api/error-toast";
 import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 import type { ApiError } from "@/lib/api/parse-api-error";
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 const makeApiClientError = (
   status: number,
@@ -20,7 +19,7 @@ const makeApiClientError = (
 
 describe("handle401Redirect", () => {
   let mockToast: jest.Mock;
-  let mockRouter: Pick<AppRouterInstance, "push">;
+  let mockRouter: { push: jest.Mock };
 
   beforeEach(() => {
     mockToast = jest.fn();
@@ -28,7 +27,7 @@ describe("handle401Redirect", () => {
   });
 
   it("shows 登入已逾期 destructive toast", () => {
-    handle401Redirect(mockRouter as AppRouterInstance, mockToast);
+    handle401Redirect(mockRouter, mockToast);
 
     expect(mockToast).toHaveBeenCalledWith({
       title: "登入已逾期",
@@ -38,7 +37,7 @@ describe("handle401Redirect", () => {
   });
 
   it("calls router.push to /auth/sign-in in the same synchronous call", () => {
-    handle401Redirect(mockRouter as AppRouterInstance, mockToast);
+    handle401Redirect(mockRouter, mockToast);
 
     expect(mockRouter.push).toHaveBeenCalledWith("/auth/sign-in");
     expect(mockToast).toHaveBeenCalledTimes(1);

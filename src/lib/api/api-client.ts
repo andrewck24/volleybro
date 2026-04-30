@@ -2,6 +2,8 @@ import { type ApiError, parseApiError } from "@/lib/api/parse-api-error";
 
 export { type ApiError };
 
+export const API_UNAUTHORIZED_EVENT = "api:unauthorized" as const;
+
 export class ApiClientError extends Error {
   constructor(
     message: string,
@@ -37,7 +39,7 @@ export async function apiClient<T = unknown>(
   if (!res.ok) {
     const info = await parseApiError(res);
     if (res.status === 401 && typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("api:unauthorized"));
+      window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
     }
     throw new ApiClientError(info.detail, info);
   }

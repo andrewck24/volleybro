@@ -1,4 +1,4 @@
-import { ApiClientError, apiClient } from "@/lib/api/api-client";
+import { API_UNAUTHORIZED_EVENT, ApiClientError, apiClient } from "@/lib/api/api-client";
 
 const makeFetchResponse = (status: number, body: object) => ({
   ok: status >= 200 && status < 300,
@@ -31,7 +31,7 @@ describe("apiClient", () => {
     it("dispatches api:unauthorized CustomEvent", async () => {
       await expect(apiClient("/api/test")).rejects.toThrow(ApiClientError);
       const unauthorizedCalls = dispatchSpy.mock.calls.filter(
-        ([e]) => e instanceof CustomEvent && e.type === "api:unauthorized",
+        ([e]) => e instanceof CustomEvent && e.type === API_UNAUTHORIZED_EVENT,
       );
       expect(unauthorizedCalls).toHaveLength(1);
     });
@@ -39,7 +39,7 @@ describe("apiClient", () => {
     it("throws ApiClientError with status 401 after dispatching event", async () => {
       const order: string[] = [];
       dispatchSpy.mockImplementation((e: Event) => {
-        if (e instanceof CustomEvent && e.type === "api:unauthorized") {
+        if (e instanceof CustomEvent && e.type === API_UNAUTHORIZED_EVENT) {
           order.push("dispatch");
         }
         return true;
@@ -71,7 +71,7 @@ describe("apiClient", () => {
 
       await expect(apiClient("/api/test")).rejects.toThrow(ApiClientError);
       const unauthorizedCalls = dispatchSpy.mock.calls.filter(
-        ([e]) => e instanceof CustomEvent && e.type === "api:unauthorized",
+        ([e]) => e instanceof CustomEvent && e.type === API_UNAUTHORIZED_EVENT,
       );
       expect(unauthorizedCalls).toHaveLength(0);
     });
@@ -86,7 +86,7 @@ describe("apiClient", () => {
       const result = await apiClient<{ id: string }>("/api/test");
       expect(result).toEqual({ id: "123" });
       const unauthorizedCalls = dispatchSpy.mock.calls.filter(
-        ([e]) => e instanceof CustomEvent && e.type === "api:unauthorized",
+        ([e]) => e instanceof CustomEvent && e.type === API_UNAUTHORIZED_EVENT,
       );
       expect(unauthorizedCalls).toHaveLength(0);
     });
