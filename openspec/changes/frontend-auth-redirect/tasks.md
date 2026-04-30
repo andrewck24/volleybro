@@ -1,7 +1,7 @@
 ## 1. Utility: handle401Redirect
 
-- [ ] 1.1 Add `handle401Redirect(router: AppRouterInstance, toast: ToastFn): void` to `src/lib/api/error-toast.ts`. It SHALL show a destructive toast `{ title: "登入已逾期", description: "請重新登入" }` and call `router.push('/auth/sign-in')` in the same synchronous block. Export the function alongside `showErrorToast`. (Covers: Frontend 401 authentication gate)
-- [ ] 1.2 In `showErrorToast` in `src/lib/api/error-toast.ts`, add an early-return guard: if `error instanceof ApiClientError && error.status === 401`, return without showing a toast. This prevents double-toasting when callers call `handle401Redirect` first. (Covers: Frontend 401 authentication gate, Mutation catch path receives 401)
+- [x] 1.1 Add `handle401Redirect(router: AppRouterInstance, toast: ToastFn): void` to `src/lib/api/error-toast.ts`. It SHALL show a destructive toast `{ title: "登入已逾期", description: "請重新登入" }` and call `router.push('/auth/sign-in')` in the same synchronous block. Export the function alongside `showErrorToast`. (Covers: Frontend 401 authentication gate)
+- [x] 1.2 In `showErrorToast` in `src/lib/api/error-toast.ts`, add an early-return guard: if `error instanceof ApiClientError && error.status === 401`, return without showing a toast. This prevents double-toasting when callers call `handle401Redirect` first. (Covers: Frontend 401 authentication gate, Mutation catch path receives 401)
 
 ## 2. SWRProvider component
 
