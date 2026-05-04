@@ -65,7 +65,7 @@ describe("SWRProvider", () => {
   });
 
   describe("onError callback", () => {
-    it("delegates all errors to showErrorToast (including 401)", () => {
+    it("calls showErrorToast for all errors (401 is silently swallowed inside showErrorToast)", () => {
       render(
         <SWRProvider>
           <span />
@@ -94,6 +94,19 @@ describe("SWRProvider", () => {
         </SWRProvider>,
       );
       act(() => {
+        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
+      });
+      expect(mockHandle401Redirect).toHaveBeenCalledTimes(1);
+    });
+
+    it("calls handle401Redirect only once when two events fire in quick succession (dedup guard)", () => {
+      render(
+        <SWRProvider>
+          <span />
+        </SWRProvider>,
+      );
+      act(() => {
+        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
         window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
       });
       expect(mockHandle401Redirect).toHaveBeenCalledTimes(1);
