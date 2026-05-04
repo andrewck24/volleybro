@@ -1,5 +1,5 @@
 import { ApiClientError } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { handle401Redirect, showErrorToast } from "@/lib/api/error-toast";
 import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
@@ -16,6 +16,34 @@ const makeApiClientError = (
   };
   return new ApiClientError(detail, info);
 };
+
+describe("handle401Redirect", () => {
+  let mockToast: jest.Mock;
+  let mockRouter: { push: jest.Mock };
+
+  beforeEach(() => {
+    mockToast = jest.fn();
+    mockRouter = { push: jest.fn() };
+  });
+
+  it("shows 登入已逾期 destructive toast", () => {
+    handle401Redirect(mockRouter, mockToast);
+
+    expect(mockToast).toHaveBeenCalledWith({
+      title: "登入已逾期",
+      description: "請重新登入",
+      variant: "destructive",
+    });
+  });
+
+  it("calls router.push to /auth/sign-in in the same synchronous call", () => {
+    handle401Redirect(mockRouter, mockToast);
+
+    expect(mockRouter.push).toHaveBeenCalledWith("/auth/sign-in");
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("showErrorToast", () => {
   let mockToast: jest.Mock;
@@ -97,6 +125,14 @@ describe("showErrorToast", () => {
         description: "請稍後再試，若問題持續請確認網路連線。",
         variant: "destructive",
       });
+    });
+  });
+
+  describe("401 errors → no toast (handle401Redirect owns this case)", () => {
+    it("does NOT call toast for status 401 ApiClientError", () => {
+      const error = makeApiClientError(401, "AUTHENTICATION", "Authentication is required");
+      showErrorToast(error, mockToast);
+      expect(mockToast).not.toHaveBeenCalled();
     });
   });
 

@@ -1,13 +1,14 @@
 import "@/app/globals.css";
-import { Saira, Noto_Sans_TC } from "next/font/google";
-import { Analytics } from "@vercel/analytics/react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { ReduxProvider } from "@/lib/redux/provider";
+import { SerwistProvider } from "@/app/serwist-provider";
+import { BackgroundColorHandler } from "@/components/layout/bg-handler";
+import { SWRProvider } from "@/components/layout/swr-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import { BackgroundColorHandler } from "@/components/layout/bg-handler";
-import { SerwistProvider } from "@/app/serwist-provider";
+import { ReduxProvider } from "@/lib/redux/provider";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
+import { Noto_Sans_TC, Saira } from "next/font/google";
 
 const APP_NAME = "VolleyBro";
 const APP_DEFAULT_TITLE = "VolleyBro";
@@ -189,20 +190,22 @@ export default async function RootLayout({
           swUrl="/sw.js"
           disable={process.env.NODE_ENV !== "production"}
         >
-          <ReduxProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
-              {children}
-              <Toaster />
-              <BackgroundColorHandler />
-              <Analytics />
-              <SpeedInsights />
-            </ThemeProvider>
-          </ReduxProvider>
+          <SWRProvider>
+            <ReduxProvider>
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster />
+                <BackgroundColorHandler />
+                <Analytics />
+                <SpeedInsights />
+              </ThemeProvider>
+            </ReduxProvider>
+          </SWRProvider>
         </SerwistProvider>
       </body>
     </html>

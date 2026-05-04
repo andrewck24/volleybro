@@ -7,6 +7,18 @@ type ToastFn = (opts: {
   variant: "default" | "destructive";
 }) => void;
 
+export function handle401Redirect(
+  router: { push: (href: string) => void },
+  toast: ToastFn,
+): void {
+  toast({
+    title: "登入已逾期",
+    description: "請重新登入",
+    variant: "destructive",
+  });
+  router.push("/auth/sign-in");
+}
+
 /**
  * Determines if the error is a server/unexpected error that deserves
  * branded volleyball-themed messaging (not user-actionable).
@@ -42,6 +54,8 @@ export function getErrorMessage(error: unknown): string {
  * - Unknown errors → generic fallback
  */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
+  if (error instanceof ApiClientError && error.status === 401) return;
+
   if (error instanceof RefreshTimeoutError) {
     toast({
       title: "連線逾時",
