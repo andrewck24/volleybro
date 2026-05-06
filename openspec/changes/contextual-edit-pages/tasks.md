@@ -1,7 +1,7 @@
 ## 1. Route Group Rename
 
-- [ ] 1.1 Rename `src/app/(protected)/` to `src/app/(tabs)/` using `git mv` to preserve history; route group names do not appear in import paths so no import changes are expected; satisfies "route group renamed from (protected) to (tabs)"
-- [ ] 1.2 Run pnpm typecheck and pnpm lint to confirm no broken references after rename; commit rename
+- [x] 1.1 Rename `src/app/(protected)/` to `src/app/(tabs)/` using `git mv` to preserve history; route group names do not appear in import paths so no import changes are expected; satisfies "route group renamed from (protected) to (tabs)"
+- [x] 1.2 Run pnpm typecheck and pnpm lint to confirm no broken references after rename; commit rename
 
 ## 2. Foundation Hooks
 
