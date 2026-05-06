@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
+import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
 import { z } from "zod";
 
@@ -32,10 +33,11 @@ interface TeamFormProps {
   draftKey: string;
   defaultValues?: Partial<TeamFormValues>;
   onSubmit: (data: TeamFormValues) => Promise<void>;
+  onStateChange?: (isDirty: boolean) => void;
   className?: string;
 }
 
-const TeamForm = ({ draftKey, defaultValues, onSubmit, className }: TeamFormProps) => {
+const TeamForm = ({ draftKey, defaultValues, onSubmit, onStateChange, className }: TeamFormProps) => {
   const { form, clearDraft } = useFormDraft<TeamFormValues>(draftKey, {
     resolver: zodResolver(TeamSchema) as Resolver<TeamFormValues>,
     defaultValues: {
@@ -43,7 +45,12 @@ const TeamForm = ({ draftKey, defaultValues, onSubmit, className }: TeamFormProp
       nickname: defaultValues?.nickname ?? "",
     },
   });
-  useLeavePageWarning(form.formState.isDirty);
+  const { isDirty } = form.formState;
+  useLeavePageWarning(isDirty);
+
+  useEffect(() => {
+    onStateChange?.(isDirty);
+  }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {

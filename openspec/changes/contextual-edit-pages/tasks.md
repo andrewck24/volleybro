@@ -39,13 +39,13 @@
 
 ## 6. Dialog Intercepting Routes
 
-- [ ] 6.1 Create `src/components/team/edit-dialog-shell.tsx`: reusable Dialog shell component (dialog as the modal component (not sheet) — works as bottom sheet on mobile and centered modal on desktop); `DialogHeader` contains: page title, a maximize icon button that calls `router.push(fullPageHref)` (Gmail-style maximize using shared sessionStorage key), and a close icon button that checks `isDirty` — if true, shows shadcn `AlertDialog` with discard confirmation (on confirm: `clearDraft()` then `router.back()`, satisfies "draft cleared on explicit discard"; on cancel: keep Dialog open); if `isDirty` is false, closes immediately; props: `title`, `fullPageHref`, `isDirty`, `clearDraft`, `children`; satisfies "dialog contains maximize affordance", "dialog close with dirty form shows confirmation", "close clean dialog — no confirmation"
-- [ ] 6.2 [P] Create `src/app/(tabs)/@modal/(...)team/new/page.tsx`: wraps team create form in `EditDialogShell`; uses same `useFormDraft("draft:team:new")` key as full-page version so maximize restores state; satisfies "edit routes open as Dialog on soft navigation" for team create
-- [ ] 6.3 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/edit/page.tsx`: Dialog version of team edit; satisfies "navigate to team edit from within tab context"
-- [ ] 6.4 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/lineup/page.tsx`: Dialog version of lineup; satisfies "navigate to lineup from within tab context"
-- [ ] 6.5 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/players/new/page.tsx`: Dialog version of player create; satisfies "navigate to player create from within tab context"
-- [ ] 6.6 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/players/[playerId]/edit/page.tsx`: Dialog version of player edit; satisfies "navigate to player edit from within tab context"
-- [ ] 6.7 Commit section 6 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 6.1 Create `src/components/team/edit-dialog-shell.tsx`: reusable Dialog shell component (dialog as the modal component (not sheet) — works as bottom sheet on mobile and centered modal on desktop); `DialogHeader` contains: page title, a maximize icon button that calls `router.push(fullPageHref)` (Gmail-style maximize using shared sessionStorage key), and a close icon button that checks `isDirty` — if true, shows shadcn `AlertDialog` with discard confirmation (on confirm: `clearDraft()` then `router.back()`, satisfies "draft cleared on explicit discard"; on cancel: keep Dialog open); if `isDirty` is false, closes immediately; props: `title`, `fullPageHref`, `isDirty`, `clearDraft`, `children`; satisfies "dialog contains maximize affordance", "dialog close with dirty form shows confirmation", "close clean dialog — no confirmation"
+- [x] 6.2 [P] Create `src/app/(tabs)/@modal/(...)team/new/page.tsx`: wraps team create form in `EditDialogShell`; uses same `useFormDraft("draft:team:new")` key as full-page version so maximize restores state; satisfies "edit routes open as Dialog on soft navigation" for team create
+- [x] 6.3 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/edit/page.tsx`: Dialog version of team edit; satisfies "navigate to team edit from within tab context"
+- [x] 6.4 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/lineup/page.tsx`: Dialog version of lineup; satisfies "navigate to lineup from within tab context"
+- [x] 6.5 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/players/new/page.tsx`: Dialog version of player create; satisfies "navigate to player create from within tab context"
+- [x] 6.6 [P] Create `src/app/(tabs)/@modal/(...)team/[teamId]/players/[playerId]/edit/page.tsx`: Dialog version of player edit; satisfies "navigate to player edit from within tab context"
+- [x] 6.7 Commit section 6 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 7. Cleanup and Final Verification
 

@@ -36,6 +36,7 @@ import type { PlayerView } from "@/lib/features/team/types";
 import { UpdatePlayerInfoSchema, type UpdatePlayerInfoInput } from "@/lib/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiUser } from "react-icons/fi";
+import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
@@ -44,9 +45,10 @@ import { useSWRConfig } from "swr";
 interface EditFormProps {
   teamId: string;
   playerId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }
 
-export function EditForm({ teamId, playerId }: EditFormProps) {
+export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
@@ -74,7 +76,7 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
 
   return (
     <Card className="py-8">
-      <InfoSection player={player} teamId={teamId} />
+      <InfoSection player={player} teamId={teamId} onStateChange={onStateChange} />
       {showMembership && (
         <>
           <Separator />
@@ -114,9 +116,11 @@ function PlayerEditFormSkeleton() {
 function InfoSection({
   player,
   teamId,
+  onStateChange,
 }: {
   player: PlayerView;
   teamId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -132,7 +136,12 @@ function InfoSection({
       },
     },
   );
-  useLeavePageWarning(form.formState.isDirty);
+  const { isDirty } = form.formState;
+  useLeavePageWarning(isDirty);
+
+  useEffect(() => {
+    onStateChange?.(isDirty);
+  }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {

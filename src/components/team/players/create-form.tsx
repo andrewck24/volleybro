@@ -27,6 +27,7 @@ import {
 } from "@/lib/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
 import { useSWRConfig } from "swr";
 import { useFormDraft } from "@/hooks/use-form-draft";
@@ -34,9 +35,10 @@ import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 
 interface CreateFormProps {
   teamId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }
 
-export function CreateForm({ teamId }: CreateFormProps) {
+export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -51,7 +53,12 @@ export function CreateForm({ teamId }: CreateFormProps) {
       },
     },
   );
-  useLeavePageWarning(form.formState.isDirty);
+  const { isDirty } = form.formState;
+  useLeavePageWarning(isDirty);
+
+  useEffect(() => {
+    onStateChange?.(isDirty);
+  }, [isDirty, onStateChange]);
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {
