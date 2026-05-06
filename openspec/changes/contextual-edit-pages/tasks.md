@@ -49,8 +49,8 @@
 
 ## 7. Cleanup and Final Verification
 
-- [ ] 7.1 Remove stale parallel route files from the old `(tabs)/@team` structure: `src/app/(tabs)/@team/team/[teamId]/edit/`, `src/app/(tabs)/@team/team/[teamId]/lineup/`, `src/app/(tabs)/@team/team/[teamId]/players/new/`, `src/app/(tabs)/@team/team/[teamId]/players/[playerId]/edit/`, `src/app/(tabs)/@team/team/new/`; these are now served by intercepting routes and full-page routes
-- [ ] 7.2 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix any remaining issues
-- [ ] 7.3 Manual verification: (a) hard refresh `/team/{teamId}/edit` → full-page, no bottom nav; (b) soft nav from team tab → Dialog renders; (c) fill Dialog form → click maximize → full-page opens with state restored from sessionStorage; (d) dirty Dialog close → AlertDialog appears; (e) submit form → draft cleared; (f) hard refresh with no active modal → no Dialog appears, @modal renders null
-- [ ] 7.4 Review whether `docs/testing-strategy.md`, `docs/maintenance-policy.md`, or `CLAUDE.md` need updating based on route group rename or new hook patterns; update if needed
-- [ ] 7.5 Commit section 7
+- [x] 7.1 Remove stale parallel route files from the old `(tabs)/@team` structure: `src/app/(tabs)/@team/team/[teamId]/edit/`, `src/app/(tabs)/@team/team/[teamId]/lineup/`, `src/app/(tabs)/@team/team/[teamId]/players/new/`, `src/app/(tabs)/@team/team/[teamId]/players/[playerId]/edit/`, `src/app/(tabs)/@team/team/new/`; these are now served by intercepting routes and full-page routes
+- [x] 7.2 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix any remaining issues
+- [x] 7.3 Manual verification: (a) hard refresh `/team/{teamId}/edit` → full-page, no bottom nav; (b) soft nav from team tab → Dialog renders; (c) fill Dialog form → click maximize → full-page opens with state restored from sessionStorage; (d) dirty Dialog close → AlertDialog appears; (e) submit form → draft cleared; (f) hard refresh with no active modal → no Dialog appears, @modal renders null
+- [x] 7.4 Review whether `docs/testing-strategy.md`, `docs/maintenance-policy.md`, or `CLAUDE.md` need updating based on route group rename or new hook patterns; update if needed
+- [x] 7.5 Commit section 7
