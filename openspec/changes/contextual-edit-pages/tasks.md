@@ -5,12 +5,12 @@
 
 ## 2. Foundation Hooks
 
-- [ ] 2.1 [P] Write tests for `useFormDraft` in `src/hooks/__tests__/use-form-draft.test.ts`: verify draft is restored from sessionStorage on mount when key exists; verify `clearDraft` removes the key; verify `form.watch` writes to sessionStorage on value change; key format `draft:{type}:{id}` per spec examples
-- [ ] 2.2 [P] Implement `src/hooks/use-form-draft.ts`: wrap `useForm<T>` (React Hook Form) to read `sessionStorage.getItem(key)` and parse as `defaultValues` if present; subscribe via `form.watch` to write values to sessionStorage on every change; return `{ form, clearDraft }` where `clearDraft` calls `sessionStorage.removeItem(key)`; satisfies "useFormDraft hook: RHF + sessionStorage", "draft restored on form mount", "draft automatically saved on form value change", "draft automatically expires with sessionStorage lifecycle"
-- [ ] 2.3 [P] Write tests for `useLeavePageWarning` in `src/hooks/__tests__/use-leave-page-warning.test.ts`: verify `beforeunload` listener is added when `isDirty` is true; verify listener is removed when `isDirty` becomes false; verify no listener when `isDirty` is false on initial mount
-- [ ] 2.4 [P] Implement `src/hooks/use-leave-page-warning.ts`: accept `isDirty: boolean`; in `useEffect` keyed on `isDirty`, add `beforeunload` handler that calls `e.preventDefault()` when `isDirty`, remove it on cleanup; satisfies "useLeavePageWarning: beforeunload only"
-- [ ] 2.5 Delete `src/hooks/use-on-leave-page.js` (dead code — never imported anywhere in the codebase; replaced by `use-leave-page-warning.ts`)
-- [ ] 2.6 Commit section 2 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 2.1 [P] Write tests for `useFormDraft` in `src/hooks/__tests__/use-form-draft.test.ts`: verify draft is restored from sessionStorage on mount when key exists; verify `clearDraft` removes the key; verify `form.watch` writes to sessionStorage on value change; key format `draft:{type}:{id}` per spec examples
+- [x] 2.2 [P] Implement `src/hooks/use-form-draft.ts`: wrap `useForm<T>` (React Hook Form) to read `sessionStorage.getItem(key)` and parse as `defaultValues` if present; subscribe via `form.watch` to write values to sessionStorage on every change; return `{ form, clearDraft }` where `clearDraft` calls `sessionStorage.removeItem(key)`; satisfies "useFormDraft hook: RHF + sessionStorage", "draft restored on form mount", "draft automatically saved on form value change", "draft automatically expires with sessionStorage lifecycle"
+- [x] 2.3 [P] Write tests for `useLeavePageWarning` in `src/hooks/__tests__/use-leave-page-warning.test.ts`: verify `beforeunload` listener is added when `isDirty` is true; verify listener is removed when `isDirty` becomes false; verify no listener when `isDirty` is false on initial mount
+- [x] 2.4 [P] Implement `src/hooks/use-leave-page-warning.ts`: accept `isDirty: boolean`; in `useEffect` keyed on `isDirty`, add `beforeunload` handler that calls `e.preventDefault()` when `isDirty`, remove it on cleanup; satisfies "useLeavePageWarning: beforeunload only"
+- [x] 2.5 Delete `src/hooks/use-on-leave-page.js` (dead code — never imported anywhere in the codebase; replaced by `use-leave-page-warning.ts`)
+- [x] 2.6 Commit section 2 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 3. (tabs) Layout — Modal Parallel Slot
 
