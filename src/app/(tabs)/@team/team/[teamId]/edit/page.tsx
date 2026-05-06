@@ -28,7 +28,14 @@ const EditTeamPage = (props: { params: Promise<{ teamId: string }> }) => {
     }
   };
 
-  return <TeamForm team={team} onSubmit={onSubmit} className="w-full" />;
+  return (
+    <TeamForm
+      draftKey={`draft:team:${teamId}`}
+      defaultValues={team}
+      onSubmit={onSubmit}
+      className="w-full"
+    />
+  );
 };
 
 export default EditTeamPage;

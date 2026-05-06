@@ -1,6 +1,4 @@
 "use client";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +11,12 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useFormDraft } from "@/hooks/use-form-draft";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
+import { type Resolver } from "react-hook-form";
+import { z } from "zod";
 
-const formSchema = z
+const TeamSchema = z
   .object({
     name: z
       .string()
@@ -24,13 +26,34 @@ const formSchema = z
   })
   .required();
 
-const TeamForm = ({ team, onSubmit, className }) => {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
+export type TeamFormValues = z.infer<typeof TeamSchema>;
+
+interface TeamFormProps {
+  draftKey: string;
+  defaultValues?: Partial<TeamFormValues>;
+  onSubmit: (data: TeamFormValues) => Promise<void>;
+  className?: string;
+}
+
+const TeamForm = ({ draftKey, defaultValues, onSubmit, className }: TeamFormProps) => {
+  const { form, clearDraft } = useFormDraft<TeamFormValues>(draftKey, {
+    resolver: zodResolver(TeamSchema) as Resolver<TeamFormValues>,
     defaultValues: {
-      name: team?.name || "",
-      nickname: team?.nickname || "",
+      name: defaultValues?.name ?? "",
+      nickname: defaultValues?.nickname ?? "",
     },
+  });
+  useLeavePageWarning(form.formState.isDirty);
+
+  const handleSubmit = form.handleSubmit(async (data) => {
+    try {
+      await onSubmit(data);
+      clearDraft();
+    } catch (e) {
+      form.setError("root", {
+        message: e instanceof Error ? e.message : "提交失敗，請稍後再試",
+      });
+    }
   });
 
   return (
@@ -38,13 +61,13 @@ const TeamForm = ({ team, onSubmit, className }) => {
       <CardHeader>
         <CardTitle>編輯隊伍資訊</CardTitle>
       </CardHeader>
-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+      <Form form={form} onSubmit={handleSubmit}>
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel required>隊伍名稱</FormLabel>
+              <FormLabel>隊伍名稱</FormLabel>
               <FormControl>
                 <Input placeholder="日本國家男子排球隊" {...field} />
               </FormControl>
@@ -57,7 +80,7 @@ const TeamForm = ({ team, onSubmit, className }) => {
           name="nickname"
           render={({ field }) => (
             <FormItem>
-              <FormLabel required>隊伍簡稱</FormLabel>
+              <FormLabel>隊伍簡稱</FormLabel>
               <FormControl>
                 <Input placeholder="RYUJIN" {...field} />
               </FormControl>
@@ -65,7 +88,12 @@ const TeamForm = ({ team, onSubmit, className }) => {
             </FormItem>
           )}
         />
-        <Button size="lg">{team ? "儲存修改" : "建立隊伍"}</Button>
+        {form.formState.errors.root && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.root.message}
+          </p>
+        )}
+        <Button size="lg">{defaultValues?.name ? "儲存修改" : "建立隊伍"}</Button>
       </Form>
     </Card>
   );

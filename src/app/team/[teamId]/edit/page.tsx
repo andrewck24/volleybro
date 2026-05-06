@@ -27,7 +27,12 @@ const EditTeamPage = (props: { params: Promise<{ teamId: string }> }) => {
   return (
     <>
       <Header title="編輯球隊" backHref={`/team/${teamId}`} />
-      <TeamForm team={team} onSubmit={onSubmit} className="w-full" />
+      <TeamForm
+        draftKey={`draft:team:${teamId}`}
+        defaultValues={team}
+        onSubmit={onSubmit}
+        className="w-full"
+      />
     </>
   );
 };

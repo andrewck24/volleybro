@@ -31,11 +31,11 @@
 
 ## 5. RHF Form Migration
 
-- [ ] 5.1 Extract `src/components/team/form.tsx`: RHF-based team form component used by both create and edit pages; use `useForm({ resolver: zodResolver(TeamSchema) })` with `zodResolver`; replace manual `useState` error tracking with `<FormField>` + `<FormMessage>` from `src/components/ui/form.tsx`; accept `defaultValues?: TeamFormValues` and `onSubmit: (data: TeamFormValues) => Promise<void>` props; server errors use `form.setError("root", { message })` displayed via `<FormMessage />`; satisfies "react hook form unified across team/player forms"
-- [ ] 5.2 [P] Migrate `src/components/team/players/create-form.tsx` to RHF: replace `useState(formData)` and `useState(errors)` with `useForm({ resolver: zodResolver(CreatePlayerSchema) })`; use `<FormField>` + `<FormMessage>` for inline validation errors; remove manual ZodError catch block; satisfies "draft automatically saved on form value change" when `useFormDraft` is wired in parent page
-- [ ] 5.3 [P] Migrate `src/components/team/players/edit-form.tsx` to RHF: same pattern as 5.2; `InfoSection` uses `useForm` with player data as `defaultValues`; server errors use `form.setError("root", { message })`
-- [ ] 5.4 Wire `clearDraft()` into each form's submit success handler: call `clearDraft()` before `router.push` or SWR `mutate` after successful API response; satisfies "draft cleared on submit success"
-- [ ] 5.5 Commit section 5 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 5.1 Extract `src/components/team/form.tsx`: RHF-based team form component used by both create and edit pages; use `useForm({ resolver: zodResolver(TeamSchema) })` with `zodResolver`; replace manual `useState` error tracking with `<FormField>` + `<FormMessage>` from `src/components/ui/form.tsx`; accept `defaultValues?: TeamFormValues` and `onSubmit: (data: TeamFormValues) => Promise<void>` props; server errors use `form.setError("root", { message })` displayed via `<FormMessage />`; satisfies "react hook form unified across team/player forms"
+- [x] 5.2 [P] Migrate `src/components/team/players/create-form.tsx` to RHF: replace `useState(formData)` and `useState(errors)` with `useForm({ resolver: zodResolver(CreatePlayerSchema) })`; use `<FormField>` + `<FormMessage>` for inline validation errors; remove manual ZodError catch block; satisfies "draft automatically saved on form value change" when `useFormDraft` is wired in parent page
+- [x] 5.3 [P] Migrate `src/components/team/players/edit-form.tsx` to RHF: same pattern as 5.2; `InfoSection` uses `useForm` with player data as `defaultValues`; server errors use `form.setError("root", { message })`
+- [x] 5.4 Wire `clearDraft()` into each form's submit success handler: call `clearDraft()` before `router.push` or SWR `mutate` after successful API response; satisfies "draft cleared on submit success"
+- [x] 5.5 Commit section 5 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 6. Dialog Intercepting Routes
 

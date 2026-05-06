@@ -22,7 +22,7 @@ const NewTeamPage = () => {
   return (
     <>
       <Header title="建立球隊" backHref="/home" />
-      <TeamForm team={undefined} onSubmit={onSubmit} className="w-full" />
+      <TeamForm draftKey="draft:team:new" onSubmit={onSubmit} className="w-full" />
     </>
   );
 };
