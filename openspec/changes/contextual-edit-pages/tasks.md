@@ -21,13 +21,13 @@
 
 ## 4. Full-Page Edit Routes
 
-- [ ] 4.1 Create `src/app/team/[teamId]/layout.tsx`: render `<main className="flex w-full flex-col pt-[calc(env(safe-area-inset-top)+3rem)] pb-[env(safe-area-inset-bottom)]">{children}</main>`; no bottom nav, no sidenav; mirrors `src/app/game/layout.tsx` pattern; satisfies "full-page layout without bottom navigation", "full-page edit routes at app/team/ (outside (tabs))"
-- [ ] 4.2 [P] Create `src/app/team/new/page.tsx`: full-page team create; renders `<Header title="建立球隊" backHref="/home" />` and the RHF team create form; uses `useFormDraft("draft:team:new")` and `useLeavePageWarning(isDirty)`; satisfies "edit routes render as full-page on direct URL access" for team create
-- [ ] 4.3 [P] Create `src/app/team/[teamId]/edit/page.tsx`: full-page team edit; renders `<Header title="編輯球隊" backHref="/team/{teamId}" />` and RHF team edit form; uses `useFormDraft("draft:team:{teamId}")` and `useLeavePageWarning(isDirty)`; satisfies "hard navigation to team edit"
-- [ ] 4.4 [P] Create `src/app/team/[teamId]/lineup/page.tsx`: full-page lineup; renders `<Header title="陣容設定" backHref="/team/{teamId}" />` and the existing `<Lineup teamId={teamId} />` component; satisfies "hard navigation to lineup"
-- [ ] 4.5 [P] Create `src/app/team/[teamId]/players/new/page.tsx`: full-page player create; renders `<Header title="新增球員" backHref="/team/{teamId}" />` and RHF player create form; uses `useFormDraft("draft:player:new:{teamId}")`; satisfies "hard navigation to player edit" pattern
-- [ ] 4.6 [P] Create `src/app/team/[teamId]/players/[playerId]/edit/page.tsx`: full-page player edit; renders `<Header title="編輯球員" backHref="/team/{teamId}" />` and RHF player edit form; uses `useFormDraft("draft:player:{playerId}")`
-- [ ] 4.7 Commit section 4 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 4.1 Create `src/app/team/[teamId]/layout.tsx`: render `<main className="flex w-full flex-col pt-[calc(env(safe-area-inset-top)+3rem)] pb-[env(safe-area-inset-bottom)]">{children}</main>`; no bottom nav, no sidenav; mirrors `src/app/game/layout.tsx` pattern; satisfies "full-page layout without bottom navigation", "full-page edit routes at app/team/ (outside (tabs))"
+- [x] 4.2 [P] Create `src/app/team/new/page.tsx`: full-page team create; renders `<Header title="建立球隊" backHref="/home" />` and the RHF team create form; uses `useFormDraft("draft:team:new")` and `useLeavePageWarning(isDirty)`; satisfies "edit routes render as full-page on direct URL access" for team create
+- [x] 4.3 [P] Create `src/app/team/[teamId]/edit/page.tsx`: full-page team edit; renders `<Header title="編輯球隊" backHref="/team/{teamId}" />` and RHF team edit form; uses `useFormDraft("draft:team:{teamId}")` and `useLeavePageWarning(isDirty)`; satisfies "hard navigation to team edit"
+- [x] 4.4 [P] Create `src/app/team/[teamId]/lineup/page.tsx`: full-page lineup; renders `<Header title="陣容設定" backHref="/team/{teamId}" />` and the existing `<Lineup teamId={teamId} />` component; satisfies "hard navigation to lineup"
+- [x] 4.5 [P] Create `src/app/team/[teamId]/players/new/page.tsx`: full-page player create; renders `<Header title="新增球員" backHref="/team/{teamId}" />` and RHF player create form; uses `useFormDraft("draft:player:new:{teamId}")`; satisfies "hard navigation to player edit" pattern
+- [x] 4.6 [P] Create `src/app/team/[teamId]/players/[playerId]/edit/page.tsx`: full-page player edit; renders `<Header title="編輯球員" backHref="/team/{teamId}" />` and RHF player edit form; uses `useFormDraft("draft:player:{playerId}")`
+- [x] 4.7 Commit section 4 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 5. RHF Form Migration
 
