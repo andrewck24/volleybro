@@ -8,8 +8,8 @@ The `use-on-leave-page.js` hook was written but never imported anywhere in the c
 
 **Goals:**
 
-- Reclaim full mobile viewport for edit operations by rendering edit pages as Dialogs that overlay the tab context, with an option to maximize to a full-page route outside the tab layout
-- Support Gmail-style maximize: Dialog header contains a maximize button that navigates to the full-page version; sessionStorage preserves mid-fill form state across the transition
+- Reclaim full mobile viewport for edit operations by rendering edit pages as Dialogs that overlay the tab context, with an option to maximize to a workspace route outside the tab layout
+- Support Gmail-style maximize: Dialog header contains a maximize button that navigates to the workspace version; sessionStorage preserves mid-fill form state across the transition
 - Rename `(protected)` → `(tabs)` to match actual responsibility
 - Unify all team/player forms to React Hook Form with automatic draft persistence via sessionStorage
 - Replace `use-on-leave-page.js` (dead code) with a typed `useLeavePageWarning(isDirty)` hook
@@ -30,13 +30,13 @@ The `use-on-leave-page.js` hook was written but never imported anywhere in the c
 
 ### Intercepting routes with @modal parallel slot
 
-A `@modal` parallel slot is added to the `(tabs)` layout. Intercepting route files at `src/app/(tabs)/@modal/(...)team/...` capture soft-navigation to `/team/...` edit URLs when navigating from within the tab context, rendering the edit UI as a Dialog instead of a full-page route. Direct URL access (hard navigation) bypasses the intercepting route and renders the full-page version at `src/app/team/...`.
+A `@modal` parallel slot is added to the `(tabs)` layout. Intercepting route files at `src/app/(tabs)/@modal/(...)team/...` capture soft-navigation to `/team/...` edit URLs when navigating from within the tab context, rendering the edit UI as a Dialog instead of a workspace route. Direct URL access (hard navigation) bypasses the intercepting route and renders the workspace version at `src/app/(workspace)/team/...`.
 
 Alternative considered: Inline modals triggered by buttons without URL change — rejected because it breaks browser back button, direct linking, and copy-paste URL sharing.
 
-### Full-page edit routes at app/team/ (outside (tabs))
+### Full-page edit routes at app/(workspace)/team/ (workspace mode)
 
-Top-level `src/app/team/[teamId]/` routes render without the `(tabs)` layout (no bottom nav). They use `src/app/team/[teamId]/layout.tsx` as a structural wrapper (provides `<main>` with safe-area padding). Each page renders its own `<Header>` since titles differ across sub-routes.
+Routes under `src/app/(workspace)/team/[teamId]/` render without the `(tabs)` layout (no bottom nav). Shared workspace structure is owned by `src/app/(workspace)/layout.tsx` (`WorkspaceLayout`) so team-specific layouts do not duplicate shell behavior. Workspace `<main>` includes safe-area top/bottom padding and the same content width constraint as tabs content: `mx-auto w-full max-w-196`.
 
 This mirrors the existing pattern in `src/app/game/[gameId]/` (game routes are outside all route groups, have their own layout wrapper, per-page Header).
 
@@ -44,13 +44,17 @@ This mirrors the existing pattern in `src/app/game/[gameId]/` (game routes are o
 
 The project's shadcn Dialog already slides in from the bottom on mobile (consistent with iOS sheet behavior). Dialog is more appropriate than Sheet because:
 - It works identically on desktop (centered modal) and mobile (bottom sheet)
-- The maximize affordance (→ full-page) is a standard dialog header action
+- The maximize affordance (→ workspace) is a standard dialog header action
+
+### Dialog lg size width alignment
+
+`src/components/ui/dialog.tsx` `DialogContent` variant `size="lg"` SHALL use `max-w-196` to align horizontal bounds with tabs/workspace containers and reduce layout jumps when switching between modal mode and workspace mode.
 
 ### Maximize using shared sessionStorage key
 
-When the user clicks the maximize button in the Dialog header, the app calls `router.push('/team/[teamId]/edit')`. The full-page version uses the same `useFormDraft` key (`draft:team:{teamId}`) as the modal version. On mount, the full-page form reads from sessionStorage and restores state. The modal is unmounted by Next.js as part of the route change — no state synchronization needed beyond sessionStorage.
+When the user clicks the maximize button in the Dialog header, the app uses hard navigation (`window.location.assign('/team/[teamId]/edit')`). This bypasses intercepting-route capture and guarantees transition from modal mode to workspace mode. The workspace version uses the same `useFormDraft` key (`draft:team:{teamId}`) as the modal version. On mount, the workspace form reads from sessionStorage and restores state. The modal is unmounted by navigation — no state synchronization needed beyond sessionStorage.
 
-Minimize (full-page → Dialog) is not implemented. Users return to the tab context via the Header back button.
+Minimize (workspace → Dialog) is not implemented. Users return to the tab context via the Header back button.
 
 ### React Hook Form unified across team/player forms
 
@@ -59,6 +63,16 @@ Team/player forms currently use raw `useState` + manual ZodError handling. Game 
 - Uses existing `src/components/ui/form.tsx` (`FormProvider`, `FormField`, `FormMessage`) — no new UI components
 - `FormLabel` already includes `<FormMessage />` so error display is zero additional JSX
 - Server errors use `form.setError('root', { message })` or toast (per existing pattern)
+
+### Workspace wrappers and loading strategy
+
+Page-only wrappers are named `*Workspace` (not `*Screen`) to align with workspace mode terminology and lower naming complexity. These wrappers host workspace-only structure (for example Card layout), while modal mode keeps the base form content.
+
+For async defaults in RHF:
+- Base form owns hooks and submit logic (client component)
+- Route `page.tsx` becomes server component and only resolves params/placement
+- Async entity data syncs into RHF with `form.reset(...)` at controlled timing
+- Do not blindly overwrite user input: if draft exists or form is dirty, keep current values
 
 ### useFormDraft hook: RHF + sessionStorage
 
@@ -77,7 +91,7 @@ The hook accepts `isDirty: boolean` and registers/deregisters a `beforeunload` h
 
 ## Risks / Trade-offs
 
-[Risk] Next.js intercepting routes + parallel slots have known edge cases (cache invalidation, hard-refresh behavior) → Mitigation: each slot directory includes `default.tsx` returning null (already required by existing tab-navigation spec); the full-page routes at `app/team/` serve as the hard-refresh fallback
+[Risk] Next.js intercepting routes + parallel slots have known edge cases (cache invalidation, hard-refresh behavior) → Mitigation: each slot directory includes `default.tsx` returning null (already required by existing tab-navigation spec); the workspace routes at `app/(workspace)/team/` serve as the hard-refresh fallback
 
 [Risk] Large directory rename `(protected)` → `(tabs)` may break absolute imports if any file imports from a path containing the group name → Mitigation: route group names are not part of URLs or import paths in Next.js; only `src/app/(protected)/layout.tsx` is directly referenced and only by its own file tree
 
@@ -89,14 +103,20 @@ The hook accepts `isDirty: boolean` and registers/deregisters a `beforeunload` h
 
 1. Rename `src/app/(protected)/` → `src/app/(tabs)/` (git mv)
 2. Create `src/app/(tabs)/@modal/` intercepting routes (renders Dialogs)
-3. Create `src/app/team/` full-page routes
+3. Create `src/app/(workspace)/layout.tsx` and place full-page routes in `src/app/(workspace)/team/`
 4. Add `useFormDraft` and `useLeavePageWarning` hooks
 5. Migrate `create-form.tsx` and `edit-form.tsx` to RHF + `useFormDraft`
 6. Update `(tabs)/layout.tsx` to pass `modal` slot to `TabContainer`
 7. Delete `src/hooks/use-on-leave-page.js`
 8. Verify: hard refresh on each route; soft nav from tab; maximize flow; form dirty warning
 
-No database changes. No API changes. No breaking changes to URL structure (same routes, new rendering context).
+No database changes. URL structure is unchanged (`/team/...`) while route-group structure changes to `(workspace)`.
+
+## API Error Semantics
+
+- Invalid `teamId` format (for example non-ObjectId string) SHALL return `400 VALIDATION`
+- Valid `teamId` format with no matching team SHALL return `404 NOT_FOUND`
+- Workspace team-not-found UI SHALL render page-level `Alert` with a single `返回` action, instead of toast-only feedback
 
 ## Open Questions
 

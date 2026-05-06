@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the behavior of sessionStorage-based form draft persistence for edit forms. All edit forms (team create/edit, player create/edit, lineup) SHALL automatically persist form values to sessionStorage as the user types, and SHALL restore those values on mount. This enables state recovery across modal-to-full-page transitions and accidental navigation.
+Define the behavior of sessionStorage-based form draft persistence for edit forms. All edit forms (team create/edit, player create/edit, lineup) SHALL automatically persist form values to sessionStorage as the user types, and SHALL restore those values on mount. This enables state recovery across modal-to-workspace transitions and accidental navigation.
 
 ## ADDED Requirements
 
@@ -42,10 +42,10 @@ When the `useFormDraft` hook initializes, it SHALL read from `sessionStorage` us
 - **WHEN** the user reopens the team edit Dialog
 - **THEN** the form SHALL initialize with the previously entered values
 
-#### Scenario: Full-page mounts after maximize
+#### Scenario: Workspace page mounts after maximize
 
 - **WHEN** the user filled the Dialog form and clicked the maximize button
-- **WHEN** the full-page edit route mounts
+- **WHEN** the workspace edit route mounts
 - **THEN** the form SHALL initialize with the same values that were in the Dialog at the time of maximize
 
 #### Scenario: No draft — form initializes with server data

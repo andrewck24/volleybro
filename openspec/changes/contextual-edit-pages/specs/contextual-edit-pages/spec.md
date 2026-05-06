@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the behavior of the modal-first edit page pattern. Edit pages (team create/edit, player create/edit, lineup) SHALL open as Dialogs within the tab context when navigated to via soft navigation, and as full-screen pages when accessed via direct URL. Users SHALL be able to maximize the Dialog to the full-page route while preserving form state.
+Define the behavior of the modal/workspace edit page pattern. Edit pages (team create/edit, player create/edit, lineup) SHALL open as Dialogs within tab context (`modal mode`) when navigated to via soft navigation, and as workspace pages (`workspace mode`) when accessed via direct URL. Users SHALL be able to maximize the Dialog to workspace mode while preserving form state.
 
 ## ADDED Requirements
 
@@ -41,43 +41,43 @@ When the user navigates to an edit route (team create, team edit, player create,
 
 ---
 
-### Requirement: Edit routes render as full-page on direct URL access
+### Requirement: Edit routes render as workspace pages on direct URL access
 
-When the user accesses an edit route via direct URL (hard navigation, browser refresh, or typing in address bar), the system SHALL render the full-page version of the edit page at the `app/team/` route. The full-page version SHALL NOT display the bottom navigation bar. The full-page version SHALL display a `<Header>` component with a back button and page title.
+When the user accesses an edit route via direct URL (hard navigation, browser refresh, or typing in address bar), the system SHALL render the workspace version of the edit page at the `app/(workspace)/team/` route group (URL remains `/team/...`). The workspace version SHALL NOT display the bottom navigation bar. The workspace version SHALL display a `<Header>` component with a back button and page title.
 
 #### Scenario: Hard navigation to team edit
 
 - **WHEN** the user navigates directly to `/team/{teamId}/edit` (hard navigation or browser refresh)
-- **THEN** the system SHALL render `src/app/team/[teamId]/edit/page.tsx`
+- **THEN** the system SHALL render `src/app/(workspace)/team/[teamId]/edit/page.tsx`
 - **THEN** the bottom navigation bar SHALL NOT be visible
 - **THEN** a Header component SHALL be visible with the page title and a back button
 
 #### Scenario: Hard navigation to lineup
 
 - **WHEN** the user navigates directly to `/team/{teamId}/lineup`
-- **THEN** the system SHALL render the full-page lineup page without the bottom navigation bar
+- **THEN** the system SHALL render the workspace lineup page without the bottom navigation bar
 
 #### Scenario: Hard navigation to player edit
 
 - **WHEN** the user navigates directly to `/team/{teamId}/players/{playerId}/edit`
-- **THEN** the system SHALL render the full-page player edit page without the bottom navigation bar
+- **THEN** the system SHALL render the workspace player edit page without the bottom navigation bar
 
 ---
 
 ### Requirement: Dialog contains maximize affordance
 
-The Dialog header SHALL contain a maximize button that navigates the user to the full-page version of the same route. The Dialog SHALL close as part of the navigation. Form state SHALL be preserved through form draft persistence (see `form-draft-persistence` spec).
+The Dialog header SHALL contain a maximize button that navigates the user to the workspace version of the same route via hard navigation. The Dialog SHALL close as part of the navigation. Form state SHALL be preserved through form draft persistence (see `form-draft-persistence` spec).
 
 #### Scenario: User maximizes team edit Dialog
 
 - **WHEN** the user opens the team edit Dialog and clicks the maximize button
 - **THEN** the system SHALL navigate to `/team/{teamId}/edit` via hard navigation
 - **THEN** the Dialog SHALL close
-- **THEN** the full-page team edit form SHALL mount with form values restored from the draft
+- **THEN** the workspace team edit form SHALL mount with form values restored from the draft
 
-#### Scenario: Maximize does not appear on full-page version
+#### Scenario: Maximize does not appear on workspace version
 
-- **WHEN** the user is viewing the full-page edit route (not the Dialog)
+- **WHEN** the user is viewing the workspace edit route (not the Dialog)
 - **THEN** no maximize button SHALL be rendered; the Header back button serves as the exit
 
 ---
@@ -107,15 +107,63 @@ When the user attempts to close the Dialog while the form has unsaved changes (`
 
 ---
 
-### Requirement: Full-page layout without bottom navigation
+### Requirement: Workspace layout without bottom navigation
 
-The `src/app/team/` route tree SHALL use `src/app/team/[teamId]/layout.tsx` as a structural wrapper that provides `<main>` with safe-area-aware padding for the fixed Header. This layout SHALL NOT render the bottom navigation bar or the sidenav. Each edit page under this layout SHALL render its own `<Header>` component with a page-specific title and `backHref`.
+The `src/app/(workspace)/team/` route tree SHALL be wrapped by `src/app/(workspace)/layout.tsx` (`WorkspaceLayout`) which provides `<main>` with safe-area-aware padding for fixed Header usage and width constraint parity with tabs (`mx-auto w-full max-w-196`). This layout SHALL NOT render the bottom navigation bar or the sidenav. Each edit page under workspace mode SHALL render its own `<Header>` component with a page-specific title and `backHref`.
 
-#### Scenario: Full-page edit page layout
+#### Scenario: Workspace edit page layout
 
-- **WHEN** the user views any full-page edit route under `src/app/team/`
+- **WHEN** the user views any workspace edit route under `src/app/(workspace)/team/`
 - **THEN** the page SHALL have top padding equal to `calc(env(safe-area-inset-top) + 3rem)` to account for the fixed Header
+- **THEN** the workspace container SHALL apply `mx-auto w-full max-w-196`
 - **THEN** no bottom navigation SHALL be visible
+
+---
+
+### Requirement: Dialog header stays fixed and accessible
+
+In modal mode, the `DialogHeader` SHALL be fixed to the top edge of the dialog content so action buttons remain available while form content scrolls. The maximize icon SHALL use `RiExpandDiagonalLine`.
+
+#### Scenario: User scrolls long form in modal mode
+
+- **WHEN** the user scrolls form content in an edit Dialog
+- **THEN** the header containing maximize and close actions SHALL remain visible and clickable
+- **THEN** the form content SHALL remain readable without being covered by the fixed header
+
+#### Scenario: Maximize icon consistency
+
+- **WHEN** the edit Dialog header is rendered
+- **THEN** the maximize action SHALL display `RiExpandDiagonalLine`
+
+#### Scenario: lg dialog width aligns with workspace/tabs bounds
+
+- **WHEN** a modal edit dialog renders with `DialogContent` `size="lg"`
+- **THEN** the dialog container SHALL apply `max-w-196`
+- **THEN** modal and workspace content widths SHALL remain visually aligned
+
+---
+
+### Requirement: Workspace mode team-not-found and invalid teamId handling
+
+Workspace team edit flows SHALL handle route parameter errors explicitly: invalid `teamId` format SHALL return `400 VALIDATION`; valid but missing team SHALL return `404 NOT_FOUND`. In workspace mode, missing team data SHALL render an inline `Alert` with a single `返回` action.
+
+#### Scenario: Invalid teamId format
+
+- **WHEN** a request reaches `/api/teams/{teamId}` with an invalid `teamId` format
+- **THEN** the API SHALL return status `400`
+- **THEN** the response body SHALL use unified error format with `code: "VALIDATION"`
+
+#### Scenario: Missing team resource
+
+- **WHEN** a request reaches `/api/teams/{teamId}` with a valid `teamId` that does not exist
+- **THEN** the API SHALL return status `404`
+- **THEN** the response body SHALL use unified error format with `code: "NOT_FOUND"`
+
+#### Scenario: Workspace UI displays inline not-found state
+
+- **WHEN** workspace team edit cannot load team data due to `404 NOT_FOUND`
+- **THEN** the page SHALL render `Alert` UI with failure message
+- **THEN** the page SHALL provide one `返回` action button to navigate back
 
 ---
 
