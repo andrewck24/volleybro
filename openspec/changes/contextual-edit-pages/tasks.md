@@ -14,10 +14,10 @@
 
 ## 3. (tabs) Layout — Modal Parallel Slot
 
-- [ ] 3.1 Update `src/components/layout/tab-container.tsx`: add `modal?: React.ReactNode` to `TabContainerProps`; render `{modal}` above the tabs wrapper div so it appears as an overlay layer; existing tab behavior (DOM persistence, scroll restoration, animations) must remain unchanged; satisfies "layout renders modal parallel slot" (tab-navigation delta spec)
-- [ ] 3.2 Update `src/app/(tabs)/layout.tsx`: add `modal: React.ReactNode` to `ProtectedLayout` props (Next.js injects the `@modal` slot automatically); pass `modal` through to `TabContainer`; satisfies "intercepting routes with @modal parallel slot"
-- [ ] 3.3 Create `src/app/(tabs)/@modal/default.tsx` returning `null`; satisfies "slot default prevents 404 on hard refresh"
-- [ ] 3.4 Commit section 3 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 3.1 Update `src/components/layout/tab-container.tsx`: add `modal?: React.ReactNode` to `TabContainerProps`; render `{modal}` above the tabs wrapper div so it appears as an overlay layer; existing tab behavior (DOM persistence, scroll restoration, animations) must remain unchanged; satisfies "layout renders modal parallel slot" (tab-navigation delta spec)
+- [x] 3.2 Update `src/app/(tabs)/layout.tsx`: add `modal: React.ReactNode` to `ProtectedLayout` props (Next.js injects the `@modal` slot automatically); pass `modal` through to `TabContainer`; satisfies "intercepting routes with @modal parallel slot"
+- [x] 3.3 Create `src/app/(tabs)/@modal/default.tsx` returning `null`; satisfies "slot default prevents 404 on hard refresh"
+- [x] 3.4 Commit section 3 after pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 4. Full-Page Edit Routes
 
