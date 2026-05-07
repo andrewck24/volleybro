@@ -57,27 +57,38 @@
 
 ## 8. Ingest Follow-up Fixes (Modal / Workspace Clarification)
 
-- [ ] 8.1 Move full-page edit routes from `src/app/team/**` to `src/app/(workspace)/team/**`, introduce `src/app/(workspace)/layout.tsx` as `WorkspaceLayout`, and add source-tree documentation that defines `modal mode` vs `workspace mode`
-- [ ] [P] 8.2 Rename page-only form wrappers from `*Screen` to `*Workspace`; keep base form components for modal mode and avoid naming conflicts with `page.tsx` components
-- [ ] [P] 8.3 Replace `EditDialogShell` with `EditDialogContainer` under `src/components/layout/`; set `DialogContent` to `aria-describedby={undefined}`
-- [ ] 8.4 Update modal header behavior: maximize icon uses `RiExpandDiagonalLine`, maximize uses hard navigation to workspace mode, and `DialogHeader` is fixed with safe content offset
-- [ ] [P] 8.4.1 Update `src/components/ui/dialog.tsx` so `DialogContent` `size=\"lg\"` uses `max-w-196` and aligns with tabs/workspace width bounds
-- [ ] [P] 8.4.2 Implement design decision **dialog lg size width alignment** and verify modal/workspace width parity in UI regression checks
-- [ ] 8.5 Refactor edit route `page.tsx` files to server components that only resolve params and place components; move hooks and submit logic into client form components
-- [ ] 8.6 Use RHF `form.reset(...)` strategy for async defaults; do not overwrite user-entered values when draft exists or form is dirty
-- [ ] [P] 8.7 Fix team-id propagation issues causing `/api/teams/undefined`, including link/path guards and `useTeam` / `useTeamPlayers` key guards for missing identifiers
-- [ ] [P] 8.8 Update `GET/PATCH /api/teams/[teamId]` error semantics: invalid identifier format returns `400 VALIDATION`, missing resource returns `404 NOT_FOUND`, and align with existing unified error-handling format
-- [ ] 8.9 Add workspace team-not-found UI state using `src/components/ui/alert.tsx` with a single `返回` action
-- [ ] 8.10 Add/adjust tests for modal/workspace navigation behavior, fixed dialog header actions, team-id validation semantics, and workspace not-found alert behavior; after tests pass, verify requirement/design coverage inline: (a) hard navigation to `/team/**` renders workspace page without bottom nav (`mx-auto w-full max-w-196` applied) — covers **Edit routes render as workspace pages on direct URL access** and **Workspace layout without bottom navigation**; (b) Dialog header remains fixed while form content scrolls, maximize icon is `RiExpandDiagonalLine` — covers **Dialog header stays fixed and accessible**; (c) invalid `teamId` → `400 VALIDATION`, missing team → `404 NOT_FOUND`, workspace UI shows `Alert` with `返回` — covers **Workspace mode team-not-found and invalid teamId handling**; (d) `src/app/(workspace)/team/` route tree exists and `WorkspaceLayout` owns shell — covers **full-page edit routes at app/(workspace)/team/ (workspace mode)**; (e) page wrappers use `*Workspace` suffix, RHF `form.reset(...)` syncs async defaults without overwriting dirty values — covers **workspace wrappers and loading strategy**
-- [ ] 8.11 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
+- [x] 8.1 Move full-page edit routes from `src/app/team/**` to `src/app/(workspace)/team/**`, introduce `src/app/(workspace)/layout.tsx` as `WorkspaceLayout`, and add source-tree documentation that defines `modal mode` vs `workspace mode`
+- [x] [P] 8.2 Rename page-only form wrappers from `*Screen` to `*Workspace`; keep base form components for modal mode and avoid naming conflicts with `page.tsx` components
+- [x] [P] 8.3 Replace `EditDialogShell` with `EditDialogContainer` under `src/components/layout/`; set `DialogContent` to `aria-describedby={undefined}`
+- [x] 8.4 Update modal header behavior: maximize icon uses `RiExpandDiagonalLine`, maximize uses hard navigation to workspace mode, and `DialogHeader` is fixed with safe content offset
+- [x] [P] 8.4.1 Update `src/components/ui/dialog.tsx` so `DialogContent` `size=\"lg\"` uses `max-w-196` and aligns with tabs/workspace width bounds
+- [x] [P] 8.4.2 Implement design decision **dialog lg size width alignment** and verify modal/workspace width parity in UI regression checks
+- [x] 8.5 Refactor edit route `page.tsx` files to server components that only resolve params and place components; move hooks and submit logic into client form components
+- [x] 8.6 Use RHF `form.reset(...)` strategy for async defaults; do not overwrite user-entered values when draft exists or form is dirty
+- [x] [P] 8.7 Fix team-id propagation issues causing `/api/teams/undefined`, including link/path guards and `useTeam` / `useTeamPlayers` key guards for missing identifiers
+- [x] [P] 8.8 Update `GET/PATCH /api/teams/[teamId]` error semantics: invalid identifier format returns `400 VALIDATION`, missing resource returns `404 NOT_FOUND`, and align with existing unified error-handling format
+- [x] 8.9 Add workspace team-not-found UI state using `src/components/ui/alert.tsx` with a single `返回` action
+- [x] 8.10 Add/adjust tests for modal/workspace navigation behavior, fixed dialog header actions, team-id validation semantics, and workspace not-found alert behavior; after tests pass, verify requirement/design coverage inline: (a) hard navigation to `/team/**` renders workspace page without bottom nav (`mx-auto w-full max-w-196` applied) — covers **Edit routes render as workspace pages on direct URL access** and **Workspace layout without bottom navigation**; (b) Dialog header remains fixed while form content scrolls, maximize icon is `RiExpandDiagonalLine` — covers **Dialog header stays fixed and accessible**; (c) invalid `teamId` → `400 VALIDATION`, missing team → `404 NOT_FOUND`, workspace UI shows `Alert` with `返回` — covers **Workspace mode team-not-found and invalid teamId handling**; (d) `src/app/(workspace)/team/` route tree exists and `WorkspaceLayout` owns shell — covers **full-page edit routes at app/(workspace)/team/ (workspace mode)**; (e) page wrappers use `*Workspace` suffix, RHF `form.reset(...)` syncs async defaults without overwriting dirty values — covers **workspace wrappers and loading strategy**
+- [x] 8.11 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
 - [x] 8.12 Update `openspec/changes/contextual-edit-pages/{proposal.md,design.md,specs/**}` and related docs to use `workspace mode` terminology consistently
-- [ ] 8.13 Commit section 8 after, `/simplify`, pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
+- [x] 8.13 Commit section 8 after, `/simplify`, pnpm test, pnpm lint, pnpm typecheck, pnpm build pass
 
 ## 9. Codebase Documentation Alignment
 
 - [x] 9.1 Update `openspec/changes/contextual-edit-pages/{proposal.md,design.md,specs/**}` to use `workspace mode` terminology consistently (completed as part of ingest)
-- [ ] 9.2 Add source-tree documentation to `src/app/(workspace)/layout.tsx` — include a brief block comment above `WorkspaceLayout` defining `workspace mode`: routes that render outside the `(tabs)` layout, bypass bottom navigation, serve as hard-navigation fallback for intercepted team edit routes, and share the `mx-auto w-full max-w-196` width constraint with tab content
-- [ ] 9.3 Add a companion comment to `src/app/(tabs)/layout.tsx` and `src/app/(tabs)/@modal/` explaining `modal mode`: soft-navigation from within the tab context captures edit routes as Dialogs via intercepting routes; hard navigation falls through to `(workspace)` routes
-- [ ] 9.4 Review `docs/testing-strategy.md` and `docs/maintenance-policy.md` for stale references to `(protected)` route group, `app/team/` full-page routes, or pre-workspace terminology; update any found
-- [ ] 9.5 Review `CLAUDE.md` for route structure documentation referencing old patterns (e.g. `(protected)`, `app/team/`); update to reflect `(tabs)` and `(workspace)` naming
-- [ ] 9.6 Commit section 9
+- [x] 9.2 Add source-tree documentation to `src/app/(workspace)/layout.tsx` — include a brief block comment above `WorkspaceLayout` defining `workspace mode`: routes that render outside the `(tabs)` layout, bypass bottom navigation, serve as hard-navigation fallback for intercepted team edit routes, and share the `mx-auto w-full max-w-196` width constraint with tab content
+- [x] 9.3 Add a companion comment to `src/app/(tabs)/layout.tsx` and `src/app/(tabs)/@modal/` explaining `modal mode`: soft-navigation from within the tab context captures edit routes as Dialogs via intercepting routes; hard navigation falls through to `(workspace)` routes
+- [x] 9.4 Review `docs/testing-strategy.md` and `docs/maintenance-policy.md` for stale references to `(protected)` route group, `app/team/` full-page routes, or pre-workspace terminology; update any found
+- [x] 9.5 Review `CLAUDE.md` for route structure documentation referencing old patterns (e.g. `(protected)`, `app/team/`); update to reflect `(tabs)` and `(workspace)` naming
+- [x] 9.6 Commit section 9
+
+## 10. Ingest Follow-up Fixes (Component Structure and Error Handling)
+
+- [ ] 10.1 Co-locate `*Workspace` components into their respective form files: move `EditTeamWorkspace` into `src/components/team/form.tsx` and `NewTeamWorkspace` (if it exists) into its form file; delete the `src/components/team/workspace/` directory entirely; update all imports in workspace route `page.tsx` files to point to the co-located exports; covers design decision **workspace wrappers and loading strategy** (co-location rule)
+- [ ] 10.2 Delete `src/components/team/edit-dialog-shell.tsx`; verify no file imports `EditDialogShell` before deleting (run `grep -r "EditDialogShell" src/`); covers design decision **EditDialogContainer replaces EditDialogShell**
+- [ ] 10.3 Fix `EditDialogContainer` dialog scroll: remove `sticky top-0` from `DialogHeader` className; wrap `{children}` in `<div className="overflow-y-auto flex-1">{children}</div>`; this pins the header at the top of `DialogContent` while allowing only form content to scroll; covers design decision **dialog header scroll containment**
+- [ ] 10.4 Fix `src/components/team/info/index.tsx` edit link: replace `href={`/team/${team!.id}/edit`}` with `href={`/team/${teamId}/edit`}` to use the route param directly and avoid constructing the URL before team data loads; covers design decision **teamId propagation guard**
+- [ ] [P] 10.5 Add `reason` → zh-TW message mapping table to `showErrorToast` in `src/lib/api/error-toast.ts`: for 4xx `ApiClientError`, check `error.reason` against a mapping object before falling back to `error.detail`; initial entries SHALL include at minimum `RESOURCE_NOT_FOUND` → `"找不到此資源"` and `INVALID_INPUT` → `"資料格式不正確"`; covers design decision **frontend error toast reason mapping**
+- [ ] [P] 10.6 Write or update tests: (a) `EditDialogContainer` — header is rendered before the scrollable children wrapper; (b) `showErrorToast` — known reason returns zh-TW string, unknown reason falls back to `error.detail`; (c) team info edit link uses `teamId` prop (not `team.id`)
+- [ ] 10.7 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
+- [ ] 10.8 Commit section 10 after `/simplify`, tests, lint, typecheck, build pass

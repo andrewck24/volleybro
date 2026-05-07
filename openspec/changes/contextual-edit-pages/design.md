@@ -68,11 +68,31 @@ Team/player forms currently use raw `useState` + manual ZodError handling. Game 
 
 Page-only wrappers are named `*Workspace` (not `*Screen`) to align with workspace mode terminology and lower naming complexity. These wrappers host workspace-only structure (for example Card layout), while modal mode keeps the base form content.
 
+`*Workspace` components SHALL be co-located in the same file as the base form component (for example `EditTeamWorkspace` lives in `src/components/team/form.tsx` alongside `TeamForm`). A separate `workspace/` directory SHALL NOT be created — co-location avoids an extra indirection layer for components that are tightly coupled to their base form.
+
 For async defaults in RHF:
 - Base form owns hooks and submit logic (client component)
 - Route `page.tsx` becomes server component and only resolves params/placement
 - Async entity data syncs into RHF with `form.reset(...)` at controlled timing
 - Do not blindly overwrite user input: if draft exists or form is dirty, keep current values
+
+### Dialog header scroll containment
+
+`EditDialogContainer` SHALL wrap `{children}` in an `overflow-y-auto` div (not apply `sticky`/`fixed` to `DialogHeader`). This makes `DialogContent` the scroll boundary — the header is naturally pinned at the top while only the form content scrolls. Using `sticky top-0` on the header does not work reliably because `sticky` requires an overflow-scrolling ancestor, which `DialogContent` does not guarantee.
+
+### EditDialogContainer replaces EditDialogShell
+
+`src/components/layout/edit-dialog-container.tsx` is the canonical dialog shell. `src/components/team/edit-dialog-shell.tsx` SHALL be deleted once all modal pages have been migrated to use `EditDialogContainer`. No new code SHALL import `EditDialogShell`.
+
+### teamId propagation guard
+
+Navigation links that construct `/team/{teamId}/...` URLs SHALL use the `teamId` route param directly (not `team.id` from a SWR-loaded entity). Using a loaded entity's id introduces a window where the link renders before data is available, which interpolates `undefined` into the URL and produces requests to `/api/teams/undefined`. Route params are always resolved before the component renders.
+
+### Frontend error toast reason mapping
+
+`showErrorToast` in `src/lib/api/error-toast.ts` SHALL include a `reason` → zh-TW message mapping table for known operational errors (4xx), per the error-handling spec requirement that components use component-local zh-TW strings keyed by `error.reason`. For reasons not in the mapping table, `error.detail` (en-US backend string) remains the fallback.
+
+This avoids requiring every call site to duplicate reason-to-message mappings for globally known errors such as `RESOURCE_NOT_FOUND` or `INVALID_INPUT`, while remaining consistent with the error-handling spec's intent.
 
 ### useFormDraft hook: RHF + sessionStorage
 
