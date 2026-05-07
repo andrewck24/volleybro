@@ -14,8 +14,10 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
   // Refs keep the handler closure fresh without re-registering the listener.
   const routerRef = useRef(router);
   const toastRef = useRef(toast);
-  routerRef.current = router;
-  toastRef.current = toast;
+  useEffect(() => {
+    routerRef.current = router;
+    toastRef.current = toast;
+  }, [router, toast]);
 
   useEffect(() => {
     let redirecting = false;

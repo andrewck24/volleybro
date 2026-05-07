@@ -30,6 +30,11 @@ function isServerError(error: ApiClientError): boolean {
 const SERVER_ERROR_MESSAGE = "伺服器暫時無法處理你的請求，請稍後再試一次。";
 const UNKNOWN_ERROR_MESSAGE = "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
 
+const REASON_MESSAGES: Record<string, string> = {
+  RESOURCE_NOT_FOUND: "找不到此資源",
+  INVALID_INPUT: "資料格式不正確",
+};
+
 /**
  * Extract a user-facing error message from an unknown error.
  * Used for inline error display in AlertDialogs and invitation items.
@@ -75,10 +80,11 @@ export function showErrorToast(error: unknown, toast: ToastFn): void {
       return;
     }
 
-    // Operational error — user-actionable, show the detail directly
+    // Operational error — use zh-TW reason mapping if available, fall back to error.detail
+    const description = REASON_MESSAGES[error.reason] ?? error.detail;
     toast({
       title: "操作失敗",
-      description: error.detail,
+      description,
       variant: "destructive",
     });
     return;

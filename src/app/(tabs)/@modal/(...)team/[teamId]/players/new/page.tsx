@@ -1,5 +1,5 @@
 "use client";
-import { EditDialogShell } from "@/components/team/edit-dialog-shell";
+import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import { CreateForm } from "@/components/team/players/create-form";
 import { use, useCallback, useState } from "react";
 
@@ -14,14 +14,14 @@ const PlayerCreateModalPage = (props: {
   }, [teamId]);
 
   return (
-    <EditDialogShell
+    <EditDialogContainer
       title="新增球員"
       fullPageHref={`/team/${teamId}/players/new`}
       isDirty={isDirty}
       clearDraft={clearDraft}
     >
       <CreateForm teamId={teamId} onStateChange={setIsDirty} />
-    </EditDialogShell>
+    </EditDialogContainer>
   );
 };
 

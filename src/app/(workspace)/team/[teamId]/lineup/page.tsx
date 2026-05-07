@@ -1,10 +1,8 @@
-"use client";
 import { Header } from "@/components/layout/header";
 import Lineup from "@/components/team/lineup";
-import { use } from "react";
 
-const LineupPage = (props: { params: Promise<{ teamId: string }> }) => {
-  const { teamId } = use(props.params);
+const LineupPage = async (props: { params: Promise<{ teamId: string }> }) => {
+  const { teamId } = await props.params;
 
   return (
     <>

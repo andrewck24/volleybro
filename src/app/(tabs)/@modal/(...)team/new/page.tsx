@@ -1,5 +1,5 @@
 "use client";
-import { EditDialogShell } from "@/components/team/edit-dialog-shell";
+import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import TeamForm from "@/components/team/form";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -26,7 +26,7 @@ const NewTeamModalPage = () => {
   };
 
   return (
-    <EditDialogShell
+    <EditDialogContainer
       title="建立球隊"
       fullPageHref="/team/new"
       isDirty={isDirty}
@@ -38,7 +38,7 @@ const NewTeamModalPage = () => {
         onStateChange={setIsDirty}
         className="w-full"
       />
-    </EditDialogShell>
+    </EditDialogContainer>
   );
 };
 

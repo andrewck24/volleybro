@@ -5,8 +5,16 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
+
+const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
+
+function assertValidObjectId(id: string): void {
+  if (!OBJECT_ID_RE.test(id)) {
+    throw new ValidationError(CommonReason.INVALID_INPUT, "Invalid team ID format");
+  }
+}
 
 export const GET = (
   _req: NextRequest,
@@ -14,6 +22,7 @@ export const GET = (
 ) =>
   withErrorHandler(async (_req) => {
     const { teamId } = await props.params;
+    assertValidObjectId(teamId);
     await connectToMongoDB();
 
     const team = await Team.findById(teamId);
@@ -33,6 +42,7 @@ export const PATCH = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { teamId } = await props.params;
+    assertValidObjectId(teamId);
     await connectToMongoDB();
 
     const team = await Team.findById(teamId);

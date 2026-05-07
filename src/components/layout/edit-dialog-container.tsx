@@ -18,9 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { RiArrowRightUpLine, RiCloseLine } from "react-icons/ri";
+import { RiCloseLine, RiExpandDiagonalLine } from "react-icons/ri";
 
-interface EditDialogShellProps {
+interface EditDialogContainerProps {
   title: string;
   fullPageHref: string;
   isDirty: boolean;
@@ -28,13 +28,13 @@ interface EditDialogShellProps {
   children: React.ReactNode;
 }
 
-export function EditDialogShell({
+export function EditDialogContainer({
   title,
   fullPageHref,
   isDirty,
   clearDraft,
   children,
-}: EditDialogShellProps) {
+}: EditDialogContainerProps) {
   const router = useRouter();
   const [showDiscard, setShowDiscard] = useState(false);
 
@@ -55,18 +55,18 @@ export function EditDialogShell({
   return (
     <>
       <Dialog open onOpenChange={(open) => { if (!open) handleClose(); }}>
-        <DialogContent size="lg" closeButton={false}>
-          <DialogHeader className="flex-row items-center justify-between">
+        <DialogContent size="lg" closeButton={false} aria-describedby={undefined}>
+          <DialogHeader className="flex-row items-center justify-between bg-card pt-[env(safe-area-inset-top)]">
             <DialogTitle>{title}</DialogTitle>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-8 shrink-0"
-                onClick={() => router.push(fullPageHref)}
+                onClick={() => window.location.assign(fullPageHref)}
                 aria-label="全頁模式"
               >
-                <RiArrowRightUpLine className="size-4" />
+                <RiExpandDiagonalLine className="size-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -79,7 +79,7 @@ export function EditDialogShell({
               </Button>
             </div>
           </DialogHeader>
-          {children}
+          <div className="overflow-y-auto flex-1" data-testid="dialog-scroll-container">{children}</div>
         </DialogContent>
       </Dialog>
 

@@ -1,5 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,9 +14,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
+import { useTeam } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import type { TeamView } from "@/lib/features/team/types";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { useSWRConfig } from "swr";
+import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
+
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
 const TeamSchema = z
   .object({
@@ -47,6 +56,18 @@ const TeamForm = ({ draftKey, defaultValues, onSubmit, onStateChange, className 
   });
   const { isDirty } = form.formState;
   useLeavePageWarning(isDirty);
+
+  // RHF does not re-initialize when defaultValues prop changes after mount.
+  // Only reset if the form is still in its empty initial state (no draft, no user input).
+  useEffect(() => {
+    if (!defaultValues || isDirty) return;
+    const values = form.getValues();
+    if (values.name || values.nickname) return;
+    form.reset({
+      name: defaultValues.name ?? "",
+      nickname: defaultValues.nickname ?? "",
+    });
+  }, [defaultValues, form, isDirty]);
 
   useEffect(() => {
     onStateChange?.(isDirty);
@@ -107,3 +128,77 @@ const TeamForm = ({ draftKey, defaultValues, onSubmit, onStateChange, className 
 };
 
 export default TeamForm;
+
+export function EditTeamWorkspace({ teamId }: { teamId: string }) {
+  const router = useRouter();
+  const { team, isLoading, mutate } = useTeam(teamId);
+
+  const onSubmit = async (formData: TeamFormValues) => {
+    const teamData = await apiClient<TeamView>(`/api/teams/${teamId}`, {
+      method: "PATCH",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(formData),
+    });
+    mutate({ ...team, ...teamData }, { revalidate: true });
+    router.push(`/team/${teamId}?tab=about`);
+  };
+
+  if (isLoading) return <EditTeamWorkspaceSkeleton />;
+
+  if (!team) {
+    return (
+      <div className="p-4">
+        <Alert>
+          <AlertTitle>找不到球隊</AlertTitle>
+          <AlertDescription>此球隊不存在或已被刪除。</AlertDescription>
+        </Alert>
+        <Button className="mt-4" onClick={() => router.back()}>返回</Button>
+      </div>
+    );
+  }
+
+  return (
+    <TeamForm
+      draftKey={`draft:team:${teamId}`}
+      defaultValues={team}
+      onSubmit={onSubmit}
+      className="w-full"
+    />
+  );
+}
+
+function EditTeamWorkspaceSkeleton() {
+  return (
+    <Card className="w-full space-y-4 p-4">
+      <Skeleton className="h-5 w-24" />
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+      <Skeleton className="h-10 w-full" />
+    </Card>
+  );
+}
+
+export function NewTeamWorkspace() {
+  const router = useRouter();
+  const { mutate } = useSWRConfig();
+
+  const onSubmit = async (formData: TeamFormValues) => {
+    const team = await apiClient<TeamView>("/api/teams", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(formData),
+    });
+    mutate(`/api/teams/${team.id}`, team, false);
+    router.push(`/team/${team.id}?tab=about`);
+  };
+
+  return (
+    <TeamForm draftKey="draft:team:new" onSubmit={onSubmit} className="w-full" />
+  );
+}

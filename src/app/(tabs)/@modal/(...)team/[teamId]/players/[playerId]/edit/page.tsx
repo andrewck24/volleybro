@@ -1,5 +1,5 @@
 "use client";
-import { EditDialogShell } from "@/components/team/edit-dialog-shell";
+import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import { EditForm } from "@/components/team/players/edit-form";
 import { use, useCallback, useState } from "react";
 
@@ -14,7 +14,7 @@ const PlayerEditModalPage = (props: {
   }, [playerId]);
 
   return (
-    <EditDialogShell
+    <EditDialogContainer
       title="編輯球員"
       fullPageHref={`/team/${teamId}/players/${playerId}/edit`}
       isDirty={isDirty}
@@ -25,7 +25,7 @@ const PlayerEditModalPage = (props: {
         playerId={playerId}
         onStateChange={setIsDirty}
       />
-    </EditDialogShell>
+    </EditDialogContainer>
   );
 };
 

@@ -1,5 +1,5 @@
 "use client";
-import { EditDialogShell } from "@/components/team/edit-dialog-shell";
+import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import TeamForm from "@/components/team/form";
 import { useTeam } from "@/hooks/use-data";
 import { useRouter } from "next/navigation";
@@ -30,7 +30,7 @@ const EditTeamModalPage = (props: { params: Promise<{ teamId: string }> }) => {
   };
 
   return (
-    <EditDialogShell
+    <EditDialogContainer
       title="編輯球隊"
       fullPageHref={`/team/${teamId}/edit`}
       isDirty={isDirty}
@@ -43,7 +43,7 @@ const EditTeamModalPage = (props: { params: Promise<{ teamId: string }> }) => {
         onStateChange={setIsDirty}
         className="w-full"
       />
-    </EditDialogShell>
+    </EditDialogContainer>
   );
 };
 
