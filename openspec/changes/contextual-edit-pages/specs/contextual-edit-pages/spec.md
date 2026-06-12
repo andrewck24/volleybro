@@ -80,6 +80,14 @@ The Dialog header SHALL contain a maximize button that navigates the user to the
 - **WHEN** the user is viewing the workspace edit route (not the Dialog)
 - **THEN** no maximize button SHALL be rendered; the Header back button serves as the exit
 
+#### Scenario: Maximize with dirty form does not trigger native leave warning
+
+- **WHEN** the user has unsaved changes in an edit Dialog (`form.formState.isDirty` is true)
+- **WHEN** the user clicks the maximize button
+- **THEN** the system SHALL suppress the native browser `beforeunload` confirmation for that navigation
+- **THEN** the system SHALL navigate to the workspace route via hard navigation as normal
+- **THEN** the workspace form SHALL restore values from the sessionStorage draft on mount
+
 ---
 
 ### Requirement: Dialog close with dirty form shows confirmation

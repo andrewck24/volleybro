@@ -17,6 +17,7 @@ Edit pages (team edit, player create/edit, lineup) currently mix responsibilitie
 - Validate `teamId` route params with explicit API semantics: invalid identifier format returns `400 VALIDATION`, valid but missing resource returns `404 NOT_FOUND`
 - For team-not-found in workspace mode, show page-level `Alert` with a `返回` action instead of toast-only feedback
 - Update `DialogContent` `size="lg"` width constraint to `max-w-196` for modal/workspace visual consistency
+- Suppress the native browser `beforeunload` "leave site" prompt when the user maximizes a dirty edit Dialog to its workspace route, since `useFormDraft` already preserves form state via sessionStorage across the transition
 
 ## Capabilities
 
@@ -56,6 +57,8 @@ Edit pages (team edit, player create/edit, lineup) currently mix responsibilitie
     - `src/components/ui/dialog.tsx` (`size="lg"` width constraint aligned to `max-w-196`)
     - `src/components/team/players/create-form.tsx` (migrate to RHF)
     - `src/components/team/players/edit-form.tsx` (migrate to RHF)
+    - `src/hooks/use-leave-page-warning.ts` (export `suppressLeaveWarning()` to bypass native `beforeunload` prompt once)
+    - `src/components/layout/edit-dialog-container.tsx` (call `suppressLeaveWarning()` before hard-navigating on maximize)
   - Removed:
     - `src/hooks/use-on-leave-page.js` (dead code; replaced by `use-leave-page-warning.ts`)
     - `src/app/(protected)/` (entire directory; renamed to `(tabs)`)

@@ -109,6 +109,14 @@ Callers invoke `clearDraft()` on submit success and on explicit cancel (Dialog c
 
 The hook accepts `isDirty: boolean` and registers/deregisters a `beforeunload` handler. Soft-navigation blocking is not implemented because Next.js App Router has no stable blocker API. The Dialog close button instead shows a shadcn `AlertDialog` confirmation when `form.formState.isDirty` is true, which covers the primary accidental-close scenario. SessionStorage draft preservation means soft navigation without confirmation loses nothing (draft is restored on return).
 
+### Maximize suppresses native beforeunload warning
+
+When the user clicks the maximize button on a dirty edit Dialog, `EditDialogContainer` calls `window.location.assign(fullPageHref)` (hard navigation). This triggers the `beforeunload` handler registered by `useLeavePageWarning` (active because `isDirty` is true), causing the browser's native "leave site" confirmation to appear in addition to — and inconsistent with — the app's own `AlertDialog` discard-confirmation used for explicit close. Since `useFormDraft` writes form values to sessionStorage on every change, no data is at risk if this native prompt is bypassed: the workspace route restores the same values from the draft on mount.
+
+`src/hooks/use-leave-page-warning.ts` SHALL export a `suppressLeaveWarning()` function that sets a module-level one-shot flag. The `beforeunload` handler SHALL check this flag first: if set, it resets the flag to `false` and returns without calling `e.preventDefault()` or setting `e.returnValue` (allowing navigation to proceed silently); otherwise it behaves as before. `EditDialogContainer`'s maximize `onClick` SHALL call `suppressLeaveWarning()` immediately before `window.location.assign(fullPageHref)`.
+
+This is a one-shot, module-level flag (not a prop) because `useLeavePageWarning` is invoked inside the form component while `EditDialogContainer` is a sibling/parent component with no direct reference to that hook instance; a shared exported function avoids prop-drilling a callback through each modal page wrapper. The flag is tab-scoped (module state is per-JS-context) and consumed synchronously by the `beforeunload` event that `window.location.assign` triggers immediately afterward.
+
 ## Risks / Trade-offs
 
 [Risk] Next.js intercepting routes + parallel slots have known edge cases (cache invalidation, hard-refresh behavior) → Mitigation: each slot directory includes `default.tsx` returning null (already required by existing tab-navigation spec); the workspace routes at `app/(workspace)/team/` serve as the hard-refresh fallback

@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { suppressLeaveWarning } from "@/hooks/use-leave-page-warning";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiCloseLine, RiExpandDiagonalLine } from "react-icons/ri";
@@ -63,7 +64,10 @@ export function EditDialogContainer({
                 variant="ghost"
                 size="icon"
                 className="size-8 shrink-0"
-                onClick={() => window.location.assign(fullPageHref)}
+                onClick={() => {
+                  suppressLeaveWarning();
+                  window.location.assign(fullPageHref);
+                }}
                 aria-label="全頁模式"
               >
                 <RiExpandDiagonalLine className="size-4" />

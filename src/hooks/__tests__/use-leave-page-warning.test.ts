@@ -1,4 +1,7 @@
-import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
+import {
+  useLeavePageWarning,
+  suppressLeaveWarning,
+} from "@/hooks/use-leave-page-warning";
 import { renderHook } from "@testing-library/react";
 
 describe("useLeavePageWarning", () => {
@@ -57,5 +60,39 @@ describe("useLeavePageWarning", () => {
     ).length;
 
     expect(afterUnmount).toBeGreaterThan(beforeUnmount);
+  });
+
+  it("suppressLeaveWarning() causes the next beforeunload event to skip preventDefault", () => {
+    renderHook(() => useLeavePageWarning(true));
+
+    const handler = addSpy.mock.calls.find(
+      ([event]) => event === "beforeunload",
+    )?.[1] as (e: BeforeUnloadEvent) => void;
+
+    suppressLeaveWarning();
+
+    const event = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+    handler(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(event.returnValue).toBeUndefined();
+  });
+
+  it("suppression is one-shot: the following beforeunload event behaves normally", () => {
+    renderHook(() => useLeavePageWarning(true));
+
+    const handler = addSpy.mock.calls.find(
+      ([event]) => event === "beforeunload",
+    )?.[1] as (e: BeforeUnloadEvent) => void;
+
+    suppressLeaveWarning();
+    const firstEvent = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+    handler(firstEvent);
+
+    const secondEvent = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+    handler(secondEvent);
+
+    expect(secondEvent.preventDefault).toHaveBeenCalled();
+    expect(secondEvent.returnValue).toBe("");
   });
 });

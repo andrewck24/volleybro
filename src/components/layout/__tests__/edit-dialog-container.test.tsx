@@ -1,10 +1,15 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
+import { suppressLeaveWarning } from "@/hooks/use-leave-page-warning";
 
 const mockBack = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
+}));
+
+jest.mock("@/hooks/use-leave-page-warning", () => ({
+  suppressLeaveWarning: jest.fn(),
 }));
 
 beforeEach(() => {
@@ -92,6 +97,22 @@ describe("EditDialogContainer", () => {
     fireEvent.click(screen.getByRole("button", { name: "全頁模式" }));
     // window.location.assign is hard navigation; router.back is not called
     expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("maximize calls suppressLeaveWarning before hard navigation", () => {
+    render(
+      <EditDialogContainer
+        title="編輯球隊"
+        fullPageHref="/team/123/edit"
+        isDirty={true}
+        clearDraft={clearDraft}
+      >
+        <div>form</div>
+      </EditDialogContainer>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "全頁模式" }));
+
+    expect(suppressLeaveWarning).toHaveBeenCalledTimes(1);
   });
 
   it("does not have aria-describedby on dialog content", () => {
