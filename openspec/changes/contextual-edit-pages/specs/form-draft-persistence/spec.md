@@ -8,12 +8,17 @@ Define the behavior of sessionStorage-based form draft persistence for edit form
 
 ### Requirement: Draft automatically saved on form value change
 
-The `useFormDraft` hook SHALL subscribe to React Hook Form's `form.watch` and write the current form values to sessionStorage on every change. The storage key SHALL follow the format `draft:{type}:{id}` where `type` is the entity type (e.g., `team`, `player`, `lineup`) and `id` is the entity ID or `new` for creation forms.
+The `useFormDraft` hook SHALL subscribe to React Hook Form value changes and write the current form values to sessionStorage on every change, but ONLY once the form is dirty (`form.formState.isDirty`). The hook SHALL NOT persist the pristine initial snapshot on mount. The storage key SHALL follow the format `draft:{type}:{id}` where `type` is the entity type (e.g., `team`, `player`, `lineup`) and `id` is the entity ID or `new` for creation forms.
 
 #### Scenario: User types in team edit form
 
 - **WHEN** the user types in any field of the team edit form
 - **THEN** the current form values SHALL be written to `sessionStorage["draft:team:{teamId}"]` as a JSON string
+
+#### Scenario: Pristine form does not write a draft
+
+- **WHEN** the form mounts and the user has not edited any field
+- **THEN** no draft entry SHALL be written to sessionStorage for the key
 
 #### Scenario: Draft key format for creation forms
 
@@ -34,13 +39,19 @@ The `useFormDraft` hook SHALL subscribe to React Hook Form's `form.watch` and wr
 
 ### Requirement: Draft restored on form mount
 
-When the `useFormDraft` hook initializes, it SHALL read from `sessionStorage` using the draft key. If a value is found, it SHALL be parsed as JSON and used as the `defaultValues` for the React Hook Form instance. If no value is found, the caller-supplied `defaultValues` SHALL be used.
+When the `useFormDraft` hook initializes, it SHALL read from `sessionStorage` using the draft key. If a value is found, it SHALL be parsed as JSON and **merged over** the caller-supplied `defaultValues` (`{ ...defaultValues, ...draft }`) to form the `defaultValues` for the React Hook Form instance. If no value is found, the caller-supplied `defaultValues` SHALL be used unchanged. Merging (rather than replacing) is REQUIRED because `JSON.stringify` drops `undefined` fields, so a persisted draft is always partial; merging keeps the baseline shape stable.
 
 #### Scenario: Modal opens after previous partial fill
 
 - **WHEN** the user previously filled the team edit Dialog partially and navigated away (soft nav)
 - **WHEN** the user reopens the team edit Dialog
 - **THEN** the form SHALL initialize with the previously entered values
+
+#### Scenario: Pristine form does not report false isDirty after remount
+
+- **WHEN** a form with optional fields left empty (serialised to `undefined`) mounts, unmounts, and remounts (e.g. Dialog reopen or StrictMode double-mount)
+- **THEN** the rehydrated baseline SHALL retain the full field shape via the merge
+- **AND** React Hook Form SHALL report `isDirty` as `false`, so the discard `AlertDialog` SHALL NOT be triggered
 
 #### Scenario: Workspace page mounts after maximize
 

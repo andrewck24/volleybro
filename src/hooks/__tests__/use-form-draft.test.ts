@@ -44,17 +44,29 @@ describe("useFormDraft", () => {
     expect(result.current.form.getValues()).toEqual(defaults);
   });
 
-  it("writes form values to sessionStorage on value change", async () => {
+  it("writes form values to sessionStorage once the form is dirty", async () => {
     const { result } = renderHook(() =>
       useFormDraft<TestForm>("draft:team:t1"),
     );
 
     await act(async () => {
-      result.current.form.setValue("name", "new-name");
+      result.current.form.setValue("name", "new-name", { shouldDirty: true });
     });
 
     const stored = JSON.parse(storage["draft:team:t1"] ?? "null");
     expect(stored).toMatchObject({ name: "new-name" });
+  });
+
+  it("does not persist a draft while the form stays pristine", () => {
+    const defaults: TestForm = { name: "default-name", value: "" };
+
+    // renderHook flushes the initial render and effects inside its own act(),
+    // so the persistence effect has already run by the time it returns.
+    renderHook(() =>
+      useFormDraft<TestForm>("draft:team:new", { defaultValues: defaults }),
+    );
+
+    expect(storage["draft:team:new"]).toBeUndefined();
   });
 
   it("clears draft from sessionStorage on clearDraft", () => {

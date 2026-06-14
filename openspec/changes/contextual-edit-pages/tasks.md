@@ -102,3 +102,11 @@
 - [x] 11.5 Manual verification via claude-in-chrome: open a dirty edit Dialog (e.g. team edit with an unsaved field change), click the maximize (`RiExpandDiagonalLine`) button; confirm (a) no native browser "離開此網站？"/"Leave site?" `beforeunload` prompt appears, (b) the Dialog closes and hard navigation to the workspace route (`/team/{teamId}/edit`) occurs, (c) the workspace form mounts with values restored from `sessionStorage["draft:team:{teamId}"]`; covers spec scenario **Maximize with dirty form does not trigger native leave warning**
 - [x] 11.6 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
 - [x] 11.7 Commit section 11 after `/simplify`, tests, lint, typecheck, build pass
+
+## 12. Fix False isDirty in useFormDraft
+
+- [x] 12.1 Fix `src/hooks/use-form-draft.ts`: merge the persisted draft over the caller-supplied `defaultValues` (`{ ...options.defaultValues, ...draft }`) instead of replacing them, so the rehydrated baseline keeps a stable field shape despite `JSON.stringify` dropping `undefined` fields; covers spec scenario **Pristine form does not report false isDirty after remount** and design decision **useFormDraft hook: RHF + sessionStorage** (merge-over-defaults)
+- [x] 12.2 Gate persistence on `form.formState.isDirty` (switch the persist effect to `useWatch` + `if (!isDirty) return`) so the pristine initial snapshot is never written to sessionStorage on mount; covers spec scenario **Pristine form does not write a draft**
+- [x] 12.3 Update `src/hooks/__tests__/use-form-draft.test.ts`: persist test uses `setValue(..., { shouldDirty: true })`; add a test asserting no draft is written while the form stays pristine
+- [x] 12.4 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
+- [x] 12.5 Commit section 12 after `/simplify`, tests, lint, typecheck, build pass

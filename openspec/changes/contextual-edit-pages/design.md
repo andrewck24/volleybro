@@ -43,6 +43,7 @@ This mirrors the existing pattern in `src/app/game/[gameId]/` (game routes are o
 ### Dialog as the modal component (not Sheet)
 
 The project's shadcn Dialog already slides in from the bottom on mobile (consistent with iOS sheet behavior). Dialog is more appropriate than Sheet because:
+
 - It works identically on desktop (centered modal) and mobile (bottom sheet)
 - The maximize affordance (→ workspace) is a standard dialog header action
 
@@ -59,6 +60,7 @@ Minimize (workspace → Dialog) is not implemented. Users return to the tab cont
 ### React Hook Form unified across team/player forms
 
 Team/player forms currently use raw `useState` + manual ZodError handling. Game forms already use RHF with `zodResolver`. Migrating team/player forms to RHF:
+
 - Eliminates manual error state management (ZodError caught, mapped, stored)
 - Uses existing `src/components/ui/form.tsx` (`FormProvider`, `FormField`, `FormMessage`) — no new UI components
 - `FormLabel` already includes `<FormMessage />` so error display is zero additional JSX
@@ -71,6 +73,7 @@ Page-only wrappers are named `*Workspace` (not `*Screen`) to align with workspac
 `*Workspace` components SHALL be co-located in the same file as the base form component (for example `EditTeamWorkspace` lives in `src/components/team/form.tsx` alongside `TeamForm`). A separate `workspace/` directory SHALL NOT be created — co-location avoids an extra indirection layer for components that are tightly coupled to their base form.
 
 For async defaults in RHF:
+
 - Base form owns hooks and submit logic (client component)
 - Route `page.tsx` becomes server component and only resolves params/placement
 - Async entity data syncs into RHF with `form.reset(...)` at controlled timing
@@ -97,13 +100,16 @@ This avoids requiring every call site to duplicate reason-to-message mappings fo
 ### useFormDraft hook: RHF + sessionStorage
 
 A custom hook wraps `useForm` and adds:
-1. On init: reads `sessionStorage.getItem(key)` and uses parsed value as `defaultValues` if present
-2. `form.watch` subscription: debounce-free write to sessionStorage on every value change
+
+1. On init: reads `sessionStorage.getItem(key)` and **merges** the parsed draft over the caller-supplied `defaultValues` (`{ ...options.defaultValues, ...draft }`) to build the RHF `defaultValues`
+2. `useWatch` subscription: debounce-free write to sessionStorage, but **only once the form is dirty** (`form.formState.isDirty`)
 3. Returns `clearDraft()` that calls `sessionStorage.removeItem(key)`
 
 Key format: `draft:{type}:{id}` where type is `team`, `player`, or `lineup`, and id is the entity ID (or `new` for creation forms).
 
 Callers invoke `clearDraft()` on submit success and on explicit cancel (Dialog close confirmed by user).
+
+**Why merge over defaults, and why persist only when dirty.** `JSON.stringify` drops `undefined` fields, so any persisted draft is necessarily a partial object (e.g. a player with no number/position serialises to `{"name":"…","role":"…"}`). The original implementation (a) persisted the pristine initial snapshot on mount and (b) re-read that snapshot as the _entire_ `defaultValues` on the next mount. Because the snapshot was missing the dropped keys, the rehydrated baseline had a different shape than the registered fields, and React Hook Form reported a false `isDirty` — which then wrongly triggered the discard `AlertDialog` even though the user never edited anything. This is acutely visible here because the form lives inside an intercepting-route Dialog (mount/unmount on open/close) and React StrictMode double-mounts in dev, so a self-written draft is reliably read back. Merging the draft over the caller defaults keeps the baseline shape stable, and gating persistence on `isDirty` prevents the pristine snapshot from ever being written.
 
 ### useLeavePageWarning: beforeunload only
 
