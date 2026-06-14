@@ -101,4 +101,4 @@
 - [x] 11.4 [P] Add test for `EditDialogContainer` (in its existing test file, or create `src/components/layout/__tests__/edit-dialog-container.test.tsx` if none exists) verifying clicking the maximize button calls `suppressLeaveWarning` (mock the module) before `window.location.assign` is invoked
 - [x] 11.5 Manual verification via claude-in-chrome: open a dirty edit Dialog (e.g. team edit with an unsaved field change), click the maximize (`RiExpandDiagonalLine`) button; confirm (a) no native browser "離開此網站？"/"Leave site?" `beforeunload` prompt appears, (b) the Dialog closes and hard navigation to the workspace route (`/team/{teamId}/edit`) occurs, (c) the workspace form mounts with values restored from `sessionStorage["draft:team:{teamId}"]`; covers spec scenario **Maximize with dirty form does not trigger native leave warning**
 - [x] 11.6 Run pnpm test, pnpm lint, pnpm typecheck, pnpm build; fix regressions
-- [ ] 11.7 Commit section 11 after `/simplify`, tests, lint, typecheck, build pass
+- [x] 11.7 Commit section 11 after `/simplify`, tests, lint, typecheck, build pass
