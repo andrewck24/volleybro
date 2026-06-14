@@ -79,6 +79,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
+      .filter((player) => player.id)
       .sort(
         (a: { number: number }, b: { number: number }) => a.number - b.number,
       );
