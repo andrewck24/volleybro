@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole } from "@/entities/player";
+import { useFormDraft } from "@/hooks/use-form-draft";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import {
@@ -30,8 +32,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
 import { useSWRConfig } from "swr";
-import { useFormDraft } from "@/hooks/use-form-draft";
-import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 
 interface CreateFormProps {
   teamId: string;
@@ -49,6 +49,9 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
       resolver: zodResolver(CreatePlayerSchema) as Resolver<CreatePlayerInput>,
       defaultValues: {
         name: "",
+        number: undefined,
+        position: undefined,
+        email: undefined,
         role: PlayerRole.MEMBER,
       },
     },
@@ -123,7 +126,9 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
             <FormItem>
               <FormLabel>位置</FormLabel>
               <Select
-                onValueChange={(v) => field.onChange(v === "NONE" ? undefined : v)}
+                onValueChange={(v) =>
+                  field.onChange(v === "NONE" ? undefined : v)
+                }
                 value={field.value ?? "NONE"}
               >
                 <FormControl>
