@@ -55,9 +55,19 @@ export function EditDialogContainer({
 
   return (
     <>
-      <Dialog open onOpenChange={(open) => { if (!open) handleClose(); }}>
-        <DialogContent size="lg" closeButton={false} aria-describedby={undefined}>
-          <DialogHeader className="flex-row items-center justify-between bg-card pt-[env(safe-area-inset-top)]">
+      <Dialog
+        open
+        onOpenChange={(open) => {
+          if (!open) handleClose();
+        }}
+      >
+        <DialogContent
+          size="lg"
+          closeButton={false}
+          aria-describedby={undefined}
+          className="px-0 pb-0"
+        >
+          <DialogHeader className="flex-row items-center justify-between bg-card px-4 pt-[env(safe-area-inset-top)]">
             <DialogTitle>{title}</DialogTitle>
             <div className="flex items-center gap-1">
               <Button
@@ -83,7 +93,12 @@ export function EditDialogContainer({
               </Button>
             </div>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1" data-testid="dialog-scroll-container">{children}</div>
+          <div
+            className="flex-1 overflow-y-auto px-4 pb-4"
+            data-testid="dialog-scroll-container"
+          >
+            {children}
+          </div>
         </DialogContent>
       </Dialog>
 
