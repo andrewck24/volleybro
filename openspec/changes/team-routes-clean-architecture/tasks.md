@@ -1,7 +1,7 @@
 ## 1. Schema — rename player reference to playerId
 
-- [ ] 1.1 [P] In `src/infrastructure/db/mongoose/schemas/team.ts`, apply **Rename embedded player reference from _id to nullable playerId in the shared schema**: change the player reference on `startingPlayerSchema`, `liberoPlayerSchema`, `substitutePlayerSchema`, and `subSchema` from `_id` to `playerId: { type: ObjectId, ref: "Player", default: null }` (keep `{ _id: false }`), and update the `LineupDocument` interface. Behavior: an empty slot can persist as `{ playerId: null }`. Verify: `npx tsc --noEmit` passes.
-- [ ] 1.2 [P] In `src/infrastructure/db/mongoose/schemas/game.ts`, apply the same rename to `playerSchema`, `staffSchema`, and `rallyDetailSchema.player` (`_id → playerId`, add `{ _id: false }`); `sets[].lineups` and `teams.{side}.lineup` inherit the shared `lineupSchema` automatically. Behavior: game embedded player references use `playerId`. Verify: `npx tsc --noEmit` passes.
+- [x] 1.1 [P] In `src/infrastructure/db/mongoose/schemas/team.ts`, apply **Rename embedded player reference from _id to nullable playerId in the shared schema**: change the player reference on `startingPlayerSchema`, `liberoPlayerSchema`, `substitutePlayerSchema`, and `subSchema` from `_id` to `playerId: { type: ObjectId, ref: "Player", default: null }` (keep `{ _id: false }`), and update the `LineupDocument` interface. Behavior: an empty slot can persist as `{ playerId: null }`. Verify: `npx tsc --noEmit` passes.
+- [x] 1.2 [P] In `src/infrastructure/db/mongoose/schemas/game.ts`, apply the same rename to `playerSchema`, `staffSchema`, and `rallyDetailSchema.player` (`_id → playerId`, add `{ _id: false }`); `sets[].lineups` and `teams.{side}.lineup` inherit the shared `lineupSchema` automatically. Behavior: game embedded player references use `playerId`. Verify: `npx tsc --noEmit` passes.
 
 ## 2. Team repository — bidirectional mapping and lineup persistence
 

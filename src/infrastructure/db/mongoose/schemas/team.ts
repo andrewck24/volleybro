@@ -14,25 +14,25 @@ export interface LineupDocument extends Document {
     liberoReplacePosition: Position;
   };
   starting: {
-    _id: Types.ObjectId;
+    playerId: Types.ObjectId | null;
     position: Position;
     sub: {
-      _id: Types.ObjectId;
+      playerId: Types.ObjectId | null;
       entryIndex: { in: number; out: number };
     };
   }[];
   liberos: {
-    _id: Types.ObjectId;
+    playerId: Types.ObjectId | null;
     position: Position;
     sub: {
-      _id: Types.ObjectId;
+      playerId: Types.ObjectId | null;
       entryIndex: { in: number; out: number };
     };
   }[];
   substitutes: {
-    _id: Types.ObjectId;
+    playerId: Types.ObjectId | null;
     sub: {
-      _id: Types.ObjectId;
+      playerId: Types.ObjectId | null;
       entryIndex: { in: number; out: number };
     };
   }[];
@@ -48,7 +48,7 @@ const entryIndexSchema = new Schema(
 
 const subSchema = new Schema(
   {
-    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
     entryIndex: { type: entryIndexSchema },
   },
   { _id: false },
@@ -68,7 +68,7 @@ const lineupOptionsSchema = new Schema(
 
 const startingPlayerSchema = new Schema(
   {
-    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
     position: { type: String, enum: Position },
     sub: { type: subSchema },
   },
@@ -77,7 +77,7 @@ const startingPlayerSchema = new Schema(
 
 const liberoPlayerSchema = new Schema(
   {
-    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
     position: { type: String, enum: Position },
     sub: { type: subSchema },
   },
@@ -86,7 +86,7 @@ const liberoPlayerSchema = new Schema(
 
 const substitutePlayerSchema = new Schema(
   {
-    _id: { type: Schema.Types.ObjectId, ref: "Player" },
+    playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
     sub: { type: subSchema },
   },
   { _id: false },

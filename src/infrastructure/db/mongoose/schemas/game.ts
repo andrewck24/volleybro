@@ -139,38 +139,46 @@ const playerStatsSchema = new Schema<PlayerStatsDocument>(
 );
 
 interface PlayerDocument extends Document {
-  _id: Types.ObjectId;
+  playerId: Types.ObjectId | null;
   name: string;
   number: number;
   stats: PlayerStatsDocument[];
 }
 
-const playerSchema = new Schema<PlayerDocument>({
-  _id: {
-    type: Schema.Types.ObjectId,
-    ref: "Player",
+const playerSchema = new Schema<PlayerDocument>(
+  {
+    playerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      default: null,
+    },
+    name: { type: String },
+    number: { type: Number },
+    stats: [{ type: playerStatsSchema }],
   },
-  name: { type: String },
-  number: { type: Number },
-  stats: [{ type: playerStatsSchema }],
-});
+  { _id: false },
+);
 
 interface StaffDocument extends Document {
-  _id: Types.ObjectId;
+  playerId: Types.ObjectId | null;
   name: string;
   number: number;
   position: string;
 }
 
-const staffSchema = new Schema<StaffDocument>({
-  _id: {
-    type: Schema.Types.ObjectId,
-    ref: "Player",
+const staffSchema = new Schema<StaffDocument>(
+  {
+    playerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      default: null,
+    },
+    name: { type: String },
+    number: { type: Number },
+    position: { type: String, enum: ["", "C", "AC", "T", "M"], default: "" },
   },
-  name: { type: String },
-  number: { type: Number },
-  position: { type: String, enum: ["", "C", "AC", "T", "M"], default: "" },
-});
+  { _id: false },
+);
 
 interface TeamStatsDocument extends Document {
   [MoveType.SERVING]: { success: number; error: number };
@@ -235,7 +243,7 @@ interface RallyDetailDocument extends Document {
   type: MoveType;
   num: number;
   player: {
-    _id: Types.ObjectId;
+    playerId: Types.ObjectId | null;
     zone: number;
   };
 }
@@ -249,7 +257,7 @@ const rallyDetailSchema = new Schema<RallyDetailDocument>(
     },
     num: { type: Number },
     player: {
-      _id: { type: Schema.Types.ObjectId, ref: "Player" },
+      playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
       zone: { type: Number },
     },
   },
