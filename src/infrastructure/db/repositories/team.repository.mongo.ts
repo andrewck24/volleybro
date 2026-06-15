@@ -1,7 +1,7 @@
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { NotFoundError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
-import { Team, type LineupPlayer } from "@/entities/team";
+import { Team, type Lineup, type LineupPlayer } from "@/entities/team";
 import {
   TeamDocument,
   Team as TeamModel,
@@ -11,19 +11,44 @@ import { Types } from "mongoose";
 
 export class TeamRepositoryImpl implements ITeamRepository {
   private mapLineupPlayer(p: {
-    _id?: Types.ObjectId;
+    playerId?: Types.ObjectId | null;
     position?: string;
-    sub?: { _id?: Types.ObjectId; entryIndex?: { in?: number; out?: number } };
+    sub?: {
+      playerId?: Types.ObjectId | null;
+      entryIndex?: { in?: number; out?: number };
+    };
   }): LineupPlayer {
     return {
-      id: p._id?.toString() ?? null,
+      id: p.playerId?.toString() ?? null,
       position: p.position as LineupPlayer["position"],
       sub: p.sub
         ? {
-            id: p.sub._id?.toString() ?? "",
+            id: p.sub.playerId?.toString() ?? "",
             entryIndex: p.sub.entryIndex ?? {},
           }
         : undefined,
+    };
+  }
+
+  private toLineupPlayerDoc(p: LineupPlayer) {
+    return {
+      playerId: p.id ? new Types.ObjectId(p.id) : null,
+      position: p.position,
+      sub: p.sub
+        ? {
+            playerId: p.sub.id ? new Types.ObjectId(p.sub.id) : null,
+            entryIndex: p.sub.entryIndex,
+          }
+        : undefined,
+    };
+  }
+
+  private toLineupDoc(lineup: Lineup) {
+    return {
+      options: lineup.options,
+      starting: lineup.starting.map((p) => this.toLineupPlayerDoc(p)),
+      liberos: lineup.liberos.map((p) => this.toLineupPlayerDoc(p)),
+      substitutes: lineup.substitutes.map((p) => this.toLineupPlayerDoc(p)),
     };
   }
 
@@ -88,6 +113,24 @@ export class TeamRepositoryImpl implements ITeamRepository {
     }
   }
 
+  async updateLineups(teamId: string, lineups: Lineup[]): Promise<Lineup[]> {
+    try {
+      const doc = await TeamModel.findByIdAndUpdate(
+        teamId,
+        { lineups: lineups.map((lineup) => this.toLineupDoc(lineup)) },
+        { new: true },
+      ).exec();
+      if (!doc)
+        throw new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "The team to update lineups was not found",
+        );
+      return this.toTeam(doc).lineups;
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
   async delete(id: string): Promise<boolean> {
     try {
       const result = await TeamModel.findByIdAndDelete(id).exec();
@@ -107,9 +150,9 @@ export class TeamRepositoryImpl implements ITeamRepository {
         { _id: teamId },
         {
           $pull: {
-            "lineups.$[].starting": { _id: objectId },
-            "lineups.$[].liberos": { _id: objectId },
-            "lineups.$[].substitutes": { _id: objectId },
+            "lineups.$[].starting": { playerId: objectId },
+            "lineups.$[].liberos": { playerId: objectId },
+            "lineups.$[].substitutes": { playerId: objectId },
           },
         },
       );

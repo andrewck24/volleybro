@@ -28,6 +28,7 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
     findById: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    updateLineups: jest.fn(),
     delete: jest.fn(),
     removePlayerFromLineups: jest.fn(),
   };
