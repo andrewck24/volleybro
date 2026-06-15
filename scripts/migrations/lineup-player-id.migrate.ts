@@ -1,34 +1,36 @@
 /**
- * One-time, idempotent migration for the lineup player-reference rename.
+ * One-time, idempotent migration for the embedded player-reference rename.
  *
- * Converts embedded lineup slots stored under the legacy `_id` path to the
- * `playerId` field and normalizes empty slots to `{ playerId: null, ... }`.
- * Scope (matching the audit): `teams.lineups[]`, `games.teams.{side}.lineup`,
- * and `games.sets[].lineups.{home,away}`. `substitution.players.in/out` is left
- * intact (already a well-named ObjectId reference).
+ * Converts embedded player references stored under the legacy `_id` path to the
+ * `playerId` field and normalizes empty lineup slots to `{ playerId: null, ... }`.
  *
- * Idempotent: slots already on `playerId` are untouched, so a second run reports
- * zero modifications.
+ * Scope: `teams.lineups[]`; for games `teams.{side}.players/staffs/lineup`,
+ * `sets[].lineups.{home,away}`, and `sets[].entries[]` rally detail players.
+ * `substitution.players.in/out` is left intact (already a well-named ObjectId
+ * reference).
  *
- * Usage: `npx ts-node scripts/migrations/lineup-player-id.migrate.ts`
+ * Idempotent: references already on `playerId` are untouched, so a second run
+ * reports zero modifications.
+ *
+ * Usage: `node --loader ts-node/esm scripts/migrations/lineup-player-id.migrate.ts`
  */
-import "dotenv/config";
+import { config } from "dotenv";
 import mongoose from "mongoose";
 
+config({ path: ".env.local" });
+config();
+
 const LINEUP_ARRAYS = ["starting", "liberos", "substitutes"] as const;
+const RALLY = "Rally"; // EntryType.RALLY
 
 type Ref = mongoose.Types.ObjectId | string | null | undefined;
-type Slot =
-  | ({ _id?: Ref; playerId?: Ref; sub?: Record<string, unknown> | null } & Record<
-      string,
-      unknown
-    >)
-  | null;
+type RefObj = { _id?: Ref; playerId?: Ref } & Record<string, unknown>;
+type Slot = (RefObj & { sub?: RefObj | null }) | null;
 type RawLineup = Record<(typeof LINEUP_ARRAYS)[number], Slot[] | undefined> &
   Record<string, unknown>;
 
-/** Rename `_id -> playerId` on a single reference object; returns whether it changed. */
-function migrateRef(obj: Record<string, unknown>): boolean {
+/** Rename `_id -> playerId` on a reference object in place; returns whether it changed. */
+function migrateRef(obj: RefObj): boolean {
   if ("_id" in obj) {
     obj.playerId = (obj._id as Ref) ?? null;
     delete obj._id;
@@ -41,16 +43,14 @@ function migrateRef(obj: Record<string, unknown>): boolean {
   return false;
 }
 
-/** Normalize a lineup slot in place; returns whether it changed. */
+/** Normalize a lineup slot; returns the slot and whether it changed. */
 function migrateSlot(slot: Slot): { slot: Slot; changed: boolean } {
   if (slot === null || slot === undefined) {
     return { slot: { playerId: null }, changed: true };
   }
   let changed = migrateRef(slot);
-  if (slot.sub && typeof slot.sub === "object") {
-    if ("_id" in slot.sub) {
-      changed = migrateRef(slot.sub) || changed;
-    }
+  if (slot.sub && typeof slot.sub === "object" && "_id" in slot.sub) {
+    changed = migrateRef(slot.sub) || changed;
   }
   return { slot, changed };
 }
@@ -79,39 +79,58 @@ async function main() {
 
   // --- teams ---
   let teamsModified = 0;
-  const teams = await db.collection("teams").find({}).toArray();
-  for (const team of teams) {
+  for (const team of await db.collection("teams").find({}).toArray()) {
     const lineups = (team.lineups as RawLineup[] | undefined) ?? [];
     let changed = false;
-    for (const lineup of lineups) {
-      if (migrateLineup(lineup)) changed = true;
-    }
+    for (const lineup of lineups) if (migrateLineup(lineup)) changed = true;
     if (changed) {
-      await db.collection("teams").updateOne({ _id: team._id }, { $set: { lineups } });
+      await db
+        .collection("teams")
+        .updateOne({ _id: team._id }, { $set: { lineups } });
       teamsModified++;
     }
   }
 
   // --- games ---
   let gamesModified = 0;
-  const games = await db.collection("games").find({}).toArray();
-  for (const game of games) {
+  for (const game of await db.collection("games").find({}).toArray()) {
     const teamsField = game.teams as
-      | Record<string, { lineup?: RawLineup } & Record<string, unknown>>
+      | Record<
+          string,
+          {
+            players?: RefObj[];
+            staffs?: RefObj[];
+            lineup?: RawLineup;
+          } & Record<string, unknown>
+        >
       | undefined;
     const sets = (game.sets as
-      | ({ lineups?: { home?: RawLineup; away?: RawLineup } } & Record<string, unknown>)[]
+      | ({
+          lineups?: { home?: RawLineup; away?: RawLineup };
+          entries?: ({ type?: string } & Record<string, unknown>)[];
+        } & Record<string, unknown>)[]
       | undefined) ?? [];
     let changed = false;
 
     for (const side of ["home", "away"]) {
-      if (teamsField?.[side]?.lineup && migrateLineup(teamsField[side].lineup)) {
-        changed = true;
-      }
+      const sideTeam = teamsField?.[side];
+      for (const p of sideTeam?.players ?? []) if (migrateRef(p)) changed = true;
+      for (const s of sideTeam?.staffs ?? []) if (migrateRef(s)) changed = true;
+      if (sideTeam?.lineup && migrateLineup(sideTeam.lineup)) changed = true;
     }
+
     for (const set of sets) {
       if (set.lineups?.home && migrateLineup(set.lineups.home)) changed = true;
       if (set.lineups?.away && migrateLineup(set.lineups.away)) changed = true;
+      for (const entry of set.entries ?? []) {
+        if (entry.type !== RALLY) continue;
+        for (const side of ["home", "away"] as const) {
+          const detail = entry[side] as { player?: RefObj } | undefined;
+          if (detail?.player && "_id" in detail.player) {
+            if (migrateRef(detail.player)) changed = true;
+          }
+        }
+      }
     }
 
     if (changed) {
@@ -122,7 +141,7 @@ async function main() {
     }
   }
 
-  console.log("Lineup player-id migration complete");
+  console.log("Embedded player-id migration complete");
   console.log(`teams modified: ${teamsModified}`);
   console.log(`games modified: ${gamesModified}`);
 

@@ -28,8 +28,8 @@
 
 ## 5. Migration — audit first, then convert
 
-- [x] 5.1 Add `scripts/migrations/lineup-player-id.audit.ts` applying **Audit-first one-time migration with resolve-by-existence** and part of **Existing embedded references migrate to the playerId field**: dry-run scan of `teams.lineups[]` and `games.{teams.*, sets[].lineups.*}` reporting counts of legacy `_id` slots, slots resolving to a Player/snapshot, and empty slots; makes no writes. Verify: running the script prints a report and the database is unchanged.
-- [x] 5.2 Add `scripts/migrations/lineup-player-id.migrate.ts` completing **Existing embedded references migrate to the playerId field**: rename legacy `_id → playerId`, normalize empty slots to `{ playerId: null, position }`, leave `substitution.players.in/out` intact; idempotent (re-run makes no changes). Verify: a second run reports zero modifications.
+- [x] 5.1 Add `scripts/migrations/lineup-player-id.audit.ts` applying **Audit-first one-time migration with resolve-by-existence** and part of **Existing embedded references migrate to the playerId field**: dry-run scan of `teams.lineups[]` and, for games, `teams.{side}.players/staffs/lineup`, `sets[].lineups.{home,away}`, and `sets[].entries[]` rally detail players, reporting counts of legacy `_id` references, references resolving to a Player/snapshot, and empty slots; makes no writes. Verify: running the script prints a report and the database is unchanged.
+- [x] 5.2 Add `scripts/migrations/lineup-player-id.migrate.ts` completing **Existing embedded references migrate to the playerId field**: rename legacy `_id → playerId` across team lineups and game `teams.{side}.players/staffs/lineup`, `sets[].lineups.{home,away}` and rally detail players, normalize empty lineup slots to `{ playerId: null, position }`, leave `substitution.players.in/out` intact; idempotent (re-run makes no changes). Verify: a second run reports zero modifications.
 
 ## 6. Final verification
 

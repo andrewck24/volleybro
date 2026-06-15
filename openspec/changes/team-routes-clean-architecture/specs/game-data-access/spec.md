@@ -33,7 +33,7 @@ When a game is created or updated, the game repository SHALL map domain `id` val
 
 ### Requirement: Existing embedded references migrate to the playerId field
 
-A one-time, idempotent migration SHALL convert existing embedded player references stored under the legacy `_id` path to the `playerId` field across team lineups and game documents, and SHALL normalize empty lineup slots to `playerId: null`. The migration SHALL be preceded by an audit that reports, without writing, how many embedded slots carry a legacy reference, how many resolve to a Player or game snapshot, and how many are empty.
+A one-time, idempotent migration SHALL convert existing embedded player references stored under the legacy `_id` path to the `playerId` field and SHALL normalize empty lineup slots to `playerId: null`. The scope SHALL cover every reference renamed by the schema change: `teams.lineups[]`; for games `teams.{side}.players`, `teams.{side}.staffs`, `teams.{side}.lineup`, `sets[].lineups.{home,away}`, and `sets[].entries[]` rally detail players. `substitution.players.in/out` SHALL be left intact. The migration SHALL be preceded by an audit that reports, without writing, how many embedded references carry a legacy `_id`, how many resolve to a Player or game snapshot, and how many are empty.
 
 #### Scenario: Audit reports existing data state without writing
 
