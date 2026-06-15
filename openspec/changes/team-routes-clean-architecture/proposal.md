@@ -1,31 +1,35 @@
 ## Why
 
-Three team API routes bypass the repository layer and return the raw Mongoose document directly. Mongoose serializes the document with `_id` (not the `id` field that `TeamView` / `LineupView` declare), and the client `apiClient` does not re-validate the response with Zod. The result is a runtime/type divergence: `team.id` and lineup `player.id` are `undefined` at runtime even though the types claim they exist. This already produced a 500 (`PATCH /api/teams/undefined/lineups`) on the lineup save flow, and silently breaks the lineup UI (assigned players render as empty) and the lineup save round-trip. The existing `TeamRepositoryImpl.toTeam` / `mapLineupPlayer` already perform the correct `_id → id` mapping, so the fix is to route these endpoints through the existing Clean Architecture layers instead of inventing a second, divergent mapping path.
+The embedded player reference in team lineups and game documents is stored on a Mongoose `_id` path, while the entire domain / wire / client layer uses a string `id`. This creates a total impedance mismatch that was empirically verified against mongoose 9.4.1:
+
+- On **write**, `id` is a read-only Mongoose virtual with no setter, so client-supplied `id` values are silently dropped; embedded player references are lost the moment a lineup is saved or a game roster is persisted.
+- On **read**, the stored field is `_id`, so the domain `.id` accessor is `undefined`; with `{ _id: false }` on the lineup subschemas, empty slots persist as `null` (not orphan ObjectIds, contrary to an earlier assumption).
+
+This is the root cause of the reported defects: `PATCH /api/teams/undefined/lineups` 500s, lineups that hold data but render empty (player matching by `id` fails), and the duplicate empty-key roster error. It also leaves the game recording lineup/roster matching latently broken. Two surgical fixes have already shipped as stopgaps (`src/components/team/lineup/index.tsx` using the `teamId` prop, and `src/components/game/new/index.tsx` filtering empty roster slots); this change addresses the architectural root cause.
 
 ## What Changes
 
-- Route the three raw team endpoints through the established route → controller → use case → repository layering, matching the existing `createTeamController` pattern:
-  - `GET /api/teams/[teamId]` (currently calls `Team.findById` and returns the raw doc)
-  - `PATCH /api/teams/[teamId]` (team name/nickname update; currently mutates and returns the raw doc)
-  - `PATCH /api/teams/[teamId]/lineups` (currently assigns `team.lineups` and returns the raw subdocument array)
-- Add a `getTeam` use case + controller wrapping `ITeamRepository.findById`.
-- Add an `updateTeam` use case + controller wrapping `ITeamRepository.update` for name/nickname.
-- Add an `updateTeamLineups` use case + controller, backed by a new `ITeamRepository.updateLineups` method that performs **bidirectional** `id ↔ _id` mapping: client sends `id`, the Mongoose schema stores `_id`. Without explicit mapping, Mongoose regenerates fresh `_id` values for array subdocuments and loses player references; empty slots (`id: null`) must remain `_id: null` and must not be assigned a generated ObjectId.
-- All three routes return payloads conforming to `TeamView` / `LineupView` (every team and lineup `player.id` present as a string, `null` for empty slots), so the lineup UI and post-save `mutate` cache receive correct `id` values.
-- Preserve existing authorization semantics: `GET` is public via `withErrorHandler`; team `PATCH` requires team admin via `verifyIsTeamAdmin`; lineups `PATCH` requires `MEMBER` role via `verifyTeamRole`. Existing `assertValidObjectId` / `NotFoundError` behavior is retained.
+- Rename the embedded player-reference field from `_id` to a nullable `playerId` ObjectId across the lineup subschemas (shared by team and game) and the game player/staff snapshots and rally detail, keeping `ref: "Player"`. Empty lineup slots become `{ playerId: null, position }` objects instead of `null`.
+- Add bidirectional player-reference mapping in the repositories as the single translation boundary: read maps persisted `playerId` (ObjectId) → domain `id` (string); write maps domain `id` → `playerId`. Domain entities, Zod schemas, Redux, and React keep using `id` only.
+- Add `ITeamRepository.updateLineups` with `id ↔ playerId` round-tripping, and update `removePlayerFromLineups` to `$pull` by `playerId`.
+- Extend the game repository so `toGame` maps all embedded player references (lineups, snapshots, rally detail, substitution entries) `_id`/`playerId` → `id` on read, and a new write mapper maps `id` → `playerId` on create/update. Game use cases and frontend consumers are unchanged.
+- Route the three team endpoints (`GET`/`PATCH /api/teams/[teamId]`, `PATCH /api/teams/[teamId]/lineups`) through route → controller → use case → repository, matching the existing `createTeamController` pattern.
+- Provide a one-time, audit-first migration that renames existing embedded `_id` references to `playerId` and normalizes empty lineup slots to `playerId: null`.
 
 ## Non-Goals
 
-- This change does NOT introduce Zod response validation in `apiClient`; correctness is guaranteed by the repository mapping, not by client-side parsing.
-- This change does NOT migrate other raw routes outside the three team endpoints listed above (e.g. games, players) to Clean Architecture; those are separate follow-ups.
-- This change does NOT alter the MongoDB schema, the `TeamView` / `LineupView` Zod shapes, or the wire contract consumed by the frontend.
-- The surgical frontend fix already applied (`src/components/team/lineup/index.tsx` using the `teamId` prop instead of `team!.id`) is the immediate stopgap and is not re-done here.
+- No Zod response validation added to `apiClient`; correctness comes from repository mapping.
+- No change to the domain entities (`LineupPlayer.id` etc.), the `TeamView`/`LineupView`/`GameView` Zod shapes, or the frontend wire contract.
+- No storing the reference as a string to avoid conversion; `playerId` stays ObjectId to match the existing `teamId`/`userId`/`_id` reference convention.
+- No implementation of the future "temporary player" feature; the design only keeps it forward-compatible (a `playerId` that does not resolve to a Player is a valid non-empty state).
+- The already-shipped surgical frontend fixes are not redone here.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `team-data-access`: Reading and updating a team (and its embedded lineups) through the Clean Architecture layers, guaranteeing that API responses expose stable string `id` values (mapped from Mongoose `_id`) for the team and for every lineup player, including correct `id ↔ _id` round-tripping on lineup persistence.
+- `team-data-access`: Reading and updating a team (and its embedded lineups) through Clean Architecture layers, guaranteeing responses expose stable string `id` values for the team and every lineup player (string for a referenced player, `null` for an empty slot), with correct `id ↔ playerId` round-tripping on lineup persistence.
+- `game-data-access`: Reading a game so every embedded player reference (set lineups, team player/staff snapshots, rally detail, substitution entries) is exposed as a stable string `id`, and persisting a game so client-supplied `id` values are stored as `playerId` references rather than dropped.
 
 ### Modified Capabilities
 
@@ -33,7 +37,7 @@ Three team API routes bypass the repository layer and return the raw Mongoose do
 
 ## Impact
 
-- Affected specs: new `team-data-access` capability.
+- Affected specs: new `team-data-access` and `game-data-access` capabilities.
 - Affected code:
   - New:
     - src/applications/usecases/team/get-team.usecase.ts
@@ -42,12 +46,18 @@ Three team API routes bypass the repository layer and return the raw Mongoose do
     - src/interface/controllers/team/get-team.controller.ts
     - src/interface/controllers/team/update-team.controller.ts
     - src/interface/controllers/team/update-team-lineups.controller.ts
+    - scripts/migrations/lineup-player-id.audit.ts
+    - scripts/migrations/lineup-player-id.migrate.ts
   - Modified:
-    - src/app/api/teams/[teamId]/route.ts
-    - src/app/api/teams/[teamId]/lineups/route.ts
-    - src/applications/repositories/team.repository.interface.ts
+    - src/infrastructure/db/mongoose/schemas/team.ts
+    - src/infrastructure/db/mongoose/schemas/game.ts
     - src/infrastructure/db/repositories/team.repository.mongo.ts
+    - src/infrastructure/db/repositories/game.repository.mongo.ts
+    - src/applications/repositories/team.repository.interface.ts
     - src/infrastructure/di/types.ts
     - src/infrastructure/di/inversify.config.ts
+    - src/app/api/teams/[teamId]/route.ts
+    - src/app/api/teams/[teamId]/lineups/route.ts
     - src/infrastructure/db/repositories/__tests__/team.repository.test.ts
+    - src/infrastructure/db/repositories/__tests__/game.repository.test.ts
   - Removed: (none)

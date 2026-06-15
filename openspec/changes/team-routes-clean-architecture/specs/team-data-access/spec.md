@@ -2,13 +2,13 @@
 
 ### Requirement: Team read responses expose stable string identifiers
 
-The `GET /api/teams/[teamId]` endpoint SHALL serve the team through the route → controller → use case → repository layering and return a payload conforming to `TeamView`. The team `id` SHALL be the team document's ObjectId rendered as a hex string. Every lineup player in `lineups[].starting`, `lineups[].liberos`, and `lineups[].substitutes` SHALL expose an `id` that is a hex string for a referenced player or `null` for an empty slot. The endpoint SHALL NOT return the raw Mongoose `_id` field.
+The `GET /api/teams/[teamId]` endpoint SHALL serve the team through the route → controller → use case → repository layering and return a payload conforming to `TeamView`. The team `id` SHALL be the team document's ObjectId rendered as a hex string. Every lineup player in `lineups[].starting`, `lineups[].liberos`, and `lineups[].substitutes` SHALL expose an `id` that is a hex string for a referenced player or `null` for an empty slot. The endpoint SHALL NOT return the raw Mongoose `_id` or `playerId` field.
 
 #### Scenario: Fetching an existing team returns mapped identifiers
 
 - **WHEN** a client requests `GET /api/teams/[teamId]` for an existing team
 - **THEN** the response `id` equals the team's ObjectId hex string
-- **AND** every lineup player exposes `id` as a hex string or `null`, and no `_id` field is present
+- **AND** every lineup player exposes `id` as a hex string or `null`, and no `_id`/`playerId` field is present
 
 #### Scenario: Fetching a non-existent team returns not found
 
@@ -36,7 +36,7 @@ The `PATCH /api/teams/[teamId]` endpoint SHALL update the team `name` and/or `ni
 
 ### Requirement: Lineup persistence round-trips player identifiers
 
-The `PATCH /api/teams/[teamId]/lineups` endpoint SHALL persist the submitted lineups through the route → controller → use case → repository layering and return the saved lineups conforming to `LineupView`. The repository SHALL map each submitted player `id` (and `sub.id`) to the stored Mongoose `_id`, and map the stored `_id` back to `id` on read. An empty slot submitted as `id: null` SHALL be stored such that it is returned as `id: null`, and SHALL NOT be assigned a generated identifier. The endpoint SHALL require the requester to have at least the `MEMBER` role, preserving the existing authorization behavior.
+The `PATCH /api/teams/[teamId]/lineups` endpoint SHALL persist the submitted lineups through the route → controller → use case → repository layering and return the saved lineups conforming to `LineupView`. The repository SHALL map each submitted player `id` (and `sub.id`) to the stored Mongoose `playerId` ObjectId, and map the stored `playerId` back to `id` on read. An empty slot submitted as `id: null` SHALL be stored as a slot object with `playerId: null` (never a bare `null` element) and SHALL be returned as `id: null`. The endpoint SHALL require the requester to have at least the `MEMBER` role, preserving the existing authorization behavior.
 
 #### Scenario: Saving a lineup preserves assigned player references
 
@@ -53,3 +53,12 @@ The `PATCH /api/teams/[teamId]/lineups` endpoint SHALL persist the submitted lin
 
 - **WHEN** a member sends `PATCH /api/teams/[teamId]/lineups` for an id with no matching team
 - **THEN** the endpoint responds with the existing not-found error (404)
+
+### Requirement: Removing a player clears its lineup references
+
+When a player is removed from a team, the repository SHALL clear that player from every lineup by matching the stored `playerId` field.
+
+#### Scenario: Removed player is pulled from all lineups
+
+- **WHEN** a player is removed from a team that has the player assigned in one or more lineups
+- **THEN** the player is removed from every `starting`, `liberos`, and `substitutes` array by `playerId` match

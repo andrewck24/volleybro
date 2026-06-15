@@ -1,83 +1,89 @@
 ## Context
 
-`TeamRepositoryImpl.toTeam` and `mapLineupPlayer` already map Mongoose `_id` to the `id` field that `TeamView` / `LineupView` declare, and the create flow already uses route → controller → use case → repository (`createTeamController` → `CreateTeamUseCase` → `ITeamRepository.create`). However, three team endpoints bypass this entirely and return the raw Mongoose document:
+Empirically verified against mongoose 9.4.1 (probe scripts, not assumptions):
 
-- `GET /api/teams/[teamId]` calls `Team.findById` and returns the doc directly.
-- `PATCH /api/teams/[teamId]` mutates `name` / `nickname` on the doc and returns it.
-- `PATCH /api/teams/[teamId]/lineups` assigns `team.lineups = <client payload>` and returns the raw subdocument array.
+- The lineup player subschemas already set `{ _id: false }` and declare the player reference on an explicit `_id` ObjectId path. An empty slot submitted as `{ id: null }` therefore persists as `null` (the whole element), NOT an auto-generated orphan ObjectId.
+- `id` is a read-only Mongoose virtual (getter for `_id.toHexString()`) with no setter. Constructing a subdocument from a client `{ id: "hex", ... }` drops the `id` value entirely (`{ name, number }` with no `_id`). So every client/domain write (lineups PATCH, create-game roster, game updates) silently loses the embedded player reference.
+- The single-game read path (`GET /api/games/[gameId]` → `findGameController` → `FindGameUseCase` → `gameRepository.findById` → `toGame`) only maps the top-level `_id → id`; nested player references stay as `_id`. There is no `toObject({ virtuals: true })` and no Zod re-parse on read.
 
-Because `apiClient` does not re-validate responses, the declared `id` fields are absent at runtime (`_id` is sent instead). This is the root cause of `PATCH /api/teams/undefined/lineups` 500s, the lineup UI rendering assigned players as empty, and a broken lineup save round-trip. A surgical frontend fix (using the `teamId` prop) has already removed the immediate 500; this change addresses the architectural root cause.
-
-The lineup save path has a second hazard: the client sends lineup players keyed by `id`, but the Mongoose lineup subschemas key players by `_id`. Assigning the client payload directly causes Mongoose to ignore the unknown `id` and generate fresh `_id` values for every array subdocument, silently corrupting player references.
+`lineupSchema` is shared: `game.ts` imports it for `sets[].lineups.home/away` and `teams.{side}.lineup`. The codebase reference convention is ObjectId everywhere (`Player.teamId`, `Player.userId`, all `_id`) with indexes; no `$lookup`/`populate` is currently used. The team create flow already uses route → controller → use case → repository (`createTeamController` → `CreateTeamUseCase`).
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Serve `GET /api/teams/[teamId]`, `PATCH /api/teams/[teamId]`, and `PATCH /api/teams/[teamId]/lineups` through route → controller → use case → repository, reusing the existing repository mapping as the single source of truth.
-- Guarantee every response conforms to `TeamView` / `LineupView`: team `id` present, and every lineup `player.id` present as a string or `null` for empty slots.
-- Persist lineups with correct `id ↔ _id` round-tripping so player references survive a save and reload.
+- Make embedded player references persist on write and read back as stable string `id`s, for both team lineups and game documents.
+- Represent an empty lineup slot honestly as `playerId: null` (an object slot, never a bare `null` element).
+- Route the three team endpoints through Clean Architecture layers.
+- Migrate existing data once, audit-first, without assuming orphan ids or recoverable references exist.
 
 **Non-Goals:**
 
-- No Zod response validation added to `apiClient`.
-- No migration of non-team raw routes (games, players) to Clean Architecture.
-- No change to the MongoDB schema, the `TeamView` / `LineupView` Zod shapes, or the frontend wire contract.
-- No re-doing of the already-applied surgical fix in the lineup component.
+- No `apiClient` Zod validation, no domain/wire shape change, no string-typed reference, no temporary-player implementation, no redo of the shipped surgical frontend fixes.
 
 ## Decisions
 
-### Route team read and update endpoints through controllers and use cases
+### Rename embedded player reference from _id to nullable playerId in the shared schema
 
-Each of the three endpoints gets a thin use case (`GetTeamUseCase`, `UpdateTeamUseCase`, `UpdateTeamLineupsUseCase`) resolved via a controller (`getTeamController`, `updateTeamController`, `updateTeamLineupsController`), mirroring `createTeamController` / `CreateTeamUseCase`. The use cases delegate to `ITeamRepository`; the routes keep their authorization and validation responsibilities. Rationale: the create flow already establishes this layering, so uniform team routes are the least-surprising choice and keep the `_id → id` mapping in exactly one place.
+Replace the `_id: { type: ObjectId, ref: "Player" }` player reference with `playerId: { type: ObjectId, ref: "Player", default: null }` (keeping `{ _id: false }`) on the lineup subschemas (starting/liberos/substitutes and the `sub` subschema), and on the game `playerSchema`, `staffSchema`, and `rallyDetailSchema.player` (adding `{ _id: false }` there). Rationale: `_id` is a primary-key path being misused as a foreign key, which forces the read-only `id` virtual collision and prevents a null/absent reference. A normal nullable `playerId` FK can be written, read, and left null. Alternatives rejected: (a) a `toJSON` transform — forks a second mapping path, fragile for nested subdocs; (b) a string-typed `id` field — avoids conversion but diverges from the ObjectId reference convention and loses type validation/joins; (c) keeping `_id` — cannot express an empty reference and keeps the virtual write-drop.
 
-Alternatives considered: (a) a Mongoose `toJSON` transform on the team schema — rejected because it forks a second mapping path divergent from the repository, and is fragile for nested lineup-player subdocuments which would each need their own transform; (b) routes calling `ITeamRepository` directly via the DI container — rejected because the project standardizes on controllers/use cases for team write paths and the user requires full Clean Architecture layering for team routes.
+### Bidirectional player-reference mapping in the repository layer
 
-### Bidirectional id-to-objectid mapping for lineup persistence
-
-Add `ITeamRepository.updateLineups(teamId, lineups)` returning the persisted lineups mapped back to `id`. On write it maps each player `id` (string) to a Mongoose `_id` (ObjectId), and each `sub.id` likewise; on read it reuses the existing `mapLineupPlayer`. Empty starting slots arrive as `id: null` and MUST be persisted as `_id: null` — they MUST NOT receive a generated ObjectId, otherwise the lineup UI's `player.id`-truthiness checks would treat empty slots as filled. Rationale: the client contract is `id`-keyed and the schema is `_id`-keyed; an explicit inverse mapping is the only way to avoid Mongoose regenerating subdocument `_id`s and losing references.
+The repository is the single translation boundary between the domain shape (`id: string | null`) and the persisted shape (`playerId: ObjectId | null`). Read mappers convert `playerId → id` (`null → null`); a new write mapper converts `id → playerId`. Domain entities, Zod schemas, Redux, and React keep using `id` only. Rationale: the codebase already performs ObjectId↔string conversion at every repository boundary (`toTeam`, player repo, game top-level), so this follows the established pattern and centralizes correctness.
 
 ### Persist lineups via findByIdAndUpdate returning the mapped result
 
-`updateLineups` uses `findByIdAndUpdate(teamId, { lineups: <mapped> }, { new: true })`, throwing `NotFoundError` when the team is absent, then returns `toTeam(doc).lineups`. Rationale: this matches the existing `update` method's shape (so the mocked repository test harness in `team.repository.test.ts` extends naturally) and yields a document the existing `toTeam` mapping converts back to `id`-keyed lineups.
+Add `ITeamRepository.updateLineups(teamId, lineups)`: map each lineup through the write mapper, `findByIdAndUpdate(teamId, { lineups }, { new: true })`, throw `NotFoundError` when absent, and return `toTeam(doc).lineups`. The write mapper emits an object per slot (`{ playerId: null, position }` for empty), eliminating the bare-`null` element that crashes the court's `starting.map`. Update `removePlayerFromLineups` to `$pull` by `playerId` instead of `_id`. Rationale: mirrors the existing `update` shape so the mocked repository test harness extends naturally.
+
+### Centralize game read and write mapping in the game repository
+
+Extend `toGame` to map every embedded player reference (set lineups, team player/staff snapshots, rally detail, and substitution entry `players.in/out`) to domain `id` on read, and add a `toGameDoc` write mapper applied in `create`/`update` that maps domain `id → playerId` (Mongoose auto-casts the hex string to ObjectId for ObjectId paths). Game use cases (create-game, create-set, create-substitution, update-rally) and frontend consumers (use-lineup, substitution.helper) are unchanged because the translation lives entirely in the repository. Rationale: keeps the mapping in one place and avoids touching the live game-recording flow.
+
+### Route team endpoints through controllers and use cases
+
+`GET`/`PATCH /api/teams/[teamId]` and `PATCH /api/teams/[teamId]/lineups` each delegate to a thin use case (`GetTeamUseCase`, `UpdateTeamUseCase`, `UpdateTeamLineupsUseCase`) via a controller, mirroring `createTeamController`, bound with new `TYPES` symbols in the DI container. Rationale: uniform team-route layering and the GET mapping that the lineup display depends on.
+
+### Audit-first one-time migration with resolve-by-existence
+
+Ship an audit script (dry-run) that scans `teams.lineups[]` and `games.{teams.*, sets[].lineups.*}` and reports how many embedded slots carry a legacy `_id`, how many resolve to a Player / game snapshot, and how many are empty. Then a migration script renames `_id → playerId`, normalizes empty slots to `{ playerId: null, position }`, and leaves `substitution.players.in/out` (already ObjectId, well-named) intact. The empty-vs-real判準 is "does the legacy `_id` resolve to a Player (team) or a game snapshot (game)"; this is safe because no temporary players exist yet. The script is idempotent (slots already on `playerId` are skipped). Rationale: there are no orphan ids and likely few recoverable references, so the real DB state must be observed before any destructive rewrite.
 
 ### Keep authorization and input guards in the route layer
 
-Routes retain `assertValidObjectId`, `withErrorHandler` / `withAuth`, `verifyIsTeamAdmin` (team PATCH), and `verifyTeamRole(..., MEMBER)` (lineups PATCH) before invoking the controller, and continue to call `connectToMongoDB()` (the repository does not manage connections). Rationale: this mirrors how the existing routes and the create route split responsibilities (route = auth/validation/connection, use case = orchestration), avoiding behavior changes to access control.
+Routes retain `assertValidObjectId`, `withErrorHandler`/`withAuth`, `verifyIsTeamAdmin` (team PATCH), `verifyTeamRole(..., MEMBER)` (lineups PATCH), and `connectToMongoDB()` before invoking controllers. Rationale: preserves existing access-control behavior; the repository does not manage connections.
 
 ## Implementation Contract
 
 **Behavior:**
 
-- `GET /api/teams/[teamId]` returns JSON where `id` equals the team's hex ObjectId string, and every `lineups[].starting|liberos|substitutes[].id` is a hex string or `null`.
-- `PATCH /api/teams/[teamId]` (admin only) updates `name` and/or `nickname` and returns the same `id`-bearing shape.
-- `PATCH /api/teams/[teamId]/lineups` (MEMBER+) persists the submitted lineups and returns the saved lineups with player `id`s preserved (filled slots keep their original player `id`; empty slots return `id: null`).
+- `GET /api/teams/[teamId]` returns `TeamView` with team `id` and every lineup player `id` as a hex string or `null`.
+- `PATCH /api/teams/[teamId]` (admin) updates name/nickname and returns the mapped team.
+- `PATCH /api/teams/[teamId]/lineups` (MEMBER+) persists lineups and returns `LineupView`s with player `id`s preserved (filled slots keep their player id; empty slots return `id: null`).
+- `GET /api/games/[gameId]` returns a game whose set lineups, player/staff snapshots, rally detail, and substitution entries expose string player `id`s; saving/updating a game persists client `id`s as `playerId`.
 
 **Interface / data shape:**
 
-- `ITeamRepository.updateLineups(teamId: string, lineups: Lineup[]): Promise<Lineup[]>` added to the interface and implemented in `TeamRepositoryImpl`.
-- New controllers: `getTeamController(teamId)`, `updateTeamController(teamId, { name?, nickname? })`, `updateTeamLineupsController(teamId, lineups)`.
-- New use cases bound in the DI container with new `TYPES` symbols: `GetTeamUseCase`, `UpdateTeamUseCase`, `UpdateTeamLineupsUseCase`.
+- `ITeamRepository.updateLineups(teamId: string, lineups: Lineup[]): Promise<Lineup[]>`.
+- New team controllers `getTeamController`, `updateTeamController`, `updateTeamLineupsController` and use cases `GetTeamUseCase`, `UpdateTeamUseCase`, `UpdateTeamLineupsUseCase` bound under new `TYPES` symbols.
+- Mongoose field `playerId: ObjectId | null` replaces the player-reference `_id` on the listed subschemas.
 
-**Failure modes:**
-
-- Missing team → `NotFoundError` (existing 404 behavior) for all three endpoints.
-- Invalid ObjectId on the team routes → `ValidationError` via `assertValidObjectId` (existing 400 behavior).
-- Authorization failure → existing `AuthorizationError` from the auth service; access-control outcomes are unchanged.
+**Failure modes:** missing team/game → existing `NotFoundError` (404); invalid team ObjectId → existing `ValidationError` (400); authorization failure → existing `AuthorizationError`; all unchanged.
 
 **Acceptance criteria:**
 
-- A new/extended test in `src/infrastructure/db/repositories/__tests__/team.repository.test.ts` asserts `updateLineups` maps a filled player `id` to an ObjectId on write and back to the same `id` string on read, and preserves an empty slot as `id: null` (no generated ObjectId).
-- Existing team route tests in `src/app/api/teams/[teamId]/__tests__/route.test.ts` continue to pass with responses now exposing `id`.
-- Manual verification: saving a lineup with at least one assigned player succeeds (no `undefined` in the URL), and reloading the team shows the player still assigned.
+- Team repository test: `updateLineups` maps a filled `id` to ObjectId on write and back to the same `id` on read, and an empty slot returns `id: null` (object slot, no bare null).
+- Game repository test: `toGame` exposes nested player `id`s and `toGameDoc` persists client `id`s as `playerId` (round-trip).
+- Existing team route and substitution/optimistic tests pass with `id`-bearing responses.
+- Migration audit dry-run produces a report; migration is idempotent and re-runnable.
+- Manual: save a lineup with an assigned player and reload — the player remains assigned and renders; create a game from that lineup — the roster shows real players.
 
 **Scope boundaries:**
 
-- In scope: the three named team endpoints, the `updateLineups` repository method + interface, three use cases + controllers, DI bindings, and the repository unit test.
-- Out of scope: `apiClient` validation, non-team routes, schema changes, frontend component changes beyond the already-applied surgical fix.
+- In scope: the listed subschema fields, both repositories' read/write mapping, `updateLineups`, the three team routes + their use cases/controllers + DI, the audit and migration scripts, and the two repository unit tests.
+- Out of scope: `apiClient` validation, frontend changes beyond the shipped surgical fixes, the temporary-player feature, and any non-player reference fields.
 
 ## Risks / Trade-offs
 
-- [Mongoose generates `_id` for empty lineup slots, making them appear filled] → Explicitly map `id: null` to `_id: null` in the write mapper and add a repository test asserting empty slots round-trip as `id: null`.
-- [Thin pass-through use cases add ceremony with no business logic] → Accepted deliberately to satisfy the requirement that all team routes use full Clean Architecture layering and to keep the mapping centralized; the cost is three small files mirroring an existing pattern.
-- [Repository tests mock Mongoose, so real subdocument `_id` regeneration is not exercised by unit tests] → The write mapper makes the `id → _id` conversion explicit (independent of Mongoose defaults), and manual verification covers the real persistence round-trip.
+- [Real production data state is unknown; references may have been dropped on prior writes] → Audit script runs first (dry-run) so migration decisions are based on observed data, not assumptions.
+- [Renaming the shared lineupSchema field affects game persistence and reads simultaneously] → Centralize mapping in both repositories and migrate team and game documents together in one idempotent script.
+- [Thin pass-through team use cases add ceremony] → Accepted to satisfy uniform Clean Architecture layering for team routes; cost is three small files mirroring `CreateTeamUseCase`.
+- [Repository unit tests mock Mongoose, so real subdocument behavior is not exercised] → Write mappers make `id ↔ playerId` explicit and independent of Mongoose defaults; manual verification covers the real persistence round-trip.
