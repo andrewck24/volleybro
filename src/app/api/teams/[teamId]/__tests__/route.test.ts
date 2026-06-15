@@ -1,15 +1,19 @@
 import { beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
-const mockTeamFindById = jest.fn<(id: string) => Promise<Record<string, unknown> | null>>();
+const mockGetTeamController =
+  jest.fn<(teamId: string) => Promise<Record<string, unknown> | null>>();
 
 jest.mock("@/infrastructure/db/mongoose/connect-to-mongodb", () => ({
   connectToMongoDB: mockConnectToMongoDB,
 }));
 
-jest.mock("@/infrastructure/db/mongoose/schemas/team", () => ({
-  __esModule: true,
-  default: { findById: mockTeamFindById },
+jest.mock("@/interface/controllers/team/get-team.controller", () => ({
+  getTeamController: mockGetTeamController,
+}));
+
+jest.mock("@/interface/controllers/team/update-team.controller", () => ({
+  updateTeamController: jest.fn(),
 }));
 
 jest.mock("next/server", () => ({
@@ -64,7 +68,7 @@ describe("GET /api/teams/[teamId]", () => {
 
     expect(res.status).toBe(400);
     expect(body.code).toBe("VALIDATION");
-    expect(mockTeamFindById).not.toHaveBeenCalled();
+    expect(mockGetTeamController).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
@@ -83,7 +87,7 @@ describe("GET /api/teams/[teamId]", () => {
 
   it("returns 404 with NOT_FOUND code when valid ObjectId but team not found", async () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    mockTeamFindById.mockResolvedValue(null);
+    mockGetTeamController.mockResolvedValue(null);
     const req = { url: `http://localhost/api/teams/${VALID_OBJECT_ID}`, method: "GET" };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
@@ -92,13 +96,13 @@ describe("GET /api/teams/[teamId]", () => {
 
     expect(res.status).toBe(404);
     expect(body.code).toBe("NOT_FOUND");
-    expect(mockTeamFindById).toHaveBeenCalledWith(VALID_OBJECT_ID);
+    expect(mockGetTeamController).toHaveBeenCalledWith(VALID_OBJECT_ID);
     consoleSpy.mockRestore();
   });
 
   it("returns 200 with team data when team found", async () => {
-    const team = { _id: VALID_OBJECT_ID, name: "Test Team" };
-    mockTeamFindById.mockResolvedValue(team);
+    const team = { id: VALID_OBJECT_ID, name: "Test Team" };
+    mockGetTeamController.mockResolvedValue(team);
     const req = { url: `http://localhost/api/teams/${VALID_OBJECT_ID}`, method: "GET" };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 

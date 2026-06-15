@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { getTeamController } from "@/interface/controllers/team/get-team.controller";
+import { updateTeamController } from "@/interface/controllers/team/update-team.controller";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
 import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
 import { CommonReason } from "@/entities/errors/reasons/common";
@@ -25,7 +26,7 @@ export const GET = (
     assertValidObjectId(teamId);
     await connectToMongoDB();
 
-    const team = await Team.findById(teamId);
+    const team = await getTeamController(teamId);
     if (!team) {
       throw new NotFoundError(
         CommonReason.RESOURCE_NOT_FOUND,
@@ -45,24 +46,13 @@ export const PATCH = (
     assertValidObjectId(teamId);
     await connectToMongoDB();
 
-    const team = await Team.findById(teamId);
-    if (!team) {
-      throw new NotFoundError(
-        CommonReason.RESOURCE_NOT_FOUND,
-        "Team not found",
-      );
-    }
-
     const authorizationService = container.get<IAuthorizationService>(
       TYPES.AuthorizationService,
     );
     await authorizationService.verifyIsTeamAdmin(teamId, userId);
 
     const { name, nickname } = await req.json();
-    if (name) team.name = name;
-    if (nickname) team.nickname = nickname;
-
-    await team.save();
+    const team = await updateTeamController(teamId, { name, nickname });
 
     return NextResponse.json(team, { status: 200 });
   })(_req);
