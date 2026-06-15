@@ -12,9 +12,9 @@
 
 ## 3. Game repository — centralize read/write mapping
 
-- [ ] 3.1 In `game.repository.mongo.ts`, extend `toGame` for **Centralize game read and write mapping in the game repository** and **Game read responses expose stable player identifiers**: map every embedded player reference (set lineups, `teams.{side}.players`/`staffs`, `rallyDetail.player`, substitution `players.in/out`) `playerId`/ObjectId → domain `id`; empty lineup slot → `id: null`. Behavior: a read game exposes string `id`s on all embedded players. Verify: `npx tsc --noEmit` passes.
-- [ ] 3.2 Add a `toGameDoc` write mapper and apply it in `create`/`update` to satisfy **Game persistence stores client identifiers as references**: map domain `id → playerId` (excluding the top-level id from `$set`). Behavior: client `id`s persist as `playerId` and round-trip on read. Verify: `pnpm test game.repository` passes.
-- [ ] 3.3 Add a unit test in `src/infrastructure/db/repositories/__tests__/game.repository.test.ts` asserting `toGame` exposes nested player `id`s and `toGameDoc` persists client `id`s as `playerId`. Verify: `pnpm test game.repository` passes.
+- [x] 3.1 In `game.repository.mongo.ts`, extend `toGame` for **Centralize game read and write mapping in the game repository** and **Game read responses expose stable player identifiers**: map every embedded player reference (set lineups, `teams.{side}.players`/`staffs`, `rallyDetail.player`, substitution `players.in/out`) `playerId`/ObjectId → domain `id`; empty lineup slot → `id: null`. Behavior: a read game exposes string `id`s on all embedded players. Verify: `npx tsc --noEmit` passes.
+- [x] 3.2 Add a `toGameDoc` write mapper and apply it in `create`/`update` to satisfy **Game persistence stores client identifiers as references**: map domain `id → playerId` (excluding the top-level id from `$set`). Behavior: client `id`s persist as `playerId` and round-trip on read. Verify: `pnpm test game.repository` passes.
+- [x] 3.3 Add a unit test in `src/infrastructure/db/repositories/__tests__/game.repository.test.ts` asserting `toGame` exposes nested player `id`s and `toGameDoc` persists client `id`s as `playerId`. Verify: `pnpm test game.repository` passes.
 
 ## 4. Team routes via Clean Architecture
 
