@@ -33,4 +33,4 @@
 
 ## 6. Final verification
 
-- [ ] 6.1 Run `pnpm test`, `npx tsc --noEmit`, `pnpm lint`, and `pnpm build`; manually verify lineup save/reload and create-game roster in the running app. Behavior: full suite green; a saved lineup and a created game both retain player references. Verify: command output shows zero failures.
+- [x] 6.1 Run `pnpm test`, `npx tsc --noEmit`, `pnpm lint`, and `pnpm build`; manually verify lineup save/reload and create-game roster in the running app. Behavior: full suite green; a saved lineup and a created game both retain player references. Verify: command output shows zero failures.
