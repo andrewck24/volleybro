@@ -1,4 +1,5 @@
 import * as playerController from "@/interface/controllers/player/player.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,6 +16,7 @@ export const GET = (
 ) =>
   withAuth(async (_req, { userId: _userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const player = await playerController.getPlayer({ playerId });
     const validatedPlayer = PlayerSchema.parse(player);
@@ -27,6 +29,7 @@ export const PATCH = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const body = await req.json();
     const validatedData = UpdatePlayerInfoSchema.parse(body);
@@ -47,6 +50,7 @@ export const DELETE = (
 ) =>
   withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     await playerController.removePlayer({ playerId, userId });
 
