@@ -26,6 +26,7 @@ export type TabContainerProps = {
   notifications: React.ReactNode;
   user: React.ReactNode;
   team: React.ReactNode;
+  modal?: React.ReactNode;
 };
 
 export type TabSwitchProps = {
@@ -38,6 +39,7 @@ export const TabContainer = ({
   notifications,
   user,
   team,
+  modal,
 }: TabContainerProps) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -171,6 +173,7 @@ export const TabContainer = ({
 
   return (
     <>
+      {modal}
       <div className="mx-auto w-full max-w-196">
         {TAB_ORDER.map((tab) => (
           <div

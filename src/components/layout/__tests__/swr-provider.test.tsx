@@ -1,5 +1,5 @@
 import React from "react";
-import { render, act } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import { API_UNAUTHORIZED_EVENT, ApiClientError } from "@/lib/api/api-client";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
@@ -56,12 +56,12 @@ describe("SWRProvider", () => {
   });
 
   it("renders children", () => {
-    const { getByText } = render(
+    render(
       <SWRProvider>
         <span>child</span>
       </SWRProvider>,
     );
-    expect(getByText("child")).toBeTruthy();
+    expect(screen.getByText("child")).toBeInTheDocument();
   });
 
   describe("onError callback", () => {

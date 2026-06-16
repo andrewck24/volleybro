@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
-import Team from "@/infrastructure/db/mongoose/schemas/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { updateTeamLineupsController } from "@/interface/controllers/team/update-team-lineups.controller";
 import { withAuth } from "@/lib/api/wrappers";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { UpdateLineupsSchema } from "@/lib/validations/team";
 import { PlayerRole } from "@/entities/player";
 
 export const PATCH = (
@@ -17,23 +16,13 @@ export const PATCH = (
     const { teamId } = await props.params;
     await connectToMongoDB();
 
-    const team = await Team.findById(teamId);
-    if (!team) {
-      throw new NotFoundError(
-        CommonReason.RESOURCE_NOT_FOUND,
-        "Team not found",
-      );
-    }
-
     const authorizationService = container.get<IAuthorizationService>(
       TYPES.AuthorizationService,
     );
     await authorizationService.verifyTeamRole(teamId, userId, PlayerRole.MEMBER);
 
-    const lineups = await req.json();
-    team.lineups = lineups;
+    const lineups = UpdateLineupsSchema.parse(await req.json());
+    const savedLineups = await updateTeamLineupsController(teamId, lineups);
 
-    await team.save();
-
-    return NextResponse.json(team.lineups, { status: 200 });
+    return NextResponse.json(savedLineups, { status: 200 });
   })(_req);

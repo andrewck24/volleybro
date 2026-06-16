@@ -83,6 +83,12 @@ Components are organized by domain and purpose (features):
 3. **Game Recording**: Real-time game recording with detailed statistics
 4. **Data Analysis**: Game statistics, visualizations, and historical data
 
-**IMPORTANT**: Commit changes after each task section completed, with all tests/lint/type/build checks passing and `/simplify` applied.
+**IMPORTANT**:
+
+- When `/spectra-apply`ing a change:
+  - Commit after each task section; message states the section purpose and includes related artifacts (tasks.md, spec files, etc.)
+  - Run `pnpm type-check` before each commit; `pnpm build` before the final commit
+  - Skip checks only if the section is intentionally incomplete; final commit MUST pass both
+- For complex commits, include a body focused on **why**; "what" may be included as supporting context
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.

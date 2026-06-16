@@ -79,6 +79,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
+      .filter((player) => player.id)
       .sort(
         (a: { number: number }, b: { number: number }) => a.number - b.number,
       );
@@ -135,8 +136,8 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <div className="main-view flex h-full w-full flex-col items-start justify-center gap-2 bg-card">
-          <DialogHeader>
+        <div className="main-view flex h-full w-full flex-col items-center justify-start gap-2 bg-card">
+          <DialogHeader className="w-full">
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
               編輯賽事基本資訊、確認陣容後點選「創建賽事紀錄」。

@@ -42,6 +42,9 @@ import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfe
 import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { CreateTeamUseCase } from "@/applications/usecases/team/create-team.usecase";
+import { GetTeamUseCase } from "@/applications/usecases/team/get-team.usecase";
+import { UpdateTeamUseCase } from "@/applications/usecases/team/update-team.usecase";
+import { UpdateTeamLineupsUseCase } from "@/applications/usecases/team/update-team-lineups.usecase";
 import { GetUserByIdUseCase } from "@/applications/usecases/user/get-user-by-id.usecase";
 import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 import {
@@ -77,6 +80,13 @@ container
 container
   .bind<CreateTeamUseCase>(TYPES.CreateTeamUseCase)
   .to(CreateTeamUseCase);
+container.bind<GetTeamUseCase>(TYPES.GetTeamUseCase).to(GetTeamUseCase);
+container
+  .bind<UpdateTeamUseCase>(TYPES.UpdateTeamUseCase)
+  .to(UpdateTeamUseCase);
+container
+  .bind<UpdateTeamLineupsUseCase>(TYPES.UpdateTeamLineupsUseCase)
+  .to(UpdateTeamLineupsUseCase);
 
 // user auth usecases
 container

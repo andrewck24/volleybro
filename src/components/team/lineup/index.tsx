@@ -23,7 +23,7 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   const handleSave = async (lineups: LineupView[]) => {
     try {
       const data = await apiClient<LineupView[]>(
-        `/api/teams/${team!.id}/lineups`,
+        `/api/teams/${teamId}/lineups`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

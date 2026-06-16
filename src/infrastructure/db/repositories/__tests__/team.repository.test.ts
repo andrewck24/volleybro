@@ -1,5 +1,6 @@
 import { mockDoc, mockExec } from "@/__tests__/helpers";
 import { NotFoundError } from "@/entities/errors/app-error";
+import { Position, type Lineup } from "@/entities/team";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";
 import { Types } from "mongoose";
@@ -87,6 +88,71 @@ describe("TeamRepositoryImpl", () => {
 
       await expect(
         repository.update(nonExistentIdString, { name: "X" }),
+      ).rejects.toThrow(NotFoundError);
+    });
+  });
+
+  describe("updateLineups", () => {
+    const playerHexId = "64b000000000000000000001";
+    const inputLineup: Lineup = {
+      options: {
+        liberoReplaceMode: 0 as const,
+        liberoReplacePosition: Position.NONE,
+      },
+      starting: [
+        { id: playerHexId, position: Position.OH },
+        { id: null },
+      ],
+      liberos: [],
+      substitutes: [],
+    };
+
+    it("round-trips a filled slot id to playerId on write and back on read, and keeps an empty slot as an object slot with id null", async () => {
+      // Simulate the persisted (stored) shape returned by Mongo after the write.
+      const storedDoc = {
+        _id: mockTeamId,
+        name: "Test Team",
+        lineups: [
+          {
+            options: inputLineup.options,
+            starting: [
+              { playerId: new Types.ObjectId(playerHexId), position: "OH" },
+              { playerId: null },
+            ],
+            liberos: [],
+            substitutes: [],
+          },
+        ],
+      };
+      (TeamModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(storedDoc)),
+      );
+
+      const result = await repository.updateLineups(mockTeamIdString, [
+        inputLineup,
+      ]);
+
+      // Write side: domain id mapped to a playerId ObjectId; empty slot is an
+      // object with playerId null (never a bare null element).
+      const writeArg = (TeamModel.findByIdAndUpdate as jest.Mock).mock
+        .calls[0][1];
+      const writtenStarting = writeArg.lineups[0].starting;
+      expect(writtenStarting[0].playerId.toString()).toBe(playerHexId);
+      expect(writtenStarting[1]).toMatchObject({ playerId: null });
+
+      // Read side: stored playerId mapped back to the same domain id; empty
+      // slot returns id null.
+      expect(result[0].starting[0].id).toBe(playerHexId);
+      expect(result[0].starting[1].id).toBeNull();
+    });
+
+    it("throws NotFoundError when the team is not found", async () => {
+      (TeamModel.findByIdAndUpdate as jest.Mock).mockReturnValue(
+        mockExec(null),
+      );
+
+      await expect(
+        repository.updateLineups(nonExistentIdString, [inputLineup]),
       ).rejects.toThrow(NotFoundError);
     });
   });

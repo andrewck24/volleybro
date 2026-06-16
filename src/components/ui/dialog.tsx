@@ -22,29 +22,29 @@ const DialogOverlay = ({
   <DialogPrimitive.Overlay
     data-slot="DialogOverlay"
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
-      className
+      "fixed inset-0 z-50 bg-black/80 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+      className,
     )}
     {...props}
   />
 );
 
 const dialogContentVariants = cva(
-  /* experimental: ring technique - outer ring replaces implicit border */
-  "fixed left-[50%] z-50 flex flex-col w-full translate-x-[-50%] translate-y-[-50%] gap-2 bg-card p-6 shadow-lg ring-1 ring-foreground/10 duration-200 overflow-x-hidden overflow-y-auto data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-md sm:rounded-lg sm:max-w-lg",
+  "fixed left-[50%] z-50 flex w-full translate-x-[-50%] translate-y-[-50%] flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md bg-card p-6 shadow-lg ring-1 ring-foreground/10 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom data-[state=open]:zoom-in-95 sm:max-w-lg sm:rounded-lg",
   {
     variants: {
       size: {
         default: "top-[50%] max-w-[90vw]",
-        lg: "w-full h-[calc(100%-var(--safe-area-inset-top)-3rem)] top-[calc(50%+(var(--safe-area-inset-top)+3rem)/2)] max-w-full p-4",
+        lg: "top-[calc(50%+(var(--safe-area-inset-top)+3rem)/2)] h-[calc(100%-var(--safe-area-inset-top)-3rem)] w-full p-4 sm:max-w-196",
       },
     },
     defaultVariants: { size: "default" },
-  }
+  },
 );
 
-export interface DialogContentProps
-  extends VariantProps<typeof dialogContentVariants> {
+export interface DialogContentProps extends VariantProps<
+  typeof dialogContentVariants
+> {
   /**
    * Size of the dialog content.
    * When `lg`, the dialog will be full width and height.
@@ -77,7 +77,7 @@ const DialogContent = ({
     >
       {children}
       {closeButton && (
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
           <RiCloseLine className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -93,8 +93,8 @@ const DialogHeader = ({
   <div
     data-slot="DialogHeader"
     className={cn(
-      "flex flex-col flex-none justify-start items-start gap-1",
-      className
+      "flex flex-none flex-col items-start justify-start gap-1",
+      className,
     )}
     {...props}
   />
@@ -107,8 +107,8 @@ const DialogTitle = ({
   <DialogPrimitive.Title
     data-slot="DialogTitle"
     className={cn(
-      "w-full flex flex-row justify-start items-center gap-1 text-xl font-medium leading-none tracking-tight",
-      className
+      "flex w-full flex-row items-center justify-start gap-1 text-xl leading-none font-medium tracking-tight",
+      className,
     )}
     {...props}
   />
@@ -133,13 +133,21 @@ const DialogFooter = ({
     data-slot="DialogFooter"
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className
+      className,
     )}
     {...props}
   />
 );
 
 export {
-  Dialog, DialogClose,
-  DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+  DialogTrigger,
 };

@@ -7,10 +7,11 @@ const makeApiClientError = (
   status: number,
   code: string,
   detail: string,
+  reason = "TEST",
 ): ApiClientError => {
   const info: ApiError = {
     code: code as ApiError["code"],
-    reason: "TEST",
+    reason,
     detail,
     status,
   };
@@ -133,6 +134,32 @@ describe("showErrorToast", () => {
       const error = makeApiClientError(401, "AUTHENTICATION", "Authentication is required");
       showErrorToast(error, mockToast);
       expect(mockToast).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("reason-based zh-TW mapping → overrides error.detail for known reasons", () => {
+    it("shows zh-TW message for RESOURCE_NOT_FOUND reason", () => {
+      const error = makeApiClientError(404, "NOT_FOUND", "Team not found", "RESOURCE_NOT_FOUND");
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ description: "找不到此資源", variant: "destructive" }),
+      );
+    });
+
+    it("shows zh-TW message for INVALID_INPUT reason", () => {
+      const error = makeApiClientError(400, "VALIDATION", "Invalid team ID format", "INVALID_INPUT");
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ description: "資料格式不正確", variant: "destructive" }),
+      );
+    });
+
+    it("falls back to error.detail for unknown reason", () => {
+      const error = makeApiClientError(409, "CONFLICT", "此名稱已被使用", "DUPLICATE_NAME");
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({ description: "此名稱已被使用", variant: "destructive" }),
+      );
     });
   });
 
