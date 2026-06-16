@@ -86,9 +86,13 @@ Components are organized by domain and purpose (features):
 **IMPORTANT**:
 
 - When `/spectra-apply`ing a change:
+  - Before touching any source files, commit all change artifacts (`openspec/changes/<name>/`) with a `docs(<scope>): add <name> change artifacts` message — this preserves design rationale before implementation code
   - Commit after each task section; message states the section purpose and includes related artifacts (tasks.md, spec files, etc.)
   - Run `pnpm type-check` before each commit; `pnpm build` before the final commit
   - Skip checks only if the section is intentionally incomplete; final commit MUST pass both
 - For complex commits, include a body focused on **why**; "what" may be included as supporting context
+- Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
+- In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
+- Parked changes: automatically unpark and continue — no need to ask for confirmation
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.
