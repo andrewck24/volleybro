@@ -10,7 +10,7 @@ Issues sourced from `issues.md`. Status updated as fixes land.
 | # | Title | Severity | Status |
 | - | ----- | -------- | ------ |
 | 1 | Modal pages swallow API errors as success | Bug | ✅ Fixed — commit `4f75f62` |
-| 2 | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug | 🔲 Pending |
+| 2 | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug | ✅ Fixed |
 | 3 | `sub.id` sentinel inconsistency (`""` vs `null`) | Minor | 🔲 Pending |
 | 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | 🔲 Pending |
 | 5 | Test coverage gap on new team routes | Enhancement | 🔲 Pending |
@@ -34,3 +34,22 @@ workspace variants (`EditTeamWorkspace` / `NewTeamWorkspace`). `apiClient` throw
 **Tests added**: `edit/__tests__/page.test.tsx`, `new/__tests__/page.test.tsx`
 — cover error path (error message shown, dialog stays open) and success path
 (SWR cache updated, router called).
+
+---
+
+## Issue #2: `useFormDraft` reads sessionStorage during render (hydration mismatch)
+
+**File**: `src/hooks/use-form-draft.ts`
+
+**Root cause**: `sessionStorage.getItem(key)` was called directly during the render phase.
+On SSR the call returns `undefined` (or throws); on the client it returns the draft.
+React sees different `defaultValues` between server and client and emits a hydration warning.
+
+**Fix**: Replaced the direct storage read with `useSyncExternalStore`, providing:
+
+- `subscribe`: a no-op unsubscribe (`() => () => {}`) — storage doesn't need reactive updates here
+- `getSnapshot`: reads `sessionStorage.getItem(key)` on the client
+- `getServerSnapshot`: always returns `null`
+
+React guarantees the server snapshot is used during SSR/hydration and the client
+snapshot takes over after mount, eliminating the mismatch without a two-pass render.
