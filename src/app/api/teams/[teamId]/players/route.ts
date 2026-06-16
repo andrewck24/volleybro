@@ -1,4 +1,5 @@
 import * as playerController from "@/interface/controllers/player/player.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { CreatePlayerSchema, PlayerSchema } from "@/lib/validations/player";
 import { NextRequest, NextResponse } from "next/server";
@@ -14,6 +15,7 @@ export const POST = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { teamId } = await props.params;
+    assertObjectId(teamId, "teamId");
 
     const body = await req.json();
     const validatedData = CreatePlayerSchema.parse(body);
@@ -33,6 +35,7 @@ export const GET = (
 ) =>
   withAuth(async (_req, { userId: _userId }) => {
     const { teamId } = await props.params;
+    assertObjectId(teamId, "teamId");
 
     const players = await playerController.getTeamPlayers({ teamId });
 

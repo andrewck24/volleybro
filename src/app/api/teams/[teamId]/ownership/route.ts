@@ -1,4 +1,5 @@
 import * as ownershipController from "@/interface/controllers/player/ownership.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import {
   PlayerSchema,
@@ -16,6 +17,7 @@ export const POST = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { teamId } = await props.params;
+    assertObjectId(teamId, "teamId");
 
     const body = await req.json();
     const { newOwnerId } = TransferOwnershipSchema.parse(body);
