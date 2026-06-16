@@ -12,7 +12,7 @@ Issues sourced from `issues.md`. Status updated as fixes land.
 | 1 | Modal pages swallow API errors as success | Bug | ✅ Fixed — commit `4f75f62` |
 | 2 | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug | ✅ Fixed |
 | 3 | `sub.id` sentinel inconsistency (`""` vs `null`) | Minor | ✅ Fixed |
-| 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | 🔲 Pending |
+| 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | ✅ Fixed |
 | 5 | Test coverage gap on new team routes | Enhancement | 🔲 Pending |
 | 6 | Global mutable flag in `useLeavePageWarning` | Nit | 🔲 Pending |
 
@@ -73,3 +73,22 @@ two different absent values, and the Zod schemas typed `sub.id` as non-nullable 
 - Both Mongo repositories: `p.sub.playerId?.toString() ?? null` (was `?? ""`)
 - Both `*types.ts` Zod schemas: `id: z.string().nullable()` for `LineupPlayerResponseSchema`
 - `use-lineup.ts` (`mapPlayer`): `id: subPlayer?.id ?? null` to resolve `string | undefined` → `string | null`
+
+---
+
+## Issue #4: Malformed lineup `id` surfaces as 500 instead of 400
+
+**File**: `src/app/api/teams/[teamId]/lineups/route.ts`
+
+**Root cause**: `req.json()` was passed directly to the controller and then to the use case.
+A malformed payload (e.g., `id` as a number instead of a string) propagated into the Mongo
+repository and either caused a Mongoose cast error (500) or silently persisted bad data.
+
+**Fix**: Added `UpdateLineupsSchema.parse()` before the controller call.
+
+- `src/lib/validations/team.ts`: new schema mirroring the `Lineup` entity shape, with
+  `id: z.string().nullable()` and the full `options`/`starting`/`liberos`/`substitutes` structure
+- `lineups/route.ts`: `const lineups = UpdateLineupsSchema.parse(await req.json())`
+
+`withAuth` already wraps `withErrorHandler`, which converts `ZodError → ValidationError(400)`,
+so no additional error handling is needed in the route handler.

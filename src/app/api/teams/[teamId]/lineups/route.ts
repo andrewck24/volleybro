@@ -5,6 +5,7 @@ import { TYPES } from "@/infrastructure/di/types";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { updateTeamLineupsController } from "@/interface/controllers/team/update-team-lineups.controller";
 import { withAuth } from "@/lib/api/wrappers";
+import { UpdateLineupsSchema } from "@/lib/validations/team";
 import { PlayerRole } from "@/entities/player";
 
 export const PATCH = (
@@ -20,7 +21,7 @@ export const PATCH = (
     );
     await authorizationService.verifyTeamRole(teamId, userId, PlayerRole.MEMBER);
 
-    const lineups = await req.json();
+    const lineups = UpdateLineupsSchema.parse(await req.json());
     const savedLineups = await updateTeamLineupsController(teamId, lineups);
 
     return NextResponse.json(savedLineups, { status: 200 });
