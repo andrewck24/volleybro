@@ -1,4 +1,5 @@
 import * as invitationController from "@/interface/controllers/player/invitation.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -19,6 +20,7 @@ export const PATCH = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const body = await req.json();
     const { action } = PatchInvitationSchema.parse(body);

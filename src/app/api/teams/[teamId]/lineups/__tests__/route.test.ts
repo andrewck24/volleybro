@@ -84,6 +84,25 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
     consoleSpy.mockRestore();
   });
 
+  it("returns 400 when teamId is not a valid ObjectId", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const req = {
+      url: "http://localhost/api/teams/bad-id/lineups",
+      method: "PATCH",
+      json: async () => [VALID_LINEUP],
+    };
+    const props = { params: Promise.resolve({ teamId: "bad-id" }) };
+
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockConnectToMongoDB).not.toHaveBeenCalled();
+    expect(mockUpdateTeamLineupsController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   it("returns 400 when payload is not an array", async () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     const req = {

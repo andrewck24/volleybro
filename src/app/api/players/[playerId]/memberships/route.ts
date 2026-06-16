@@ -1,5 +1,6 @@
 import type { PlayerRole } from "@/entities/player";
 import * as membershipController from "@/interface/controllers/player/membership.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import {
   ManagePlayerMembershipSchema,
@@ -20,6 +21,7 @@ export const POST = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const body = await req.json();
     const validatedData = ManagePlayerMembershipSchema.parse(body);
@@ -41,6 +43,7 @@ export const PATCH = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const body = await req.json();
     const validatedData = UpdatePlayerRoleSchema.parse(body);
@@ -61,6 +64,7 @@ export const DELETE = (
 ) =>
   withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
+    assertObjectId(playerId, "playerId");
 
     const player = await membershipController.cancelInvitation({
       playerId,

@@ -1,7 +1,7 @@
 import { Position } from "@/entities/team";
+import { OBJECT_ID_RE } from "@/lib/api/guards";
 import { z } from "zod";
 
-const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 const objectId = z
   .string()
   .nullable()

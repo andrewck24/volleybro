@@ -4,6 +4,7 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { updateTeamLineupsController } from "@/interface/controllers/team/update-team-lineups.controller";
+import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { UpdateLineupsSchema } from "@/lib/validations/team";
 import { PlayerRole } from "@/entities/player";
@@ -14,6 +15,7 @@ export const PATCH = (
 ) =>
   withAuth(async (req, { userId }) => {
     const { teamId } = await props.params;
+    assertObjectId(teamId, "teamId");
     await connectToMongoDB();
 
     const authorizationService = container.get<IAuthorizationService>(
