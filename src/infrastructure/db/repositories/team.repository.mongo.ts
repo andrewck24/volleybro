@@ -23,7 +23,7 @@ export class TeamRepositoryImpl implements ITeamRepository {
       position: p.position as LineupPlayer["position"],
       sub: p.sub
         ? {
-            id: p.sub.playerId?.toString() ?? "",
+            id: p.sub.playerId?.toString() ?? null,
             entryIndex: p.sub.entryIndex ?? {},
           }
         : undefined,

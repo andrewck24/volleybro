@@ -7,7 +7,7 @@ const LineupPlayerResponseSchema = z.object({
   position: z.nativeEnum(Position).optional(),
   sub: z
     .object({
-      id: z.string(),
+      id: z.string().nullable(),
       entryIndex: z.object({
         in: z.number().optional(),
         out: z.number().optional(),

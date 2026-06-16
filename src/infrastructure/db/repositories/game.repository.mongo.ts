@@ -54,7 +54,7 @@ export class GameRepositoryImpl implements IGameRepository {
       position: p?.position,
       sub: p?.sub
         ? {
-            id: p.sub.playerId?.toString() ?? "",
+            id: p.sub.playerId?.toString() ?? null,
             entryIndex: p.sub.entryIndex ?? {},
           }
         : undefined,

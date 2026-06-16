@@ -130,7 +130,7 @@ const getEditingModeLineup = (
       ...mainPlayer,
       position: player.position,
       sub: {
-        id: subPlayer?.id,
+        id: subPlayer?.id ?? null,
         number: subPlayer?.number,
         entryIndex: player?.sub?.entryIndex,
       },
