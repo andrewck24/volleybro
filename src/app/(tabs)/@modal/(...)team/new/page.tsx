@@ -1,9 +1,13 @@
 "use client";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
-import TeamForm from "@/components/team/form";
+import TeamForm, { type TeamFormValues } from "@/components/team/form";
+import { apiClient } from "@/lib/api/api-client";
+import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useSWRConfig } from "swr";
+
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
 const NewTeamModalPage = () => {
   const router = useRouter();
@@ -11,16 +15,17 @@ const NewTeamModalPage = () => {
   const [isDirty, setIsDirty] = useState(false);
 
   const clearDraft = useCallback(() => {
-    try { sessionStorage.removeItem("draft:team:new"); } catch {}
+    try {
+      sessionStorage.removeItem("draft:team:new");
+    } catch {}
   }, []);
 
-  const onSubmit = async (formData: { name: string; nickname: string }) => {
-    const res = await fetch("/api/teams", {
+  const onSubmit = async (formData: TeamFormValues) => {
+    const team = await apiClient<TeamView>("/api/teams", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_HEADERS,
       body: JSON.stringify(formData),
     });
-    const team = await res.json();
     mutate(`/api/teams/${team.id}`, team, false);
     router.push(`/team/${team.id}?tab=about`);
   };

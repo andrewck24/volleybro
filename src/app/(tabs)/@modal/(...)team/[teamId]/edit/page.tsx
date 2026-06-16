@@ -1,10 +1,14 @@
 "use client";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
-import TeamForm from "@/components/team/form";
+import TeamForm, { type TeamFormValues } from "@/components/team/form";
 import { useTeam } from "@/hooks/use-data";
+import { apiClient } from "@/lib/api/api-client";
+import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useState } from "react";
 import { useSWRConfig } from "swr";
+
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
 const EditTeamModalPage = (props: { params: Promise<{ teamId: string }> }) => {
   const { teamId } = use(props.params);
@@ -14,16 +18,17 @@ const EditTeamModalPage = (props: { params: Promise<{ teamId: string }> }) => {
   const [isDirty, setIsDirty] = useState(false);
 
   const clearDraft = useCallback(() => {
-    try { sessionStorage.removeItem(`draft:team:${teamId}`); } catch {}
+    try {
+      sessionStorage.removeItem(`draft:team:${teamId}`);
+    } catch {}
   }, [teamId]);
 
-  const onSubmit = async (formData: { name: string; nickname: string }) => {
-    const res = await fetch(`/api/teams/${teamId}`, {
+  const onSubmit = async (formData: TeamFormValues) => {
+    const teamData = await apiClient<TeamView>(`/api/teams/${teamId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: JSON_HEADERS,
       body: JSON.stringify(formData),
     });
-    const teamData = await res.json();
     mutate({ ...team, ...teamData }, false);
     globalMutate(`/api/teams/${teamId}`);
     router.back();
