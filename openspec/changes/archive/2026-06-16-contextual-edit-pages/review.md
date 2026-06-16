@@ -14,7 +14,7 @@ Issues sourced from `issues.md`. Status updated as fixes land.
 | 3 | `sub.id` sentinel inconsistency (`""` vs `null`) | Minor | ✅ Fixed |
 | 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | ✅ Fixed |
 | 5 | Test coverage gap on new team routes | Enhancement | ✅ Fixed |
-| 6 | Global mutable flag in `useLeavePageWarning` | Nit | 🔲 Pending |
+| 6 | Global mutable flag in `useLeavePageWarning` | Nit | ✅ Fixed |
 
 ---
 
@@ -116,3 +116,29 @@ infrastructure; call the imported handler function directly):
 not real HTTP semantics. Bruno (contract tests against a live server) would complement these
 for end-to-end confidence, but is out of scope for this review — logged as a future
 enhancement.
+
+---
+
+## Issue #6: Global mutable flag in `useLeavePageWarning`
+
+**File**: `src/hooks/use-leave-page-warning.ts`
+
+**Root cause**: The module-level `let suppressNextWarning = false` is shared across ALL
+hook instances in the same module. When multiple forms are mounted with `isDirty = true`
+simultaneously, each registers its own `beforeunload` handler. Calling
+`suppressLeaveWarning()` sets the shared flag to `true`. When `beforeunload` fires:
+
+1. The first handler sees `suppressNextWarning = true` → resets it to `false`, returns
+2. The second handler sees `suppressNextWarning = false` → calls `e.preventDefault()` → dialog appears
+
+The intended suppression only works when exactly one form is mounted at a time.
+
+**Fix**: Replace the shared flag with a per-instance `useRef` and a module-level
+`Set<() => void>` of suppressor callbacks:
+
+- Each hook instance registers a `suppress` callback (sets its own `suppressRef.current = true`)
+  in a `useEffect` that cleans up on unmount
+- `suppressLeaveWarning()` iterates the set and calls all registered callbacks
+- Each `beforeunload` handler checks its own `suppressRef` — fully isolated
+
+The exported `suppressLeaveWarning()` API is unchanged; no call sites needed updating.

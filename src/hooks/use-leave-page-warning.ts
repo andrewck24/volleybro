@@ -1,20 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-let suppressNextWarning = false;
+const suppressors = new Set<() => void>();
 
 export function suppressLeaveWarning(): void {
-  suppressNextWarning = true;
+  suppressors.forEach((fn) => fn());
 }
 
 export function useLeavePageWarning(isDirty: boolean): void {
+  const suppressRef = useRef(false);
+
+  useEffect(() => {
+    const suppress = () => {
+      suppressRef.current = true;
+    };
+    suppressors.add(suppress);
+    return () => {
+      suppressors.delete(suppress);
+    };
+  }, []);
+
   useEffect(() => {
     if (!isDirty) return;
 
     const handler = (e: BeforeUnloadEvent) => {
-      if (suppressNextWarning) {
-        suppressNextWarning = false;
+      if (suppressRef.current) {
+        suppressRef.current = false;
         return;
       }
       e.preventDefault();
