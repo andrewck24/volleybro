@@ -13,7 +13,7 @@ Issues sourced from `issues.md`. Status updated as fixes land.
 | 2 | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug | ✅ Fixed |
 | 3 | `sub.id` sentinel inconsistency (`""` vs `null`) | Minor | ✅ Fixed |
 | 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | ✅ Fixed |
-| 5 | Test coverage gap on new team routes | Enhancement | 🔲 Pending |
+| 5 | Test coverage gap on new team routes | Enhancement | ✅ Fixed |
 | 6 | Global mutable flag in `useLeavePageWarning` | Nit | 🔲 Pending |
 
 ---
@@ -92,3 +92,27 @@ repository and either caused a Mongoose cast error (500) or silently persisted b
 
 `withAuth` already wraps `withErrorHandler`, which converts `ZodError → ValidationError(400)`,
 so no additional error handling is needed in the route handler.
+
+---
+
+## Issue #5: Test coverage gap on new team routes
+
+**Files**: `src/app/api/teams/[teamId]/__tests__/route.test.ts`,
+`src/app/api/teams/[teamId]/lineups/__tests__/route.test.ts` (new)
+
+**Root cause**: The `PATCH /api/teams/[teamId]` handler was added as part of this change
+but had no tests. `PATCH /api/teams/[teamId]/lineups` also lacked any handler-level tests.
+Existing test patterns in the project use Jest with mocked controllers and dependency
+injection — not Bruno or real HTTP, which would require a running server and auth session.
+
+**Fix**: Added handler-level tests following the project's established pattern (mock all
+infrastructure; call the imported handler function directly):
+
+- `[teamId]/__tests__/route.test.ts`: added `PATCH` describe block (401, 400 bad teamId, 200 success)
+- `lineups/__tests__/route.test.ts` (new): covers 401, 400 bad payload (validates Issue #4 fix),
+  400 wrong type in lineup options, and 200 success
+
+**Bruno note**: The current mock-based tests verify handler wiring and validation logic but
+not real HTTP semantics. Bruno (contract tests against a live server) would complement these
+for end-to-end confidence, but is out of scope for this review — logged as a future
+enhancement.
