@@ -69,7 +69,11 @@ function scanSlot(slot: Slot, resolves: (id: string) => boolean, c: Counts) {
     return;
   }
   scanRef(slot, resolves, c);
-  if (slot.sub && slot.sub._id !== undefined && slot.sub.playerId === undefined) {
+  if (
+    slot.sub &&
+    slot.sub._id !== undefined &&
+    slot.sub.playerId === undefined
+  ) {
     scanRef(slot.sub, resolves, c);
   }
 }

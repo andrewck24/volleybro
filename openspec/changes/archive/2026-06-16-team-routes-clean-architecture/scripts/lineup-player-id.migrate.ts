@@ -104,17 +104,19 @@ async function main() {
           } & Record<string, unknown>
         >
       | undefined;
-    const sets = (game.sets as
-      | ({
-          lineups?: { home?: RawLineup; away?: RawLineup };
-          entries?: ({ type?: string } & Record<string, unknown>)[];
-        } & Record<string, unknown>)[]
-      | undefined) ?? [];
+    const sets =
+      (game.sets as
+        | ({
+            lineups?: { home?: RawLineup; away?: RawLineup };
+            entries?: ({ type?: string } & Record<string, unknown>)[];
+          } & Record<string, unknown>)[]
+        | undefined) ?? [];
     let changed = false;
 
     for (const side of ["home", "away"]) {
       const sideTeam = teamsField?.[side];
-      for (const p of sideTeam?.players ?? []) if (migrateRef(p)) changed = true;
+      for (const p of sideTeam?.players ?? [])
+        if (migrateRef(p)) changed = true;
       for (const s of sideTeam?.staffs ?? []) if (migrateRef(s)) changed = true;
       if (sideTeam?.lineup && migrateLineup(sideTeam.lineup)) changed = true;
     }
