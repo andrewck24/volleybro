@@ -12,6 +12,7 @@ API route handlers that accept a MongoDB ObjectId as a URL path segment SHALL va
 segment format before invoking any service, authorization, or repository call.
 
 The shared guard function `assertObjectId(id, param?)` SHALL:
+
 - Accept a string `id` and an optional descriptive `param` name (default: `"id"`)
 - Throw `ValidationError(CommonReason.INVALID_INPUT, "Invalid <param> format")` when
   `id` does not match `/^[0-9a-fA-F]{24}$/`
@@ -27,13 +28,13 @@ thrown `ValidationError` to a 400 HTTP response. No per-handler catch block is n
 
 ##### Example: valid and invalid inputs
 
-| Input | Valid? | Reason |
-|-------|--------|--------|
-| `"507f1f77bcf86cd799439011"` | ✓ | 24 hex chars |
-| `"undefined"` | ✗ | not 24 chars |
-| `"bad-id"` | ✗ | contains non-hex char |
-| `"507f1f77bcf86cd79943901"` | ✗ | 23 chars (one short) |
-| `"507f1f77bcf86cd799439011a"` | ✗ | 25 chars (one over) |
+| Input                         | Valid? | Reason                |
+| ----------------------------- | ------ | --------------------- |
+| `"507f1f77bcf86cd799439011"`  | ✓      | 24 hex chars          |
+| `"undefined"`                 | ✗      | not 24 chars          |
+| `"bad-id"`                    | ✗      | contains non-hex char |
+| `"507f1f77bcf86cd79943901"`   | ✗      | 23 chars (one short)  |
+| `"507f1f77bcf86cd799439011a"` | ✗      | 25 chars (one over)   |
 
 #### Scenario: Invalid ObjectId returns 400
 
@@ -46,7 +47,6 @@ thrown `ValidationError` to a 400 HTTP response. No per-handler catch block is n
 
 - **WHEN** `assertObjectId` is called with `param = "teamId"` and an invalid id
 - **THEN** the error detail SHALL read `"Invalid teamId format"`
-
 
 <!-- @trace
 source: api-objectid-guards
@@ -71,6 +71,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Guard applied consistently across all ObjectId routes
 
 The following route handlers SHALL call `assertObjectId` as the first statement after
@@ -81,7 +82,7 @@ resolving `props.params`, before any `connectToMongoDB`, authorization, or contr
 - `POST /api/teams/[teamId]/players`, `GET /api/teams/[teamId]/players`
 - `GET /api/games/[gameId]`
 - `GET /api/games/[gameId]/sets`, `POST /api/games/[gameId]/sets`
-- `POST /api/games/[gameId]/sets/rallies`, `DELETE /api/games/[gameId]/sets/rallies`
+- `POST /api/games/[gameId]/sets/rallies`, `PUT /api/games/[gameId]/sets/rallies`
 - `POST /api/games/[gameId]/sets/substitutions`
 - `GET /api/players/[playerId]`, `PATCH /api/players/[playerId]`, `DELETE /api/players/[playerId]`
 - `PATCH /api/players/[playerId]/invitations`
