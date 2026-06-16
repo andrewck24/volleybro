@@ -13,9 +13,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const FIXED_DATE = new Date("2025-01-15");
+
 export const Default: Story = {
   render: function CalendarExample() {
-    const [date, setDate] = useState<Date | undefined>(new Date());
+    const [date, setDate] = useState<Date | undefined>(FIXED_DATE);
     return (
       <Calendar
         mode="single"
@@ -43,7 +45,7 @@ export const Range: Story = {
 
 export const WithDisabledDates: Story = {
   render: function CalendarDisabledExample() {
-    const [date, setDate] = useState<Date | undefined>(new Date());
+    const [date, setDate] = useState<Date | undefined>(FIXED_DATE);
     return (
       <Calendar
         mode="single"
