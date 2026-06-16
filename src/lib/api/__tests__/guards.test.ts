@@ -29,6 +29,7 @@ describe("assertObjectId", () => {
   });
 
   it("includes the param name in the error detail", () => {
+    expect.assertions(3);
     try {
       assertObjectId("bad", "teamId");
     } catch (e) {
@@ -40,6 +41,7 @@ describe("assertObjectId", () => {
   });
 
   it("uses default param name 'id' when param is omitted", () => {
+    expect.assertions(2);
     try {
       assertObjectId("bad");
     } catch (e) {
