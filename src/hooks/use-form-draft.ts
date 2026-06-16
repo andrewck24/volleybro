@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type {
   DefaultValues,
   FieldValues,
@@ -14,16 +14,30 @@ interface UseFormDraftReturn<T extends FieldValues> {
   clearDraft: () => void;
 }
 
+// noop subscribe: sessionStorage has no change notifications we need to listen to;
+// our own writes are tracked via the persist useEffect below.
+const noop = () => () => {};
+
 export function useFormDraft<T extends FieldValues>(
   key: string,
   options?: UseFormProps<T>,
 ): UseFormDraftReturn<T> {
+  // useSyncExternalStore separates server (getServerSnapshot → null) from client
+  // (getSnapshot → real storage value), letting React reconcile without a hydration
+  // warning even when a stale draft exists in sessionStorage.
+  const draftJson = useSyncExternalStore(
+    noop,
+    () => { try { return sessionStorage.getItem(key); } catch { return null; } },
+    () => null,
+  );
+
   let draft: Partial<DefaultValues<T>> | null = null;
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (raw) draft = JSON.parse(raw) as Partial<DefaultValues<T>>;
-  } catch {
-    // sessionStorage inaccessible or corrupt — fall back to caller-supplied defaultValues
+  if (draftJson) {
+    try {
+      draft = JSON.parse(draftJson) as Partial<DefaultValues<T>>;
+    } catch {
+      // corrupt storage entry — treat as no draft
+    }
   }
 
   const form = useForm<T>({
