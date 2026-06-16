@@ -7,14 +7,16 @@ Issues sourced from `issues.md`. Status updated as fixes land.
 
 ## Status Summary
 
-| # | Title | Severity | Status |
-| - | ----- | -------- | ------ |
-| 1 | Modal pages swallow API errors as success | Bug | ✅ Fixed — commit `4f75f62` |
-| 2 | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug | ✅ Fixed |
-| 3 | `sub.id` sentinel inconsistency (`""` vs `null`) | Minor | ✅ Fixed |
-| 4 | Malformed lineup `id` surfaces as 500 instead of 400 | Minor | ✅ Fixed |
-| 5 | Test coverage gap on new team routes | Enhancement | ✅ Fixed |
-| 6 | Global mutable flag in `useLeavePageWarning` | Nit | ✅ Fixed |
+| #   | Title                                                                  | Severity    | Status                      |
+| --- | ---------------------------------------------------------------------- | ----------- | --------------------------- |
+| 1   | Modal pages swallow API errors as success                              | Bug         | ✅ Fixed — commit `4f75f62` |
+| 2   | `useFormDraft` reads sessionStorage during render (hydration mismatch) | Bug         | ✅ Fixed                    |
+| 3   | `sub.id` sentinel inconsistency (`""` vs `null`)                       | Minor       | ✅ Fixed                    |
+| 4   | Malformed lineup `id` surfaces as 500 instead of 400                   | Minor       | ✅ Fixed                    |
+| 5   | Test coverage gap on new team routes                                   | Enhancement | ✅ Fixed                    |
+| 6   | Global mutable flag in `useLeavePageWarning`                           | Nit         | ✅ Fixed                    |
+| 7   | Valid-string ObjectId bypass in lineup id validation                   | Minor       | ✅ Fixed                    |
+| 8   | `PATCH /api/teams/[teamId]` lacks body validation                      | Minor       | ✅ Fixed                    |
 
 ---
 
@@ -142,3 +144,60 @@ The intended suppression only works when exactly one form is mounted at a time.
 - Each `beforeunload` handler checks its own `suppressRef` — fully isolated
 
 The exported `suppressLeaveWarning()` API is unchanged; no call sites needed updating.
+
+---
+
+## Issue #7: Valid-string ObjectId bypass in lineup `id` validation
+
+**File**: `src/lib/validations/team.ts`
+
+**Root cause**: `UpdateLineupsSchema` validated `id: z.string().nullable()`, which correctly
+rejects non-string types but allows any string value. A well-formed string like `"bad-id"`
+passes Zod validation, then reaches `new Types.ObjectId("bad-id")` in the Mongo repository,
+causing a `BSONError`. `translateRepositoryError` does not special-case `BSONError`, so it
+falls through to a generic 500 response — same behaviour as before Issue #4 was fixed for
+type errors.
+
+**Fix**: Extracted a shared `objectId` refinement in `src/lib/validations/team.ts` and
+applied it to both `LineupPlayerSchema.id` and `LineupPlayerSchema.sub.id`:
+
+```ts
+const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
+const objectId = z.string().nullable().refine(
+  v => v === null || OBJECT_ID_RE.test(v),
+  { message: "Invalid ObjectId format" },
+);
+```
+
+This is consistent with the `assertValidObjectId` guard used for path parameters in
+`[teamId]/route.ts`. Malformed ObjectId strings in the lineup body now return 400 instead
+of 500.
+
+---
+
+## Issue #8: `PATCH /api/teams/[teamId]` lacks body validation
+
+**File**: `src/app/api/teams/[teamId]/route.ts`
+
+**Root cause**: The route destructured `req.json()` directly without validation:
+`const { name, nickname } = await req.json()`. Mongoose `findByIdAndUpdate` skips schema
+validators by default (`runValidators` is `false`), so a payload like `{ name: 123 }` would
+be stored as-is instead of returning a 400.
+
+The lineups `PATCH` (Issue #4) had been fixed with `UpdateLineupsSchema.parse()`, but the
+team `PATCH` was missed.
+
+**Fix**: Added `TeamUpdateSchema` to `src/lib/validations/team.ts` and applied `.parse()`
+at the route handler:
+
+```ts
+export const TeamUpdateSchema = z.object({
+  name: z.string().optional(),
+  nickname: z.string().optional(),
+});
+// route.ts:
+const { name, nickname } = TeamUpdateSchema.parse(await req.json());
+```
+
+`withAuth` wraps `withErrorHandler`, so `ZodError → ValidationError(400)` is handled
+automatically — no additional error handling needed in the route.

@@ -1,18 +1,31 @@
 import { Position } from "@/entities/team";
 import { z } from "zod";
 
+const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
+const objectId = z
+  .string()
+  .nullable()
+  .refine((v) => v === null || OBJECT_ID_RE.test(v), {
+    message: "Invalid ObjectId format",
+  });
+
 const LineupPlayerSchema = z.object({
-  id: z.string().nullable(),
+  id: objectId,
   position: z.nativeEnum(Position).optional(),
   sub: z
     .object({
-      id: z.string().nullable(),
+      id: objectId,
       entryIndex: z.object({
         in: z.number().int().optional(),
         out: z.number().int().optional(),
       }),
     })
     .optional(),
+});
+
+export const TeamUpdateSchema = z.object({
+  name: z.string().optional(),
+  nickname: z.string().optional(),
 });
 
 const LineupSchema = z.object({
