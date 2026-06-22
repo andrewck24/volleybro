@@ -2,7 +2,7 @@
 
 # Spectra Instructions
 
-This project uses Spectra for Spec-Driven Development(SDD). Specs live in `openspec/specs/`, change proposals in `openspec/changes/`.
+This project uses Spectra for Spec-Driven Development(SDD). Specs live in `docs/specs/`, change proposals in `docs/changes/`.
 
 ## Use `/spectra-*` skills when:
 
@@ -23,7 +23,7 @@ discuss? → propose → apply ⇄ ingest → archive
 
 ## Parked Changes
 
-Changes can be parked（暫存）— temporarily moved out of `openspec/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `/spectra-apply` and `/spectra-ingest` skills handle parked changes automatically.
+Changes can be parked（暫存）— temporarily moved out of `docs/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `/spectra-apply` and `/spectra-ingest` skills handle parked changes automatically.
 
 <!-- SPECTRA:END -->
 
@@ -86,7 +86,7 @@ Components are organized by domain and purpose (features):
 **IMPORTANT**:
 
 - When `/spectra-apply`ing a change:
-  - Before touching any source files, commit all change artifacts (`openspec/changes/<name>/`) with a `docs(<scope>): add <name> change artifacts` message — this preserves design rationale before implementation code
+  - Before touching any source files, commit all change artifacts (`docs/changes/<name>/`) with a `docs(<scope>): add <name> change artifacts` message — this preserves design rationale before implementation code
   - Commit after each task section; message states the section purpose and includes related artifacts (tasks.md, spec files, etc.)
   - Run `pnpm type-check` before each commit; `pnpm build` before the final commit
   - Skip checks only if the section is intentionally incomplete; final commit MUST pass both

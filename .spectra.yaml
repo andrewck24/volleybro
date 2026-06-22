@@ -3,7 +3,7 @@
 
 # OpenSpec directory path (relative to project root)
 # Changing this requires rebuilding the vector search index.
-# spec_dir: docs/specs
+spec_dir: docs
 
 # Language for AI-generated artifacts
 locale: en
