@@ -1,18 +1,18 @@
-import { useEffect } from "react";
-import type { Meta, StoryObj } from "@storybook/nextjs";
-import { fn } from "storybook/test";
-import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
 import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import type { Meta, StoryObj } from "@storybook/nextjs";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { fn } from "storybook/test";
 
 const meta = {
   title: "Design System/Molecules/Form",
@@ -73,15 +73,14 @@ export const WithValidation: Story = {
     });
 
     return (
-      <Form
-        form={form}
-        onSubmit={form.handleSubmit(fn())}
-        className="w-80"
-      >
+      <Form form={form} onSubmit={form.handleSubmit(fn())} className="w-80">
         <FormField
           control={form.control}
           name="username"
-          rules={{ required: "Username is required", minLength: { value: 3, message: "At least 3 characters" } }}
+          rules={{
+            required: "Username is required",
+            minLength: { value: 3, message: "At least 3 characters" },
+          }}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Username</FormLabel>

@@ -1,15 +1,15 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
-  TableHeader,
   TableBody,
+  TableCaption,
+  TableCell,
   TableFooter,
   TableHead,
+  TableHeader,
   TableRow,
-  TableCell,
-  TableCaption,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Table",
@@ -121,7 +121,10 @@ export const Empty: Story = {
       </TableHeader>
       <TableBody>
         <TableRow>
-          <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+          <TableCell
+            colSpan={3}
+            className="h-24 text-center text-muted-foreground"
+          >
             No results found.
           </TableCell>
         </TableRow>

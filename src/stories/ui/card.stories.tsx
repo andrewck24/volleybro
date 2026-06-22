@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { RiMore2Fill, RiEditFill, RiDeleteBinLine } from "react-icons/ri";
+import { RiDeleteBinLine, RiEditFill, RiMore2Fill } from "react-icons/ri";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardBtnGroup,
   CardContent,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 const meta = {
   title: "Design System/Molecules/Card",
@@ -24,7 +24,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: () => (
-    <Card className="w-[450px]">
+    <Card className="w-112.5">
       <CardHeader>
         <CardTitle>Card Title</CardTitle>
       </CardHeader>
@@ -39,7 +39,7 @@ export const Default: Story = {
 
 export const WithDescription: Story = {
   render: () => (
-    <Card className="w-[450px]">
+    <Card className="w-112.5">
       <CardHeader>
         <CardTitle>Instructions</CardTitle>
         <CardDescription>
@@ -58,7 +58,7 @@ export const WithDescription: Story = {
 
 export const WithActions: Story = {
   render: () => (
-    <Card className="w-[450px]">
+    <Card className="w-112.5">
       <CardHeader>
         <CardTitle>
           Action Example
