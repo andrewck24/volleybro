@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { RiInformationLine, RiAlertLine } from "react-icons/ri";
+import { RiAlertLine, RiInformationLine } from "react-icons/ri";
 
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const meta = {
   title: "Design System/Atoms/Alert",

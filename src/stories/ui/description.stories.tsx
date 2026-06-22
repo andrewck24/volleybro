@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { RiInformationLine, RiArrowRightLine } from "react-icons/ri";
+import { RiArrowRightLine, RiInformationLine } from "react-icons/ri";
 
 import {
   Description,
-  DescriptionTitle,
   DescriptionContent,
+  DescriptionTitle,
 } from "@/components/ui/description";
 
 const meta = {

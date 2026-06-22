@@ -1,10 +1,10 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Accordion",
