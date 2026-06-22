@@ -51,7 +51,7 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
 
 3. **Collect artifact files**
 
-   Run `git status --porcelain` and filter the output to files under `openspec/changes/<name>/`. These are the change's artifact files (proposal, design, tasks, specs, etc.).
+   Run `git status --porcelain` and filter the output to files under `docs/changes/<name>/`. These are the change's artifact files (proposal, design, tasks, specs, etc.).
 
 4. **Identify unrelated dirty files**
 
@@ -65,8 +65,8 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
    ## Commit Plan: <change-name>
 
    ### Change Artifacts
-   - M  openspec/changes/<name>/proposal.md
-   - M  openspec/changes/<name>/tasks.md
+   - M  docs/changes/<name>/proposal.md
+   - M  docs/changes/<name>/tasks.md
 
    ### Source Files
    **Task 1: <task description>**
@@ -115,7 +115,7 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
 
     **6a-i. Incomplete task handling**
 
-    Read the tasks file at `openspec/changes/<name>/tasks.md`. Count `- [x]` (complete) and `- [ ]` (incomplete) checkboxes.
+    Read the tasks file at `docs/changes/<name>/tasks.md`. Count `- [x]` (complete) and `- [ ]` (incomplete) checkboxes.
 
     - If **all tasks are complete**: skip to 6a-ii.
     - If **incomplete tasks exist**:
@@ -128,7 +128,7 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
 
     **6a-ii. Delta spec sync check**
 
-    Check whether delta specs exist at `openspec/changes/<name>/specs/`.
+    Check whether delta specs exist at `docs/changes/<name>/specs/`.
 
     - If **no delta specs exist** (directory is empty or absent): skip to 6a-iii.
     - If **delta specs exist**:
@@ -149,7 +149,7 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
 
     After archive completes successfully:
 
-    1. Re-run `git status --porcelain` to capture all file changes produced by the archive (deletions from `openspec/changes/<name>/`, additions in `openspec/archived/`)
+    1. Re-run `git status --porcelain` to capture all file changes produced by the archive (deletions from `docs/changes/<name>/`, additions in `docs/archived/`)
     2. Add these archive-related file changes to the commit set
     3. Display an **updated commit plan** showing all sections:
 
@@ -178,7 +178,7 @@ This is a **utility skill** (not a workflow step). It reads source file tracking
 
 7. **Generate commit message**
 
-   Read the proposal file at `openspec/changes/<name>/proposal.md`. Extract the first sentence from the Why section (or Problem/Summary section if Why is absent).
+   Read the proposal file at `docs/changes/<name>/proposal.md`. Extract the first sentence from the Why section (or Problem/Summary section if Why is absent).
 
    Generate a message in this format:
 

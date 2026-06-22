@@ -27,7 +27,7 @@
 .github/prompts/
 .github/skills/
 .spectra/
-openspec/.vector-search.db
+docs/.vector-search.db*
 
 # misc
 .DS_Store
@@ -57,7 +57,6 @@ next-env.d.ts
 # storybook
 *storybook.log
 storybook-static
-openspec/.vector-search.db*
 
 # npm lockfile (using pnpm)
 package-lock.json
