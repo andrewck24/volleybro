@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { devices } from "@/app/apple-splash/devices";
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_TC, Saira } from "next/font/google";
 
@@ -39,53 +40,10 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: APP_DEFAULT_TITLE,
-    startupImage: [
-      {
-        url: "/apple-splash/750x1334_2x.png",
-        media:
-          "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/828x1792_2x.png",
-        media:
-          "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1080x1920_3x.png",
-        media:
-          "(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1125x2436_3x.png",
-        media:
-          "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1170x2532_3x.png",
-        media:
-          "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1179x2556_3x.png",
-        media:
-          "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1242x2688_3x.png",
-        media:
-          "(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1284x2778_3x.png",
-        media:
-          "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-      {
-        url: "/apple-splash/1290x2796_3x.png",
-        media:
-          "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
-      },
-    ],
+    startupImage: devices.map(({ media, width, height }) => ({
+      url: `/apple-splash/${width}x${height}`,
+      media,
+    })),
   },
   formatDetection: {
     email: false,

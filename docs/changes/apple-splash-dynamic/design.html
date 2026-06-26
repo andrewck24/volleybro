@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Design · apple-splash-dynamic</title>
+<style>
+:root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff;--ok:#2f9e44;--no:#e03131}
+@media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:860px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:21px;margin:0 0 2px}.kicker{color:var(--mut);font-size:13px;margin:0 0 20px}
+h2{font-size:15px;margin:26px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:.9em}
+.goals{display:flex;gap:16px;flex-wrap:wrap}.goals>div{flex:1 1 280px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.goals h3{margin:0 0 6px;font-size:13px}ul{margin:6px 0;padding-left:18px}li{margin:3px 0}
+.g li::marker{color:var(--ok)}.ng li::marker{color:var(--no)}
+.dec{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:10px 14px;margin:10px 0}
+.dec h3{margin:0 0 4px;font-size:14px}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left}th{background:var(--card)}
+.flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;margin:8px 0}
+.node{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-family:ui-monospace,monospace;font-size:12px}
+.arr{color:var(--accent)}
+figure{margin:12px 0}figcaption{color:var(--mut);font-size:12.5px;margin-bottom:6px}
+iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.contract dt{font-weight:600;margin-top:8px}.contract dd{margin:2px 0 0;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+  <h1>apple-splash-dynamic</h1>
+  <p class="kicker">Design · presentation layer (Next route + root layout)</p>
+
+  <h2>Goals / Non-Goals</h2>
+  <div class="goals">
+    <div><h3>Goals</h3><ul class="g">
+      <li>One parametric route replaces nine stored PNGs.</li>
+      <li>Background driven by <code>--primary</code> so it tracks rebrands.</li>
+      <li>“V” rebuilt as vector polygons — no dependency on the lost vector or the square icon.</li>
+      <li>Preserve the existing nine-config device coverage.</li>
+    </ul></div>
+    <div><h3>Non-Goals</h3><ul class="ng">
+      <li>Regenerating the app icon to match <code>--primary</code> (<code>#0D5365</code> ≠ <code>#10687E</code>) — separate future change.</li>
+      <li>Landscape / iPad / dark-mode coverage.</li>
+      <li>Offline precaching of generated screens (iOS fetches at install, online).</li>
+    </ul></div>
+  </div>
+
+  <h2>Decisions</h2>
+  <div class="dec"><h3>D1 · Runtime generation via <code>next/og</code> <code>ImageResponse</code></h3>
+    Route Handler returns an <code>ImageResponse</code> — zero new dependency (bundled with Next 16),
+    no build step, no stored binaries. iOS fetches startup images online at install, so runtime is fine.</div>
+  <div class="dec"><h3>D2 · Size from the route segment, validated against a fixed list</h3>
+    The handler reads <code>&lt;width&gt;x&lt;height&gt;</code> from one dynamic segment; a module-level list of
+    fifteen pairs (12 iPhone, 3 iPad) is the source of truth. Unknown size → 404 (iOS ignores mis-sized startup images anyway).</div>
+  <div class="dec"><h3>D3 · “V” mark as two inline polygons, centered</h3>
+    Two filled polygons traced from <code>icon-512x512.png</code> in a 512×512 space:
+    left arm <code>88,98 208,98 285,405 168,405</code> fill <code>#F6F4F5</code>; right arm
+    <code>308,98 422,98 338,405 312,392</code> fill <code>#FC7A56</code>. Scaled to a fraction of the shorter
+    device dimension, centered on full-bleed <code>#10687E</code>. No <code>&lt;img&gt;</code>.</div>
+  <div class="dec"><h3>D4 · Fifteen device configs are the shared source of truth</h3>
+    The same fifteen <code>{ media, width, height }</code> entries drive both the layout’s
+    <code>startupImage</code> list and the route’s accepted-size validation, so coverage and accepted
+    sizes cannot drift apart. iPhone entries carry dpr 2 or 3; iPad entries carry dpr 2.</div>
+
+  <h3 style="font-size:14px;margin:18px 0 4px">Data flow</h3>
+  <div class="flow">
+    <span class="node">devices.ts (15 configs)</span>
+    <span class="arr">→</span><span class="node">layout.tsx · startupImage urls</span>
+    <span class="arr">&nbsp;&nbsp;&amp;&nbsp;&nbsp;</span>
+    <span class="node">route.tsx · isSupportedSize + ImageResponse</span>
+  </div>
+
+  <h2>Device coverage</h2>
+  <table>
+    <thead><tr><th>Size</th><th>Representative device</th></tr></thead>
+    <tbody>
+      <tr><td>750×1334</td><td>iPhone SE (2/3), 6/7/8</td></tr>
+      <tr><td>828×1792</td><td>iPhone XR, 11</td></tr>
+      <tr><td>1080×1920</td><td>iPhone 6–8 Plus</td></tr>
+      <tr><td>1125×2436</td><td>iPhone X, XS, 11 Pro</td></tr>
+      <tr><td>1170×2532</td><td>iPhone 12–14</td></tr>
+      <tr><td>1179×2556</td><td>iPhone 14 Pro, 15</td></tr>
+      <tr><td>1242×2688</td><td>iPhone XS Max, 11 Pro Max</td></tr>
+      <tr><td>1284×2778</td><td>iPhone 12–13 Pro Max</td></tr>
+      <tr><td>1290×2796</td><td>iPhone 14–15 Pro Max, 16 Plus</td></tr>
+      <tr><td>1206×2622</td><td>iPhone 16 Pro, 17, 17 Pro</td></tr>
+      <tr><td>1260×2736</td><td>iPhone Air</td></tr>
+      <tr><td>1320×2868</td><td>iPhone 16 Pro Max, 17 Pro Max</td></tr>
+      <tr><td>1488×2266</td><td>iPad mini <em>(dpr 2)</em></td></tr>
+      <tr><td>1640×2360</td><td>iPad Air / Pro 11" <em>(dpr 2)</em></td></tr>
+      <tr><td>2048×2732</td><td>iPad Pro 12.9" <em>(dpr 2)</em></td></tr>
+    </tbody>
+  </table>
+  <p class="kicker">15 configs (12 iPhone + 3 iPad portrait). Adding coverage = new <code>devices.ts</code> entries only — no new assets.</p>
+
+  <h2>Approved design comp</h2>
+  <figure>
+    <figcaption>Embedded from <code>mockup.html</code> (approved draft <code>bareV</code>):</figcaption>
+    <iframe title="Approved splash mockup" src="mockup.html"></iframe>
+  </figure>
+
+  <h2>Implementation contract</h2>
+  <dl class="contract">
+    <dt>Behavior</dt><dd>Installing the PWA shows the “V” centered on <code>--primary</code> at the device’s exact resolution, matching the <code>bareV</code> draft.</dd>
+    <dt>Interface</dt><dd><code>GET src/app/apple-splash/[size]/route.tsx</code> → <code>ImageResponse</code> of exact size, or 404. Shared <code>devices.ts</code> consumed by route + layout.</dd>
+    <dt>Failure</dt><dd>Unsupported size → HTTP 404, no fallback image.</dd>
+    <dt>Acceptance</dt><dd><code>/apple-splash/1290x2796</code> → 1290×2796 PNG; <code>/apple-splash/100x100</code> → 404; head has 15 links, none under <code>public/apple-splash/</code>; that directory has no PNGs; visual check vs <code>bareV</code>.</dd>
+  </dl>
+</main>
+</body>
+</html>

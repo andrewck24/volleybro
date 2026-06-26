@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proposal · apple-splash-dynamic</title>
+<style>
+:root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff;--add:#2f9e44;--mod:#f08c00;--rem:#e03131}
+@media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:820px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:21px;margin:0 0 2px}.kicker{color:var(--mut);font-size:13px;margin:0 0 20px}
+h2{font-size:15px;margin:26px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.flow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:8px 0}
+.flow .box{flex:1 1 200px;text-align:center}.flow .big{font-size:28px;font-weight:700;line-height:1}
+.flow .lbl{color:var(--mut);font-size:13px;margin-top:4px}.flow .arr{color:var(--accent);font-size:24px}
+ul{margin:8px 0;padding-left:20px}li{margin:4px 0}
+code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:.9em}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left}th{background:var(--card)}
+.tag{font-size:11px;font-weight:600;border-radius:4px;padding:1px 7px;border:1px solid}
+.tag.add{color:var(--add);border-color:var(--add)}.tag.mod{color:var(--mod);border-color:var(--mod)}.tag.rem{color:var(--rem);border-color:var(--rem)}
+.path{font-family:ui-monospace,monospace;font-size:12.5px}
+</style>
+</head>
+<body>
+<main>
+  <h1>apple-splash-dynamic</h1>
+  <p class="kicker">Proposal · refactor · capability <code>apple-splash</code></p>
+
+  <h2>Why</h2>
+  <p>The nine Apple PWA splash images are hand-exported PNGs from April 2024 whose background no
+  longer matches the app's current <code>--primary</code> color. Every rebrand or token change
+  forces re-exporting all nine binaries by hand. A single parametric generator removes the stored
+  assets and lets the splash track the design tokens.</p>
+
+  <div class="flow" aria-label="Before and after">
+    <div class="box"><div class="big">9</div><div class="lbl">hand-made static PNGs<br>(stale background)</div></div>
+    <div class="arr" aria-hidden="true">→</div>
+    <div class="box"><div class="big">1</div><div class="lbl">parametric <code>next/og</code> route<br>(tracks <code>--primary</code>)</div></div>
+  </div>
+
+  <h2>What changes</h2>
+  <ul>
+    <li>Add a dynamic route that renders the launch screen with <code>next/og</code>
+      <code>ImageResponse</code>: a bare reconstructed “V” mark (white + coral SVG polygons from the
+      icon geometry) centered on a solid <code>--primary</code> background. Width/height come from the
+      route segment, so one handler serves every device size.</li>
+    <li>Repoint each <code>appleWebApp.startupImage</code> entry to the route (carrying the exact
+      device pixel size). The per-device <code>media</code> queries are unchanged — Apple requires
+      them and offers no wildcard.</li>
+    <li>Extend coverage from nine iPhone-only configs to fifteen — iPhone through the iPhone 17
+      generation (incl. iPhone Air) plus common iPad sizes. Because screens are generated, added
+      coverage is just new device entries, no new assets.</li>
+    <li>Remove the nine static PNGs under the public <code>apple-splash</code> directory.</li>
+    <li><em>Out of scope:</em> Android/Chrome splash (manifest-based) — handled by the sibling
+      <code>android-splash-manifest</code> change.</li>
+  </ul>
+
+  <h2>Impact</h2>
+  <p>Affected spec: <code>apple-splash</code> (new). Affected code:</p>
+  <table>
+    <thead><tr><th>Change</th><th>Path</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag add">NEW</span></td><td class="path">src/app/apple-splash/[size]/route.tsx</td></tr>
+      <tr><td><span class="tag add">NEW</span></td><td class="path">src/app/apple-splash/devices.ts</td></tr>
+      <tr><td><span class="tag mod">MODIFIED</span></td><td class="path">src/app/layout.tsx</td></tr>
+      <tr><td><span class="tag rem">REMOVED</span></td><td class="path">public/apple-splash/*.png &nbsp;(9 files)</td></tr>
+    </tbody>
+  </table>
+  <p class="kicker">Tags use color <em>and</em> label. Full rationale and the approved visual are in
+  <code>design.html</code>.</p>
+</main>
+</body>
+</html>
