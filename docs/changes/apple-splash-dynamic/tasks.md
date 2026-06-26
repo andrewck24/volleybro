@@ -9,12 +9,12 @@
 
 ## 3. Layout registration
 
-- [ ] 3.1 In `src/app/layout.tsx`, replace the hand-written `appleWebApp.startupImage` array by mapping the shared `devices.ts` list so each entry's `url` becomes the path `/apple-splash/<width>x<height>`. Remove the nine inline static `/apple-splash/*.png` URLs. → verify: rendered `<head>` contains 15 `apple-touch-startup-image` links, every `href` pointing at `/apple-splash/<w>x<h>` and none at `public/apple-splash/`.
+- [x] 3.1 In `src/app/layout.tsx`, replace the hand-written `appleWebApp.startupImage` array by mapping the shared `devices.ts` list so each entry's `url` becomes the path `/apple-splash/<width>x<height>`. Remove the nine inline static `/apple-splash/*.png` URLs. → verify: rendered `<head>` contains 15 `apple-touch-startup-image` links, every `href` pointing at `/apple-splash/<w>x<h>` and none at `public/apple-splash/`.
 
 ## 4. Remove static assets
 
-- [ ] 4.1 Delete the nine PNG files under `public/apple-splash/` (`750x1334_2x.png`, `828x1792_2x.png`, `1080x1920_3x.png`, `1125x2436_3x.png`, `1170x2532_3x.png`, `1179x2556_3x.png`, `1242x2688_3x.png`, `1284x2778_3x.png`, `1290x2796_3x.png`). → verify: `public/apple-splash/` contains no `.png` files; grep of `src/` finds no reference to the deleted paths.
+- [x] 4.1 Delete the nine PNG files under `public/apple-splash/` (`750x1334_2x.png`, `828x1792_2x.png`, `1080x1920_3x.png`, `1125x2436_3x.png`, `1170x2532_3x.png`, `1179x2556_3x.png`, `1242x2688_3x.png`, `1284x2778_3x.png`, `1290x2796_3x.png`). → verify: `public/apple-splash/` contains no `.png` files; grep of `src/` finds no reference to the deleted paths.
 
 ## 5. Verification
 
-- [ ] 5.1 Run `pnpm build` and load the app; confirm the 15 startup-image links resolve (each route returns its exact-size PNG) and no 404/console error references `apple-splash`. → verify: build passes; each registered `/apple-splash/<w>x<h>` returns a correctly sized PNG.
+- [x] 5.1 Run `pnpm build` and load the app; confirm the 15 startup-image links resolve (each route returns its exact-size PNG) and no 404/console error references `apple-splash`. → verify: build passes; each registered `/apple-splash/<w>x<h>` returns a correctly sized PNG.
