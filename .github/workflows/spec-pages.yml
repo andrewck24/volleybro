@@ -1,0 +1,86 @@
+name: Spec Pages
+
+on:
+  push:
+    branches: [dev]
+    paths: ["docs/changes/**"]
+  workflow_dispatch:
+
+# GitHub Pages on a private repo is only accessible to repository collaborators.
+# For unauthenticated preview access, migrate to Cloudflare Pages + Cloudflare Access.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate index
+        run: |
+          set -euo pipefail
+          OUT=docs/changes/index.html
+          cat > "$OUT" <<'HEADER'
+          <!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Spec Changes</title>
+          <style>
+          :root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}
+          @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
+          *{box-sizing:border-box}body{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+          main{max-width:680px;margin:0 auto;padding:32px 20px 60px}
+          h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);font-size:13px;margin:0 0 28px}
+          .change{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
+          .change h2{font-size:15px;margin:0 0 8px;font-weight:600}
+          .links{display:flex;flex-wrap:wrap;gap:8px}
+          .links a{font-size:13px;color:var(--accent);text-decoration:none;padding:2px 8px;border:1px solid var(--accent);border-radius:4px}
+          .links a:hover{background:var(--accent);color:var(--bg)}
+          </style>
+          </head>
+          <body><main>
+          <h1>Spec Changes</h1>
+          <p class="sub">Auto-generated index &middot; last updated: TIMESTAMP</p>
+          HEADER
+
+          # Replace TIMESTAMP with current UTC time
+          sed -i "s/TIMESTAMP/$(date -u '+%Y-%m-%d %H:%M UTC')/" "$OUT"
+
+          # Find change directories (subdirs of docs/changes that contain HTML files)
+          for dir in docs/changes/*/; do
+            name=$(basename "$dir")
+            # Collect available HTML artifact links
+            links=""
+            for artifact in proposal design mockup review; do
+              if [ -f "${dir}${artifact}.html" ]; then
+                links="${links}<a href=\"${name}/${artifact}.html\">${artifact}.html</a>"
+              fi
+            done
+            if [ -n "$links" ]; then
+              printf '<div class="change"><h2>%s</h2><div class="links">%s</div></div>\n' \
+                "$name" "$links" >> "$OUT"
+            fi
+          done
+
+          echo '</main></body></html>' >> "$OUT"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/changes
+
+      - uses: actions/deploy-pages@v4
+        id: deploy
