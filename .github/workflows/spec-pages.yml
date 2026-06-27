@@ -2,12 +2,13 @@ name: Spec Pages
 
 on:
   push:
-    branches: [dev]
     paths: ["docs/changes/**"]
   workflow_dispatch:
 
 # GitHub Pages on a private repo is only accessible to repository collaborators.
-# For unauthenticated preview access, migrate to Cloudflare Pages + Cloudflare Access.
+# For per-branch preview URLs or unauthenticated access, migrate to Cloudflare Pages
+# + Cloudflare Access (Google OAuth gate). All branches share the same Pages URL here;
+# last push to docs/changes/** wins.
 permissions:
   contents: read
   pages: write
@@ -15,7 +16,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -58,19 +59,22 @@ jobs:
           # Replace TIMESTAMP with current UTC time
           sed -i "s/TIMESTAMP/$(date -u '+%Y-%m-%d %H:%M UTC')/" "$OUT"
 
+          html_escape() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'; }
+
           # Find change directories (subdirs of docs/changes that contain HTML files)
           for dir in docs/changes/*/; do
             name=$(basename "$dir")
+            safe=$(html_escape "$name")
             # Collect available HTML artifact links
             links=""
             for artifact in proposal design mockup review; do
               if [ -f "${dir}${artifact}.html" ]; then
-                links="${links}<a href=\"${name}/${artifact}.html\">${artifact}.html</a>"
+                links="${links}<a href=\"${safe}/${artifact}.html\">${artifact}.html</a>"
               fi
             done
             if [ -n "$links" ]; then
               printf '<div class="change"><h2>%s</h2><div class="links">%s</div></div>\n' \
-                "$name" "$links" >> "$OUT"
+                "$safe" "$links" >> "$OUT"
             fi
           done
 
