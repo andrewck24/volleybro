@@ -54,7 +54,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isSignedIn && !isPublicRoute) {
+  const isPublicPrefix = nextUrl.pathname.startsWith("/apple-splash/");
+
+  if (!isSignedIn && !isPublicRoute && !isPublicPrefix) {
     return NextResponse.redirect(new URL("/auth/sign-in", nextUrl));
   }
 
