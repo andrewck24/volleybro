@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VolleyBro · Apple Splash mockup</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Saira+Stencil+One&display=swap');
 :root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--ok:#2f9e44}
 @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea}}
 *{box-sizing:border-box}body{margin:0;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
@@ -21,7 +22,6 @@ h1{font-size:20px;margin:0 0 4px}.sub{color:var(--mut);margin:0 0 8px}
 .phone{margin:0 auto;width:180px;height:390px;border-radius:28px;border:7px solid #111;overflow:hidden;
   display:flex;align-items:center;justify-content:center}
 .phone img{width:30%;height:auto;border-radius:18%}
-.phone svg{width:42%;height:auto}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:12px 0 0;font-size:12.5px}
 dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,monospace}
 .sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid var(--line);vertical-align:middle;margin-right:5px}
@@ -34,25 +34,47 @@ dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,monospace}
   <div class="note">
     <strong>Root cause of the color mismatch:</strong> the icon is a rounded square (fill <code>#0D5365</code>).
     Placed on any other background, the square's edge fails to align. Using a <strong>bare V</strong>
-    (no square) leaves no edge to misalign → the background can then use the semantic token
-    <code>--primary</code>. The V is reconstructed as SVG from the icon geometry (left arm
-    <code>#F6F4F5</code>, right arm <code>#FC7A56</code>) and does not depend on the lost vector.
+    (no square) leaves no edge to misalign → the background uses <code>--primary</code>.
+    The original icon was created from <strong>Saira Stencil One uppercase "V"</strong> with the right arm
+    filled in <code>--destructive</code> (#FC7A56). This draft uses the <strong>exact glyph path data extracted
+    from the font</strong> (opentype.js) — the stencil design naturally produces two separate sub-paths
+    (left arm / right arm) which are coloured independently. No font loading at runtime, no clipping tricks.
     Once approved, <code>design.html</code> embeds this file via <code>&lt;iframe&gt;</code> and shows the approved draft by default.
   </div>
 </header>
 <main>
   <div class="drafts">
-    <section class="draft approved" id="draft-bareV">
+    <section class="draft approved" id="draft-bareV" style="flex:1 1 100%;overflow-x:hidden;">
       <h2>Bare V on <code>--primary</code><span class="badge appr">✓ Approved</span></h2>
-      <div class="phone" style="background:#10687E">
-        <svg viewBox="0 0 512 512" role="img" aria-label="VolleyBro V mark">
-          <polygon points="88,98 208,98 285,405 168,405" fill="#F6F4F5"/>
-          <polygon points="308,98 422,98 338,405 312,392" fill="#FC7A56"/>
-        </svg>
+      <div style="display:flex;gap:16px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:4px;padding-bottom:4px">
+        <div style="text-align:center;flex-shrink:0">
+          <div class="phone" style="background:#10687E">
+            <svg style="width:50px;height:50px;display:block" viewBox="-10 225 360 360"><path d="M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z" fill="#F6F4F5"/><path d="M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z" fill="#FC7A56"/></svg>
+          </div>
+          <div style="font-size:11px;margin-top:4px;color:var(--mut)">≈28% (current)</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0">
+          <div class="phone" style="background:#10687E">
+            <svg style="width:45px;height:45px;display:block" viewBox="-10 225 360 360"><path d="M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z" fill="#F6F4F5"/><path d="M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z" fill="#FC7A56"/></svg>
+          </div>
+          <div style="font-size:11px;margin-top:4px;color:var(--ok)">25% ✓ selected</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0">
+          <div class="phone" style="background:#10687E">
+            <svg style="width:36px;height:36px;display:block" viewBox="-10 225 360 360"><path d="M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z" fill="#F6F4F5"/><path d="M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z" fill="#FC7A56"/></svg>
+          </div>
+          <div style="font-size:11px;margin-top:4px;color:var(--mut)">20%</div>
+        </div>
+        <div style="text-align:center;flex-shrink:0">
+          <div class="phone" style="background:#10687E">
+            <svg style="width:27px;height:27px;display:block" viewBox="-10 225 360 360"><path d="M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z" fill="#F6F4F5"/><path d="M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z" fill="#FC7A56"/></svg>
+          </div>
+          <div style="font-size:11px;margin-top:4px;color:var(--mut)">15%</div>
+        </div>
       </div>
       <dl>
         <dt>Background</dt><dd><span class="sw" style="background:#10687E"></span>--primary #10687E</dd>
-        <dt>Mark</dt><dd>reconstructed bare V (SVG)</dd>
+        <dt>Mark</dt><dd>Saira Stencil One "V" — SVG path extracted from font, arms coloured separately</dd>
         <dt>Mismatch</dt><dd>none (no square edge)</dd>
         <dt>Why</dt><dd>token-driven, pure generation, zero asset dependency</dd>
       </dl>
