@@ -37,7 +37,7 @@ iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:10px;b
     <div><h3>Goals</h3><ul class="g">
       <li>One parametric route replaces nine stored PNGs.</li>
       <li>Background driven by <code>--primary</code> so it tracks rebrands.</li>
-      <li>“V” rebuilt as vector polygons — no dependency on the lost vector or the square icon.</li>
+      <li>”V” rebuilt as inline SVG paths (Saira Stencil One glyph, font-extracted) — no runtime font dependency, no raster file.</li>
       <li>Preserve the existing nine-config device coverage.</li>
     </ul></div>
     <div><h3>Non-Goals</h3><ul class="ng">
@@ -54,11 +54,13 @@ iframe{width:100%;height:560px;border:1px solid var(--line);border-radius:10px;b
   <div class="dec"><h3>D2 · Size from the route segment, validated against a fixed list</h3>
     The handler reads <code>&lt;width&gt;x&lt;height&gt;</code> from one dynamic segment; a module-level list of
     fifteen pairs (12 iPhone, 3 iPad) is the source of truth. Unknown size → 404 (iOS ignores mis-sized startup images anyway).</div>
-  <div class="dec"><h3>D3 · “V” mark as two inline polygons, centered</h3>
-    Two filled polygons traced from <code>icon-512x512.png</code> in a 512×512 space:
-    left arm <code>88,98 208,98 285,405 168,405</code> fill <code>#F6F4F5</code>; right arm
-    <code>308,98 422,98 338,405 312,392</code> fill <code>#FC7A56</code>. Scaled to a fraction of the shorter
-    device dimension, centered on full-bleed <code>#10687E</code>. No <code>&lt;img&gt;</code>.</div>
+  <div class=”dec”><h3>D3 · “V” mark as two inline SVG paths from Saira Stencil One, centered</h3>
+    The “V” glyph path data was extracted from the Saira Stencil One TTF at 512 px scale via opentype.js
+    and hardcoded as constants — no runtime font dependency. The stencil design naturally produces two
+    separate sub-paths (left arm / right arm), so each arm is filled independently:
+    left <code>#F6F4F5</code>, right <code>#FC7A56</code>.
+    <code>viewBox=”-10 225 360 360”</code>, SVG sized to 25% of <code>Math.min(w, h)</code>,
+    centered on full-bleed <code>#10687E</code>. No <code>&lt;img&gt;</code>, no font load at request time.</div>
   <div class="dec"><h3>D4 · Fifteen device configs are the shared source of truth</h3>
     The same fifteen <code>{ media, width, height }</code> entries drive both the layout’s
     <code>startupImage</code> list and the route’s accepted-size validation, so coverage and accepted
