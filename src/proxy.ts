@@ -34,6 +34,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (nextUrl.pathname.startsWith("/apple-splash/")) {
+    return NextResponse.next();
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -54,9 +58,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const isPublicPrefix = nextUrl.pathname.startsWith("/apple-splash/");
-
-  if (!isSignedIn && !isPublicRoute && !isPublicPrefix) {
+  if (!isSignedIn && !isPublicRoute) {
     return NextResponse.redirect(new URL("/auth/sign-in", nextUrl));
   }
 

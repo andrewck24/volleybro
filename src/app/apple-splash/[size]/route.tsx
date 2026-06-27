@@ -50,6 +50,10 @@ export async function GET(
         </svg>
       </div>
     ),
-    { width: w, height: h }
+    {
+      width: w,
+      height: h,
+      headers: { "Cache-Control": "public, max-age=31536000, immutable" },
+    }
   );
 }

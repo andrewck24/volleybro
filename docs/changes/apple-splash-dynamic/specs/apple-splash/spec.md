@@ -23,13 +23,14 @@ The system SHALL expose a route that renders an Apple PWA launch screen as a PNG
 
 ### Requirement: V mark composition
 
-The launch screen SHALL render the "V" mark as two filled vector polygons reconstructed from the app icon geometry, independent of any external image asset.
+The launch screen SHALL render the "V" mark as two filled SVG path arms extracted from the Saira Stencil One font, independent of any external image asset or runtime font dependency.
 
 #### Scenario: Mark colors and shape
 
 - **WHEN** the launch screen is rendered
 - **THEN** the left arm of the "V" SHALL be filled with `#F6F4F5` and the right arm SHALL be filled with `#FC7A56`
-- **AND** the mark SHALL be drawn as vector polygons, not loaded from a raster file
+- **AND** the mark SHALL be drawn as inline SVG paths with hardcoded glyph coordinates, not loaded from a raster file or font at request time
+- **AND** the SVG SHALL be sized to 25% of the shorter device dimension
 
 ### Requirement: Per-device startup-image registration
 

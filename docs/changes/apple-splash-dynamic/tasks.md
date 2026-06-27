@@ -5,7 +5,7 @@
 ## 2. Launch-screen route
 
 - [x] 2.1 Create `src/app/apple-splash/[size]/route.tsx` with a `GET` handler that parses the `[size]` segment as `"<width>x<height>"`, returns HTTP 404 when `isSupportedSize` is false, and otherwise returns a `next/og` `ImageResponse` sized to exactly that width and height. → verify: `GET /apple-splash/1290x2796` returns a 1290x2796 PNG; `GET /apple-splash/100x100` returns 404.
-- [x] 2.2 In the route, render the splash as a full-bleed background of `#10687E` (the `--primary` value) with a centered inline SVG "V": left polygon `points="88,98 208,98 285,405 168,405"` fill `#F6F4F5`, right polygon `points="308,98 422,98 338,405 312,392"` fill `#FC7A56`, in a `0 0 512 512` viewBox scaled to ~40% of the shorter device dimension. → verify: rendered PNG shows the V mark centered on the primary color, matching `mockup.html` draft `bareV`.
+- [x] 2.2 In the route, render the splash as a full-bleed background of `#10687E` (the `--primary` value) with a centered inline SVG "V" using hardcoded Saira Stencil One glyph path data (extracted via opentype.js at 512px scale): left arm path filled `#F6F4F5`, right arm path filled `#FC7A56`, `viewBox="-10 225 360 360"`, sized to 25% of `Math.min(w, h)`. Set `Cache-Control: public, max-age=31536000, immutable` on the response. → verify: rendered PNG shows the V mark centered on the primary color, matching `mockup.html` draft `bareV`; response includes Cache-Control immutable.
 
 ## 3. Layout registration
 

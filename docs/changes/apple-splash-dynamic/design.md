@@ -28,9 +28,9 @@ Use a Route Handler returning an `ImageResponse` rather than a build-time script
 
 The handler reads the target size from a single dynamic segment of the form `<width>x<height>`. A module-level list of the fifteen supported `{ width, height }` pairs (twelve iPhone, three iPad) is the source of truth. An unknown size returns 404 so unsupported requests never produce a mis-sized image (iOS ignores mis-sized startup images anyway).
 
-### D3: "V" mark as two inline polygons, centered
+### D3: "V" mark as two inline SVG paths from the Saira Stencil One font, centered
 
-The mark is two filled polygons whose points are traced from `public/icon-512x512.png` in a 512x512 coordinate space: left arm `88,98 208,98 285,405 168,405` filled `#F6F4F5`; right arm `308,98 422,98 338,405 312,392` filled `#FC7A56`. The mark is scaled to a fraction of the shorter device dimension and centered on a full-bleed `#10687E` (`--primary`) background. No `<img>`; polygons only.
+The mark is a reconstructed "V" from the Saira Stencil One typeface. The font's stencil design naturally produces two separate sub-paths for the left and right arms, so each can be filled independently. The glyph path data was extracted from the TTF at 512px scale via opentype.js and hardcoded as constants — no runtime font dependency. Left arm filled `#F6F4F5`; right arm filled `#FC7A56`; `viewBox="-10 225 360 360"`. The SVG is sized to 25% of `Math.min(width, height)` and centered on a full-bleed `#10687E` (`--primary`) background.
 
 ### D4: The fifteen device configurations are the shared source of truth
 
