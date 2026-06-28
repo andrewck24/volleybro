@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Change — spec-loop</title>
+<style>
+:root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff;--ok:#2f9e44;--warn:#f08c00;--bad:#e03131}
+@media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+
+/* sticky header: left = back nav, right = tabs */
+.bar{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.barIn{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  max-width:1100px;margin:0 auto;padding:8px 16px}
+.grp{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.navbtn{appearance:none;background:none;border:0;color:var(--mut);font:inherit;cursor:pointer;
+  padding:6px 10px;border-radius:7px;text-decoration:none;white-space:nowrap}
+.navbtn:hover{color:var(--fg);background:var(--card)}
+.navbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.home{font-weight:600;color:var(--fg)}.home[aria-current=page]{background:var(--card)}
+.sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--mut);
+  padding:7px 11px;font:inherit;cursor:pointer;border-radius:6px 6px 0 0;margin-bottom:-9px}
+.tab[aria-selected=true]{color:var(--fg);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--fg)}.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+main{min-height:60vh}
+/* full-bleed embed: AI-authored html controls its own width; auto-grown to content so the
+   PAGE scrolls, not a tiny inner box */
+iframe.auto{width:100%;border:0;display:block;min-height:50vh;background:#fff}
+@media(prefers-color-scheme:dark){iframe.auto{background:var(--bg)}}
+.wrap{max-width:900px;margin:0 auto;padding:22px 20px 64px}
+.placeholder{color:var(--mut);border:1px dashed var(--line);border-radius:8px;padding:28px;text-align:center}
+
+/* overview (change home) */
+.ovsum{color:var(--mut);font-size:15px;margin:6px 0 16px}
+.progress{position:relative;height:20px;background:var(--line);border-radius:6px;overflow:hidden;max-width:360px}
+.progress span{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.5}
+.progress em{position:relative;font-style:normal;font-size:12px;padding-left:9px;line-height:20px}
+.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:22px}
+.ovc{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
+  cursor:pointer;font:inherit;color:var(--fg);display:flex;flex-direction:column;gap:3px}
+.ovc:hover{border-color:var(--accent)}.ovc:focus-visible{outline:2px solid var(--accent)}
+.ovl{font-weight:600}.ovh{color:var(--mut);font-size:13px}
+.ova{font-size:11px;color:var(--mut);margin-top:4px}
+
+/* markdown (tasks + .md fallback) */
+.md h1,.md h2,.md h3{line-height:1.3}.md h2{border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:28px}
+.md code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:.9em}
+.md pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto}
+.md pre code{border:0;padding:0}.md a{color:var(--accent)}
+.md table{border-collapse:collapse;width:100%;margin:12px 0}
+.md th,.md td{border:1px solid var(--line);padding:6px 10px;text-align:left}.md th{background:var(--card)}
+.md blockquote{border-left:3px solid var(--line);margin:10px 0;padding:2px 14px;color:var(--mut)}
+.md li.task{list-style:none}.md li.task>.box{display:inline-block;width:1.3em;margin-left:-1.3em;font-weight:700}
+.md li.task.done>.box{color:var(--ok)}.md .p{display:inline-block;font-size:11px;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:0 4px;margin:0 4px}
+details.blocked{border:1px solid var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);border-radius:8px;padding:8px 12px;margin:10px 0}
+details.blocked summary{color:var(--bad);font-weight:600;cursor:pointer}
+details.blocked summary::before{content:"\26A0\FE0F  "}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="barIn">
+    <div class="grp">
+      <a class="navbtn" href="index.html">← All changes</a>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="navbtn home" id="homeBtn" title="Change overview">⌂ <span id="hname">…</span></button>
+    </div>
+    <nav class="grp tabs" role="tablist" id="tabs"></nav>
+  </div>
+</header>
+<main id="panel" role="tabpanel" tabindex="0" aria-live="polite"><div class="wrap">Loading…</div></main>
+
+<script>
+const TABS = ["proposal", "specs", "design", "tasks", "review"];
+const LABELS = { proposal: "Proposal", specs: "Specs", design: "Design", tasks: "Tasks", review: "Review" };
+const HINTS = { proposal: "Why · what · impact", specs: "GIVEN/WHEN/THEN", design: "Decisions & contract", tasks: "Live checklist", review: "Post-apply verdict" };
+const params = new URLSearchParams(location.search);
+const change = params.get("change");
+const base = `changes/${change}`;
+const panel = document.getElementById("panel");
+const homeBtn = document.getElementById("homeBtn");
+const tabEl = {};
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// --- tiny markdown renderer (self-contained; tasks + .md fallback) ---
+function inline(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function renderMd(src) {
+  const lines = src.replace(/\r/g, "").split("\n");
+  let html = "", i = 0;
+  const close = [];
+  const flushLists = () => { while (close.length) html += close.pop(); };
+  while (i < lines.length) {
+    let l = lines[i];
+    if (/^```/.test(l)) {
+      flushLists(); i++; let buf = [];
+      while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+      i++; html += `<pre><code>${esc(buf.join("\n"))}</code></pre>`; continue;
+    }
+    let h = l.match(/^(#{1,4})\s+(.*)/);
+    if (h) { flushLists(); html += `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`; i++; continue; }
+    if (/^\s*[-*]\s+\[[ xX]\]/.test(l)) {
+      if (!close.length) { html += "<ul>"; close.push("</ul>"); }
+      const m = l.match(/^\s*[-*]\s+\[([ xX])\]\s+(.*)/);
+      const done = m[1] !== " ";
+      const body = inline(m[2]).replace(/\s\[P\]/g, ' <span class="p">P</span>');
+      html += `<li class="task ${done ? "done" : ""}"><span class="box">${done ? "✓" : "☐"}</span> ${body}</li>`;
+      i++; continue;
+    }
+    if (/^\s*[-*]\s+/.test(l)) {
+      if (!close.length) { html += "<ul>"; close.push("</ul>"); }
+      html += `<li>${inline(l.replace(/^\s*[-*]\s+/, ""))}</li>`; i++; continue;
+    }
+    if (/^>\s?/.test(l)) {
+      flushLists(); let buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/, ""));
+      const text = buf.join("\n");
+      const bm = text.match(/^BLOCKED[^\n]*/);
+      if (bm) html += `<details class="blocked" open><summary>${inline(bm[0])}</summary>${inline(text.slice(bm[0].length)).replace(/\n/g, "<br>")}</details>`;
+      else html += `<blockquote>${inline(text).replace(/\n/g, "<br>")}</blockquote>`;
+      continue;
+    }
+    if (/^\s*\|.*\|/.test(l) && /^\s*\|[\s:|-]+\|/.test(lines[i + 1] || "")) {
+      flushLists();
+      const row = (s) => s.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      const head = row(l); i += 2; let body = "";
+      while (i < lines.length && /^\s*\|.*\|/.test(lines[i])) {
+        body += "<tr>" + row(lines[i++]).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>";
+      }
+      html += `<table><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table>`;
+      continue;
+    }
+    if (/^(---|\*\*\*)\s*$/.test(l)) { flushLists(); html += "<hr>"; i++; continue; }
+    if (l.trim() === "") { flushLists(); i++; continue; }
+    flushLists(); html += `<p>${inline(l)}</p>`; i++;
+  }
+  flushLists();
+  return `<div class="md">${html}</div>`;
+}
+
+async function fetchText(url) { const r = await fetch(url); return r.ok ? r.text() : null; }
+const iframe = (src, title) => `<iframe class="auto" title="${esc(title)}" src="${src}"></iframe>`;
+const wrap = (h) => `<div class="wrap">${h}</div>`;
+const placeholder = (t) => wrap(`<div class="placeholder">${esc(t)}</div>`);
+const avail = (x) => x && x.html ? "HTML authored" : x && x.md ? "from .md" : "not yet";
+
+let manifest, active;
+
+async function load() {
+  if (!change) { panel.innerHTML = wrap("No ?change= specified."); return; }
+  manifest = await (await fetch(`${base}/manifest.json`)).json();
+  document.getElementById("hname").textContent = manifest.name;
+  document.title = `${manifest.name} — spec-loop`;
+  homeBtn.onclick = () => select("overview");
+  const tabsEl = document.getElementById("tabs");
+  TABS.forEach((id) => {
+    const b = document.createElement("button");
+    b.className = "tab"; b.textContent = LABELS[id]; b.id = `tab-${id}`;
+    b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.tabIndex = -1;
+    b.onclick = () => select(id);
+    tabsEl.appendChild(b); tabEl[id] = b;
+  });
+  tabsEl.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const cur = TABS.indexOf(active);
+    const next = TABS[((cur < 0 ? 0 : cur) + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    select(next); tabEl[next].focus(); e.preventDefault();
+  });
+  const t = params.get("tab");
+  select(t === "overview" || TABS.includes(t) ? t : "overview");
+}
+
+async function select(id) {
+  active = id;
+  homeBtn.setAttribute("aria-current", id === "overview" ? "page" : "false");
+  for (const t of TABS) { const on = t === id; tabEl[t].setAttribute("aria-selected", on); tabEl[t].tabIndex = on ? 0 : -1; }
+  panel.innerHTML = wrap("Loading…");
+  panel.innerHTML = await renderContent(id);
+  fitIframes();
+  panel.scrollIntoView({ block: "start" });
+}
+
+function renderOverview() {
+  const a = manifest.artifacts || {};
+  const pct = manifest.total ? Math.round(manifest.done / manifest.total * 100) : 0;
+  const card = (id, extra) => `<button class="ovc" onclick="select('${id}')">
+    <span class="ovl">${LABELS[id]}</span><span class="ovh">${HINTS[id]}</span><span class="ova">${extra}</span></button>`;
+  const cards = [
+    card("proposal", avail(a.proposal)),
+    card("specs", manifest.specs.length ? `${manifest.specs.length} capability` : "none"),
+    card("design", avail(a.design)),
+    card("tasks", `${manifest.done}/${manifest.total} done`),
+    card("review", avail(a.review)),
+  ].join("");
+  return wrap(`<h1>${esc(manifest.name)}</h1>
+    <p class="ovsum">${esc(manifest.summary || "")}</p>
+    <div class="progress" role="progressbar" aria-valuenow="${manifest.done}" aria-valuemin="0" aria-valuemax="${manifest.total}"
+         aria-label="${manifest.done} of ${manifest.total} tasks done"><span style="width:${pct}%"></span><em>${manifest.done}/${manifest.total} tasks</em></div>
+    <div class="ovgrid">${cards}</div>`);
+}
+
+async function renderContent(id) {
+  if (id === "overview") return renderOverview();
+  if (id === "tasks") { const md = await fetchText(`${base}/tasks.md`); return md == null ? placeholder("No tasks.md.") : wrap(renderMd(md)); }
+  if (id === "specs") {
+    if (!manifest.specs.length) return placeholder("No specs in this change.");
+    let out = "";
+    for (const s of manifest.specs) {
+      if (s.html) { out += iframe(`${base}/specs/${s.name}/spec.html`, `${s.name} spec`); continue; }
+      const md = await fetchText(`${base}/specs/${s.name}/spec.md`);
+      out += wrap(`<h2>${esc(s.name)}</h2>` + (md == null ? `<div class="placeholder">missing spec.md</div>` : renderMd(md)));
+    }
+    return out;
+  }
+  const a = (manifest.artifacts || {})[id] || {};
+  if (a.html) return iframe(`${base}/${id}.html`, LABELS[id]);
+  if (a.md) { const md = await fetchText(`${base}/${id}.md`); return md == null ? placeholder("missing") : wrap(renderMd(md)); }
+  return placeholder(`No ${LABELS[id]} authored yet.`);
+}
+
+// grow same-origin iframes to their content height so the PAGE scrolls (no inner scroll box)
+function fitOne(f) { try { f.style.height = "0"; f.style.height = f.contentWindow.document.documentElement.scrollHeight + "px"; } catch (e) {} }
+function fitIframes() {
+  for (const f of panel.querySelectorAll("iframe.auto")) {
+    f.addEventListener("load", () => fitOne(f));
+    if (f.contentWindow && f.contentWindow.document && f.contentWindow.document.readyState === "complete") fitOne(f);
+  }
+}
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => panel.querySelectorAll("iframe.auto").forEach(fitOne), 120); });
+
+load().catch((e) => { panel.innerHTML = wrap("Error: " + e.message); });
+</script>
+</body>
+</html>

@@ -2,13 +2,15 @@ name: Spec Pages
 
 on:
   push:
-    paths: ["docs/changes/**"]
+    paths:
+      - "docs/changes/**"
+      - "docs/shell.html"
   workflow_dispatch:
 
 # GitHub Pages on a private repo is only accessible to repository collaborators.
 # For per-branch preview URLs or unauthenticated access, migrate to Cloudflare Pages
 # + Cloudflare Access (Google OAuth gate). All branches share the same Pages URL here;
-# last push to docs/changes/** wins.
+# last push to docs/** wins.
 permissions:
   contents: read
   pages: write
@@ -24,67 +26,173 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Generate index
+      - name: Build site
         run: |
-          set -euo pipefail
-          OUT=docs/changes/index.html
-          cat > "$OUT" <<'HEADER'
-          <!doctype html>
+          python3 - <<'PYEOF'
+          import os, json, re, shutil, pathlib
+          from datetime import datetime, timezone
+
+          BUILD   = pathlib.Path(".pages-build")
+          CHANGES = pathlib.Path("docs/changes")
+          SHELL   = pathlib.Path("docs/shell.html")
+          repo    = os.environ.get("GH_REPO", "")
+
+          BUILD.mkdir(exist_ok=True)
+          (BUILD / "changes").mkdir(exist_ok=True)
+
+          if SHELL.exists():
+              shutil.copy(SHELL, BUILD / "shell.html")
+
+          def esc(s):
+              if s is None: return ""
+              return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
+
+          manifests = []
+
+          for cdir in sorted(p for p in CHANGES.iterdir() if p.is_dir()):
+              name = cdir.name
+              cb   = BUILD / "changes" / name
+              cb.mkdir(exist_ok=True)
+
+              # Copy HTML + MD artifacts
+              for stem in ["proposal", "design", "mockup", "review", "tasks"]:
+                  for ext in [".html", ".md"]:
+                      src = cdir / (stem + ext)
+                      if src.exists():
+                          shutil.copy(src, cb)
+
+              # Copy specs subtree
+              specs_src = cdir / "specs"
+              if specs_src.exists():
+                  shutil.copytree(specs_src, cb / "specs", dirs_exist_ok=True)
+
+              # Read meta.json (human-authored: summary, dates, PR info)
+              meta = {}
+              if (cdir / "meta.json").exists():
+                  meta = json.loads((cdir / "meta.json").read_text())
+
+              # Count tasks
+              total = done = 0
+              tasks_file = cdir / "tasks.md"
+              if tasks_file.exists():
+                  src_text = tasks_file.read_text()
+                  total = len(re.findall(r'^\s*- \[[ xX]\]', src_text, re.MULTILINE))
+                  done  = len(re.findall(r'^\s*- \[[xX]\]',  src_text, re.MULTILINE))
+
+              def art(stem):
+                  return {"html": (cdir / f"{stem}.html").exists(),
+                          "md":   (cdir / f"{stem}.md").exists()}
+
+              specs_list = []
+              if specs_src.exists():
+                  for sd in sorted(p for p in specs_src.iterdir() if p.is_dir()):
+                      specs_list.append({"name": sd.name,
+                                         "html": (sd / "spec.html").exists()})
+
+              manifest = {
+                  "name":        name,
+                  "summary":     meta.get("summary", ""),
+                  "proposedAt":  meta.get("proposedAt"),
+                  "prNumber":    meta.get("prNumber"),
+                  "prCreatedAt": meta.get("prCreatedAt"),
+                  "done":        done,
+                  "total":       total,
+                  "artifacts": {
+                      "proposal": art("proposal"),
+                      "design":   art("design"),
+                      "review":   art("review"),
+                  },
+                  "specs": specs_list,
+              }
+              (cb / "manifest.json").write_text(json.dumps(manifest, indent=2))
+              manifests.append(manifest)
+
+          # ── index.html ──────────────────────────────────────────────────────
+          cards = ""
+          for m in manifests:
+              name = m["name"]
+              pct  = round(m["done"] / m["total"] * 100) if m["total"] else 0
+
+              pr_badge = ""
+              if m.get("prNumber"):
+                  pr_url = f"https://github.com/{repo}/pull/{m['prNumber']}"
+                  pr_badge = f'<a class="pr-badge" href="{esc(pr_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">PR #{esc(m["prNumber"])}</a>'
+
+              meta_parts = []
+              if m.get("proposedAt"):
+                  meta_parts.append(f'<span>Proposed {esc(m["proposedAt"])}</span>')
+              if m.get("prCreatedAt"):
+                  meta_parts.append(f'<span>PR opened {esc(m["prCreatedAt"])}</span>')
+              meta_row = " · ".join(meta_parts)
+
+              cards += f"""
+          <a class="card" href="shell.html?change={esc(name)}">
+            <div class="card-top">
+              <span class="card-name">{esc(name)}</span>
+              {pr_badge}
+            </div>
+            <p class="card-sum">{esc(m.get("summary",""))}</p>
+            <div class="card-meta">{meta_row}</div>
+            <div class="prog" role="progressbar" aria-valuenow="{m['done']}" aria-valuemin="0" aria-valuemax="{m['total']}" aria-label="{m['done']} of {m['total']} tasks done">
+              <span style="width:{pct}%"></span>
+              <em>{m['done']}/{m['total']} tasks</em>
+            </div>
+          </a>"""
+
+          now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+          index = f"""<!doctype html>
           <html lang="en">
           <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width,initial-scale=1">
           <title>Spec Changes</title>
           <style>
-          :root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}
-          @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
-          *{box-sizing:border-box}body{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
-          main{max-width:680px;margin:0 auto;padding:32px 20px 60px}
-          h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);font-size:13px;margin:0 0 28px}
-          .change{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0}
-          .change h2{font-size:15px;margin:0 0 8px;font-weight:600}
-          .links{display:flex;flex-wrap:wrap;gap:8px}
-          .links a{font-size:13px;color:var(--accent);text-decoration:none;padding:2px 8px;border:1px solid var(--accent);border-radius:4px}
-          .links a:hover{background:var(--accent);color:var(--bg)}
+          :root{{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}}
+          @media(prefers-color-scheme:light){{:root{{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}}}
+          *{{box-sizing:border-box}}body{{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}}
+          main{{max-width:900px;margin:0 auto;padding:32px 20px 64px}}
+          h1{{font-size:24px;margin:0 0 4px}}
+          .sub{{color:var(--mut);font-size:13px;margin:0 0 28px}}
+          .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}}
+          .card{{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;transition:border-color .15s}}
+          .card:hover,.card:focus-visible{{border-color:var(--accent);outline:none}}
+          .card-top{{display:flex;align-items:center;gap:8px;margin-bottom:6px}}
+          .card-name{{font-weight:600;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+          .pr-badge{{font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 7px;white-space:nowrap;text-decoration:none;flex-shrink:0}}
+          .pr-badge:hover{{background:var(--accent);color:var(--bg)}}
+          .card-sum{{margin:0 0 8px;font-size:13px;color:var(--mut);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+          .card-meta{{font-size:12px;color:var(--mut);margin-bottom:10px}}
+          .card-meta span+span::before{{content:" · "}}
+          .prog{{position:relative;height:18px;background:var(--line);border-radius:5px;overflow:hidden}}
+          .prog span{{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.55}}
+          .prog em{{position:relative;font-style:normal;font-size:11px;padding-left:8px;line-height:18px;color:var(--fg)}}
           </style>
           </head>
-          <body><main>
-          <h1>Spec Changes</h1>
-          <p class="sub">Auto-generated index &middot; last updated: TIMESTAMP</p>
-          HEADER
-
-          # Replace TIMESTAMP with current UTC time
-          sed -i "s/TIMESTAMP/$(date -u '+%Y-%m-%d %H:%M UTC')/" "$OUT"
-
-          html_escape() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'; }
-
-          # Find change directories (subdirs of docs/changes that contain HTML files)
-          for dir in docs/changes/*/; do
-            name=$(basename "$dir")
-            safe=$(html_escape "$name")
-            # Collect available HTML artifact links
-            links=""
-            for artifact in proposal design mockup review; do
-              if [ -f "${dir}${artifact}.html" ]; then
-                links="${links}<a href=\"${safe}/${artifact}.html\">${artifact}.html</a>"
-              fi
-            done
-            if [ -n "$links" ]; then
-              printf '<div class="change"><h2>%s</h2><div class="links">%s</div></div>\n' \
-                "$safe" "$links" >> "$OUT"
-            fi
-          done
-
-          echo '</main></body></html>' >> "$OUT"
+          <body>
+          <main>
+            <h1>Spec Changes</h1>
+            <p class="sub">Updated {now}</p>
+            <div class="grid">{cards}
+            </div>
+          </main>
+          </body>
+          </html>"""
+          (BUILD / "index.html").write_text(index)
+          print(f"Built {len(manifests)} change(s) into {BUILD}/")
+          PYEOF
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/changes
+          path: .pages-build
 
       - uses: actions/deploy-pages@v4
         id: deploy
