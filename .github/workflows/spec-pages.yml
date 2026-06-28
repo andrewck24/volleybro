@@ -126,7 +126,7 @@ jobs:
               pr_badge = ""
               if m.get("prNumber"):
                   pr_url = f"https://github.com/{repo}/pull/{m['prNumber']}"
-                  pr_badge = f'<a class="pr-badge" href="{esc(pr_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">PR #{esc(m["prNumber"])}</a>'
+                  pr_badge = f'<a class="pr-badge" href="{esc(pr_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">PR #{esc(str(m["prNumber"]))}</a>'
 
               meta_parts = []
               if m.get("proposedAt"):
@@ -135,8 +135,9 @@ jobs:
                   meta_parts.append(f'<span>PR opened {esc(m["prCreatedAt"])}</span>')
               meta_row = " · ".join(meta_parts)
 
+              card_url = f"shell.html?change={esc(name)}"
               cards += f"""
-          <a class="card" href="shell.html?change={esc(name)}">
+          <div class="card" role="link" tabindex="0" onclick="location.href='{card_url}'" onkeydown="if(event.key==='Enter')location.href='{card_url}'">
             <div class="card-top">
               <span class="card-name">{esc(name)}</span>
               {pr_badge}
@@ -147,7 +148,7 @@ jobs:
               <span style="width:{pct}%"></span>
               <em>{m['done']}/{m['total']} tasks</em>
             </div>
-          </a>"""
+          </div>"""
 
           now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
           index = f"""<!doctype html>
@@ -159,12 +160,14 @@ jobs:
           <style>
           :root{{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}}
           @media(prefers-color-scheme:light){{:root{{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}}}
+          [data-theme=dark]{{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}}
+          [data-theme=light]{{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
           *{{box-sizing:border-box}}body{{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}}
           main{{max-width:900px;margin:0 auto;padding:32px 20px 64px}}
           h1{{font-size:24px;margin:0 0 4px}}
           .sub{{color:var(--mut);font-size:13px;margin:0 0 28px}}
-          .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}}
-          .card{{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;transition:border-color .15s}}
+          .grid{{display:flex;flex-direction:column;gap:14px}}
+          .card{{display:block;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;transition:border-color .15s}}
           .card:hover,.card:focus-visible{{border-color:var(--accent);outline:none}}
           .card-top{{display:flex;align-items:center;gap:8px;margin-bottom:6px}}
           .card-name{{font-weight:600;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
@@ -175,7 +178,18 @@ jobs:
           .prog{{display:flex;align-items:center;position:relative;height:18px;background:var(--line);border-radius:5px;overflow:hidden}}
           .prog span{{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.55}}
           .prog em{{position:relative;font-style:normal;font-size:11px;padding-left:8px;color:var(--fg)}}
+          #themeBtn{{position:fixed;top:12px;right:16px;appearance:none;background:none;border:0;font-size:18px;cursor:pointer;line-height:1;color:var(--mut)}}
           </style>
+          <script>
+          (function(){{
+            var btn=document.createElement('button');btn.id='themeBtn';btn.title='Toggle dark/light mode';btn.setAttribute('aria-label','Toggle theme');
+            var sys=function(){{return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}};
+            var apply=function(t){{document.documentElement.dataset.theme=t;btn.textContent=t==='dark'?'☀':'☾';}};
+            document.addEventListener('DOMContentLoaded',function(){{document.body.appendChild(btn);}});
+            apply(localStorage.getItem('theme')||sys());
+            btn.onclick=function(){{var n=document.documentElement.dataset.theme==='dark'?'light':'dark';localStorage.setItem('theme',n);apply(n);}};
+          }})();
+          </script>
           </head>
           <body>
           <main>

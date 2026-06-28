@@ -7,6 +7,8 @@
 <style>
 :root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff;--ok:#2f9e44;--warn:#f08c00;--bad:#e03131}
 @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
+[data-theme=dark]{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}
+[data-theme=light]{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
 
@@ -18,6 +20,7 @@ body{margin:0;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(
 .grp{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .navbtn{appearance:none;background:none;border:0;color:var(--mut);font:inherit;cursor:pointer;
   padding:6px 10px;border-radius:7px;text-decoration:none;white-space:nowrap}
+#themeBtn{margin-left:auto;font-size:16px;line-height:1}
 .navbtn:hover{color:var(--fg);background:var(--card)}
 .navbtn:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 .home{font-weight:600;color:var(--fg)}.home[aria-current=page]{background:var(--card)}
@@ -40,7 +43,7 @@ iframe.auto{width:100%;border:0;display:block;min-height:50vh;background:#fff}
 .progress{display:flex;align-items:center;position:relative;height:20px;background:var(--line);border-radius:6px;overflow:hidden;max-width:360px}
 .progress span{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.5}
 .progress em{position:relative;font-style:normal;font-size:12px;padding-left:9px}
-.ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:22px}
+.ovgrid{display:flex;flex-direction:column;gap:12px;margin-top:22px}
 .ovc{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
   cursor:pointer;font:inherit;color:var(--fg);display:flex;flex-direction:column;gap:3px}
 .ovc:hover{border-color:var(--accent)}.ovc:focus-visible{outline:2px solid var(--accent)}
@@ -71,11 +74,22 @@ details.blocked summary::before{content:"\26A0\FE0F  "}
       <button class="navbtn home" id="homeBtn" title="Change overview">⌂ <span id="hname">…</span></button>
     </div>
     <nav class="grp tabs" role="tablist" id="tabs"></nav>
+    <button class="navbtn" id="themeBtn" title="Toggle dark/light mode" aria-label="Toggle theme"></button>
   </div>
 </header>
 <main id="panel" role="tabpanel" tabindex="0" aria-live="polite"><div class="wrap">Loading…</div></main>
 
 <script>
+// theme toggle
+(function(){
+  const btn = document.getElementById("themeBtn");
+  const sys = () => window.matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light";
+  const apply = (t) => { document.documentElement.dataset.theme = t; btn.textContent = t === "dark" ? "☀" : "☾"; };
+  const stored = localStorage.getItem("theme");
+  apply(stored || sys());
+  btn.onclick = () => { const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; localStorage.setItem("theme", next); apply(next); };
+})();
+
 const TABS = ["proposal", "specs", "design", "tasks", "review"];
 const LABELS = { proposal: "Proposal", specs: "Specs", design: "Design", tasks: "Tasks", review: "Review" };
 const HINTS = { proposal: "Why · what · impact", specs: "GIVEN/WHEN/THEN", design: "Decisions & contract", tasks: "Live checklist", review: "Post-apply verdict" };
@@ -229,7 +243,7 @@ async function renderContent(id) {
 }
 
 // grow same-origin iframes to their content height so the PAGE scrolls (no inner scroll box)
-function fitOne(f) { try { const doc = f.contentWindow.document; doc.documentElement.style.overflow = "hidden"; if (doc.body) doc.body.style.overflow = "hidden"; f.style.height = "0"; f.style.height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0) + "px"; } catch (e) {} }
+function fitOne(f) { try { const doc = f.contentWindow.document; doc.documentElement.style.scrollbarGutter = "stable"; if (doc.body) doc.body.style.scrollbarGutter = "stable"; f.style.height = "0"; f.style.height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0) + "px"; } catch (e) {} }
 function fitIframes() {
   for (const f of panel.querySelectorAll("iframe.auto")) {
     f.addEventListener("load", () => fitOne(f));
