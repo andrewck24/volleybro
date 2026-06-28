@@ -1,0 +1,6 @@
+{
+  "summary": "Replace 9 static PNG startup images with a dynamic next/og route; renders the V mark using font-extracted Saira Stencil One SVG paths. Extends coverage from 9 iPhone-only to 15 devices (iPhone + iPad).",
+  "proposedAt": "2026-06-23",
+  "prNumber": 305,
+  "prCreatedAt": "2026-06-26"
+}

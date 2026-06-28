@@ -42,6 +42,7 @@ export default async function jestConfig() {
       "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
     ],
   };
 
