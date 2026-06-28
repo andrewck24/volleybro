@@ -60,15 +60,15 @@ jobs:
               if s is None: return ""
               return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
 
-          HEADER_SCRIPT = '<script src="/header.js"></script>'
-
           def inject_header(cb):
-              """Inject /header.js into every artifact HTML except mockup.html."""
+              """Inject header.js (relative path) into every artifact HTML except mockup.html."""
               for f in cb.rglob("*.html"):
                   if f.name == "mockup.html": continue
                   text = f.read_text("utf-8")
-                  if "</body>" in text and HEADER_SCRIPT not in text:
-                      f.write_text(text.replace("</body>", HEADER_SCRIPT + "\n</body>", 1), "utf-8")
+                  if "</body>" not in text or "header.js" in text: continue
+                  depth = len(f.relative_to(BUILD).parts) - 1
+                  script = '<script src="' + "../" * depth + 'header.js"></script>'
+                  f.write_text(text.replace("</body>", script + "\n</body>", 1), "utf-8")
 
           def generate_tasks_html(cdir, cb):
               """Generate tasks.html from tasks.md if the latter exists."""
@@ -163,7 +163,7 @@ jobs:
                   "<style>" + CSS + "</style>",
                   "</head>",
                   "<body>",
-                  HEADER_SCRIPT,
+                  '<script src="' + "../" * (len((cb / "tasks.html").relative_to(BUILD).parts) - 1) + 'header.js"></script>',
                   '<div class="wrap">',
                   body,
                   "</div>",

@@ -1,15 +1,14 @@
 (function () {
-  // Derive change context from URL path.
-  // Handles: /changes/<name>/<artifact>.html
-  //          /changes/archive/<date-name>/<artifact>.html
-  //          /changes/<name>/specs/<cap>/spec.html  (inSpecs = true)
   var path = location.pathname;
-  var m = path.match(/\/changes\/((?:archive\/)?)([^/]+)\//);
+
+  // Capture everything before /changes/ as siteRoot (e.g. '/volleybro' or '').
+  var m = path.match(/^(.*?)\/changes\/((?:archive\/)?)([^/]+)\//);
   if (!m) return;
 
-  var prefix      = m[1];                            // "" | "archive/"
-  var dirName     = m[2];
-  var changePath  = '/changes/' + prefix + dirName + '/';
+  var siteRoot    = m[1];
+  var prefix      = m[2];
+  var dirName     = m[3];
+  var changePath  = siteRoot + '/changes/' + prefix + dirName + '/';
   var changeParam = prefix + dirName;
   var displayName = dirName.replace(/^\d{4}-\d{2}-\d{2}-/, '');
 
@@ -18,7 +17,6 @@
   var inSpecs     = path.indexOf(changePath + 'specs/') === 0;
   if (inSpecs) currentFile = '__specs__';
 
-  // ── Theme ──────────────────────────────────────────────────────────────────
   var DARK  = '--bg:#0c0c10;--surface:#14141c;--border:#22222e;--text:#e2e2f0;--muted:#7878a0;--accent:#818cf8;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;--fg:#e2e2f0;--card:#14141c;--line:#22222e;--mut:#7878a0';
   var LIGHT = '--bg:#f4f4f9;--surface:#ffffff;--border:#dddde8;--text:#1a1a2e;--muted:#6868a0;--accent:#6366f1;--ok:#059669;--warn:#d97706;--bad:#dc2626;--fg:#1a1a2e;--card:#ffffff;--line:#dddde8;--mut:#6868a0';
 
@@ -26,7 +24,6 @@
 
   function applyTheme(t) {
     document.documentElement.dataset.theme = t;
-    // Use setProperty so inline-style specificity beats any stylesheet rule.
     var vars = t === 'dark' ? DARK : LIGHT;
     vars.split(';').forEach(function (v) {
       var i = v.indexOf(':');
@@ -36,13 +33,11 @@
     if (btn) btn.textContent = t === 'dark' ? '☀' : '☾';
   }
 
-  // Apply vars immediately (synchronous, before DOM ready) to avoid flash.
   applyTheme(getTheme());
 
-  // ── DOM init ───────────────────────────────────────────────────────────────
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
     });
   }
 
@@ -61,7 +56,7 @@
     if (specs.length === 1)
       tabs += tab('__specs__', 'Spec', changePath + 'specs/' + specs[0].name + '/spec.html');
     else if (specs.length > 1)
-      tabs += tab('__specs__', 'Specs (' + specs.length + ')', '/shell.html?change=' + encodeURIComponent(changeParam) + '&tab=specs');
+      tabs += tab('__specs__', 'Specs (' + specs.length + ')', siteRoot + '/shell.html?change=' + encodeURIComponent(changeParam) + '#specs');
     if (!manifest || (a.design && (a.design.html || a.design.md)))
       tabs += tab('design', 'Design', changePath + 'design.html');
     tabs += tab('tasks', 'Tasks', changePath + 'tasks.html');
@@ -70,9 +65,9 @@
 
     var t = getTheme();
     return '<div id="__sh-in">' +
-      '<a class="__sh-a" href="/index.html">← All</a>' +
+      '<a class="__sh-a" href="' + esc(siteRoot + '/index.html') + '">← All</a>' +
       '<span class="__sh-sep" aria-hidden="true"></span>' +
-      '<a class="__sh-a" id="__sh-name" href="/shell.html?change=' + esc(changeParam) + '">' + esc(displayName) + '</a>' +
+      '<a class="__sh-a" id="__sh-name" href="' + esc(siteRoot + '/shell.html?change=' + changeParam) + '">' + esc(displayName) + '</a>' +
       '<nav id="__sh-tabs" aria-label="Artifacts">' + tabs + '</nav>' +
       '<button id="__sh-theme" title="Toggle theme" aria-label="Toggle theme">' + (t === 'dark' ? '☀' : '☾') + '</button>' +
       '</div>';
@@ -128,6 +123,7 @@
         if (!manifest) return;
         bar.innerHTML = buildBar(manifest);
         wireTheme();
+        applyTheme(getTheme());
       })
       .catch(function () {});
   }
@@ -135,4 +131,3 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
-
