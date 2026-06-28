@@ -130,6 +130,11 @@ function injectIframe(f, t) {
     let s = doc.getElementById('__sh');
     if (!s) { s = doc.createElement('style'); s.id = '__sh'; (doc.head || doc.documentElement).appendChild(s); }
     s.textContent = ':root{' + VARS[t] + '}';
+    // recurse into nested iframes (e.g. mockup.html inside design.html)
+    doc.querySelectorAll('iframe').forEach(n => {
+      injectIframe(n, t);
+      n.addEventListener('load', () => injectIframe(n, t));
+    });
   } catch(e) {}
 }
 function applyTheme(t) {
