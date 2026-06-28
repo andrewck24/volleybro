@@ -26,14 +26,17 @@
 
   function applyTheme(t) {
     document.documentElement.dataset.theme = t;
-    var s = document.getElementById('__sh-vars');
-    if (!s) { s = document.createElement('style'); s.id = '__sh-vars'; (document.head || document.documentElement).appendChild(s); }
-    s.textContent = ':root{' + (t === 'dark' ? DARK : LIGHT) + '}';
+    // Use setProperty so inline-style specificity beats any stylesheet rule.
+    var vars = t === 'dark' ? DARK : LIGHT;
+    vars.split(';').forEach(function (v) {
+      var i = v.indexOf(':');
+      if (i > 0) document.documentElement.style.setProperty(v.slice(0, i).trim(), v.slice(i + 1).trim());
+    });
     var btn = document.getElementById('__sh-theme');
     if (btn) btn.textContent = t === 'dark' ? '☀' : '☾';
   }
 
-  // Apply vars immediately to avoid theme flash before DOM is ready.
+  // Apply vars immediately (synchronous, before DOM ready) to avoid flash.
   applyTheme(getTheme());
 
   // ── DOM init ───────────────────────────────────────────────────────────────
