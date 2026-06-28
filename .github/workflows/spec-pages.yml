@@ -144,9 +144,9 @@ jobs:
             </div>
             <p class="card-sum">{esc(m.get("summary",""))}</p>
             <div class="card-meta">{meta_row}</div>
-            <div class="prog" role="progressbar" aria-valuenow="{m['done']}" aria-valuemin="0" aria-valuemax="{m['total']}" aria-label="{m['done']} of {m['total']} tasks done">
-              <span style="width:{pct}%"></span>
-              <em>{m['done']}/{m['total']} tasks</em>
+            <div class="prog-row" role="progressbar" aria-valuenow="{m['done']}" aria-valuemin="0" aria-valuemax="{m['total']}" aria-label="{m['done']} of {m['total']} tasks done">
+              <div class="prog-track"><div class="prog-fill" style="width:{pct}%"></div></div>
+              <span class="prog-label">{m['done']}/{m['total']} tasks</span>
             </div>
           </div>"""
 
@@ -157,32 +157,39 @@ jobs:
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width,initial-scale=1">
           <title>Spec Changes</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
           <style>
-          :root{{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}}
-          @media(prefers-color-scheme:light){{:root{{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}}}
-          [data-theme=dark]{{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--accent:#7aa2ff}}
-          [data-theme=light]{{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--accent:#3b5bdb}}
-          *{{box-sizing:border-box}}body{{margin:0;font:15px/1.65 system-ui,sans-serif;background:var(--bg);color:var(--fg)}}
-          main{{max-width:900px;margin:0 auto;padding:32px 20px 64px}}
-          h1{{font-size:24px;margin:0 0 4px}}
-          .sub{{color:var(--mut);font-size:13px;margin:0 0 28px}}
-          .grid{{display:flex;flex-direction:column;gap:14px}}
-          .card{{display:block;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;transition:border-color .15s}}
-          .card:hover,.card:focus-visible{{border-color:var(--accent);outline:none}}
+          :root{{--bg:#0c0c10;--surface:#14141c;--border:#22222e;--text:#e2e2f0;--muted:#7878a0;--accent:#818cf8}}
+          @media(prefers-color-scheme:light){{:root{{--bg:#f4f4f9;--surface:#ffffff;--border:#dddde8;--text:#1a1a2e;--muted:#6868a0;--accent:#6366f1}}}}
+          [data-theme=dark]{{--bg:#0c0c10;--surface:#14141c;--border:#22222e;--text:#e2e2f0;--muted:#7878a0;--accent:#818cf8}}
+          [data-theme=light]{{--bg:#f4f4f9;--surface:#ffffff;--border:#dddde8;--text:#1a1a2e;--muted:#6868a0;--accent:#6366f1}}
+          *{{box-sizing:border-box}}
+          body{{margin:0;font:15px/1.65 'Bricolage Grotesque',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}}
+          main{{max-width:900px;margin:0 auto;padding:40px 20px 72px}}
+          .hd{{display:flex;align-items:baseline;gap:12px;margin-bottom:32px}}
+          h1{{font-size:26px;font-weight:700;margin:0;letter-spacing:-.4px}}
+          .sub{{color:var(--muted);font-size:13px;margin:0;font-family:'IBM Plex Mono',monospace}}
+          .grid{{display:flex;flex-direction:column;gap:10px}}
+          .card{{cursor:pointer;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .14s,box-shadow .14s}}
+          .card:hover,.card:focus-visible{{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent);outline:none}}
           .card-top{{display:flex;align-items:center;gap:8px;margin-bottom:6px}}
-          .card-name{{font-weight:600;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-          .pr-badge{{font-size:11px;font-weight:600;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:1px 7px;white-space:nowrap;text-decoration:none;flex-shrink:0}}
+          .card-name{{font-weight:600;font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'IBM Plex Mono',monospace;letter-spacing:-.3px}}
+          .pr-badge{{font-size:11px;font-weight:500;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);border-radius:5px;padding:2px 8px;white-space:nowrap;text-decoration:none;flex-shrink:0;font-family:'IBM Plex Mono',monospace;transition:background .12s,color .12s}}
           .pr-badge:hover{{background:var(--accent);color:var(--bg)}}
-          .card-sum{{margin:0 0 8px;font-size:13px;color:var(--mut);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
-          .card-meta{{font-size:12px;color:var(--mut);margin-bottom:10px}}
-          .prog{{display:flex;align-items:center;position:relative;height:18px;background:var(--line);border-radius:5px;overflow:hidden}}
-          .prog span{{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.55}}
-          .prog em{{position:relative;font-style:normal;font-size:11px;padding-left:8px;color:var(--fg)}}
-          #themeBtn{{position:fixed;top:12px;right:16px;appearance:none;background:none;border:0;font-size:18px;cursor:pointer;line-height:1;color:var(--mut)}}
+          .card-sum{{margin:0 0 10px;font-size:13.5px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
+          .card-meta{{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace}}
+          .prog-row{{display:flex;align-items:center;gap:10px}}
+          .prog-track{{flex:1;max-width:240px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}}
+          .prog-fill{{height:100%;background:var(--accent);border-radius:2px}}
+          .prog-label{{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;white-space:nowrap}}
+          .theme-pill{{position:fixed;top:14px;right:18px;appearance:none;background:var(--surface);border:1px solid var(--border);cursor:pointer;font-size:13px;padding:3px 10px;border-radius:20px;color:var(--muted);transition:border-color .12s;line-height:1.6;font-family:'Bricolage Grotesque',system-ui,sans-serif}}
+          .theme-pill:hover{{border-color:var(--accent);color:var(--text)}}
           </style>
           <script>
           (function(){{
-            var btn=document.createElement('button');btn.id='themeBtn';btn.title='Toggle dark/light mode';btn.setAttribute('aria-label','Toggle theme');
+            var btn=document.createElement('button');btn.className='theme-pill';btn.title='Toggle theme';btn.setAttribute('aria-label','Toggle theme');
             var sys=function(){{return window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}};
             var apply=function(t){{document.documentElement.dataset.theme=t;btn.textContent=t==='dark'?'☀':'☾';}};
             document.addEventListener('DOMContentLoaded',function(){{document.body.appendChild(btn);}});
@@ -193,8 +200,7 @@ jobs:
           </head>
           <body>
           <main>
-            <h1>Spec Changes</h1>
-            <p class="sub">Updated {now}</p>
+            <div class="hd"><h1>Spec Changes</h1><p class="sub">updated {now}</p></div>
             <div class="grid">{cards}
             </div>
           </main>
