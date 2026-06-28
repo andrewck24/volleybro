@@ -5,6 +5,7 @@ on:
     paths:
       - "docs/changes/**"
       - "docs/shell.html"
+      - "docs/header.js"
   workflow_dispatch:
 
 # GitHub Pages on a private repo is only accessible to repository collaborators.
@@ -36,13 +37,14 @@ jobs:
       - name: Build site
         run: |
           python3 - <<'PYEOF'
-          import os, json, re, shutil, pathlib
+          import os, json, re, shutil, pathlib, html
           from datetime import datetime, timezone
 
           BUILD   = pathlib.Path(".pages-build")
           CHANGES = pathlib.Path("docs/changes")
           ARCHIVE = CHANGES / "archive"
           SHELL   = pathlib.Path("docs/shell.html")
+          HEADER  = pathlib.Path("docs/header.js")
           repo    = os.environ.get("GH_REPO", "")
 
           BUILD.mkdir(exist_ok=True)
@@ -51,10 +53,103 @@ jobs:
 
           if SHELL.exists():
               shutil.copy(SHELL, BUILD / "shell.html")
+          if HEADER.exists():
+              shutil.copy(HEADER, BUILD / "header.js")
 
           def esc(s):
               if s is None: return ""
               return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;")
+
+          HEADER_SCRIPT = '<script src="/header.js"></script>'
+
+          def inject_header(cb):
+              """Inject /header.js into every artifact HTML except mockup.html."""
+              for f in cb.rglob("*.html"):
+                  if f.name == "mockup.html": continue
+                  text = f.read_text("utf-8")
+                  if "</body>" in text and HEADER_SCRIPT not in text:
+                      f.write_text(text.replace("</body>", HEADER_SCRIPT + "\n</body>", 1), "utf-8")
+
+          def generate_tasks_html(cdir, cb):
+              """Generate tasks.html from tasks.md if the latter exists."""
+              tf = cdir / "tasks.md"
+              if not tf.exists(): return
+              md = tf.read_text("utf-8")
+
+              def esc_h(s): return html.escape(str(s))
+
+              lines = md.replace("\r", "").split("\n")
+              body  = ""
+              i = 0
+              while i < len(lines):
+                  l = lines[i]
+                  hm = re.match(r"^(#{1,4})\s+(.*)", l)
+                  if hm:
+                      lvl  = len(hm.group(1))
+                      body += f"<h{lvl}>{esc_h(hm.group(2))}</h{lvl}>"
+                      i += 1; continue
+                  tm = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.*)", l)
+                  if tm:
+                      done = tm.group(1).lower() == "x"
+                      text = esc_h(tm.group(2))
+                      cls  = "task done" if done else "task"
+                      box  = "✓" if done else "☐"
+                      body += f'<li class="{cls}"><span class="box">{box}</span> {text}</li>'
+                      i += 1; continue
+                  bm = re.match(r"^>\s?(.*)", l)
+                  if bm:
+                      buf = []
+                      while i < len(lines) and lines[i].startswith(">"):
+                          buf.append(re.sub(r"^>\s?", "", lines[i]))
+                          i += 1
+                      text = "\n".join(buf)
+                      if text.upper().startswith("BLOCKED"):
+                          body += f'<details class="blocked" open><summary>{esc_h(text.split(chr(10))[0])}</summary></details>'
+                      else:
+                          body += f"<blockquote>{esc_h(text)}</blockquote>"
+                      continue
+                  if l.strip():
+                      body += f"<p>{esc_h(l)}</p>"
+                  i += 1
+
+              tasks_html = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{{--bg:#0c0c10;--surface:#14141c;--border:#22222e;--text:#e2e2f0;--muted:#7878a0;--accent:#818cf8;--ok:#34d399;--bad:#f87171}}
+@media(prefers-color-scheme:light){{:root{{--bg:#f4f4f9;--surface:#ffffff;--border:#dddde8;--text:#1a1a2e;--muted:#6868a0;--accent:#6366f1;--ok:#059669;--bad:#dc2626}}}}
+[data-theme=dark]{{--bg:#0c0c10;--surface:#14141c;--border:#22222e;--text:#e2e2f0;--muted:#7878a0;--accent:#818cf8;--ok:#34d399;--bad:#f87171}}
+[data-theme=light]{{--bg:#f4f4f9;--surface:#ffffff;--border:#dddde8;--text:#1a1a2e;--muted:#6868a0;--accent:#6366f1;--ok:#059669;--bad:#dc2626}}
+*{{box-sizing:border-box}}
+body{{margin:0;font:15px/1.7 'Bricolage Grotesque',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}}
+.wrap{{max-width:820px;margin:0 auto;padding:28px 20px 72px}}
+h2{{font-size:17px;font-weight:700;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}}
+h3,h4{{font-size:14px;font-weight:600;margin:20px 0 6px;color:var(--muted)}}
+ul{{padding:0;list-style:none;margin:0}}
+li.task{{display:flex;align-items:baseline;gap:9px;padding:5px 0;font-size:14px;line-height:1.5}}
+li.task .box{{font-weight:700;font-family:'IBM Plex Mono',monospace;flex-shrink:0;min-width:1.2em;color:var(--muted)}}
+li.task.done .box{{color:var(--ok)}}
+li.task.done{{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--border)}}
+details.blocked{{border:1px solid var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent);border-radius:8px;padding:10px 14px;margin:12px 0}}
+details.blocked summary{{color:var(--bad);font-weight:600;cursor:pointer;font-size:13px;font-family:'IBM Plex Mono',monospace}}
+blockquote{{border-left:3px solid var(--border);margin:10px 0;padding:3px 14px;color:var(--muted);font-size:13px}}
+p{{font-size:14px;color:var(--muted)}}
+</style>
+</head>
+<body>
+{HEADER_SCRIPT}
+<div class="wrap">
+{body}
+</div>
+</body>
+</html>"""
+              (cb / "tasks.html").write_text(tasks_html, "utf-8")
 
           def copy_artifacts(cdir, cb):
               cb.mkdir(parents=True, exist_ok=True)
@@ -65,6 +160,8 @@ jobs:
               specs_src = cdir / "specs"
               if specs_src.exists():
                   shutil.copytree(specs_src, cb / "specs", dirs_exist_ok=True)
+              generate_tasks_html(cdir, cb)
+              inject_header(cb)
 
           def make_manifest(cdir, name, arch_date=None):
               meta = {}
