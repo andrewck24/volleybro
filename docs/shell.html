@@ -37,9 +37,9 @@ iframe.auto{width:100%;border:0;display:block;min-height:50vh;background:#fff}
 
 /* overview (change home) */
 .ovsum{color:var(--mut);font-size:15px;margin:6px 0 16px}
-.progress{position:relative;height:20px;background:var(--line);border-radius:6px;overflow:hidden;max-width:360px}
+.progress{display:flex;align-items:center;position:relative;height:20px;background:var(--line);border-radius:6px;overflow:hidden;max-width:360px}
 .progress span{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.5}
-.progress em{position:relative;font-style:normal;font-size:12px;padding-left:9px;line-height:20px}
+.progress em{position:relative;font-style:normal;font-size:12px;padding-left:9px}
 .ovgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:22px}
 .ovc{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px;
   cursor:pointer;font:inherit;color:var(--fg);display:flex;flex-direction:column;gap:3px}
@@ -229,7 +229,7 @@ async function renderContent(id) {
 }
 
 // grow same-origin iframes to their content height so the PAGE scrolls (no inner scroll box)
-function fitOne(f) { try { f.style.height = "0"; f.style.height = f.contentWindow.document.documentElement.scrollHeight + "px"; } catch (e) {} }
+function fitOne(f) { try { const doc = f.contentWindow.document; doc.documentElement.style.overflow = "hidden"; if (doc.body) doc.body.style.overflow = "hidden"; f.style.height = "0"; f.style.height = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0) + "px"; } catch (e) {} }
 function fitIframes() {
   for (const f of panel.querySelectorAll("iframe.auto")) {
     f.addEventListener("load", () => fitOne(f));
