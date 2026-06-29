@@ -4,7 +4,7 @@ interface TaskProgressProps {
 }
 
 export function TaskProgress({ done, total }: TaskProgressProps) {
-  const pct = (done / total) * 100;
+  const pct = total === 0 ? 0 : (done / total) * 100;
   return (
     <div>
       <div style={{ width: "100%", background: "#e5e7eb" }}>

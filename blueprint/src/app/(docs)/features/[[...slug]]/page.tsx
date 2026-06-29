@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { notFound } from "next/navigation";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 
@@ -6,7 +7,7 @@ interface PageProps {
 }
 
 // ponytail: static list for now; expand to dynamic discovery when features grow
-const featureModules: Record<string, () => Promise<{ default: React.ComponentType }>> = {
+const featureModules: Record<string, () => Promise<{ default: ComponentType }>> = {
   "game-recording": () => import("../../../../../content/features/game-recording/index"),
 };
 

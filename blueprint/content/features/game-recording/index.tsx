@@ -2,11 +2,11 @@
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 
 const nodes = [
-  { id: "lineup", label: "Lineup", x: 60, y: 100 },
-  { id: "rally", label: "Rally", x: 200, y: 100 },
-  { id: "score", label: "Score", x: 340, y: 100 },
-  { id: "rotation", label: "Rotation", x: 200, y: 200 },
-  { id: "end-set", label: "End Set", x: 340, y: 200 },
+  { id: "lineup", label: "Lineup", x: 60, y: 80 },
+  { id: "rally", label: "Rally", x: 200, y: 80 },
+  { id: "score", label: "Score", x: 340, y: 80 },
+  { id: "rotation", label: "Rotation", x: 200, y: 170 },
+  { id: "end-set", label: "End Set", x: 340, y: 170 },
 ];
 
 const details: Record<string, { title: string; body: string }> = {
