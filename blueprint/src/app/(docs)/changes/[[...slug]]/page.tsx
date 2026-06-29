@@ -4,9 +4,25 @@ import { source } from "@/lib/source";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 
-// ponytail: populated during task 5.x migrations; empty until then
 const designModules: Record<string, () => Promise<{ default: ComponentType }>> =
-  {};
+  {
+    "archive/2026-06-28-apple-splash-dynamic/design": () =>
+      import(
+        "../../../../../content/changes/archive/2026-06-28-apple-splash-dynamic/design"
+      ),
+    "archive/2026-06-16-contextual-edit-pages/design": () =>
+      import(
+        "../../../../../content/changes/archive/2026-06-16-contextual-edit-pages/design"
+      ),
+    "archive/2026-06-16-api-objectid-guards/design": () =>
+      import(
+        "../../../../../content/changes/archive/2026-06-16-api-objectid-guards/design"
+      ),
+    "archive/2026-06-16-team-routes-clean-architecture/design": () =>
+      import(
+        "../../../../../content/changes/archive/2026-06-16-team-routes-clean-architecture/design"
+      ),
+  };
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;

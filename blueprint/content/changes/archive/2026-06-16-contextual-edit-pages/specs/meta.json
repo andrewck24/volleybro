@@ -1,0 +1,4 @@
+{
+  "title": "Specs",
+  "pages": ["contextual-edit-pages/spec", "form-draft-persistence/spec", "tab-navigation/spec"]
+}

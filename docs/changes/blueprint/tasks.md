@@ -32,21 +32,21 @@
 
 ## 5. Migrate 4 archived changes as blueprint content
 
-- [ ] 5.1 `blueprint/content/changes/archive/2026-06-28-apple-splash-dynamic/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/apple-splash/spec.mdx` — this change already has rendered `.html` files in `docs/changes/archive/2026-06-28-apple-splash-dynamic/` which serve as visual reference for the expected output; verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200
-- [ ] [P] 5.2 `blueprint/content/changes/archive/2026-06-16-contextual-edit-pages/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/` with one `.mdx` per spec — verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200 (no 404 in build output)
-- [ ] [P] 5.3 `blueprint/content/changes/archive/2026-06-16-api-objectid-guards/` contains the same artifact set, converted from the `.md` originals in `docs/changes/archive/` — verify same way as 5.2
-- [ ] [P] 5.4 `blueprint/content/changes/archive/2026-06-16-team-routes-clean-architecture/` contains the same artifact set — verify same way as 5.2
-- [ ] 5.5 The blueprint sidebar lists all four migrated changes under an "Archive" group and each artifact tab link navigates without 404 — verify manually in dev server
+- [x] 5.1 `blueprint/content/changes/archive/2026-06-28-apple-splash-dynamic/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/apple-splash/spec.mdx` — this change already has rendered `.html` files in `docs/changes/archive/2026-06-28-apple-splash-dynamic/` which serve as visual reference for the expected output; verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200
+- [x] [P] 5.2 `blueprint/content/changes/archive/2026-06-16-contextual-edit-pages/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/` with one `.mdx` per spec — verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200 (no 404 in build output)
+- [x] [P] 5.3 `blueprint/content/changes/archive/2026-06-16-api-objectid-guards/` contains the same artifact set, converted from the `.md` originals in `docs/changes/archive/` — verify same way as 5.2
+- [x] [P] 5.4 `blueprint/content/changes/archive/2026-06-16-team-routes-clean-architecture/` contains the same artifact set — verify same way as 5.2
+- [x] 5.5 The blueprint sidebar lists all four migrated changes under an "Archive" group and each artifact tab link navigates without 404 — verify manually in dev server
 
 ## 6. Feature showcase stub
 
-- [ ] 6.1 `blueprint/content/features/game-recording/index.tsx` exports a default React component that uses `<InteractiveFlowchart>` with at least 3 nodes representing the game recording flow — verify by building and loading `/features/game-recording` in dev server without error
+- [x] 6.1 `blueprint/content/features/game-recording/index.tsx` exports a default React component that uses `<InteractiveFlowchart>` with at least 3 nodes representing the game recording flow — verify by building and loading `/features/game-recording` in dev server without error
 
 ## 7. Cloudflare Pages deployment
 
-- [ ] 7.1 A Cloudflare Pages build config (`blueprint/wrangler.toml` or `.cloudflare/pages.json`) specifies the build command `pnpm --filter blueprint build` and publish directory `blueprint/out` — verify that a local `wrangler pages dev blueprint/out` serves the static site without error
+- [x] 7.1 A Cloudflare Pages build config (`blueprint/wrangler.toml` or `.cloudflare/pages.json`) specifies the build command `pnpm --filter blueprint build` and publish directory `blueprint/out` — verify that a local `wrangler pages dev blueprint/out` serves the static site without error
 
 ## 8. Full build validation
 
-- [ ] 8.1 `pnpm --filter blueprint build` completes without TypeScript errors or Next.js build errors — verify by running the command and checking exit code is 0
-- [ ] 8.2 All 13 component tests pass (`pnpm --filter blueprint test`) — verify by running the test suite and checking all tests pass
+- [x] 8.1 `pnpm --filter blueprint build` completes without TypeScript errors or Next.js build errors — verify by running the command and checking exit code is 0
+- [x] 8.2 All 13 component tests pass (`pnpm --filter blueprint test`) — verify by running the test suite and checking all tests pass
