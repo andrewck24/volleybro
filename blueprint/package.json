@@ -1,0 +1,32 @@
+{
+  "name": "blueprint",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "type-check": "tsc --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "fumadocs-core": "^16.10.6",
+    "fumadocs-mdx": "^15.0.13",
+    "fumadocs-ui": "^16.10.6",
+    "next": "^16.2.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@tailwindcss/postcss": "^4.3.2",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^5"
+  }
+}
