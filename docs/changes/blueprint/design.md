@@ -18,7 +18,7 @@ Blueprint replaces this with a Fumadocs (Next.js) site that handles navigation, 
 - Change-review section: browse and read all Spectra change artifacts (proposal, spec, design, tasks, review) with Fumadocs sidebar and tab navigation
 - Feature-showcase section: interactive `.tsx` pages documenting VolleyBro features
 - 13-component library covering all artifact types and feature showcase patterns
-- Migrate 3 recent archived changes (`contextual-edit-pages`, `api-objectid-guards`, `team-routes-clean-architecture`) as real content to validate all artifact types end-to-end
+- Migrate 4 archived changes as real content to validate all artifact types end-to-end; `apple-splash-dynamic` (which already has rendered `.html` files from the old spec-pages system) is migrated first and serves as the primary reference for the expected visual output
 - Cloudflare Pages deployment with per-branch preview URLs
 - Monorepo-ready: `blueprint/` is an independent Next.js package (own `package.json`, `tsconfig.json`) — no shared root config dependency
 
@@ -75,9 +75,11 @@ All 13 components are built in the initial apply — no Tier 2 deferral. The mig
 
 Fumadocs provides natively: `Callout`, `Steps`, `Tabs`, `Card`, `CodeBlock`, `Table`, `Mermaid` — these are used directly without wrapping.
 
-### D7: Migration scope — 3 archived changes
+### D7: Migration scope — 4 archived changes
 
-Three recent archives with full artifact sets are migrated as test content:
+Four archived changes are migrated as test content. `apple-splash-dynamic` is migrated first because it has rendered `.html` files from the old spec-pages system — these serve as a concrete visual reference for what the MDX + component output should look like:
+
+- `2026-06-28-apple-splash-dynamic` (has proposal, design, specs, tasks, review — **plus** rendered `.html` versions) — **migrate first**
 - `2026-06-16-contextual-edit-pages` (has proposal, design, specs ×3, tasks, review)
 - `2026-06-16-api-objectid-guards` (has proposal, design, specs, tasks, review)
 - `2026-06-16-team-routes-clean-architecture` (has proposal, design, specs, tasks, review)
@@ -144,7 +146,7 @@ Each component accepts typed props — no untyped `any`. The 8 Tier 1 components
 
 ### Scope boundaries
 
-In scope: `blueprint/` package, `content/changes/archive/` for 3 migrations, `src/components/` 13 components, CI for Cloudflare Pages.
+In scope: `blueprint/` package, `content/changes/archive/` for 4 migrations, `src/components/` 13 components, CI for Cloudflare Pages.
 
 Out of scope during this change: `docs/header.js` removal, `spec-pages.yml` removal, migrating the remaining 20+ archived changes, `spec-loop/workflow.md` update (manual follow-up after propose).
 

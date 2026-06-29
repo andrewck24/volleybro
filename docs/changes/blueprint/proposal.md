@@ -8,7 +8,7 @@ The current `spec-pages` (Python-generated static HTML on GitHub Pages) has pers
 - `content/changes/` directory holds spec review content (proposal, spec, review, tasks as `.mdx`; design as `.tsx`)
 - `content/features/` directory holds interactive feature documentation (`.tsx` full React components)
 - 13-component library (`src/components/`) covering all artifact types and feature showcase patterns
-- Existing spec-pages HTML artifacts migrated into MDX/TSX format under `content/changes/archive/`
+- 4 archived changes migrated into MDX/TSX format under `content/changes/archive/` (including `apple-splash-dynamic` which already has rendered HTML — used as the primary migration reference)
 - CI updated: GitHub Pages workflow replaced/supplemented by Cloudflare Pages deployment
 - `spec-loop/workflow.md` updated to reflect `design.html` becoming `design.tsx` (no more embed pattern)
 

@@ -30,12 +30,13 @@
 - [ ] [P] 4.4 `<FeatureExplainer title summary steps />` where each step is `{label: string, detail: string}` renders the title, summary, and an expandable list of steps (each step toggles detail on click) — verify by failing test asserting step detail is hidden by default and visible after click, then implement
 - [ ] [P] 4.5 `<ConceptExplainer term definition example />` renders the term prominently, the definition as prose, and the example in a visually distinct block — verify by failing test asserting all three are rendered, then implement
 
-## 5. Migrate 3 archived changes as blueprint content
+## 5. Migrate 4 archived changes as blueprint content
 
-- [ ] [P] 5.1 `blueprint/content/changes/archive/2026-06-16-contextual-edit-pages/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/` with one `.mdx` per spec — verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200 (no 404 in build output)
-- [ ] [P] 5.2 `blueprint/content/changes/archive/2026-06-16-api-objectid-guards/` contains the same artifact set, converted from the `.md` originals in `docs/changes/archive/` — verify same way as 5.1
-- [ ] [P] 5.3 `blueprint/content/changes/archive/2026-06-16-team-routes-clean-architecture/` contains the same artifact set — verify same way as 5.1
-- [ ] 5.4 The blueprint sidebar lists all three migrated changes under an "Archive" group and each artifact tab link navigates without 404 — verify manually in dev server
+- [ ] 5.1 `blueprint/content/changes/archive/2026-06-28-apple-splash-dynamic/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/apple-splash/spec.mdx` — this change already has rendered `.html` files in `docs/changes/archive/2026-06-28-apple-splash-dynamic/` which serve as visual reference for the expected output; verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200
+- [ ] [P] 5.2 `blueprint/content/changes/archive/2026-06-16-contextual-edit-pages/` contains `proposal.mdx`, `design.tsx`, `tasks.mdx`, `review.mdx`, and `specs/` with one `.mdx` per spec — verify by running `pnpm --filter blueprint build` and confirming all artifact URLs for this change return 200 (no 404 in build output)
+- [ ] [P] 5.3 `blueprint/content/changes/archive/2026-06-16-api-objectid-guards/` contains the same artifact set, converted from the `.md` originals in `docs/changes/archive/` — verify same way as 5.2
+- [ ] [P] 5.4 `blueprint/content/changes/archive/2026-06-16-team-routes-clean-architecture/` contains the same artifact set — verify same way as 5.2
+- [ ] 5.5 The blueprint sidebar lists all four migrated changes under an "Archive" group and each artifact tab link navigates without 404 — verify manually in dev server
 
 ## 6. Feature showcase stub
 
