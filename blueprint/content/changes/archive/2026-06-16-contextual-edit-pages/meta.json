@@ -1,4 +1,4 @@
 {
   "title": "contextual-edit-pages",
-  "pages": ["proposal", "tasks", "review", "specs"]
+  "pages": ["index", "proposal", "tasks", "review", "specs"]
 }

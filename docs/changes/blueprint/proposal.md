@@ -9,6 +9,8 @@ The current `spec-pages` (Python-generated static HTML on GitHub Pages) has pers
 - `content/features/` directory holds interactive feature documentation (`.tsx` full React components)
 - 13-component library (`src/components/`) covering all artifact types and feature showcase patterns
 - 4 archived changes migrated into MDX/TSX format under `content/changes/archive/` (including `apple-splash-dynamic` which already has rendered HTML — used as the primary migration reference)
+- Each archived change has an `index.mdx` landing page listing all artifact links (proposal, design, tasks, review, specs), making the design page discoverable even though it is served via `designModules` outside the fumadocs page tree
+- Changes homepage (`content/changes/index.mdx`) lists all in-progress and archived changes with summaries, replacing the previous empty stub
 - CI updated: GitHub Pages workflow replaced/supplemented by Cloudflare Pages deployment
 - `spec-loop/workflow.md` updated to reflect `design.html` becoming `design.tsx` (no more embed pattern)
 
@@ -16,7 +18,7 @@ The current `spec-pages` (Python-generated static HTML on GitHub Pages) has pers
 
 ### New Capabilities
 
-- `change-review-portal`: Browse and review Spectra change artifacts (proposal, spec, design, tasks, review) via Fumadocs-powered MDX pages with sidebar navigation and tab-based artifact switching
+- `change-review-portal`: Browse and review Spectra change artifacts (proposal, spec, design, tasks, review) via Fumadocs-powered MDX pages with sidebar navigation, tab-based artifact switching, per-change index pages, and a changes homepage listing all in-progress and archived changes
 - `feature-showcase`: Interactive feature documentation pages built as full `.tsx` React components, using the blueprint component library (architecture diagrams, interactive flowcharts, scenario walkthroughs)
 - `blueprint-component-library`: Shared React component library for both change-review and feature-showcase; 13 components covering artifact display, diagrams, and status indicators
 

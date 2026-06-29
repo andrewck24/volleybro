@@ -33,6 +33,41 @@ Users can browse historically archived changes as read-only content.
 - **THEN** the proposal content renders correctly
 - **AND** the sidebar groups archived changes visually separate from active ones
 
+### Requirement: Changes homepage
+
+The changes homepage at `/changes` lists all in-progress and archived changes, giving users an entry point into the portal.
+
+#### Scenario: Homepage lists in-progress changes
+
+- **WHEN** a user navigates to `/changes`
+- **THEN** an "In Progress" section is visible
+- **AND** each in-progress change is listed with its name and a short summary
+- **AND** the change entry links to its page or description
+
+#### Scenario: Homepage lists archived changes
+
+- **WHEN** a user navigates to `/changes`
+- **THEN** an "Archive" section is visible listing all archived changes
+- **AND** each archived change entry links to its index page at `/changes/archive/<date-name>/`
+
+### Requirement: Per-change index page
+
+Each archived change has an index page that lists all of its artifact links, including design.
+
+#### Scenario: Change index page shows all artifact links
+
+- **GIVEN** the user navigates to `/changes/archive/<date-name>/`
+- **THEN** the page displays the change name and a short summary
+- **AND** links are rendered for: Proposal, Design, Tasks, Review, and Specs
+- **AND** clicking "Design" navigates to `/changes/archive/<date-name>/design` and renders the design component
+- **AND** the Design link is present even though the design page is not in the fumadocs sidebar
+
+#### Scenario: Design page renders via designModules
+
+- **WHEN** a user navigates directly to `/changes/archive/<date-name>/design`
+- **THEN** the design TSX component renders inside the DocsPage shell
+- **AND** no 404 is returned
+
 ### Requirement: Dark/light theme persistence
 
 #### Scenario: Theme persists across page navigation
