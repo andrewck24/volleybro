@@ -2,6 +2,46 @@
 import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 
+const V_LEFT =
+  "M107.01 581.12L102.40 566.27Q95.74 545.79 90.62 526.34L90.62 526.34L74.24 470.02Q66.05 442.37 61.44 428.54L61.44 428.54Q57.34 413.18 54.78 405.50L54.78 405.50L2.56 228.86L107.01 228.86L202.75 581.12L107.01 581.12Z";
+const V_RIGHT =
+  "M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z";
+
+const SIZES = [
+  { label: "28% (current)", px: 50, selected: false },
+  { label: "25% ✓ selected", px: 45, selected: true },
+  { label: "20%", px: 36, selected: false },
+  { label: "15%", px: 27, selected: false },
+];
+
+function PhoneFrame({ sizePx, label, selected }: { sizePx: number; label: string; selected: boolean }) {
+  return (
+    <div style={{ textAlign: "center", flexShrink: 0 }}>
+      <div
+        style={{
+          margin: "0 auto",
+          width: 120,
+          height: 260,
+          borderRadius: 20,
+          border: "5px solid #111",
+          overflow: "hidden",
+          background: "#10687E",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: selected ? "0 0 0 2px #2f9e44" : undefined,
+        }}
+      >
+        <svg width={sizePx} height={sizePx} viewBox="-10 225 360 360" style={{ display: "block" }}>
+          <path d={V_LEFT} fill="#F6F4F5" />
+          <path d={V_RIGHT} fill="#FC7A56" />
+        </svg>
+      </div>
+      <div style={{ fontSize: 11, marginTop: 6, color: selected ? "#2f9e44" : "#9aa0ad" }}>{label}</div>
+    </div>
+  );
+}
+
 const decisions = [
   {
     name: "D1: Runtime generation via next/og ImageResponse",
@@ -18,9 +58,7 @@ const decisions = [
       "One handler serves all 15 device sizes",
       "Unsupported sizes return 404 — no mis-sized images silently served",
     ],
-    cons: [
-      "Extra path segments (e.g. 750x1334xfoo) are parsed loosely — non-security-relevant",
-    ],
+    cons: ["Extra path segments (e.g. 750x1334xfoo) are parsed loosely — non-security-relevant"],
   },
   {
     name: 'D3: "V" mark as two inline SVG paths (Saira Stencil One)',
@@ -69,6 +107,37 @@ export default function Design() {
         <code>next/og</code> (<code>ImageResponse</code>), so launch screens can be
         generated at request time — no new dependency, no stored assets.
       </p>
+
+      <h2>Approved Mockup — Bare V on --primary</h2>
+      <p>
+        Approved draft: <strong>bareV</strong>. The "V" glyph path data is extracted from Saira Stencil One
+        at 512 px scale via opentype.js. The stencil design naturally produces two separate sub-paths
+        (left arm / right arm), coloured independently. No font loading at runtime.
+      </p>
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "16px 0" }}>
+        {SIZES.map((s) => (
+          <PhoneFrame key={s.label} sizePx={s.px} label={s.label} selected={s.selected} />
+        ))}
+      </div>
+      <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13, margin: "0 0 24px" }}>
+        <dt style={{ color: "#9aa0ad" }}>Background</dt>
+        <dd style={{ margin: 0, fontFamily: "monospace" }}>
+          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#10687E", verticalAlign: "middle", marginRight: 5 }} />
+          --primary #10687E
+        </dd>
+        <dt style={{ color: "#9aa0ad" }}>Left arm</dt>
+        <dd style={{ margin: 0, fontFamily: "monospace" }}>
+          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#F6F4F5", border: "1px solid #ccc", verticalAlign: "middle", marginRight: 5 }} />
+          #F6F4F5
+        </dd>
+        <dt style={{ color: "#9aa0ad" }}>Right arm</dt>
+        <dd style={{ margin: 0, fontFamily: "monospace" }}>
+          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#FC7A56", verticalAlign: "middle", marginRight: 5 }} />
+          #FC7A56 (--destructive)
+        </dd>
+        <dt style={{ color: "#9aa0ad" }}>viewBox</dt>
+        <dd style={{ margin: 0, fontFamily: "monospace" }}>-10 225 360 360</dd>
+      </dl>
 
       <h2>Decisions</h2>
       <ApproachComparison approaches={decisions} />
