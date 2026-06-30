@@ -1,4 +1,4 @@
 {
   "title": "Specs",
-  "pages": ["game-data-access/spec", "team-data-access/spec"]
+  "pages": ["game-data-access/index", "team-data-access/index"]
 }

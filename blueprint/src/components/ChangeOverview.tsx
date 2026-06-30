@@ -22,19 +22,19 @@ const STATUS_LABEL: Record<Status, string> = {
 
 const STATUS_STYLE: Record<Status, React.CSSProperties> = {
   archived: {
-    background: "hsl(var(--primary) / 0.1)",
-    color: "hsl(var(--primary))",
-    border: "1px solid hsl(var(--primary) / 0.3)",
+    background: "color-mix(in oklch, var(--primary) 12%, transparent)",
+    color: "var(--primary)",
+    border: "1px solid color-mix(in oklch, var(--primary) 35%, transparent)",
   },
   "in-progress": {
-    background: "hsl(var(--warning) / 0.12)",
-    color: "hsl(var(--warning))",
-    border: "1px solid hsl(var(--warning) / 0.4)",
+    background: "color-mix(in oklch, var(--warning) 12%, transparent)",
+    color: "var(--warning)",
+    border: "1px solid color-mix(in oklch, var(--warning) 40%, transparent)",
   },
   draft: {
     background: "var(--color-fd-muted, #f3f4f6)",
     color: "var(--color-fd-muted-foreground, #6b7280)",
-    border: "1px solid var(--color-fd-border, #e5e7eb)",
+    border: "1px solid var(--border)",
   },
 };
 
@@ -66,8 +66,8 @@ function ArtifactCard({ title, href }: Artifact) {
         alignItems: "center",
         padding: "10px 14px",
         borderRadius: "8px",
-        border: "1px solid var(--color-fd-border, #e5e7eb)",
-        borderLeft: "3px solid hsl(var(--primary))",
+        border: "1px solid var(--border)",
+        borderLeft: "3px solid var(--primary)",
         background: "var(--color-fd-card, #fff)",
         color: "inherit",
         textDecoration: "none",

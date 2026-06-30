@@ -3,13 +3,15 @@
 @import "fumadocs-ui/css/preset.css";
 
 :root {
-  --primary: 192 78% 28%;           /* #10687e */
-  --primary-foreground: 0 0% 98%;
-  --warning: 38 92% 50%;            /* #d97706 */
-  --warning-foreground: 38 51% 15%;
+  --primary: oklch(0.480 0.0830 220.2);           /* #10687e */
+  --primary-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.666 0.1574 58.3);            /* #d97706 */
+  --warning-foreground: oklch(0.285 0.06 58.3);
+  --border: oklch(0.922 0 0);
 }
 
 .dark {
-  --primary: 192 55% 42%;
-  --warning: 38 85% 58%;
+  --primary: oklch(0.60 0.08 220.2);
+  --warning: oklch(0.74 0.14 58.3);
+  --border: oklch(0.269 0 0);
 }

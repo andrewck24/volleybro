@@ -1,4 +1,4 @@
 {
   "title": "Specs",
-  "pages": ["contextual-edit-pages/spec", "form-draft-persistence/spec", "tab-navigation/spec"]
+  "pages": ["contextual-edit-pages/index", "form-draft-persistence/index", "tab-navigation/index"]
 }
