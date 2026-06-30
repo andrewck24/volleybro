@@ -14,18 +14,35 @@ const SIZES = [
   { label: "15%", px: 27, selected: false },
 ];
 
-function PhoneFrame({ sizePx, label, selected }: { sizePx: number; label: string; selected: boolean }) {
+function PhoneFrame({
+  sizePx,
+  label,
+  selected,
+}: {
+  sizePx: number;
+  label: string;
+  selected: boolean;
+}) {
   return (
-    <div className="text-center shrink-0">
+    <div className="shrink-0 text-center">
       <div
-        className={`mx-auto w-[120px] h-[260px] rounded-[20px] border-[5px] border-[color:#111] overflow-hidden bg-[#10687E] flex items-center justify-center ${selected ? "ring-2 ring-[#2f9e44]" : ""}`}
+        className={`mx-auto flex h-65 w-30 items-center justify-center overflow-hidden rounded-[20px] border-[5px] border-black bg-[#10687E] ${selected ? "ring-2 ring-[#2f9e44]" : ""}`}
       >
-        <svg width={sizePx} height={sizePx} viewBox="-10 225 360 360" className="block">
+        <svg
+          width={sizePx}
+          height={sizePx}
+          viewBox="-10 225 360 360"
+          className="block"
+        >
           <path d={V_LEFT} fill="#F6F4F5" />
           <path d={V_RIGHT} fill="#FC7A56" />
         </svg>
       </div>
-      <div className={`text-[11px] mt-1.5 ${selected ? "text-[#2f9e44]" : "text-[#9aa0ad]"}`}>{label}</div>
+      <div
+        className={`mt-1.5 text-[11px] ${selected ? "text-[#2f9e44]" : "text-[#9aa0ad]"}`}
+      >
+        {label}
+      </div>
     </div>
   );
 }
@@ -38,7 +55,9 @@ const decisions = [
       "No build step or stored binaries",
       "Splash always tracks the current --primary token",
     ],
-    cons: ["iOS fetches at install time (online), so runtime latency is acceptable"],
+    cons: [
+      "iOS fetches at install time (online), so runtime latency is acceptable",
+    ],
   },
   {
     name: "D2: Size from route segment, validated against a fixed list",
@@ -46,7 +65,9 @@ const decisions = [
       "One handler serves all 15 device sizes",
       "Unsupported sizes return 404 — no mis-sized images silently served",
     ],
-    cons: ["Extra path segments (e.g. 750x1334xfoo) are parsed loosely — non-security-relevant"],
+    cons: [
+      "Extra path segments (e.g. 750x1334xfoo) are parsed loosely — non-security-relevant",
+    ],
   },
   {
     name: 'D3: "V" mark as two inline SVG paths (Saira Stencil One)',
@@ -71,17 +92,20 @@ const risks = [
   {
     name: "iOS fetches splash online at install time",
     severity: "info" as const,
-    mitigation: "Cache-Control: public, max-age=31536000, immutable set on every response",
+    mitigation:
+      "Cache-Control: public, max-age=31536000, immutable set on every response",
   },
   {
     name: "Hardcoded primary color #10687E",
     severity: "info" as const,
-    mitigation: "Necessary because Satori (next/og renderer) cannot read CSS variables",
+    mitigation:
+      "Necessary because Satori (next/og renderer) cannot read CSS variables",
   },
   {
     name: "Loose size parsing (extra path segments)",
     severity: "ok" as const,
-    mitigation: "Accepted — worst case is a valid registered image returned; non-security",
+    mitigation:
+      "Accepted — worst case is a valid registered image returned; non-security",
   },
 ];
 
@@ -89,7 +113,11 @@ export const toc = [
   { title: "Approved Mockup", url: "#approved-mockup", depth: 2 },
   { title: "Decisions", url: "#decisions", depth: 2 },
   { title: "Risks", url: "#risks", depth: 2 },
-  { title: "Implementation Contract", url: "#implementation-contract", depth: 2 },
+  {
+    title: "Implementation Contract",
+    url: "#implementation-contract",
+    depth: 2,
+  },
 ];
 
 export default function Design() {
@@ -97,42 +125,49 @@ export default function Design() {
     <div>
       <p>
         The app root layout registered nine hand-exported{" "}
-        <code>appleWebApp.startupImage</code> PNGs from April 2024 whose background
-        no longer matched the current <code>--primary</code> token. Next.js 16 ships{" "}
-        <code>next/og</code> (<code>ImageResponse</code>), so launch screens can be
-        generated at request time — no new dependency, no stored assets.
+        <code>appleWebApp.startupImage</code> PNGs from April 2024 whose
+        background no longer matched the current <code>--primary</code> token.
+        Next.js 16 ships <code>next/og</code> (<code>ImageResponse</code>), so
+        launch screens can be generated at request time — no new dependency, no
+        stored assets.
       </p>
 
       <h2 id="approved-mockup">Approved Mockup — Bare V on --primary</h2>
       <p>
-        Approved draft: <strong>bareV</strong>. The "V" glyph path data is extracted from Saira Stencil One
-        at 512 px scale via opentype.js. The stencil design naturally produces two separate sub-paths
-        (left arm / right arm), coloured independently. No font loading at runtime.
+        Approved draft: <strong>bareV</strong>. The `V` glyph path data is
+        extracted from Saira Stencil One at 512 px scale via opentype.js. The
+        stencil design naturally produces two separate sub-paths (left arm /
+        right arm), coloured independently. No font loading at runtime.
       </p>
-      <div className="flex gap-4 flex-wrap my-4">
+      <div className="my-4 flex flex-wrap gap-4">
         {SIZES.map((s) => (
-          <PhoneFrame key={s.label} sizePx={s.px} label={s.label} selected={s.selected} />
+          <PhoneFrame
+            key={s.label}
+            sizePx={s.px}
+            label={s.label}
+            selected={s.selected}
+          />
         ))}
       </div>
       {/* div/span instead of dl/dt/dd to avoid prose margin-inline-start interference */}
-      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[13px] mb-6">
-        <span className="text-[#9aa0ad] self-center">Background</span>
-        <span className="font-mono self-center flex items-center gap-1.5">
-          <span className="inline-block size-[11px] rounded-[3px] bg-[#10687E]" />
+      <div className="mb-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[13px]">
+        <span className="self-center text-[#9aa0ad]">Background</span>
+        <span className="flex items-center gap-1.5 self-center font-mono">
+          <span className="inline-block size-2.75 rounded-[3px] bg-[#10687E]" />
           --primary #10687E
         </span>
-        <span className="text-[#9aa0ad] self-center">Left arm</span>
-        <span className="font-mono self-center flex items-center gap-1.5">
-          <span className="inline-block size-[11px] rounded-[3px] bg-[#F6F4F5] border border-[#ccc]" />
+        <span className="self-center text-[#9aa0ad]">Left arm</span>
+        <span className="flex items-center gap-1.5 self-center font-mono">
+          <span className="inline-block size-2.75 rounded-[3px] border border-[#ccc] bg-[#F6F4F5]" />
           #F6F4F5
         </span>
-        <span className="text-[#9aa0ad] self-center">Right arm</span>
-        <span className="font-mono self-center flex items-center gap-1.5">
-          <span className="inline-block size-[11px] rounded-[3px] bg-[#FC7A56]" />
+        <span className="self-center text-[#9aa0ad]">Right arm</span>
+        <span className="flex items-center gap-1.5 self-center font-mono">
+          <span className="inline-block size-2.75 rounded-[3px] bg-[#FC7A56]" />
           #FC7A56 (--destructive)
         </span>
-        <span className="text-[#9aa0ad] self-center">viewBox</span>
-        <span className="font-mono self-center">-10 225 360 360</span>
+        <span className="self-center text-[#9aa0ad]">viewBox</span>
+        <span className="self-center font-mono">-10 225 360 360</span>
       </div>
 
       <h2 id="decisions">Decisions</h2>
@@ -144,18 +179,20 @@ export default function Design() {
       <h2 id="implementation-contract">Implementation Contract</h2>
       <ul>
         <li>
-          <strong>Route:</strong> <code>src/app/apple-splash/[size]/route.tsx</code>{" "}
-          — returns an <code>ImageResponse</code> of exactly that width/height on
-          success, 404 on unsupported size.
+          <strong>Route:</strong>{" "}
+          <code>src/app/apple-splash/[size]/route.tsx</code> — returns an{" "}
+          <code>ImageResponse</code> of exactly that width/height on success,
+          404 on unsupported size.
         </li>
         <li>
-          <strong>Shared config:</strong> <code>src/app/apple-splash/devices.ts</code>{" "}
-          exports 15 device entries and <code>isSupportedSize(w, h)</code>.
+          <strong>Shared config:</strong>{" "}
+          <code>src/app/apple-splash/devices.ts</code> exports 15 device entries
+          and <code>isSupportedSize(w, h)</code>.
         </li>
         <li>
           <strong>Layout:</strong> <code>src/app/layout.tsx</code> builds{" "}
-          <code>appleWebApp.startupImage</code> from the shared list; no static PNG
-          URLs.
+          <code>appleWebApp.startupImage</code> from the shared list; no static
+          PNG URLs.
         </li>
       </ul>
     </div>
