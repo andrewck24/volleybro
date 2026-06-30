@@ -1,4 +1,4 @@
 {
   "title": "team-routes-clean-architecture",
-  "pages": ["index", "proposal", "tasks", "specs"]
+  "pages": ["index", "proposal", "design", "tasks", "specs"]
 }

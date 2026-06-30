@@ -1,3 +1,19 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+
+:root {
+  --brand: #10687e;
+  --brand-light: #e4f2f5;
+  --brand-border: #b3d8e0;
+  --brand-in-progress: #d97706;
+  --brand-in-progress-light: #fef3c7;
+  --brand-in-progress-border: #fcd34d;
+}
+
+.dark {
+  --brand-light: #0c2f36;
+  --brand-border: #1a5563;
+  --brand-in-progress-light: #2d1f07;
+  --brand-in-progress-border: #92400e;
+}

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import { ChangeOverview } from "@/components/ChangeOverview";
+import { ChangeCard } from "@/components/ChangeCard";
 
 const designModules: Record<string, () => Promise<{ default: ComponentType }>> =
   {
@@ -24,33 +26,38 @@ const designModules: Record<string, () => Promise<{ default: ComponentType }>> =
       ),
   };
 
+const mdxComponents = { ...defaultMdxComponents, ChangeOverview, ChangeCard };
+
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
 }
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
-  const page = source.getPage(slug);
+  const key = slug?.join("/") ?? "";
 
-  if (page) {
-    const Mdx = page.data.body;
+  // Check TSX design modules first so they get breadcrumbs from the MDX stub
+  const loader = designModules[key];
+  if (loader) {
+    const page = source.getPage(slug);
+    const { default: Design } = await loader();
     return (
-      <DocsPage toc={page.data.toc}>
+      <DocsPage toc={page?.data.toc ?? []}>
         <DocsBody>
-          <Mdx components={defaultMdxComponents} />
+          <Design />
         </DocsBody>
       </DocsPage>
     );
   }
 
-  const key = slug?.join("/") ?? "";
-  const loader = designModules[key];
-  if (!loader) notFound();
-  const { default: Design } = await loader();
+  const page = source.getPage(slug);
+  if (!page) notFound();
+
+  const Mdx = page.data.body;
   return (
-    <DocsPage>
+    <DocsPage toc={page.data.toc}>
       <DocsBody>
-        <Design />
+        <Mdx components={mdxComponents} />
       </DocsBody>
     </DocsPage>
   );
