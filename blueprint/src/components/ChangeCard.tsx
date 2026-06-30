@@ -1,14 +1,5 @@
-import type React from "react";
-
 type Status = "archived" | "in-progress" | "draft";
-
-type Props = {
-  name: string;
-  date?: string;
-  status: Status;
-  summary: string;
-  href?: string;
-};
+type Props = { name: string; date?: string; status: Status; summary: string; href?: string };
 
 const STATUS_LABEL: Record<Status, string> = {
   archived: "Archived",
@@ -16,89 +7,34 @@ const STATUS_LABEL: Record<Status, string> = {
   draft: "Draft",
 };
 
-const STATUS_STYLE: Record<Status, React.CSSProperties> = {
-  archived: {
-    background: "color-mix(in oklch, var(--primary) 12%, transparent)",
-    color: "var(--primary)",
-    border: "1px solid color-mix(in oklch, var(--primary) 35%, transparent)",
-  },
-  "in-progress": {
-    background: "color-mix(in oklch, var(--warning) 12%, transparent)",
-    color: "var(--warning)",
-    border: "1px solid color-mix(in oklch, var(--warning) 40%, transparent)",
-  },
-  draft: {
-    background: "var(--color-fd-muted, #f3f4f6)",
-    color: "var(--color-fd-muted-foreground, #6b7280)",
-    border: "1px solid var(--border)",
-  },
+const STATUS_CLASS: Record<Status, string> = {
+  archived:
+    "bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border border-[color-mix(in_oklch,var(--primary)_35%,transparent)]",
+  "in-progress":
+    "bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-[var(--warning)] border border-[color-mix(in_oklch,var(--warning)_40%,transparent)]",
+  draft:
+    "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)] border border-[var(--border)]",
 };
 
 export function ChangeCard({ name, date, status, summary, href }: Props) {
   const inner = (
-    <div
-      style={{
-        padding: "16px 20px",
-        borderRadius: "10px",
-        border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--primary)",
-        background: "var(--color-fd-card, #fff)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          flexWrap: "wrap",
-        }}
-      >
-        <code
-          style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--color-fd-foreground)",
-          }}
-        >
+    <div className="px-5 py-4 rounded-xl border border-[color:var(--border)] border-l-[3px] border-l-[color:var(--primary)] bg-[var(--color-fd-card)] flex flex-col gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <code className="text-[13px] font-semibold text-[var(--color-fd-foreground)]">
           {name}
         </code>
         <span
-          style={{
-            ...STATUS_STYLE[status],
-            display: "inline-block",
-            padding: "1px 7px",
-            borderRadius: "9999px",
-            fontSize: "11px",
-            fontWeight: 500,
-            lineHeight: "18px",
-          }}
+          className={`inline-block px-[7px] py-px rounded-full text-[11px] font-medium leading-[18px] ${STATUS_CLASS[status]}`}
         >
           {STATUS_LABEL[status]}
         </span>
         {date && (
-          <span
-            style={{
-              marginLeft: "auto",
-              fontSize: "12px",
-              color: "var(--color-fd-muted-foreground, #9ca3af)",
-              fontFamily: "var(--font-mono, monospace)",
-            }}
-          >
+          <span className="ml-auto text-xs text-[var(--color-fd-muted-foreground)] font-mono">
             {date}
           </span>
         )}
       </div>
-      <p
-        style={{
-          margin: 0,
-          fontSize: "14px",
-          color: "var(--color-fd-muted-foreground, #6b7280)",
-          lineHeight: 1.5,
-        }}
-      >
+      <p className="m-0 text-sm text-[var(--color-fd-muted-foreground)] leading-snug">
         {summary}
       </p>
     </div>
@@ -106,7 +42,7 @@ export function ChangeCard({ name, date, status, summary, href }: Props) {
 
   if (href) {
     return (
-      <a href={href} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+      <a href={href} className="no-underline text-inherit block">
         {inner}
       </a>
     );

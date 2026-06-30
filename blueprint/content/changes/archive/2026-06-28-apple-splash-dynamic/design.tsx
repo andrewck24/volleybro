@@ -16,28 +16,16 @@ const SIZES = [
 
 function PhoneFrame({ sizePx, label, selected }: { sizePx: number; label: string; selected: boolean }) {
   return (
-    <div style={{ textAlign: "center", flexShrink: 0 }}>
+    <div className="text-center shrink-0">
       <div
-        style={{
-          margin: "0 auto",
-          width: 120,
-          height: 260,
-          borderRadius: 20,
-          border: "5px solid #111",
-          overflow: "hidden",
-          background: "#10687E",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: selected ? "0 0 0 2px #2f9e44" : undefined,
-        }}
+        className={`mx-auto w-[120px] h-[260px] rounded-[20px] border-[5px] border-[color:#111] overflow-hidden bg-[#10687E] flex items-center justify-center ${selected ? "ring-2 ring-[#2f9e44]" : ""}`}
       >
-        <svg width={sizePx} height={sizePx} viewBox="-10 225 360 360" style={{ display: "block" }}>
+        <svg width={sizePx} height={sizePx} viewBox="-10 225 360 360" className="block">
           <path d={V_LEFT} fill="#F6F4F5" />
           <path d={V_RIGHT} fill="#FC7A56" />
         </svg>
       </div>
-      <div style={{ fontSize: 11, marginTop: 6, color: selected ? "#2f9e44" : "#9aa0ad" }}>{label}</div>
+      <div className={`text-[11px] mt-1.5 ${selected ? "text-[#2f9e44]" : "text-[#9aa0ad]"}`}>{label}</div>
     </div>
   );
 }
@@ -121,30 +109,31 @@ export default function Design() {
         at 512 px scale via opentype.js. The stencil design naturally produces two separate sub-paths
         (left arm / right arm), coloured independently. No font loading at runtime.
       </p>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", margin: "16px 0" }}>
+      <div className="flex gap-4 flex-wrap my-4">
         {SIZES.map((s) => (
           <PhoneFrame key={s.label} sizePx={s.px} label={s.label} selected={s.selected} />
         ))}
       </div>
-      <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13, margin: "0 0 24px", alignItems: "center" }}>
-        <dt style={{ color: "#9aa0ad" }}>Background</dt>
-        <dd style={{ margin: 0, fontFamily: "monospace" }}>
-          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#10687E", verticalAlign: "middle", marginRight: 5 }} />
+      {/* div/span instead of dl/dt/dd to avoid prose margin-inline-start interference */}
+      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[13px] mb-6">
+        <span className="text-[#9aa0ad] self-center">Background</span>
+        <span className="font-mono self-center flex items-center gap-1.5">
+          <span className="inline-block size-[11px] rounded-[3px] bg-[#10687E]" />
           --primary #10687E
-        </dd>
-        <dt style={{ color: "#9aa0ad" }}>Left arm</dt>
-        <dd style={{ margin: 0, fontFamily: "monospace" }}>
-          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#F6F4F5", border: "1px solid #ccc", verticalAlign: "middle", marginRight: 5 }} />
+        </span>
+        <span className="text-[#9aa0ad] self-center">Left arm</span>
+        <span className="font-mono self-center flex items-center gap-1.5">
+          <span className="inline-block size-[11px] rounded-[3px] bg-[#F6F4F5] border border-[#ccc]" />
           #F6F4F5
-        </dd>
-        <dt style={{ color: "#9aa0ad" }}>Right arm</dt>
-        <dd style={{ margin: 0, fontFamily: "monospace" }}>
-          <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#FC7A56", verticalAlign: "middle", marginRight: 5 }} />
+        </span>
+        <span className="text-[#9aa0ad] self-center">Right arm</span>
+        <span className="font-mono self-center flex items-center gap-1.5">
+          <span className="inline-block size-[11px] rounded-[3px] bg-[#FC7A56]" />
           #FC7A56 (--destructive)
-        </dd>
-        <dt style={{ color: "#9aa0ad" }}>viewBox</dt>
-        <dd style={{ margin: 0, fontFamily: "monospace" }}>-10 225 360 360</dd>
-      </dl>
+        </span>
+        <span className="text-[#9aa0ad] self-center">viewBox</span>
+        <span className="font-mono self-center">-10 225 360 360</span>
+      </div>
 
       <h2 id="decisions">Decisions</h2>
       <ApproachComparison approaches={decisions} />
