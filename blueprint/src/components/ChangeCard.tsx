@@ -18,14 +18,14 @@ const STATUS_LABEL: Record<Status, string> = {
 
 const STATUS_STYLE: Record<Status, React.CSSProperties> = {
   archived: {
-    background: "var(--brand-light)",
-    color: "var(--brand)",
-    border: "1px solid var(--brand-border)",
+    background: "hsl(var(--primary) / 0.1)",
+    color: "hsl(var(--primary))",
+    border: "1px solid hsl(var(--primary) / 0.3)",
   },
   "in-progress": {
-    background: "var(--brand-in-progress-light)",
-    color: "var(--brand-in-progress)",
-    border: "1px solid var(--brand-in-progress-border)",
+    background: "hsl(var(--warning) / 0.12)",
+    color: "hsl(var(--warning))",
+    border: "1px solid hsl(var(--warning) / 0.4)",
   },
   draft: {
     background: "var(--color-fd-muted, #f3f4f6)",
@@ -41,7 +41,7 @@ export function ChangeCard({ name, date, status, summary, href }: Props) {
         padding: "16px 20px",
         borderRadius: "10px",
         border: "1px solid var(--color-fd-border, #e5e7eb)",
-        borderLeft: "3px solid var(--brand)",
+        borderLeft: "3px solid hsl(var(--primary))",
         background: "var(--color-fd-card, #fff)",
         display: "flex",
         flexDirection: "column",

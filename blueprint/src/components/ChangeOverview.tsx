@@ -1,3 +1,5 @@
+import type React from "react";
+
 type Artifact = {
   title: string;
   href: string;
@@ -20,14 +22,14 @@ const STATUS_LABEL: Record<Status, string> = {
 
 const STATUS_STYLE: Record<Status, React.CSSProperties> = {
   archived: {
-    background: "var(--brand-light)",
-    color: "var(--brand)",
-    border: "1px solid var(--brand-border)",
+    background: "hsl(var(--primary) / 0.1)",
+    color: "hsl(var(--primary))",
+    border: "1px solid hsl(var(--primary) / 0.3)",
   },
   "in-progress": {
-    background: "var(--brand-in-progress-light)",
-    color: "var(--brand-in-progress)",
-    border: "1px solid var(--brand-in-progress-border)",
+    background: "hsl(var(--warning) / 0.12)",
+    color: "hsl(var(--warning))",
+    border: "1px solid hsl(var(--warning) / 0.4)",
   },
   draft: {
     background: "var(--color-fd-muted, #f3f4f6)",
@@ -35,9 +37,6 @@ const STATUS_STYLE: Record<Status, React.CSSProperties> = {
     border: "1px solid var(--color-fd-border, #e5e7eb)",
   },
 };
-
-// ponytail: single import for React type, no JSX runtime import needed in .tsx
-import type React from "react";
 
 function StatusBadge({ status }: { status: Status }) {
   return (
@@ -68,7 +67,7 @@ function ArtifactCard({ title, href }: Artifact) {
         padding: "10px 14px",
         borderRadius: "8px",
         border: "1px solid var(--color-fd-border, #e5e7eb)",
-        borderLeft: "3px solid var(--brand)",
+        borderLeft: "3px solid hsl(var(--primary))",
         background: "var(--color-fd-card, #fff)",
         color: "inherit",
         textDecoration: "none",
