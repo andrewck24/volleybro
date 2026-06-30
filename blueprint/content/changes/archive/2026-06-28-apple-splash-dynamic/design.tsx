@@ -97,6 +97,13 @@ const risks = [
   },
 ];
 
+export const toc = [
+  { title: "Approved Mockup", url: "#approved-mockup", depth: 2 },
+  { title: "Decisions", url: "#decisions", depth: 2 },
+  { title: "Risks", url: "#risks", depth: 2 },
+  { title: "Implementation Contract", url: "#implementation-contract", depth: 2 },
+];
+
 export default function Design() {
   return (
     <div>
@@ -108,7 +115,7 @@ export default function Design() {
         generated at request time — no new dependency, no stored assets.
       </p>
 
-      <h2>Approved Mockup — Bare V on --primary</h2>
+      <h2 id="approved-mockup">Approved Mockup — Bare V on --primary</h2>
       <p>
         Approved draft: <strong>bareV</strong>. The "V" glyph path data is extracted from Saira Stencil One
         at 512 px scale via opentype.js. The stencil design naturally produces two separate sub-paths
@@ -119,7 +126,7 @@ export default function Design() {
           <PhoneFrame key={s.label} sizePx={s.px} label={s.label} selected={s.selected} />
         ))}
       </div>
-      <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13, margin: "0 0 24px" }}>
+      <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 12px", fontSize: 13, margin: "0 0 24px", alignItems: "center" }}>
         <dt style={{ color: "#9aa0ad" }}>Background</dt>
         <dd style={{ margin: 0, fontFamily: "monospace" }}>
           <span style={{ display: "inline-block", width: 11, height: 11, borderRadius: 3, background: "#10687E", verticalAlign: "middle", marginRight: 5 }} />
@@ -139,13 +146,13 @@ export default function Design() {
         <dd style={{ margin: 0, fontFamily: "monospace" }}>-10 225 360 360</dd>
       </dl>
 
-      <h2>Decisions</h2>
+      <h2 id="decisions">Decisions</h2>
       <ApproachComparison approaches={decisions} />
 
-      <h2>Risks</h2>
+      <h2 id="risks">Risks</h2>
       <RiskTable risks={risks} />
 
-      <h2>Implementation Contract</h2>
+      <h2 id="implementation-contract">Implementation Contract</h2>
       <ul>
         <li>
           <strong>Route:</strong> <code>src/app/apple-splash/[size]/route.tsx</code>{" "}

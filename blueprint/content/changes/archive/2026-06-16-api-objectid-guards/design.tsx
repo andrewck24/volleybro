@@ -4,11 +4,19 @@ import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 
+export const toc = [
+  { title: "Context", url: "#context", depth: 2 },
+  { title: "Key Decision: Where to place the guard", url: "#key-decision", depth: 2 },
+  { title: "Caller Convention", url: "#caller-convention", depth: 2 },
+  { title: "Key Scenarios", url: "#key-scenarios", depth: 2 },
+  { title: "Risks", url: "#risks", depth: 2 },
+];
+
 export default function Design() {
   return (
     <div className="space-y-8">
       <section>
-        <h2>Context</h2>
+        <h2 id="context">Context</h2>
         <p>
           All API route handlers that accept a MongoDB ObjectId as a URL path segment should
           validate that segment before any side-effectful call. Only{" "}
@@ -20,7 +28,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Key Decision: Where to place the guard</h2>
+        <h2 id="key-decision">Key Decision: Where to place the guard</h2>
         <ApproachComparison
           approaches={[
             {
@@ -57,7 +65,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Caller Convention</h2>
+        <h2 id="caller-convention">Caller Convention</h2>
         <p>
           Each handler calls <code>assertObjectId</code> immediately after{" "}
           <code>const {"{ xId }"} = await props.params</code>, before{" "}
@@ -68,7 +76,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Key Scenarios</h2>
+        <h2 id="key-scenarios">Key Scenarios</h2>
         <div className="space-y-4">
           <Scenario
             given="A route handler receives a 24-character hexadecimal path segment"
@@ -89,7 +97,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Risks</h2>
+        <h2 id="risks">Risks</h2>
         <RiskTable
           risks={[
             {

@@ -4,11 +4,22 @@ import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 
+export const toc = [
+  { title: "Context", url: "#context", depth: 2 },
+  { title: "Decision: Rename embedded player reference", url: "#decision-rename", depth: 2 },
+  { title: "Decision: Bidirectional mapping", url: "#decision-mapping", depth: 2 },
+  { title: "Decision: Persist lineups via findByIdAndUpdate", url: "#decision-persist", depth: 2 },
+  { title: "Decision: Centralize game read/write mapping", url: "#decision-centralize", depth: 2 },
+  { title: "Decision: Route team endpoints through controllers", url: "#decision-route", depth: 2 },
+  { title: "Decision: Audit-first one-time migration", url: "#decision-migration", depth: 2 },
+  { title: "Risks", url: "#risks", depth: 2 },
+];
+
 export default function Design() {
   return (
     <div className="space-y-10">
       <section>
-        <h2>Context</h2>
+        <h2 id="context">Context</h2>
         <p>
           Empirically verified against mongoose 9.4.1: lineup player subschemas set{" "}
           <code>{`{ _id: false }`}</code> and declare the player reference on an explicit{" "}
@@ -20,7 +31,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Rename embedded player reference from _id to nullable playerId</h2>
+        <h2 id="decision-rename">Decision: Rename embedded player reference from _id to nullable playerId</h2>
         <ApproachComparison
           approaches={[
             {
@@ -64,7 +75,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Bidirectional mapping in the repository layer</h2>
+        <h2 id="decision-mapping">Decision: Bidirectional mapping in the repository layer</h2>
         <p>
           The repository is the single translation boundary between the domain shape (
           <code>id: string | null</code>) and the persisted shape (<code>playerId: ObjectId | null</code>
@@ -85,7 +96,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Persist lineups via findByIdAndUpdate</h2>
+        <h2 id="decision-persist">Decision: Persist lineups via findByIdAndUpdate</h2>
         <p>
           <code>ITeamRepository.updateLineups(teamId, lineups)</code>: maps each lineup through the
           write mapper, calls <code>findByIdAndUpdate(teamId, {"{" } lineups {"}"}, {"{" } new: true {"}"} )</code>,
@@ -96,7 +107,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Centralize game read and write mapping in the game repository</h2>
+        <h2 id="decision-centralize">Decision: Centralize game read and write mapping in the game repository</h2>
         <p>
           Extend <code>toGame</code> to map every embedded player reference (set lineups, team
           player/staff snapshots, rally detail, substitution entry <code>players.in/out</code>) to
@@ -112,7 +123,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Route team endpoints through controllers and use cases</h2>
+        <h2 id="decision-route">Decision: Route team endpoints through controllers and use cases</h2>
         <p>
           <code>GET</code>/<code>PATCH /api/teams/[teamId]</code> and{" "}
           <code>PATCH /api/teams/[teamId]/lineups</code> each delegate to a thin use case (
@@ -124,7 +135,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Decision: Audit-first one-time migration</h2>
+        <h2 id="decision-migration">Decision: Audit-first one-time migration</h2>
         <p>
           An audit script (dry-run) scans every embedded reference renamed by the schema change and
           reports counts of legacy <code>_id</code> references, resolvable references, and empty
@@ -141,7 +152,7 @@ export default function Design() {
       </section>
 
       <section>
-        <h2>Risks</h2>
+        <h2 id="risks">Risks</h2>
         <RiskTable
           risks={[
             {
