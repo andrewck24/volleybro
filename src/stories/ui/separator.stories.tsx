@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
 import { Separator } from "@/components/ui/separator";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Atoms/Separator",
@@ -13,7 +13,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Horizontal: Story = {
   render: () => (
-    <div className="w-[300px] space-y-4">
+    <div className="w-75 space-y-4">
       <div>Content Above</div>
       <Separator />
       <div>Content Below</div>
@@ -23,7 +23,7 @@ export const Horizontal: Story = {
 
 export const Vertical: Story = {
   render: () => (
-    <div className="flex h-[100px] items-center space-x-4">
+    <div className="flex h-25 items-center space-x-4">
       <div>Left</div>
       <Separator orientation="vertical" />
       <div>Right</div>
@@ -33,7 +33,7 @@ export const Vertical: Story = {
 
 export const WithContent: Story = {
   render: () => (
-    <div className="w-[300px] space-y-4">
+    <div className="w-75 space-y-4">
       <div>Content Above</div>
       <Separator content="OR" />
       <div>Content Below</div>

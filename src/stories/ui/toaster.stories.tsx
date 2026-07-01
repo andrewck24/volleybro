@@ -1,8 +1,8 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
-import { useToast } from "@/components/ui/use-toast";
-import { Toaster } from "@/components/ui/toaster";
-import { ToastAction } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Toaster",
@@ -59,9 +59,7 @@ export const WithAction: Story = {
           toast({
             title: "Update Available",
             description: "A new version is ready to install.",
-            action: (
-              <ToastAction altText="Update Now">Update Now</ToastAction>
-            ),
+            action: <ToastAction altText="Update Now">Update Now</ToastAction>,
           })
         }
       >

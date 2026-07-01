@@ -1,7 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Toast",

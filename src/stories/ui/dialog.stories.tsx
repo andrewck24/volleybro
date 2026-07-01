@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Dialog",
@@ -73,15 +73,17 @@ export const LongContent: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Terms of Service</DialogTitle>
-          <DialogDescription>Please review the following terms</DialogDescription>
+          <DialogDescription>
+            Please review the following terms
+          </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[300px] overflow-y-auto py-4 text-sm leading-relaxed">
+        <div className="max-h-75 overflow-y-auto py-4 text-sm leading-relaxed">
           {Array.from({ length: 10 }, (_, i) => (
             <p key={i} className="mb-4">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-              ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-              aliquip ex ea commodo consequat.
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris
+              nisi ut aliquip ex ea commodo consequat.
             </p>
           ))}
         </div>

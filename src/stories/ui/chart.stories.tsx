@@ -1,19 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
-import {
-  Bar,
-  BarChart as RechartsBarChart,
-  CartesianGrid,
-  Line,
-  LineChart as RechartsLineChart,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import type { Meta, StoryObj } from "@storybook/nextjs";
+import {
+  Bar,
+  CartesianGrid,
+  Line,
+  BarChart as RechartsBarChart,
+  LineChart as RechartsLineChart,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const meta = {
   title: "Design System/Molecules/Chart",

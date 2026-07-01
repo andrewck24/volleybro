@@ -1,0 +1,48 @@
+---
+title: Changes
+---
+
+import { ChangeCard } from "@/components/ChangeCard";
+
+Browse all Spectra changes for VolleyBro.
+
+## In Progress
+
+<ChangeCard
+  name="dialog-elevation-system"
+  status="in-progress"
+  summary="Redefine background color tokens into a three-layer elevation model and unify Dialog layout on top of that foundation."
+/>
+
+## Archive
+
+<div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "16px" }}>
+  <ChangeCard
+    name="apple-splash-dynamic"
+    date="2026-06-28"
+    status="archived"
+    href="/changes/archive/2026-06-28-apple-splash-dynamic/"
+    summary="A parametric generator replaces nine hand-exported Apple splash PNGs, making splash screens track design tokens automatically on every rebrand."
+  />
+  <ChangeCard
+    name="contextual-edit-pages"
+    date="2026-06-16"
+    status="archived"
+    href="/changes/archive/2026-06-16-contextual-edit-pages/"
+    summary="Edit pages reorganized into a clearly named route group to reduce cognitive load and make implementation boundaries explicit."
+  />
+  <ChangeCard
+    name="api-objectid-guards"
+    date="2026-06-16"
+    status="archived"
+    href="/changes/archive/2026-06-16-api-objectid-guards/"
+    summary="A shared assertObjectId guard extracts MongoDB ObjectId path-parameter validation and applies it uniformly across all API routes that accept an ObjectId segment."
+  />
+  <ChangeCard
+    name="team-routes-clean-architecture"
+    date="2026-06-16"
+    status="archived"
+    href="/changes/archive/2026-06-16-team-routes-clean-architecture/"
+    summary="Migrates team routes to clean architecture, resolving the id/_id impedance mismatch across the domain, wire, and client layers."
+  />
+</div>

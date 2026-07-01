@@ -64,7 +64,7 @@ If no argument is provided, the workflow will extract requirements from conversa
 3. **Scan existing specs for relevance**
 
    Before creating the change, check if any existing specs overlap:
-   1. Use the **Glob tool** to list all files matching `openspec/specs/*/spec.md`
+   1. Use the **Glob tool** to list all files matching `docs/specs/*/spec.md`
    2. Extract directory names as the spec identifier list
    3. Compare against the user's description to identify related specs (max 5 candidates)
    4. For each candidate (max 3), read the first 10 lines to retrieve the Purpose section
