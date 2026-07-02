@@ -2,15 +2,15 @@
 
 ## 1. Tracer: shadcn init + token bridge + SeverityBadge
 
-- [ ] 1.1 `shadcn init` in `blueprint/` (Tailwind v4); merge generated CSS with existing
+- [x] 1.1 `shadcn init` in `blueprint/` (Tailwind v4); merge generated CSS with existing
       fumadocs imports in `src/app/globals.css`
-- [ ] 1.2 Token unification: brand oklch values onto shadcn semantic tokens; custom
+- [x] 1.2 Token unification: brand oklch values onto shadcn semantic tokens; custom
       `--warning`/`--warning-foreground`; bridge used `--color-fd-*` variables to the
       same tokens
-- [ ] 1.3 Add `badge` primitive; rebuild `SeverityBadge` on `Badge` with CVA variants
+- [x] 1.3 Add `badge` primitive; rebuild `SeverityBadge` on `Badge` with CVA variants
       (critical→destructive, warning→warning, info→secondary, ok→outline); keep
       `data-testid`/`data-level`
-- [ ] 1.4 Verify: `pnpm --filter blueprint type-check && test && build`; light/dark
+- [x] 1.4 Verify: `pnpm --filter blueprint type-check && test && build`; light/dark
       visual check
 
 ## 2. Batch: status + prose components
