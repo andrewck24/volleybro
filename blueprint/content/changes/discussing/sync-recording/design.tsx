@@ -25,44 +25,66 @@ type NodeId =
   | "conflict"
   | "resolve";
 
-const MAIN_ROW: { id: NodeId; label: string }[] = [
-  { id: "end", label: "球結束" },
-  { id: "compose", label: "開始輸入・釘錨" },
-  { id: "submit", label: "送出・儲存中" },
-  { id: "check", label: "server 檢查錨點" },
-  { id: "accept", label: "接受・廣播" },
-  { id: "synced", label: "全場同步" },
+type NodeKind = "terminal" | "process" | "decision";
+
+const MAIN_ROW: { id: NodeId; label: string; kind: NodeKind }[] = [
+  { id: "end", label: "球結束", kind: "terminal" },
+  { id: "compose", label: "開始輸入・釘錨", kind: "process" },
+  { id: "submit", label: "送出・儲存中", kind: "process" },
+  { id: "check", label: "server 檢查錨點", kind: "decision" },
+  { id: "accept", label: "接受・廣播", kind: "process" },
+  { id: "synced", label: "全場同步", kind: "terminal" },
 ];
 
-const BRANCH_ROW: { id: NodeId; label: string; under: NodeId; note: string }[] =
-  [
-    {
-      id: "banner",
-      label: "banner 詢問",
-      under: "compose",
-      note: "輸入中收到 SSE",
-    },
-    {
-      id: "conflict",
-      label: "409 比較卡",
-      under: "check",
-      note: "錨點過期",
-    },
-    {
-      id: "resolve",
-      label: "解決：捨棄／覆蓋／作為下一筆",
-      under: "accept",
-      note: "",
-    },
-  ];
+const BRANCH_ROW: {
+  id: NodeId;
+  label: string;
+  kind: NodeKind;
+  under: NodeId;
+  note: string;
+}[] = [
+  {
+    id: "banner",
+    label: "banner 詢問",
+    kind: "decision",
+    under: "compose",
+    note: "輸入中收到 SSE",
+  },
+  {
+    id: "conflict",
+    label: "409 比較卡",
+    kind: "decision",
+    under: "check",
+    note: "錨點過期",
+  },
+  {
+    id: "resolve",
+    label: "解決：捨棄／覆蓋／作為下一筆",
+    kind: "process",
+    under: "accept",
+    note: "",
+  },
+];
+
+/* 傳統 flowchart 形狀：stadium＝起訖、矩形＝動作、菱形（六角近似）＝判斷 */
+const NODE_SHAPE: Record<NodeKind, string> = {
+  terminal: "rounded-full border px-3 py-1",
+  process: "rounded-[3px] border px-2 py-1",
+  decision:
+    "border-0 px-5 py-1.5 [clip-path:polygon(12%_0,88%_0,100%_50%,88%_100%,12%_100%,0_50%)]",
+};
 
 function FlowMap({ active }: { active: NodeId }) {
-  const box = (id: NodeId, label: string) => (
+  const box = (id: NodeId, label: string, kind: NodeKind) => (
     <span
-      className={`inline-block rounded-lg border px-2 py-1 text-[11px] leading-tight whitespace-nowrap transition-colors ${
+      className={`inline-block text-[11px] leading-tight whitespace-nowrap transition-colors ${NODE_SHAPE[kind]} ${
         id === active
-          ? "border-transparent bg-[var(--primary)] font-semibold text-white"
-          : "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)]"
+          ? kind === "decision"
+            ? "bg-[var(--primary)] font-semibold text-white"
+            : "border-transparent bg-[var(--primary)] font-semibold text-white"
+          : kind === "decision"
+            ? "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]"
+            : "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)]"
       }`}
     >
       {label}
@@ -73,7 +95,7 @@ function FlowMap({ active }: { active: NodeId }) {
       <div className="grid w-max grid-cols-[repeat(6,auto)] gap-x-1 gap-y-1.5">
         {MAIN_ROW.map((n, i) => (
           <div key={n.id} className="flex items-center gap-1">
-            {box(n.id, n.label)}
+            {box(n.id, n.label, n.kind)}
             {i < MAIN_ROW.length - 1 && (
               <span className="text-[var(--color-fd-muted-foreground)]">→</span>
             )}
@@ -88,12 +110,26 @@ function FlowMap({ active }: { active: NodeId }) {
                   <span className="pl-3 text-[10px] text-[var(--color-fd-muted-foreground)]">
                     ↓ {branch.note}
                   </span>
-                  {box(branch.id, branch.label)}
+                  {box(branch.id, branch.label, branch.kind)}
                 </div>
               )}
             </div>
           );
         })}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--color-fd-muted-foreground)]">
+        <span className="flex items-center gap-1">
+          <span className="inline-block rounded-full border border-[var(--border)] px-1.5 py-px" />
+          起訖
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block rounded-[2px] border border-[var(--border)] px-1.5 py-px" />
+          動作
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block bg-[var(--color-fd-muted)] px-2 py-px [clip-path:polygon(20%_0,80%_0,100%_50%,80%_100%,20%_100%,0_50%)]" />
+          判斷
+        </span>
       </div>
     </div>
   );
@@ -773,7 +809,7 @@ function DecisionCards() {
             <div className="mt-2 text-[13px] leading-relaxed text-[var(--color-fd-muted-foreground)]">
               <div className="mb-2 flex items-start gap-2">
                 <VerdictBadge verdict="adopted" />
-                <p className="m-0">{d.body}</p>
+                <p className="m-0 font-medium text-foreground">{d.body}</p>
               </div>
               <ul className="m-0 list-none space-y-1.5 p-0">
                 {d.rejected.map((r) => (
