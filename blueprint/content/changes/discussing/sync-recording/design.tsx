@@ -999,6 +999,174 @@ function DecisionCards() {
   );
 }
 
+/* ---------------------- Q0 mockup：progress bar 樣式 ---------------------- */
+
+const Q0_STEPS = ["球員", "我方", "對方"];
+const Q0_CAPTION = "1. 選擇球員或對方失誤";
+
+function BarStyleFrame({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] p-3">
+      <div className="mb-1 text-sm font-semibold">{title}</div>
+      <div className="mb-2 text-[11px] text-[var(--color-fd-muted-foreground)]">
+        {note}
+      </div>
+      <div className="mx-auto w-56">{children}</div>
+    </div>
+  );
+}
+
+function ProgressBarStyles() {
+  const [active, setActive] = useState(0);
+
+  return (
+    <div className="not-prose my-4 grid gap-3">
+      <p className="m-0 text-[13px] text-[var(--color-fd-muted-foreground)]">
+        點任一樣式的步驟切換，四種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
+        步）。每款下方都附步驟說明文字，一併評估整合效果。
+      </p>
+      <BarStyleFrame
+        title="樣式 1：分段填色"
+        note="等寬分段、整段可點；觸控面積最大，但「完成 vs 目前」靠深淺區分"
+      >
+        <div className="flex gap-1">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
+                i === active
+                  ? "bg-[var(--primary)] font-semibold text-white"
+                  : i < active
+                    ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
+                    : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 2：圓點連線（onboarding 經典）"
+        note="步驟語意最明確、完成打勾；佔位較高，點擊目標是小圓點"
+      >
+        <div className="flex items-center">
+          {Q0_STEPS.map((s, i) => (
+            <div key={s} className="flex flex-1 items-center last:flex-none">
+              <button
+                onClick={() => setActive(i)}
+                className="flex flex-col items-center gap-0.5"
+              >
+                <span
+                  className={cn(
+                    "flex size-5 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors",
+                    i === active
+                      ? "border-transparent bg-[var(--primary)] text-white"
+                      : i < active
+                        ? "border-[var(--primary)] text-[var(--primary)]"
+                        : "border-[var(--border)] text-[var(--color-fd-muted-foreground)]",
+                  )}
+                >
+                  {i < active ? "✓" : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    "text-[9px]",
+                    i === active
+                      ? "font-semibold"
+                      : "text-[var(--color-fd-muted-foreground)]",
+                  )}
+                >
+                  {s}
+                </span>
+              </button>
+              {i < Q0_STEPS.length - 1 && (
+                <span
+                  className={cn(
+                    "mx-1 mb-3 h-px flex-1 transition-colors",
+                    i < active
+                      ? "bg-[var(--primary)]"
+                      : "bg-[var(--border)]",
+                  )}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 3：數字徽章＋標籤列"
+        note="徽章與標籤同列、水平緊湊；步驟多時會擠"
+      >
+        <div className="flex justify-center gap-2">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "flex items-center gap-1 rounded-full border py-0.5 pr-2 pl-0.5 text-[10px] transition-colors",
+                i === active
+                  ? "border-transparent bg-[var(--primary)] text-white"
+                  : "border-[var(--border)] text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-4 items-center justify-center rounded-full text-[9px] font-semibold",
+                  i === active
+                    ? "bg-white/25"
+                    : i < active
+                      ? "bg-[color-mix(in_oklch,var(--primary)_25%,transparent)] text-[var(--primary)]"
+                      : "bg-[var(--color-fd-muted)]",
+                )}
+              >
+                {i < active ? "✓" : i + 1}
+              </span>
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 4：細線進度＋置中說明"
+        note="最省空間、說明文字即主角；但步驟不可個別點選，只能滑動切換"
+      >
+        <div className="h-1 overflow-hidden rounded-full bg-[var(--color-fd-muted)]">
+          <div
+            className="h-full rounded-full bg-[var(--primary)] transition-all duration-300"
+            style={{ width: `${((active + 1) / Q0_STEPS.length) * 100}%` }}
+          />
+        </div>
+        <button
+          onClick={() => setActive((active + 1) % Q0_STEPS.length)}
+          className="mt-1 w-full text-center text-[10px] text-[var(--color-fd-muted-foreground)]"
+        >
+          {active + 1}/{Q0_STEPS.length}　{Q0_CAPTION}（點此模擬切換）
+        </button>
+      </BarStyleFrame>
+    </div>
+  );
+}
+
 /* ------------------------ Q1 mockup：entry 進度條方案 ------------------------ */
 
 type MockStepId = "player" | "ours" | "oppo";
@@ -1023,16 +1191,19 @@ const OURS_MOVES = [
 
 function ProgressMockup() {
   const [stepIdx, setStepIdx] = useState(0);
-  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const [direction, setDirection] = useState<"forward" | "backward">(
+    "forward",
+  );
   const [player, setPlayer] = useState<number | null>(null);
   const [ours, setOurs] = useState<(typeof OURS_MOVES)[number] | null>(null);
   const [oppo, setOppo] = useState<string | null>(null);
-  const [sending, setSending] = useState(false);
   const [score, setScore] = useState({ home: 10, away: 8 });
   const [scoreFlash, setScoreFlash] = useState(false);
-  const touchX = useRef<number | null>(null);
+  const [lastEntry, setLastEntry] = useState("#5 攻擊＋ · 接發失誤 → 10–8");
+  const pointerX = useRef<number | null>(null);
 
   const step = MOCK_STEPS[stepIdx];
+  const editing = player !== null || ours !== null || oppo !== null;
   const complete = player !== null && ours !== null && oppo !== null;
 
   const captions: Record<MockStepId, string> = {
@@ -1046,8 +1217,16 @@ function ProgressMockup() {
           : "3. 選擇對方得分類型",
   };
 
+  /* 前一步驟資訊完成前，不能切換到下一步驟 */
+  function canGoTo(i: number) {
+    if (i <= 0) return true;
+    if (i === 1) return player !== null;
+    return player !== null && ours !== null;
+  }
+
   function goTo(next: number) {
     if (next === stepIdx || next < 0 || next >= MOCK_STEPS.length) return;
+    if (!canGoTo(next)) return;
     setDirection(next > stepIdx ? "forward" : "backward");
     setStepIdx(next);
   }
@@ -1059,21 +1238,22 @@ function ProgressMockup() {
   }
 
   function submit() {
-    if (!complete || sending) return;
-    setSending(true);
-    setTimeout(() => {
-      setScore((s) =>
-        ours!.win ? { ...s, home: s.home + 1 } : { ...s, away: s.away + 1 },
-      );
-      setScoreFlash(true);
-      setPlayer(null);
-      setOurs(null);
-      setOppo(null);
-      setStepIdx(0);
-      setDirection("backward");
-      setSending(false);
-      setTimeout(() => setScoreFlash(false), 1200);
-    }, 300);
+    if (!complete) return;
+    const nextScore = ours!.win
+      ? { home: score.home + 1, away: score.away }
+      : { home: score.home, away: score.away + 1 };
+    /* 角色轉換：draft 內容原地成為「上一筆」，附上結果比分 */
+    setLastEntry(
+      `${player === 0 ? "對方失誤" : `#${player}`} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo} → ${nextScore.home}–${nextScore.away}`,
+    );
+    setScore(nextScore);
+    setScoreFlash(true);
+    setPlayer(null);
+    setOurs(null);
+    setOppo(null);
+    setDirection("backward");
+    setStepIdx(0);
+    setTimeout(() => setScoreFlash(false), 1200);
   }
 
   const oppoOptions =
@@ -1083,16 +1263,13 @@ function ProgressMockup() {
         ? ["接發失誤", "防守失誤", "攔網出界"]
         : ["對方攻擊得分", "對方攔網得分", "對方發球得分"];
 
-  const previewText =
-    !player && player !== 0
-      ? "（尚未開始輸入）"
-      : [
-          player === 0 ? "對方失誤" : `#${player}`,
-          ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
-          oppo,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+  const draftText = [
+    player === null ? null : player === 0 ? "對方失誤" : `#${player}`,
+    ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
+    oppo,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   const stepBody: Record<MockStepId, React.ReactNode> = {
     player: (
@@ -1136,26 +1313,20 @@ function ProgressMockup() {
     ),
     oppo: (
       <div className="grid flex-1 grid-cols-1 gap-1.5">
-        {ours === null ? (
-          <div className="flex items-center justify-center text-[12px] text-[var(--color-fd-muted-foreground)]">
-            （先完成第 2 步）
-          </div>
-        ) : (
-          oppoOptions.map((m) => (
-            <button
-              key={m}
-              onClick={() => setOppo(m)}
-              className={cn(
-                "rounded-md border text-sm",
-                oppo === m
-                  ? "border-transparent bg-[var(--primary)] text-white"
-                  : "border-[var(--border)] bg-[var(--color-fd-card)]",
-              )}
-            >
-              {m}
-            </button>
-          ))
-        )}
+        {oppoOptions.map((m) => (
+          <button
+            key={m}
+            onClick={() => setOppo(m)}
+            className={cn(
+              "rounded-md border text-sm",
+              oppo === m
+                ? "border-transparent bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-[var(--color-fd-card)]",
+            )}
+          >
+            {m}
+          </button>
+        ))}
       </div>
     ),
   };
@@ -1178,24 +1349,8 @@ function ProgressMockup() {
           to { transform: translateY(0); opacity: 1; }
         }
         .mock-preview-in { animation: 250ms ease mock-preview-in; }
-        @keyframes mock-send-out {
-          to { transform: translateY(-10px); opacity: 0; }
-        }
-        .mock-send-out { animation: 300ms ease forwards mock-send-out; }
       `}</style>
-      <div
-        className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2"
-        onTouchStart={(e) => {
-          touchX.current = e.touches[0].clientX;
-        }}
-        onTouchEnd={(e) => {
-          if (touchX.current === null) return;
-          const dx = e.changedTouches[0].clientX - touchX.current;
-          touchX.current = null;
-          if (Math.abs(dx) < 40) return;
-          goTo(stepIdx + (dx < 0 ? 1 : -1));
-        }}
-      >
+      <div className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
         <div
           key={`${score.home}-${score.away}`}
           className={cn(
@@ -1205,14 +1360,7 @@ function ProgressMockup() {
         >
           {score.home}–{score.away}
         </div>
-        <div
-          className={cn(
-            "rounded-lg border p-1.5 transition-all",
-            step.id === "player"
-              ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
-              : "border-[var(--border)] opacity-70",
-          )}
-        >
+        <div className="rounded-lg border border-[var(--border)] p-1.5">
           {COURT_ROWS.map((row, i) => (
             <div key={i} className="mb-1 grid grid-cols-3 gap-1 last:mb-0">
               {row.map((n) => (
@@ -1232,13 +1380,26 @@ function ProgressMockup() {
             </div>
           ))}
         </div>
-        <div className="flex h-44 flex-col rounded-lg border border-[var(--border)] p-1.5">
+        <div
+          className="flex h-44 touch-pan-y flex-col rounded-lg border border-[var(--border)] p-1.5"
+          onPointerDown={(e) => {
+            pointerX.current = e.clientX;
+          }}
+          onPointerUp={(e) => {
+            if (pointerX.current === null) return;
+            const dx = e.clientX - pointerX.current;
+            pointerX.current = null;
+            if (Math.abs(dx) < 40) return;
+            goTo(stepIdx + (dx < 0 ? 1 : -1));
+          }}
+        >
           <div role="tablist" className="flex gap-1">
             {MOCK_STEPS.map((s, i) => (
               <button
                 key={s.id}
                 role="tab"
                 aria-selected={i === stepIdx}
+                disabled={!canGoTo(i)}
                 onClick={() => goTo(i)}
                 className={cn(
                   "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
@@ -1247,6 +1408,7 @@ function ProgressMockup() {
                     : i < stepIdx
                       ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
                       : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+                  !canGoTo(i) && "opacity-50",
                 )}
               >
                 {s.label}
@@ -1266,36 +1428,38 @@ function ProgressMockup() {
             {stepBody[step.id]}
           </div>
         </div>
-        {/* Preview：chat-input 式送出列，固定於視窗下方 */}
+        {/* Preview：chat-input 式送出列。閒置顯示上一筆，輸入中顯示 draft，
+            送出＝角色轉換（draft 原地成為上一筆，ring 與 send icon 淡出） */}
         <div
           className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all",
+            "flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all duration-300",
             complete
               ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
               : "border-[var(--border)]",
           )}
         >
+          <span className="shrink-0 rounded-sm bg-[var(--color-fd-muted)] px-1 py-px text-[9px] text-[var(--color-fd-muted-foreground)]">
+            {editing ? "輸入中" : "上一筆"}
+          </span>
           <span
-            key={previewText}
+            key={editing ? draftText : lastEntry}
             className={cn(
-              "min-w-0 flex-1 truncate text-[11px]",
-              previewText === "（尚未開始輸入）"
-                ? "text-[var(--color-fd-muted-foreground)]"
-                : "text-inherit",
-              sending ? "mock-send-out" : "mock-preview-in",
+              "mock-preview-in min-w-0 flex-1 truncate text-[11px]",
+              !editing && "text-[var(--color-fd-muted-foreground)]",
             )}
           >
-            {previewText}
+            {editing ? draftText : lastEntry}
           </span>
-          {complete && (
-            <button
-              onClick={submit}
-              aria-label="送出"
-              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-white"
-            >
-              ➤
-            </button>
-          )}
+          <button
+            onClick={submit}
+            aria-label="送出"
+            className={cn(
+              "shrink-0 text-sm text-[var(--primary)] transition-opacity duration-300",
+              complete ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            ➤
+          </button>
         </div>
       </div>
     </div>
@@ -1310,7 +1474,8 @@ export const toc = [
   { title: "衝突模型：意圖錨點", url: "#intent-anchor", depth: 2 },
   { title: "資料契約", url: "#data-contract", depth: 2 },
   { title: "同步狀態與視覺回饋", url: "#feedback", depth: 2 },
-  { title: "Q1 mockup：entry 進度條方案", url: "#q1-mockup", depth: 2 },
+  { title: "Q0 mockup：progress bar 樣式", url: "#q0-mockup", depth: 2 },
+  { title: "Q1 mockup：entry 進度條與 Preview 送出", url: "#q1-mockup", depth: 2 },
   { title: "未決問題", url: "#open-questions", depth: 2 },
   { title: "範圍外（backlog）", url: "#out-of-scope", depth: 2 },
 ];
@@ -1392,13 +1557,17 @@ export default function Design() {
         </li>
       </ul>
 
+      <h2 id="q0-mockup">Q0 mockup：progress bar 樣式</h2>
+      <ProgressBarStyles />
+
       <h2 id="q1-mockup">Q1 mockup：entry 進度條與 Preview 送出</h2>
       <p>
-        進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；切換靠點選進度條或滑動（沿用
-        tab-container 的方向性滑動動畫，此行為未來將成為 panel
-        的預設功能）。送出行為自第三步的雙擊移出，改由底部 chat-input 式的
-        Preview 承載：三步完成後 Preview highlight 並出現 send icon（全介面唯一
-        highlight），每步選擇時 Preview 內容以動畫更新。
+        進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；切換靠點選進度條或左右滑動
+        panel（沿用 tab-container 的方向性滑動動畫，此行為未來將成為 panel
+        的預設功能），且前一步驟完成前不能切換到下一步。送出由底部 chat-input
+        式的 Preview 承載：閒置時顯示上一筆 entry、輸入中顯示 draft，三步完成後
+        highlight 並浮現 send icon（全介面唯一 highlight）；送出＝「角色轉換」——
+        draft 內容原地成為上一筆（附上結果比分），ring 與 icon 淡出、比分閃爍。
       </p>
       <ProgressMockup />
 
