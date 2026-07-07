@@ -999,6 +999,199 @@ function DecisionCards() {
   );
 }
 
+/* ------------------------ Q1 mockup：entry 進度條方案 ------------------------ */
+
+type MockStep = { id: "player" | "ours" | "oppo" | "confirm"; label: string };
+
+const MOCK_STEPS: MockStep[] = [
+  { id: "player", label: "球員" },
+  { id: "ours", label: "我方" },
+  { id: "oppo", label: "對方" },
+  { id: "confirm", label: "確認" },
+];
+
+const COURT_ROWS = [
+  [4, 3, 2],
+  [5, 6, 1],
+];
+
+function ProgressMockup() {
+  const [variant, setVariant] = useState<"A" | "B">("A");
+  const [stepIdx, setStepIdx] = useState(0);
+  const [player, setPlayer] = useState<number | null>(null);
+  const [sent, setSent] = useState(false);
+
+  const steps = variant === "A" ? MOCK_STEPS : MOCK_STEPS.slice(1);
+  const step = steps[Math.min(stepIdx, steps.length - 1)];
+  const last = steps.length - 1;
+  const idx = Math.min(stepIdx, last);
+  const waitingCourt = player === null; // 方案 B：球員未選前 panel 等待中
+
+  function reset(v: "A" | "B") {
+    setVariant(v);
+    setStepIdx(0);
+    setPlayer(null);
+    setSent(false);
+  }
+
+  function pickPlayer(n: number) {
+    setPlayer(n);
+    setSent(false);
+    // 方案 A：球員是第 1 步，選完進入「我方」；方案 B：選完球員才啟動 panel 流程
+    setStepIdx(variant === "A" ? 1 : 0);
+  }
+
+  const courtActive = variant === "A" ? step.id === "player" : waitingCourt;
+
+  const stepBody: Record<MockStep["id"], React.ReactNode> = {
+    player: (
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[12px] text-[var(--color-fd-muted-foreground)]">
+        點選上方球場中的球員
+        <button
+          onClick={() => pickPlayer(0)}
+          className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs"
+        >
+          對方失誤（不指定球員）
+        </button>
+      </div>
+    ),
+    ours: (
+      <div className="grid flex-1 grid-cols-2 gap-1.5">
+        {["攻擊 ＋", "攔網 ＋", "發球 ＋", "拋傳 −"].map((m) => (
+          <button
+            key={m}
+            onClick={() => setStepIdx(idx + 1)}
+            className="rounded-md border border-[var(--border)] bg-[var(--color-fd-card)] text-sm"
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+    ),
+    oppo: (
+      <div className="grid flex-1 grid-cols-1 gap-1.5">
+        {["對方接發失誤 ＋", "對方防守起球", "被攔回 −"].map((m) => (
+          <button
+            key={m}
+            onClick={() => setStepIdx(idx + 1)}
+            className="rounded-md border border-[var(--border)] bg-[var(--color-fd-card)] text-sm"
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+    ),
+    confirm: (
+      <div className="flex flex-1 flex-col items-center justify-center gap-2">
+        <span className="text-[12px]">
+          {player === 0 ? "對方失誤" : `我方 #${player ?? "?"} 攻擊得分`} → 11–8
+        </span>
+        <button
+          onClick={() => setSent(true)}
+          className="rounded-md bg-[var(--primary)] px-4 py-1.5 text-xs font-semibold text-white"
+        >
+          {sent ? "已送出（示意）" : "送出"}
+        </button>
+        <span className="text-[10px] text-[var(--color-fd-muted-foreground)]">
+          確認方式（獨立步 vs 雙擊送出）為下一個問題，此處先以獨立步呈現
+        </span>
+      </div>
+    ),
+  };
+
+  return (
+    <div className="not-prose my-4 rounded-2xl border border-[var(--border)] p-4">
+      <div role="tablist" className="mb-3 flex flex-wrap gap-1.5">
+        <Pill active={variant === "A"} onClick={() => reset("A")}>
+          方案 A：全流程（含球員選擇）
+        </Pill>
+        <Pill active={variant === "B"} onClick={() => reset("B")}>
+          方案 B：僅 panel 內步驟
+        </Pill>
+      </div>
+      <p className="mb-3 text-[13px] text-[var(--color-fd-muted-foreground)]">
+        {variant === "A"
+          ? "進度條涵蓋 球員 → 我方 → 對方 → 確認；「上一步」可回到球員選擇（改選點錯的球員）。"
+          : "球員選擇是進入流程的前置動作，不在進度條上；進度條只管 我方 → 對方 → 確認，改選球員需取消整筆重來。"}
+      </p>
+      <div className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
+        <div className="text-center font-mono text-lg font-bold">10–8</div>
+        <div
+          className={cn(
+            "rounded-lg border p-1.5 transition-all",
+            courtActive
+              ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
+              : "border-[var(--border)] opacity-70",
+          )}
+        >
+          {COURT_ROWS.map((row, i) => (
+            <div key={i} className="mb-1 grid grid-cols-3 gap-1 last:mb-0">
+              {row.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => pickPlayer(n)}
+                  className={cn(
+                    "rounded-md border py-1.5 text-xs font-semibold",
+                    player === n
+                      ? "border-transparent bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-[var(--color-fd-card)]",
+                  )}
+                >
+                  #{n}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex h-40 flex-col rounded-lg border border-[var(--border)] p-1.5">
+          <div className="mb-1.5 flex gap-1">
+            {steps.map((s, i) => (
+              <button
+                key={s.id}
+                onClick={() => !waitingCourt && setStepIdx(i)}
+                className={cn(
+                  "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
+                  i === idx && !waitingCourt
+                    ? "bg-[var(--primary)] font-semibold text-white"
+                    : i < idx
+                      ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
+                      : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+                )}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          {variant === "B" && waitingCourt ? (
+            <div className="flex flex-1 items-center justify-center text-[12px] text-[var(--color-fd-muted-foreground)]">
+              （先在場上點選球員）
+            </div>
+          ) : (
+            stepBody[step.id]
+          )}
+          <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--color-fd-muted-foreground)]">
+            <button
+              onClick={() => setStepIdx(Math.max(0, idx - 1))}
+              disabled={idx === 0 || (variant === "B" && waitingCourt)}
+              className="rounded border border-[var(--border)] px-2 py-0.5 disabled:opacity-40"
+            >
+              ← 上一步
+            </button>
+            <span>（可滑動切換）</span>
+            <button
+              onClick={() => setStepIdx(Math.min(last, idx + 1))}
+              disabled={idx === last || (variant === "B" && waitingCourt)}
+              className="rounded border border-[var(--border)] px-2 py-0.5 disabled:opacity-40"
+            >
+              下一步 →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------- 頁面 ----------------------------------- */
 
 export const toc = [
@@ -1007,6 +1200,7 @@ export const toc = [
   { title: "衝突模型：意圖錨點", url: "#intent-anchor", depth: 2 },
   { title: "資料契約", url: "#data-contract", depth: 2 },
   { title: "同步狀態與視覺回饋", url: "#feedback", depth: 2 },
+  { title: "Q1 mockup：entry 進度條方案", url: "#q1-mockup", depth: 2 },
   { title: "未決問題", url: "#open-questions", depth: 2 },
   { title: "範圍外（backlog）", url: "#out-of-scope", depth: 2 },
 ];
@@ -1087,6 +1281,15 @@ export default function Design() {
           攔下，不會污染序列。
         </li>
       </ul>
+
+      <h2 id="q1-mockup">Q1 mockup：entry 進度條方案</h2>
+      <p>
+        現行隱性步驟：court 點選球員（S1）→ 我方動作（S2）→ 對方動作（S3）→
+        雙擊同鈕送出（S4）。以下 mockup
+        比較進度條的兩種涵蓋範圍——切換方案後實際點一筆 entry
+        感受差異，特別試「點錯球員後按上一步改選」在兩案的路徑。
+      </p>
+      <ProgressMockup />
 
       <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
       <ol>
