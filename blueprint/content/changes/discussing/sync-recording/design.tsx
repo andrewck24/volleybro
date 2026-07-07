@@ -611,6 +611,81 @@ const SCENARIOS: Scenario[] = [
       },
     ],
   },
+  {
+    id: "edit-race",
+    label: "Edge：編輯中失去最後一筆",
+    intro:
+      "乙點 Preview 編輯剛記的第 19 球（最後一筆，T1/T2 全開放）；甲隨即記了第 20 球——編輯不被阻斷，但勝負修改（T2）降級鎖定，所有鎖定操作點擊時都說明原因與替代路徑（aria-disabled + explain-on-tap，不用原生 disabled）。",
+    frames: [
+      {
+        title: "點 Preview 進入編輯模式（仍是最後一筆）",
+        node: "compose",
+        a: { score: "11–8", chip: idle, body: [] },
+        b: {
+          score: "11–8",
+          chip: composing,
+          body: [
+            "說明文字列：「編輯第 19 球（最後一筆）」",
+            "T1（球員/球種）與 T2（勝負）都可修改",
+          ],
+        },
+        server: "update 目標 entry 19，version 1；「仍為最後一筆」→ T2 允許",
+      },
+      {
+        title: "甲記錄第 20 球 → 乙的編輯目標失去最後一筆身分",
+        node: "banner",
+        a: { score: "12–8", chip: saved, body: ["記錄第 20 球"] },
+        b: {
+          score: "12–8",
+          chip: composing,
+          body: [
+            "不阻斷（不同球、不互斥），降級通知：",
+            "說明文字列輪換：「甲已記錄下一球 —",
+            "此球僅能修改球員/球種（勝負已鎖定）」＋ Preview 閃爍",
+          ],
+          flash: true,
+        },
+        server: "entry 19 不再是最後一筆 → T2 降級鎖定，T1 照常",
+      },
+      {
+        title: "乙點擊被鎖定的勝負選項 → explain-on-tap",
+        node: "check",
+        a: { score: "12–8", chip: idle, body: [] },
+        b: {
+          score: "12–8",
+          chip: composing,
+          body: [
+            "不執行變更，說明文字列閃現（destructive）：",
+            "「更改勝負將影響後續 1 筆記錄，需退回重記」",
+            "＋浮現［退回重記］入口",
+          ],
+        },
+        server: "「不可用 ≠ 不可見」：鎖定操作保留可點，點擊得到原因與替代路徑",
+      },
+      {
+        title: "若選退回重記（B1）→ panel 切換為破壞性確認卡",
+        node: "conflict",
+        a: { score: "12–8", chip: idle, body: [] },
+        b: {
+          score: "12–8",
+          chip: conflict,
+          body: [
+            "「將刪除第 19 球之後的 1 筆（甲記的第 20 球），",
+            "所有人畫面將回到第 19 球」",
+            "［確認退回］［取消］",
+          ],
+        },
+        server: "確認後 truncate + 廣播失效範圍；他人輸入中的 draft 錨點失效 → D7 衝突面板",
+      },
+      {
+        title: "T1 修改則照常送出（版本檢查）",
+        node: "resolve",
+        a: { score: "12–8", chip: idle, body: ["SSE 更新：第 19 球球員改為 #7", ], flash: true },
+        b: { score: "12–8", chip: saved, body: ["僅改球員/球種：零連鎖，version 1→2"] },
+        server: "T2 送出瞬間才被搶先的競態：server「仍為最後一筆」檢查失敗 → 衝突面板（改回原勝負/退回重記/放棄）",
+      },
+    ],
+  },
 ];
 
 function Device({ name, state }: { name: string; state: DeviceState }) {
@@ -967,6 +1042,25 @@ const DECISIONS: {
       {
         option: "無限覆蓋（互相覆蓋）的強制收斂機制",
         reason: "驗證後確認：互相覆蓋是合法循序編輯（每步都通過版本檢查），非系統衝突；updatedBy＋閃爍可見性即收斂，場邊社交解決",
+      },
+    ],
+  },
+  {
+    id: "D10",
+    title: "賽後編輯（v1）：最後一筆規則＋退回重記",
+    body: "T1（改球員/球種，勝負不變）零連鎖、隨時可改；T2（改勝負）僅在該球仍是最後一筆時允許（零下游，等同 D9 覆蓋）；更早的勝負錯誤走退回重記——共編下 truncate 會刪除他人 entries，需 panel 確認卡（destructive 色）明示刪除範圍與影響對象，確認後廣播失效範圍。通用 UI 原則：「不可用 ≠ 不可見」——鎖定操作以 aria-disabled 保留可點，點擊時說明原因並給替代路徑（explain-on-tap）。",
+    rejected: [
+      {
+        option: "全自動連鎖重算＋標記不合法項",
+        reason: "比分可機械重算，但輪轉變動使既有換人不合法時機械無解；標記待修狀態讓比賽記錄長時間處於半失效，複雜度不成比例",
+      },
+      {
+        option: "v1 不提供退回重記",
+        reason: "「三球前記反了」在真實比賽不罕見，無解過於苛刻；truncate 機制與既有失效廣播共用，成本主要在確認 UI",
+      },
+      {
+        option: "原生 disabled 鎖定不可用操作",
+        reason: "disabled 元素不發 pointer 事件，無法 explain-on-tap；記錄者不知道為什麼不能按、也得不到替代路徑",
       },
     ],
   },
@@ -1787,12 +1881,6 @@ export default function Design() {
 
       <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
       <ol>
-        <li>
-          <strong>Q3 — 賽後（中途）編輯的連鎖效果</strong>：改第 N
-          球勝負會改變其後所有球的比分（server fold
-          重算）、發球方與輪轉，可能使已記錄的換人不合法；重算後需廣播失效範圍讓
-          client 重拉。全自動連鎖重算＋標記不合法項？僅允許不改勝負的編輯？退回重記？
-        </li>
         <li>
           <strong>Q4 — 離線佇列重播</strong>：離線期間排隊的多筆 entries
           重連後逐筆重播， 第一筆衝突時暫停佇列等人工解決？還是整批比對？
