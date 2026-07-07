@@ -1496,8 +1496,15 @@ function ProgressMockup() {
           className="flex h-44 touch-pan-y flex-col rounded-lg border border-[var(--border)] p-1.5"
           onPointerDown={(e) => {
             pointerX.current = e.clientX;
-            /* capture：起點在任何子元素（含按鈕）都能完成滑動 */
-            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            /* 移動超過 8px 才 capture：拖曳可從任何子元素（含按鈕）起手，
+               點按則不受影響（pointerdown 就 capture 會讓 click 派發到容器） */
+            if (pointerX.current === null) return;
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            if (Math.abs(e.clientX - pointerX.current) > 8) {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }
           }}
           onPointerUp={(e) => {
             if (pointerX.current === null) return;
