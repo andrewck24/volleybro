@@ -539,9 +539,9 @@ const SCENARIOS: Scenario[] = [
         b: {
           score: "11–8",
           chip: idle,
-          body: ["覆蓋 → 改寫第 19 球，級聯重算比分（見 Q2/Q3）"],
+          body: ["覆蓋 → 改寫第 19 球，連鎖效果見 Q3"],
         },
-        server: "update 記 updatedBy/updatedAt；下游比分 fold 重算後廣播",
+        server: "update 記 updatedBy/updatedAt；下游比分 fold 重算後廣播（連鎖效果）",
       },
     ],
   },
@@ -902,7 +902,7 @@ const DECISIONS: {
   {
     id: "D6",
     title: "409 衝突選項：捨棄／覆蓋（同類型 entry）",
-    body: "錨點過期在語意上表示 draft 在對方那筆入庫前就開始——想記的必然是同一球，衝突是「誰記的才對」的裁決：捨棄（對方對）或覆蓋（我對，走 update 路徑級聯重算）。跨類型衝突（rally 撞上換人）不互斥，改提供「作為下一筆送出（rebase）」。",
+    body: "錨點過期在語意上表示 draft 在對方那筆入庫前就開始——想記的必然是同一球，衝突是「誰記的才對」的裁決：捨棄（對方對）或覆蓋（我對，走 update 路徑）。跨類型衝突（rally 撞上換人）不互斥，改提供「作為下一筆送出（rebase）」。",
     rejected: [
       {
         option: "捨棄／作為下一球送出",
@@ -929,6 +929,44 @@ const DECISIONS: {
         option: "Modal dialog",
         reason:
           "遮蔽比分與場上狀態；行動端 PWA 疊層互動差，且與既有 panel 操作模式不一致",
+      },
+    ],
+  },
+  {
+    id: "D8",
+    title: "entry 輸入 UI：三步驟延展分段進度條＋Preview 送出",
+    body: "進度條涵蓋全流程（球員→我方→對方；對方失誤屬對方得失分、選定即縮為單步可送出），採延展分段樣式：輪到的段落延展、各段無文字、說明統一下方無編號並帶輪換動畫；前一步未完成不可前進；切換靠點選進度條或滑動（拖曳意圖才 capture、aria-disabled 取代 disabled、滑動後抑制誤觸 click）。Preview 仿 Entry 版式（左側比分 Figures：閒置＝上一筆、勝負未定＝目前比分皆 muted、已定＝結果比分勝方著色）承載送出：輸入中 pulse、完成時 ring＋send icon、送出＝定格（背景閃一次）。mockup 僅定顯示邏輯／動畫／位置，視覺樣式於 propose 精修。",
+    rejected: [
+      {
+        option: "進度條樣式 1–4（分段填色／圓點連線／數字徽章／細線）",
+        reason: "見 Q0 mockup 並排比較；樣式 5 的延展動畫同時服務「對方失誤收合為單步」",
+      },
+      {
+        option: "上一步／下一步按鈕",
+        reason: "滑動＋點選進度條已覆蓋導航，按鈕佔用 panel 空間",
+      },
+      {
+        option: "第三步雙擊同鈕送出（現行）",
+        reason: "隱性確認不可發現；送出集中到 Preview，全介面唯一 highlight",
+      },
+      {
+        option: "文字標籤（輸入中／上一筆）表達 Preview 狀態",
+        reason: "比分 Figures 三態＋pulse 是既有 Entry/GamePreview 語彙，標籤多餘",
+      },
+    ],
+  },
+  {
+    id: "D9",
+    title: "覆蓋機制（v1）：衝突面板限定＋版本檢查",
+    body: "覆蓋第一版就做，但僅限衝突面板情境——衝突覆蓋的本質是覆蓋最後一筆（committedSince 通常僅一筆、無下游 entry），連鎖效果為零。每筆 entry 帶版本號，覆蓋請求帶預期版本，防「乙的衝突面板開著時甲搶先自行修正」的競態與離線重播的靜默遺失；版本過期走同一套衝突面板。",
+    rejected: [
+      {
+        option: "v1 支援任意 entry 的覆蓋",
+        reason: "改早期 entry 觸發連鎖效果（下游比分 fold 重算、輪轉變動、換人合法性）——歸賽後編輯（Q3）",
+      },
+      {
+        option: "無限覆蓋（互相覆蓋）的強制收斂機制",
+        reason: "驗證後確認：互相覆蓋是合法循序編輯（每步都通過版本檢查），非系統衝突；updatedBy＋閃爍可見性即收斂，場邊社交解決",
       },
     ],
   },
@@ -1007,15 +1045,20 @@ const Q0_CAPTION = "1. 選擇球員或對方失誤";
 function BarStyleFrame({
   title,
   note,
+  verdict,
   children,
 }: {
   title: string;
   note: string;
+  verdict: "adopted" | "rejected";
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-[var(--border)] p-3">
-      <div className="mb-1 text-sm font-semibold">{title}</div>
+      <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
+        {title}
+        <VerdictBadge verdict={verdict} />
+      </div>
       <div className="mb-2 text-[11px] text-[var(--color-fd-muted-foreground)]">
         {note}
       </div>
@@ -1035,6 +1078,7 @@ function ProgressBarStyles() {
       </p>
       <BarStyleFrame
         title="樣式 1：分段填色"
+        verdict="rejected"
         note="等寬分段、整段可點；觸控面積最大，但「完成 vs 目前」靠深淺區分"
       >
         <div className="flex gap-1">
@@ -1061,6 +1105,7 @@ function ProgressBarStyles() {
       </BarStyleFrame>
       <BarStyleFrame
         title="樣式 2：圓點連線（onboarding 經典）"
+        verdict="rejected"
         note="步驟語意最明確、完成打勾；佔位較高，點擊目標是小圓點"
       >
         <div className="flex items-center">
@@ -1112,6 +1157,7 @@ function ProgressBarStyles() {
       </BarStyleFrame>
       <BarStyleFrame
         title="樣式 3：數字徽章＋標籤列"
+        verdict="rejected"
         note="徽章與標籤同列、水平緊湊；步驟多時會擠"
       >
         <div className="flex justify-center gap-2">
@@ -1148,6 +1194,7 @@ function ProgressBarStyles() {
       </BarStyleFrame>
       <BarStyleFrame
         title="樣式 4：細線進度＋置中說明"
+        verdict="rejected"
         note="最省空間、說明文字即主角；但步驟不可個別點選，只能滑動切換"
       >
         <div className="h-1 overflow-hidden rounded-full bg-[var(--color-fd-muted)]">
@@ -1164,7 +1211,8 @@ function ProgressBarStyles() {
         </button>
       </BarStyleFrame>
       <BarStyleFrame
-        title="樣式 5：延展分段（✓ 已選定）"
+        title="樣式 5：延展分段"
+        verdict="adopted"
         note="輪到的階段動畫延展變長；各段不放文字，說明統一在下方；軌道上下的透明 padding 擴大觸控面積"
       >
         <div className="flex items-center">
@@ -1640,8 +1688,8 @@ export const toc = [
   { title: "衝突模型：意圖錨點", url: "#intent-anchor", depth: 2 },
   { title: "資料契約", url: "#data-contract", depth: 2 },
   { title: "同步狀態與視覺回饋", url: "#feedback", depth: 2 },
-  { title: "Q0 mockup：progress bar 樣式", url: "#q0-mockup", depth: 2 },
-  { title: "Q1 mockup：entry 進度條與 Preview 送出", url: "#q1-mockup", depth: 2 },
+  { title: "Q0 mockup：progress bar 樣式（已定案）", url: "#q0-mockup", depth: 2 },
+  { title: "Q1 mockup：entry 進度條與 Preview 送出（已定案）", url: "#q1-mockup", depth: 2 },
   { title: "未決問題", url: "#open-questions", depth: 2 },
   { title: "範圍外（backlog）", url: "#out-of-scope", depth: 2 },
 ];
@@ -1723,10 +1771,10 @@ export default function Design() {
         </li>
       </ul>
 
-      <h2 id="q0-mockup">Q0 mockup：progress bar 樣式</h2>
+      <h2 id="q0-mockup">Q0 mockup：progress bar 樣式（已定案：樣式 5）</h2>
       <ProgressBarStyles />
 
-      <h2 id="q1-mockup">Q1 mockup：entry 進度條與 Preview 送出</h2>
+      <h2 id="q1-mockup">Q1 mockup：entry 進度條與 Preview 送出（已定案，見 D8）</h2>
       <p>
         進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；切換靠點選進度條或左右滑動
         panel（沿用 tab-container 的方向性滑動動畫，此行為未來將成為 panel
@@ -1740,20 +1788,10 @@ export default function Design() {
       <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
       <ol>
         <li>
-          <strong>Q1 — entry 輸入的每個 UI 步驟</strong>
-          ：進度條要顯示哪些步驟？（需從頭逐步確認： 發球/接發 → 攻防過程 → 勝負
-          → 確認？現行 panel 的步驟拆法是否沿用？）
-        </li>
-        <li>
-          <strong>Q2 — 「覆蓋」的實作邊界</strong>：覆蓋＝update 已入庫
-          entry（version
-          檢查、級聯重算、updatedBy）。第一版就做？兩人互相覆蓋（edit
-          war）如何收斂？
-        </li>
-        <li>
-          <strong>Q3 — 賽後（中途）編輯的級聯效應</strong>：改第 N
-          球勝負會改變其後的發球方、輪轉、
-          站位，可能使已記錄的換人變得不合法。自動級聯重算？標記後人工修正？退回重記？
+          <strong>Q3 — 賽後（中途）編輯的連鎖效果</strong>：改第 N
+          球勝負會改變其後所有球的比分（server fold
+          重算）、發球方與輪轉，可能使已記錄的換人不合法；重算後需廣播失效範圍讓
+          client 重拉。全自動連鎖重算＋標記不合法項？僅允許不改勝負的編輯？退回重記？
         </li>
         <li>
           <strong>Q4 — 離線佇列重播</strong>：離線期間排隊的多筆 entries
