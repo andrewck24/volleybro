@@ -18,22 +18,16 @@ interface DesignModule {
 }
 
 const designModules: Record<string, () => Promise<DesignModule>> = {
+  "discussing/sync-recording/design": () =>
+    import("../../../../../content/changes/discussing/sync-recording/design"),
   "archive/2026-06-28-apple-splash-dynamic/design": () =>
-    import(
-      "../../../../../content/changes/archive/2026-06-28-apple-splash-dynamic/design"
-    ),
+    import("../../../../../content/changes/archive/2026-06-28-apple-splash-dynamic/design"),
   "archive/2026-06-16-contextual-edit-pages/design": () =>
-    import(
-      "../../../../../content/changes/archive/2026-06-16-contextual-edit-pages/design"
-    ),
+    import("../../../../../content/changes/archive/2026-06-16-contextual-edit-pages/design"),
   "archive/2026-06-16-api-objectid-guards/design": () =>
-    import(
-      "../../../../../content/changes/archive/2026-06-16-api-objectid-guards/design"
-    ),
+    import("../../../../../content/changes/archive/2026-06-16-api-objectid-guards/design"),
   "archive/2026-06-16-team-routes-clean-architecture/design": () =>
-    import(
-      "../../../../../content/changes/archive/2026-06-16-team-routes-clean-architecture/design"
-    ),
+    import("../../../../../content/changes/archive/2026-06-16-team-routes-clean-architecture/design"),
 };
 
 const mdxComponents = { ...defaultMdxComponents, ChangeOverview, ChangeCard };

@@ -19,7 +19,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "npx chromatic",
-    "release:version": "changeset version && node .changeset/changelog-postprocess.cjs"
+    "release:version": "changeset version && node .changeset/changelog-postprocess.cjs",
+    "blueprint": "node scripts/blueprint.mjs"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.21",

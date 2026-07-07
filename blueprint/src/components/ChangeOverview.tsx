@@ -1,10 +1,11 @@
 type Artifact = { title: string; href: string };
-type Status = "archived" | "in-progress" | "draft";
+type Status = "archived" | "in-progress" | "discussing" | "draft";
 type Props = { date: string; status: Status; summary: string; artifacts: Artifact[] };
 
 const STATUS_LABEL: Record<Status, string> = {
   archived: "Archived",
   "in-progress": "In Progress",
+  discussing: "Discussing",
   draft: "Draft",
 };
 
@@ -13,6 +14,8 @@ const STATUS_CLASS: Record<Status, string> = {
     "bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border border-[color-mix(in_oklch,var(--primary)_35%,transparent)]",
   "in-progress":
     "bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-[var(--warning)] border border-[color-mix(in_oklch,var(--warning)_40%,transparent)]",
+  discussing:
+    "border border-dashed border-[var(--border)] bg-transparent text-[var(--color-fd-muted-foreground)]",
   draft:
     "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)] border border-[var(--border)]",
 };
