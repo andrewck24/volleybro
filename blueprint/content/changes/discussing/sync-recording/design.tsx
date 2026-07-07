@@ -1030,7 +1030,7 @@ function ProgressBarStyles() {
   return (
     <div className="not-prose my-4 grid gap-3">
       <p className="m-0 text-[13px] text-[var(--color-fd-muted-foreground)]">
-        點任一樣式的步驟切換，五種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
+        點任一樣式的步驟切換，四種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
         步）。每款下方都附步驟說明文字，一併評估整合效果。
       </p>
       <BarStyleFrame
@@ -1164,7 +1164,7 @@ function ProgressBarStyles() {
         </button>
       </BarStyleFrame>
       <BarStyleFrame
-        title="樣式 5：延展分段（參考圖）"
+        title="樣式 5：延展分段（✓ 已選定）"
         note="輪到的階段動畫延展變長；各段不放文字，說明統一在下方；軌道上下的透明 padding 擴大觸控面積"
       >
         <div className="flex items-center">
@@ -1219,6 +1219,38 @@ const OURS_MOVES = [
   { label: "拋傳失誤", win: false },
 ];
 
+type LastEntry = {
+  text: string;
+  home: number;
+  away: number;
+  win: boolean;
+};
+
+/* 仿 src/components/game/entry 的比分 Figure：勝方著色、敗方 muted */
+function ScoreFig({
+  value,
+  tone,
+}: {
+  value: number;
+  tone: "primary" | "destructive" | "muted";
+}) {
+  return (
+    <span
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center rounded-sm font-mono text-[11px] font-bold",
+        tone === "primary" &&
+          "bg-[color-mix(in_oklch,var(--primary)_15%,transparent)] text-[var(--primary)]",
+        tone === "destructive" &&
+          "bg-[color-mix(in_oklch,var(--destructive)_15%,transparent)] text-[var(--destructive)]",
+        tone === "muted" &&
+          "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+      )}
+    >
+      {value}
+    </span>
+  );
+}
+
 function ProgressMockup() {
   const [stepIdx, setStepIdx] = useState(0);
   const [direction, setDirection] = useState<"forward" | "backward">(
@@ -1230,7 +1262,13 @@ function ProgressMockup() {
   const [oppo, setOppo] = useState<string | null>(null);
   const [score, setScore] = useState({ home: 10, away: 8 });
   const [scoreFlash, setScoreFlash] = useState(false);
-  const [lastEntry, setLastEntry] = useState("#5 攻擊＋ · 接發失誤 → 10–8");
+  const [previewFlash, setPreviewFlash] = useState(false);
+  const [lastEntry, setLastEntry] = useState<LastEntry>({
+    text: "#5 攻擊＋ · 接發失誤",
+    home: 10,
+    away: 8,
+    win: true,
+  });
   const pointerX = useRef<number | null>(null);
 
   /* 對方失誤屬於對方得失分：不需記錄我方表現，流程縮為單一步驟 */
@@ -1245,14 +1283,14 @@ function ProgressMockup() {
   const captions: Record<MockStepId, string> = {
     player: oppoError
       ? "已選擇對方失誤 — 不需記錄我方表現，可直接送出"
-      : "1. 選擇球員或對方失誤",
-    ours: "2. 選擇我方得失分類型",
+      : "選擇球員或對方失誤",
+    ours: "選擇我方得失分類型",
     oppo:
       ours === null
-        ? "3. 選擇對方得失分類型（依第 2 步而定）"
+        ? "選擇對方得失分類型（依前一步而定）"
         : ours.win
-          ? "3. 選擇對方失分類型"
-          : "3. 選擇對方得分類型",
+          ? "選擇對方失分類型"
+          : "選擇對方得分類型",
   };
 
   /* 前一步驟資訊完成前，不能切換到下一步驟 */
@@ -1285,29 +1323,34 @@ function ProgressMockup() {
     setStepIdx(0);
   }
 
+  /* 送出＝定格：比分與內容早已就位，pulse 停止、ring/icon 淡出、背景閃一次 */
   function submit() {
     if (!complete) return;
     const win = oppoError ? true : ours!.win;
     const nextScore = win
       ? { home: score.home + 1, away: score.away }
       : { home: score.home, away: score.away + 1 };
-    /* 角色轉換：draft 內容原地成為「上一筆」，附上結果比分 */
-    setLastEntry(
-      `${
-        oppoError
-          ? "對方失誤"
-          : `#${player} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo}`
-      } → ${nextScore.home}–${nextScore.away}`,
-    );
+    setLastEntry({
+      text: oppoError
+        ? "對方失誤"
+        : `#${player} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo}`,
+      home: nextScore.home,
+      away: nextScore.away,
+      win,
+    });
     setScore(nextScore);
     setScoreFlash(true);
+    setPreviewFlash(true);
     setOppoError(false);
     setPlayer(null);
     setOurs(null);
     setOppo(null);
     setDirection("backward");
     setStepIdx(0);
-    setTimeout(() => setScoreFlash(false), 1200);
+    setTimeout(() => {
+      setScoreFlash(false);
+      setPreviewFlash(false);
+    }, 1200);
   }
 
   const oppoOptions =
@@ -1316,6 +1359,17 @@ function ProgressMockup() {
       : ours.win
         ? ["接發失誤", "防守失誤", "攔網出界"]
         : ["對方攻擊得分", "對方攔網得分", "對方發球得分"];
+
+  /* Preview 左側比分：閒置＝上一筆比分；輸入中＝勝負未定前為目前比分、
+     勝負確定後為記錄中（結果）比分 */
+  const draftWin = oppoError ? true : (ours?.win ?? null);
+  const previewScore = !editing
+    ? { home: lastEntry.home, away: lastEntry.away, win: lastEntry.win }
+    : draftWin === null
+      ? { home: score.home, away: score.away, win: null }
+      : draftWin
+        ? { home: score.home + 1, away: score.away, win: true }
+        : { home: score.home, away: score.away + 1, win: false };
 
   const draftText = oppoError
     ? "對方失誤"
@@ -1326,6 +1380,7 @@ function ProgressMockup() {
       ]
         .filter(Boolean)
         .join(" · ");
+  const previewText = editing ? draftText : lastEntry.text;
 
   const stepBody: Record<MockStepId, React.ReactNode> = {
     player: (
@@ -1449,31 +1504,38 @@ function ProgressMockup() {
             goTo(idx + (dx < 0 ? 1 : -1));
           }}
         >
-          <div role="tablist" className="flex gap-1">
+          {/* 進度條：Q0 定案樣式 5（延展分段），透明 padding 擴大觸控面積 */}
+          <div role="tablist" className="flex items-center px-1">
             {steps.map((s, i) => (
               <button
                 key={s.id}
                 role="tab"
                 aria-selected={i === idx}
+                aria-label={s.label}
                 disabled={!canGoTo(i)}
                 onClick={() => goTo(i)}
                 className={cn(
-                  "flex-1 rounded-sm py-0.5 text-[10px] transition-all duration-300",
-                  i === idx
-                    ? "bg-[var(--primary)] font-semibold text-white"
-                    : i < idx
-                      ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
-                      : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
-                  !canGoTo(i) && "opacity-50",
+                  "-my-2 px-0.5 py-2 transition-all duration-300",
+                  i === idx ? "flex-[2.5]" : "flex-1",
                 )}
               >
-                {s.label}
+                <span
+                  className={cn(
+                    "block h-1.5 rounded-full transition-colors",
+                    i <= idx
+                      ? "bg-[var(--primary)]"
+                      : "bg-[var(--color-fd-muted)]",
+                    !canGoTo(i) && "opacity-50",
+                  )}
+                />
               </button>
             ))}
           </div>
+          {/* 說明文字：無編號，輪換帶動畫 */}
           <div className="mt-1 mb-1.5 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
-            {captions[step.id]}
-            {oppoError ? "" : "（滑動或點選進度條切換）"}
+            <span key={captions[step.id]} className="mock-preview-in block">
+              {captions[step.id]}
+            </span>
           </div>
           <div
             key={`${step.id}-${String(oppoError)}`}
@@ -1485,28 +1547,57 @@ function ProgressMockup() {
             {stepBody[step.id]}
           </div>
         </div>
-        {/* Preview：chat-input 式送出列。閒置顯示上一筆，輸入中顯示 draft，
-            送出＝角色轉換（draft 原地成為上一筆，ring 與 send icon 淡出） */}
+        {/* Preview：仿 Entry 版式（左側比分 Figures + 左框線內容）。
+            輸入中＝animate-pulse（沿用現行 GamePreview 語彙）；
+            完成＝pulse 停止 + ring + send icon；送出＝定格（背景閃一次） */}
         <div
           className={cn(
-            "flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all duration-300",
+            "flex items-center gap-1 rounded-lg border px-2 py-1.5 transition-all duration-300",
             complete
               ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
               : "border-[var(--border)]",
+            previewFlash && "score-flash",
           )}
         >
-          <span className="shrink-0 rounded-sm bg-[var(--color-fd-muted)] px-1 py-px text-[9px] text-[var(--color-fd-muted-foreground)]">
-            {editing ? "輸入中" : "上一筆"}
-          </span>
-          <span
-            key={editing ? draftText : lastEntry}
+          <div
             className={cn(
-              "mock-preview-in min-w-0 flex-1 truncate text-[11px]",
-              !editing && "text-[var(--color-fd-muted-foreground)]",
+              "flex min-w-0 flex-1 items-center gap-1",
+              editing && !complete && "animate-pulse duration-1000",
             )}
           >
-            {editing ? draftText : lastEntry}
-          </span>
+            <ScoreFig
+              value={previewScore.home}
+              tone={
+                previewScore.win === null
+                  ? "muted"
+                  : previewScore.win
+                    ? "primary"
+                    : "muted"
+              }
+            />
+            <ScoreFig
+              value={previewScore.away}
+              tone={
+                previewScore.win === null
+                  ? "muted"
+                  : previewScore.win
+                    ? "muted"
+                    : "destructive"
+              }
+            />
+            <span
+              key={previewText}
+              className={cn(
+                "mock-preview-in min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
+                previewScore.win === false
+                  ? "border-[var(--destructive)]"
+                  : "border-[var(--primary)]",
+                !editing && "text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              {previewText || "…"}
+            </span>
+          </div>
           <button
             onClick={submit}
             aria-label="送出"
