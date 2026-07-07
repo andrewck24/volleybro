@@ -1030,7 +1030,7 @@ function ProgressBarStyles() {
   return (
     <div className="not-prose my-4 grid gap-3">
       <p className="m-0 text-[13px] text-[var(--color-fd-muted-foreground)]">
-        點任一樣式的步驟切換，四種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
+        點任一樣式的步驟切換，五種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
         步）。每款下方都附步驟說明文字，一併評估整合效果。
       </p>
       <BarStyleFrame
@@ -1163,6 +1163,36 @@ function ProgressBarStyles() {
           {active + 1}/{Q0_STEPS.length}　{Q0_CAPTION}（點此模擬切換）
         </button>
       </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 5：延展分段（參考圖）"
+        note="輪到的階段動畫延展變長；各段不放文字，說明統一在下方；軌道上下的透明 padding 擴大觸控面積"
+      >
+        <div className="flex items-center">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              aria-label={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "-my-2 px-0.5 py-2 transition-all duration-300",
+                i === active ? "flex-[2.5]" : "flex-1",
+              )}
+            >
+              <span
+                className={cn(
+                  "block h-1.5 rounded-full transition-colors",
+                  i <= active
+                    ? "bg-[var(--primary)]"
+                    : "bg-[var(--color-fd-muted)]",
+                )}
+              />
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
     </div>
   );
 }
@@ -1195,6 +1225,7 @@ function ProgressMockup() {
     "forward",
   );
   const [player, setPlayer] = useState<number | null>(null);
+  const [oppoError, setOppoError] = useState(false);
   const [ours, setOurs] = useState<(typeof OURS_MOVES)[number] | null>(null);
   const [oppo, setOppo] = useState<string | null>(null);
   const [score, setScore] = useState({ home: 10, away: 8 });
@@ -1202,12 +1233,19 @@ function ProgressMockup() {
   const [lastEntry, setLastEntry] = useState("#5 攻擊＋ · 接發失誤 → 10–8");
   const pointerX = useRef<number | null>(null);
 
-  const step = MOCK_STEPS[stepIdx];
-  const editing = player !== null || ours !== null || oppo !== null;
-  const complete = player !== null && ours !== null && oppo !== null;
+  /* 對方失誤屬於對方得失分：不需記錄我方表現，流程縮為單一步驟 */
+  const steps = oppoError ? MOCK_STEPS.slice(0, 1) : MOCK_STEPS;
+  const idx = Math.min(stepIdx, steps.length - 1);
+  const step = steps[idx];
+  const editing =
+    oppoError || player !== null || ours !== null || oppo !== null;
+  const complete =
+    oppoError || (player !== null && ours !== null && oppo !== null);
 
   const captions: Record<MockStepId, string> = {
-    player: "1. 選擇球員或對方失誤",
+    player: oppoError
+      ? "已選擇對方失誤 — 不需記錄我方表現，可直接送出"
+      : "1. 選擇球員或對方失誤",
     ours: "2. 選擇我方得失分類型",
     oppo:
       ours === null
@@ -1219,35 +1257,51 @@ function ProgressMockup() {
 
   /* 前一步驟資訊完成前，不能切換到下一步驟 */
   function canGoTo(i: number) {
+    if (oppoError) return i === 0;
     if (i <= 0) return true;
     if (i === 1) return player !== null;
     return player !== null && ours !== null;
   }
 
   function goTo(next: number) {
-    if (next === stepIdx || next < 0 || next >= MOCK_STEPS.length) return;
+    if (next === idx || next < 0 || next >= steps.length) return;
     if (!canGoTo(next)) return;
-    setDirection(next > stepIdx ? "forward" : "backward");
+    setDirection(next > idx ? "forward" : "backward");
     setStepIdx(next);
   }
 
   function pickPlayer(n: number) {
+    setOppoError(false);
     setPlayer(n);
     setDirection("forward");
     setStepIdx(1);
   }
 
+  function pickOppoError() {
+    setOppoError(true);
+    setPlayer(null);
+    setOurs(null);
+    setOppo(null);
+    setStepIdx(0);
+  }
+
   function submit() {
     if (!complete) return;
-    const nextScore = ours!.win
+    const win = oppoError ? true : ours!.win;
+    const nextScore = win
       ? { home: score.home + 1, away: score.away }
       : { home: score.home, away: score.away + 1 };
     /* 角色轉換：draft 內容原地成為「上一筆」，附上結果比分 */
     setLastEntry(
-      `${player === 0 ? "對方失誤" : `#${player}`} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo} → ${nextScore.home}–${nextScore.away}`,
+      `${
+        oppoError
+          ? "對方失誤"
+          : `#${player} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo}`
+      } → ${nextScore.home}–${nextScore.away}`,
     );
     setScore(nextScore);
     setScoreFlash(true);
+    setOppoError(false);
     setPlayer(null);
     setOurs(null);
     setOppo(null);
@@ -1263,28 +1317,30 @@ function ProgressMockup() {
         ? ["接發失誤", "防守失誤", "攔網出界"]
         : ["對方攻擊得分", "對方攔網得分", "對方發球得分"];
 
-  const draftText = [
-    player === null ? null : player === 0 ? "對方失誤" : `#${player}`,
-    ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
-    oppo,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const draftText = oppoError
+    ? "對方失誤"
+    : [
+        player === null ? null : `#${player}`,
+        ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
+        oppo,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
   const stepBody: Record<MockStepId, React.ReactNode> = {
     player: (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[12px] text-[var(--color-fd-muted-foreground)]">
         點選上方球場中的球員
         <button
-          onClick={() => pickPlayer(0)}
+          onClick={pickOppoError}
           className={cn(
             "rounded-md border px-3 py-1.5 text-xs",
-            player === 0
+            oppoError
               ? "border-transparent bg-[var(--primary)] text-white"
               : "border-[var(--border)]",
           )}
         >
-          對方失誤（不指定球員）
+          對方失誤（不需記錄我方表現）
         </button>
       </div>
     ),
@@ -1390,22 +1446,22 @@ function ProgressMockup() {
             const dx = e.clientX - pointerX.current;
             pointerX.current = null;
             if (Math.abs(dx) < 40) return;
-            goTo(stepIdx + (dx < 0 ? 1 : -1));
+            goTo(idx + (dx < 0 ? 1 : -1));
           }}
         >
           <div role="tablist" className="flex gap-1">
-            {MOCK_STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <button
                 key={s.id}
                 role="tab"
-                aria-selected={i === stepIdx}
+                aria-selected={i === idx}
                 disabled={!canGoTo(i)}
                 onClick={() => goTo(i)}
                 className={cn(
-                  "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
-                  i === stepIdx
+                  "flex-1 rounded-sm py-0.5 text-[10px] transition-all duration-300",
+                  i === idx
                     ? "bg-[var(--primary)] font-semibold text-white"
-                    : i < stepIdx
+                    : i < idx
                       ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
                       : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
                   !canGoTo(i) && "opacity-50",
@@ -1416,10 +1472,11 @@ function ProgressMockup() {
             ))}
           </div>
           <div className="mt-1 mb-1.5 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
-            {captions[step.id]}（滑動或點選進度條切換）
+            {captions[step.id]}
+            {oppoError ? "" : "（滑動或點選進度條切換）"}
           </div>
           <div
-            key={step.id}
+            key={`${step.id}-${String(oppoError)}`}
             className={cn(
               "flex min-h-0 flex-1 flex-col",
               direction === "forward" ? "mock-forward" : "mock-backward",
