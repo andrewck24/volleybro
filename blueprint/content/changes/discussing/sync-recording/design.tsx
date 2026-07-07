@@ -1270,6 +1270,7 @@ function ProgressMockup() {
     win: true,
   });
   const pointerX = useRef<number | null>(null);
+  const swiped = useRef(false);
 
   /* 對方失誤屬於對方得失分：不需記錄我方表現，流程縮為單一步驟 */
   const steps = oppoError ? MOCK_STEPS.slice(0, 1) : MOCK_STEPS;
@@ -1495,13 +1496,23 @@ function ProgressMockup() {
           className="flex h-44 touch-pan-y flex-col rounded-lg border border-[var(--border)] p-1.5"
           onPointerDown={(e) => {
             pointerX.current = e.clientX;
+            /* capture：起點在任何子元素（含按鈕）都能完成滑動 */
+            e.currentTarget.setPointerCapture(e.pointerId);
           }}
           onPointerUp={(e) => {
             if (pointerX.current === null) return;
             const dx = e.clientX - pointerX.current;
             pointerX.current = null;
             if (Math.abs(dx) < 40) return;
+            swiped.current = true;
             goTo(idx + (dx < 0 ? 1 : -1));
+          }}
+          onClickCapture={(e) => {
+            /* 滑動手勢結束時抑制落點按鈕的誤觸 click */
+            if (!swiped.current) return;
+            swiped.current = false;
+            e.preventDefault();
+            e.stopPropagation();
           }}
         >
           {/* 進度條：Q0 定案樣式 5（延展分段），透明 padding 擴大觸控面積 */}
@@ -1512,7 +1523,7 @@ function ProgressMockup() {
                 role="tab"
                 aria-selected={i === idx}
                 aria-label={s.label}
-                disabled={!canGoTo(i)}
+                aria-disabled={!canGoTo(i)}
                 onClick={() => goTo(i)}
                 className={cn(
                   "-my-2 px-0.5 py-2 transition-all duration-300",
