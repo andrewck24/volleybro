@@ -1,5 +1,5 @@
 "use client";
-import { type ComponentProps, Suspense, useState } from "react";
+import { type ComponentProps, Suspense, useRef, useState } from "react";
 
 import { useShiki } from "fumadocs-core/highlight/client";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
@@ -1001,13 +1001,12 @@ function DecisionCards() {
 
 /* ------------------------ Q1 mockup：entry 進度條方案 ------------------------ */
 
-type MockStep = { id: "player" | "ours" | "oppo" | "confirm"; label: string };
+type MockStepId = "player" | "ours" | "oppo";
 
-const MOCK_STEPS: MockStep[] = [
+const MOCK_STEPS: { id: MockStepId; label: string }[] = [
   { id: "player", label: "球員" },
   { id: "ours", label: "我方" },
   { id: "oppo", label: "對方" },
-  { id: "confirm", label: "確認" },
 ];
 
 const COURT_ROWS = [
@@ -1015,41 +1014,98 @@ const COURT_ROWS = [
   [5, 6, 1],
 ];
 
+const OURS_MOVES = [
+  { label: "攻擊", win: true },
+  { label: "攔網", win: true },
+  { label: "發球", win: true },
+  { label: "拋傳失誤", win: false },
+];
+
 function ProgressMockup() {
-  const [variant, setVariant] = useState<"A" | "B">("A");
   const [stepIdx, setStepIdx] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
   const [player, setPlayer] = useState<number | null>(null);
-  const [sent, setSent] = useState(false);
+  const [ours, setOurs] = useState<(typeof OURS_MOVES)[number] | null>(null);
+  const [oppo, setOppo] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [score, setScore] = useState({ home: 10, away: 8 });
+  const [scoreFlash, setScoreFlash] = useState(false);
+  const touchX = useRef<number | null>(null);
 
-  const steps = variant === "A" ? MOCK_STEPS : MOCK_STEPS.slice(1);
-  const step = steps[Math.min(stepIdx, steps.length - 1)];
-  const last = steps.length - 1;
-  const idx = Math.min(stepIdx, last);
-  const waitingCourt = player === null; // 方案 B：球員未選前 panel 等待中
+  const step = MOCK_STEPS[stepIdx];
+  const complete = player !== null && ours !== null && oppo !== null;
 
-  function reset(v: "A" | "B") {
-    setVariant(v);
-    setStepIdx(0);
-    setPlayer(null);
-    setSent(false);
+  const captions: Record<MockStepId, string> = {
+    player: "1. 選擇球員或對方失誤",
+    ours: "2. 選擇我方得失分類型",
+    oppo:
+      ours === null
+        ? "3. 選擇對方得失分類型（依第 2 步而定）"
+        : ours.win
+          ? "3. 選擇對方失分類型"
+          : "3. 選擇對方得分類型",
+  };
+
+  function goTo(next: number) {
+    if (next === stepIdx || next < 0 || next >= MOCK_STEPS.length) return;
+    setDirection(next > stepIdx ? "forward" : "backward");
+    setStepIdx(next);
   }
 
   function pickPlayer(n: number) {
     setPlayer(n);
-    setSent(false);
-    // 方案 A：球員是第 1 步，選完進入「我方」；方案 B：選完球員才啟動 panel 流程
-    setStepIdx(variant === "A" ? 1 : 0);
+    setDirection("forward");
+    setStepIdx(1);
   }
 
-  const courtActive = variant === "A" ? step.id === "player" : waitingCourt;
+  function submit() {
+    if (!complete || sending) return;
+    setSending(true);
+    setTimeout(() => {
+      setScore((s) =>
+        ours!.win ? { ...s, home: s.home + 1 } : { ...s, away: s.away + 1 },
+      );
+      setScoreFlash(true);
+      setPlayer(null);
+      setOurs(null);
+      setOppo(null);
+      setStepIdx(0);
+      setDirection("backward");
+      setSending(false);
+      setTimeout(() => setScoreFlash(false), 1200);
+    }, 300);
+  }
 
-  const stepBody: Record<MockStep["id"], React.ReactNode> = {
+  const oppoOptions =
+    ours === null
+      ? []
+      : ours.win
+        ? ["接發失誤", "防守失誤", "攔網出界"]
+        : ["對方攻擊得分", "對方攔網得分", "對方發球得分"];
+
+  const previewText =
+    !player && player !== 0
+      ? "（尚未開始輸入）"
+      : [
+          player === 0 ? "對方失誤" : `#${player}`,
+          ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
+          oppo,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+  const stepBody: Record<MockStepId, React.ReactNode> = {
     player: (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[12px] text-[var(--color-fd-muted-foreground)]">
         點選上方球場中的球員
         <button
           onClick={() => pickPlayer(0)}
-          className="rounded-md border border-[var(--border)] px-3 py-1.5 text-xs"
+          className={cn(
+            "rounded-md border px-3 py-1.5 text-xs",
+            player === 0
+              ? "border-transparent bg-[var(--primary)] text-white"
+              : "border-[var(--border)]",
+          )}
         >
           對方失誤（不指定球員）
         </button>
@@ -1057,69 +1113,102 @@ function ProgressMockup() {
     ),
     ours: (
       <div className="grid flex-1 grid-cols-2 gap-1.5">
-        {["攻擊 ＋", "攔網 ＋", "發球 ＋", "拋傳 −"].map((m) => (
+        {OURS_MOVES.map((m) => (
           <button
-            key={m}
-            onClick={() => setStepIdx(idx + 1)}
-            className="rounded-md border border-[var(--border)] bg-[var(--color-fd-card)] text-sm"
+            key={m.label}
+            onClick={() => {
+              setOurs(m);
+              setOppo(null);
+              setDirection("forward");
+              setStepIdx(2);
+            }}
+            className={cn(
+              "rounded-md border text-sm",
+              ours?.label === m.label
+                ? "border-transparent bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-[var(--color-fd-card)]",
+            )}
           >
-            {m}
+            {m.label} {m.win ? "＋" : "−"}
           </button>
         ))}
       </div>
     ),
     oppo: (
       <div className="grid flex-1 grid-cols-1 gap-1.5">
-        {["對方接發失誤 ＋", "對方防守起球", "被攔回 −"].map((m) => (
-          <button
-            key={m}
-            onClick={() => setStepIdx(idx + 1)}
-            className="rounded-md border border-[var(--border)] bg-[var(--color-fd-card)] text-sm"
-          >
-            {m}
-          </button>
-        ))}
-      </div>
-    ),
-    confirm: (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2">
-        <span className="text-[12px]">
-          {player === 0 ? "對方失誤" : `我方 #${player ?? "?"} 攻擊得分`} → 11–8
-        </span>
-        <button
-          onClick={() => setSent(true)}
-          className="rounded-md bg-[var(--primary)] px-4 py-1.5 text-xs font-semibold text-white"
-        >
-          {sent ? "已送出（示意）" : "送出"}
-        </button>
-        <span className="text-[10px] text-[var(--color-fd-muted-foreground)]">
-          確認方式（獨立步 vs 雙擊送出）為下一個問題，此處先以獨立步呈現
-        </span>
+        {ours === null ? (
+          <div className="flex items-center justify-center text-[12px] text-[var(--color-fd-muted-foreground)]">
+            （先完成第 2 步）
+          </div>
+        ) : (
+          oppoOptions.map((m) => (
+            <button
+              key={m}
+              onClick={() => setOppo(m)}
+              className={cn(
+                "rounded-md border text-sm",
+                oppo === m
+                  ? "border-transparent bg-[var(--primary)] text-white"
+                  : "border-[var(--border)] bg-[var(--color-fd-card)]",
+              )}
+            >
+              {m}
+            </button>
+          ))
+        )}
       </div>
     ),
   };
 
   return (
     <div className="not-prose my-4 rounded-2xl border border-[var(--border)] p-4">
-      <div role="tablist" className="mb-3 flex flex-wrap gap-1.5">
-        <Pill active={variant === "A"} onClick={() => reset("A")}>
-          方案 A：全流程（含球員選擇）
-        </Pill>
-        <Pill active={variant === "B"} onClick={() => reset("B")}>
-          方案 B：僅 panel 內步驟
-        </Pill>
-      </div>
-      <p className="mb-3 text-[13px] text-[var(--color-fd-muted-foreground)]">
-        {variant === "A"
-          ? "進度條涵蓋 球員 → 我方 → 對方 → 確認；「上一步」可回到球員選擇（改選點錯的球員）。"
-          : "球員選擇是進入流程的前置動作，不在進度條上；進度條只管 我方 → 對方 → 確認，改選球員需取消整筆重來。"}
-      </p>
-      <div className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
-        <div className="text-center font-mono text-lg font-bold">10–8</div>
+      <style>{`
+        @keyframes mock-slide-from-right {
+          from { transform: translateX(24px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes mock-slide-from-left {
+          from { transform: translateX(-24px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .mock-forward { animation: 300ms ease mock-slide-from-right; }
+        .mock-backward { animation: 300ms ease mock-slide-from-left; }
+        @keyframes mock-preview-in {
+          from { transform: translateY(4px); opacity: 0.3; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .mock-preview-in { animation: 250ms ease mock-preview-in; }
+        @keyframes mock-send-out {
+          to { transform: translateY(-10px); opacity: 0; }
+        }
+        .mock-send-out { animation: 300ms ease forwards mock-send-out; }
+      `}</style>
+      <div
+        className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2"
+        onTouchStart={(e) => {
+          touchX.current = e.touches[0].clientX;
+        }}
+        onTouchEnd={(e) => {
+          if (touchX.current === null) return;
+          const dx = e.changedTouches[0].clientX - touchX.current;
+          touchX.current = null;
+          if (Math.abs(dx) < 40) return;
+          goTo(stepIdx + (dx < 0 ? 1 : -1));
+        }}
+      >
+        <div
+          key={`${score.home}-${score.away}`}
+          className={cn(
+            "text-center font-mono text-lg font-bold",
+            scoreFlash && "score-flash",
+          )}
+        >
+          {score.home}–{score.away}
+        </div>
         <div
           className={cn(
             "rounded-lg border p-1.5 transition-all",
-            courtActive
+            step.id === "player"
               ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
               : "border-[var(--border)] opacity-70",
           )}
@@ -1143,17 +1232,19 @@ function ProgressMockup() {
             </div>
           ))}
         </div>
-        <div className="flex h-40 flex-col rounded-lg border border-[var(--border)] p-1.5">
-          <div className="mb-1.5 flex gap-1">
-            {steps.map((s, i) => (
+        <div className="flex h-44 flex-col rounded-lg border border-[var(--border)] p-1.5">
+          <div role="tablist" className="flex gap-1">
+            {MOCK_STEPS.map((s, i) => (
               <button
                 key={s.id}
-                onClick={() => !waitingCourt && setStepIdx(i)}
+                role="tab"
+                aria-selected={i === stepIdx}
+                onClick={() => goTo(i)}
                 className={cn(
                   "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
-                  i === idx && !waitingCourt
+                  i === stepIdx
                     ? "bg-[var(--primary)] font-semibold text-white"
-                    : i < idx
+                    : i < stepIdx
                       ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
                       : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
                 )}
@@ -1162,30 +1253,49 @@ function ProgressMockup() {
               </button>
             ))}
           </div>
-          {variant === "B" && waitingCourt ? (
-            <div className="flex flex-1 items-center justify-center text-[12px] text-[var(--color-fd-muted-foreground)]">
-              （先在場上點選球員）
-            </div>
-          ) : (
-            stepBody[step.id]
-          )}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-[var(--color-fd-muted-foreground)]">
-            <button
-              onClick={() => setStepIdx(Math.max(0, idx - 1))}
-              disabled={idx === 0 || (variant === "B" && waitingCourt)}
-              className="rounded border border-[var(--border)] px-2 py-0.5 disabled:opacity-40"
-            >
-              ← 上一步
-            </button>
-            <span>（可滑動切換）</span>
-            <button
-              onClick={() => setStepIdx(Math.min(last, idx + 1))}
-              disabled={idx === last || (variant === "B" && waitingCourt)}
-              className="rounded border border-[var(--border)] px-2 py-0.5 disabled:opacity-40"
-            >
-              下一步 →
-            </button>
+          <div className="mt-1 mb-1.5 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+            {captions[step.id]}（滑動或點選進度條切換）
           </div>
+          <div
+            key={step.id}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              direction === "forward" ? "mock-forward" : "mock-backward",
+            )}
+          >
+            {stepBody[step.id]}
+          </div>
+        </div>
+        {/* Preview：chat-input 式送出列，固定於視窗下方 */}
+        <div
+          className={cn(
+            "flex items-center gap-1.5 rounded-lg border px-2 py-1.5 transition-all",
+            complete
+              ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
+              : "border-[var(--border)]",
+          )}
+        >
+          <span
+            key={previewText}
+            className={cn(
+              "min-w-0 flex-1 truncate text-[11px]",
+              previewText === "（尚未開始輸入）"
+                ? "text-[var(--color-fd-muted-foreground)]"
+                : "text-inherit",
+              sending ? "mock-send-out" : "mock-preview-in",
+            )}
+          >
+            {previewText}
+          </span>
+          {complete && (
+            <button
+              onClick={submit}
+              aria-label="送出"
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--primary)] text-white"
+            >
+              ➤
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -1282,12 +1392,13 @@ export default function Design() {
         </li>
       </ul>
 
-      <h2 id="q1-mockup">Q1 mockup：entry 進度條方案</h2>
+      <h2 id="q1-mockup">Q1 mockup：entry 進度條與 Preview 送出</h2>
       <p>
-        現行隱性步驟：court 點選球員（S1）→ 我方動作（S2）→ 對方動作（S3）→
-        雙擊同鈕送出（S4）。以下 mockup
-        比較進度條的兩種涵蓋範圍——切換方案後實際點一筆 entry
-        感受差異，特別試「點錯球員後按上一步改選」在兩案的路徑。
+        進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；切換靠點選進度條或滑動（沿用
+        tab-container 的方向性滑動動畫，此行為未來將成為 panel
+        的預設功能）。送出行為自第三步的雙擊移出，改由底部 chat-input 式的
+        Preview 承載：三步完成後 Preview highlight 並出現 send icon（全介面唯一
+        highlight），每步選擇時 Preview 內容以動畫更新。
       </p>
       <ProgressMockup />
 
