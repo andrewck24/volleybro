@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +10,8 @@ import { cn } from "@/lib/utils";
  * sync-recording — 同步記錄功能討論用設計文件（discuss 階段，持續更新）
  *
  * 核心是 ConflictSimulator：以逐幀方式播放 happy path 與四種衝突情境，
- * 上方 FlowMap 集合所有情境的流程節點並高亮目前瀏覽位置。
+ * 上方 FlowMap 集合所有情境的流程節點並高亮目前瀏覽位置；
+ * 每條 path 經過的節點都有對應的步驟幀。
  * 範圍外段落將在 propose 階段移至 proposal。
  */
 
@@ -45,14 +48,14 @@ const BRANCH_ROW: {
 }[] = [
   {
     id: "banner",
-    label: "banner 詢問",
+    label: "衝突面板（阻斷詢問）",
     kind: "decision",
     under: "compose",
-    note: "輸入中收到 SSE",
+    note: "輸入中錨點失效",
   },
   {
     id: "conflict",
-    label: "409 比較卡",
+    label: "409 → 衝突面板",
     kind: "decision",
     under: "check",
     note: "錨點過期",
@@ -182,11 +185,11 @@ const composing: Chip = { label: "輸入中", tone: "muted" };
 const saving: Chip = { label: "儲存中", tone: "saving" };
 const saved: Chip = { label: "已儲存", tone: "saved" };
 const conflict: Chip = { label: "衝突", tone: "conflict" };
-const banner: Chip = { label: "banner", tone: "banner" };
+const blocked: Chip = { label: "衝突面板", tone: "banner" };
 
 const ANCHOR_19 = `draft.basedOn = {
   entryIndex: 19,
-  score: { home: 10, away: 8 }
+  score: { home: 10, away: 8 },
 }`;
 
 const SCENARIOS: Scenario[] = [
@@ -194,17 +197,17 @@ const SCENARIOS: Scenario[] = [
     id: "happy",
     label: "Happy path",
     intro:
-      "SSE 正確觸發、畫面資訊最新，記錄者在正確的比分與站位環境下記錄下一球。",
+      "SSE 正確觸發、畫面資訊最新，記錄者在正確的比分與站位資訊環境下記錄下一球。",
     frames: [
       {
-        title: "一球結束：我方 #7 攻擊得分",
+        title: "球結束：我方 #7 攻擊得分",
         node: "end",
         a: { score: "10–8", chip: idle, body: ["場上：我方 #7 攻擊得分"] },
         b: { score: "10–8", chip: idle, body: ["（同場觀看/待機）"] },
         server: "entries.length = 19（第 19 球尚未記錄）",
       },
       {
-        title: "甲開始輸入 → draft 釘住錨點",
+        title: "開始輸入・釘錨：draft 建立瞬間釘住 basedOn",
         node: "compose",
         a: {
           score: "10–8",
@@ -216,23 +219,30 @@ const SCENARIOS: Scenario[] = [
         server: "—",
       },
       {
-        title: "甲送出 → 樂觀更新",
+        title: "送出・儲存中：樂觀更新，POST 只帶事實與錨點",
         node: "submit",
         a: {
           score: "11–8",
           chip: saving,
-          body: ["畫面先以本地推導比分顯示；POST 只帶事實 + basedOn："],
+          body: ["畫面先以本地推導比分顯示"],
           code: `POST entries
 { basedOn: { entryIndex: 19, ... },
   entry: { type: "Rally", win: true, ... } }`,
           flash: true,
         },
         b: { score: "10–8", chip: idle, body: [] },
-        server:
-          "驗證 basedOn.entryIndex === 19 ✓ → 寫入、推導權威比分、蓋 recordedBy",
+        server: "收到 POST，進入錨點檢查",
       },
       {
-        title: "SSE 廣播 → 全場畫面同步",
+        title: "server 檢查錨點：basedOn 與序列一致 → 通過",
+        node: "check",
+        a: { score: "11–8", chip: saving, body: ["等待回應"] },
+        b: { score: "10–8", chip: idle, body: [] },
+        server:
+          "basedOn.entryIndex(19) === entries.length(19) ✓ → 寫入、推導權威比分、蓋 recordedBy",
+      },
+      {
+        title: "接受・廣播：SSE 推播給同場所有連線者",
         node: "accept",
         a: { score: "11–8", chip: saved, body: ["201／SSE echo → 已儲存"] },
         b: {
@@ -245,7 +255,7 @@ const SCENARIOS: Scenario[] = [
           "廣播 { entryIndex: 19, entry(含權威比分), recordedBy }；event id = 19",
       },
       {
-        title: "下一球在最新狀態上開始",
+        title: "全場同步：下一球在最新狀態上開始",
         node: "synced",
         a: { score: "11–8", chip: idle, body: ["輪轉、站位已更新"] },
         b: { score: "11–8", chip: idle, body: ["輪轉、站位已更新"] },
@@ -257,10 +267,10 @@ const SCENARIOS: Scenario[] = [
     id: "case1",
     label: "狀況一：同時送出",
     intro:
-      "雙方按下送出時，客戶端資訊都還沒更新——兩個 draft 錨在同一個 entryIndex，想記的是同一球。",
+      "雙方按下送出時，客戶端資訊都還沒更新——兩個 draft 錨在同一個 entryIndex，想記的是同一球。這是唯一會真正走到 409 的競態。",
     frames: [
       {
-        title: "甲、乙同時在輸入第 19 球",
+        title: "開始輸入・釘錨：兩台裝置錨在同一位置",
         node: "compose",
         a: {
           score: "10–8",
@@ -277,38 +287,45 @@ const SCENARIOS: Scenario[] = [
         server: "entries.length = 19",
       },
       {
-        title: "幾乎同時送出",
+        title: "送出・儲存中：幾乎同時送出",
         node: "submit",
         a: { score: "11–8", chip: saving, body: ["樂觀顯示"], flash: true },
         b: { score: "11–8", chip: saving, body: ["樂觀顯示"], flash: true },
         server: "兩個 POST 都帶 basedOn.entryIndex = 19，先到先贏",
       },
       {
-        title: "甲先入庫；乙被 409 攔下",
+        title: "server 檢查錨點：甲通過、乙過期",
+        node: "check",
+        a: { score: "11–8", chip: saved, body: ["甲的 POST 先到 → 通過"] },
+        b: { score: "11–8", chip: saving, body: ["乙的 POST 後到"] },
+        server:
+          "甲：19 === 19 ✓ 寫入。乙：basedOn.entryIndex(19) ≠ entries.length(20) ✗",
+      },
+      {
+        title: "409 → 衝突面板：乙的記錄 panel 切換為比較卡（阻斷）",
         node: "conflict",
         a: { score: "11–8", chip: saved, body: [] },
         b: {
           score: "11–8",
           chip: conflict,
           body: [
-            "409 衝突比較卡：",
+            "panel 整面切換為衝突比較卡，無法繼續輸入：",
             "已入庫｜第 19 球 我方 #7 攻擊得分（甲）",
             "我的輸入｜對方發球失誤",
             "［捨棄（甲對）］［覆蓋（我對）］",
           ],
         },
-        server:
-          "乙的 basedOn.entryIndex = 19 ≠ entries.length = 20 → 409 + committedSince",
+        server: "409 + committedSince（乙據此渲染比較卡）",
       },
       {
-        title: "乙裁決：同一球，誰記的才對？",
+        title: "解決：同一球，誰記的才對？",
         node: "resolve",
         a: { score: "11–8", chip: idle, body: [] },
         b: {
           score: "11–8",
           chip: idle,
           body: [
-            "捨棄 → draft 清空，錨點移到 20",
+            "捨棄 → draft 清空，panel 切回記錄模式，錨點移到 20",
             "覆蓋 → 走 update 路徑改寫第 19 球（級聯重算比分，記 updatedBy）",
           ],
         },
@@ -319,12 +336,12 @@ const SCENARIOS: Scenario[] = [
   },
   {
     id: "case2",
-    label: "狀況二：送出前畫面已更新",
+    label: "狀況二：輸入中錨點失效",
     intro:
-      "甲先送出、乙送出前畫面已被 SSE 更新——純「送出當下 expectedIndex」樂觀鎖會把乙誤收為下一球，錨點必須在開始輸入時釘住才攔得下來。",
+      "甲的同一球先入庫、乙還在輸入——SSE 使乙的 draft 錨點失效。衝突面板立即阻斷輸入，讓記錄者明確裁決，不留「不小心送出成下一球」的縫隙。",
     frames: [
       {
-        title: "乙正在輸入第 19 球",
+        title: "開始輸入・釘錨：乙正在輸入第 19 球",
         node: "compose",
         a: { score: "10–8", chip: composing, body: ["也在輸入第 19 球"] },
         b: {
@@ -336,47 +353,42 @@ const SCENARIOS: Scenario[] = [
         server: "entries.length = 19",
       },
       {
-        title: "甲的第 19 球先入庫，SSE 更新乙的畫面",
+        title: "衝突面板（阻斷詢問）：甲入庫 → SSE 使乙的錨點失效",
         node: "banner",
-        a: { score: "11–8", chip: saved, body: [] },
+        a: { score: "11–8", chip: saved, body: ["甲的第 19 球已入庫"] },
         b: {
           score: "11–8",
-          chip: banner,
+          chip: blocked,
           body: [
-            "比分閃爍 + banner：",
+            "比分閃爍，panel 整面切換為衝突面板（阻斷輸入）：",
             "「甲剛記錄了第 19 球（我方 #7 攻擊得分），你正在輸入的是同一球嗎？」",
-            "［是，捨棄我的輸入］［不是，我在記下一球 → 錨點 rebase 到 20］",
+            "［是，捨棄我的輸入］［不是，我在記下一球 → 錨點 rebase 到 20，保留輸入］",
           ],
           flash: true,
         },
         server: "entries.length = 20；SSE event id = 19",
       },
       {
-        title: "乙忽略 banner 直接送出",
-        node: "conflict",
-        a: { score: "11–8", chip: idle, body: [] },
-        b: {
-          score: "11–8",
-          chip: conflict,
-          body: ["draft 錨點仍是 19（不會被 SSE 默默 rebase）→ 409"],
-          code: `basedOn.entryIndex = 19
-entries.length   = 20   // 過期 → 409`,
-        },
-        server: "若錨點是送出當下才取，這筆會被誤收為第 20 球（同一球記兩次）",
-      },
-      {
-        title: "乙在比較卡中裁決",
+        title: "解決：乙裁決後 panel 切回記錄模式",
         node: "resolve",
         a: { score: "11–8", chip: idle, body: [] },
         b: {
           score: "11–8",
           chip: idle,
           body: [
-            "錨點過期 ⇒ 想記的是同一球：［捨棄（甲對）］［覆蓋（我對）］",
-            "（真的想記下一球的人，會在 banner 回應並取得新錨點後才送出）",
+            "同一球 → 捨棄，錨點移到 20",
+            "真的在記下一球 → rebase 保留輸入，繼續完成後送出",
+            "（若在面板切換前的瞬間已按下送出 → 真競態，走狀況一的 409 路徑）",
           ],
         },
-        server: "兩種狀況殊途同歸：只需要一套衝突解決 UX",
+        server: "阻斷式詢問消除了「忽略提示誤送成下一球」的縫隙",
+      },
+      {
+        title: "全場同步：裁決完成，記錄繼續",
+        node: "synced",
+        a: { score: "11–8", chip: idle, body: ["輪轉、站位已更新"] },
+        b: { score: "11–8", chip: idle, body: ["輪轉、站位已更新"] },
+        server: "entries.length = 20（捨棄）或 21（rebase 送出後）",
       },
     ],
   },
@@ -386,19 +398,48 @@ entries.length   = 20   // 過期 → 409`,
     intro: "兩名記錄者對同一球記下相反的勝負——內容差異需要人來裁決。",
     frames: [
       {
-        title: "甲記「我方得分」已入庫；乙記「對方得分」",
-        node: "check",
-        a: { score: "11–8", chip: saved, body: ["第 19 球：我方得分"] },
+        title: "開始輸入・釘錨：同一球、相反的勝負",
+        node: "compose",
+        a: {
+          score: "10–8",
+          chip: composing,
+          body: ["輸入：我方得分"],
+          code: ANCHOR_19,
+        },
+        b: {
+          score: "10–8",
+          chip: composing,
+          body: ["輸入：對方得分"],
+          code: ANCHOR_19,
+        },
+        server: "entries.length = 19",
+      },
+      {
+        title: "送出・儲存中：兩筆同時送出",
+        node: "submit",
+        a: {
+          score: "11–8",
+          chip: saving,
+          body: ["樂觀顯示 11–8"],
+          flash: true,
+        },
         b: {
           score: "10–9",
           chip: saving,
-          body: ["第 19 球：對方得分（樂觀顯示）"],
+          body: ["樂觀顯示 10–9"],
           flash: true,
         },
-        server: "乙的 basedOn.entryIndex = 19 ≠ 20 → 409",
+        server: "先到先贏",
       },
       {
-        title: "比較卡高亮勝負差異",
+        title: "server 檢查錨點：甲通過、乙過期",
+        node: "check",
+        a: { score: "11–8", chip: saved, body: ["第 19 球：我方得分 已入庫"] },
+        b: { score: "10–9", chip: saving, body: [] },
+        server: "乙：basedOn.entryIndex(19) ≠ entries.length(20) ✗ → 409",
+      },
+      {
+        title: "409 → 衝突面板：勝負差異高亮",
         node: "conflict",
         a: { score: "11–8", chip: idle, body: [] },
         b: {
@@ -410,8 +451,22 @@ entries.length   = 20   // 過期 → 409`,
             "［捨棄（甲對）］［覆蓋（我對）］",
           ],
         },
-        server:
-          "「覆蓋」走 update 路徑：改寫第 19 球並級聯重算比分（見 Q2/Q3）",
+        server: "內容差異需要人裁決，不做 last-write-wins",
+      },
+      {
+        title: "解決：覆蓋走 update 路徑",
+        node: "resolve",
+        a: {
+          score: "11–8",
+          chip: idle,
+          body: ["若被覆蓋：比分更新為 10–9 並閃爍"],
+        },
+        b: {
+          score: "11–8",
+          chip: idle,
+          body: ["覆蓋 → 改寫第 19 球，級聯重算比分（見 Q2/Q3）"],
+        },
+        server: "update 記 updatedBy/updatedAt；下游比分 fold 重算後廣播",
       },
     ],
   },
@@ -419,22 +474,42 @@ entries.length   = 20   // 過期 → 409`,
     id: "edge-type",
     label: "Edge：entry 性質不同",
     intro:
-      "一邊記得失分、一邊記人員更換——兩者不互斥（換人發生在兩球之間），覆蓋會誤刪對方的換人，這裡是唯一保留 rebase 的情境。",
+      "一邊記得失分、一邊記人員更換——兩者不互斥（換人發生在兩球之間），覆蓋會誤刪對方的換人，這裡是唯一保留 rebase 的 409 情境。",
     frames: [
       {
-        title: "甲的「換人」先入庫；乙的 rally 錨在同一位置",
-        node: "check",
-        a: { score: "10–8", chip: saved, body: ["entry 19：換人（#12 ⇄ #5）"] },
+        title: "開始輸入・釘錨：rally 與換人錨在同一位置",
+        node: "compose",
+        a: {
+          score: "10–8",
+          chip: composing,
+          body: ["輸入：換人（#12 ⇄ #5）"],
+          code: ANCHOR_19,
+        },
         b: {
           score: "10–8",
-          chip: saving,
-          body: ["entry 19：rally（我方 #7 攻擊得分）"],
+          chip: composing,
+          body: ["輸入：rally（我方 #7 攻擊得分）"],
+          code: ANCHOR_19,
         },
-        server: "乙的 basedOn.entryIndex = 19 ≠ 20 → 409",
+        server: "entries.length = 19",
       },
       {
-        title: "比較卡依類型調整文案與選項",
-        node: "resolve",
+        title: "送出・儲存中：兩筆同時送出",
+        node: "submit",
+        a: { score: "10–8", chip: saving, body: ["換人不影響比分"] },
+        b: { score: "11–8", chip: saving, body: ["樂觀顯示"], flash: true },
+        server: "先到先贏",
+      },
+      {
+        title: "server 檢查錨點：甲通過、乙過期",
+        node: "check",
+        a: { score: "10–8", chip: saved, body: ["entry 19：換人 已入庫"] },
+        b: { score: "11–8", chip: saving, body: [] },
+        server: "乙：basedOn.entryIndex(19) ≠ entries.length(20) ✗ → 409",
+      },
+      {
+        title: "409 → 衝突面板：依類型調整文案與選項",
+        node: "conflict",
         a: { score: "10–8", chip: idle, body: [] },
         b: {
           score: "10–8",
@@ -445,7 +520,19 @@ entries.length   = 20   // 過期 → 409`,
             "注意：換人可能改變站位，rebase 前需重新驗證 draft 的球員/zone 選擇",
           ],
         },
-        server: "rebase 後 rally 成為 entry 20，比分由 server 推導",
+        server: "跨類型不提供「覆蓋」——覆蓋會誤刪甲的換人",
+      },
+      {
+        title: "解決：rebase 後 rally 成為 entry 20",
+        node: "resolve",
+        a: { score: "10–8", chip: idle, body: [] },
+        b: {
+          score: "11–8",
+          chip: saved,
+          body: ["rebase 送出成功，比分由 server 推導"],
+          flash: true,
+        },
+        server: "entries.length = 21",
       },
     ],
   },
@@ -480,9 +567,9 @@ function Device({ name, state }: { name: string; state: DeviceState }) {
         ))}
       </div>
       {state.code && (
-        <pre className="mt-2 overflow-x-auto rounded-md bg-[var(--color-fd-muted)] p-2 text-[11px] leading-relaxed">
-          <code>{state.code}</code>
-        </pre>
+        <div className="mt-2 text-[11px] [&_pre]:my-0">
+          <DynamicCodeBlock lang="ts" code={state.code} />
+        </div>
       )}
     </div>
   );
@@ -608,7 +695,7 @@ const CONTRACTS = [
   {
     id: "conflict",
     label: "409 衝突",
-    note: "附上 basedOn.entryIndex 之後所有已入庫 entries，供衝突比較卡使用。",
+    note: "附上 basedOn.entryIndex 之後所有已入庫 entries，client 據此渲染衝突面板。",
     code: `{
   conflict: {
     committedSince: [
@@ -643,9 +730,7 @@ function DataContract() {
       <p className="mb-2 text-[13px] text-[var(--color-fd-muted-foreground)]">
         {active.note}
       </p>
-      <pre className="overflow-x-auto rounded-lg bg-[var(--color-fd-muted)] p-3 text-[12px] leading-relaxed">
-        <code>{active.code}</code>
-      </pre>
+      <DynamicCodeBlock lang="ts" code={active.code} />
     </div>
   );
 }
@@ -706,7 +791,7 @@ const DECISIONS: {
   {
     id: "D3",
     title: "比分由 server 端推導",
-    body: "client 只送事實（勝負、球種、球員），權威比分由 server 依 entry 序列 fold 計算後回傳＋廣播。client 端 optimistic helpers 保留，只負責樂觀顯示。",
+    body: "client 只送事實（勝負、球種、球員），權威比分由 server 依 entry 序列 fold 計算後回傳＋廣播。賽後編輯改變下游比分時 server 重算；client 端 optimistic helpers 保留，只負責樂觀顯示。",
     rejected: [
       {
         option: "client 計算比分、server 信任（現況）",
@@ -722,7 +807,7 @@ const DECISIONS: {
   {
     id: "D4",
     title: "比分作為意圖錨點進入送出資料",
-    body: "basedOn: { entryIndex, score }＝「這一球開始輸入時我看到的狀態」，在 draft 建立瞬間釘住。entryIndex 是儲存錨點（樂觀鎖檢查鍵、SSE 補漏游標）；score 是人可讀的球次識別，用於衝突比較卡與 defense-in-depth 驗證。",
+    body: "basedOn: { entryIndex, score }＝「這一球開始輸入時我看到的狀態」，在 draft 建立瞬間釘住。entryIndex 是儲存錨點（樂觀鎖檢查鍵、SSE 補漏游標）；score 是人可讀的球次識別，用於衝突面板與 defense-in-depth 驗證。",
     rejected: [
       {
         option: "送出當下的 expectedIndex（純樂觀鎖）",
@@ -743,7 +828,7 @@ const DECISIONS: {
     rejected: [
       {
         option: "不保存記錄者",
-        reason: "衝突比較卡（「已由甲記錄」）與事後爭議追溯都需要",
+        reason: "衝突面板（「已由甲記錄」）與事後爭議追溯都需要",
       },
       {
         option: "client 自報記錄者欄位",
@@ -759,11 +844,28 @@ const DECISIONS: {
       {
         option: "捨棄／作為下一球送出",
         reason:
-          "「作為下一球」與錨點語意矛盾：真心想記下一球的人會回應 banner、取得新錨點後才送出",
+          "「作為下一球」與錨點語意矛盾：真心想記下一球的人會在衝突面板回應、取得新錨點後才送出",
       },
       {
         option: "自動以後到者覆蓋（last-write-wins）",
         reason: "內容差異（如勝負相反）需要人裁決，靜默覆蓋會吃掉正確記錄",
+      },
+    ],
+  },
+  {
+    id: "D7",
+    title: "衝突詢問以 Panel 切換阻斷記錄者",
+    body: "任何錨點失效（輸入中收到 SSE、或送出後 409）都把記錄 panel 整面切換為衝突面板，阻斷後續輸入直到裁決完成——記錄者必然明確認知到衝突。比分與場上狀態保持可見，裁決所需的比較資訊就在原本的互動面上。",
+    rejected: [
+      {
+        option: "非阻斷 banner（原方案）",
+        reason:
+          "可能被專注場上的記錄者忽略，忽略後仍要靠 409 二次攔截，多一條錯誤路徑",
+      },
+      {
+        option: "Modal dialog",
+        reason:
+          "遮蔽比分與場上狀態；行動端 PWA 疊層互動差，且與既有 panel 操作模式不一致",
       },
     ],
   },
@@ -849,13 +951,14 @@ export default function Design() {
   return (
     <div>
       <h2 id="decisions">已定案決策</h2>
-      <p>點擊卡片展開理由與否決選項。</p>
+      <p>點擊卡片展開採用理由與棄用選項。</p>
       <DecisionCards />
 
       <h2 id="simulator">流程走查：happy path 與衝突情境</h2>
       <p>
-        選擇情境後以「上一步／下一步」逐幀走查。上方流程圖集合所有情境的節點並高亮目前位置；
-        每一幀顯示甲、乙兩台裝置的畫面狀態（比分、同步狀態、banner／衝突比較卡、draft
+        選擇情境後以「上一步／下一步」逐幀走查；每條 path
+        經過的節點都有對應步驟幀。上方流程圖集合所有情境的節點並高亮目前位置；
+        每一幀顯示甲、乙兩台裝置的畫面狀態（比分、同步狀態、衝突面板、draft
         資料）與 server 側的判斷。
       </p>
       <ConflictSimulator />
@@ -873,14 +976,15 @@ export default function Design() {
           建立時），不是送出的瞬間。
         </li>
         <li>
-          輸入過程中收到 SSE 新事件：draft 不自動 rebase，跳非阻斷 banner
-          讓記錄者判斷——「我在記下一球」在此回應並取得新錨點，是 rebase
+          輸入過程中錨點失效（SSE 帶來同位置的 entry）：panel
+          整面切換為衝突面板，<strong>阻斷輸入</strong>
+          直到記錄者裁決（D7）——「我在記下一球」在此回應並取得新錨點，是 rebase
           唯一的正規入口（同類型情境下）。
         </li>
         <li>
-          忽略 banner 直接送出：錨點已過期 → 409。錨點過期 ⇒ draft
-          在對方那筆入庫前開始 ⇒
-          想記的必然是同一球——比較卡只需「捨棄／覆蓋」二擇（D6）。
+          真競態（雙方都在 SSE 到達前送出）：後到者 409 →
+          同一個衝突面板。錨點過期 ⇒ draft 在對方那筆入庫前開始 ⇒
+          想記的必然是同一球——選項只有「捨棄／覆蓋」二擇（D6）。
         </li>
         <li>
           唯一例外：跨類型衝突（rally
@@ -897,12 +1001,16 @@ export default function Design() {
         <li>
           <strong>entry 同步狀態指示</strong>：儲存中（POST 進行中，樂觀顯示）→
           已儲存（201 或 SSE
-          echo）；離線（佇列中）；衝突（待解決）。「輸入中」presence
+          echo)；離線（佇列中）；衝突（待解決）。「輸入中」presence
           指示暫緩——先靠已提交事件即時出現達成可見性。
         </li>
         <li>
           <strong>比分更新視覺提示</strong>：任何已提交的比分變化（自己或 SSE
           帶來）觸發閃爍動畫——模擬器中比分變動的幀即為此效果的示意。
+        </li>
+        <li>
+          <strong>衝突面板（D7）</strong>：錨點失效時記錄 panel
+          整面切換為比較卡並阻斷輸入；比分與場上狀態保持可見。
         </li>
         <li>
           <strong>entry 輸入進度條</strong>：onboarding 式進度條（暫定 panel
