@@ -1,10 +1,68 @@
 "use client";
-import { useState } from "react";
+import { type ComponentProps, Suspense, useState } from "react";
 
-import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import { useShiki } from "fumadocs-core/highlight/client";
+import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+
+/* 以 (lang, code) 快取的 shiki highlight——DynamicCodeBlock 以 useId 為 key，
+ * 模擬器換幀重掛載時會整段重新 highlight 並閃爍 placeholder */
+function HighlightedCode({ code }: { code: string }) {
+  return useShiki(code, {
+    lang: "ts",
+    defaultColor: false,
+    components: {
+      pre: (props: ComponentProps<"pre">) => (
+        <CodeBlock {...props} className={cn("my-0", props.className)}>
+          <Pre>{props.children}</Pre>
+        </CodeBlock>
+      ),
+    },
+  });
+}
+
+function CodeSnippet({ code }: { code: string }) {
+  return (
+    <Suspense
+      fallback={
+        <pre className="my-0 overflow-x-auto rounded-lg bg-[var(--color-fd-muted)] p-3">
+          <code>{code}</code>
+        </pre>
+      }
+    >
+      <HighlightedCode code={code} />
+    </Suspense>
+  );
+}
+
+/* 共用膠囊切換鈕（模擬器情境選擇與資料契約 tabs） */
+function Pill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        active
+          ? "border-transparent bg-[var(--primary)] text-white"
+          : "border-[var(--border)] bg-transparent text-[var(--color-fd-muted-foreground)] hover:bg-[var(--color-fd-muted)]",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 /*
  * sync-recording — 同步記錄功能討論用設計文件（discuss 階段，持續更新）
@@ -70,29 +128,46 @@ const BRANCH_ROW: {
 ];
 
 /* 傳統 flowchart 形狀：stadium＝起訖、矩形＝動作、菱形（六角近似）＝判斷 */
-const NODE_SHAPE: Record<NodeKind, string> = {
-  terminal: "rounded-full border px-3 py-1",
-  process: "rounded-[3px] border px-2 py-1",
-  decision:
-    "border-0 px-5 py-1.5 [clip-path:polygon(12%_0,88%_0,100%_50%,88%_100%,12%_100%,0_50%)]",
+const NODE_STYLE: Record<
+  NodeKind,
+  { shape: string; active: string; inactive: string }
+> = {
+  terminal: {
+    shape: "rounded-full border px-3 py-1",
+    active: "border-transparent bg-[var(--primary)] font-semibold text-white",
+    inactive:
+      "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)]",
+  },
+  process: {
+    shape: "rounded-[3px] border px-2 py-1",
+    active: "border-transparent bg-[var(--primary)] font-semibold text-white",
+    inactive:
+      "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)]",
+  },
+  decision: {
+    shape:
+      "border-0 px-5 py-1.5 [clip-path:polygon(12%_0,88%_0,100%_50%,88%_100%,12%_100%,0_50%)]",
+    active: "bg-[var(--primary)] font-semibold text-white",
+    inactive:
+      "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+  },
 };
 
 function FlowMap({ active }: { active: NodeId }) {
-  const box = (id: NodeId, label: string, kind: NodeKind) => (
-    <span
-      className={`inline-block text-[11px] leading-tight whitespace-nowrap transition-colors ${NODE_SHAPE[kind]} ${
-        id === active
-          ? kind === "decision"
-            ? "bg-[var(--primary)] font-semibold text-white"
-            : "border-transparent bg-[var(--primary)] font-semibold text-white"
-          : kind === "decision"
-            ? "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]"
-            : "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)]"
-      }`}
-    >
-      {label}
-    </span>
-  );
+  const box = (id: NodeId, label: string, kind: NodeKind) => {
+    const style = NODE_STYLE[kind];
+    return (
+      <span
+        className={cn(
+          "inline-block text-[11px] leading-tight whitespace-nowrap transition-colors",
+          style.shape,
+          id === active ? style.active : style.inactive,
+        )}
+      >
+        {label}
+      </span>
+    );
+  };
   return (
     <div className="mb-3 overflow-x-auto rounded-xl border border-dashed border-[var(--border)] p-3">
       <div className="grid w-max grid-cols-[repeat(6,auto)] gap-x-1 gap-y-1.5">
@@ -568,7 +643,7 @@ function Device({ name, state }: { name: string; state: DeviceState }) {
       </div>
       {state.code && (
         <div className="mt-2 text-[11px] [&_pre]:my-0">
-          <DynamicCodeBlock lang="ts" code={state.code} />
+          <CodeSnippet code={state.code} />
         </div>
       )}
     </div>
@@ -598,19 +673,15 @@ function ConflictSimulator() {
         .score-flash { animation: score-flash 1.2s ease-out; border-radius: 8px; }
       `}</style>
       <FlowMap active={frame.node} />
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div role="tablist" className="mb-3 flex flex-wrap gap-1.5">
         {SCENARIOS.map((s) => (
-          <button
+          <Pill
             key={s.id}
+            active={s.id === scenarioId}
             onClick={() => pick(s.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              s.id === scenarioId
-                ? "border-transparent bg-[var(--primary)] text-white"
-                : "border-[var(--border)] bg-transparent text-[var(--color-fd-muted-foreground)] hover:bg-[var(--color-fd-muted)]"
-            }`}
           >
             {s.label}
-          </button>
+          </Pill>
         ))}
       </div>
       <p className="mb-3 text-[13px] text-[var(--color-fd-muted-foreground)]">
@@ -712,25 +783,17 @@ function DataContract() {
   const active = CONTRACTS.find((c) => c.id === tab)!;
   return (
     <div className="not-prose my-4 rounded-2xl border border-[var(--border)] p-4">
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div role="tablist" className="mb-3 flex flex-wrap gap-1.5">
         {CONTRACTS.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setTab(c.id)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-              c.id === tab
-                ? "border-transparent bg-[var(--primary)] text-white"
-                : "border-[var(--border)] bg-transparent text-[var(--color-fd-muted-foreground)] hover:bg-[var(--color-fd-muted)]"
-            }`}
-          >
+          <Pill key={c.id} active={c.id === tab} onClick={() => setTab(c.id)}>
             {c.label}
-          </button>
+          </Pill>
         ))}
       </div>
       <p className="mb-2 text-[13px] text-[var(--color-fd-muted-foreground)]">
         {active.note}
       </p>
-      <DynamicCodeBlock lang="ts" code={active.code} />
+      <CodeSnippet code={active.code} />
     </div>
   );
 }
@@ -895,6 +958,7 @@ function DecisionCards() {
       {DECISIONS.map((d) => (
         <button
           key={d.id}
+          aria-expanded={open === d.id}
           onClick={() => setOpen((o) => (o === d.id ? null : d.id))}
           className="rounded-xl border border-[var(--border)] bg-[var(--color-fd-card)] px-4 py-3 text-left transition-colors hover:bg-[var(--color-fd-muted)]"
         >

@@ -15,7 +15,15 @@ import { createInterface } from "node:readline/promises";
 const args = process.argv.slice(2);
 const cmd = args.length > 0 ? args : ["dev"];
 
-const list = execSync("git worktree list --porcelain", { encoding: "utf8" });
+let list;
+try {
+  list = execSync("git worktree list --porcelain", { encoding: "utf8" });
+} catch {
+  console.error(
+    "Failed to list git worktrees — run inside the repository with git on PATH.",
+  );
+  process.exit(1);
+}
 const roots = list
   .split("\n")
   .filter((line) => line.startsWith("worktree "))
