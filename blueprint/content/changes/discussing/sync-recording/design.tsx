@@ -1105,7 +1105,7 @@ const DECISIONS: {
     id: "D12",
     title:
       "entry 編輯／刪除入口：Preview 上緣 drawer＋左滑動作鈕＋tap 行內展開",
-    body: "Summary 從 Options dialog 獨立為以 Preview 為上緣的 bottom drawer：閒置時只露出把手＋最新 entry（即原 Preview），展開時最新 entry 隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不與 panel 滑動衝突。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作——脈絡不離開清單。按鈕組成直接反映最後一筆規則（D10）：最新一筆＝編輯＋刪除（請求帶版本號，與 D9／D10 共用守衛），其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。",
+    body: "Summary 從 Options dialog 獨立為以 Preview 為上緣的 bottom drawer：閒置時只露出把手＋最新 entry（即原 Preview），展開時最新 entry 隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不與 panel 滑動衝突。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作——脈絡不離開清單。按鈕組成直接反映最後一筆規則（D10）：最新一筆＝編輯＋刪除（請求帶版本號，與 D9／D10 共用守衛），其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。與 D8 Preview 的手勢分工：閒置時 tap＝展開 drawer；輸入中 Preview tap 僅處理送出（三步完成＝送出、未完成＝無作用），把手恆為 drawer 開關；輸入中以把手展開 drawer 時，draft 以輸入中樣式（pulse）隨上緣升起佔據清單第一列、與已提交 entries 明確區分，送出定格後原地轉為正式第一筆——D8「角色轉換」的延伸。",
     rejected: [
       {
         option: "版本 A：tap＝左滑同款動作鈕",
@@ -1152,6 +1152,48 @@ const DECISIONS: {
         option: "per-game 全域遞增 event id",
         reason:
           "需新增儲存欄位；複合游標 setIndex:entryIndex 用既有資料即可，補漏查詢同樣直觀",
+      },
+    ],
+  },
+  {
+    id: "D14",
+    title: "觀眾視圖（v1）：唯讀 live 頁含統計，與記錄頁共用顯示元件",
+    body: "觀眾視圖包含比分、entry 流與統計。新增唯讀 live 路由（如 /game/[gameId]/live），入口設於比賽總覽 banner 與局列表、與「進入記錄」並列——記錄者流程維持 home → 總覽 → 局列表 → 進入記錄，觀眾同路徑改按「觀看直播」。可共用元件（盤點現有結構）：Entry（rally／substitution 卡片）、Stats／TeamsStats、GameHeader、banner、options/overview、options/summary（隨 D12 遷為 drawer）——皆純顯示、無 entryDraft 依賴；記錄者專屬（live 頁不裝）：GameCourt（點擊 dispatch entryDraft）、GamePanel（moves／substitutes）、GamePreview 輸入態、options/edit、set-options。觀眾與記錄者共用同一 SSE stream（廣播即已提交事實，僅權限不同）；TeamsStats 目前消費聚合後的 teams.*.stats，live 更新由 client 依 SSE entry 流 fold 或 SWR revalidate，propose 階段定案。",
+    rejected: [
+      {
+        option: "只做比分板",
+        reason:
+          "SSE 廣播本來就帶完整 entry 與權威比分，只顯示比分是丟棄已到手的資料",
+      },
+      {
+        option: "觀眾獨立 SSE stream",
+        reason:
+          "內容同為已提交事實，僅權限差異；分流徒增 Vercel 連線與維護成本",
+      },
+      {
+        option: "v1 內建大規模觀賽 fan-out",
+        reason:
+          "v1 觀眾為隊員、規模小；未來需要時可換 fan-out 服務，架構不需預留",
+      },
+    ],
+  },
+  {
+    id: "D15",
+    title: "記錄與觀看權限（v1）：MEMBER+ 記錄、隊員限定觀看",
+    body: "記錄權限為 JOINED 隊員（MEMBER+），server 以既有 AuthorizationService.verifyTeamRole(MEMBER) 驗證 POST 與 SSE GET——對等記錄哲學（D1）的延伸：問責靠 recordedBy 永久蓋章（D5）與覆蓋可見性（D9），不靠事前限權。觀看 v1 隊員限定（同一守衛）；公開分享連結（opt-in token URL）移入 backlog 詳述影響範圍與新 UI。非隊員協助記錄（如家長）走既有邀請流程成為 member，不做記錄員專用邀請連結。",
+    rejected: [
+      {
+        option: "ADMIN+ 限定記錄",
+        reason: "與對等記錄矛盾——臨時請隊友接手記錄還要先升 ADMIN",
+      },
+      {
+        option: "per-game 指派記錄者",
+        reason: "最精細但多一層管理 UI 與流程，v1 不值；recordedBy 已提供問責",
+      },
+      {
+        option: "v1 即做公開觀賽連結",
+        reason:
+          "內容含球員姓名／背號，需 opt-in 開關、token 撤銷與無登入獨立視圖，工程量獨立成項——見 backlog",
       },
     ],
   },
@@ -2268,7 +2310,7 @@ export const toc = [
     url: "#q5-mockup",
     depth: 2,
   },
-  { title: "未決問題", url: "#open-questions", depth: 2 },
+  { title: "未決問題（已全數收斂）", url: "#open-questions", depth: 2 },
   { title: "範圍外（backlog）", url: "#out-of-scope", depth: 2 },
 ];
 
@@ -2384,28 +2426,32 @@ export default function Design() {
         亦可揭露動作與資訊，tap 的揭露形式有三個版本（Pill 切換比較，版本 B
         定案）。揭露內容：動作＝編輯＋（最新一筆）刪除／（其餘）
         退回重記至此——最後一筆規則直接反映在按鈕組成上；資訊＝recordedBy（D5）
-        與時間。
+        與時間。與 D8 送出的手勢分工：閒置時 tap Preview＝展開 drawer；輸入中
+        tap 僅處理送出（未完成則無作用），把手恆為 drawer
+        開關——輸入中以把手展開時，draft 以輸入中樣式（pulse）
+        隨上緣升起佔據清單第一列，送出定格後原地轉為正式第一筆。
       </p>
       <EntryActionsMockup />
 
-      <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
-      <ol>
-        <li>
-          <strong>Q7 — 觀眾視圖範圍</strong>
-          ：唯讀觀看包含哪些資訊（比分／輪轉／統計）？ 與記錄者共用同一 SSE
-          stream？
-        </li>
-        <li>
-          <strong>Q8 — 記錄權限</strong>：誰可以成為記錄者（team role
-          對應）？觀眾連結是否公開？
-        </li>
-      </ol>
+      <h2 id="open-questions">未決問題（已全數收斂）</h2>
+      <p>
+        Q0–Q8 全數定案，收錄為決策卡 D1–D15；後續工作見範圍外（backlog） 與
+        propose 階段。
+      </p>
 
       <h2 id="out-of-scope">範圍外（backlog，propose 階段移至 proposal）</h2>
       <ul>
         <li>
           離線記錄（offline-recording）：應用層 outbox＋批次重播端點—— defer
           決策與定向結論見 D11
+        </li>
+        <li>
+          公開觀賽連結（opt-in，defer 決策見 D15）——影響範圍：game 層級
+          shareToken 欄位與開關（預設關）、SSE／唯讀 API 增加 token
+          驗證分支（取代 session 驗證）、token 重生即撤銷；需討論與建立的新
+          UI：比賽設定的「公開直播」開關與連結複製／重生、無登入觀賽 landing（僅
+          D14
+          唯讀視圖、隱藏所有操作）、開啟時的隱私提示（內容含球員姓名／背號）。
         </li>
         <li>創建比賽、創建新局、瀏覽比賽資料的使用者流程與介面重設計</li>
         <li>
