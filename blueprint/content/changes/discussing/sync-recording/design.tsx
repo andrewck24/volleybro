@@ -1100,6 +1100,32 @@ const DECISIONS: {
       },
     ],
   },
+  {
+    id: "D12",
+    title:
+      "entry 編輯／刪除入口：Preview 上緣 drawer＋左滑動作鈕＋tap 行內展開",
+    body: "Summary 從 Options dialog 獨立為以 Preview 為上緣的 bottom drawer：閒置時只露出把手＋最新 entry（即原 Preview），展開時最新 entry 隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不與 panel 滑動衝突。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作——脈絡不離開清單。按鈕組成直接反映最後一筆規則（D10）：最新一筆＝編輯＋刪除（請求帶版本號，與 D9／D10 共用守衛），其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。",
+    rejected: [
+      {
+        option: "版本 A：tap＝左滑同款動作鈕",
+        reason: "最少 UI、零疊層，但揭露不了 recordedBy 等資訊",
+      },
+      {
+        option: "版本 C：tap＝action sheet",
+        reason: "行不變形，但 drawer 上再疊一層、脈絡離開清單",
+      },
+      {
+        option: "每行常駐 kebab 鈕／長按選單",
+        reason:
+          "entry 行內已無水平空間、逐行按鈕是視覺噪音；長按無可見 affordance，違反「不可用 ≠ 不可見」精神",
+      },
+      {
+        option: "非最後一筆顯示 disabled 刪除鈕＋explain-on-tap",
+        reason:
+          "改以「退回重記至此」按鈕原位取代——替代路徑直接可見可按，優於先點才知道不能用",
+      },
+    ],
+  },
 ];
 
 function VerdictBadge({ verdict }: { verdict: "adopted" | "rejected" }) {
@@ -1850,23 +1876,26 @@ const Q5_VARIANTS = [
   {
     id: "A",
     label: "版本 A：tap＝動作鈕",
+    verdict: "rejected",
     note: "tap 與左滑同一結果（開啟行內動作鈕）——最少 UI、零疊層，但揭露不了 recordedBy 等資訊",
   },
   {
     id: "B",
     label: "版本 B：tap＝行內展開",
+    verdict: "adopted",
     note: "行下方就地展開資訊與完整動作，脈絡不離開清單；代價是行高變動、清單會跳動",
   },
   {
     id: "C",
     label: "版本 C：tap＝action sheet",
-    note: "行不變形、資訊與動作集中於底部 sheet；代價是 drawer 上再疊一層",
+    verdict: "rejected",
+    note: "行不變形、資訊與動作集中於底部 sheet；代價是 drawer 上再疊一層、脈絡離開清單",
   },
 ] as const;
 
 function EntryActionsMockup() {
   const [variant, setVariant] =
-    useState<(typeof Q5_VARIANTS)[number]["id"]>("A");
+    useState<(typeof Q5_VARIANTS)[number]["id"]>("B");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [revealIdx, setRevealIdx] = useState<number | null>(null);
   const [expandIdx, setExpandIdx] = useState<number | null>(null);
@@ -1994,11 +2023,16 @@ function EntryActionsMockup() {
           </Pill>
         ))}
       </div>
-      <p className="m-0 mb-3 text-[12px] text-[var(--color-fd-muted-foreground)]">
-        {Q5_VARIANTS.find((v) => v.id === variant)!.note}
-        。Preview 即 drawer 上緣——點把手或 Preview 展開，最新 entry
-        隨上緣升起成為清單第一筆；展開後左滑任一行顯示動作鈕（所有版本通用），tap
-        行為依版本而異。
+      <p className="m-0 mb-3 flex flex-wrap items-start gap-1.5 text-[12px] text-[var(--color-fd-muted-foreground)]">
+        <VerdictBadge
+          verdict={Q5_VARIANTS.find((v) => v.id === variant)!.verdict}
+        />
+        <span className="min-w-0 flex-1">
+          {Q5_VARIANTS.find((v) => v.id === variant)!.note}
+          。Preview 即 drawer 上緣——點把手或 Preview 展開，最新 entry
+          隨上緣升起成為清單第一筆；展開後左滑任一行顯示動作鈕（所有版本通用），tap
+          行為依版本而異。
+        </span>
       </p>
       <div className="mx-auto flex h-96 w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
         <div className="text-center font-mono text-lg font-bold">10–8</div>
@@ -2201,7 +2235,7 @@ export const toc = [
     depth: 2,
   },
   {
-    title: "Q5 mockup：entry 動作揭露（討論中）",
+    title: "Q5 mockup：entry 動作揭露（已定案）",
     url: "#q5-mockup",
     depth: 2,
   },
@@ -2302,15 +2336,17 @@ export default function Design() {
       </p>
       <ProgressMockup />
 
-      <h2 id="q5-mockup">Q5 mockup：entry 動作揭露（討論中）</h2>
+      <h2 id="q5-mockup">
+        Q5 mockup：entry 動作揭露（已定案：版本 B，見 D12）
+      </h2>
       <p>
         前提變動：Summary（entry 清單）從 Options dialog 獨立出來，改為以
         Preview 為上緣、自底部升起的 drawer——閒置時只露出把手與最新
         entry（即現在的 Preview），展開時最新 entry
         隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不再與
         panel 滑動衝突。drawer 內每筆 entry 支援左滑顯示動作鈕；整行 tap
-        亦可揭露動作與資訊，tap 的揭露形式有三個版本（Pill
-        切換比較）。揭露內容提案：動作＝編輯＋（最新一筆）刪除／（其餘）
+        亦可揭露動作與資訊，tap 的揭露形式有三個版本（Pill 切換比較，版本 B
+        定案）。揭露內容：動作＝編輯＋（最新一筆）刪除／（其餘）
         退回重記至此——最後一筆規則直接反映在按鈕組成上；資訊＝recordedBy（D5）
         與時間。
       </p>
@@ -2318,13 +2354,6 @@ export default function Design() {
 
       <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
       <ol>
-        <li>
-          <strong>Q5 — entry 編輯／刪除的 UI 入口</strong>
-          ：方向已定——Summary 獨立為 Preview 觸發的 bottom
-          drawer、左滑動作鈕＋整行 tap 揭露、刪除沿用最後一筆規則（與 D9／D10
-          共用版本檢查守衛）；tap 揭露形式見上方 Q5 mockup
-          三版本比較，待定案後收入決策卡。
-        </li>
         <li>
           <strong>Q6 — set 結束邊界</strong>：一球達 25 分（第五局 15 分）且領先
           2 分即結束該局；另一人同時記了「下一球」→ server 需驗證 set
