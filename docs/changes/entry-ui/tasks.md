@@ -6,8 +6,8 @@
 
 ## 2. Preview submission (D8)
 
-- [ ] 2.1 Render src/components/game/preview.tsx in the Entry layout with score Figures in three states (idle = previous entry, undecided = muted current score, decided = winner-colored result). Verify: a Storybook story covering all three Figures states.
-- [ ] 2.2 Drive Preview feedback: pulse while input is in progress, ring + send icon only when all steps are complete, and submit-freeze (background flashes once) demoting the draft to the previous entry in place. Verify: entry-route manual assertion of the pulse → ring → freeze sequence (scenarios "Send affordance appears only when complete", "Submit freezes and demotes the draft"). Delivers requirement "Preview carries submission with completion highlight".
+- [x] 2.1 Render src/components/game/preview.tsx in the Entry layout with score Figures in three states (idle = previous entry, undecided = muted current score, decided = winner-colored result). Verify: a Storybook story covering all three Figures states.
+- [x] 2.2 Drive Preview feedback: pulse while input is in progress, ring + send icon only when all steps are complete, and submit-freeze (background flashes once) demoting the draft to the previous entry in place. Verify: entry-route manual assertion of the pulse → ring → freeze sequence (scenarios "Send affordance appears only when complete", "Submit freezes and demotes the draft"). Delivers requirement "Preview carries submission with completion highlight".
 
 ## 3. Gesture and accessibility (D8)
 
