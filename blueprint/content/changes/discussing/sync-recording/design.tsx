@@ -838,14 +838,15 @@ const CONTRACTS = [
   {
     id: "success",
     label: "201 ＋ SSE 廣播",
-    note: "比分為 server 推導的權威值；entryIndex 同時是 SSE event id（Last-Event-ID 補漏游標）。",
+    note: "比分為 server 推導的權威值；SSE event id 為複合游標 setIndex:entryIndex（Last-Event-ID 補漏可跨局），setEnded 由 server fold 判定（D13）。",
     code: `{
-  entryIndex: 19,
+  entryIndex: 19,          // SSE event id = "2:19"
   entry: {
     ...事實,
     home: { score: 11, ... },
     away: { score: 8, ... }
   },
+  setEnded: false,         // server 推導：達 25/15 且領先 2
   recordedBy: { userId, name },
   recordedAt: "2026-07-07T12:34:56Z"
 }`,
@@ -1123,6 +1124,34 @@ const DECISIONS: {
         option: "非最後一筆顯示 disabled 刪除鈕＋explain-on-tap",
         reason:
           "改以「退回重記至此」按鈕原位取代——替代路徑直接可見可按，優於先點才知道不能用",
+      },
+    ],
+  },
+  {
+    id: "D13",
+    title:
+      "set 結束邊界：server 推導＋setEnded 守衛，早局不鎖定、比賽層級以提示處理",
+    body: "set 結束是 server 推導的事實，與權威比分同源：寫入決勝球時 fold 順帶判定（達 25／第五局 15 且領先 2）、標 set.win、廣播帶 setEnded。守衛：set.win 非 null 時拒收新 entry（409 setEnded），client 收到 set 結束事件 panel 切至「本局已結束」（同 D7 阻斷語彙）。最後一筆規則家族（D9／D10／D12）作用於決勝球時 set.win 由 fold 重算自然反轉，零額外機制；已結束的早局「不鎖定」——每局各自套用最後一筆規則（範圍限於該局），因前一局結果不影響發球權（建立新局時可自行調整 serve／lineup），連鎖僅及比賽層級勝負：改早局勝負使整場勝負已定或出現多餘局數時，記錄頁與局列表以 banner 提示「移除多餘局數」或「調整決勝局數（如 BO3 改 BO5）」，不自動刪除。新 set 建立帶 expectedSetCount，重複建立 409、後到者進入既有局。錨點 basedOn 維持局內語意（URL 帶 setIndex）；SSE event id 升級為複合游標 setIndex:entryIndex，斷線補漏可跨局。",
+    rejected: [
+      {
+        option: "client 送出時自行宣告 set 結束",
+        reason:
+          "判定權重複——server fold 本來就能判定，兩台裝置各自宣告反而製造歧義",
+      },
+      {
+        option: "已結束且已開新局的 set 鎖定 T2／刪除（僅 T1 可改）",
+        reason:
+          "基於錯誤的規則認知——前一局結果不影響發球權、新局選項本可自行調整，跨局連鎖僅及比賽層級，鎖定過嚴",
+      },
+      {
+        option: "跨 set 退回重記（自動刪除後續局）",
+        reason:
+          "比賽層級的多餘局數／決勝局數改以 banner 提示人工處理，系統不自動刪整局",
+      },
+      {
+        option: "per-game 全域遞增 event id",
+        reason:
+          "需新增儲存欄位；複合游標 setIndex:entryIndex 用既有資料即可，補漏查詢同樣直觀",
       },
     ],
   },
@@ -2318,6 +2347,13 @@ export default function Design() {
           逾時）顯示「離線」；斷線期間送出的 entry 因錨點過期會被 409
           攔下，不會污染序列。
         </li>
+        <li>
+          <strong>set 結束（D13）</strong>：setEnded 事件到達時記錄 panel
+          切換為「本局已結束」畫面（同 D7
+          阻斷語彙），引導進入建立新局流程；改早局勝負使整場勝負已定或
+          出現多餘局數時，記錄頁與局列表以 banner
+          提示「移除多餘局數」或「調整決勝局數」，不自動刪除。
+        </li>
       </ul>
 
       <h2 id="q0-mockup">Q0 mockup：progress bar 樣式（已定案：樣式 5）</h2>
@@ -2354,11 +2390,6 @@ export default function Design() {
 
       <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
       <ol>
-        <li>
-          <strong>Q6 — set 結束邊界</strong>：一球達 25 分（第五局 15 分）且領先
-          2 分即結束該局；另一人同時記了「下一球」→ server 需驗證 set
-          未結束並拒收。跨 set 的錨點如何表示？
-        </li>
         <li>
           <strong>Q7 — 觀眾視圖範圍</strong>
           ：唯讀觀看包含哪些資訊（比分／輪轉／統計）？ 與記錄者共用同一 SSE
