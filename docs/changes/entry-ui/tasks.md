@@ -11,8 +11,8 @@
 
 ## 3. Gesture and accessibility (D8)
 
-- [ ] 3.1 [P] Implement capture-on-intent pointer swipe on the progress bar with click-suppression once a drag threshold is recognized. Verify: manual assertion that a recognized swipe switches the step without firing the segment tap handler (scenario "Swipe does not trigger a tap").
-- [ ] 3.2 [P] Use aria-disabled instead of the native disabled attribute on unreachable steps and non-applicable actions so they stay focusable and explain on interaction. Verify: an a11y check that locked controls expose aria-disabled and remain focusable. Delivers requirement "Locked controls stay perceivable and swipe suppresses stray taps".
+- [x] 3.1 [P] Implement capture-on-intent pointer swipe on the progress bar with click-suppression once a drag threshold is recognized. Verify: manual assertion that a recognized swipe switches the step without firing the segment tap handler (scenario "Swipe does not trigger a tap").
+- [x] 3.2 [P] Use aria-disabled instead of the native disabled attribute on unreachable steps and non-applicable actions so they stay focusable and explain on interaction. Verify: an a11y check that locked controls expose aria-disabled and remain focusable. Delivers requirement "Locked controls stay perceivable and swipe suppresses stray taps".
 
 ## 4. Summary drawer container (D12)
 
