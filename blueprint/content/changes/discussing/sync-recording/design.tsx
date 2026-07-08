@@ -1850,7 +1850,7 @@ const Q5_VARIANTS = [
   {
     id: "A",
     label: "版本 A：tap＝動作鈕",
-    note: "tap 與左滑同一結果（開啟行內動作鈕）——最少 UI、零疊層，但揭露不了 recordedBy 等資訊，也放不下退回重記",
+    note: "tap 與左滑同一結果（開啟行內動作鈕）——最少 UI、零疊層，但揭露不了 recordedBy 等資訊",
   },
   {
     id: "B",
@@ -1876,7 +1876,6 @@ function EntryActionsMockup() {
   const swiped = useRef(false);
 
   const lastIdx = Q5_ENTRIES.length - 1;
-  const last = Q5_ENTRIES[lastIdx];
 
   function closeAll() {
     setRevealIdx(null);
@@ -1886,6 +1885,11 @@ function EntryActionsMockup() {
   }
 
   function rowTap(i: number) {
+    /* 閒置態（drawer 收合）＝Preview：tap 只負責展開 drawer */
+    if (!drawerOpen) {
+      setDrawerOpen(true);
+      return;
+    }
     setExplain(null);
     if (variant === "A") {
       setRevealIdx((r) => (r === i ? null : i));
@@ -1898,13 +1902,9 @@ function EntryActionsMockup() {
     }
   }
 
-  /* 最後一筆規則（D10）：刪除僅限最後一筆；不可用 ≠ 不可見（explain-on-tap） */
-  function tapDelete(i: number) {
-    setExplain(
-      i === lastIdx
-        ? "（示意）刪除最後一筆：請求帶版本號，與 D9／D10 共用守衛"
-        : "僅最後一筆可刪除——更早的錯誤請改用「退回重記至此」（D10）",
-    );
+  /* 最後一筆規則（D10）：僅最新 entry 有刪除；其餘以「退回重記」取代 */
+  function tapDelete() {
+    setExplain("（示意）刪除最後一筆：請求帶版本號，與 D9／D10 共用守衛");
   }
 
   function tapEdit(i: number) {
@@ -1921,9 +1921,9 @@ function EntryActionsMockup() {
     );
   }
 
-  /* full＝展開／sheet 版（含退回重記）；否則為左滑揭露的緊湊雙鈕 */
+  /* 動作組：編輯＋（最新一筆）刪除／（其餘）退回重記；full＝展開／sheet 版 */
   function renderActions(i: number, full?: boolean) {
-    const deleteDisabled = i !== lastIdx;
+    const isLast = i === lastIdx;
     return (
       <div className={cn("flex items-center gap-1", full && "w-full")}>
         <button
@@ -1938,33 +1938,33 @@ function EntryActionsMockup() {
         >
           編輯
         </button>
-        {full && i !== lastIdx && (
+        {isLast ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              tapDelete();
+            }}
+            className={cn(
+              "rounded-md border border-[var(--destructive)] bg-[color-mix(in_oklch,var(--destructive)_10%,transparent)] px-2 py-1 text-[10px] text-[var(--destructive)]",
+              full && "flex-1",
+            )}
+          >
+            刪除
+          </button>
+        ) : (
           <button
             onClick={(e) => {
               e.stopPropagation();
               tapTruncate(i);
             }}
-            className="flex-1 rounded-md border border-[var(--destructive)] px-2 py-1 text-[10px] text-[var(--destructive)]"
+            className={cn(
+              "rounded-md border border-[var(--destructive)] bg-[var(--color-fd-card)] px-2 py-1 text-[10px] text-[var(--destructive)]",
+              full && "flex-1",
+            )}
           >
-            退回重記至此
+            {full ? "退回重記至此" : "退回重記"}
           </button>
         )}
-        <button
-          aria-disabled={deleteDisabled}
-          onClick={(e) => {
-            e.stopPropagation();
-            tapDelete(i);
-          }}
-          className={cn(
-            "rounded-md border px-2 py-1 text-[10px]",
-            full && "flex-1",
-            deleteDisabled
-              ? "border-[var(--border)] bg-[var(--color-fd-card)] text-[var(--color-fd-muted-foreground)] opacity-60"
-              : "border-[var(--destructive)] bg-[color-mix(in_oklch,var(--destructive)_10%,transparent)] text-[var(--destructive)]",
-          )}
-        >
-          刪除
-        </button>
       </div>
     );
   }
@@ -1996,7 +1996,8 @@ function EntryActionsMockup() {
       </div>
       <p className="m-0 mb-3 text-[12px] text-[var(--color-fd-muted-foreground)]">
         {Q5_VARIANTS.find((v) => v.id === variant)!.note}
-        。點 Preview 開關 drawer；左滑任一行顯示動作鈕（所有版本通用），tap
+        。Preview 即 drawer 上緣——點把手或 Preview 展開，最新 entry
+        隨上緣升起成為清單第一筆；展開後左滑任一行顯示動作鈕（所有版本通用），tap
         行為依版本而異。
       </p>
       <div className="mx-auto flex h-96 w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
@@ -2006,81 +2007,100 @@ function EntryActionsMockup() {
           <div className="flex h-full items-center justify-center rounded-lg border border-[var(--border)] text-[11px] text-[var(--color-fd-muted-foreground)]">
             （記錄 panel）
           </div>
-          {/* Summary drawer：自 Options dialog 獨立，由 Preview 觸發升起 */}
+          {/* Summary drawer：Preview 即 drawer 上緣——閒置時僅露出把手＋最新
+              entry（＝Preview）；展開時整體上移，最新 entry 隨上緣升起、
+              原地成為 summary 的第一筆 */}
           <div
             className={cn(
-              "absolute inset-x-0 bottom-0 z-10 flex h-[92%] flex-col rounded-t-xl border border-[var(--border)] bg-[var(--color-fd-card)] p-1.5 shadow-lg transition-transform duration-300",
-              drawerOpen ? "translate-y-0" : "translate-y-[110%]",
+              "absolute inset-x-0 bottom-0 z-10 flex h-full flex-col rounded-t-xl border border-[var(--border)] bg-[var(--color-fd-card)] p-1.5 shadow-lg transition-transform duration-300",
+              drawerOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]",
             )}
           >
-            <div className="mx-auto mb-1.5 h-1 w-8 shrink-0 rounded-full bg-[var(--color-fd-muted)]" />
+            <button
+              aria-expanded={drawerOpen}
+              aria-label={drawerOpen ? "收合記錄清單" : "展開記錄清單"}
+              onClick={() => {
+                setDrawerOpen((o) => !o);
+                closeAll();
+              }}
+              className="shrink-0 pb-1.5"
+            >
+              <span className="mx-auto block h-1 w-8 rounded-full bg-[var(--color-fd-muted)]" />
+            </button>
             <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
               {Q5_ENTRIES.map((en, i) => (
                 <div
                   key={i}
-                  className="relative shrink-0 overflow-hidden rounded-md border border-[var(--border)]"
+                  className="shrink-0 overflow-hidden rounded-md border border-[var(--border)]"
                 >
-                  {/* 左滑揭露的動作鈕層（行內容後方） */}
-                  <div className="absolute inset-y-0 right-1 flex items-center">
-                    {renderActions(i)}
-                  </div>
-                  <div
-                    className={cn(
-                      "relative flex h-9 touch-pan-y items-center gap-1 bg-[var(--color-fd-card)] px-1.5 transition-transform duration-200",
-                      revealIdx === i && "-translate-x-[5.75rem]",
-                    )}
-                    onPointerDown={(e) => {
-                      pointerX.current = e.clientX;
-                    }}
-                    onPointerMove={(e) => {
-                      /* 拖曳意圖（>8px）才 capture，點按不受影響（同 Q1） */
-                      if (pointerX.current === null) return;
-                      if (e.currentTarget.hasPointerCapture(e.pointerId))
-                        return;
-                      if (Math.abs(e.clientX - pointerX.current) > 8) {
-                        e.currentTarget.setPointerCapture(e.pointerId);
-                      }
-                    }}
-                    onPointerUp={(e) => {
-                      if (pointerX.current === null) return;
-                      const dx = e.clientX - pointerX.current;
-                      pointerX.current = null;
-                      if (Math.abs(dx) < 40) return;
-                      swiped.current = true;
-                      setExplain(null);
-                      setRevealIdx(dx < 0 ? i : null);
-                    }}
-                    onClickCapture={(e) => {
-                      if (!swiped.current) return;
-                      swiped.current = false;
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onClick={() => rowTap(i)}
-                  >
-                    <ScoreFig
-                      value={en.home}
-                      tone={en.win ? "primary" : "muted"}
-                    />
-                    <ScoreFig
-                      value={en.away}
-                      tone={en.win ? "muted" : "destructive"}
-                    />
-                    <span
+                  {/* 內層獨立裁切左滑動作層，避免版本 B 展開時動作層跟著長高 */}
+                  <div className="relative overflow-hidden">
+                    {/* 左滑揭露的動作鈕層（行內容後方） */}
+                    <div className="absolute inset-y-0 right-1 flex items-center">
+                      {renderActions(i)}
+                    </div>
+                    <div
                       className={cn(
-                        "min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
-                        en.win
-                          ? "border-[var(--primary)]"
-                          : "border-[var(--destructive)]",
+                        "relative flex h-9 touch-pan-y items-center gap-1 bg-[var(--color-fd-card)] px-1.5 transition-transform duration-200",
+                        revealIdx === i &&
+                          (i === lastIdx
+                            ? "-translate-x-[5.5rem]"
+                            : "-translate-x-[6.75rem]"),
                       )}
+                      onPointerDown={(e) => {
+                        pointerX.current = e.clientX;
+                      }}
+                      onPointerMove={(e) => {
+                        /* 拖曳意圖（>8px）才 capture，點按不受影響（同 Q1） */
+                        if (pointerX.current === null) return;
+                        if (e.currentTarget.hasPointerCapture(e.pointerId))
+                          return;
+                        if (Math.abs(e.clientX - pointerX.current) > 8) {
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                        }
+                      }}
+                      onPointerUp={(e) => {
+                        if (pointerX.current === null) return;
+                        const dx = e.clientX - pointerX.current;
+                        pointerX.current = null;
+                        if (!drawerOpen) return;
+                        if (Math.abs(dx) < 40) return;
+                        swiped.current = true;
+                        setExplain(null);
+                        setRevealIdx(dx < 0 ? i : null);
+                      }}
+                      onClickCapture={(e) => {
+                        if (!swiped.current) return;
+                        swiped.current = false;
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={() => rowTap(i)}
                     >
-                      {en.text}
-                    </span>
-                    {i === lastIdx && (
-                      <span className="shrink-0 text-[9px] text-[var(--color-fd-muted-foreground)]">
-                        最後一筆
+                      <ScoreFig
+                        value={en.home}
+                        tone={en.win ? "primary" : "muted"}
+                      />
+                      <ScoreFig
+                        value={en.away}
+                        tone={en.win ? "muted" : "destructive"}
+                      />
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
+                          en.win
+                            ? "border-[var(--primary)]"
+                            : "border-[var(--destructive)]",
+                        )}
+                      >
+                        {en.text}
                       </span>
-                    )}
+                      {i === lastIdx && (
+                        <span className="shrink-0 text-[9px] text-[var(--color-fd-muted-foreground)]">
+                          最後一筆
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {/* 版本 B：行內展開（資訊＋完整動作） */}
                   {variant === "B" && expandIdx === i && (
@@ -2157,27 +2177,6 @@ function EntryActionsMockup() {
             )}
           </div>
         </div>
-        {/* Preview（閒置態）＝drawer 的開關 */}
-        <button
-          onClick={() => {
-            setDrawerOpen((o) => !o);
-            closeAll();
-          }}
-          aria-expanded={drawerOpen}
-          className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-2 py-1.5 text-left"
-        >
-          <ScoreFig value={last.home} tone={last.win ? "primary" : "muted"} />
-          <ScoreFig
-            value={last.away}
-            tone={last.win ? "muted" : "destructive"}
-          />
-          <span className="min-w-0 flex-1 truncate border-l-2 border-[var(--primary)] pl-1 text-[11px] text-[var(--color-fd-muted-foreground)]">
-            {last.text}
-          </span>
-          <span className="shrink-0 text-[10px] text-[var(--color-fd-muted-foreground)]">
-            {drawerOpen ? "▾" : "▴"}
-          </span>
-        </button>
       </div>
     </div>
   );
@@ -2305,14 +2304,15 @@ export default function Design() {
 
       <h2 id="q5-mockup">Q5 mockup：entry 動作揭露（討論中）</h2>
       <p>
-        前提變動：Summary（entry 清單）從 Options dialog 獨立出來，改為點選
-        Preview 時從底部升起的 drawer——Summary 因此離開 panel，左滑手勢不再與
+        前提變動：Summary（entry 清單）從 Options dialog 獨立出來，改為以
+        Preview 為上緣、自底部升起的 drawer——閒置時只露出把手與最新
+        entry（即現在的 Preview），展開時最新 entry
+        隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不再與
         panel 滑動衝突。drawer 內每筆 entry 支援左滑顯示動作鈕；整行 tap
         亦可揭露動作與資訊，tap 的揭露形式有三個版本（Pill
-        切換比較）。揭露內容提案：動作＝編輯、刪除 （僅最後一筆可刪，非最後一筆
-        aria-disabled＋explain-on-tap）、 退回重記至此（非最後一筆，B/C
-        版才放得下）；資訊＝recordedBy（D5） 與時間。點 Preview 開啟 drawer
-        後試玩。
+        切換比較）。揭露內容提案：動作＝編輯＋（最新一筆）刪除／（其餘）
+        退回重記至此——最後一筆規則直接反映在按鈕組成上；資訊＝recordedBy（D5）
+        與時間。
       </p>
       <EntryActionsMockup />
 
