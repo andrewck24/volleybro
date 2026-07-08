@@ -1,0 +1,48 @@
+---
+title: Proposal
+---
+
+## Why
+
+entry-ui 是 sync-recording epic 中「零後端依賴、可先行」的切片。在導入多人協作記錄（SSE／衝突偵測）之前，先把單機記錄的輸入與編輯體驗重塑成協作就緒的形態：現行輸入步驟隱性、送出確認不可發現，Summary 藏在 Options dialog 內；這些摩擦在多筆 entry 快速進出、需要明確「最後一筆」語意的協作情境下會被放大。本 change 交付 discuss 決策 D8（輸入流程）與 D12（Summary drawer），兩者皆純前端、可獨立於後端同步先行上線。
+
+## What Changes
+
+- **D8 entry 輸入流程**：輸入 panel 上緣新增三步驟延展分段進度條（球員 → 我方 → 對方；對方失誤選定後收合為單步）；說明文字統一置於進度條下方、無編號、帶輪換動畫；步驟切換靠點選進度條或 pointer 滑動（capture-on-intent，滑動後抑制誤觸 click，以 aria-disabled 取代原生 disabled，前一步未完成不可前進）。送出集中至 Preview：仿 Entry 版式（左側比分 Figures 三態——閒置＝上一筆、勝負未定＝muted、已定＝勝方著色），輸入中 pulse、完成時 ring＋send icon、送出＝定格（背景閃一次）。
+- **D12 Summary drawer**：Summary 自 Options dialog 獨立為以 Preview 為上緣的 bottom drawer；閒置時只露出把手＋最新 entry，展開時最新 entry 升起、原地成為清單第一筆。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作。按鈕組成反映「最後一筆規則」：最新一筆＝編輯＋刪除，其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。與 D8 Preview 的手勢分工：閒置 tap＝展開 drawer；輸入中 Preview tap 僅處理送出；把手恆為 drawer 開關；輸入中 draft 以 pulse 佔清單第一列，送出定格後原地轉為正式第一筆。
+
+## Capabilities
+
+### New Capabilities
+
+- `entry-input-flow`（對應 Story #29 · D8）：三步驟延展分段進度條導航（點選／滑動切換、前一步未完成不可前進、對方失誤收合為單步）與 Preview 承載的送出流程（比分 Figures 三態、完成 highlight、送出定格）。
+- `entry-summary-drawer`（對應 Story #30 · D12）：以 Preview 為上緣的 bottom drawer、每筆 entry 的左滑動作鈕與 tap 行內展開，並依「最後一筆規則」決定編輯／刪除／退回重記至此的動作組成。
+
+### Modified Capabilities
+
+（無）
+
+## Non-Goals
+
+- 後端同步、SSE stream、presence、離線佇列。
+- server 端守衛：意圖錨點 `basedOn`（D3–D5）、衝突面板（D7）、覆蓋版本檢查（D9）、最後一筆規則的 server 強制與退回重記 truncate 廣播（D10）、set 結束邊界（D13）。
+- live-view 觀眾唯讀頁（D14/D15）。
+- D12 的「退回重記至此」與編輯／刪除動作只渲染 UI affordance、串接既有單機記錄流程；協作驗證屬 sync-recording change。
+
+## Impact
+
+- Affected specs：新增 `entry-input-flow`、`entry-summary-drawer` 兩個 capability。
+- Affected code：
+  - New：三步驟延展分段進度條元件、Preview 上緣 bottom drawer 容器（具體路徑於 design 定檔）。
+  - Modified：
+    - `src/components/game/preview.tsx`
+    - `src/components/game/panel/index.tsx`
+    - `src/components/game/panel/moves/ours.tsx`
+    - `src/components/game/panel/moves/oppo.tsx`
+    - `src/components/game/options/summary.tsx`
+    - `src/components/game/options/index.tsx`
+    - `src/components/game/entry/index.tsx`
+    - `src/components/game/entry/rally.tsx`
+    - `src/components/game/entry/substitution.tsx`
+    - `src/app/game/[gameId]/sets/[setIndex]/entry/page.tsx`
+  - Removed：（無）
