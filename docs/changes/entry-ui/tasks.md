@@ -16,8 +16,8 @@
 
 ## 4. Summary drawer container (D12)
 
-- [ ] 4.1 Move Summary out of src/components/game/options/index.tsx into a Preview-anchored bottom drawer (new container) with state idle|expanded; idle exposes only a handle and the latest entry. Verify: a Storybook story of the idle drawer showing handle + latest entry, and the Options dialog no longer contains Summary (scenario "Idle drawer shows handle and latest entry"). Delivers requirement "Summary is a bottom drawer anchored to the Preview".
-- [ ] 4.2 On expand, raise the latest entry with the top edge so it becomes the first list row in place. Verify: entry-route assertion of latest-entry promotion on expand (scenario "Expanding promotes the latest entry to the first row").
+- [x] 4.1 Move Summary out of src/components/game/options/index.tsx into a Preview-anchored bottom drawer (new container) with state idle|expanded; idle exposes only a handle and the latest entry. Verify: a Storybook story of the idle drawer showing handle + latest entry, and the Options dialog no longer contains Summary (scenario "Idle drawer shows handle and latest entry"). Delivers requirement "Summary is a bottom drawer anchored to the Preview".
+- [x] 4.2 On expand, raise the latest entry with the top edge so it becomes the first list row in place. Verify: entry-route assertion of latest-entry promotion on expand (scenario "Expanding promotes the latest entry to the first row").
 
 ## 5. Entry row actions (D12)
 

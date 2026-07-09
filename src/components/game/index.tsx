@@ -9,6 +9,7 @@ import { GamePanel } from "@/components/game/panel";
 import { GamePreview } from "@/components/game/preview";
 import { SetOptions } from "@/components/game/set-options";
 import { StatsForOneSet } from "@/components/game/stats";
+import { SummaryDrawer } from "@/components/game/summary-drawer";
 import {
   Accordion,
   AccordionContent,
@@ -54,6 +55,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
       <GameCourt gameId={gameId} mode="general" />
+      <SummaryDrawer gameId={gameId} />
       <GamePreview
         gameId={gameId}
         mode="general"
