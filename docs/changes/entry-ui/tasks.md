@@ -21,8 +21,8 @@
 
 ## 5. Entry row actions (D12)
 
-- [ ] 5.1 Reveal per-row action buttons on left-swipe and inline-expand the row as an accordion on tap to show recordedBy, time, and actions without leaving the list, in src/components/game/entry/index.tsx. Verify: Storybook stories for a swipe-revealed row and a tap-expanded row (scenarios "Left-swipe reveals action buttons", "Tap inline-expands the row in place"). Delivers requirement "Entry actions are revealed by swipe or inline expansion".
-- [ ] 5.2 [P] Compose action buttons by the last-entry rule as a pure function of isLatest(entry): latest = [edit, delete], non-latest = [edit, rollbackToHere] with no disabled delete button. Verify: a unit assertion on the composition function for latest and non-latest inputs (scenarios "Latest entry exposes edit and delete", "Non-latest entry exposes rollback instead of delete"). Delivers requirement "Button composition follows the last-entry rule".
+- [x] 5.1 Reveal per-row action buttons on left-swipe and inline-expand the row as an accordion on tap to show recordedBy, time, and actions without leaving the list, in src/components/game/entry/index.tsx. Verify: Storybook stories for a swipe-revealed row and a tap-expanded row (scenarios "Left-swipe reveals action buttons", "Tap inline-expands the row in place"). Delivers requirement "Entry actions are revealed by swipe or inline expansion".
+- [x] 5.2 [P] Compose action buttons by the last-entry rule as a pure function of isLatest(entry): latest = [edit, delete], non-latest = [edit, rollbackToHere] with no disabled delete button. Verify: a unit assertion on the composition function for latest and non-latest inputs (scenarios "Latest entry exposes edit and delete", "Non-latest entry exposes rollback instead of delete"). Delivers requirement "Button composition follows the last-entry rule".
 
 ## 6. Gesture split and integration (D8 + D12)
 

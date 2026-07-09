@@ -1,5 +1,6 @@
 "use client";
-import { Entry } from "@/components/game/entry";
+import { EntryRow } from "@/components/game/entry";
+import { isLatestEntry } from "@/components/game/entry/last-entry-rule";
 import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -13,13 +14,13 @@ export type SummaryDrawerState = "idle" | "expanded";
 /**
  * Presentational Preview-anchored bottom drawer (D12). Idle exposes only the
  * handle + latest entry; expanding rises the latest entry with the top edge
- * into the first row of the full list, in place -- it's the same <Entry> row,
- * just a bigger list drawn around it.
+ * into the first row of the full list, in place -- each row is an <EntryRow>
+ * (group 5), revealing edit/delete/rollback on left-swipe or tap-expansion,
+ * composed by the last-entry rule (delete only for the latest entry).
  *
- * Per-row swipe/tap actions (group 5) and the Preview<->drawer gesture split
- * plus in-progress draft row (group 6) are deliberately left as seams: this
- * component only owns idle/expanded + the handle toggle, and each row is free
- * for group 5 to layer swipe/tap-expand behavior onto.
+ * The Preview<->drawer gesture split plus in-progress draft row (group 6) are
+ * deliberately left as a seam: this component only owns idle/expanded + the
+ * handle toggle.
  */
 export const SummaryDrawerCard = ({
   entries,
@@ -27,6 +28,8 @@ export const SummaryDrawerCard = ({
   state,
   onToggle,
   onEntryClick,
+  onEntryDelete,
+  onEntryRollback,
   className,
 }: {
   entries: EntryView[];
@@ -34,6 +37,8 @@ export const SummaryDrawerCard = ({
   state: SummaryDrawerState;
   onToggle?: () => void;
   onEntryClick?: (entryIndex: number) => void;
+  onEntryDelete?: (entryIndex: number) => void;
+  onEntryRollback?: (entryIndex: number) => void;
   className?: string;
 }) => {
   const latestIndex = entries.length - 1;
@@ -63,10 +68,13 @@ export const SummaryDrawerCard = ({
             .reverse()
             .map(({ entry, entryIndex }) => (
               <div key={entryIndex} data-testid="summary-drawer-row">
-                <Entry
+                <EntryRow
                   entry={entry}
                   players={players}
-                  onClick={() => onEntryClick?.(entryIndex)}
+                  isLatest={isLatestEntry(entryIndex, entries.length)}
+                  onEdit={() => onEntryClick?.(entryIndex)}
+                  onDelete={() => onEntryDelete?.(entryIndex)}
+                  onRollbackToHere={() => onEntryRollback?.(entryIndex)}
                 />
               </div>
             ))}
@@ -75,10 +83,13 @@ export const SummaryDrawerCard = ({
       ) : (
         latestEntry && (
           <div data-testid="summary-drawer-row">
-            <Entry
+            <EntryRow
               entry={latestEntry}
               players={players}
-              onClick={() => onEntryClick?.(latestIndex)}
+              isLatest={true}
+              onEdit={() => onEntryClick?.(latestIndex)}
+              onDelete={() => onEntryDelete?.(latestIndex)}
+              onRollbackToHere={() => onEntryRollback?.(latestIndex)}
             />
           </div>
         )

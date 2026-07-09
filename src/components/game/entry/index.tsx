@@ -1,8 +1,17 @@
+import {
+  composeEntryActions,
+  type EntryAction,
+} from "@/components/game/entry/last-entry-rule";
 import { Rally } from "@/components/game/entry/rally";
 import { Substitution } from "@/components/game/entry/substitution";
 import { EntryType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
+import {
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 export const Entry = ({
   entry,
@@ -74,3 +83,155 @@ export const EntryPlayerNumber = ({
     {children}
   </span>
 );
+
+// Minimum horizontal pointer travel (px) before a drag is recognized as a
+// swipe rather than a tap -- mirrors panel/progress-bar.tsx's capture-on-
+// intent gesture so the two don't diverge on feel.
+const SWIPE_THRESHOLD_PX = 40;
+
+const actionLabel: Record<EntryAction, string> = {
+  edit: "編輯",
+  delete: "刪除",
+  rollbackToHere: "回溯並重新記錄至此",
+};
+
+const EntryRowActions = ({
+  actions,
+  onEdit,
+  onDelete,
+  onRollbackToHere,
+}: {
+  actions: EntryAction[];
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onRollbackToHere?: () => void;
+}) => (
+  <>
+    {actions.map((action) => (
+      <button
+        key={action}
+        type="button"
+        data-testid={`entry-action-${action}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (action === "edit") onEdit?.();
+          else if (action === "delete") onDelete?.();
+          else onRollbackToHere?.();
+        }}
+        className="shrink-0 rounded px-2 py-1 text-sm text-muted-foreground"
+      >
+        {actionLabel[action]}
+      </button>
+    ))}
+  </>
+);
+
+/**
+ * Interactive row wrapper around <Entry> (D12 group 5): left-swipe reveals
+ * the row's action buttons, and tapping the row inline-expands it as an
+ * accordion showing the entry's detail + actions, without leaving the list.
+ *
+ * ponytail: EntryView has no `recordedBy` field yet -- it's populated once
+ * the sync-recording change adds authorship. The expanded content shows the
+ * entry's existing score/type detail (via <Entry>) plus the composed
+ * actions; there's no timestamp field on the model to show either.
+ */
+export const EntryRow = ({
+  entry,
+  players,
+  isLatest,
+  onEdit,
+  onDelete,
+  onRollbackToHere,
+  className,
+}: {
+  entry: EntryView;
+  players: GamePlayerView[];
+  isLatest: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onRollbackToHere?: () => void;
+  className?: string;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const [swipeRevealed, setSwipeRevealed] = useState(false);
+
+  const dragRef = useRef<{ startX: number; triggered: boolean } | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    dragRef.current = { startX: e.clientX, triggered: false };
+  };
+
+  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.triggered) return;
+
+    const dx = e.clientX - drag.startX;
+    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
+
+    drag.triggered = true;
+    if (dx < 0) {
+      suppressClickRef.current = true;
+      setSwipeRevealed(true);
+    }
+  };
+
+  const endDrag = () => {
+    dragRef.current = null;
+  };
+
+  const handleRowClick = () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    setExpanded((v) => !v);
+  };
+
+  const actions = composeEntryActions(isLatest);
+
+  return (
+    <div
+      data-testid="entry-row"
+      data-swipe-revealed={swipeRevealed}
+      data-expanded={expanded}
+      className={cn("flex w-full flex-col", className)}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClick={handleRowClick}
+    >
+      <div className="flex w-full flex-row items-center">
+        <Entry entry={entry} players={players} className="flex-1" />
+        {swipeRevealed && (
+          <div
+            data-testid="entry-row-swipe-actions"
+            className="flex flex-none flex-row gap-1"
+          >
+            <EntryRowActions
+              actions={actions}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onRollbackToHere={onRollbackToHere}
+            />
+          </div>
+        )}
+      </div>
+      {expanded && (
+        <div
+          data-testid="entry-row-expanded"
+          className="flex flex-row flex-wrap items-center gap-2 py-2"
+        >
+          <EntryRowActions
+            actions={actions}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onRollbackToHere={onRollbackToHere}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
