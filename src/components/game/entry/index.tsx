@@ -171,8 +171,11 @@ export const EntryRow = ({
     if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
 
     drag.triggered = true;
+    // Any recognized swipe suppresses the tap the browser synthesizes on
+    // pointerup, so a horizontal drag never also toggles the accordion --
+    // mirrors panel/progress-bar.tsx. Only a left-swipe reveals the actions.
+    suppressClickRef.current = true;
     if (dx < 0) {
-      suppressClickRef.current = true;
       setSwipeRevealed(true);
     }
   };
