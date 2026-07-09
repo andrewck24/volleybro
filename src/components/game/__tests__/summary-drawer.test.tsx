@@ -92,3 +92,66 @@ describe("SummaryDrawerCard handle toggle", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });
+
+// D8/D12 "Handle expands drawer during input with draft in first row": while
+// input is in progress and the drawer is expanded, the draft occupies the
+// first row in a pulsing style distinct from committed rows.
+describe("SummaryDrawerCard draft-in-progress first row", () => {
+  const draftEntry = makeEntry(4, "p2");
+
+  it("renders the draft as the pulsing first row, ahead of committed entries", () => {
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="expanded"
+        draftEntry={draftEntry}
+        isDraftPulsing={true}
+      />,
+    );
+
+    const draftRow = screen.getByTestId("summary-drawer-draft-row");
+    expect(draftRow).toHaveClass("animate-pulse");
+
+    const rows = screen.getAllByTestId("summary-drawer-row");
+    // The draft row is a separate element preceding the committed rows in
+    // DOM order; committed rows never carry the pulse class.
+    rows.forEach((row) => expect(row).not.toHaveClass("animate-pulse"));
+  });
+
+  it("does not render a draft row once the draft is gone (freeze -> committed)", () => {
+    // On freeze, the caller stops passing `draftEntry` and the newly
+    // committed entry (already the last item of `entries`) becomes the
+    // formal first row in place -- no separate draft row remains.
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="expanded"
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("summary-drawer-draft-row"),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("summary-drawer-row")[0]).toHaveTextContent(
+      "7",
+    );
+  });
+
+  it("does not show the draft row while idle", () => {
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="idle"
+        draftEntry={draftEntry}
+        isDraftPulsing={true}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("summary-drawer-draft-row"),
+    ).not.toBeInTheDocument();
+  });
+});

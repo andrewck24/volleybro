@@ -26,5 +26,5 @@
 
 ## 6. Gesture split and integration (D8 + D12)
 
-- [ ] 6.1 Split gestures so an idle Preview tap expands the drawer while an in-progress Preview tap only submits (complete = send, incomplete = no-op), and the handle always toggles the drawer. Verify: entry-route assertion of both idle and in-progress tap behaviors (scenario "Preview tap during input only submits"). Delivers requirement "Gesture split while input is in progress".
-- [ ] 6.2 During input show the draft as the pulsing first row distinct from committed entries and, on freeze, turn it into the formal first entry in place. Verify: entry-route assertion of the draft-in-first-row rendering and the freeze transition (scenario "Handle expands drawer during input with draft in first row").
+- [x] 6.1 Split gestures so an idle Preview tap expands the drawer while an in-progress Preview tap only submits (complete = send, incomplete = no-op), and the handle always toggles the drawer. Verify: entry-route assertion of both idle and in-progress tap behaviors (scenario "Preview tap during input only submits"). Delivers requirement "Gesture split while input is in progress".
+- [x] 6.2 During input show the draft as the pulsing first row distinct from committed entries and, on freeze, turn it into the formal first entry in place. Verify: entry-route assertion of the draft-in-first-row rendering and the freeze transition (scenario "Handle expands drawer during input with draft in first row").

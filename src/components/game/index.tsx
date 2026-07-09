@@ -6,10 +6,14 @@ import { GameHeader } from "@/components/game/header";
 import { GameOptions } from "@/components/game/options";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
+import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { GamePreview } from "@/components/game/preview";
 import { SetOptions } from "@/components/game/set-options";
 import { StatsForOneSet } from "@/components/game/stats";
-import { SummaryDrawer } from "@/components/game/summary-drawer";
+import {
+  SummaryDrawer,
+  type SummaryDrawerState,
+} from "@/components/game/summary-drawer";
 import {
   Accordion,
   AccordionContent,
@@ -30,13 +34,18 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
+  const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
+  const submitEntryDraft = useSubmitEntryDraft(gameId);
 
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
     setTabValue(tabValue);
     setDialogOpen(true);
   };
+
+  const toggleDrawer = () =>
+    setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
     if (game) dispatch(gameActions.initialize({ game, setIndex }));
@@ -55,11 +64,16 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
       <GameCourt gameId={gameId} mode="general" />
-      <SummaryDrawer gameId={gameId} />
+      <SummaryDrawer
+        gameId={gameId}
+        state={drawerState}
+        onToggle={toggleDrawer}
+      />
       <GamePreview
         gameId={gameId}
         mode="general"
-        handleOptionOpen={handleOptionOpen}
+        onSubmit={submitEntryDraft}
+        onExpandDrawer={() => setDrawerState("expanded")}
       />
       <GamePanel
         gameId={gameId}

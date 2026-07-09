@@ -16,7 +16,14 @@ import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 import { RiSendPlaneLine } from "react-icons/ri";
 
-export const OppoMoves = ({ gameId }: { gameId: string }) => {
+/**
+ * The real entry-submission path: creates a new rally (mode "general") or
+ * persists an edit (mode "editing") via the optimistic helpers + API actions,
+ * then confirms the draft in Redux. Shared by OppoMoves' own "tap the same
+ * move again" submit and by the Preview's tap-to-submit gesture (group 6) so
+ * the Preview's freeze actually persists the entry instead of just flashing.
+ */
+export const useSubmitEntryDraft = (gameId: string) => {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.game);
@@ -25,10 +32,6 @@ export const OppoMoves = ({ gameId }: { gameId: string }) => {
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
-
-  const oppoMoves = scoringMoves.filter((option) =>
-    scoringMoves[draft.home.num ?? -1]?.outcome.includes(option.num),
-  );
 
   const create = () => {
     const { game: updatedGame, phase } = createRallyHelper(
@@ -63,19 +66,34 @@ export const OppoMoves = ({ gameId }: { gameId: string }) => {
     dispatch(gameActions.setGameMode("general"));
   };
 
+  return async () => {
+    try {
+      if (mode === "general") {
+        create();
+      } else {
+        update();
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    }
+  };
+};
+
+export const OppoMoves = ({ gameId }: { gameId: string }) => {
+  const dispatch = useAppDispatch();
+  const { mode } = useAppSelector((state) => state.game);
+  const { entryDraft: draft } = useAppSelector((state) => state.game[mode]);
+  const submit = useSubmitEntryDraft(gameId);
+
+  const oppoMoves = scoringMoves.filter((option) =>
+    scoringMoves[draft.home.num ?? -1]?.outcome.includes(option.num),
+  );
+
   const onOppoClick = async (move: ScoringMove) => {
     if (draft.away.num !== move.num) {
       dispatch(gameActions.setEntryDraftAwayMove(move));
     } else {
-      try {
-        if (mode === "general") {
-          create();
-        } else {
-          update();
-        }
-      } catch (error) {
-        showErrorToast(error, toast);
-      }
+      await submit();
     }
   };
 

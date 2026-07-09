@@ -43,7 +43,10 @@ jest.mock("@/hooks/use-data", () => ({
 
 const SEND_LABEL = "送出";
 
-const setUpPreview = (onSubmit = jest.fn()) => {
+const setUpPreview = (
+  onSubmit = jest.fn(),
+  onExpandDrawer: (() => void) | undefined = jest.fn(),
+) => {
   const store = makeStore();
   act(() => {
     store.dispatch(
@@ -52,10 +55,15 @@ const setUpPreview = (onSubmit = jest.fn()) => {
   });
   render(
     <Provider store={store}>
-      <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />
+      <GamePreview
+        gameId="game-1"
+        mode="general"
+        onSubmit={onSubmit}
+        onExpandDrawer={onExpandDrawer}
+      />
     </Provider>,
   );
-  return { store, onSubmit };
+  return { store, onSubmit, onExpandDrawer };
 };
 
 describe("GamePreview send affordance", () => {
@@ -108,5 +116,49 @@ describe("GamePreview submission", () => {
     expect(
       screen.queryByRole("img", { name: SEND_LABEL }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// D8/D12 "Gesture split while input is in progress": idle taps expand the
+// drawer, in-progress taps only ever submit (never expand), complete or not.
+describe("GamePreview gesture split", () => {
+  it("expands the drawer on tap while idle (no draft in progress)", async () => {
+    const user = userEvent.setup();
+    const { onExpandDrawer, onSubmit } = setUpPreview();
+
+    // entryIndex 0 with no player/type selected yet: not editing.
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    expect(onExpandDrawer).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("submits and does not expand the drawer when in progress and complete", async () => {
+    const user = userEvent.setup();
+    const { store, onExpandDrawer, onSubmit } = setUpPreview();
+
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+    });
+
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onExpandDrawer).not.toHaveBeenCalled();
+  });
+
+  it("does nothing (no submit, no expand) when in progress and incomplete", async () => {
+    const user = userEvent.setup();
+    const { store, onExpandDrawer, onSubmit } = setUpPreview();
+
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onExpandDrawer).not.toHaveBeenCalled();
   });
 });

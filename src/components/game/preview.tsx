@@ -96,19 +96,16 @@ export const PreviewCard = ({
   );
 };
 
-export const GamePreview = ({
-  gameId,
-  mode,
-  handleOptionOpen,
-  onSubmit,
-  className,
-}: {
-  gameId: string;
-  mode: ReduxGameState["mode"];
-  handleOptionOpen?: (value: string) => void;
-  onSubmit?: () => void;
-  className?: string;
-}) => {
+/**
+ * Derives the entry-draft state shared by the Preview (this file) and the
+ * Summary drawer's in-progress draft row (summary-drawer.tsx) -- the single
+ * source of truth for "is input in progress" / "is the draft complete" so the
+ * two consumers never diverge on their own copies of these booleans.
+ */
+export const useEntryDraftPreview = (
+  gameId: string,
+  mode: ReduxGameState["mode"],
+) => {
   const { game } = useGame(gameId);
   const { players } = game!.teams.home;
   const { setIndex } = useAppSelector((state) => state.game);
@@ -117,7 +114,7 @@ export const GamePreview = ({
     status: { inProgress, entryIndex },
   } = useAppSelector((state) => state.game[mode]);
 
-  if (!inProgress) return null;
+  if (!inProgress) return { inProgress: false as const };
 
   const lastEntry = game!.sets[setIndex].entries[entryIndex - 1];
   const isEditing = Boolean(draft.home.player?.id) || Boolean(draft.home.type);
@@ -158,21 +155,48 @@ export const GamePreview = ({
   const { submittable } = getEntryProgress(draft);
   const isComplete = submittable === true;
 
+  return {
+    inProgress: true as const,
+    entry,
+    previousEntry: lastEntry,
+    players,
+    isEditing,
+    isComplete,
+    entryIndex,
+  };
+};
+
+export const GamePreview = ({
+  gameId,
+  mode,
+  onSubmit,
+  onExpandDrawer,
+  className,
+}: {
+  gameId: string;
+  mode: ReduxGameState["mode"];
+  onSubmit?: () => void;
+  onExpandDrawer?: () => void;
+  className?: string;
+}) => {
+  const preview = useEntryDraftPreview(gameId, mode);
+  if (!preview.inProgress) return null;
+  const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
+    preview;
+
   return (
     <PreviewCard
       // Remounts on the next entry so the local freeze/flash state (owned by
       // PreviewCard) always starts fresh once the real submission lands.
       key={entryIndex}
       entry={entry}
-      previousEntry={lastEntry}
+      previousEntry={previousEntry}
       players={players}
       isEditing={isEditing}
       isPulsing={isEditing && !isComplete}
       isComplete={isComplete}
       onSubmit={onSubmit}
-      onExpand={
-        handleOptionOpen ? () => handleOptionOpen("summary") : undefined
-      }
+      onExpand={onExpandDrawer}
       className={className}
     />
   );
