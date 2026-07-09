@@ -1,0 +1,6 @@
+{
+  "summary": "Front-loaded entry-ui slice of the sync-recording epic: three-step entry input progress bar with Preview-centered submission (D8) and a Preview-anchored Summary drawer with per-entry swipe/tap actions (D12), all frontend-only.",
+  "proposedAt": "2026-07-09",
+  "prNumber": 311,
+  "prCreatedAt": "2026-07-07"
+}

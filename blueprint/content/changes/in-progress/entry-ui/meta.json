@@ -1,4 +1,4 @@
 {
   "title": "entry-ui",
-  "pages": ["index", "proposal", "design", "specs"]
+  "pages": ["index", "proposal", "design", "specs", "review"]
 }
