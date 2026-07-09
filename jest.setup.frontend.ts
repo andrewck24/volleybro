@@ -26,6 +26,19 @@ global.ResizeObserver = jest.fn().mockImplementation((_callback) => ({
   unobserve: jest.fn(),
 }));
 
+// jsdom has no Pointer Events capture API; vaul (shadcn Drawer) calls these
+// during its drag-to-dismiss gesture tracking on every pointerdown/up inside
+// the drawer content.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {};
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {};
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   configurable: true,

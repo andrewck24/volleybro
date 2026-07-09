@@ -29,7 +29,17 @@ describe("EntryRow", () => {
   it("is collapsed and unrevealed by default", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
-    expect(screen.queryByTestId("entry-row-expanded")).not.toBeInTheDocument();
+    // entry-row-expanded is now always rendered (height-animated via CSS
+    // grid-rows) so we assert the collapsed state via data attributes
+    // instead of presence/absence.
+    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
+    expect(screen.getByTestId("entry-row")).toHaveAttribute(
+      "data-expanded",
+      "false",
+    );
     expect(
       screen.queryByTestId("entry-row-swipe-actions"),
     ).not.toBeInTheDocument();
@@ -41,10 +51,20 @@ describe("EntryRow", () => {
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
     await user.click(screen.getByTestId("entry-row"));
-    expect(screen.getByTestId("entry-row-expanded")).toBeInTheDocument();
+    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
+      "data-open",
+      "true",
+    );
+    expect(screen.getByTestId("entry-row")).toHaveAttribute(
+      "data-expanded",
+      "true",
+    );
 
     await user.click(screen.getByTestId("entry-row"));
-    expect(screen.queryByTestId("entry-row-expanded")).not.toBeInTheDocument();
+    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
   });
 
   // Scenario: Left-swipe reveals action buttons
@@ -60,7 +80,10 @@ describe("EntryRow", () => {
 
     // the swipe's synthesized click must not also toggle the expansion.
     fireEvent.click(row);
-    expect(screen.queryByTestId("entry-row-expanded")).not.toBeInTheDocument();
+    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
   });
 
   it("does not reveal action buttons on a right-swipe", () => {
@@ -76,50 +99,48 @@ describe("EntryRow", () => {
     ).not.toBeInTheDocument();
   });
 
-  // Scenario: Latest entry exposes edit and delete
-  it("shows edit and delete for the latest entry", async () => {
+  // Scenario: delete/rollback are computed by the last-entry rule but hidden
+  // (ponytail: no reducer wired until the sync-recording change) -- only
+  // edit renders, for both latest and non-latest entries.
+  it("shows only edit for the latest entry; delete/rollback are hidden", async () => {
     const user = userEvent.setup();
     render(<EntryRow entry={entry} players={players} isLatest={true} />);
 
     await user.click(screen.getByTestId("entry-row"));
     expect(screen.getByTestId("entry-action-edit")).toBeInTheDocument();
-    expect(screen.getByTestId("entry-action-delete")).toBeInTheDocument();
+    expect(screen.queryByTestId("entry-action-delete")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("entry-action-rollbackToHere"),
     ).not.toBeInTheDocument();
   });
 
-  // Scenario: Non-latest entry exposes rollback instead of delete
-  it("shows edit and rollback, never delete, for a non-latest entry", async () => {
+  it("shows only edit for a non-latest entry; delete/rollback are hidden", async () => {
     const user = userEvent.setup();
     render(<EntryRow entry={entry} players={players} isLatest={false} />);
 
     await user.click(screen.getByTestId("entry-row"));
     expect(screen.getByTestId("entry-action-edit")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("entry-action-rollbackToHere"),
-    ).toBeInTheDocument();
     expect(screen.queryByTestId("entry-action-delete")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("entry-action-rollbackToHere"),
+    ).not.toBeInTheDocument();
   });
 
-  it("invokes the matching callback and does not also toggle expansion", async () => {
+  it("invokes the edit callback and does not also toggle expansion", async () => {
     const user = userEvent.setup();
     const onEdit = jest.fn();
-    const onDelete = jest.fn();
     render(
       <EntryRow
         entry={entry}
         players={players}
         isLatest={true}
         onEdit={onEdit}
-        onDelete={onDelete}
       />,
     );
 
     await user.click(screen.getByTestId("entry-row"));
-    await user.click(screen.getByTestId("entry-action-delete"));
+    await user.click(screen.getByTestId("entry-action-edit"));
 
-    expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(onEdit).not.toHaveBeenCalled();
+    expect(onEdit).toHaveBeenCalledTimes(1);
   });
 });

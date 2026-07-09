@@ -1,4 +1,7 @@
-import { SummaryDrawerCard } from "@/components/game/summary-drawer";
+import {
+  SummaryDrawerCard,
+  type SummaryDrawerPreview,
+} from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { render, screen } from "@testing-library/react";
@@ -26,28 +29,49 @@ const makeEntry = (homeScore: number, playerId: string): EntryView =>
 // 3, player #7) is the latest.
 const entries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
 
+const makePreview = (
+  overrides: Partial<SummaryDrawerPreview> = {},
+): SummaryDrawerPreview => ({
+  entry: entries[2],
+  previousEntry: entries[1],
+  players,
+  isEditing: false,
+  isComplete: false,
+  entryIndex: 3,
+  ...overrides,
+});
+
 describe("SummaryDrawerCard idle state", () => {
-  it("shows only the handle and the latest entry", () => {
+  it("shows the Preview bar (not an EntryRow) and no list rows", () => {
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="idle"
+        preview={makePreview()}
+      />,
+    );
+
+    expect(screen.getByTestId("preview-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
+  });
+
+  it("renders no Preview bar when preview data is absent", () => {
     render(
       <SummaryDrawerCard entries={entries} players={players} state="idle" />,
     );
 
-    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
-    const rows = screen.getAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(1);
-    // Latest entry is the one scored by #7.
-    expect(rows[0]).toHaveTextContent("7");
+    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
   });
 
   it("does not crash and renders no row when there are no entries", () => {
     render(<SummaryDrawerCard entries={[]} players={players} state="idle" />);
 
-    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
   });
 });
 
-describe("SummaryDrawerCard expanded state", () => {
+describe("SummaryDrawerCard expanded state (modal Drawer)", () => {
   it("promotes the latest entry to the first row of the full list", () => {
     render(
       <SummaryDrawerCard
@@ -75,15 +99,15 @@ describe("SummaryDrawerCard expanded state", () => {
   });
 });
 
-describe("SummaryDrawerCard handle toggle", () => {
-  it("calls onToggle when the handle is clicked", async () => {
+describe("SummaryDrawerCard handle", () => {
+  it("closing the modal (handle click) calls onToggle", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
       <SummaryDrawerCard
         entries={entries}
         players={players}
-        state="idle"
+        state="expanded"
         onToggle={onToggle}
       />,
     );
@@ -139,7 +163,7 @@ describe("SummaryDrawerCard draft-in-progress first row", () => {
     );
   });
 
-  it("does not show the draft row while idle", () => {
+  it("does not render the modal (or the draft row) while idle", () => {
     render(
       <SummaryDrawerCard
         entries={entries}
@@ -153,5 +177,67 @@ describe("SummaryDrawerCard draft-in-progress first row", () => {
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
+  });
+});
+
+// D8/D12 gesture split, exercised through SummaryDrawerCard's own wiring of
+// the Preview bar (PreviewCard's tap-handling itself is covered in
+// preview.test.tsx).
+describe("SummaryDrawerCard Preview bar wiring", () => {
+  it("tapping the Preview bar while idle (not editing) calls onToggle to expand", async () => {
+    const user = userEvent.setup();
+    const onToggle = jest.fn();
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="idle"
+        preview={makePreview({ isEditing: false })}
+        onToggle={onToggle}
+      />,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it("tapping the Preview bar while editing and complete calls onSubmit, not onToggle", async () => {
+    const user = userEvent.setup();
+    const onToggle = jest.fn();
+    const onSubmit = jest.fn();
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="idle"
+        preview={makePreview({ isEditing: true, isComplete: true })}
+        onToggle={onToggle}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("tapping the Preview bar while editing and incomplete does nothing", async () => {
+    const user = userEvent.setup();
+    const onToggle = jest.fn();
+    const onSubmit = jest.fn();
+    render(
+      <SummaryDrawerCard
+        entries={entries}
+        players={players}
+        state="idle"
+        preview={makePreview({ isEditing: true, isComplete: false })}
+        onToggle={onToggle}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onToggle).not.toHaveBeenCalled();
   });
 });

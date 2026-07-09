@@ -7,7 +7,6 @@ import { GameOptions } from "@/components/game/options";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
-import { GamePreview } from "@/components/game/preview";
 import { SetOptions } from "@/components/game/set-options";
 import { StatsForOneSet } from "@/components/game/stats";
 import {
@@ -68,12 +67,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
         gameId={gameId}
         state={drawerState}
         onToggle={toggleDrawer}
-      />
-      <GamePreview
-        gameId={gameId}
-        mode="general"
         onSubmit={submitEntryDraft}
-        onExpandDrawer={() => setDrawerState("expanded")}
       />
       <GamePanel
         gameId={gameId}

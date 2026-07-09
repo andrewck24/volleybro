@@ -146,20 +146,28 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
 
     await user.click(screen.getByTestId("preview-trigger"));
 
-    // Real submit persisted the entry: the drawer's committed row count grew
-    // once expanded, and the drawer never opened from this tap.
+    // Real submit persisted the entry: the drawer never opened from this
+    // tap (the draft is reset, so this tap only submits).
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
-    await user.click(screen.getByTestId("summary-drawer-handle"));
-    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(2);
+
+    // The draft is reset (no longer editing) after the real submit, so the
+    // next idle tap on the Preview expands the drawer -- confirming the
+    // committed row count grew and no draft row remains.
+    await user.click(screen.getByTestId("preview-trigger"));
+    const rows = screen.getAllByTestId("summary-drawer-row");
+    expect(rows).toHaveLength(2);
+    // Freezes into the formal first committed row, newest-first (drafted by
+    // #7).
+    expect(rows[0]).toHaveTextContent("7");
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
   });
 
-  it("in-progress Preview tap with incomplete steps does nothing", async () => {
+  it("in-progress Preview tap with incomplete steps does nothing (no submit, no expand)", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
@@ -170,38 +178,41 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
 
     await user.click(screen.getByTestId("preview-trigger"));
 
+    // Editing + incomplete: the tap does nothing at all (D8/D12 gesture
+    // split) -- the drawer stays idle since there is no way to expand it
+    // while a draft is incomplete.
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
-    await user.click(screen.getByTestId("summary-drawer-handle"));
-    // Nothing was submitted: still only the one pre-existing committed entry,
-    // shown as the draft's pulsing first row since input is still in progress.
-    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
-    expect(screen.getByTestId("summary-drawer-draft-row")).toBeInTheDocument();
   });
 
-  it("handle toggles the drawer regardless of input progress state", async () => {
+  it("drawer stays expanded and shows the pulsing draft row while input is in progress", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
     await screen.findByTestId("preview-trigger");
-    act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-    });
-
-    await user.click(screen.getByTestId("summary-drawer-handle"));
-
+    // Idle tap (not editing yet) expands the drawer.
+    await user.click(screen.getByTestId("preview-trigger"));
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "expanded",
     );
-    // The in-progress draft occupies the pulsing first row, distinct from
-    // committed rows (D12 scenario "Handle expands drawer during input with
-    // draft in first row").
+
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+
+    // Nothing was submitted: still only the one pre-existing committed entry,
+    // shown as the draft's pulsing first row since input is still in
+    // progress (D12 scenario "Handle expands drawer during input with draft
+    // in first row").
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
     const draftRow = screen.getByTestId("summary-drawer-draft-row");
     expect(draftRow).toHaveClass("animate-pulse");
 
+    // The drawer's own close affordance toggles it back to idle regardless
+    // of input progress.
     await user.click(screen.getByTestId("summary-drawer-handle"));
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
@@ -209,28 +220,11 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     );
   });
 
-  it("freezes the draft into the formal first committed row on submit", async () => {
-    const user = userEvent.setup();
-    const { store } = setUpGame();
-
-    await screen.findByTestId("preview-trigger");
-    act(() => {
-      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
-    });
-
-    await user.click(screen.getByTestId("summary-drawer-handle"));
-    expect(screen.getByTestId("summary-drawer-draft-row")).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("preview-trigger"));
-
-    // The draft row is gone; the newly committed entry (drafted by #7) is now
-    // the formal first row, in place.
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
-    const rows = screen.getAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent("7");
-  });
+  // Note: "freeze while the drawer stays open" (tapping Preview to submit
+  // with the modal already expanded) is no longer a reachable user flow --
+  // the shadcn Drawer is a true modal (vaul locks background pointer events
+  // while open), so the Preview bar behind it can't be tapped. The
+  // freeze-on-submit behavior is covered above ("...submits via the real
+  // dispatch path...") for the only flow that remains possible: submitting
+  // while idle, then opening the drawer afterwards to see the result.
 });

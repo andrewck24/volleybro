@@ -192,7 +192,10 @@ export const EntryRow = ({
     setExpanded((v) => !v);
   };
 
-  const actions = composeEntryActions(isLatest);
+  // ponytail: delete/rollback are still computed by the last-entry rule, but
+  // hidden until the sync-recording change wires their reducers -- rendering
+  // inert buttons would be misleading.
+  const actions = composeEntryActions(isLatest).filter((a) => a === "edit");
 
   return (
     <div
@@ -222,19 +225,23 @@ export const EntryRow = ({
           </div>
         )}
       </div>
-      {expanded && (
-        <div
-          data-testid="entry-row-expanded"
-          className="flex flex-row flex-wrap items-center gap-2 py-2"
-        >
-          <EntryRowActions
-            actions={actions}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onRollbackToHere={onRollbackToHere}
-          />
+      <div
+        data-testid="entry-row-expanded"
+        data-open={expanded}
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-row flex-wrap items-center gap-2 py-2">
+            <EntryRowActions
+              actions={actions}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onRollbackToHere={onRollbackToHere}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
