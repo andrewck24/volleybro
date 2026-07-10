@@ -1,18 +1,25 @@
 ## ADDED Requirements
 
-### Requirement: Summary is a bottom drawer anchored to the Preview
+### Requirement: Summary is an idle peek plus an expanded modal
 
-The Summary SHALL be a bottom drawer anchored to the Preview's top edge, independent of the Options dialog. In its idle state the drawer SHALL expose only a handle and the latest entry. When expanded, the latest entry SHALL rise with the top edge and become the first row of the list in place.
+The Summary SHALL be independent of the Options dialog and have two states. In its **idle** state it SHALL be a fixed-height peek at the bottom of the recording surface, exposing a handle at the top edge with the Preview directly beneath it (the Preview being the newest row — the latest committed entry when not editing, the draft while editing). When **expanded** it SHALL open as a modal bottom sheet with a backdrop overlay, at a dialog-scale height (up to roughly the viewport) rather than being limited to the panel height, and SHALL close on overlay tap, drag, or Escape.
 
-#### Scenario: Idle drawer shows handle and latest entry
+The expanded list SHALL show each committed entry exactly once: it SHALL NOT repeat the entry already shown by the Preview.
+
+#### Scenario: Idle peek shows the handle and the Preview
 
 - **WHEN** the drawer is idle
-- **THEN** the drawer SHALL show only the handle and the latest entry
+- **THEN** the peek SHALL show the handle at the top edge with the Preview beneath it and no list rows
 
-#### Scenario: Expanding promotes the latest entry to the first row
+#### Scenario: Expanding opens a modal with a backdrop overlay
 
 - **WHEN** the user expands the drawer
-- **THEN** the latest entry SHALL rise and become the first row of the entry list
+- **THEN** it SHALL open as a modal bottom sheet with a backdrop overlay at dialog scale, taller than the panel
+
+#### Scenario: The expanded list never duplicates the Preview's entry
+
+- **WHEN** the drawer is expanded
+- **THEN** the list SHALL show every committed entry except the one already shown by the Preview, so no entry appears twice
 
 ### Requirement: Entry actions are revealed by swipe or inline expansion
 
@@ -44,14 +51,14 @@ Action buttons SHALL be composed by the last-entry rule: the latest entry SHALL 
 
 ### Requirement: Gesture split while input is in progress
 
-While input is in progress, tapping the Preview SHALL only handle submission (submit when the three steps are complete, no effect otherwise). The handle SHALL always toggle the drawer. When the drawer is expanded during input, the draft SHALL occupy the first row in a pulsing in-progress style distinct from committed entries, and on freeze SHALL become the formal first entry in place.
+While input is in progress, tapping the Preview SHALL only handle submission (submit when the three steps are complete, no effect otherwise). The handle SHALL toggle the drawer while idle. The in-progress draft SHALL be shown as the Preview itself in a pulsing in-progress style distinct from committed entries — not as a separate row — and on freeze SHALL become the formal first committed entry in place.
 
 #### Scenario: Preview tap during input only submits
 
 - **WHEN** input is in progress and the user taps the Preview with the three steps complete
 - **THEN** the system SHALL submit the entry and SHALL NOT expand the drawer
 
-#### Scenario: Handle expands drawer during input with draft in first row
+#### Scenario: The in-progress draft is the pulsing Preview, not a duplicate row
 
-- **WHEN** input is in progress and the user opens the drawer via the handle
-- **THEN** the drawer SHALL expand and the draft SHALL appear as the pulsing first row distinct from committed entries
+- **WHEN** input is in progress
+- **THEN** the draft SHALL be shown as the pulsing Preview and SHALL NOT also appear as a separate row, and on freeze it SHALL become the first committed entry in place

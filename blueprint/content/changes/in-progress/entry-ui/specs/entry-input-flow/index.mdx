@@ -64,6 +64,11 @@ Switching to a reachable step SHALL change both the highlighted segment and the 
 - **WHEN** the active step changes
 - **THEN** the newly shown panel body SHALL animate in with a slide whose direction matches forward or backward navigation
 
+#### Scenario: Selecting a player advances and slides to the home step
+
+- **WHEN** the user selects a court player while on the player step
+- **THEN** the flow SHALL advance to the home step and the moves body SHALL slide in as a forward step change, even though the underlying panel side does not change
+
 ### Requirement: The recording panel defers labeling to the progress-bar caption
 
 The recording moves panel SHALL NOT render its own per-step titles; the single caption below the progress bar SHALL be the sole label for the active step.
@@ -81,6 +86,24 @@ The Preview SHALL be the sole submission control. Selecting an away-team move SH
 
 - **WHEN** an away-team move is already selected and the user taps it again
 - **THEN** the system SHALL NOT submit the entry and the away move button SHALL show no send icon
+
+### Requirement: The recording surface fits a single viewport
+
+The recording surface SHALL occupy exactly the visible viewport height as one stacked column — a fixed-height header, the court at its fixed aspect, the recording panel taking the remaining height, and the drawer's idle peek at a fixed height — with the header's height reserved exactly once. The recording moves list SHALL scroll within the panel; it SHALL NOT overflow onto the drawer peek or push the layout past the viewport.
+
+#### Scenario: Long move list scrolls inside the panel
+
+- **WHEN** the recording moves list is taller than the space the panel is given
+- **THEN** the list SHALL scroll within the panel and SHALL NOT overlap the drawer peek or extend the layout beyond the viewport
+
+### Requirement: A failed submission is recoverable, not destructive
+
+When a rally submission fails, the system SHALL surface the error (a toast) without crashing, SHALL roll the optimistic game state back to its prior value rather than leaving it undefined, and SHALL keep the draft in place so the user can retry. The draft SHALL be confirmed only after the server persists it.
+
+#### Scenario: Submission failure surfaces an error and preserves the draft
+
+- **WHEN** a rally submission request fails
+- **THEN** the system SHALL show an error, SHALL restore the previous game state, and SHALL keep the unconfirmed draft available for retry
 
 ### Requirement: Locked controls stay perceivable and swipe suppresses stray taps
 
