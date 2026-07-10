@@ -2,6 +2,7 @@
 import { EntryRow } from "@/components/game/entry";
 import { isLatestEntry } from "@/components/game/entry/last-entry-rule";
 import { PreviewCard, useEntryDraftPreview } from "@/components/game/preview";
+import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -26,24 +27,23 @@ export type SummaryDrawerPreview = {
 export type IndexedEntry = { entry: EntryView; index: number };
 
 /**
- * Presentational unified Preview + drawer (D12). This is a custom bottom-
- * anchored sheet (not a vaul modal): it is `absolute inset-x-0 bottom-0` inside
- * the panel region and slides on `translate-y`. When idle it is translated down
- * so only its top edge -- the handle plus the Preview beneath it -- peeks above
- * the panel; when expanded it slides to `translate-y-0`, covering the panel and
- * revealing the reversed EntryRow list beneath the Preview.
+ * Presentational unified Preview + drawer (D12). Two pieces:
  *
- * The handle sits at the very top edge (always visible, toggles the sheet); the
- * Preview bar (PreviewCard, fed by the shared `useEntryDraftPreview`) sits just
- * below it and is likewise always visible. The Preview IS the newest row: while
- * not editing it shows the latest committed entry, while editing/recording it
- * shows the draft in place (pulsing until complete). Tapping the Preview either
- * submits (editing + complete) or expands the sheet (not editing) -- it never
- * shows an accordion itself (D8/D12 gesture split).
+ * 1. The idle **peek** -- a normal-flow, fixed-height element (the last child of
+ *    the viewport flex column): a handle at the top edge with the Preview bar
+ *    (PreviewCard, fed by the shared `useEntryDraftPreview`) directly beneath
+ *    it. The Preview IS the newest row: not editing -> the latest committed
+ *    entry; editing/recording -> the draft in place (pulsing until complete).
+ *    Tapping it either submits (editing + complete) or expands the drawer (not
+ *    editing) -- it never shows an accordion itself (D8/D12 gesture split).
  *
- * The expanded list therefore renders every committed entry EXCEPT the one the
- * Preview already occupies (`entries`, pre-filtered by the container), so the
- * same entry is never shown twice.
+ * 2. The expanded **modal** -- a vaul `Drawer` (portalled to <body>, so it is
+ *    never clipped by the column's `overflow-hidden`) with a backdrop overlay
+ *    and a bottom sheet up to `85dvh` tall (dialog-scale, not limited to the
+ *    panel height). It lists every committed entry EXCEPT the one the Preview
+ *    already occupies (`entries`, pre-filtered by the container), so the same
+ *    entry is never shown twice. Closing (overlay tap, drag, or handle) toggles
+ *    back to idle.
  */
 export const SummaryDrawerCard = ({
   entries,
@@ -76,22 +76,14 @@ export const SummaryDrawerCard = ({
     <div
       data-testid="summary-drawer"
       data-state={state}
-      className={cn(
-        // Bottom-anchored sheet: peeks (handle + Preview top edge) when idle,
-        // slides up to cover the panel when expanded (mockup design.tsx:1024).
-        "absolute inset-x-0 bottom-0 z-10 flex h-full flex-col rounded-t-xl border bg-card p-1.5 shadow-lg transition-transform duration-300",
-        state === "expanded"
-          ? "translate-y-0"
-          : "translate-y-[calc(100%-4.5rem)]",
-        className,
-      )}
+      className={cn("w-full", className)}
     >
       <button
         data-testid="summary-drawer-handle"
         aria-expanded={state === "expanded"}
         aria-label={state === "expanded" ? "收合逐球紀錄" : "展開逐球紀錄"}
         onClick={onToggle}
-        className="shrink-0 pt-1 pb-1.5"
+        className="w-full pt-1 pb-1.5"
       >
         <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
       </button>
@@ -110,28 +102,39 @@ export const SummaryDrawerCard = ({
           onExpand={onToggle}
         />
       )}
-      {state === "expanded" && (
-        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pt-1 pb-2">
-          {entries
-            // Newest first, in DOM order (not just visually) so it reads
-            // correctly for assistive tech too.
-            .slice()
-            .reverse()
-            .map(({ entry, index }) => (
-              <div key={index} data-testid="summary-drawer-row">
-                <EntryRow
-                  entry={entry}
-                  players={players}
-                  isLatest={isLatestEntry(index, totalEntries)}
-                  onEdit={() => onEntryClick?.(index)}
-                  onDelete={() => onEntryDelete?.(index)}
-                  onRollbackToHere={() => onEntryRollback?.(index)}
-                />
-              </div>
-            ))}
-          <Separator content="比賽開始" />
-        </div>
-      )}
+      <Drawer
+        open={state === "expanded"}
+        onOpenChange={(open) => {
+          if (!open) onToggle?.();
+        }}
+      >
+        <DrawerContent
+          data-testid="summary-drawer-modal"
+          className="mx-auto max-h-[85dvh] max-w-160"
+        >
+          <DrawerTitle className="sr-only">逐球紀錄</DrawerTitle>
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-4 pt-2 pb-6">
+            {entries
+              // Newest first, in DOM order (not just visually) so it reads
+              // correctly for assistive tech too.
+              .slice()
+              .reverse()
+              .map(({ entry, index }) => (
+                <div key={index} data-testid="summary-drawer-row">
+                  <EntryRow
+                    entry={entry}
+                    players={players}
+                    isLatest={isLatestEntry(index, totalEntries)}
+                    onEdit={() => onEntryClick?.(index)}
+                    onDelete={() => onEntryDelete?.(index)}
+                    onRollbackToHere={() => onEntryRollback?.(index)}
+                  />
+                </div>
+              ))}
+            <Separator content="比賽開始" />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

@@ -115,11 +115,11 @@ describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
   });
 });
 
-describe("SummaryDrawerCard handle", () => {
-  it("clicking the handle calls onToggle in both states", async () => {
+describe("SummaryDrawerCard handle / modal", () => {
+  it("clicking the idle handle calls onToggle to expand", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
-    const { rerender } = render(
+    render(
       <SummaryDrawerCard
         entries={indexed(allEntries)}
         totalEntries={allEntries.length}
@@ -131,8 +131,12 @@ describe("SummaryDrawerCard handle", () => {
 
     await user.click(screen.getByTestId("summary-drawer-handle"));
     expect(onToggle).toHaveBeenCalledTimes(1);
+  });
 
-    rerender(
+  it("expanded renders the modal, and closing it (Escape) calls onToggle", async () => {
+    const user = userEvent.setup();
+    const onToggle = jest.fn();
+    render(
       <SummaryDrawerCard
         entries={indexed(allEntries)}
         totalEntries={allEntries.length}
@@ -142,8 +146,15 @@ describe("SummaryDrawerCard handle", () => {
       />,
     );
 
-    await user.click(screen.getByTestId("summary-drawer-handle"));
-    expect(onToggle).toHaveBeenCalledTimes(2);
+    // The list lives in the vaul modal (portalled), not behind the inline peek.
+    expect(
+      await screen.findByTestId("summary-drawer-modal"),
+    ).toBeInTheDocument();
+
+    // The inline handle is inert behind the modal overlay; the modal closes via
+    // its own affordances (Escape / overlay / drag), which fires onToggle.
+    await user.keyboard("{Escape}");
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });
 

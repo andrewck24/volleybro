@@ -242,9 +242,10 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
 
-    // The drawer's own close affordance toggles it back to idle regardless
-    // of input progress.
-    await user.click(screen.getByTestId("summary-drawer-handle"));
+    // The expanded modal closes via its own affordances (Escape / overlay /
+    // drag) -- the inline handle is inert behind the overlay -- toggling back
+    // to idle regardless of input progress.
+    await user.keyboard("{Escape}");
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",

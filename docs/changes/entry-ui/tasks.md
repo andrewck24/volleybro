@@ -46,3 +46,11 @@ Second human-review pass on the running UI.
 - [x] 8.1 Put the handle at the drawer's very top edge with the Preview directly beneath it, both visible in the idle peek. Verify: the idle drawer peek shows the handle above the Preview.
 - [x] 8.2 Never show the same entry twice: the Preview IS the newest row (latest committed entry when not editing, the draft when editing), so the expanded list renders every committed entry EXCEPT the one the Preview occupies, and there is no separate draft row. Verify: after submitting, the just-committed entry appears only in the Preview, not also as the first list row.
 - [x] 8.3 Handle a failed rally submission gracefully: the optimistic mutate rolls back instead of caching `undefined`, the draft is confirmed only on success, and the error surfaces as a toast rather than crashing the Game tree. Verify: a rejected create/update rolls back the game and shows a toast without a crash.
+
+## 9. Viewport layout, modal drawer, and panel slide (D8 + D12)
+
+Third human-review pass on the running UI.
+
+- [x] 9.1 Lock the recording UI to one viewport height: the entry layout is a single `fixed inset-0` full-viewport container (no nested `<main>`, no doubled top padding); the Game body is a flex column where the fixed header's height is reserved once, then court (fixed aspect), panel (remaining height, inner fills), and the drawer's idle peek (fixed height) fill the rest. Verify: header + court + panel + peek fill exactly the viewport with no overflow and no oversized header/court gap.
+- [x] 9.2 Make the expanded drawer a modal: a vaul `Drawer` portalled to `<body>` with a backdrop overlay and a bottom sheet up to `85dvh` (dialog-scale, no longer limited to the panel height). The idle peek stays inline; expanding opens the modal, closing (overlay / drag / Escape) returns to idle. Verify: expanding dims the background behind an overlay and the sheet is taller than the panel.
+- [x] 9.3 Give the panel step-switch a full-width, clipped directional slide (tab-container feel) instead of the earlier subtle nudge. Verify: switching home/away slides the moves body in from the matching side.

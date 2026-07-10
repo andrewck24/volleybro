@@ -60,24 +60,22 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   }
 
   return (
-    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
+    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
-      <GameCourt gameId={gameId} mode="general" />
-      {/* Panel region: GamePanel fills it, the SummaryDrawer overlays it as an
-          absolute bottom sheet whose top edge (the Preview) peeks when idle. */}
-      <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <GamePanel
-          gameId={gameId}
-          mode="general"
-          // Clear the always-peeking 4.5rem drawer edge (handle + Preview) so
-          // the bottom moves buttons are never hidden behind it.
-          className="pb-[max(calc(env(safe-area-inset-bottom)+4.5rem),5.5rem)]"
-        />
+      {/* One viewport-height flex column: the fixed header's height is reserved
+          once via pt, then court (fixed aspect), panel (remaining height), and
+          the drawer's idle peek (fixed height) stack to fill the rest. */}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)]">
+        <div className="w-full shrink-0">
+          <GameCourt gameId={gameId} mode="general" />
+        </div>
+        <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
         <SummaryDrawer
           gameId={gameId}
           state={drawerState}
           onToggle={toggleDrawer}
           onSubmit={submitEntryDraft}
+          className="shrink-0"
         />
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
