@@ -79,10 +79,10 @@ describe("SummaryDrawerCard idle state", () => {
 });
 
 describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
-  it("renders the given entries newest-first, marking the latest by totalEntries", () => {
-    // The container has filtered out entries[2] (the one the Preview shows), so
-    // the card only receives entries[0] and entries[1] -- no duplicate of the
-    // Preview's row appears in the list.
+  it("renders exactly the given entries newest-first, marking the latest by totalEntries", () => {
+    // The card is presentational: it renders whatever `entries` it is handed
+    // (here a two-entry slice) newest-first. The container decides the list
+    // contents (it now passes every committed entry, including the Preview's).
     render(
       <SummaryDrawerCard
         entries={indexed(allEntries).slice(0, 2)}
@@ -94,8 +94,6 @@ describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
 
     const rows = screen.getAllByTestId("summary-drawer-row");
     expect(rows).toHaveLength(2);
-    // Newest-first: entries[1] (#4) precedes entries[0] (#4). The latest
-    // entry (entries[2], #7) is NOT in the list -- it lives in the Preview.
     expect(rows[0]).toHaveTextContent("4");
     expect(rows[1]).toHaveTextContent("4");
     expect(screen.queryByText("7")).not.toBeInTheDocument();

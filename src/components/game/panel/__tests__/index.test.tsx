@@ -36,37 +36,30 @@ describe("GamePanel entry progress bar", () => {
 
     const homeSegment = screen.getByRole("button", { name: "我方得失分紀錄" });
     expect(homeSegment).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("button", { name: "選擇球員或對方失誤" })).toHaveAttribute(
-      "aria-current",
-      "step",
-    );
+    expect(
+      screen.getByRole("button", { name: "選擇球員或對方失誤" }),
+    ).toHaveAttribute("aria-current", "step");
 
     await userEvent.click(homeSegment);
 
-    expect(screen.getByRole("button", { name: "選擇球員或對方失誤" })).toHaveAttribute(
-      "aria-current",
-      "step",
-    );
+    expect(
+      screen.getByRole("button", { name: "選擇球員或對方失誤" }),
+    ).toHaveAttribute("aria-current", "step");
     expect(homeSegment).toHaveAttribute("aria-disabled", "true");
   });
 
-  it("collapses to a single submittable step when an away-team error is selected", async () => {
-    const reduxStore = setUpPanel();
+  it("collapses to a two-step submittable flow when an opponent error is selected", async () => {
+    setUpPanel();
 
-    reduxStore.dispatch(
-      gameActions.setEntryDraftPlayer({ id: "player-1", zone: 1 }),
-    );
-    // scoringMoves[3]: win:false BLOCKING, outcome [4, 10] -> lands on the
-    // away step with two possible away moves, one of which (10) is an
-    // unforced (away-team) error.
-    reduxStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
-
-    const errorMove = scoringMoves[10];
-    const awayErrorButton = await screen.findByRole("button", {
-      name: `我方${errorMove.text}失誤`,
+    // No player is picked for an opponent error: the player step shows the
+    // opponent-error moves (OursMoves, zone 0). scoringMoves[10] is an UNFORCED
+    // "攔網" error -> selecting it makes our move UNFORCED and auto-fills the
+    // single outcome, collapsing the flow to two steps [select -> confirm].
+    const errorButton = await screen.findByRole("button", {
+      name: `對方${scoringMoves[10].text}失誤`,
     });
 
-    await userEvent.click(awayErrorButton);
+    await userEvent.click(errorButton);
 
     const segments = screen
       .getAllByRole("button")
@@ -74,8 +67,11 @@ describe("GamePanel entry progress bar", () => {
         (btn) =>
           btn.hasAttribute("aria-current") || btn.hasAttribute("aria-disabled"),
       );
-    expect(segments).toHaveLength(1);
-    expect(screen.getByText("對方失誤，可直接送出")).toBeInTheDocument();
+    expect(segments).toHaveLength(2);
+    // The confirm (outcome) step is active; the entry is already submittable.
+    expect(
+      screen.getByRole("button", { name: "對方得失分紀錄" }),
+    ).toHaveAttribute("aria-current", "step");
   });
 });
 

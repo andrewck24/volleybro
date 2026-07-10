@@ -76,7 +76,10 @@ export const SummaryDrawerCard = ({
     <div
       data-testid="summary-drawer"
       data-state={state}
-      className={cn("w-full", className)}
+      // The idle peek is the top edge of the bottom drawer, so it uses the same
+      // surface (bg-card) as the expanded modal and the dialog -- the handle
+      // button sits on it rather than on the page background.
+      className={cn("w-full rounded-t-[10px] bg-card", className)}
     >
       <button
         data-testid="summary-drawer-handle"
@@ -174,18 +177,12 @@ export const SummaryDrawer = ({
   const entries = game.sets[setIndex].entries;
   const players = game.teams.home.players;
 
-  // Which committed entry the Preview already occupies, so the list below never
-  // repeats it: while editing/recording the Preview shows the draft at
-  // `entryIndex` (out of range for a brand-new entry -> nothing filtered);
-  // otherwise it shows the latest committed entry at `entryIndex - 1`.
-  const previewIndex = preview.inProgress
-    ? preview.isEditing
-      ? preview.entryIndex
-      : preview.entryIndex - 1
-    : -1;
-  const listEntries = entries
-    .map((entry, index) => ({ entry, index }))
-    .filter(({ index }) => index !== previewIndex);
+  // The expanded list shows every committed entry, including the one the
+  // Preview also displays (the newest committed row): the Preview is a peek,
+  // the expanded list is the full record, so the latest entry intentionally
+  // appears in both. The in-progress draft is not a committed entry, so it is
+  // never a list row -- it stays the pulsing Preview only.
+  const listEntries = entries.map((entry, index) => ({ entry, index }));
 
   const handleEntryClick = (entryIndex: number) => {
     dispatch(gameActions.setEditingEntryStatus({ game, entryIndex }));

@@ -1,11 +1,7 @@
 "use client";
 import type { ProgressStep } from "@/components/game/panel/entry-progress";
+import { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { cn } from "@/lib/utils";
-import { useRef, type PointerEvent as ReactPointerEvent } from "react";
-
-// Minimum horizontal pointer travel (px) before a drag is recognized as a
-// swipe rather than a tap.
-const SWIPE_THRESHOLD_PX = 40;
 
 const LOCKED_TITLE = "上一步尚未完成，暫時無法切換";
 
@@ -21,37 +17,7 @@ export const EntryProgressBar = ({
   onStepChange: (index: number) => void;
 }) => {
   const activeCaption = steps[activeStep]?.caption ?? "";
-
-  // Capture-on-intent swipe: a pointer drag only becomes a swipe once it
-  // crosses SWIPE_THRESHOLD_PX. Once recognized, the step change fires
-  // immediately and the click the browser would otherwise synthesize on
-  // pointerup is suppressed so the segment's tap handler doesn't also fire.
-  const dragRef = useRef<{ startX: number; triggered: boolean } | null>(null);
-  const suppressClickRef = useRef(false);
-
-  const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    dragRef.current = { startX: e.clientX, triggered: false };
-  };
-
-  const handlePointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.triggered) return;
-
-    const dx = e.clientX - drag.startX;
-    if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
-
-    drag.triggered = true;
-    suppressClickRef.current = true;
-
-    const target = activeStep + (dx < 0 ? 1 : -1);
-    if (reachableSteps.includes(target)) {
-      onStepChange(target);
-    }
-  };
-
-  const endDrag = () => {
-    dragRef.current = null;
-  };
+  const swipe = useStepSwipe({ activeStep, reachableSteps, onStepChange });
 
   return (
     <div
@@ -62,10 +28,7 @@ export const EntryProgressBar = ({
         data-slot="EntryProgressBarTrack"
         data-testid="entry-progress-bar-track"
         className="flex w-full gap-1"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        {...swipe}
       >
         {steps.map((step, index) => {
           const isActive = index === activeStep;
@@ -80,10 +43,6 @@ export const EntryProgressBar = ({
               aria-disabled={!isReachable}
               title={isReachable ? undefined : LOCKED_TITLE}
               onClick={() => {
-                if (suppressClickRef.current) {
-                  suppressClickRef.current = false;
-                  return;
-                }
                 if (!isReachable) return;
                 onStepChange(index);
               }}

@@ -12,10 +12,12 @@ const STEPS: ProgressStep[] = [
   { key: "away", caption: "對方得失分紀錄" },
 ];
 
-const AWAY_ERROR_STEP: ProgressStep = {
-  key: "away-error",
-  caption: "對方失誤，可直接送出",
-};
+// Opponent error: no player is picked, so the player/home steps collapse into a
+// single selection step, leaving [select opponent error -> confirm outcome].
+const OPPONENT_ERROR_STEPS: ProgressStep[] = [
+  { key: "player", caption: "選擇球員或對方失誤" },
+  { key: "away", caption: "對方得失分紀錄" },
+];
 
 export type EntryProgress = {
   steps: ProgressStep[];
@@ -25,9 +27,16 @@ export type EntryProgress = {
 };
 
 /**
- * Derives the three-step (player -> home -> away) progress bar state from the
- * current entry draft. A step is only reachable once every predecessor step is
- * complete. An away-team error collapses the flow to a single submittable step.
+ * Derives the progress bar state from the current entry draft. The rally type
+ * is fixed by OUR move: an UNFORCED home move is an opponent error, which is a
+ * two-step flow [select opponent error -> confirm outcome] with the outcome
+ * auto-filled (each error maps to a single outcome). Every other point is the
+ * normal three-step flow (player -> home -> away). A step is only reachable
+ * once every predecessor is complete.
+ *
+ * Keying the discriminator on the HOME move (not away) is deliberate: our own
+ * losing serve/set (num 1/8) auto-fill an UNFORCED *away* move, so checking
+ * away.type would wrongly collapse those normal three-step points to one step.
  */
 export function getEntryProgress(draft: ReduxEntryDraft): EntryProgress {
   const playerId = draft.home.player?.id;
@@ -35,14 +44,16 @@ export function getEntryProgress(draft: ReduxEntryDraft): EntryProgress {
   // Guard against the falsy-but-valid num === 0 case (a real ScoringMove num).
   const homeComplete = typeof draft.home.num === "number";
   const awayComplete = typeof draft.away.num === "number";
-  const isAwayError = awayComplete && draft.away.type === MoveType.UNFORCED;
+  const isOpponentError = homeComplete && draft.home.type === MoveType.UNFORCED;
 
-  if (isAwayError) {
+  if (isOpponentError) {
+    // The outcome auto-fills on selection, so the confirm step is always the
+    // active (and reachable) one, and the entry is immediately submittable.
     return {
-      steps: [AWAY_ERROR_STEP],
-      activeStep: 0,
-      reachableSteps: [0],
-      submittable: true,
+      steps: OPPONENT_ERROR_STEPS,
+      activeStep: 1,
+      reachableSteps: [0, 1],
+      submittable: awayComplete,
     };
   }
 

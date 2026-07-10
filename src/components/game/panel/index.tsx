@@ -4,6 +4,7 @@ import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import { GameMoves } from "@/components/game/panel/moves";
 import { EntryProgressBar } from "@/components/game/panel/progress-bar";
 import { Substitutes } from "@/components/game/panel/substitutes";
+import { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { ReduxGameState } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -24,26 +25,30 @@ export const GamePanel = ({
   const { steps, reachableSteps } = getEntryProgress(draft);
 
   // Single source of truth: the highlighted step and the shown moves body both
-  // follow status.panel (home -> step 1 / OursMoves, away -> step 2 /
-  // OppoMoves) so they can never disagree. Step 0 (player) has no moves panel --
-  // selection lives on the always-visible court -- so it is derived from the
-  // draft not yet having a player. The away-error collapse (getEntryProgress ->
-  // a single step) always highlights that lone step.
+  // follow status.panel (home -> OursMoves, away -> OppoMoves) so they can never
+  // disagree. Step 0 (player) has no moves panel -- selection lives on the
+  // always-visible court -- so it is derived from the draft not yet having a
+  // player. The opponent-error flow is two steps [select -> outcome]: its
+  // outcome step is the away panel, so map panel "away" to the last step.
+  const isOpponentError = steps.length === 2;
   const playerComplete = Boolean(draft.home.player?.id);
-  const activeStep =
-    steps.length === 1
+  const lastStep = steps.length - 1;
+  const activeStep = isOpponentError
+    ? status.panel === "away"
+      ? 1
+      : 0
+    : !playerComplete
       ? 0
-      : !playerComplete
-        ? 0
-        : status.panel === "away"
-          ? 2
-          : 1;
+      : status.panel === "away"
+        ? 2
+        : 1;
 
   const onStepChange = (index: number) => {
     if (!reachableSteps.includes(index)) return;
-    if (index === 1) dispatch(gameActions.setPanel("home"));
-    if (index === 2) dispatch(gameActions.setPanel("away"));
+    dispatch(gameActions.setPanel(index === lastStep ? "away" : "home"));
   };
+
+  const swipe = useStepSwipe({ activeStep, reachableSteps, onStepChange });
 
   return (
     // min-h-0 lets the moves body below scroll within the panel instead of
@@ -60,7 +65,7 @@ export const GamePanel = ({
       {status.panel === "substitutes" ? (
         <Substitutes gameId={gameId} mode={mode} className={className} />
       ) : (
-        <GameMoves className={className} />
+        <GameMoves className={className} swipe={swipe} />
       )}
     </Panel>
   );

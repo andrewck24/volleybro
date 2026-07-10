@@ -1,14 +1,20 @@
 "use client";
 import { OppoMoves } from "@/components/game/panel/moves/oppo";
 import { OursMoves } from "@/components/game/panel/moves/ours";
+import type { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useAppSelector } from "@/lib/redux/hooks";
 import type { ScoringMove } from "@/lib/scoring-moves";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-export const GameMoves = ({ className }: { className?: string }) => {
+export const GameMoves = ({
+  className,
+  swipe,
+}: {
+  className?: string;
+  swipe?: ReturnType<typeof useStepSwipe>;
+}) => {
   const gameState = useAppSelector((state) => state.game);
   const { status, entryDraft: draft } = gameState[gameState.mode];
 
@@ -30,11 +36,17 @@ export const GameMoves = ({ className }: { className?: string }) => {
   }
 
   return (
-    // overflow-hidden clips the sliding body to the card so the switch reads as
-    // a full-width tab transition rather than a subtle nudge; min-h-0 lets the
-    // inner body scroll instead of overflowing the panel.
-    <Card
-      className={cn("min-h-0 w-full flex-1 overflow-hidden pb-4", className)}
+    // Independent panel body (not a Card): keeps only bg/gap/padding, drops the
+    // card chrome (rounded/shadow/ring). The swipe handlers make the whole body
+    // switch steps (design: swipe anywhere on the panel, not just the bar);
+    // overflow-hidden clips the sliding body so the switch reads as a full-width
+    // tab transition; min-h-0 lets the inner body scroll instead of overflowing.
+    <div
+      className={cn(
+        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card px-4 pt-2 pb-4",
+        className,
+      )}
+      {...swipe}
     >
       <div
         key={step}
@@ -50,7 +62,7 @@ export const GameMoves = ({ className }: { className?: string }) => {
       >
         {status.panel === "home" ? <OursMoves /> : <OppoMoves />}
       </div>
-    </Card>
+    </div>
   );
 };
 
@@ -62,9 +74,9 @@ export const Container = ({
   className?: string;
 }) => {
   return (
-    <CardContent className={cn("grid w-full flex-1 grid-cols-2", className)}>
+    <div className={cn("grid w-full flex-1 grid-cols-2 gap-2", className)}>
       {children}
-    </CardContent>
+    </div>
   );
 };
 

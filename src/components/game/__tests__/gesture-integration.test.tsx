@@ -183,13 +183,15 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     );
 
     // The draft is reset (no longer editing) after the real submit, so the
-    // next idle tap on the Preview expands the drawer. The just-committed entry
-    // (#7) is now the Preview's own row; the drawer list shows only the OTHER
-    // committed entry (#4) -- the newest entry is never shown twice.
+    // next idle tap on the Preview expands the drawer. The expanded list shows
+    // every committed entry -- both the just-committed one (#7, newest-first)
+    // and the pre-existing one (#4) -- and the Preview also shows #7, so the
+    // newest entry intentionally appears in both the Preview and the list.
     await user.click(screen.getByTestId("preview-trigger"));
     const rows = await screen.findAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toHaveTextContent("4");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("7");
+    expect(rows[1]).toHaveTextContent("4");
     expect(screen.getByTestId("preview-card")).toHaveTextContent("7");
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),

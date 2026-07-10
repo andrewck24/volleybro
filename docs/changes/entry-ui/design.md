@@ -8,7 +8,7 @@ Current state: the input panel drives step selection implicitly with no progress
 
 **Goals:**
 
-- Implement D8: three-step extending segmented progress bar with tap/swipe navigation, away-error single-step collapse, and Preview-centered submission (three-state score Figures, completion ring + send icon, submit-freeze).
+- Implement D8: three-step extending segmented progress bar with tap/swipe navigation, opponent-error two-step collapse, and Preview-centered submission (three-state score Figures, completion ring + send icon, submit-freeze).
 - Implement D12: Summary as a Preview-anchored bottom drawer with per-row left-swipe actions, tap inline-expansion, and last-entry-rule button composition.
 - Keep the whole slice frontend-only so it ships independently of the sync backend.
 
@@ -21,7 +21,7 @@ Current state: the input panel drives step selection implicitly with no progress
 
 ## Decisions
 
-- **Progress bar style = extending segments (Q0 style 5).** The active segment extends; the same extend animation also serves the away-error single-step collapse. Rejected: styles 1–4 (segment fill / dot-connector / number badges / thin line) — style 5's animation does double duty. Rejected: prev/next buttons — tap-on-bar plus swipe already cover navigation and buttons cost panel space.
+- **Progress bar style = extending segments (Q0 style 5).** The active segment extends; the same extend animation also serves the opponent-error two-step collapse. Rejected: styles 1–4 (segment fill / dot-connector / number badges / thin line) — style 5's animation does double duty. Rejected: prev/next buttons — tap-on-bar plus swipe already cover navigation and buttons cost panel space.
 - **Submission centralized in the Preview, no implicit confirm.** Implicit confirmation is undiscoverable; the Preview becomes the single highlighted submit affordance. Rejected: text labels for Preview state — score Figures three states + pulse reuse the existing Entry/GamePreview vocabulary, so labels are redundant.
 - **Swipe uses capture-on-intent.** A pointer gesture is captured as a swipe only once drag intent is recognized; a recognized swipe suppresses the click it would otherwise emit. Locked/unreachable controls use `aria-disabled` (focusable, explain-on-tap) rather than native `disabled`.
 - **Summary leaves the panel to become a Preview-anchored bottom drawer (D12).** Anchoring above the Preview keeps the drawer's swipe gestures from colliding with panel swipe. Tap inline-expands a row (accordion) rather than opening a second layer — context stays in the list. Rejected: tap opens the same action buttons as swipe (row deforms, adds a layer, context leaves the list). Rejected: disabled delete button + explain-on-tap for non-latest entries — a visible "roll back and re-record to here" button is a directly actionable alternative path.
@@ -32,9 +32,9 @@ Current state: the input panel drives step selection implicitly with no progress
 ## Implementation Contract
 
 - **Observable behavior**: the acceptance criteria in `specs/entry-input-flow/spec.md` and `specs/entry-summary-drawer/spec.md` are the authoritative observable contract. Each scenario there names a concrete WHEN/THEN pair an implementer or reviewer can exercise by hand or in Storybook.
-- **Interface / state shape**: the progress bar is a new presentational component driven by the current draft's completion state (player selected → home step → away step), exposing `activeStep`, `reachableSteps`, and an `onStepChange` intent callback; the away-error branch reduces the step set to one. The drawer is a new container wrapping the entry list with `state: "idle" | "expanded"`, a handle toggle, and per-row `swipeRevealed` / `inlineExpanded` flags. Button composition is a pure function of `isLatest(entry)`: latest → [edit, delete], non-latest → [edit, rollbackToHere].
+- **Interface / state shape**: the progress bar is a new presentational component driven by the current draft's completion state (player selected → home step → away step), exposing `activeStep`, `reachableSteps`, and an `onStepChange` intent callback; the opponent-error branch (our move is UNFORCED, no player) reduces the step set to two [select → confirm outcome]. The drawer is a new container wrapping the entry list with `state: "idle" | "expanded"`, a handle toggle, and per-row `swipeRevealed` / `inlineExpanded` flags. Button composition is a pure function of `isLatest(entry)`: latest → [edit, delete], non-latest → [edit, rollbackToHere].
 - **Failure modes**: unreachable steps and non-applicable actions are `aria-disabled`, not removed and not native-disabled; they explain on interaction. A swipe-recognized pointer sequence must not also fire a tap.
-- **Acceptance criteria**: every scenario in both spec files passes when driven in the entry route / Storybook; the away-error path collapses to a single submittable step; the draft demotes in place on submit; non-latest rows never show a disabled delete.
+- **Acceptance criteria**: every scenario in both spec files passes when driven in the entry route / Storybook; the opponent-error path collapses to a two-step submittable flow (our own losing serve/set stays three steps); the draft demotes in place on submit; non-latest rows never show a disabled delete.
 - **Scope boundaries**: in scope — the frontend components listed in Context and the new progress-bar and drawer components. Out of scope — every item under Non-Goals; visual theming beyond what the mockups fix (display logic, animation, position) is refined during apply but adds no new behavior.
 
 ## Risks / Trade-offs

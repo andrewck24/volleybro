@@ -449,8 +449,9 @@ function ProgressMockup() {
   const pointerX = useRef<number | null>(null);
   const swiped = useRef(false);
 
-  /* 對方失誤屬於對方得失分：不需記錄我方表現，流程縮為單一步驟 */
-  const steps = oppoError ? MOCK_STEPS.slice(0, 1) : MOCK_STEPS;
+  /* 對方失誤屬於對方得失分：不需選球員／記錄我方表現，流程縮為兩步驟
+     ——選擇對方失誤，再確認自動帶入的 outcome（可直接送出）。 */
+  const steps = oppoError ? [MOCK_STEPS[0], MOCK_STEPS[2]] : MOCK_STEPS;
   const idx = Math.min(stepIdx, steps.length - 1);
   const step = steps[idx];
   const editing =
@@ -459,12 +460,11 @@ function ProgressMockup() {
     oppoError || (player !== null && ours !== null && oppo !== null);
 
   const captions: Record<MockStepId, string> = {
-    player: oppoError
-      ? "已選擇對方失誤 — 不需記錄我方表現，可直接送出"
-      : "選擇球員或對方失誤",
+    player: "選擇球員或對方失誤",
     ours: "選擇我方得失分類型",
-    oppo:
-      ours === null
+    oppo: oppoError
+      ? "確認對方得失分（已自動帶入，可直接送出）"
+      : ours === null
         ? "選擇對方得失分類型（依前一步而定）"
         : ours.win
           ? "選擇對方失分類型"
@@ -473,7 +473,7 @@ function ProgressMockup() {
 
   /* 前一步驟資訊完成前，不能切換到下一步驟 */
   function canGoTo(i: number) {
-    if (oppoError) return i === 0;
+    if (oppoError) return i === 0 || i === 1;
     if (i <= 0) return true;
     if (i === 1) return player !== null;
     return player !== null && ours !== null;
@@ -497,8 +497,10 @@ function ProgressMockup() {
     setOppoError(true);
     setPlayer(null);
     setOurs(null);
-    setOppo(null);
-    setStepIdx(0);
+    // The single outcome auto-fills; jump to the confirm (outcome) step.
+    setOppo("對方失誤（自動帶入）");
+    setDirection("forward");
+    setStepIdx(1);
   }
 
   /* 送出＝定格：比分與內容早已就位，pulse 停止、ring/icon 淡出、背景閃一次 */
@@ -531,8 +533,9 @@ function ProgressMockup() {
     }, 1200);
   }
 
-  const oppoOptions =
-    ours === null
+  const oppoOptions = oppoError
+    ? ["對方失誤（自動帶入）"]
+    : ours === null
       ? []
       : ours.win
         ? ["接發失誤", "防守失誤", "攔網出界"]

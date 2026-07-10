@@ -2,9 +2,9 @@
 
 ### Requirement: Summary is an idle peek plus an expanded modal
 
-The Summary SHALL be independent of the Options dialog and have two states. In its **idle** state it SHALL be a fixed-height peek at the bottom of the recording surface, exposing a handle at the top edge with the Preview directly beneath it (the Preview being the newest row — the latest committed entry when not editing, the draft while editing). When **expanded** it SHALL open as a modal bottom sheet with a backdrop overlay, at a dialog-scale height (up to roughly the viewport) rather than being limited to the panel height, and SHALL close on overlay tap, drag, or Escape.
+The Summary SHALL be independent of the Options dialog and have two states. In its **idle** state it SHALL be a fixed-height peek at the bottom of the recording surface, exposing a handle at the top edge with the Preview directly beneath it (the Preview being the newest row — the latest committed entry when not editing, the draft while editing). The peek SHALL use the same card surface as the expanded modal and the Options dialog, so the handle and Preview sit on the drawer surface rather than the page background. When **expanded** it SHALL open as a modal bottom sheet with a backdrop overlay, at a dialog-scale height (up to roughly the viewport) rather than being limited to the panel height, and SHALL close on overlay tap, drag, or Escape.
 
-The expanded list SHALL show each committed entry exactly once: it SHALL NOT repeat the entry already shown by the Preview.
+The expanded list SHALL show every committed entry, including the newest committed entry that the Preview also shows — the Preview is a peek and the expanded list is the full record, so the latest committed entry intentionally appears in both. The in-progress draft is not a committed entry and SHALL NOT appear as a list row.
 
 #### Scenario: Idle peek shows the handle and the Preview
 
@@ -16,10 +16,10 @@ The expanded list SHALL show each committed entry exactly once: it SHALL NOT rep
 - **WHEN** the user expands the drawer
 - **THEN** it SHALL open as a modal bottom sheet with a backdrop overlay at dialog scale, taller than the panel
 
-#### Scenario: The expanded list never duplicates the Preview's entry
+#### Scenario: The expanded list includes the Preview's committed entry
 
 - **WHEN** the drawer is expanded
-- **THEN** the list SHALL show every committed entry except the one already shown by the Preview, so no entry appears twice
+- **THEN** the list SHALL show every committed entry, including the newest committed entry that the Preview also shows
 
 ### Requirement: Entry actions are revealed by swipe or inline expansion
 

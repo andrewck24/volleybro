@@ -111,8 +111,8 @@ export function GameSkeleton() {
             ))}
           </div>
         </div>
-        {/* mirrors the drawer idle peek: handle + Preview-shaped card */}
-        <div className="w-full shrink-0">
+        {/* mirrors the drawer idle peek: handle + Preview-shaped card on bg-card */}
+        <div className="w-full shrink-0 rounded-t-[10px] bg-card">
           <div className="pt-1 pb-1.5">
             <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
           </div>

@@ -6,7 +6,7 @@ title: entry-input-flow
 
 ### Requirement: Three-step segmented progress bar navigation
 
-The entry input panel SHALL present a three-step extending segmented progress bar (player → home team → away team) at the panel's top edge. The active segment SHALL extend; segments SHALL carry no inline text; a single caption below the bar SHALL describe the active step and rotate with animation on step change. The user SHALL switch steps by tapping a progress segment or by pointer swipe. A step whose predecessor is incomplete SHALL NOT be reachable.
+The entry input panel SHALL present a three-step extending segmented progress bar (player → home team → away team) at the panel's top edge. The active segment SHALL extend; segments SHALL carry no inline text; a single caption below the bar SHALL describe the active step and rotate with animation on step change. The user SHALL switch steps by tapping a progress segment or by a horizontal pointer swipe anywhere on the panel — the progress bar track or the moves body. A step whose predecessor is incomplete SHALL NOT be reachable.
 
 #### Scenario: Advance blocked until previous step complete
 
@@ -18,14 +18,19 @@ The entry input panel SHALL present a three-step extending segmented progress ba
 - **WHEN** the player step is complete and the user taps the home-team segment or swipes toward it
 - **THEN** the system SHALL make the home-team step active and rotate the caption to describe it
 
-### Requirement: Away-team error collapses the flow to a single step
+### Requirement: An opponent error collapses the flow to two steps
 
-When the recorded point is an away-team error (a point won or lost by the opponent), the flow SHALL collapse to a single step that is immediately submittable.
+When the recorded point is an opponent error (OUR recorded move is an unforced/opponent error, so no player is selected), the flow SHALL collapse to two steps — select the opponent error, then confirm the auto-filled outcome — with the outcome step immediately submittable. The collapse SHALL be discriminated by our (home) move being an unforced error, NOT by the away move; our own losing serve or set — whose single outcome auto-fills an unforced away move — SHALL stay on the full three-step flow.
 
-#### Scenario: Away error yields single submittable step
+#### Scenario: Opponent error yields a two-step submittable flow
 
-- **WHEN** the user selects an away-team error at the away-team step
-- **THEN** the progress bar SHALL collapse to a single step and the entry SHALL become submittable without further steps
+- **WHEN** the user selects an opponent error at the player step
+- **THEN** the progress bar SHALL collapse to two steps and the entry SHALL become submittable at the outcome step without a player selection
+
+#### Scenario: Our own losing serve stays on the three-step flow
+
+- **WHEN** the user records a losing serve or set whose outcome auto-fills an unforced away move
+- **THEN** the flow SHALL remain three steps and SHALL NOT collapse
 
 ### Requirement: Preview carries submission with completion highlight
 
@@ -71,7 +76,7 @@ Switching to a reachable step SHALL change both the highlighted segment and the 
 
 ### Requirement: The recording panel defers labeling to the progress-bar caption
 
-The recording moves panel SHALL NOT render its own per-step titles; the single caption below the progress bar SHALL be the sole label for the active step.
+The recording moves panel SHALL NOT render its own per-step titles; the single caption below the progress bar SHALL be the sole label for the active step. The panel SHALL be a plain surface keeping only its background color, gap, and padding — it SHALL NOT be wrapped in card chrome (rounded border, ring, or shadow).
 
 #### Scenario: Moves panel shows no redundant step titles
 
