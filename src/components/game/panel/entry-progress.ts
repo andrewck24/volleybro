@@ -7,7 +7,7 @@ export type ProgressStep = {
 };
 
 const STEPS: ProgressStep[] = [
-  { key: "player", caption: "選擇球員" },
+  { key: "player", caption: "選擇球員或對方失誤" },
   { key: "home", caption: "我方得失分紀錄" },
   { key: "away", caption: "對方得失分紀錄" },
 ];

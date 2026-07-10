@@ -2,52 +2,46 @@
 import { OppoMoves } from "@/components/game/panel/moves/oppo";
 import { OursMoves } from "@/components/game/panel/moves/ours";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { gameActions } from "@/lib/features/game/game-slice";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAppSelector } from "@/lib/redux/hooks";
 import type { ScoringMove } from "@/lib/scoring-moves";
 import { cn } from "@/lib/utils";
-import { RiEditBoxLine } from "react-icons/ri";
-export const GameMoves = ({
-  gameId,
-  className,
-}: {
-  gameId: string;
-  className?: string;
-}) => {
-  const dispatch = useAppDispatch();
+import { useState } from "react";
+
+export const GameMoves = ({ className }: { className?: string }) => {
   const gameState = useAppSelector((state) => state.game);
-  const { status, entryDraft: draft } = gameState[gameState.mode];
+  const { status } = gameState[gameState.mode];
+
+  // The active step label and the home/away body switch are both driven by the
+  // progress bar (status.panel); the panel no longer carries its own tab-header
+  // titles. The body slides in directionally on each step switch: forward
+  // (home -> away) enters from the right, backward from the left, replayed via
+  // the `key` remount. Direction is derived from the previous step held in
+  // state (React's "store previous value in state" pattern) so it survives to
+  // commit -- reading a ref during render would not. ponytail: reuses
+  // tailwindcss-animate's slide-in utilities instead of the mockup's raw
+  // @keyframes.
+  const step = status.panel === "away" ? 2 : 1;
+  const [prevStep, setPrevStep] = useState(step);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  if (prevStep !== step) {
+    setDirection(step > prevStep ? "forward" : "backward");
+    setPrevStep(step);
+  }
 
   return (
     <Card className={cn("w-full flex-1 pb-4", className)}>
-      <CardHeader className="flex-row">
-        <CardTitle
-          onClick={() => dispatch(gameActions.setPanel("home"))}
-          className={cn(
-            "overflow-hidden border-b-2 border-l-2 border-primary p-1 text-nowrap transition-all",
-            status.panel === "home" ? "w-full" : "w-8",
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          我方得失分紀錄
-        </CardTitle>
-        <CardTitle
-          onClick={() => dispatch(gameActions.setPanel("away"))}
-          className={cn(
-            "overflow-hidden border-b-2 border-l-2 border-destructive p-1 text-nowrap transition-all",
-            status.panel !== "home"
-              ? "w-full"
-              : draft.home.num === null
-                ? "sr-only w-0"
-                : "w-8",
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          對方得失分紀錄
-        </CardTitle>
-      </CardHeader>
-      {status.panel === "home" ? <OursMoves /> : <OppoMoves gameId={gameId} />}
+      <div
+        key={status.panel}
+        className={cn(
+          "flex min-h-0 w-full flex-1 flex-col duration-300 animate-in fade-in",
+          direction === "forward"
+            ? "slide-in-from-right-6"
+            : "slide-in-from-left-6",
+        )}
+      >
+        {status.panel === "home" ? <OursMoves /> : <OppoMoves />}
+      </div>
     </Card>
   );
 };

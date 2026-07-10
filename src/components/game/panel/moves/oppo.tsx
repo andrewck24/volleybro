@@ -14,7 +14,6 @@ import type { RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
-import { RiSendPlaneLine } from "react-icons/ri";
 
 /**
  * The real entry-submission path: creates a new rally (mode "general") or
@@ -79,22 +78,20 @@ export const useSubmitEntryDraft = (gameId: string) => {
   };
 };
 
-export const OppoMoves = ({ gameId }: { gameId: string }) => {
+export const OppoMoves = () => {
   const dispatch = useAppDispatch();
   const { mode } = useAppSelector((state) => state.game);
   const { entryDraft: draft } = useAppSelector((state) => state.game[mode]);
-  const submit = useSubmitEntryDraft(gameId);
 
   const oppoMoves = scoringMoves.filter((option) =>
     scoringMoves[draft.home.num ?? -1]?.outcome.includes(option.num),
   );
 
-  const onOppoClick = async (move: ScoringMove) => {
-    if (draft.away.num !== move.num) {
-      dispatch(gameActions.setEntryDraftAwayMove(move));
-    } else {
-      await submit();
-    }
+  // Selecting an away move only stages it in the draft; submission is owned by
+  // the Preview's send affordance (D12), so there is no second-tap-to-submit
+  // here anymore.
+  const onOppoClick = (move: ScoringMove) => {
+    dispatch(gameActions.setEntryDraftAwayMove(move));
   };
 
   return (
@@ -108,7 +105,6 @@ export const OppoMoves = ({ gameId }: { gameId: string }) => {
         >
           {move.type === 7 ? `我方${move.text}失誤` : `對方${move.text}`}
           {move.win ? <FiPlus /> : <FiMinus />}
-          {draft.away.num === move.num && <RiSendPlaneLine />}
         </MoveButton>
       ))}
     </Container>

@@ -2,7 +2,6 @@
 import { EntryRow } from "@/components/game/entry";
 import { isLatestEntry } from "@/components/game/entry/last-entry-rule";
 import { PreviewCard, useEntryDraftPreview } from "@/components/game/preview";
-import { Drawer, DrawerClose, DrawerContent } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -24,15 +23,21 @@ export type SummaryDrawerPreview = {
 };
 
 /**
- * Presentational unified Preview + drawer (D12). The idle Preview bar
- * (PreviewCard, fed by the shared `useEntryDraftPreview`) is always visible;
- * tapping it either submits the in-progress draft (editing + complete) or
- * expands the modal drawer (not editing) -- it never shows an accordion
- * itself (D8/D12 gesture split). The expanded list lives in a shadcn Drawer
- * (modal), each row an <EntryRow> (group 5) revealing edit on tap-expansion,
- * composed by the last-entry rule.
+ * Presentational unified Preview + drawer (D12). This is a custom bottom-
+ * anchored sheet (not a vaul modal): it is `absolute inset-x-0 bottom-0` inside
+ * the panel region and slides on `translate-y`. When idle it is translated down
+ * so only its top edge -- the Preview -- peeks above the panel; when expanded it
+ * slides to `translate-y-0`, covering the panel and revealing the handle + the
+ * reversed EntryRow list beneath the Preview.
  *
- * While input is in progress and the drawer is open, `draftEntry` renders as
+ * The Preview bar (PreviewCard, fed by the shared `useEntryDraftPreview`) is the
+ * sheet's top edge, always visible. Tapping it either submits the in-progress
+ * draft (editing + complete) or expands the sheet (not editing) -- it never
+ * shows an accordion itself (D8/D12 gesture split). Each expanded row is an
+ * <EntryRow> (group 5) revealing edit on tap-expansion, composed by the last-
+ * entry rule.
+ *
+ * While input is in progress and the sheet is open, `draftEntry` renders as
  * the pulsing first row, reusing PreviewCard's pulse vocabulary; on freeze
  * the caller stops passing `draftEntry` and the newly committed entry
  * naturally becomes the first row of `entries` in place.
@@ -68,7 +73,15 @@ export const SummaryDrawerCard = ({
     <div
       data-testid="summary-drawer"
       data-state={state}
-      className={cn("w-full", className)}
+      className={cn(
+        // Bottom-anchored sheet: peeks (top edge = Preview) when idle, slides
+        // up to cover the panel when expanded (mockup design.tsx:1024-1028).
+        "absolute inset-x-0 bottom-0 z-10 flex h-full flex-col rounded-t-xl border bg-card p-1.5 shadow-lg transition-transform duration-300",
+        state === "expanded"
+          ? "translate-y-0"
+          : "translate-y-[calc(100%-3.5rem)]",
+        className,
+      )}
     >
       {preview && (
         <PreviewCard
@@ -85,24 +98,18 @@ export const SummaryDrawerCard = ({
           onExpand={onToggle}
         />
       )}
-      <Drawer
-        open={state === "expanded"}
-        onOpenChange={(open) => {
-          if (!open) onToggle?.();
-        }}
-      >
-        <DrawerContent data-testid="summary-drawer-content">
-          <DrawerClose
+      {state === "expanded" && (
+        <>
+          <button
             data-testid="summary-drawer-handle"
+            aria-expanded={true}
             aria-label="收合逐球紀錄"
-            // Discrete tap target, not vaul's drag handle: stop the pointer
-            // events here so they don't also feed vaul's drag-to-dismiss
-            // gesture tracking on the surrounding Content.
-            onPointerDown={(e) => e.stopPropagation()}
-            onPointerUp={(e) => e.stopPropagation()}
-            className="mx-auto -mt-2 mb-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/40"
-          />
-          <div className="flex flex-col gap-1 overflow-y-auto px-4 pb-4">
+            onClick={onToggle}
+            className="shrink-0 pt-2 pb-1"
+          >
+            <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
+          </button>
+          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
             {draftEntry && (
               <div
                 data-testid="summary-drawer-draft-row"
@@ -135,8 +142,8 @@ export const SummaryDrawerCard = ({
               ))}
             <Separator content="比賽開始" />
           </div>
-        </DrawerContent>
-      </Drawer>
+        </>
+      )}
     </div>
   );
 };

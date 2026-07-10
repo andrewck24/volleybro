@@ -63,17 +63,23 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
       <GameCourt gameId={gameId} mode="general" />
-      <SummaryDrawer
-        gameId={gameId}
-        state={drawerState}
-        onToggle={toggleDrawer}
-        onSubmit={submitEntryDraft}
-      />
-      <GamePanel
-        gameId={gameId}
-        mode="general"
-        className="pb-[max(calc(env(safe-area-inset-bottom)-1rem),1.5rem)]"
-      />
+      {/* Panel region: GamePanel fills it, the SummaryDrawer overlays it as an
+          absolute bottom sheet whose top edge (the Preview) peeks when idle. */}
+      <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <GamePanel
+          gameId={gameId}
+          mode="general"
+          // Clear the always-peeking 3.5rem Preview edge so the bottom moves
+          // buttons are never hidden behind it.
+          className="pb-[max(calc(env(safe-area-inset-bottom)+3.5rem),5rem)]"
+        />
+        <SummaryDrawer
+          gameId={gameId}
+          state={drawerState}
+          onToggle={toggleDrawer}
+          onSubmit={submitEntryDraft}
+        />
+      </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <GameOptions
           gameId={gameId}

@@ -88,8 +88,11 @@ export const EntryProgressBar = ({
                 onStepChange(index);
               }}
               className={cn(
-                "h-1.5 rounded-full bg-muted transition-all duration-300 ease-out",
-                isActive ? "flex-[3] bg-primary" : "flex-1",
+                "h-1.5 rounded-full transition-all duration-300 ease-out",
+                // Every completed-or-active step fills with primary; only
+                // pending steps stay muted (mockup design.tsx:717-724).
+                index <= activeStep ? "bg-primary" : "bg-muted",
+                isActive ? "flex-[2.5]" : "flex-1",
                 !isReachable && "cursor-not-allowed opacity-50",
               )}
             />

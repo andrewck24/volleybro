@@ -220,11 +220,7 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     );
   });
 
-  // Note: "freeze while the drawer stays open" (tapping Preview to submit
-  // with the modal already expanded) is no longer a reachable user flow --
-  // the shadcn Drawer is a true modal (vaul locks background pointer events
-  // while open), so the Preview bar behind it can't be tapped. The
-  // freeze-on-submit behavior is covered above ("...submits via the real
-  // dispatch path...") for the only flow that remains possible: submitting
-  // while idle, then opening the drawer afterwards to see the result.
+  // Note: the freeze-on-submit behavior is covered above ("...submits via the
+  // real dispatch path...") -- submitting while idle, then opening the sheet
+  // afterwards to see the committed result.
 });

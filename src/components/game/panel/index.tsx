@@ -21,7 +21,23 @@ export const GamePanel = ({
   const { status, entryDraft: draft } = useAppSelector(
     (state) => state.game[mode],
   );
-  const { steps, activeStep, reachableSteps } = getEntryProgress(draft);
+  const { steps, reachableSteps } = getEntryProgress(draft);
+
+  // Single source of truth: the highlighted step and the shown moves body both
+  // follow status.panel (home -> step 1 / OursMoves, away -> step 2 /
+  // OppoMoves) so they can never disagree. Step 0 (player) has no moves panel --
+  // selection lives on the always-visible court -- so it is derived from the
+  // draft not yet having a player. The away-error collapse (getEntryProgress ->
+  // a single step) always highlights that lone step.
+  const playerComplete = Boolean(draft.home.player?.id);
+  const activeStep =
+    steps.length === 1
+      ? 0
+      : !playerComplete
+        ? 0
+        : status.panel === "away"
+          ? 2
+          : 1;
 
   const onStepChange = (index: number) => {
     if (!reachableSteps.includes(index)) return;
@@ -42,7 +58,7 @@ export const GamePanel = ({
       {status.panel === "substitutes" ? (
         <Substitutes gameId={gameId} mode={mode} className={className} />
       ) : (
-        <GameMoves gameId={gameId} className={className} />
+        <GameMoves className={className} />
       )}
     </Panel>
   );

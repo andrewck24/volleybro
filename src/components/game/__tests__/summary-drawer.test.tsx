@@ -71,7 +71,7 @@ describe("SummaryDrawerCard idle state", () => {
   });
 });
 
-describe("SummaryDrawerCard expanded state (modal Drawer)", () => {
+describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
   it("promotes the latest entry to the first row of the full list", () => {
     render(
       <SummaryDrawerCard
