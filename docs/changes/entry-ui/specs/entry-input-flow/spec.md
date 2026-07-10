@@ -37,6 +37,47 @@ Submission SHALL be centralized in the Preview, which SHALL follow the Entry lay
 - **WHEN** all steps are complete and the user submits from the Preview
 - **THEN** the Preview background SHALL flash once and the draft SHALL become the previous entry in place
 
+### Requirement: Completed steps use the primary fill
+
+The progress bar SHALL fill every completed-or-active segment (index at or before the active step) with the primary color and every pending segment with the muted color. The active segment SHALL additionally be rendered wider than the rest.
+
+#### Scenario: Completed step shows the primary fill
+
+- **WHEN** a step is at or before the active step
+- **THEN** its segment SHALL be filled with the primary color, not the muted color
+
+### Requirement: Switching a step updates the recording panel in sync with a directional slide
+
+Switching to a reachable step SHALL change both the highlighted segment and the recording moves panel shown below it from a single source of truth, so the highlight and the shown panel can never disagree. The newly shown panel body SHALL animate in with a directional slide whose direction matches forward versus backward navigation.
+
+#### Scenario: Tapping a reachable step swaps the panel in sync
+
+- **WHEN** the away step is reachable and the user taps or swipes to the home-team segment
+- **THEN** the home-team recording moves SHALL be shown and the home-team segment SHALL be marked active together
+
+#### Scenario: Panel body slides directionally on switch
+
+- **WHEN** the active step changes
+- **THEN** the newly shown panel body SHALL animate in with a slide whose direction matches forward or backward navigation
+
+### Requirement: The recording panel defers labeling to the progress-bar caption
+
+The recording moves panel SHALL NOT render its own per-step titles; the single caption below the progress bar SHALL be the sole label for the active step.
+
+#### Scenario: Moves panel shows no redundant step titles
+
+- **WHEN** a recording moves panel is shown
+- **THEN** it SHALL NOT display its own our-team / opponent scoring-record titles
+
+### Requirement: Submission is not duplicated outside the Preview
+
+The Preview SHALL be the sole submission control. Selecting an away-team move SHALL only record the selection; it SHALL NOT act as a second submit control, and no send affordance SHALL appear on the away move buttons.
+
+#### Scenario: Away move button does not submit
+
+- **WHEN** an away-team move is already selected and the user taps it again
+- **THEN** the system SHALL NOT submit the entry and the away move button SHALL show no send icon
+
 ### Requirement: Locked controls stay perceivable and swipe suppresses stray taps
 
 Unreachable or locked controls SHALL use aria-disabled rather than the native disabled attribute so they remain focusable and explain their state on interaction. A pointer gesture recognized as a swipe SHALL suppress the click it would otherwise emit.
