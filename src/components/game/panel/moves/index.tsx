@@ -31,12 +31,15 @@ export const GameMoves = ({ className }: { className?: string }) => {
 
   return (
     // overflow-hidden clips the sliding body to the card so the switch reads as
-    // a full-width tab transition rather than a subtle nudge.
-    <Card className={cn("w-full flex-1 overflow-hidden pb-4", className)}>
+    // a full-width tab transition rather than a subtle nudge; min-h-0 lets the
+    // inner body scroll instead of overflowing the panel.
+    <Card
+      className={cn("min-h-0 w-full flex-1 overflow-hidden pb-4", className)}
+    >
       <div
         key={status.panel}
         className={cn(
-          "flex min-h-0 w-full flex-1 flex-col duration-300 ease-out animate-in fade-in",
+          "flex min-h-0 w-full flex-1 flex-col overflow-y-auto duration-300 ease-out animate-in fade-in",
           // Full panel-width directional slide (tab-container feel): forward
           // (home -> away) enters from the right, backward from the left.
           direction === "forward"

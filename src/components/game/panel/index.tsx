@@ -46,7 +46,9 @@ export const GamePanel = ({
   };
 
   return (
-    <Panel>
+    // min-h-0 lets the moves body below scroll within the panel instead of
+    // overflowing past it onto the drawer peek.
+    <Panel className="min-h-0">
       {status.panel !== "substitutes" && (
         <EntryProgressBar
           steps={steps}
