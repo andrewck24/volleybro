@@ -69,9 +69,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
         <GamePanel
           gameId={gameId}
           mode="general"
-          // Clear the always-peeking 3.5rem Preview edge so the bottom moves
-          // buttons are never hidden behind it.
-          className="pb-[max(calc(env(safe-area-inset-bottom)+3.5rem),5rem)]"
+          // Clear the always-peeking 4.5rem drawer edge (handle + Preview) so
+          // the bottom moves buttons are never hidden behind it.
+          className="pb-[max(calc(env(safe-area-inset-bottom)+4.5rem),5.5rem)]"
         />
         <SummaryDrawer
           gameId={gameId}

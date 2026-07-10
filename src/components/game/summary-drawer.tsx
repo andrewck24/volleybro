@@ -22,48 +22,51 @@ export type SummaryDrawerPreview = {
   entryIndex: number;
 };
 
+/** An entry paired with its original index in the set (kept through filtering). */
+export type IndexedEntry = { entry: EntryView; index: number };
+
 /**
  * Presentational unified Preview + drawer (D12). This is a custom bottom-
  * anchored sheet (not a vaul modal): it is `absolute inset-x-0 bottom-0` inside
  * the panel region and slides on `translate-y`. When idle it is translated down
- * so only its top edge -- the Preview -- peeks above the panel; when expanded it
- * slides to `translate-y-0`, covering the panel and revealing the handle + the
- * reversed EntryRow list beneath the Preview.
+ * so only its top edge -- the handle plus the Preview beneath it -- peeks above
+ * the panel; when expanded it slides to `translate-y-0`, covering the panel and
+ * revealing the reversed EntryRow list beneath the Preview.
  *
- * The Preview bar (PreviewCard, fed by the shared `useEntryDraftPreview`) is the
- * sheet's top edge, always visible. Tapping it either submits the in-progress
- * draft (editing + complete) or expands the sheet (not editing) -- it never
- * shows an accordion itself (D8/D12 gesture split). Each expanded row is an
- * <EntryRow> (group 5) revealing edit on tap-expansion, composed by the last-
- * entry rule.
+ * The handle sits at the very top edge (always visible, toggles the sheet); the
+ * Preview bar (PreviewCard, fed by the shared `useEntryDraftPreview`) sits just
+ * below it and is likewise always visible. The Preview IS the newest row: while
+ * not editing it shows the latest committed entry, while editing/recording it
+ * shows the draft in place (pulsing until complete). Tapping the Preview either
+ * submits (editing + complete) or expands the sheet (not editing) -- it never
+ * shows an accordion itself (D8/D12 gesture split).
  *
- * While input is in progress and the sheet is open, `draftEntry` renders as
- * the pulsing first row, reusing PreviewCard's pulse vocabulary; on freeze
- * the caller stops passing `draftEntry` and the newly committed entry
- * naturally becomes the first row of `entries` in place.
+ * The expanded list therefore renders every committed entry EXCEPT the one the
+ * Preview already occupies (`entries`, pre-filtered by the container), so the
+ * same entry is never shown twice.
  */
 export const SummaryDrawerCard = ({
   entries,
   players,
   state,
   preview,
-  draftEntry,
-  isDraftPulsing,
   onToggle,
   onSubmit,
+  totalEntries,
   onEntryClick,
   onEntryDelete,
   onEntryRollback,
   className,
 }: {
-  entries: EntryView[];
+  entries: IndexedEntry[];
   players: GamePlayerView[];
   state: SummaryDrawerState;
   preview?: SummaryDrawerPreview;
-  draftEntry?: EntryView;
-  isDraftPulsing?: boolean;
   onToggle?: () => void;
   onSubmit?: () => void;
+  // Full committed-entry count, so isLatest is computed against the real set
+  // even though `entries` has the Preview's row filtered out.
+  totalEntries: number;
   onEntryClick?: (entryIndex: number) => void;
   onEntryDelete?: (entryIndex: number) => void;
   onEntryRollback?: (entryIndex: number) => void;
@@ -74,15 +77,24 @@ export const SummaryDrawerCard = ({
       data-testid="summary-drawer"
       data-state={state}
       className={cn(
-        // Bottom-anchored sheet: peeks (top edge = Preview) when idle, slides
-        // up to cover the panel when expanded (mockup design.tsx:1024-1028).
+        // Bottom-anchored sheet: peeks (handle + Preview top edge) when idle,
+        // slides up to cover the panel when expanded (mockup design.tsx:1024).
         "absolute inset-x-0 bottom-0 z-10 flex h-full flex-col rounded-t-xl border bg-card p-1.5 shadow-lg transition-transform duration-300",
         state === "expanded"
           ? "translate-y-0"
-          : "translate-y-[calc(100%-3.5rem)]",
+          : "translate-y-[calc(100%-4.5rem)]",
         className,
       )}
     >
+      <button
+        data-testid="summary-drawer-handle"
+        aria-expanded={state === "expanded"}
+        aria-label={state === "expanded" ? "收合逐球紀錄" : "展開逐球紀錄"}
+        onClick={onToggle}
+        className="shrink-0 pt-1 pb-1.5"
+      >
+        <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
+      </button>
       {preview && (
         <PreviewCard
           // Remounts on the next entry so PreviewCard's local freeze/flash
@@ -99,50 +111,26 @@ export const SummaryDrawerCard = ({
         />
       )}
       {state === "expanded" && (
-        <>
-          <button
-            data-testid="summary-drawer-handle"
-            aria-expanded={true}
-            aria-label="收合逐球紀錄"
-            onClick={onToggle}
-            className="shrink-0 pt-2 pb-1"
-          >
-            <span className="mx-auto block h-1.5 w-10 rounded-full bg-muted-foreground/40" />
-          </button>
-          <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
-            {draftEntry && (
-              <div
-                data-testid="summary-drawer-draft-row"
-                className={cn(isDraftPulsing && "animate-pulse duration-1000")}
-              >
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 pt-1 pb-2">
+          {entries
+            // Newest first, in DOM order (not just visually) so it reads
+            // correctly for assistive tech too.
+            .slice()
+            .reverse()
+            .map(({ entry, index }) => (
+              <div key={index} data-testid="summary-drawer-row">
                 <EntryRow
-                  entry={draftEntry}
+                  entry={entry}
                   players={players}
-                  isLatest={true}
+                  isLatest={isLatestEntry(index, totalEntries)}
+                  onEdit={() => onEntryClick?.(index)}
+                  onDelete={() => onEntryDelete?.(index)}
+                  onRollbackToHere={() => onEntryRollback?.(index)}
                 />
               </div>
-            )}
-            {entries
-              .map((entry, entryIndex) => ({ entry, entryIndex }))
-              // Newest first: the latest entry rises to the first row, in
-              // DOM order (not just visually), so it reads correctly for
-              // assistive tech too.
-              .reverse()
-              .map(({ entry, entryIndex }) => (
-                <div key={entryIndex} data-testid="summary-drawer-row">
-                  <EntryRow
-                    entry={entry}
-                    players={players}
-                    isLatest={isLatestEntry(entryIndex, entries.length)}
-                    onEdit={() => onEntryClick?.(entryIndex)}
-                    onDelete={() => onEntryDelete?.(entryIndex)}
-                    onRollbackToHere={() => onEntryRollback?.(entryIndex)}
-                  />
-                </div>
-              ))}
-            <Separator content="比賽開始" />
-          </div>
-        </>
+            ))}
+          <Separator content="比賽開始" />
+        </div>
       )}
     </div>
   );
@@ -175,30 +163,38 @@ export const SummaryDrawer = ({
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((s) => s.game);
-  const entries = game!.sets[setIndex].entries;
-  const players = game!.teams.home.players;
-
-  // Single source of truth for "input in progress" (shared with the
-  // Preview): only render the draft as the first row while the drawer is
-  // expanded and the draft is actually being edited.
   const preview = useEntryDraftPreview(gameId, "general");
-  const draftEntry =
-    preview.inProgress && preview.isEditing ? preview.entry : undefined;
-  const isDraftPulsing =
-    preview.inProgress && preview.isEditing && !preview.isComplete;
+
+  // Guard against a transient undefined game (e.g. a failed optimistic mutate
+  // rolling back) so a submission error never crashes the whole Game tree.
+  if (!game) return null;
+  const entries = game.sets[setIndex].entries;
+  const players = game.teams.home.players;
+
+  // Which committed entry the Preview already occupies, so the list below never
+  // repeats it: while editing/recording the Preview shows the draft at
+  // `entryIndex` (out of range for a brand-new entry -> nothing filtered);
+  // otherwise it shows the latest committed entry at `entryIndex - 1`.
+  const previewIndex = preview.inProgress
+    ? preview.isEditing
+      ? preview.entryIndex
+      : preview.entryIndex - 1
+    : -1;
+  const listEntries = entries
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ index }) => index !== previewIndex);
 
   const handleEntryClick = (entryIndex: number) => {
-    dispatch(gameActions.setEditingEntryStatus({ game: game!, entryIndex }));
+    dispatch(gameActions.setEditingEntryStatus({ game, entryIndex }));
   };
 
   return (
     <SummaryDrawerCard
-      entries={entries}
+      entries={listEntries}
+      totalEntries={entries.length}
       players={players}
       state={state}
       preview={preview.inProgress ? preview : undefined}
-      draftEntry={state === "expanded" ? draftEntry : undefined}
-      isDraftPulsing={isDraftPulsing}
       onToggle={onToggle}
       onSubmit={onSubmit}
       onEntryClick={handleEntryClick}

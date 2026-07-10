@@ -1,5 +1,6 @@
 import {
   SummaryDrawerCard,
+  type IndexedEntry,
   type SummaryDrawerPreview,
 } from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
@@ -26,14 +27,17 @@ const makeEntry = (homeScore: number, playerId: string): EntryView =>
   }) as unknown as EntryView;
 
 // Three committed entries, chronologically increasing score; entries[2] (score
-// 3, player #7) is the latest.
-const entries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
+// 3, player #7) is the latest. The card receives already-indexed entries (the
+// container filters out the one the Preview occupies before passing them in).
+const allEntries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
+const indexed = (entries: EntryView[]): IndexedEntry[] =>
+  entries.map((entry, index) => ({ entry, index }));
 
 const makePreview = (
   overrides: Partial<SummaryDrawerPreview> = {},
 ): SummaryDrawerPreview => ({
-  entry: entries[2],
-  previousEntry: entries[1],
+  entry: allEntries[2],
+  previousEntry: allEntries[1],
   players,
   isEditing: false,
   isComplete: false,
@@ -42,57 +46,69 @@ const makePreview = (
 });
 
 describe("SummaryDrawerCard idle state", () => {
-  it("shows the Preview bar (not an EntryRow) and no list rows", () => {
+  it("shows the handle and the Preview bar, and no list rows", () => {
     render(
       <SummaryDrawerCard
-        entries={entries}
+        entries={indexed(allEntries)}
+        totalEntries={allEntries.length}
         players={players}
         state="idle"
         preview={makePreview()}
       />,
     );
 
+    // Idle peek exposes the handle at the top edge and the Preview beneath it.
+    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
     expect(screen.getByTestId("preview-card")).toBeInTheDocument();
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
   });
 
-  it("renders no Preview bar when preview data is absent", () => {
+  it("renders the handle but no Preview bar when preview data is absent", () => {
     render(
-      <SummaryDrawerCard entries={entries} players={players} state="idle" />,
+      <SummaryDrawerCard
+        entries={indexed(allEntries)}
+        totalEntries={allEntries.length}
+        players={players}
+        state="idle"
+      />,
     );
 
+    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
     expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
-  });
-
-  it("does not crash and renders no row when there are no entries", () => {
-    render(<SummaryDrawerCard entries={[]} players={players} state="idle" />);
-
-    expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
   });
 });
 
 describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
-  it("promotes the latest entry to the first row of the full list", () => {
+  it("renders the given entries newest-first, marking the latest by totalEntries", () => {
+    // The container has filtered out entries[2] (the one the Preview shows), so
+    // the card only receives entries[0] and entries[1] -- no duplicate of the
+    // Preview's row appears in the list.
     render(
       <SummaryDrawerCard
-        entries={entries}
+        entries={indexed(allEntries).slice(0, 2)}
+        totalEntries={allEntries.length}
         players={players}
         state="expanded"
       />,
     );
 
     const rows = screen.getAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(entries.length);
-    // The latest entry (#7) rises to the first row; the rest follow in
-    // reverse-chronological order.
-    expect(rows[0]).toHaveTextContent("7");
+    expect(rows).toHaveLength(2);
+    // Newest-first: entries[1] (#4) precedes entries[0] (#4). The latest
+    // entry (entries[2], #7) is NOT in the list -- it lives in the Preview.
+    expect(rows[0]).toHaveTextContent("4");
     expect(rows[1]).toHaveTextContent("4");
-    expect(rows[2]).toHaveTextContent("4");
+    expect(screen.queryByText("7")).not.toBeInTheDocument();
   });
 
   it("handles an empty entry list without crashing", () => {
     render(
-      <SummaryDrawerCard entries={[]} players={players} state="expanded" />,
+      <SummaryDrawerCard
+        entries={[]}
+        totalEntries={0}
+        players={players}
+        state="expanded"
+      />,
     );
 
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
@@ -100,12 +116,26 @@ describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
 });
 
 describe("SummaryDrawerCard handle", () => {
-  it("closing the modal (handle click) calls onToggle", async () => {
+  it("clicking the handle calls onToggle in both states", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
-    render(
+    const { rerender } = render(
       <SummaryDrawerCard
-        entries={entries}
+        entries={indexed(allEntries)}
+        totalEntries={allEntries.length}
+        players={players}
+        state="idle"
+        onToggle={onToggle}
+      />,
+    );
+
+    await user.click(screen.getByTestId("summary-drawer-handle"));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <SummaryDrawerCard
+        entries={indexed(allEntries)}
+        totalEntries={allEntries.length}
         players={players}
         state="expanded"
         onToggle={onToggle}
@@ -113,70 +143,7 @@ describe("SummaryDrawerCard handle", () => {
     );
 
     await user.click(screen.getByTestId("summary-drawer-handle"));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-});
-
-// D8/D12 "Handle expands drawer during input with draft in first row": while
-// input is in progress and the drawer is expanded, the draft occupies the
-// first row in a pulsing style distinct from committed rows.
-describe("SummaryDrawerCard draft-in-progress first row", () => {
-  const draftEntry = makeEntry(4, "p2");
-
-  it("renders the draft as the pulsing first row, ahead of committed entries", () => {
-    render(
-      <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="expanded"
-        draftEntry={draftEntry}
-        isDraftPulsing={true}
-      />,
-    );
-
-    const draftRow = screen.getByTestId("summary-drawer-draft-row");
-    expect(draftRow).toHaveClass("animate-pulse");
-
-    const rows = screen.getAllByTestId("summary-drawer-row");
-    // The draft row is a separate element preceding the committed rows in
-    // DOM order; committed rows never carry the pulse class.
-    rows.forEach((row) => expect(row).not.toHaveClass("animate-pulse"));
-  });
-
-  it("does not render a draft row once the draft is gone (freeze -> committed)", () => {
-    // On freeze, the caller stops passing `draftEntry` and the newly
-    // committed entry (already the last item of `entries`) becomes the
-    // formal first row in place -- no separate draft row remains.
-    render(
-      <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="expanded"
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
-    expect(screen.getAllByTestId("summary-drawer-row")[0]).toHaveTextContent(
-      "7",
-    );
-  });
-
-  it("does not render the modal (or the draft row) while idle", () => {
-    render(
-      <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="idle"
-        draftEntry={draftEntry}
-        isDraftPulsing={true}
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
+    expect(onToggle).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -184,14 +151,19 @@ describe("SummaryDrawerCard draft-in-progress first row", () => {
 // the Preview bar (PreviewCard's tap-handling itself is covered in
 // preview.test.tsx).
 describe("SummaryDrawerCard Preview bar wiring", () => {
+  const baseProps = {
+    entries: indexed(allEntries),
+    totalEntries: allEntries.length,
+    players,
+    state: "idle" as const,
+  };
+
   it("tapping the Preview bar while idle (not editing) calls onToggle to expand", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
       <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="idle"
+        {...baseProps}
         preview={makePreview({ isEditing: false })}
         onToggle={onToggle}
       />,
@@ -207,9 +179,7 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
     const onSubmit = jest.fn();
     render(
       <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="idle"
+        {...baseProps}
         preview={makePreview({ isEditing: true, isComplete: true })}
         onToggle={onToggle}
         onSubmit={onSubmit}
@@ -227,9 +197,7 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
     const onSubmit = jest.fn();
     render(
       <SummaryDrawerCard
-        entries={entries}
-        players={players}
-        state="idle"
+        {...baseProps}
         preview={makePreview({ isEditing: true, isComplete: false })}
         onToggle={onToggle}
         onSubmit={onSubmit}
@@ -239,5 +207,21 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
     await user.click(screen.getByTestId("preview-trigger"));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  it("while editing, the Preview pulses in place instead of a separate draft row", () => {
+    render(
+      <SummaryDrawerCard
+        {...baseProps}
+        state="expanded"
+        preview={makePreview({ isEditing: true, isComplete: false })}
+      />,
+    );
+
+    // No separate draft row exists any more -- the pulsing draft IS the Preview.
+    expect(
+      screen.queryByTestId("summary-drawer-draft-row"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("preview-trigger")).toHaveClass("animate-pulse");
   });
 });

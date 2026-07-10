@@ -32,13 +32,17 @@ export const useSubmitEntryDraft = (gameId: string) => {
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
 
-  const create = () => {
+  // Await the optimistic mutate and only confirm the draft in Redux once the
+  // server actually persisted it. If the request fails the mutate rejects and
+  // rolls the SWR game back, we skip the confirm (draft stays put for a retry),
+  // and the error surfaces as a toast instead of a crash.
+  const create = async () => {
     const { game: updatedGame, phase } = createRallyHelper(
       { gameId, setIndex, entryIndex },
       draft as RallyView,
       game!,
     );
-    mutate(
+    await mutate(
       createRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
       {
         revalidate: false,
@@ -48,13 +52,13 @@ export const useSubmitEntryDraft = (gameId: string) => {
     dispatch(gameActions.confirmEntryDraftRally(phase));
   };
 
-  const update = () => {
+  const update = async () => {
     const { game: updatedGame, phase } = updateRallyHelper(
       { gameId, setIndex, entryIndex },
       draft as RallyView,
       game!,
     );
-    mutate(
+    await mutate(
       updateRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
       {
         revalidate: false,
@@ -68,9 +72,9 @@ export const useSubmitEntryDraft = (gameId: string) => {
   return async () => {
     try {
       if (mode === "general") {
-        create();
+        await create();
       } else {
-        update();
+        await update();
       }
     } catch (error) {
       showErrorToast(error, toast);

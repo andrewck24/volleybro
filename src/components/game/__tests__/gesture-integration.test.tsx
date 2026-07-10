@@ -30,9 +30,38 @@ jest.mock("@/lib/api/error-toast", () => ({ showErrorToast: jest.fn() }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let currentMockGame: any;
+// mutate mirrors SWR's contract closely enough for the submit path: it awaits
+// the passed mutation promise (so create/update's confirm-on-success timing is
+// real) and swallows rejections the way rollbackOnError would.
 jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: currentMockGame, mutate: jest.fn() }),
+  useGame: () => ({
+    game: currentMockGame,
+    mutate: jest.fn(async (promise?: Promise<unknown>) => {
+      try {
+        return await promise;
+      } catch {
+        return undefined;
+      }
+    }),
+  }),
 }));
+
+const originalFetch = global.fetch;
+beforeEach(() => {
+  // createRally/updateRally POST to the API; the helper already mutates the
+  // mock game in place, so the response body is irrelevant -- only `ok` matters.
+  global.fetch = jest.fn(async () => ({
+    ok: true,
+    json: async () => currentMockGame.sets[0].entries,
+  })) as unknown as typeof fetch;
+});
+
+afterEach(() => {
+  // Restore the real global so this file's fetch stub never leaks into other
+  // suites sharing the worker (e.g. set-options' pending-state test).
+  global.fetch = originalFetch;
+  jest.restoreAllMocks();
+});
 
 const moveStats = () => ({
   [MoveType.SERVING]: { success: 0, error: 0 },
@@ -154,14 +183,14 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     );
 
     // The draft is reset (no longer editing) after the real submit, so the
-    // next idle tap on the Preview expands the drawer -- confirming the
-    // committed row count grew and no draft row remains.
+    // next idle tap on the Preview expands the drawer. The just-committed entry
+    // (#7) is now the Preview's own row; the drawer list shows only the OTHER
+    // committed entry (#4) -- the newest entry is never shown twice.
     await user.click(screen.getByTestId("preview-trigger"));
-    const rows = screen.getAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(2);
-    // Freezes into the formal first committed row, newest-first (drafted by
-    // #7).
-    expect(rows[0]).toHaveTextContent("7");
+    const rows = await screen.findAllByTestId("summary-drawer-row");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent("4");
+    expect(screen.getByTestId("preview-card")).toHaveTextContent("7");
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
@@ -203,13 +232,15 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
-    // Nothing was submitted: still only the one pre-existing committed entry,
-    // shown as the draft's pulsing first row since input is still in
-    // progress (D12 scenario "Handle expands drawer during input with draft
-    // in first row").
+    // Nothing was submitted. The in-progress draft is now the Preview itself,
+    // pulsing in place (no separate draft row); the one pre-existing committed
+    // entry (#4) stays in the list below (D12 scenario "Handle expands drawer
+    // during input with draft in first row").
+    expect(screen.getByTestId("preview-trigger")).toHaveClass("animate-pulse");
     expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
-    const draftRow = screen.getByTestId("summary-drawer-draft-row");
-    expect(draftRow).toHaveClass("animate-pulse");
+    expect(
+      screen.queryByTestId("summary-drawer-draft-row"),
+    ).not.toBeInTheDocument();
 
     // The drawer's own close affordance toggles it back to idle regardless
     // of input progress.

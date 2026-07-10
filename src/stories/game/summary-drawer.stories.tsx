@@ -1,4 +1,7 @@
-import { SummaryDrawerCard } from "@/components/game/summary-drawer";
+import {
+  SummaryDrawerCard,
+  type IndexedEntry,
+} from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import type { Meta, StoryObj } from "@storybook/nextjs";
@@ -9,7 +12,7 @@ const players: GamePlayerView[] = [
   { id: "p2", name: "選手二", number: 7, stats: [] },
 ];
 
-const entries: EntryView[] = [
+const rawEntries: EntryView[] = [
   {
     type: EntryType.RALLY,
     win: true,
@@ -39,12 +42,23 @@ const entries: EntryView[] = [
   },
 ];
 
+const entries: IndexedEntry[] = rawEntries.map((entry, index) => ({
+  entry,
+  index,
+}));
+
 const meta = {
   title: "Design System/Game/SummaryDrawer",
   component: SummaryDrawerCard,
   parameters: { layout: "padded" },
   tags: ["autodocs"],
-  args: { entries, players, onToggle: fn(), onEntryClick: fn() },
+  args: {
+    entries,
+    totalEntries: entries.length,
+    players,
+    onToggle: fn(),
+    onEntryClick: fn(),
+  },
   decorators: [
     (Story) => (
       <div className="w-full max-w-md">

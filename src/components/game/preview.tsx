@@ -107,16 +107,18 @@ export const useEntryDraftPreview = (
   mode: ReduxGameState["mode"],
 ) => {
   const { game } = useGame(gameId);
-  const { players } = game!.teams.home;
   const { setIndex } = useAppSelector((state) => state.game);
   const {
     entryDraft: draft,
     status: { inProgress, entryIndex },
   } = useAppSelector((state) => state.game[mode]);
 
-  if (!inProgress) return { inProgress: false as const };
+  // Guard a transient undefined game (e.g. a rolled-back optimistic mutate) so
+  // the shared Preview hook degrades to "not in progress" instead of crashing.
+  if (!game || !inProgress) return { inProgress: false as const };
 
-  const lastEntry = game!.sets[setIndex].entries[entryIndex - 1];
+  const { players } = game.teams.home;
+  const lastEntry = game.sets[setIndex].entries[entryIndex - 1];
   const isEditing = Boolean(draft.home.player?.id) || Boolean(draft.home.type);
 
   const draftRallyEntry = isEditing
