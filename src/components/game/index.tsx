@@ -90,20 +90,36 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
 };
 
 export function GameSkeleton() {
+  // Mirror the ready Game layout exactly (viewport-height column, fixed header
+  // reserved once via pt, court / panel / drawer-peek) so there is no jump on
+  // load: same header height, the court is not hidden behind the header, and
+  // the drawer peek is present.
   return (
-    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
+    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
-      <LoadingCourt />
-      {/* mirrors GamePreview: Card grid w-full p-2 */}
-      <Card className="grid w-full p-2">
-        <Skeleton className="h-8 w-full" />
-      </Card>
-      {/* mirrors GamePanel: Panel slot (bg-card flex-1) */}
-      <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden bg-card">
-        <Skeleton className="my-0.5 h-5 w-32" />
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)]">
+        <div className="w-full shrink-0">
+          <LoadingCourt />
+        </div>
+        {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden bg-card px-2 pt-2">
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-4 w-40" />
+          <div className="grid w-full flex-1 grid-cols-2 gap-2 pt-1">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-full min-h-14 w-full" />
+            ))}
+          </div>
+        </div>
+        {/* mirrors the drawer idle peek: handle + Preview-shaped card */}
+        <div className="w-full shrink-0">
+          <div className="pt-1 pb-1.5">
+            <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
+          </div>
+          <Card className="grid w-full p-2">
+            <Skeleton className="h-8 w-full" />
+          </Card>
+        </div>
       </div>
     </div>
   );
