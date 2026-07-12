@@ -20,6 +20,7 @@ const statusVariants = cva("tracking-wide uppercase", {
   },
 });
 
+// stub: Thariq #17 PR-writeup 的薄版；需要敘事式 PR 文件時再 enrich
 export function PRWriteup({ number, title, status }: PRWriteupProps) {
   return (
     <Card>

@@ -6,6 +6,7 @@ interface ConceptExplainerProps {
   example: string;
 }
 
+// stub: Thariq #15 concept-explainer 的薄靜態版；有頁面需要時再 enrich 成 interactive glossary
 export function ConceptExplainer({
   term,
   definition,

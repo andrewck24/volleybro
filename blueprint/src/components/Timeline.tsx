@@ -13,6 +13,7 @@ interface TimelineProps {
   events: TimelineEvent[];
 }
 
+// stub: Thariq #12 incident-timeline 的基本版；需要時再 enrich
 export function Timeline({ events }: TimelineProps) {
   return (
     <Card>

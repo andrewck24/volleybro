@@ -9,7 +9,7 @@ system, per spec-loop `blueprint.md` base mapping. Paca Story: VB-7 (Epic #5).
 
 Component styling is unstable across three tiers:
 
-1. **Unstyled skeletons** — most of the 10 spec components render bare markup
+1. **Unstyled skeletons** — most of the 9 spec components render bare markup
    (severity labels were plain `span`s with data attributes).
 2. **Three competing token sources** — `ChangeCard`/`ChangeOverview` mix hand-written
    `--primary`/`--border` oklch values, fumadocs `--color-fd-*` variables, and arbitrary
@@ -27,7 +27,7 @@ Component styling is unstable across three tiers:
 - Add primitives via CLI: badge, table, card, tabs, progress, accordion, separator.
   `Badge` is used directly (with CVA variants) for both severity indicators and general
   labels (e.g. 採用/棄用); there is no dedicated severity wrapper component.
-- Rebuild all 10 spec components + `ChangeCard`/`ChangeOverview` per the base mapping in
+- Rebuild all 9 spec components + `ChangeCard`/`ChangeOverview` per the base mapping in
   spec-loop `blueprint.md`. `Verdict` (thin `Badge` wrapper), `ExampleTable` (raw
   `<table>`; Fumadocs renders tables natively), and `FeatureExplainer` (hand-rolled
   accordion) are dropped rather than rebuilt — use `Badge` / `ui/accordion` directly.
