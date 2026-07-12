@@ -11,6 +11,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         tabs: [
           { title: "Changes", url: "/changes" },
           { title: "Features", url: "/features" },
+          { title: "Design System", url: "/design-system" },
         ],
       }}
     >
