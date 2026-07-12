@@ -77,6 +77,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
         state={drawerState}
         onToggle={toggleDrawer}
         onSubmit={submitEntryDraft}
+        onEditRequest={() => setDialogOpen(true)}
       />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <GameOptions

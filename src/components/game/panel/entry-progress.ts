@@ -66,6 +66,8 @@ export function getEntryProgress(draft: ReduxEntryDraft): EntryProgress {
     steps: STEPS,
     activeStep,
     reachableSteps,
+    // Invariant: setEntryDraftHomeMove sets win, home.type/num and a default
+    // away.type/num atomically, so awayComplete implies the earlier steps.
     submittable: awayComplete,
   };
 }

@@ -1,12 +1,33 @@
 import {
+  SummaryDrawer,
   SummaryDrawerCard,
   type IndexedEntry,
   type SummaryDrawerPreview,
 } from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
+import { gameActions } from "@/lib/features/game/game-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+// Container-level bridge test (below) drives the real `SummaryDrawer`, whose
+// deps are stubbed: a jest.fn dispatch (assert the edit action fires), a static
+// game from `useGame`, and a non-recording draft so committed rows render.
+// `PreviewCard` stays real so the SummaryDrawerCard suites above are unaffected.
+const mockDispatch = jest.fn();
+let mockGame: unknown;
+jest.mock("@/lib/redux/hooks", () => ({
+  useAppDispatch: () => mockDispatch,
+  useAppSelector: (selector: (s: unknown) => unknown) =>
+    selector({ game: { setIndex: 0 } }),
+}));
+jest.mock("@/hooks/use-data", () => ({
+  useGame: () => ({ game: mockGame }),
+}));
+jest.mock("@/components/game/preview", () => ({
+  ...jest.requireActual("@/components/game/preview"),
+  useEntryDraftPreview: () => ({ inProgress: false, isEditing: false }),
+}));
 
 const players: GamePlayerView[] = [
   { id: "p1", name: "選手一", number: 4, stats: [] },
@@ -226,5 +247,41 @@ describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
     expect(await screen.findByTestId("preview-trigger")).toHaveClass(
       "animate-pulse",
     );
+  });
+});
+
+// Bridge regression (PR #311 review): the Summary drawer's edit action must both
+// flip Redux to "editing" (setEditingEntryStatus) AND signal the Game shell to
+// open the Options dialog (onEditRequest). Without the second call, edit is a
+// visible no-op. Driven at the container level, not the whole Game tree.
+describe("SummaryDrawer edit bridge", () => {
+  beforeEach(() => {
+    mockDispatch.mockClear();
+    mockGame = {
+      sets: [{ entries: allEntries }],
+      teams: { home: { players } },
+    };
+  });
+
+  it("editing an entry row dispatches setEditingEntryStatus and fires onEditRequest", async () => {
+    const onEditRequest = jest.fn();
+    render(
+      <SummaryDrawer
+        gameId="game-1"
+        state="expanded"
+        onEditRequest={onEditRequest}
+      />,
+    );
+
+    // Expanded renders every committed row; the newest row is first.
+    const editButtons = await screen.findAllByTestId("entry-action-edit");
+    fireEvent.click(editButtons[0]);
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: gameActions.setEditingEntryStatus.type,
+      }),
+    );
+    expect(onEditRequest).toHaveBeenCalledTimes(1);
   });
 });

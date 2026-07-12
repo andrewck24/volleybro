@@ -235,12 +235,14 @@ export const SummaryDrawer = ({
   state: controlledState,
   onToggle: controlledOnToggle,
   onSubmit,
+  onEditRequest,
   className,
 }: {
   gameId: string;
   state?: SummaryDrawerState;
   onToggle?: () => void;
   onSubmit?: () => void;
+  onEditRequest?: () => void;
   className?: string;
 }) => {
   const [uncontrolledState, setUncontrolledState] =
@@ -270,6 +272,7 @@ export const SummaryDrawer = ({
 
   const handleEntryClick = (entryIndex: number) => {
     dispatch(gameActions.setEditingEntryStatus({ game, entryIndex }));
+    onEditRequest?.();
   };
 
   return (
