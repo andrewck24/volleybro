@@ -1,6 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface Step {
   label: string;
@@ -13,23 +22,38 @@ interface FeatureExplainerProps {
   steps: Step[];
 }
 
-export function FeatureExplainer({ title, summary, steps }: FeatureExplainerProps) {
+export function FeatureExplainer({
+  title,
+  summary,
+  steps,
+}: FeatureExplainerProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <div>
-      <h2>{title}</h2>
-      <p>{summary}</p>
-      <ul>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{summary}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col">
         {steps.map((step, i) => (
-          <li key={i}>
-            <button onClick={() => setOpenIndex(openIndex === i ? null : i)}>
+          <Fragment key={i}>
+            {i > 0 && <Separator />}
+            <button
+              type="button"
+              onClick={() => setOpenIndex(openIndex === i ? null : i)}
+              className="flex w-full items-center py-2 text-left font-medium transition-colors hover:text-primary"
+            >
               {step.label}
             </button>
-            {openIndex === i && <div>{step.detail}</div>}
-          </li>
+            {openIndex === i && (
+              <div className="pb-2 text-sm text-muted-foreground">
+                {step.detail}
+              </div>
+            )}
+          </Fragment>
         ))}
-      </ul>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

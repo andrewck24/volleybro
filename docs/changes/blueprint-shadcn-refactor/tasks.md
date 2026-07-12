@@ -15,9 +15,9 @@
 
 ## 2. Batch: status + prose components
 
-- [ ] 2.1 Add `card`, `progress`, `separator`; rebuild `Verdict`, `Timeline`,
+- [x] 2.1 Add `card`, `progress`, `separator`; rebuild `Verdict`, `Timeline`,
       `TaskProgress`, `Scenario`, `ConceptExplainer`, `FeatureExplainer`, `PRWriteup`
-- [ ] 2.2 Verify: tests + build
+- [x] 2.2 Verify: tests + build
 
 ## 3. Batch: tables, comparison, index, flowchart
 
