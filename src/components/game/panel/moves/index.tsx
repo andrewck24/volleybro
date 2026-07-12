@@ -1,54 +1,68 @@
 "use client";
 import { OppoMoves } from "@/components/game/panel/moves/oppo";
 import { OursMoves } from "@/components/game/panel/moves/ours";
+import type { useStepSwipe } from "@/components/game/panel/use-step-swipe";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { gameActions } from "@/lib/features/game/game-slice";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useAppSelector } from "@/lib/redux/hooks";
 import type { ScoringMove } from "@/lib/scoring-moves";
 import { cn } from "@/lib/utils";
-import { RiEditBoxLine } from "react-icons/ri";
+import { useState } from "react";
+
 export const GameMoves = ({
-  gameId,
   className,
+  swipe,
 }: {
-  gameId: string;
   className?: string;
+  swipe?: ReturnType<typeof useStepSwipe>;
 }) => {
-  const dispatch = useAppDispatch();
   const gameState = useAppSelector((state) => state.game);
   const { status, entryDraft: draft } = gameState[gameState.mode];
 
+  // The body slides in directionally on each step switch: forward enters from
+  // the right, backward from the left, replayed via the `key` remount.
+  // Key on the real step (0 player-select / 1 home / 2 away), NOT status.panel:
+  // picking a player advances step 0 -> 1 while panel stays "home" (the content
+  // goes from the opponent-error list to the skill grid), so keying on panel
+  // alone would miss that transition. Direction is derived from the previous
+  // step held in state (React's "store previous value in state" pattern) so it
+  // survives to commit -- reading a ref during render would not. ponytail:
+  // reuses tailwindcss-animate's slide-in utilities instead of raw @keyframes.
+  const step = status.panel === "away" ? 2 : draft.home.player?.id ? 1 : 0;
+  const [prevStep, setPrevStep] = useState(step);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  if (prevStep !== step) {
+    setDirection(step > prevStep ? "forward" : "backward");
+    setPrevStep(step);
+  }
+
   return (
-    <Card className={cn("w-full flex-1 pb-4", className)}>
-      <CardHeader className="flex-row">
-        <CardTitle
-          onClick={() => dispatch(gameActions.setPanel("home"))}
-          className={cn(
-            "overflow-hidden border-b-2 border-l-2 border-primary p-1 text-nowrap transition-all",
-            status.panel === "home" ? "w-full" : "w-8",
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          我方得失分紀錄
-        </CardTitle>
-        <CardTitle
-          onClick={() => dispatch(gameActions.setPanel("away"))}
-          className={cn(
-            "overflow-hidden border-b-2 border-l-2 border-destructive p-1 text-nowrap transition-all",
-            status.panel !== "home"
-              ? "w-full"
-              : draft.home.num === null
-                ? "sr-only w-0"
-                : "w-8",
-          )}
-        >
-          <RiEditBoxLine className="w-6 min-w-6" />
-          對方得失分紀錄
-        </CardTitle>
-      </CardHeader>
-      {status.panel === "home" ? <OursMoves /> : <OppoMoves gameId={gameId} />}
-    </Card>
+    // Independent panel body (not a Card): keeps only bg/gap/padding, drops the
+    // card chrome (rounded/shadow/ring). The swipe handlers make the whole body
+    // switch steps (design: swipe anywhere on the panel, not just the bar);
+    // overflow-hidden clips the sliding body so the switch reads as a full-width
+    // tab transition; min-h-0 lets the inner body scroll instead of overflowing.
+    <div
+      className={cn(
+        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card p-2",
+        className,
+      )}
+      {...swipe}
+    >
+      <div
+        key={step}
+        className={cn(
+          "flex min-h-0 w-full flex-1 flex-col overflow-y-auto duration-300 ease-out animate-in fade-in",
+          // Full panel-width directional slide (tab-container feel): forward
+          // advances (player -> home -> away) enters from the right, backward
+          // from the left.
+          direction === "forward"
+            ? "slide-in-from-right-full"
+            : "slide-in-from-left-full",
+        )}
+      >
+        {status.panel === "home" ? <OursMoves /> : <OppoMoves />}
+      </div>
+    </div>
   );
 };
 
@@ -60,9 +74,9 @@ export const Container = ({
   className?: string;
 }) => {
   return (
-    <CardContent className={cn("grid w-full flex-1 grid-cols-2", className)}>
+    <div className={cn("grid w-full flex-1 grid-cols-2 gap-2", className)}>
       {children}
-    </CardContent>
+    </div>
   );
 };
 
@@ -88,7 +102,10 @@ export const MoveButton = ({
       variant={move.win ? "default" : "destructive"}
       size="lg"
       className={cn(
-        "h-full pr-1 text-[1.5rem] transition-colors duration-200",
+        // min-h-0 lets the button shrink below its content height so an
+        // auto-rows-fr grid (opponent errors) can fit every row with no scroll;
+        // a grid/flex item defaults to min-height:auto and would overflow.
+        "h-full min-h-0 pr-1 text-[1.5rem] transition-colors duration-200",
         toggled || (move.win ? WIN_STYLE : LOSE_STYLE),
       )}
       onClick={() => onClick(move)}

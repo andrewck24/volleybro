@@ -20,6 +20,8 @@ interface DesignModule {
 const designModules: Record<string, () => Promise<DesignModule>> = {
   "discussing/sync-recording/design": () =>
     import("../../../../../content/changes/discussing/sync-recording/design"),
+  "in-progress/entry-ui/design": () =>
+    import("../../../../../content/changes/in-progress/entry-ui/design"),
   "archive/2026-06-28-apple-splash-dynamic/design": () =>
     import("../../../../../content/changes/archive/2026-06-28-apple-splash-dynamic/design"),
   "archive/2026-06-16-contextual-edit-pages/design": () =>

@@ -1,77 +1,215 @@
 "use client";
 import { Entry } from "@/components/game/entry";
-import { Card } from "@/components/ui/card";
+import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import type { EntryView, ReduxGameState } from "@/lib/features/game/types";
+import type {
+  EntryView,
+  GamePlayerView,
+  ReduxGameState,
+} from "@/lib/features/game/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
+import { RiSendPlaneLine } from "react-icons/ri";
 
-export const GamePreview = ({
-  gameId,
-  mode,
-  handleOptionOpen,
+/**
+ * Presentational Preview card. The three score-Figures states (idle / undecided
+ * / decided) fall out of <Entry>/<Rally> for free from the shape of `entry` --
+ * this component only layers the submission feedback on top: a pulse while the
+ * draft is incomplete, a ring + send icon once it is complete, and (owned
+ * locally, since it is purely a transient UI reaction to a click) a freeze that
+ * flashes the background once and demotes the draft to `previousEntry` in
+ * place. The container resets this by remounting the card (via `key`) once the
+ * real submission advances to the next entry.
+ */
+export const PreviewCard = ({
+  entry,
+  previousEntry,
+  players,
+  isEditing,
+  isPulsing,
+  isComplete,
+  onSubmit,
+  onExpand,
   className,
 }: {
-  gameId: string;
-  mode: ReduxGameState["mode"];
-  handleOptionOpen?: (value: string) => void;
+  entry: EntryView;
+  previousEntry: EntryView;
+  players: GamePlayerView[];
+  isEditing?: boolean;
+  isPulsing?: boolean;
+  isComplete?: boolean;
+  onSubmit?: () => void;
+  onExpand?: () => void;
   className?: string;
 }) => {
+  const [frozen, setFrozen] = useState(false);
+  const [flashing, setFlashing] = useState(false);
+
+  useEffect(() => {
+    if (!flashing) return;
+    const id = setTimeout(() => setFlashing(false), 500);
+    return () => clearTimeout(id);
+  }, [flashing]);
+
+  const handleClick = () => {
+    if (isEditing && isComplete && !frozen) {
+      setFrozen(true);
+      setFlashing(true);
+      onSubmit?.();
+      return;
+    }
+    if (!isEditing) onExpand?.();
+  };
+
+  const shownEntry = frozen ? previousEntry : entry;
+  const showSendAffordance = Boolean(isEditing && isComplete && !frozen);
+
+  return (
+    // A plain row, not a Card: the recording Preview must match the flat
+    // committed entry rows in the drawer (no rounded/ring/shadow frame), so the
+    // peek looks identical whether idle (an EntryRow) or recording. The
+    // completion ring below is the only ring, and only while complete.
+    <div
+      data-testid="preview-card"
+      className={cn("relative grid w-full", className)}
+    >
+      <div
+        data-testid="preview-trigger"
+        onClick={handleClick}
+        className={cn(isPulsing && !frozen && "animate-pulse duration-1000")}
+      >
+        {/* The fill lives on the Entry box itself (which carries the shared p-1
+            + rounded), so once complete the whole entry reads as a rounded
+            primary send button rather than a framed row. */}
+        <Entry
+          entry={shownEntry}
+          players={players}
+          className={cn(
+            "transition-colors duration-500",
+            showSendAffordance && "bg-primary text-primary-foreground",
+            flashing && "bg-primary/30",
+          )}
+        />
+      </div>
+      {showSendAffordance && (
+        <span
+          role="img"
+          aria-label="送出"
+          className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2"
+        >
+          <RiSendPlaneLine className="size-5 text-primary-foreground" />
+        </span>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Derives the entry-draft state shared by the Preview (this file) and the
+ * Summary drawer's in-progress draft row (summary-drawer.tsx) -- the single
+ * source of truth for "is input in progress" / "is the draft complete" so the
+ * two consumers never diverge on their own copies of these booleans.
+ */
+export const useEntryDraftPreview = (
+  gameId: string,
+  mode: ReduxGameState["mode"],
+) => {
   const { game } = useGame(gameId);
-  const { players } = game!.teams.home;
   const { setIndex } = useAppSelector((state) => state.game);
   const {
     entryDraft: draft,
     status: { inProgress, entryIndex },
   } = useAppSelector((state) => state.game[mode]);
 
-  if (!inProgress) return null;
+  // Guard a transient undefined game (e.g. a rolled-back optimistic mutate) so
+  // the shared Preview hook degrades to "not in progress" instead of crashing.
+  if (!game || !inProgress) return { inProgress: false as const };
 
-  const lastEntry = game!.sets[setIndex].entries[entryIndex - 1];
-  const isEditing = draft.home.player?.id || draft.home.type;
-  const draftRallyEntry =
-    draft.win !== null &&
-    draft.home.type !== null &&
-    draft.home.num !== null &&
-    draft.away.type !== null &&
-    draft.away.num !== null
-      ? {
-          type: EntryType.RALLY as const,
-          win: draft.win,
-          home: {
-            score: draft.home.score,
-            type: draft.home.type,
-            num: draft.home.num,
-            ...(draft.home.player ? { player: draft.home.player } : {}),
-          },
-          away: {
-            score: draft.away.score,
-            type: draft.away.type,
-            num: draft.away.num,
-            ...(draft.away.player ? { player: draft.away.player } : {}),
-          },
-        }
-      : null;
-  const draftEntry: EntryView = draft.substitution
+  const { players } = game.teams.home;
+  const lastEntry = game.sets[setIndex].entries[entryIndex - 1];
+  const isEditing = Boolean(draft.home.player?.id) || Boolean(draft.home.type);
+
+  const draftRallyEntry = isEditing
+    ? ({
+        type: EntryType.RALLY,
+        win: draft.win ?? false,
+        home: {
+          score: draft.home.score,
+          type: draft.home.type,
+          num: draft.home.num ?? 0,
+          ...(draft.home.player ? { player: draft.home.player } : {}),
+        },
+        away: {
+          score: draft.away.score,
+          type: draft.away.type,
+          num: draft.away.num ?? 0,
+          ...(draft.away.player ? { player: draft.away.player } : {}),
+        },
+      } as unknown as EntryView)
+    : null;
+
+  const draftEntry: EntryView | undefined = draft.substitution
     ? { type: EntryType.SUBSTITUTION, ...draft.substitution }
     : draft.timeout
       ? { type: EntryType.TIMEOUT, ...draft.timeout }
       : draft.challenge
         ? { type: EntryType.CHALLENGE, ...draft.challenge }
         : (draftRallyEntry ?? lastEntry);
+
   const entry = isEditing || entryIndex === 0 ? draftEntry : lastEntry;
 
+  // Fail safe: derive completeness from getEntryProgress (reused from task
+  // group 1, do not duplicate) and check the boolean explicitly so a
+  // partially-complete draft never shows the send affordance -- guards
+  // against falsy-but-valid values (e.g. num === 0) or type confusion.
+  const { submittable } = getEntryProgress(draft);
+  const isComplete = submittable === true;
+
+  return {
+    inProgress: true as const,
+    entry,
+    previousEntry: lastEntry,
+    players,
+    isEditing,
+    isComplete,
+    entryIndex,
+  };
+};
+
+export const GamePreview = ({
+  gameId,
+  mode,
+  onSubmit,
+  onExpandDrawer,
+  className,
+}: {
+  gameId: string;
+  mode: ReduxGameState["mode"];
+  onSubmit?: () => void;
+  onExpandDrawer?: () => void;
+  className?: string;
+}) => {
+  const preview = useEntryDraftPreview(gameId, mode);
+  if (!preview.inProgress) return null;
+  const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
+    preview;
+
   return (
-    <Card className={cn("grid w-full p-2", className)}>
-      <Entry
-        entry={entry}
-        players={players}
-        onClick={
-          handleOptionOpen ? () => handleOptionOpen("summary") : undefined
-        }
-        className={isEditing ? "animate-pulse duration-1000" : ""}
-      />
-    </Card>
+    <PreviewCard
+      // Remounts on the next entry so the local freeze/flash state (owned by
+      // PreviewCard) always starts fresh once the real submission lands.
+      key={entryIndex}
+      entry={entry}
+      previousEntry={previousEntry}
+      players={players}
+      isEditing={isEditing}
+      isPulsing={isEditing && !isComplete}
+      isComplete={isComplete}
+      onSubmit={onSubmit}
+      onExpand={onExpandDrawer}
+      className={className}
+    />
   );
 };

@@ -1,5 +1,5 @@
 "use client";
-import { type ComponentProps, Suspense, useState } from "react";
+import { type ComponentProps, Suspense, useRef, useState } from "react";
 
 import { useShiki } from "fumadocs-core/highlight/client";
 import { CodeBlock, Pre } from "fumadocs-ui/components/codeblock";
@@ -539,9 +539,10 @@ const SCENARIOS: Scenario[] = [
         b: {
           score: "11–8",
           chip: idle,
-          body: ["覆蓋 → 改寫第 19 球，級聯重算比分（見 Q2/Q3）"],
+          body: ["覆蓋 → 改寫第 19 球，連鎖效果見 Q3"],
         },
-        server: "update 記 updatedBy/updatedAt；下游比分 fold 重算後廣播",
+        server:
+          "update 記 updatedBy/updatedAt；下游比分 fold 重算後廣播（連鎖效果）",
       },
     ],
   },
@@ -608,6 +609,92 @@ const SCENARIOS: Scenario[] = [
           flash: true,
         },
         server: "entries.length = 21",
+      },
+    ],
+  },
+  {
+    id: "edit-race",
+    label: "Edge：編輯中失去最後一筆",
+    intro:
+      "乙點 Preview 編輯剛記的第 19 球（最後一筆，T1/T2 全開放）；甲隨即記了第 20 球——編輯不被阻斷，但勝負修改（T2）降級鎖定，所有鎖定操作點擊時都說明原因與替代路徑（aria-disabled + explain-on-tap，不用原生 disabled）。",
+    frames: [
+      {
+        title: "點 Preview 進入編輯模式（仍是最後一筆）",
+        node: "compose",
+        a: { score: "11–8", chip: idle, body: [] },
+        b: {
+          score: "11–8",
+          chip: composing,
+          body: [
+            "說明文字列：「編輯第 19 球（最後一筆）」",
+            "T1（球員/球種）與 T2（勝負）都可修改",
+          ],
+        },
+        server: "update 目標 entry 19，version 1；「仍為最後一筆」→ T2 允許",
+      },
+      {
+        title: "甲記錄第 20 球 → 乙的編輯目標失去最後一筆身分",
+        node: "banner",
+        a: { score: "12–8", chip: saved, body: ["記錄第 20 球"] },
+        b: {
+          score: "12–8",
+          chip: composing,
+          body: [
+            "不阻斷（不同球、不互斥），降級通知：",
+            "說明文字列輪換：「甲已記錄下一球 —",
+            "此球僅能修改球員/球種（勝負已鎖定）」＋ Preview 閃爍",
+          ],
+          flash: true,
+        },
+        server: "entry 19 不再是最後一筆 → T2 降級鎖定，T1 照常",
+      },
+      {
+        title: "乙點擊被鎖定的勝負選項 → explain-on-tap",
+        node: "check",
+        a: { score: "12–8", chip: idle, body: [] },
+        b: {
+          score: "12–8",
+          chip: composing,
+          body: [
+            "不執行變更，說明文字列閃現（destructive）：",
+            "「更改勝負將影響後續 1 筆記錄，需退回重記」",
+            "＋浮現［退回重記］入口",
+          ],
+        },
+        server: "「不可用 ≠ 不可見」：鎖定操作保留可點，點擊得到原因與替代路徑",
+      },
+      {
+        title: "若選退回重記（B1）→ panel 切換為破壞性確認卡",
+        node: "conflict",
+        a: { score: "12–8", chip: idle, body: [] },
+        b: {
+          score: "12–8",
+          chip: conflict,
+          body: [
+            "「將刪除第 19 球之後的 1 筆（甲記的第 20 球），",
+            "所有人畫面將回到第 19 球」",
+            "［確認退回］［取消］",
+          ],
+        },
+        server:
+          "確認後 truncate + 廣播失效範圍；他人輸入中的 draft 錨點失效 → D7 衝突面板",
+      },
+      {
+        title: "T1 修改則照常送出（版本檢查）",
+        node: "resolve",
+        a: {
+          score: "12–8",
+          chip: idle,
+          body: ["SSE 更新：第 19 球球員改為 #7"],
+          flash: true,
+        },
+        b: {
+          score: "12–8",
+          chip: saved,
+          body: ["僅改球員/球種：零連鎖，version 1→2"],
+        },
+        server:
+          "T2 送出瞬間才被搶先的競態：server「仍為最後一筆」檢查失敗 → 衝突面板（改回原勝負/退回重記/放棄）",
       },
     ],
   },
@@ -751,14 +838,15 @@ const CONTRACTS = [
   {
     id: "success",
     label: "201 ＋ SSE 廣播",
-    note: "比分為 server 推導的權威值；entryIndex 同時是 SSE event id（Last-Event-ID 補漏游標）。",
+    note: "比分為 server 推導的權威值；SSE event id 為複合游標 setIndex:entryIndex（Last-Event-ID 補漏可跨局），setEnded 由 server fold 判定（D13）。",
     code: `{
-  entryIndex: 19,
+  entryIndex: 19,          // SSE event id = "2:19"
   entry: {
     ...事實,
     home: { score: 11, ... },
     away: { score: 8, ... }
   },
+  setEnded: false,         // server 推導：達 25/15 且領先 2
   recordedBy: { userId, name },
   recordedAt: "2026-07-07T12:34:56Z"
 }`,
@@ -902,7 +990,7 @@ const DECISIONS: {
   {
     id: "D6",
     title: "409 衝突選項：捨棄／覆蓋（同類型 entry）",
-    body: "錨點過期在語意上表示 draft 在對方那筆入庫前就開始——想記的必然是同一球，衝突是「誰記的才對」的裁決：捨棄（對方對）或覆蓋（我對，走 update 路徑級聯重算）。跨類型衝突（rally 撞上換人）不互斥，改提供「作為下一筆送出（rebase）」。",
+    body: "錨點過期在語意上表示 draft 在對方那筆入庫前就開始——想記的必然是同一球，衝突是「誰記的才對」的裁決：捨棄（對方對）或覆蓋（我對，走 update 路徑）。跨類型衝突（rally 撞上換人）不互斥，改提供「作為下一筆送出（rebase）」。",
     rejected: [
       {
         option: "捨棄／作為下一球送出",
@@ -929,6 +1017,183 @@ const DECISIONS: {
         option: "Modal dialog",
         reason:
           "遮蔽比分與場上狀態；行動端 PWA 疊層互動差，且與既有 panel 操作模式不一致",
+      },
+    ],
+  },
+  {
+    id: "D8",
+    title: "entry 輸入 UI：三步驟延展分段進度條＋Preview 送出",
+    body: "進度條涵蓋全流程（球員→我方→對方；對方失誤屬對方得失分、選定即縮為單步可送出），採延展分段樣式：輪到的段落延展、各段無文字、說明統一下方無編號並帶輪換動畫；前一步未完成不可前進；切換靠點選進度條或滑動（拖曳意圖才 capture、aria-disabled 取代 disabled、滑動後抑制誤觸 click）。Preview 仿 Entry 版式（左側比分 Figures：閒置＝上一筆、勝負未定＝目前比分皆 muted、已定＝結果比分勝方著色）承載送出：輸入中 pulse、完成時 ring＋send icon、送出＝定格（背景閃一次）。mockup 僅定顯示邏輯／動畫／位置，視覺樣式於 propose 精修。",
+    rejected: [
+      {
+        option: "進度條樣式 1–4（分段填色／圓點連線／數字徽章／細線）",
+        reason:
+          "見 Q0 mockup 並排比較；樣式 5 的延展動畫同時服務「對方失誤收合為單步」",
+      },
+      {
+        option: "上一步／下一步按鈕",
+        reason: "滑動＋點選進度條已覆蓋導航，按鈕佔用 panel 空間",
+      },
+      {
+        option: "第三步雙擊同鈕送出（現行）",
+        reason: "隱性確認不可發現；送出集中到 Preview，全介面唯一 highlight",
+      },
+      {
+        option: "文字標籤（輸入中／上一筆）表達 Preview 狀態",
+        reason:
+          "比分 Figures 三態＋pulse 是既有 Entry/GamePreview 語彙，標籤多餘",
+      },
+    ],
+  },
+  {
+    id: "D9",
+    title: "覆蓋機制（v1）：衝突面板限定＋版本檢查",
+    body: "覆蓋第一版就做，但僅限衝突面板情境——衝突覆蓋的本質是覆蓋最後一筆（committedSince 通常僅一筆、無下游 entry），連鎖效果為零。每筆 entry 帶版本號，覆蓋請求帶預期版本，防「乙的衝突面板開著時甲搶先自行修正」的競態與離線重播的靜默遺失；版本過期走同一套衝突面板。",
+    rejected: [
+      {
+        option: "v1 支援任意 entry 的覆蓋",
+        reason:
+          "改早期 entry 觸發連鎖效果（下游比分 fold 重算、輪轉變動、換人合法性）——歸賽後編輯（Q3）",
+      },
+      {
+        option: "無限覆蓋（互相覆蓋）的強制收斂機制",
+        reason:
+          "驗證後確認：互相覆蓋是合法循序編輯（每步都通過版本檢查），非系統衝突；updatedBy＋閃爍可見性即收斂，場邊社交解決",
+      },
+    ],
+  },
+  {
+    id: "D10",
+    title: "賽後編輯（v1）：最後一筆規則＋退回重記",
+    body: "T1（改球員/球種，勝負不變）零連鎖、隨時可改；T2（改勝負）僅在該球仍是最後一筆時允許（零下游，等同 D9 覆蓋）；更早的勝負錯誤走退回重記——共編下 truncate 會刪除他人 entries，需 panel 確認卡（destructive 色）明示刪除範圍與影響對象，確認後廣播失效範圍。通用 UI 原則：「不可用 ≠ 不可見」——鎖定操作以 aria-disabled 保留可點，點擊時說明原因並給替代路徑（explain-on-tap）。",
+    rejected: [
+      {
+        option: "全自動連鎖重算＋標記不合法項",
+        reason:
+          "比分可機械重算，但輪轉變動使既有換人不合法時機械無解；標記待修狀態讓比賽記錄長時間處於半失效，複雜度不成比例",
+      },
+      {
+        option: "v1 不提供退回重記",
+        reason:
+          "「三球前記反了」在真實比賽不罕見，無解過於苛刻；truncate 機制與既有失效廣播共用，成本主要在確認 UI",
+      },
+      {
+        option: "原生 disabled 鎖定不可用操作",
+        reason:
+          "disabled 元素不發 pointer 事件，無法 explain-on-tap；記錄者不知道為什麼不能按、也得不到替代路徑",
+      },
+    ],
+  },
+  {
+    id: "D11",
+    title: "離線佇列重播：defer 至獨立 change（offline-recording）",
+    body: "v1 的機制（basedOn 錨點、409、D7 衝突面板、版本檢查）已是離線重播需要的全部積木，晚做不會被 v1 設計堵死。定向結論先行記錄：佇列由應用層 outbox 產生（送出失敗或離線時把 {entry, basedOn} 入列並本地持久化），非 service worker 攔截；重播走批次端點一次上傳整個佇列，server 逐筆套用既有錨點檢查、入庫通過的前綴，回傳第一筆衝突＋committedSince，client 開 D7 面板裁決、重新錨定剩餘佇列再送——傳輸批次化，裁決仍逐衝突走既有面板，不需發明批次裁決 UI。",
+    rejected: [
+      {
+        option: "SW Background Sync 攔截重播",
+        reason:
+          "背景盲目重播無 UI 可掛，衝突解決依賴 D7 面板（需頁面開啟有人裁決）；現有 SW 僅做 serwist 快取，走 SW 反而新增前置工程",
+      },
+      {
+        option: "納入 sync-recording v1",
+        reason:
+          "outbox 持久化、離線指示、佇列上限是獨立工程量，拖慢主線；v1 斷線期間送出已由錨點 409 保護，不會污染序列",
+      },
+    ],
+  },
+  {
+    id: "D12",
+    title:
+      "entry 編輯／刪除入口：Preview 上緣 drawer＋左滑動作鈕＋tap 行內展開",
+    body: "Summary 從 Options dialog 獨立為以 Preview 為上緣的 bottom drawer：閒置時只露出把手＋最新 entry（即原 Preview），展開時最新 entry 隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不與 panel 滑動衝突。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作——脈絡不離開清單。按鈕組成直接反映最後一筆規則（D10）：最新一筆＝編輯＋刪除（請求帶版本號，與 D9／D10 共用守衛），其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。與 D8 Preview 的手勢分工：閒置時 tap＝展開 drawer；輸入中 Preview tap 僅處理送出（三步完成＝送出、未完成＝無作用），把手恆為 drawer 開關；輸入中以把手展開 drawer 時，draft 以輸入中樣式（pulse）隨上緣升起佔據清單第一列、與已提交 entries 明確區分，送出定格後原地轉為正式第一筆——D8「角色轉換」的延伸。",
+    rejected: [
+      {
+        option: "版本 A：tap＝左滑同款動作鈕",
+        reason: "最少 UI、零疊層，但揭露不了 recordedBy 等資訊",
+      },
+      {
+        option: "版本 C：tap＝action sheet",
+        reason: "行不變形，但 drawer 上再疊一層、脈絡離開清單",
+      },
+      {
+        option: "每行常駐 kebab 鈕／長按選單",
+        reason:
+          "entry 行內已無水平空間、逐行按鈕是視覺噪音；長按無可見 affordance，違反「不可用 ≠ 不可見」精神",
+      },
+      {
+        option: "非最後一筆顯示 disabled 刪除鈕＋explain-on-tap",
+        reason:
+          "改以「退回重記至此」按鈕原位取代——替代路徑直接可見可按，優於先點才知道不能用",
+      },
+    ],
+  },
+  {
+    id: "D13",
+    title:
+      "set 結束邊界：server 推導＋setEnded 守衛，早局不鎖定、比賽層級以提示處理",
+    body: "set 結束是 server 推導的事實，與權威比分同源：寫入決勝球時 fold 順帶判定（達 25／第五局 15 且領先 2）、標 set.win、廣播帶 setEnded。守衛：set.win 非 null 時拒收新 entry（409 setEnded），client 收到 set 結束事件 panel 切至「本局已結束」（同 D7 阻斷語彙）。最後一筆規則家族（D9／D10／D12）作用於決勝球時 set.win 由 fold 重算自然反轉，零額外機制；已結束的早局「不鎖定」——每局各自套用最後一筆規則（範圍限於該局），因前一局結果不影響發球權（建立新局時可自行調整 serve／lineup），連鎖僅及比賽層級勝負：改早局勝負使整場勝負已定或出現多餘局數時，記錄頁與局列表以 banner 提示「移除多餘局數」或「調整決勝局數（如 BO3 改 BO5）」，不自動刪除。新 set 建立帶 expectedSetCount，重複建立 409、後到者進入既有局。錨點 basedOn 維持局內語意（URL 帶 setIndex）；SSE event id 升級為複合游標 setIndex:entryIndex，斷線補漏可跨局。",
+    rejected: [
+      {
+        option: "client 送出時自行宣告 set 結束",
+        reason:
+          "判定權重複——server fold 本來就能判定，兩台裝置各自宣告反而製造歧義",
+      },
+      {
+        option: "已結束且已開新局的 set 鎖定 T2／刪除（僅 T1 可改）",
+        reason:
+          "基於錯誤的規則認知——前一局結果不影響發球權、新局選項本可自行調整，跨局連鎖僅及比賽層級，鎖定過嚴",
+      },
+      {
+        option: "跨 set 退回重記（自動刪除後續局）",
+        reason:
+          "比賽層級的多餘局數／決勝局數改以 banner 提示人工處理，系統不自動刪整局",
+      },
+      {
+        option: "per-game 全域遞增 event id",
+        reason:
+          "需新增儲存欄位；複合游標 setIndex:entryIndex 用既有資料即可，補漏查詢同樣直觀",
+      },
+    ],
+  },
+  {
+    id: "D14",
+    title: "觀眾視圖（v1）：唯讀 live 頁含統計，與記錄頁共用顯示元件",
+    body: "觀眾視圖包含比分、entry 流與統計。新增唯讀 live 路由（如 /game/[gameId]/live），入口設於比賽總覽 banner 與局列表、與「進入記錄」並列——記錄者流程維持 home → 總覽 → 局列表 → 進入記錄，觀眾同路徑改按「觀看直播」。可共用元件（盤點現有結構）：Entry（rally／substitution 卡片）、Stats／TeamsStats、GameHeader、banner、options/overview、options/summary（隨 D12 遷為 drawer）——皆純顯示、無 entryDraft 依賴；記錄者專屬（live 頁不裝）：GameCourt（點擊 dispatch entryDraft）、GamePanel（moves／substitutes）、GamePreview 輸入態、options/edit、set-options。觀眾與記錄者共用同一 SSE stream（廣播即已提交事實，僅權限不同）；TeamsStats 目前消費聚合後的 teams.*.stats，live 更新由 client 依 SSE entry 流 fold 或 SWR revalidate，propose 階段定案。",
+    rejected: [
+      {
+        option: "只做比分板",
+        reason:
+          "SSE 廣播本來就帶完整 entry 與權威比分，只顯示比分是丟棄已到手的資料",
+      },
+      {
+        option: "觀眾獨立 SSE stream",
+        reason:
+          "內容同為已提交事實，僅權限差異；分流徒增 Vercel 連線與維護成本",
+      },
+      {
+        option: "v1 內建大規模觀賽 fan-out",
+        reason:
+          "v1 觀眾為隊員、規模小；未來需要時可換 fan-out 服務，架構不需預留",
+      },
+    ],
+  },
+  {
+    id: "D15",
+    title: "記錄與觀看權限（v1）：MEMBER+ 記錄、隊員限定觀看",
+    body: "記錄權限為 JOINED 隊員（MEMBER+），server 以既有 AuthorizationService.verifyTeamRole(MEMBER) 驗證 POST 與 SSE GET——對等記錄哲學（D1）的延伸：問責靠 recordedBy 永久蓋章（D5）與覆蓋可見性（D9），不靠事前限權。觀看 v1 隊員限定（同一守衛）；公開分享連結（opt-in token URL）移入 backlog 詳述影響範圍與新 UI。非隊員協助記錄（如家長）走既有邀請流程成為 member，不做記錄員專用邀請連結。",
+    rejected: [
+      {
+        option: "ADMIN+ 限定記錄",
+        reason: "與對等記錄矛盾——臨時請隊友接手記錄還要先升 ADMIN",
+      },
+      {
+        option: "per-game 指派記錄者",
+        reason: "最精細但多一層管理 UI 與流程，v1 不值；recordedBy 已提供問責",
+      },
+      {
+        option: "v1 即做公開觀賽連結",
+        reason:
+          "內容含球員姓名／背號，需 opt-in 開關、token 撤銷與無登入獨立視圖，工程量獨立成項——見 backlog",
       },
     ],
   },
@@ -999,6 +1264,1029 @@ function DecisionCards() {
   );
 }
 
+/* ---------------------- Q0 mockup：progress bar 樣式 ---------------------- */
+
+const Q0_STEPS = ["球員", "我方", "對方"];
+const Q0_CAPTION = "1. 選擇球員或對方失誤";
+
+function BarStyleFrame({
+  title,
+  note,
+  verdict,
+  children,
+}: {
+  title: string;
+  note: string;
+  verdict: "adopted" | "rejected";
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] p-3">
+      <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
+        {title}
+        <VerdictBadge verdict={verdict} />
+      </div>
+      <div className="mb-2 text-[11px] text-[var(--color-fd-muted-foreground)]">
+        {note}
+      </div>
+      <div className="mx-auto w-56">{children}</div>
+    </div>
+  );
+}
+
+function ProgressBarStyles() {
+  const [active, setActive] = useState(0);
+
+  return (
+    <div className="not-prose my-4 grid gap-3">
+      <p className="m-0 text-[13px] text-[var(--color-fd-muted-foreground)]">
+        點任一樣式的步驟切換，四種樣式同步顯示同一狀態（目前：第 {active + 1}{" "}
+        步）。每款下方都附步驟說明文字，一併評估整合效果。
+      </p>
+      <BarStyleFrame
+        title="樣式 1：分段填色"
+        verdict="rejected"
+        note="等寬分段、整段可點；觸控面積最大，但「完成 vs 目前」靠深淺區分"
+      >
+        <div className="flex gap-1">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "flex-1 rounded-sm py-0.5 text-[10px] transition-colors",
+                i === active
+                  ? "bg-[var(--primary)] font-semibold text-white"
+                  : i < active
+                    ? "bg-[color-mix(in_oklch,var(--primary)_30%,transparent)]"
+                    : "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 2：圓點連線（onboarding 經典）"
+        verdict="rejected"
+        note="步驟語意最明確、完成打勾；佔位較高，點擊目標是小圓點"
+      >
+        <div className="flex items-center">
+          {Q0_STEPS.map((s, i) => (
+            <div key={s} className="flex flex-1 items-center last:flex-none">
+              <button
+                onClick={() => setActive(i)}
+                className="flex flex-col items-center gap-0.5"
+              >
+                <span
+                  className={cn(
+                    "flex size-5 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors",
+                    i === active
+                      ? "border-transparent bg-[var(--primary)] text-white"
+                      : i < active
+                        ? "border-[var(--primary)] text-[var(--primary)]"
+                        : "border-[var(--border)] text-[var(--color-fd-muted-foreground)]",
+                  )}
+                >
+                  {i < active ? "✓" : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    "text-[9px]",
+                    i === active
+                      ? "font-semibold"
+                      : "text-[var(--color-fd-muted-foreground)]",
+                  )}
+                >
+                  {s}
+                </span>
+              </button>
+              {i < Q0_STEPS.length - 1 && (
+                <span
+                  className={cn(
+                    "mx-1 mb-3 h-px flex-1 transition-colors",
+                    i < active ? "bg-[var(--primary)]" : "bg-[var(--border)]",
+                  )}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 3：數字徽章＋標籤列"
+        verdict="rejected"
+        note="徽章與標籤同列、水平緊湊；步驟多時會擠"
+      >
+        <div className="flex justify-center gap-2">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "flex items-center gap-1 rounded-full border py-0.5 pr-2 pl-0.5 text-[10px] transition-colors",
+                i === active
+                  ? "border-transparent bg-[var(--primary)] text-white"
+                  : "border-[var(--border)] text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-4 items-center justify-center rounded-full text-[9px] font-semibold",
+                  i === active
+                    ? "bg-white/25"
+                    : i < active
+                      ? "bg-[color-mix(in_oklch,var(--primary)_25%,transparent)] text-[var(--primary)]"
+                      : "bg-[var(--color-fd-muted)]",
+                )}
+              >
+                {i < active ? "✓" : i + 1}
+              </span>
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 4：細線進度＋置中說明"
+        verdict="rejected"
+        note="最省空間、說明文字即主角；但步驟不可個別點選，只能滑動切換"
+      >
+        <div className="h-1 overflow-hidden rounded-full bg-[var(--color-fd-muted)]">
+          <div
+            className="h-full rounded-full bg-[var(--primary)] transition-all duration-300"
+            style={{ width: `${((active + 1) / Q0_STEPS.length) * 100}%` }}
+          />
+        </div>
+        <button
+          onClick={() => setActive((active + 1) % Q0_STEPS.length)}
+          className="mt-1 w-full text-center text-[10px] text-[var(--color-fd-muted-foreground)]"
+        >
+          {active + 1}/{Q0_STEPS.length}　{Q0_CAPTION}（點此模擬切換）
+        </button>
+      </BarStyleFrame>
+      <BarStyleFrame
+        title="樣式 5：延展分段"
+        verdict="adopted"
+        note="輪到的階段動畫延展變長；各段不放文字，說明統一在下方；軌道上下的透明 padding 擴大觸控面積"
+      >
+        <div className="flex items-center">
+          {Q0_STEPS.map((s, i) => (
+            <button
+              key={s}
+              aria-label={s}
+              onClick={() => setActive(i)}
+              className={cn(
+                "-my-2 px-0.5 py-2 transition-all duration-300",
+                i === active ? "flex-[2.5]" : "flex-1",
+              )}
+            >
+              <span
+                className={cn(
+                  "block h-1.5 rounded-full transition-colors",
+                  i <= active
+                    ? "bg-[var(--primary)]"
+                    : "bg-[var(--color-fd-muted)]",
+                )}
+              />
+            </button>
+          ))}
+        </div>
+        <div className="mt-1 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+          {Q0_CAPTION}
+        </div>
+      </BarStyleFrame>
+    </div>
+  );
+}
+
+/* ------------------------ Q1 mockup：entry 進度條方案 ------------------------ */
+
+type MockStepId = "player" | "ours" | "oppo";
+
+const MOCK_STEPS: { id: MockStepId; label: string }[] = [
+  { id: "player", label: "球員" },
+  { id: "ours", label: "我方" },
+  { id: "oppo", label: "對方" },
+];
+
+const COURT_ROWS = [
+  [4, 3, 2],
+  [5, 6, 1],
+];
+
+const OURS_MOVES = [
+  { label: "攻擊", win: true },
+  { label: "攔網", win: true },
+  { label: "發球", win: true },
+  { label: "拋傳失誤", win: false },
+];
+
+type LastEntry = {
+  text: string;
+  home: number;
+  away: number;
+  win: boolean;
+};
+
+/* 仿 src/components/game/entry 的比分 Figure：勝方著色、敗方 muted */
+function ScoreFig({
+  value,
+  tone,
+}: {
+  value: number;
+  tone: "primary" | "destructive" | "muted";
+}) {
+  return (
+    <span
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center rounded-sm font-mono text-[11px] font-bold",
+        tone === "primary" &&
+          "bg-[color-mix(in_oklch,var(--primary)_15%,transparent)] text-[var(--primary)]",
+        tone === "destructive" &&
+          "bg-[color-mix(in_oklch,var(--destructive)_15%,transparent)] text-[var(--destructive)]",
+        tone === "muted" &&
+          "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)]",
+      )}
+    >
+      {value}
+    </span>
+  );
+}
+
+function ProgressMockup() {
+  const [stepIdx, setStepIdx] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "backward">("forward");
+  const [player, setPlayer] = useState<number | null>(null);
+  const [oppoError, setOppoError] = useState(false);
+  const [ours, setOurs] = useState<(typeof OURS_MOVES)[number] | null>(null);
+  const [oppo, setOppo] = useState<string | null>(null);
+  const [score, setScore] = useState({ home: 10, away: 8 });
+  const [scoreFlash, setScoreFlash] = useState(false);
+  const [previewFlash, setPreviewFlash] = useState(false);
+  const [lastEntry, setLastEntry] = useState<LastEntry>({
+    text: "#5 攻擊＋ · 接發失誤",
+    home: 10,
+    away: 8,
+    win: true,
+  });
+  const pointerX = useRef<number | null>(null);
+  const swiped = useRef(false);
+
+  /* 對方失誤屬於對方得失分：不需記錄我方表現，流程縮為單一步驟 */
+  const steps = oppoError ? MOCK_STEPS.slice(0, 1) : MOCK_STEPS;
+  const idx = Math.min(stepIdx, steps.length - 1);
+  const step = steps[idx];
+  const editing =
+    oppoError || player !== null || ours !== null || oppo !== null;
+  const complete =
+    oppoError || (player !== null && ours !== null && oppo !== null);
+
+  const captions: Record<MockStepId, string> = {
+    player: oppoError
+      ? "已選擇對方失誤 — 不需記錄我方表現，可直接送出"
+      : "選擇球員或對方失誤",
+    ours: "選擇我方得失分類型",
+    oppo:
+      ours === null
+        ? "選擇對方得失分類型（依前一步而定）"
+        : ours.win
+          ? "選擇對方失分類型"
+          : "選擇對方得分類型",
+  };
+
+  /* 前一步驟資訊完成前，不能切換到下一步驟 */
+  function canGoTo(i: number) {
+    if (oppoError) return i === 0;
+    if (i <= 0) return true;
+    if (i === 1) return player !== null;
+    return player !== null && ours !== null;
+  }
+
+  function goTo(next: number) {
+    if (next === idx || next < 0 || next >= steps.length) return;
+    if (!canGoTo(next)) return;
+    setDirection(next > idx ? "forward" : "backward");
+    setStepIdx(next);
+  }
+
+  function pickPlayer(n: number) {
+    setOppoError(false);
+    setPlayer(n);
+    setDirection("forward");
+    setStepIdx(1);
+  }
+
+  function pickOppoError() {
+    setOppoError(true);
+    setPlayer(null);
+    setOurs(null);
+    setOppo(null);
+    setStepIdx(0);
+  }
+
+  /* 送出＝定格：比分與內容早已就位，pulse 停止、ring/icon 淡出、背景閃一次 */
+  function submit() {
+    if (!complete) return;
+    const win = oppoError ? true : ours!.win;
+    const nextScore = win
+      ? { home: score.home + 1, away: score.away }
+      : { home: score.home, away: score.away + 1 };
+    setLastEntry({
+      text: oppoError
+        ? "對方失誤"
+        : `#${player} ${ours!.label}${ours!.win ? "＋" : "−"} · ${oppo}`,
+      home: nextScore.home,
+      away: nextScore.away,
+      win,
+    });
+    setScore(nextScore);
+    setScoreFlash(true);
+    setPreviewFlash(true);
+    setOppoError(false);
+    setPlayer(null);
+    setOurs(null);
+    setOppo(null);
+    setDirection("backward");
+    setStepIdx(0);
+    setTimeout(() => {
+      setScoreFlash(false);
+      setPreviewFlash(false);
+    }, 1200);
+  }
+
+  const oppoOptions =
+    ours === null
+      ? []
+      : ours.win
+        ? ["接發失誤", "防守失誤", "攔網出界"]
+        : ["對方攻擊得分", "對方攔網得分", "對方發球得分"];
+
+  /* Preview 左側比分：閒置＝上一筆比分；輸入中＝勝負未定前為目前比分、
+     勝負確定後為記錄中（結果）比分 */
+  const draftWin = oppoError ? true : (ours?.win ?? null);
+  const previewScore = !editing
+    ? { home: lastEntry.home, away: lastEntry.away, win: lastEntry.win }
+    : draftWin === null
+      ? { home: score.home, away: score.away, win: null }
+      : draftWin
+        ? { home: score.home + 1, away: score.away, win: true }
+        : { home: score.home, away: score.away + 1, win: false };
+
+  const draftText = oppoError
+    ? "對方失誤"
+    : [
+        player === null ? null : `#${player}`,
+        ours ? `${ours.label}${ours.win ? "＋" : "−"}` : null,
+        oppo,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+  const previewText = editing ? draftText : lastEntry.text;
+
+  const stepBody: Record<MockStepId, React.ReactNode> = {
+    player: (
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 text-[12px] text-[var(--color-fd-muted-foreground)]">
+        點選上方球場中的球員
+        <button
+          onClick={pickOppoError}
+          className={cn(
+            "rounded-md border px-3 py-1.5 text-xs",
+            oppoError
+              ? "border-transparent bg-[var(--primary)] text-white"
+              : "border-[var(--border)]",
+          )}
+        >
+          對方失誤（不需記錄我方表現）
+        </button>
+      </div>
+    ),
+    ours: (
+      <div className="grid flex-1 grid-cols-2 gap-1.5">
+        {OURS_MOVES.map((m) => (
+          <button
+            key={m.label}
+            onClick={() => {
+              setOurs(m);
+              setOppo(null);
+              setDirection("forward");
+              setStepIdx(2);
+            }}
+            className={cn(
+              "rounded-md border text-sm",
+              ours?.label === m.label
+                ? "border-transparent bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-[var(--color-fd-card)]",
+            )}
+          >
+            {m.label} {m.win ? "＋" : "−"}
+          </button>
+        ))}
+      </div>
+    ),
+    oppo: (
+      <div className="grid flex-1 grid-cols-1 gap-1.5">
+        {oppoOptions.map((m) => (
+          <button
+            key={m}
+            onClick={() => setOppo(m)}
+            className={cn(
+              "rounded-md border text-sm",
+              oppo === m
+                ? "border-transparent bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-[var(--color-fd-card)]",
+            )}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+    ),
+  };
+
+  return (
+    <div className="not-prose my-4 rounded-2xl border border-[var(--border)] p-4">
+      <style>{`
+        @keyframes mock-slide-from-right {
+          from { transform: translateX(24px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes mock-slide-from-left {
+          from { transform: translateX(-24px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .mock-forward { animation: 300ms ease mock-slide-from-right; }
+        .mock-backward { animation: 300ms ease mock-slide-from-left; }
+        @keyframes mock-preview-in {
+          from { transform: translateY(4px); opacity: 0.3; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .mock-preview-in { animation: 250ms ease mock-preview-in; }
+      `}</style>
+      <div className="mx-auto flex w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
+        <div
+          key={`${score.home}-${score.away}`}
+          className={cn(
+            "text-center font-mono text-lg font-bold",
+            scoreFlash && "score-flash",
+          )}
+        >
+          {score.home}–{score.away}
+        </div>
+        <div className="rounded-lg border border-[var(--border)] p-1.5">
+          {COURT_ROWS.map((row, i) => (
+            <div key={i} className="mb-1 grid grid-cols-3 gap-1 last:mb-0">
+              {row.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => pickPlayer(n)}
+                  className={cn(
+                    "rounded-md border py-1.5 text-xs font-semibold",
+                    player === n
+                      ? "border-transparent bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-[var(--color-fd-card)]",
+                  )}
+                >
+                  #{n}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div
+          className="flex h-44 touch-pan-y flex-col rounded-lg border border-[var(--border)] p-1.5"
+          onPointerDown={(e) => {
+            pointerX.current = e.clientX;
+          }}
+          onPointerMove={(e) => {
+            /* 移動超過 8px 才 capture：拖曳可從任何子元素（含按鈕）起手，
+               點按則不受影響（pointerdown 就 capture 會讓 click 派發到容器） */
+            if (pointerX.current === null) return;
+            if (e.currentTarget.hasPointerCapture(e.pointerId)) return;
+            if (Math.abs(e.clientX - pointerX.current) > 8) {
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }
+          }}
+          onPointerUp={(e) => {
+            if (pointerX.current === null) return;
+            const dx = e.clientX - pointerX.current;
+            pointerX.current = null;
+            if (Math.abs(dx) < 40) return;
+            swiped.current = true;
+            goTo(idx + (dx < 0 ? 1 : -1));
+          }}
+          onClickCapture={(e) => {
+            /* 滑動手勢結束時抑制落點按鈕的誤觸 click */
+            if (!swiped.current) return;
+            swiped.current = false;
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
+          {/* 進度條：Q0 定案樣式 5（延展分段），透明 padding 擴大觸控面積 */}
+          <div role="tablist" className="flex items-center px-1">
+            {steps.map((s, i) => (
+              <button
+                key={s.id}
+                role="tab"
+                aria-selected={i === idx}
+                aria-label={s.label}
+                aria-disabled={!canGoTo(i)}
+                onClick={() => goTo(i)}
+                className={cn(
+                  "-my-2 px-0.5 py-2 transition-all duration-300",
+                  i === idx ? "flex-[2.5]" : "flex-1",
+                )}
+              >
+                <span
+                  className={cn(
+                    "block h-1.5 rounded-full transition-colors",
+                    i <= idx
+                      ? "bg-[var(--primary)]"
+                      : "bg-[var(--color-fd-muted)]",
+                    !canGoTo(i) && "opacity-50",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+          {/* 說明文字：無編號，輪換帶動畫 */}
+          <div className="mt-1 mb-1.5 text-center text-[10px] text-[var(--color-fd-muted-foreground)]">
+            <span key={captions[step.id]} className="mock-preview-in block">
+              {captions[step.id]}
+            </span>
+          </div>
+          <div
+            key={`${step.id}-${String(oppoError)}`}
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              direction === "forward" ? "mock-forward" : "mock-backward",
+            )}
+          >
+            {stepBody[step.id]}
+          </div>
+        </div>
+        {/* Preview：仿 Entry 版式（左側比分 Figures + 左框線內容）。
+            輸入中＝animate-pulse（沿用現行 GamePreview 語彙）；
+            完成＝pulse 停止 + ring + send icon；送出＝定格（背景閃一次） */}
+        <div
+          className={cn(
+            "flex items-center gap-1 rounded-lg border px-2 py-1.5 transition-all duration-300",
+            complete
+              ? "border-[var(--primary)] ring-2 ring-[color-mix(in_oklch,var(--primary)_35%,transparent)]"
+              : "border-[var(--border)]",
+            previewFlash && "score-flash",
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-1",
+              editing && !complete && "animate-pulse duration-1000",
+            )}
+          >
+            <ScoreFig
+              value={previewScore.home}
+              tone={
+                previewScore.win === null
+                  ? "muted"
+                  : previewScore.win
+                    ? "primary"
+                    : "muted"
+              }
+            />
+            <ScoreFig
+              value={previewScore.away}
+              tone={
+                previewScore.win === null
+                  ? "muted"
+                  : previewScore.win
+                    ? "muted"
+                    : "destructive"
+              }
+            />
+            <span
+              key={previewText}
+              className={cn(
+                "mock-preview-in min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
+                previewScore.win === false
+                  ? "border-[var(--destructive)]"
+                  : "border-[var(--primary)]",
+                !editing && "text-[var(--color-fd-muted-foreground)]",
+              )}
+            >
+              {previewText || "…"}
+            </span>
+          </div>
+          <button
+            onClick={submit}
+            aria-label="送出"
+            className={cn(
+              "shrink-0 text-sm text-[var(--primary)] transition-opacity duration-300",
+              complete ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            ➤
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------- Q5 mockup：entry 動作揭露（討論中） -------------------- */
+
+type Q5Entry = {
+  text: string;
+  home: number;
+  away: number;
+  win: boolean;
+  by: string;
+  time: string;
+};
+
+const Q5_ENTRIES: Q5Entry[] = [
+  {
+    text: "#5 攻擊＋ · 接發失誤",
+    home: 8,
+    away: 6,
+    win: true,
+    by: "小明",
+    time: "14:02",
+  },
+  { text: "#3 發球−", home: 8, away: 7, win: false, by: "小華", time: "14:03" },
+  { text: "對方失誤", home: 9, away: 7, win: true, by: "小明", time: "14:04" },
+  {
+    text: "#2 攔網＋ · 攻擊出界",
+    home: 10,
+    away: 7,
+    win: true,
+    by: "小華",
+    time: "14:05",
+  },
+  {
+    text: "#6 防守失誤−",
+    home: 10,
+    away: 8,
+    win: false,
+    by: "小明",
+    time: "14:06",
+  },
+];
+
+const Q5_VARIANTS = [
+  {
+    id: "A",
+    label: "版本 A：tap＝動作鈕",
+    verdict: "rejected",
+    note: "tap 與左滑同一結果（開啟行內動作鈕）——最少 UI、零疊層，但揭露不了 recordedBy 等資訊",
+  },
+  {
+    id: "B",
+    label: "版本 B：tap＝行內展開",
+    verdict: "adopted",
+    note: "行下方就地展開資訊與完整動作，脈絡不離開清單；代價是行高變動、清單會跳動",
+  },
+  {
+    id: "C",
+    label: "版本 C：tap＝action sheet",
+    verdict: "rejected",
+    note: "行不變形、資訊與動作集中於底部 sheet；代價是 drawer 上再疊一層、脈絡離開清單",
+  },
+] as const;
+
+function EntryActionsMockup() {
+  const [variant, setVariant] =
+    useState<(typeof Q5_VARIANTS)[number]["id"]>("B");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [revealIdx, setRevealIdx] = useState<number | null>(null);
+  const [expandIdx, setExpandIdx] = useState<number | null>(null);
+  const [sheetIdx, setSheetIdx] = useState<number | null>(null);
+  const [explain, setExplain] = useState<string | null>(null);
+  const pointerX = useRef<number | null>(null);
+  const swiped = useRef(false);
+
+  const lastIdx = Q5_ENTRIES.length - 1;
+
+  function closeAll() {
+    setRevealIdx(null);
+    setExpandIdx(null);
+    setSheetIdx(null);
+    setExplain(null);
+  }
+
+  function rowTap(i: number) {
+    /* 閒置態（drawer 收合）＝Preview：tap 只負責展開 drawer */
+    if (!drawerOpen) {
+      setDrawerOpen(true);
+      return;
+    }
+    setExplain(null);
+    if (variant === "A") {
+      setRevealIdx((r) => (r === i ? null : i));
+    } else if (variant === "B") {
+      setRevealIdx(null);
+      setExpandIdx((x) => (x === i ? null : i));
+    } else {
+      setRevealIdx(null);
+      setSheetIdx(i);
+    }
+  }
+
+  /* 最後一筆規則（D10）：僅最新 entry 有刪除；其餘以「退回重記」取代 */
+  function tapDelete() {
+    setExplain("（示意）刪除最後一筆：請求帶版本號，與 D9／D10 共用守衛");
+  }
+
+  function tapEdit(i: number) {
+    setExplain(
+      i === lastIdx
+        ? "（示意）進入 D8 輸入流程帶入既有資料；改勝負（T2）僅限最後一筆"
+        : "（示意）進入編輯：非最後一筆僅能改球員／球種（T1），改勝負走退回重記",
+    );
+  }
+
+  function tapTruncate(i: number) {
+    setExplain(
+      `（示意）退回重記至此：刪除第 ${i + 1} 筆起共 ${Q5_ENTRIES.length - i} 筆他人可能記的 entries，需 destructive 確認卡（D10）`,
+    );
+  }
+
+  /* 動作組：編輯＋（最新一筆）刪除／（其餘）退回重記；full＝展開／sheet 版 */
+  function renderActions(i: number, full?: boolean) {
+    const isLast = i === lastIdx;
+    return (
+      <div className={cn("flex items-center gap-1", full && "w-full")}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            tapEdit(i);
+          }}
+          className={cn(
+            "rounded-md border border-[var(--border)] bg-[var(--color-fd-card)] px-2 py-1 text-[10px]",
+            full && "flex-1",
+          )}
+        >
+          編輯
+        </button>
+        {isLast ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              tapDelete();
+            }}
+            className={cn(
+              "rounded-md border border-[var(--destructive)] bg-[color-mix(in_oklch,var(--destructive)_10%,transparent)] px-2 py-1 text-[10px] text-[var(--destructive)]",
+              full && "flex-1",
+            )}
+          >
+            刪除
+          </button>
+        ) : (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              tapTruncate(i);
+            }}
+            className={cn(
+              "rounded-md border border-[var(--destructive)] bg-[var(--color-fd-card)] px-2 py-1 text-[10px] text-[var(--destructive)]",
+              full && "flex-1",
+            )}
+          >
+            {full ? "退回重記至此" : "退回重記"}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const sheetEntry = sheetIdx === null ? null : Q5_ENTRIES[sheetIdx];
+
+  return (
+    <div className="not-prose my-4 rounded-2xl border border-[var(--border)] p-4">
+      <style>{`
+        @keyframes mock-sheet-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .mock-sheet-up { animation: 250ms ease mock-sheet-up; }
+      `}</style>
+      <div className="mb-2 flex flex-wrap gap-2">
+        {Q5_VARIANTS.map((v) => (
+          <Pill
+            key={v.id}
+            active={variant === v.id}
+            onClick={() => {
+              setVariant(v.id);
+              closeAll();
+            }}
+          >
+            {v.label}
+          </Pill>
+        ))}
+      </div>
+      <p className="m-0 mb-3 flex flex-wrap items-start gap-1.5 text-[12px] text-[var(--color-fd-muted-foreground)]">
+        <VerdictBadge
+          verdict={Q5_VARIANTS.find((v) => v.id === variant)!.verdict}
+        />
+        <span className="min-w-0 flex-1">
+          {Q5_VARIANTS.find((v) => v.id === variant)!.note}
+          。Preview 即 drawer 上緣——點把手或 Preview 展開，最新 entry
+          隨上緣升起成為清單第一筆；展開後左滑任一行顯示動作鈕（所有版本通用），tap
+          行為依版本而異。
+        </span>
+      </p>
+      <div className="mx-auto flex h-96 w-60 flex-col gap-2 rounded-[20px] border-4 border-[var(--color-fd-foreground)] p-2">
+        <div className="text-center font-mono text-lg font-bold">10–8</div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          {/* 記錄 panel 佔位：drawer 升起時覆蓋此區 */}
+          <div className="flex h-full items-center justify-center rounded-lg border border-[var(--border)] text-[11px] text-[var(--color-fd-muted-foreground)]">
+            （記錄 panel）
+          </div>
+          {/* Summary drawer：Preview 即 drawer 上緣——閒置時僅露出把手＋最新
+              entry（＝Preview）；展開時整體上移，最新 entry 隨上緣升起、
+              原地成為 summary 的第一筆 */}
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 z-10 flex h-full flex-col rounded-t-xl border border-[var(--border)] bg-[var(--color-fd-card)] p-1.5 shadow-lg transition-transform duration-300",
+              drawerOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]",
+            )}
+          >
+            <button
+              aria-expanded={drawerOpen}
+              aria-label={drawerOpen ? "收合記錄清單" : "展開記錄清單"}
+              onClick={() => {
+                setDrawerOpen((o) => !o);
+                closeAll();
+              }}
+              className="shrink-0 pb-1.5"
+            >
+              <span className="mx-auto block h-1 w-8 rounded-full bg-[var(--color-fd-muted)]" />
+            </button>
+            <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+              {Q5_ENTRIES.map((en, i) => (
+                <div
+                  key={i}
+                  className="shrink-0 overflow-hidden rounded-md border border-[var(--border)]"
+                >
+                  {/* 內層獨立裁切左滑動作層，避免版本 B 展開時動作層跟著長高 */}
+                  <div className="relative overflow-hidden">
+                    {/* 左滑揭露的動作鈕層（行內容後方） */}
+                    <div className="absolute inset-y-0 right-1 flex items-center">
+                      {renderActions(i)}
+                    </div>
+                    <div
+                      className={cn(
+                        "relative flex h-9 touch-pan-y items-center gap-1 bg-[var(--color-fd-card)] px-1.5 transition-transform duration-200",
+                        revealIdx === i &&
+                          (i === lastIdx
+                            ? "-translate-x-[5.5rem]"
+                            : "-translate-x-[6.75rem]"),
+                      )}
+                      onPointerDown={(e) => {
+                        pointerX.current = e.clientX;
+                      }}
+                      onPointerMove={(e) => {
+                        /* 拖曳意圖（>8px）才 capture，點按不受影響（同 Q1） */
+                        if (pointerX.current === null) return;
+                        if (e.currentTarget.hasPointerCapture(e.pointerId))
+                          return;
+                        if (Math.abs(e.clientX - pointerX.current) > 8) {
+                          e.currentTarget.setPointerCapture(e.pointerId);
+                        }
+                      }}
+                      onPointerUp={(e) => {
+                        if (pointerX.current === null) return;
+                        const dx = e.clientX - pointerX.current;
+                        pointerX.current = null;
+                        if (!drawerOpen) return;
+                        if (Math.abs(dx) < 40) return;
+                        swiped.current = true;
+                        setExplain(null);
+                        setRevealIdx(dx < 0 ? i : null);
+                      }}
+                      onClickCapture={(e) => {
+                        if (!swiped.current) return;
+                        swiped.current = false;
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onClick={() => rowTap(i)}
+                    >
+                      <ScoreFig
+                        value={en.home}
+                        tone={en.win ? "primary" : "muted"}
+                      />
+                      <ScoreFig
+                        value={en.away}
+                        tone={en.win ? "muted" : "destructive"}
+                      />
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
+                          en.win
+                            ? "border-[var(--primary)]"
+                            : "border-[var(--destructive)]",
+                        )}
+                      >
+                        {en.text}
+                      </span>
+                      {i === lastIdx && (
+                        <span className="shrink-0 text-[9px] text-[var(--color-fd-muted-foreground)]">
+                          最後一筆
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* 版本 B：行內展開（資訊＋完整動作） */}
+                  {variant === "B" && expandIdx === i && (
+                    <div className="mock-preview-in flex flex-col gap-1.5 border-t border-[var(--border)] bg-[color-mix(in_oklch,var(--color-fd-muted)_40%,transparent)] p-1.5">
+                      <div className="text-[10px] text-[var(--color-fd-muted-foreground)]">
+                        記錄者 {en.by} · {en.time}
+                      </div>
+                      {renderActions(i, true)}
+                    </div>
+                  )}
+                </div>
+              )).reverse()}
+              <div className="shrink-0 py-1 text-center text-[9px] text-[var(--color-fd-muted-foreground)]">
+                —— 比賽開始 ——
+              </div>
+            </div>
+            {/* explain-on-tap 回饋（版本 C 開 sheet 時改顯示於 sheet 內） */}
+            {explain && (variant !== "C" || sheetIdx === null) && (
+              <div
+                key={explain}
+                className="mock-preview-in mt-1 shrink-0 text-center text-[9px] text-[var(--destructive)]"
+              >
+                {explain}
+              </div>
+            )}
+            {/* 版本 C：action sheet（drawer 上再疊一層） */}
+            {variant === "C" && sheetEntry && sheetIdx !== null && (
+              <div
+                className="absolute inset-0 z-20 flex flex-col justify-end overflow-hidden rounded-t-xl"
+                onClick={() => {
+                  setSheetIdx(null);
+                  setExplain(null);
+                }}
+              >
+                <div className="absolute inset-0 bg-black/25" />
+                <div
+                  className="mock-sheet-up relative flex flex-col gap-1.5 rounded-t-xl border-t border-[var(--border)] bg-[var(--color-fd-card)] p-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex items-center gap-1">
+                    <ScoreFig
+                      value={sheetEntry.home}
+                      tone={sheetEntry.win ? "primary" : "muted"}
+                    />
+                    <ScoreFig
+                      value={sheetEntry.away}
+                      tone={sheetEntry.win ? "muted" : "destructive"}
+                    />
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate border-l-2 pl-1 text-[11px]",
+                        sheetEntry.win
+                          ? "border-[var(--primary)]"
+                          : "border-[var(--destructive)]",
+                      )}
+                    >
+                      {sheetEntry.text}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[var(--color-fd-muted-foreground)]">
+                    記錄者 {sheetEntry.by} · {sheetEntry.time}
+                  </div>
+                  {renderActions(sheetIdx, true)}
+                  {explain && (
+                    <div
+                      key={explain}
+                      className="mock-preview-in text-center text-[9px] text-[var(--destructive)]"
+                    >
+                      {explain}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ----------------------------------- 頁面 ----------------------------------- */
 
 export const toc = [
@@ -1007,7 +2295,22 @@ export const toc = [
   { title: "衝突模型：意圖錨點", url: "#intent-anchor", depth: 2 },
   { title: "資料契約", url: "#data-contract", depth: 2 },
   { title: "同步狀態與視覺回饋", url: "#feedback", depth: 2 },
-  { title: "未決問題", url: "#open-questions", depth: 2 },
+  {
+    title: "Q0 mockup：progress bar 樣式（已定案）",
+    url: "#q0-mockup",
+    depth: 2,
+  },
+  {
+    title: "Q1 mockup：entry 進度條與 Preview 送出（已定案）",
+    url: "#q1-mockup",
+    depth: 2,
+  },
+  {
+    title: "Q5 mockup：entry 動作揭露（已定案）",
+    url: "#q5-mockup",
+    depth: 2,
+  },
+  { title: "未決問題（已全數收斂）", url: "#open-questions", depth: 2 },
   { title: "範圍外（backlog）", url: "#out-of-scope", depth: 2 },
 ];
 
@@ -1086,52 +2389,70 @@ export default function Design() {
           逾時）顯示「離線」；斷線期間送出的 entry 因錨點過期會被 409
           攔下，不會污染序列。
         </li>
+        <li>
+          <strong>set 結束（D13）</strong>：setEnded 事件到達時記錄 panel
+          切換為「本局已結束」畫面（同 D7
+          阻斷語彙），引導進入建立新局流程；改早局勝負使整場勝負已定或
+          出現多餘局數時，記錄頁與局列表以 banner
+          提示「移除多餘局數」或「調整決勝局數」，不自動刪除。
+        </li>
       </ul>
 
-      <h2 id="open-questions">未決問題（下一輪討論入口）</h2>
-      <ol>
-        <li>
-          <strong>Q1 — entry 輸入的每個 UI 步驟</strong>
-          ：進度條要顯示哪些步驟？（需從頭逐步確認： 發球/接發 → 攻防過程 → 勝負
-          → 確認？現行 panel 的步驟拆法是否沿用？）
-        </li>
-        <li>
-          <strong>Q2 — 「覆蓋」的實作邊界</strong>：覆蓋＝update 已入庫
-          entry（version
-          檢查、級聯重算、updatedBy）。第一版就做？兩人互相覆蓋（edit
-          war）如何收斂？
-        </li>
-        <li>
-          <strong>Q3 — 賽後（中途）編輯的級聯效應</strong>：改第 N
-          球勝負會改變其後的發球方、輪轉、
-          站位，可能使已記錄的換人變得不合法。自動級聯重算？標記後人工修正？退回重記？
-        </li>
-        <li>
-          <strong>Q4 — 離線佇列重播</strong>：離線期間排隊的多筆 entries
-          重連後逐筆重播， 第一筆衝突時暫停佇列等人工解決？還是整批比對？
-        </li>
-        <li>
-          <strong>Q5 — undo／刪除最後一球</strong>：與新 entry
-          併發時的行為（刪除也是序列變異， 需要 version 檢查）。
-        </li>
-        <li>
-          <strong>Q6 — set 結束邊界</strong>：一球達 25 分（第五局 15 分）且領先
-          2 分即結束該局；另一人同時記了「下一球」→ server 需驗證 set
-          未結束並拒收。跨 set 的錨點如何表示？
-        </li>
-        <li>
-          <strong>Q7 — 觀眾視圖範圍</strong>
-          ：唯讀觀看包含哪些資訊（比分／輪轉／統計）？ 與記錄者共用同一 SSE
-          stream？
-        </li>
-        <li>
-          <strong>Q8 — 記錄權限</strong>：誰可以成為記錄者（team role
-          對應）？觀眾連結是否公開？
-        </li>
-      </ol>
+      <h2 id="q0-mockup">Q0 mockup：progress bar 樣式（已定案：樣式 5）</h2>
+      <ProgressBarStyles />
+
+      <h2 id="q1-mockup">
+        Q1 mockup：entry 進度條與 Preview 送出（已定案，見 D8）
+      </h2>
+      <p>
+        進度條涵蓋全流程三步驟（含球員選擇），每步附說明文字；切換靠點選進度條或左右滑動
+        panel（沿用 tab-container 的方向性滑動動畫，此行為未來將成為 panel
+        的預設功能），且前一步驟完成前不能切換到下一步。送出由底部 chat-input
+        式的 Preview 承載：閒置時顯示上一筆 entry、輸入中顯示 draft，三步完成後
+        highlight 並浮現 send icon（全介面唯一 highlight）；送出＝「角色轉換」——
+        draft 內容原地成為上一筆（附上結果比分），ring 與 icon 淡出、比分閃爍。
+      </p>
+      <ProgressMockup />
+
+      <h2 id="q5-mockup">
+        Q5 mockup：entry 動作揭露（已定案：版本 B，見 D12）
+      </h2>
+      <p>
+        前提變動：Summary（entry 清單）從 Options dialog 獨立出來，改為以
+        Preview 為上緣、自底部升起的 drawer——閒置時只露出把手與最新
+        entry（即現在的 Preview），展開時最新 entry
+        隨上緣升起、原地成為清單第一筆；Summary 因此離開 panel，左滑手勢不再與
+        panel 滑動衝突。drawer 內每筆 entry 支援左滑顯示動作鈕；整行 tap
+        亦可揭露動作與資訊，tap 的揭露形式有三個版本（Pill 切換比較，版本 B
+        定案）。揭露內容：動作＝編輯＋（最新一筆）刪除／（其餘）
+        退回重記至此——最後一筆規則直接反映在按鈕組成上；資訊＝recordedBy（D5）
+        與時間。與 D8 送出的手勢分工：閒置時 tap Preview＝展開 drawer；輸入中
+        tap 僅處理送出（未完成則無作用），把手恆為 drawer
+        開關——輸入中以把手展開時，draft 以輸入中樣式（pulse）
+        隨上緣升起佔據清單第一列，送出定格後原地轉為正式第一筆。
+      </p>
+      <EntryActionsMockup />
+
+      <h2 id="open-questions">未決問題（已全數收斂）</h2>
+      <p>
+        Q0–Q8 全數定案，收錄為決策卡 D1–D15；後續工作見範圍外（backlog） 與
+        propose 階段。
+      </p>
 
       <h2 id="out-of-scope">範圍外（backlog，propose 階段移至 proposal）</h2>
       <ul>
+        <li>
+          離線記錄（offline-recording）：應用層 outbox＋批次重播端點—— defer
+          決策與定向結論見 D11
+        </li>
+        <li>
+          公開觀賽連結（opt-in，defer 決策見 D15）——影響範圍：game 層級
+          shareToken 欄位與開關（預設關）、SSE／唯讀 API 增加 token
+          驗證分支（取代 session 驗證）、token 重生即撤銷；需討論與建立的新
+          UI：比賽設定的「公開直播」開關與連結複製／重生、無登入觀賽 landing（僅
+          D14
+          唯讀視圖、隱藏所有操作）、開啟時的隱私提示（內容含球員姓名／背號）。
+        </li>
         <li>創建比賽、創建新局、瀏覽比賽資料的使用者流程與介面重設計</li>
         <li>
           資料層決策：MongoDB vs
