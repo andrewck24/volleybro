@@ -1,5 +1,7 @@
 import React from "react";
 
+import { cn } from "@/lib/utils";
+
 interface Annotation {
   line: number;
   note: string;
@@ -15,15 +17,24 @@ export function AnnotatedDiff({ diff, annotations }: AnnotatedDiffProps) {
   const annotationMap = new Map(annotations.map((a) => [a.line, a.note]));
 
   return (
-    <pre>
+    <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-sm text-foreground">
       {lines.map((line, index) => {
         const lineNumber = index + 1;
         const note = annotationMap.get(lineNumber);
+        const added = line.startsWith("+");
+        const removed = line.startsWith("-");
         return (
           <React.Fragment key={lineNumber}>
-            <div>{line}</div>
+            <div
+              className={cn(
+                added && "text-primary",
+                removed && "text-destructive",
+              )}
+            >
+              {line}
+            </div>
             {note && (
-              <div role="note" style={{ paddingLeft: "1em", fontStyle: "italic" }}>
+              <div role="note" className="pl-4 text-muted-foreground italic">
                 {note}
               </div>
             )}

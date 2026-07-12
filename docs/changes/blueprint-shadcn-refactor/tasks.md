@@ -24,11 +24,11 @@
 
 ## 3. Batch: tables, comparison, index, flowchart
 
-- [ ] 3.1 Add `table`, `tabs`, `accordion`; rebuild `RiskTable`,
+- [x] 3.1 Add `table`, `tabs`, `accordion`; rebuild `RiskTable`,
       `ApproachComparison`, `AnnotatedDiff`. No `ExampleTable` (raw `<table>`
       wrapper) — dropped as unused; Fumadocs renders markdown tables natively.
-- [ ] 3.2 Rebuild `ChangeCard`, `ChangeOverview` on `Card`+`Badge`; remove arbitrary
+- [x] 3.2 Rebuild `ChangeCard`, `ChangeOverview` on `Card`+`Badge`; remove arbitrary
       values
-- [ ] 3.3 `InteractiveFlowchart`: CSS-variable colors + responsive `viewBox`
-- [ ] 3.4 Verify: full type-check/test/build + light/dark visual check of migrated
-      changes
+- [x] 3.3 `InteractiveFlowchart`: CSS-variable colors + responsive `viewBox`
+- [x] 3.4 Verify: full type-check/test/build all green (no hard-coded hex/arbitrary
+      values remain). Light/dark **visual** check still pending human review.

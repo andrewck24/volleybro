@@ -1,3 +1,12 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 type Approach = {
   name: string;
   pros: string[];
@@ -10,23 +19,27 @@ type ApproachComparisonProps = {
 
 export function ApproachComparison({ approaches }: ApproachComparisonProps) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>Approach</th>
-          <th>Pros</th>
-          <th>Cons</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Approach</TableHead>
+          <TableHead>Pros</TableHead>
+          <TableHead>Cons</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {approaches.map((a) => (
-          <tr key={a.name}>
-            <td>{a.name}</td>
-            <td>{a.pros.join(", ")}</td>
-            <td>{a.cons.join(", ")}</td>
-          </tr>
+          <TableRow key={a.name}>
+            <TableCell className="font-medium">{a.name}</TableCell>
+            <TableCell className="whitespace-normal">
+              {a.pros.join(", ")}
+            </TableCell>
+            <TableCell className="whitespace-normal">
+              {a.cons.join(", ")}
+            </TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }

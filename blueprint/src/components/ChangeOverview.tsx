@@ -1,6 +1,17 @@
+import { cva } from "class-variance-authority";
+
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 type Artifact = { title: string; href: string };
 type Status = "archived" | "in-progress" | "draft";
-type Props = { date: string; status: Status; summary: string; artifacts: Artifact[] };
+type Props = {
+  date: string;
+  status: Status;
+  summary: string;
+  artifacts: Artifact[];
+};
 
 const STATUS_LABEL: Record<Status, string> = {
   archived: "Archived",
@@ -8,33 +19,35 @@ const STATUS_LABEL: Record<Status, string> = {
   draft: "Draft",
 };
 
-const STATUS_CLASS: Record<Status, string> = {
-  archived:
-    "bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border border-[color-mix(in_oklch,var(--primary)_35%,transparent)]",
-  "in-progress":
-    "bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-[var(--warning)] border border-[color-mix(in_oklch,var(--warning)_40%,transparent)]",
-  draft:
-    "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)] border border-[var(--border)]",
-};
+const statusVariants = cva("", {
+  variants: {
+    status: {
+      archived: "border-primary/35 bg-primary/10 text-primary",
+      "in-progress": "border-warning/40 bg-warning/10 text-warning",
+      draft: "border-border bg-muted text-muted-foreground",
+    },
+  },
+});
 
 function StatusBadge({ status }: { status: Status }) {
   return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium leading-[18px] tracking-[0.01em] ${STATUS_CLASS[status]}`}
+    <Badge
+      variant="outline"
+      data-status={status}
+      className={cn(statusVariants({ status }))}
     >
       {STATUS_LABEL[status]}
-    </span>
+    </Badge>
   );
 }
 
 function ArtifactCard({ title, href }: Artifact) {
   return (
-    <a
-      href={href}
-      className="flex items-center px-3.5 py-2.5 rounded-lg border border-[color:var(--border)] border-l-[3px] border-l-[color:var(--primary)] bg-[var(--color-fd-card)] text-inherit no-underline text-sm font-medium gap-2 transition-colors duration-150"
-    >
-      {title}
-      <span className="ml-auto text-[var(--color-fd-muted-foreground)] text-xs">→</span>
+    <a href={href} className="block text-inherit no-underline">
+      <Card className="flex-row items-center gap-2 border-l-4 border-l-primary px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50">
+        {title}
+        <span className="ml-auto text-xs text-muted-foreground">→</span>
+      </Card>
     </a>
   );
 }
@@ -42,10 +55,8 @@ function ArtifactCard({ title, href }: Artifact) {
 export function ChangeOverview({ date, status, summary, artifacts }: Props) {
   return (
     <div>
-      <div className="flex gap-2 items-center mb-5 flex-wrap">
-        <span className="text-[13px] text-[var(--color-fd-muted-foreground)] font-mono">
-          {date}
-        </span>
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <span className="font-mono text-sm text-muted-foreground">{date}</span>
         <StatusBadge status={status} />
       </div>
 
