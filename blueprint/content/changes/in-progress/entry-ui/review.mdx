@@ -26,6 +26,7 @@ All 727 tests pass and `tsc --noEmit` is clean after the fix.
 | 8   | Suggestion | Swipe-gesture block duplicated between `EntryRow` and `EntryProgressBar` | `entry/index.tsx`, `progress-bar.tsx`   | ⚠️ Flagged                                    |
 | 9   | Suggestion | `isComplete = submittable === true` redundant strict-equality            | `preview.tsx`                           | ⚠️ Flagged                                    |
 | 10  | Suggestion | `getEntryProgress` recomputed up to 3× per render                        | `summary-drawer.tsx`, `preview.tsx`     | ⚠️ Flagged                                    |
+| 11  | 🔴 Bug     | Summary drawer "編輯" action never opened the edit dialog (no-op)        | `summary-drawer.tsx`, `index.tsx`       | ✅ Fixed — commit `f9b10c13` (PR-review r1)   |
 
 ---
 
@@ -102,3 +103,49 @@ entry-ui frontend scope.
   vs both directions — so a shared `useSwipeGesture` hook is a real refactor); a redundant
   `=== true` (deliberate defensive style); and `getEntryProgress` recomputed a few times per render
   (a cheap pure fn, negligible). Each is a judgment call, not a defect.
+
+---
+
+## PR-review round 1 — CI reviewer (`claude-code-review`)
+
+The automated PR review on #311 surfaced one finding the post-apply self-review missed, plus a
+few confirmations. Fixed in commit `f9b10c13`; `pnpm typecheck` clean and the affected suites
+(`summary-drawer`, `entry-progress`, `gesture-integration`) green.
+
+### #11 — Summary drawer "編輯" action was a dead no-op (Bug, fixed)
+
+**Files**: `src/components/game/summary-drawer.tsx`, `src/components/game/index.tsx`.
+**Root cause**: moving the Summary out of the Options dialog into a standalone, always-mounted
+`SummaryDrawer` severed an implicit dependency. Tapping "編輯" dispatched
+`setEditingEntryStatus` (flipping Redux `mode` to `"editing"`) but nothing opened the Options
+`Dialog` housing `EntriesEdit` — `dialogOpen` was only ever set by the header's options button.
+Because delete/rollback are hidden by the last-entry rule (#2), edit was the **only** exposed
+row action on the newest entry, and it did nothing. This is the desync that self-review #4 had
+only assumed _inside_ an already-open dialog — it was in fact a no-op before the dialog ever
+opened.
+**Fix**: minimal callback bridge — `SummaryDrawer` gains an `onEditRequest` prop invoked after
+the dispatch, and the `Game` shell wires it to `setDialogOpen(true)`. A container-level
+regression test asserts the edit action both dispatches `setEditingEntryStatus` and fires
+`onEditRequest`. Scope was deliberately held to the bridge; extracting `EntriesEdit` into a
+dedicated `edit-dialog` (game-page layout, before/after conflict confirm, leave-warning) is a
+separate follow-up change, sequenced after this PR merges.
+
+### Confirmed, no change needed
+
+- **`submittable` invariant** — the CI reviewer noted `submittable` now checks only
+  `away.num`. Verified correct against `setEntryDraftHomeMove` (sets `win` / `home` / a default
+  `away` atomically); added a one-line invariant comment in `entry-progress.ts` so it cannot
+  silently break. No logic change.
+- **`useStepSwipe` instantiated twice** — same duplication already flagged as #8; confirmed a
+  refactor call, not a defect.
+- **`create-rally` / `update-rally` re-throw** — confirmed a necessary correctness fix (a failed
+  request otherwise resolves `undefined`, which SWR would cache as game state).
+- **Config changes** (eslint globs, jsdom `PointerCapture` polyfill, `vaul`) — correct and
+  narrowly scoped.
+
+### Known coverage gap (acknowledged)
+
+The bridge test is container-level. The full round-trip (drawer tap → dialog open →
+`EntriesEdit` render) is still uncovered because `gesture-integration.test.tsx` stubs
+`GameOptions` — this is exactly how #11 shipped unnoticed. Closing it belongs with the
+`edit-dialog` follow-up, where the edit surface becomes independently testable.
