@@ -24,9 +24,11 @@
 
 ## 3. Batch: tables, comparison, index, flowchart
 
-- [x] 3.1 Add `table`, `tabs`, `accordion`; rebuild `RiskTable`,
+- [x] 3.1 Add `table`, `accordion`; rebuild `RiskTable`,
       `ApproachComparison`, `AnnotatedDiff`. No `ExampleTable` (raw `<table>`
       wrapper) — dropped as unused; Fumadocs renders markdown tables natively.
+      `accordion` is staged for future collapsible/FAQ content (no current
+      consumer); `tabs` was dropped as unplanned/unused (zero importers).
 - [x] 3.2 Rebuild `ChangeCard`, `ChangeOverview` on `Card`+`Badge`; remove arbitrary
       values
 - [x] 3.3 `InteractiveFlowchart`: CSS-variable colors + responsive `viewBox`
