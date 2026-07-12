@@ -4,7 +4,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 
 const steps: ProgressStep[] = [
-  { key: "player", caption: "選擇球員" },
+  { key: "player", caption: "選擇球員或對方失誤" },
   { key: "home", caption: "我方得失分紀錄" },
   { key: "away", caption: "對方得失分紀錄" },
 ];
@@ -48,10 +48,16 @@ export const AwayStep: Story = {
   },
 };
 
-export const AwayErrorCollapsed: Story = {
+// Opponent error (our move is UNFORCED): the flow collapses to two steps
+// [select opponent error, confirm outcome], the outcome step active and
+// submittable. Replaces the obsolete single-step away-error collapse.
+export const OpponentErrorCollapsed: Story = {
   args: {
-    steps: [{ key: "away-error", caption: "對方失誤，可直接送出" }],
-    activeStep: 0,
-    reachableSteps: [0],
+    steps: [
+      { key: "player", caption: "選擇球員或對方失誤" },
+      { key: "away", caption: "對方得失分紀錄" },
+    ],
+    activeStep: 1,
+    reachableSteps: [0, 1],
   },
 };
