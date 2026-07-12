@@ -43,7 +43,7 @@ export const GameMoves = ({
     // tab transition; min-h-0 lets the inner body scroll instead of overflowing.
     <div
       className={cn(
-        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card px-4 pt-2 pb-4",
+        "flex min-h-0 w-full flex-1 flex-col gap-2 overflow-hidden bg-card p-2",
         className,
       )}
       {...swipe}
@@ -102,7 +102,10 @@ export const MoveButton = ({
       variant={move.win ? "default" : "destructive"}
       size="lg"
       className={cn(
-        "h-full pr-1 text-[1.5rem] transition-colors duration-200",
+        // min-h-0 lets the button shrink below its content height so an
+        // auto-rows-fr grid (opponent errors) can fit every row with no scroll;
+        // a grid/flex item defaults to min-height:auto and would overflow.
+        "h-full min-h-0 pr-1 text-[1.5rem] transition-colors duration-200",
         toggled || (move.win ? WIN_STYLE : LOSE_STYLE),
       )}
       onClick={() => onClick(move)}

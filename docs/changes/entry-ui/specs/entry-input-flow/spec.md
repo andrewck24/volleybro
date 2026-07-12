@@ -30,12 +30,12 @@ When the recorded point is an opponent error (OUR recorded move is an unforced/o
 
 ### Requirement: Preview carries submission with completion highlight
 
-Submission SHALL be centralized in the Preview, which SHALL follow the Entry layout with score Figures in three states: idle shows the previous entry; while the outcome is undecided the current score is muted; once decided the resulting score colors the winning side. The Preview SHALL pulse while input is in progress, SHALL show a ring plus a send icon only when all steps are complete, and on submit SHALL freeze (background flashes once) with the draft turning in place into the previous entry.
+Submission SHALL be centralized in the Preview, which SHALL follow the Entry layout with score Figures in three states: idle shows the previous entry; while the outcome is undecided the current score is muted; once decided the resulting score colors the winning side. The Preview SHALL pulse while input is in progress, and only when all steps are complete SHALL it fill the whole entry box with the primary color and show a send icon (in the primary-foreground color) so the Preview reads as a confirm/send button; on submit it SHALL freeze (background flashes once) with the draft turning in place into the previous entry.
 
 #### Scenario: Send affordance appears only when complete
 
 - **WHEN** input is in progress with at least one step incomplete
-- **THEN** the Preview SHALL pulse and SHALL NOT show the ring or send icon
+- **THEN** the Preview SHALL pulse and SHALL NOT fill with the primary color or show the send icon
 
 #### Scenario: Submit freezes and demotes the draft
 

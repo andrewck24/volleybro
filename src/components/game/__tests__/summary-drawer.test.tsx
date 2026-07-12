@@ -5,7 +5,7 @@ import {
 } from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const players: GamePlayerView[] = [
@@ -27,161 +27,152 @@ const makeEntry = (homeScore: number, playerId: string): EntryView =>
   }) as unknown as EntryView;
 
 // Three committed entries, chronologically increasing score; entries[2] (score
-// 3, player #7) is the latest. The card receives already-indexed entries (the
-// container filters out the one the Preview occupies before passing them in).
+// 3, player #7) is the latest.
 const allEntries = [makeEntry(1, "p1"), makeEntry(2, "p1"), makeEntry(3, "p2")];
 const indexed = (entries: EntryView[]): IndexedEntry[] =>
   entries.map((entry, index) => ({ entry, index }));
 
+// The Preview bar is only present while recording an uncommitted draft.
 const makePreview = (
   overrides: Partial<SummaryDrawerPreview> = {},
 ): SummaryDrawerPreview => ({
   entry: allEntries[2],
   previousEntry: allEntries[1],
   players,
-  isEditing: false,
+  isEditing: true,
   isComplete: false,
   entryIndex: 3,
   ...overrides,
 });
 
-describe("SummaryDrawerCard idle state", () => {
-  it("shows the handle and the Preview bar, and no list rows", () => {
-    render(
+const baseProps = {
+  entries: indexed(allEntries),
+  totalEntries: allEntries.length,
+  players,
+};
+
+describe("SummaryDrawerCard structure", () => {
+  it("idle peek renders only the single newest committed entry (no separate Preview bar)", async () => {
+    render(<SummaryDrawerCard {...baseProps} state="idle" />);
+
+    const drawer = await screen.findByTestId("summary-drawer");
+    expect(drawer).toHaveAttribute("data-state", "idle");
+    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
+    // Collapsed peek shows ONLY the top row (natural whitespace below it), not
+    // the whole clipped list. The newest entry is player #7 (allEntries[2]).
+    const rows = screen.getAllByTestId("summary-drawer-row");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent("7");
+    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
+  });
+
+  it("expanded renders every committed entry as a row", async () => {
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    expect(await screen.findByTestId("summary-drawer")).toBeInTheDocument();
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(3);
+  });
+
+  it("recording collapsed shows only the draft Preview bar; expanded shows it above the full list", async () => {
+    const { rerender } = render(
+      <SummaryDrawerCard {...baseProps} state="idle" preview={makePreview()} />,
+    );
+
+    // Collapsed + recording: the peek is just the pulsing draft, no committed rows.
+    expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
+    expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
+
+    // Expanded: the draft Preview sits above every committed entry.
+    rerender(
       <SummaryDrawerCard
-        entries={indexed(allEntries)}
-        totalEntries={allEntries.length}
-        players={players}
-        state="idle"
+        {...baseProps}
+        state="expanded"
         preview={makePreview()}
       />,
     );
-
-    // Idle peek exposes the handle at the top edge and the Preview beneath it.
-    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
     expect(screen.getByTestId("preview-card")).toBeInTheDocument();
-    expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(3);
   });
 
-  it("renders the handle but no Preview bar when preview data is absent", () => {
-    render(
-      <SummaryDrawerCard
-        entries={indexed(allEntries)}
-        totalEntries={allEntries.length}
-        players={players}
-        state="idle"
-      />,
-    );
+  it("handles an empty committed list without crashing", async () => {
+    render(<SummaryDrawerCard {...baseProps} entries={[]} state="idle" />);
 
-    expect(screen.getByTestId("summary-drawer-handle")).toBeInTheDocument();
-    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
-  });
-});
-
-describe("SummaryDrawerCard expanded state (bottom sheet)", () => {
-  it("renders exactly the given entries newest-first, marking the latest by totalEntries", () => {
-    // The card is presentational: it renders whatever `entries` it is handed
-    // (here a two-entry slice) newest-first. The container decides the list
-    // contents (it now passes every committed entry, including the Preview's).
-    render(
-      <SummaryDrawerCard
-        entries={indexed(allEntries).slice(0, 2)}
-        totalEntries={allEntries.length}
-        players={players}
-        state="expanded"
-      />,
-    );
-
-    const rows = screen.getAllByTestId("summary-drawer-row");
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveTextContent("4");
-    expect(rows[1]).toHaveTextContent("4");
-    expect(screen.queryByText("7")).not.toBeInTheDocument();
-  });
-
-  it("handles an empty entry list without crashing", () => {
-    render(
-      <SummaryDrawerCard
-        entries={[]}
-        totalEntries={0}
-        players={players}
-        state="expanded"
-      />,
-    );
-
+    expect(await screen.findByTestId("summary-drawer")).toBeInTheDocument();
     expect(screen.queryByTestId("summary-drawer-row")).not.toBeInTheDocument();
   });
 });
 
-describe("SummaryDrawerCard handle / modal", () => {
-  it("clicking the idle handle calls onToggle to expand", async () => {
+describe("SummaryDrawerCard handle / expansion", () => {
+  it("clicking the handle calls onToggle", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
-      <SummaryDrawerCard
-        entries={indexed(allEntries)}
-        totalEntries={allEntries.length}
-        players={players}
-        state="idle"
-        onToggle={onToggle}
-      />,
+      <SummaryDrawerCard {...baseProps} state="idle" onToggle={onToggle} />,
     );
 
-    await user.click(screen.getByTestId("summary-drawer-handle"));
+    await user.click(await screen.findByTestId("summary-drawer-handle"));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
-  it("expanded renders the modal, and closing it (Escape) calls onToggle", async () => {
+  it("collapsed peek: tapping a row expands the drawer instead of inline-expanding", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
     render(
-      <SummaryDrawerCard
-        entries={indexed(allEntries)}
-        totalEntries={allEntries.length}
-        players={players}
-        state="expanded"
-        onToggle={onToggle}
-      />,
+      <SummaryDrawerCard {...baseProps} state="idle" onToggle={onToggle} />,
     );
 
-    // The list lives in the vaul modal (portalled), not behind the inline peek.
-    expect(
-      await screen.findByTestId("summary-drawer-modal"),
-    ).toBeInTheDocument();
+    const rows = await screen.findAllByTestId("entry-row");
+    await user.click(rows[0]);
 
-    // The inline handle is inert behind the modal overlay; the modal closes via
-    // its own affordances (Escape / overlay / drag), which fires onToggle.
-    await user.keyboard("{Escape}");
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(rows[0]).toHaveAttribute("data-expanded", "false");
+  });
+
+  it("expanded: tapping a row inline-expands it, and tapping another collapses the first (single-open)", async () => {
+    const user = userEvent.setup();
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    const rows = await screen.findAllByTestId("entry-row");
+    await user.click(rows[0]);
+    expect(rows[0]).toHaveAttribute("data-expanded", "true");
+
+    await user.click(rows[1]);
+    expect(rows[0]).toHaveAttribute("data-expanded", "false");
+    expect(rows[1]).toHaveAttribute("data-expanded", "true");
+  });
+});
+
+describe("SummaryDrawerCard backdrop overlay", () => {
+  it("idle: the backdrop is transparent and non-interactive (peek leaves the page usable)", () => {
+    render(<SummaryDrawerCard {...baseProps} state="idle" />);
+
+    const overlay = screen.getByTestId("summary-drawer-overlay");
+    expect(overlay).toHaveClass("opacity-0", "pointer-events-none");
+  });
+
+  it("expanded: the backdrop is opaque, and tapping it collapses the drawer", () => {
+    const onToggle = jest.fn();
+    render(
+      <SummaryDrawerCard {...baseProps} state="expanded" onToggle={onToggle} />,
+    );
+
+    const overlay = screen.getByTestId("summary-drawer-overlay");
+    expect(overlay).toHaveClass("opacity-100");
+    expect(overlay).not.toHaveClass("pointer-events-none");
+
+    // fireEvent (not userEvent): the overlay's own interactivity is asserted via
+    // the classes above; userEvent's pointer-events check flakes when a prior
+    // suite's radix modal leaves document.body with pointer-events:none, which
+    // this out-of-portal overlay would inherit. This tests the handler wiring.
+    fireEvent.click(overlay);
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });
 
-// D8/D12 gesture split, exercised through SummaryDrawerCard's own wiring of
-// the Preview bar (PreviewCard's tap-handling itself is covered in
-// preview.test.tsx).
-describe("SummaryDrawerCard Preview bar wiring", () => {
-  const baseProps = {
-    entries: indexed(allEntries),
-    totalEntries: allEntries.length,
-    players,
-    state: "idle" as const,
-  };
-
-  it("tapping the Preview bar while idle (not editing) calls onToggle to expand", async () => {
-    const user = userEvent.setup();
-    const onToggle = jest.fn();
-    render(
-      <SummaryDrawerCard
-        {...baseProps}
-        preview={makePreview({ isEditing: false })}
-        onToggle={onToggle}
-      />,
-    );
-
-    await user.click(screen.getByTestId("preview-trigger"));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
+// D8/D12 gesture split, exercised through the draft Preview bar (present only
+// while recording). PreviewCard's own tap-handling is covered in
+// preview.test.tsx.
+describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   it("tapping the Preview bar while editing and complete calls onSubmit, not onToggle", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();
@@ -189,13 +180,14 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
     render(
       <SummaryDrawerCard
         {...baseProps}
+        state="idle"
         preview={makePreview({ isEditing: true, isComplete: true })}
         onToggle={onToggle}
         onSubmit={onSubmit}
       />,
     );
 
-    await user.click(screen.getByTestId("preview-trigger"));
+    await user.click(await screen.findByTestId("preview-trigger"));
     expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onToggle).not.toHaveBeenCalled();
   });
@@ -207,18 +199,19 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
     render(
       <SummaryDrawerCard
         {...baseProps}
+        state="idle"
         preview={makePreview({ isEditing: true, isComplete: false })}
         onToggle={onToggle}
         onSubmit={onSubmit}
       />,
     );
 
-    await user.click(screen.getByTestId("preview-trigger"));
+    await user.click(await screen.findByTestId("preview-trigger"));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onToggle).not.toHaveBeenCalled();
   });
 
-  it("while editing, the Preview pulses in place instead of a separate draft row", () => {
+  it("while recording, the draft is the pulsing Preview, not a separate committed row", async () => {
     render(
       <SummaryDrawerCard
         {...baseProps}
@@ -227,10 +220,11 @@ describe("SummaryDrawerCard Preview bar wiring", () => {
       />,
     );
 
-    // No separate draft row exists any more -- the pulsing draft IS the Preview.
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("preview-trigger")).toHaveClass("animate-pulse");
+    expect(await screen.findByTestId("preview-trigger")).toHaveClass(
+      "animate-pulse",
+    );
   });
 });

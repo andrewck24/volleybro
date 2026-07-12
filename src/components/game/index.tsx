@@ -20,7 +20,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
@@ -63,21 +62,22 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
       {/* One viewport-height flex column: the fixed header's height is reserved
-          once via pt, then court (fixed aspect), panel (remaining height), and
-          the drawer's idle peek (fixed height) stack to fill the rest. */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)]">
-        <div className="w-full shrink-0">
+          once via pt, then court (fixed aspect) and panel (remaining height)
+          fill the rest. The drawer is a vaul snap-point sheet portalled to
+          <body> (fixed at the bottom), so pb reserves its idle peek height and
+          the panel content never sits behind the peek. */}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+        <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <GameCourt gameId={gameId} mode="general" />
         </div>
         <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
-        <SummaryDrawer
-          gameId={gameId}
-          state={drawerState}
-          onToggle={toggleDrawer}
-          onSubmit={submitEntryDraft}
-          className="shrink-0"
-        />
       </div>
+      <SummaryDrawer
+        gameId={gameId}
+        state={drawerState}
+        onToggle={toggleDrawer}
+        onSubmit={submitEntryDraft}
+      />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <GameOptions
           gameId={gameId}
@@ -97,12 +97,12 @@ export function GameSkeleton() {
   return (
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)]">
-        <div className="w-full shrink-0">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+        <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <LoadingCourt />
         </div>
         {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}
-        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden bg-card px-2 pt-2">
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 pt-2">
           <Skeleton className="h-1.5 w-full rounded-full" />
           <Skeleton className="h-4 w-40" />
           <div className="grid w-full flex-1 grid-cols-2 gap-2 pt-1">
@@ -111,14 +111,15 @@ export function GameSkeleton() {
             ))}
           </div>
         </div>
-        {/* mirrors the drawer idle peek: handle + Preview-shaped card on bg-card */}
-        <div className="w-full shrink-0 rounded-t-[10px] bg-card">
-          <div className="pt-1 pb-1.5">
-            <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
-          </div>
-          <Card className="grid w-full p-2">
-            <Skeleton className="h-8 w-full" />
-          </Card>
+      </div>
+      {/* mirrors the drawer idle peek fixed at the viewport bottom: handle +
+          Preview-shaped row on the drawer (bg-card) surface. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-160 rounded-t-[10px] bg-card">
+        <div className="pt-2 pb-1.5">
+          <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
+        </div>
+        <div className="grid w-full px-2 pb-2">
+          <Skeleton className="h-8 w-full" />
         </div>
       </div>
     </div>

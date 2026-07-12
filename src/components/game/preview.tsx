@@ -1,7 +1,6 @@
 "use client";
 import { Entry } from "@/components/game/entry";
 import { getEntryProgress } from "@/components/game/panel/entry-progress";
-import { Card } from "@/components/ui/card";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import type {
@@ -68,31 +67,42 @@ export const PreviewCard = ({
   const showSendAffordance = Boolean(isEditing && isComplete && !frozen);
 
   return (
-    <Card
+    // A plain row, not a Card: the recording Preview must match the flat
+    // committed entry rows in the drawer (no rounded/ring/shadow frame), so the
+    // peek looks identical whether idle (an EntryRow) or recording. The
+    // completion ring below is the only ring, and only while complete.
+    <div
       data-testid="preview-card"
-      className={cn(
-        "relative grid w-full p-2 transition-colors duration-500",
-        flashing && "bg-primary/30",
-        className,
-      )}
+      className={cn("relative grid w-full", className)}
     >
       <div
         data-testid="preview-trigger"
         onClick={handleClick}
         className={cn(isPulsing && !frozen && "animate-pulse duration-1000")}
       >
-        <Entry entry={shownEntry} players={players} />
+        {/* The fill lives on the Entry box itself (which carries the shared p-1
+            + rounded), so once complete the whole entry reads as a rounded
+            primary send button rather than a framed row. */}
+        <Entry
+          entry={shownEntry}
+          players={players}
+          className={cn(
+            "transition-colors duration-500",
+            showSendAffordance && "bg-primary text-primary-foreground",
+            flashing && "bg-primary/30",
+          )}
+        />
       </div>
       {showSendAffordance && (
         <span
           role="img"
           aria-label="送出"
-          className="pointer-events-none absolute inset-0 flex items-center justify-end rounded-lg pr-2 ring-2 ring-primary"
+          className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2"
         >
-          <RiSendPlaneLine className="size-5 text-primary" />
+          <RiSendPlaneLine className="size-5 text-primary-foreground" />
         </span>
       )}
-    </Card>
+    </div>
   );
 };
 

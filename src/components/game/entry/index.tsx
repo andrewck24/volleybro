@@ -46,7 +46,11 @@ export const EntryContainer = ({
 }) => (
   <div
     className={cn(
-      "flex w-full flex-none basis-8 flex-row items-center justify-start gap-1",
+      // Uniform entry box: p-1 + rounded so every entry (committed rows and the
+      // Preview) shares one shape. On the drawer's bg-card the rounding is only
+      // visible once a background is applied -- e.g. the Preview's primary fill
+      // when it becomes the send button.
+      "flex w-full flex-none basis-8 flex-row items-center justify-start gap-1 rounded-md p-1",
       className,
     )}
     onClick={onClick}
@@ -143,6 +147,10 @@ export const EntryRow = ({
   onEdit,
   onDelete,
   onRollbackToHere,
+  expanded: expandedProp,
+  onToggleExpand,
+  swipeRevealed: swipeRevealedProp,
+  onSwipeReveal,
   className,
 }: {
   entry: EntryView;
@@ -151,10 +159,21 @@ export const EntryRow = ({
   onEdit?: () => void;
   onDelete?: () => void;
   onRollbackToHere?: () => void;
+  // Optional controlled expand/swipe state: when the list owns these (single
+  // open at a time -- tapping another row collapses this one) it passes them
+  // in; standalone usage falls back to local state.
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  swipeRevealed?: boolean;
+  onSwipeReveal?: (revealed: boolean) => void;
   className?: string;
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [swipeRevealed, setSwipeRevealed] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const [localSwipeRevealed, setLocalSwipeRevealed] = useState(false);
+  const expanded = expandedProp ?? localExpanded;
+  const swipeRevealed = swipeRevealedProp ?? localSwipeRevealed;
+  const toggleExpand = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
+  const revealSwipe = onSwipeReveal ?? setLocalSwipeRevealed;
 
   const dragRef = useRef<{ startX: number; triggered: boolean } | null>(null);
   const suppressClickRef = useRef(false);
@@ -176,7 +195,7 @@ export const EntryRow = ({
     // mirrors panel/progress-bar.tsx. Only a left-swipe reveals the actions.
     suppressClickRef.current = true;
     if (dx < 0) {
-      setSwipeRevealed(true);
+      revealSwipe(true);
     }
   };
 
@@ -189,7 +208,7 @@ export const EntryRow = ({
       suppressClickRef.current = false;
       return;
     }
-    setExpanded((v) => !v);
+    toggleExpand();
   };
 
   // ponytail: delete/rollback are still computed by the last-entry rule, but

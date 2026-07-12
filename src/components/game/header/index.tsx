@@ -15,7 +15,7 @@ export const GameHeader = ({
 
   return (
     <header className="fixed top-0 z-10 flex h-[env(safe-area-inset-top)+5.5rem] w-full max-w-160 items-center justify-between">
-      <div className="flex w-full items-center justify-between gap-2 rounded-b-lg bg-card px-2 pt-[env(safe-area-inset-top)] shadow-sm">
+      <div className="flex w-full items-center justify-between gap-2 rounded-b-lg bg-card px-2 pt-[env(safe-area-inset-top)]">
         <Button
           variant="ghost"
           className="[&>svg]:size-8"

@@ -145,17 +145,19 @@ const setUpGame = () => {
 };
 
 describe("Game composition: gesture split integration (D8/D12)", () => {
-  it("idle Preview tap expands the drawer", async () => {
+  it("tapping the handle expands the drawer from the idle peek", async () => {
     const user = userEvent.setup();
-    const { store } = setUpGame();
-    void store;
+    setUpGame();
 
-    expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
+    expect(await screen.findByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
+    // Idle (not recording) has no separate Preview bar -- the peek row is the
+    // newest committed entry; the handle toggles the drawer.
+    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
 
-    await user.click(await screen.findByTestId("preview-trigger"));
+    await user.click(screen.getByTestId("summary-drawer-handle"));
 
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
@@ -167,64 +169,58 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
-    await screen.findByTestId("preview-trigger");
+    await screen.findByTestId("summary-drawer");
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
     });
 
-    await user.click(screen.getByTestId("preview-trigger"));
+    // Recording now: the draft Preview bar appears at the top of the drawer.
+    await user.click(await screen.findByTestId("preview-trigger"));
 
-    // Real submit persisted the entry: the drawer never opened from this
-    // tap (the draft is reset, so this tap only submits).
+    // Real submit persisted the entry; the drawer state is unchanged (idle).
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
 
-    // The draft is reset (no longer editing) after the real submit, so the
-    // next idle tap on the Preview expands the drawer. The expanded list shows
-    // every committed entry -- both the just-committed one (#7, newest-first)
-    // and the pre-existing one (#4) -- and the Preview also shows #7, so the
-    // newest entry intentionally appears in both the Preview and the list.
-    await user.click(screen.getByTestId("preview-trigger"));
+    // The draft is reset (no longer recording), so there is no Preview bar; the
+    // just-committed entry (#7) is simply the newest row. Expand via the handle
+    // to see the full committed list, newest-first (#7 then the pre-existing
+    // #4).
+    await user.click(screen.getByTestId("summary-drawer-handle"));
     const rows = await screen.findAllByTestId("summary-drawer-row");
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("7");
     expect(rows[1]).toHaveTextContent("4");
-    expect(screen.getByTestId("preview-card")).toHaveTextContent("7");
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
   });
 
   it("in-progress Preview tap with incomplete steps does nothing (no submit, no expand)", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
-    await screen.findByTestId("preview-trigger");
+    await screen.findByTestId("summary-drawer");
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
-    await user.click(screen.getByTestId("preview-trigger"));
+    await user.click(await screen.findByTestId("preview-trigger"));
 
-    // Editing + incomplete: the tap does nothing at all (D8/D12 gesture
-    // split) -- the drawer stays idle since there is no way to expand it
-    // while a draft is incomplete.
+    // Editing + incomplete: the tap does nothing -- the drawer stays idle.
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
   });
 
-  it("drawer stays expanded and shows the pulsing draft row while input is in progress", async () => {
+  it("drawer stays expanded showing the pulsing draft Preview while input is in progress, and Escape collapses it", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
-    await screen.findByTestId("preview-trigger");
-    // Idle tap (not editing yet) expands the drawer.
-    await user.click(screen.getByTestId("preview-trigger"));
+    await screen.findByTestId("summary-drawer");
+    // Expand from the peek via the handle.
+    await user.click(screen.getByTestId("summary-drawer-handle"));
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "expanded",
@@ -234,27 +230,22 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
-    // Nothing was submitted. The in-progress draft is now the Preview itself,
-    // pulsing in place (no separate draft row); the one pre-existing committed
-    // entry (#4) stays in the list below (D12 scenario "Handle expands drawer
-    // during input with draft in first row").
-    expect(screen.getByTestId("preview-trigger")).toHaveClass("animate-pulse");
+    // The in-progress draft is the pulsing Preview bar (not a committed row);
+    // the one pre-existing committed entry (#4) stays as a row below it.
+    expect(await screen.findByTestId("preview-trigger")).toHaveClass(
+      "animate-pulse",
+    );
     expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
     expect(
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
 
-    // The expanded modal closes via its own affordances (Escape / overlay /
-    // drag) -- the inline handle is inert behind the overlay -- toggling back
-    // to idle regardless of input progress.
+    // Escape collapses the expanded sheet back to the peek (onOpenChange ->
+    // collapse-to-peek), regardless of input progress.
     await user.keyboard("{Escape}");
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
   });
-
-  // Note: the freeze-on-submit behavior is covered above ("...submits via the
-  // real dispatch path...") -- submitting while idle, then opening the sheet
-  // afterwards to see the committed result.
 });
