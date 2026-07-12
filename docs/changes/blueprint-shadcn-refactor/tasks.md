@@ -16,14 +16,17 @@
 
 ## 2. Batch: status + prose components
 
-- [x] 2.1 Add `card`, `progress`, `separator`; rebuild `Verdict`, `Timeline`,
-      `TaskProgress`, `Scenario`, `ConceptExplainer`, `FeatureExplainer`, `PRWriteup`
+- [x] 2.1 Add `card`, `progress`, `separator`; rebuild `Timeline`,
+      `TaskProgress`, `Scenario`, `ConceptExplainer`, `PRWriteup`. No `Verdict`
+      (thin `Badge` wrapper) or `FeatureExplainer` (hand-rolled accordion) — both
+      dropped as unused; use `Badge` / `ui/accordion` directly.
 - [x] 2.2 Verify: tests + build
 
 ## 3. Batch: tables, comparison, index, flowchart
 
-- [ ] 3.1 Add `table`, `tabs`, `accordion`; rebuild `RiskTable`, `ExampleTable`,
-      `ApproachComparison`, `AnnotatedDiff`
+- [ ] 3.1 Add `table`, `tabs`, `accordion`; rebuild `RiskTable`,
+      `ApproachComparison`, `AnnotatedDiff`. No `ExampleTable` (raw `<table>`
+      wrapper) — dropped as unused; Fumadocs renders markdown tables natively.
 - [ ] 3.2 Rebuild `ChangeCard`, `ChangeOverview` on `Card`+`Badge`; remove arbitrary
       values
 - [ ] 3.3 `InteractiveFlowchart`: CSS-variable colors + responsive `viewBox`
