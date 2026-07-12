@@ -1,15 +1,16 @@
 # Tasks — blueprint-shadcn-refactor
 
-## 1. Tracer: shadcn init + token bridge + SeverityBadge
+## 1. Tracer: shadcn init + token bridge + badge primitive
 
 - [x] 1.1 `shadcn init` in `blueprint/` (Tailwind v4); merge generated CSS with existing
       fumadocs imports in `src/app/globals.css`
 - [x] 1.2 Token unification: brand oklch values onto shadcn semantic tokens; custom
       `--warning`/`--warning-foreground`; bridge used `--color-fd-*` variables to the
       same tokens
-- [x] 1.3 Add `badge` primitive; rebuild `SeverityBadge` on `Badge` with CVA variants
-      (critical→destructive, warning→warning, info→secondary, ok→outline); keep
-      `data-testid`/`data-level`
+- [x] 1.3 Add `badge` primitive; use `Badge` directly with CVA variants
+      (critical→destructive, warning→warning, info→secondary, ok→outline) for both
+      severity and general labels (e.g. 採用/棄用). No `SeverityBadge` wrapper — it was
+      dropped as unused.
 - [x] 1.4 Verify: `pnpm --filter blueprint type-check && test && build`; light/dark
       visual check
 
