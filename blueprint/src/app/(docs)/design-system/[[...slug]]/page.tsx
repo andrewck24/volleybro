@@ -11,6 +11,7 @@ const designSystemModules: Record<
   string,
   () => Promise<{ default: ComponentType }>
 > = {
+  "": () => import("../../../../../content/design-system/index"),
   components: () =>
     import("../../../../../content/design-system/components/index"),
 };
@@ -33,6 +34,6 @@ export default async function Page({ params }: PageProps) {
 
 export function generateStaticParams() {
   return Object.keys(designSystemModules).map((key) => ({
-    slug: key.split("/"),
+    slug: key ? key.split("/") : [],
   }));
 }
