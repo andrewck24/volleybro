@@ -9,6 +9,12 @@ type ScenarioProps = {
   then: string;
 };
 
+const LABEL_COLOR: Record<string, string> = {
+  GIVEN: "text-muted-foreground",
+  WHEN: "text-primary",
+  THEN: "text-warning",
+};
+
 export function Scenario({ given, when, then }: ScenarioProps) {
   const steps: Array<[string, string]> = [
     ["GIVEN", given],
@@ -22,11 +28,16 @@ export function Scenario({ given, when, then }: ScenarioProps) {
         {steps.map(([label, value], i) => (
           <Fragment key={label}>
             {i > 0 && <Separator />}
-            <div className="flex gap-2">
-              <span className="font-mono text-xs font-semibold text-muted-foreground">
+            <div className="grid grid-cols-[3.5rem_1fr] items-baseline gap-x-4">
+              <span
+                className={
+                  "font-mono text-xs font-semibold tracking-wide uppercase " +
+                  LABEL_COLOR[label]
+                }
+              >
                 {label}
               </span>
-              <span>{value}</span>
+              <span className="text-sm leading-relaxed">{value}</span>
             </div>
           </Fragment>
         ))}

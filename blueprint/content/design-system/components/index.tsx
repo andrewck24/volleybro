@@ -1,34 +1,60 @@
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
-import { ApproachComparison } from "@/components/ApproachComparison";
 import { ChangeCard } from "@/components/ChangeCard";
 import { ChangeOverview } from "@/components/ChangeOverview";
-import { ConceptExplainer } from "@/components/ConceptExplainer";
+import { FileTour } from "@/components/FileTour";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
-import { PRWriteup } from "@/components/PRWriteup";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 import { TaskProgress } from "@/components/TaskProgress";
 import { Timeline } from "@/components/Timeline";
+import { TLDR } from "@/components/TLDR";
 
 const flowchartNodes = [
-  { id: "draft", label: "Draft", x: 60, y: 80 },
-  { id: "review", label: "Review", x: 200, y: 80 },
-  { id: "merge", label: "Merge", x: 340, y: 80 },
-  { id: "ship", label: "Ship", x: 200, y: 170 },
+  { id: "propose", label: "Propose", x: 90, y: 60 },
+  { id: "review", label: "Review", x: 250, y: 190 },
+  {
+    id: "gate",
+    label: "Approved?",
+    x: 90,
+    y: 320,
+    shape: "diamond" as const,
+    w: 130,
+    h: 64,
+  },
+  {
+    id: "merge",
+    label: "Merge",
+    x: 90,
+    y: 450,
+    sublabel: "squash → dev",
+  },
+  { id: "ship", label: "Ship", x: 90, y: 580 },
+];
+
+const flowchartEdges = [
+  { from: "propose", to: "review", label: "open PR" },
+  { from: "review", to: "gate" },
+  { from: "gate", to: "merge", label: "yes" },
+  { from: "merge", to: "ship", label: "release" },
+  { from: "gate", to: "propose", label: "changes", dashed: true },
 ];
 
 const flowchartDetails: Record<string, { title: string; body: string }> = {
-  draft: {
-    title: "Draft",
+  propose: {
+    title: "Propose",
     body: "An author opens a change proposal and drafts the design intent.",
   },
   review: {
     title: "Review",
-    body: "Reviewers comment, request changes, and approve the proposal.",
+    body: "Reviewers comment on the proposal and request changes as needed.",
+  },
+  gate: {
+    title: "Approved?",
+    body: "The decision point: reviewers either approve or send it back for changes.",
   },
   merge: {
     title: "Merge",
-    body: "Once approved, the change is merged into the main branch.",
+    body: "Once approved, the change is squashed and merged into the dev branch.",
   },
   ship: {
     title: "Ship",
@@ -51,24 +77,113 @@ export default function ComponentLibraryShowcase() {
       <h3>TaskProgress</h3>
       <TaskProgress done={7} total={12} />
 
-      <h3>PRWriteup</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <PRWriteup
-          number={48}
-          title="Add design-system section"
-          status="open"
-        />
-        <PRWriteup
-          number={41}
-          title="Rebuild RiskTable on shadcn"
-          status="merged"
-        />
-        <PRWriteup
-          number={39}
-          title="Drop legacy tabs primitive"
-          status="closed"
-        />
-      </div>
+      <h3>TLDR</h3>
+      <TLDR>
+        This change swaps the grayscale chart palette for the canonical colorful
+        one, sources the warning and note accents from it, and replaces two thin
+        components with the TLDR and FileTour patterns.
+      </TLDR>
+
+      <h3>FileTour</h3>
+      <p>
+        One collapsible walkthrough that serves two modes at once. Badged
+        entries (change + added/removed + snippet) narrate a diff file by file;
+        entries that omit those fields become a concept walkthrough where header
+        = term, summary = definition, and code = example.
+      </p>
+      <FileTour
+        files={[
+          {
+            path: "src/components/FileTour.tsx",
+            change: "added",
+            added: 96,
+            summary:
+              "New collapsible walkthrough. Each row shows the file path and a diff stat when collapsed, and reveals the why plus an optional snippet when expanded — composed from the accordion primitive so it stays keyboard-accessible.",
+            lang: "tsx",
+            code: `export function FileTour({ files }: FileTourProps) {
+  return (
+    <Card className="gap-0 py-0">
+      <Accordion type="multiple">
+        {files.map((file, index) => (
+          <AccordionItem key={file.path} value={file.path}>
+            <AccordionTrigger>
+              <span className="font-mono text-sm">{file.path}</span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <p>{file.summary}</p>
+              {file.code && (
+                <DynamicCodeBlock lang={file.lang ?? "tsx"} code={file.code} />
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </Card>
+  );
+}`,
+          },
+          {
+            path: "src/app/globals.css",
+            change: "modified",
+            added: 14,
+            removed: 62,
+            summary:
+              "Reordered tokens to canonical shadcn order and re-sourced the warning and note accents from the chart palette so both themes stay in sync.",
+          },
+          {
+            path: "src/components/PRWriteup.tsx",
+            change: "removed",
+            removed: 41,
+            summary:
+              "Thin stub superseded by the TLDR and FileTour patterns; nothing imported it after the migration.",
+          },
+          {
+            path: "Side-out",
+            summary:
+              "Concept mode — no change badge or diff stat. Winning a rally while the opposing team is serving, which earns your team the right to serve next.",
+            code: `if (rallyWinner === receivingTeam) {\n  serve = receivingTeam;\n  rotate(receivingTeam);\n}`,
+            lang: "ts",
+          },
+          {
+            path: "Rally",
+            summary:
+              "Concept mode — a single sequence of play that starts with a serve and ends when the ball is dead, the unit a point is scored on.",
+            code: `type Rally = {\n  serve: TeamId;\n  touches: Touch[];\n  winner: TeamId;\n};`,
+            lang: "ts",
+          },
+        ]}
+      />
+
+      <section>
+        <h3>PR-writeup section mapping</h3>
+        <p>
+          Where each section of the &ldquo;PR writeup&rdquo; reference belongs
+          in the blueprint page flow:
+        </p>
+        <ul>
+          <li>
+            <strong>TL;DR</strong> → page/overview top (the TLDR component).
+          </li>
+          <li>
+            <strong>Why</strong> → proposal/design (prose).
+          </li>
+          <li>
+            <strong>Before/After</strong> → a table or AnnotatedDiff.
+          </li>
+          <li>
+            <strong>File-by-file</strong> → design (the FileTour component).
+          </li>
+          <li>
+            <strong>Where to focus review</strong> → review (prose).
+          </li>
+          <li>
+            <strong>Test plan</strong> → tasks/review (prose).
+          </li>
+          <li>
+            <strong>Rollout</strong> → reuse the Timeline component.
+          </li>
+        </ul>
+      </section>
 
       <h3>ChangeCard</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -87,13 +202,6 @@ export default function ComponentLibraryShowcase() {
 
       <h2>Prose &amp; explainers</h2>
 
-      <h3>ConceptExplainer</h3>
-      <ConceptExplainer
-        term="Side-out"
-        definition="Winning a rally while the opposing team is serving, which earns your team the right to serve next."
-        example={`if (rallyWinner === receivingTeam) {\n  serve = receivingTeam;\n  rotate(receivingTeam);\n}`}
-      />
-
       <h3>Scenario</h3>
       <Scenario
         given="A set is tied 24-24 and the home team is serving"
@@ -109,18 +217,24 @@ export default function ComponentLibraryShowcase() {
             label: "Clean architecture landed",
             description:
               "Team routes migrated to the domain/wire/client layering.",
+            status: "done",
+            tags: ["clean-architecture"],
           },
           {
             date: "2026-06-28",
             label: "Dynamic splash screens",
             description:
               "Apple splash PNGs replaced by a token-driven generator.",
+            status: "done",
+            tags: ["splash", "tokens"],
           },
           {
             date: "2026-07-12",
             label: "Design system section",
             description:
               "Blueprint gains a browsable component library showcase.",
+            status: "pending",
+            tags: ["design-system", "showcase"],
           },
         ]}
       />
@@ -150,22 +264,6 @@ export default function ComponentLibraryShowcase() {
             name: "Components render in both themes",
             severity: "ok",
             mitigation: "Verified via this showcase page.",
-          },
-        ]}
-      />
-
-      <h3>ApproachComparison</h3>
-      <ApproachComparison
-        approaches={[
-          {
-            name: "Mirror the features route",
-            pros: ["Matches existing pattern", "No new content source"],
-            cons: ["Shares the changes sidebar tree"],
-          },
-          {
-            name: "Full Fumadocs content source",
-            pros: ["Section-scoped sidebar", "MDX authoring"],
-            cons: ["More wiring", "Diverges from features"],
           },
         ]}
       />
@@ -204,7 +302,11 @@ export default function ComponentLibraryShowcase() {
       <h2>Flowchart</h2>
 
       <h3>InteractiveFlowchart</h3>
-      <InteractiveFlowchart nodes={flowchartNodes} details={flowchartDetails} />
+      <InteractiveFlowchart
+        nodes={flowchartNodes}
+        edges={flowchartEdges}
+        details={flowchartDetails}
+      />
     </div>
   );
 }
