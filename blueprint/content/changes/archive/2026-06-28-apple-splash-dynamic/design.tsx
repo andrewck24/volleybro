@@ -1,5 +1,4 @@
 "use client";
-import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 
 const V_LEFT =
@@ -171,7 +170,36 @@ export default function Design() {
       </div>
 
       <h2 id="decisions">Decisions</h2>
-      <ApproachComparison approaches={decisions} />
+      <table>
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>Pros</th>
+            <th>Cons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {decisions.map((a) => (
+            <tr key={a.name}>
+              <td>{a.name}</td>
+              <td>
+                <ul>
+                  {a.pros.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  {a.cons.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h2 id="risks">Risks</h2>
       <RiskTable risks={risks} />

@@ -1,15 +1,50 @@
 "use client";
 
-import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 
 export const toc = [
   { title: "Context", url: "#context", depth: 2 },
-  { title: "Key Decision: Where to place the guard", url: "#key-decision", depth: 2 },
+  {
+    title: "Key Decision: Where to place the guard",
+    url: "#key-decision",
+    depth: 2,
+  },
   { title: "Caller Convention", url: "#caller-convention", depth: 2 },
   { title: "Key Scenarios", url: "#key-scenarios", depth: 2 },
   { title: "Risks", url: "#risks", depth: 2 },
+];
+
+const guardApproaches = [
+  {
+    name: "Shared assertObjectId at route boundary (chosen)",
+    pros: [
+      "Single source of truth for ObjectId format validation",
+      "Zero side-effects on invalid input — no DB connection, no auth check",
+      "One-liner insertion at each call site",
+      "Error message names the specific parameter (teamId, gameId, playerId)",
+    ],
+    cons: [
+      "Must be applied manually at each new route that accepts an ObjectId segment",
+    ],
+  },
+  {
+    name: "Teach translateRepositoryError to catch BSONError",
+    pros: ["No call-site changes needed"],
+    cons: [
+      "Hides input validation concern inside the infrastructure layer",
+      "Generic error messages don't identify which parameter was malformed",
+      "DB connection and auth calls still run before the error is caught",
+    ],
+  },
+  {
+    name: "withValidatedParams(schema) wrapper factory",
+    pros: ["Could enforce validation via type-level schema"],
+    cons: [
+      "Requires wrapper to understand Next.js async props.params destructuring",
+      "Added complexity with no benefit over a one-line assertObjectId call",
+    ],
+  },
 ];
 
 export default function Design() {
@@ -18,50 +53,48 @@ export default function Design() {
       <section>
         <h2 id="context">Context</h2>
         <p>
-          All API route handlers that accept a MongoDB ObjectId as a URL path segment should
-          validate that segment before any side-effectful call. Only{" "}
-          <code>teams/[teamId]/route.ts</code> did this via a local{" "}
-          <code>assertValidObjectId</code> function. Ten other handlers passed the raw path
-          string to the authorization or database layer, where an invalid string caused a{" "}
-          <code>BSONError</code> that surfaced as an unhandled 500.
+          All API route handlers that accept a MongoDB ObjectId as a URL path
+          segment should validate that segment before any side-effectful call.
+          Only <code>teams/[teamId]/route.ts</code> did this via a local{" "}
+          <code>assertValidObjectId</code> function. Ten other handlers passed
+          the raw path string to the authorization or database layer, where an
+          invalid string caused a <code>BSONError</code> that surfaced as an
+          unhandled 500.
         </p>
       </section>
 
       <section>
         <h2 id="key-decision">Key Decision: Where to place the guard</h2>
-        <ApproachComparison
-          approaches={[
-            {
-              name: "Shared assertObjectId at route boundary (chosen)",
-              pros: [
-                "Single source of truth for ObjectId format validation",
-                "Zero side-effects on invalid input — no DB connection, no auth check",
-                "One-liner insertion at each call site",
-                "Error message names the specific parameter (teamId, gameId, playerId)",
-              ],
-              cons: [
-                "Must be applied manually at each new route that accepts an ObjectId segment",
-              ],
-            },
-            {
-              name: "Teach translateRepositoryError to catch BSONError",
-              pros: ["No call-site changes needed"],
-              cons: [
-                "Hides input validation concern inside the infrastructure layer",
-                "Generic error messages don't identify which parameter was malformed",
-                "DB connection and auth calls still run before the error is caught",
-              ],
-            },
-            {
-              name: "withValidatedParams(schema) wrapper factory",
-              pros: ["Could enforce validation via type-level schema"],
-              cons: [
-                "Requires wrapper to understand Next.js async props.params destructuring",
-                "Added complexity with no benefit over a one-line assertObjectId call",
-              ],
-            },
-          ]}
-        />
+        <table>
+          <thead>
+            <tr>
+              <th>Approach</th>
+              <th>Pros</th>
+              <th>Cons</th>
+            </tr>
+          </thead>
+          <tbody>
+            {guardApproaches.map((a) => (
+              <tr key={a.name}>
+                <td>{a.name}</td>
+                <td>
+                  <ul>
+                    {a.pros.map((p) => (
+                      <li key={p}>{p}</li>
+                    ))}
+                  </ul>
+                </td>
+                <td>
+                  <ul>
+                    {a.cons.map((c) => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <section>
@@ -69,9 +102,9 @@ export default function Design() {
         <p>
           Each handler calls <code>assertObjectId</code> immediately after{" "}
           <code>const {"{ xId }"} = await props.params</code>, before{" "}
-          <code>connectToMongoDB</code> and before any authorization check. Placement before{" "}
-          <code>connectToMongoDB</code> avoids unnecessary connection overhead on invalid
-          requests.
+          <code>connectToMongoDB</code> and before any authorization check.
+          Placement before <code>connectToMongoDB</code> avoids unnecessary
+          connection overhead on invalid requests.
         </p>
       </section>
 
