@@ -1,6 +1,15 @@
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 type Artifact = { title: string; href: string };
 type Status = "archived" | "in-progress" | "discussing" | "draft";
-type Props = { date: string; status: Status; summary: string; artifacts: Artifact[] };
+type Props = {
+  date: string;
+  status: Status;
+  summary: string;
+  artifacts: Artifact[];
+};
 
 const STATUS_LABEL: Record<Status, string> = {
   archived: "Archived",
@@ -22,22 +31,23 @@ const STATUS_CLASS: Record<Status, string> = {
 
 function StatusBadge({ status }: { status: Status }) {
   return (
-    <span
-      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium leading-[18px] tracking-[0.01em] ${STATUS_CLASS[status]}`}
+    <Badge
+      variant="outline"
+      data-status={status}
+      className={cn(STATUS_CLASS[status])}
     >
       {STATUS_LABEL[status]}
-    </span>
+    </Badge>
   );
 }
 
 function ArtifactCard({ title, href }: Artifact) {
   return (
-    <a
-      href={href}
-      className="flex items-center px-3.5 py-2.5 rounded-lg border border-[color:var(--border)] border-l-[3px] border-l-[color:var(--primary)] bg-[var(--color-fd-card)] text-inherit no-underline text-sm font-medium gap-2 transition-colors duration-150"
-    >
-      {title}
-      <span className="ml-auto text-[var(--color-fd-muted-foreground)] text-xs">→</span>
+    <a href={href} className="block text-inherit no-underline">
+      <Card className="flex-row items-center gap-2 border-l-4 border-l-primary px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50">
+        {title}
+        <span className="ml-auto text-xs text-muted-foreground">→</span>
+      </Card>
     </a>
   );
 }
@@ -45,10 +55,8 @@ function ArtifactCard({ title, href }: Artifact) {
 export function ChangeOverview({ date, status, summary, artifacts }: Props) {
   return (
     <div>
-      <div className="flex gap-2 items-center mb-5 flex-wrap">
-        <span className="text-[13px] text-[var(--color-fd-muted-foreground)] font-mono">
-          {date}
-        </span>
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        <span className="font-mono text-sm text-muted-foreground">{date}</span>
         <StatusBadge status={status} />
       </div>
 

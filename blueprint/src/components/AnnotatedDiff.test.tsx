@@ -2,29 +2,23 @@ import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { AnnotatedDiff } from "./AnnotatedDiff";
 
+// DynamicCodeBlock lazy-loads a Shiki highlighter (async, WASM) which jsdom
+// can't drive; stub it with a plain <pre> so the code stays assertable.
+jest.mock("fumadocs-ui/components/dynamic-codeblock", () => ({
+  DynamicCodeBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
+}));
+
+// @shikijs/transformers ships ESM-only; jest doesn't transform node_modules and
+// the transformer never runs under the mocked code block anyway, so stub it.
+jest.mock("@shikijs/transformers", () => ({
+  transformerNotationDiff: () => ({}),
+}));
+
 describe("AnnotatedDiff", () => {
-  const diff = `- old line\n+ new line\n  context line`;
-  const annotations = [{ line: 2, note: "This line was added" }];
-
-  it("renders diff lines", () => {
-    render(<AnnotatedDiff diff={diff} annotations={annotations} />);
-    expect(screen.getByText(/\+ new line/)).toBeInTheDocument();
-  });
-
-  it("renders annotation note adjacent to specified line", () => {
-    render(<AnnotatedDiff diff={diff} annotations={annotations} />);
-    expect(screen.getByText("This line was added")).toBeInTheDocument();
-  });
-
-  it("renders annotation note for a 3-line diff at line 2", () => {
-    const diff3 = `line one\nline two\nline three`;
-    render(
-      <AnnotatedDiff
-        diff={diff3}
-        annotations={[{ line: 2, note: "Note on line 2" }]}
-      />
-    );
-    expect(screen.getByText("Note on line 2")).toBeInTheDocument();
-    expect(screen.getByText(/line two/)).toBeInTheDocument();
+  it("passes the diff-notated code through to the highlighter", () => {
+    const code = `const a = 1;\nconst b = 2; // [!code ++]`;
+    render(<AnnotatedDiff code={code} />);
+    expect(screen.getByText(/\[!code \+\+\]/)).toBeInTheDocument();
+    expect(screen.getByText(/const a = 1;/)).toBeInTheDocument();
   });
 });

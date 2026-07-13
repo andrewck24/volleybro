@@ -8,9 +8,10 @@ describe("TaskProgress", () => {
     expect(screen.getByText("3/7")).toBeInTheDocument();
   });
 
-  it("renders progress bar with exact percentage width", () => {
+  it("reflects done/total as the progressbar value", () => {
     render(<TaskProgress done={3} total={7} />);
     const bar = screen.getByTestId("progress-bar");
-    expect(bar).toHaveStyle({ width: `${(3 / 7) * 100}%` });
+    expect(bar).toHaveAttribute("role", "progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", `${(3 / 7) * 100}`);
   });
 });

@@ -1,5 +1,4 @@
 "use client";
-import { ApproachComparison } from "@/components/ApproachComparison";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 
@@ -7,11 +6,27 @@ export const toc = [
   { title: "Routing Architecture", url: "#routing-architecture", depth: 2 },
   { title: "Modal Component", url: "#modal-component", depth: 2 },
   { title: "Form Library", url: "#form-library", depth: 2 },
-  { title: "Key Implementation Contracts", url: "#key-implementation-contracts", depth: 2 },
+  {
+    title: "Key Implementation Contracts",
+    url: "#key-implementation-contracts",
+    depth: 2,
+  },
   { title: "Maximize flow", url: "#maximize-flow", depth: 3 },
-  { title: "useFormDraft merge strategy", url: "#use-form-draft-merge-strategy", depth: 3 },
-  { title: "Dialog header scroll containment", url: "#dialog-header-scroll-containment", depth: 3 },
-  { title: "Workspace wrappers co-location rule", url: "#workspace-wrappers-co-location-rule", depth: 3 },
+  {
+    title: "useFormDraft merge strategy",
+    url: "#use-form-draft-merge-strategy",
+    depth: 3,
+  },
+  {
+    title: "Dialog header scroll containment",
+    url: "#dialog-header-scroll-containment",
+    depth: 3,
+  },
+  {
+    title: "Workspace wrappers co-location rule",
+    url: "#workspace-wrappers-co-location-rule",
+    depth: 3,
+  },
   { title: "Key Scenarios", url: "#key-scenarios", depth: 2 },
   { title: "Risks", url: "#risks", depth: 2 },
 ];
@@ -115,57 +130,154 @@ export default function Design() {
   return (
     <div className="space-y-8">
       <p>
-        The <code>(protected)</code> route group provided the tab navigation shell but was
-        misleadingly named. Edit pages lived inside it as parallel route slots, rendering
-        with the bottom nav bar visible during focused editing. Team and player forms used
-        raw <code>useState</code> + manual ZodError parsing while game forms already used
-        React Hook Form. This change renames the route group, introduces an intercepting-route
-        modal pattern, and migrates all team/player forms to RHF.
+        The <code>(protected)</code> route group provided the tab navigation
+        shell but was misleadingly named. Edit pages lived inside it as parallel
+        route slots, rendering with the bottom nav bar visible during focused
+        editing. Team and player forms used raw <code>useState</code> + manual
+        ZodError parsing while game forms already used React Hook Form. This
+        change renames the route group, introduces an intercepting-route modal
+        pattern, and migrates all team/player forms to RHF.
       </p>
 
       <h2 id="routing-architecture">Routing Architecture</h2>
-      <ApproachComparison approaches={routingDecisions} />
+      <table>
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>Pros</th>
+            <th>Cons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {routingDecisions.map((a) => (
+            <tr key={a.name}>
+              <td>{a.name}</td>
+              <td>
+                <ul>
+                  {a.pros.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  {a.cons.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h2 id="modal-component">Modal Component</h2>
-      <ApproachComparison approaches={modalComponentDecisions} />
+      <table>
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>Pros</th>
+            <th>Cons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {modalComponentDecisions.map((a) => (
+            <tr key={a.name}>
+              <td>{a.name}</td>
+              <td>
+                <ul>
+                  {a.pros.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  {a.cons.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h2 id="form-library">Form Library</h2>
-      <ApproachComparison approaches={formLibraryDecisions} />
+      <table>
+        <thead>
+          <tr>
+            <th>Approach</th>
+            <th>Pros</th>
+            <th>Cons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {formLibraryDecisions.map((a) => (
+            <tr key={a.name}>
+              <td>{a.name}</td>
+              <td>
+                <ul>
+                  {a.pros.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  {a.cons.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       <h2 id="key-implementation-contracts">Key Implementation Contracts</h2>
 
       <h3 id="maximize-flow">Maximize flow</h3>
       <p>
         When the user clicks the maximize button in the Dialog header,{" "}
-        <code>EditDialogContainer</code> calls <code>suppressLeaveWarning()</code> then{" "}
-        <code>window.location.assign(fullPageHref)</code>. Hard navigation bypasses the
-        intercepting route and renders the workspace version. The workspace form reads the
-        same <code>useFormDraft</code> key and restores state from sessionStorage.
+        <code>EditDialogContainer</code> calls{" "}
+        <code>suppressLeaveWarning()</code> then{" "}
+        <code>window.location.assign(fullPageHref)</code>. Hard navigation
+        bypasses the intercepting route and renders the workspace version. The
+        workspace form reads the same <code>useFormDraft</code> key and restores
+        state from sessionStorage.
       </p>
 
       <h3 id="use-form-draft-merge-strategy">useFormDraft merge strategy</h3>
       <p>
-        The persisted draft is merged over caller-supplied <code>defaultValues</code> (
-        <code>{"{ ...defaultValues, ...draft }"}</code>). This keeps the baseline field shape
-        stable despite <code>JSON.stringify</code> dropping <code>undefined</code> fields.
-        Persistence is gated on <code>form.formState.isDirty</code> so the pristine initial
-        snapshot is never written.
+        The persisted draft is merged over caller-supplied{" "}
+        <code>defaultValues</code> (
+        <code>{"{ ...defaultValues, ...draft }"}</code>). This keeps the
+        baseline field shape stable despite <code>JSON.stringify</code> dropping{" "}
+        <code>undefined</code> fields. Persistence is gated on{" "}
+        <code>form.formState.isDirty</code> so the pristine initial snapshot is
+        never written.
       </p>
 
-      <h3 id="dialog-header-scroll-containment">Dialog header scroll containment</h3>
+      <h3 id="dialog-header-scroll-containment">
+        Dialog header scroll containment
+      </h3>
       <p>
         <code>EditDialogContainer</code> wraps <code>{"{children}"}</code> in an{" "}
-        <code>overflow-y-auto</code> div. The header is not <code>sticky</code> — it is
-        naturally pinned at the top of <code>DialogContent</code> while only the form content
-        scrolls.
+        <code>overflow-y-auto</code> div. The header is not <code>sticky</code>{" "}
+        — it is naturally pinned at the top of <code>DialogContent</code> while
+        only the form content scrolls.
       </p>
 
-      <h3 id="workspace-wrappers-co-location-rule">Workspace wrappers co-location rule</h3>
+      <h3 id="workspace-wrappers-co-location-rule">
+        Workspace wrappers co-location rule
+      </h3>
       <p>
-        <code>*Workspace</code> components are co-located in the same file as their base form
-        component (e.g., <code>EditTeamWorkspace</code> lives in{" "}
-        <code>src/components/team/form.tsx</code> alongside <code>TeamForm</code>). A separate{" "}
-        <code>workspace/</code> directory is not created.
+        <code>*Workspace</code> components are co-located in the same file as
+        their base form component (e.g., <code>EditTeamWorkspace</code> lives in{" "}
+        <code>src/components/team/form.tsx</code> alongside{" "}
+        <code>TeamForm</code>). A separate <code>workspace/</code> directory is
+        not created.
       </p>
 
       <h2 id="key-scenarios">Key Scenarios</h2>

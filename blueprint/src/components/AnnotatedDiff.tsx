@@ -1,35 +1,34 @@
-import React from "react";
+"use client";
 
-interface Annotation {
-  line: number;
-  note: string;
-}
+import { transformerNotationDiff } from "@shikijs/transformers";
+import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 
 interface AnnotatedDiffProps {
-  diff: string;
-  annotations: Annotation[];
+  /**
+   * Code using Shiki diff notation (`// [!code ++]` / `// [!code --]` on a line)
+   * plus ordinary language comments for any per-line notes.
+   */
+  code: string;
+  /** Shiki language for `code` (default "tsx"). */
+  lang?: string;
 }
 
-export function AnnotatedDiff({ diff, annotations }: AnnotatedDiffProps) {
-  const lines = diff.split("\n");
-  const annotationMap = new Map(annotations.map((a) => [a.line, a.note]));
-
+/**
+ * Thin preset over fumadocs' DynamicCodeBlock: adds Shiki's official
+ * transformerNotationDiff so lines marked `// [!code ++]` / `// [!code --]`
+ * receive the `.diff.add` / `.diff.remove` classes that fumadocs' shiki.css
+ * already styles (full-width tint + gutter symbol). Line notes are written as
+ * normal code comments, so there is no separate annotations layer to maintain.
+ */
+export function AnnotatedDiff({ code, lang }: AnnotatedDiffProps) {
   return (
-    <pre>
-      {lines.map((line, index) => {
-        const lineNumber = index + 1;
-        const note = annotationMap.get(lineNumber);
-        return (
-          <React.Fragment key={lineNumber}>
-            <div>{line}</div>
-            {note && (
-              <div role="note" style={{ paddingLeft: "1em", fontStyle: "italic" }}>
-                {note}
-              </div>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </pre>
+    <DynamicCodeBlock
+      lang={lang ?? "tsx"}
+      code={code}
+      options={{
+        themes: { light: "github-light", dark: "github-dark" },
+        transformers: [transformerNotationDiff()],
+      }}
+    />
   );
 }

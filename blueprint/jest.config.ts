@@ -3,7 +3,12 @@ import type { Config } from "jest";
 const config: Config = {
   testEnvironment: "jsdom",
   transform: {
-    "^.+\\.(ts|tsx)$": ["babel-jest", { presets: ["next/babel"] }],
+    "^.+\\.(ts|tsx)$": [
+      "babel-jest",
+      {
+        presets: [["next/babel", { "preset-react": { runtime: "automatic" } }]],
+      },
+    ],
   },
   setupFilesAfterEnv: ["@testing-library/jest-dom"],
   moduleNameMapper: {

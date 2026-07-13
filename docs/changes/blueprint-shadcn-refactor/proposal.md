@@ -9,8 +9,8 @@ system, per spec-loop `blueprint.md` base mapping. Paca Story: VB-7 (Epic #5).
 
 Component styling is unstable across three tiers:
 
-1. **Unstyled skeletons** — most of the 13 spec components render bare markup
-   (`SeverityBadge` is a plain `span` with data attributes).
+1. **Unstyled skeletons** — most of the 9 spec components render bare markup
+   (severity labels were plain `span`s with data attributes).
 2. **Three competing token sources** — `ChangeCard`/`ChangeOverview` mix hand-written
    `--primary`/`--border` oklch values, fumadocs `--color-fd-*` variables, and arbitrary
    Tailwind values (`text-[13px]`).
@@ -25,8 +25,13 @@ Component styling is unstable across three tiers:
   become token values; fumadocs `--color-fd-*` variables bridge to the same tokens; add a
   custom `--warning` token.
 - Add primitives via CLI: badge, table, card, tabs, progress, accordion, separator.
-- Rebuild all 13 spec components + `ChangeCard`/`ChangeOverview` per the base mapping in
-  spec-loop `blueprint.md`. `InteractiveFlowchart` stays custom SVG but takes color from
+  `Badge` is used directly (with CVA variants) for both severity indicators and general
+  labels (e.g. 採用/棄用); there is no dedicated severity wrapper component.
+- Rebuild all 9 spec components + `ChangeCard`/`ChangeOverview` per the base mapping in
+  spec-loop `blueprint.md`. `Verdict` (thin `Badge` wrapper), `ExampleTable` (raw
+  `<table>`; Fumadocs renders tables natively), and `FeatureExplainer` (hand-rolled
+  accordion) are dropped rather than rebuilt — use `Badge` / `ui/accordion` directly.
+  `InteractiveFlowchart` stays custom SVG but takes color from
   CSS variables and uses a responsive `viewBox`.
 
 ## Out of scope
@@ -38,5 +43,5 @@ Component styling is unstable across three tiers:
 ## Risk / rollback
 
 Main risk: fumadocs preset CSS vs shadcn layer priority. The tracer task (init + token
-bridge + `SeverityBadge`) exposes this before the batch migration. Rollback = revert the
+bridge + `badge` primitive) exposes this before the batch migration. Rollback = revert the
 branch; content (MDX/TSX) is untouched.

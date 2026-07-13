@@ -261,6 +261,9 @@ importers:
 
   blueprint:
     dependencies:
+      '@shikijs/transformers':
+        specifier: ^4.3.0
+        version: 4.3.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -3742,6 +3745,10 @@ packages:
 
   '@shikijs/themes@4.3.0':
     resolution: {integrity: sha512-Avgt05YiT+Y3prjIc9lmQxhJzHBcCfR6cjiFW4OyaMBbt2A6trX5rfjUzx+Vj/mE9qpArYjatnqo9XPjQNW/AQ==}
+    engines: {node: '>=20'}
+
+  '@shikijs/transformers@4.3.0':
+    resolution: {integrity: sha512-5/elhJEcUrxdyQ95SSx0HzrnbzVPuipk6TYiXZL67tHhw8J+4N5shzmrTYyCaudiSnpuuwPdpaVtciwRFwSA7A==}
     engines: {node: '>=20'}
 
   '@shikijs/types@4.3.0':
@@ -13914,6 +13921,11 @@ snapshots:
 
   '@shikijs/themes@4.3.0':
     dependencies:
+      '@shikijs/types': 4.3.0
+
+  '@shikijs/transformers@4.3.0':
+    dependencies:
+      '@shikijs/core': 4.3.0
       '@shikijs/types': 4.3.0
 
   '@shikijs/types@4.3.0':
