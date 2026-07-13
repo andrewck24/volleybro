@@ -6,9 +6,13 @@ import { GameHeader } from "@/components/game/header";
 import { GameOptions } from "@/components/game/options";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import { GamePanel } from "@/components/game/panel";
-import { GamePreview } from "@/components/game/preview";
+import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { SetOptions } from "@/components/game/set-options";
 import { StatsForOneSet } from "@/components/game/stats";
+import {
+  SummaryDrawer,
+  type SummaryDrawerState,
+} from "@/components/game/summary-drawer";
 import {
   Accordion,
   AccordionContent,
@@ -16,7 +20,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
@@ -29,13 +32,18 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tabValue, setTabValue] = useState("overview");
+  const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
+  const submitEntryDraft = useSubmitEntryDraft(gameId);
 
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
     setTabValue(tabValue);
     setDialogOpen(true);
   };
+
+  const toggleDrawer = () =>
+    setDrawerState((s) => (s === "idle" ? "expanded" : "idle"));
 
   useEffect(() => {
     if (game) dispatch(gameActions.initialize({ game, setIndex }));
@@ -51,18 +59,25 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   }
 
   return (
-    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
+    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
-      <GameCourt gameId={gameId} mode="general" />
-      <GamePreview
+      {/* One viewport-height flex column: the fixed header's height is reserved
+          once via pt, then court (fixed aspect) and panel (remaining height)
+          fill the rest. The drawer is a vaul snap-point sheet portalled to
+          <body> (fixed at the bottom), so pb reserves its idle peek height and
+          the panel content never sits behind the peek. */}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+        <div className="w-full shrink-0 overflow-hidden rounded-lg">
+          <GameCourt gameId={gameId} mode="general" />
+        </div>
+        <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
+      </div>
+      <SummaryDrawer
         gameId={gameId}
-        mode="general"
-        handleOptionOpen={handleOptionOpen}
-      />
-      <GamePanel
-        gameId={gameId}
-        mode="general"
-        className="pb-[max(calc(env(safe-area-inset-bottom)-1rem),1.5rem)]"
+        state={drawerState}
+        onToggle={toggleDrawer}
+        onSubmit={submitEntryDraft}
+        onEditRequest={() => setDialogOpen(true)}
       />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <GameOptions
@@ -76,20 +91,37 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
 };
 
 export function GameSkeleton() {
+  // Mirror the ready Game layout exactly (viewport-height column, fixed header
+  // reserved once via pt, court / panel / drawer-peek) so there is no jump on
+  // load: same header height, the court is not hidden behind the header, and
+  // the drawer peek is present.
   return (
-    <div className="flex size-full max-w-160 flex-col items-center justify-start gap-1 overflow-hidden">
+    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
-      <LoadingCourt />
-      {/* mirrors GamePreview: Card grid w-full p-2 */}
-      <Card className="grid w-full p-2">
-        <Skeleton className="h-8 w-full" />
-      </Card>
-      {/* mirrors GamePanel: Panel slot (bg-card flex-1) */}
-      <div className="flex w-full flex-1 flex-col items-center justify-start gap-2 overflow-x-hidden bg-card">
-        <Skeleton className="my-0.5 h-5 w-32" />
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+        <div className="w-full shrink-0 overflow-hidden rounded-lg">
+          <LoadingCourt />
+        </div>
+        {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 pt-2">
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-4 w-40" />
+          <div className="grid w-full flex-1 grid-cols-2 gap-2 pt-1">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-full min-h-14 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* mirrors the drawer idle peek fixed at the viewport bottom: handle +
+          Preview-shaped row on the drawer (bg-card) surface. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-160 rounded-t-[10px] bg-card">
+        <div className="pt-2 pb-1.5">
+          <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
+        </div>
+        <div className="grid w-full px-2 pb-2">
+          <Skeleton className="h-8 w-full" />
+        </div>
       </div>
     </div>
   );

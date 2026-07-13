@@ -20,6 +20,9 @@ export const createRally = async (
     game.sets[setIndex].entries = entries;
     return game;
   } catch (error) {
+    // Re-throw so the optimistic SWR mutate rolls back to the previous game
+    // instead of caching `undefined` (which would crash every `game!` reader).
     console.error("[CREAT Rally]", error);
+    throw error;
   }
 };

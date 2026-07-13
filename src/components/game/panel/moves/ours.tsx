@@ -25,7 +25,14 @@ export const OursMoves = () => {
   };
 
   return (
-    <Container className={zone === 0 ? "grid-cols-1" : undefined}>
+    <Container
+      className={
+        // Opponent errors: fit all rows with no scroll. auto-rows-fr shares the
+        // height, and min-h-0 lets the grid shrink below its content min-height
+        // (a flex item defaults to min-height:auto and would otherwise overflow).
+        zone === 0 ? "min-h-0 auto-rows-fr grid-cols-1" : undefined
+      }
+    >
       {oursMoves.map((move) => (
         <MoveButton
           key={`${move.type}-${move.num}`}

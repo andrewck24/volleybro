@@ -26,6 +26,13 @@ global.ResizeObserver = jest.fn().mockImplementation((_callback) => ({
   unobserve: jest.fn(),
 }));
 
+// jsdom lacks the Pointer Capture API that vaul's Drawer calls on interaction.
+if (!HTMLElement.prototype.setPointerCapture) {
+  HTMLElement.prototype.setPointerCapture = jest.fn();
+  HTMLElement.prototype.releasePointerCapture = jest.fn();
+  HTMLElement.prototype.hasPointerCapture = jest.fn(() => false);
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   configurable: true,
