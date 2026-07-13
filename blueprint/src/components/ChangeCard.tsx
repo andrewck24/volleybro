@@ -1,3 +1,8 @@
+import { cva } from "class-variance-authority";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 type Status = "archived" | "in-progress" | "discussing" | "draft";
 type Props = { name: string; date?: string; status: Status; summary: string; href?: string };
 
