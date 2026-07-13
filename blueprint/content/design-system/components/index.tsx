@@ -270,19 +270,14 @@ export default function ComponentLibraryShowcase() {
 
       <h3>AnnotatedDiff</h3>
       <AnnotatedDiff
-        diff={`  sidebar={{
-    tabs: [
-      { title: "Changes", url: "/changes" },
-      { title: "Features", url: "/features" },
-+     { title: "Design System", url: "/design-system" },
-    ],
-  }}`}
-        annotations={[
-          {
-            line: 5,
-            note: "New peer tab registered alongside Changes and Features.",
-          },
-        ]}
+        code={`sidebar={{
+  tabs: [
+    { title: "Changes", url: "/changes" },
+    { title: "Features", url: "/features" },
+    // New peer tab, registered alongside Changes and Features
+    { title: "Design System", url: "/design-system" }, // [!code ++]
+  ],
+}}`}
       />
 
       <h2>Change index</h2>
