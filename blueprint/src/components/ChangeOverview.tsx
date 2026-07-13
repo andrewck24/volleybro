@@ -1,12 +1,15 @@
-import { cva } from "class-variance-authority";
-
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Artifact = { title: string; href: string };
 type Status = "archived" | "in-progress" | "discussing" | "draft";
-type Props = { date: string; status: Status; summary: string; artifacts: Artifact[] };
+type Props = {
+  date: string;
+  status: Status;
+  summary: string;
+  artifacts: Artifact[];
+};
 
 const STATUS_LABEL: Record<Status, string> = {
   archived: "Archived",
@@ -31,7 +34,7 @@ function StatusBadge({ status }: { status: Status }) {
     <Badge
       variant="outline"
       data-status={status}
-      className={cn(statusVariants({ status }))}
+      className={cn(STATUS_CLASS[status])}
     >
       {STATUS_LABEL[status]}
     </Badge>
