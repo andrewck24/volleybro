@@ -14,11 +14,11 @@ The fix is to make the background tokens mean what they say and introduce a true
 
 **1. Three-layer background model** (elevation = lighter; each layer a distinct value):
 
-| Layer | Role | Token | dark L | light L |
-| --- | --- | --- | --- | --- |
-| 0 | page body | `--background` | 4.9% (keep) | 95.6% (adopt current accent value) |
-| 0.5 | non-overlay floating surfaces | `--popover` | ~10% (change) | ~97% (change) |
-| 1 | card / item | `--card` | 14.5% (keep) | 98.45% (keep) |
+| Layer | Role                          | Token          | dark L        | light L                            |
+| ----- | ----------------------------- | -------------- | ------------- | ---------------------------------- |
+| 0     | page body                     | `--background` | 4.9% (keep)   | 95.6% (adopt current accent value) |
+| 0.5   | non-overlay floating surfaces | `--popover`    | ~10% (change) | ~97% (change)                      |
+| 1     | card / item                   | `--card`       | 14.5% (keep)  | 98.45% (keep)                      |
 
 - Body switches from `bg-accent` to `bg-background`.
 - `--popover` is repurposed as the 0.5 layer for non-overlay floating surfaces only (Popover, Select/Dropdown content); their `shadow-md` keeps them visibly raised with no overlay to help. `Dialog` instead renders on `--background` (layer 0), matching the existing `AlertDialog` pattern — both rely on their dimming `Overlay`, not a distinct surface color, to separate from the page.
@@ -62,7 +62,7 @@ The fix is to make the background tokens mean what they say and introduce a true
     - src/components/game/sets/edit.tsx
     - src/components/team/team-switcher.tsx
     - src/components/layout/nav/action-button.tsx
-    - src/components/game/new/index.tsx
+    - src/components/landing/cta-button.tsx
     - src/components/user/menu/dark-mode.tsx
     - src/components/team/lineup/panel/options/libero-replace.tsx
     - src/components/team/lineup/panel/options/lineup-error.tsx
@@ -70,3 +70,36 @@ The fix is to make the background tokens mean what they say and introduce a true
     - docs/design-system.md
   - New: (none)
   - Removed: (none)
+
+### Impact recomputed against current dev (entry-ui merged)
+
+This change was drafted (2026-06-20) before the `entry-ui` change landed on dev.
+Re-deriving the real `<DialogContent>` inventory against current dev changes the
+migration list and surfaces one new surface the original taxonomy did not cover:
+
+- **Migration list — one swap, count unchanged (10 dialog surfaces + primitive + story):**
+  - **Removed** `src/components/game/new/index.tsx` — it no longer renders its own
+    `DialogContent`; the `contextual-edit-pages` change turned it into a modal/workspace
+    route driven by `edit-dialog-container`.
+  - **Added** `src/components/landing/cta-button.tsx` — a Dialog surface introduced
+    after this change was drafted.
+  - `team/players/membership-section.tsx` and `team/info/index.tsx` are **AlertDialog**
+    only (out of scope). The design.md D1 empirical anchor (team/info's
+    `AlertDialogContent` with a nested Card) still holds — no rewrite needed.
+
+- **New surface not in the original taxonomy — `Drawer` (`src/components/ui/drawer.tsx`,
+  consumed by `src/components/game/summary-drawer.tsx`):** entry-ui added a vaul bottom
+  sheet that renders its own dimming `DrawerOverlay` yet sits on `bg-card` (layer 1).
+  By D1's rule (overlay-backed surfaces belong on layer 0, `--background`), a Drawer is
+  overlay-backed like Dialog/AlertDialog and is currently on the "wrong" layer. Visual
+  risk is low (`--card` is unchanged by this change, so the sheet still pops over the
+  dimmed page), but the `elevation-tokens` contract must be extended to name Drawer and
+  the design.md D1 decision amended to state Drawer's layer explicitly. **Open decision
+  for the user:** keep Drawer on `bg-card`, or align it to `bg-background` per the
+  overlay rule.
+
+- **`srOnly` migration scope** is the intersection {Dialog surfaces} ∩ {existing
+  `sr-only`/`aria-describedby={undefined}`}: `game/options`, `game/set-options`,
+  `game/sets/edit`, `edit-dialog-container`, `nav/action-button`, `lineup-error`,
+  `dark-mode`, plus `game/options/edit/index.tsx`. Unrelated `sr-only` (`custom/court`,
+  `game/header`, `ui/form`, `summary-drawer`) is out of scope.
