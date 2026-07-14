@@ -66,7 +66,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           fill the rest. The drawer is a vaul snap-point sheet portalled to
           <body> (fixed at the bottom), so pb reserves its idle peek height and
           the panel content never sits behind the peek. */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-21">
         <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <GameCourt gameId={gameId} mode="general" />
         </div>
@@ -98,7 +98,7 @@ export function GameSkeleton() {
   return (
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-[5.25rem]">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-21">
         <div className="w-full shrink-0 overflow-hidden rounded-lg">
           <LoadingCourt />
         </div>
@@ -114,13 +114,16 @@ export function GameSkeleton() {
         </div>
       </div>
       {/* mirrors the drawer idle peek fixed at the viewport bottom: handle +
-          Preview-shaped row on the drawer (bg-card) surface. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-160 rounded-t-[10px] bg-card">
+          one entry-row-shaped skeleton on the drawer (bg-card) surface. Height
+          is pinned to PEEK_SNAP (80px = h-20) so the peek's top edge lands where
+          the real drawer sits and the ~20px breathing room below the row matches
+          -- no gap above the peek and no jump when the real drawer mounts. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto h-20 w-full max-w-160 rounded-t-[10px] bg-card">
         <div className="pt-2 pb-1.5">
           <Skeleton className="mx-auto h-1.5 w-10 rounded-full" />
         </div>
-        <div className="grid w-full px-2 pb-2">
-          <Skeleton className="h-8 w-full" />
+        <div className="grid w-full px-2">
+          <Skeleton className="h-10 w-full" />
         </div>
       </div>
     </div>
