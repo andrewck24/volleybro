@@ -12,6 +12,14 @@ const designSystemModules: Record<
   () => Promise<{ default: ComponentType }>
 > = {
   "": () => import("../../../../../content/design-system/index"),
+  brand: () => import("../../../../../content/design-system/brand/index"),
+  color: () => import("../../../../../content/design-system/color/index"),
+  typography: () =>
+    import("../../../../../content/design-system/typography/index"),
+  spacing: () => import("../../../../../content/design-system/spacing/index"),
+  radius: () => import("../../../../../content/design-system/radius/index"),
+  "elevation-depth": () =>
+    import("../../../../../content/design-system/elevation-depth/index"),
   components: () =>
     import("../../../../../content/design-system/components/index"),
 };
