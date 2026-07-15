@@ -72,7 +72,7 @@ export default function ComponentLibraryShowcase() {
         across light and dark themes.
       </p>
 
-      <h2>Status &amp; progress</h2>
+      <h2 id="status-progress">Status &amp; progress</h2>
 
       <h3>TaskProgress</h3>
       <TaskProgress done={7} total={12} />
@@ -200,7 +200,7 @@ export default function ComponentLibraryShowcase() {
         />
       </div>
 
-      <h2>Prose &amp; explainers</h2>
+      <h2 id="prose-explainers">Prose &amp; explainers</h2>
 
       <h3>Scenario</h3>
       <Scenario
@@ -239,7 +239,7 @@ export default function ComponentLibraryShowcase() {
         ]}
       />
 
-      <h2>Tables &amp; comparison</h2>
+      <h2 id="tables-comparison">Tables &amp; comparison</h2>
 
       <h3>RiskTable</h3>
       <RiskTable
@@ -280,7 +280,7 @@ export default function ComponentLibraryShowcase() {
 }}`}
       />
 
-      <h2>Change index</h2>
+      <h2 id="change-index">Change index</h2>
 
       <h3>ChangeOverview</h3>
       <ChangeOverview
@@ -294,7 +294,7 @@ export default function ComponentLibraryShowcase() {
         ]}
       />
 
-      <h2>Flowchart</h2>
+      <h2 id="flowchart">Flowchart</h2>
 
       <h3>InteractiveFlowchart</h3>
       <InteractiveFlowchart
@@ -305,3 +305,11 @@ export default function ComponentLibraryShowcase() {
     </div>
   );
 }
+
+export const toc = [
+  { title: "Status & progress", url: "#status-progress", depth: 2 },
+  { title: "Prose & explainers", url: "#prose-explainers", depth: 2 },
+  { title: "Tables & comparison", url: "#tables-comparison", depth: 2 },
+  { title: "Change index", url: "#change-index", depth: 2 },
+  { title: "Flowchart", url: "#flowchart", depth: 2 },
+];

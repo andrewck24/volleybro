@@ -68,7 +68,7 @@ export default function ColorPage() {
         page can never drift from the source.
       </p>
 
-      <h2>Surface &amp; elevation</h2>
+      <h2 id="surface">Surface &amp; elevation</h2>
       <p>
         Three distinct background layers, ordered by elevation. This is the
         heart of the <code>elevation-depth-system</code> change — see{" "}
@@ -77,26 +77,34 @@ export default function ColorPage() {
       </p>
       <SwatchGrid tokens={surface} />
 
-      <h2>Brand</h2>
+      <h2 id="brand">Brand</h2>
       <p>
         The two theme-stable brand hues: teal (primary) and coral. Coral is also
         the fixed accent of the logo&apos;s right arm across every ground.
       </p>
       <SwatchGrid tokens={brand} />
 
-      <h2>Feedback</h2>
+      <h2 id="feedback">Feedback</h2>
       <p>Semantic status colors, kept separate from the brand accent.</p>
       <SwatchGrid tokens={feedback} />
 
-      <h2>Chart</h2>
+      <h2 id="chart">Chart</h2>
       <p>
         The five-series data-visualization palette. Series 1 and 2 track the
         teal and coral brand hues; 3–5 extend the range for dense charts.
       </p>
       <SwatchGrid tokens={chart} />
 
-      <h2>Utility &amp; text</h2>
+      <h2 id="utility">Utility &amp; text</h2>
       <SwatchGrid tokens={utility} />
     </div>
   );
 }
+
+export const toc = [
+  { title: "Surface & elevation", url: "#surface", depth: 2 },
+  { title: "Brand", url: "#brand", depth: 2 },
+  { title: "Feedback", url: "#feedback", depth: 2 },
+  { title: "Chart", url: "#chart", depth: 2 },
+  { title: "Utility & text", url: "#utility", depth: 2 },
+];

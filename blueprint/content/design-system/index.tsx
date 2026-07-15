@@ -56,6 +56,7 @@ export default function DesignSystemOverview() {
         real app tokens and rules — it is the source of truth that supersedes
         the prose in <code>docs/design-system.md</code>.
       </p>
+      <h2 id="sections">Sections</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {sections.map((s) => (
           <a
@@ -75,3 +76,5 @@ export default function DesignSystemOverview() {
     </>
   );
 }
+
+export const toc = [{ title: "Sections", url: "#sections", depth: 2 }];

@@ -76,7 +76,7 @@ export default function ElevationDepthPage() {
         signals its depth with a dimming overlay <em>or</em> a ring, never both.
       </p>
 
-      <h2>A · Background layers</h2>
+      <h2 id="layers">A · Background layers</h2>
       <p>
         Elevation reads as a lighter surface in light theme, inverted in dark.
         The same nested stack in both themes, rendered from the live tokens:
@@ -93,7 +93,7 @@ export default function ElevationDepthPage() {
         ))}
       </ul>
 
-      <h2>B · Overlay replaces ring</h2>
+      <h2 id="overlay-ring">B · Overlay replaces ring</h2>
       <p>
         Overlay-backed surfaces (Dialog, AlertDialog, Drawer — anything with a{" "}
         <code>bg-black/80</code> scrim) drop the ring; the scrim is the depth
@@ -113,7 +113,7 @@ export default function ElevationDepthPage() {
         />
       </div>
 
-      <h2>Open question · Drawer layer</h2>
+      <h2 id="drawer-question">Open question · Drawer layer</h2>
       <p>
         The vaul Drawer currently sits on <code>bg-card</code>, but the overlay
         rule says overlay-backed → layer 0 (<code>bg-background</code>). The
@@ -126,3 +126,9 @@ export default function ElevationDepthPage() {
     </div>
   );
 }
+
+export const toc = [
+  { title: "A · Background layers", url: "#layers", depth: 2 },
+  { title: "B · Overlay replaces ring", url: "#overlay-ring", depth: 2 },
+  { title: "Open question · Drawer layer", url: "#drawer-question", depth: 2 },
+];

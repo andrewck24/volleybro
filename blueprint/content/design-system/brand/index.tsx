@@ -1,13 +1,9 @@
-// Brand assets, rendered with the real shared components from
-// src/components/brand — the same code the app and the apple-splash route
-// consume — on the shared tokens (light / dark / teal grounds).
+// Brand assets on the shared tokens (light / dark / teal grounds). The
+// components are a frozen copy of src/components/brand (the mark geometry is
+// font-glyph constants), kept local so the blueprint build has no cross-app
+// source dependency.
 
-import {
-  LogoSymbol,
-  LogoType,
-  V_CORAL,
-  V_IVORY,
-} from "../../../../src/components/brand";
+import { LogoSymbol, LogoType, V_CORAL, V_IVORY } from "@/components/brand";
 
 type Ground = {
   label: string;
@@ -71,7 +67,7 @@ export default function BrandPage() {
         <code>src/components/brand</code> components.
       </p>
 
-      <h2>Adaptive coloring</h2>
+      <h2 id="adaptive">Adaptive coloring</h2>
       <p>
         The neutral parts (left arm, and the letters in the wordmark) use{" "}
         <code>currentColor</code>, so the mark inverts with its ground — black
@@ -82,7 +78,7 @@ export default function BrandPage() {
         surfaces.
       </p>
 
-      <h2>Logo-symbol</h2>
+      <h2 id="logo-symbol">Logo-symbol</h2>
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
         {grounds.map((g) => (
           <Tile key={`symbol-${g.label}`} ground={g}>
@@ -91,7 +87,7 @@ export default function BrandPage() {
         ))}
       </div>
 
-      <h2>Logo-type</h2>
+      <h2 id="logo-type">Logo-type</h2>
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         {grounds.map((g) => (
           <Tile key={`type-${g.label}`} ground={g}>
@@ -100,7 +96,7 @@ export default function BrandPage() {
         ))}
       </div>
 
-      <h2>Source</h2>
+      <h2 id="source">Source</h2>
       <ul>
         <li>
           <code>src/components/brand/logo-symbol.tsx</code> — the V, with{" "}
@@ -120,3 +116,10 @@ export default function BrandPage() {
     </div>
   );
 }
+
+export const toc = [
+  { title: "Adaptive coloring", url: "#adaptive", depth: 2 },
+  { title: "Logo-symbol", url: "#logo-symbol", depth: 2 },
+  { title: "Logo-type", url: "#logo-type", depth: 2 },
+  { title: "Source", url: "#source", depth: 2 },
+];

@@ -40,6 +40,7 @@ export default function RadiusPage() {
         <code>rounded-t-[10px]</code> (the vaul Drawer peek and its skeleton
         mirror).
       </p>
+      <h2 id="steps">Steps</h2>
       <div
         style={{
           display: "grid",
@@ -75,3 +76,5 @@ export default function RadiusPage() {
     </div>
   );
 }
+
+export const toc = [{ title: "Steps", url: "#steps", depth: 2 }];

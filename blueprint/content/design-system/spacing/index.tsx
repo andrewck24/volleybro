@@ -44,6 +44,7 @@ export default function SpacingPage() {
         <code>p-2</code>, <code>gap-4</code>, <code>pb-21</code>), never the{" "}
         <code>p-[?px]</code> bracket form.
       </p>
+      <h2 id="scale">Scale</h2>
       <div
         style={{
           display: "flex",
@@ -82,7 +83,7 @@ export default function SpacingPage() {
         ))}
       </div>
 
-      <h2>Notable app-specific spacings</h2>
+      <h2 id="app-specific">Notable app-specific spacings</h2>
       <ul>
         {appValues.map((v) => (
           <li key={v.util}>
@@ -93,3 +94,8 @@ export default function SpacingPage() {
     </div>
   );
 }
+
+export const toc = [
+  { title: "Scale", url: "#scale", depth: 2 },
+  { title: "Notable app-specific spacings", url: "#app-specific", depth: 2 },
+];
