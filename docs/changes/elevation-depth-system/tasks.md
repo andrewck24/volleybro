@@ -2,7 +2,7 @@
 
 > Satisfies requirements "Three distinct background layers" and "Background tokens carry their semantic role"; implements design decisions D1 (layer assignment by overlay presence, not a modal/floating label) and D2 (lightness assignments, elevation = lighter).
 
-- [x] 1.1 In `src/app/globals.css` `:root`, re-value `--background` from `hsl(330, 10%, 98.45%)` to the current accent lightness (`~hsl(230, 20%, 95.6%)`) so the page layer is the darkest of the three light surfaces; tune saturation/hue for a clean step. → verify: light page background visibly darker than `--card` (98.45%).
+- [x] 1.1 In `src/styles/tokens.css` `:root`, re-value `--background` from `hsl(330, 10%, 98.45%)` to the current accent lightness (`~hsl(230, 20%, 95.6%)`) so the page layer is the darkest of the three light surfaces; tune saturation/hue for a clean step. → verify: light page background visibly darker than `--card` (98.45%).
 - [x] 1.2 In `:root`, re-value `--popover` from `hsl(330, 10%, 98.45%)` to a middle value between the new `--background` and `--card` (`~97%`). → verify: light `--background` < `--popover` < `--card` in lightness.
 - [x] 1.3 In `.dark`, keep `--background` at `4.9%`, re-value `--popover` from `14.5%` to a middle value (`~10%`) between `--background` and `--card` (`14.5%`). → verify: dark `--background` < `--popover` < `--card`.
 - [x] 1.4 Change the `body` utility in `src/app/globals.css` `@layer base` from `bg-accent` to `bg-background`, so background tokens carry their semantic role and the three distinct background layers (D1 three-layer model, D2 lightness assignments) hold. → verify: app shell renders on `--background`; grep shows no `body` reliance on `bg-accent`.
@@ -60,7 +60,7 @@
 > Satisfies D7. A complete Fumadocs section (index + per-topic pages), not a single page. Depth section doubles as the D6 Drawer-layer decision tool.
 
 - [ ] 9.1 Scaffold the `design-system` section pages in `blueprint/content/design-system/` and wire them into `blueprint/src/app/(docs)/design-system/[[...slug]]/page.tsx` (static module map + `generateStaticParams`): index overview + `brand`, `color`, `typography`, `spacing`, `radius`, `elevation-depth`, keeping the existing `components` page. → verify: each route renders under `/design-system/*`.
-- [ ] 9.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/app/globals.css`; renders in both themes.
+- [ ] 9.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
 - [ ] 9.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
 
 ## 10. Final verification

@@ -91,7 +91,7 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 
 **Interface / data shape:**
 
-- CSS tokens in `src/app/globals.css`: `--background`, `--popover` (both `:root` and `.dark`) re-valued per D2.
+- CSS tokens live in `src/styles/tokens.css` — the shared token source imported by both the app's `src/app/globals.css` and the blueprint's stylesheet (D7): `--background`, `--popover` (both `:root`/`.light` and `.dark`) re-valued per D2.
 - `body` class: `bg-accent` → `bg-background`.
 - `src/components/ui/dialog.tsx` exports add `DialogBody`. `DialogContentProps` adds `onExpand?: () => void` and `expandLabel?: string`. `DialogTitle`/`DialogDescription` props add `srOnly?: boolean`. `dialogContentVariants` base uses `bg-background` (replaces `bg-card`), matching `AlertDialogContent`'s existing surface token.
 

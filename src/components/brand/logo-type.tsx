@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { V_CORAL, V_IVORY, type LogoVariant } from "@/components/brand/logo-symbol";
+import { V_CORAL, V_IVORY, type LogoVariant } from "./logo-symbol";
 
 /**
  * The full "VolleyBro" wordmark (logotype). Neutral parts — every letter and the
