@@ -58,7 +58,7 @@ export default function RadiusPage() {
                 height: "84px",
                 borderTopLeftRadius: `${s.px}px`,
                 borderTopRightRadius: `${s.px}px`,
-                background: "var(--color-primary, hsl(192, 77%, 28%))",
+                background: "var(--color-primary)",
                 opacity: 0.9,
               }}
             />

@@ -188,7 +188,7 @@ export default function ComponentLibraryShowcase() {
       <h3>ChangeCard</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <ChangeCard
-          name="dialog-elevation-system"
+          name="elevation-depth-system"
           status="in-progress"
           summary="Redefine background color tokens into a three-layer elevation model and unify Dialog layout on top of that foundation."
         />

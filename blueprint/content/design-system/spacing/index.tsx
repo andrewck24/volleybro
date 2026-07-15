@@ -64,7 +64,7 @@ export default function SpacingPage() {
               style={{
                 height: "16px",
                 width: `${s.px}px`,
-                background: "var(--color-primary, hsl(192, 77%, 28%))",
+                background: "var(--color-primary)",
                 borderRadius: "3px",
                 flexShrink: 0,
               }}
