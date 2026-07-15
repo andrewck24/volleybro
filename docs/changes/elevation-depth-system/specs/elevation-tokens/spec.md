@@ -17,22 +17,22 @@ No two of `--background`, `--popover`, and `--card` SHALL share the same color v
 
 #### Scenario: Overlay-backed surfaces share the page layer
 
-- **WHEN** a Dialog or AlertDialog is open
+- **WHEN** a Dialog, AlertDialog, or Drawer is open
 - **THEN** its content surface renders on the `--background` token, identical to the page body, and the dimming overlay — not a distinct surface color — separates it visually from the page behind
 
 ##### Example: Lightness ordering
 
-| Token | Layer | dark lightness | light lightness |
-| --- | --- | --- | --- |
-| `--background` | 0 | darkest | darkest |
-| `--popover` | 0.5 | middle | middle |
-| `--card` | 1 | lightest | lightest |
+| Token          | Layer | dark lightness | light lightness |
+| -------------- | ----- | -------------- | --------------- |
+| `--background` | 0     | darkest        | darkest         |
+| `--popover`    | 0.5   | middle         | middle          |
+| `--card`       | 1     | lightest       | lightest        |
 
 ### Requirement: Background tokens carry their semantic role
 
 The page `body` background SHALL use the `--background` token (`bg-background`), not `--accent`. The `--accent` token SHALL be reserved for hover and highlight states and SHALL NOT be used as a page or surface background.
 
-Components that render their own dimming `Overlay` (Dialog, AlertDialog) SHALL render their content surface on the `--background` token — the overlay, not a distinct surface color, separates them from the page behind. Floating surface components without a dimming overlay (Popover, Select content) SHALL render on the `--popover` token.
+Components that render their own dimming `Overlay` (Dialog, AlertDialog, Drawer) SHALL render their content surface on the `--background` token — the overlay, not a distinct surface color, separates them from the page behind. Floating surface components without a dimming overlay (Popover, Select content) SHALL render on the `--popover` token.
 
 #### Scenario: Body uses background token
 
