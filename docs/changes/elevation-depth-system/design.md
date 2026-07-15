@@ -59,17 +59,19 @@ Light `--background` adopts the current `accent` lightness (95.6%) so the page k
 
 `DialogContent` renders one `absolute top-3 right-3` group: optional `onExpand` ghost button + `closeButton` (default true) Radix Close, both `size-8`. `DialogTitle`/`DialogDescription` gain `srOnly?: boolean`, replacing `className="sr-only"` and `aria-describedby={undefined}`. The edit dialog's close routes through Radix Close → root `onOpenChange(false)` → existing discard guard, preserving dirty-state confirmation.
 
-### D5: Overlay replaces ring (depth is signaled once)
+### D5: No container carries a ring (depth is signaled by scrim, background step, and shadow)
 
-A surface communicates elevation with exactly one primary cue, chosen by kind:
+Modal, popover, and card components are all containers carrying other content, so their ring strategy is uniform: **no container carries a decorative ring/border**. Each kind signals elevation through its remaining cues:
 
-- **Overlay-backed** (`Dialog`, `AlertDialog`, `Drawer` — renders a `bg-black/80` scrim): no ring/border. The scrim is the depth cue; a ring on top reads as double-bordered clutter. This codifies the `entry-ui` observation (removing the ring looked better) as a rule so it isn't silently reverted.
-- **Non-overlay floating** (`Popover`, `Select`, `Dropdown`): keep `ring` + `shadow-md`. With no scrim they float directly over live content, so the ring is the only edge separating them from what's beneath.
-- **In-flow** (`Card`, `Item`): the `--card` background step (layer 1) is the cue.
+- **Overlay-backed** (`Dialog`, `AlertDialog`, `Drawer` — renders a `bg-black/80` scrim): the scrim is the depth cue. This codifies the `entry-ui` observation (removing the ring looked better) as a rule so it isn't silently reverted.
+- **Non-overlay floating** (`Popover`, `Select`, `Dropdown`): the `--popover` background step + `shadow-md`.
+- **In-flow** (`Card`, `Item`): the `--card` background step (+ existing shadow treatment).
 
-Contract: overlay-backed surfaces MUST NOT carry a ring/border; non-overlay floating surfaces MUST. This is the causal reason behind the `dialog.tsx` `bg-card`→`bg-background` + ring removal, not an aesthetic preference.
+The `--ring` token remains for **focus-visible states only** — accessibility focus rings are not decorative borders and are untouched by this rule.
 
-**Open extension (2026-07-16):** modal, popover, and card components are all containers carrying other content, so the ring strategy across them should be uniform — either every container class carries a ring or none does. The rule above (ring only on non-overlay floats) leaves the three classes inconsistent by kind. Candidate resolutions: (a) keep the per-kind rule as stated; (b) **no ring anywhere** — non-overlay floats rely on the `--popover` background step + `shadow-md`, cards on the `--card` step (+ shadow); (c) ring everywhere — contradicts the `entry-ui` observation, likely rejected. Decided via the change design page's overlay lab (its non-overlay comparison renders Popover/Card with and without ring). If (b) wins, scope expands to `popover.tsx`, `select.tsx`, `card.tsx`, `item.tsx` ring removal and this contract is rewritten to "no container carries a ring; depth is signaled by scrim, background step, and shadow only".
+Decision history: the original formulation kept a ring on non-overlay floats ("the ring is the only edge separating them from live content"). Rejected (2026-07-16, via the change design page's Lab B comparison): the per-kind split left the three container classes inconsistent for no causal reason, and the rendered comparison showed the background step + `shadow-md` carries the popover edge on its own. "Ring everywhere" was also rejected — it contradicts the `entry-ui` observation. Consequence: scope includes `popover.tsx`, `select.tsx`, `card.tsx`, `item.tsx` decorative ring/border removal.
+
+Where a card-class element must sit on a same-color surface (e.g. inside an overlay), the compensation cue is **shadow** (e.g. restoring `shadow-sm`), never a ring — keeping the no-ring rule unbroken.
 
 ### D6: AlertDialog and Drawer converge on the shared overlay shell (Drawer layer TBD via the page; AlertDialog keeps dismiss semantics)
 
@@ -81,6 +83,8 @@ Both are overlay-backed, so both adopt the D1 layer-0 background, the D5 no-ring
 ### D7: The design-system page is a rendered deliverable of this change
 
 The change ships a live `design-system` section in the blueprint (Fumadocs) that renders the real tokens and rules — brand assets, color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role, spacing, radius, and elevation & depth. It supersedes the prose in `docs/design-system.md` (which taught the wrong `bg-accent` rule) as the source of truth, and its overlay-variant comparison doubles as the decision tool for D6's open Drawer-layer question. The blueprint carries the _complete_ section page structure (index + per-topic pages), not only a single decision page.
+
+**Token sharing lifecycle:** while the token values are under active decision, the blueprint imports the app's `src/styles/tokens.css` directly (cross-app import) so the docs can never drift from the moving source. Once this change's token values are finalized at apply time, the tokens are frozen — the blueprint then takes a **local copy** of `tokens.css` and the cross-app import is cut, matching how the frozen brand components are already handled (copy for frozen assets, share only what is live).
 
 ## Implementation Contract
 

@@ -14,19 +14,24 @@ Overlay-backed surface components — `Dialog`, `AlertDialog`, and `Drawer` — 
 - **WHEN** an overlay surface renders a header, body, and footer
 - **THEN** padding is supplied by each section, and the content element contributes no padding or gap of its own
 
-### Requirement: Overlay-backed surfaces carry no ring
+### Requirement: No container carries a decorative ring
 
-A component that renders its own dimming `Overlay` (`Dialog`, `AlertDialog`, `Drawer`) SHALL NOT apply a ring or border to its content surface; the dimming overlay is the sole elevation cue. Non-overlay floating surfaces (`Popover`, `Select`, `Dropdown` content) SHALL retain a ring together with `shadow-md`.
+Container components SHALL NOT apply a decorative ring or border to their content surface. Elevation SHALL be signaled by each kind's remaining cues: a component that renders its own dimming `Overlay` (`Dialog`, `AlertDialog`, `Drawer`) relies on the overlay; non-overlay floating surfaces (`Popover`, `Select`, `Dropdown` content) rely on the `--popover` background step plus `shadow-md`; in-flow surfaces (`Card`, `Item`) rely on the `--card` background step plus their shadow treatment. The `--ring` token SHALL be reserved for focus-visible states. Where a card-class element sits on a same-color surface, the compensation cue SHALL be shadow, not a ring.
 
-#### Scenario: Dialog surface has no ring
+#### Scenario: Overlay surface has no ring
 
 - **WHEN** any of `Dialog`, `AlertDialog`, or `Drawer` is open
 - **THEN** its content surface renders without a ring or border, relying on the dimming overlay for separation from the page
 
-#### Scenario: Popover keeps its ring
+#### Scenario: Popover separates without a ring
 
 - **WHEN** a `Popover` or `Select` content surface opens over live page content with no dimming overlay
-- **THEN** it renders a ring plus `shadow-md` so its edge is distinguishable from the content beneath
+- **THEN** it renders without a decorative ring, and its `--popover` background step plus `shadow-md` distinguish its edge from the content beneath
+
+#### Scenario: Focus ring is preserved
+
+- **WHEN** a control inside any container receives keyboard focus
+- **THEN** the focus-visible ring renders normally — the no-decorative-ring rule does not remove accessibility focus indication
 
 ### Requirement: Unified close and expand controls
 

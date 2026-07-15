@@ -50,7 +50,7 @@ const chart: TokenInfo[] = [
 const utility: TokenInfo[] = [
   { name: "--border", usage: "Hairline borders and dividers" },
   { name: "--input", usage: "Form control borders" },
-  { name: "--ring", usage: "Focus ring + non-overlay float edge" },
+  { name: "--ring", usage: "Focus-visible ring only (containers carry no decorative ring)" },
   { name: "--foreground", usage: "Primary text on --background" },
   { name: "--muted-foreground", usage: "Secondary / caption text" },
 ];

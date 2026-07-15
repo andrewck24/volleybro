@@ -43,26 +43,36 @@
 
 ## 7. AlertDialog convergence (keep dismiss semantics)
 
-> Satisfies the `overlay-layout` requirements "Shared three-section overlay structure", "Overlay-backed surfaces carry no ring", "AlertDialog preserves dismiss semantics", and "Accessible description without warnings"; implements D5 (overlay replaces ring) and D6 (AlertDialog converges structurally but keeps explicit-choice dismissal).
+> Satisfies the `overlay-layout` requirements "Shared three-section overlay structure", "No container carries a decorative ring", "AlertDialog preserves dismiss semantics", and "Accessible description without warnings"; implements D5 (overlay replaces ring) and D6 (AlertDialog converges structurally but keeps explicit-choice dismissal).
 
 - [ ] 7.1 In `src/components/ui/alert-dialog.tsx`: drop any ring/border from `AlertDialogContent` (D5); confirm it stays on `bg-background`; add `AlertDialogBody` (same `flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4` as `DialogBody`) and export it; set header/footer padding to match Dialog. Do NOT add a close/expand control group and do NOT enable outside-click/Esc dismiss — keep the explicit Cancel/Action footer as the only exit. Add `srOnly?` to `AlertDialogTitle`/`AlertDialogDescription`. → verify: alert has no ring, no top-right close, still ignores outside-click/Esc; three sections own their padding.
 - [ ] 7.2 [P] Migrate `src/components/team/players/membership-section.tsx` and `src/components/team/info/index.tsx` to the three-section shell (`AlertDialogHeader`/`AlertDialogBody`/`AlertDialogFooter`), adding `srOnly` descriptions where none is visible. → verify: both render; nested Card in team/info still pops; no a11y warning; dismissal still requires an explicit button.
 
 ## 8. Drawer convergence
 
-> Satisfies `overlay-layout` "Overlay-backed surfaces carry no ring" and `elevation-tokens` "Overlay-backed surfaces share the page layer"; implements D5 and D6's Drawer clause. Layer choice confirmed by the design-system overlay comparison (section 9).
+> Satisfies `overlay-layout` "No container carries a decorative ring" and `elevation-tokens` "Overlay-backed surfaces share the page layer"; implements D5 and D6's Drawer clause. Layer choice confirmed by the change design page's overlay lab (see design.md D6).
 
 - [ ] 8.1 In `src/components/ui/drawer.tsx`: remove any ring/border from `DrawerContent` (D5); the vaul snap-point peek behavior is unchanged. → verify: drawer peek and expanded states render without a ring.
-- [ ] 8.2 Set `DrawerContent` background per the section-9 decision — align to `bg-background` (D1 overlay rule) unless the rendered comparison rules for keeping `bg-card`. Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface matches the confirmed layer in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
+- [ ] 8.2 Set `DrawerContent` background per the D6 layer decision (recorded in design.md once the sheet-vs-modal question is confirmed via the change design page's overlay lab). Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface matches the confirmed layer in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
 
-## 9. design-system reference page (blueprint deliverable)
+## 9. Container ring removal (D5: no container carries a ring)
+
+> Satisfies the `overlay-layout` requirement "No container carries a decorative ring"; implements the decided D5 (uniform no-ring across modal/popover/card containers; focus-visible rings untouched).
+
+- [ ] 9.1 [P] `src/components/ui/popover.tsx` and `src/components/ui/select.tsx`: remove the decorative ring/border from the content surface; keep `shadow-md` and `bg-popover`. Leave focus-visible ring utilities untouched. → verify: open popover/select separates from live content via background step + shadow only, in both themes.
+- [ ] 9.2 [P] `src/components/ui/card.tsx` and `src/components/ui/item.tsx`: remove the decorative ring/border; keep the background step and existing shadow treatment. → verify: cards/items on the page read as raised without a border edge; focus states unchanged.
+- [ ] 9.3 Re-run the item-in-overlay contrast gate (section 5) after ring removal — with rings gone everywhere, shadow is the only compensation cue for card-on-same-color surfaces; adjust the globals.css shadow-suppression rule accordingly. → verify: card-class elements inside Dialog/Drawer are distinguishable via shadow in both themes.
+
+## 10. design-system reference page (blueprint deliverable)
 
 > Satisfies D7. A complete Fumadocs section (index + per-topic pages), not a single page. Depth section doubles as the D6 Drawer-layer decision tool.
 
-- [ ] 9.1 Scaffold the `design-system` section pages in `blueprint/content/design-system/` and wire them into `blueprint/src/app/(docs)/design-system/[[...slug]]/page.tsx` (static module map + `generateStaticParams`): index overview + `brand`, `color`, `typography`, `spacing`, `radius`, `elevation-depth`, keeping the existing `components` page. → verify: each route renders under `/design-system/*`.
-- [ ] 9.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
-- [ ] 9.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
+- [ ] 10.1 Scaffold the `design-system` section pages in `blueprint/content/design-system/` and wire them into `blueprint/src/app/(docs)/design-system/[[...slug]]/page.tsx` (static module map + `generateStaticParams`): index overview + `brand`, `color`, `typography`, `spacing`, `radius`, `elevation-depth`, keeping the existing `components` page. → verify: each route renders under `/design-system/*`.
+- [ ] 10.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
+- [ ] 10.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
 
-## 10. Final verification
+- [ ] 10.4 Once the token values are finalized (sections 1 and 9 decided and applied), freeze them: copy `src/styles/tokens.css` into the blueprint as a local stylesheet and cut the blueprint's cross-app `@import` — frozen assets are copied, only live sources are shared (see design.md D7 token lifecycle). → verify: blueprint builds with no import reaching outside `blueprint/`; rendered token values identical to the app's.
 
-- [ ] 10.1 Run `pnpm type-check`, then `pnpm build`; open each migrated overlay (Dialog, AlertDialog, Drawer) in light and dark mode confirming three-layer separation, no ring on overlay surfaces, Card elevation, `top-3 right-3`/`size-8` controls on Dialog (absent on AlertDialog), AlertDialog still requiring an explicit choice, no a11y warning, and the edit-dialog discard guard. → verify: both commands pass; all checks above hold.
+## 11. Final verification
+
+- [ ] 11.1 Run `pnpm type-check`, then `pnpm build`; open each migrated overlay (Dialog, AlertDialog, Drawer) in light and dark mode confirming three-layer separation, no decorative ring on any container (overlay surfaces, popover/select, cards/items), Card elevation, `top-3 right-3`/`size-8` controls on Dialog (absent on AlertDialog), AlertDialog still requiring an explicit choice, no a11y warning, and the edit-dialog discard guard. → verify: both commands pass; all checks above hold.

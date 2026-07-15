@@ -41,8 +41,8 @@ const decisions = [
   },
   {
     id: "D5",
-    title: "Overlay 取代 ring（深度訊號只給一次）",
-    body: "有 scrim 的面（Dialog/AlertDialog/Drawer）不加 ring — scrim 就是深度線索，再加 ring 讀起來是雙重邊框。無 scrim 的浮動面（Popover/Select）必須保留 ring + shadow-md。這把 entry-ui 的觀察（拿掉 ring 更好看）寫成規則。Open extension：容器類（modal/popover/card）的 ring 策略應統一（全有或全無），由 Lab B 定案；若「全無」勝出，範圍擴大到 popover/select/card/item。",
+    title: "容器一律不帶 ring（深度由 scrim、背景階差與陰影表達）",
+    body: "已定案（2026-07-16，Lab B）：modal/popover/card 都是容器，ring 策略統一為全無。overlay 面靠 scrim、popover 靠背景階差 + shadow-md、card 靠背景階差 + 陰影；--ring 只保留給 focus-visible。card 類落在同色表面時的補償是 shadow、不是 ring。範圍因此擴大到 popover/select/card/item 的裝飾性 ring 移除。",
   },
   {
     id: "D6",
@@ -403,9 +403,9 @@ export default function ElevationDepthSystemDesign() {
         <NonOverlayFrame scope="dark" label="Dark" ring={nonOverlayRing} />
       </div>
       <p className="text-sm text-muted-foreground">
-        Open question（D5 open extension）：若「全無 ring」勝出，範圍擴大到
-        popover.tsx / select.tsx / card.tsx / item.tsx 的 ring 移除，D5 改寫為
-        「容器一律不帶 ring，深度只由 scrim、背景階差與陰影表達」。
+        已定案（D5）：全無 ring。範圍擴大到 popover.tsx / select.tsx /
+        card.tsx / item.tsx 的裝飾性 ring 移除；--ring 只保留給
+        focus-visible。上方切到「有 ring」即是被否決的樣子，留作對照。
       </p>
 
       <h2 id="drawer-question">Open question：Drawer 的圖層</h2>

@@ -28,15 +28,15 @@ The fix is to make the background tokens mean what they say, introduce a true mi
 - `--accent` returns to its hover/highlight role (value unchanged; no longer used as body background).
 - HSL values are starting points and may be tuned during implementation for perceived contrast.
 
-**2. Overlay-replaces-ring depth rule** (make the `entry-ui` observation a contract):
+**2. No-container-ring depth rule** (make the `entry-ui` observation a uniform contract):
 
-A surface signals its elevation with **either** a dimming overlay **or** a ring — never both, never neither:
+Modal, popover, and card components are all content containers, so their ring treatment is uniform: **no container carries a decorative ring/border**. Depth is signaled by each kind's remaining cues:
 
-- **Overlay-backed** surfaces (`Dialog`, `AlertDialog`, `Drawer` — anything with a `bg-black/80` scrim): no ring. The scrim is the depth cue.
-- **Non-overlay floating** surfaces (`Popover`, `Select`, `Dropdown`): keep `ring` + `shadow-md`. With no scrim, the ring is the only edge that separates them from the live content beneath.
-- **In-flow** surfaces (`Card`, `Item`): the `--card` background step is the cue.
+- **Overlay-backed** surfaces (`Dialog`, `AlertDialog`, `Drawer` — anything with a `bg-black/80` scrim): the scrim is the depth cue.
+- **Non-overlay floating** surfaces (`Popover`, `Select`, `Dropdown`): the `--popover` background step + `shadow-md`.
+- **In-flow** surfaces (`Card`, `Item`): the `--card` background step (+ existing shadow treatment).
 
-**Open decision — unified container ring strategy:** modal/popover/card are all content containers, so their ring treatment should be uniform (all or none) rather than per-kind. If the "no ring anywhere" resolution wins (decided via the change design page's overlay lab), scope expands to `popover.tsx` / `select.tsx` / `card.tsx` / `item.tsx` ring removal — see design.md D5's open extension.
+`--ring` remains for focus-visible states only. When a card-class element must sit on a same-color surface (e.g. inside an overlay), the compensation cue is shadow, never a ring. (Decided 2026-07-16 via the change design page's Lab B; see design.md D5 for the decision history.)
 
 **3. Unified overlay layout** (built on the new layers + depth rule), covering `Dialog`, `AlertDialog`, and `Drawer`:
 
@@ -88,7 +88,10 @@ A surface signals its elevation with **either** a dimming overlay **or** a ring 
     - src/components/team/players/membership-section.tsx (AlertDialog)
     - src/components/team/info/index.tsx (AlertDialog)
     - src/components/game/summary-drawer.tsx (Drawer)
-    - src/components/ui/popover.tsx, select.tsx, card.tsx, item.tsx (conditional — only if the unified "no ring anywhere" resolution wins; see the open decision above)
+    - src/components/ui/popover.tsx
+    - src/components/ui/select.tsx
+    - src/components/ui/card.tsx
+    - src/components/ui/item.tsx
     - src/stories/ui/dialog.stories.tsx
     - docs/design-system.md
   - New (design-system reference page, in blueprint):

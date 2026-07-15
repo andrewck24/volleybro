@@ -12,12 +12,12 @@ const layers = [
   {
     name: "Level 0.5 · Floating",
     token: "--popover",
-    body: "Non-overlay floating surfaces (Popover, Select) that open over live content. A distinct value + shadow-md keeps them raised with no overlay to help.",
+    body: "Non-overlay floating surfaces (Popover, Select) that open over live content. The background step + shadow-md keeps them raised — no ring, no overlay.",
   },
   {
     name: "Level 1 · Card",
     token: "--card",
-    body: "Cards and items — the topmost surface, sitting on any layer beneath with ring + shadow.",
+    body: "Cards and items — the topmost surface, raised by the background step and shadow (no ring).",
   },
 ];
 
@@ -72,8 +72,8 @@ export default function ElevationDepthPage() {
       <h1>Elevation &amp; Depth</h1>
       <p>
         Two rules govern depth. First, three distinct background layers ordered
-        by elevation. Second — <strong>overlay replaces ring</strong>: a surface
-        signals its depth with a dimming overlay <em>or</em> a ring, never both.
+        by elevation. Second — <strong>no container carries a ring</strong>:
+        depth is signaled by scrim, background step, and shadow only.
       </p>
 
       <h2 id="layers">A · Background layers</h2>
@@ -93,14 +93,17 @@ export default function ElevationDepthPage() {
         ))}
       </ul>
 
-      <h2 id="overlay-ring">B · Overlay replaces ring</h2>
+      <h2 id="overlay-ring">B · No container carries a ring</h2>
       <p>
-        Overlay-backed surfaces (Dialog, AlertDialog, Drawer — anything with a{" "}
-        <code>bg-black/80</code> scrim) drop the ring; the scrim is the depth
-        cue. Non-overlay floats (Popover, Select) keep <code>ring</code> +{" "}
-        <code>shadow-md</code>, since with no scrim the ring is their only edge.
-        This makes the <code>entry-ui</code> observation (removing the ring
-        looked better) a contract, so nothing silently re-adds one.
+        Modal, popover, and card components are all content containers, so the
+        ring rule is uniform: none carries a decorative ring. Overlay-backed
+        surfaces (Dialog, AlertDialog, Drawer) rely on their{" "}
+        <code>bg-black/80</code> scrim; non-overlay floats (Popover, Select) on
+        the background step + <code>shadow-md</code>; cards/items on the
+        background step + shadow. <code>--ring</code> is reserved for
+        focus-visible states. This makes the <code>entry-ui</code> observation
+        (removing the ring looked better) a contract, so nothing silently
+        re-adds one.
       </p>
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <OverlayDemo
@@ -129,6 +132,6 @@ export default function ElevationDepthPage() {
 
 export const toc = [
   { title: "A · Background layers", url: "#layers", depth: 2 },
-  { title: "B · Overlay replaces ring", url: "#overlay-ring", depth: 2 },
+  { title: "B · No container carries a ring", url: "#overlay-ring", depth: 2 },
   { title: "Open question · Drawer layer", url: "#drawer-question", depth: 2 },
 ];
