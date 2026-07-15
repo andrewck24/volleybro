@@ -42,7 +42,7 @@ const decisions = [
   {
     id: "D5",
     title: "Overlay 取代 ring（深度訊號只給一次）",
-    body: "有 scrim 的面（Dialog/AlertDialog/Drawer）不加 ring — scrim 就是深度線索，再加 ring 讀起來是雙重邊框。無 scrim 的浮動面（Popover/Select）必須保留 ring + shadow-md。這把 entry-ui 的觀察（拿掉 ring 更好看）寫成規則。",
+    body: "有 scrim 的面（Dialog/AlertDialog/Drawer）不加 ring — scrim 就是深度線索，再加 ring 讀起來是雙重邊框。無 scrim 的浮動面（Popover/Select）必須保留 ring + shadow-md。這把 entry-ui 的觀察（拿掉 ring 更好看）寫成規則。Open extension：容器類（modal/popover/card）的 ring 策略應統一（全有或全無），由 Lab B 定案；若「全無」勝出，範圍擴大到 popover/select/card/item。",
   },
   {
     id: "D6",
@@ -61,7 +61,8 @@ const decisions = [
 // Phone mock — the game recording screen, built from real tokens
 // ---------------------------------------------------------------------------
 
-function GameScreen() {
+function GameScreen({ cardRing = false }: { cardRing?: boolean }) {
+  const ringClass = cardRing ? "border-border border" : "";
   return (
     <div className="flex h-full flex-col gap-1 bg-background p-1.5 pt-2 text-foreground">
       {/* header: set score */}
@@ -78,7 +79,9 @@ function GameScreen() {
         <div className="absolute top-1.5 bottom-1.5 left-1/2 w-px bg-foreground/25" />
       </div>
       {/* panel: progress + caption + moves grid */}
-      <div className="flex min-h-0 flex-1 flex-col gap-1 rounded-md bg-card p-1.5">
+      <div
+        className={`flex min-h-0 flex-1 flex-col gap-1 rounded-md bg-card p-1.5 ${ringClass}`}
+      >
         <div className="h-0.5 w-full overflow-hidden rounded-full bg-muted">
           <div className="h-full w-1/3 rounded-full bg-primary" />
         </div>
@@ -220,6 +223,41 @@ function PhoneFrame({
   );
 }
 
+// Non-overlay containers on the live page (no scrim): a popover-style float
+// and the panel's card, both with the ring toggled, for the unified-ring
+// open question.
+function NonOverlayFrame({
+  scope,
+  label,
+  ring,
+}: {
+  scope: "light" | "dark";
+  label: string;
+  ring: boolean;
+}) {
+  const ringClass = ring ? "border-border border" : "";
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div
+        className={`${scope} relative aspect-[9/17] w-full max-w-56 overflow-hidden rounded-xl border border-border`}
+      >
+        <GameScreen cardRing={ring} />
+        {/* popover-style float over live content — no scrim */}
+        <div
+          className={`absolute top-[18%] right-2 flex w-24 flex-col gap-0.5 rounded-md bg-popover p-1 text-foreground shadow-md ${ringClass}`}
+        >
+          {["編輯", "複製", "刪除"].map((row) => (
+            <div key={row} className="rounded-sm px-1.5 py-1 text-[0.5rem]">
+              {row}
+            </div>
+          ))}
+        </div>
+      </div>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Segmented control
 // ---------------------------------------------------------------------------
@@ -268,6 +306,7 @@ export default function ElevationDepthSystemDesign() {
   const [kind, setKind] = useState<OverlayKind>("drawer");
   const [surface, setSurface] = useState<Surface>("background");
   const [ring, setRing] = useState(false);
+  const [nonOverlayRing, setNonOverlayRing] = useState(true);
 
   return (
     <div>
@@ -341,6 +380,34 @@ export default function ElevationDepthSystemDesign() {
         切過去可以看到雙重邊框感，切回來即是規則要的樣子。
       </p>
 
+      <h2 id="ring-lab">Lab B：非 overlay 容器的 ring（Popover / Card）</h2>
+      <p>
+        modal、popover、card 都是乘載內容的容器，ring 策略應該統一（全有或全
+        無）。這裡把無 scrim 的兩類容器放回真實頁面：右上是 popover 式浮動選單
+        （bg-popover + shadow-md），中段 panel 是 card（bg-card）。切換 ring 觀
+        察：拿掉 ring 之後，popover 是否僅靠背景階差 + 陰影就能與底下內容分離。
+      </p>
+      <div className="my-4 flex flex-col gap-2">
+        <Segmented
+          label="ring"
+          value={nonOverlayRing ? "on" : "off"}
+          onChange={(v) => setNonOverlayRing(v === "on")}
+          options={[
+            { value: "off", label: "無 ring" },
+            { value: "on", label: "有 ring" },
+          ]}
+        />
+      </div>
+      <div className="my-4 grid grid-cols-2 gap-4">
+        <NonOverlayFrame scope="light" label="Light" ring={nonOverlayRing} />
+        <NonOverlayFrame scope="dark" label="Dark" ring={nonOverlayRing} />
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Open question（D5 open extension）：若「全無 ring」勝出，範圍擴大到
+        popover.tsx / select.tsx / card.tsx / item.tsx 的 ring 移除，D5 改寫為
+        「容器一律不帶 ring，深度只由 scrim、背景階差與陰影表達」。
+      </p>
+
       <h2 id="drawer-question">Open question：Drawer 的圖層</h2>
       <p>
         Drawer（vaul bottom sheet）目前落在 <code>bg-card</code>（layer 1），但
@@ -372,5 +439,10 @@ export default function ElevationDepthSystemDesign() {
 export const toc = [
   { title: "已定案決策", url: "#decisions", depth: 2 },
   { title: "Overlay lab：真實畫面上的變體比較", url: "#overlay-lab", depth: 2 },
+  {
+    title: "Lab B：非 overlay 容器的 ring（Popover / Card）",
+    url: "#ring-lab",
+    depth: 2,
+  },
   { title: "Open question：Drawer 的圖層", url: "#drawer-question", depth: 2 },
 ];

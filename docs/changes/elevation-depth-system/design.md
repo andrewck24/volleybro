@@ -69,6 +69,8 @@ A surface communicates elevation with exactly one primary cue, chosen by kind:
 
 Contract: overlay-backed surfaces MUST NOT carry a ring/border; non-overlay floating surfaces MUST. This is the causal reason behind the `dialog.tsx` `bg-card`→`bg-background` + ring removal, not an aesthetic preference.
 
+**Open extension (2026-07-16):** modal, popover, and card components are all containers carrying other content, so the ring strategy across them should be uniform — either every container class carries a ring or none does. The rule above (ring only on non-overlay floats) leaves the three classes inconsistent by kind. Candidate resolutions: (a) keep the per-kind rule as stated; (b) **no ring anywhere** — non-overlay floats rely on the `--popover` background step + `shadow-md`, cards on the `--card` step (+ shadow); (c) ring everywhere — contradicts the `entry-ui` observation, likely rejected. Decided via the change design page's overlay lab (its non-overlay comparison renders Popover/Card with and without ring). If (b) wins, scope expands to `popover.tsx`, `select.tsx`, `card.tsx`, `item.tsx` ring removal and this contract is rewritten to "no container carries a ring; depth is signaled by scrim, background step, and shadow only".
+
 ### D6: AlertDialog and Drawer converge on the shared overlay shell (Drawer layer TBD via the page; AlertDialog keeps dismiss semantics)
 
 Both are overlay-backed, so both adopt the D1 layer-0 background, the D5 no-ring rule, the D3 three-section structure, and the D4 `srOnly` prop.

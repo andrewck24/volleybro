@@ -36,6 +36,8 @@ A surface signals its elevation with **either** a dimming overlay **or** a ring 
 - **Non-overlay floating** surfaces (`Popover`, `Select`, `Dropdown`): keep `ring` + `shadow-md`. With no scrim, the ring is the only edge that separates them from the live content beneath.
 - **In-flow** surfaces (`Card`, `Item`): the `--card` background step is the cue.
 
+**Open decision — unified container ring strategy:** modal/popover/card are all content containers, so their ring treatment should be uniform (all or none) rather than per-kind. If the "no ring anywhere" resolution wins (decided via the change design page's overlay lab), scope expands to `popover.tsx` / `select.tsx` / `card.tsx` / `item.tsx` ring removal — see design.md D5's open extension.
+
 **3. Unified overlay layout** (built on the new layers + depth rule), covering `Dialog`, `AlertDialog`, and `Drawer`:
 
 - Content carries no padding, is `overflow-hidden`, uses `bg-background`, no ring, and is a `flex` column.
@@ -86,6 +88,7 @@ A surface signals its elevation with **either** a dimming overlay **or** a ring 
     - src/components/team/players/membership-section.tsx (AlertDialog)
     - src/components/team/info/index.tsx (AlertDialog)
     - src/components/game/summary-drawer.tsx (Drawer)
+    - src/components/ui/popover.tsx, select.tsx, card.tsx, item.tsx (conditional — only if the unified "no ring anywhere" resolution wins; see the open decision above)
     - src/stories/ui/dialog.stories.tsx
     - docs/design-system.md
   - New (design-system reference page, in blueprint):
