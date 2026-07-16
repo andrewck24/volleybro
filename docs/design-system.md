@@ -42,58 +42,33 @@ const config: ChartConfig = {
 
 ## Depth, Elevation & Edge Definition
 
-Based on Steve Schoger's approach: use CSS `ring` instead of `border` for container edges.
+> The rendered source of truth is the blueprint `design-system` section (`/design-system` on the blueprint site) — it renders the real tokens live from `src/styles/tokens.css`. This chapter is the prose companion; if the two disagree, the blueprint wins.
 
-### Why
+### Three Layers
 
-`border` + `shadow` together creates a muddy transition zone. `ring` (which is a `box-shadow`) composes cleanly with drop shadows.
+The app defines three background layers, each a distinct value per theme in `src/styles/tokens.css`, ordered by elevation (lighter = higher in light mode, inverted in dark mode):
 
-### Depth & Elevation
+| Layer | Token | Role | Light | Dark |
+| ----- | ----- | ---- | ----- | ---- |
+| 0 | `--background` | Page body only | 95.6% | 4.9% |
+| 0.5 | `--popover` | Non-overlay floats — Popover, Select content (future Dropdown/Tooltip) | ~97% | ~10% |
+| 1 | `--card` | Card/Item **and every modal-class surface** — Dialog, AlertDialog, Drawer | 98.45% | 14.5% |
 
-The app has two elevation levels relative to the page body (`bg-accent`):
+Invariant: no two of `--background`, `--popover`, `--card` share a value within a theme.
 
-| Level | Context | Shadow | Ring |
-| ----- | ------- | ------ | ---- |
-| **Level 1** | Directly on body (`bg-accent`) | `shadow-sm` | per variant |
-| **Level 2** | Inside Card, Dialog, or other elevated containers | none | per variant |
+Modal surfaces (Dialog, AlertDialog, Drawer) render on `--card`, the same token as Card/Item — they do not get their own layer. What separates a modal from the page is its dimming scrim (`bg-black/80`), not a color step. This keeps the system one-toned and, in particular, keeps the Drawer's in-flow "peek" state (visible before any scrim exists) continuous with the page's card surfaces. A `<Card>` rendered inside a modal therefore sits on a same-color surface; it is distinguished from the modal by **shadow**, not by a background step or a ring.
 
-Shadow presence is the only depth signal. Ring is purely an edge definition tool and is not tied to elevation.
+### No-Ring Rule
 
-Level 2 shadow suppression is handled globally in `globals.css` via CSS selectors — components do not manage this themselves:
+No container carries a decorative ring/border. Each container kind signals elevation through a different cue:
 
-```css
-[data-slot="Card"] [data-slot="item"],
-[data-slot="DialogContent"] [data-slot="item"] {
-  box-shadow: none;
-}
-```
+| Container kind | Example | Depth cue |
+| --------------- | ------- | --------- |
+| Overlay-backed | Dialog, AlertDialog, Drawer | Dimming scrim (`bg-black/80`) |
+| Non-overlay floating | Popover, Select, Dropdown | `--popover` background step + `shadow-md` |
+| In-flow | Card, Item | `--card` background step + shadow |
 
-When adding a new elevated container that can hold `Item`, add its `data-slot` to this selector list.
-
-### Ring Patterns
-
-| Pattern                 | Classes                                | When to use                                             |
-| ----------------------- | -------------------------------------- | ------------------------------------------------------- |
-| **Outer ring**          | `ring-1 ring-foreground/10`            | Elevated containers with shadow (Card, Dialog, Popover) |
-| **Inset ring**          | `ring-1 ring-inset ring-foreground/5`  | Subtle edge on light backgrounds (Alert default)        |
-| **Inset ring (input)**  | `ring-1 ring-inset ring-foreground/10` | Form inputs (Input, Select trigger)                     |
-| **Interactive surface** | `shadow-sm ring-1 ring-foreground/10`  | Item outline variant — edge visible without shadow      |
-| **Shadow-only surface** | `shadow-sm ring-1 ring-transparent`    | Non-outline variants when outline variant exists        |
-
-`ring-foreground/10` adapts automatically: black at 10% in light mode, near-white at 10% in dark mode.
-
-### Applied Components
-
-**Confirmed:**
-
-- `Card` - `shadow-sm ring-1 ring-foreground/10`
-- `Header` - `shadow-sm ring-1 ring-foreground/5`
-- `Item (default)` - `shadow-sm ring-1 ring-transparent` (shadow suppressed at Level 2 via CSS)
-- `Item (outline)` - `shadow-xs ring-1 ring-foreground/10 ring-inset`
-
-**Experimental** (marked with `/* experimental: ring technique */` comments, may revert to `border`):
-
-- `Input`, `Select` (trigger + content), `Popover`, `Dialog`, `Alert`, `Toast`, `Badge` (outline variant)
+`--ring` remains reserved for **focus-visible states only** — it is not a decorative edge tool. Where a card-class element must sit on a same-color surface (e.g. inside a modal), the compensation cue is **shadow**, never a ring.
 
 ### When to keep `border`
 
@@ -142,27 +117,29 @@ This keeps list density high while maintaining Schoger-style clean edges and dep
 
 ## Hover State Color Rule
 
-The app body uses `bg-accent` as its page background. Interactive elements placed directly on the body must **not** use `bg-accent` variants for hover or active states - doing so makes the element blend into the background (辨識度降低).
+The app body uses `bg-background` as its page background. `accent` is reserved for hover/highlight states and must never be used as a page or surface background.
 
 ### Token Lightness Reference (light mode)
 
-| Token        | Lightness | Role                       |
-| ------------ | --------- | -------------------------- |
-| `background` | ~98.5%    | Same as `card` in this app |
-| `accent`     | ~95.6%    | **Page body background**   |
-| `secondary`  | ~93.8%    | Subtle fill                |
-| `muted`      | ~90.4%    | Hover target token         |
+| Token        | Lightness | Role                                       |
+| ------------ | --------- | ------------------------------------------- |
+| `card`       | 98.45%    | Card/Item and modal-class surfaces          |
+| `popover`    | ~97%      | Non-overlay floats (Popover, Select)        |
+| `background` | 95.6%     | **Page body background**                    |
+| `secondary`  | ~93.8%    | Subtle fill                                 |
+| `muted`      | ~90.4%    | Hover target token                          |
+| `accent`     | ~95.6%    | Hover/highlight only — never a background   |
 
 ### Rule
 
 > Hover must **darken** relative to the element's resting state, not dissolve toward the background.
 
-| Context                                  | Resting bg              | Correct hover        | Forbidden                              |
-| ---------------------------------------- | ----------------------- | -------------------- | -------------------------------------- |
-| On body (`bg-accent`)                    | `bg-card` / transparent | `hover:bg-muted/50`  | `hover:bg-accent`, `hover:bg-accent/*` |
-| Inside elevated container (Card, Dialog) | `bg-card`               | `hover:bg-accent/30` | `hover:bg-accent` (full)               |
-| Ghost / outline button on body           | transparent             | `hover:bg-muted/50`  | `hover:bg-accent`                      |
-| Active/selected state on body            | transparent             | `bg-muted/60`        | `bg-accent/80`                         |
+| Context                                    | Resting bg               | Correct hover         | Forbidden                              |
+| ------------------------------------------- | ------------------------- | ---------------------- | -------------------------------------- |
+| On body (`bg-background`)                   | `bg-card` / transparent   | `hover:bg-muted/50`   | `hover:bg-accent`, `hover:bg-accent/*` |
+| Inside a card-class surface (Card, Dialog)  | `bg-card`                  | `hover:bg-accent/30`  | `hover:bg-accent` (full)               |
+| Ghost / outline button on body              | transparent                | `hover:bg-muted/50`   | `hover:bg-accent`                      |
+| Active/selected state on body               | transparent                | `bg-muted/60`         | `bg-accent/80`                         |
 
 ### Applied Components
 
