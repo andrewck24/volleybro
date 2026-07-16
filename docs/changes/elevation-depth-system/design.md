@@ -99,6 +99,9 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 
 - CSS tokens live in the app's `src/app/globals.css` `:root`/`.light`/`.dark` blocks, with a frozen copy inlined in `blueprint/src/app/globals.css` (D7): `--background`, `--popover` (both `:root`/`.light` and `.dark`) re-valued per D2.
 - `body` class: `bg-accent` → `bg-background`.
+- PWA body backdrop becomes route-scoped instead of pathname-scoped: `src/components/layout/body-backdrop.tsx` owns the early `document.documentElement` / `document.body` `backgroundColor` side effect and restores previous inline values on unmount. Tabs set `--color-background`; auth routes set `--color-primary`; recording entry routes set `--color-card`.
+- `public/manifest.json` keeps `background_color` equal to the light-mode `--background` value (`#f2f2f6`) so user agents that use the manifest launch fallback do not create a separate near-white frame. Apple startup-image selection remains governed by `apple-touch-startup-image`.
+- Dialog, AlertDialog, Drawer, and the recording summary drawer custom overlay use `inset-0` to cover the full web content viewport. They do not attempt to extend beyond that viewport or mutate `BodyBackdrop` while opening. When iOS reserves the status-bar region outside the content viewport (including the documented iOS 26.1 WebKit regression where `env(safe-area-inset-top)` resolves to `0`), that region is system-owned and may be dimmed independently by iOS.
 - `src/components/ui/dialog.tsx` exports add `DialogBody`. `DialogContentProps` adds `onExpand?: () => void` and `expandLabel?: string`. `DialogTitle`/`DialogDescription` props add `srOnly?: boolean`. `dialogContentVariants` base keeps `bg-card`; `AlertDialogContent` migrates `bg-background` → `bg-card` to match (revised D1).
 
 **Failure modes:**
@@ -113,6 +116,7 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 **Scope boundaries:**
 
 - In scope: the token re-valuing, `body` background, `dialog.tsx` structure, the 13 listed call sites, and `docs/design-system.md`.
+- Follow-up scope: route-scoped PWA body backdrop, common app chrome/page backgrounds that still used `bg-accent`, and the design-system reference text that distinguishes backdrop from content layers.
 - Out of scope: form internals, brand/feedback/chart tokens, any new token, item-grouped form redesign, `AlertDialog` structural changes (background token alignment only — already satisfied by existing code, no edit required).
 
 ## Risks / Trade-offs
@@ -121,3 +125,4 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 - **Floating menus one layer lower (D1).** Accepted; shadow-md differentiates.
 - **Item-in-dialog contrast** may need the shadow-suppression entry removed (see Failure modes) — verified visually, not assumed.
 - **design-system.md drift.** The doc currently teaches the wrong rule; failing to update it would re-introduce the defect. The doc update is in scope and required.
+- **iOS standalone status-bar composition.** Some WebKit versions reserve the status-bar region outside the content viewport, so no DOM overlay can paint it. Mitigation: keep route backdrop colors stable, let iOS own any modal dimming in that region, and avoid modal-driven `BodyBackdrop` mutations that can flash or drift from the scrim.

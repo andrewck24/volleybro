@@ -77,3 +77,18 @@
 ## 11. Final verification
 
 - [x] 11.1 Run `pnpm type-check`, then `pnpm build`; open each migrated overlay (Dialog, AlertDialog, Drawer) in light and dark mode confirming three-layer separation, no decorative ring on any container (overlay surfaces, popover/select, cards/items), Card elevation, `top-3 right-3`/`size-8` controls on Dialog (absent on AlertDialog), AlertDialog still requiring an explicit choice, no a11y warning, and the edit-dialog discard guard. → verify: both commands pass; all checks above hold.
+
+## 12. PWA body backdrop follow-up
+
+- [x] 12.1 Replace the global pathname-based body color handler with route-scoped `BodyBackdrop`, preserving the standalone PWA status-bar/backdrop use case without making inline body color the page background source. → verify: `tabs` layout sets `--color-background`, `auth` layout sets `--color-primary`, recording entry layout sets `--color-card`, and cleanup restores previous inline values on unmount.
+- [x] 12.2 Move common app chrome and tab page grounds off `bg-accent` and onto `bg-background` semantics. → verify: shared `Header` and `TabContainer` no longer use `accent` as page/chrome background.
+- [x] 12.3 Document that PWA body backdrop is not a fourth layer and does not replace content tokens. → verify: `docs/design-system.md`, blueprint elevation/depth docs, and `elevation-tokens` spec all distinguish backdrop from page/surface layers.
+- [x] 12.4 Extend overlay scrims through standalone PWA system chrome by extending Dialog, AlertDialog, Drawer, and recording summary drawer overlay boxes upward by `--safe-area-inset-top`. Remove header/body seam sources by making app headers opaque, making the recording header draw one continuous `bg-card` surface from `top: 0`, and aligning the light `themeColor` to `--background`. → verify: modal status-bar area is painted by the same `bg-black/80` element; expanded drawer status-bar area is painted by the same `bg-black/60` element; game and tab headers have no translucent seam.
+
+## 13. iOS system chrome correction
+
+- [x] 13.1 Correct the PWA system chrome contract after iOS device verification: Dialog, AlertDialog, Drawer, and recording summary drawer scrims cover the web content viewport with `inset-0`, never mutate route-scoped `BodyBackdrop`, and document that an iOS-reserved status-bar region is outside DOM paint control. → verify: focused overlay tests pass, `spectra validate elevation-depth-system` passes, and device inspection shows no overlay/body-backdrop timing flash.
+
+## 14. PWA launch fallback alignment
+
+- [x] 14.1 Align the manifest `background_color` with the light-mode `--background` value and cover the iPhone 17 Pro startup-image dimensions and endpoint with regression tests. → verify: the focused apple-splash test suites pass, `/apple-splash/1206x2622` returns a valid PNG, and the production layout registers that exact startup image behind the iPhone 17 Pro media query.
