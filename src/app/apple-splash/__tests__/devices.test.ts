@@ -15,6 +15,15 @@ describe("isSupportedSize", () => {
     expect(isSupportedSize(1320, 2868)).toBe(true);
   });
 
+  it("maps the iPhone 17 Pro viewport to its physical resolution", () => {
+    expect(devices).toContainEqual({
+      media:
+        "(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)",
+      width: 1206,
+      height: 2622,
+    });
+  });
+
   it("returns true for a listed iPad size", () => {
     expect(isSupportedSize(2048, 2732)).toBe(true);
   });

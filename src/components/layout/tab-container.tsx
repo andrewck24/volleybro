@@ -179,7 +179,7 @@ export const TabContainer = ({
           <div
             key={tab}
             className={cn(
-              "min-h-dvh bg-accent pt-[calc(env(safe-area-inset-top)+3rem)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+5rem)] pl-[env(safe-area-inset-left)]",
+              "min-h-dvh bg-background pt-[calc(env(safe-area-inset-top)+3rem)] pr-[env(safe-area-inset-right)] pb-[calc(env(safe-area-inset-bottom)+5rem)] pl-[env(safe-area-inset-left)]",
               "md:min-h-auto md:pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:pl-[calc(env(safe-area-inset-left)+4rem)]",
               activeTab === tab ? "block" : "hidden",
             )}
