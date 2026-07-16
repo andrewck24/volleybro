@@ -84,7 +84,7 @@ Both are overlay-backed, so both adopt the D1 modal surface (`bg-card`), the D5 
 
 The change ships a live `design-system` section in the blueprint (Fumadocs) that renders the real tokens and rules — brand assets, color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role, spacing, radius, and elevation & depth. It supersedes the prose in `docs/design-system.md` (which taught the wrong `bg-accent` rule) as the source of truth, and its overlay-variant comparison doubles as the decision tool for D6's open Drawer-layer question. The blueprint carries the _complete_ section page structure (index + per-topic pages), not only a single decision page.
 
-**Token sharing lifecycle:** while the token values are under active decision, the blueprint imports the app's `src/styles/tokens.css` directly (cross-app import) so the docs can never drift from the moving source. Once this change's token values are finalized at apply time, the tokens are frozen — the blueprint then takes a **local copy** of `tokens.css` and the cross-app import is cut, matching how the frozen brand components are already handled (copy for frozen assets, share only what is live).
+**Token sharing lifecycle:** while the token values are under active decision, the blueprint imported the app's token file directly (cross-app import) so the docs could never drift from the moving source. Once the values were finalized at apply time, the tokens were frozen — inlined into each side's own `globals.css` with no separate tokens file (avoiding an extra file to maintain), matching how the frozen brand components are handled (copy for frozen assets, share only what is live).
 
 ## Implementation Contract
 
@@ -97,7 +97,7 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 
 **Interface / data shape:**
 
-- CSS tokens live in `src/styles/tokens.css` — the shared token source imported by both the app's `src/app/globals.css` and the blueprint's stylesheet (D7): `--background`, `--popover` (both `:root`/`.light` and `.dark`) re-valued per D2.
+- CSS tokens live in the app's `src/app/globals.css` `:root`/`.light`/`.dark` blocks, with a frozen copy inlined in `blueprint/src/app/globals.css` (D7): `--background`, `--popover` (both `:root`/`.light` and `.dark`) re-valued per D2.
 - `body` class: `bg-accent` → `bg-background`.
 - `src/components/ui/dialog.tsx` exports add `DialogBody`. `DialogContentProps` adds `onExpand?: () => void` and `expandLabel?: string`. `DialogTitle`/`DialogDescription` props add `srOnly?: boolean`. `dialogContentVariants` base keeps `bg-card`; `AlertDialogContent` migrates `bg-background` → `bg-card` to match (revised D1).
 

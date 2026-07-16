@@ -6,7 +6,7 @@
 // screen (header / court / panel / drawer peek) with each overlay component
 // (Dialog / AlertDialog / Drawer) rendered over it, switchable between the
 // candidate surface tokens and ring on/off, side by side in light and dark.
-// All colors come from the shared src/styles/tokens.css via the .light/.dark
+// All colors come from the frozen token blocks in blueprint globals.css via the .light/.dark
 // scopes — the mock shows the real design system, not an illustration of it.
 
 import { useState } from "react";
@@ -327,7 +327,7 @@ export default function ElevationDepthSystemDesign() {
       <p>
         以紀錄畫面（header / court / panel / drawer peek）為底，將三種 overlay
         元件疊在 scrim 上，切換表面 token 與 ring。所有顏色都來自 app tokens 的凍結副本（{" "}
-        <code>src/styles/tokens.css</code>，定案後複製），左右兩框分別鎖定 light / dark。
+        定案後內聯進 blueprint 的 <code>globals.css</code>），左右兩框分別鎖定 light / dark。
       </p>
       <div className="my-4 flex flex-col gap-2">
         <Segmented

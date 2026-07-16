@@ -61,7 +61,7 @@ export default function ColorPage() {
       <h1>Color</h1>
       <p>
         Every surface, brand, feedback, and chart token, rendered live from a frozen
-        copy of the app&apos;s <code>src/styles/tokens.css</code> (finalized by
+        copy of the app&apos;s <code>globals.css</code> token blocks (finalized by
         the elevation-depth-system change). Each swatch is split — left half is the
         light-theme value, right half the dark-theme value — and the color
         strings underneath are resolved from the stylesheet at runtime, so this

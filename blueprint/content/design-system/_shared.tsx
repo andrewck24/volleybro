@@ -2,7 +2,7 @@
 
 // Shared building blocks for the design-system reference pages.
 //
-// The blueprint consumes the same src/styles/tokens.css as the app, so every
+// The blueprint's globals.css inlines a frozen copy of the app's tokens, so every
 // swatch renders straight from var(--token) — no hard-coded values. Each chip
 // shows both themes at once by scoping its halves with the `.light` / `.dark`
 // classes that tokens.css defines, and the displayed color strings are read

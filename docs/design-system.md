@@ -42,11 +42,11 @@ const config: ChartConfig = {
 
 ## Depth, Elevation & Edge Definition
 
-> The rendered source of truth is the blueprint `design-system` section (`/design-system` on the blueprint site) — it renders the real tokens live from `src/styles/tokens.css`. This chapter is the prose companion; if the two disagree, the blueprint wins.
+> The rendered source of truth is the blueprint `design-system` section (`/design-system` on the blueprint site) — it renders the real tokens live from `the `:root`/`.dark` token blocks in `src/app/globals.css``. This chapter is the prose companion; if the two disagree, the blueprint wins.
 
 ### Three Layers
 
-The app defines three background layers, each a distinct value per theme in `src/styles/tokens.css`, ordered by elevation (lighter = higher in light mode, inverted in dark mode):
+The app defines three background layers, each a distinct value per theme in `the `:root`/`.dark` token blocks in `src/app/globals.css``, ordered by elevation (lighter = higher in light mode, inverted in dark mode):
 
 | Layer | Token | Role | Light | Dark |
 | ----- | ----- | ---- | ----- | ---- |
