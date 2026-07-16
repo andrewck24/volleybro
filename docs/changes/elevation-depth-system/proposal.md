@@ -116,9 +116,11 @@ migration list and pulls two surfaces into scope that the original taxonomy excl
   `team/info/index.tsx` render `AlertDialogContent`. Its surface migrates from
   `bg-background` to `bg-card` (revised D1: all modal-class surfaces share the card
   layer); both call sites migrate to the shared three-section shell / srOnly / ring
-  rule, but **keep** their dismiss semantics (explicit choice required). The nested
-  Card in team/info now sits on a same-color surface and relies on shadow (D5
-  compensation + the contrast gate).
+  rule, but **keep** their dismiss semantics (explicit choice required). (Correction
+  found during apply: team/info's AlertDialogContent contains no nested Card — the
+  Card is on the surrounding page — so the old "Card-in-alert" anchor is historical
+  only; the same-color compensation rule still applies wherever card-class elements
+  do sit inside modals.)
 
 - **Drawer (now in scope) — `src/components/ui/drawer.tsx`, consumed by
   `src/components/game/summary-drawer.tsx`:** entry-ui added a vaul bottom sheet that

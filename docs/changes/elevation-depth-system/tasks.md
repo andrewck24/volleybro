@@ -22,10 +22,10 @@
 
 ## 4. Per-dialog migration
 
-- [ ] 4.1 [P] `src/components/game/options/index.tsx`: wrap general-mode tabs in `DialogHeader` + `DialogBody`; keep `EntriesEdit` full-width directly under `DialogContent`; add `srOnly` description. → verify: tabs scroll within `DialogBody`, no a11y warning.
-- [ ] 4.2 [P] `src/components/game/set-options/index.tsx`: three-section; `LineupCourt` + `SetOptionsPanel` inside `DialogBody`; add `srOnly` description. → verify: renders, scrolls, no a11y warning.
-- [ ] 4.3 [P] `src/components/game/sets/edit.tsx`: general mode uses `DialogHeader` + `DialogBody` (`GameOptionsSummary`); editing mode keeps `EntriesEdit`; import `DialogTitle` from `@/components/ui/dialog`. → verify: both modes render; no a11y warning.
-- [ ] 4.4 [P] `src/components/team/team-switcher.tsx`: add `DialogHeader` with `DialogTitle` + `srOnly` `DialogDescription`; wrap `TeamList` in `DialogBody`. → verify: previously-missing description warning is gone.
+- [x] 4.1 [P] `src/components/game/options/index.tsx`: wrap general-mode tabs in `DialogHeader` + `DialogBody`; keep `EntriesEdit` full-width directly under `DialogContent`; add `srOnly` description. → verify: tabs scroll within `DialogBody`, no a11y warning.
+- [x] 4.2 [P] `src/components/game/set-options/index.tsx`: three-section; `LineupCourt` + `SetOptionsPanel` inside `DialogBody`; add `srOnly` description. → verify: renders, scrolls, no a11y warning.
+- [x] 4.3 [P] `src/components/game/sets/edit.tsx`: general mode uses `DialogHeader` + `DialogBody` (`GameOptionsSummary`); editing mode keeps `EntriesEdit`; import `DialogTitle` from `@/components/ui/dialog`. → verify: both modes render; no a11y warning.
+- [x] 4.4 [P] `src/components/team/team-switcher.tsx`: add `DialogHeader` with `DialogTitle` + `srOnly` `DialogDescription`; wrap `TeamList` in `DialogBody`. → verify: previously-missing description warning is gone.
 - [ ] 4.5 [P] `src/components/layout/nav/action-button.tsx` + `src/components/game/new/index.tsx`: remove `className="px-0 pb-0"` from `DialogContent`; convert `NewGameForm` main and sub views to three-section, removing self-rolled `bg-card`/`px-4`/`overflow-y-auto` wrappers; loading skeleton wrapped in a `DialogHeader`. → verify: new-game flow renders and scrolls within `DialogBody`.
 - [ ] 4.6 [P] `src/components/user/menu/dark-mode.tsx`: `DialogHeader` (title + `srOnly` description) + `DialogBody` holding the three `DialogClose` options. → verify: renders, no a11y warning.
 - [ ] 4.7 [P] `src/components/team/lineup/panel/options/libero-replace.tsx`: `DialogHeader` + `DialogBody` (Form) + `DialogFooter` (submit). → verify: submit still works; no a11y warning.
@@ -34,7 +34,7 @@
 
 ## 5. Item-in-dialog contrast gate
 
-- [ ] 5.1 With the `bg-card` modal surface (same color as the card-class elements inside it) and rings removed everywhere (D5), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
+- [x] 5.1 With the `bg-card` modal surface (same color as the card-class elements inside it) and rings removed everywhere (D5), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
 
 ## 6. Docs and stories
 
