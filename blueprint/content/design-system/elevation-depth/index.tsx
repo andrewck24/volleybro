@@ -127,6 +127,26 @@ export default function ElevationDepthPage() {
         </a>
         .
       </p>
+
+      <h2 id="pwa-backdrop">C · PWA body backdrop</h2>
+      <p>
+        Standalone PWA routes may set{" "}
+        <code>document.body.style.backgroundColor</code> from their route layout
+        so translucent system chrome stays visually continuous with the adjacent
+        app chrome. This is only a body backdrop: it does not create another
+        layer and does not replace content tokens. Page content still uses{" "}
+        <code>bg-background</code>, raised recording chrome can align the
+        backdrop to <code>bg-card</code>, auth can align it to{" "}
+        <code>bg-primary</code>, and <code>accent</code> remains reserved for
+        hover/highlight states. Overlay scrims are separate: they cover the full
+        web content viewport with <code>inset-0</code> and leave any
+        iOS-reserved status-bar region to system composition. They do not mutate
+        the route backdrop while opening. The PWA manifest{" "}
+        <code>background_color</code> matches the light-mode{" "}
+        <code>--background</code> value so the launch fallback does not add a
+        separate near-white layer. It does not replace Apple&apos;s{" "}
+        <code>apple-touch-startup-image</code> handling.
+      </p>
     </div>
   );
 }
@@ -134,5 +154,10 @@ export default function ElevationDepthPage() {
 export const toc = [
   { title: "A · Background layers", url: "#layers", depth: 2 },
   { title: "B · No container carries a ring", url: "#overlay-ring", depth: 2 },
-  { title: "Decided · all modals on bg-card", url: "#drawer-question", depth: 2 },
+  {
+    title: "Decided · all modals on bg-card",
+    url: "#drawer-question",
+    depth: 2,
+  },
+  { title: "C · PWA body backdrop", url: "#pwa-backdrop", depth: 2 },
 ];

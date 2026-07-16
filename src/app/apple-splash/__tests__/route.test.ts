@@ -19,17 +19,34 @@ function makeParams(size: string) {
 
 describe("GET /apple-splash/[size]", () => {
   it("returns 200 for a supported size", async () => {
-    const res = await GET(new Request("http://localhost"), makeParams("1290x2796"));
+    const res = await GET(
+      new Request("http://localhost"),
+      makeParams("1290x2796"),
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("returns 200 for the iPhone 17 Pro splash size", async () => {
+    const res = await GET(
+      new Request("http://localhost"),
+      makeParams("1206x2622"),
+    );
     expect(res.status).toBe(200);
   });
 
   it("sets Cache-Control: immutable on supported size", async () => {
-    const res = await GET(new Request("http://localhost"), makeParams("1290x2796"));
+    const res = await GET(
+      new Request("http://localhost"),
+      makeParams("1290x2796"),
+    );
     expect(res.headers.get("cache-control")).toContain("immutable");
   });
 
   it("returns 404 for an unsupported size", async () => {
-    const res = await GET(new Request("http://localhost"), makeParams("100x100"));
+    const res = await GET(
+      new Request("http://localhost"),
+      makeParams("100x100"),
+    );
     expect(res.status).toBe(404);
   });
 

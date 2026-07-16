@@ -42,17 +42,17 @@ const config: ChartConfig = {
 
 ## Depth, Elevation & Edge Definition
 
-> The rendered source of truth is the blueprint `design-system` section (`/design-system` on the blueprint site) — it renders the real tokens live from `the `:root`/`.dark` token blocks in `src/app/globals.css``. This chapter is the prose companion; if the two disagree, the blueprint wins.
+> The rendered source of truth is the blueprint `design-system` section (`/design-system` on the blueprint site) — it renders the real tokens live from the `:root` / `.dark` token blocks in `src/app/globals.css`. This chapter is the prose companion; if the two disagree, the blueprint wins.
 
 ### Three Layers
 
-The app defines three background layers, each a distinct value per theme in `the `:root`/`.dark` token blocks in `src/app/globals.css``, ordered by elevation (lighter = higher in light mode, inverted in dark mode):
+The app defines three background layers, each a distinct value per theme in the `:root` / `.dark` token blocks in `src/app/globals.css`, ordered by elevation (lighter = higher in light mode, inverted in dark mode):
 
-| Layer | Token | Role | Light | Dark |
-| ----- | ----- | ---- | ----- | ---- |
-| 0 | `--background` | Page body only | 95.6% | 4.9% |
-| 0.5 | `--popover` | Non-overlay floats — Popover, Select content (future Dropdown/Tooltip) | ~97% | ~10% |
-| 1 | `--card` | Card/Item **and every modal-class surface** — Dialog, AlertDialog, Drawer | 98.45% | 14.5% |
+| Layer | Token          | Role                                                                      | Light  | Dark  |
+| ----- | -------------- | ------------------------------------------------------------------------- | ------ | ----- |
+| 0     | `--background` | Page body only                                                            | 95.6%  | 4.9%  |
+| 0.5   | `--popover`    | Non-overlay floats — Popover, Select content (future Dropdown/Tooltip)    | ~97%   | ~10%  |
+| 1     | `--card`       | Card/Item **and every modal-class surface** — Dialog, AlertDialog, Drawer | 98.45% | 14.5% |
 
 Invariant: no two of `--background`, `--popover`, `--card` share a value within a theme.
 
@@ -62,11 +62,11 @@ Modal surfaces (Dialog, AlertDialog, Drawer) render on `--card`, the same token 
 
 No container carries a decorative ring/border. Each container kind signals elevation through a different cue:
 
-| Container kind | Example | Depth cue |
-| --------------- | ------- | --------- |
-| Overlay-backed | Dialog, AlertDialog, Drawer | Dimming scrim (`bg-black/80`) |
-| Non-overlay floating | Popover, Select, Dropdown | `--popover` background step + `shadow-md` |
-| In-flow | Card, Item | `--card` background step + shadow |
+| Container kind       | Example                     | Depth cue                                 |
+| -------------------- | --------------------------- | ----------------------------------------- |
+| Overlay-backed       | Dialog, AlertDialog, Drawer | Dimming scrim (`bg-black/80`)             |
+| Non-overlay floating | Popover, Select, Dropdown   | `--popover` background step + `shadow-md` |
+| In-flow              | Card, Item                  | `--card` background step + shadow         |
 
 `--ring` remains reserved for **focus-visible states only** — it is not a decorative edge tool. Where a card-class element must sit on a same-color surface (e.g. inside a modal), the compensation cue is **shadow**, never a ring.
 
@@ -88,11 +88,11 @@ This creates concentric (parallel) curves. Equal radii on nested elements looks 
 
 ### Example
 
-```tsx
-{/* outer: rounded-xl (12px), padding: p-2 (8px) */}
-<div className="rounded-xl p-2">
-  {/* inner: 12px - 8px = 4px = rounded */}
-  <img className="rounded" />
+```html
+<!-- outer: rounded-xl (12px), padding: p-2 (8px) -->
+<div class="rounded-xl p-2">
+  <!-- inner: 12px - 8px = 4px = rounded -->
+  <img class="rounded" />
 </div>
 ```
 
@@ -119,27 +119,41 @@ This keeps list density high while maintaining Schoger-style clean edges and dep
 
 The app body uses `bg-background` as its page background. `accent` is reserved for hover/highlight states and must never be used as a page or surface background.
 
+### PWA Body Backdrop
+
+Standalone PWA routes may set `document.body.style.backgroundColor` from their route layout to keep translucent system chrome visually continuous with the adjacent app chrome. This is a backdrop for the browser/status-bar area, not the source of truth for page or surface backgrounds.
+
+- Auth routes use `--color-primary` to match their brand ground.
+- Recording entry routes use `--color-card` to match the raised recording header.
+- Normal app routes rely on the CSS body `bg-background` and do not need an inline body color.
+
+This backdrop does not create a fourth layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and `accent` remains hover/highlight only.
+
+Overlay scrims do not use body backdrop. They use `inset-0` to cover the full web content viewport and leave any iOS-reserved status-bar region to system composition. This avoids a second background side effect whose timing or opacity can drift from the scrim; on affected WebKit versions, DOM content cannot paint beyond the viewport boundary.
+
+The PWA manifest `background_color` must match the light-mode `--background` value. User agents that use this manifest fallback must not expose a separate near-white launch frame. This does not replace Apple's `apple-touch-startup-image` handling.
+
 ### Token Lightness Reference (light mode)
 
-| Token        | Lightness | Role                                       |
-| ------------ | --------- | ------------------------------------------- |
-| `card`       | 98.45%    | Card/Item and modal-class surfaces          |
-| `popover`    | ~97%      | Non-overlay floats (Popover, Select)        |
-| `background` | 95.6%     | **Page body background**                    |
-| `secondary`  | ~93.8%    | Subtle fill                                 |
-| `muted`      | ~90.4%    | Hover target token                          |
-| `accent`     | ~95.6%    | Hover/highlight only — never a background   |
+| Token        | Lightness | Role                                      |
+| ------------ | --------- | ----------------------------------------- |
+| `card`       | 98.45%    | Card/Item and modal-class surfaces        |
+| `popover`    | ~97%      | Non-overlay floats (Popover, Select)      |
+| `background` | 95.6%     | **Page body background**                  |
+| `secondary`  | ~93.8%    | Subtle fill                               |
+| `muted`      | ~90.4%    | Hover target token                        |
+| `accent`     | ~95.6%    | Hover/highlight only — never a background |
 
 ### Rule
 
 > Hover must **darken** relative to the element's resting state, not dissolve toward the background.
 
-| Context                                    | Resting bg               | Correct hover         | Forbidden                              |
-| ------------------------------------------- | ------------------------- | ---------------------- | -------------------------------------- |
-| On body (`bg-background`)                   | `bg-card` / transparent   | `hover:bg-muted/50`   | `hover:bg-accent`, `hover:bg-accent/*` |
-| Inside a card-class surface (Card, Dialog)  | `bg-card`                  | `hover:bg-accent/30`  | `hover:bg-accent` (full)               |
-| Ghost / outline button on body              | transparent                | `hover:bg-muted/50`   | `hover:bg-accent`                      |
-| Active/selected state on body               | transparent                | `bg-muted/60`         | `bg-accent/80`                         |
+| Context                                    | Resting bg              | Correct hover        | Forbidden                              |
+| ------------------------------------------ | ----------------------- | -------------------- | -------------------------------------- |
+| On body (`bg-background`)                  | `bg-card` / transparent | `hover:bg-muted/50`  | `hover:bg-accent`, `hover:bg-accent/*` |
+| Inside a card-class surface (Card, Dialog) | `bg-card`               | `hover:bg-accent/30` | `hover:bg-accent` (full)               |
+| Ghost / outline button on body             | transparent             | `hover:bg-muted/50`  | `hover:bg-accent`                      |
+| Active/selected state on body              | transparent             | `bg-muted/60`        | `bg-accent/80`                         |
 
 ### Applied Components
 

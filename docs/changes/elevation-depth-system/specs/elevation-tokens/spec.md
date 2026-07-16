@@ -39,6 +39,30 @@ Components that render their own dimming `Overlay` (Dialog, AlertDialog, Drawer)
 - **WHEN** the application shell renders
 - **THEN** the `body` element's background resolves to `--background`, and no page-level container relies on `--accent` for its base surface
 
+#### Scenario: Route-scoped PWA body backdrop
+
+- **WHEN** a standalone PWA route needs translucent system chrome to match adjacent app chrome
+- **THEN** that route MAY set `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor` from its own layout using the matching semantic token
+- **AND** this inline body backdrop SHALL NOT be treated as the page content background, SHALL NOT use `--accent`, and SHALL be cleaned up when the route unmounts
+
+#### Scenario: PWA launch fallback matches the page background
+
+- **WHEN** a user agent uses the manifest color while launching the standalone PWA
+- **THEN** the manifest `background_color` SHALL equal the light-mode `--background` color
+- **AND** the fallback SHALL NOT introduce a separate near-white page layer
+
+#### Scenario: Modal overlay respects the PWA system chrome boundary
+
+- **WHEN** an overlay-backed modal (Dialog or AlertDialog) is open in standalone PWA mode
+- **THEN** the modal overlay element SHALL cover the full web content viewport using `inset-0`
+- **AND** it SHALL NOT mutate the route-scoped body backdrop to emulate the scrim in an iOS-owned status-bar region
+
+#### Scenario: Expanded recording drawer respects the PWA system chrome boundary
+
+- **WHEN** the recording summary drawer is expanded in standalone PWA mode
+- **THEN** the drawer overlay element SHALL cover the full web content viewport using `inset-0`
+- **AND** neither the expanded drawer nor the idle drawer peek SHALL mutate the route-scoped body backdrop
+
 #### Scenario: Card inside a modal is distinguished by shadow
 
 - **WHEN** a `<Card>` or `Item` component is rendered inside a Dialog, AlertDialog, or Drawer

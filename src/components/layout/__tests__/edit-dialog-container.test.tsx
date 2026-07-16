@@ -83,11 +83,11 @@ describe("EditDialogContainer", () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it("maximize does not call router.back (uses hard navigation)", () => {
+  it("maximize does not call router.back", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
-        fullPageHref="/team/123/edit"
+        fullPageHref="#full-page"
         isDirty={false}
         clearDraft={clearDraft}
       >
@@ -95,15 +95,14 @@ describe("EditDialogContainer", () => {
       </EditDialogContainer>,
     );
     fireEvent.click(screen.getByRole("button", { name: "全頁模式" }));
-    // window.location.assign is hard navigation; router.back is not called
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("maximize calls suppressLeaveWarning before hard navigation", () => {
+  it("maximize suppresses the leave warning before navigation", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
-        fullPageHref="/team/123/edit"
+        fullPageHref="#full-page"
         isDirty={true}
         clearDraft={clearDraft}
       >
@@ -126,14 +125,8 @@ describe("EditDialogContainer", () => {
         <div>form</div>
       </EditDialogContainer>,
     );
-    // The srOnly DialogDescription supplies the accessible description Radix
-    // requires, so aria-describedby points at it instead of being suppressed.
     const dialog = screen.getByRole("dialog");
-    const describedById = dialog.getAttribute("aria-describedby");
-    expect(describedById).toBeTruthy();
-    expect(document.getElementById(describedById!)).toHaveTextContent(
-      "編輯球隊",
-    );
+    expect(dialog).toHaveAccessibleDescription("編輯球隊表單");
   });
 
   it("wraps children in overflow-y-auto scroll container", () => {

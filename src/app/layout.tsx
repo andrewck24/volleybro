@@ -1,6 +1,5 @@
 import "@/app/globals.css";
 import { SerwistProvider } from "@/app/serwist-provider";
-import { BackgroundColorHandler } from "@/components/layout/bg-handler";
 import { SWRProvider } from "@/components/layout/swr-provider";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -70,7 +69,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f6f4f5" }],
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f2f2f6" }],
   initialScale: 1,
   minimumScale: 1,
   maximumScale: 1,
@@ -158,7 +157,6 @@ export default async function RootLayout({
               >
                 {children}
                 <Toaster />
-                <BackgroundColorHandler />
                 <Analytics />
                 <SpeedInsights />
               </ThemeProvider>

@@ -51,6 +51,8 @@ Modal, popover, and card components are all content containers, so their ring tr
 
 **5. Documentation**: retire the misleading rules in `docs/design-system.md` (point it at the rendered page) and correct every reference that names `bg-accent` as the page background.
 
+**6. PWA system chrome and launch boundary**: route-scoped `BodyBackdrop` remains responsible for the stable color behind iOS standalone system chrome. Modal scrims cover the full web content viewport but do not attempt to repaint an iOS-reserved status-bar region or mutate the route backdrop while opening; iOS may dim that system-owned region independently. The manifest launch fallback matches light-mode `--background` so supporting user agents do not introduce another near-white layer; Apple's startup image remains a separate mechanism.
+
 ## Non-Goals
 
 - **Form item-ization** (replacing form `<Card>` wrappers with `ItemGroup`/`Item` inset-grouped structure) is explicitly deferred to a separate later change. Existing forms keep their current `<Card>` markup; on the new layers the Card pops correctly without changes.
@@ -93,11 +95,19 @@ Modal, popover, and card components are all content containers, so their ring tr
     - src/components/ui/card.tsx
     - src/components/ui/item.tsx
     - src/stories/ui/dialog.stories.tsx
+    - src/app/auth/layout.tsx
+    - src/app/game/[gameId]/sets/[setIndex]/entry/layout.tsx
+    - src/app/layout.tsx
+    - src/components/layout/header.tsx
+    - src/components/layout/tab-container.tsx
     - docs/design-system.md
+  - New:
+    - src/components/layout/body-backdrop.tsx
   - New (design-system reference page, in blueprint):
     - blueprint/content/design-system/\* (brand, color, typography, spacing, radius, elevation-depth pages)
     - blueprint route/nav wiring for the new pages
-  - Removed: (none)
+  - Removed:
+    - src/components/layout/bg-handler.tsx
 
 ### Impact recomputed against current dev (entry-ui merged)
 

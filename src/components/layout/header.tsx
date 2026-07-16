@@ -48,7 +48,7 @@ export const Header = ({
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 z-50 flex h-[calc(env(safe-area-inset-top)+3rem)] w-full flex-row items-center justify-center gap-4 overscroll-none bg-accent px-3 pt-[env(safe-area-inset-top)] backdrop-blur-sm",
+        "fixed top-0 left-0 z-50 flex h-[calc(env(safe-area-inset-top)+3rem)] w-full flex-row items-center justify-center gap-4 overscroll-none bg-background px-3 pt-[env(safe-area-inset-top)]",
         "md:pl-16",
         className,
       )}
