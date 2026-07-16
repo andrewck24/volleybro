@@ -18,7 +18,7 @@
 
 ## 3. Edit dialog container
 
-- [ ] 3.1 Rewrite `src/components/layout/edit-dialog-container.tsx` to the three-section structure: `DialogContent size="lg" onExpand={…}` with built-in close, `DialogHeader` (`DialogTitle` + `srOnly` `DialogDescription`), `DialogBody` wrapping `children` (keep `data-testid="dialog-scroll-container"`). Remove hand-rolled header button row and `Button`/icon imports. → verify: dirty close / Esc / overlay click each trigger the discard confirmation; existing `edit-dialog-container` test passes.
+- [x] 3.1 Rewrite `src/components/layout/edit-dialog-container.tsx` to the three-section structure: `DialogContent size="lg" onExpand={…}` with built-in close, `DialogHeader` (`DialogTitle` + `srOnly` `DialogDescription`), `DialogBody` wrapping `children` (keep `data-testid="dialog-scroll-container"`). Remove hand-rolled header button row and `Button`/icon imports. → verify: dirty close / Esc / overlay click each trigger the discard confirmation; existing `edit-dialog-container` test passes.
 
 ## 4. Per-dialog migration
 

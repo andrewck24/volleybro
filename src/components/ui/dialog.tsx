@@ -105,7 +105,7 @@ const DialogContent = ({
             <DialogPrimitive.Close asChild>
               <Button variant="ghost" size="icon" className="size-8">
                 <RiCloseLine className="size-4" />
-                <span className="sr-only">Close</span>
+                <span className="sr-only">關閉</span>
               </Button>
             </DialogPrimitive.Close>
           )}

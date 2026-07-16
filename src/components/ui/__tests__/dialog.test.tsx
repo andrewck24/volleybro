@@ -110,7 +110,7 @@ describe("close button", () => {
         </DialogContent>
       </Dialog>,
     );
-    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "關閉" })).toBeInTheDocument();
   });
 
   it("is absent when closeButton is false", () => {
@@ -122,7 +122,7 @@ describe("close button", () => {
       </Dialog>,
     );
     expect(
-      screen.queryByRole("button", { name: "Close" }),
+      screen.queryByRole("button", { name: "關閉" }),
     ).not.toBeInTheDocument();
   });
 });
