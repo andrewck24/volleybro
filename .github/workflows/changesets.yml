@@ -29,7 +29,8 @@ jobs:
         with:
           version: pnpm run release:version
           commit: "release: update versions"
-          title: "release: update versions"
+          # [skip review] keeps the auto-opened release PR out of claude-code-review
+          title: "release: update versions [skip review]"
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
