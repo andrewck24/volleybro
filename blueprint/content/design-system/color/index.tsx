@@ -7,13 +7,13 @@ import { SwatchGrid, type TokenInfo } from "../_shared";
 const surface: TokenInfo[] = [
   {
     name: "--background",
-    usage: "Layer 0 — page body + overlay surfaces (Dialog/AlertDialog/Drawer)",
+    usage: "Layer 0 — the page body",
   },
   {
     name: "--popover",
     usage: "Layer 0.5 — non-overlay floats (Popover, Select)",
   },
-  { name: "--card", usage: "Layer 1 — Card / Item surfaces" },
+  { name: "--card", usage: "Layer 1 — Card / Item + modal surfaces (Dialog/AlertDialog/Drawer)" },
   { name: "--muted", usage: "Muted fills and disabled grounds" },
   {
     name: "--accent",

@@ -1,6 +1,6 @@
 ## Summary
 
-Redefine the app's background tokens into a three-layer elevation model (page → floating → surface), derive a single depth rule for overlay-backed surfaces (overlay replaces ring), unify the overlay component layout (`Dialog`, `AlertDialog`, `Drawer`) on that foundation, and ship a `design-system` reference page in the blueprint that documents the whole system.
+Redefine the app's background tokens into a three-layer elevation model (page → floating → surface, with all modal-class surfaces on the card layer), derive a uniform no-container-ring depth rule, unify the overlay component layout (`Dialog`, `AlertDialog`, `Drawer`) on that foundation, and ship a `design-system` reference page in the blueprint that documents the whole system.
 
 ## Motivation
 
@@ -18,13 +18,13 @@ The fix is to make the background tokens mean what they say, introduce a true mi
 
 | Layer | Role                          | Token          | dark L        | light L                            |
 | ----- | ----------------------------- | -------------- | ------------- | ---------------------------------- |
-| 0     | page body + overlay surfaces  | `--background` | 4.9% (keep)   | 95.6% (adopt current accent value) |
+| 0     | page body                     | `--background` | 4.9% (keep)   | 95.6% (adopt current accent value) |
 | 0.5   | non-overlay floating surfaces | `--popover`    | ~10% (change) | ~97% (change)                      |
-| 1     | card / item                   | `--card`       | 14.5% (keep)  | 98.45% (keep)                      |
+| 1     | card / item + modal surfaces  | `--card`       | 14.5% (keep)  | 98.45% (keep)                      |
 
 - Body switches from `bg-accent` to `bg-background`.
 - `--popover` is repurposed as the 0.5 layer for non-overlay floating surfaces only (Popover, Select/Dropdown content); their `shadow-md` keeps them visibly raised with no overlay to help.
-- Overlay-backed surfaces (`Dialog`, `AlertDialog`, `Drawer`) render on `--background` (layer 0): they rely on their dimming `Overlay`, not a distinct surface color, to separate from the page.
+- Overlay-backed surfaces (`Dialog`, `AlertDialog`, `Drawer`) render on `--card` (layer 1): the dimming `Overlay` separates them from the page, and sharing the card color keeps one modal tone and keeps the Drawer peek continuous with the page's card surfaces (decided 2026-07-16; see design.md D1).
 - `--accent` returns to its hover/highlight role (value unchanged; no longer used as body background).
 - HSL values are starting points and may be tuned during implementation for perceived contrast.
 
@@ -40,14 +40,14 @@ Modal, popover, and card components are all content containers, so their ring tr
 
 **3. Unified overlay layout** (built on the new layers + depth rule), covering `Dialog`, `AlertDialog`, and `Drawer`:
 
-- Content carries no padding, is `overflow-hidden`, uses `bg-background`, no ring, and is a `flex` column.
+- Content carries no padding, is `overflow-hidden`, uses `bg-card`, no ring, and is a `flex` column.
 - Three-section structure: `*Header` → new `*Body` (the sole scroll container) → `*Footer`, each owning its own padding.
 - Unified close/expand control group built into the content (`absolute top-3 right-3`, `size-8` ghost icons); per-header hand-rolled buttons removed.
 - `*Title`/`*Description` gain an `srOnly` prop, replacing scattered `className="sr-only"` and `aria-describedby={undefined}`.
 - `AlertDialog` adopts the same structural shell and tokens as `Dialog`, **but preserves its dismiss semantics**: no outside-click / Esc auto-dismiss, no default close button — it still requires an explicit action/cancel choice. Only its layout, background, ring, and `srOnly` converge with `Dialog`.
-- `Drawer` (vaul) adopts the layer-0 background and drops any ring per the depth rule; its snap-point peek behavior is unchanged.
+- `Drawer` (vaul) keeps its `bg-card` surface (now the shared modal surface) and drops any ring per the depth rule; its snap-point peek behavior is unchanged.
 
-**4. `design-system` reference page** (a deliverable of this change): a live page in the blueprint that renders the real VolleyBro tokens and rules — brand assets, color (incl. brand/feedback/chart tokens), typography by application role, spacing, radius, and the elevation & depth model — replacing `docs/design-system.md` prose with a rendered source of truth. The depth section's overlay-variant comparison also serves as the decision tool for the open Drawer-layer question (see Impact).
+**4. `design-system` reference page** (a deliverable of this change): a live page in the blueprint that renders the real VolleyBro tokens and rules — brand assets, color (incl. brand/feedback/chart tokens), typography by application role, spacing, radius, and the elevation & depth model — replacing `docs/design-system.md` prose with a rendered source of truth. The change design page's overlay lab served as the decision tool for the modal-surface and ring questions (both now decided; see Impact).
 
 **5. Documentation**: retire the misleading rules in `docs/design-system.md` (point it at the rendered page) and correct every reference that names `bg-accent` as the page background.
 
@@ -113,20 +113,20 @@ migration list and pulls two surfaces into scope that the original taxonomy excl
     after this change was drafted.
 
 - **AlertDialog (now in scope):** `team/players/membership-section.tsx` and
-  `team/info/index.tsx` render `AlertDialogContent`. They already sit on `bg-background`,
-  so the token is correct; they migrate to the shared three-section shell / srOnly /
-  ring rule, but **keep** their dismiss semantics (explicit choice required). The
-  design.md D1 empirical anchor (team/info's `AlertDialogContent` with a nested Card)
-  still holds — Card-on-background-under-overlay already works.
+  `team/info/index.tsx` render `AlertDialogContent`. Its surface migrates from
+  `bg-background` to `bg-card` (revised D1: all modal-class surfaces share the card
+  layer); both call sites migrate to the shared three-section shell / srOnly / ring
+  rule, but **keep** their dismiss semantics (explicit choice required). The nested
+  Card in team/info now sits on a same-color surface and relies on shadow (D5
+  compensation + the contrast gate).
 
 - **Drawer (now in scope) — `src/components/ui/drawer.tsx`, consumed by
   `src/components/game/summary-drawer.tsx`:** entry-ui added a vaul bottom sheet that
-  renders its own dimming `DrawerOverlay` yet sits on `bg-card` (layer 1). By the overlay
-  rule it belongs on layer 0 (`--background`) and carries no ring. Visual risk is low
-  (`--card` is unchanged, so the sheet still pops over the dimmed page). **Open decision,
-  resolved via the design-system page's overlay-variant comparison:** align Drawer to
-  `bg-background` per the overlay rule, or keep it on `bg-card`. The blueprint depth
-  section renders both for the final call.
+  renders its own dimming `DrawerOverlay` on `bg-card`. **Decided (2026-07-16, via the
+  change design page's overlay lab): Drawer keeps `bg-card`**, and Dialog/AlertDialog
+  align to it — all modal-class surfaces share the card layer (revised D1), because the
+  Drawer peek is in-flow beside the page's `bg-card` panel/header before any scrim
+  exists. Drawer's only edit is the D5 ring removal.
 
 - **`srOnly` migration scope** is the intersection {overlay surfaces} ∩ {existing
   `sr-only`/`aria-describedby={undefined}`}: `game/options`, `game/set-options`,

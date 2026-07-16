@@ -69,8 +69,8 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-note: var(--note);
 
+  --font-sans: var(--font-saira), var(--font-noto-sans-tc), sans-serif;
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

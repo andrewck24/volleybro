@@ -2,7 +2,7 @@
 
 ### Requirement: Shared three-section overlay structure
 
-Overlay-backed surface components — `Dialog`, `AlertDialog`, and `Drawer` — SHALL share a common content structure. The content element SHALL carry no padding, SHALL be `overflow-hidden`, SHALL render on the `--background` surface (matching the page layer, separated visually by the dimming overlay), and SHALL lay out its children as a vertical flex column. Content SHALL be organized into three sections — a header, a body, and a footer — each owning its own padding. The body section SHALL be the sole scroll container within the surface.
+Overlay-backed surface components — `Dialog`, `AlertDialog`, and `Drawer` — SHALL share a common content structure. The content element SHALL carry no padding, SHALL be `overflow-hidden`, SHALL render on the `--card` surface (the shared modal surface, separated from the page by the dimming overlay), and SHALL lay out its children as a vertical flex column. Content SHALL be organized into three sections — a header, a body, and a footer — each owning its own padding. The body section SHALL be the sole scroll container within the surface.
 
 #### Scenario: Scrollbar sits at the window edge
 
@@ -51,7 +51,7 @@ Container components SHALL NOT apply a decorative ring or border to their conten
 
 ### Requirement: AlertDialog preserves dismiss semantics
 
-`AlertDialog` SHALL adopt the shared three-section structure, the no-ring rule, the `--background` surface, and the `srOnly` accessibility prop, but SHALL NOT adopt `Dialog`'s dismissal affordances. `AlertDialog` SHALL NOT dismiss on outside-click or Esc, and SHALL NOT render a default top-right close button. Dismissal SHALL require an explicit footer action (cancel or confirm).
+`AlertDialog` SHALL adopt the shared three-section structure, the no-ring rule, the `--card` surface, and the `srOnly` accessibility prop, but SHALL NOT adopt `Dialog`'s dismissal affordances. `AlertDialog` SHALL NOT dismiss on outside-click or Esc, and SHALL NOT render a default top-right close button. Dismissal SHALL require an explicit footer action (cancel or confirm).
 
 #### Scenario: Alert requires an explicit choice
 

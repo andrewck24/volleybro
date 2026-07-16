@@ -11,7 +11,7 @@
 
 > Satisfies requirements "Three-section dialog structure", "Unified close and expand controls", and "Accessible description without warnings"; implements design decisions D3 (dialog owns no padding; DialogBody is the only scroll container) and D4 (unified close/expand control + srOnly).
 
-- [ ] 2.1 In `src/components/ui/dialog.tsx`, set `dialogContentVariants` base to use `bg-background` (replacing `bg-card`), matching `AlertDialogContent`'s existing surface token; `overflow-hidden`, no padding/gap; `default` size adds `max-h-[85svh]`. → verify: dialog surface resolves to `--background`.
+- [ ] 2.1 In `src/components/ui/dialog.tsx`, confirm `dialogContentVariants` base keeps `bg-card` (revised D1: all modal-class surfaces share the card layer) with no decorative ring (D5); `overflow-hidden`, no padding/gap; `default` size adds `max-h-[85svh]`. → verify: dialog surface resolves to `--card`, no ring.
 - [ ] 2.2 Establish the three-section dialog structure (D3): add `DialogBody` as the only scroll container (`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4`, `data-slot="DialogBody"`) and export it. Set `DialogHeader` to `px-4 pt-4 pr-20 pb-2` and `DialogFooter` to `px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end`. → verify: three sections each own padding; `DialogContent` has none.
 - [ ] 2.3 Build the unified close and expand controls into `DialogContent` (D4): `absolute top-3 right-3` flex row with optional `onExpand` ghost button and default `closeButton` Radix Close, both `size-8`; add `onExpand?`/`expandLabel?` to `DialogContentProps`; import `Button`. Remove the old raw top-right Close. → verify: controls render at `top-3 right-3`, `size-8`.
 - [ ] 2.4 Add `srOnly?: boolean` to `DialogTitle` and `DialogDescription` (applies `sr-only`) so dialogs get an accessible description without warnings (D4 srOnly). → verify: passing `srOnly` hides text but keeps it in the a11y tree.
@@ -33,7 +33,7 @@
 
 ## 5. Item-in-dialog contrast gate
 
-- [ ] 5.1 With the new `bg-background` dialog surface live (same layer as the page, separated only by the dimming overlay), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
+- [ ] 5.1 With the `bg-card` modal surface (same color as the card-class elements inside it) and rings removed everywhere (D5), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
 
 ## 6. Docs and stories
 
@@ -45,7 +45,7 @@
 
 > Satisfies the `overlay-layout` requirements "Shared three-section overlay structure", "No container carries a decorative ring", "AlertDialog preserves dismiss semantics", and "Accessible description without warnings"; implements D5 (overlay replaces ring) and D6 (AlertDialog converges structurally but keeps explicit-choice dismissal).
 
-- [ ] 7.1 In `src/components/ui/alert-dialog.tsx`: drop any ring/border from `AlertDialogContent` (D5); confirm it stays on `bg-background`; add `AlertDialogBody` (same `flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4` as `DialogBody`) and export it; set header/footer padding to match Dialog. Do NOT add a close/expand control group and do NOT enable outside-click/Esc dismiss — keep the explicit Cancel/Action footer as the only exit. Add `srOnly?` to `AlertDialogTitle`/`AlertDialogDescription`. → verify: alert has no ring, no top-right close, still ignores outside-click/Esc; three sections own their padding.
+- [ ] 7.1 In `src/components/ui/alert-dialog.tsx`: drop any ring/border from `AlertDialogContent` (D5); migrate its surface from `bg-background` to `bg-card` (revised D1); add `AlertDialogBody` (same `flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4` as `DialogBody`) and export it; set header/footer padding to match Dialog. Do NOT add a close/expand control group and do NOT enable outside-click/Esc dismiss — keep the explicit Cancel/Action footer as the only exit. Add `srOnly?` to `AlertDialogTitle`/`AlertDialogDescription`. → verify: alert has no ring, no top-right close, still ignores outside-click/Esc; three sections own their padding.
 - [ ] 7.2 [P] Migrate `src/components/team/players/membership-section.tsx` and `src/components/team/info/index.tsx` to the three-section shell (`AlertDialogHeader`/`AlertDialogBody`/`AlertDialogFooter`), adding `srOnly` descriptions where none is visible. → verify: both render; nested Card in team/info still pops; no a11y warning; dismissal still requires an explicit button.
 
 ## 8. Drawer convergence
@@ -53,7 +53,7 @@
 > Satisfies `overlay-layout` "No container carries a decorative ring" and `elevation-tokens` "Overlay-backed surfaces share the page layer"; implements D5 and D6's Drawer clause. Layer choice confirmed by the change design page's overlay lab (see design.md D6).
 
 - [ ] 8.1 In `src/components/ui/drawer.tsx`: remove any ring/border from `DrawerContent` (D5); the vaul snap-point peek behavior is unchanged. → verify: drawer peek and expanded states render without a ring.
-- [ ] 8.2 Set `DrawerContent` background per the D6 layer decision (recorded in design.md once the sheet-vs-modal question is confirmed via the change design page's overlay lab). Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface matches the confirmed layer in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
+- [ ] 8.2 Confirm `DrawerContent` keeps `bg-card` (decided: all modal-class surfaces share the card layer — revised D1/D6); no background edit expected. Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface renders `--card` in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
 
 ## 9. Container ring removal (D5: no container carries a ring)
 

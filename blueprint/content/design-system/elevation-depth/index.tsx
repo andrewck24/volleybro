@@ -7,7 +7,7 @@ const layers = [
   {
     name: "Level 0 · Page",
     token: "--background",
-    body: "The app body. Overlay-backed modals (Dialog, AlertDialog, Drawer) also sit here — their dimming overlay, not a lighter surface, separates them from the page.",
+    body: "The app body — the page plane only.",
   },
   {
     name: "Level 0.5 · Floating",
@@ -17,7 +17,7 @@ const layers = [
   {
     name: "Level 1 · Card",
     token: "--card",
-    body: "Cards and items — the topmost surface, raised by the background step and shadow (no ring).",
+    body: "Cards and items — the topmost surface, raised by the background step and shadow (no ring). All modal-class surfaces (Dialog, AlertDialog, Drawer) share this color: the scrim, not a color step, separates them from the page.",
   },
 ];
 
@@ -54,11 +54,11 @@ function OverlayDemo({ ring, caption }: { ring: boolean; caption: string }) {
       <div className="light relative h-32 overflow-hidden rounded-lg bg-background">
         <div className="absolute inset-0 bg-black/80" />
         <div
-          className={`absolute right-3.5 bottom-3.5 left-3.5 rounded-lg bg-background p-3 text-xs text-foreground ${
+          className={`absolute right-3.5 bottom-3.5 left-3.5 rounded-lg bg-card p-3 text-xs text-foreground ${
             ring ? "border border-border" : ""
           }`}
         >
-          overlay surface · bg-background{ring ? " · ring" : " · no ring"}
+          overlay surface · bg-card{ring ? " · ring" : " · no ring"}
         </div>
       </div>
       <span className="text-xs text-muted-foreground">{caption}</span>
@@ -116,11 +116,12 @@ export default function ElevationDepthPage() {
         />
       </div>
 
-      <h2 id="drawer-question">Open question · Drawer layer</h2>
+      <h2 id="drawer-question">Decided · all modals on bg-card</h2>
       <p>
-        The vaul Drawer currently sits on <code>bg-card</code>, but the overlay
-        rule says overlay-backed → layer 0 (<code>bg-background</code>). The
-        interactive, real-screen comparison that decides this lives in the{" "}
+        Every modal-class surface (Dialog, AlertDialog, Drawer) renders on{" "}
+        <code>bg-card</code> — the scrim separates it from the page, and the
+        Drawer peek stays continuous with the page&apos;s card surfaces. The
+        interactive comparison that settled this lives in the{" "}
         <a href="/changes/in-progress/elevation-depth-system/design">
           elevation-depth-system change&apos;s design page
         </a>
@@ -133,5 +134,5 @@ export default function ElevationDepthPage() {
 export const toc = [
   { title: "A · Background layers", url: "#layers", depth: 2 },
   { title: "B · No container carries a ring", url: "#overlay-ring", depth: 2 },
-  { title: "Open question · Drawer layer", url: "#drawer-question", depth: 2 },
+  { title: "Decided · all modals on bg-card", url: "#drawer-question", depth: 2 },
 ];

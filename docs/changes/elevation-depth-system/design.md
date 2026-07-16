@@ -14,7 +14,7 @@ Consequence: a Dialog has no surface layer distinct from both the page and the c
 **Goals:**
 
 - Establish three visually distinct background layers: page (0), non-overlay floating (0.5), surface (1).
-- Make `body` use `bg-background` and overlay surfaces (`Dialog`, `AlertDialog`, `Drawer`) use `bg-background`, so token names match their roles.
+- Make `body` use `bg-background` and overlay surfaces (`Dialog`, `AlertDialog`, `Drawer`) use `bg-card`, so token names match their roles (page tokens for the page, surface tokens for raised surfaces).
 - State the overlay-replaces-ring depth rule as a contract: a surface uses a dimming overlay _or_ a ring, never both.
 - Rebuild the overlay components (`Dialog`, `AlertDialog`, `Drawer`) onto a shared three-section layout (`*Header` / `*Body` / `*Footer`) with a single scroll container and a unified close/expand control group.
 - Existing form `<Card>` content renders correctly on the new layers without per-component shadow/ring suppression.
@@ -29,15 +29,15 @@ Consequence: a Dialog has no surface layer distinct from both the page and the c
 
 ## Decisions
 
-### D1: Layer assignment by overlay presence, not a modal/floating label (existing tokens, no new token)
+### D1: Layer assignment by surface role (existing tokens, no new token)
 
-Layers are assigned by whether a component renders its own dimming `Overlay`, not by categorizing it as "modal" vs. "floating":
+Layers are assigned by what the surface _is_ — the page plane, a non-overlay float, or a raised content surface — with all modal-class surfaces sharing the card layer:
 
-- Layer 0 (`--background`): the page body, and any component with a dimming overlay — `Dialog`, `AlertDialog`, `Drawer`. The overlay is what visually separates the surface from the page; the surface color does not need to differ from the page background to read as distinct. (Drawer's final layer is confirmed via the design-system overlay comparison — see D6.)
+- Layer 0 (`--background`): the page body only.
 - Layer 0.5 (`--popover`): non-overlay floating surfaces only — `Popover`, `Select` content (and future `Dropdown`/`Tooltip`). These render directly over live page content with no dimming, so they require a value distinct from the page to register as a surface at all. Their `shadow-md` keeps them visibly raised despite sharing the middle-layer background with no overlay to help.
-- Layer 1 (`--card`): `Card`/`Item`.
+- Layer 1 (`--card`): `Card`/`Item` — and **all overlay-backed surfaces** (`Dialog`, `AlertDialog`, `Drawer`). An overlay surface is separated from the page by its dimming scrim (D5), not by color; giving every modal the card surface color keeps the system one-toned: the Drawer peek (which is in-flow beside the `bg-card` panel/header before any scrim exists) stays continuous with the page's card system across its whole lifecycle, and Dialog/AlertDialog match it so there is exactly one modal surface color. Consequence: card-class elements inside a modal sit on a same-color surface and are distinguished by **shadow** (per D5's compensation rule and the section-5 gate), not by a background step.
 
-Empirical anchor: `AlertDialogContent` (`src/components/ui/alert-dialog.tsx`) already renders on `bg-background` under its own `Overlay`, with a `Card` already nested inside it (`src/components/team/info/index.tsx`) popping correctly — proving Card-on-background-under-overlay already works in this codebase. `Dialog` adopts the same rule for consistency with this existing, working pattern.
+Decision history (2026-07-16): the original rule put every overlay-backed surface on layer 0 (`--background`), anchored on `AlertDialogContent`'s existing `bg-background` + nested Card. Rejected after the change design page's overlay lab: the Drawer's lifecycle breaks it — the peek state is in-flow beside `bg-card` surfaces with no scrim, so a layer-0 drawer either flashes color on expand or disappears into the page at peek. Rather than split modals across two surface colors, the user decided **all modal-class surfaces use `bg-card`**; `AlertDialogContent` migrates from `bg-background` to `bg-card` accordingly.
 
 Alternative — uniformly putting all modal/floating surfaces, including `Dialog`, on `--popover` (the original framing of this decision) — was rejected: it would leave `Dialog` and `AlertDialog`, both overlay-backed and otherwise equivalent in elevation needs, on different layers for no causal reason. A dedicated `--dialog` token was also rejected to avoid token proliferation. Trade-off: none beyond the original D1 — `--popover` is now consumed by fewer components, but its value still must differ from both `--background` and `--card`.
 
@@ -53,7 +53,7 @@ Light `--background` adopts the current `accent` lightness (95.6%) so the page k
 
 ### D3: Dialog owns no padding; DialogBody is the only scroll container
 
-`DialogContent` is `flex flex-col overflow-hidden` with `bg-background` (layer 0, per D1) and no ring (per D5). `DialogHeader` (`px-4 pt-4 pr-20 pb-2`), `DialogBody` (`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4`), and `DialogFooter` (`px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]`) each own spacing. `pr-20` reserves the 80px close+expand control width so long titles wrap left of the buttons.
+`DialogContent` is `flex flex-col overflow-hidden` with `bg-card` (layer 1, per D1) and no ring (per D5). `DialogHeader` (`px-4 pt-4 pr-20 pb-2`), `DialogBody` (`flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4`), and `DialogFooter` (`px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]`) each own spacing. `pr-20` reserves the 80px close+expand control width so long titles wrap left of the buttons.
 
 ### D4: Unified close/expand control + srOnly
 
@@ -73,12 +73,12 @@ Decision history: the original formulation kept a ring on non-overlay floats ("t
 
 Where a card-class element must sit on a same-color surface (e.g. inside an overlay), the compensation cue is **shadow** (e.g. restoring `shadow-sm`), never a ring — keeping the no-ring rule unbroken.
 
-### D6: AlertDialog and Drawer converge on the shared overlay shell (Drawer layer TBD via the page; AlertDialog keeps dismiss semantics)
+### D6: AlertDialog and Drawer converge on the shared overlay shell (all modals on bg-card; AlertDialog keeps dismiss semantics)
 
-Both are overlay-backed, so both adopt the D1 layer-0 background, the D5 no-ring rule, the D3 three-section structure, and the D4 `srOnly` prop.
+Both are overlay-backed, so both adopt the D1 modal surface (`bg-card`), the D5 no-ring rule, the D3 three-section structure, and the D4 `srOnly` prop.
 
-- **`AlertDialog`**: gains `AlertDialogBody` and the shared header/body/footer padding + `srOnly`. It **keeps its dismiss semantics** — no outside-click / Esc auto-dismiss and no default top-right close button; the footer's explicit Cancel/Action buttons remain the only way out. So it takes the shell but not the `Dialog` close/expand control group. It already renders on `bg-background`, so the token is a no-op; the ring removal and structure are the real edits.
-- **`Drawer`**: adopts the no-ring rule and the layer-0 background. Its vaul snap-point peek behavior is unchanged. **Open point:** Drawer currently sits on `bg-card`; D1 says overlay-backed → layer 0 (`bg-background`). Visual risk is low (`--card` unchanged), so both readings are plausible. The design-system page's overlay-variant comparison (D7) renders Drawer on `bg-background` vs `bg-card` side by side to make the final call; until then the elevation-tokens spec names Drawer as overlay-backed without freezing the exact HSL.
+- **`AlertDialog`**: gains `AlertDialogBody` and the shared header/body/footer padding + `srOnly`. It **keeps its dismiss semantics** — no outside-click / Esc auto-dismiss and no default top-right close button; the footer's explicit Cancel/Action buttons remain the only way out. So it takes the shell but not the `Dialog` close/expand control group. Its surface migrates from `bg-background` to `bg-card` (revised D1), alongside the ring removal and structural edits.
+- **`Drawer`**: adopts the no-ring rule and **keeps `bg-card`** — decided (2026-07-16) via the change design page's overlay lab: the peek state is in-flow with the page's card surfaces, and per revised D1 every modal shares the card color anyway. Its vaul snap-point peek behavior is unchanged; no background edit is needed.
 
 ### D7: The design-system page is a rendered deliverable of this change
 
@@ -90,8 +90,8 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 
 **Behavior observed after ship:**
 
-- The page body and `Dialog`/`AlertDialog` surfaces share the same background (`--background`), separated visually by the dimming overlay rather than a color difference. Non-overlay floating surfaces (`Popover`, `Select`) and cards/items each render a visibly different background from the page and from each other, in both light and dark mode.
-- Inside any dialog, a `<Card>` (e.g. `TeamForm`) is raised above the dialog surface identically to how it appears full-page — no special-casing.
+- Every overlay surface (`Dialog`, `AlertDialog`, `Drawer`) renders on `--card`, separated from the page by the dimming overlay. The page (`--background`), non-overlay floats (`--popover`), and cards/surfaces (`--card`) each render a visibly different background, in both light and dark mode. Card-class elements inside a modal sit on the same color and are distinguished by shadow (section-5 gate).
+- Inside any dialog, a `<Card>` (e.g. `TeamForm`) sits on the same-color `bg-card` surface and is distinguished by its shadow — one compensation rule (D5), no per-dialog special-casing.
 - Every dialog has the same close/expand button geometry (`top-3 right-3`, `size-8`) and emits no Radix "Missing Description" / `aria-describedby` console warning.
 - On desktop, the dialog scrollbar sits flush to the window edge (content scrolls within `DialogBody`, window is `overflow-hidden`).
 
@@ -99,11 +99,11 @@ The change ships a live `design-system` section in the blueprint (Fumadocs) that
 
 - CSS tokens live in `src/styles/tokens.css` — the shared token source imported by both the app's `src/app/globals.css` and the blueprint's stylesheet (D7): `--background`, `--popover` (both `:root`/`.light` and `.dark`) re-valued per D2.
 - `body` class: `bg-accent` → `bg-background`.
-- `src/components/ui/dialog.tsx` exports add `DialogBody`. `DialogContentProps` adds `onExpand?: () => void` and `expandLabel?: string`. `DialogTitle`/`DialogDescription` props add `srOnly?: boolean`. `dialogContentVariants` base uses `bg-background` (replaces `bg-card`), matching `AlertDialogContent`'s existing surface token.
+- `src/components/ui/dialog.tsx` exports add `DialogBody`. `DialogContentProps` adds `onExpand?: () => void` and `expandLabel?: string`. `DialogTitle`/`DialogDescription` props add `srOnly?: boolean`. `dialogContentVariants` base keeps `bg-card`; `AlertDialogContent` migrates `bg-background` → `bg-card` to match (revised D1).
 
 **Failure modes:**
 
-- Items placed directly inside a dialog (not within a Card) — e.g. `TeamList` in `team-switcher`, lists in `game/options` — previously sat on `bg-card` with shadow suppressed. On the new `bg-background` dialog surface (now the same layer as the page) their contrast must be re-verified; if they read as flat, the `[data-slot="DialogContent"] [data-slot="item"]` shadow-suppression entry is removed so they regain `shadow-sm`. This is a verification gate, not an assumed edit.
+- Items placed directly inside a dialog (not within a Card) — e.g. `TeamList` in `team-switcher`, lists in `game/options` — sit on the same-color `bg-card` dialog surface with shadow currently suppressed. With rings gone everywhere (D5), shadow is the only remaining cue, so the `[data-slot="DialogContent"] [data-slot="item"]` shadow-suppression entry is expected to be removed so they regain `shadow-sm`; the section-5 gate verifies this in both themes rather than assuming it.
 
 **Acceptance criteria:**
 

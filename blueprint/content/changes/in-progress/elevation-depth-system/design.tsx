@@ -21,8 +21,8 @@ type Surface = "background" | "card";
 const decisions = [
   {
     id: "D1",
-    title: "以 overlay 有無決定圖層，而非 modal/floating 標籤",
-    body: "Layer 0（--background）：頁面本體＋所有自帶 dimming overlay 的元件（Dialog、AlertDialog、Drawer）— overlay 本身就是與頁面的視覺分離。Layer 0.5（--popover）：無 overlay 的浮動面（Popover、Select）。Layer 1（--card)：Card / Item。",
+    title: "以表面角色決定圖層；modal 類一律用 bg-card",
+    body: "已定案（2026-07-16）：Layer 0（--background）＝頁面本體。Layer 0.5（--popover）＝無 overlay 的浮動面（Popover、Select）。Layer 1（--card）＝ Card / Item ＋所有 modal 類（Dialog、AlertDialog、Drawer）— modal 與頁面的分離由 scrim 表達（D5），共用 card 色讓 drawer peek 與頁面 card 系統（panel/header）全生命週期連續，且全系統只有一種 modal 色。modal 內的 card 類靠 shadow 補償識別。",
   },
   {
     id: "D2",
@@ -48,7 +48,7 @@ const decisions = [
     id: "D6",
     title:
       "AlertDialog / Drawer 收斂到共用 shell；AlertDialog 保留 dismiss 語意",
-    body: "兩者皆為 overlay-backed，採用 layer-0 背景、no-ring、三段式結構與 srOnly。AlertDialog 不採用 close/expand 控制群，也不開放 outside-click / Esc 關閉 — 仍要求明確的取消/確認選擇。Drawer 的最終圖層由本頁的 overlay lab 定案。",
+    body: "兩者皆為 overlay-backed，採用 bg-card 表面（D1）、no-ring、三段式結構與 srOnly。AlertDialogContent 由 bg-background 遷移至 bg-card；Drawer 維持 bg-card 不需改動。AlertDialog 不採用 close/expand 控制群，也不開放 outside-click / Esc 關閉 — 仍要求明確的取消/確認選擇。",
   },
   {
     id: "D7",
@@ -304,7 +304,7 @@ function Segmented<T extends string>({
 
 export default function ElevationDepthSystemDesign() {
   const [kind, setKind] = useState<OverlayKind>("drawer");
-  const [surface, setSurface] = useState<Surface>("background");
+  const [surface, setSurface] = useState<Surface>("card");
   const [ring, setRing] = useState(false);
   const [nonOverlayRing, setNonOverlayRing] = useState(true);
 
@@ -408,12 +408,13 @@ export default function ElevationDepthSystemDesign() {
         focus-visible。上方切到「有 ring」即是被否決的樣子，留作對照。
       </p>
 
-      <h2 id="drawer-question">Open question：Drawer 的圖層</h2>
+      <h2 id="drawer-question">已定案：modal 類一律 bg-card</h2>
       <p>
-        Drawer（vaul bottom sheet）目前落在 <code>bg-card</code>（layer 1），但
-        D1 的 overlay 規則說 overlay-backed 屬於 layer 0（
-        <code>bg-background</code>）。上方 lab 選「Drawer」後切換兩個表面即是這
-        個決策的並排比較：
+        原 open question：Drawer 落在 <code>bg-card</code>，但舊 D1 規則說
+        overlay-backed 屬於 layer 0（<code>bg-background</code>）。定案
+        （2026-07-16）：<strong>所有 modal 類（Dialog / AlertDialog / Drawer）
+        都用 bg-card</strong>，關鍵理由是 Drawer peek 的生命週期連續性。上方
+        lab 切換兩個表面即是當時的並排比較（bg-card 為定案預設）：
       </p>
       <ul>
         <li>
@@ -428,9 +429,10 @@ export default function ElevationDepthSystemDesign() {
         </li>
       </ul>
       <p>
-        建議：對齊 <code>bg-background</code>。dark 模式下對比最清楚 — card 級的
-        sheet 讀起來像浮在暗頁上的亮板，而不是 modal 面的同儕。 定案後回填{" "}
-        <code>design.md</code> D6 與 <code>tasks.md</code> §8。
+        取捨：card 內元素同色的識別問題由 D5 的 shadow 補償規則統一解決
+        （globals.css 的 shadow-suppression 反轉為恢復 shadow）；
+        AlertDialogContent 由 bg-background 遷移至 bg-card。已回填{" "}
+        <code>design.md</code> D1/D6、兩份 spec 與 <code>tasks.md</code>。
       </p>
     </div>
   );
@@ -444,5 +446,5 @@ export const toc = [
     url: "#ring-lab",
     depth: 2,
   },
-  { title: "Open question：Drawer 的圖層", url: "#drawer-question", depth: 2 },
+  { title: "已定案：modal 類一律 bg-card", url: "#drawer-question", depth: 2 },
 ];
