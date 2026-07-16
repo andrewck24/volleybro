@@ -84,7 +84,11 @@ export function InteractiveFlowchart({
         <svg
           viewBox={`${minX} ${minY} ${vbW} ${vbH}`}
           role="img"
-          style={{ aspectRatio: `${vbW} / ${vbH}`, width: "100%", height: "auto" }}
+          style={{
+            aspectRatio: `${vbW} / ${vbH}`,
+            width: "100%",
+            height: "auto",
+          }}
           preserveAspectRatio="xMidYMid meet"
         >
           <defs>
@@ -273,7 +277,7 @@ export function InteractiveFlowchart({
         </svg>
       </div>
 
-      <div className="shrink-0 self-start rounded-lg border bg-card p-4 md:w-64 w-full">
+      <div className="w-full shrink-0 self-start rounded-lg border bg-card p-4 md:w-64">
         {activeDetail ? (
           <>
             <strong>{activeDetail.title}</strong>

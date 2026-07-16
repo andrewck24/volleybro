@@ -27,7 +27,13 @@ export function useFormDraft<T extends FieldValues>(
   // warning even when a stale draft exists in sessionStorage.
   const draftJson = useSyncExternalStore(
     noop,
-    () => { try { return sessionStorage.getItem(key); } catch { return null; } },
+    () => {
+      try {
+        return sessionStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
     () => null,
   );
 

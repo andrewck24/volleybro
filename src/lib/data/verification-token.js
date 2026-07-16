@@ -25,7 +25,7 @@ export const getVerificationTokenByEmail = async (email) => {
 
 export const createVerificationToken = async (
   email,
-  identifier = "sign-up"
+  identifier = "sign-up",
 ) => {
   try {
     let verificationToken;

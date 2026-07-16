@@ -29,7 +29,6 @@ A user visiting the blueprint site can browse all Spectra changes and navigate b
 - **THEN** the page returns a 404 with Fumadocs' standard not-found UI
 - **AND** no JavaScript error is thrown
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -199,6 +198,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Archive browsing
 
 Users can browse historically archived changes as read-only content.
@@ -209,7 +209,6 @@ Users can browse historically archived changes as read-only content.
 - **THEN** the proposal content renders correctly
 - **AND** the sidebar groups archived changes visually separate from active ones
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -379,6 +378,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Changes homepage
 
 The changes homepage at `/changes` lists all in-progress and archived changes, giving users an entry point into the portal.
@@ -396,7 +396,6 @@ The changes homepage at `/changes` lists all in-progress and archived changes, g
 - **THEN** an "Archive" section is visible listing all archived changes
 - **AND** each archived change entry links to its index page at `/changes/archive/<date-name>/`
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -566,6 +565,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Per-change index page
 
 Each archived change has an index page that lists all of its artifact links, including design.
@@ -584,7 +584,6 @@ Each archived change has an index page that lists all of its artifact links, inc
 - **THEN** the design TSX component renders inside the DocsPage shell
 - **AND** no 404 is returned
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -754,6 +753,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Dark/light theme persistence
 
 #### Scenario: Theme persists across page navigation

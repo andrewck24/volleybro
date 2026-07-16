@@ -8,16 +8,16 @@ title: Review
 
 ## Diff Summary
 
-| Status | File | Notes |
-|--------|------|-------|
-| + new | `src/app/apple-splash/devices.ts` | 15 device configs, isSupportedSize O(1) Set lookup |
-| + new | `src/app/apple-splash/[size]/route.tsx` | GET handler, font-extracted SVG paths, Cache-Control immutable |
-| + new | `src/app/apple-splash/__tests__/devices.test.ts` | 15-count, valid/invalid/partial-match isSupportedSize |
-| + new | `src/app/apple-splash/__tests__/route.test.ts` | 200, Cache-Control, 404, malformed segment |
-| ~ mod | `src/app/layout.tsx` | startupImage mapped from devices; 9 static PNG urls removed |
-| ~ mod | `src/proxy.ts` | /apple-splash/ short-circuits before getSession() |
-| ~ mod | `jest.config.ts` | apple-splash added to backend testMatch |
-| − del | `public/apple-splash/*.png (9 files)` | 274 kB removed |
+| Status | File                                             | Notes                                                          |
+| ------ | ------------------------------------------------ | -------------------------------------------------------------- |
+| + new  | `src/app/apple-splash/devices.ts`                | 15 device configs, isSupportedSize O(1) Set lookup             |
+| + new  | `src/app/apple-splash/[size]/route.tsx`          | GET handler, font-extracted SVG paths, Cache-Control immutable |
+| + new  | `src/app/apple-splash/__tests__/devices.test.ts` | 15-count, valid/invalid/partial-match isSupportedSize          |
+| + new  | `src/app/apple-splash/__tests__/route.test.ts`   | 200, Cache-Control, 404, malformed segment                     |
+| ~ mod  | `src/app/layout.tsx`                             | startupImage mapped from devices; 9 static PNG urls removed    |
+| ~ mod  | `src/proxy.ts`                                   | /apple-splash/ short-circuits before getSession()              |
+| ~ mod  | `jest.config.ts`                                 | apple-splash added to backend testMatch                        |
+| − del  | `public/apple-splash/*.png (9 files)`            | 274 kB removed                                                 |
 
 ## Code Review — clean
 
@@ -49,11 +49,11 @@ No simplification opportunities found:
 
 ## GHA Review History
 
-| Pass | Finding | Severity | Status |
-|------|---------|----------|--------|
-| 1 | Spec drift: design.md/spec.md/tasks.md still described polygon/40% approach | 🟠 | ✅ Fixed |
-| 1 | proxy.ts: getSession() ran before /apple-splash/ check | 🟡 | ✅ Fixed |
-| 1 | No Cache-Control header on ImageResponse | 🟡 | ✅ Fixed |
-| 1 | No unit tests for isSupportedSize / route 200/404 | 🟡 | ✅ Fixed |
-| 2 | HTML companions not updated with .md fixes | 🟠 | ✅ Fixed |
-| 1+2 | Loose size parsing: extra segments don't 404 (non-security) | ⚪ | Accepted |
+| Pass | Finding                                                                     | Severity | Status   |
+| ---- | --------------------------------------------------------------------------- | -------- | -------- |
+| 1    | Spec drift: design.md/spec.md/tasks.md still described polygon/40% approach | 🟠       | ✅ Fixed |
+| 1    | proxy.ts: getSession() ran before /apple-splash/ check                      | 🟡       | ✅ Fixed |
+| 1    | No Cache-Control header on ImageResponse                                    | 🟡       | ✅ Fixed |
+| 1    | No unit tests for isSupportedSize / route 200/404                           | 🟡       | ✅ Fixed |
+| 2    | HTML companions not updated with .md fixes                                  | 🟠       | ✅ Fixed |
+| 1+2  | Loose size parsing: extra segments don't 404 (non-security)                 | ⚪       | Accepted |

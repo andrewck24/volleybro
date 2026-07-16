@@ -37,7 +37,8 @@ export default function GameRecording() {
     <div>
       <p>
         The game recording flow guides the scorer through lineup setup,
-        rally-by-rally input, and automatic rotation. Click a node to see details.
+        rally-by-rally input, and automatic rotation. Click a node to see
+        details.
       </p>
       <InteractiveFlowchart nodes={nodes} details={details} />
     </div>

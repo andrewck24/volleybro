@@ -8,7 +8,7 @@ import "@/styles/landing.css";
 
 const LandingPage = () => {
   return (
-    <main className="min-h-full w-full select-text bg-background">
+    <main className="min-h-full w-full bg-background select-text">
       <Header />
       <Hero />
       <Highlights />

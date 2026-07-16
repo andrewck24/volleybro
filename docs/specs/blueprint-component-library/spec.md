@@ -19,7 +19,6 @@ TBD - created by archiving change 'blueprint'. Update Purpose after archive.
 - **WHEN** a component receives all required props of correct types
 - **THEN** it renders without throwing a runtime error
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -189,6 +188,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Tier 1 artifact display components
 
 All 8 Tier 1 components are available for use in `.mdx` and `.tsx` files.
@@ -218,11 +218,11 @@ All 8 Tier 1 components are available for use in `.mdx` and `.tsx` files.
 ##### Example: Severity badge colors
 
 | severity | expected color token |
-|----------|---------------------|
-| critical | red |
-| warning  | yellow |
-| info     | blue |
-| ok       | green |
+| -------- | -------------------- |
+| critical | red                  |
+| warning  | yellow               |
+| info     | blue                 |
+| ok       | green                |
 
 - **GIVEN** `<SeverityBadge level="critical" />`
 - **THEN** the badge renders with the red color token
@@ -236,7 +236,6 @@ All 8 Tier 1 components are available for use in `.mdx` and `.tsx` files.
 
 - **WHEN** `<ExampleTable rows={[...]} headers={[...]} />` is used
 - **THEN** a table renders with the provided headers and data rows
-
 
 <!-- @trace
 source: blueprint
@@ -407,6 +406,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Tier 2 feature showcase and status components
 
 #### Scenario: TaskProgress renders done/total counts with progress bar
@@ -431,7 +431,6 @@ tests:
 - **WHEN** `<PRWriteup number={308} title="..." status="merged" />` is used
 - **THEN** PR number, title, and a "merged" badge render
 
-
 <!-- @trace
 source: blueprint
 updated: 2026-07-14
@@ -601,6 +600,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: InteractiveFlowchart internal state management
 
 #### Scenario: Click state is isolated to the component instance

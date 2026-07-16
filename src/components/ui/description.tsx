@@ -17,20 +17,19 @@ const Description = ({
     <div
       data-slot="Description"
       className={cn(
-        "flex flex-row [&>svg]:size-6 gap-2 items-center flex-1",
-        className
+        "flex flex-1 flex-row items-center gap-2 [&>svg]:size-6",
+        className,
       )}
       {...props}
     >
       {startIcon}
-      <div className="flex flex-col flex-1 h-fit min-h-10">{children}</div>
+      <div className="flex h-fit min-h-10 flex-1 flex-col">{children}</div>
       {endIcon}
     </div>
   );
 };
 
-interface DescriptionTitleProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {}
+interface DescriptionTitleProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
 const DescriptionTitle = ({ children, className }: DescriptionTitleProps) => {
   return (
@@ -40,8 +39,7 @@ const DescriptionTitle = ({ children, className }: DescriptionTitleProps) => {
   );
 };
 
-interface DescriptionContentProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {}
+interface DescriptionContentProps extends React.HTMLAttributes<HTMLParagraphElement> {}
 
 const DescriptionContent = ({
   children,

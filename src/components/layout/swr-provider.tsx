@@ -27,7 +27,8 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
       handle401Redirect(routerRef.current, toastRef.current);
     };
     window.addEventListener(API_UNAUTHORIZED_EVENT, handleUnauthorized);
-    return () => window.removeEventListener(API_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () =>
+      window.removeEventListener(API_UNAUTHORIZED_EVENT, handleUnauthorized);
   }, []);
 
   const onError = useCallback(

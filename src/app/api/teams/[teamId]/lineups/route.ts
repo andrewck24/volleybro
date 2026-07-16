@@ -21,7 +21,11 @@ export const PATCH = (
     const authorizationService = container.get<IAuthorizationService>(
       TYPES.AuthorizationService,
     );
-    await authorizationService.verifyTeamRole(teamId, userId, PlayerRole.MEMBER);
+    await authorizationService.verifyTeamRole(
+      teamId,
+      userId,
+      PlayerRole.MEMBER,
+    );
 
     const lineups = UpdateLineupsSchema.parse(await req.json());
     const savedLineups = await updateTeamLineupsController(teamId, lineups);

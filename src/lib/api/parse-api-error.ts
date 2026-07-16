@@ -13,7 +13,11 @@ export async function parseApiError(res: Response): Promise<ApiError> {
 
   try {
     const body = await res.json();
-    if (body && typeof body.code === "string" && typeof body.reason === "string") {
+    if (
+      body &&
+      typeof body.code === "string" &&
+      typeof body.reason === "string"
+    ) {
       return {
         code: body.code,
         reason: body.reason,

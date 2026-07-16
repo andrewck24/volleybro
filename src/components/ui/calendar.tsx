@@ -77,7 +77,7 @@ const Calendar = ({
         from: currentYear - Math.floor(yearRange / 2 - 1),
         to: currentYear + Math.ceil(yearRange / 2),
       };
-    }, [yearRange])
+    }, [yearRange]),
   );
 
   const { onNextClick, onPrevClick, startMonth, endMonth } = props;
@@ -87,21 +87,21 @@ const Calendar = ({
   const _monthsClassName = cn("relative flex", props.monthsClassName);
   const _monthCaptionClassName = cn(
     "relative mx-10 flex h-7 items-center justify-center",
-    props.monthCaptionClassName
+    props.monthCaptionClassName,
   );
   const _weekdaysClassName = cn("flex flex-row", props.weekdaysClassName);
   const _weekdayClassName = cn(
     "w-8 text-sm font-normal text-muted-foreground",
-    props.weekdayClassName
+    props.weekdayClassName,
   );
   const _monthClassName = cn("w-full", props.monthClassName);
   const _captionClassName = cn(
     "relative flex items-center justify-center pt-1",
-    props.captionClassName
+    props.captionClassName,
   );
   const _captionLabelClassName = cn(
     "truncate text-sm font-medium",
-    props.captionLabelClassName
+    props.captionLabelClassName,
   );
   const buttonNavClassName = buttonVariants({
     variant: "outline",
@@ -111,56 +111,56 @@ const Calendar = ({
   const _buttonNextClassName = cn(
     buttonNavClassName,
     "right-0",
-    props.buttonNextClassName
+    props.buttonNextClassName,
   );
   const _buttonPreviousClassName = cn(
     buttonNavClassName,
     "left-0",
-    props.buttonPreviousClassName
+    props.buttonPreviousClassName,
   );
   const _navClassName = cn("flex items-start", props.navClassName);
   const _monthGridClassName = cn("mx-auto mt-4", props.monthGridClassName);
   const _weekClassName = cn("mt-2 flex w-max items-start", props.weekClassName);
   const _dayClassName = cn(
     "flex size-8 flex-1 items-center justify-center p-0 text-sm",
-    props.dayClassName
+    props.dayClassName,
   );
   const _dayButtonClassName = cn(
     buttonVariants({ variant: "ghost" }),
     "size-8 rounded-md p-0 font-normal transition-none aria-selected:opacity-100",
-    props.dayButtonClassName
+    props.dayButtonClassName,
   );
   const buttonRangeClassName =
     "bg-accent [&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground";
   const _rangeStartClassName = cn(
     buttonRangeClassName,
     "day-range-start rounded-s-md",
-    props.rangeStartClassName
+    props.rangeStartClassName,
   );
   const _rangeEndClassName = cn(
     buttonRangeClassName,
     "day-range-end rounded-e-md",
-    props.rangeEndClassName
+    props.rangeEndClassName,
   );
   const _rangeMiddleClassName = cn(
     "bg-accent !text-foreground [&>button]:bg-transparent [&>button]:!text-foreground [&>button]:hover:bg-transparent [&>button]:hover:!text-foreground",
-    props.rangeMiddleClassName
+    props.rangeMiddleClassName,
   );
   const _selectedClassName = cn(
     "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground",
-    props.selectedClassName
+    props.selectedClassName,
   );
   const _todayClassName = cn(
     "[&>button]:bg-accent [&>button]:text-accent-foreground",
-    props.todayClassName
+    props.todayClassName,
   );
   const _outsideClassName = cn(
     "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-    props.outsideClassName
+    props.outsideClassName,
   );
   const _disabledClassName = cn(
     "text-muted-foreground opacity-50",
-    props.disabledClassName
+    props.disabledClassName,
   );
   const _hiddenClassName = cn("invisible flex-1", props.hiddenClassName);
 
@@ -272,12 +272,12 @@ const Nav = ({
         (startMonth &&
           differenceInCalendarDays(
             new Date(displayYears.from - 1, 0, 1),
-            startMonth
+            startMonth,
           ) < 0) ||
         (endMonth &&
           differenceInCalendarDays(
             new Date(displayYears.from - 1, 0, 1),
-            endMonth
+            endMonth,
           ) > 0)
       );
     }
@@ -290,12 +290,12 @@ const Nav = ({
         (startMonth &&
           differenceInCalendarDays(
             new Date(displayYears.to + 1, 0, 1),
-            startMonth
+            startMonth,
           ) < 0) ||
         (endMonth &&
           differenceInCalendarDays(
             new Date(displayYears.to + 1, 0, 1),
-            endMonth
+            endMonth,
           ) > 0)
       );
     }
@@ -313,8 +313,8 @@ const Nav = ({
         new Date(
           displayYears.from - (displayYears.to - displayYears.from),
           0,
-          1
-        )
+          1,
+        ),
       );
       return;
     }
@@ -341,8 +341,8 @@ const Nav = ({
         new Date(
           displayYears.from + (displayYears.to - displayYears.from),
           0,
-          1
-        )
+          1,
+        ),
       );
       return;
     }
@@ -489,13 +489,13 @@ const YearGrid = ({
           const isBefore =
             differenceInCalendarDays(
               new Date(displayYears.from + i, 11, 31),
-              startMonth!
+              startMonth!,
             ) < 0;
 
           const isAfter =
             differenceInCalendarDays(
               new Date(displayYears.from + i, 0, 0),
-              endMonth!
+              endMonth!,
             ) > 0;
 
           const isDisabled = isBefore || isAfter;
@@ -505,7 +505,7 @@ const YearGrid = ({
               className={cn(
                 "h-7 w-full text-sm font-normal text-foreground",
                 displayYears.from + i === new Date().getFullYear() &&
-                  "bg-accent font-medium text-accent-foreground"
+                  "bg-accent font-medium text-accent-foreground",
               )}
               variant="ghost"
               onClick={() => {
@@ -513,8 +513,8 @@ const YearGrid = ({
                 goToMonth(
                   new Date(
                     displayYears.from + i,
-                    (selected as Date | undefined)?.getMonth() ?? 0
-                  )
+                    (selected as Date | undefined)?.getMonth() ?? 0,
+                  ),
                 );
               }}
               disabled={navView === "years" ? isDisabled : undefined}
@@ -522,7 +522,7 @@ const YearGrid = ({
               {displayYears.from + i}
             </Button>
           );
-        }
+        },
       )}
     </div>
   );

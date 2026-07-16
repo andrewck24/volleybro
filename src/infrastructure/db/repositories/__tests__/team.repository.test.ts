@@ -99,10 +99,7 @@ describe("TeamRepositoryImpl", () => {
         liberoReplaceMode: 0 as const,
         liberoReplacePosition: Position.NONE,
       },
-      starting: [
-        { id: playerHexId, position: Position.OH },
-        { id: null },
-      ],
+      starting: [{ id: playerHexId, position: Position.OH }, { id: null }],
       liberos: [],
       substitutes: [],
     };

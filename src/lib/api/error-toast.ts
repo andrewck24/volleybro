@@ -28,7 +28,8 @@ function isServerError(error: ApiClientError): boolean {
 }
 
 const SERVER_ERROR_MESSAGE = "伺服器暫時無法處理你的請求，請稍後再試一次。";
-const UNKNOWN_ERROR_MESSAGE = "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
+const UNKNOWN_ERROR_MESSAGE =
+  "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
 
 const REASON_MESSAGES: Record<string, string> = {
   RESOURCE_NOT_FOUND: "找不到此資源",

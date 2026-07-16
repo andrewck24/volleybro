@@ -29,7 +29,6 @@ The drawer surface SHALL be borderless — no ring or border — matching the ga
 - **WHEN** the drawer is expanded and not recording
 - **THEN** the newest committed entry SHALL be the top row of the list — the same element that peeked — and every committed entry SHALL be an actionable row
 
-
 <!-- @trace
 source: entry-ui
 updated: 2026-07-12
@@ -40,6 +39,7 @@ code:
 -->
 
 ---
+
 ### Requirement: Entry actions are revealed by swipe or inline expansion
 
 Each entry row SHALL reveal its action buttons on left-swipe. Tapping a row (while the drawer is expanded) SHALL inline-expand it as an accordion showing recordedBy, time, and the full set of actions, without leaving the list. Inline expansion and swipe-reveal SHALL be single-open: tapping or swiping one row SHALL collapse any other row that was expanded or revealed.
@@ -59,7 +59,6 @@ Each entry row SHALL reveal its action buttons on left-swipe. Tapping a row (whi
 - **WHEN** one row is inline-expanded and the user taps a different row
 - **THEN** the previously expanded row SHALL collapse and only the newly tapped row SHALL remain expanded
 
-
 <!-- @trace
 source: entry-ui
 updated: 2026-07-12
@@ -70,6 +69,7 @@ code:
 -->
 
 ---
+
 ### Requirement: Button composition follows the last-entry rule
 
 Action buttons SHALL be composed by the last-entry rule: the latest entry SHALL offer edit and delete; every other entry SHALL offer edit and "roll back and re-record to here". The visible alternative path SHALL replace a disabled delete button for non-latest entries.
@@ -84,7 +84,6 @@ Action buttons SHALL be composed by the last-entry rule: the latest entry SHALL 
 - **WHEN** actions are revealed for an entry that is not the latest
 - **THEN** the buttons SHALL be edit and "roll back and re-record to here", and no disabled delete button SHALL be shown
 
-
 <!-- @trace
 source: entry-ui
 updated: 2026-07-12
@@ -95,6 +94,7 @@ code:
 -->
 
 ---
+
 ### Requirement: Gesture split while input is in progress
 
 While input is in progress, tapping the Preview SHALL only handle submission (submit when the three steps are complete, no effect otherwise). The handle SHALL toggle the drawer while idle. The in-progress draft SHALL be shown as the Preview itself in a pulsing in-progress style distinct from committed entries — not as a separate row — and on freeze SHALL become the formal first committed entry in place.

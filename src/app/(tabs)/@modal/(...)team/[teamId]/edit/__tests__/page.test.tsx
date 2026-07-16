@@ -84,7 +84,11 @@ describe("EditTeamModalPage", () => {
   });
 
   it("updates SWR cache and calls router.back on success", async () => {
-    const updatedTeam = { id: VALID_OBJECT_ID, name: "New Name", nickname: "TT" };
+    const updatedTeam = {
+      id: VALID_OBJECT_ID,
+      name: "New Name",
+      nickname: "TT",
+    };
     mockApiClient.mockResolvedValue(updatedTeam);
     const nameField = await setup();
 

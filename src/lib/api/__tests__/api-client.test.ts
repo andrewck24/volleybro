@@ -1,4 +1,8 @@
-import { API_UNAUTHORIZED_EVENT, ApiClientError, apiClient } from "@/lib/api/api-client";
+import {
+  API_UNAUTHORIZED_EVENT,
+  ApiClientError,
+  apiClient,
+} from "@/lib/api/api-client";
 
 const makeFetchResponse = (status: number, body: object) => ({
   ok: status >= 200 && status < 300,
@@ -79,9 +83,11 @@ describe("apiClient", () => {
 
   describe("on success response", () => {
     it("returns parsed JSON and does not dispatch any event", async () => {
-      jest.spyOn(global, "fetch").mockResolvedValue(
-        makeFetchResponse(200, { id: "123" }) as unknown as Response,
-      );
+      jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(
+          makeFetchResponse(200, { id: "123" }) as unknown as Response,
+        );
 
       const result = await apiClient<{ id: string }>("/api/test");
       expect(result).toEqual({ id: "123" });

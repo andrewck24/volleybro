@@ -20,7 +20,6 @@ Overlay-backed surface components — `Dialog`, `AlertDialog`, and `Drawer` — 
 - **WHEN** an overlay surface renders a header, body, and footer
 - **THEN** padding is supplied by each section, and the content element contributes no padding or gap of its own
 
-
 <!-- @trace
 source: elevation-depth-system
 updated: 2026-07-16
@@ -57,6 +56,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: No container carries a decorative ring
 
 Container components SHALL NOT apply a decorative ring or border to their content surface. Elevation SHALL be signaled by each kind's remaining cues: a component that renders its own dimming `Overlay` (`Dialog`, `AlertDialog`, `Drawer`) relies on the overlay; non-overlay floating surfaces (`Popover`, `Select`, `Dropdown` content) rely on the `--popover` background step plus `shadow-md`; in-flow surfaces (`Card`, `Item`) rely on the `--card` background step plus their shadow treatment. The `--ring` token SHALL be reserved for focus-visible states. Where a card-class element sits on a same-color surface, the compensation cue SHALL be shadow, not a ring.
@@ -76,7 +76,6 @@ Container components SHALL NOT apply a decorative ring or border to their conten
 - **WHEN** a control inside any container receives keyboard focus
 - **THEN** the focus-visible ring renders normally — the no-decorative-ring rule does not remove accessibility focus indication
 
-
 <!-- @trace
 source: elevation-depth-system
 updated: 2026-07-16
@@ -113,6 +112,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Unified close and expand controls
 
 `DialogContent` SHALL render a single control group positioned `absolute` at `top-3 right-3` containing, when enabled, an expand button and a close button, each sized `size-8`. The close button SHALL be present by default and SHALL be controllable via a `closeButton` prop. An expand action SHALL be enabled by providing an `onExpand` callback, with an accessible label configurable via `expandLabel`. Individual dialog headers SHALL NOT hand-roll their own close or expand buttons. The header SHALL reserve horizontal space (`pr-20`) so a long title wraps to the left of the control group rather than beneath it.
@@ -129,7 +129,6 @@ tests:
 - **WHEN** the user activates the built-in close button on the edit dialog while the form is dirty
 - **THEN** the close request propagates through the dialog's `onOpenChange(false)` handler and triggers the unsaved-changes discard confirmation
 
-
 <!-- @trace
 source: elevation-depth-system
 updated: 2026-07-16
@@ -166,6 +165,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: AlertDialog preserves dismiss semantics
 
 `AlertDialog` SHALL adopt the shared three-section structure, the no-ring rule, the `--card` surface, and the `srOnly` accessibility prop, but SHALL NOT adopt `Dialog`'s dismissal affordances. `AlertDialog` SHALL NOT dismiss on outside-click or Esc, and SHALL NOT render a default top-right close button. Dismissal SHALL require an explicit footer action (cancel or confirm).
@@ -175,7 +175,6 @@ tests:
 - **WHEN** an open `AlertDialog` receives an outside click or Esc key
 - **THEN** the dialog remains open and the user must choose an explicit cancel or confirm action to dismiss it
 
-
 <!-- @trace
 source: elevation-depth-system
 updated: 2026-07-16
@@ -212,6 +211,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Accessible description without warnings
 
 Every overlay surface SHALL include a title and a description. When no visible description is appropriate, the description SHALL be hidden via an `srOnly` prop on the title/description components rather than via ad-hoc `className="sr-only"` or `aria-describedby={undefined}`. Rendered overlay surfaces SHALL produce no Radix "Missing Description" or `aria-describedby` console warning.

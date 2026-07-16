@@ -25,7 +25,7 @@ export const DarkMode = () => {
   }
 
   return (
-    <div className="flex flex-row gap-1 bg-muted p-1 rounded-md">
+    <div className="flex flex-row gap-1 rounded-md bg-muted p-1">
       <Button
         variant={theme === "system" ? "default" : "ghost"}
         onClick={() => setTheme("system")}

@@ -35,14 +35,14 @@ const AccordionTrigger = ({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          "focus-visible:border-ring focus-visible:ring-ring/50 flex flex-1 items-center justify-between gap-4 rounded-md py-3 text-left text-lg leading-none font-medium",
+          "flex flex-1 items-center justify-between gap-4 rounded-md py-3 text-left text-lg leading-none font-medium focus-visible:border-ring focus-visible:ring-ring/50",
           "transition-all outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
-          className
+          className,
         )}
         {...props}
       >
         {children}
-        <RiArrowDownWideLine className="text-muted-foreground pointer-events-none size-5 shrink-0 translate-y-0.5 transition-transform duration-200" />
+        <RiArrowDownWideLine className="pointer-events-none size-5 shrink-0 translate-y-0.5 text-muted-foreground transition-transform duration-200" />
       </AccordionPrimitive.Trigger>
     </AccordionPrimitive.Header>
   );
@@ -56,10 +56,10 @@ const AccordionContent = ({
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
-      className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm"
+      className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
       {...props}
     >
-      <div className={cn("w-full flex flex-col gap-1 pt-0 pb-4", className)}>
+      <div className={cn("flex w-full flex-col gap-1 pt-0 pb-4", className)}>
         {children}
       </div>
     </AccordionPrimitive.Content>

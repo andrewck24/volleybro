@@ -3,8 +3,8 @@ import { DarkMode } from "@/components/landing/footer/dark-mode";
 
 export const Footer = () => {
   return (
-    <footer className="flex flex-col items-start justify-center gap-2 w-full px-4 pt-4 pb-8 bg-background md:px-[5%]">
-      <div className="flex flex-row flex-wrap items-start justify-center gap-2 w-full">
+    <footer className="flex w-full flex-col items-start justify-center gap-2 bg-background px-4 pt-4 pb-8 md:px-[5%]">
+      <div className="flex w-full flex-row flex-wrap items-start justify-center gap-2">
         <Section>
           <p className="text-lg font-medium text-foreground">
             Made with ❤️ by{" "}
@@ -18,7 +18,7 @@ export const Footer = () => {
           </p>
         </Section>
       </div>
-      <div className="flex flex-row items-center justify-end gap-2 w-full">
+      <div className="flex w-full flex-row items-center justify-end gap-2">
         <p className="w-full text-lg font-medium text-foreground">
           © 2025 VolleyBro
         </p>
@@ -30,7 +30,7 @@ export const Footer = () => {
 
 const Section = ({ children }: { children?: React.ReactNode }) => {
   return (
-    <section className="flex flex-col items-start justify-start gap-2 grow basis-50 shrink-0">
+    <section className="flex shrink-0 grow basis-50 flex-col items-start justify-start gap-2">
       {children}
     </section>
   );

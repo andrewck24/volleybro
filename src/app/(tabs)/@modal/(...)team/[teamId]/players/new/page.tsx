@@ -10,7 +10,9 @@ const PlayerCreateModalPage = (props: {
   const [isDirty, setIsDirty] = useState(false);
 
   const clearDraft = useCallback(() => {
-    try { sessionStorage.removeItem(`draft:player:new:${teamId}`); } catch {}
+    try {
+      sessionStorage.removeItem(`draft:player:new:${teamId}`);
+    } catch {}
   }, [teamId]);
 
   return (

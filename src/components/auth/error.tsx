@@ -4,12 +4,12 @@ import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 
 const Error = () => {
   return (
-    <Card className="flex-1 w-full">
+    <Card className="w-full flex-1">
       <CardHeader>
         <CardTitle>Error</CardTitle>
       </CardHeader>
       <div className="text-destructive">Oops... Something went wrong!</div>
-      <div className="flex items-center justify-center flex-1">
+      <div className="flex flex-1 items-center justify-center">
         <RiSpamLine className="size-[40%] text-destructive" />
       </div>
       <Link variant="outline" size="lg" href="/auth/sign-in">

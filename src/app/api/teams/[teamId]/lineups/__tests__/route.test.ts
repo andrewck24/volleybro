@@ -63,7 +63,9 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
     mockConnectToMongoDB.mockResolvedValue(undefined);
     mockGetSession.mockResolvedValue(SESSION);
     mockContainerGet.mockReturnValue({
-      verifyTeamRole: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      verifyTeamRole: jest
+        .fn<() => Promise<void>>()
+        .mockResolvedValue(undefined),
     });
     ({ PATCH } = await import("../route"));
   });
@@ -85,7 +87,9 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when teamId is not a valid ObjectId", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = {
       url: "http://localhost/api/teams/bad-id/lineups",
       method: "PATCH",
@@ -104,7 +108,9 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when payload is not an array", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
       method: "PATCH",
@@ -122,7 +128,9 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when lineup item has wrong liberoReplaceMode type", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const badLineup = {
       ...VALID_LINEUP,
       options: { liberoReplaceMode: "0", liberoReplacePosition: Position.NONE },

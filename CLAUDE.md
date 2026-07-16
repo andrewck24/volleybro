@@ -4,7 +4,7 @@
 
 This project uses Spectra for Spec-Driven Development(SDD). Specs live in `docs/specs/`, change proposals in `docs/changes/`.
 
-## Use `/spectra-*` skills when
+## Use `/spectra-*` skills when:
 
 - A discussion needs structure before coding → `/spectra-discuss`
 - User wants to plan, propose, or design a change → `/spectra-propose`

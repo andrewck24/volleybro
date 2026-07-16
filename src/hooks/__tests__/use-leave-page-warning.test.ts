@@ -86,10 +86,14 @@ describe("useLeavePageWarning", () => {
     )?.[1] as (e: BeforeUnloadEvent) => void;
 
     suppressLeaveWarning();
-    const firstEvent = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+    const firstEvent = {
+      preventDefault: jest.fn(),
+    } as unknown as BeforeUnloadEvent;
     handler(firstEvent);
 
-    const secondEvent = { preventDefault: jest.fn() } as unknown as BeforeUnloadEvent;
+    const secondEvent = {
+      preventDefault: jest.fn(),
+    } as unknown as BeforeUnloadEvent;
     handler(secondEvent);
 
     expect(secondEvent.preventDefault).toHaveBeenCalled();

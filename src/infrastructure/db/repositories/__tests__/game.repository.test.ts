@@ -177,7 +177,13 @@ describe("GameRepositoryImpl", () => {
             staffs: [],
             stats: [],
           },
-          away: { id: mockTeamIdString, name: "Away", players: [], staffs: [], stats: [] },
+          away: {
+            id: mockTeamIdString,
+            name: "Away",
+            players: [],
+            staffs: [],
+            stats: [],
+          },
         },
         sets: [
           {
@@ -202,7 +208,10 @@ describe("GameRepositoryImpl", () => {
                   score: 1,
                   type: MoveType.ATTACK,
                   num: 1,
-                  player: { playerId: new Types.ObjectId(playerHexId), zone: 4 },
+                  player: {
+                    playerId: new Types.ObjectId(playerHexId),
+                    zone: 4,
+                  },
                 },
                 away: { score: 0, type: MoveType.ATTACK, num: 1 },
               },
@@ -235,15 +244,15 @@ describe("GameRepositoryImpl", () => {
       expect(starting[1].id).toBeNull();
 
       const entries = result!.sets[0].entries;
-      expect((entries[0] as { home: { player: { id: string } } }).home.player.id).toBe(
-        playerHexId,
-      );
-      expect((entries[1] as { players: { in: string; out: string } }).players.in).toBe(
-        inHexId,
-      );
-      expect((entries[1] as { players: { in: string; out: string } }).players.out).toBe(
-        outHexId,
-      );
+      expect(
+        (entries[0] as { home: { player: { id: string } } }).home.player.id,
+      ).toBe(playerHexId);
+      expect(
+        (entries[1] as { players: { in: string; out: string } }).players.in,
+      ).toBe(inHexId);
+      expect(
+        (entries[1] as { players: { in: string; out: string } }).players.out,
+      ).toBe(outHexId);
     });
 
     it("toGameDoc persists client ids as playerId on create", async () => {
@@ -259,7 +268,13 @@ describe("GameRepositoryImpl", () => {
             staffs: [],
             stats: [],
           },
-          away: { id: mockTeamIdString, name: "Away", players: [], staffs: [], stats: [] },
+          away: {
+            id: mockTeamIdString,
+            name: "Away",
+            players: [],
+            staffs: [],
+            stats: [],
+          },
         },
         sets: [
           {
@@ -267,10 +282,7 @@ describe("GameRepositoryImpl", () => {
             lineups: {
               home: {
                 options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
-                starting: [
-                  { id: playerHexId, position: "OH" },
-                  { id: null },
-                ],
+                starting: [{ id: playerHexId, position: "OH" }, { id: null }],
                 liberos: [],
                 substitutes: [],
               },

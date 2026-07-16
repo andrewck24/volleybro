@@ -34,7 +34,6 @@ No two of `--background`, `--popover`, and `--card` SHALL share the same color v
 | `--popover`    | 0.5   | middle         | middle          |
 | `--card`       | 1     | lightest       | lightest        |
 
-
 <!-- @trace
 source: elevation-depth-system
 updated: 2026-07-16
@@ -71,6 +70,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Background tokens carry their semantic role
 
 The page `body` background SHALL use the `--background` token (`bg-background`), not `--accent`. The `--accent` token SHALL be reserved for hover and highlight states and SHALL NOT be used as a page or surface background.

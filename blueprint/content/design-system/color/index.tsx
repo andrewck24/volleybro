@@ -13,7 +13,10 @@ const surface: TokenInfo[] = [
     name: "--popover",
     usage: "Layer 0.5 — non-overlay floats (Popover, Select)",
   },
-  { name: "--card", usage: "Layer 1 — Card / Item + modal surfaces (Dialog/AlertDialog/Drawer)" },
+  {
+    name: "--card",
+    usage: "Layer 1 — Card / Item + modal surfaces (Dialog/AlertDialog/Drawer)",
+  },
   { name: "--muted", usage: "Muted fills and disabled grounds" },
   {
     name: "--accent",
@@ -50,7 +53,10 @@ const chart: TokenInfo[] = [
 const utility: TokenInfo[] = [
   { name: "--border", usage: "Hairline borders and dividers" },
   { name: "--input", usage: "Form control borders" },
-  { name: "--ring", usage: "Focus-visible ring only (containers carry no decorative ring)" },
+  {
+    name: "--ring",
+    usage: "Focus-visible ring only (containers carry no decorative ring)",
+  },
   { name: "--foreground", usage: "Primary text on --background" },
   { name: "--muted-foreground", usage: "Secondary / caption text" },
 ];
@@ -60,12 +66,13 @@ export default function ColorPage() {
     <div>
       <h1>Color</h1>
       <p>
-        Every surface, brand, feedback, and chart token, rendered live from a frozen
-        copy of the app&apos;s <code>globals.css</code> token blocks (finalized by
-        the elevation-depth-system change). Each swatch is split — left half is the
-        light-theme value, right half the dark-theme value — and the color
-        strings underneath are resolved from the stylesheet at runtime, so this
-        page always shows what the stylesheet actually resolves.
+        Every surface, brand, feedback, and chart token, rendered live from a
+        frozen copy of the app&apos;s <code>globals.css</code> token blocks
+        (finalized by the elevation-depth-system change). Each swatch is split —
+        left half is the light-theme value, right half the dark-theme value —
+        and the color strings underneath are resolved from the stylesheet at
+        runtime, so this page always shows what the stylesheet actually
+        resolves.
       </p>
 
       <h2 id="surface">Surface &amp; elevation</h2>

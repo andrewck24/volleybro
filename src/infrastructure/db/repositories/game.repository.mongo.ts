@@ -28,10 +28,9 @@ type RawTeam = {
   staffs?: RawSnapshot[];
   lineup?: RawLineup;
 } & Record<string, unknown>;
-type RawRallyDetail = { player?: { playerId?: RawRef; zone?: number } } & Record<
-  string,
-  unknown
->;
+type RawRallyDetail = {
+  player?: { playerId?: RawRef; zone?: number };
+} & Record<string, unknown>;
 type RawEntry = {
   type?: EntryType;
   home?: RawRallyDetail;
@@ -167,13 +166,19 @@ export class GameRepositoryImpl implements IGameRepository {
     };
   }
 
-  private toLineupWrite<T extends { starting?: unknown[]; liberos?: unknown[]; substitutes?: unknown[] }>(
-    lineup: T | undefined,
-  ) {
+  private toLineupWrite<
+    T extends {
+      starting?: unknown[];
+      liberos?: unknown[];
+      substitutes?: unknown[];
+    },
+  >(lineup: T | undefined) {
     if (!lineup) return lineup;
     const map = (arr: unknown[] | undefined) =>
       (arr ?? []).map((p) =>
-        this.mapLineupPlayerWrite(p as Parameters<typeof this.mapLineupPlayerWrite>[0]),
+        this.mapLineupPlayerWrite(
+          p as Parameters<typeof this.mapLineupPlayerWrite>[0],
+        ),
       );
     return {
       ...lineup,
@@ -183,24 +188,38 @@ export class GameRepositoryImpl implements IGameRepository {
     };
   }
 
-  private mapSnapshotWrite(snapshot: { id?: string | null } & Record<string, unknown>) {
+  private mapSnapshotWrite(
+    snapshot: { id?: string | null } & Record<string, unknown>,
+  ) {
     const { id, ...rest } = snapshot;
     return { ...rest, playerId: id ?? null };
   }
 
-  private mapTeamWrite(team: (Record<string, unknown> & {
-    players?: unknown[];
-    staffs?: unknown[];
-    lineup?: { starting?: unknown[]; liberos?: unknown[]; substitutes?: unknown[] };
-  }) | undefined) {
+  private mapTeamWrite(
+    team:
+      | (Record<string, unknown> & {
+          players?: unknown[];
+          staffs?: unknown[];
+          lineup?: {
+            starting?: unknown[];
+            liberos?: unknown[];
+            substitutes?: unknown[];
+          };
+        })
+      | undefined,
+  ) {
     if (!team) return team;
     return {
       ...team,
       players: (team.players ?? []).map((p) =>
-        this.mapSnapshotWrite(p as { id?: string | null } & Record<string, unknown>),
+        this.mapSnapshotWrite(
+          p as { id?: string | null } & Record<string, unknown>,
+        ),
       ),
       staffs: (team.staffs ?? []).map((s) =>
-        this.mapSnapshotWrite(s as { id?: string | null } & Record<string, unknown>),
+        this.mapSnapshotWrite(
+          s as { id?: string | null } & Record<string, unknown>,
+        ),
       ),
       lineup: team.lineup ? this.toLineupWrite(team.lineup) : team.lineup,
     };
@@ -234,10 +253,15 @@ export class GameRepositoryImpl implements IGameRepository {
     return entry;
   }
 
-  private mapSetWrite(set: Record<string, unknown> & {
-    lineups?: { home?: { starting?: unknown[] }; away?: { starting?: unknown[] } };
-    entries?: unknown[];
-  }) {
+  private mapSetWrite(
+    set: Record<string, unknown> & {
+      lineups?: {
+        home?: { starting?: unknown[] };
+        away?: { starting?: unknown[] };
+      };
+      entries?: unknown[];
+    },
+  ) {
     return {
       ...set,
       lineups: set.lineups
@@ -274,7 +298,9 @@ export class GameRepositoryImpl implements IGameRepository {
     }
     if (data.sets) {
       doc.sets = data.sets.map((s) =>
-        this.mapSetWrite(s as unknown as Parameters<typeof this.mapSetWrite>[0]),
+        this.mapSetWrite(
+          s as unknown as Parameters<typeof this.mapSetWrite>[0],
+        ),
       );
     }
     return doc;

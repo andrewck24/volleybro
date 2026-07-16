@@ -326,8 +326,9 @@ export default function ElevationDepthSystemDesign() {
       <h2 id="overlay-lab">Overlay lab：真實畫面上的變體比較</h2>
       <p>
         以紀錄畫面（header / court / panel / drawer peek）為底，將三種 overlay
-        元件疊在 scrim 上，切換表面 token 與 ring。所有顏色都來自 app tokens 的凍結副本（{" "}
-        定案後內聯進 blueprint 的 <code>globals.css</code>），左右兩框分別鎖定 light / dark。
+        元件疊在 scrim 上，切換表面 token 與 ring。所有顏色都來自 app tokens
+        的凍結副本（ 定案後內聯進 blueprint 的 <code>globals.css</code>
+        ），左右兩框分別鎖定 light / dark。
       </p>
       <div className="my-4 flex flex-col gap-2">
         <Segmented
@@ -403,8 +404,8 @@ export default function ElevationDepthSystemDesign() {
         <NonOverlayFrame scope="dark" label="Dark" ring={nonOverlayRing} />
       </div>
       <p className="text-sm text-muted-foreground">
-        已定案（D5）：全無 ring。範圍擴大到 popover.tsx / select.tsx /
-        card.tsx / item.tsx 的裝飾性 ring 移除；--ring 只保留給
+        已定案（D5）：全無 ring。範圍擴大到 popover.tsx / select.tsx / card.tsx
+        / item.tsx 的裝飾性 ring 移除；--ring 只保留給
         focus-visible。上方切到「有 ring」即是被否決的樣子，留作對照。
       </p>
 
@@ -412,9 +413,12 @@ export default function ElevationDepthSystemDesign() {
       <p>
         原 open question：Drawer 落在 <code>bg-card</code>，但舊 D1 規則說
         overlay-backed 屬於 layer 0（<code>bg-background</code>）。定案
-        （2026-07-16）：<strong>所有 modal 類（Dialog / AlertDialog / Drawer）
-        都用 bg-card</strong>，關鍵理由是 Drawer peek 的生命週期連續性。上方
-        lab 切換兩個表面即是當時的並排比較（bg-card 為定案預設）：
+        （2026-07-16）：
+        <strong>
+          所有 modal 類（Dialog / AlertDialog / Drawer） 都用 bg-card
+        </strong>
+        ，關鍵理由是 Drawer peek 的生命週期連續性。上方 lab
+        切換兩個表面即是當時的並排比較（bg-card 為定案預設）：
       </p>
       <ul>
         <li>

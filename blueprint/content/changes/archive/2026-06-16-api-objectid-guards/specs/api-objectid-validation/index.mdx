@@ -10,6 +10,7 @@ API route handlers that accept a MongoDB ObjectId as a URL path segment SHALL va
 segment format before invoking any service, authorization, or repository call.
 
 The shared guard function `assertObjectId(id, param?)` SHALL:
+
 - Accept a string `id` and an optional descriptive `param` name (default: `"id"`)
 - Throw `ValidationError(CommonReason.INVALID_INPUT, "Invalid <param> format")` when
   `id` does not match `/^[0-9a-fA-F]{24}$/`
@@ -25,13 +26,13 @@ thrown `ValidationError` to a 400 HTTP response. No per-handler catch block is n
 
 ##### Example: valid and invalid inputs
 
-| Input | Valid? | Reason |
-|-------|--------|--------|
-| `"507f1f77bcf86cd799439011"` | ✓ | 24 hex chars |
-| `"undefined"` | ✗ | not 24 chars |
-| `"bad-id"` | ✗ | contains non-hex char |
-| `"507f1f77bcf86cd79943901"` | ✗ | 23 chars (one short) |
-| `"507f1f77bcf86cd799439011a"` | ✗ | 25 chars (one over) |
+| Input                         | Valid? | Reason                |
+| ----------------------------- | ------ | --------------------- |
+| `"507f1f77bcf86cd799439011"`  | ✓      | 24 hex chars          |
+| `"undefined"`                 | ✗      | not 24 chars          |
+| `"bad-id"`                    | ✗      | contains non-hex char |
+| `"507f1f77bcf86cd79943901"`   | ✗      | 23 chars (one short)  |
+| `"507f1f77bcf86cd799439011a"` | ✗      | 25 chars (one over)   |
 
 #### Scenario: Invalid ObjectId returns 400
 

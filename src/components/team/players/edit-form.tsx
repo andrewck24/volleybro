@@ -33,7 +33,10 @@ import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
-import { UpdatePlayerInfoSchema, type UpdatePlayerInfoInput } from "@/lib/validations/player";
+import {
+  UpdatePlayerInfoSchema,
+  type UpdatePlayerInfoInput,
+} from "@/lib/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
@@ -76,7 +79,11 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
 
   return (
     <Card className="py-8">
-      <InfoSection player={player} teamId={teamId} onStateChange={onStateChange} />
+      <InfoSection
+        player={player}
+        teamId={teamId}
+        onStateChange={onStateChange}
+      />
       {showMembership && (
         <>
           <Separator />
@@ -128,7 +135,9 @@ function InfoSection({
   const { form, clearDraft } = useFormDraft<UpdatePlayerInfoInput>(
     `draft:player:${player.id}`,
     {
-      resolver: zodResolver(UpdatePlayerInfoSchema) as Resolver<UpdatePlayerInfoInput>,
+      resolver: zodResolver(
+        UpdatePlayerInfoSchema,
+      ) as Resolver<UpdatePlayerInfoInput>,
       defaultValues: {
         name: player.name,
         number: player.number,
@@ -205,7 +214,9 @@ function InfoSection({
           <FormItem>
             <FormLabel>位置</FormLabel>
             <Select
-              onValueChange={(v) => field.onChange(v === "NONE" ? undefined : v)}
+              onValueChange={(v) =>
+                field.onChange(v === "NONE" ? undefined : v)
+              }
               value={field.value ?? "NONE"}
             >
               <FormControl>

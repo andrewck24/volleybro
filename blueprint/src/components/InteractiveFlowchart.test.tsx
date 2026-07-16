@@ -44,7 +44,7 @@ describe("InteractiveFlowchart", () => {
       <>
         <InteractiveFlowchart nodes={nodes} details={details} />
         <InteractiveFlowchart nodes={nodes} details={details} />
-      </>
+      </>,
     );
     const allNodeAs = screen.getAllByText("Node A");
     // Click node A in instance 1

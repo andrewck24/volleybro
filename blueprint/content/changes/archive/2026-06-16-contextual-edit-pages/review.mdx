@@ -167,10 +167,12 @@ applied it to both `LineupPlayerSchema.id` and `LineupPlayerSchema.sub.id`:
 
 ```ts
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
-const objectId = z.string().nullable().refine(
-  v => v === null || OBJECT_ID_RE.test(v),
-  { message: "Invalid ObjectId format" },
-);
+const objectId = z
+  .string()
+  .nullable()
+  .refine((v) => v === null || OBJECT_ID_RE.test(v), {
+    message: "Invalid ObjectId format",
+  });
 ```
 
 This is consistent with the `assertValidObjectId` guard used for path parameters in

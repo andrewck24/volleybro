@@ -46,7 +46,13 @@ interface TeamFormProps {
   className?: string;
 }
 
-const TeamForm = ({ draftKey, defaultValues, onSubmit, onStateChange, className }: TeamFormProps) => {
+const TeamForm = ({
+  draftKey,
+  defaultValues,
+  onSubmit,
+  onStateChange,
+  className,
+}: TeamFormProps) => {
   const { form, clearDraft } = useFormDraft<TeamFormValues>(draftKey, {
     resolver: zodResolver(TeamSchema) as Resolver<TeamFormValues>,
     defaultValues: {
@@ -121,7 +127,9 @@ const TeamForm = ({ draftKey, defaultValues, onSubmit, onStateChange, className 
             {form.formState.errors.root.message}
           </p>
         )}
-        <Button size="lg">{defaultValues?.name ? "儲存修改" : "建立隊伍"}</Button>
+        <Button size="lg">
+          {defaultValues?.name ? "儲存修改" : "建立隊伍"}
+        </Button>
       </Form>
     </Card>
   );
@@ -152,7 +160,9 @@ export function EditTeamWorkspace({ teamId }: { teamId: string }) {
           <AlertTitle>找不到球隊</AlertTitle>
           <AlertDescription>此球隊不存在或已被刪除。</AlertDescription>
         </Alert>
-        <Button className="mt-4" onClick={() => router.back()}>返回</Button>
+        <Button className="mt-4" onClick={() => router.back()}>
+          返回
+        </Button>
       </div>
     );
   }
@@ -199,6 +209,10 @@ export function NewTeamWorkspace() {
   };
 
   return (
-    <TeamForm draftKey="draft:team:new" onSubmit={onSubmit} className="w-full" />
+    <TeamForm
+      draftKey="draft:team:new"
+      onSubmit={onSubmit}
+      className="w-full"
+    />
   );
 }

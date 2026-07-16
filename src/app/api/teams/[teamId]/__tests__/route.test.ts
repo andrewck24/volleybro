@@ -1,10 +1,19 @@
-import { beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
 const mockGetTeamController =
   jest.fn<(teamId: string) => Promise<Record<string, unknown> | null>>();
 const mockUpdateTeamController =
-  jest.fn<(teamId: string, data: unknown) => Promise<Record<string, unknown>>>();
+  jest.fn<
+    (teamId: string, data: unknown) => Promise<Record<string, unknown>>
+  >();
 const mockGetSession = jest.fn<() => Promise<unknown>>();
 const mockContainerGet = jest.fn<() => unknown>();
 
@@ -70,7 +79,9 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for invalid teamId format", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = { url: "http://localhost/api/teams/undefined", method: "GET" };
     const props = { params: Promise.resolve({ teamId: "undefined" }) };
 
@@ -84,7 +95,9 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for arbitrary non-ObjectId string", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = { url: "http://localhost/api/teams/abc", method: "GET" };
     const props = { params: Promise.resolve({ teamId: "abc" }) };
 
@@ -97,9 +110,14 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 404 with NOT_FOUND code when valid ObjectId but team not found", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     mockGetTeamController.mockResolvedValue(null);
-    const req = { url: `http://localhost/api/teams/${VALID_OBJECT_ID}`, method: "GET" };
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      method: "GET",
+    };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await GET(req as never, props);
@@ -114,7 +132,10 @@ describe("GET /api/teams/[teamId]", () => {
   it("returns 200 with team data when team found", async () => {
     const team = { id: VALID_OBJECT_ID, name: "Test Team" };
     mockGetTeamController.mockResolvedValue(team);
-    const req = { url: `http://localhost/api/teams/${VALID_OBJECT_ID}`, method: "GET" };
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      method: "GET",
+    };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await GET(req as never, props);
@@ -133,7 +154,9 @@ describe("PATCH /api/teams/[teamId]", () => {
     mockConnectToMongoDB.mockResolvedValue(undefined);
     mockGetSession.mockResolvedValue(SESSION);
     mockContainerGet.mockReturnValue({
-      verifyIsTeamAdmin: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+      verifyIsTeamAdmin: jest
+        .fn<() => Promise<void>>()
+        .mockResolvedValue(undefined),
     });
   });
 
@@ -154,7 +177,9 @@ describe("PATCH /api/teams/[teamId]", () => {
   });
 
   it("returns 400 when teamId is not a valid ObjectId", async () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = {
       url: "http://localhost/api/teams/bad-id",
       method: "PATCH",

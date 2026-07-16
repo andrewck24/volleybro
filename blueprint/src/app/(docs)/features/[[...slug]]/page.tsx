@@ -7,8 +7,12 @@ interface PageProps {
 }
 
 // ponytail: static list for now; expand to dynamic discovery when features grow
-const featureModules: Record<string, () => Promise<{ default: ComponentType }>> = {
-  "game-recording": () => import("../../../../../content/features/game-recording/index"),
+const featureModules: Record<
+  string,
+  () => Promise<{ default: ComponentType }>
+> = {
+  "game-recording": () =>
+    import("../../../../../content/features/game-recording/index"),
 };
 
 export default async function Page({ params }: PageProps) {

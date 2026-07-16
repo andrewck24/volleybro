@@ -10,7 +10,9 @@ const PlayerEditModalPage = (props: {
   const [isDirty, setIsDirty] = useState(false);
 
   const clearDraft = useCallback(() => {
-    try { sessionStorage.removeItem(`draft:player:${playerId}`); } catch {}
+    try {
+      sessionStorage.removeItem(`draft:player:${playerId}`);
+    } catch {}
   }, [playerId]);
 
   return (
