@@ -2,7 +2,9 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -42,8 +44,11 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
       <DialogContent size="lg" closeButton={false}>
         <DialogHeader>
           <DialogTitle>切換球隊</DialogTitle>
+          <DialogDescription srOnly>選擇要切換的球隊</DialogDescription>
         </DialogHeader>
-        <TeamList activeTeamId={teamId} onSelect={() => setOpen(false)} />
+        <DialogBody>
+          <TeamList activeTeamId={teamId} onSelect={() => setOpen(false)} />
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

@@ -27,9 +27,7 @@ export const EntriesEdit = ({ gameId }: { gameId: string }) => {
           <span className="sr-only">back</span>
         </Button>
         <DialogTitle>編輯逐球紀錄</DialogTitle>
-        <DialogDescription className="sr-only">
-          逐球紀錄編輯頁面
-        </DialogDescription>
+        <DialogDescription srOnly>逐球紀錄編輯頁面</DialogDescription>
       </DialogHeader>
       <GameCourt gameId={gameId} mode="editing" />
       <GamePreview
