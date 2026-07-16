@@ -14,6 +14,7 @@
     "typecheck": "node node_modules/tsgo/bin/tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "verify": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "test": "jest",
