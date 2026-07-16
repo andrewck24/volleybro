@@ -83,7 +83,7 @@ describe("EditDialogContainer", () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it("maximize does not call router.back (uses hard navigation)", () => {
+  it("maximize does not call router.back", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
@@ -95,11 +95,10 @@ describe("EditDialogContainer", () => {
       </EditDialogContainer>,
     );
     fireEvent.click(screen.getByRole("button", { name: "全頁模式" }));
-    // window.location.assign is hard navigation; router.back is not called
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("maximize calls suppressLeaveWarning before hard navigation", () => {
+  it("maximize suppresses the leave warning before navigation", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"

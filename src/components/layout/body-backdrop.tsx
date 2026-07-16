@@ -1,6 +1,6 @@
 "use client";
 
-import { useInsertionEffect } from "react";
+import { useLayoutEffect } from "react";
 
 type BodyBackdropProps = {
   color: string;
@@ -11,7 +11,8 @@ type BodyBackdropProps = {
  * PWA contexts. Page and surface backgrounds still come from CSS tokens.
  */
 export const BodyBackdrop = ({ color }: BodyBackdropProps) => {
-  useInsertionEffect(() => {
+  // Update before paint so standalone system chrome never exposes the prior route color.
+  useLayoutEffect(() => {
     const previousHtml = document.documentElement.style.backgroundColor;
     const previousBody = document.body.style.backgroundColor;
     document.documentElement.style.backgroundColor = color;
