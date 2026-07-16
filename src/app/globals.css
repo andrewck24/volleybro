@@ -80,7 +80,7 @@
     @apply box-border overscroll-x-none border-border outline-ring/50;
   }
   body {
-    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-accent text-foreground transition-colors select-none;
+    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-background text-foreground transition-colors select-none;
   }
 
   /* Elevation: suppress Item shadow inside elevated containers (Level 2) */
