@@ -326,8 +326,8 @@ export default function ElevationDepthSystemDesign() {
       <h2 id="overlay-lab">Overlay lab：真實畫面上的變體比較</h2>
       <p>
         以紀錄畫面（header / court / panel / drawer peek）為底，將三種 overlay
-        元件疊在 scrim 上，切換表面 token 與 ring。所有顏色都來自共用的{" "}
-        <code>src/styles/tokens.css</code>，左右兩框分別鎖定 light / dark。
+        元件疊在 scrim 上，切換表面 token 與 ring。所有顏色都來自 app tokens 的凍結副本（{" "}
+        <code>src/styles/tokens.css</code>，定案後複製），左右兩框分別鎖定 light / dark。
       </p>
       <div className="my-4 flex flex-col gap-2">
         <Segmented

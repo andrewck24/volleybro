@@ -60,12 +60,12 @@ export default function ColorPage() {
     <div>
       <h1>Color</h1>
       <p>
-        Every surface, brand, feedback, and chart token, rendered live from the
-        shared <code>src/styles/tokens.css</code> that the app, landing page,
-        and this docs site all import. Each swatch is split — left half is the
+        Every surface, brand, feedback, and chart token, rendered live from a frozen
+        copy of the app&apos;s <code>src/styles/tokens.css</code> (finalized by
+        the elevation-depth-system change). Each swatch is split — left half is the
         light-theme value, right half the dark-theme value — and the color
         strings underneath are resolved from the stylesheet at runtime, so this
-        page can never drift from the source.
+        page always shows what the stylesheet actually resolves.
       </p>
 
       <h2 id="surface">Surface &amp; elevation</h2>

@@ -72,7 +72,7 @@
 - [x] 10.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
 - [x] 10.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
 
-- [ ] 10.4 Once the token values are finalized (sections 1 and 9 decided and applied), freeze them: copy `src/styles/tokens.css` into the blueprint as a local stylesheet and cut the blueprint's cross-app `@import` — frozen assets are copied, only live sources are shared (see design.md D7 token lifecycle). → verify: blueprint builds with no import reaching outside `blueprint/`; rendered token values identical to the app's.
+- [x] 10.4 Once the token values are finalized (sections 1 and 9 decided and applied), freeze them: copy `src/styles/tokens.css` into the blueprint as a local stylesheet and cut the blueprint's cross-app `@import` — frozen assets are copied, only live sources are shared (see design.md D7 token lifecycle). → verify: blueprint builds with no import reaching outside `blueprint/`; rendered token values identical to the app's.
 
 ## 11. Final verification
 
