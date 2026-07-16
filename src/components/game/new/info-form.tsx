@@ -156,7 +156,6 @@ const BasicInfoFields = ({ form }: { form: UseFormReturn<TMatchInfoForm> }) => {
                   mode="single"
                   selected={field.value}
                   onSelect={field.onChange}
-                  initialFocus
                 />
               </PopoverContent>
             </Popover>

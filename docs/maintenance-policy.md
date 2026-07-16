@@ -20,10 +20,24 @@ When upgrading any package to a new major version:
 **Verification checklist before merging a major upgrade PR:**
 
 - `pnpm test` — all tests pass
-- `pnpm exec tsc --noEmit` — no TypeScript errors
+- `pnpm typecheck` — no TypeScript errors
 - `pnpm lint` — no lint errors
 - `pnpm build` — production build succeeds
 - Migration guide steps completed and noted in the PR description
+
+---
+
+## TypeScript Dual Toolchain
+
+The repo intentionally installs two TypeScript versions (see Paca VB-51 for the convergence conditions and steps):
+
+- `typescript` (6.x) — the JS Compiler API provider. `next build`'s type check, `typescript-eslint` (via `eslint-config-next`), and `ts-node` (loads `jest.config.ts`) all resolve this package. TS 7 removed `lib/typescript.js`, so these tools cannot use it yet.
+- `tsgo` (npm alias for `typescript@7`) — the Go-native compiler that powers `pnpm typecheck`, several times faster than 6.x.
+
+Two sharp edges this creates:
+
+1. The `typecheck` script invokes `node node_modules/tsgo/bin/tsc` **by direct path on purpose**: the alias installs typescript 7's own `tsc` bin name, which collides with typescript 6's in `node_modules/.bin`, so `pnpm exec tsc` is ambiguous. Do not "simplify" the script to `tsc --noEmit` or `tsgo --noEmit` (no such CLI exists).
+2. Avoid bare `tsc` / `pnpm exec tsc` anywhere (scripts, CI, docs) — which version wins the `.bin` collision is an implementation detail. Use `pnpm typecheck` instead.
 
 ---
 

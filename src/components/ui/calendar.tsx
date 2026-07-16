@@ -11,7 +11,7 @@ import {
   labelPrevious,
   useDayPicker,
   type DayPickerProps,
-} from "react-day-picker";
+} from "@daypicker/react";
 
 export type CalendarProps = DayPickerProps & {
   /**
@@ -31,7 +31,6 @@ export type CalendarProps = DayPickerProps & {
   weekdaysClassName?: string;
   weekdayClassName?: string;
   monthClassName?: string;
-  captionClassName?: string;
   captionLabelClassName?: string;
   buttonNextClassName?: string;
   buttonPreviousClassName?: string;
@@ -53,7 +52,7 @@ export type CalendarProps = DayPickerProps & {
 type NavView = "days" | "years";
 
 /**
- * A custom calendar component built on top of react-day-picker.
+ * A custom calendar component built on top of DayPicker (@daypicker/react).
  * @param props The props for the calendar.
  * @default yearRange 12
  * @returns
@@ -95,10 +94,6 @@ const Calendar = ({
     props.weekdayClassName,
   );
   const _monthClassName = cn("w-full", props.monthClassName);
-  const _captionClassName = cn(
-    "relative flex items-center justify-center pt-1",
-    props.captionClassName,
-  );
   const _captionLabelClassName = cn(
     "truncate text-sm font-medium",
     props.captionLabelClassName,
@@ -177,7 +172,6 @@ const Calendar = ({
         weekdays: _weekdaysClassName,
         weekday: _weekdayClassName,
         month: _monthClassName,
-        caption: _captionClassName,
         caption_label: _captionLabelClassName,
         button_next: _buttonNextClassName,
         button_previous: _buttonPreviousClassName,

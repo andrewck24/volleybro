@@ -193,10 +193,7 @@ export type TimeoutEntry = { type: EntryType.TIMEOUT } & Timeout;
 export type ChallengeEntry = { type: EntryType.CHALLENGE } & Challenge;
 
 export type Entry =
-  | RallyEntry
-  | SubstitutionEntry
-  | TimeoutEntry
-  | ChallengeEntry;
+  RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
 
 export const createRallyEntry = (rally: Rally): RallyEntry => ({
   type: EntryType.RALLY,
