@@ -4,7 +4,7 @@
 
 This project uses Spectra for Spec-Driven Development(SDD). Specs live in `docs/specs/`, change proposals in `docs/changes/`.
 
-## Use `/spectra-*` skills when:
+## Use `/spectra-*` skills when
 
 - A discussion needs structure before coding → `/spectra-discuss`
 - User wants to plan, propose, or design a change → `/spectra-propose`
@@ -95,5 +95,9 @@ Components are organized by domain and purpose (features):
 - Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
 - In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
 - Parked changes: automatically unpark and continue — no need to ask for confirmation
+
+### Automated PR review
+
+A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. To skip it on low-review-value PRs (release PRs, changeset-only, mechanical dependency bumps), put `[skip review]` in the **PR title** — not a commit message. Because the marker lives in the title, every later push (`synchronize`) to that PR is skipped too. Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.
