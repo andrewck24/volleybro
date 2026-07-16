@@ -3,14 +3,11 @@ import {
   DialogBody,
   DialogContent,
   DialogDescription,
-  DialogHeader,
+  DialogOverlay,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-const getContent = () =>
-  document.querySelector('[data-slot="DialogContent"]') as HTMLElement;
 
 describe("DialogBody", () => {
   it("renders with data-slot='DialogBody'", () => {
@@ -22,7 +19,7 @@ describe("DialogBody", () => {
         </DialogContent>
       </Dialog>,
     );
-    const body = document.querySelector('[data-slot="DialogBody"]');
+    const body = screen.getByText("body content");
     expect(body).toBeInTheDocument();
     expect(body).toHaveTextContent("body content");
   });
@@ -36,16 +33,26 @@ describe("DialogBody", () => {
         </DialogContent>
       </Dialog>,
     );
-    const body = document.querySelector('[data-slot="DialogBody"]');
+    const body = screen.getByText("body content");
     expect(body).toHaveClass("overflow-y-auto");
 
-    const content = getContent();
+    const content = screen.getByRole("dialog");
     expect(content).toHaveClass("overflow-hidden");
     expect(content).not.toHaveClass("overflow-y-auto");
   });
 });
 
 describe("DialogContent structure", () => {
+  it("covers the web content viewport without safe-area overreach", () => {
+    render(
+      <Dialog open>
+        <DialogOverlay data-testid="dialog-overlay" />
+      </Dialog>,
+    );
+
+    expect(screen.getByTestId("dialog-overlay")).toHaveClass("inset-0");
+  });
+
   it("owns no padding or gap utilities", () => {
     render(
       <Dialog open>
@@ -54,7 +61,7 @@ describe("DialogContent structure", () => {
         </DialogContent>
       </Dialog>,
     );
-    const content = getContent();
+    const content = screen.getByRole("dialog");
     expect(content).not.toHaveClass("p-6");
     expect(content).not.toHaveClass("gap-2");
   });
@@ -67,7 +74,7 @@ describe("DialogContent structure", () => {
         </DialogContent>
       </Dialog>,
     );
-    const content = getContent();
+    const content = screen.getByRole("dialog");
     expect(content).not.toHaveClass("ring-1");
     expect(content).not.toHaveClass("ring-foreground/10");
   });

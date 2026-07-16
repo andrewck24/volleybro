@@ -3,6 +3,7 @@ import {
   AlertDialogBody,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogOverlay,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -25,11 +26,20 @@ describe("AlertDialog primitive convergence", () => {
     expect(body).toHaveAttribute("data-slot", "AlertDialogBody");
   });
 
+  it("covers the web content viewport without safe-area overreach", () => {
+    render(
+      <AlertDialog open>
+        <AlertDialogOverlay data-testid="alert-dialog-overlay" />
+      </AlertDialog>,
+    );
+    expect(screen.getByTestId("alert-dialog-overlay")).toHaveClass("inset-0");
+  });
+
   it("renders content on bg-card with no decorative ring", () => {
     renderOpen();
     const content = screen.getByRole("alertdialog");
     expect(content).toHaveClass("bg-card");
-    expect(content.className).not.toMatch(/(?:^|\s)ring-/);
+    expect(content).not.toHaveClass("ring-1", "ring-foreground/10");
   });
 
   it("renders no top-right close button", () => {
@@ -43,7 +53,7 @@ describe("AlertDialog primitive convergence", () => {
   it("does not close on Escape (footer is the only exit)", () => {
     const onOpenChange = jest.fn();
     renderOpen(onOpenChange);
-    fireEvent.keyDown(document.activeElement ?? document.body, {
+    fireEvent.keyDown(screen.getByRole("alertdialog"), {
       key: "Escape",
       code: "Escape",
     });

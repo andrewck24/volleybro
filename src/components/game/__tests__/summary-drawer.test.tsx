@@ -164,6 +164,13 @@ describe("SummaryDrawerCard handle / expansion", () => {
 });
 
 describe("SummaryDrawerCard backdrop overlay", () => {
+  it("covers the web content viewport without safe-area overreach", () => {
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    const overlay = screen.getByTestId("summary-drawer-overlay");
+    expect(overlay).toHaveClass("inset-0");
+  });
+
   it("idle: the backdrop is transparent and non-interactive (peek leaves the page usable)", () => {
     render(<SummaryDrawerCard {...baseProps} state="idle" />);
 
