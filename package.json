@@ -12,6 +12,8 @@
     "build": "next build && NO_UPDATE_NOTIFIER=1 serwist build",
     "start": "next start",
     "typecheck": "node node_modules/tsgo/bin/tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "test": "jest",
