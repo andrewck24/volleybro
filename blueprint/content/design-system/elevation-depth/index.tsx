@@ -122,7 +122,7 @@ export default function ElevationDepthPage() {
         <code>bg-card</code> — the scrim separates it from the page, and the
         Drawer peek stays continuous with the page&apos;s card surfaces. The
         interactive comparison that settled this lives in the{" "}
-        <a href="/changes/in-progress/elevation-depth-system/design">
+        <a href="/changes/archive/2026-07-16-elevation-depth-system/design">
           elevation-depth-system change&apos;s design page
         </a>
         .

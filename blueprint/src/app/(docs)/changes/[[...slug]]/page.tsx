@@ -18,10 +18,10 @@ interface DesignModule {
 }
 
 const designModules: Record<string, () => Promise<DesignModule>> = {
-  "in-progress/elevation-depth-system/design": () =>
-    import("../../../../../content/changes/in-progress/elevation-depth-system/design"),
   "discussing/sync-recording/design": () =>
     import("../../../../../content/changes/discussing/sync-recording/design"),
+  "archive/2026-07-16-elevation-depth-system/design": () =>
+    import("../../../../../content/changes/archive/2026-07-16-elevation-depth-system/design"),
   "archive/2026-07-12-entry-ui/design": () =>
     import("../../../../../content/changes/archive/2026-07-12-entry-ui/design"),
   "archive/2026-06-28-apple-splash-dynamic/design": () =>
