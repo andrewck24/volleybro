@@ -30,7 +30,7 @@
 - [x] 4.6 [P] `src/components/user/menu/dark-mode.tsx`: `DialogHeader` (title + `srOnly` description) + `DialogBody` holding the three `DialogClose` options. → verify: renders, no a11y warning.
 - [x] 4.7 [P] `src/components/team/lineup/panel/options/libero-replace.tsx`: `DialogHeader` + `DialogBody` (Form) + `DialogFooter` (submit). → verify: submit still works; no a11y warning.
 - [x] 4.8 [P] `src/components/team/lineup/panel/options/lineup-error.tsx`: `DialogHeader` (title + `srOnly` description) + `DialogBody` (message). → verify: renders, no a11y warning.
-- [x] 4.9 [P] `src/components/landing/cta-button.tsx`: migrate its Dialog surface (added after this change was drafted; named in the proposal impact recompute) to the three-section structure with `srOnly` description. → verify: renders, no a11y warning; existing cta-button test passes.
+- [x] 4.9 [P] `src/components/landing/cta-button.tsx`: migrate its Dialog surface (added after this change was drafted; named in the proposal impact recompute) to the three-section structure; its install-steps description stays visible (PR-review r1: hiding it was a UX regression, srOnly reverted). → verify: renders, no a11y warning; existing cta-button test passes.
 
 ## 5. Item-in-dialog contrast gate
 

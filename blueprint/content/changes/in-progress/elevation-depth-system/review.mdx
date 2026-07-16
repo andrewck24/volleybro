@@ -27,9 +27,19 @@ code review 判定 **ship-ready**，3 個非阻斷小項，均已當場修復。
 - **D5 ring 移除**：card/item/popover/select 裝飾 ring 全除、focus-visible 保留；dialog 內 Item 重獲 `shadow-sm`（suppression 已改僅限 Card 內）。
 - **D2 圖層順序**：light 95.6 < 97 < 98.45、dark 4.9 < 10 < 14.5，單調成立；tokens 內聯後無孤兒 import。
 
-## 殘留人工驗證項（需登入畫面）
+## 人工驗證項 — ✅ 已通過
 
-- 任務 5.1 / 9.3：team-switcher 的 `TeamList`、game/options 列表內 Item 的陰影識別度（light/dark 雙主題）。
-- 任務 11.1：各 overlay（Dialog / AlertDialog / Drawer）雙主題目視檢查。
+- 任務 5.1 / 9.3：team-switcher 的 `TeamList`、game/options 列表內 Item 的陰影識別度（light/dark 雙主題）— 通過。
+- 任務 11.1：各 overlay（Dialog / AlertDialog / Drawer）雙主題目視檢查 — 通過。
+- 追加發現並修復：landing header 在 light mode 仍用全白 `public/logo.svg` — 改用 adaptive `LogoType`，孤兒 SVG 已刪除。
 
-`pnpm type-check`、`pnpm build`（app + blueprint）均通過。
+`pnpm type-check`、`pnpm build`（app + blueprint）、748 tests 均通過。
+
+---
+
+## PR-review round 1（PR #318）
+
+| #   | Severity    | Finding                                                                                          | Resolution |
+| --- | ----------- | ------------------------------------------------------------------------------------------------ | ---------- |
+| R1  | Minor       | `DialogClose asChild` + async `onClick`（`form.handleSubmit` / `createGame`）：Radix 在 handler 返回後立即關閉，不等 promise — 驗證失敗或錯誤發生時 dialog 已關、無可見回饋。出現於 libero-replace（本 PR 引入的形態）與 game/new（pre-existing）。目前欄位皆為有效預設的 Select，實際觸發機率極低。 | 📋 已記錄為 Paca Bug #50（pattern 級修復：close 應在 promise resolve 後才觸發），不在本 PR 修。 |
+| R2  | Observation | cta-button 的 iOS 安裝說明句被 `srOnly` 隱藏 — 符合 task 4.9 字面，但對明眼使用者是可見的 UX 退化。 | ✅ 已修 — 移除 `srOnly`，說明句恢復可見；task 4.9 措辭同步更正。 |

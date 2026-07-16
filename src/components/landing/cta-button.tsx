@@ -150,7 +150,7 @@ const IOSInstallInstruction = () => {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>安裝此應用程式到主頁面</DialogTitle>
-        <DialogDescription srOnly>
+        <DialogDescription>
           透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
         </DialogDescription>
       </DialogHeader>
