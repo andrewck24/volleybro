@@ -52,24 +52,24 @@
 
 > Satisfies `overlay-layout` "No container carries a decorative ring" and `elevation-tokens` "Overlay-backed surfaces share the page layer"; implements D5 and D6's Drawer clause. Layer choice confirmed by the change design page's overlay lab (see design.md D6).
 
-- [ ] 8.1 In `src/components/ui/drawer.tsx`: remove any ring/border from `DrawerContent` (D5); the vaul snap-point peek behavior is unchanged. → verify: drawer peek and expanded states render without a ring.
-- [ ] 8.2 Confirm `DrawerContent` keeps `bg-card` (decided: all modal-class surfaces share the card layer — revised D1/D6); no background edit expected. Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface renders `--card` in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
+- [x] 8.1 In `src/components/ui/drawer.tsx`: remove any ring/border from `DrawerContent` (D5); the vaul snap-point peek behavior is unchanged. → verify: drawer peek and expanded states render without a ring.
+- [x] 8.2 Confirm `DrawerContent` keeps `bg-card` (decided: all modal-class surfaces share the card layer — revised D1/D6); no background edit expected. Re-check `src/components/game/summary-drawer.tsx` for any now-redundant surface/`sr-only` handling. → verify: drawer surface renders `--card` in both themes; `GameSkeleton` peek still mirrors it (`src/components/game/index.tsx`).
 
 ## 9. Container ring removal (D5: no container carries a ring)
 
 > Satisfies the `overlay-layout` requirement "No container carries a decorative ring"; implements the decided D5 (uniform no-ring across modal/popover/card containers; focus-visible rings untouched).
 
-- [ ] 9.1 [P] `src/components/ui/popover.tsx` and `src/components/ui/select.tsx`: remove the decorative ring/border from the content surface; keep `shadow-md` and `bg-popover`. Leave focus-visible ring utilities untouched. → verify: open popover/select separates from live content via background step + shadow only, in both themes.
-- [ ] 9.2 [P] `src/components/ui/card.tsx` and `src/components/ui/item.tsx`: remove the decorative ring/border; keep the background step and existing shadow treatment. → verify: cards/items on the page read as raised without a border edge; focus states unchanged.
+- [x] 9.1 [P] `src/components/ui/popover.tsx` and `src/components/ui/select.tsx`: remove the decorative ring/border from the content surface; keep `shadow-md` and `bg-popover`. Leave focus-visible ring utilities untouched. → verify: open popover/select separates from live content via background step + shadow only, in both themes.
+- [x] 9.2 [P] `src/components/ui/card.tsx` and `src/components/ui/item.tsx`: remove the decorative ring/border; keep the background step and existing shadow treatment. → verify: cards/items on the page read as raised without a border edge; focus states unchanged.
 - [ ] 9.3 Re-run the item-in-overlay contrast gate (section 5) after ring removal — with rings gone everywhere, shadow is the only compensation cue for card-on-same-color surfaces; adjust the globals.css shadow-suppression rule accordingly. → verify: card-class elements inside Dialog/Drawer are distinguishable via shadow in both themes.
 
 ## 10. design-system reference page (blueprint deliverable)
 
 > Satisfies D7. A complete Fumadocs section (index + per-topic pages), not a single page. Depth section doubles as the D6 Drawer-layer decision tool.
 
-- [ ] 10.1 Scaffold the `design-system` section pages in `blueprint/content/design-system/` and wire them into `blueprint/src/app/(docs)/design-system/[[...slug]]/page.tsx` (static module map + `generateStaticParams`): index overview + `brand`, `color`, `typography`, `spacing`, `radius`, `elevation-depth`, keeping the existing `components` page. → verify: each route renders under `/design-system/*`.
-- [ ] 10.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
-- [ ] 10.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
+- [x] 10.1 Scaffold the `design-system` section pages in `blueprint/content/design-system/` and wire them into `blueprint/src/app/(docs)/design-system/[[...slug]]/page.tsx` (static module map + `generateStaticParams`): index overview + `brand`, `color`, `typography`, `spacing`, `radius`, `elevation-depth`, keeping the existing `components` page. → verify: each route renders under `/design-system/*`.
+- [x] 10.2 Build the unblocked sections from the real VolleyBro tokens: brand assets (logo-symbol/logo-type on light/dark/teal grounds), color (incl. brand/feedback/chart tokens, documented not revalued), typography by application role with Tailwind classes + per-context fonts, spacing, radius. → verify: values match `src/styles/tokens.css`; renders in both themes.
+- [x] 10.3 Build the elevation & depth section: the three background layers and the overlay-replaces-ring rule, plus an overlay-variant comparison rendering `Dialog`/`AlertDialog`/`Drawer` with ring vs no-ring × `bg-background` vs `bg-card`, so the open Drawer-layer question (D6) can be decided from the rendered result. → verify: comparison renders all variants; the Drawer-layer call is recorded back into section 8 / design.md D6.
 
 - [ ] 10.4 Once the token values are finalized (sections 1 and 9 decided and applied), freeze them: copy `src/styles/tokens.css` into the blueprint as a local stylesheet and cut the blueprint's cross-app `@import` — frozen assets are copied, only live sources are shared (see design.md D7 token lifecycle). → verify: blueprint builds with no import reaching outside `blueprint/`; rendered token values identical to the app's.
 
