@@ -81,7 +81,8 @@
 }
 
 /* VolleyBro shared design tokens — app, landing, and blueprint all consume
-   src/styles/tokens.css so the docs render the real design system, not a
+   the app's globals.css token blocks so the docs render the real design
+   system, not a
    parallel palette. Blueprint-only tokens are derived from the shared set. */
 
 :root,

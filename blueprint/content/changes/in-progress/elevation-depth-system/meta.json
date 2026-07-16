@@ -1,4 +1,10 @@
 {
   "title": "elevation-depth-system",
-  "pages": ["index", "design"]
+  "pages": [
+    "index",
+    "proposal",
+    "design",
+    "specs",
+    "review"
+  ]
 }

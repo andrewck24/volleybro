@@ -188,7 +188,7 @@ export const LiberoReplaceDialog = () => {
       </DialogBody>
       <DialogFooter>
         <DialogClose asChild>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
+          <Button type="button" onClick={form.handleSubmit(onSubmit)}>
             確定
           </Button>
         </DialogClose>

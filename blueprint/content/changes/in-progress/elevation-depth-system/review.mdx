@@ -1,0 +1,35 @@
+---
+title: Review
+---
+
+# Post-apply self-review: elevation-depth-system
+
+雙軌驗證：fresh-context verifier（對照 specs/design 逐項驗證）＋ 獨立 code review（嚴格找缺陷）。
+Verifier 判定 **CONFIRMED**（748 tests 全綠、`tsc --noEmit` 乾淨、D1–D7 契約逐項成立、全 src 無遷移殘留）；
+code review 判定 **ship-ready**，3 個非阻斷小項，均已當場修復。
+
+---
+
+## Status summary
+
+| #   | Severity   | Finding                                                                       | File                            | Status                                                |
+| --- | ---------- | ----------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| 1   | Warning    | `AlertDialogContent` 無 `max-h`，`AlertDialogBody` 的捲動永遠不會觸發         | `ui/alert-dialog.tsx`           | ✅ 已修（補 `max-h-[85svh]`，對齊 Dialog）            |
+| 2   | Suggestion | libero-replace 遷移後 footer 按鈕 `type="submit"` 位於 form 外成為 inert 屬性 | `options/libero-replace.tsx`    | ✅ 已修（改 `type="button"`；`onClick` 提交路徑不變） |
+| 3   | Suggestion | blueprint globals.css 註解仍引用已刪除的 `src/styles/tokens.css`              | `blueprint/src/app/globals.css` | ✅ 已修（註解改指 globals.css token blocks）          |
+
+## Verified non-issues（review 檢查後排除）
+
+- **libero-replace Enter-to-submit**：表單內只有 Radix Select（Enter 開下拉、從未觸發原生 submit），click 路徑經 `onClick` 保留——無行為回歸。
+- **AlertDialog Esc 阻擋**：D6 刻意行為（明確選擇 dismiss），非鍵盤陷阱——Tab/按鈕聚焦正常、`onOpenChange` 保持接線。
+- **edit-dialog discard guard**：close / Esc / overlay click / expand 全部經由新內建控制群正確路由；`srOnly` 取代 `aria-describedby={undefined}` 是實質 a11y 改善。
+- **捲動容器**：所有 DialogContent 都有唯一有效捲動區（含 action-button→NewGameForm 的跨檔組合），無雙重捲動、無 overflow-hidden 裁切。
+- **D5 ring 移除**：card/item/popover/select 裝飾 ring 全除、focus-visible 保留；dialog 內 Item 重獲 `shadow-sm`（suppression 已改僅限 Card 內）。
+- **D2 圖層順序**：light 95.6 < 97 < 98.45、dark 4.9 < 10 < 14.5，單調成立；tokens 內聯後無孤兒 import。
+
+## 殘留人工驗證項（需登入畫面）
+
+- 任務 5.1 / 9.3：team-switcher 的 `TeamList`、game/options 列表內 Item 的陰影識別度（light/dark 雙主題）。
+- 任務 11.1：各 overlay（Dialog / AlertDialog / Drawer）雙主題目視檢查。
+
+`pnpm type-check`、`pnpm build`（app + blueprint）均通過。
