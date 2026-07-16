@@ -34,7 +34,7 @@
 
 ## 5. Item-in-dialog contrast gate
 
-- [ ] 5.1 With the `bg-card` modal surface (same color as the card-class elements inside it) and rings removed everywhere (D5), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
+- [x] 5.1 With the `bg-card` modal surface (same color as the card-class elements inside it) and rings removed everywhere (D5), visually inspect dialogs that render `Item` directly (not inside a Card) — `team-switcher` `TeamList`, lists in `game/options`. If items read as flat, remove the `[data-slot="DialogContent"] [data-slot="item"]` entry from the shadow-suppression rule in `src/app/globals.css` so they regain `shadow-sm`; otherwise leave it. → verify: items in dialogs are clearly raised above the dialog surface in both themes.
 
 ## 6. Docs and stories
 
@@ -62,7 +62,7 @@
 
 - [x] 9.1 [P] `src/components/ui/popover.tsx` and `src/components/ui/select.tsx`: remove the decorative ring/border from the content surface; keep `shadow-md` and `bg-popover`. Leave focus-visible ring utilities untouched. → verify: open popover/select separates from live content via background step + shadow only, in both themes.
 - [x] 9.2 [P] `src/components/ui/card.tsx` and `src/components/ui/item.tsx`: remove the decorative ring/border; keep the background step and existing shadow treatment. → verify: cards/items on the page read as raised without a border edge; focus states unchanged.
-- [ ] 9.3 Re-run the item-in-overlay contrast gate (section 5) after ring removal — with rings gone everywhere, shadow is the only compensation cue for card-on-same-color surfaces; adjust the globals.css shadow-suppression rule accordingly. → verify: card-class elements inside Dialog/Drawer are distinguishable via shadow in both themes.
+- [x] 9.3 Re-run the item-in-overlay contrast gate (section 5) after ring removal — with rings gone everywhere, shadow is the only compensation cue for card-on-same-color surfaces; adjust the globals.css shadow-suppression rule accordingly. → verify: card-class elements inside Dialog/Drawer are distinguishable via shadow in both themes.
 
 ## 10. design-system reference page (blueprint deliverable)
 
@@ -76,4 +76,4 @@
 
 ## 11. Final verification
 
-- [ ] 11.1 Run `pnpm type-check`, then `pnpm build`; open each migrated overlay (Dialog, AlertDialog, Drawer) in light and dark mode confirming three-layer separation, no decorative ring on any container (overlay surfaces, popover/select, cards/items), Card elevation, `top-3 right-3`/`size-8` controls on Dialog (absent on AlertDialog), AlertDialog still requiring an explicit choice, no a11y warning, and the edit-dialog discard guard. → verify: both commands pass; all checks above hold.
+- [x] 11.1 Run `pnpm type-check`, then `pnpm build`; open each migrated overlay (Dialog, AlertDialog, Drawer) in light and dark mode confirming three-layer separation, no decorative ring on any container (overlay surfaces, popover/select, cards/items), Card elevation, `top-3 right-3`/`size-8` controls on Dialog (absent on AlertDialog), AlertDialog still requiring an explicit choice, no a11y warning, and the edit-dialog discard guard. → verify: both commands pass; all checks above hold.

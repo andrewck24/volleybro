@@ -1,8 +1,8 @@
 "use client";
+import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export const Header = () => {
@@ -54,14 +54,9 @@ export const Header = () => {
           className="flex h-8 items-center justify-start gap-3 rounded-full bg-radial from-muted/40 via-muted/10 to-transparent pl-4 md:h-9"
           data-testid="logo-container"
         >
-          <Image
-            src="/logo.svg"
-            alt="VolleyBro"
-            width={100}
-            height={20}
-            priority={true}
+          <LogoType
             data-testid="logo-image"
-            className="md:h-[30px] md:w-[140px]"
+            className="h-5 w-auto md:h-[30px]"
           />
           <Badge variant="outline" data-testid="preview-badge">
             Preview
