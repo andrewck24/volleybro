@@ -3,12 +3,13 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  --background: hsl(330, 10%, 98.45%);
+:root,
+.light {
+  --background: hsl(230, 20%, 95.6%);
   --foreground: hsl(0, 0%, 0%);
   --card: hsl(330, 10%, 98.45%);
   --card-foreground: hsl(0, 0%, 0%);
-  --popover: hsl(330, 10%, 98.45%);
+  --popover: hsl(230, 14%, 97%);
   --popover-foreground: hsl(0, 0%, 0%);
   --primary: hsl(192, 77.46%, 27.84%);
   --primary-foreground: hsl(330, 10%, 96.08%);
@@ -37,11 +38,6 @@
   --chart-5: hsl(270, 40%, 55%);
 
   --radius: 0.5rem;
-
-  --safe-area-inset-top: env(safe-area-inset-top);
-  --safe-area-inset-right: env(safe-area-inset-right);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom);
-  --safe-area-inset-left: env(safe-area-inset-left);
 }
 
 .dark {
@@ -49,7 +45,7 @@
   --foreground: hsl(217.2, 10%, 96.08%);
   --card: hsl(217.2, 20.6%, 14.5%);
   --card-foreground: hsl(330, 10%, 96.08%);
-  --popover: hsl(217.2, 32.6%, 14.5%);
+  --popover: hsl(217.2, 28%, 10%);
   --popover-foreground: hsl(330, 10%, 96.08%);
   --primary: hsl(192, 77.46%, 27.84%);
   --primary-foreground: hsl(330, 10%, 96.08%);
@@ -76,6 +72,13 @@
   --chart-3: hsl(210, 60%, 55%);
   --chart-4: hsl(38, 85%, 60%);
   --chart-5: hsl(270, 45%, 65%);
+}
+
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-right: env(safe-area-inset-right);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  --safe-area-inset-left: env(safe-area-inset-left);
 }
 
 @theme inline {
@@ -147,12 +150,13 @@
     @apply box-border overscroll-x-none border-border outline-ring/50;
   }
   body {
-    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-accent text-foreground transition-colors select-none;
+    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-background text-foreground transition-colors select-none;
   }
 
-  /* Elevation: suppress Item shadow inside elevated containers (Level 2) */
-  [data-slot="Card"] [data-slot="item"],
-  [data-slot="DialogContent"] [data-slot="item"] {
+  /* Elevation: suppress Item shadow inside a Card (same-color nesting kept
+     flat until form item-ization); Items inside modal surfaces keep their
+     shadow — with rings removed (D5) it is their only elevation cue. */
+  [data-slot="Card"] [data-slot="item"] {
     box-shadow: none;
   }
 }

@@ -96,4 +96,4 @@ Components are organized by domain and purpose (features):
 - In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
 - Parked changes: automatically unpark and continue — no need to ask for confirmation
 
-See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, and [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies.
+See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.

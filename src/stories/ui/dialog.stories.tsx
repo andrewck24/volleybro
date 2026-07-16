@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -29,9 +30,11 @@ export const Default: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Title</DialogTitle>
-          <DialogDescription>This is a description text</DialogDescription>
+          <DialogDescription srOnly>
+            This is a visually hidden description for screen readers
+          </DialogDescription>
         </DialogHeader>
-        <div className="py-4">This is the main content area of the dialog</div>
+        <DialogBody>This is the main content area of the dialog</DialogBody>
         <DialogFooter>
           <Button variant="secondary">Cancel</Button>
           <Button>Confirm</Button>
@@ -54,7 +57,7 @@ export const Large: Story = {
             This is an example of a full-screen dialog
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">More content can be placed here</div>
+        <DialogBody>More content can be placed here</DialogBody>
         <DialogFooter>
           <Button variant="secondary">Cancel</Button>
           <Button>Confirm</Button>
@@ -77,7 +80,7 @@ export const LongContent: Story = {
             Please review the following terms
           </DialogDescription>
         </DialogHeader>
-        <div className="max-h-75 overflow-y-auto py-4 text-sm leading-relaxed">
+        <DialogBody className="text-sm leading-relaxed">
           {Array.from({ length: 10 }, (_, i) => (
             <p key={i} className="mb-4">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
@@ -86,7 +89,7 @@ export const LongContent: Story = {
               nisi ut aliquip ex ea commodo consequat.
             </p>
           ))}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <Button variant="secondary">Decline</Button>
           <Button>Accept</Button>

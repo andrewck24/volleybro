@@ -227,10 +227,8 @@ describe("Header Component", () => {
 
       const logo = screen.getByTestId("logo-image");
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "/logo.svg");
-      expect(logo).toHaveAttribute("alt", "VolleyBro");
-      expect(logo).toHaveAttribute("width", "100");
-      expect(logo).toHaveAttribute("height", "20");
+      expect(logo).toHaveAttribute("role", "img");
+      expect(logo).toHaveAttribute("aria-label", "VolleyBro");
     });
 
     it("should render CTA button", () => {
@@ -248,9 +246,9 @@ describe("Header Component", () => {
       const header = screen.getByRole("banner");
       expect(header).toBeInTheDocument();
 
-      // Logo should have alt text
+      // Logo should have an accessible name
       const logo = screen.getByTestId("logo-image");
-      expect(logo).toHaveAttribute("alt", "VolleyBro");
+      expect(logo).toHaveAttribute("aria-label", "VolleyBro");
     });
   });
 
@@ -355,10 +353,8 @@ describe("Header Component", () => {
 
       const logo = screen.getByTestId("logo-image");
 
-      // Mobile-first sizing
-      expect(logo).toHaveAttribute("width", "100");
-      expect(logo).toHaveAttribute("height", "20");
-      expect(logo).toHaveClass("md:w-[140px]", "md:h-[30px]");
+      // Mobile-first sizing: h-5 baseline, scaled up at md
+      expect(logo).toHaveClass("h-5", "md:h-[30px]");
     });
 
     // AC6.4: Maximized CTA button height for mobile

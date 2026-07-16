@@ -9,7 +9,7 @@ const Card = ({
   <div
     data-slot="Card"
     className={cn(
-      "flex flex-col gap-2 rounded-lg bg-card px-4 py-2 text-card-foreground shadow-sm ring-1 ring-foreground/10",
+      "flex flex-col gap-2 rounded-lg bg-card px-4 py-2 text-card-foreground shadow-sm",
       className,
     )}
     {...props}

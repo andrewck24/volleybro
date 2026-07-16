@@ -115,7 +115,7 @@ describe("EditDialogContainer", () => {
     expect(suppressLeaveWarning).toHaveBeenCalledTimes(1);
   });
 
-  it("does not have aria-describedby on dialog content", () => {
+  it("links dialog to an srOnly description (no Radix Missing Description warning)", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
@@ -126,9 +126,14 @@ describe("EditDialogContainer", () => {
         <div>form</div>
       </EditDialogContainer>,
     );
-    // aria-describedby={undefined} prevents Radix from injecting a generated describedby id
+    // The srOnly DialogDescription supplies the accessible description Radix
+    // requires, so aria-describedby points at it instead of being suppressed.
     const dialog = screen.getByRole("dialog");
-    expect(dialog).not.toHaveAttribute("aria-describedby");
+    const describedById = dialog.getAttribute("aria-describedby");
+    expect(describedById).toBeTruthy();
+    expect(document.getElementById(describedById!)).toHaveTextContent(
+      "編輯球隊",
+    );
   });
 
   it("wraps children in overflow-y-auto scroll container", () => {
