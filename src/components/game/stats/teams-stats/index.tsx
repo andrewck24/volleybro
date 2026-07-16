@@ -59,8 +59,7 @@ const sumTeamStats = (statsArr: TeamStatsView[]): TeamStatsView => {
       const av = acc[key] as StatValue | undefined;
       if (typeof sv === "object") {
         const avObj = (av as
-          | { success: number; error: number }
-          | undefined) ?? {
+          { success: number; error: number } | undefined) ?? {
           success: 0,
           error: 0,
         };
