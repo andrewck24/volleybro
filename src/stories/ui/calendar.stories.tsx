@@ -1,7 +1,7 @@
 import { Calendar } from "@/components/ui/calendar";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { useState } from "react";
-import { type DateRange } from "react-day-picker";
+import { type DateRange } from "@daypicker/react";
 
 const meta = {
   title: "Design System/Atoms/Calendar",
