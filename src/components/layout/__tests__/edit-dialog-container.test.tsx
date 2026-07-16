@@ -87,7 +87,7 @@ describe("EditDialogContainer", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
-        fullPageHref="/team/123/edit"
+        fullPageHref="#full-page"
         isDirty={false}
         clearDraft={clearDraft}
       >
@@ -103,7 +103,7 @@ describe("EditDialogContainer", () => {
     render(
       <EditDialogContainer
         title="編輯球隊"
-        fullPageHref="/team/123/edit"
+        fullPageHref="#full-page"
         isDirty={true}
         clearDraft={clearDraft}
       >
@@ -126,14 +126,8 @@ describe("EditDialogContainer", () => {
         <div>form</div>
       </EditDialogContainer>,
     );
-    // The srOnly DialogDescription supplies the accessible description Radix
-    // requires, so aria-describedby points at it instead of being suppressed.
     const dialog = screen.getByRole("dialog");
-    const describedById = dialog.getAttribute("aria-describedby");
-    expect(describedById).toBeTruthy();
-    expect(document.getElementById(describedById!)).toHaveTextContent(
-      "編輯球隊",
-    );
+    expect(dialog).toHaveAccessibleDescription("編輯球隊表單");
   });
 
   it("wraps children in overflow-y-auto scroll container", () => {
