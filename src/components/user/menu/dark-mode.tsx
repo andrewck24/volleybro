@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -33,11 +34,9 @@ export const DarkMode = () => {
       <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>深色模式</DialogTitle>
-          <DialogDescription className="sr-only">
-            選擇深色模式
-          </DialogDescription>
+          <DialogDescription srOnly>選擇深色模式</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-2">
+        <DialogBody>
           <DialogClose asChild>
             <Button
               variant={theme === "system" ? "default" : "secondary"}
@@ -65,7 +64,7 @@ export const DarkMode = () => {
               深色
             </Button>
           </DialogClose>
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

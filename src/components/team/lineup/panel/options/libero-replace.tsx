@@ -3,9 +3,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -133,52 +135,64 @@ export const LiberoReplaceDialog = () => {
         <DialogTitle>自由球員替換模式</DialogTitle>
         <DialogDescription>選擇自由球員替換模式與替換對象。</DialogDescription>
       </DialogHeader>
-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
-        <FormField
-          control={form.control}
-          name="mode"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>替換模式</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇替換模式" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="0">手動替換</SelectItem>
-                  <SelectItem value="1">自動替換</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="position"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>替換對象</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇替換對象" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="MB">MB</SelectItem>
-                  <SelectItem value="OH">OH</SelectItem>
-                  <SelectItem value="OP">OP</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
+      <DialogBody>
+        <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+          <FormField
+            control={form.control}
+            name="mode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>替換模式</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇替換模式" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="0">手動替換</SelectItem>
+                    <SelectItem value="1">自動替換</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="position"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>替換對象</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇替換對象" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="MB">MB</SelectItem>
+                    <SelectItem value="OH">OH</SelectItem>
+                    <SelectItem value="OP">OP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+        </Form>
+      </DialogBody>
+      <DialogFooter>
         <DialogClose asChild>
-          <Button type="submit">確定</Button>
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
+            確定
+          </Button>
         </DialogClose>
-      </Form>
+      </DialogFooter>
     </DialogContent>
   );
 };
