@@ -30,6 +30,7 @@
 - [ ] 4.6 [P] `src/components/user/menu/dark-mode.tsx`: `DialogHeader` (title + `srOnly` description) + `DialogBody` holding the three `DialogClose` options. → verify: renders, no a11y warning.
 - [ ] 4.7 [P] `src/components/team/lineup/panel/options/libero-replace.tsx`: `DialogHeader` + `DialogBody` (Form) + `DialogFooter` (submit). → verify: submit still works; no a11y warning.
 - [ ] 4.8 [P] `src/components/team/lineup/panel/options/lineup-error.tsx`: `DialogHeader` (title + `srOnly` description) + `DialogBody` (message). → verify: renders, no a11y warning.
+- [ ] 4.9 [P] `src/components/landing/cta-button.tsx`: migrate its Dialog surface (added after this change was drafted; named in the proposal impact recompute) to the three-section structure with `srOnly` description. → verify: renders, no a11y warning; existing cta-button test passes.
 
 ## 5. Item-in-dialog contrast gate
 
@@ -45,7 +46,7 @@
 
 > Satisfies the `overlay-layout` requirements "Shared three-section overlay structure", "No container carries a decorative ring", "AlertDialog preserves dismiss semantics", and "Accessible description without warnings"; implements D5 (overlay replaces ring) and D6 (AlertDialog converges structurally but keeps explicit-choice dismissal).
 
-- [ ] 7.1 In `src/components/ui/alert-dialog.tsx`: drop any ring/border from `AlertDialogContent` (D5); migrate its surface from `bg-background` to `bg-card` (revised D1); add `AlertDialogBody` (same `flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4` as `DialogBody`) and export it; set header/footer padding to match Dialog. Do NOT add a close/expand control group and do NOT enable outside-click/Esc dismiss — keep the explicit Cancel/Action footer as the only exit. Add `srOnly?` to `AlertDialogTitle`/`AlertDialogDescription`. → verify: alert has no ring, no top-right close, still ignores outside-click/Esc; three sections own their padding.
+- [x] 7.1 In `src/components/ui/alert-dialog.tsx`: drop any ring/border from `AlertDialogContent` (D5); migrate its surface from `bg-background` to `bg-card` (revised D1); add `AlertDialogBody` (same `flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-4 pb-4` as `DialogBody`) and export it; set header/footer padding to match Dialog. Do NOT add a close/expand control group and do NOT enable outside-click/Esc dismiss — keep the explicit Cancel/Action footer as the only exit. Add `srOnly?` to `AlertDialogTitle`/`AlertDialogDescription`. → verify: alert has no ring, no top-right close, still ignores outside-click/Esc; three sections own their padding.
 - [ ] 7.2 [P] Migrate `src/components/team/players/membership-section.tsx` and `src/components/team/info/index.tsx` to the three-section shell (`AlertDialogHeader`/`AlertDialogBody`/`AlertDialogFooter`), adding `srOnly` descriptions where none is visible. → verify: both render; nested Card in team/info still pops; no a11y warning; dismissal still requires an explicit button.
 
 ## 8. Drawer convergence
