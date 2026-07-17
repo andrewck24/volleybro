@@ -48,8 +48,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(node -p "require('./package.json').version")
-          pr=$(gh pr create --base dev --head main \
+          if pr=$(gh pr create --base dev --head main \
             --title "chore: sync v${version} release back to dev [skip review]" \
-            --body "Automated sync of the v${version} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev.")
-          gh pr merge --merge "$pr" \
-            || echo "::warning::Could not auto-merge the sync PR (likely a conflict); merge it manually: $pr"
+            --body "Automated sync of the v${version} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev." 2>&1); then
+            gh pr merge --merge "$pr" \
+              || echo "::warning::Could not auto-merge the sync PR (conflict or merge restriction); merge it manually: $pr"
+          else
+            echo "::warning::Could not open the sync PR (possibly already open, or nothing to sync): $pr"
+          fi
