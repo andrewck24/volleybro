@@ -99,6 +99,11 @@ Components are organized by domain and purpose (features):
 
 ### Automated PR review
 
-A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. To skip it on low-review-value PRs (release PRs, changeset-only, mechanical dependency bumps), put `[skip review]` in the **PR title** — not a commit message. Because the marker lives in the title, every later push (`synchronize`) to that PR is skipped too. Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`.
+A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. Two skip granularities:
+
+- **Whole PR**: put `[skip review]` in the **PR title** (release PRs, changeset-only, mechanical dependency bumps) — every later push (`synchronize`) to that PR is skipped too.
+- **Single push**: put `[skip review]` in the **head commit message** to skip review for that push only — use it for low-value follow-ups (doc fixes, PR-body-driven tweaks) on an already-reviewed PR. Later pushes without the marker get reviewed normally.
+
+Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`. Native `[skip ci]` also works but skips ALL workflows including the Verify gate — prefer `[skip review]`.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.
