@@ -24,6 +24,7 @@
     "build-storybook": "storybook build",
     "chromatic": "npx chromatic",
     "release:version": "changeset version && node .changeset/changelog-postprocess.cjs",
+    "release:publish": "changeset tag",
     "blueprint": "node scripts/blueprint.mjs"
   },
   "dependencies": {

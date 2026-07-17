@@ -27,11 +27,32 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - uses: changesets/action@v1
+        id: changesets
         with:
           version: pnpm run release:version
+          # changeset tag creates vX.Y.Z for the current version; the action
+          # pushes the tag and creates the GitHub Release from CHANGELOG.md.
+          # Runs only when no changesets are pending (i.e. after the version
+          # PR merges) and skips tags that already exist, so it is idempotent.
+          publish: pnpm run release:publish
           commit: "release: update versions"
           # [skip review] keeps the auto-opened release PR out of claude-code-review
           title: "release: update versions [skip review]"
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync release back to dev
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if pr=$(gh pr create --base dev --head main \
+            --title "chore: sync v${version} release back to dev [skip review]" \
+            --body "Automated sync of the v${version} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev." 2>&1); then
+            gh pr merge --merge "$pr" \
+              || echo "::warning::Could not auto-merge the sync PR (conflict or merge restriction); merge it manually: $pr"
+          else
+            echo "::warning::Could not open the sync PR (possibly already open, or nothing to sync): $pr"
+          fi
