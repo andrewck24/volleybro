@@ -20,7 +20,6 @@ The application SHALL generate its service worker from src/app/sw.ts during next
 - **WHEN** the dev server is started with next dev only
 - **THEN** requesting /serwist/sw.js returns a compiled service worker, and editing src/app/sw.ts is reflected on the next request without restarting any process
 
-
 <!-- @trace
 source: serwist-turbopack
 updated: 2026-07-18
@@ -116,6 +115,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Root-scope registration from the new worker URL
 
 The client SHALL register the service worker from /serwist/sw.js with scope "/", relying on the served Service-Worker-Allowed header to widen the scope beyond the worker's path.
@@ -130,7 +130,6 @@ The client SHALL register the service worker from /serwist/sw.js with scope "/",
 - **WHEN** a client still controlled by the worker previously registered at /sw.js loads the app while online
 - **THEN** the page registers /serwist/sw.js and the new worker replaces the old registration through the standard update flow, with no user action required
 
-
 <!-- @trace
 source: serwist-turbopack
 updated: 2026-07-18
@@ -226,6 +225,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Install-time precache covers static assets only
 
 The service worker SHALL precache the build's static assets (build chunks and public assets) at install time, and SHALL rely on runtime caching for navigation documents.
@@ -240,7 +240,6 @@ The service worker SHALL precache the build's static assets (build chunks and pu
 - **WHEN** a page is visited while online after the worker controls the client
 - **THEN** its navigation document enters the runtime PAGES cache and the page shell is reachable offline afterwards, while a never-visited page remains unavailable offline
 
-
 <!-- @trace
 source: serwist-turbopack
 updated: 2026-07-18
@@ -336,6 +335,7 @@ tests:
 -->
 
 ---
+
 ### Requirement: Runtime caching semantics preserved across the integration swap
 
 The worker SHALL apply the same runtime caching strategy table as before the migration (Serwist defaultCache) including the auth-route exclusion.
