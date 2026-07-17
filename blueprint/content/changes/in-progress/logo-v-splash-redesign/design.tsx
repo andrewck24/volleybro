@@ -255,7 +255,8 @@ export default function Design() {
       <h2 id="weight-explorer">Weight explorer</h2>
       <p>
         Every mockup below renders the selected weight. Aspect ratio (w/h) of
-        the bare glyph: {WEIGHT_KEYS.map((w) => `${w} → ${WEIGHTS[w].aspect}`).join(", ")}.
+        the bare glyph:{" "}
+        {WEIGHT_KEYS.map((w) => `${w} → ${WEIGHTS[w].aspect}`).join(", ")}.
       </p>
       <div className="my-4 flex flex-wrap gap-2">
         {WEIGHT_KEYS.map((w) => (
@@ -323,15 +324,23 @@ export default function Design() {
 
       <h2 id="splash-mockups">Splash mockups</h2>
       <p>
-        iOS renders the generated launch screen (mark at 25% of the shorter
-        device dimension). Android composes its splash from the manifest:{" "}
-        <code>background_color</code> teal field plus the centered maskable icon
-        whose own field is the same teal — the visible result is the same bare
-        V, with the app name near the bottom.
+        iOS renders the generated launch screen: the mark centered at 25% of the
+        shorter device dimension, plus the full wordmark (logo-type) centered
+        near the bottom — the route draws the PNG itself, so the wordmark is the
+        real logo geometry. Android composes its splash from the manifest:{" "}
+        <code>background_color</code> teal field, the centered maskable icon
+        (same teal field → bare V), and the app name text drawn by Chrome — that
+        text is not stylable, so Android approximates the iOS layout rather than
+        embedding logo-type.
       </p>
       <div className="my-4 flex flex-wrap gap-6">
         <PhoneFrame label="iOS — apple-splash route">
           <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
+          <NewType
+            data={data}
+            neutral={IVORY}
+            className="absolute bottom-4 w-[40%]"
+          />
         </PhoneFrame>
         <PhoneFrame label="Android — manifest splash">
           <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
