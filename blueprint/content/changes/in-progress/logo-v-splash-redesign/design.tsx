@@ -1,16 +1,97 @@
 "use client";
 
-// New mark geometry — Saira Stencil One lowercase `v`, scaled to cap height.
-// Path data extracted with opentype.js at font-unit scale; the same constants
-// will land in src/components/brand as the single source of truth.
-const SYM_VIEWBOX = "-10 -30.5 571 571";
-const SYM_LEFT = "M159 510L10 0L199 0L336 510L159 510Z";
-const SYM_RIGHT = "M380 510L307 240L359 0L541 0L392 510L380 510Z";
+import { useState } from "react";
 
-const TYPE_VIEWBOX = "0 0 547 115";
-const TYPE_LEFT = "M25.74 90L1.62 7.44L32.21 7.44L54.39 90L25.74 90Z";
-const TYPE_RIGHT =
-  "M61.52 90L49.7 46.29L58.12 7.44L87.58 7.44L63.46 90L61.52 90Z";
+// New mark geometry — Saira Stencil (variable family, wdth 100) lowercase `v`,
+// scaled to cap height, extracted per weight via fonttools varLib.instancer +
+// opentype.js. The chosen weight's constants land in src/components/brand as
+// the single source of truth.
+type WeightData = {
+  aspect: number;
+  symViewBox: string;
+  symL: string;
+  symR: string;
+  typeL: string;
+  typeR: string;
+  lettersShift: number;
+  typeW: number;
+};
+
+const WEIGHTS: Record<number, WeightData> = {
+  300: {
+    aspect: 0.91,
+    symViewBox: "10 2.5 505 505",
+    symL: "M285 510L227 510L30 0L95 0L285 510",
+    symR: "M495 0L313 474L285 391L432 0L495 0",
+    typeL: "M46.14 90L36.75 90L4.86 7.44L15.38 7.44L46.14 90",
+    typeR: "M80.13 7.44L50.67 84.17L46.14 70.74L69.93 7.44L80.13 7.44",
+    lettersShift: -0.21,
+    typeW: 539.43,
+  },
+  400: {
+    aspect: 0.93,
+    symViewBox: "7 -3 516 516",
+    symL: "M291 510L214 510L27 0L112 0L291 510",
+    symR: "M503 0L324 486L287 371L419 0L503 0",
+    typeL: "M47.11 90L34.64 90L4.37 7.44L18.13 7.44L47.11 90",
+    typeR: "M81.43 7.44L52.45 86.11L46.46 67.5L67.83 7.44L81.43 7.44",
+    lettersShift: 1.09,
+    typeW: 540.73,
+  },
+  500: {
+    aspect: 0.96,
+    symViewBox: "2 -10 530 530",
+    symL: "M298 510L199 510L22 0L133 0L298 510",
+    symR: "M512 0L338 502L290 347L403 0L512 0",
+    typeL: "M48.24 90L32.21 90L3.56 7.44L21.53 7.44L48.24 90",
+    typeR: "M82.88 7.44L54.72 88.7L46.95 63.61L65.24 7.44L82.88 7.44",
+    lettersShift: 2.54,
+    typeW: 542.18,
+  },
+  600: {
+    aspect: 0.99,
+    symViewBox: "-2 -17.5 545 545",
+    symL: "M313 510L188 510L18 0L155 0L313 510",
+    symR: "M523 0L353 503L293 310L389 0L523 0",
+    typeL: "M50.67 90L30.43 90L2.91 7.44L25.09 7.44L50.67 90",
+    typeR: "M84.66 7.44L57.14 88.87L47.43 57.62L62.97 7.44L84.66 7.44",
+    lettersShift: 4.32,
+    typeW: 543.96,
+  },
+  700: {
+    aspect: 1.03,
+    symViewBox: "-7 -27 564 564",
+    symL: "M340 510L184 510L13 0L177 0L340 510",
+    symR: "M537 0L372 488L298 258L377 0L537 0",
+    typeL: "M55.04 90L29.79 90L2.1 7.44L28.65 7.44L55.04 90",
+    typeR: "M86.93 7.44L60.22 86.44L48.24 49.21L61.03 7.44L86.93 7.44",
+    lettersShift: 6.59,
+    typeW: 546.23,
+  },
+  800: {
+    aspect: 1.06,
+    symViewBox: "-11 -35.5 581 581",
+    symL: "M366 510L180 510L9 0L199 0L366 510",
+    symR: "M550 0L391 472L303 206L365 0L550 0",
+    typeL: "M59.25 90L29.14 90L1.46 7.44L32.21 7.44L59.25 90",
+    typeR: "M89.04 7.44L63.3 83.85L49.05 40.79L59.09 7.44L89.04 7.44",
+    lettersShift: 8.7,
+    typeW: 548.34,
+  },
+  900: {
+    aspect: 1.09,
+    symViewBox: "-15 -43.5 597 597",
+    symL: "M389 510L176 510L5 0L219 0L389 510",
+    symR: "M562 0L407 459L307 161L354 0L562 0",
+    typeL: "M62.97 90L28.49 90L0.81 7.44L35.45 7.44L62.97 90",
+    typeR: "M90.98 7.44L65.89 81.74L49.7 33.5L57.31 7.44L90.98 7.44",
+    lettersShift: 10.64,
+    typeW: 550.28,
+  },
+};
+
+const WEIGHT_KEYS = [300, 400, 500, 600, 700, 800, 900];
+const DEFAULT_WEIGHT = 700;
 
 // Previous mark — Saira Stencil One uppercase `V` (for comparison only)
 const OLD_SYM_VIEWBOX = "-10 225 360 360";
@@ -19,7 +100,7 @@ const OLD_SYM_LEFT =
 const OLD_SYM_RIGHT =
   "M225.28 581.12L182.78 424.96L234.50 228.86L336.90 228.86L284.67 405.50L265.73 470.02Q256.51 499.71 248.83 526.34L248.83 526.34Q243.71 545.79 237.06 566.27L237.06 566.27L232.45 581.12L225.28 581.12Z";
 
-// `olleyBro` letter paths — unchanged from the current wordmark, translated +7.24
+// `olleyBro` letter paths — unchanged from the current wordmark
 const LETTERS = [
   "M115.01 90.9601C109.89 90.9601 105.61 90.6401 102.17 90.0001C98.8101 89.3601 96.1301 88.3601 94.1301 87.0001C92.2101 85.5601 90.7701 83.6401 89.8101 81.2401C88.9301 78.8401 88.3301 75.8401 88.0101 72.2401C87.7701 68.6401 87.6501 64.3201 87.6501 59.2801C87.6501 54.3201 87.7701 50.0401 88.0101 46.4401C88.3301 42.8401 88.9301 39.8401 89.8101 37.4401C90.7701 35.0401 92.2101 33.1601 94.1301 31.8001C96.1301 30.3601 98.8101 29.3601 102.17 28.8001C105.61 28.1601 109.89 27.8401 115.01 27.8401C120.21 27.8401 124.49 28.1601 127.85 28.8001C131.29 29.3601 133.97 30.3601 135.89 31.8001C137.89 33.1601 139.33 35.0401 140.21 37.4401C141.17 39.8401 141.77 42.8401 142.01 46.4401C142.33 50.0401 142.49 54.3201 142.49 59.2801C142.49 64.3201 142.33 68.6401 142.01 72.2401C141.77 75.8401 141.17 78.8401 140.21 81.2401C139.33 83.6401 137.89 85.5601 135.89 87.0001C133.97 88.3601 131.29 89.3601 127.85 90.0001C124.49 90.6401 120.21 90.9601 115.01 90.9601ZM115.01 80.2801C118.69 80.2801 121.53 80.0401 123.53 79.5601C125.53 79.0801 126.93 78.1201 127.73 76.6801C128.61 75.2401 129.13 73.1201 129.29 70.3201C129.53 67.5201 129.65 63.8401 129.65 59.2801C129.65 54.7201 129.53 51.0801 129.29 48.3601C129.13 45.5601 128.61 43.4401 127.73 42.0001C126.93 40.5601 125.53 39.6401 123.53 39.2401C121.53 38.7601 118.69 38.5201 115.01 38.5201C111.41 38.5201 108.61 38.7601 106.61 39.2401C104.61 39.6401 103.17 40.5601 102.29 42.0001C101.49 43.4401 100.97 45.5601 100.73 48.3601C100.57 51.0801 100.49 54.7201 100.49 59.2801C100.49 63.8401 100.57 67.5201 100.73 70.3201C100.97 73.1201 101.49 75.2401 102.29 76.6801C103.17 78.1201 104.61 79.0801 106.61 79.5601C108.61 80.0401 111.41 80.2801 115.01 80.2801Z",
   "M159.074 90.0001V0.840088H171.794V90.0001H159.074Z",
@@ -36,32 +117,36 @@ const IVORY = "#F6F4F5";
 const TEAL = "#10687E";
 
 function NewSymbol({
+  data,
   neutral,
   className,
 }: {
+  data: WeightData;
   neutral: string;
   className?: string;
 }) {
   return (
-    <svg viewBox={SYM_VIEWBOX} className={className}>
-      <path d={SYM_LEFT} fill={neutral} />
-      <path d={SYM_RIGHT} fill={CORAL} />
+    <svg viewBox={data.symViewBox} className={className}>
+      <path d={data.symL} fill={neutral} />
+      <path d={data.symR} fill={CORAL} />
     </svg>
   );
 }
 
 function NewType({
+  data,
   neutral,
   className,
 }: {
+  data: WeightData;
   neutral: string;
   className?: string;
 }) {
   return (
-    <svg viewBox={TYPE_VIEWBOX} className={className}>
-      <path d={TYPE_LEFT} fill={neutral} />
-      <path d={TYPE_RIGHT} fill={CORAL} />
-      <g transform="translate(7.24 0)" fill={neutral}>
+    <svg viewBox={`0 0 ${data.typeW} 115`} className={className}>
+      <path d={data.typeL} fill={neutral} />
+      <path d={data.typeR} fill={CORAL} />
+      <g transform={`translate(${data.lettersShift} 0)`} fill={neutral}>
         {LETTERS.map((d) => (
           <path key={d.slice(0, 24)} d={d} />
         ))}
@@ -144,6 +229,7 @@ function PhoneFrame({
 }
 
 export const toc = [
+  { title: "Weight explorer", url: "#weight-explorer", depth: 2 },
   { title: "Old vs New", url: "#old-vs-new", depth: 2 },
   { title: "Logo-symbol variants", url: "#symbol-variants", depth: 2 },
   { title: "Logo-type variants", url: "#type-variants", depth: 2 },
@@ -152,16 +238,41 @@ export const toc = [
 ];
 
 export default function Design() {
+  const [weight, setWeight] = useState(DEFAULT_WEIGHT);
+  const data = WEIGHTS[weight];
   return (
     <div>
       <p>
         The V mark moves from the Saira Stencil One <strong>uppercase</strong>{" "}
-        <code>V</code> to the <strong>lowercase</strong> <code>v</code>, scaled
-        up to cap height. The lowercase glyph is nearly square (aspect 1.04 w/h
-        vs 0.95), keeps the identical two-arm stencil anatomy, and gives the
-        standalone symbol a balanced footprint in icons and splash screens. Full
-        rationale in the change&apos;s design.md.
+        <code>V</code> (single-weight family) to the <strong>lowercase</strong>{" "}
+        <code>v</code> of the variable <strong>Saira Stencil</strong> family,
+        scaled up to cap height. The lowercase glyph is nearly square at the
+        heavier weights, keeps the identical two-arm stencil anatomy, and gives
+        the standalone symbol a balanced footprint in icons and splash screens.
+        Full rationale in the change&apos;s design.md.
       </p>
+
+      <h2 id="weight-explorer">Weight explorer</h2>
+      <p>
+        Every mockup below renders the selected weight. Aspect ratio (w/h) of
+        the bare glyph: {WEIGHT_KEYS.map((w) => `${w} → ${WEIGHTS[w].aspect}`).join(", ")}.
+      </p>
+      <div className="my-4 flex flex-wrap gap-2">
+        {WEIGHT_KEYS.map((w) => (
+          <button
+            key={w}
+            type="button"
+            onClick={() => setWeight(w)}
+            className={`rounded-md border px-3 py-1.5 font-mono text-sm ${
+              w === weight
+                ? "border-[#10687E] bg-[#10687E] text-white"
+                : "border-border bg-transparent text-muted-foreground hover:border-[#10687E]"
+            }`}
+          >
+            {w}
+          </button>
+        ))}
+      </div>
 
       <h2 id="old-vs-new">Old vs New</h2>
       <div className="my-4 flex flex-wrap items-end gap-8">
@@ -184,10 +295,10 @@ export default function Design() {
             className="flex size-36 items-center justify-center rounded-xl"
             style={{ backgroundColor: TEAL }}
           >
-            <NewSymbol neutral={IVORY} className="h-24" />
+            <NewSymbol data={data} neutral={IVORY} className="h-24" />
           </div>
           <div className="mt-1.5 text-[11px] text-[#9aa0ad]">
-            new — lowercase v at cap height (1.04)
+            new — lowercase v @{weight} ({data.aspect})
           </div>
         </div>
       </div>
@@ -196,7 +307,7 @@ export default function Design() {
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
         {GROUNDS.map((g) => (
           <Tile key={`symbol-${g.label}`} ground={g}>
-            <NewSymbol neutral={g.neutral} className="h-16" />
+            <NewSymbol data={data} neutral={g.neutral} className="h-16" />
           </Tile>
         ))}
       </div>
@@ -205,7 +316,7 @@ export default function Design() {
       <div className="my-4 grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         {GROUNDS.map((g) => (
           <Tile key={`type-${g.label}`} ground={g}>
-            <NewType neutral={g.neutral} className="h-10 w-auto" />
+            <NewType data={data} neutral={g.neutral} className="h-10 w-auto" />
           </Tile>
         ))}
       </div>
@@ -220,10 +331,10 @@ export default function Design() {
       </p>
       <div className="my-4 flex flex-wrap gap-6">
         <PhoneFrame label="iOS — apple-splash route">
-          <NewSymbol neutral={IVORY} className="w-[25%]" />
+          <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
         </PhoneFrame>
         <PhoneFrame label="Android — manifest splash">
-          <NewSymbol neutral={IVORY} className="w-[25%]" />
+          <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
           <span
             className="absolute bottom-4 text-[9px] font-medium"
             style={{ color: IVORY }}
@@ -237,13 +348,17 @@ export default function Design() {
       <div className="mb-6 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[13px]">
         <span className="text-[#9aa0ad]">Glyph</span>
         <span className="font-mono">
-          Saira Stencil One lowercase v (single weight 400 — no Bold cut exists)
+          Saira Stencil (variable, wdth 100) lowercase v @ wght {weight}
         </span>
         <span className="text-[#9aa0ad]">Symbol viewBox</span>
-        <span className="font-mono">{SYM_VIEWBOX} (square, glyph 531×510)</span>
+        <span className="font-mono">
+          {data.symViewBox} (square, aspect {data.aspect})
+        </span>
         <span className="text-[#9aa0ad]">Type viewBox</span>
         <span className="font-mono">
-          {TYPE_VIEWBOX} (v at cap height 82.56, letters +7.24)
+          0 0 {data.typeW} 115 (v at cap height 82.56, letters{" "}
+          {data.lettersShift >= 0 ? "+" : ""}
+          {data.lettersShift})
         </span>
         <span className="text-[#9aa0ad]">Right arm</span>
         <span className="flex items-center gap-1.5 font-mono">
