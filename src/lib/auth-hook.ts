@@ -1,6 +1,6 @@
 import type { ILinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 import type { CreateProfileUseCase } from "@/applications/usecases/user/profile.usecase";
-import { TransientError } from "@/entities/errors/app-error";
+import { TransientError } from "@/entities/errors";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 

@@ -6,7 +6,7 @@ import {
 } from "@/__tests__/helpers";
 import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
-import { NotFoundError, UnexpectedError } from "@/entities/errors/app-error";
+import { NotFoundError, UnexpectedError } from "@/entities/errors";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("RemovePlayerUseCase", () => {

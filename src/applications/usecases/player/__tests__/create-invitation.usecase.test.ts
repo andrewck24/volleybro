@@ -9,7 +9,7 @@ import {
   ConflictError,
   NotFoundError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
+} from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

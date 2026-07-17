@@ -1,8 +1,11 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { ConflictError, UnexpectedError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+import {
+  ConflictError,
+  UnexpectedError,
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";

@@ -1,6 +1,6 @@
 import { createPlayer } from "@/__tests__/helpers";
 import TeamInfo from "@/components/team/info/index";
-import type { AppErrorCode } from "@/entities/errors/app-error";
+import { type AppErrorCode } from "@/entities/errors";
 import { ApiClientError } from "@/lib/api/api-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

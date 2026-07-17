@@ -1,6 +1,5 @@
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import { Team, type Lineup, type LineupPlayer } from "@/entities/team";
 import {
   TeamDocument,

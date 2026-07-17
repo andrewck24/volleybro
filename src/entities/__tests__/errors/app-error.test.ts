@@ -6,7 +6,7 @@ import {
   ConflictError,
   TransientError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
+} from "@/entities/errors";
 
 describe("AppError class hierarchy", () => {
   describe("constructor with internalMessage", () => {

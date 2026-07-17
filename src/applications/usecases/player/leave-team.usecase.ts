@@ -5,9 +5,9 @@ import {
   AuthorizationError,
   NotFoundError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";

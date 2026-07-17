@@ -5,7 +5,7 @@ import {
 } from "@/__tests__/helpers";
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
 import { CreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
-import { ConflictError } from "@/entities/errors/app-error";
+import { ConflictError } from "@/entities/errors";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

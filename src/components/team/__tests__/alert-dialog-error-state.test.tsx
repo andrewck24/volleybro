@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { createPlayer } from "@/__tests__/helpers";
 import { ApiClientError } from "@/lib/api/api-client";
-import type { AppErrorCode } from "@/entities/errors/app-error";
+import { type AppErrorCode } from "@/entities/errors";
 
 // Mock apiClient
 const mockApiClient = jest.fn();

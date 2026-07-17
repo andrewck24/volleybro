@@ -1,6 +1,9 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { AuthorizationError, NotFoundError } from "@/entities/errors/app-error";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+import {
+  AuthorizationError,
+  NotFoundError,
+  PlayerReason,
+} from "@/entities/errors";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";

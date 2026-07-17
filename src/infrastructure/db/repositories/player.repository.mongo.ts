@@ -1,6 +1,5 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
 import {
   PlayerModel,

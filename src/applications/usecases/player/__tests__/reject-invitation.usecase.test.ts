@@ -1,6 +1,6 @@
 import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
 import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
-import { AuthorizationError, NotFoundError } from "@/entities/errors/app-error";
+import { AuthorizationError, NotFoundError } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("RejectInvitationUseCase", () => {

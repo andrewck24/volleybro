@@ -6,9 +6,9 @@ import {
   AuthenticationError,
   UnexpectedError,
   ValidationError,
-} from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
-import { CommonReason } from "@/entities/errors/reasons/common";
+  AuthReason,
+  CommonReason,
+} from "@/entities/errors";
 import { auth } from "@/lib/auth";
 
 type RouteHandler = (req: NextRequest) => Promise<NextResponse>;

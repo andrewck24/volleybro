@@ -1,7 +1,6 @@
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { Result } from "@/applications/types/result";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import type { User } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
