@@ -39,7 +39,7 @@ VolleyBro is a volleyball team management and match recording web application bu
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: Better Auth with Google OAuth
 - **Dependency Injection**: InversifyJS
-- **PWA**: @serwist/next (configurator mode) for Progressive Web App features
+- **PWA**: @serwist/turbopack (prerendered service-worker route) for Progressive Web App features
 - **Testing**: Jest, Storybook (to be refactored with optimal testing tools)
 
 ### Clean Architecture Layers
