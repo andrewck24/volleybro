@@ -335,7 +335,7 @@ export default function Design() {
       </p>
       <div className="my-4 flex flex-wrap gap-6">
         <PhoneFrame label="iOS — apple-splash route">
-          <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
+          <NewSymbol data={data} neutral={IVORY} className="w-[20%]" />
           <NewType
             data={data}
             neutral={IVORY}
@@ -343,7 +343,7 @@ export default function Design() {
           />
         </PhoneFrame>
         <PhoneFrame label="Android — manifest splash">
-          <NewSymbol data={data} neutral={IVORY} className="w-[25%]" />
+          <NewSymbol data={data} neutral={IVORY} className="w-[20%]" />
           <span
             className="absolute bottom-4 text-[9px] font-medium"
             style={{ color: IVORY }}
