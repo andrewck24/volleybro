@@ -1,0 +1,27 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignore": ["docs/**"],
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "duplicates": "warn",
+    "enumMembers": "warn",
+    "classMembers": "warn"
+  },
+  "workspaces": {
+    ".": {
+      "entry": [
+        "src/app/sw.ts",
+        "serwist.config.js",
+        "scripts/**/*.{js,mjs,cjs,ts}",
+        ".changeset/*.cjs"
+      ],
+      "ignoreDependencies": ["ts-node", "jest-environment-node"]
+    },
+    "blueprint": {
+      "ignoreDependencies": ["babel-jest"]
+    }
+  }
+}
