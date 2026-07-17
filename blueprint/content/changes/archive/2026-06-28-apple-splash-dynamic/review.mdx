@@ -1,0 +1,59 @@
+---
+title: Review
+---
+
+**Post-apply Review** · 2026-06-26 · reviewer: sub-agent (isolated context) + GHA claude-review (2 passes)
+
+**Verdict: ✓ Ready for review** — 0 bugs · 0 simplify items · all checks pass · 6/6 tasks complete
+
+## Diff Summary
+
+| Status | File                                             | Notes                                                          |
+| ------ | ------------------------------------------------ | -------------------------------------------------------------- |
+| + new  | `src/app/apple-splash/devices.ts`                | 15 device configs, isSupportedSize O(1) Set lookup             |
+| + new  | `src/app/apple-splash/[size]/route.tsx`          | GET handler, font-extracted SVG paths, Cache-Control immutable |
+| + new  | `src/app/apple-splash/__tests__/devices.test.ts` | 15-count, valid/invalid/partial-match isSupportedSize          |
+| + new  | `src/app/apple-splash/__tests__/route.test.ts`   | 200, Cache-Control, 404, malformed segment                     |
+| ~ mod  | `src/app/layout.tsx`                             | startupImage mapped from devices; 9 static PNG urls removed    |
+| ~ mod  | `src/proxy.ts`                                   | /apple-splash/ short-circuits before getSession()              |
+| ~ mod  | `jest.config.ts`                                 | apple-splash added to backend testMatch                        |
+| − del  | `public/apple-splash/*.png (9 files)`            | 274 kB removed                                                 |
+
+## Code Review — clean
+
+No correctness bugs found after two GHA review passes. Key checks:
+
+- `!w || !h` guard catches NaN, 0, empty string → 404 before `isSupportedSize`
+- Font-extracted SVG path constants verified: left arm `#F6F4F5`, right arm `#FC7A56`, `viewBox="-10 225 360 360"`
+- `svgSize = Math.round(0.25 * Math.min(w, h))` — 25% of shorter dimension as per approved mockup
+- Background `#10687E` verified = `--primary: hsl(192, 77.46%, 27.84%)`; hardcoding necessary because Satori cannot read CSS variables
+- `supportedSet` built at module level → O(1) lookup per request
+- 15 device entries confirmed: 9 iPhone existing + 3 iPhone 17 gen + 3 iPad
+- `Cache-Control: public, max-age=31536000, immutable` — safe because images are deterministic per size
+
+## Simplify — clean
+
+No simplification opportunities found:
+
+- `devices.ts`: flat array + Set — appropriate for single-use lookup
+- `route.tsx`: hardcoded path constants avoid any runtime font loading
+- `layout.tsx`: 47 lines of hand-written startup image entries replaced with 3-line map
+
+## Build & Test Verification — pass
+
+- `pnpm typecheck`: 0 errors
+- `pnpm lint`: 0 warnings
+- `pnpm build`: compiled successfully, `/apple-splash/[size]` registered as dynamic route
+- `pnpm jest --testPathPatterns=apple-splash`: 10/10 tests pass
+- Static PNG files confirmed deleted, no stale references in `src/`
+
+## GHA Review History
+
+| Pass | Finding                                                                     | Severity | Status   |
+| ---- | --------------------------------------------------------------------------- | -------- | -------- |
+| 1    | Spec drift: design.md/spec.md/tasks.md still described polygon/40% approach | 🟠       | ✅ Fixed |
+| 1    | proxy.ts: getSession() ran before /apple-splash/ check                      | 🟡       | ✅ Fixed |
+| 1    | No Cache-Control header on ImageResponse                                    | 🟡       | ✅ Fixed |
+| 1    | No unit tests for isSupportedSize / route 200/404                           | 🟡       | ✅ Fixed |
+| 2    | HTML companions not updated with .md fixes                                  | 🟠       | ✅ Fixed |
+| 1+2  | Loose size parsing: extra segments don't 404 (non-security)                 | ⚪       | Accepted |

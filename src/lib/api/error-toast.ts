@@ -1,10 +1,23 @@
 import { ApiClientError } from "@/lib/api/api-client";
+import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 
 type ToastFn = (opts: {
   title: string;
   description: string;
   variant: "default" | "destructive";
 }) => void;
+
+export function handle401Redirect(
+  router: { push: (href: string) => void },
+  toast: ToastFn,
+): void {
+  toast({
+    title: "登入已逾期",
+    description: "請重新登入",
+    variant: "destructive",
+  });
+  router.push("/auth/sign-in");
+}
 
 /**
  * Determines if the error is a server/unexpected error that deserves
@@ -15,7 +28,13 @@ function isServerError(error: ApiClientError): boolean {
 }
 
 const SERVER_ERROR_MESSAGE = "伺服器暫時無法處理你的請求，請稍後再試一次。";
-const UNKNOWN_ERROR_MESSAGE = "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
+const UNKNOWN_ERROR_MESSAGE =
+  "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
+
+const REASON_MESSAGES: Record<string, string> = {
+  RESOURCE_NOT_FOUND: "找不到此資源",
+  INVALID_INPUT: "資料格式不正確",
+};
 
 /**
  * Extract a user-facing error message from an unknown error.
@@ -41,6 +60,17 @@ export function getErrorMessage(error: unknown): string {
  * - Unknown errors → generic fallback
  */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
+  if (error instanceof ApiClientError && error.status === 401) return;
+
+  if (error instanceof RefreshTimeoutError) {
+    toast({
+      title: "連線逾時",
+      description: "請稍後再試，若問題持續請確認網路連線。",
+      variant: "destructive",
+    });
+    return;
+  }
+
   if (error instanceof ApiClientError) {
     if (isServerError(error)) {
       toast({
@@ -51,10 +81,11 @@ export function showErrorToast(error: unknown, toast: ToastFn): void {
       return;
     }
 
-    // Operational error — user-actionable, show the detail directly
+    // Operational error — use zh-TW reason mapping if available, fall back to error.detail
+    const description = REASON_MESSAGES[error.reason] ?? error.detail;
     toast({
       title: "操作失敗",
-      description: error.detail,
+      description,
       variant: "destructive",
     });
     return;

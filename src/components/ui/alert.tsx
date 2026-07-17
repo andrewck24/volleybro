@@ -1,22 +1,23 @@
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/* experimental: ring technique - inset ring replaces border */
 const alertVariants = cva(
-  "relative w-full flex flex-col gap-2 rounded-md border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:size-4 [&>svg]:text-foreground [&>svg~*]:pl-7",
+  "relative flex w-full flex-col gap-2 rounded-md px-4 py-3 text-sm ring-1 ring-inset [&>svg]:absolute [&>svg]:top-4 [&>svg]:left-4 [&>svg]:size-4 [&>svg]:text-foreground [&>svg+div]:translate-y-[-3px] [&>svg~*]:pl-7",
   {
     variants: {
       variant: {
-        default: "bg-card text-foreground border-muted",
+        default: "bg-card text-foreground ring-foreground/5",
         destructive:
-          "border-destructive/50 bg-destructive/10 text-destructive dark:border-destructive [&>svg]:text-destructive",
+          "bg-destructive/10 text-destructive ring-destructive/30 dark:ring-destructive/50 [&>svg]:text-destructive",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 const Alert = ({
@@ -39,7 +40,7 @@ const AlertTitle = ({
 }: React.HTMLAttributes<HTMLHeadingElement>) => (
   <h5
     data-slot="AlertTitle"
-    className={cn("mb-1 font-medium leading-none tracking-tight", className)}
+    className={cn("mb-1 leading-none font-medium tracking-tight", className)}
     {...props}
   />
 );
@@ -55,4 +56,4 @@ const AlertDescription = ({
   />
 );
 
-export { Alert, AlertTitle, AlertDescription };
+export { Alert, AlertDescription, AlertTitle };

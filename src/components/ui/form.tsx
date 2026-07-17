@@ -46,18 +46,18 @@ const Form = <TFieldValues extends FieldValues = FieldValues>({
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 > = {
   name: TName;
 };
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue
+  {} as FormFieldContextValue,
 );
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
@@ -96,7 +96,7 @@ type FormItemContextValue = {
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
+  {} as FormItemContextValue,
 );
 
 const FormItem = ({
@@ -166,8 +166,8 @@ const FormMessage = ({
       data-slot="FormMessage"
       id={formMessageId}
       className={cn(
-        "text-sm font-medium leading-none text-destructive",
-        className
+        "text-sm leading-none font-medium text-destructive",
+        className,
       )}
       {...props}
     >
@@ -217,7 +217,7 @@ const FormRadioGroup = ({
 };
 
 const radioItemVariants = cva(
-  "flex flex-row items-center justify-center text-lg font-medium transition-colors border-2 rounded-md h-9",
+  "flex h-9 flex-row items-center justify-center rounded-md border-2 text-lg font-medium transition-colors",
   {
     variants: {
       variant: {
@@ -230,7 +230,7 @@ const radioItemVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 const FormRadioItem = ({

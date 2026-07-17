@@ -2,12 +2,13 @@
 import { EntriesEdit } from "@/components/game/options/edit";
 import { GameOptionsSummary } from "@/components/game/options/summary";
 import {
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { useAppSelector } from "@/lib/redux/hooks";
-import { DialogTitle } from "@radix-ui/react-dialog";
 
 export const SetEdit = ({
   gameId,
@@ -24,11 +25,11 @@ export const SetEdit = ({
         <>
           <DialogHeader>
             <DialogTitle>第 {setIndex + 1} 局逐球記錄</DialogTitle>
-            <DialogDescription className="sr-only">
-              逐球紀錄頁面
-            </DialogDescription>
+            <DialogDescription srOnly>逐球紀錄頁面</DialogDescription>
           </DialogHeader>
-          <GameOptionsSummary gameId={gameId} />
+          <DialogBody>
+            <GameOptionsSummary gameId={gameId} />
+          </DialogBody>
         </>
       ) : (
         <EntriesEdit gameId={gameId} />

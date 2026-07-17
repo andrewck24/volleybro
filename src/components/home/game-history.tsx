@@ -16,37 +16,36 @@ import {
   ItemHeader,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveTeamId, useGameSummaries } from "@/hooks/use-data";
+import { useGameSummaries } from "@/hooks/use-data";
 import type { GameSummaryView } from "@/lib/features/game/types";
-import { usePullToRefresh } from "@/lib/hooks/usePullToRefresh";
 import { format } from "date-fns";
 import Link from "next/link";
-import { Ref, useCallback, useEffect, useRef } from "react";
+import { Ref, useEffect, useRef } from "react";
 import { RiArrowRightWideLine, RiGroupLine } from "react-icons/ri";
 
-export function GameHistory() {
-  const {
-    teamId,
-    isLoading: teamIdLoading,
-    error,
-    mutate: mutateTeamId,
-  } = useActiveTeamId();
+interface GameHistoryProps {
+  teamId: string | undefined;
+  isLoading: boolean;
+  refreshError: unknown;
+}
+
+export function GameHistory({
+  teamId,
+  isLoading: teamIdLoading,
+  refreshError,
+}: GameHistoryProps) {
   const {
     gameSummaries,
-    mutate: mutateSummaries,
+    mutate,
     isLoading: summariesLoading,
+    error,
     isReachingEnd,
     isLoadingMore,
     setSize,
   } = useGameSummaries(teamId);
 
   const isLoading = teamIdLoading || summariesLoading;
-  const mutate = useCallback(
-    () => Promise.all([mutateTeamId(), ...(teamId ? [mutateSummaries()] : [])]),
-    [teamId, mutateTeamId, mutateSummaries],
-  );
-
-  usePullToRefresh(mutate);
+  const hasData = !!gameSummaries.length;
 
   const lastItemRef = useRef<HTMLDivElement | null>(null);
 
@@ -70,13 +69,13 @@ export function GameHistory() {
     return () => {
       observer.disconnect();
     };
-  }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries?.length]);
+  }, [isLoading, isReachingEnd, isLoadingMore, setSize, gameSummaries.length]);
 
-  if (isLoading && !gameSummaries?.length) return <GameHistorySkeleton />;
-  if (error) return <ServerErrorState onRetry={() => mutate()} />;
+  if (isLoading && !hasData) return <GameHistorySkeleton />;
+  if (!hasData && (error || refreshError))
+    return <ServerErrorState onRetry={() => mutate()} />;
   if (!teamId && !isLoading) return <GuidesForNewUser />;
-  if (!gameSummaries?.length) return <NoMatches />;
-
+  if (!hasData) return <NoMatches />;
   return (
     <ItemGroup>
       {gameSummaries.map((match, index) => (

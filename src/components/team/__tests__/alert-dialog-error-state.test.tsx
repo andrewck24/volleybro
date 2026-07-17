@@ -65,9 +65,14 @@ function createApiError(
   status: number,
   code: string,
   reason: string,
-  detail: string
+  detail: string,
 ) {
-  return new ApiClientError(detail, { code: code as AppErrorCode, reason, detail, status });
+  return new ApiClientError(detail, {
+    code: code as AppErrorCode,
+    reason,
+    detail,
+    status,
+  });
 }
 
 const joinedPlayer = createPlayer({
@@ -84,7 +89,12 @@ describe("AlertDialog error state — MembershipSection", () => {
     it("should show inline error message when remove fails", async () => {
       const user = userEvent.setup();
       mockApiClient.mockRejectedValueOnce(
-        createApiError(403, "AUTHORIZATION", "NOT_TEAM_OWNER", "Only the team owner can remove members")
+        createApiError(
+          403,
+          "AUTHORIZATION",
+          "NOT_TEAM_OWNER",
+          "Only the team owner can remove members",
+        ),
       );
 
       render(
@@ -92,7 +102,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
-        />
+        />,
       );
 
       // Open the remove dialog
@@ -103,11 +113,15 @@ describe("AlertDialog error state — MembershipSection", () => {
 
       // Error message should appear inline in dialog
       await waitFor(() => {
-        expect(screen.getByText("Only the team owner can remove members")).toBeInTheDocument();
+        expect(
+          screen.getByText("Only the team owner can remove members"),
+        ).toBeInTheDocument();
       });
 
       // Dialog should still be visible (title still present)
-      expect(screen.getByText(/確定要將.*從隊伍中移除嗎？/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/確定要將.*從隊伍中移除嗎？/),
+      ).toBeInTheDocument();
 
       // showErrorToast should NOT be called — error is inline
       expect(mockShowErrorToast).not.toHaveBeenCalled();
@@ -118,7 +132,12 @@ describe("AlertDialog error state — MembershipSection", () => {
 
       // First call fails
       mockApiClient.mockRejectedValueOnce(
-        createApiError(500, "UNEXPECTED", "UNHANDLED_ERROR", "An unexpected error occurred")
+        createApiError(
+          500,
+          "UNEXPECTED",
+          "UNHANDLED_ERROR",
+          "An unexpected error occurred",
+        ),
       );
 
       render(
@@ -126,7 +145,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
-        />
+        />,
       );
 
       await user.click(screen.getByRole("button", { name: "移除成員" }));
@@ -143,7 +162,7 @@ describe("AlertDialog error state — MembershipSection", () => {
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "成員已移除" })
+          expect.objectContaining({ title: "成員已移除" }),
         );
       });
     });
@@ -153,7 +172,12 @@ describe("AlertDialog error state — MembershipSection", () => {
     it("should show inline error message when transfer fails", async () => {
       const user = userEvent.setup();
       mockApiClient.mockRejectedValueOnce(
-        createApiError(403, "AUTHORIZATION", "NOT_TEAM_OWNER", "Only the current team owner can transfer ownership")
+        createApiError(
+          403,
+          "AUTHORIZATION",
+          "NOT_TEAM_OWNER",
+          "Only the current team owner can transfer ownership",
+        ),
       );
 
       render(
@@ -161,12 +185,12 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
-        />
+        />,
       );
 
       // Open the transfer dialog
       await user.click(
-        screen.getByRole("button", { name: "移轉所有權給此球員" })
+        screen.getByRole("button", { name: "移轉所有權給此球員" }),
       );
 
       // Confirm transfer
@@ -175,14 +199,14 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("Only the current team owner can transfer ownership")
+          screen.getByText(
+            "Only the current team owner can transfer ownership",
+          ),
         ).toBeInTheDocument();
       });
 
       // Dialog should still be visible
-      expect(
-        screen.getByText(/確定要將隊伍所有權移轉給/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
 
       expect(mockShowErrorToast).not.toHaveBeenCalled();
     });

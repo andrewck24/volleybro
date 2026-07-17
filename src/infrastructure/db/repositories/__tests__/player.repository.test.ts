@@ -217,7 +217,11 @@ describe("PlayerRepository", () => {
         email: undefined,
       };
       const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => ({ _id: mockPlayer.id, ...mockPlayer, status: PlayerStatus.NONE }),
+        toObject: () => ({
+          _id: mockPlayer.id,
+          ...mockPlayer,
+          status: PlayerStatus.NONE,
+        }),
       });
       (PlayerModel.findByIdAndUpdate as jest.Mock).mockReturnValue({
         exec: mockExec,
@@ -291,7 +295,11 @@ describe("PlayerRepository", () => {
 
   describe("findTeamOwner", () => {
     it("should return team owner", async () => {
-      const owner = { _id: mockPlayer.id, ...mockPlayer, role: PlayerRole.OWNER };
+      const owner = {
+        _id: mockPlayer.id,
+        ...mockPlayer,
+        role: PlayerRole.OWNER,
+      };
       const mockExec = jest.fn().mockResolvedValue({
         toObject: () => owner,
       });

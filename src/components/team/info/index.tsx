@@ -1,6 +1,7 @@
 "use client";
 import {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -90,7 +91,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
         ))}
       </ItemGroup>
       {isAdmin && (
-        <Link href={`/team/${team!.id}/edit`}>
+        <Link href={`/team/${teamId}/edit`}>
           <RiEditBoxLine /> 編輯隊伍資訊
         </Link>
       )}
@@ -122,12 +123,12 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                     離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {leaveError && (
+                  <AlertDialogBody>
+                    <p className="text-sm text-destructive">{leaveError}</p>
+                  </AlertDialogBody>
+                )}
                 <AlertDialogFooter>
-                  {leaveError && (
-                    <p className="w-full text-sm text-destructive">
-                      {leaveError}
-                    </p>
-                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
                     variant="destructive"

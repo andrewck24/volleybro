@@ -34,6 +34,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (nextUrl.pathname.startsWith("/apple-splash/")) {
+    return NextResponse.next();
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });

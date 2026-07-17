@@ -12,17 +12,14 @@ export enum Position {
 export type LineupPlayer = {
   id: string | null;
   position?: Position;
-  sub?: { id: string; entryIndex: { in?: number; out?: number } };
+  sub?: { id: string | null; entryIndex: { in?: number; out?: number } };
 };
 
 export type Lineup = {
   options: {
     liberoReplaceMode: 0 | 1 | 2;
     liberoReplacePosition:
-      | Position.NONE
-      | Position.OH
-      | Position.MB
-      | Position.OP;
+      Position.NONE | Position.OH | Position.MB | Position.OP;
   };
   starting: LineupPlayer[];
   liberos: LineupPlayer[];

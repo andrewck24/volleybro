@@ -64,6 +64,9 @@ jest.mock("@/components/ui/dialog", () => ({
   DialogHeader: ({ children }: { children?: ReactNode }) => (
     <div data-testid="dialog-header">{children}</div>
   ),
+  DialogBody: ({ children }: { children?: ReactNode }) => (
+    <div data-testid="dialog-body">{children}</div>
+  ),
   DialogTitle: ({ children }: { children?: ReactNode }) => (
     <h2 data-testid="dialog-title">{children}</h2>
   ),
@@ -255,8 +258,10 @@ describe("CTAButton Component", () => {
     });
 
     it("should handle PWA installation failures gracefully", async () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-      
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
       // Mock prompt to reject
       const failingPrompt = {
         preventDefault: jest.fn(),
@@ -265,14 +270,16 @@ describe("CTAButton Component", () => {
       };
 
       render(
-        <button onClick={async () => {
-          try {
-            await failingPrompt.prompt();
-            await failingPrompt.userChoice;
-          } catch (error) {
-            console.error("PWA installation failed:", error);
-          }
-        }}>
+        <button
+          onClick={async () => {
+            try {
+              await failingPrompt.prompt();
+              await failingPrompt.userChoice;
+            } catch (error) {
+              console.error("PWA installation failed:", error);
+            }
+          }}
+        >
           安裝應用程式
         </button>,
       );
@@ -282,7 +289,7 @@ describe("CTAButton Component", () => {
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         "PWA installation failed:",
-        expect.any(Error)
+        expect.any(Error),
       );
 
       consoleErrorSpy.mockRestore();

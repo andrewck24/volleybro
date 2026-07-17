@@ -5,7 +5,7 @@
  */
 
 import type { Config } from "jest";
-import nextJest from "next/jest";
+import nextJest from "next/jest.js";
 
 const createJestConfig = nextJest({ dir: "./" });
 
@@ -42,6 +42,7 @@ export default async function jestConfig() {
       "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -53,6 +54,8 @@ export default async function jestConfig() {
     testMatch: [
       "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/hooks/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/\\(tabs\\)/**/*.{spec,test}.{js,jsx,ts,tsx}",
     ],
   };
 

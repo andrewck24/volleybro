@@ -1,0 +1,17 @@
+# Build output (root .gitignore anchors these at the root only,
+# so blueprint/.next etc. need unanchored patterns here)
+.next/
+out/
+coverage/
+storybook-static/
+
+# Generated files
+pnpm-lock.yaml
+CHANGELOG.md
+.source/
+
+# Agent config, skills, and worktrees
+.claude/
+
+# Frozen change archives — historical artifacts, never reformat
+docs/changes/archive/

@@ -41,6 +41,6 @@ const VerificationToken =
   model<VerificationTokenDocument>(
     "VerificationToken",
     verificationTokenSchema,
-    "verificationTokens"
+    "verificationTokens",
   );
 export default VerificationToken;

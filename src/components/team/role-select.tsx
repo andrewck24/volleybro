@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Select,
@@ -6,8 +6,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { PlayerRole } from '@/entities/player';
+} from "@/components/ui/select";
+import { PlayerRole } from "@/entities/player";
 
 interface RoleSelectProps {
   value: PlayerRole;
@@ -17,9 +17,9 @@ interface RoleSelectProps {
 }
 
 const ROLE_LABELS: Record<PlayerRole, string> = {
-  [PlayerRole.MEMBER]: '成員',
-  [PlayerRole.ADMIN]: '管理員',
-  [PlayerRole.OWNER]: '隊長',
+  [PlayerRole.MEMBER]: "成員",
+  [PlayerRole.ADMIN]: "管理員",
+  [PlayerRole.OWNER]: "隊長",
 };
 
 /**
@@ -30,7 +30,7 @@ export function RoleSelect({
   value,
   onChange,
   disabled = false,
-  placeholder = '選擇角色',
+  placeholder = "選擇角色",
 }: RoleSelectProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>

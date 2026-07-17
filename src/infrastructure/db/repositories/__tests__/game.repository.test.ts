@@ -1,5 +1,6 @@
 import { mockDoc, mockExec } from "@/__tests__/helpers";
 import { NotFoundError } from "@/entities/errors/app-error";
+import { EntryType, MoveType, Side, type Game } from "@/entities/game";
 import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { Types } from "mongoose";
@@ -147,6 +148,184 @@ describe("GameRepositoryImpl", () => {
       const result = await repository.delete(nonExistentIdString);
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe("player reference mapping", () => {
+    const playerHexId = "64b000000000000000000001";
+    const inHexId = "64b000000000000000000002";
+    const outHexId = "64b000000000000000000003";
+
+    it("toGame exposes nested player ids on lineups, snapshots, rally detail and substitution", async () => {
+      const storedGame = {
+        _id: mockGameId,
+        teamId: mockTeamId,
+        win: false,
+        info: mockGameData.info,
+        teams: {
+          home: {
+            id: mockTeamIdString,
+            name: "Home",
+            players: [
+              {
+                playerId: new Types.ObjectId(playerHexId),
+                name: "P1",
+                number: 1,
+                stats: [],
+              },
+            ],
+            staffs: [],
+            stats: [],
+          },
+          away: {
+            id: mockTeamIdString,
+            name: "Away",
+            players: [],
+            staffs: [],
+            stats: [],
+          },
+        },
+        sets: [
+          {
+            win: null,
+            lineups: {
+              home: {
+                options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+                starting: [
+                  { playerId: new Types.ObjectId(playerHexId), position: "OH" },
+                  { playerId: null },
+                ],
+                liberos: [],
+                substitutes: [],
+              },
+            },
+            options: { serve: "home" },
+            entries: [
+              {
+                type: EntryType.RALLY,
+                win: true,
+                home: {
+                  score: 1,
+                  type: MoveType.ATTACK,
+                  num: 1,
+                  player: {
+                    playerId: new Types.ObjectId(playerHexId),
+                    zone: 4,
+                  },
+                },
+                away: { score: 0, type: MoveType.ATTACK, num: 1 },
+              },
+              {
+                type: EntryType.SUBSTITUTION,
+                team: Side.HOME,
+                players: {
+                  in: new Types.ObjectId(inHexId),
+                  out: new Types.ObjectId(outHexId),
+                },
+              },
+            ],
+          },
+        ],
+      };
+      (GameModel.findById as jest.Mock).mockReturnValue(
+        mockExec(mockDoc(storedGame)),
+      );
+
+      const result = await repository.findById(mockGameIdString);
+
+      const home = result!.teams.home;
+      expect(home.players[0].id).toBe(playerHexId);
+      expect(
+        (home.players[0] as unknown as { playerId?: unknown }).playerId,
+      ).toBeUndefined();
+
+      const starting = result!.sets[0].lineups.home.starting;
+      expect(starting[0].id).toBe(playerHexId);
+      expect(starting[1].id).toBeNull();
+
+      const entries = result!.sets[0].entries;
+      expect(
+        (entries[0] as { home: { player: { id: string } } }).home.player.id,
+      ).toBe(playerHexId);
+      expect(
+        (entries[1] as { players: { in: string; out: string } }).players.in,
+      ).toBe(inHexId);
+      expect(
+        (entries[1] as { players: { in: string; out: string } }).players.out,
+      ).toBe(outHexId);
+    });
+
+    it("toGameDoc persists client ids as playerId on create", async () => {
+      const domainGame = {
+        win: false,
+        teamId: mockTeamIdString,
+        info: mockGameData.info,
+        teams: {
+          home: {
+            id: mockTeamIdString,
+            name: "Home",
+            players: [{ id: playerHexId, name: "P1", number: 1, stats: [] }],
+            staffs: [],
+            stats: [],
+          },
+          away: {
+            id: mockTeamIdString,
+            name: "Away",
+            players: [],
+            staffs: [],
+            stats: [],
+          },
+        },
+        sets: [
+          {
+            win: null,
+            lineups: {
+              home: {
+                options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+                starting: [{ id: playerHexId, position: "OH" }, { id: null }],
+                liberos: [],
+                substitutes: [],
+              },
+            },
+            options: { serve: "home" },
+            entries: [
+              {
+                type: EntryType.RALLY,
+                win: true,
+                home: {
+                  score: 1,
+                  type: MoveType.ATTACK,
+                  num: 1,
+                  player: { id: playerHexId, zone: 4 },
+                },
+                away: { score: 0, type: MoveType.ATTACK, num: 1 },
+              },
+            ],
+          },
+        ],
+      } as unknown as Omit<Game, "id">;
+      (GameModel.create as jest.Mock).mockResolvedValue(
+        mockDoc({
+          _id: mockGameId,
+          teamId: mockTeamId,
+          teams: {
+            home: { players: [], staffs: [], stats: [] },
+            away: { players: [], staffs: [], stats: [] },
+          },
+          sets: [],
+        }),
+      );
+
+      await repository.create(domainGame);
+
+      const arg = (GameModel.create as jest.Mock).mock.calls[0][0];
+      expect(arg.id).toBeUndefined();
+      expect(arg.teams.home.players[0].playerId).toBe(playerHexId);
+      expect(arg.teams.home.players[0].id).toBeUndefined();
+      expect(arg.sets[0].lineups.home.starting[0].playerId).toBe(playerHexId);
+      expect(arg.sets[0].lineups.home.starting[1].playerId).toBeNull();
+      expect(arg.sets[0].entries[0].home.player.playerId).toBe(playerHexId);
+      expect(arg.sets[0].entries[0].home.player.id).toBeUndefined();
     });
   });
 

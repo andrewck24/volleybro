@@ -8,6 +8,10 @@ on:
 
 jobs:
   claude-review:
+    # Skip on demand: put [skip review] in the PR title (not a commit message)
+    # so every later push to the same PR is skipped too. Docs-only PRs are
+    # already excluded via paths-ignore above.
+    if: ${{ !contains(github.event.pull_request.title, '[skip review]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

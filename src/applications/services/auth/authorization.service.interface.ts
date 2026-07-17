@@ -1,7 +1,11 @@
 import { PlayerRole } from "@/entities/player";
 
 export interface IAuthorizationService {
-  verifyTeamRole(teamId: string, userId: string, role: PlayerRole): Promise<void>;
+  verifyTeamRole(
+    teamId: string,
+    userId: string,
+    role: PlayerRole,
+  ): Promise<void>;
 
   /**
    * Verify user is admin or owner of the team
@@ -19,7 +23,7 @@ export interface IAuthorizationService {
   verifyPlayerRole(
     teamId: string,
     userId: string,
-    role: PlayerRole
+    role: PlayerRole,
   ): Promise<void>;
 
   /**

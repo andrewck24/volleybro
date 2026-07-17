@@ -3,33 +3,41 @@
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  --background: hsl(330, 10%, 96.08%);
+:root,
+.light {
+  --background: hsl(230, 20%, 95.6%);
   --foreground: hsl(0, 0%, 0%);
-  --card: hsl(330, 10%, 96.08%);
+  --card: hsl(330, 10%, 98.45%);
   --card-foreground: hsl(0, 0%, 0%);
-  --popover: hsl(330, 10%, 96.08%);
+  --popover: hsl(230, 14%, 97%);
   --popover-foreground: hsl(0, 0%, 0%);
   --primary: hsl(192, 77.46%, 27.84%);
   --primary-foreground: hsl(330, 10%, 96.08%);
-  --secondary: hsl(300, 1.45%, 86.47%);
+  --secondary: hsl(230, 18%, 93.8%);
   --secondary-foreground: hsl(0, 2.04%, 9.61%);
-  --muted: hsl(330, 1.69%, 76.86%);
+  --muted: hsl(230, 14%, 90.4%);
   --muted-foreground: hsl(0, 0%, 38.43%);
-  --accent: hsl(300, 1.45%, 86.47%);
+  --accent: hsl(230, 20%, 95.6%);
   --accent-foreground: hsl(0, 2.04%, 9.61%);
   --destructive: hsl(13.01, 96.51%, 66.27%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
-  --border: hsl(330, 1.69%, 76.86%);
-  --input: hsl(330, 1.69%, 76.86%);
-  --ring: hsl(300, 1.45%, 86.47%);
+  --success: hsl(152, 60%, 36%);
+  --success-foreground: hsl(330, 10%, 96.08%);
+  --warning: hsl(38, 92%, 50%);
+  --warning-foreground: hsl(0, 0%, 0%);
+  --info: hsl(210, 70%, 50%);
+  --info-foreground: hsl(330, 10%, 96.08%);
+  --border: hsl(230, 14%, 88.2%);
+  --input: hsl(230, 14%, 88.2%);
+  --ring: hsl(230, 16%, 86.5%);
+
+  --chart-1: hsl(192, 77%, 28%);
+  --chart-2: hsl(13, 97%, 66%);
+  --chart-3: hsl(210, 65%, 45%);
+  --chart-4: hsl(38, 92%, 50%);
+  --chart-5: hsl(270, 40%, 55%);
 
   --radius: 0.5rem;
-
-  --safe-area-inset-top: env(safe-area-inset-top);
-  --safe-area-inset-right: env(safe-area-inset-right);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom);
-  --safe-area-inset-left: env(safe-area-inset-left);
 }
 
 .dark {
@@ -37,7 +45,7 @@
   --foreground: hsl(217.2, 10%, 96.08%);
   --card: hsl(217.2, 20.6%, 14.5%);
   --card-foreground: hsl(330, 10%, 96.08%);
-  --popover: hsl(217.2, 32.6%, 14.5%);
+  --popover: hsl(217.2, 28%, 10%);
   --popover-foreground: hsl(330, 10%, 96.08%);
   --primary: hsl(192, 77.46%, 27.84%);
   --primary-foreground: hsl(330, 10%, 96.08%);
@@ -49,9 +57,28 @@
   --accent-foreground: hsl(330, 10%, 96.08%);
   --destructive: hsl(13.01, 96.51%, 66.27%);
   --destructive-foreground: hsl(330, 10%, 96.08%);
+  --success: hsl(152, 55%, 45%);
+  --success-foreground: hsl(217.2, 10%, 96.08%);
+  --warning: hsl(38, 90%, 55%);
+  --warning-foreground: hsl(0, 0%, 0%);
+  --info: hsl(210, 65%, 55%);
+  --info-foreground: hsl(217.2, 10%, 96.08%);
   --border: hsl(217.2, 32.6%, 30.5%);
   --input: hsl(217.2, 32.6%, 27.5%);
   --ring: hsl(212.7, 26.8%, 83.9%);
+
+  --chart-1: hsl(192, 70%, 45%);
+  --chart-2: hsl(13, 90%, 70%);
+  --chart-3: hsl(210, 60%, 55%);
+  --chart-4: hsl(38, 85%, 60%);
+  --chart-5: hsl(270, 45%, 65%);
+}
+
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top);
+  --safe-area-inset-right: env(safe-area-inset-right);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom);
+  --safe-area-inset-left: env(safe-area-inset-left);
 }
 
 @theme inline {
@@ -73,9 +100,20 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -104,11 +142,22 @@
 }
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+
   * {
     @apply box-border overscroll-x-none border-border outline-ring/50;
   }
   body {
-    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-accent text-foreground transition-colors select-none;
+    @apply h-lvh w-screen max-w-full overflow-y-scroll overscroll-y-contain bg-background text-foreground transition-colors select-none;
+  }
+
+  /* Elevation: suppress Item shadow inside a Card (same-color nesting kept
+     flat until form item-ization); Items inside modal surfaces keep their
+     shadow — with rings removed (D5) it is their only elevation cue. */
+  [data-slot="Card"] [data-slot="item"] {
+    box-shadow: none;
   }
 }
 
@@ -124,23 +173,37 @@
 
 @keyframes slide-from-right {
   from {
-    transform: translateX(50px);
-    opacity: 0;
+    transform: translateX(100%);
   }
   to {
     transform: translateX(0);
-    opacity: 1;
   }
 }
 
 @keyframes slide-from-left {
   from {
-    transform: translateX(-50px);
-    opacity: 0;
+    transform: translateX(-100%);
   }
   to {
     transform: translateX(0);
-    opacity: 1;
+  }
+}
+
+@keyframes slide-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 
@@ -166,6 +229,65 @@
 
 ::view-transition-new(sub-view) {
   animation: 300ms slide-from-left;
+}
+
+/* Keep navbar visible but avoid old/new stacking (which darkens ring/shadow) */
+::view-transition-old(bottom-nav) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-group(bottom-nav),
+::view-transition-new(bottom-nav) {
+  animation: none;
+}
+
+/* Disable default cross-fade and group position/size animation for tab-content outside standalone PWA */
+::view-transition-group(tab-content),
+::view-transition-old(tab-content),
+::view-transition-new(tab-content) {
+  animation: none;
+}
+
+/* Tab-switch directional slide animation (standalone PWA only) */
+@media (display-mode: standalone) and (width < 768px) {
+  [data-direction="forward"]::view-transition-old(tab-content) {
+    animation: 300ms ease slide-to-left;
+  }
+
+  [data-direction="forward"]::view-transition-new(tab-content) {
+    animation: 300ms ease slide-from-right;
+  }
+
+  [data-direction="backward"]::view-transition-old(tab-content) {
+    animation: 300ms ease slide-to-right;
+  }
+
+  [data-direction="backward"]::view-transition-new(tab-content) {
+    animation: 300ms ease slide-from-left;
+  }
+}
+
+/* Pull-to-refresh bounce animation */
+@keyframes volleyball-bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-16px);
+  }
+}
+
+@layer utilities {
+  .animate-volleyball-bounce {
+    animation: volleyball-bounce 0.4s ease-in-out alternate infinite;
+  }
+}
+
+/* Pull-to-refresh indicator: hidden outside standalone PWA */
+.pull-refresh-indicator {
+  @media not all and (display-mode: standalone) {
+    display: none;
+  }
 }
 
 /* Hide scrollbar on touch devices in PWA mode */

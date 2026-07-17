@@ -1,10 +1,10 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Popover",
@@ -36,7 +36,7 @@ export const WithTitle: Story = {
         <Button variant="outline">Open</Button>
       </PopoverTrigger>
       <PopoverContent>
-        <h4 className="font-medium leading-none mb-2">Settings</h4>
+        <h4 className="mb-2 leading-none font-medium">Settings</h4>
         <p className="text-sm text-muted-foreground">
           Manage your account settings and preferences.
         </p>

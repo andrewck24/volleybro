@@ -54,4 +54,3 @@ export function translateRepositoryError(error: unknown): AppError {
     error,
   );
 }
-

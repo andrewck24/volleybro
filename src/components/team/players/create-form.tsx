@@ -2,8 +2,14 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,206 +19,185 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole } from "@/entities/player";
+import { useFormDraft } from "@/hooks/use-form-draft";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
 } from "@/lib/validations/player";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect } from "react";
+import { type Resolver } from "react-hook-form";
 import { useSWRConfig } from "swr";
-import { ZodError } from "zod";
 
 interface CreateFormProps {
   teamId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }
 
-export function CreateForm({ teamId }: CreateFormProps) {
+export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
-  const [formData, setFormData] = useState<Partial<CreatePlayerInput>>({
-    name: "",
-    role: PlayerRole.MEMBER,
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "number" ? (value ? parseInt(value, 10) : undefined) : value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-  };
+  const { form, clearDraft } = useFormDraft<CreatePlayerInput>(
+    `draft:player:new:${teamId}`,
+    {
+      resolver: zodResolver(CreatePlayerSchema) as Resolver<CreatePlayerInput>,
+      defaultValues: {
+        name: "",
+        number: undefined,
+        position: undefined,
+        email: undefined,
+        role: PlayerRole.MEMBER,
+      },
+    },
+  );
+  const { isDirty } = form.formState;
+  useLeavePageWarning(isDirty);
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value || undefined,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-  };
+  useEffect(() => {
+    onStateChange?.(isDirty);
+  }, [isDirty, onStateChange]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
-
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      const validated = CreatePlayerSchema.parse(formData);
-
       await apiClient(`/api/teams/${teamId}/players`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validated),
+        body: JSON.stringify(data),
       });
-
       toast({ title: "成功", description: "球員已新增" });
       mutate(`/api/teams/${teamId}/players`);
+      clearDraft();
       router.push(`/team/${teamId}`);
     } catch (error) {
-      if (error instanceof ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.issues.forEach((issue) => {
-          newErrors[issue.path.join(".")] = issue.message;
-        });
-        setErrors(newErrors);
-      } else {
-        showErrorToast(error, toast);
-      }
-    } finally {
-      setIsSubmitting(false);
+      showErrorToast(error, toast);
+      form.setError("root", { message: "新增失敗，請稍後再試" });
     }
-  };
+  });
 
   return (
     <Card className="py-8">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">
-            姓名 <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="name"
-            name="name"
-            placeholder="輸入姓名"
-            value={formData.name || ""}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            aria-invalid={!!errors.name}
-            aria-describedby={errors.name ? "name-error" : undefined}
-          />
-          {errors.name && (
-            <p id="name-error" className="text-sm text-red-500">
-              {errors.name}
-            </p>
+      <Form form={form} onSubmit={handleSubmit} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>姓名</FormLabel>
+              <FormControl>
+                <Input placeholder="輸入姓名" {...field} />
+              </FormControl>
+            </FormItem>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="number">背號</Label>
-          <Input
-            id="number"
-            name="number"
-            type="number"
-            min="0"
-            max="99"
-            placeholder="例: 10"
-            value={formData.number ?? ""}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            aria-invalid={!!errors.number}
-            aria-describedby={errors.number ? "number-error" : undefined}
-          />
-          {errors.number && (
-            <p id="number-error" className="text-sm text-red-500">
-              {errors.number}
-            </p>
+        />
+        <FormField
+          control={form.control}
+          name="number"
+          render={({ field: { onChange, value, ...rest } }) => (
+            <FormItem>
+              <FormLabel>背號</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  placeholder="例: 10"
+                  value={value ?? ""}
+                  onChange={(e) =>
+                    onChange(
+                      e.target.value ? parseInt(e.target.value, 10) : undefined,
+                    )
+                  }
+                  {...rest}
+                />
+              </FormControl>
+            </FormItem>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="position">位置</Label>
-          <Select
-            value={formData.position || "NONE"}
-            onValueChange={(value) =>
-              handleSelectChange("position", value === "NONE" ? "" : value)
-            }
-          >
-            <SelectTrigger id="position" disabled={isSubmitting}>
-              <SelectValue placeholder="選擇位置" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NONE">無</SelectItem>
-              <SelectItem value="OH">攻擊手 (OH)</SelectItem>
-              <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
-              <SelectItem value="OP">對角 (OP)</SelectItem>
-              <SelectItem value="S">舉球員 (S)</SelectItem>
-              <SelectItem value="L">自由人 (L)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="email">Email（填寫後即為邀請）</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="user@example.com"
-            value={formData.email || ""}
-            onChange={handleChange}
-            disabled={isSubmitting}
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? "email-error" : undefined}
-          />
-          {errors.email && (
-            <p id="email-error" className="text-sm text-red-500">
-              {errors.email}
-            </p>
+        />
+        <FormField
+          control={form.control}
+          name="position"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>位置</FormLabel>
+              <Select
+                onValueChange={(v) =>
+                  field.onChange(v === "NONE" ? undefined : v)
+                }
+                value={field.value ?? "NONE"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇位置" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="NONE">無</SelectItem>
+                  <SelectItem value="OH">攻擊手 (OH)</SelectItem>
+                  <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
+                  <SelectItem value="OP">對角 (OP)</SelectItem>
+                  <SelectItem value="S">舉球員 (S)</SelectItem>
+                  <SelectItem value="L">自由人 (L)</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
           )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="role">角色</Label>
-          <Select
-            value={formData.role || PlayerRole.MEMBER}
-            onValueChange={(value) => handleSelectChange("role", value)}
-          >
-            <SelectTrigger id="role" disabled={isSubmitting}>
-              <SelectValue placeholder="選擇角色" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
-              <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {errors.submit && (
-          <p className="text-sm text-red-500">{errors.submit}</p>
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email（填寫後即為邀請）</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  placeholder="user@example.com"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>角色</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇角色" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
+                  <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+        {form.formState.errors.root && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.root.message}
+          </p>
         )}
-
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "提交中..." : "新增球員"}
+        <Button
+          type="submit"
+          disabled={form.formState.isSubmitting}
+          className="w-full"
+        >
+          {form.formState.isSubmitting ? "提交中..." : "新增球員"}
         </Button>
-      </form>
+      </Form>
     </Card>
   );
 }

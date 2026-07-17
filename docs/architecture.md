@@ -6,11 +6,11 @@ See also: [Testing Strategy](./testing-strategy.md) · [Contributing Guide](../C
 
 Components are organized into three layers with distinct responsibilities and boundary rules.
 
-| Layer       | Location                            | Domain Knowledge                               | Examples                    |
-| ----------- | ----------------------------------- | ---------------------------------------------- | --------------------------- |
-| `ui/`       | `src/components/ui/`                | None — zero business logic                     | Button, Card, Dialog, Item  |
-| `custom/`   | `src/components/custom/`            | Allowed — Next.js Link, app hooks, data-testid | Court                       |
-| `{domain}/` | `src/components/{team,game,...}/`   | Full domain context                            | LineupPanel, InvitationList |
+| Layer       | Location                          | Domain Knowledge                               | Examples                    |
+| ----------- | --------------------------------- | ---------------------------------------------- | --------------------------- |
+| `ui/`       | `src/components/ui/`              | None — zero business logic                     | Button, Card, Dialog, Item  |
+| `custom/`   | `src/components/custom/`          | Allowed — Next.js Link, app hooks, data-testid | Court                       |
+| `{domain}/` | `src/components/{team,game,...}/` | Full domain context                            | LineupPanel, InvitationList |
 
 **Rule of thumb**: Could be published as a generic npm package → `ui/`. Reused across 2+ domain folders with app-specific behavior → `custom/`. Used in only one domain → `{domain}/`.
 

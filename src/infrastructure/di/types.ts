@@ -13,6 +13,9 @@ export const TYPES = {
   // usecases
   // team usecases
   CreateTeamUseCase: Symbol.for("CreateTeamUseCase"),
+  GetTeamUseCase: Symbol.for("GetTeamUseCase"),
+  UpdateTeamUseCase: Symbol.for("UpdateTeamUseCase"),
+  UpdateTeamLineupsUseCase: Symbol.for("UpdateTeamLineupsUseCase"),
 
   // user auth usecases
   GetProfileUseCase: Symbol.for("GetProfileUseCase"),

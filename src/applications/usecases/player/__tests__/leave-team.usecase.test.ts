@@ -53,7 +53,10 @@ describe("LeaveTeamUseCase", () => {
       );
       mockProfileRepository.updateActiveTeamId.mockResolvedValue(null);
 
-      const result = await useCase.execute({ playerId: "player_123", userId: "user_456" });
+      const result = await useCase.execute({
+        playerId: "player_123",
+        userId: "user_456",
+      });
 
       expect(result).toEqual({ success: true });
     });

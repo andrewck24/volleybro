@@ -10,8 +10,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -27,18 +33,25 @@ import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
-import { UpdatePlayerInfoSchema } from "@/lib/validations/player";
-import { useState } from "react";
+import {
+  UpdatePlayerInfoSchema,
+  type UpdatePlayerInfoInput,
+} from "@/lib/validations/player";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { FiUser } from "react-icons/fi";
+import { useEffect } from "react";
+import { type Resolver } from "react-hook-form";
+import { useFormDraft } from "@/hooks/use-form-draft";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useSWRConfig } from "swr";
-import { ZodError } from "zod";
 
 interface EditFormProps {
   teamId: string;
   playerId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }
 
-export function EditForm({ teamId, playerId }: EditFormProps) {
+export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
@@ -66,7 +79,11 @@ export function EditForm({ teamId, playerId }: EditFormProps) {
 
   return (
     <Card className="py-8">
-      <InfoSection player={player} teamId={teamId} />
+      <InfoSection
+        player={player}
+        teamId={teamId}
+        onStateChange={onStateChange}
+      />
       {showMembership && (
         <>
           <Separator />
@@ -106,138 +123,131 @@ function PlayerEditFormSkeleton() {
 function InfoSection({
   player,
   teamId,
+  onStateChange,
 }: {
   player: PlayerView;
   teamId: string;
+  onStateChange?: (isDirty: boolean) => void;
 }) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
-  const [formData, setFormData] = useState({
-    name: player.name,
-    number: player.number,
-    position: player.position || "",
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "number" ? (value ? parseInt(value, 10) : undefined) : value,
-    }));
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-  };
+  const { form, clearDraft } = useFormDraft<UpdatePlayerInfoInput>(
+    `draft:player:${player.id}`,
+    {
+      resolver: zodResolver(
+        UpdatePlayerInfoSchema,
+      ) as Resolver<UpdatePlayerInfoInput>,
+      defaultValues: {
+        name: player.name,
+        number: player.number,
+        position: player.position,
+      },
+    },
+  );
+  const { isDirty } = form.formState;
+  useLeavePageWarning(isDirty);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrors({});
+  useEffect(() => {
+    onStateChange?.(isDirty);
+  }, [isDirty, onStateChange]);
 
+  const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      const data = {
-        name: formData.name,
-        number: formData.number,
-        position: formData.position || undefined,
-      };
-      const validated = UpdatePlayerInfoSchema.parse(data);
-
       await apiClient(`/api/players/${player.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validated),
+        body: JSON.stringify(data),
       });
-
       toast({ title: "已更新", description: "球員資訊已更新" });
       mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
+      clearDraft();
     } catch (error) {
-      if (error instanceof ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.issues.forEach((issue) => {
-          newErrors[issue.path.join(".")] = issue.message;
-        });
-        setErrors(newErrors);
-      } else {
-        showErrorToast(error, toast);
-      }
-    } finally {
-      setIsSubmitting(false);
+      showErrorToast(error, toast);
+      form.setError("root", { message: "更新失敗，請稍後再試" });
     }
-  };
+  });
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <Form form={form} onSubmit={handleSubmit} className="space-y-4">
       <h3 className="text-sm font-medium">基本資訊</h3>
-      <div className="space-y-2">
-        <Label htmlFor="edit-name">
-          姓名 <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="edit-name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          disabled={isSubmitting}
-          aria-invalid={!!errors.name}
-          aria-describedby={errors.name ? "edit-name-error" : undefined}
-        />
-        {errors.name && (
-          <p id="edit-name-error" className="text-sm text-red-500">
-            {errors.name}
-          </p>
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>姓名</FormLabel>
+            <FormControl>
+              <Input {...field} value={field.value ?? ""} />
+            </FormControl>
+          </FormItem>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-number">背號</Label>
-        <Input
-          id="edit-number"
-          name="number"
-          type="number"
-          min="0"
-          max="99"
-          value={formData.number ?? ""}
-          onChange={handleChange}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="edit-position">位置</Label>
-        <Select
-          value={formData.position || "NONE"}
-          onValueChange={(value) =>
-            setFormData((prev) => ({
-              ...prev,
-              position: value === "NONE" ? "" : value,
-            }))
-          }
-        >
-          <SelectTrigger id="edit-position" disabled={isSubmitting}>
-            <SelectValue placeholder="選擇位置" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="NONE">無</SelectItem>
-            <SelectItem value="OH">攻擊手 (OH)</SelectItem>
-            <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
-            <SelectItem value="OP">對角 (OP)</SelectItem>
-            <SelectItem value="S">舉球員 (S)</SelectItem>
-            <SelectItem value="L">自由人 (L)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "儲存中..." : "儲存變更"}
+      />
+      <FormField
+        control={form.control}
+        name="number"
+        render={({ field: { onChange, value, ...rest } }) => (
+          <FormItem>
+            <FormLabel>背號</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                value={value ?? ""}
+                onChange={(e) =>
+                  onChange(
+                    e.target.value ? parseInt(e.target.value, 10) : undefined,
+                  )
+                }
+                {...rest}
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="position"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>位置</FormLabel>
+            <Select
+              onValueChange={(v) =>
+                field.onChange(v === "NONE" ? undefined : v)
+              }
+              value={field.value ?? "NONE"}
+            >
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇位置" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="NONE">無</SelectItem>
+                <SelectItem value="OH">攻擊手 (OH)</SelectItem>
+                <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
+                <SelectItem value="OP">對角 (OP)</SelectItem>
+                <SelectItem value="S">舉球員 (S)</SelectItem>
+                <SelectItem value="L">自由人 (L)</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+        )}
+      />
+      {form.formState.errors.root && (
+        <p className="text-sm text-destructive">
+          {form.formState.errors.root.message}
+        </p>
+      )}
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={form.formState.isSubmitting}
+      >
+        {form.formState.isSubmitting ? "儲存中..." : "儲存變更"}
       </Button>
-    </form>
+    </Form>
   );
 }

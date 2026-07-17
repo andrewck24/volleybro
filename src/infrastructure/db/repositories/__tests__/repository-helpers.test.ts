@@ -9,9 +9,12 @@ import { translateRepositoryError } from "@/infrastructure/db/repositories/repos
 describe("Repository error translation", () => {
   describe("CastError → NotFoundError", () => {
     it("translates Mongoose CastError to NotFoundError", () => {
-      const castError = Object.assign(new Error("Cast to ObjectId failed for value bad-id"), {
-        name: "CastError",
-      });
+      const castError = Object.assign(
+        new Error("Cast to ObjectId failed for value bad-id"),
+        {
+          name: "CastError",
+        },
+      );
       const result = translateRepositoryError(castError);
       expect(result).toBeInstanceOf(NotFoundError);
     });
@@ -57,7 +60,9 @@ describe("Repository error translation", () => {
     });
 
     it("wraps non-Error as UnexpectedError", () => {
-      const result = translateRepositoryError("string error" as unknown as Error);
+      const result = translateRepositoryError(
+        "string error" as unknown as Error,
+      );
       expect(result).toBeInstanceOf(UnexpectedError);
     });
   });

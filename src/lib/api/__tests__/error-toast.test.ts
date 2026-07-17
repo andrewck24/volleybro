@@ -1,20 +1,50 @@
 import { ApiClientError } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { handle401Redirect, showErrorToast } from "@/lib/api/error-toast";
+import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 import type { ApiError } from "@/lib/api/parse-api-error";
 
 const makeApiClientError = (
   status: number,
   code: string,
   detail: string,
+  reason = "TEST",
 ): ApiClientError => {
   const info: ApiError = {
     code: code as ApiError["code"],
-    reason: "TEST",
+    reason,
     detail,
     status,
   };
   return new ApiClientError(detail, info);
 };
+
+describe("handle401Redirect", () => {
+  let mockToast: jest.Mock;
+  let mockRouter: { push: jest.Mock };
+
+  beforeEach(() => {
+    mockToast = jest.fn();
+    mockRouter = { push: jest.fn() };
+  });
+
+  it("shows 登入已逾期 destructive toast", () => {
+    handle401Redirect(mockRouter, mockToast);
+
+    expect(mockToast).toHaveBeenCalledWith({
+      title: "登入已逾期",
+      description: "請重新登入",
+      variant: "destructive",
+    });
+  });
+
+  it("calls router.push to /auth/sign-in in the same synchronous call", () => {
+    handle401Redirect(mockRouter, mockToast);
+
+    expect(mockRouter.push).toHaveBeenCalledWith("/auth/sign-in");
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    expect(mockRouter.push).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("showErrorToast", () => {
   let mockToast: jest.Mock;
@@ -81,6 +111,80 @@ describe("showErrorToast", () => {
       expect(mockToast.mock.calls[0][0]).toEqual(
         expect.objectContaining({
           description: "該名稱已被使用",
+          variant: "destructive",
+        }),
+      );
+    });
+  });
+
+  describe("RefreshTimeoutError → 連線逾時 message", () => {
+    it("shows 連線逾時 title and retry description for RefreshTimeoutError", () => {
+      showErrorToast(new RefreshTimeoutError(), mockToast);
+
+      expect(mockToast).toHaveBeenCalledWith({
+        title: "連線逾時",
+        description: "請稍後再試，若問題持續請確認網路連線。",
+        variant: "destructive",
+      });
+    });
+  });
+
+  describe("401 errors → no toast (handle401Redirect owns this case)", () => {
+    it("does NOT call toast for status 401 ApiClientError", () => {
+      const error = makeApiClientError(
+        401,
+        "AUTHENTICATION",
+        "Authentication is required",
+      );
+      showErrorToast(error, mockToast);
+      expect(mockToast).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("reason-based zh-TW mapping → overrides error.detail for known reasons", () => {
+    it("shows zh-TW message for RESOURCE_NOT_FOUND reason", () => {
+      const error = makeApiClientError(
+        404,
+        "NOT_FOUND",
+        "Team not found",
+        "RESOURCE_NOT_FOUND",
+      );
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          description: "找不到此資源",
+          variant: "destructive",
+        }),
+      );
+    });
+
+    it("shows zh-TW message for INVALID_INPUT reason", () => {
+      const error = makeApiClientError(
+        400,
+        "VALIDATION",
+        "Invalid team ID format",
+        "INVALID_INPUT",
+      );
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          description: "資料格式不正確",
+          variant: "destructive",
+        }),
+      );
+    });
+
+    it("falls back to error.detail for unknown reason", () => {
+      const error = makeApiClientError(
+        409,
+        "CONFLICT",
+        "此名稱已被使用",
+        "DUPLICATE_NAME",
+      );
+      showErrorToast(error, mockToast);
+      expect(mockToast.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          description: "此名稱已被使用",
           variant: "destructive",
         }),
       );

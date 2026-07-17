@@ -11,7 +11,7 @@ export const MatchInfo = ({ info, ...props }: MatchInfoProps) => {
   return (
     <Card
       data-slot="MatchInfo"
-      className="flex flex-col gap-2 border-y-2 bg-card px-0 py-2 shadow-none"
+      className="flex flex-col gap-2 border-y-2 bg-card px-0 py-2"
       {...props}
     >
       <div className="flex grow-0 flex-row items-center justify-center gap-2 md:flex-col">

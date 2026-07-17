@@ -19,17 +19,17 @@ const Separator = ({
   <div
     data-slot="Separator"
     className={cn(
-      "flex items-center justify-center basis-[1.25rem]",
-      orientation === "horizontal" ? "flex-row" : "flex-col"
+      "flex basis-[1.25rem] items-center justify-center",
+      orientation === "horizontal" ? "flex-row" : "flex-col",
     )}
   >
     <SeparatorPrimitive.Root
       decorative={decorative}
       orientation={orientation}
       className={cn(
-        "shrink-0 bg-border flex-1",
+        "flex-1 shrink-0 bg-border",
         orientation === "horizontal" ? "h-[1px]" : "w-[1px]",
-        className
+        className,
       )}
       {...props}
     />
@@ -40,9 +40,9 @@ const Separator = ({
           decorative={decorative}
           orientation={orientation}
           className={cn(
-            "shrink-0 bg-border flex-1",
+            "flex-1 shrink-0 bg-border",
             orientation === "horizontal" ? "h-[1px]" : "w-[1px]",
-            className
+            className,
           )}
           {...props}
         />

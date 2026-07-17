@@ -45,7 +45,7 @@ const TableFooter = ({
     data-slot="TableFooter"
     className={cn(
       "border-t bg-muted/50 font-medium last:[&>tr]:border-b-0",
-      className
+      className,
     )}
     {...props}
   />
@@ -59,7 +59,7 @@ const TableRow = ({
     data-slot="TableRow"
     className={cn(
       "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
-      className
+      className,
     )}
     {...props}
   />
@@ -73,7 +73,7 @@ const TableHead = ({
     data-slot="TableHead"
     className={cn(
       "h-10 px-2 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-      className
+      className,
     )}
     {...props}
   />
@@ -87,7 +87,7 @@ const TableCell = ({
     data-slot="TableCell"
     className={cn(
       "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-      className
+      className,
     )}
     {...props}
   />

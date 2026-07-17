@@ -24,9 +24,7 @@ export const PlayerInfo = ({
   const { status, lineups } = useAppSelector((state) => state.lineup);
   const { lineupIndex, editingMember } = status;
   const activeList = (editingMember.list || "starting") as
-    | "starting"
-    | "liberos"
-    | "substitutes";
+    "starting" | "liberos" | "substitutes";
   const lineupPlayer =
     editingMember.zone != null
       ? lineups[lineupIndex][activeList][editingMember.zone - 1]

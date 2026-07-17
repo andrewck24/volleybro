@@ -15,6 +15,9 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ["react-icons"],
   },
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(",").map((s) =>
+    s.trim(),
+  ),
   images: {
     remotePatterns: [
       {

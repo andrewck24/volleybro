@@ -62,7 +62,8 @@ export const figureVariants = cva(
 );
 
 export interface FigureProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof figureVariants> {
   value?: number;
 }

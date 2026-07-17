@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Tabs",
@@ -14,7 +14,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   render: () => (
-    <Tabs defaultValue="account" className="w-[400px]">
+    <Tabs defaultValue="account" className="w-100">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="account">Account</TabsTrigger>
         <TabsTrigger value="password">Password</TabsTrigger>
@@ -39,7 +39,7 @@ export const Default: Story = {
 
 export const Multiple: Story = {
   render: () => (
-    <Tabs defaultValue="tab1" className="w-[400px]">
+    <Tabs defaultValue="tab1" className="w-100">
       <TabsList>
         <TabsTrigger value="tab1">Category 1</TabsTrigger>
         <TabsTrigger value="tab2">Category 2</TabsTrigger>
@@ -54,7 +54,7 @@ export const Multiple: Story = {
 
 export const Disabled: Story = {
   render: () => (
-    <Tabs defaultValue="active" className="w-[400px]">
+    <Tabs defaultValue="active" className="w-100">
       <TabsList>
         <TabsTrigger value="active">Active</TabsTrigger>
         <TabsTrigger value="disabled" disabled>

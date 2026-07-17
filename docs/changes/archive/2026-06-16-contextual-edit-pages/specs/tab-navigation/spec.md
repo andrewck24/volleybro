@@ -1,0 +1,17 @@
+## ADDED Requirements
+
+### Requirement: Layout renders modal parallel slot
+
+The `(tabs)` layout SHALL accept a `modal` prop of type `React.ReactNode` and render it above the `TabContainer`. When the `@modal` parallel slot is active (an intercepting route matches), the modal content SHALL be rendered as an overlay. When the `@modal` slot renders its `default.tsx` (null), no overlay SHALL appear. All existing tab behavior (DOM persistence, scroll restoration, animations) SHALL be unaffected by the presence of the modal slot.
+
+#### Scenario: Modal slot renders Dialog overlay
+
+- **WHEN** the `@modal` parallel slot resolves to a Dialog component (intercepting route matched)
+- **THEN** the Dialog SHALL render above the TabContainer content
+- **THEN** the tab content behind the Dialog SHALL remain mounted and visible
+
+#### Scenario: Modal slot renders null by default
+
+- **WHEN** the user is on a standard tab route (no intercepting route matched)
+- **THEN** the `@modal` slot SHALL render `null` via `default.tsx`
+- **THEN** no overlay SHALL appear and tab behavior SHALL be unchanged

@@ -1,0 +1,60 @@
+---
+title: apple-splash
+---
+
+## Dynamically generated launch screen system
+
+**SHALL** expose a route that renders an Apple PWA launch screen PNG image at an exact pixel size taken from the request, so a single handler serves every device size without stored image files.
+
+### Scenario: Render at requested device size
+
+- **WHEN** the route is requested with a width and height encoding a supported device's exact pixel resolution
+- **THEN** the response SHALL be a PNG image whose dimensions equal the exact width and height
+- **AND** the image SHALL render the VolleyBro "V" mark centered on a solid background filled with the `--primary` brand color
+
+**Example — iPhone 15 Pro Max portrait:**
+
+| Input            | Expected                                                   |
+| ---------------- | ---------------------------------------------------------- |
+| size = 1290x2796 | PNG exactly 1290×2796 px, "V" mark on `#10687E` background |
+
+### Scenario: Reject an unsupported size
+
+- **WHEN** the route is requested with a size not in the registered device list
+- **THEN** the system SHALL respond HTTP 404 and SHALL NOT return an image
+
+## V mark composition
+
+The launch screen SHALL render the "V" mark as two filled SVG path arms extracted from the Saira Stencil One font, independent of any external image asset or runtime font dependency.
+
+### Scenario: Mark colors and shape
+
+- **WHEN** the launch screen is rendered
+- **THEN** the left arm SHALL be filled `#F6F4F5` and the right arm SHALL be filled `#FC7A56`
+- **AND** the mark SHALL be drawn as inline SVG paths with hardcoded glyph coordinates
+- **AND** the SVG SHALL be sized to 25% of the shorter device dimension
+
+## Per-device startup-image registration
+
+The app root layout SHALL register one Apple startup image per supported device configuration, each pairing a device `media` query with a launch-screen route URL at the device's exact size.
+
+### Scenario: Registration points at route
+
+- **WHEN** the document head is produced
+- **THEN** every `apple-touch-startup-image` entry SHALL reference the launch-screen route at the device's exact pixel size
+- **AND** no `apple-touch-startup-image` entry SHALL reference a stored file under the public `apple-splash` directory
+
+### Scenario: Device coverage
+
+- **WHEN** startup images are registered
+- **THEN** the set of device `media` queries SHALL cover iPhone models through the iPhone 17 generation (including iPhone Air) and common iPad sizes
+- **AND** every device covered before the change SHALL remain covered (15 total: 12 iPhone, 3 iPad)
+
+## No stored splash assets
+
+Stored Apple splash PNG files SHALL NOT be served by the application.
+
+### Scenario: Static splash directory removed
+
+- **WHEN** the application is built
+- **THEN** the `public/apple-splash/` directory SHALL NOT contain pre-rendered splash PNG files

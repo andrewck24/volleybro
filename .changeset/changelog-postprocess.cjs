@@ -13,12 +13,14 @@ const CHANGELOG = path.resolve(__dirname, "../CHANGELOG.md");
 
 function prevGitVersion(current) {
   try {
-    return execSync("git tag --sort=-version:refname", { encoding: "utf-8" })
-      .trim()
-      .split("\n")
-      .filter((t) => /^v\d+\.\d+\.\d+$/.test(t))
-      .map((t) => t.slice(1))
-      .find((v) => v !== current) ?? null;
+    return (
+      execSync("git tag --sort=-version:refname", { encoding: "utf-8" })
+        .trim()
+        .split("\n")
+        .filter((t) => /^v\d+\.\d+\.\d+$/.test(t))
+        .map((t) => t.slice(1))
+        .find((v) => v !== current) ?? null
+    );
   } catch {
     return null;
   }
@@ -59,7 +61,7 @@ function mergeSections(body) {
   for (const type of typeOrder) {
     const totalBullets = [...typeMap.get(type).values()].reduce(
       (sum, b) => sum + b.length,
-      0
+      0,
     );
     // Skip empty sections — changesets injects ### Patch/Minor/Major Changes
     // wrapper headings that have no bullets when using a verbatim formatter.

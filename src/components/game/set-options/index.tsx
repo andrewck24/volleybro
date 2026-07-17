@@ -2,6 +2,7 @@
 import { SetOptionsPanel } from "@/components/game/set-options/panel";
 import { LineupCourt } from "@/components/team/lineup/court";
 import {
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -34,12 +35,14 @@ export const SetOptions = ({
         <DialogTitle className="pb-2 text-center font-medium">
           第 {setIndex + 1} 局設定
         </DialogTitle>
-        <DialogDescription className="sr-only">
+        <DialogDescription srOnly>
           設定第 {setIndex + 1} 局的陣容
         </DialogDescription>
       </DialogHeader>
-      <LineupCourt players={game?.teams.home.players ?? []} />
-      <SetOptionsPanel gameId={gameId} />
+      <DialogBody>
+        <LineupCourt players={game?.teams.home.players ?? []} />
+        <SetOptionsPanel gameId={gameId} />
+      </DialogBody>
     </DialogContent>
   );
 };

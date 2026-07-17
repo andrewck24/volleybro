@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  DialogBody,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -79,6 +80,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     const substitutes = getPlayerData("substitutes");
     return starting
       .concat(liberos, substitutes)
+      .filter((player) => player.id)
       .sort(
         (a: { number: number }, b: { number: number }) => a.number - b.number,
       );
@@ -123,58 +125,58 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
 
   if (isTeamLoading || isPlayersLoading) {
     return (
-      <>
-        <DialogHeader>
-          <DialogTitle className="h-5 w-25 animate-pulse rounded-md bg-muted" />
-          <DialogDescription className="h-5 w-60 animate-pulse rounded-md bg-muted" />
-        </DialogHeader>
-      </>
+      <DialogHeader>
+        <DialogTitle className="h-5 w-25 animate-pulse rounded-md bg-muted" />
+        <DialogDescription className="h-5 w-60 animate-pulse rounded-md bg-muted" />
+      </DialogHeader>
     );
   }
 
   return (
     <>
       {!view ? (
-        <div className="main-view flex h-full w-full flex-col items-start justify-center gap-2 bg-card">
+        <>
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
               編輯賽事基本資訊、確認陣容後點選「創建賽事紀錄」。
             </DialogDescription>
           </DialogHeader>
-          <Card className="w-full overflow-y-auto px-0 shadow-none">
-            <CardHeader>
-              <CardTitle className="text-lg leading-0">
-                1. 編輯賽事資訊
-              </CardTitle>
-            </CardHeader>
-            <MatchInfo info={info} onClick={() => handleViewChange("form")} />
-            <CardHeader>
-              <CardTitle className="pt-2 text-lg leading-0">
-                2. 確認出賽名單
-              </CardTitle>
-            </CardHeader>
-            <CardHeader>
-              <CardTitle>
-                陣容配置 {lineupIndex + 1}
-                <CardBtnGroup>
-                  {team?.lineups.map((_, index) => (
-                    <Button
-                      key={index}
-                      variant={lineupIndex === index ? "default" : "outline"}
-                      size="icon"
-                      onClick={() => setLineupIndex(index)}
-                      className="h-8 w-8 text-[1.25rem]"
-                    >
-                      {index + 1}
-                    </Button>
-                  ))}
-                </CardBtnGroup>
-              </CardTitle>
-            </CardHeader>
-            <RosterList roster={roster} />
-          </Card>
-          <DialogFooter className="flex w-full flex-col">
+          <DialogBody>
+            <Card className="shadow-none">
+              <CardHeader>
+                <CardTitle className="text-lg leading-0">
+                  1. 編輯賽事資訊
+                </CardTitle>
+              </CardHeader>
+              <MatchInfo info={info} onClick={() => handleViewChange("form")} />
+              <CardHeader>
+                <CardTitle className="pt-2 text-lg leading-0">
+                  2. 確認出賽名單
+                </CardTitle>
+              </CardHeader>
+              <CardHeader>
+                <CardTitle>
+                  陣容配置 {lineupIndex + 1}
+                  <CardBtnGroup>
+                    {team?.lineups.map((_, index) => (
+                      <Button
+                        key={index}
+                        variant={lineupIndex === index ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => setLineupIndex(index)}
+                        className="h-8 w-8 text-[1.25rem]"
+                      >
+                        {index + 1}
+                      </Button>
+                    ))}
+                  </CardBtnGroup>
+                </CardTitle>
+              </CardHeader>
+              <RosterList roster={roster} />
+            </Card>
+          </DialogBody>
+          <DialogFooter>
             <DialogClose asChild>
               <Button size="lg" onClick={createGame}>
                 創建賽事紀錄
@@ -182,9 +184,9 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
               </Button>
             </DialogClose>
           </DialogFooter>
-        </div>
+        </>
       ) : (
-        <div className="sub-view flex h-full w-full flex-col items-start justify-center gap-2 bg-card">
+        <>
           <DialogHeader>
             <DialogTitle>
               <Button
@@ -200,12 +202,14 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
               輸入賽事、隊伍等資訊，稍後仍可以在「賽事紀錄頁面」中修改。
             </DialogDescription>
           </DialogHeader>
-          <MatchInfoForm
-            info={info}
-            setInfo={setInfo}
-            handleViewChange={handleViewChange}
-          />
-        </div>
+          <DialogBody>
+            <MatchInfoForm
+              info={info}
+              setInfo={setInfo}
+              handleViewChange={handleViewChange}
+            />
+          </DialogBody>
+        </>
       )}
     </>
   );

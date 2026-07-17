@@ -121,8 +121,8 @@ export const useTeam = (
   fetcher = defaultFetcher,
   options = {},
 ) => {
-  const key = `/api/teams/${teamId}`;
-  const hasCache = useHasCache(key);
+  const key = teamId ? `/api/teams/${teamId}` : null;
+  const hasCache = useHasCache(key ?? "");
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     TeamView,
     ApiClientError
@@ -140,8 +140,8 @@ export const useTeamPlayers = (
   fetcher = defaultFetcher,
   options = {},
 ) => {
-  const key = `/api/teams/${teamId}/players`;
-  const hasCache = useHasCache(key);
+  const key = teamId ? `/api/teams/${teamId}/players` : null;
+  const hasCache = useHasCache(key ?? "");
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     PlayerView[],
     ApiClientError

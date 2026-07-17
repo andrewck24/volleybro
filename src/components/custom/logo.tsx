@@ -1,19 +1,13 @@
-import Image from "next/image";
+import { LogoType } from "@/components/brand";
 import { cn } from "@/lib/utils";
 
 export const Logo = ({ className }: { className?: string }) => (
   <div
     className={cn(
-      "flex items-center justify-center flex-1 w-full h-auto",
-      className
+      "flex h-auto w-full flex-1 items-center justify-center",
+      className,
     )}
   >
-    <Image
-      src="/logo.svg"
-      alt="VolleyBro"
-      width={200}
-      height={50.39}
-      priority={true}
-    />
+    <LogoType className="h-12.5 w-auto" />
   </div>
 );

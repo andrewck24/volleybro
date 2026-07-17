@@ -36,9 +36,7 @@ export const Positions = () => {
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const { list, zone } = status.editingMember;
   const activeList = (list || "starting") as
-    | "starting"
-    | "liberos"
-    | "substitutes";
+    "starting" | "liberos" | "substitutes";
   const toggledPosition =
     zone != null
       ? lineups[status.lineupIndex][activeList][zone - 1]?.position

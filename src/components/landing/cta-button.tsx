@@ -2,6 +2,7 @@
 import { Button, Link, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
@@ -11,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { isStandalone } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import {
@@ -27,10 +29,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-interface NavigatorStandalone extends Navigator {
-  standalone?: boolean;
-}
-
 export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
@@ -38,12 +36,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   const [platform] = useState<Platform>(() =>
     typeof window !== "undefined" ? checkPlatform() : "mobile",
   );
-  const [isStandalone] = useState<boolean>(() =>
-    typeof window !== "undefined"
-      ? "standalone" in window.navigator &&
-        (window.navigator as NavigatorStandalone).standalone === true
-      : false,
-  );
+  const [isPwa] = useState<boolean>(() => isStandalone());
   const mounted = useHydrated();
 
   useEffect(() => {
@@ -97,7 +90,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
   }
 
   // 如果已經以 PWA 模式運行，不顯示安裝按鈕
-  if (isStandalone || platform === "desktop") {
+  if (isPwa || platform === "desktop") {
     return (
       <Link
         href="/home"
@@ -161,19 +154,21 @@ const IOSInstallInstruction = () => {
           透過以下步驟將此應用程式安裝到您的 iOS 裝置主頁面
         </DialogDescription>
       </DialogHeader>
-      <ul className="space-y-2 text-sm">
-        <li className="flex items-center">
-          <span className="w-4">1.</span>
-          點擊下方的分享
-          <RiShare2Line className="inline-block size-5" />
-          按鈕
-        </li>
-        <li className="flex items-start">
-          <span className="w-4">2.</span>
-          向下滑動並選擇「加入主畫面
-          <RiAddBoxLine className="inline-block size-5" />」
-        </li>
-      </ul>
+      <DialogBody>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-center">
+            <span className="w-4">1.</span>
+            點擊下方的分享
+            <RiShare2Line className="inline-block size-5" />
+            按鈕
+          </li>
+          <li className="flex items-start">
+            <span className="w-4">2.</span>
+            向下滑動並選擇「加入主畫面
+            <RiAddBoxLine className="inline-block size-5" />」
+          </li>
+        </ul>
+      </DialogBody>
       <DialogFooter>
         <DialogClose asChild>
           <Button variant="outline">

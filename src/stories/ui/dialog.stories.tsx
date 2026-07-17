@@ -1,6 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/nextjs";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -8,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import type { Meta, StoryObj } from "@storybook/nextjs";
 
 const meta = {
   title: "Design System/Molecules/Dialog",
@@ -29,9 +30,11 @@ export const Default: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Title</DialogTitle>
-          <DialogDescription>This is a description text</DialogDescription>
+          <DialogDescription srOnly>
+            This is a visually hidden description for screen readers
+          </DialogDescription>
         </DialogHeader>
-        <div className="py-4">This is the main content area of the dialog</div>
+        <DialogBody>This is the main content area of the dialog</DialogBody>
         <DialogFooter>
           <Button variant="secondary">Cancel</Button>
           <Button>Confirm</Button>
@@ -54,7 +57,7 @@ export const Large: Story = {
             This is an example of a full-screen dialog
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">More content can be placed here</div>
+        <DialogBody>More content can be placed here</DialogBody>
         <DialogFooter>
           <Button variant="secondary">Cancel</Button>
           <Button>Confirm</Button>
@@ -73,18 +76,20 @@ export const LongContent: Story = {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Terms of Service</DialogTitle>
-          <DialogDescription>Please review the following terms</DialogDescription>
+          <DialogDescription>
+            Please review the following terms
+          </DialogDescription>
         </DialogHeader>
-        <div className="max-h-[300px] overflow-y-auto py-4 text-sm leading-relaxed">
+        <DialogBody className="text-sm leading-relaxed">
           {Array.from({ length: 10 }, (_, i) => (
             <p key={i} className="mb-4">
               Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim
-              ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-              aliquip ex ea commodo consequat.
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris
+              nisi ut aliquip ex ea commodo consequat.
             </p>
           ))}
-        </div>
+        </DialogBody>
         <DialogFooter>
           <Button variant="secondary">Decline</Button>
           <Button>Accept</Button>

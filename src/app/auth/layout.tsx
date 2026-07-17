@@ -1,6 +1,9 @@
+import { BodyBackdrop } from "@/components/layout/body-backdrop";
+
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <main className="w-full h-full flex flex-col justify-end items-center gap-0 p-0 overflow-hidden overscroll-y-none bg-primary px-[5%]">
+    <main className="flex h-full w-full flex-col items-center justify-end gap-0 overflow-hidden overscroll-y-none bg-primary p-0 px-[5%]">
+      <BodyBackdrop color="var(--color-primary)" />
       {children}
     </main>
   );

@@ -53,15 +53,21 @@ const eslintConfig = defineConfig([
   // Override default ignores of eslint-config-next
   globalIgnores([
     // Default ignores
-    ".next/**",
-    "out/**",
-    "build/**",
+    ".agent/**",
+    ".agents/**",
+    ".claude/**",
+    // Build output, including nested apps (e.g. blueprint/.next)
+    "**/.next/**",
+    "**/out/**",
+    "**/build/**",
+    "**/.source/**", // Generated content types (fumadocs-mdx, e.g. blueprint/.source)
     "next-env.d.ts",
     // Project-specific ignores
-    "storybook-static/**",
+    "**/storybook-static/**",
     "coverage/**",
     "public/sw.js", // Generated service worker by @serwist/next
     "docs/archive/**", // Archived migration scripts
+    "docs/changes/archive/**", // Archived Spectra changes (incl. migration scripts)
     "openspec/changes/archive/**", // Archived change proposals
   ]),
 ]);

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spec · apple-splash</title>
+<style>
+:root{--bg:#0f1115;--fg:#e6e8ee;--mut:#9aa0ad;--card:#1a1d24;--line:#2a2f3a;--add:#2f9e44;--g:#7aa2ff}
+@media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1a1d24;--mut:#5a6172;--card:#fff;--line:#e2e5ea;--g:#3b5bdb}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.6 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+main{max-width:820px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:21px;margin:0 0 2px}.kicker{color:var(--mut);font-size:13px;margin:0 0 16px}
+.req{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.req h2{font-size:15px;margin:0 0 4px;display:flex;gap:8px;align-items:center}
+.tag{font-size:11px;font-weight:600;border-radius:4px;padding:1px 7px;border:1px solid var(--add);color:var(--add)}
+.scn{border-left:3px solid var(--line);padding:2px 0 2px 12px;margin:10px 0}
+.scn .name{font-weight:600;font-size:13.5px}
+.gwt{font-family:ui-monospace,monospace;font-size:12.5px;margin:4px 0 0}
+.gwt b{color:var(--g)}
+.ex{color:var(--mut);font-size:12.5px;margin-top:4px}
+.filter{margin:4px 0 8px}input{padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);width:100%}
+</style>
+</head>
+<body>
+<main>
+  <h1>apple-splash</h1>
+  <p class="kicker">Spec delta · <span class="tag">ADDED</span> 4 requirements · change <code>apple-splash-dynamic</code></p>
+  <div class="filter"><input id="f" type="search" placeholder="Filter scenarios…" aria-label="Filter scenarios"></div>
+
+  <section class="req" data-t="dynamically generated launch screen render size 404">
+    <h2><span class="tag">ADDED</span> Dynamically generated launch screen</h2>
+    <p>The system SHALL expose a route that renders a launch screen as a PNG at an exact pixel size from the request, so one handler serves every device size without stored files.</p>
+    <div class="scn"><div class="name">Render at the requested device size</div>
+      <p class="gwt"><b>WHEN</b> requested with a width/height encoding a supported device’s exact resolution<br>
+      <b>THEN</b> the response SHALL be a PNG of exactly that width and height<br>
+      <b>AND</b> it SHALL render the “V” mark centered on a <code>--primary</code> background</p>
+      <p class="ex">Example — iPhone 15 Pro Max: GIVEN 1290×2796, WHEN requested for 1290×2796, THEN the PNG is exactly 1290×2796.</p>
+    </div>
+    <div class="scn"><div class="name">Reject an unsupported size</div>
+      <p class="gwt"><b>WHEN</b> requested with a size that is not a registered device resolution<br>
+      <b>THEN</b> the system SHALL respond 404 and SHALL NOT return an image</p>
+    </div>
+  </section>
+
+  <section class=”req” data-t=”v mark composition svg path font color”>
+    <h2><span class=”tag”>ADDED</span> V mark composition</h2>
+    <p>The launch screen SHALL render the “V” as two filled SVG path arms extracted from the Saira Stencil One font, independent of any external image asset or runtime font dependency.</p>
+    <div class=”scn”><div class=”name”>Mark colors and shape</div>
+      <p class=”gwt”><b>WHEN</b> the launch screen is rendered<br>
+      <b>THEN</b> the left arm SHALL be <code>#F6F4F5</code> and the right arm <code>#FC7A56</code><br>
+      <b>AND</b> the mark SHALL be inline SVG paths with hardcoded glyph coordinates, not a raster file or runtime font load<br>
+      <b>AND</b> the SVG SHALL be sized to 25% of the shorter device dimension</p>
+    </div>
+  </section>
+
+  <section class="req" data-t="per-device startup-image registration layout media coverage">
+    <h2><span class="tag">ADDED</span> Per-device startup-image registration</h2>
+    <p>The app root layout SHALL register one startup image per supported device configuration, each pairing the device <code>media</code> query with the route URL for that device’s exact size.</p>
+    <div class="scn"><div class="name">Registration points at the route</div>
+      <p class="gwt"><b>WHEN</b> the document head is produced<br>
+      <b>THEN</b> every <code>apple-touch-startup-image</code> entry SHALL reference the route with the exact size<br>
+      <b>AND</b> none SHALL reference a file under the public <code>apple-splash</code> directory</p>
+    </div>
+    <div class="scn"><div class="name">Device coverage spans current iPhone and iPad</div>
+      <p class="gwt"><b>WHEN</b> the startup images are registered<br>
+      <b>THEN</b> the set SHALL cover iPhone through the iPhone 17 generation (incl. iPhone Air) and common iPad sizes<br>
+      <b>AND</b> every previously covered configuration SHALL remain covered</p>
+    </div>
+  </section>
+
+  <section class="req" data-t="no stored splash assets removed directory">
+    <h2><span class="tag">ADDED</span> No stored splash assets</h2>
+    <p>Stored Apple splash PNG files SHALL NOT be served by the application.</p>
+    <div class="scn"><div class="name">Static splash directory removed</div>
+      <p class="gwt"><b>WHEN</b> the application is built<br>
+      <b>THEN</b> the public <code>apple-splash</code> directory SHALL NOT contain pre-rendered splash PNGs</p>
+    </div>
+  </section>
+</main>
+<script>
+f.addEventListener("input",e=>{const q=e.target.value.toLowerCase();
+for(const r of document.querySelectorAll(".req"))r.style.display=r.dataset.t.includes(q)||q===""?"":"none";});
+</script>
+</body>
+</html>

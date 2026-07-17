@@ -3,6 +3,7 @@
 import { RoleSelect } from "@/components/team/role-select";
 import {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -144,12 +145,12 @@ export function MembershipSection({
                     移除後該成員將無法繼續使用隊伍相關功能。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {removeError && (
+                  <AlertDialogBody>
+                    <p className="text-sm text-destructive">{removeError}</p>
+                  </AlertDialogBody>
+                )}
                 <AlertDialogFooter>
-                  {removeError && (
-                    <p className="w-full text-sm text-destructive">
-                      {removeError}
-                    </p>
-                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
                     variant="destructive"
@@ -195,12 +196,12 @@ export function MembershipSection({
                     移轉後你將被降級為管理員，{player.name} 將成為新隊長。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                {transferError && (
+                  <AlertDialogBody>
+                    <p className="text-sm text-destructive">{transferError}</p>
+                  </AlertDialogBody>
+                )}
                 <AlertDialogFooter>
-                  {transferError && (
-                    <p className="w-full text-sm text-destructive">
-                      {transferError}
-                    </p>
-                  )}
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
                     variant="destructive"
