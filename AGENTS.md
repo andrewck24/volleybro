@@ -106,6 +106,8 @@ A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to
 
 Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`. Native `[skip ci]` also works but skips ALL workflows including the Verify gate — prefer `[skip review]`.
 
+**Workflow edits only take effect after they reach `main`**: claude-code-action validates the PR's workflow file against the default branch and silently skips (a fast green "pass" with no comment) when they differ. After changing `claude-code-review.yml` on dev, expect no real reviews until the next dev→main release syncs it.
+
 **Apply the markers proactively when you author PRs or pushes** — don't wait to be asked. Title marker: release/sync PRs, changeset-only PRs, mechanical bumps, agent-workflow docs. Commit marker: pushes to an already-reviewed PR that only address the review itself or its description (PR-body edits landed as commits, comment/doc touch-ups, formatting). When a follow-up push changes logic, let review run.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.
