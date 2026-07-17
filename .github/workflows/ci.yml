@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # next build imports route modules while collecting page data, which
+      # validates this variable's presence; no real connection is made.
+      MONGODB_URI: mongodb://localhost:27017/ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # pnpm 11 requires Node >= 22.13 (engines is >=22)
+          node-version: 22
+          cache: "pnpm"
+
+      - run: pnpm install --frozen-lockfile
+
+      # format:check + typecheck (TS7 native via tsgo) + lint + test
+      - run: pnpm verify
+
+      - run: pnpm --filter blueprint test
+
+      - run: pnpm build
+
+      - run: pnpm --filter blueprint build
