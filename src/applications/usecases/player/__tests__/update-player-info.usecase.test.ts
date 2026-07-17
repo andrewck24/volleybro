@@ -5,7 +5,7 @@ import {
 } from "@/__tests__/helpers";
 import type { IUpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
 import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { Position } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

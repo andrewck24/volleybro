@@ -12,13 +12,13 @@ This project uses `@changesets/cli` with a custom verbatim formatter and a postp
 ## Bundled Resources
 
 | File | When to read |
-|------|-------------|
+| ------ | ------------- |
 | `body-format.md` | When writing or reviewing changeset body content (heading rules, domain sub-headings, bullet style, omission rules) |
 | `README.md` | When you need the full end-to-end release workflow (branching model, CLI steps, toolchain architecture) |
 
 ## When to Create a Changeset
 
-Create ONE changeset per openspec change, at `spectra:archive` time:
+Create ONE changeset per spectra change, at `spectra:archive` time:
 
 ```
 spectra:apply (implement) -> spectra:archive -> pnpm changeset -> commit
@@ -29,25 +29,25 @@ Skip the changeset if the change has zero user-visible impact (pure refactor, te
 ## CLI Quick Reference
 
 | Command | When | What it does |
-|---------|------|--------------|
+| --------- | ------ | -------------- |
 | `pnpm changeset` | After archive, on feat branch | Interactive: pick bump type, write body |
 | `pnpm changeset --empty` | CI requires changeset but no user impact | Creates empty changeset |
 | `pnpm changeset status` | Anytime | Shows pending changesets |
-| `pnpm release:version` | On main, after merge from dev | Bumps version, updates CHANGELOG.md, deletes consumed changesets |
+| `pnpm release:version` | Run by CI (changesets.yml) on main; manual fallback only | Bumps version, updates CHANGELOG.md, deletes consumed changesets |
 
 **`commit` is `false`** -- all commands leave changes unstaged. You must `git add && git commit` manually.
 
 ## Bump Type Selection
 
 | Type | When |
-|------|------|
+| ------ | ------ |
 | `patch` | Bug fixes, non-breaking improvements |
 | `minor` | New features, new APIs, backward-compatible additions |
 | `major` | Breaking changes (removed APIs, changed behavior, migration required) |
 
 When in doubt, prefer `minor` for features, `patch` for fixes.
 
-## Deriving Body from an OpenSpec Change
+## Deriving Body from a Spectra Change
 
 When writing the body at archive time, pull from the change's artifacts:
 
@@ -59,7 +59,7 @@ When writing the body at archive time, pull from the change's artifacts:
 ## Rationalization Table
 
 | Thought | Reality |
-|---------|---------|
+| --------- | --------- |
 | "I'll add an Internal Changes section for completeness" | Omit entirely. There is no Internal Changes type. |
 | "Minor Changes / Bug Fixes are clearer headings" | Use the exact headings in `body-format.md`. No others. |
 | "The bug fix is more informative with the root cause" | Describe the observable fix, not the implementation. |

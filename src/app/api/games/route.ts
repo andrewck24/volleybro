@@ -1,5 +1,4 @@
-import { ValidationError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { ValidationError, CommonReason } from "@/entities/errors";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { findGameSummariesController } from "@/interface/controllers/game/game-summary.controller";
 import { createGameController } from "@/interface/controllers/game/game.controller";

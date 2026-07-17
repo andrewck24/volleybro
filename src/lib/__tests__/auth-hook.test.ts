@@ -1,6 +1,5 @@
 import { createProfile } from "@/__tests__/helpers";
-import { TransientError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { TransientError, CommonReason } from "@/entities/errors";
 import { handleUserCreated } from "@/lib/auth-hook";
 
 // Mock the DI container dependencies

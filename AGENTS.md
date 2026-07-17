@@ -39,7 +39,7 @@ VolleyBro is a volleyball team management and match recording web application bu
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: Better Auth with Google OAuth
 - **Dependency Injection**: InversifyJS
-- **PWA**: @serwist/next (configurator mode) for Progressive Web App features
+- **PWA**: @serwist/turbopack (prerendered service-worker route) for Progressive Web App features
 - **Testing**: Jest, Storybook (to be refactored with optimal testing tools)
 
 ### Clean Architecture Layers
@@ -93,11 +93,21 @@ Components are organized by domain and purpose (features):
   - PR base branch: follow user-specified target; if unspecified and current branch is neither `main` nor `dev`, use `--base dev`.
 - For complex commits, include a body focused on **why**; "what" may be included as supporting context
 - Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
+- **Judgment-type deletions require discussion first**: when a cleanup tool (knip, dead-code audits) or your own analysis flags source files for deletion beyond the explicitly requested change scope, list the candidates with per-file rationale and get confirmation before deleting. "Unreferenced in the import graph" is not sufficient evidence by itself — files may be documented API contracts (see `design-tokens.ts`), aliases of live database collections, or reserved for planned features.
 - In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
 - Parked changes: automatically unpark and continue — no need to ask for confirmation
 
 ### Automated PR review
 
-A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. To skip it on low-review-value PRs (release PRs, changeset-only, mechanical dependency bumps), put `[skip review]` in the **PR title** — not a commit message. Because the marker lives in the title, every later push (`synchronize`) to that PR is skipped too. Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`.
+A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. Two skip granularities:
+
+- **Whole PR**: put `[skip review]` in the **PR title** (release PRs, changeset-only, mechanical dependency bumps) — every later push (`synchronize`) to that PR is skipped too.
+- **Single push**: put `[skip review]` in the **head commit message** to skip review for that push only — use it for low-value follow-ups (doc fixes, PR-body-driven tweaks) on an already-reviewed PR. Later pushes without the marker get reviewed normally.
+
+Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`. Native `[skip ci]` also works but skips ALL workflows including the Verify gate — prefer `[skip review]`.
+
+**Workflow edits only take effect after they reach `main`**: claude-code-action validates the PR's workflow file against the default branch and silently skips (a fast green "pass" with no comment) when they differ. After changing `claude-code-review.yml` on dev, expect no real reviews until the next dev→main release syncs it.
+
+**Apply the markers proactively when you author PRs or pushes** — don't wait to be asked. Title marker: release/sync PRs, changeset-only PRs, mechanical bumps, agent-workflow docs. Commit marker: pushes to an already-reviewed PR that only address the review itself or its description (PR-body edits landed as commits, comment/doc touch-ups, formatting). When a follow-up push changes logic, let review run.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.

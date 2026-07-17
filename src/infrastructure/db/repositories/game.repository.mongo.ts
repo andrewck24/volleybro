@@ -1,6 +1,5 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import { EntryType, type Game, type GameSummary } from "@/entities/game";
 import {
   GameDocument,

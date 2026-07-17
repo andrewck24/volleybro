@@ -13,6 +13,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Freeze every date-dependent aspect of the render: `selected` alone is not
+// enough — without `defaultMonth` the calendar opens on the real current
+// month, and without `today` the today-marker circles the real current day,
+// shifting one cell per day and tripping Chromatic's visual regression.
 const FIXED_DATE = new Date("2025-01-15");
 
 export const Default: Story = {
@@ -23,6 +27,8 @@ export const Default: Story = {
         mode="single"
         selected={date}
         onSelect={setDate}
+        defaultMonth={FIXED_DATE}
+        today={FIXED_DATE}
         className="rounded-md border"
       />
     );
@@ -37,6 +43,8 @@ export const Range: Story = {
         mode="range"
         selected={range}
         onSelect={setRange}
+        defaultMonth={FIXED_DATE}
+        today={FIXED_DATE}
         className="rounded-md border"
       />
     );
@@ -51,6 +59,8 @@ export const WithDisabledDates: Story = {
         mode="single"
         selected={date}
         onSelect={setDate}
+        defaultMonth={FIXED_DATE}
+        today={FIXED_DATE}
         disabled={{ dayOfWeek: [0, 6] }}
         className="rounded-md border"
       />

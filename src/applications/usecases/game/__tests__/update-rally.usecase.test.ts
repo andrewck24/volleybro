@@ -6,7 +6,7 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { EntryType, MoveType, Rally, TeamStatsClass } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

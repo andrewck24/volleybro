@@ -4,9 +4,9 @@ import {
   ConflictError,
   NotFoundError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";

@@ -3,7 +3,7 @@ import {
   NotFoundError,
   TransientError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
+} from "@/entities/errors";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
 
 describe("Repository error translation", () => {

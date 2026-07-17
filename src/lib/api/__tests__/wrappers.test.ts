@@ -2,8 +2,8 @@ import {
   ConflictError,
   NotFoundError,
   ValidationError,
-} from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+  AuthReason,
+} from "@/entities/errors";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
 import { z } from "zod";
 

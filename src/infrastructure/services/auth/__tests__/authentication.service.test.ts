@@ -1,5 +1,5 @@
 import { createMockUserRepository, createUser } from "@/__tests__/helpers";
-import { AuthenticationError } from "@/entities/errors/app-error";
+import { AuthenticationError } from "@/entities/errors";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 
 jest.mock("@/lib/auth", () => ({

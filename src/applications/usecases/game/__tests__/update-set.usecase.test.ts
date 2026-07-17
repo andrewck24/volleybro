@@ -6,7 +6,7 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { UpdateSetUseCase } from "@/applications/usecases/game/update-set.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { Set } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

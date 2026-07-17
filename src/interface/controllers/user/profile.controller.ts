@@ -11,8 +11,7 @@ import {
   type IUpdateProfileOutput,
 } from "@/applications/usecases/user/profile.usecase";
 import type { Profile } from "@/entities/profile";
-import { ValidationError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { ValidationError, CommonReason } from "@/entities/errors";
 import { z } from "zod";
 
 // ============ Controller Layer Validation Schemas ============

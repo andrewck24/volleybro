@@ -1,8 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { PlayerRole } from "@/entities/player";
-import { AuthorizationError } from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
