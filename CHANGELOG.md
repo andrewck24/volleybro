@@ -1,5 +1,55 @@
 # VolleyBro CHANGELOG
 
+## [0.14.0](https://github.com/andrewck24/volleybro/compare/v0.13.0...v0.14.0) 2026-07-17
+
+### Changed
+
+#### PWA
+
+- Generate Apple PWA splash screens on the fly so they always match the current brand color, and extend coverage from 9 to 15 devices through the iPhone 17 generation and common iPad sizes
+
+#### UI
+
+- Rework surface backgrounds into a three-layer elevation model (page, floating, card) for consistent depth across the app
+- Unify Dialog, AlertDialog, and Drawer onto a shared three-section layout (header, scrollable body, footer) with the scrollbar flush to the surface edge
+- Remove decorative rings from container surfaces; separation now comes from the elevation layers and overlay scrim
+
+### Added
+
+#### Team
+
+- Open team and player edit routes as dialogs within tab context, with a maximize button to expand to the full workspace page
+- Preserve in-progress form edits across the dialog-to-workspace transition and accidental navigation, and warn before leaving a form with unsaved changes
+
+#### Game
+
+- Add a three-step segmented progress bar to the recording input panel (player → our team → opponent), collapsing to a single step once an opponent error is selected; switch steps by tapping the bar or swiping, with forward navigation blocked until the current step is complete
+- Submit rallies from a redesigned Preview that mirrors the entry layout, showing the running score in three states (idle, undecided, decided) with a completion highlight on submit
+- Move the set Summary out of the Options dialog into a bottom drawer anchored to the Preview; each entry reveals swipe actions and taps to expand inline, showing who recorded it and when
+- Reflect the "last entry" rule in Summary actions: the latest rally offers edit and delete, earlier rallies offer edit and rewind-to-here
+
+#### Auth
+
+- Redirect to the sign-in page with a session-expiry notice when a request fails with 401, instead of leaving the user on a broken page
+
+#### Navigation
+
+- Keep each tab's scroll position and content mounted when switching tabs, so navigating away and back no longer resets the page
+- Render a collapsible sidebar navigation on desktop (≥768px) in place of the bottom bar
+- Tap the active tab to return it to its root route and scroll to the top, matching native iOS behavior
+- Animate tab switches with a directional slide in standalone PWA mode
+
+### Fixed
+
+#### API
+
+- Return `400 VALIDATION` instead of a `500` server error when a route receives a malformed ObjectId path parameter
+
+#### PWA
+
+- Show the correct backdrop behind translucent system chrome in standalone PWA mode, and extend overlays above the iOS safe-area inset so no gap shows at the top
+- Restore pull-to-refresh on the home and team tabs, which had stopped working after the tab-navigation change; the page now follows the pull gesture with a damped animation and only activates in standalone PWA mode
+
 ## [0.13.0](https://github.com/andrewck24/volleybro/compare/v0.12.1...v0.13.0) 2026-04-07
 
 ### Changed
