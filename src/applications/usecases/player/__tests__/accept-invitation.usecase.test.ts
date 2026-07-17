@@ -4,7 +4,7 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
-} from "@/entities/errors/app-error";
+} from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("AcceptInvitationUseCase", () => {

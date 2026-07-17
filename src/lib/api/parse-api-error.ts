@@ -1,4 +1,4 @@
-import type { AppErrorCode } from "@/entities/errors/app-error";
+import { type AppErrorCode } from "@/entities/errors";
 
 export interface ApiError {
   code: AppErrorCode;

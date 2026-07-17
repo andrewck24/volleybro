@@ -6,7 +6,7 @@ import {
   ConflictError,
   NotFoundError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
+} from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

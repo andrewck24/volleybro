@@ -4,8 +4,8 @@ import {
   NotFoundError,
   TransientError,
   UnexpectedError,
-} from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+  CommonReason,
+} from "@/entities/errors";
 
 const NETWORK_ERROR_NAMES = new Set([
   "MongoNetworkError",

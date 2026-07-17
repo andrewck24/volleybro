@@ -22,8 +22,7 @@ import type {
   IUpdatePlayerInfoInput,
   IUpdatePlayerInfoUseCase,
 } from "@/applications/usecases/player/update-player-info.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+import { NotFoundError, PlayerReason } from "@/entities/errors";
 import type { Player } from "@/entities/player";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";

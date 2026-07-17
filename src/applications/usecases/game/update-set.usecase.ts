@@ -1,8 +1,7 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { GameReason } from "@/entities/errors/reasons/game";
+import { NotFoundError, GameReason } from "@/entities/errors";
 import { type Game, type Set } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";

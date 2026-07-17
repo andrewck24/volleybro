@@ -2,8 +2,7 @@
  * GET /api/users/{userId}/players - Retrieve all teams/players for a user
  */
 
-import { AuthorizationError } from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { AuthorizationError, AuthReason } from "@/entities/errors";
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { withAuth } from "@/lib/api/wrappers";
 import { PlayerSchema } from "@/lib/validations/player";

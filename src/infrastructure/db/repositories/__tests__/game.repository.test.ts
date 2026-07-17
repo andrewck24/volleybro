@@ -1,5 +1,5 @@
 import { mockDoc, mockExec } from "@/__tests__/helpers";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { EntryType, MoveType, Side, type Game } from "@/entities/game";
 import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";

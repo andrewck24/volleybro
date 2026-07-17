@@ -1,6 +1,6 @@
 import { createMockUserRepository, createUser } from "@/__tests__/helpers";
 import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
-import { NotFoundError, ValidationError } from "@/entities/errors/app-error";
+import { NotFoundError, ValidationError } from "@/entities/errors";
 
 describe("SearchUserUseCase", () => {
   let useCase: SearchUserUseCase;

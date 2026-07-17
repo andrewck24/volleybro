@@ -1,4 +1,4 @@
-import { ValidationError } from "@/entities/errors/app-error";
+import { ValidationError } from "@/entities/errors";
 import {
   Player,
   PlayerRole,

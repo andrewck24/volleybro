@@ -1,5 +1,4 @@
-import { AuthenticationError } from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { AuthenticationError, AuthReason } from "@/entities/errors";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { createTeamController } from "@/interface/controllers/team/team.controller";
 import { withErrorHandler } from "@/lib/api/wrappers";

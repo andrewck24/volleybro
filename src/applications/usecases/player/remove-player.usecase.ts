@@ -1,9 +1,12 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError, UnexpectedError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+import {
+  NotFoundError,
+  UnexpectedError,
+  CommonReason,
+  PlayerReason,
+} from "@/entities/errors";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 

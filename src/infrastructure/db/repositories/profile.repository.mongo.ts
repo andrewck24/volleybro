@@ -1,6 +1,5 @@
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import type { Profile } from "@/entities/profile";
 import {
   Profile as ProfileModel,

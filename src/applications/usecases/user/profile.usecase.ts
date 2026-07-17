@@ -1,6 +1,5 @@
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
-import { ValidationError } from "@/entities/errors/app-error";
-import { ProfileReason } from "@/entities/errors/reasons/profile";
+import { ValidationError, ProfileReason } from "@/entities/errors";
 import type { Profile } from "@/entities/profile";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";

@@ -1,5 +1,5 @@
 import { createPlayer } from "@/__tests__/helpers";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { PlayerRepositoryImpl } from "@/infrastructure/db/repositories/player.repository.mongo";

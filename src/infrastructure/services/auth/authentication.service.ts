@@ -1,7 +1,6 @@
 import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
-import { AuthenticationError } from "@/entities/errors/app-error";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { AuthenticationError, AuthReason } from "@/entities/errors";
 import { User } from "@/entities/user";
 import { TYPES } from "@/infrastructure/di/types";
 import { auth } from "@/lib/auth";

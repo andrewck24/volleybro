@@ -14,8 +14,7 @@
  * - undefined: pure player without team and team role
  */
 
-import { ValidationError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { ValidationError, CommonReason } from "@/entities/errors";
 
 export enum PlayerRole {
   MEMBER = "MEMBER",

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { ValidationError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { ValidationError, CommonReason } from "@/entities/errors";
 import { assertObjectId } from "@/lib/api/guards";
 
 describe("assertObjectId", () => {

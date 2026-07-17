@@ -1,3 +1,3 @@
-import type { AppError } from "@/entities/errors/app-error";
+import { type AppError } from "@/entities/errors";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError };

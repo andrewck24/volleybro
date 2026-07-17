@@ -5,8 +5,7 @@ import {
   getProfileController,
   updateProfileController,
 } from "@/interface/controllers/user/profile.controller";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { ProfileReason } from "@/entities/errors/reasons/profile";
+import { NotFoundError, ProfileReason } from "@/entities/errors";
 import { NextResponse, type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";

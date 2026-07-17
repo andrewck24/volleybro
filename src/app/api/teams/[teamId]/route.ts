@@ -1,6 +1,5 @@
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { NotFoundError } from "@/entities/errors/app-error";
-import { CommonReason } from "@/entities/errors/reasons/common";
+import { NotFoundError, CommonReason } from "@/entities/errors";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";

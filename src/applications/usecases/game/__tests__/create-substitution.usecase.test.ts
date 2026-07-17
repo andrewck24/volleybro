@@ -6,7 +6,7 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { Substitution } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

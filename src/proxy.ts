@@ -1,5 +1,5 @@
 import { getSessionCookie } from "better-auth/cookies";
-import { AuthReason } from "@/entities/errors/reasons/auth";
+import { AuthReason } from "@/entities/errors";
 import { auth } from "@/lib/auth";
 import {
   apiAuthPrefix,

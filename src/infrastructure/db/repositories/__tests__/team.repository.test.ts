@@ -1,5 +1,5 @@
 import { mockDoc, mockExec } from "@/__tests__/helpers";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { Position, type Lineup } from "@/entities/team";
 import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TeamRepositoryImpl } from "@/infrastructure/db/repositories/team.repository.mongo";

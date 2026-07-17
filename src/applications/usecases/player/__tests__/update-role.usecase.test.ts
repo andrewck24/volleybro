@@ -5,7 +5,7 @@ import {
 } from "@/__tests__/helpers";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 

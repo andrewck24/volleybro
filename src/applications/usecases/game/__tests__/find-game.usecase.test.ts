@@ -5,7 +5,7 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
-import { NotFoundError } from "@/entities/errors/app-error";
+import { NotFoundError } from "@/entities/errors";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockGameRepository: ReturnType<typeof createMockGameRepository>;

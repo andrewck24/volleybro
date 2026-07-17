@@ -1,5 +1,5 @@
 import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
-import { AuthorizationError } from "@/entities/errors/app-error";
+import { AuthorizationError } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 

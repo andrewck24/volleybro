@@ -3,8 +3,8 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
-} from "@/entities/errors/app-error";
-import { PlayerReason } from "@/entities/errors/reasons/player";
+  PlayerReason,
+} from "@/entities/errors";
 import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
