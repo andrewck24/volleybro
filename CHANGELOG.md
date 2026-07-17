@@ -1,5 +1,14 @@
 # VolleyBro CHANGELOG
 
+## [0.14.1](https://github.com/andrewck24/volleybro/compare/v0.14.0...v0.14.1) 2026-07-17
+
+### Changed
+
+#### PWA
+
+- Serve the service worker from `/serwist/sw.js`; existing installs pick up the new worker automatically on their next online visit
+- Cache navigation page shells on first visit instead of at install time, so a freshly installed app reaches a page offline only after visiting it online once
+
 ## [0.14.0](https://github.com/andrewck24/volleybro/compare/v0.13.0...v0.14.0) 2026-07-17
 
 ### Changed
