@@ -48,11 +48,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version=$(node -p "require('./package.json').version")
-          if pr=$(gh pr create --base dev --head main \
-            --title "chore: sync v${version} release back to dev [skip review]" \
-            --body "Automated sync of the v${version} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev." 2>&1); then
-            gh pr merge --merge "$pr" \
-              || echo "::warning::Could not auto-merge the sync PR (conflict or merge restriction); merge it manually: $pr"
-          else
-            echo "::warning::Could not open the sync PR (possibly already open, or nothing to sync): $pr"
-          fi
+          # Server-side merge of main into dev -- no PR, no local git state.
+          # 409 on conflict, 4xx if a ruleset blocks the push; both degrade
+          # to a warning for manual handling.
+          gh api "repos/${{ github.repository }}/merges" \
+            -f base=dev -f head=main \
+            -f commit_message="chore: sync v${version} release back to dev [skip review]" \
+            || echo "::warning::Could not merge main into dev (conflict or ruleset restriction); sync manually."
