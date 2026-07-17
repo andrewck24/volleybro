@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignore": ["docs/**"],
+  "ignore": ["docs/**", "src/lib/design-tokens.ts"],
   "rules": {
     "exports": "warn",
     "types": "warn",
