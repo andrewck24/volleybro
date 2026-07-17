@@ -3,7 +3,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "@serwist/next/typings", "reflect-metadata"],
+    "types": ["node", "reflect-metadata"],
     "lib": ["dom", "esnext", "webworker"],
     "allowJs": true,
     "skipLibCheck": true,

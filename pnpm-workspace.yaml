@@ -3,6 +3,7 @@ packages:
   - blueprint
 
 allowBuilds:
+  "@swc/core": false
   core-js-pure: true
   esbuild: true
   sharp: true
