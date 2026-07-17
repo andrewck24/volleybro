@@ -7,8 +7,9 @@ This document describes the end-to-end flow from code change to published releas
 ```text
 feat/xxx ──PR──> dev ──PR──> main
                                |
-                           release:version
-                           commit + tag + push
+                     Changesets workflow (CI):
+                     version PR -> tag + GitHub Release
+                     -> sync PR back to dev
 ```
 
 - **feat/fix branches**: where implementation happens (spectra:apply)
@@ -41,16 +42,17 @@ feat/xxx ──PR──> dev ──PR──> main
 │  10. Merge -- all pending changesets enter main             │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│  RELEASE (on main)                                          │
+│  RELEASE (automated by .github/workflows/changesets.yml)    │
 │                                                             │
-│  11. pnpm release:version                                   │
-│      - changeset version  (bump package.json, update        │
-│        CHANGELOG.md, delete consumed .changeset/*.md)       │
-│      - node changelog-postprocess.cjs  (fix headers,        │
-│        merge duplicate sections)                            │
-│  12. git add -A && git commit -m "release: <version>"       │
-│  13. git tag v<version>                                     │
-│  14. git push && git push --tags                            │
+│  11. Push to main triggers changesets/action: it runs       │
+│      pnpm release:version on a changeset-release/main       │
+│      branch and opens the version PR                        │
+│      "release: update versions [skip review]"               │
+│  12. A human merges the version PR                          │
+│  13. The next workflow run tags v<version>, creates the     │
+│      GitHub Release from CHANGELOG.md, then opens AND       │
+│      merges the sync PR "chore: sync v<version> release     │
+│      back to dev [skip review]" (left open on conflict)     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -70,7 +72,7 @@ The interactive CLI prompts for:
 1. **Bump type** -- patch / minor / major
 2. **Summary** -- this becomes the changeset body
 
-Write the body following the format in `SKILL.md`. Derive content from the change's `proposal.md` and `tasks.md`.
+Write the body following the format in `body-format.md`. Derive content from the change's `proposal.md` and `tasks.md`.
 
 The command creates `.changeset/<random-id>.md` with frontmatter (package + bump type) and your body.
 
@@ -89,32 +91,32 @@ Standard PR flow. Reviewers should check the changeset body for:
 
 - Correct bump type
 - User-facing language (not implementation details)
-- Correct `###` headings per SKILL.md
+- Correct `###` headings per body-format.md
 
 ### Steps 8-10: PR to main
 
 When dev has accumulated enough changes for a release, create PR from dev to main. Multiple changeset files may be present -- `changeset version` will merge them into a single version bump.
 
-### Step 11: Running release:version
+### Steps 11-13: Automated Release (Changesets workflow)
 
-On main, after merge:
+`.github/workflows/changesets.yml` handles everything after the dev→main merge:
+
+1. **Version PR** — the push to main triggers `changesets/action`, which runs `pnpm release:version` on a `changeset-release/main` branch and opens `release: update versions [skip review]`. `release:version` runs two things sequentially:
+   - `changeset version` -- reads all `.changeset/*.md` files, bumps `package.json` version, appends entries to `CHANGELOG.md`, deletes consumed changeset files
+   - `node .changeset/changelog-postprocess.cjs` -- reformats version headers to `## [X.Y.Z](compare-link) YYYY-MM-DD` and merges duplicate `###` headings
+2. **Human merges the version PR** (review the CHANGELOG diff first — this is the last edit point).
+3. **Tag + Release + sync** — the next workflow run executes `pnpm release:publish` (`changeset tag`, idempotent: existing tags are skipped), pushes the tag, creates the GitHub Release from the CHANGELOG entry, then opens and merges `chore: sync v<version> release back to dev [skip review]`. On a merge conflict the sync PR is left open for a human.
+
+**Manual fallback** (workflow broken or offline):
 
 ```bash
+# on main, after merge from dev
 pnpm release:version
-```
-
-This runs two things sequentially:
-
-1. `changeset version` -- reads all `.changeset/*.md` files, bumps `package.json` version, appends entries to `CHANGELOG.md`, deletes consumed changeset files
-2. `node .changeset/changelog-postprocess.cjs` -- reformats version headers to `## [X.Y.Z](compare-link) YYYY-MM-DD` and merges duplicate `###` headings
-
-### Steps 12-14: Commit, Tag, Push
-
-```bash
 git add -A
 git commit -m "release: $(node -p \"require('./package.json').version\")"
 git tag "v$(node -p \"require('./package.json').version\")"
 git push && git push --tags
+# then sync main back into dev (PR or direct merge)
 ```
 
 ## Toolchain Architecture
