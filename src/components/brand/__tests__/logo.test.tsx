@@ -1,4 +1,3 @@
-import type { ReactElement, ReactNode } from "react";
 import {
   LogoSymbol,
   V_ARM_LEFT,
@@ -15,31 +14,7 @@ import {
   TYPE_LETTERS_SHIFT,
   TYPE_VIEWBOX,
 } from "@/components/brand/logo-type";
-
-type SvgLikeElement = ReactElement<{
-  children?: ReactNode;
-  viewBox?: string;
-  transform?: string;
-  fill?: string;
-  d?: string;
-}>;
-
-/** Collect every element of a given `type` (e.g. "svg", "path", "g") from the tree. */
-function collect(
-  node: ReactNode,
-  type: string,
-  found: SvgLikeElement[] = [],
-): SvgLikeElement[] {
-  if (!node || typeof node !== "object") return found;
-  if (Array.isArray(node)) {
-    node.forEach((child) => collect(child, type, found));
-    return found;
-  }
-  const el = node as SvgLikeElement;
-  if (el.type === type) found.push(el);
-  if (el.props?.children) collect(el.props.children, type, found);
-  return found;
-}
+import { collect, type SvgLikeElement } from "@/test-utils/svg-tree";
 
 describe("LogoSymbol", () => {
   it("renders the two v-arm paths in the exported viewBox", () => {

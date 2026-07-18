@@ -1,12 +1,5 @@
-import type { ReactElement, ReactNode } from "react";
-
-type SvgLikeElement = ReactElement<{
-  children?: ReactNode;
-  viewBox?: string;
-  width?: number;
-  height?: number;
-  d?: string;
-}>;
+import type { ReactElement } from "react";
+import { collect } from "@/test-utils/svg-tree";
 
 let lastElem: ReactElement | undefined;
 
@@ -39,23 +32,6 @@ import {
 
 function makeParams(size: string) {
   return { params: Promise.resolve({ size }) };
-}
-
-/** Collect every element of a given `type` (e.g. "svg", "path") from the tree. */
-function collect(
-  node: ReactNode,
-  type: string,
-  found: SvgLikeElement[] = [],
-): SvgLikeElement[] {
-  if (!node || typeof node !== "object") return found;
-  if (Array.isArray(node)) {
-    node.forEach((child) => collect(child, type, found));
-    return found;
-  }
-  const el = node as SvgLikeElement;
-  if (el.type === type) found.push(el);
-  if (el.props?.children) collect(el.props.children, type, found);
-  return found;
 }
 
 describe("GET /apple-splash/[size]", () => {

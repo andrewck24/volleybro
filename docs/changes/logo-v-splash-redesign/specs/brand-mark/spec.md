@@ -8,7 +8,7 @@ The VolleyBro "V" mark SHALL be the lowercase `v` glyph of the variable Saira St
 
 - **WHEN** the standalone logo-symbol is rendered
 - **THEN** the glyph SHALL be centered in a square canvas
-- **AND** the glyph's width-to-height aspect ratio SHALL be that of the font's lowercase `v` (531:510 in font units)
+- **AND** the glyph's width-to-height aspect ratio SHALL be that of the font's lowercase `v` at the brand weight (524:510 in font units at wght 700)
 
 #### Scenario: Wordmark alignment
 
