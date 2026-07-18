@@ -257,13 +257,16 @@ export const toc = [
 const SCREEN_SHORT_PX = 110;
 
 const SPLASH_PCTS = [15, 20, 25, 30];
-const PINNED_SPLASH_PCT = 20;
+const PINNED_SPLASH_PCT = 25;
 
 export default function Design() {
   const [weight, setWeight] = useState(DEFAULT_WEIGHT);
   const [splashPct, setSplashPct] = useState(PINNED_SPLASH_PCT);
   const data = WEIGHTS[weight];
-  const markPx = Math.round((splashPct / 100) * SCREEN_SHORT_PX);
+  // The percentage parameterizes only the iOS image we draw; Chrome fixes the
+  // icon size on the Android splash, so that frame ignores the selector.
+  const iosMarkPx = Math.round((splashPct / 100) * SCREEN_SHORT_PX);
+  const androidMarkPx = Math.round((PINNED_SPLASH_PCT / 100) * SCREEN_SHORT_PX);
   const wordmarkPx = Math.round(0.4 * SCREEN_SHORT_PX);
   return (
     <div>
@@ -359,8 +362,8 @@ export default function Design() {
         the app name text drawn by Chrome — that text is not stylable, so
         Android approximates the iOS layout rather than embedding logo-type. The
         size percentage below only parameterizes the iOS image; Chrome fixes the
-        icon size on the Android splash itself (the Android frame here reuses it
-        for visual comparison only).
+        icon size on the Android splash itself, so the Android frame does not
+        respond to the selector.
       </p>
       <div className="my-4 flex flex-wrap gap-2">
         {SPLASH_PCTS.map((p) => (
@@ -380,7 +383,7 @@ export default function Design() {
       </div>
       <div className="my-4 flex flex-wrap gap-6">
         <PhoneFrame label="iOS — apple-splash route">
-          <NewSymbol data={data} neutral={IVORY} sizePx={markPx} />
+          <NewSymbol data={data} neutral={IVORY} sizePx={iosMarkPx} />
           <NewType
             data={data}
             neutral={IVORY}
@@ -388,8 +391,8 @@ export default function Design() {
             className="absolute bottom-4"
           />
         </PhoneFrame>
-        <PhoneFrame label="Android — manifest splash">
-          <NewSymbol data={data} neutral={IVORY} sizePx={markPx} />
+        <PhoneFrame label="Android — manifest splash (fixed by Chrome)">
+          <NewSymbol data={data} neutral={IVORY} sizePx={androidMarkPx} />
           <span
             className="absolute bottom-4 text-[9px] font-medium"
             style={{ color: IVORY }}
