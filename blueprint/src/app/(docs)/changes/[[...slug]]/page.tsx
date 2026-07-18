@@ -18,8 +18,8 @@ interface DesignModule {
 }
 
 const designModules: Record<string, () => Promise<DesignModule>> = {
-  "in-progress/logo-v-splash-redesign/design": () =>
-    import("../../../../../content/changes/in-progress/logo-v-splash-redesign/design"),
+  "archive/2026-07-18-logo-v-splash-redesign/design": () =>
+    import("../../../../../content/changes/archive/2026-07-18-logo-v-splash-redesign/design"),
   "discussing/sync-recording/design": () =>
     import("../../../../../content/changes/discussing/sync-recording/design"),
   "archive/2026-07-16-elevation-depth-system/design": () =>
