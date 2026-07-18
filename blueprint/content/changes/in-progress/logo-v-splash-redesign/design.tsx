@@ -120,13 +120,22 @@ function NewSymbol({
   data,
   neutral,
   className,
+  sizePx,
 }: {
   data: WeightData;
   neutral: string;
   className?: string;
+  /* Explicit pixel size — use inside the phone frames, where percentage CSS
+     widths on an inline <svg> proved unreliable (see splash size explorer). */
+  sizePx?: number;
 }) {
   return (
-    <svg viewBox={data.symViewBox} className={className}>
+    <svg
+      viewBox={data.symViewBox}
+      width={sizePx}
+      height={sizePx}
+      className={className}
+    >
       <path d={data.symL} fill={neutral} />
       <path d={data.symR} fill={CORAL} />
     </svg>
@@ -137,13 +146,20 @@ function NewType({
   data,
   neutral,
   className,
+  widthPx,
 }: {
   data: WeightData;
   neutral: string;
   className?: string;
+  widthPx?: number;
 }) {
   return (
-    <svg viewBox={`0 0 ${data.typeW} 115`} className={className}>
+    <svg
+      viewBox={`0 0 ${data.typeW} 115`}
+      width={widthPx}
+      height={widthPx ? (widthPx / data.typeW) * 115 : undefined}
+      className={className}
+    >
       <path d={data.typeL} fill={neutral} />
       <path d={data.typeR} fill={CORAL} />
       <g transform={`translate(${data.lettersShift} 0)`} fill={neutral}>
@@ -237,9 +253,18 @@ export const toc = [
   { title: "Geometry facts", url: "#geometry-facts", depth: 2 },
 ];
 
+// Phone-frame mock screen: w-30/h-65 outer minus the 5px border each side
+const SCREEN_SHORT_PX = 110;
+
+const SPLASH_PCTS = [15, 20, 25, 30];
+const PINNED_SPLASH_PCT = 20;
+
 export default function Design() {
   const [weight, setWeight] = useState(DEFAULT_WEIGHT);
+  const [splashPct, setSplashPct] = useState(PINNED_SPLASH_PCT);
   const data = WEIGHTS[weight];
+  const markPx = Math.round((splashPct / 100) * SCREEN_SHORT_PX);
+  const wordmarkPx = Math.round(0.4 * SCREEN_SHORT_PX);
   return (
     <div>
       <p>
@@ -271,6 +296,7 @@ export default function Design() {
             }`}
           >
             {w}
+            {w === DEFAULT_WEIGHT ? " ✓ pinned" : ""}
           </button>
         ))}
       </div>
@@ -324,26 +350,46 @@ export default function Design() {
 
       <h2 id="splash-mockups">Splash mockups</h2>
       <p>
-        iOS renders the generated launch screen: the mark centered at 25% of the
-        shorter device dimension, plus the full wordmark (logo-type) centered
-        near the bottom — the route draws the PNG itself, so the wordmark is the
-        real logo geometry. Android composes its splash from the manifest:{" "}
-        <code>background_color</code> teal field, the centered maskable icon
-        (same teal field → bare V), and the app name text drawn by Chrome — that
-        text is not stylable, so Android approximates the iOS layout rather than
-        embedding logo-type.
+        iOS renders the generated launch screen: the mark centered at the
+        selected percentage of the shorter device dimension, plus the full
+        wordmark (logo-type, 40% wide) centered near the bottom — the route
+        draws the PNG itself, so the wordmark is the real logo geometry. Android
+        composes its splash from the manifest: <code>background_color</code>{" "}
+        teal field, the centered maskable icon (same teal field → bare V), and
+        the app name text drawn by Chrome — that text is not stylable, so
+        Android approximates the iOS layout rather than embedding logo-type. The
+        size percentage below only parameterizes the iOS image; Chrome fixes the
+        icon size on the Android splash itself (the Android frame here reuses it
+        for visual comparison only).
       </p>
+      <div className="my-4 flex flex-wrap gap-2">
+        {SPLASH_PCTS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setSplashPct(p)}
+            className={`rounded-md border px-3 py-1.5 font-mono text-sm ${
+              p === splashPct
+                ? "border-[#10687E] bg-[#10687E] text-white"
+                : "border-border bg-transparent text-muted-foreground hover:border-[#10687E]"
+            }`}
+          >
+            {p}%{p === PINNED_SPLASH_PCT ? " ✓ selected" : ""}
+          </button>
+        ))}
+      </div>
       <div className="my-4 flex flex-wrap gap-6">
         <PhoneFrame label="iOS — apple-splash route">
-          <NewSymbol data={data} neutral={IVORY} className="w-[20%]" />
+          <NewSymbol data={data} neutral={IVORY} sizePx={markPx} />
           <NewType
             data={data}
             neutral={IVORY}
-            className="absolute bottom-4 w-[40%]"
+            widthPx={wordmarkPx}
+            className="absolute bottom-4"
           />
         </PhoneFrame>
         <PhoneFrame label="Android — manifest splash">
-          <NewSymbol data={data} neutral={IVORY} className="w-[20%]" />
+          <NewSymbol data={data} neutral={IVORY} sizePx={markPx} />
           <span
             className="absolute bottom-4 text-[9px] font-medium"
             style={{ color: IVORY }}
@@ -388,6 +434,11 @@ export default function Design() {
             style={{ backgroundColor: TEAL }}
           />
           {TEAL} (--primary), iOS route + Android manifest
+        </span>
+        <span className="text-[#9aa0ad]">Splash mark size</span>
+        <span className="font-mono">
+          {splashPct}% of shorter dimension (selected: {PINNED_SPLASH_PCT}%, iOS
+          image only)
         </span>
       </div>
     </div>
