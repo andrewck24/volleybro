@@ -16,8 +16,8 @@
 
 ## 4. Blueprint pages
 
-- [ ] 4.1 [P] Refresh the frozen copy blueprint/src/components/brand/ (logo-symbol.tsx, logo-type.tsx) to the new geometry. Behavior: the blueprint brand page (design-system/brand) renders the new mark in all three grounds. Verify: `pnpm verify:all` builds the blueprint and the page renders the new mark.
-- [ ] 4.2 Implement the design decision "Blueprint design page with variant and splash mockups": create blueprint/content/changes/in-progress/logo-v-splash-redesign/ (meta.json, index.mdx with ChangeOverview, design.mdx stub, design.tsx) and register it in blueprint/content/changes/in-progress/meta.json `pages` plus the `designModules` map in the changes catch-all route page. Behavior: the design page renders logo-symbol and logo-type mockups on the three grounds (light/dark/teal) and phone-frame splash mockups for iOS and Android. Verify: `pnpm verify:all` builds the blueprint and the page renders with working TOC.
+- [x] 4.1 [P] Refresh the frozen copy blueprint/src/components/brand/ (logo-symbol.tsx, logo-type.tsx) to the new geometry. Behavior: the blueprint brand page (design-system/brand) renders the new mark in all three grounds. Verify: `pnpm verify:all` builds the blueprint and the page renders the new mark.
+- [x] 4.2 Implement the design decision "Blueprint design page with variant and splash mockups": create blueprint/content/changes/in-progress/logo-v-splash-redesign/ (meta.json, index.mdx with ChangeOverview, design.mdx stub, design.tsx) and register it in blueprint/content/changes/in-progress/meta.json `pages` plus the `designModules` map in the changes catch-all route page. Behavior: the design page renders logo-symbol and logo-type mockups on the three grounds (light/dark/teal) and phone-frame splash mockups for iOS and Android. Verify: `pnpm verify:all` builds the blueprint and the page renders with working TOC.
 
 ## 5. Verification
 
