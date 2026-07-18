@@ -1,0 +1,67 @@
+## Context
+
+The V mark today is the Saira Stencil One uppercase `V`, hardcoded as two SVG path arms in the brand components (single source of truth in src/components/brand/logo-symbol.tsx, consumed by the apple-splash route) and duplicated as layered static SVGs under public/brand/. The `apple-splash` change (archived 2026-06-28) made iOS launch screens track the mark, but the route hardcodes the mark's viewBox separately from the path constants. Android/Chrome generates its splash from public/manifest.json, which still declares the pre-rebrand `background_color: #f2f2f6`, and the manifest has no maskable icons — so the Android splash shows a teal-square icon floating on a light gray field (paca VB-3). All raster icons under public/ still carry the old mark.
+
+The rebuilt public SVGs (already landed on this branch) come from instancing the variable Saira Stencil font at the brand weight (fonttools varLib.instancer, wdth=100) and extracting the lowercase `v` glyph with opentype.js at font-unit scale: at wght 700 the symbol viewBox is `-7 -27 564 564` (square canvas, glyph centered), and the wordmark `v` is scaled to the letters' cap height (82.56 units, baseline y=90) with the untouched `olleyBro` letter paths shifted +6.59 units to preserve the original optical gap. The blueprint design page carries a weight explorer (300–900) with per-weight constants; the weight is confirmed and pinned at 700.
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- One mark geometry — the variable Saira Stencil family's lowercase `v` (wght 700) scaled to cap height — flows to every surface: React components, static brand SVGs, iOS launch screens, Android splash, and all raster icons.
+- Android splash reads as a bare V centered on the `--primary` teal, matching iOS.
+- The apple-splash route derives everything about the mark (paths, viewBox, colors) from the shared brand constants.
+- The change's blueprint design page shows the redesigned symbol/type in the three grounds (light / dark / teal) and both splash mockups.
+
+**Non-Goals:**
+
+- No redesign of the `olleyBro` letterforms — existing letter paths are kept verbatim (only translated).
+- No change to the apple-splash device list, route URL shape, caching, or 404 behavior.
+- No PWA manifest restructuring beyond colors and icon entries (no shortcuts, no screenshots).
+- No landing-page or in-app layout changes; components keep their public props (`variant`, `className`).
+
+## Decisions
+
+### Lowercase v scaled to cap height replaces the uppercase V
+
+The lowercase `v` of the variable Saira Stencil family has, at wght 700, aspect ratio 1.03 (w/h) versus 0.95 for the previously shipped uppercase `V` (Saira Stencil One), giving the standalone symbol a near-square footprint that sits better in icon canvases and splash layouts. Scaled uniformly to cap height it reads at the same optical size as the old uppercase mark, and it keeps the identical stencil anatomy: two naturally separate sub-paths (left arm, notched right arm) that take independent fills. Alternative considered: keeping the uppercase glyph and padding the canvas — rejected because the imbalance is in the glyph itself, not the canvas. Weight: the old mark came from the single-weight Saira Stencil One; the redesign switches to the variable Saira Stencil family (wght 100–900, wdth pinned at 100), pinned at wght 700 (confirmed via the design page weight explorer).
+
+### Mark geometry exported once, viewBox included
+
+src/components/brand/logo-symbol.tsx stays the single source of truth and additionally exports the symbol viewBox constant (named export alongside `V_ARM_LEFT` / `V_ARM_RIGHT` / `V_CORAL` / `V_IVORY`), and src/components/brand/logo-type.tsx exports the wordmark geometry (its v arms, letter paths, letter shift, and viewBox) so the splash route can compose the wordmark without duplicating paths. The apple-splash route drops its hardcoded `viewBox="-10 225 360 360"` and consumes the exported constant, so a future mark change cannot silently desynchronize the splash framing again. The blueprint copy under blueprint/src/components/brand/ is refreshed to the same geometry (it is deliberately a frozen copy; refresh is manual by design).
+
+### Android splash driven by manifest colors plus maskable icons
+
+public/manifest.json sets `background_color` to `#10687E` (the `--primary` teal; `theme_color` already matches). Two maskable icons (192, 512) are added with full-bleed teal background and the mark confined to the 80% safe zone, declared with `"purpose": "maskable"`, while existing `purpose: any` entries remain. Chrome then composes the splash as: teal field + centered icon whose own field is the same teal — the visible result is a bare V, matching iOS. Alternative considered: a transparent-background splash icon — rejected because maskable icons with transparency leak the launcher mask background and the manifest spec treats icon transparency inconsistently across launchers.
+
+### Raster icons regenerated by a committed script
+
+A one-off but committed script, scripts/generate-icons.mjs, renders every raster icon (favicon.ico, icon-_, android-chrome-_, apple-touch-icon*, maskable-icon-*) from the brand SVG geometry using `sharp` (added as a devDependency, plus `png-to-ico` to pack the favicon). Rationale: the repo has no SVG rasterizer today, `sharp` is the same library Next.js uses for image optimization, and a committed script makes the next rebrand a re-run instead of a hand-export session. Alternative considered: hand-exporting from a design tool — rejected as the exact failure mode this change cleans up.
+
+### Blueprint design page with variant and splash mockups
+
+blueprint/content/changes/in-progress/logo-v-splash-redesign/ gets the standard page set (index.mdx, design.mdx stub, design.tsx, meta.json) plus registration in the in-progress meta.json `pages` array and the `designModules` map in the changes route page. design.tsx hardcodes the new path constants locally (same pattern as the archived apple-splash design page) and renders: logo-symbol and logo-type on the three grounds (light / dark / teal), and phone-frame splash mockups — iOS shows mark + wordmark (the route draws both), Android shows mark + Chrome's own app-name text, which is not stylable, so Android approximates the iOS layout instead of embedding logo-type.
+
+## Implementation Contract
+
+- **Mark geometry**: `LogoSymbol` renders the lowercase-v arms of the pinned weight in a square viewBox (`-7 -27 564 564` at wght 700); `LogoType` renders the same arms at cap height with the letter paths translated to preserve the previous optical gap (+6.59 at wght 700); both keep the existing `variant` prop semantics (`adaptive`: neutral parts `currentColor`; `brand`: neutral parts `#F6F4F5`) and the fixed `#FC7A56` right arm. Verified by existing component snapshots/Storybook if present, else by the blueprint brand page rendering.
+- **Apple splash**: GET on the apple-splash route for a supported size returns a PNG of exactly that size showing the new mark centered at 25% of the shorter dimension on `#10687E`, plus the wordmark (logo-type geometry) centered at 40% of the shorter dimension wide with its bottom edge inset 6% of the screen height; the route source contains no literal viewBox or path strings. Verified by requesting one registered size locally and comparing dimensions, plus the existing route tests in src/app/apple-splash/**tests** passing against the new constants.
+- **Android splash**: public/manifest.json declares `background_color: "#10687e"` and two icons with `"purpose": "maskable"` (192×192 and 512×512) whose files exist under public/. Verified by Chrome DevTools Application → Manifest showing no maskable warning and the splash preview rendering teal with the bare V.
+- **Icons**: running the generate-icons script from a clean checkout rewrites all raster icons deterministically from the SVG geometry; every icon path referenced by public/manifest.json and src/app/layout.tsx exists after the run. Verified by executing the script and by `pnpm verify:all` passing.
+- **Blueprint**: `pnpm verify:all` (which builds the blueprint) succeeds with the new in-progress change pages, and the design page URL renders the mockups.
+- **Out of scope**: device list, route caching semantics, letterform geometry, manifest fields other than `background_color` and `icons`.
+
+## Risks / Trade-offs
+
+- [Maskable teal field differs from launcher icon aesthetics] → maskable entries are added alongside, not replacing, the `purpose: any` icons; launchers that honor `any` keep the current look.
+- [Blueprint frozen copy can drift from src/components/brand] → accepted by design (documented in the blueprint page header comment); this change refreshes it and the brand page renders the copy, making drift visible.
+- [sharp devDependency adds native binary weight to installs] → dev-only, never shipped to the client bundle; CI already installs native deps for Next.js.
+- [iOS home-screen installs cache old splash PNGs until reinstall] → same accepted behavior as the original apple-splash change (immutable cache headers); new installs get the new mark.
+
+## Migration Plan
+
+Single PR to dev. No data or API migration. Rollback is `git revert` of the PR — all changes are assets, components, and manifest fields. Users with an installed PWA pick up the new manifest colors and icons on the next manifest revalidation; no forced reinstall.
+
+## Open Questions
+
+(none — glyph choice, colors, and icon strategy are settled above; anything else surfaces in PR review)

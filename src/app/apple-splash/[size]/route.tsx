@@ -3,9 +3,17 @@ import { isSupportedSize } from "../devices";
 import {
   V_ARM_LEFT,
   V_ARM_RIGHT,
+  V_VIEWBOX,
   V_CORAL,
   V_IVORY,
 } from "@/components/brand/logo-symbol";
+import {
+  TYPE_ARM_LEFT,
+  TYPE_ARM_RIGHT,
+  TYPE_LETTERS,
+  TYPE_LETTERS_SHIFT,
+  TYPE_VIEWBOX,
+} from "@/components/brand/logo-type";
 
 export async function GET(
   _req: Request,
@@ -20,6 +28,11 @@ export async function GET(
 
   const svgSize = Math.round(0.25 * Math.min(w, h));
 
+  const [, , typeVbWidth, typeVbHeight] = TYPE_VIEWBOX.split(" ").map(Number);
+  const typeWidth = Math.round(0.4 * Math.min(w, h));
+  const typeHeight = Math.round((typeWidth * typeVbHeight) / typeVbWidth);
+  const typeBottomInset = Math.round(0.06 * h);
+
   return new ImageResponse(
     <div
       style={{
@@ -29,16 +42,36 @@ export async function GET(
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#10687E",
+        position: "relative",
       }}
     >
       <svg
         width={svgSize}
         height={svgSize}
-        viewBox="-10 225 360 360"
+        viewBox={V_VIEWBOX}
         style={{ display: "block" }}
       >
         <path d={V_ARM_LEFT} fill={V_IVORY} />
         <path d={V_ARM_RIGHT} fill={V_CORAL} />
+      </svg>
+      <svg
+        width={typeWidth}
+        height={typeHeight}
+        viewBox={TYPE_VIEWBOX}
+        style={{
+          display: "block",
+          position: "absolute",
+          left: (w - typeWidth) / 2,
+          bottom: typeBottomInset,
+        }}
+      >
+        <path d={TYPE_ARM_LEFT} fill={V_IVORY} />
+        <path d={TYPE_ARM_RIGHT} fill={V_CORAL} />
+        <g transform={`translate(${TYPE_LETTERS_SHIFT} 0)`} fill={V_IVORY}>
+          {TYPE_LETTERS.map((d) => (
+            <path key={d} d={d} />
+          ))}
+        </g>
       </svg>
     </div>,
     {
