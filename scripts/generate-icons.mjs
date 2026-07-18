@@ -28,11 +28,21 @@ const BACKGROUND = "#10687E";
 // --- Parse the mark geometry out of the source SVG -------------------------
 
 function extractArm(svg, groupId) {
-  const groupMatch = svg.match(new RegExp(`<g id="${groupId}">(.*?)</g>`, "s"));
-  if (!groupMatch) throw new Error(`could not find <g id="${groupId}">`);
-  const pathMatch = groupMatch[1].match(/<path d="([^"]+)" fill="([^"]+)"/);
-  if (!pathMatch) throw new Error(`could not find <path> inside ${groupId}`);
-  return { d: pathMatch[1], fill: pathMatch[2] };
+  const groupMatch = svg.match(
+    new RegExp(`<g[^>]*\\bid="${groupId}"[^>]*>(.*?)</g>`, "s"),
+  );
+  if (!groupMatch)
+    throw new Error(
+      `could not find <g id="${groupId}"> in public/brand/logo-symbol.svg — the script expects the two-arm group structure (left-arm/right-arm) that file carries`,
+    );
+  const pathTag = groupMatch[1].match(/<path\b[^>]*>/);
+  const d = pathTag?.[0].match(/\bd="([^"]+)"/);
+  const fill = pathTag?.[0].match(/\bfill="([^"]+)"/);
+  if (!d || !fill)
+    throw new Error(
+      `could not read d/fill attributes of the <path> inside <g id="${groupId}"> — found: ${pathTag?.[0] ?? "no <path> tag"}`,
+    );
+  return { d: d[1], fill: fill[1] };
 }
 
 // The stencil arms are simple straight-line polygons (M/L/Z only), so their
