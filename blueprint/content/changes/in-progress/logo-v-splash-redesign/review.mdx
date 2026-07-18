@@ -27,3 +27,11 @@ CI: 9/9 checks green. Verdict: nothing blocking; 4 minor findings.
 | R2  | Old-mark aspect cited as 0.94 in design.md / PR body but 0.95 in proposal and mockups                              | Reconciled to 0.95 (the shipped old mark was Saira Stencil One's V, 653:688); design.md + PR body updated                  |
 | R3  | `generate-icons.mjs` regex assumed exact attribute order inside the arm groups; opaque failure on re-exported SVGs | Parser made attribute-order-independent with errors that name the expected structure; regeneration verified byte-identical |
 | R4  | No package.json entry for icon regeneration                                                                        | `pnpm generate-icons` script added                                                                                         |
+
+## GHA claude-review · round 2
+
+One residual finding; docs-only. Verdict after fix: ready to merge.
+
+| #   | Finding                                                                                                                              | Resolution                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R5  | design.md Goals bullet still attributed the new mark to "Saira Stencil One" (same mistake as R1, sibling artifact missed in round 1) | Goals bullet reworded to "variable Saira Stencil family's lowercase v (wght 700)"; audited all remaining "Saira Stencil One" mentions — each now correctly refers to the old font |

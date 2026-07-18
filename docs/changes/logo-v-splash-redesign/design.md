@@ -8,7 +8,7 @@ The rebuilt public SVGs (already landed on this branch) come from instancing the
 
 **Goals:**
 
-- One mark geometry — the Saira Stencil One lowercase `v` scaled to cap height — flows to every surface: React components, static brand SVGs, iOS launch screens, Android splash, and all raster icons.
+- One mark geometry — the variable Saira Stencil family's lowercase `v` (wght 700) scaled to cap height — flows to every surface: React components, static brand SVGs, iOS launch screens, Android splash, and all raster icons.
 - Android splash reads as a bare V centered on the `--primary` teal, matching iOS.
 - The apple-splash route derives everything about the mark (paths, viewBox, colors) from the shared brand constants.
 - The change's blueprint design page shows the redesigned symbol/type in the three grounds (light / dark / teal) and both splash mockups.
