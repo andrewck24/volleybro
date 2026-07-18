@@ -21,4 +21,4 @@
 
 ## 5. Verification
 
-- [ ] 5.1 Run `pnpm verify:all`; fix any failures. Behavior: format, typecheck, lint, tests, app build, and blueprint build all pass with the new mark everywhere. Verify: command exits 0.
+- [x] 5.1 Run `pnpm verify:all`; fix any failures. Behavior: format, typecheck, lint, tests, app build, and blueprint build all pass with the new mark everywhere. Verify: command exits 0.
