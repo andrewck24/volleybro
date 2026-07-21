@@ -27,8 +27,8 @@
 
 ## 5. Retire Legacy References Safely
 
-- [ ] 5.1 Implement **Gated spec-loop retirement** and the **Retire spec-loop only after replacement validation** decision by inventorying active repository and global consumers, migrating in-scope VolleyBro references, and recording out-of-repository consumers for the global cleanup gate; verify the active-reference scan is zero for VolleyBro and every external match has an explicit owner and migration state (documentation and repository tooling layers).
-- [ ] 5.2 Verify rollback remains possible before external archival by confirming instruction backups and the GitHub repository recovery path, then run `pnpm verify` and commit Section 5 with an English conventional commit describing legacy-reference retirement (documentation layer).
+- [x] 5.1 Implement **Gated spec-loop retirement** and the **Retire spec-loop only after replacement validation** decision by inventorying active repository and global consumers, migrating in-scope VolleyBro references, and recording out-of-repository consumers for the global cleanup gate; verify the active-reference scan is zero for VolleyBro and every external match has an explicit owner and migration state (documentation and repository tooling layers).
+- [x] 5.2 Verify rollback remains possible before external archival by confirming instruction backups and the GitHub repository recovery path, then run `pnpm verify` and commit Section 5 with an English conventional commit describing legacy-reference retirement (documentation layer).
 
 ## 6. Final Verification and Documentation Review
 
