@@ -1,0 +1,69 @@
+---
+title: Unified Software Delivery Workflow
+---
+
+import { ChangeOverview } from "@/components/ChangeOverview";
+
+<ChangeOverview
+  date="2026-07-22"
+  status="in-progress"
+  summary="Replace fragmented provider-specific delivery policy with one repository-owned WORKFLOW.md, configurable capability bindings, a single Symphony scheduler, issue-scoped delegation, and structured evaluation evidence that never persists provider text."
+  artifacts={[
+    {
+      title: "Design",
+      href: "/changes/in-progress/unified-software-delivery-workflow/design",
+    },
+    {
+      title: "Review",
+      href: "/changes/in-progress/unified-software-delivery-workflow/review",
+    },
+  ]}
+/>
+
+## Why this change
+
+Delivery policy was split between global and provider-specific files, which made the authoritative
+lifecycle difficult to locate and allowed Linear, Spectra, Blueprint, and provider instructions to
+drift. A fresh checkout also could not reconstruct the complete workflow without workstation-global
+context.
+
+## Goals and boundaries
+
+| In scope                                                              | Out of scope                                                      |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| One root `WORKFLOW.md` and thin Claude Code/Codex/Antigravity bridges | Redesigning Blueprint routes or shared components                 |
+| Versioned capability-to-adapter profile                               | Creating or reprioritizing Linear milestones in this change       |
+| Separate Linear milestone and Changesets gates                        | Persisting provider prompts, responses, reasoning, or transcripts |
+| Seven issue-scoped Codex roles and structured Symphony eval           | Autonomous queue claims by provider subagents                     |
+| Legacy harness retirement after zero active consumers                 | Replacing application runtime behavior                            |
+
+## Blast radius
+
+```text
+VolleyBro
+├── ADD WORKFLOW.md                          canonical repository contract
+├── MOD CLAUDE.md / AGENTS.md                thin provider bridges
+├── ADD scripts/check-workflow*.mjs          conformance gate and fixtures
+├── MOD package.json                         verify integration
+├── ADD blueprint/content/changes/...        human change record
+└── MOD docs/changes/...                     Spectra progress and migration evidence
+
+Global and orchestration
+├── MOD ~/.config/symphony/WORKFLOW.md       Sol root, profile gate, eval settings
+├── MOD ~/.codex/config.toml + AGENTS.md     seven role registrations and policy
+├── MOD ~/.claude/CLAUDE.md                  repository-workflow bridge
+└── ADD/MOD ~/projects/symphony              runtime, docs, profile, eval, templates
+```
+
+## Task progress
+
+Canonical progress is derived from
+`docs/changes/unified-software-delivery-workflow/tasks.md`. This page intentionally does not maintain
+a separate status count.
+
+## Specification impact
+
+The change adds the `software-delivery-workflow` specification: repository-owned policy,
+readiness-gated dispatch, relationship-aware intake, synchronized Spectra/Blueprint artifacts,
+capability bindings, independent release/versioning gates, bounded delegation, durable workpad,
+conformance enforcement, gated legacy retirement, and immediate structured evaluation evidence.

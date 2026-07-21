@@ -1,0 +1,81 @@
+---
+title: Design
+---
+
+## System shape
+
+```text
+Linear issue + relations + milestone
+               │
+               ▼
+       Symphony scheduler
+     claim · route · retry · eval
+               │ one issue-run
+               ▼
+  Provider root (Claude/Codex/Antigravity)
+       │ bounded native delegation
+       ▼
+ repository WORKFLOW.md + selected adapters
+       │
+       ├── Spectra: proposal, specs, tasks, archive
+       ├── Blueprint: Overview, Design, Review
+       ├── Changesets: version/changelog evidence
+       ├── GitHub: commits, PR, review
+       └── Linear Workpad: provider-neutral handoff
+```
+
+The scheduler owns issue-level concurrency. Provider-native roles operate only beneath the current
+issue-run; the root retains interpretation, integration, and final verification.
+
+## Capability profile
+
+| Capability             | Selected adapter       | Contract                                       |
+| ---------------------- | ---------------------- | ---------------------------------------------- |
+| `sdd`                  | `spectra`              | Specs, proposal, tasks, ingest, archive        |
+| `change_comprehension` | `blueprint`            | Overview, Design, Review using one stable slug |
+| `release_planning`     | `linear` / `milestone` | Target window, grouping, and delivery order    |
+| `versioning`           | `changesets`           | Semantic version impact and changelog evidence |
+| `workpad`              | `linear-comment`       | Durable cross-provider handoff                 |
+| `scm` / `review`       | `github` / `github-pr` | Source and human review records                |
+| `validation`           | `repository-commands`  | `pnpm verify` and `pnpm verify:all`            |
+| `archive`              | `spectra`              | Post-merge specification retention             |
+| `evaluation`           | `symphony`             | Structured JSONL; `ephemeral_text` only        |
+
+## Gate separation
+
+```text
+release-bound issue
+  ├── missing Linear milestone ──► cannot receive agent:ready / dispatch
+  └── milestone present ─────────► implementation may run
+                                      ├── Changeset present ──► review
+                                      └── no Changeset/exemption ──► review blocked
+```
+
+A milestone is planning metadata and never selects semantic version impact. A Changeset is
+repository version evidence and never replaces delivery order or target dates.
+
+## Seven role delegation
+
+`scout`, `plan-verifier`, `security-reviewer`, `mech-executor`, `executor`, `verifier`, and
+`security-executor` are explicit Codex roles with model, reasoning, sandbox, and role policy. The
+root invokes only roles justified by the issue. Subagents cannot mutate queue readiness or claim
+another issue.
+
+## Evaluation privacy boundary
+
+Symphony creates a run envelope before provider execution and appends sanitized lifecycle, routing,
+role, usage, validation, and artifact-reference events. Provider text may be inspected in memory to
+derive a metric, but prompt/response/reasoning/transcript content is discarded and never written to
+the evaluation JSONL. Trend claims and routing changes require ten comparable issue-runs plus human
+approval.
+
+## Failure behavior
+
+| Failure                               | Safe behavior                                                       |
+| ------------------------------------- | ------------------------------------------------------------------- |
+| Missing/invalid repository profile    | Fail before provider startup                                        |
+| Evaluation envelope cannot be written | Do not dispatch; schedule retry with a structured category          |
+| Mid-run evaluation write fails        | Mark evidence incomplete; preserve issue execution state            |
+| Missing readiness gate                | Leave issue undispatched and expose the unmet gate                  |
+| Missing versioning evidence           | Block review handoff, not implementation dispatch                   |
+| Provider switch                       | Reconstruct from Linear, workpad, repository artifacts, git, and PR |

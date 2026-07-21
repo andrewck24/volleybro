@@ -32,6 +32,6 @@
 
 ## 6. Final Verification and Documentation Review
 
-- [ ] 6.1 Run `spectra analyze unified-software-delivery-workflow`, resolve blocking findings, and verify `spectra validate unified-software-delivery-workflow --strict` succeeds (change-artifact layer).
-- [ ] 6.2 Review `docs/`, `README.md`, `CONTRIBUTING.md`, `.spectra.yaml`, `CLAUDE.md`, and `AGENTS.md` for required updates, update only affected documentation, and verify content review finds one canonical lifecycle owner, explicit capability bindings, separate milestone and Changeset gates, the `ephemeral_text` boundary, and no stale active references (documentation layer).
-- [ ] 6.3 Run `pnpm verify:all`, confirm the application and Blueprint builds pass, update the Spectra task and Blueprint Review evidence, and commit the final section with an English conventional commit (all repository layers).
+- [x] 6.1 Run `spectra analyze unified-software-delivery-workflow`, resolve blocking findings, and verify `spectra validate unified-software-delivery-workflow --strict` succeeds (change-artifact layer).
+- [x] 6.2 Review `docs/`, `README.md`, `CONTRIBUTING.md`, `.spectra.yaml`, `CLAUDE.md`, and `AGENTS.md` for required updates, update only affected documentation, and verify content review finds one canonical lifecycle owner, explicit capability bindings, separate milestone and Changeset gates, the `ephemeral_text` boundary, and no stale active references (documentation layer).
+- [x] 6.3 Run `pnpm verify:all`, confirm the application and Blueprint builds pass, update the Spectra task and Blueprint Review evidence, and commit the final section with an English conventional commit (all repository layers).
