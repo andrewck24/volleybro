@@ -1,10 +1,10 @@
 <!-- SPECTRA:START v1.0.2 -->
 
-# Spectra Instructions
+# Delivery Workflow Bridge
 
-This project uses Spectra for Spec-Driven Development(SDD). Specs live in `docs/specs/`, change proposals in `docs/changes/`.
+Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, review, handoff, or archive work. It is the canonical provider-neutral delivery contract; this file retains Codex and Antigravity mechanics and hard repository rules only.
 
-## Use `$spectra-*` skills when
+VolleyBro binds SDD to Spectra. Use the corresponding `$spectra-*` skill for the operation required by `WORKFLOW.md`:
 
 - A discussion needs structure before coding → `$spectra-discuss`
 - User wants to plan, propose, or design a change → `$spectra-propose`
@@ -14,16 +14,7 @@ This project uses Spectra for Spec-Driven Development(SDD). Specs live in `docs/
 - Implementation is done → `$spectra-archive`
 - Commit only files related to a specific change → `$spectra-commit`
 
-## Workflow
-
-discuss? → propose → apply ⇄ ingest → archive
-
-- `discuss` is optional — skip if requirements are clear
-- Requirements change mid-work? `ingest` → resume `apply`
-
-## Parked Changes
-
-Changes can be parked（暫存）— temporarily moved out of `docs/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `$spectra-apply` and `$spectra-ingest` skills handle parked changes automatically.
+Parked changes are discoverable with `spectra list --parked`; `$spectra-apply` and `$spectra-ingest` restore them automatically.
 
 <!-- SPECTRA:END -->
 
@@ -85,12 +76,6 @@ Components are organized by domain and purpose (features):
 
 **IMPORTANT**:
 
-- When `$spectra-apply`ing a change:
-  - Before touching any source files, commit all change artifacts (`docs/changes/<name>/`) with a `docs(<scope>): add <name> change artifacts` message — this preserves design rationale before implementation code
-  - Commit after each task section; message states the section purpose and includes related artifacts (tasks.md, spec files, etc.)
-  - Run `pnpm verify` (format, typecheck, lint, test) before each commit; `pnpm verify:all` (adds app and blueprint builds) before the final commit
-  - Skip checks only if the section is intentionally incomplete; final commit MUST pass `pnpm verify:all`
-  - PR base branch: follow user-specified target; if unspecified and current branch is neither `main` nor `dev`, use `--base dev`.
 - For complex commits, include a body focused on **why**; "what" may be included as supporting context
 - Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
 - **Judgment-type deletions require discussion first**: when a cleanup tool (knip, dead-code audits) or your own analysis flags source files for deletion beyond the explicitly requested change scope, list the candidates with per-file rationale and get confirmation before deleting. "Unreferenced in the import graph" is not sufficient evidence by itself — files may be documented API contracts (see `design-tokens.ts`), aliases of live database collections, or reserved for planned features.

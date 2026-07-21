@@ -15,8 +15,8 @@
 
 ## 3. Reduce Provider Instructions to Bridges
 
-- [ ] 3.1 [P] Implement **Thin provider workflow bridges** and the **Keep provider instruction files as thin workflow bridges** decision in `CLAUDE.md` and `AGENTS.md`, preserving provider mechanics and hard repository rules without shared lifecycle duplication; verify each bridge points to `WORKFLOW.md` and a side-by-side content review finds no copied lifecycle sections (documentation layer).
-- [ ] 3.2 Run `pnpm verify`, then commit Section 3 with an English conventional commit describing the provider bridge migration (documentation layer).
+- [x] 3.1 [P] Implement **Thin provider workflow bridges** and the **Keep provider instruction files as thin workflow bridges** decision in `CLAUDE.md` and `AGENTS.md`, preserving provider mechanics and hard repository rules without shared lifecycle duplication; verify each bridge points to `WORKFLOW.md` and a side-by-side content review finds no copied lifecycle sections (documentation layer).
+- [x] 3.2 Run `pnpm verify`, then commit Section 3 with an English conventional commit describing the provider bridge migration (documentation layer).
 
 ## 4. Enforce Workflow Conformance
 
