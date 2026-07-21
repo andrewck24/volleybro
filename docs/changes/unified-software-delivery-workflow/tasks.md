@@ -20,10 +20,10 @@
 
 ## 4. Enforce Workflow Conformance
 
-- [ ] 4.1 Write failing tests first for the **Workflow conformance command**, covering a missing canonical contract, invalid or unsupported delivery-profile adapter, missing bridge pointer, duplicated lifecycle content, durable transcript field, and active retired spec-loop reference; verify the new test cases fail for the expected invariant before implementation (repository tooling layer; supports **Enforce structural invariants with a repository check**).
-- [ ] 4.2 Implement `pnpm check:workflow` so conforming input exits zero and each tested invariant exits non-zero with an actionable path and rule, including validation of the resolved capability bindings and `ephemeral_text` boundary; verify the tests pass and manual execution succeeds in the repository (repository tooling layer).
-- [ ] 4.3 Integrate `pnpm check:workflow` into the repository verification path without changing application runtime behavior; verify `pnpm check:workflow`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` all pass (repository tooling layer).
-- [ ] 4.4 Run `pnpm verify`, then commit Section 4 with an English conventional commit describing workflow conformance enforcement (repository tooling layer).
+- [x] 4.1 Write failing tests first for the **Workflow conformance command**, covering a missing canonical contract, invalid or unsupported delivery-profile adapter, missing bridge pointer, duplicated lifecycle content, durable transcript field, and active retired spec-loop reference; verify the new test cases fail for the expected invariant before implementation (repository tooling layer; supports **Enforce structural invariants with a repository check**).
+- [x] 4.2 Implement `pnpm check:workflow` so conforming input exits zero and each tested invariant exits non-zero with an actionable path and rule, including validation of the resolved capability bindings and `ephemeral_text` boundary; verify the tests pass and manual execution succeeds in the repository (repository tooling layer).
+- [x] 4.3 Integrate `pnpm check:workflow` into the repository verification path without changing application runtime behavior; verify `pnpm check:workflow`, `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build` all pass (repository tooling layer).
+- [x] 4.4 Run `pnpm verify`, then commit Section 4 with an English conventional commit describing workflow conformance enforcement (repository tooling layer).
 
 ## 5. Retire Legacy References Safely
 
