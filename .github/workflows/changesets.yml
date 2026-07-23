@@ -14,45 +14,78 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     steps:
+      # RELEASE_TOKEN (a PAT/App token, not the default GITHUB_TOKEN) so the
+      # version PR and the sync PR are authored by a real identity — that is what
+      # lets their `Verify` checks trigger and pass, which the default
+      # GITHUB_TOKEN cannot do (GitHub suppresses workflows on bot-authored PRs).
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
         with:
-          # pnpm 11 requires Node >= 22.13 (engines is >=22)
           node-version: 22
           cache: "pnpm"
 
       - run: pnpm install --frozen-lockfile
 
+      # Version phase only: when changesets are pending, open/refresh the
+      # "release: update versions" PR (bump + CHANGELOG + changeset deletions).
+      # A human reviews and merges it — the changesets-recommended gate.
       - uses: changesets/action@v1
         id: changesets
         with:
           version: pnpm run release:version
-          # changeset tag creates vX.Y.Z for the current version; the action
-          # pushes the tag and creates the GitHub Release from CHANGELOG.md.
-          # Runs only when no changesets are pending (i.e. after the version
-          # PR merges) and skips tags that already exist, so it is idempotent.
-          publish: pnpm run release:publish
           commit: "release: update versions"
-          # [skip review] keeps the auto-opened release PR out of claude-code-review
+          # [skip review] keeps the auto-opened version PR out of claude-code-review
           title: "release: update versions [skip review]"
-          createGithubReleases: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Sync release back to dev
-        if: steps.changesets.outputs.published == 'true'
+      # Finalize phase: reached when no changesets remain (i.e. the version PR
+      # just merged). `changeset tag`'s publish detection never fires for this
+      # repo's single private package + `v<version>` tag scheme, so finalize is
+      # explicit and idempotent instead of relying on the action's `published`.
+      - name: Finalize release (tag, GitHub Release, sync back to dev)
+        if: steps.changesets.outputs.hasChangesets == 'false'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
+          set -euo pipefail
           version=$(node -p "require('./package.json').version")
-          if pr=$(gh pr create --base dev --head main \
-            --title "chore: sync v${version} release back to dev [skip review]" \
-            --body "Automated sync of the v${version} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev." 2>&1); then
-            gh pr merge --merge "$pr" \
-              || echo "::warning::Could not auto-merge the sync PR (conflict or merge restriction); merge it manually: $pr"
+          tag="v${version}"
+
+          # Idempotent: nothing to do if this version is already released.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; skipping finalize."
+            exit 0
+          fi
+
+          # Release notes = this version's CHANGELOG section (body only).
+          # index()==1 is an exact prefix match, so version dots stay literal.
+          notes=$(awk -v ver="$version" '
+            index($0, "## [" ver "]") == 1 { f=1; next }
+            f && index($0, "## [") == 1 { exit }
+            f { print }
+          ' CHANGELOG.md)
+
+          if [ -n "$notes" ]; then
+            gh release create "$tag" --target main --title "$tag" --notes "$notes"
           else
-            echo "::warning::Could not open the sync PR (possibly already open, or nothing to sync): $pr"
+            echo "::warning::No CHANGELOG section for ${tag}; using generated notes."
+            gh release create "$tag" --target main --title "$tag" --generate-notes
+          fi
+
+          # Sync the release commit (bump + CHANGELOG + changeset deletions) back
+          # to dev. The PR is RELEASE_TOKEN-authored, so Verify runs and
+          # auto-merge can complete once it passes — no ruleset bypass needed.
+          if pr_url=$(gh pr create --base dev --head main \
+            --title "chore: sync ${tag} release back to dev [skip review]" \
+            --body "Automated sync of the ${tag} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev."); then
+            gh pr merge "$pr_url" --auto --merge \
+              || echo "::warning::Could not enable auto-merge on the sync PR; merge it manually: $pr_url"
+          else
+            echo "::warning::Could not open the sync PR (possibly already open, or nothing to sync)."
           fi

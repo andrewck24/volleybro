@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { devices } from "@/app/apple-splash/devices";
+import { devices, SPLASH_VERSION } from "@/app/apple-splash/devices";
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_TC, Saira } from "next/font/google";
 
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: APP_DEFAULT_TITLE,
     startupImage: devices.map(({ media, width, height }) => ({
-      url: `/apple-splash/${width}x${height}`,
+      url: `/apple-splash/${width}x${height}?v=${SPLASH_VERSION}`,
       media,
     })),
   },
