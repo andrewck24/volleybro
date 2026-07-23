@@ -29,7 +29,7 @@ export const PlayersList = ({ players }: { players: LineupListPlayer[] }) => {
   );
 };
 
-const ListBadge = ({ list }: { list: string }) => {
+const ListBadge = ({ list }: { list: LineupListPlayer["list"] }) => {
   if (list === "substitutes") return null;
 
   return (
