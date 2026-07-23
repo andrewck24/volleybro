@@ -1,5 +1,23 @@
 # VolleyBro CHANGELOG
 
+## [0.14.2](https://github.com/andrewck24/volleybro/compare/v0.14.1...v0.14.2) 2026-07-23
+
+### Fixed
+
+#### Record
+
+- Fix newly created games having no players, so the first set's lineup and the recording roster now show the selected members
+- Carry the previous set's lineup forward when adding a new set, instead of opening the set options with an empty court
+
+### Changed
+
+#### Brand
+
+- Rebuilt the V mark from the variable Saira Stencil family's lowercase `v` (wght 700), giving the logo a near-square footprint; the wordmark keeps its letterforms with the new mark aligned to cap height
+- iOS launch screens now compose the mark from the shared brand geometry and add the wordmark near the bottom
+- Android/Chrome PWA splash matches iOS: manifest `background_color` is the brand teal and new maskable icons render as a bare V on the splash
+- All app icons (favicon, PWA, Apple touch) regenerated from the new mark via a committed script (`pnpm generate-icons`)
+
 ## [0.14.1](https://github.com/andrewck24/volleybro/compare/v0.14.0...v0.14.1) 2026-07-17
 
 ### Changed
