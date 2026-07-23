@@ -1,5 +1,13 @@
 # VolleyBro CHANGELOG
 
+## [0.14.3](https://github.com/andrewck24/volleybro/compare/v0.14.2...v0.14.3) 2026-07-23
+
+### Fixed
+
+#### Brand
+
+- Fix the iOS PWA launch screen still showing the previous centered-symbol logo — the apple-splash image URLs are now version-busted, so the redesigned splash (new mark centered with the wordmark at the bottom) is fetched instead of the cached old one
+
 ## [0.14.2](https://github.com/andrewck24/volleybro/compare/v0.14.1...v0.14.2) 2026-07-23
 
 ### Fixed
