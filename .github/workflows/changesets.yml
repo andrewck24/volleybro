@@ -64,13 +64,19 @@ jobs:
           fi
 
           # Release notes = this version's CHANGELOG section (body only).
+          # index()==1 is an exact prefix match, so version dots stay literal.
           notes=$(awk -v ver="$version" '
-            $0 ~ ("^## \\[" ver "\\]") { f=1; next }
-            f && /^## \[/ { exit }
+            index($0, "## [" ver "]") == 1 { f=1; next }
+            f && index($0, "## [") == 1 { exit }
             f { print }
           ' CHANGELOG.md)
 
-          gh release create "$tag" --target main --title "$tag" --notes "$notes"
+          if [ -n "$notes" ]; then
+            gh release create "$tag" --target main --title "$tag" --notes "$notes"
+          else
+            echo "::warning::No CHANGELOG section for ${tag}; using generated notes."
+            gh release create "$tag" --target main --title "$tag" --generate-notes
+          fi
 
           # Sync the release commit (bump + CHANGELOG + changeset deletions) back
           # to dev. The PR is RELEASE_TOKEN-authored, so Verify runs and

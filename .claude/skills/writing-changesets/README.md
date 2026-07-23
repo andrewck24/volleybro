@@ -101,11 +101,13 @@ When dev has accumulated enough changes for a release, create PR from dev to mai
 
 `.github/workflows/changesets.yml` handles everything after the dev→main merge:
 
+The workflow authors both PRs with `RELEASE_TOKEN` (a PAT/App token, not the default `GITHUB_TOKEN`) so their `Verify` checks trigger and pass — the default token can't, since GitHub suppresses workflows on bot-authored PRs.
+
 1. **Version PR** — the push to main triggers `changesets/action`, which runs `pnpm release:version` on a `changeset-release/main` branch and opens `release: update versions [skip review]`. `release:version` runs two things sequentially:
    - `changeset version` -- reads all `.changeset/*.md` files, bumps `package.json` version, appends entries to `CHANGELOG.md`, deletes consumed changeset files
    - `node .changeset/changelog-postprocess.cjs` -- reformats version headers to `## [X.Y.Z](compare-link) YYYY-MM-DD` and merges duplicate `###` headings
-2. **Human merges the version PR** (review the CHANGELOG diff first — this is the last edit point).
-3. **Tag + Release + sync** — the next workflow run executes `pnpm release:publish` (`changeset tag`, idempotent: existing tags are skipped), pushes the tag, creates the GitHub Release from the CHANGELOG entry, then opens and merges `chore: sync v<version> release back to dev [skip review]`. On a merge conflict the sync PR is left open for a human.
+2. **Human merges the version PR** (review the CHANGELOG diff first — this is the last edit point). `Verify` runs automatically; no manual approve needed.
+3. **Tag + Release + sync** — the next workflow run (no changesets left) runs an explicit, idempotent finalize step: it skips if `v<version>` already has a release, otherwise `gh release create`s the tag + GitHub Release from that version's `CHANGELOG.md` section, then opens `chore: sync v<version> release back to dev [skip review]` and enables auto-merge (it merges once `Verify` passes; a conflict leaves it open for a human). This no longer uses `changeset tag` / `release:publish` — that script is kept only for the manual fallback below.
 
 **Manual fallback** (workflow broken or offline):
 
