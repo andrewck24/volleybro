@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGame } from "@/hooks/use-data";
+import { getSetLineup } from "@/lib/features/game/helpers";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useEffect } from "react";
@@ -24,8 +25,7 @@ export const SetOptions = ({
   const { game } = useGame(gameId);
 
   useEffect(() => {
-    const lineup =
-      game?.sets[setIndex]?.lineups?.home ?? game?.teams.home.lineup;
+    const lineup = getSetLineup(game, setIndex);
     if (lineup) dispatch(lineupActions.initialize([lineup]));
   }, [game, setIndex, dispatch]);
 
