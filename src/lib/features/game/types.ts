@@ -273,7 +273,7 @@ export const SetOptionsFormSchema = z.object({
 
 export type SetOptionsFormValues = z.infer<typeof SetOptionsFormSchema>;
 
-export type TableRosterPlayer = {
+export type TablePlayer = {
   id: string;
   name: string;
   number: number;

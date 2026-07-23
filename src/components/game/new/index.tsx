@@ -1,7 +1,7 @@
 "use client";
 import { MatchInfo } from "@/components/game/match";
 import { MatchInfoForm } from "@/components/game/new/info-form";
-import { RosterList } from "@/components/game/new/roster-list";
+import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -33,7 +33,8 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
   const [view, setView] = useState("");
   const { mutate } = useSWRConfig();
   const { team, isLoading: isTeamLoading } = useTeam(teamId);
-  const { players, isLoading: isPlayersLoading } = useTeamPlayers(teamId);
+  const { players: teamPlayers, isLoading: isPlayersLoading } =
+    useTeamPlayers(teamId);
 
   const [lineupIndex, setLineupIndex] = useState(0);
   const handleViewChange = (view: string) => {
@@ -57,15 +58,15 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     weather: { temperature: "" },
   });
 
-  const roster = useMemo(() => {
+  const players = useMemo(() => {
     const getPlayerData = (list: string) => {
-      if (!team || !players) return [];
+      if (!team || !teamPlayers) return [];
       return (
         team.lineups[lineupIndex][
           list as "starting" | "liberos" | "substitutes"
         ] as { id: string }[]
       ).map((player) => {
-        const member = players.find((p) => p.id === player.id);
+        const member = teamPlayers.find((p) => p.id === player.id);
         return {
           id: member?.id ?? "",
           name: member?.name ?? "",
@@ -84,7 +85,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
       .sort(
         (a: { number: number }, b: { number: number }) => a.number - b.number,
       );
-  }, [team, players, lineupIndex]);
+  }, [team, teamPlayers, lineupIndex]);
 
   const createGame = async () => {
     const infoData = {
@@ -108,7 +109,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
             home: {
               id: teamId,
               name: info.teams.home.name,
-              roster,
+              players,
               lineup: team?.lineups[lineupIndex],
             },
             away: { name: info.teams.away.name },
@@ -173,7 +174,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
                   </CardBtnGroup>
                 </CardTitle>
               </CardHeader>
-              <RosterList roster={roster} />
+              <PlayersList players={players} />
             </Card>
           </DialogBody>
           <DialogFooter>
