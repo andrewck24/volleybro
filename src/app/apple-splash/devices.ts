@@ -4,6 +4,13 @@ export type DeviceConfig = {
   height: number;
 };
 
+// The apple-splash route serves images as `immutable`, so a design change at
+// the same URL is never re-fetched by CDN / service worker / browser. Bump this
+// whenever the splash rendering changes to move the URL and bust those caches.
+// (iOS home-screen installs still cache the splash at install time — those need
+// a remove-and-re-add; this only fixes the HTTP-cache layers.)
+export const SPLASH_VERSION = "2";
+
 export const devices: DeviceConfig[] = [
   // iPhone (existing 9)
   {
