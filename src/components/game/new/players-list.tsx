@@ -7,9 +7,9 @@ import {
   ItemGroup,
   ItemTitle,
 } from "@/components/ui/item";
-import type { TablePlayer } from "@/lib/features/game/types";
+import type { LineupListPlayer } from "@/lib/features/game/types";
 
-export const PlayersList = ({ players }: { players: TablePlayer[] }) => {
+export const PlayersList = ({ players }: { players: LineupListPlayer[] }) => {
   return (
     <ItemGroup className="flex flex-col">
       {players.map((player) => (

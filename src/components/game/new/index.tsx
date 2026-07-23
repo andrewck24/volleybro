@@ -21,9 +21,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
-import type { TMatchInfoForm } from "@/lib/features/game/types";
+import type {
+  LineupListPlayer,
+  TMatchInfoForm,
+} from "@/lib/features/game/types";
+import type { LineupList } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
@@ -58,14 +62,10 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     weather: { temperature: "" },
   });
 
-  const players = useMemo(() => {
-    const getPlayerData = (list: string) => {
-      if (!team || !teamPlayers) return [];
-      return (
-        team.lineups[lineupIndex][
-          list as "starting" | "liberos" | "substitutes"
-        ] as { id: string }[]
-      ).map((player) => {
+  const getPlayerData = (list: LineupList): LineupListPlayer[] => {
+    if (!team || !teamPlayers) return [];
+    return (team.lineups[lineupIndex][list] as { id: string }[]).map(
+      (player) => {
         const member = teamPlayers.find((p) => p.id === player.id);
         return {
           id: member?.id ?? "",
@@ -73,19 +73,14 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
           number: member?.number ?? 0,
           list,
         };
-      });
-    };
+      },
+    );
+  };
 
-    const starting = getPlayerData("starting");
-    const liberos = getPlayerData("liberos");
-    const substitutes = getPlayerData("substitutes");
-    return starting
-      .concat(liberos, substitutes)
-      .filter((player) => player.id)
-      .sort(
-        (a: { number: number }, b: { number: number }) => a.number - b.number,
-      );
-  }, [team, teamPlayers, lineupIndex]);
+  const players = getPlayerData("starting")
+    .concat(getPlayerData("liberos"), getPlayerData("substitutes"))
+    .filter((player) => player.id)
+    .sort((a, b) => a.number - b.number);
 
   const createGame = async () => {
     const infoData = {

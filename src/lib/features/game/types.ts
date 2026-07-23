@@ -7,6 +7,7 @@ import {
   Side,
 } from "@/entities/game";
 import { Position as TeamPosition } from "@/entities/team";
+import type { LineupList } from "@/lib/features/team/types";
 import { z } from "zod";
 
 const StatEntryResponseSchema = z.object({
@@ -273,11 +274,11 @@ export const SetOptionsFormSchema = z.object({
 
 export type SetOptionsFormValues = z.infer<typeof SetOptionsFormSchema>;
 
-export type TablePlayer = {
+export type LineupListPlayer = {
   id: string;
   name: string;
   number: number;
-  list: string;
+  list: LineupList;
 };
 
 // For Redux

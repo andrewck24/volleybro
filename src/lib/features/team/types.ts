@@ -57,6 +57,7 @@ export const TeamResponseSchema = z.object({
 export type PlayerView = z.infer<typeof PlayerResponseSchema>;
 export type TeamView = z.infer<typeof TeamResponseSchema>;
 export type LineupView = z.infer<typeof LineupResponseSchema>;
+export type LineupList = "starting" | "liberos" | "substitutes";
 
 // For Forms
 export const LiberoReplaceFormSchema = z.object({
@@ -80,7 +81,7 @@ export type ReduxLineupStatus = {
   optionMode: LineupOptionMode;
   editingMember: {
     id: string | null;
-    list: "starting" | "liberos" | "substitutes" | "";
+    list: LineupList | "";
     zone: number | null;
   };
 };
