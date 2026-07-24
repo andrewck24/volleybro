@@ -37,9 +37,17 @@ const mockGame = {
   ],
 };
 
+// Mutable override so a single test can swap in a different game (e.g. the
+// empty-entries case) without disturbing the shared mockGame the rest use.
+let mockGameOverride: typeof mockGame | null = null;
+
 jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: mockGame, mutate: jest.fn() }),
+  useGame: () => ({ game: mockGameOverride ?? mockGame, mutate: jest.fn() }),
 }));
+
+afterEach(() => {
+  mockGameOverride = null;
+});
 
 const SEND_LABEL = "送出";
 
@@ -121,6 +129,37 @@ describe("GamePreview submission", () => {
 
 // D8/D12 "Gesture split while input is in progress": idle taps expand the
 // drawer, in-progress taps only ever submit (never expand), complete or not.
+// Regression (ATE-91): at entryIndex 0 with an empty draft the derived entry is
+// undefined (both draftEntry and entries[-1] resolve to undefined). The hook
+// must report "not in progress" so GamePreview renders nothing instead of
+// handing an undefined entry to <Entry> and white-screening the Game tree.
+describe("GamePreview empty-entries guard", () => {
+  it("renders nothing when the entry would be undefined (entryIndex 0, no draft)", () => {
+    mockGameOverride = {
+      ...mockGame,
+      sets: [{ entries: [], options: { serve: "home" } }],
+    } as unknown as typeof mockGame;
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        gameActions.initialize({
+          game: mockGameOverride as never,
+          setIndex: 0,
+        }),
+      );
+    });
+
+    render(
+      <Provider store={store}>
+        <GamePreview gameId="game-1" mode="general" />
+      </Provider>,
+    );
+
+    expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("preview-trigger")).not.toBeInTheDocument();
+  });
+});
+
 describe("GamePreview gesture split", () => {
   it("expands the drawer on tap while idle (no draft in progress)", async () => {
     const user = userEvent.setup();

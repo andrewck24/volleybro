@@ -1,4 +1,4 @@
-import { EntryRow } from "@/components/game/entry";
+import { Entry, EntryRow } from "@/components/game/entry";
 import { EntryType, MoveType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -24,6 +24,19 @@ const entry: EntryView = {
 // event type name instead, mirroring panel/progress-bar.test.tsx.
 const pointerEvent = (type: string, clientX: number) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, clientX });
+
+describe("Entry", () => {
+  // Regression (ATE-91): an undefined entry can reach <Entry> via the recording
+  // Preview (entryIndex 0 -> previousEntry === entries[-1]) or an optimistic
+  // rollback. It must render nothing rather than dereference `.type` and crash.
+  it("renders nothing without throwing when entry is undefined", () => {
+    const { container } = render(
+      <Entry entry={undefined as unknown as EntryView} players={[]} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+});
 
 describe("EntryRow", () => {
   it("is collapsed and unrevealed by default", () => {

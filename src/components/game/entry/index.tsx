@@ -24,6 +24,12 @@ export const Entry = ({
   onClick?: () => void;
   className?: string;
 }) => {
+  // Shared guard for every caller (Preview, summary-drawer rows, etc.): a
+  // nullish or type-less entry can reach here via the recording Preview
+  // (entryIndex 0 -> previousEntry === entries[-1]) or an optimistic-mutate
+  // rollback. Render nothing rather than dereferencing `.type` and crashing.
+  if (!entry?.type) return null;
+
   return (
     <EntryContainer onClick={onClick} className={className}>
       {entry.type === EntryType.RALLY ? (

@@ -160,6 +160,12 @@ export const useEntryDraftPreview = (
 
   const entry = isEditing || entryIndex === 0 ? draftEntry : lastEntry;
 
+  // Never surface an in-progress state with an undefined entry: at entryIndex 0
+  // with no draft yet, both draftEntry and lastEntry (entries[-1]) are
+  // undefined, which would render a broken Preview card. Degrade to "not in
+  // progress" so consumers render nothing.
+  if (!entry) return { inProgress: false as const };
+
   // Fail safe: derive completeness from getEntryProgress (reused from task
   // group 1, do not duplicate) and check the boolean explicitly so a
   // partially-complete draft never shows the send affordance -- guards
