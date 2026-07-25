@@ -79,7 +79,7 @@ describe("Invitations processingId state", () => {
     const acceptButtons = screen.getAllByRole("button", { name: /接受邀請/ });
     const rejectButtons = screen.getAllByRole("button", { name: /拒絕邀請/ });
 
-    await user.click(acceptButtons[0]);
+    await user.click(acceptButtons[0]!);
 
     expect(acceptButtons[0]).toBeDisabled();
     expect(rejectButtons[0]).toBeDisabled();
@@ -102,7 +102,7 @@ describe("Invitations processingId state", () => {
     render(<Invitations />);
 
     const acceptButtons = screen.getAllByRole("button", { name: /接受邀請/ });
-    await user.click(acceptButtons[0]);
+    await user.click(acceptButtons[0]!);
 
     expect(screen.getAllByTestId("spinner").length).toBeGreaterThanOrEqual(1);
 
@@ -119,7 +119,7 @@ describe("Invitations processingId state", () => {
     render(<Invitations />);
 
     const acceptButtons = screen.getAllByRole("button", { name: /接受邀請/ });
-    await user.click(acceptButtons[0]);
+    await user.click(acceptButtons[0]!);
 
     await waitFor(() => expect(acceptButtons[0]).toBeEnabled());
   });

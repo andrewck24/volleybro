@@ -29,7 +29,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
           <AdjustButton />
         )}
         {lineups[status.lineupIndex]?.liberos &&
-          lineups[status.lineupIndex].liberos.map((libero, index) => {
+          lineups[status.lineupIndex]?.liberos.map((libero, index) => {
             const player = players?.find((p) => p.id === libero.id);
             const lineupPlayer = player
               ? {
@@ -59,22 +59,22 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
               />
             );
           })}
-        {lineups[status.lineupIndex]?.liberos.length < 2 && (
+        {(lineups[status.lineupIndex]?.liberos.length ?? 0) < 2 && (
           <PlayerCard
             player={null}
             toggled={
               status.editingMember.list === "liberos" &&
               status.editingMember.zone ===
-                lineups[status.lineupIndex]?.liberos.length + 1
+                (lineups[status.lineupIndex]?.liberos.length ?? 0) + 1
             }
             list="liberos"
-            zone={lineups[status.lineupIndex]?.liberos.length + 1}
+            zone={(lineups[status.lineupIndex]?.liberos.length ?? 0) + 1}
             onClick={() =>
               dispatch(
                 lineupActions.setEditingPlayer({
                   id: null,
                   list: "liberos",
-                  zone: lineups[status.lineupIndex]?.liberos.length + 1,
+                  zone: (lineups[status.lineupIndex]?.liberos.length ?? 0) + 1,
                 }),
               )
             }
@@ -83,7 +83,7 @@ export const LineupCourt = ({ players }: LineupCourtProps) => {
       </Outside>
       <Inside>
         {lineups[status.lineupIndex]?.starting &&
-          lineups[status.lineupIndex].starting.map((starting, index) => {
+          lineups[status.lineupIndex]?.starting.map((starting, index) => {
             const player = players?.find((p) => p.id === starting.id);
             const lineupPlayer = player
               ? {

@@ -11,15 +11,17 @@ export const createRallyHelper = (
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
+  // setIndex is the active set being recorded; sets and per-set stats are in bounds
+  const set = game.sets[setIndex]!;
 
   updateStats(game, setIndex, entryDraft);
 
   // update rotation
-  const isServing = getServingStatus(game.sets[setIndex], entryIndex);
+  const isServing = getServingStatus(set, entryIndex);
   if (entryDraft.win && !isServing)
-    game.teams.home.stats[setIndex].rotation += 1;
+    game.teams.home.stats[setIndex]!.rotation += 1;
 
-  game.sets[setIndex].entries[entryIndex] = {
+  set.entries[entryIndex] = {
     type: EntryType.RALLY,
     ...entryDraft,
   };
@@ -35,9 +37,10 @@ export const updateRallyHelper = (
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
-  const entries = game.sets[setIndex]?.entries;
-  const originalEntry = entries[entryIndex];
-  if (originalEntry.type !== EntryType.RALLY) {
+  // setIndex is the active set being edited; guaranteed in bounds
+  const set = game.sets[setIndex]!;
+  const originalEntry = set.entries[entryIndex];
+  if (!originalEntry || originalEntry.type !== EntryType.RALLY) {
     throw new Error("Entry is not a rally");
   }
   const { type: _type, ...originalRally } = originalEntry;
@@ -45,7 +48,7 @@ export const updateRallyHelper = (
   discardOriginalStats(game, setIndex, originalRally);
   updateStats(game, setIndex, entryDraft);
 
-  game.sets[setIndex].entries[entryIndex] = {
+  set.entries[entryIndex] = {
     type: EntryType.RALLY,
     ...entryDraft,
   };
@@ -71,20 +74,21 @@ const discardOriginalStats = (
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
-  const homeStat = homeTeam.stats[setIndex][home.type] as StatEntry;
-  const awayStat = awayTeam.stats[setIndex][away.type] as StatEntry;
+  // per-set stats arrays are parallel to sets; setIndex is in bounds
+  const homeStat = homeTeam.stats[setIndex]![home.type] as StatEntry;
+  const awayStat = awayTeam.stats[setIndex]![away.type] as StatEntry;
   if (win) {
-    if (homePlayerIndex !== -1) {
+    if (homePlayer) {
       (
-        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
+        homePlayer.stats[setIndex]![home.type as PlayerMoveType] as StatEntry
       ).success -= 1;
     }
     homeStat.success -= 1;
     awayStat.error -= 1;
   } else {
-    if (homePlayerIndex !== -1) {
+    if (homePlayer) {
       (
-        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
+        homePlayer.stats[setIndex]![home.type as PlayerMoveType] as StatEntry
       ).error -= 1;
     }
     homeStat.error -= 1;
@@ -105,20 +109,21 @@ const updateStats = (
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
-  const homeStat = homeTeam.stats[setIndex][home.type] as StatEntry;
-  const awayStat = awayTeam.stats[setIndex][away.type] as StatEntry;
+  // per-set stats arrays are parallel to sets; setIndex is in bounds
+  const homeStat = homeTeam.stats[setIndex]![home.type] as StatEntry;
+  const awayStat = awayTeam.stats[setIndex]![away.type] as StatEntry;
   if (win) {
-    if (homePlayerIndex !== -1) {
+    if (homePlayer) {
       (
-        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
+        homePlayer.stats[setIndex]![home.type as PlayerMoveType] as StatEntry
       ).success += 1;
     }
     homeStat.success += 1;
     awayStat.error += 1;
   } else {
-    if (homePlayerIndex !== -1) {
+    if (homePlayer) {
       (
-        homePlayer.stats[setIndex][home.type as PlayerMoveType] as StatEntry
+        homePlayer.stats[setIndex]![home.type as PlayerMoveType] as StatEntry
       ).error += 1;
     }
     homeStat.error += 1;
@@ -127,7 +132,8 @@ const updateStats = (
 };
 
 const updateRotation = (game: GameView, setIndex: number) => {
-  const set = game.sets[setIndex];
+  // setIndex is the active set; sets and per-set stats are in bounds
+  const set = game.sets[setIndex]!;
   let rotation = 0;
   let isServing = set.options.serve === "home";
   for (const entry of set.entries) {
@@ -135,7 +141,7 @@ const updateRotation = (game: GameView, setIndex: number) => {
     if (entry.win && !isServing) rotation += 1;
     isServing = entry.win;
   }
-  game.teams.home.stats[setIndex].rotation = rotation;
+  game.teams.home.stats[setIndex]!.rotation = rotation;
 };
 
 const processGamePhase = (
@@ -145,17 +151,19 @@ const processGamePhase = (
   entryDraft: RallyView,
 ) => {
   const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
+  // setIndex is the active set being processed; guaranteed in bounds
+  const set = game.sets[setIndex]!;
 
   if (phase.inProgress) {
     // Reset win status if the set/game is still in progress
-    if (typeof game.sets[setIndex].win === "boolean") {
-      game.sets[setIndex].win = null;
+    if (typeof set.win === "boolean") {
+      set.win = null;
     }
     if (typeof game.win === "boolean") game.win = null;
   } else {
     // Set is complete, determine winners
     const { home, away } = entryDraft;
-    game.sets[setIndex].win = home.score > away.score;
+    set.win = home.score > away.score;
 
     // If the game is finished, calculate the overall game result
     const homeSetsWonCount = game.sets.filter((set) => set.win).length;

@@ -46,11 +46,12 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
       PlayerRole.MEMBER,
     );
 
-    if (!game.sets[params.setIndex])
+    const set = game.sets[params.setIndex];
+    if (!set)
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
-    game.sets[params.setIndex].options = data.options;
-    if (data.lineup) game.sets[params.setIndex].lineups.home = data.lineup;
+    set.options = data.options;
+    if (data.lineup) set.lineups.home = data.lineup;
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 

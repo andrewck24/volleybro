@@ -80,9 +80,9 @@ describe("CreateRallyUseCase", () => {
       ...game,
       sets: [
         {
-          ...game.sets[0],
+          ...game.sets[0]!,
           entries: [
-            ...game.sets[0].entries,
+            ...game.sets[0]!.entries,
             { type: EntryType.RALLY, ...newRally },
           ],
         },
@@ -103,6 +103,6 @@ describe("CreateRallyUseCase", () => {
       data: newRally,
     });
 
-    expect(result).toEqual(persistedGame.sets[0].entries);
+    expect(result).toEqual(persistedGame.sets[0]!.entries);
   });
 });

@@ -101,12 +101,16 @@ export function usePullToRefresh(
     const onTouchStart = (e: TouchEvent) => {
       if (isRefreshingRef.current) return;
       if ((document.scrollingElement?.scrollTop ?? window.scrollY) > 0) return;
-      startYRef.current = e.touches[0].clientY;
+      const startTouch = e.touches[0];
+      if (!startTouch) return;
+      startYRef.current = startTouch.clientY;
       dampedRef.current = 0;
       setState((s) => ({ ...s, refreshError: null }));
 
       const onTouchMove = (ev: TouchEvent) => {
-        const dy = ev.touches[0].clientY - startYRef.current;
+        const moveTouch = ev.touches[0];
+        if (!moveTouch) return;
+        const dy = moveTouch.clientY - startYRef.current;
         if (dy <= 0) return;
 
         const damped = appr(dy, maxPull, resistance);

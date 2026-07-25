@@ -76,7 +76,7 @@ describe("Users Players API Route", () => {
       ];
 
       expect(players.length).toBe(2);
-      expect(players[1].userId).toBeUndefined();
+      expect(players[1]!.userId).toBeUndefined();
     });
 
     it("should return 200 with players array on success", () => {

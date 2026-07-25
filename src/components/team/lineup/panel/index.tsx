@@ -19,7 +19,9 @@ export const LineupPanel = ({
 }: LineupPanelProps) => {
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const { optionMode } = status;
-  const { starting, liberos, substitutes } = lineups[status.lineupIndex];
+  const lineup = lineups[status.lineupIndex];
+  if (!lineup) return null;
+  const { starting, liberos, substitutes } = lineup;
   const listedIds = new Set([
     ...starting.map((player) => player.id),
     ...liberos.map((player) => player.id),

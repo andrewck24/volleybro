@@ -52,11 +52,12 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       PlayerRole.MEMBER,
     );
 
-    if (!game.sets[params.setIndex])
+    const set = game.sets[params.setIndex];
+    if (!set)
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
     const side = substitution.team === Side.HOME ? "home" : "away";
-    const lineup = game.sets[params.setIndex].lineups[side];
+    const lineup = set.lineups[side];
     if (!lineup)
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Lineup not found");
 
@@ -64,7 +65,10 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
     this.updateGameStats(game, side, input);
 
     const persistedGame = await this.gameRepository.update(params.gameId, game);
-    return persistedGame.sets[params.setIndex].entries;
+    const persistedSet = persistedGame.sets[params.setIndex];
+    if (!persistedSet)
+      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
+    return persistedSet.entries;
   }
 
   private updateLineup(
@@ -79,15 +83,23 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       (p) => p.id?.toString() === substitution.players.in,
     );
 
+    const startingPlayer = lineup.starting[startingIndex];
+    const subPlayer = lineup.substitutes[subIndex];
+    if (!startingPlayer || !subPlayer)
+      throw new NotFoundError(
+        GameReason.SET_NOT_FOUND,
+        "Substitution player not found in lineup",
+      );
+
     lineup.starting[startingIndex] = {
       id: substitution.players.in,
-      position: lineup.starting[startingIndex].position,
+      position: startingPlayer.position,
       sub: {
         id: substitution.players.out,
         entryIndex:
-          lineup.starting[startingIndex].sub?.entryIndex?.in !== undefined
+          startingPlayer.sub?.entryIndex?.in !== undefined
             ? {
-                ...lineup.starting[startingIndex].sub.entryIndex,
+                ...startingPlayer.sub.entryIndex,
                 out: entryIndex,
               }
             : { in: entryIndex },
@@ -95,14 +107,14 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
     };
 
     lineup.substitutes[subIndex] = {
-      ...lineup.substitutes[subIndex],
+      ...subPlayer,
       id: substitution.players.out,
       sub: {
         id: substitution.players.in,
         entryIndex:
-          lineup.substitutes[subIndex].sub?.entryIndex?.in !== undefined
+          subPlayer.sub?.entryIndex?.in !== undefined
             ? {
-                ...lineup.substitutes[subIndex].sub.entryIndex,
+                ...subPlayer.sub.entryIndex,
                 out: entryIndex,
               }
             : { in: entryIndex },
@@ -119,7 +131,9 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       params: { setIndex, entryIndex },
       data: substitution,
     } = input;
-    const lineup = game.sets[setIndex].lineups[side];
+    const set = game.sets[setIndex];
+    if (!set) return;
+    const lineup = set.lineups[side];
     if (!lineup) return;
 
     const startingPlayer = lineup.starting.find(
@@ -132,8 +146,9 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       if (player) player.stats[setIndex] = new PlayerStatsClass();
     }
 
-    game.teams[side].stats[setIndex].substitution++;
-    game.sets[setIndex].entries[entryIndex] =
-      createSubstitutionEntry(substitution);
+    // stats are seeded alongside the set in create-set; skip rather than throw if absent
+    const teamSetStats = game.teams[side].stats[setIndex];
+    if (teamSetStats) teamSetStats.substitution++;
+    set.entries[entryIndex] = createSubstitutionEntry(substitution);
   }
 }

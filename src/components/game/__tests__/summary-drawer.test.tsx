@@ -57,7 +57,7 @@ const indexed = (entries: EntryView[]): IndexedEntry[] =>
 const makePreview = (
   overrides: Partial<SummaryDrawerPreview> = {},
 ): SummaryDrawerPreview => ({
-  entry: allEntries[2],
+  entry: allEntries[2]!,
   previousEntry: allEntries[1],
   players,
   isEditing: true,
@@ -143,7 +143,7 @@ describe("SummaryDrawerCard handle / expansion", () => {
     );
 
     const rows = await screen.findAllByTestId("entry-row");
-    await user.click(rows[0]);
+    await user.click(rows[0]!);
 
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(rows[0]).toHaveAttribute("data-expanded", "false");
@@ -154,10 +154,10 @@ describe("SummaryDrawerCard handle / expansion", () => {
     render(<SummaryDrawerCard {...baseProps} state="expanded" />);
 
     const rows = await screen.findAllByTestId("entry-row");
-    await user.click(rows[0]);
+    await user.click(rows[0]!);
     expect(rows[0]).toHaveAttribute("data-expanded", "true");
 
-    await user.click(rows[1]);
+    await user.click(rows[1]!);
     expect(rows[0]).toHaveAttribute("data-expanded", "false");
     expect(rows[1]).toHaveAttribute("data-expanded", "true");
   });
@@ -282,7 +282,7 @@ describe("SummaryDrawer edit bridge", () => {
 
     // Expanded renders every committed row; the newest row is first.
     const editButtons = await screen.findAllByTestId("entry-action-edit");
-    fireEvent.click(editButtons[0]);
+    fireEvent.click(editButtons[0]!);
 
     expect(mockDispatch).toHaveBeenCalledWith(
       expect.objectContaining({

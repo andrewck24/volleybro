@@ -64,17 +64,17 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {
     if (!team || !teamPlayers) return [];
-    return (team.lineups[lineupIndex][list] as { id: string }[]).map(
-      (player) => {
-        const member = teamPlayers.find((p) => p.id === player.id);
-        return {
-          id: member?.id ?? "",
-          name: member?.name ?? "",
-          number: member?.number ?? 0,
-          list,
-        };
-      },
-    );
+    const lineup = team.lineups[lineupIndex];
+    if (!lineup) return [];
+    return (lineup[list] as { id: string }[]).map((player) => {
+      const member = teamPlayers.find((p) => p.id === player.id);
+      return {
+        id: member?.id ?? "",
+        name: member?.name ?? "",
+        number: member?.number ?? 0,
+        list,
+      };
+    });
   };
 
   const players = getPlayerData("starting")

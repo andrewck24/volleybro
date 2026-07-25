@@ -92,7 +92,12 @@ describe("GET /apple-splash/[size]", () => {
     expect(typeSvg).toBeDefined();
 
     const expectedWidth = Math.round(0.4 * Math.min(1290, 2796));
-    const [, , vbWidth, vbHeight] = TYPE_VIEWBOX.split(" ").map(Number);
+    const [, , vbWidth, vbHeight] = TYPE_VIEWBOX.split(" ").map(Number) as [
+      number,
+      number,
+      number,
+      number,
+    ];
     const expectedHeight = Math.round((expectedWidth * vbHeight) / vbWidth);
     expect(typeSvg?.props.width).toBe(expectedWidth);
     expect(typeSvg?.props.height).toBe(expectedHeight);

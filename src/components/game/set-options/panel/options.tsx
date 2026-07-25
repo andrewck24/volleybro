@@ -164,7 +164,7 @@ const ServingTeam = ({
 
 const SubstitutesTable = ({ members }: { members: GamePlayerView[] }) => {
   const { lineups } = useAppSelector((state) => state.lineup);
-  const liberoCount = lineups[0]?.liberos.length;
+  const liberoCount = lineups[0]?.liberos.length ?? 0;
   const substituteCount = lineups[0]?.substitutes.length;
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
 

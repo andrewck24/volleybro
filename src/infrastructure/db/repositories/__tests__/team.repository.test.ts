@@ -139,8 +139,8 @@ describe("TeamRepositoryImpl", () => {
 
       // Read side: stored playerId mapped back to the same domain id; empty
       // slot returns id null.
-      expect(result[0].starting[0].id).toBe(playerHexId);
-      expect(result[0].starting[1].id).toBeNull();
+      expect(result[0]!.starting[0]!.id).toBe(playerHexId);
+      expect(result[0]!.starting[1]!.id).toBeNull();
     });
 
     it("throws NotFoundError when the team is not found", async () => {

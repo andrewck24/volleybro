@@ -124,6 +124,8 @@ const setEntryDraftHomeMove: CaseReducer<
   const { mode } = state;
   const { win, type, num, outcome } = action.payload;
   const { home, away } = state[mode].status.scores;
+  // every ScoringMove.outcome has at least one entry, each a valid scoringMoves index
+  const [outcomeNum = 0] = outcome;
 
   state[mode].status.panel = "away";
   state[mode].entryDraft.win = win;
@@ -136,8 +138,8 @@ const setEntryDraftHomeMove: CaseReducer<
   state[mode].entryDraft.away = {
     ...state[mode].entryDraft.away,
     score: win ? away : away + 1,
-    type: scoringMoves[outcome[0]].type,
-    num: outcome[0],
+    type: scoringMoves[outcomeNum]?.type ?? null,
+    num: outcomeNum,
   };
 };
 
@@ -255,7 +257,8 @@ const setEditingEntryStatus: CaseReducer<
   const { setIndex } = state;
   const { game, entryIndex } = action.payload;
   const set = game.sets[setIndex];
-  const entry = set.entries[entryIndex];
+  const entry = set?.entries[entryIndex];
+  if (!entry) return;
   const { inProgress, isSetPoint } = gamePhaseHelper(
     game,
     setIndex,
