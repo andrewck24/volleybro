@@ -163,7 +163,7 @@ Use `pnpm changeset --empty` if CI requires a changeset file but the change has 
 ## FAQ
 
 **Q: What if I forgot to create a changeset on the feat branch?**
-A: Create it on dev before the PR to main. The changeset just needs to exist before `release:version` runs.
+A: Fallback only — create it on `dev` before the PR to `main` (it just needs to exist before `release:version` runs). Prefer fixing the habit: the changeset belongs in the original feat→dev PR, not batched at release time.
 
 **Q: Can I edit a changeset after creating it?**
 A: Yes. It's a plain markdown file in `.changeset/`. Edit and commit.
