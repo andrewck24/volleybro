@@ -40,8 +40,8 @@ export const getTeamsStats = (
   const isCalculatingAll = setIndex === -1;
   if (!isCalculatingAll) {
     return {
-      home: teams.home.stats[setIndex],
-      away: teams.away.stats[setIndex],
+      home: teams.home.stats[setIndex] ?? createEmptyTeamStats(),
+      away: teams.away.stats[setIndex] ?? createEmptyTeamStats(),
     };
   }
   return {

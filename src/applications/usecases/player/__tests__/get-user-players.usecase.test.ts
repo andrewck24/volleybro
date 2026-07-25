@@ -48,8 +48,8 @@ describe("GetUserPlayersUseCase", () => {
     const result = await usecase.execute({ userId: "user-1" });
 
     expect(result).toHaveLength(2);
-    expect(result[0].teamId).toBe("team-1");
-    expect(result[1].teamId).toBe("team-2");
+    expect(result[0]!.teamId).toBe("team-1");
+    expect(result[1]!.teamId).toBe("team-2");
   });
 
   it("should include both MEMBER and ADMIN roles", async () => {
@@ -57,8 +57,8 @@ describe("GetUserPlayersUseCase", () => {
 
     const result = await usecase.execute({ userId: "user-1" });
 
-    expect(result[0].role).toBe(PlayerRole.MEMBER);
-    expect(result[1].role).toBe(PlayerRole.ADMIN);
+    expect(result[0]!.role).toBe(PlayerRole.MEMBER);
+    expect(result[1]!.role).toBe(PlayerRole.ADMIN);
   });
 
   it("should include status field in results", async () => {

@@ -11,7 +11,7 @@ export const useSubstitutes = (
   if (!game) return [];
 
   const substitutes =
-    entryIndex === game.sets[setIndex].entries.length
+    entryIndex === game.sets[setIndex]?.entries.length
       ? gerGeneralModeSubstitutes(game, entryDraft, setIndex)
       : getEditingModeSubstitutes(game, entryDraft, setIndex, entryIndex);
 
@@ -24,7 +24,8 @@ const gerGeneralModeSubstitutes = (
   entryDraft: ReduxEntryDraft,
   setIndex: number,
 ) => {
-  const { starting, substitutes } = game.sets[setIndex].lineups.home;
+  // setIndex references the active set being recorded; guaranteed in bounds
+  const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
   const { players } = game.teams.home;
   const startingId = entryDraft.home.player?.id;
 
@@ -56,7 +57,8 @@ const getEditingModeSubstitutes = (
   setIndex: number,
   entryIndex: number,
 ) => {
-  const { starting, substitutes } = game.sets[setIndex].lineups.home;
+  // setIndex references the active set being recorded; guaranteed in bounds
+  const { starting, substitutes } = game.sets[setIndex]!.lineups.home;
   const { players } = game.teams.home;
   const startingId = entryDraft.home.player?.id;
 

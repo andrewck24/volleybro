@@ -27,7 +27,7 @@ export const PlayerInfo = ({
     "starting" | "liberos" | "substitutes";
   const lineupPlayer =
     editingMember.zone != null
-      ? lineups[lineupIndex][activeList][editingMember.zone - 1]
+      ? lineups[lineupIndex]?.[activeList][editingMember.zone - 1]
       : undefined;
   const player = players.find((member) => member.id === editingMember.id);
 

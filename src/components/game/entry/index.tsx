@@ -19,11 +19,13 @@ export const Entry = ({
   onClick,
   className,
 }: {
-  entry: EntryView;
+  entry?: EntryView;
   players: GamePlayerView[];
   onClick?: () => void;
   className?: string;
 }) => {
+  if (!entry?.type) return null;
+
   return (
     <EntryContainer onClick={onClick} className={className}>
       {entry.type === EntryType.RALLY ? (
@@ -46,10 +48,6 @@ export const EntryContainer = ({
 }) => (
   <div
     className={cn(
-      // Uniform entry box: p-1 + rounded so every entry (committed rows and the
-      // Preview) shares one shape. On the drawer's bg-card the rounding is only
-      // visible once a background is applied -- e.g. the Preview's primary fill
-      // when it becomes the send button.
       "flex w-full flex-none basis-8 flex-row items-center justify-start gap-1 rounded-md p-1",
       className,
     )}
@@ -88,9 +86,7 @@ export const EntryPlayerNumber = ({
   </span>
 );
 
-// Minimum horizontal pointer travel (px) before a drag is recognized as a
-// swipe rather than a tap -- mirrors panel/progress-bar.tsx's capture-on-
-// intent gesture so the two don't diverge on feel.
+// keep in sync with panel/progress-bar.tsx
 const SWIPE_THRESHOLD_PX = 40;
 
 const actionLabel: Record<EntryAction, string> = {
@@ -130,16 +126,6 @@ const EntryRowActions = ({
   </>
 );
 
-/**
- * Interactive row wrapper around <Entry> (D12 group 5): left-swipe reveals
- * the row's action buttons, and tapping the row inline-expands it as an
- * accordion showing the entry's detail + actions, without leaving the list.
- *
- * ponytail: EntryView has no `recordedBy` field yet -- it's populated once
- * the sync-recording change adds authorship. The expanded content shows the
- * entry's existing score/type detail (via <Entry>) plus the composed
- * actions; there's no timestamp field on the model to show either.
- */
 export const EntryRow = ({
   entry,
   players,
@@ -159,9 +145,7 @@ export const EntryRow = ({
   onEdit?: () => void;
   onDelete?: () => void;
   onRollbackToHere?: () => void;
-  // Optional controlled expand/swipe state: when the list owns these (single
-  // open at a time -- tapping another row collapses this one) it passes them
-  // in; standalone usage falls back to local state.
+  // optional controlled state; falls back to local when uncontrolled
   expanded?: boolean;
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
@@ -190,9 +174,7 @@ export const EntryRow = ({
     if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
 
     drag.triggered = true;
-    // Any recognized swipe suppresses the tap the browser synthesizes on
-    // pointerup, so a horizontal drag never also toggles the accordion --
-    // mirrors panel/progress-bar.tsx. Only a left-swipe reveals the actions.
+    // suppress the synthetic tap after a swipe so it doesn't also toggle expand
     suppressClickRef.current = true;
     if (dx < 0) {
       revealSwipe(true);
@@ -211,9 +193,7 @@ export const EntryRow = ({
     toggleExpand();
   };
 
-  // ponytail: delete/rollback are still computed by the last-entry rule, but
-  // hidden until the sync-recording change wires their reducers -- rendering
-  // inert buttons would be misleading.
+  // only edit is wired yet; delete/rollback await sync-recording reducers
   const actions = composeEntryActions(isLatest).filter((a) => a === "edit");
 
   return (

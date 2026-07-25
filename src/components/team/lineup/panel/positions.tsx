@@ -39,7 +39,7 @@ export const Positions = () => {
     "starting" | "liberos" | "substitutes";
   const toggledPosition =
     zone != null
-      ? lineups[status.lineupIndex][activeList][zone - 1]?.position
+      ? lineups[status.lineupIndex]?.[activeList][zone - 1]?.position
       : undefined;
   const isEditingLiberos = list === "liberos";
 

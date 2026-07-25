@@ -187,7 +187,7 @@ const checkPlatform = (): Platform => {
   // iOS 檢測
   if (/iphone|ipad|ipod/.test(userAgent)) {
     const match = userAgent.match(/version\/(\d+)/);
-    if (match && parseInt(match[1], 10) >= 15) {
+    if (match && parseInt(match[1] ?? "", 10) >= 15) {
       return "iOS";
     }
     return "desktop";

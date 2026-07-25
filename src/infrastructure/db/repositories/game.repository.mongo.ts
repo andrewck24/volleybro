@@ -326,7 +326,11 @@ export class GameRepositoryImpl implements IGameRepository {
   async update(id: string, data: Partial<Game>): Promise<Game> {
     try {
       const doc = await this.model
-        .findByIdAndUpdate(id, { $set: this.toGameDoc(data) }, { new: true })
+        .findByIdAndUpdate(
+          id,
+          { $set: this.toGameDoc(data) },
+          { returnDocument: "after" },
+        )
         .exec();
       if (!doc)
         throw new NotFoundError(
@@ -457,7 +461,8 @@ export class GameRepositoryImpl implements IGameRepository {
       return {
         data,
         hasMore,
-        lastId: data.length > 0 ? data[data.length - 1].id : (lastId ?? ""),
+        // length checked > 0, so the last element is present
+        lastId: data.length > 0 ? data[data.length - 1]!.id : (lastId ?? ""),
       };
     } catch (error) {
       throw translateRepositoryError(error);

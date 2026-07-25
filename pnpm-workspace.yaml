@@ -6,6 +6,7 @@ allowBuilds:
   "@swc/core": false
   core-js-pure: true
   esbuild: true
+  mongodb-memory-server: false
   sharp: true
   unrs-resolver: true
 

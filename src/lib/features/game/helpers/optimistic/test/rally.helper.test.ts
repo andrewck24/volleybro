@@ -170,7 +170,7 @@ describe("rally.helper.ts", () => {
 
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
-      expect(result.game.sets[0].entries[1]).toEqual({
+      expect(result.game.sets[0]!.entries[1]).toEqual({
         type: EntryType.RALLY,
         ...mockRally,
       });
@@ -180,9 +180,9 @@ describe("rally.helper.ts", () => {
       const mockGame = createMockGame();
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
-      expect(result.game.teams.home.players[0].stats[0][M.ATTACK].success).toBe(
-        1,
-      );
+      expect(
+        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
+      ).toBe(1);
     });
 
     it("should update team stats when home team wins", () => {
@@ -190,8 +190,8 @@ describe("rally.helper.ts", () => {
 
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
-      expect(result.game.teams.home.stats[0][M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0][M.DEFENSE].error).toBe(1);
+      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
+      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
     });
 
     it("should update rotation when winning and the last rally is lost", () => {
@@ -199,23 +199,23 @@ describe("rally.helper.ts", () => {
 
       // add a lost rally before the winning rally for rotation
       (
-        mockGame.sets[0].entries[0] as EntryView & { type: EntryType.RALLY }
+        mockGame.sets[0]!.entries[0] as EntryView & { type: EntryType.RALLY }
       ).win = false;
 
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
-      expect(result.game.teams.home.stats[0].rotation).toBe(1);
+      expect(result.game.teams.home.stats[0]!.rotation).toBe(1);
     });
 
     it("should not update rotation when winning serving team", () => {
       const mockGame = createMockGame();
 
       // Set home team as serving team
-      mockGame.sets[0].options.serve = "home";
+      mockGame.sets[0]!.options.serve = "home";
 
       const result = createRallyHelper(mockParams, mockRally, mockGame);
 
-      expect(result.game.teams.home.stats[0].rotation).toBe(0);
+      expect(result.game.teams.home.stats[0]!.rotation).toBe(0);
     });
   });
 
@@ -247,7 +247,7 @@ describe("rally.helper.ts", () => {
 
       const result = updateRallyHelper(mockParams, newRally, mockGame);
 
-      expect(result.game.sets[0].entries[0]).toEqual({
+      expect(result.game.sets[0]!.entries[0]).toEqual({
         type: EntryType.RALLY,
         ...newRally,
       });
@@ -259,20 +259,20 @@ describe("rally.helper.ts", () => {
       const result = updateRallyHelper(mockParams, newRally, mockGame);
 
       // Original stats should be removed
-      expect(result.game.teams.home.players[0].stats[0][M.ATTACK].success).toBe(
-        1,
-      );
+      expect(
+        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
+      ).toBe(1);
 
       // New stats should be added
       expect(
-        result.game.teams.home.players[0].stats[0][M.SERVING].success,
+        result.game.teams.home.players[0]!.stats[0]![M.SERVING].success,
       ).toBe(0);
 
       // Team stats should also be updated
-      expect(result.game.teams.home.stats[0][M.SERVING].success).toBe(0);
-      expect(result.game.teams.away.stats[0][M.RECEPTION].error).toBe(0);
-      expect(result.game.teams.home.stats[0][M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0][M.DEFENSE].error).toBe(1);
+      expect(result.game.teams.home.stats[0]![M.SERVING].success).toBe(0);
+      expect(result.game.teams.away.stats[0]![M.RECEPTION].error).toBe(0);
+      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
+      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
     });
 
     it("should update player and team stats when changing a rally from lost to won", () => {
@@ -299,25 +299,25 @@ describe("rally.helper.ts", () => {
       const result = updateRallyHelper(mockParams, newRally, mockGame);
 
       // Original stats should be removed
-      expect(result.game.teams.home.players[0].stats[0][M.ATTACK].error).toBe(
+      expect(result.game.teams.home.players[0]!.stats[0]![M.ATTACK].error).toBe(
         0,
       );
 
       // New stats should be added
-      expect(result.game.teams.home.players[0].stats[0][M.ATTACK].success).toBe(
-        1,
-      );
+      expect(
+        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
+      ).toBe(1);
 
       // Team stats should also be updated
-      expect(result.game.teams.home.stats[0][M.ATTACK].error).toBe(0);
-      expect(result.game.teams.away.stats[0][M.BLOCKING].success).toBe(0);
-      expect(result.game.teams.home.stats[0][M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0][M.DEFENSE].error).toBe(1);
+      expect(result.game.teams.home.stats[0]![M.ATTACK].error).toBe(0);
+      expect(result.game.teams.away.stats[0]![M.BLOCKING].success).toBe(0);
+      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
+      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
     });
 
     it("should throw error when entry is not a rally", () => {
       const mockGame = createMockGame();
-      mockGame.sets[0].entries[0].type = EntryType.TIMEOUT;
+      mockGame.sets[0]!.entries[0]!.type = EntryType.TIMEOUT;
 
       expect(() => {
         updateRallyHelper(mockParams, newRally, mockGame);
@@ -327,7 +327,7 @@ describe("rally.helper.ts", () => {
     it("should update rotation when rally win status changes", () => {
       const mockGame = createMockGame();
       // Add a second rally so we can see rotation change
-      mockGame.sets[0].entries.push({
+      mockGame.sets[0]!.entries.push({
         type: EntryType.RALLY,
         win: true,
         home: {
@@ -364,7 +364,7 @@ describe("rally.helper.ts", () => {
       const result = updateRallyHelper(mockParams, newRally, mockGame);
 
       // Rotation should be updated since we've changed win status
-      expect(result.game.teams.home.stats[0].rotation).toBe(1);
+      expect(result.game.teams.home.stats[0]!.rotation).toBe(1);
     });
 
     it("should not change rotation when win status remains the same", () => {
@@ -373,7 +373,7 @@ describe("rally.helper.ts", () => {
       const result = updateRallyHelper(mockParams, newRally, mockGame);
 
       // Rotation should remain unchanged
-      expect(result.game.teams.home.stats[0].rotation).toBe(0);
+      expect(result.game.teams.home.stats[0]!.rotation).toBe(0);
     });
   });
 
@@ -396,7 +396,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.inProgress).toBe(true);
         expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0].win).toBeFalsy(); // 不應該設定勝負
+        expect(result.game.sets[0]!.win).toBeFalsy(); // 不應該設定勝負
       });
 
       it("should mark the set as completed when home team reaches winning score with 2-point lead", () => {
@@ -416,7 +416,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.inProgress).toBe(false);
-        expect(result.game.sets[0].win).toBe(true); // 主隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(true); // 主隊贏了這局
       });
 
       it("should mark the set as completed when away team reaches winning score with 2-point lead", () => {
@@ -436,7 +436,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.inProgress).toBe(false);
-        expect(result.game.sets[0].win).toBe(false); // 客隊贏了這局
+        expect(result.game.sets[0]!.win).toBe(false); // 客隊贏了這局
       });
 
       it("should detect a set point correctly", () => {
@@ -461,12 +461,12 @@ describe("rally.helper.ts", () => {
 
       it("should use different winning score for deciding set", () => {
         const mockGame = createMockGame();
-        mockGame.sets[0].win = true;
-        mockGame.sets.push({ ...mockGame.sets[0], win: false }); // 1-1
-        mockGame.sets.push({ ...mockGame.sets[0], win: true }); // 2-1
-        mockGame.sets.push({ ...mockGame.sets[0], win: false }); // 2-2
+        mockGame.sets[0]!.win = true;
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 1-1
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true }); // 2-1
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false }); // 2-2
         mockGame.sets.push({
-          ...mockGame.sets[0],
+          ...mockGame.sets[0]!,
           entries: [],
         });
 
@@ -479,10 +479,10 @@ describe("rally.helper.ts", () => {
         };
 
         // 添加決勝局的統計數據
-        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0];
-        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0];
-        mockGame.teams.home.players[0].stats[4] =
-          mockGame.teams.home.players[0].stats[0];
+        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0]!;
+        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0]!;
+        mockGame.teams.home.players[0]!.stats[4] =
+          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 4, entryIndex: 0 },
@@ -491,7 +491,7 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.inProgress).toBe(false);
-        expect(result.game.sets[4].win).toBe(true); // 主隊贏了決勝局
+        expect(result.game.sets[4]!.win).toBe(true); // 主隊贏了決勝局
       });
     });
 
@@ -499,10 +499,10 @@ describe("rally.helper.ts", () => {
       it("should mark the game as completed when a team wins majority of sets (3-0)", () => {
         const mockGame = createMockGame();
         // 已經有兩局主隊獲勝
-        mockGame.sets[0].win = true;
-        mockGame.sets.push({ ...mockGame.sets[0], win: true });
+        mockGame.sets[0]!.win = true;
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
         mockGame.sets.push({
-          ...mockGame.sets[0],
+          ...mockGame.sets[0]!,
           entries: [],
         });
 
@@ -515,10 +515,10 @@ describe("rally.helper.ts", () => {
         };
 
         // 添加第三局統計數據
-        mockGame.teams.home.stats[2] = mockGame.teams.home.stats[0];
-        mockGame.teams.away.stats[2] = mockGame.teams.away.stats[0];
-        mockGame.teams.home.players[0].stats[2] =
-          mockGame.teams.home.players[0].stats[0];
+        mockGame.teams.home.stats[2] = mockGame.teams.home.stats[0]!;
+        mockGame.teams.away.stats[2] = mockGame.teams.away.stats[0]!;
+        mockGame.teams.home.players[0]!.stats[2] =
+          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 2, entryIndex: 0 },
@@ -527,19 +527,19 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.inProgress).toBe(false);
-        expect(result.game.sets[2].win).toBe(true);
+        expect(result.game.sets[2]!.win).toBe(true);
         expect(result.game.win).toBe(true); // 主隊贏了比賽
       });
 
       it("should mark the game as completed when a team wins majority of sets (2-3)", () => {
         const mockGame = createMockGame();
         // 2-2平局狀態
-        mockGame.sets[0].win = true;
-        mockGame.sets.push({ ...mockGame.sets[0], win: false });
-        mockGame.sets.push({ ...mockGame.sets[0], win: true });
-        mockGame.sets.push({ ...mockGame.sets[0], win: false });
+        mockGame.sets[0]!.win = true;
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
         mockGame.sets.push({
-          ...mockGame.sets[0],
+          ...mockGame.sets[0]!,
           entries: [],
         });
 
@@ -552,10 +552,10 @@ describe("rally.helper.ts", () => {
         };
 
         // 添加決勝局統計數據
-        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0];
-        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0];
-        mockGame.teams.home.players[0].stats[4] =
-          mockGame.teams.home.players[0].stats[0];
+        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0]!;
+        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0]!;
+        mockGame.teams.home.players[0]!.stats[4] =
+          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 4, entryIndex: 0 },
@@ -564,18 +564,18 @@ describe("rally.helper.ts", () => {
         );
 
         expect(result.phase.inProgress).toBe(false);
-        expect(result.game.sets[4].win).toBe(false);
+        expect(result.game.sets[4]!.win).toBe(false);
         expect(result.game.win).toBe(false); // 客隊贏了比賽
       });
 
       it("should not mark the game as completed when no team has won majority of sets yet (2-1)", () => {
         const mockGame = createMockGame();
         // 2-1領先狀態
-        mockGame.sets[0].win = true;
-        mockGame.sets.push({ ...mockGame.sets[0], win: false });
-        mockGame.sets.push({ ...mockGame.sets[0], win: true });
+        mockGame.sets[0]!.win = true;
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
+        mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
         mockGame.sets.push({
-          ...mockGame.sets[0],
+          ...mockGame.sets[0]!,
           entries: [],
         });
 
@@ -588,10 +588,10 @@ describe("rally.helper.ts", () => {
         };
 
         // 添加第四局統計數據
-        mockGame.teams.home.stats[3] = mockGame.teams.home.stats[0];
-        mockGame.teams.away.stats[3] = mockGame.teams.away.stats[0];
-        mockGame.teams.home.players[0].stats[3] =
-          mockGame.teams.home.players[0].stats[0];
+        mockGame.teams.home.stats[3] = mockGame.teams.home.stats[0]!;
+        mockGame.teams.away.stats[3] = mockGame.teams.away.stats[0]!;
+        mockGame.teams.home.players[0]!.stats[3] =
+          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 3, entryIndex: 0 },
@@ -616,11 +616,11 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 23 },
         };
 
-        mockGame.sets[0].entries[0] = {
+        mockGame.sets[0]!.entries[0] = {
           type: EntryType.RALLY,
           ...winningRally,
         };
-        mockGame.sets[0].win = true; // 已經標記為主隊勝
+        mockGame.sets[0]!.win = true; // 已經標記為主隊勝
 
         // 修改這個記錄，改為客隊贏
         const updatedRally: RallyView = {
@@ -638,7 +638,7 @@ describe("rally.helper.ts", () => {
 
         expect(result.phase.inProgress).toBe(false);
         expect(result.phase.isSetPoint).toBe(false);
-        expect(result.game.sets[0].win).toBe(false);
+        expect(result.game.sets[0]!.win).toBe(false);
       });
     });
   });

@@ -52,6 +52,9 @@ export class CreateRallyUseCase implements ICreateRallyUseCase {
 
     const persistedGame = await this.gameRepository.update(gameId, updatedGame);
 
-    return persistedGame.sets[setIndex].entries;
+    const persistedSet = persistedGame.sets[setIndex];
+    if (!persistedSet)
+      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
+    return persistedSet.entries;
   }
 }

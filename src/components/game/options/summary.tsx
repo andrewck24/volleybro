@@ -9,7 +9,7 @@ export const GameOptionsSummary = ({ gameId }: { gameId: string }) => {
   const dispatch = useAppDispatch();
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((state) => state.game);
-  const { entries } = game!.sets[setIndex];
+  const set = game!.sets[setIndex];
   const { players } = game!.teams.home;
 
   const handleEntryClick = (entryIndex: number) => {
@@ -19,7 +19,7 @@ export const GameOptionsSummary = ({ gameId }: { gameId: string }) => {
   return (
     <div className="flex flex-col-reverse gap-1">
       <Separator content="比賽開始" />
-      {entries.map((entry, entryIndex: number) => (
+      {set?.entries.map((entry, entryIndex: number) => (
         <Entry
           key={entryIndex}
           entry={entry}

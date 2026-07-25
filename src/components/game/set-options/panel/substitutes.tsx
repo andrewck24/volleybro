@@ -30,7 +30,7 @@ export const Substitutes = ({ gameId }: { gameId: string }) => {
           </Button>
           <CardTitle>替補名單</CardTitle>
         </CardHeader>
-        {lineups[status.lineupIndex].substitutes.map((player, index) => {
+        {lineups[status.lineupIndex]?.substitutes.map((player, index) => {
           const member = members.find((m) => m.id === player.id);
           if (!member) return null;
           return (
