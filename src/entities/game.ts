@@ -94,9 +94,25 @@ export type Player = {
  * Validate that every player id referenced by a lineup exists on the roster.
  * Guest players carry a null id, so only non-null roster ids are allowed
  * targets; null references in the lineup are empty slots and are skipped.
- * Throws ValidationError if a referenced id is not on the roster.
+ * Throws ValidationError if the lineup shape is malformed or a referenced id
+ * is not on the roster.
  */
 export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
+  // The lineup arrives unvalidated from the request body, so reject a
+  // malformed shape here instead of letting a spread throw a raw TypeError.
+  if (
+    lineup == null ||
+    typeof lineup !== "object" ||
+    !Array.isArray(lineup.starting) ||
+    !Array.isArray(lineup.liberos) ||
+    !Array.isArray(lineup.substitutes)
+  ) {
+    throw new ValidationError(
+      CommonReason.INVALID_INPUT,
+      "Lineup shape is malformed",
+    );
+  }
+
   const rosterIds = new Set(
     roster
       .filter((player) => player.id != null)

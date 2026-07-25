@@ -42,6 +42,19 @@ describe("lineup roster validation on /api/games/:id/sets", () => {
     expect(after!.sets[0]).toBeUndefined();
   });
 
+  it("POST rejects a malformed lineup shape without persisting", async () => {
+    const res = await callRoute(createSet, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 0 },
+      body: { lineup: { starting: "nope" }, options },
+    });
+
+    expect(res.status).toBe(400);
+    const after = await repo().findById(seeded.gameId);
+    expect(after!.sets[0]).toBeUndefined();
+  });
+
   it("POST persists a valid roster-derived lineup", async () => {
     const res = await callRoute(createSet, {
       gameId: seeded.gameId,

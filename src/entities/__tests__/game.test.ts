@@ -132,6 +132,19 @@ describe("validateLineupPlayers", () => {
     ).not.toThrow();
   });
 
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["empty object", {}],
+    ["non-array starting", { ...lineup(), starting: "nope" }],
+    ["non-array liberos", { ...lineup(), liberos: 42 }],
+    ["non-array substitutes", { ...lineup(), substitutes: null }],
+  ])("throws ValidationError for a malformed lineup (%s)", (_label, bad) => {
+    expect(() =>
+      validateLineupPlayers(bad as unknown as Lineup, roster),
+    ).toThrow(ValidationError);
+  });
+
   it("never treats a null-id guest on the roster as a valid target", () => {
     const rosterWithGuest = [player("a"), player(null)];
     expect(() =>
