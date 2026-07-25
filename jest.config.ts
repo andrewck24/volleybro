@@ -1,11 +1,26 @@
 /**
- * Jest configuration with two projects for environment isolation:
- * - backend: node environment for entities, applications, infrastructure, interface, API routes
+ * Jest configuration with three projects:
+ * - backend: node environment, mongoose mocked, for entities/applications/infrastructure/interface/API-route unit tests
  * - frontend: jsdom environment for components and lib
+ * - integration: node environment against a real in-memory MongoDB (no mongoose mock)
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
+
+// Next's server modules (pulled in by the integration project's real route
+// imports) capture globalThis.AsyncLocalStorage at import time and otherwise use
+// a stub that throws on use. They load in the real Node context, so expose it on
+// the real global here (covers in-band runs) and forward it into forked Jest
+// workers via NODE_OPTIONS (covers the default parallel runner).
+(globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
+  AsyncLocalStorage;
+const preload = `${process.cwd()}/jest.preload.integration.mjs`;
+if (!process.env.NODE_OPTIONS?.includes(preload)) {
+  process.env.NODE_OPTIONS =
+    `${process.env.NODE_OPTIONS ?? ""} --import ${preload}`.trim();
+}
 
 const createJestConfig = nextJest({ dir: "./" });
 
@@ -59,10 +74,18 @@ export default async function jestConfig() {
     ],
   };
 
+  const integrationProject: Config = {
+    ...sharedConfig,
+    displayName: "integration",
+    testEnvironment: "node",
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
+    testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
+  };
+
   return {
     collectCoverage: true,
     coverageDirectory: "coverage",
     coverageProvider: "v8",
-    projects: [backendProject, frontendProject],
+    projects: [backendProject, frontendProject, integrationProject],
   } satisfies Config;
 }

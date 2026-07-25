@@ -4,12 +4,14 @@ import type { IAuthorizationService } from "@/applications/services/auth/authori
 import { NotFoundError, GameReason } from "@/entities/errors";
 import { type Game, type Set } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
+import { type Lineup } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
 export interface IUpdateSetInput {
   params: { gameId: string; setIndex: number };
   data: {
+    lineup?: Lineup;
     options: Set["options"];
   };
 }
@@ -48,6 +50,7 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
     game.sets[params.setIndex].options = data.options;
+    if (data.lineup) game.sets[params.setIndex].lineups.home = data.lineup;
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 

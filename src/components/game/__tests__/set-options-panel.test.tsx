@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 
 const mockMutate = jest.fn();
 const mockRouterPush = jest.fn();
+const mockToast = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
@@ -31,7 +32,7 @@ jest.mock("@/lib/api/error-toast", () => ({
 }));
 
 jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
+  useToast: () => ({ toast: mockToast }),
 }));
 
 jest.mock("@/lib/redux/hooks", () => ({
@@ -100,5 +101,25 @@ describe("Options (set-options panel) submitting state", () => {
     await user.click(btn);
 
     await waitFor(() => expect(btn).toBeEnabled());
+  });
+
+  it("fires a success toast after a successful save", async () => {
+    mockApiClient.mockResolvedValue({
+      sets: [],
+      teams: { home: { players: [] } },
+    });
+
+    const user = userEvent.setup();
+    render(<Options gameId="rec-1" />);
+
+    await user.click(
+      screen.getByRole("button", { name: /開始新一局|儲存設定/ }),
+    );
+
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "成功" }),
+      ),
+    );
   });
 });

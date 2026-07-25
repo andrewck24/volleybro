@@ -56,7 +56,8 @@ export class CreateSetUseCase implements ICreateSetUseCase {
     const activePlayerIds = new Set([...startingPlayers, ...liberoPlayers]);
 
     game.teams.home.players.forEach((player) => {
-      if (activePlayerIds.has(player.id.toString())) {
+      // Guest players have a null id and never appear in a lineup's active set.
+      if (player.id && activePlayerIds.has(player.id.toString())) {
         player.stats[params.setIndex] = new PlayerStatsClass();
       }
     });
