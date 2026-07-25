@@ -234,16 +234,16 @@ describe("GameRepositoryImpl", () => {
       const result = await repository.findById(mockGameIdString);
 
       const home = result!.teams.home;
-      expect(home.players[0].id).toBe(playerHexId);
+      expect(home.players[0]!.id).toBe(playerHexId);
       expect(
         (home.players[0] as unknown as { playerId?: unknown }).playerId,
       ).toBeUndefined();
 
-      const starting = result!.sets[0].lineups.home.starting;
-      expect(starting[0].id).toBe(playerHexId);
-      expect(starting[1].id).toBeNull();
+      const starting = result!.sets[0]!.lineups.home.starting;
+      expect(starting[0]!.id).toBe(playerHexId);
+      expect(starting[1]!.id).toBeNull();
 
-      const entries = result!.sets[0].entries;
+      const entries = result!.sets[0]!.entries;
       expect(
         (entries[0] as { home: { player: { id: string } } }).home.player.id,
       ).toBe(playerHexId);
@@ -383,7 +383,7 @@ describe("GameRepositoryImpl", () => {
       expect(mockAggregate).toHaveBeenCalled();
       expect(result.data).toEqual(mockGameSummaries);
       expect(result.hasMore).toBe(false);
-      expect(result.lastId).toBe(mockGameSummaries[1].id);
+      expect(result.lastId).toBe(mockGameSummaries[1]!.id);
     });
 
     it("should mark hasMore true when results exceed limit", async () => {
@@ -457,8 +457,8 @@ describe("GameRepositoryImpl", () => {
       const result = await repository.findGameSummaries(mockTeamIdString);
 
       expect(result.data.length).toBe(1);
-      expect(result.data[0].teams.home.sets).toBe(2);
-      expect(result.data[0].teams.away.sets).toBe(1);
+      expect(result.data[0]!.teams.home.sets).toBe(2);
+      expect(result.data[0]!.teams.away.sets).toBe(1);
     });
   });
 });

@@ -461,7 +461,8 @@ export class GameRepositoryImpl implements IGameRepository {
       return {
         data,
         hasMore,
-        lastId: data.length > 0 ? data[data.length - 1].id : (lastId ?? ""),
+        // length checked > 0, so the last element is present
+        lastId: data.length > 0 ? data[data.length - 1]!.id : (lastId ?? ""),
       };
     } catch (error) {
       throw translateRepositoryError(error);

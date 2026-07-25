@@ -24,7 +24,8 @@ export const FlipWords = ({
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
-    const word = words[nextIndex];
+    // nextIndex is modulo words.length, and length is non-zero here
+    const word = words[nextIndex]!;
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
@@ -53,7 +54,7 @@ export const FlipWords = ({
           className,
         )}
       >
-        {words[0].split(" ").map((word, wordIndex) => (
+        {words[0]!.split(" ").map((word, wordIndex) => (
           <span
             key={word + wordIndex}
             className="inline-block whitespace-nowrap"
@@ -133,7 +134,8 @@ export const FlipLetters = ({
     const currentIndex = words.indexOf(currentWord);
     const nextIndex =
       currentIndex === -1 ? 0 : (currentIndex + 1) % words.length;
-    const word = words[nextIndex];
+    // nextIndex is modulo words.length, and length is non-zero here
+    const word = words[nextIndex]!;
     setCurrentWord(word);
     setIsAnimating(true);
   }, [currentWord, words]);
@@ -162,7 +164,7 @@ export const FlipLetters = ({
           className,
         )}
       >
-        {words[0].split(" ").map((word, wordIndex) => (
+        {words[0]!.split(" ").map((word, wordIndex) => (
           <span
             key={word + wordIndex}
             className="inline-block whitespace-nowrap"

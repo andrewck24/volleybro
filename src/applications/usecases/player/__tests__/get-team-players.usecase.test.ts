@@ -53,11 +53,11 @@ describe("GetTeamPlayersUseCase", () => {
     const result = await usecase.execute({ teamId: "team-1" });
 
     expect(result).toHaveLength(3);
-    expect(result[0].userId).toBeDefined(); // Member
-    expect(result[1].email).toBeDefined(); // Invitee
-    expect(result[1].userId).toBeUndefined(); // Invitee
-    expect(result[2].email).toBeUndefined(); // Pure player
-    expect(result[2].userId).toBeUndefined(); // Pure player
+    expect(result[0]!.userId).toBeDefined(); // Member
+    expect(result[1]!.email).toBeDefined(); // Invitee
+    expect(result[1]!.userId).toBeUndefined(); // Invitee
+    expect(result[2]!.email).toBeUndefined(); // Pure player
+    expect(result[2]!.userId).toBeUndefined(); // Pure player
   });
 
   it("should include all player information", async () => {

@@ -32,7 +32,7 @@ describe("PUT /api/games/:id/sets", () => {
 
     // Move the setter (index 5) into the outside-hitter position.
     const editedLineup = structuredClone(seeded.lineup);
-    editedLineup.starting[5].position = Position.OH;
+    editedLineup.starting[5]!.position = Position.OH;
 
     const res = await callRoute(updateSet, {
       gameId: seeded.gameId,
@@ -43,6 +43,8 @@ describe("PUT /api/games/:id/sets", () => {
     expect(res.status).toBe(200);
 
     const after = await repo().findById(seeded.gameId);
-    expect(after!.sets[0].lineups.home.starting[5].position).toBe(Position.OH);
+    expect(after!.sets[0]!.lineups.home.starting[5]!.position).toBe(
+      Position.OH,
+    );
   });
 });

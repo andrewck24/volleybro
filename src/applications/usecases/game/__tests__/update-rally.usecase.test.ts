@@ -80,7 +80,7 @@ describe("UpdateRallyUseCase", () => {
       ...game,
       sets: [
         {
-          ...game.sets[0],
+          ...game.sets[0]!,
           entries: [{ type: EntryType.RALLY, ...updatedRally }],
         },
       ],
@@ -100,6 +100,6 @@ describe("UpdateRallyUseCase", () => {
       data: updatedRally,
     });
 
-    expect(result).toEqual(persistedGame.sets[0].entries);
+    expect(result).toEqual(persistedGame.sets[0]!.entries);
   });
 });

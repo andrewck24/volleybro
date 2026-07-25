@@ -260,7 +260,7 @@ export const SummaryDrawer = ({
   // Guard a transient undefined game (e.g. a failed optimistic mutate rolling
   // back) so a submission error never crashes the whole Game tree.
   if (!game) return null;
-  const entries = game.sets[setIndex].entries;
+  const entries = game.sets[setIndex]?.entries ?? [];
   const players = game.teams.home.players;
 
   // The committed list always shows every committed entry as an actionable row.

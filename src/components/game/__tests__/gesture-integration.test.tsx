@@ -172,7 +172,7 @@ describe("Game composition: gesture split integration (D8/D12)", () => {
     await screen.findByTestId("summary-drawer");
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     // Recording now: the draft Preview bar appears at the top of the drawer.

@@ -36,7 +36,7 @@ export const LineupOptions = ({
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const { lineups, status } = useAppSelector((state) => state.lineup);
-  const liberoCount = lineups[status.lineupIndex]?.liberos.length;
+  const liberoCount = lineups[status.lineupIndex]?.liberos.length ?? 0;
   const substituteCount = lineups[status.lineupIndex]?.substitutes.length;
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
   const othersCount = others.length;
@@ -99,7 +99,7 @@ export const LineupOptions = ({
         </TableHeader>
         <TableBody className="text-xl">
           {lineups[status.lineupIndex]?.substitutes &&
-            lineups[status.lineupIndex].substitutes.map((lineupPlayer) => {
+            lineups[status.lineupIndex]?.substitutes.map((lineupPlayer) => {
               const player = players?.find((p) => p.id === lineupPlayer.id);
               return (
                 <TableRow key={player?.id}>

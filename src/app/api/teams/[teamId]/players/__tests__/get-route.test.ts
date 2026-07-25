@@ -79,8 +79,8 @@ describe("Teams Players GET API Route", () => {
       ];
 
       expect(players.length).toBe(3);
-      expect(players[0].userId).toBeDefined();
-      expect(players[1].userId).toBeUndefined();
+      expect(players[0]!.userId).toBeDefined();
+      expect(players[1]!.userId).toBeUndefined();
     });
 
     it("should include player with number and position", () => {
