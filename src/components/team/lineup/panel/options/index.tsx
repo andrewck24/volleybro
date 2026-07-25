@@ -37,7 +37,7 @@ export const LineupOptions = ({
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[status.lineupIndex]?.liberos.length ?? 0;
-  const substituteCount = lineups[status.lineupIndex]?.substitutes.length;
+  const substituteCount = lineups[status.lineupIndex]?.substitutes.length ?? 0;
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
   const othersCount = others.length;
 

@@ -146,6 +146,7 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       if (player) player.stats[setIndex] = new PlayerStatsClass();
     }
 
+    // stats are seeded alongside the set in create-set; skip rather than throw if absent
     const teamSetStats = game.teams[side].stats[setIndex];
     if (teamSetStats) teamSetStats.substitution++;
     set.entries[entryIndex] = createSubstitutionEntry(substitution);
