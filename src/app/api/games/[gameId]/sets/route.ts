@@ -46,7 +46,10 @@ export const PUT = (
 
     const input = {
       params: { gameId, setIndex },
-      data: { options: request.options },
+      data: {
+        lineup: request.lineup,
+        options: request.options,
+      },
     };
 
     const game = await updateSetController(input);

@@ -85,6 +85,10 @@ export const Options = ({ gameId }: { gameId: string }) => {
       );
       mutate(result, false);
       setLiberoDialogOpen(false);
+      toast({
+        title: "成功",
+        description: isNewSet ? "新一局已開始" : "本局設定已儲存",
+      });
       if (isNewSet) router.push(`/game/${gameId}/sets/${setIndex}/entry`);
     } catch (error) {
       showErrorToast(error, toast);

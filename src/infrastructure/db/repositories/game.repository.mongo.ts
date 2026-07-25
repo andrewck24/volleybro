@@ -326,7 +326,11 @@ export class GameRepositoryImpl implements IGameRepository {
   async update(id: string, data: Partial<Game>): Promise<Game> {
     try {
       const doc = await this.model
-        .findByIdAndUpdate(id, { $set: this.toGameDoc(data) }, { new: true })
+        .findByIdAndUpdate(
+          id,
+          { $set: this.toGameDoc(data) },
+          { returnDocument: "after" },
+        )
         .exec();
       if (!doc)
         throw new NotFoundError(
