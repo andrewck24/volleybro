@@ -34,8 +34,8 @@ export const PreviewCard = ({
   onExpand,
   className,
 }: {
-  entry: EntryView;
-  previousEntry: EntryView;
+  entry?: EntryView;
+  previousEntry?: EntryView;
   players: GamePlayerView[];
   isEditing?: boolean;
   isPulsing?: boolean;
@@ -63,7 +63,7 @@ export const PreviewCard = ({
     if (!isEditing) onExpand?.();
   };
 
-  const shownEntry = frozen ? previousEntry : entry;
+  const shownEntry = frozen ? (previousEntry ?? entry) : entry;
   const showSendAffordance = Boolean(isEditing && isComplete && !frozen);
 
   return (
@@ -128,7 +128,8 @@ export const useEntryDraftPreview = (
   if (!game || !inProgress) return { inProgress: false as const };
 
   const { players } = game.teams.home;
-  const lastEntry = game.sets[setIndex].entries[entryIndex - 1];
+  const previousEntry =
+    entryIndex > 0 ? game.sets[setIndex].entries[entryIndex - 1] : undefined;
   const isEditing = Boolean(draft.home.player?.id) || Boolean(draft.home.type);
 
   const draftRallyEntry = isEditing
@@ -156,27 +157,23 @@ export const useEntryDraftPreview = (
       ? { type: EntryType.TIMEOUT, ...draft.timeout }
       : draft.challenge
         ? { type: EntryType.CHALLENGE, ...draft.challenge }
-        : (draftRallyEntry ?? lastEntry);
+        : (draftRallyEntry ?? previousEntry);
 
-  const entry = isEditing || entryIndex === 0 ? draftEntry : lastEntry;
+  const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;
 
-  // Never surface an in-progress state with an undefined entry: at entryIndex 0
-  // with no draft yet, both draftEntry and lastEntry (entries[-1]) are
-  // undefined, which would render a broken Preview card. Degrade to "not in
-  // progress" so consumers render nothing.
+  // No draft and no prior entry (the first entry, before any input): nothing to
+  // preview.
   if (!entry) return { inProgress: false as const };
 
-  // Fail safe: derive completeness from getEntryProgress (reused from task
-  // group 1, do not duplicate) and check the boolean explicitly so a
-  // partially-complete draft never shows the send affordance -- guards
-  // against falsy-but-valid values (e.g. num === 0) or type confusion.
+  // Explicit boolean check so a falsy-but-valid draft value (e.g. num === 0)
+  // never trips the send affordance.
   const { submittable } = getEntryProgress(draft);
   const isComplete = submittable === true;
 
   return {
     inProgress: true as const,
     entry,
-    previousEntry: lastEntry,
+    previousEntry,
     players,
     isEditing,
     isComplete,

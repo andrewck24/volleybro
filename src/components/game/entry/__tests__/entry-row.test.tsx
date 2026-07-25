@@ -26,13 +26,10 @@ const pointerEvent = (type: string, clientX: number) =>
   new MouseEvent(type, { bubbles: true, cancelable: true, clientX });
 
 describe("Entry", () => {
-  // Regression (ATE-91): an undefined entry can reach <Entry> via the recording
-  // Preview (entryIndex 0 -> previousEntry === entries[-1]) or an optimistic
-  // rollback. It must render nothing rather than dereference `.type` and crash.
+  // An undefined entry can reach <Entry> via the recording Preview or an
+  // optimistic rollback; it must render nothing rather than dereference `.type`.
   it("renders nothing without throwing when entry is undefined", () => {
-    const { container } = render(
-      <Entry entry={undefined as unknown as EntryView} players={[]} />,
-    );
+    const { container } = render(<Entry entry={undefined} players={[]} />);
 
     expect(container).toBeEmptyDOMElement();
   });

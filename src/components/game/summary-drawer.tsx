@@ -16,7 +16,7 @@ export type SummaryDrawerState = "idle" | "expanded";
 /** Props PreviewCard needs, minus `inProgress` (the caller already checked it). */
 export type SummaryDrawerPreview = {
   entry: EntryView;
-  previousEntry: EntryView;
+  previousEntry: EntryView | undefined;
   players: GamePlayerView[];
   isEditing: boolean;
   isComplete: boolean;

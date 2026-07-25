@@ -127,12 +127,9 @@ describe("GamePreview submission", () => {
   });
 });
 
-// D8/D12 "Gesture split while input is in progress": idle taps expand the
-// drawer, in-progress taps only ever submit (never expand), complete or not.
-// Regression (ATE-91): at entryIndex 0 with an empty draft the derived entry is
-// undefined (both draftEntry and entries[-1] resolve to undefined). The hook
-// must report "not in progress" so GamePreview renders nothing instead of
-// handing an undefined entry to <Entry> and white-screening the Game tree.
+// At entryIndex 0 with an empty draft there is no entry to preview (no draft
+// and no prior entry), so the hook reports "not in progress" and GamePreview
+// renders nothing instead of handing an undefined entry to <Entry>.
 describe("GamePreview empty-entries guard", () => {
   it("renders nothing when the entry would be undefined (entryIndex 0, no draft)", () => {
     mockGameOverride = {
@@ -157,6 +154,46 @@ describe("GamePreview empty-entries guard", () => {
 
     expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("preview-trigger")).not.toBeInTheDocument();
+  });
+
+  // End-to-end crash path: with no committed entries, freezing a complete draft
+  // on submit leaves `previousEntry` undefined. Freezing must fall back to the
+  // draft entry itself (previousEntry ?? entry) rather than feed undefined to
+  // <Entry> and white-screen the Game tree.
+  it("does not throw when freezing the first entry (no previous entry)", async () => {
+    mockGameOverride = {
+      ...mockGame,
+      sets: [{ entries: [], options: { serve: "home" } }],
+    } as unknown as typeof mockGame;
+    const user = userEvent.setup();
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        gameActions.initialize({
+          game: mockGameOverride as never,
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+    });
+
+    const onSubmit = jest.fn();
+    render(
+      <Provider store={store}>
+        <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />
+      </Provider>,
+    );
+
+    await user.click(screen.getByTestId("preview-trigger"));
+
+    // Submission fired and the frozen card still renders the draft entry (#7)
+    // instead of crashing on an undefined previous entry.
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: SEND_LABEL }),
+    ).not.toBeInTheDocument();
   });
 });
 
