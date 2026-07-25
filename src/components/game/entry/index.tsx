@@ -19,11 +19,13 @@ export const Entry = ({
   onClick,
   className,
 }: {
-  entry: EntryView;
+  entry?: EntryView;
   players: GamePlayerView[];
   onClick?: () => void;
   className?: string;
 }) => {
+  if (!entry?.type) return null;
+
   return (
     <EntryContainer onClick={onClick} className={className}>
       {entry.type === EntryType.RALLY ? (
