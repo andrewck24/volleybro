@@ -67,7 +67,9 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           <body> (fixed at the bottom), so pb reserves its idle peek height and
           the panel content never sits behind the peek. */}
       <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
-        <div className="w-full shrink-0 overflow-hidden rounded-lg">
+        {/* inset only the court so its rounded frame clears the screen edge on
+            mobile; panel/header/drawer stay full-width */}
+        <div className="mx-1 shrink-0 overflow-hidden rounded-lg">
           <GameCourt gameId={gameId} mode="general" />
         </div>
         <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
@@ -99,7 +101,7 @@ export function GameSkeleton() {
     <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
       <GameHeader />
       <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
-        <div className="w-full shrink-0 overflow-hidden rounded-lg">
+        <div className="mx-1 shrink-0 overflow-hidden rounded-lg">
           <LoadingCourt />
         </div>
         {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}

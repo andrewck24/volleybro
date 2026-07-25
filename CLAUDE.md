@@ -93,6 +93,7 @@ Components are organized by domain and purpose (features):
   - PR base branch: follow user-specified target; if unspecified and current branch is neither `main` nor `dev`, use `--base dev`.
 - For complex commits, include a body focused on **why**; "what" may be included as supporting context
 - Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
+- **Changesets:** every PR to `dev` with user-visible impact MUST include its changeset (`.changeset/*.md`) in the same PR — created on the feat/fix branch alongside the change, not batched onto `dev` at release time. See the `writing-changesets` skill. Skip only for zero-user-impact changes (pure refactor, tests, docs, CI-internal).
 - **Judgment-type deletions require discussion first**: when a cleanup tool (knip, dead-code audits) or your own analysis flags source files for deletion beyond the explicitly requested change scope, list the candidates with per-file rationale and get confirmation before deleting. "Unreferenced in the import graph" is not sufficient evidence by itself — files may be documented API contracts (see `design-tokens.ts`), aliases of live database collections, or reserved for planned features.
 - In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
 - Parked changes: automatically unpark and continue — no need to ask for confirmation
