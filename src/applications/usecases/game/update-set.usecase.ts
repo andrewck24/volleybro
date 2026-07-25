@@ -2,7 +2,7 @@ import type { IGameRepository } from "@/applications/repositories/game.repositor
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { NotFoundError, GameReason } from "@/entities/errors";
-import { type Game, type Set } from "@/entities/game";
+import { type Game, type Set, validateLineupPlayers } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { type Lineup } from "@/entities/team";
 import { TYPES } from "@/infrastructure/di/types";
@@ -51,7 +51,10 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
     set.options = data.options;
-    if (data.lineup) set.lineups.home = data.lineup;
+    if (data.lineup) {
+      validateLineupPlayers(data.lineup, game.teams.home.players);
+      set.lineups.home = data.lineup;
+    }
 
     const updatedGame = await this.gameRepository.update(params.gameId, game);
 

@@ -1,3 +1,4 @@
+import { ValidationError, CommonReason } from "@/entities/errors";
 import { Lineup } from "@/entities/team";
 
 export enum MatchPhase {
@@ -88,6 +89,35 @@ export type Player = {
   number: number;
   stats: PlayerStats[];
 };
+
+/**
+ * Validate that every player id referenced by a lineup exists on the roster.
+ * Guest players carry a null id, so only non-null roster ids are allowed
+ * targets; null references in the lineup are empty slots and are skipped.
+ * Throws ValidationError if a referenced id is not on the roster.
+ */
+export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
+  const rosterIds = new Set(
+    roster
+      .filter((player) => player.id != null)
+      .map((player) => String(player.id)),
+  );
+
+  const referencedIds = [
+    ...lineup.starting,
+    ...lineup.liberos,
+    ...lineup.substitutes,
+  ].flatMap((entry) => [entry.id, entry.sub?.id ?? null]);
+
+  for (const id of referencedIds) {
+    if (id != null && !rosterIds.has(String(id))) {
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "Lineup references a player not on the team roster",
+      );
+    }
+  }
+}
 
 export type TeamStats = PlayerStats & {
   [MoveType.UNFORCED]: { success: number; error: number };

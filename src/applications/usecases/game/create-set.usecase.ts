@@ -7,6 +7,7 @@ import {
   type Set,
   PlayerStatsClass,
   TeamStatsClass,
+  validateLineupPlayers,
 } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { type Lineup } from "@/entities/team";
@@ -50,6 +51,8 @@ export class CreateSetUseCase implements ICreateSetUseCase {
       user.id.toString(),
       PlayerRole.MEMBER,
     );
+
+    validateLineupPlayers(data.lineup, game.teams.home.players);
 
     const startingPlayers = data.lineup.starting.map((player) => player.id);
     const liberoPlayers = data.lineup.liberos.map((player) => player.id);
