@@ -12,7 +12,9 @@ export const createSubstitutionHelper = (
 ) => {
   const { setIndex, entryIndex } = params;
   const side = substitution.team === Side.HOME ? "home" : "away";
-  const lineup = game.sets[setIndex].lineups[side]!;
+  // setIndex is the active set being recorded; guaranteed in bounds
+  const set = game.sets[setIndex]!;
+  const lineup = set.lineups[side]!;
 
   // Update lineup
   const startingIndex = lineup.starting.findIndex(
@@ -21,16 +23,19 @@ export const createSubstitutionHelper = (
   const subIndex = lineup.substitutes.findIndex(
     (p) => p.id?.toString() === substitution.players.in,
   );
+  const starter = lineup.starting[startingIndex];
+  const substitute = lineup.substitutes[subIndex];
+  if (!starter || !substitute) return game;
 
   lineup.starting[startingIndex] = {
     id: substitution.players.in,
-    position: lineup.starting[startingIndex].position,
+    position: starter.position,
     sub: {
       id: substitution.players.out,
       entryIndex:
-        lineup.starting[startingIndex].sub?.entryIndex?.in !== undefined
+        starter.sub?.entryIndex?.in !== undefined
           ? {
-              ...lineup.starting[startingIndex].sub.entryIndex,
+              ...starter.sub.entryIndex,
               out: entryIndex,
             }
           : { in: entryIndex },
@@ -38,14 +43,14 @@ export const createSubstitutionHelper = (
   };
 
   lineup.substitutes[subIndex] = {
-    ...lineup.substitutes[subIndex],
+    ...substitute,
     id: substitution.players.out,
     sub: {
       id: substitution.players.in,
       entryIndex:
-        lineup.substitutes[subIndex].sub?.entryIndex?.in !== undefined
+        substitute.sub?.entryIndex?.in !== undefined
           ? {
-              ...lineup.substitutes[subIndex].sub.entryIndex,
+              ...substitute.sub.entryIndex,
               out: entryIndex,
             }
           : { in: entryIndex },
@@ -65,8 +70,8 @@ export const createSubstitutionHelper = (
     }
   }
 
-  game.teams[side].stats[setIndex].substitution++;
-  game.sets[setIndex].entries[entryIndex] = {
+  game.teams[side].stats[setIndex]!.substitution++;
+  set.entries[entryIndex] = {
     type: EntryType.SUBSTITUTION,
     ...substitution,
   };
