@@ -93,7 +93,7 @@ describe("GamePreview send affordance", () => {
 
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     expect(screen.getByRole("img", { name: SEND_LABEL })).toBeInTheDocument();
@@ -107,7 +107,7 @@ describe("GamePreview submission", () => {
 
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     // Draft in progress shows the drafting player's number (#7).
@@ -175,7 +175,7 @@ describe("GamePreview empty-entries guard", () => {
         }),
       );
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     const onSubmit = jest.fn();
@@ -215,7 +215,7 @@ describe("GamePreview gesture split", () => {
 
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
-      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     await user.click(screen.getByTestId("preview-trigger"));

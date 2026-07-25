@@ -109,7 +109,7 @@ export const useEntryDraftPreview = (
 
   const { players } = game.teams.home;
   const previousEntry =
-    entryIndex > 0 ? game.sets[setIndex].entries[entryIndex - 1] : undefined;
+    entryIndex > 0 ? game.sets[setIndex]?.entries[entryIndex - 1] : undefined;
   const isEditing = Boolean(draft.home.player?.id) || Boolean(draft.home.type);
 
   const draftRallyEntry = isEditing

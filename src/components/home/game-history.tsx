@@ -54,7 +54,7 @@ export function GameHistory({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isReachingEnd && !isLoadingMore) {
+        if (entries[0]?.isIntersecting && !isReachingEnd && !isLoadingMore) {
           setSize((prev) => prev + 1);
         }
       },

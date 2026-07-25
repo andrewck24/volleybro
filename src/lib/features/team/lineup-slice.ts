@@ -35,10 +35,13 @@ const initialize: CaseReducer<ReduxLineupState, PayloadAction<LineupView[]>> = (
 
 const rotateLineup: CaseReducer<ReduxLineupState> = (state) => {
   const { lineupIndex } = state.status;
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
   state.status.edited = true;
-  const newStarting = state.lineups[lineupIndex].starting.slice(1);
-  newStarting.push(state.lineups[lineupIndex].starting[0]);
-  state.lineups[lineupIndex].starting = newStarting;
+  const newStarting = lineup.starting.slice(1);
+  // a lineup being rotated always has a full starting six
+  newStarting.push(lineup.starting[0]!);
+  lineup.starting = newStarting;
 };
 
 const setLineupIndex: CaseReducer<ReduxLineupState, PayloadAction<number>> = (
@@ -64,10 +67,11 @@ const setLiberoReplace: CaseReducer<
   PayloadAction<LineupView["options"]>
 > = (state, action) => {
   const { lineupIndex } = state.status;
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
   const { liberoReplaceMode, liberoReplacePosition } = action.payload;
-  state.lineups[lineupIndex].options.liberoReplaceMode = liberoReplaceMode;
-  state.lineups[lineupIndex].options.liberoReplacePosition =
-    liberoReplacePosition;
+  lineup.options.liberoReplaceMode = liberoReplaceMode;
+  lineup.options.liberoReplacePosition = liberoReplacePosition;
   state.status.edited = true;
 };
 
@@ -94,18 +98,17 @@ const removeEditingPlayer: CaseReducer<ReduxLineupState> = (state) => {
   const { lineupIndex } = state.status;
   const { list, zone } = state.status.editingMember;
   if (zone == null) return;
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
   if (list === "starting") {
-    state.lineups[lineupIndex].starting[zone - 1] = {
-      ...state.lineups[lineupIndex].starting[zone - 1],
+    lineup.starting[zone - 1] = {
+      ...lineup.starting[zone - 1],
       id: null,
     };
   } else {
-    state.lineups[lineupIndex].liberos.splice(zone - 1, 1);
-    if (
-      state.lineups[lineupIndex].options.liberoReplaceMode >
-      state.lineups[lineupIndex].liberos.length
-    ) {
-      state.lineups[lineupIndex].options.liberoReplaceMode--;
+    lineup.liberos.splice(zone - 1, 1);
+    if (lineup.options.liberoReplaceMode > lineup.liberos.length) {
+      lineup.options.liberoReplaceMode--;
     }
   }
   state.status = {
@@ -123,14 +126,15 @@ const replaceEditingPlayer: CaseReducer<
   const { lineupIndex } = state.status;
   const { id, list, zone } = action.payload;
   const editingMember = state.status.editingMember;
-  if (list && zone != null)
-    state.lineups[lineupIndex][list].splice(zone - 1, 1);
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
+  if (list && zone != null) lineup[list].splice(zone - 1, 1);
   if (list && editingMember.id) {
-    state.lineups[lineupIndex][list].push({ id: editingMember.id });
+    lineup[list].push({ id: editingMember.id });
   }
   if (editingMember.list && editingMember.zone != null) {
-    state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
-      ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
+    lineup[editingMember.list][editingMember.zone - 1] = {
+      ...lineup[editingMember.list][editingMember.zone - 1],
       id,
     };
   }
@@ -145,7 +149,9 @@ const addSubstitutePlayer: CaseReducer<
 > = (state, action) => {
   const { lineupIndex } = state.status;
   const id = action.payload;
-  state.lineups[lineupIndex].substitutes.push({ id });
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
+  lineup.substitutes.push({ id });
   state.status.edited = true;
 };
 
@@ -155,9 +161,9 @@ const removeSubstitutePlayer: CaseReducer<
 > = (state, action) => {
   const { lineupIndex } = state.status;
   const id = action.payload;
-  state.lineups[lineupIndex].substitutes = state.lineups[
-    lineupIndex
-  ].substitutes.filter((player) => player.id !== id);
+  const lineup = state.lineups[lineupIndex];
+  if (!lineup) return;
+  lineup.substitutes = lineup.substitutes.filter((player) => player.id !== id);
   state.status.edited = true;
 };
 
@@ -167,11 +173,15 @@ const setPlayerPosition: CaseReducer<
 > = (state, action) => {
   const { lineupIndex, editingMember } = state.status;
   const position = action.payload;
-  if (editingMember.list && editingMember.zone != null) {
-    state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1] = {
-      ...state.lineups[lineupIndex][editingMember.list][editingMember.zone - 1],
-      position,
-    };
+  const lineup = state.lineups[lineupIndex];
+  if (lineup && editingMember.list && editingMember.zone != null) {
+    const target = lineup[editingMember.list][editingMember.zone - 1];
+    if (target) {
+      lineup[editingMember.list][editingMember.zone - 1] = {
+        ...target,
+        position,
+      };
+    }
   }
   state.status = {
     ...state.status,

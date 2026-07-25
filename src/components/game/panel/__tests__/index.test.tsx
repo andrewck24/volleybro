@@ -56,7 +56,7 @@ describe("GamePanel entry progress bar", () => {
     // "攔網" error -> selecting it makes our move UNFORCED and auto-fills the
     // single outcome, collapsing the flow to two steps [select -> confirm].
     const errorButton = await screen.findByRole("button", {
-      name: `對方${scoringMoves[10].text}失誤`,
+      name: `對方${scoringMoves[10]!.text}失誤`,
     });
 
     await userEvent.click(errorButton);
@@ -87,7 +87,7 @@ describe("GamePanel step highlight follows the shown moves panel", () => {
         gameActions.setEntryDraftPlayer({ id: "player-1", zone: 1 }),
       );
       // A recorded home move advances the panel to away.
-      reduxStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]));
+      reduxStore.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     // Away is active + OppoMoves is shown (OursMoves' "替補" is absent).

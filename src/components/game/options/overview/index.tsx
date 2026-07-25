@@ -7,6 +7,9 @@ export const GameOptionsOverview = ({ gameId }: { gameId: string }) => {
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((state) => state.game);
   const { home, away } = game!.teams;
+  const homeStats = home.stats[setIndex];
+  const awayStats = away.stats[setIndex];
+  if (!homeStats || !awayStats) return null;
 
   return (
     <>
@@ -16,24 +19,24 @@ export const GameOptionsOverview = ({ gameId }: { gameId: string }) => {
         <StatsCell>對方</StatsCell>
       </StatsRow>
       <StatsRow>
-        <StatsCell>{home.stats[setIndex][MoveType.ATTACK].success}</StatsCell>
+        <StatsCell>{homeStats[MoveType.ATTACK].success}</StatsCell>
         <StatsCell>ATTACKS</StatsCell>
-        <StatsCell>{away.stats[setIndex][MoveType.ATTACK].success}</StatsCell>
+        <StatsCell>{awayStats[MoveType.ATTACK].success}</StatsCell>
       </StatsRow>
       <StatsRow>
-        <StatsCell>{home.stats[setIndex][MoveType.BLOCKING].success}</StatsCell>
+        <StatsCell>{homeStats[MoveType.BLOCKING].success}</StatsCell>
         <StatsCell>BLOCKS</StatsCell>
-        <StatsCell>{away.stats[setIndex][MoveType.BLOCKING].success}</StatsCell>
+        <StatsCell>{awayStats[MoveType.BLOCKING].success}</StatsCell>
       </StatsRow>
       <StatsRow>
-        <StatsCell>{home.stats[setIndex][MoveType.SERVING].success}</StatsCell>
+        <StatsCell>{homeStats[MoveType.SERVING].success}</StatsCell>
         <StatsCell>SERVES</StatsCell>
-        <StatsCell>{away.stats[setIndex][MoveType.SERVING].success}</StatsCell>
+        <StatsCell>{awayStats[MoveType.SERVING].success}</StatsCell>
       </StatsRow>
       <StatsRow>
-        <StatsCell>{home.stats[setIndex][MoveType.UNFORCED].success}</StatsCell>
+        <StatsCell>{homeStats[MoveType.UNFORCED].success}</StatsCell>
         <StatsCell>OPPO_ERRORS</StatsCell>
-        <StatsCell>{away.stats[setIndex][MoveType.UNFORCED].success}</StatsCell>
+        <StatsCell>{awayStats[MoveType.UNFORCED].success}</StatsCell>
       </StatsRow>
     </>
   );

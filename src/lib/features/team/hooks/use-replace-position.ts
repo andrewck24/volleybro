@@ -12,12 +12,12 @@ export const useReplacePosition = () => {
         )
       : lineups[0]?.starting.some((player, index) => {
           const oppositeIndex = index >= 3 ? index - 3 : index + 3;
+          const opposite = lineups[0]?.starting[oppositeIndex];
           return (
             player.id &&
             player.position === liberoReplacePosition &&
-            lineups[0].starting[oppositeIndex].id &&
-            lineups[0].starting[oppositeIndex].position ===
-              liberoReplacePosition
+            opposite?.id &&
+            opposite.position === liberoReplacePosition
           );
         }));
 

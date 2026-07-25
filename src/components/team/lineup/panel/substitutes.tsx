@@ -20,8 +20,9 @@ interface SubstitutesProps {
 export const Substitutes = ({ players, others }: SubstitutesProps) => {
   const dispatch = useAppDispatch();
   const { lineups, status } = useAppSelector((state) => state.lineup);
-  const liberoCount = lineups[status.lineupIndex].liberos.length;
-  const substituteCount = lineups[status.lineupIndex].substitutes.length;
+  const lineup = lineups[status.lineupIndex];
+  const liberoCount = lineup?.liberos.length ?? 0;
+  const substituteCount = lineup?.substitutes.length ?? 0;
   const substituteLimit = liberoCount < 2 ? 6 - liberoCount : 6;
   const isSubstituteFull = substituteCount >= substituteLimit;
   const isEditingStarting = !!status.editingMember.zone;
@@ -69,7 +70,7 @@ export const Substitutes = ({ players, others }: SubstitutesProps) => {
         </Button>
         <CardTitle>{`替補名單 (${substituteCount}/${substituteLimit})`}</CardTitle>
       </CardHeader>
-      {lineups[status.lineupIndex].substitutes.map((lineupPlayer, index) => {
+      {lineup?.substitutes.map((lineupPlayer, index) => {
         const player = players.find((p) => p.id === lineupPlayer.id);
         if (!player) return null;
         return (

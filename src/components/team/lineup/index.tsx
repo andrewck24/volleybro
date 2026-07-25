@@ -45,7 +45,7 @@ const Lineup = ({ teamId }: { teamId: string }) => {
     lineups[status.lineupIndex]?.options.liberoReplaceMode;
   const liberoReplacePosition =
     lineups[status.lineupIndex]?.options.liberoReplacePosition;
-  const hasPairedSwitchPosition =
+  const hasPairedSwitchPosition = Boolean(
     liberoReplaceMode === 0 ||
     (liberoReplacePosition === "OP"
       ? lineups[status.lineupIndex]?.starting.some(
@@ -56,11 +56,12 @@ const Lineup = ({ teamId }: { teamId: string }) => {
           return (
             player.id &&
             player.position === liberoReplacePosition &&
-            lineups[status.lineupIndex].starting[oppositeIndex].id &&
-            lineups[status.lineupIndex].starting[oppositeIndex].position ===
+            lineups[status.lineupIndex]?.starting[oppositeIndex]?.id &&
+            lineups[status.lineupIndex]?.starting[oppositeIndex]?.position ===
               liberoReplacePosition
           );
-        }));
+        })),
+  );
 
   useEffect(() => {
     if (team && team.lineups) dispatch(lineupActions.initialize(team.lineups));

@@ -51,7 +51,7 @@ describe("POST /api/games/:id/sets/rallies", () => {
 
     expect(res.status).toBe(200);
     const afterRally = await repo().findById(seeded.gameId);
-    expect(afterRally!.sets[0].entries).toHaveLength(1);
+    expect(afterRally!.sets[0]!.entries).toHaveLength(1);
   });
 
   it("returns 404 SET_NOT_FOUND for a set index that does not exist", async () => {

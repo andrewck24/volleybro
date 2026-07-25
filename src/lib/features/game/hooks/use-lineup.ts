@@ -13,7 +13,9 @@ export const useLineup = (
 
   if (!inProgress || !game) return { starting: [], liberos: [] };
 
-  const { entries, lineups } = game.sets[setIndex];
+  const set = game.sets[setIndex];
+  if (!set) return { starting: [], liberos: [] };
+  const { entries, lineups } = set;
 
   const lineup =
     entryIndex === entries.length
@@ -25,11 +27,11 @@ export const useLineup = (
       player.position === lineups.home.options.liberoReplacePosition &&
       ((index === 0 && !isServing) || index >= 4),
   );
-  if (switchTargetIndex !== -1) {
-    const switchTarget = {
-      ...lineup.starting[switchTargetIndex],
-    };
-    lineup.starting[switchTargetIndex] = lineup.liberos[0];
+  const libero = lineup.liberos[0];
+  const target = lineup.starting[switchTargetIndex];
+  if (switchTargetIndex !== -1 && libero && target) {
+    const switchTarget = { ...target };
+    lineup.starting[switchTargetIndex] = libero;
     lineup.liberos[0] = switchTarget;
   }
 
@@ -37,8 +39,9 @@ export const useLineup = (
 };
 
 const getGeneralModeLineup = (game: GameView, setIndex: number) => {
+  // called only after useLineup confirms the set exists
   const { starting, liberos } = structuredClone(
-    game.sets[setIndex].lineups.home,
+    game.sets[setIndex]!.lineups.home,
   );
   const { players, stats } = game.teams.home;
   const lineup = {
@@ -70,7 +73,7 @@ const getGeneralModeLineup = (game: GameView, setIndex: number) => {
     }),
   };
 
-  const rotation = stats[setIndex].rotation % 6;
+  const rotation = stats[setIndex]!.rotation % 6;
   if (rotation) {
     const rotatedPlayers = lineup.starting.splice(0, rotation);
     lineup.starting.push(...rotatedPlayers);
@@ -85,7 +88,8 @@ const getEditingModeLineup = (
   entryIndex: number,
 ) => {
   const { players } = game.teams.home;
-  const set = game.sets[setIndex];
+  // called only after useLineup confirms the set exists
+  const set = game.sets[setIndex]!;
 
   // Calculate serving and rotation
   const { rotation } = set.entries.slice(0, entryIndex).reduce(

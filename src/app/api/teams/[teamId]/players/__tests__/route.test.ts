@@ -107,7 +107,7 @@ describe("Teams Players API Route", () => {
 
       expect(Array.isArray(players)).toBe(true);
       expect(players.length).toBe(2);
-      expect(players[0].teamId).toBe("team-1");
+      expect(players[0]!.teamId).toBe("team-1");
     });
 
     it("should handle empty team", () => {

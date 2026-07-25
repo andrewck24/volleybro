@@ -54,6 +54,9 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
       updatedGame,
     );
 
-    return persistedGame.sets[params.setIndex].entries;
+    const persistedSet = persistedGame.sets[params.setIndex];
+    if (!persistedSet)
+      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
+    return persistedSet.entries;
   }
 }

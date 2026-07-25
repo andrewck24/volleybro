@@ -17,7 +17,8 @@ export const createSubstitution = async (
     );
     if (!res.ok) throw new Error("Network response was not ok");
     const entries = await res.json();
-    game.sets[setIndex].entries = entries;
+    // setIndex references the active set that was just persisted; guaranteed present
+    game.sets[setIndex]!.entries = entries;
     return game;
   } catch (error) {
     console.error("[CREATE Substitution]", error);
