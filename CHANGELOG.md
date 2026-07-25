@@ -1,5 +1,25 @@
 # VolleyBro CHANGELOG
 
+## [0.14.4](https://github.com/andrewck24/volleybro/compare/v0.14.3...v0.14.4) 2026-07-25
+
+### Fixed
+
+#### Record
+
+- Fix rally submission failing with a server error when the team roster includes a guest player
+- Fix a crash when recording the first rally of a set
+- Save lineup edits made in single-set settings and show a save confirmation
+
+#### UI
+
+- Add spacing between the fixed header and the court on the game recording screen
+
+### Security
+
+#### Record
+
+- Reject submitted set lineups that reference players not on the team roster
+
 ## [0.14.3](https://github.com/andrewck24/volleybro/compare/v0.14.2...v0.14.3) 2026-07-23
 
 ### Fixed
