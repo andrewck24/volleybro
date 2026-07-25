@@ -107,7 +107,7 @@ Defines what belongs in shared setup files versus inline per-test mocks.
 | `jest.setup.frontend.ts`    | Browser APIs (`matchMedia`, `ResizeObserver`, `IntersectionObserver`)                                                                                    | Frontend project (`jest.config.ts` `projects.frontend`)       |
 | `jest.setup.integration.ts` | Starts a real in-memory MongoDB, connects mongoose, clears collections between tests; stubs `@/lib/auth` + `next/headers` so the container is importable | Integration project (`jest.config.ts` `projects.integration`) |
 
-The integration project deliberately does **not** load `jest.setup.backend.ts`: it needs the real Mongoose driver, not the stub. `jest.config.ts` also exposes `globalThis.AsyncLocalStorage` (and forwards it to workers via `jest.preload.integration.cjs`) because Next's server modules — pulled in when real route handlers are imported — capture it at load time.
+The integration project deliberately does **not** load `jest.setup.backend.ts`: it needs the real Mongoose driver, not the stub. `jest.config.ts` also exposes `globalThis.AsyncLocalStorage` (and forwards it to workers via `jest.preload.integration.mjs`) because Next's server modules — pulled in when real route handlers are imported — capture it at load time.
 
 **Rule:** A mock belongs in a setup file when _every_ test in that project needs it to run at all. Browser API stubs and DB connection setup qualify. Business-logic fakes do not.
 
