@@ -103,7 +103,7 @@ export function GameSkeleton() {
           <LoadingCourt />
         </div>
         {/* mirrors GamePanel: progress bar + caption + moves grid, on bg-card */}
-        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 pt-2">
+        <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-2 overflow-hidden rounded-lg bg-card px-2 py-2">
           <Skeleton className="h-1.5 w-full rounded-full" />
           <Skeleton className="h-4 w-40" />
           <div className="grid w-full flex-1 grid-cols-2 gap-2 pt-1">
