@@ -20,7 +20,7 @@ export const Court = ({
   return (
     <div
       className={cn(
-        "flex aspect-11/9 max-h-[35vh] w-full flex-row items-center justify-center bg-primary p-2",
+        "flex aspect-11/9 max-h-[35vh] w-full flex-row justify-center bg-primary p-2",
         className,
       )}
     >
@@ -39,7 +39,7 @@ export const Outside = ({
   return (
     <div
       className={cn(
-        "relative grid h-full max-h-[35vh] flex-1 grid-rows-3 gap-2 border-4 border-l-0 border-transparent pr-1 before:absolute before:top-0 before:min-h-[calc((100%-1rem)/3)] before:w-full before:border-b-4 before:border-dashed before:border-primary-foreground before:content-['']",
+        "relative grid flex-1 grid-rows-3 gap-2 border-4 border-l-0 border-transparent pr-1 before:absolute before:top-0 before:min-h-[calc((100%-1rem)/3)] before:w-full before:border-b-4 before:border-dashed before:border-primary-foreground before:content-['']",
         className,
       )}
     >
@@ -51,7 +51,7 @@ export const Outside = ({
 
 export const Inside = ({ children }: { children?: React.ReactNode }) => {
   return (
-    <div className="relative grid h-full max-h-[35vh] flex-9 gap-2 border-4 border-primary-foreground bg-[hsl(12.93,96.67%,76.47%)] px-2 py-[5%] [grid-template-areas:'z4_z3_z2''z5_z6_z1'] before:absolute before:top-0 before:min-h-[calc((100%-1rem)/3)] before:w-full before:border-b-4 before:border-background before:bg-destructive before:content-[''] dark:before:border-primary-foreground">
+    <div className="relative grid flex-9 gap-2 border-4 border-primary-foreground bg-[hsl(12.93,96.67%,76.47%)] px-2 py-[5%] [grid-template-areas:'z4_z3_z2''z5_z6_z1'] before:absolute before:top-0 before:min-h-[calc((100%-1rem)/3)] before:w-full before:border-b-4 before:border-background before:bg-destructive before:content-[''] dark:before:border-primary-foreground">
       {children}
     </div>
   );
