@@ -21,7 +21,7 @@
 # AI agents
 .claude/settings.*
 .agent/
-.agents/
+.agents/settings.local.*
 .gemini/
 .github/chatmodes/
 .github/prompts/
