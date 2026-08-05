@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://volleybro.dev/blueprint/implementation-slice.schema.json",
+  "title": "Blueprint Implementation Slice",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "capabilities",
+    "dependsOn",
+    "outcome",
+    "acceptanceCriteria",
+    "verification",
+    "status"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^S[0-9]{2,}$" },
+    "title": { "type": "string", "minLength": 1 },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+(?:/[a-z0-9-]+)*$"
+      },
+      "uniqueItems": true
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^S[0-9]{2,}$" },
+      "uniqueItems": true
+    },
+    "outcome": { "type": "string", "minLength": 1 },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "verification": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "status": {
+      "enum": ["pending", "completed", "superseded"]
+    }
+  }
+}

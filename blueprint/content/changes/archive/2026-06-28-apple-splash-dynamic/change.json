@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "slug": "apple-splash-dynamic",
+  "title": "Dynamic Apple Splash Screens",
+  "status": "archived",
+  "lifecycle": "archived",
+  "startedAt": "2026-06-28",
+  "archivedAt": "2026-06-28",
+  "summary": "以參數化 generator 取代手動輸出的 Apple splash PNG，讓 splash 自動跟隨 design tokens。",
+  "capabilities": ["platform/pwa/splash-screen"],
+  "tags": ["pwa", "automation", "assets"]
+}

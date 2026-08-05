@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "slug": "contextual-edit-pages",
+  "title": "Contextual Edit Pages",
+  "status": "archived",
+  "lifecycle": "archived",
+  "startedAt": "2026-06-16",
+  "archivedAt": "2026-06-16",
+  "summary": "將 team、player 與 lineup edit flows 重整到語意明確的 route group。",
+  "capabilities": [
+    "team-management/editing",
+    "platform/navigation",
+    "platform/forms"
+  ],
+  "tags": ["routing", "forms", "drafts"]
+}

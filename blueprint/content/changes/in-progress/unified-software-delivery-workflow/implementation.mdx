@@ -1,0 +1,7 @@
+---
+title: Implementation
+---
+
+The JSON plan and slice files below are the canonical execution plan. Blueprint validates every
+slice file against the durable contract, checks dependency order, and renders them in `plan.json`
+order. Operational tracker state and runtime claims remain outside these artifacts.

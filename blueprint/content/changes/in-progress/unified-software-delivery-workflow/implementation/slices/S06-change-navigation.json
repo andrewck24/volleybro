@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "Scale Change catalog navigation",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": ["S02", "S05"],
+  "outcome": "Blueprint users can find accumulated Changes by lifecycle status, capability, tag, text, and archive chronology without expanding every Change in the sidebar.",
+  "acceptanceCriteria": [
+    "Each Change declares validated catalog metadata with hierarchical capability references and tags.",
+    "The Changes sidebar links directly to All, Discussing, In Progress, and Archive views.",
+    "Change cards show capability and tag badges.",
+    "Archive navigation uses an external timeline with month accordions."
+  ],
+  "verification": [
+    "pnpm --dir blueprint test --runInBand src/components/ChangesCatalog.test.tsx",
+    "pnpm --filter blueprint build",
+    "Verify sidebar filters and archive accordions in the rendered Blueprint."
+  ],
+  "status": "completed"
+}

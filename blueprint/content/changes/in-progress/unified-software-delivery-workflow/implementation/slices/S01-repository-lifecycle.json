@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Adopt the repo-native delivery lifecycle",
+  "capabilities": ["platform/delivery-workflow"],
+  "dependsOn": [],
+  "outcome": "VolleyBro can run the same intake, planning, execution, and verification lifecycle manually or through Symphony.",
+  "acceptanceCriteria": [
+    "WORKFLOW.md defines grill and Wayfinder discussion routing without treating decision tickets as implementation slices.",
+    "Manual Apply does not require a Symphony process, claim, dashboard, or workspace manager.",
+    "Optional Ingest is separated from ordinary implementation diagnosis and fixes."
+  ],
+  "verification": ["pnpm test:workflow", "pnpm check:workflow"],
+  "status": "completed"
+}

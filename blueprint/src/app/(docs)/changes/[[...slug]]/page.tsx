@@ -1,10 +1,14 @@
-import type { ComponentType } from "react";
+import { Suspense, type ComponentType } from "react";
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { ChangeOverview } from "@/components/ChangeOverview";
 import { ChangeCard } from "@/components/ChangeCard";
+import { ChangesCatalog } from "@/components/ChangesCatalog";
+import { ImplementationSlices } from "@/components/ImplementationSlices";
+import { loadChangeCatalog } from "@/lib/change-catalog";
+import { loadImplementationPlan } from "@/lib/implementation-plan-loader";
 
 interface TocItem {
   title: string;
@@ -46,6 +50,24 @@ export default async function Page({ params }: PageProps) {
   const { slug } = await params;
   const key = slug?.join("/") ?? "";
 
+  if (key === "") {
+    const page = source.getPage(slug);
+    if (!page) notFound();
+    const Mdx = page.data.body;
+    const changes = await loadChangeCatalog();
+    return (
+      <DocsPage toc={page.data.toc}>
+        <DocsBody>
+          <h1>{page.data.title}</h1>
+          <Mdx components={mdxComponents} />
+          <Suspense fallback={<p>Loading changes…</p>}>
+            <ChangesCatalog changes={changes} />
+          </Suspense>
+        </DocsBody>
+      </DocsPage>
+    );
+  }
+
   // Check TSX design modules first so they get breadcrumbs from the MDX stub
   const loader = designModules[key];
   if (loader) {
@@ -56,6 +78,26 @@ export default async function Page({ params }: PageProps) {
         <DocsBody>
           <h1>{page?.data.title}</h1>
           <Design />
+        </DocsBody>
+      </DocsPage>
+    );
+  }
+
+  if (
+    slug?.length === 3 &&
+    (slug[0] === "in-progress" || slug[0] === "archive") &&
+    slug[2] === "implementation"
+  ) {
+    const page = source.getPage(slug);
+    if (!page) notFound();
+    const Mdx = page.data.body;
+    const slices = await loadImplementationPlan(slug[0], slug[1]);
+    return (
+      <DocsPage toc={page.data.toc}>
+        <DocsBody>
+          <h1>{page.data.title}</h1>
+          <Mdx components={mdxComponents} />
+          <ImplementationSlices slices={slices} />
         </DocsBody>
       </DocsPage>
     );

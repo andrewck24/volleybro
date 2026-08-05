@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "Verify the integrated workflow contracts",
+  "capabilities": [
+    "platform/blueprint",
+    "platform/agent-orchestration",
+    "platform/delivery-workflow"
+  ],
+  "dependsOn": ["S02", "S03", "S05", "S06"],
+  "outcome": "The repository workflow, Blueprint presentation, and Symphony profile agree on the same Manual-first lifecycle.",
+  "acceptanceCriteria": [
+    "VolleyBro workflow conformance and Blueprint build pass.",
+    "Symphony delivery-profile tests and public spec check pass.",
+    "Existing unrelated working-tree changes remain untouched."
+  ],
+  "verification": [
+    "pnpm verify:all",
+    "cd /Users/andrew/projects/symphony/elixir && make all MIX='mise exec -- mix'"
+  ],
+  "status": "completed"
+}

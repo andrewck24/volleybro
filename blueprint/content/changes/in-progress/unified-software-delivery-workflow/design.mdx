@@ -2,80 +2,192 @@
 title: Design
 ---
 
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import repositoryOwnedLifecycle from "./design/decisions/D1-repository-owned-lifecycle.json";
+import repositoryNativeSlices from "./design/decisions/D2-repository-native-slices.json";
+import changeScopedAdrPromotion from "./design/decisions/D3-change-scoped-adr-promotion.json";
+
 ## System shape
 
 ```text
-Linear issue + relations + milestone
-               │
-               ▼
-       Symphony scheduler
-     claim · route · retry · eval
-               │ one issue-run
-               ▼
-  Provider root (Claude/Codex/Antigravity)
-       │ bounded native delegation
-       ▼
- repository WORKFLOW.md + selected adapters
-       │
-       ├── Spectra: proposal, specs, tasks, archive
-       ├── Blueprint: Overview, Design, Review
-       ├── Changesets: version/changelog evidence
-       ├── GitHub: commits, PR, review
-       └── Linear Workpad: provider-neutral handoff
+                    Repository-owned lifecycle
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Intake → Discuss → Propose → Prepare → Apply → Pre-PR → Human review       │
+│                                                  → Archive → PR → Merge     │
+└──────────────────────────────────────────────────────────────────────────────┘
+       │              │          │          │           │         │
+       │              │          │          │           │         └─ tracker Done
+       │              │          │          │           └─ promote + freeze
+       │              │          │          └─ code, tests, Review, Changeset
+       │              │          └─ Blueprint implementation JSON
+       │              └─ Blueprint Overview + Design
+       └─ operational state only
+
+Execution adapters
+├─ Manual: developer invokes Apply directly
+└─ Symphony: scheduler claims an armed Change and invokes the same Apply
 ```
 
-The scheduler owns issue-level concurrency. Provider-native roles operate only beneath the current
-issue-run; the root retains interpretation, integration, and final verification.
+The lifecycle remains valid when Symphony is stopped or removed. Symphony neither interprets Matt
+Pocock artifacts nor owns Blueprint's data model; it consumes the approved repository contract.
 
-## Capability profile
+## Discussion routing
 
-| Capability             | Selected adapter       | Contract                                       |
-| ---------------------- | ---------------------- | ---------------------------------------------- |
-| `sdd`                  | `spectra`              | Specs, proposal, tasks, ingest, archive        |
-| `change_comprehension` | `blueprint`            | Overview, Design, Review using one stable slug |
-| `release_planning`     | `linear` / `milestone` | Target window, grouping, and delivery order    |
-| `versioning`           | `changesets`           | Semantic version impact and changelog evidence |
-| `workpad`              | `linear-comment`       | Durable cross-provider handoff                 |
-| `scm` / `review`       | `github` / `github-pr` | Source and human review records                |
-| `validation`           | `repository-commands`  | `pnpm verify` and `pnpm verify:all`            |
-| `archive`              | `spectra`              | Post-merge specification retention             |
-| `evaluation`           | `symphony`             | Structured JSONL; `ephemeral_text` only        |
+| Situation                                      | Playbook          | Result                                                     |
+| ---------------------------------------------- | ----------------- | ---------------------------------------------------------- |
+| One change can converge in one session         | `grill-with-docs` | Shared understanding and a candidate Change boundary       |
+| Destination is large and the route is foggy    | `wayfinder`       | Decision/research/prototype map in the operational tracker |
+| One approved Change needs executable breakdown | `to-slices`       | Vertical implementation slices in Blueprint JSON           |
 
-## Gate separation
+Wayfinder decomposition is upstream of Change decomposition. Its items answer questions and clear
+fog; they are not delivery tickets or implementation slices. Once the route is clear, one map may
+produce one Change, several Changes, or no implementation.
+
+## Authority boundaries
+
+| Information                                         | Authority                         |
+| --------------------------------------------------- | --------------------------------- |
+| Intake, active status, priority, dependencies       | Configured operational tracker    |
+| Rationale, design, lifecycle, implementation slices | Blueprint Change in Git           |
+| Current behavior and durable constraints            | Code/tests and Blueprint Features |
+| Version and changelog impact                        | Changesets                        |
+| Runtime claim, retry, workspace                     | Symphony when enabled             |
+
+Blueprint never needs to resolve an operational tracker link. Operational issues may be archived or
+deleted after their lifecycle; the Change remains understandable from Git alone.
+
+## Matt Pocock adapter layer
+
+Installed Matt skills remain vendor-managed. Root `WORKFLOW.md` and `docs/agents/` override their
+default storage, label, and retention assumptions without modifying the skill files:
+
+| Matt playbook                        | VolleyBro adaptation                                                                            |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `grill-with-docs`, `domain-modeling` | Update resolved glossary terms inline; keep structured candidate ADRs in Change Design          |
+| `wayfinder`                          | Keep the decision map operational; promote only approved boundaries and rationale into a Change |
+| `to-spec`                            | Synthesize Blueprint Overview/Design; any tracker copy is disposable and never arms execution   |
+| `to-tickets`                         | Produce repository-native implementation-slice JSON rather than durable tracker tickets         |
+| `implement`, `tdd`                   | Produce code/tests and update the matching slice and Review evidence                            |
+| `code-review`                        | Feed independent Standards/Spec findings, fixes, and reruns into Blueprint Review               |
+
+Provider bridges point to the repository contract and adapter documents. No additional workflow
+skill is required.
+
+## Artifact lifecycle
+
+| Class                 | Created and refined                                                                                   | Archive result                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Operational           | Tracker intake/spec projections, Wayfinder maps, workpad, and temporary handoff while work is active  | Extract missing rationale or evidence, then allow archival or deletion; never required by Blueprint            |
+| Change-scoped durable | Overview/Design during Propose, slices during Prepare, Review through Apply and Pre-PR                | Reconcile with delivered behavior, freeze, and retain as one permanent completed Change                        |
+| Canonical current     | Code/tests and Changesets during Apply/Pre-PR; Features and glossary after verified Archive promotion | Promote current behavior, constraints, and implemented decision copies; supersede later through another Change |
+
+Resolved domain language enters `CONTEXT.md` during Discuss or Ingest. Qualifying architectural
+decisions are structured ADRs in Change Design: they remain `candidate` until plan approval, then
+become `accepted` while still Change-scoped. Branch-local Archive reconciles realized ADRs, marks the
+Change records `implemented`, and copies them to the narrowest Feature capability or sub-capability
+as canonical current knowledge. The archived Change keeps its original records permanently.
+
+Each ADR declares its expected Feature destinations at draft time through hierarchical `targets`.
+Targets normally identify the narrowest affected sub-capability, may identify a parent when one
+decision governs several children, and are reconciled against delivered behavior during Archive.
+
+## Decision records
+
+These structured records preserve the established `id`, `title`, adopted body, and rejected-option
+rationale used by earlier interactive `design.tsx` pages while adding lifecycle status, hierarchical
+targets, consequences, and revisit triggers.
+
+<DecisionTimeline
+  decisions={[
+    repositoryOwnedLifecycle,
+    repositoryNativeSlices,
+    changeScopedAdrPromotion,
+  ]}
+/>
+
+## Pre-PR review and Archive
+
+After full verification and Changeset assessment, an independent context reviews both repository
+standards and the approved Change specification. Accepted findings are fixed, affected checks rerun,
+and Blueprint Review updated until both review axes reach a fixed point. The developer then accepts
+Blueprint Review.
+
+Acceptance starts branch-local Archive: reconcile the complete Change, promote verified knowledge
+to Features, reconcile the glossary, freeze and move the Change to its dated archive, and build
+Blueprint without tracker dependencies. Only then open the pull request. PR feedback that changes
+durable knowledge amends the archived record on the same branch. Merge moves the operational issue
+to Done and performs no second knowledge sync.
+
+The repository does not run an automated Claude review after PR creation. Human review comments
+and their fix rounds are optional; the default path does not wait for them before merge because the
+independent-context review fixed point is already a required Pre-PR gate.
+
+Historical Spectra/OpenSpec artifacts remain immutable snapshots. A separate low-priority migration
+may extract knowledge that is still current into Blueprint Features, `CONTEXT.md`, or another
+canonical authority. Material that is no longer current remains only in its snapshot. Spectra
+skills, workflows, and CLI configuration are removed in a later cleanup after that extraction is
+verified.
+
+## Implementation-slice model
+
+Each slice is a vertical, independently verifiable outcome:
+
+```json
+{
+  "id": "S02",
+  "title": "Make implementation slices repository-native",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": ["S01"],
+  "outcome": "Blueprint renders the canonical JSON plan.",
+  "acceptanceCriteria": ["The dependency is visible."],
+  "verification": ["Build Blueprint."],
+  "status": "pending"
+}
+```
+
+Only `pending`, `completed`, and `superseded` are durable. `claimed`, `running`, executor identity,
+retry count, and workspace path are runtime facts and stay out of Git.
+
+Completing a slice changes its JSON status in the same commit as its code and tests. The commit body
+records the slice ID, Change slug, outcome, and verification, preserving the useful single-commit
+comprehension previously provided by `tasks.md`.
+
+## Apply and Ingest
 
 ```text
-release-bound issue
-  ├── missing Linear milestone ──► cannot receive agent:ready / dispatch
-  └── milestone present ─────────► implementation may run
-                                      ├── Changeset present ──► review
-                                      └── no Changeset/exemption ──► review blocked
+Apply encounters a failure
+  └─ diagnose
+      ├─ implementation defect ──► fix and verify inside Apply
+      └─ approved plan invalid ──► pause
+                                    └─ developer authorizes Ingest
+                                         ├─ update spec/design/slices
+                                         ├─ preserve completed evidence
+                                         └─ approve and resume Apply
 ```
 
-A milestone is planning metadata and never selects semantic version impact. A Changeset is
-repository version evidence and never replaces delivery order or target dates.
+Ingest is optional and corrective. It is not a final synchronization stage and ordinary test
+failure does not trigger it.
 
-## Seven role delegation
+## Manual and Symphony modes
 
-`scout`, `plan-verifier`, `security-reviewer`, `mech-executor`, `executor`, `verifier`, and
-`security-executor` are explicit Codex roles with model, reasoning, sandbox, and role policy. The
-root invokes only roles justified by the issue. Subagents cannot mutate queue readiness or claim
-another issue.
+| Concern               | Manual                         | Symphony                                      |
+| --------------------- | ------------------------------ | --------------------------------------------- |
+| Plan approval         | Developer reviews Blueprint    | Developer reviews the same Blueprint          |
+| Start                 | Developer invokes Apply        | Developer arms issue; scheduler invokes Apply |
+| Execution plan        | Blueprint slice JSON           | Same JSON                                     |
+| Resume context        | Workpad, Git, Change artifacts | Same, plus Symphony run state                 |
+| Repository validation | Repository commands            | Same commands                                 |
+| Human acceptance      | Developer                      | Developer                                     |
 
-## Evaluation privacy boundary
+The current Symphony dispatch unit is one Change. Per-slice scheduling would require a separate
+repo-native tracker adapter and is outside this revision.
 
-Symphony creates a run envelope before provider execution and appends sanitized lifecycle, routing,
-role, usage, validation, and artifact-reference events. Provider text may be inspected in memory to
-derive a metric, but prompt/response/reasoning/transcript content is discarded and never written to
-the evaluation JSONL. Trend claims and routing changes require ten comparable issue-runs plus human
-approval.
+Manual Apply resolves ownership before entering the Change workspace. It first inspects Symphony's
+status surface, then the developer removes `agent:ready`, requests a runtime refresh when available,
+and inspects again. `running`, `retrying`, and `blocked` all represent a retained Symphony claim;
+Manual Apply starts only when the issue remains absent after the second check. This closes the race
+between observing an idle issue and disarming it.
 
-## Failure behavior
+## Deferred decisions
 
-| Failure                               | Safe behavior                                                       |
-| ------------------------------------- | ------------------------------------------------------------------- |
-| Missing/invalid repository profile    | Fail before provider startup                                        |
-| Evaluation envelope cannot be written | Do not dispatch; schedule retry with a structured category          |
-| Mid-run evaluation write fails        | Mark evidence incomplete; preserve issue execution state            |
-| Missing readiness gate                | Leave issue undispatched and expose the unmet gate                  |
-| Missing versioning evidence           | Block review handoff, not implementation dispatch                   |
-| Provider switch                       | Reconstruct from Linear, workpad, repository artifacts, git, and PR |
+- The boundary of a standalone reusable Blueprint workflow repository or package.

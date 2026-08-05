@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "slug": "api-objectid-guards",
+  "title": "API ObjectId Guards",
+  "status": "archived",
+  "lifecycle": "archived",
+  "startedAt": "2026-06-16",
+  "archivedAt": "2026-06-16",
+  "summary": "以共用 guard 統一所有 MongoDB ObjectId API path parameter 的驗證與錯誤回應。",
+  "capabilities": ["platform/api/validation", "platform/data-access/mongodb"],
+  "tags": ["validation", "error-handling", "mongodb"]
+}

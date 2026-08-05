@@ -47,6 +47,249 @@ title: Review
 
 ### Remaining boundary
 
-The first Symphony run is intentionally blocked. Immediately before it, refresh Linear after the
-parallel roadmap session, then agree with the developer on milestones, issue order, and hard
+The first Symphony run is intentionally blocked. Immediately before it, refresh the operational
+tracker after parallel planning, then agree with the developer on milestones, issue order, and hard
 dependencies. Do not start the scheduler until that discussion is complete.
+
+## Workflow migration review · 2026-07-31
+
+### Delivered
+
+- Replaced the repository's Spectra-bound execution contract with a Manual-first lifecycle that
+  uses `grill-with-docs` or Wayfinder for Discuss, `to-spec` for Propose, repository-native JSON
+  implementation slices for Prepare execution, and one shared Apply procedure for Manual and
+  Symphony execution.
+- Added an optional, developer-authorized Ingest step for material design changes while keeping
+  implementation diagnosis and verification fixes inside Apply.
+- Added the pre-PR Changeset assessment gate. At this checkpoint, independent-context code review
+  and Archive policy remained unresolved; the 2026-08-03 lifecycle decisions below supersede that
+  open status.
+- Added a machine-readable implementation-slice schema, four vertical slices, a Blueprint
+  Implementation page, and a tested visual progress component.
+- Added Symphony's opaque `repository-workflow` delivery adapter. Symphony validates the
+  repository-owned contract without encoding Matt Pocock skills, Blueprint layout, or tracker label
+  taxonomy.
+- At this checkpoint, kept the existing Spectra/OpenSpec files untouched; the later lifecycle
+  decisions below define retention and Archive without rewriting this historical validation record.
+
+### Validation evidence
+
+| Scope                | Command                                                                              | Result                                                  |
+| -------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| VolleyBro workflow   | `pnpm test:workflow && pnpm check:workflow`                                          | Pass: 7 tests and live conformance                      |
+| Blueprint component  | `pnpm --dir blueprint test --runInBand src/components/ImplementationSlices.test.tsx` | Pass: 2 tests                                           |
+| VolleyBro code gates | `pnpm typecheck && pnpm lint && pnpm test --runInBand`                               | Pass: 99 suites / 763 tests                             |
+| VolleyBro builds     | `pnpm build && node scripts/assert-sw.mjs && pnpm --filter blueprint build`          | Pass: app, service worker, and 67-page Blueprint build  |
+| Symphony             | `make all MIX='mise exec -- mix'` from `elixir/`                                     | Pass: format, Credo, 273 tests, 100% coverage, Dialyzer |
+
+### Integrated verification closure · 2026-08-04
+
+The earlier `.markdownlint.jsonc` blocker was stale: the current file passes Prettier. A fresh
+`pnpm verify:all` instead exposed vendor-managed `.agents/` payloads to repository formatting and a
+Testing Library lint violation in the implementation-slice test. The formatter now excludes
+`.agents/` without excluding those files from Git or workflow conformance, and the test uses a
+stable test target rather than direct DOM traversal.
+
+After those corrections, `pnpm verify:all` passed end to end: formatting, 10 workflow tests,
+workflow conformance, TypeScript, ESLint, 99 application suites / 763 tests, application build,
+service-worker assertion, and the 67-page Blueprint build. Jest still reports non-fatal haste-map
+warnings for an unrelated `.claude/worktrees/` checkout; they do not change the successful result.
+Implementation slice S04 is now completed.
+
+## Lifecycle and operational planning convergence · 2026-08-02
+
+### Workflow corrections
+
+- Prepare execution now explicitly stops after rendering the Blueprint plan and never adds, removes,
+  or updates `agent:ready`. Only the developer may arm unattended execution after plan approval.
+- Renamed the optional corrective action from Revise back to Ingest. Test failures and implementation
+  defects remain inside Apply; Ingest starts only when the developer authorizes a material change to
+  approved scope, behavior, design, or acceptance criteria.
+
+### Operational workstream structure
+
+- Consolidated provider adapters, the cross-provider smoke test, automation-stage promotion gates,
+  and evaluation work into the runtime workstream.
+- Recreated the automation-stage milestones under the runtime workstream, then reassigned the
+  executable work.
+- Retained the superseded orchestration-adoption workstream as historical operational evidence.
+- Kept the reusable Manual-first lifecycle in a separate delivery-workflow workstream and recorded
+  the adopted Blueprint + Matt Pocock lifecycle decision there.
+- Removed stale Spectra-first and label-driven planning language from the affected operational work.
+  No tracker label was created, removed, or changed.
+
+## Matt adapter and Archive lifecycle · 2026-08-03
+
+### Lifecycle decisions
+
+- Kept Matt Pocock skills vendor-managed and moved VolleyBro-specific storage, label, Blueprint, and
+  retention rules into root `WORKFLOW.md` plus `docs/agents/` adapters. No additional workflow skill
+  is required.
+- Finalized delivery order as independent Pre-PR review/fix rounds, Blueprint Review updates,
+  developer acceptance, branch-local Archive, pull request, merge, then operational Done.
+- Made Archive a knowledge-promotion gate: it reconciles delivered evidence, promotes current
+  behavior and constraints, marks realized decisions `implemented`, and freezes the complete Change
+  before the pull request opens.
+- Adopted the hybrid domain lifecycle. Resolved terminology updates `CONTEXT.md` inline; decisions
+  remain candidates in Design, become `accepted` after plan approval, and become `implemented` at
+  Archive.
+- Preserved tracker neutrality. Wayfinder maps, issue projections, workpads, and handoffs may expire
+  because archived Blueprint records do not depend on them.
+
+### Repository contracts
+
+- Added issue-tracker, domain, Blueprint, and artifact-lifecycle adapter documents with workflow
+  conformance checks.
+- Bound VolleyBro Archive to the opaque `repository-workflow` adapter; Symphony delegates promotion,
+  retention, and freeze semantics to the repository contract.
+- At this checkpoint, left historical Spectra/OpenSpec files untouched; the following decision
+  finalizes retention while keeping migration execution as separate backlog work.
+
+## PR review and legacy retention · 2026-08-03
+
+- Removed the GitHub Claude code-review Action. Independent-context review and accepted-finding fix
+  rounds remain mandatory before PR creation.
+- Made post-PR human review comments and their fix rounds optional. The default merge path does not
+  wait for comments, while any feedback that changes durable knowledge must still update the
+  archived Change and promoted authorities before merge.
+- Finalized historical Spectra/OpenSpec retention: promote only still-current knowledge through
+  low-priority migration work and preserve all remaining artifacts as historical snapshots.
+- Deferred removal of Spectra skills, workflows, and CLI configuration to a separate backlog cleanup
+  after current-knowledge extraction is verified.
+- Replaced the obsolete deferred label-taxonomy question with the settled rule: only
+  `agent:ready` is a workflow label; ordinary statuses and relations express all other states.
+- Made shared `.agents/` content eligible for Git tracking while continuing to ignore local agent
+  settings. Workflow conformance now rejects an ignored `.agents/` root, missing installed skill
+  targets, and missing, broken, or misdirected `.claude/skills/*` symlinks.
+
+## Change-scoped ADR lifecycle and implementation UI · 2026-08-03
+
+- Located structured ADRs in Change Design rather than Overview: Overview summarizes capability
+  impact, while Design owns solution and architecture decisions, alternatives, consequences, and
+  revisit triggers.
+- Kept ADRs exclusively Change-scoped through plan approval and implementation. Approval changes
+  their status from `candidate` to `accepted` without prematurely publishing them as current Feature
+  knowledge.
+- Made Archive reconcile realized ADRs, mark the Change records `implemented`, copy them to the
+  narrowest Feature capability or sub-capability, and retain the originals in the archived Change.
+- Removed inherited prose margins from implementation-slice metadata so definition labels and
+  wrapped values align at the top of each grid row.
+
+## Change catalog navigation and ADR targets · 2026-08-04
+
+- Added one validated `change.json` catalog record per Change with lifecycle status, dates,
+  hierarchical capability references, and discovery tags.
+- Replaced the expanding Change directory sidebar with direct All, Discussing, In Progress, and
+  Archive filter links. The catalog also supports free-text, capability, and tag filtering.
+- Reworked archived Changes as an external chronological timeline with expandable year-month groups
+  and capability/tag badges on every Change card.
+- Required candidate ADRs to declare hierarchical `targets` during Propose. Archive validates those
+  expected destinations against delivered behavior before promoting implemented copies to Features.
+- Verified the catalog component tests, existing implementation-slice tests, TypeScript, production
+  Blueprint build, workflow tests, workflow conformance, and rendered sidebar/filter/accordion
+  interactions.
+
+## Manual ownership, structured ADRs, and Changeset assessment · 2026-08-04
+
+- Confirmed that Symphony claims are runtime state rather than tracker labels. Manual Apply now uses
+  an initial status inspection, developer removal of `agent:ready`, runtime refresh, and a second
+  inspection; `running`, `retrying`, or `blocked` prevents Manual ownership.
+- Added a structured decision-record schema and `DecisionTimeline` renderer based on the stable ID,
+  title, adopted body, and rejected-option rationale already used by historical interactive Design
+  pages. Three accepted Change ADRs now record hierarchical targets, consequences, and revisit
+  triggers.
+- Changeset assessment: **not applicable**. This Change modifies repository delivery policy,
+  agent/tooling adapters, Blueprint documentation and rendering, and CI/review orchestration; it
+  does not change VolleyBro application behavior, fix an application bug, or alter a versioned
+  package API. No semantic version bump or new Changeset is required. Existing unrelated app and
+  Changeset work in the dirty worktree is outside this assessment.
+
+## Independent Pre-PR review round 1 · 2026-08-04
+
+The independent review rejected the first candidate because the visible lifecycle was not yet a
+validated metadata gate, dated Archive directories changed the apparent Change slug, the
+implementation page manually duplicated plan order, and the durable Review retained operational
+tracker identifiers. It also identified unrelated staged feature work and landing-image deletions
+in the dirty worktree as scope contamination; those files remain outside this Change and were not
+staged, reverted, or otherwise modified during the fix round.
+
+The accepted findings were resolved as follows:
+
+- added a validated lifecycle field and made each workflow transition explicit from Discuss through
+  Archive;
+- kept the metadata slug stable while restricting the date prefix to the Archive directory name;
+- made a server-side loader discover and validate every slice, require an exact plan/file ID set,
+  verify dependency order, and render in canonical `plan.json` order; and
+- removed tracker names, links, and identifiers from the active durable Change while retaining the
+  operational adapter only in repository workflow configuration.
+
+Targeted component and contract tests, TypeScript, the 67-page production Blueprint build, and
+rendered Implementation and Change catalog checks passed after the fix round. A second independent
+review is required before this gate reaches a fixed point.
+
+## Independent Pre-PR review round 2 · 2026-08-04
+
+The second review confirmed the first-round lifecycle, stable-slug, plan-order, tracker-neutrality,
+Manual ownership, and Changeset corrections, but rejected the candidate on two remaining retention
+boundaries:
+
+- the Implementation loader and route supported only an active `in-progress` Change, so moving the
+  complete Change to a dated Archive directory would stop rendering its retained slices; and
+- the decision renderer checked only status, schema version, and non-empty targets, leaving the full
+  decision-record schema unenforced at runtime.
+
+The fix round made the loader accept validated active or Archive locations, derive the canonical
+plan slug from `change.json`, and added an Archive fixture proving a dated directory still loads its
+stable-slug plan. It also introduced one comprehensive decision-record parser shared by rendering
+and tests, covering allowed fields, IDs, statuses, unique hierarchical targets, required content,
+alternatives, optional origin, and rejection of runtime-only fields.
+
+Seven targeted suites with 19 tests, TypeScript, and the 67-page production Blueprint build pass
+after these fixes. A third independent review must confirm the fixed point.
+
+## Independent Pre-PR review round 3 · 2026-08-04
+
+The third review confirmed all earlier corrections but found one remaining contract drift in
+implementation slices: the runtime parser accepted only two-digit IDs while the schema permits IDs
+from two digits upward, and the parser allowed a non-string optional `$schema` value. The fix aligned
+the parser and schema across ID shape, optional schema reference, hierarchical capabilities,
+non-empty arrays, and uniqueness constraints. Regression coverage now proves `S100` is accepted and
+a numeric `$schema` is rejected.
+
+Five focused suites with 17 tests, TypeScript, and the 67-page production Blueprint build pass after
+the parity fix. A fourth independent review must confirm the fixed point.
+
+## Independent Pre-PR review round 4 · 2026-08-04
+
+The fourth independent review reached **CONFIRMED** with no remaining P0–P2 findings. It verified the
+slice schema/parser parity, all earlier lifecycle and Archive corrections, plan discovery and order,
+ADR validation, tracker neutrality, Manual ownership race closure, Changeset exemption, and the
+opaque Symphony repository-workflow boundary. Unrelated staged Feature and README work plus landing
+image deletions remain outside this Change.
+
+The independent checks passed 15 Blueprint suites / 36 tests, TypeScript, 10 workflow tests, live
+workflow conformance, both repository whitespace checks, and five isolated Symphony
+delivery-profile tests. The Pre-PR review/fix loop has reached its required fixed point; lifecycle is
+now `awaiting-delivery-review` for developer acceptance.
+
+## Fresh-dev integration · 2026-08-05
+
+After developer acceptance of the preceding Review, the stale source branch was preserved and the
+Change was surgically ported to `feat/unified-software-delivery-workflow` from the then-current
+remote `dev` tip `0d596a6f`. The six existing workflow commits were replayed in order. Their only
+conflict was `package.json`; resolution retained the newer strict TypeScript and integration-test
+gates while adding workflow tests and live conformance.
+
+The final active Change, repository adapters, provider bridges, shared playbooks, workflow checks,
+structured ADRs, implementation plan, and Change catalog were then ported by responsibility. The
+unrelated README rewrite, Feature-content migration and routing conversion, `StatusBadge`, and
+landing-image deletions stayed in the preserved source worktree and are not part of this branch.
+The latest Changesets release-token and finalize behavior was retained; only obsolete automated
+review skip markers were removed with the deleted review Action.
+
+Fresh-dev verification passes formatting, 10 workflow tests, live conformance, strict TypeScript,
+ESLint, the application test projects and production build, service-worker assertion, seven focused
+Blueprint suites / 20 tests, and the 60-page Blueprint production build. The lower Blueprint page
+count is expected because the unrelated Feature migration was intentionally excluded. Slice S04 is
+completed again, but lifecycle remains `pre-pr-review` until a fresh independent review confirms
+the integrated branch.

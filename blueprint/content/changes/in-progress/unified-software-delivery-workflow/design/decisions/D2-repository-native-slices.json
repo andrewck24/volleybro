@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "Store implementation slices in the Blueprint Change",
+  "status": "accepted",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Operational issues may be archived or deleted, but Apply commits must retain a durable, reviewable description of each vertical implementation unit.",
+  "decision": "Adapt ticket decomposition into Change-local JSON implementation slices with stable IDs, dependencies, outcomes, acceptance criteria, verification, and durable statuses.",
+  "alternatives": [
+    {
+      "option": "Keep implementation tickets only in the operational tracker",
+      "reason": "Commit and Change history would lose its durable execution explanation when operational issues expire."
+    },
+    {
+      "option": "Restore Spectra tasks.md as the execution authority",
+      "reason": "That would retain a second complete spec workflow and conflict with the repository-native Blueprint lifecycle."
+    }
+  ],
+  "consequences": [
+    "Slice JSON is committed with the source and tests that complete it.",
+    "Runtime claim, retry, and worker identity remain outside Git."
+  ],
+  "revisitTriggers": [
+    "A tracker-neutral durable slice store can provide equivalent Git history and offline Manual Apply."
+  ]
+}

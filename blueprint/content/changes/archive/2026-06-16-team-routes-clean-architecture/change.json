@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "slug": "team-routes-clean-architecture",
+  "title": "Team Routes Clean Architecture",
+  "status": "archived",
+  "lifecycle": "archived",
+  "startedAt": "2026-06-16",
+  "archivedAt": "2026-06-16",
+  "summary": "將 team routes 遷移至 clean architecture，並統一 domain、wire 與 client 的 identity mapping。",
+  "capabilities": [
+    "team-management/data-access",
+    "game-recording/data-access",
+    "platform/clean-architecture"
+  ],
+  "tags": ["clean-architecture", "migration", "mongodb"]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Make implementation slices repository-native",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "dependsOn": ["S01"],
+  "outcome": "Blueprint stores and renders a machine-readable vertical-slice plan that survives issue archival or deletion.",
+  "acceptanceCriteria": [
+    "Each slice has a stable ID, capability references, dependencies, outcome, acceptance criteria, verification, and durable status.",
+    "Only pending, completed, and superseded are accepted as durable statuses.",
+    "Runtime ownership and claim fields are absent from slice artifacts."
+  ],
+  "verification": [
+    "pnpm typecheck",
+    "pnpm --dir blueprint test --runInBand src/components/ImplementationSlices.test.tsx",
+    "pnpm --filter blueprint build"
+  ],
+  "status": "completed"
+}
