@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D3",
+  "title": "Keep ADRs Change-scoped until verified Archive promotion",
+  "status": "implemented",
+  "targets": ["platform/blueprint"],
+  "context": "Candidate and accepted implementation decisions should be visible during plan review without being mistaken for current Feature knowledge before delivery is verified.",
+  "decision": "Draft structured ADRs inside Change Design, accept them at plan approval, and promote implemented copies to the narrowest Feature targets only during branch-local Archive. Preserve the original records in the frozen Change.",
+  "alternatives": [
+    {
+      "option": "Publish accepted ADRs directly into Features during Propose",
+      "reason": "Features would claim behavior as current before code and tests verify that it was delivered."
+    },
+    {
+      "option": "Maintain a separate docs/adr tree",
+      "reason": "It would create another navigation and authority surface disconnected from Change review and Feature capability knowledge."
+    }
+  ],
+  "consequences": [
+    "Every draft records hierarchical promotion targets before implementation.",
+    "Archive reconciles intended targets and decisions against actual delivery.",
+    "Later Changes supersede Feature copies without rewriting historical Change ADRs."
+  ],
+  "revisitTriggers": [
+    "Decision volume makes Change and Feature rendering insufficient for cross-cutting discovery."
+  ],
+  "originChange": "unified-software-delivery-workflow"
+}

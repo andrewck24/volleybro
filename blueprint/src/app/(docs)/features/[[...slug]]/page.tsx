@@ -13,6 +13,12 @@ const featureModules: Record<
 > = {
   "game-recording": () =>
     import("../../../../../content/features/game-recording/index"),
+  "platform/blueprint": () =>
+    import("../../../../../content/features/platform/blueprint/index"),
+  "platform/agent-orchestration": () =>
+    import("../../../../../content/features/platform/agent-orchestration/index"),
+  "platform/delivery-workflow": () =>
+    import("../../../../../content/features/platform/delivery-workflow/index"),
 };
 
 export default async function Page({ params }: PageProps) {
