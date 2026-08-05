@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "Complete the Matt artifact lifecycle",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "dependsOn": ["S01", "S02", "S03"],
+  "outcome": "Repository adapters give Matt playbooks a complete operational, Change-scoped, and canonical artifact lifecycle ending in branch-local Archive.",
+  "acceptanceCriteria": [
+    "Installed Matt skill files remain vendor-managed and repository policy lives in WORKFLOW.md plus docs/agents adapters.",
+    "Pre-PR review evidence updates Blueprint Review before developer acceptance.",
+    "Structured ADRs remain in Change Design through implementation and are copied to the narrowest Feature only when Archive verifies them.",
+    "Branch-local Archive promotes verified knowledge and freezes the Change before the pull request opens.",
+    "Operational tracker and handoff artifacts may expire without breaking durable Blueprint knowledge."
+  ],
+  "verification": [
+    "pnpm test:workflow",
+    "pnpm check:workflow",
+    "pnpm --filter blueprint build",
+    "cd /Users/andrew/projects/symphony/elixir && mise exec -- mix test test/symphony_elixir/delivery_profile_test.exs"
+  ],
+  "status": "completed"
+}

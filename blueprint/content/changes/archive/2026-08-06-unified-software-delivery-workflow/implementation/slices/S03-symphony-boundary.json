@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "Keep Symphony opaque to repository planning tools",
+  "capabilities": [
+    "platform/agent-orchestration",
+    "platform/delivery-workflow"
+  ],
+  "dependsOn": ["S01"],
+  "outcome": "Symphony validates that the repository owns its planning workflow without encoding Matt Pocock skills, Blueprint slice layout, or Manual Apply internals.",
+  "acceptanceCriteria": [
+    "The delivery profile accepts the repository-workflow adapter.",
+    "The software-delivery template states that Symphony invokes the same approved Apply contract as Manual mode.",
+    "No operational tracker labels are created, deleted, or modified by this change."
+  ],
+  "verification": [
+    "mix test test/symphony_elixir/delivery_profile_test.exs",
+    "mix specs.check"
+  ],
+  "status": "completed"
+}

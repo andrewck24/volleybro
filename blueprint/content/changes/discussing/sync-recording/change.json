@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "sync-recording",
+  "title": "Sync Recording",
+  "status": "discussing",
+  "lifecycle": "discussing",
+  "startedAt": "2026-07-07",
+  "summary": "多人即時共編比賽紀錄，包含 SSE 推播、意圖錨點衝突偵測與 server-derived scoring。",
+  "capabilities": ["game-recording/collaboration", "game-recording/live-view"],
+  "tags": ["realtime", "collaboration", "sse"]
+}
