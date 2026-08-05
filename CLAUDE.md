@@ -1,22 +1,8 @@
-<!-- SPECTRA:START v1.0.2 -->
-
 # Delivery Workflow Bridge
 
 Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, review, handoff, or archive work. It is the canonical provider-neutral delivery contract; this file retains Claude Code mechanics and hard repository rules only.
-
-VolleyBro binds SDD to Spectra. Use the corresponding `/spectra-*` skill for the operation required by `WORKFLOW.md`:
-
-- A discussion needs structure before coding → `/spectra-discuss`
-- User wants to plan, propose, or design a change → `/spectra-propose`
-- Tasks are ready to implement → `/spectra-apply`
-- There's an in-progress change to continue → `/spectra-ingest`
-- User asks about specs or how something works → `/spectra-ask`
-- Implementation is done → `/spectra-archive`
-- Commit only files related to a specific change → `/spectra-commit`
-
-Parked changes are discoverable with `spectra list --parked`; `/spectra-apply` and `/spectra-ingest` restore them automatically.
-
-<!-- SPECTRA:END -->
+Repository-specific Matt Pocock adaptations live in `docs/agents/`. Read the issue-tracker, domain, Blueprint, and artifact-lifecycle adapters selected by `WORKFLOW.md`; never modify installed Matt skills to encode VolleyBro policy.
+Use the engineering skill selected by `WORKFLOW.md` for the current stage. Grilling and Wayfinder support discussion; specification and implementation-slice generation prepare approved work; Apply remains the same repository procedure whether a developer invokes it manually or Symphony invokes it after dispatch. Do not treat a tool-specific artifact system as a second lifecycle authority.
 
 ## VolleyBro Introduction
 
@@ -78,22 +64,14 @@ Components are organized by domain and purpose (features):
 
 - For complex commits, include a body focused on **why**; "what" may be included as supporting context
 - Never use `spectra`, `openspec`, or any tooling name as the commit type or scope; use standard conventional commit types (`feat`, `fix`, `chore`, `docs`, etc.) with short scopes
-- **Changesets:** every PR to `dev` with user-visible impact MUST include its changeset (`.changeset/*.md`) in the same PR — created on the feat/fix branch alongside the change, not batched onto `dev` at release time. See the `writing-changesets` skill. Skip only for zero-user-impact changes (pure refactor, tests, docs, CI-internal).
 - **Judgment-type deletions require discussion first**: when a cleanup tool (knip, dead-code audits) or your own analysis flags source files for deletion beyond the explicitly requested change scope, list the candidates with per-file rationale and get confirmation before deleting. "Unreferenced in the import graph" is not sufficient evidence by itself — files may be documented API contracts (see `design-tokens.ts`), aliases of live database collections, or reserved for planned features.
-- In all Spectra artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
-- Parked changes: automatically unpark and continue — no need to ask for confirmation
+- In all Change artifacts, reference other changes by kebab-case name (e.g., `` `type-decoupling` change ``), never by letter labels (A, B, C)
 
-### Automated PR review
+### Pull request review
 
-A GitHub Action (`.github/workflows/claude-code-review.yml`) reviews every PR to `dev`/`main`. Two skip granularities:
-
-- **Whole PR**: put `[skip review]` in the **PR title** (release PRs, changeset-only, mechanical dependency bumps) — every later push (`synchronize`) to that PR is skipped too.
-- **Single push**: put `[skip review]` in the **head commit message** to skip review for that push only — use it for low-value follow-ups (doc fixes, PR-body-driven tweaks) on an already-reviewed PR. Later pushes without the marker get reviewed normally.
-
-Docs-only PRs (`docs/**`) are already skipped automatically via `paths-ignore`. Native `[skip ci]` also works but skips ALL workflows including the Verify gate — prefer `[skip review]`.
-
-**Workflow edits only take effect after they reach `main`**: claude-code-action validates the PR's workflow file against the default branch and silently skips (a fast green "pass" with no comment) when they differ. After changing `claude-code-review.yml` on dev, expect no real reviews until the next dev→main release syncs it.
-
-**Apply the markers proactively when you author PRs or pushes** — don't wait to be asked. Title marker: release/sync PRs, changeset-only PRs, mechanical bumps, agent-workflow docs. Commit marker: pushes to an already-reviewed PR that only address the review itself or its description (PR-body edits landed as commits, comment/doc touch-ups, formatting). When a follow-up push changes logic, let review run.
+The required independent code-review and fix rounds run before PR creation as defined by
+`WORKFLOW.md`. Human PR comments and their fix rounds are optional, and the default merge path does
+not wait for them. If optional feedback changes durable knowledge, update the archived Blueprint
+Change and promoted authorities before merge.
 
 See also: [`docs/testing-strategy.md`](docs/testing-strategy.md) for test guidelines, [`docs/maintenance-policy.md`](docs/maintenance-policy.md) for maintenance policies, and [`docs/design-system.md`](docs/design-system.md) for the color/elevation reference.

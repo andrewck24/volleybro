@@ -39,8 +39,7 @@ jobs:
         with:
           version: pnpm run release:version
           commit: "release: update versions"
-          # [skip review] keeps the auto-opened version PR out of claude-code-review
-          title: "release: update versions [skip review]"
+          title: "release: update versions"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
@@ -82,7 +81,7 @@ jobs:
           # to dev. The PR is RELEASE_TOKEN-authored, so Verify runs and
           # auto-merge can complete once it passes — no ruleset bypass needed.
           if pr_url=$(gh pr create --base dev --head main \
-            --title "chore: sync ${tag} release back to dev [skip review]" \
+            --title "chore: sync ${tag} release back to dev" \
             --body "Automated sync of the ${tag} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev."); then
             gh pr merge "$pr_url" --auto --merge \
               || echo "::warning::Could not enable auto-merge on the sync PR; merge it manually: $pr_url"
