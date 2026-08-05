@@ -1,156 +1,240 @@
+<a id="readme-top"></a>
+<div align="center">
+
 # VolleyBro
 
-VolleyBro 是一個專為排球球隊設計的賽事紀錄與隊伍管理應用程式，幫助教練及管理者方便記錄賽事數據、管理球隊成員以及設定比賽陣容。
+**Rally-by-rally volleyball match recording and team management, built for the sideline.**
 
-獲取最新版本的 [VolleyBro](https://volleybro.vercel.app/)。
+[![Next.js][nextjs-badge]][nextjs-url]
+[![React][react-badge]][react-url]
+[![TypeScript][typescript-badge]][typescript-url]
+[![MongoDB][mongodb-badge]][mongodb-url]
+[![Tailwind CSS][tailwind-badge]][tailwind-url]
 
-VolleyBro is a volleyball team management and game recording application that helps coaches and managers easily record game data, manage team members, and set up game lineups.
+[![CI][ci-badge]][ci-url]
+[![Version][version-badge]][changelog-url]
 
-Get the latest version of [VolleyBro](https://volleybro.vercel.app/).
+[**Live App**](https://volleybro.vercel.app/) · [**Blueprint**][blueprint-url] · [**Component Library**](https://dev--67bbfeabbc72894ce5eb92db.chromatic.com) · [**Report a Bug**][issues-url] · [**Discussions**][discussions-url]
 
-## 目錄 / Table of Contents
+📖 **[繁體中文](./README.zh-TW.md)**
 
-1. [項目介紹 / Project Overview](#項目介紹--project-overview)
-2. [主要功能 / Key Features](#主要功能--key-features)
-3. [專案架構 / Project Structure](#專案架構--project-structure)
-4. [安裝與執行 / Installation & Setup](#安裝與執行--installation--setup)
-5. [貢獻指南 / Contribution Guidelines](#貢獻指南--contribution-guidelines)
-6. [授權條款 / License](#授權條款--license)
-7. [聯絡方式 / Contact](#聯絡方式--contact)
+</div>
 
-## 項目介紹 / Project Overview
+<details>
+<summary><b>Table of Contents</b></summary>
 
-VolleyBro 是一個基於 [Next.js](https://nextjs.org/) 的現代化應用程式，專注於排球賽事紀錄與球隊管理。系統整合用戶認證、賽事紀錄、陣容管理及即時通知等功能，確保使用者能夠輕鬆掌握比賽數據。
+- [VolleyBro](#volleybro)
+  - [About The Project](#about-the-project)
+  - [Key Features](#key-features)
+    - [🏐 Match Recording](#-match-recording)
+    - [📊 Match Analysis](#-match-analysis)
+    - [👥 Team Management](#-team-management)
+    - [📱 Native-Feeling PWA](#-native-feeling-pwa)
+  - [How It Works](#how-it-works)
+    - [Recording a Rally](#recording-a-rally)
+    - [Sync \& Live View (Planned)](#sync--live-view-planned)
+  - [Architecture](#architecture)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+  - [Development](#development)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
 
-VolleyBro is a modern application built on [Next.js](https://nextjs.org/), designed for volleyball game recording and team management. The system integrates user authentication, game data recording, lineup management, and real-time notifications to help users easily keep track of game data.
+</details>
 
-## 主要功能 / Key Features
+## About The Project
 
-### Core Features (完成 / Completed)
+Recording a volleyball match on paper means a coach is writing instead of coaching. VolleyBro replaces the scoresheet with a tap-driven interface designed to keep up with live play: every rally is three taps, statistics accumulate as you go, and the whole thing works on the phone already in your pocket.
 
-- **球員管理系統**: 完整的球員實體管理、邀請流程、角色管理（隊長、管理員、成員）
-  - Player Management System: Complete player entity management, invitation workflow, role management (Team Captain, Admin, Member)
+It is a Progressive Web App — installable, offline-capable, and equally usable on a phone at the net or a laptop reviewing footage afterwards.
 
-- **隊伍管理**: 建立隊伍、邀請成員、管理球員身份與權限、查看隊伍成員列表
-  - Team Management: Create teams, invite members, manage player status and permissions, view team member list
+**Built with:**
 
-- **賽事紀錄：** 詳細記錄比賽數據，包括得分、替換、拉力等資訊。
-  - Game Recording: Detailed recording of game data, including scores, substitutions, rallies, etc.
+| Layer     | Technology                                                                  |
+| --------- | --------------------------------------------------------------------------- |
+| Framework | Next.js 16 (App Router) · React 19 · TypeScript 6                           |
+| UI        | Tailwind CSS 4 · Shadcn/UI (Radix) · Motion · Recharts                      |
+| State     | Redux Toolkit (recording UI) · SWR (server state) · React Hook Form (forms) |
+| Backend   | MongoDB Atlas · Mongoose · InversifyJS (DI)                                 |
+| Auth      | Better Auth with Google OAuth                                               |
+| PWA       | Serwist (`@serwist/turbopack`)                                              |
+| Quality   | Jest · React Testing Library · Storybook · ESLint · Prettier                |
 
-- **用戶認證：** 使用 Better Auth 與 Google OAuth 進行安全登入。
-  - User Authentication: Secure login using Better Auth with Google OAuth.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-- **現代化 UI 與無障礙設計**: 使用 Tailwind CSS 及自訂元件打造流暢的使用者介面，完全支援 WCAG 2.1 AA 無障礙標準
-  - Modern UI & Accessibility: Built with Tailwind CSS and custom components, full WCAG 2.1 AA accessibility compliance
+## Key Features
 
-## 專案架構 / Project Structure
+### 🏐 Match Recording
+
+Three taps per rally — pick the server, log your side's action, log the opponent's response. Scores, rotation, and per-skill statistics update as you record. Substitutions are recorded inline without leaving the flow.
+
+<div align="center">
+  <img src="public/landing/features/game-demo-1-light.png" alt="Rally recording interface" width="240">
+  <img src="public/landing/features/game-demo-2-light.png" alt="Match record browsing" width="240">
+</div>
+
+### 📊 Match Analysis
+
+Team statistics broken down by skill — serving, blocking, attack, reception, defense, setting, and unforced errors — plus set-by-set scoring and a full rally timeline for any past match.
+
+### 👥 Team Management
+
+Create a team, invite members by user search, and manage roles (`OWNER` / `ADMIN` / `MEMBER`). Members move through an explicit invitation lifecycle (`NONE` → `INVITED` → `JOINED`), and lineups are configured per match.
+
+<div align="center">
+  <img src="public/landing/features/team-demo-1-light.png" alt="Team management" width="240">
+  <img src="public/landing/features/team-demo-2-light.png" alt="Lineup configuration" width="240">
+</div>
+
+### 📱 Native-Feeling PWA
+
+Installable with platform-specific splash screens, tab-based navigation with independent scroll state, pull-to-refresh, and overlay modals via parallel routes. Dark mode included.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## How It Works
+
+### Recording a Rally
+
+A single rally moves through three tap-driven steps held in Redux as a draft, then travels down the Clean Architecture stack on submit. SWR applies the result optimistically so the UI never waits on the network.
+
+```mermaid
+flowchart TD
+    subgraph UI["🖐️ Recording UI — draft held in Redux Toolkit"]
+        A["Tap court to select server<br/><i>setEntryDraftPlayer</i>"]
+        B["Tap our move<br/>serve · attack · block · set · dig<br/><i>setEntryDraftHomeMove</i>"]
+        C["Tap opponent move &amp; outcome<br/><i>setEntryDraftAwayMove</i>"]
+        D["Preview in summary drawer"]
+        A --> B --> C --> D
+    end
+
+    D -->|submit| E["createRally action<br/>POST /api/games/:id/sets/rallies"]
+
+    subgraph Optimistic["⚡ Optimistic update"]
+        F["rally.helper recomputes<br/>score · rotation · stats · phase"]
+        G["SWR mutate — UI updates instantly"]
+        F --> G
+    end
+
+    E --> F
+
+    subgraph Server["🧱 Clean Architecture — server"]
+        H["Route Handler"]
+        I["RallyController"]
+        J["CreateRallyUseCase"]
+        K["MongoGameRepository"]
+        L[("MongoDB Atlas")]
+        H --> I --> J --> K --> L
+    end
+
+    E --> H
+    L -.->|revalidate| G
+```
+
+Set and match completion are **derived, not stored** — a server-side fold over the append-only entry list decides whether a set is still in progress, at set point, or won (25 points with a two-point lead; 15 in a deciding set). Nothing has to be manually closed out.
+
+### Sync & Live View (Planned)
+
+Multiple people often record the same match, and teammates want to follow along. The designed architecture uses HTTP POST for writes and Server-Sent Events for fan-out, with an **intent anchor** to make concurrent recording safe.
+
+> [!NOTE]
+> This section describes an agreed design that is **not yet implemented**. See the [Blueprint][blueprint-url] for current feature status.
+
+```mermaid
+flowchart LR
+    R1["Recorder A"]
+    R2["Recorder B"]
+    V["Live View<br/><i>read-only</i>"]
+
+    R1 -->|"POST rally<br/>basedOn: entryIndex + score"| G
+
+    subgraph Backend["Server"]
+        G{"Server guard<br/>anchor still valid?"}
+        DB[("MongoDB Atlas")]
+        CS["Change Stream"]
+        SSE["SSE route handler"]
+        G -->|"✅ match"| DB
+        DB --> CS --> SSE
+    end
+
+    G -->|"❌ 409 stale anchor"| P["Conflict panel<br/>discard · override · rebase"]
+    P -.->|resolved| R1
+
+    SSE -->|"live entries"| R2
+    SSE -->|"live entries"| V
+```
+
+The anchor is the state a recorder saw _when they started typing_, not when they hit send. That distinction matters: without it, an SSE update landing mid-input would make the client believe it is writing the next rally when the server already has one at that position. A stale anchor returns `409` and opens a blocking conflict panel rather than silently overwriting a teammate's work.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Architecture
+
+VolleyBro follows Clean Architecture: concentric layers where **source-code dependencies point only inward**. An inner layer knows nothing about the layers around it.
+
+```mermaid
+flowchart TB
+    subgraph L4["④ Frameworks &amp; Drivers · infrastructure / app / components"]
+        subgraph L3["③ Interface Adapters · interface / controllers"]
+            subgraph L2["② Use Cases · applications (use cases + repository &amp; service interfaces)"]
+                subgraph L1["① Entities · entities"]
+                    core["User · Team · Player<br/>Profile · Game"]
+                end
+            end
+        end
+    end
+```
+
+Crossing a boundary inward uses **dependency inversion**: the Use Cases layer declares repository and service _interfaces_, the infrastructure layer implements them, and InversifyJS injects the concrete implementation at runtime — so the domain and use cases stay free of MongoDB, Next.js, or auth details.
 
 ```txt
-andrewck24-volleybro/
-├── README.md            // 此文件 / This document
-├── LICENSE              // 授權條款 / License
-├── package.json         // 專案依賴與腳本設定 / Project dependencies and scripts
-├── next.config.js       // Next.js 配置 / Next.js configuration
-├── public/              // 靜態資源 / Static assets (icons, manifest, splash screens, etc.)
-└── src/                 // 源碼目錄 / Source code directory
-    ├── app/             // Next.js 頁面與路由 / Pages and routing
-    ├── components/      // 可重用 UI 元件 / Reusable UI components
-    ├── entities/        // 領域實體定義（如隊伍、比賽） / Entity definitions (e.g., team, game)
-    ├── hooks/           // React hooks
-    ├── infrastructure/  // 基礎架構層 / Infrastructure layer
-    │   ├── db/          // 資料庫相關（Mongoose 連線、Schema 定義）/ Database related (Mongoose connection, Schema definitions)
-    │   │   ├── mongoose/   // Mongoose Schema 定義 / Mongoose Schema definitions
-    │   │   └── repositories/ // 資料庫存取實作 / Repository implementations
-    │   └── di/          // 依賴注入相關 / Dependency Injection related
-    ├── interface/       // 控制器 / Controllers
-    └── lib/             // 工具函數及輔助模組 / Utility functions and helpers
+src/
+├── entities/         # Domain layer — User, Team, Player, Profile, Game
+├── applications/     # Application layer
+│   ├── usecases/     #   Business use cases (CreateGame, CreateRally, …)
+│   ├── repositories/ #   Abstract data-access interfaces
+│   └── services/     #   Abstract external-service interfaces
+├── interface/        # Interface layer — controllers orchestrating use cases
+├── infrastructure/   # Infrastructure layer
+│   ├── db/           #   Mongoose schemas & repository implementations
+│   ├── services/     #   Authentication & authorisation
+│   └── di/           #   InversifyJS container
+├── app/              # Presentation — Next.js App Router (pages, layouts, API routes)
+├── components/       # Presentation — React components by domain
+├── lib/              # Client-side state, actions, helpers, hooks
+└── hooks/            # Shared React hooks
 ```
 
-本專案採用乾淨架構設計，並透過 InversifyJS 實現依賴注入，提供類型安全的依賴解析與管理。
+Further reading: [`docs/architecture.md`](./docs/architecture.md) · [`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
 
-This project uses a clean architecture and implements dependency injection with InversifyJS for type-safe dependency resolution and management.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## 技術棧 / Technology Stack
+## Getting Started
 
-### Frontend & Framework
+### Prerequisites
 
-- **Next.js 16+** with App Router
-- **React 19** with Server Components
-- **TypeScript 6.x** with strict mode
-- **Shadcn/UI** components library
-- **Tailwind CSS** for styling
-- **Serwist** for Progressive Web App (PWA) features
+- **Node.js** `>=22`
+- **pnpm** (the repo pins a version via `packageManager`; `corepack enable` will pick it up)
+- A **MongoDB** connection string and **Google OAuth** credentials
 
-### State Management & Data Fetching
+### Installation
 
-- **Redux Toolkit** for complex application state
-- **SWR** for server state management and caching
-- **React Hook Form** for form state management
-
-### Backend & Database
-
-- **MongoDB Atlas** with Mongoose ODM
-- **Better Auth** for authentication with Google OAuth
-- **InversifyJS** for dependency injection
-
-### Testing & Quality Assurance
-
-- **Jest** for unit and integration testing
-- **React Testing Library** for component testing
-- **586 tests passing** with comprehensive coverage
-- **ESLint** for code quality
-- **TypeScript strict mode** enabled
-- **Storybook** for component development and documentation
-- **Prettier** for code formatting
-
-> For testing conventions and strategy, see [CONTRIBUTING.md](./CONTRIBUTING.md) and [docs/testing-strategy.md](./docs/testing-strategy.md).
-
-### Running Tests
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-
-# Generate coverage report
-pnpm test:coverage
-```
-
-### Storybook 元件庫 / Storybook Component Library
-
-VolleyBro 使用 Storybook 進行元件開發與文件管理。您可以透過以下連結查看我們的元件庫：
-
-This project uses [Storybook](https://storybook.js.org/) for component development and documentation. You can view our component library at the following links:
-
-- [Master Branch](https://master--67bbfeabbc72894ce5eb92db.chromatic.com)
-- [Development Branch](https://dev--67bbfeabbc72894ce5eb92db.chromatic.com)
-
-## 安裝與執行 / Installation & Setup
-
-### 前置需求 / Prerequisites
-
-- Node.js（建議使用 v20 以上版本）/ Node.js (v20+ recommended)
-- pnpm 套件管理工具 / pnpm package manager
-
-### 設定步驟 / Setup Steps
-
-1. **Clone 專案 / Clone the repository**
+1. Clone the repository
 
    ```bash
-   git clone https://github.com/andrewck24/volleybro.git
+   git clone https://github.com/AndrewCK24/volleybro.git
    cd volleybro
    ```
 
-2. **安裝相依套件 / Install dependencies**
+2. Install dependencies
 
    ```bash
    pnpm install
    ```
 
-3. **環境變數設定 / Environment Variables**  
-   在專案根目錄建立 `.env.local` 檔案，並設定以下變數：
+3. Create `.env.local` in the project root
 
    ```env
    AUTH_GOOGLE_ID=your_google_client_id
@@ -158,52 +242,68 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
    MONGODB_URI=your_mongodb_connection_string
    ```
 
-4. **運行測試 / Run tests**
-
-   ```bash
-   pnpm test
-   ```
-
-   確保所有 586 項測試通過 / Ensure all 586 tests pass
-
-5. **啟動開發伺服器 / Run the development server**
+4. Start the development server
 
    ```bash
    pnpm dev
    ```
 
-   開啟 [http://localhost:3000](http://localhost:3000) 以檢視專案運行狀態。
-   Open [http://localhost:3000](http://localhost:3000) to see the application running.
+   Open [http://localhost:3000](http://localhost:3000).
 
-6. **編譯生產版本 / Build for production**
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-   ```bash
-   pnpm build
-   pnpm start
-   ```
+## Development
 
-## 貢獻指南 / Contribution Guidelines
+```bash
+pnpm dev          # Development server
+pnpm build        # Production build
+pnpm test         # Test suite
+pnpm test:watch   # Tests in watch mode
+pnpm storybook    # Component workshop on :6006
+pnpm verify       # format:check + typecheck + lint + test
+pnpm verify:all   # verify + app build + service-worker assertion + blueprint build
+```
 
-請參閱 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解分支規範、commit 規範、程式碼風格與測試要求。
+`pnpm verify` is the gate to run before committing; `pnpm verify:all` before opening a pull request.
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, commit convention, code style, and testing requirements.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## 授權條款 / License
+## Contributing
 
-請至 [LICENSE](./LICENSE) 查看完整授權條款。
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, commit conventions, code style, and testing requirements.
 
-See [LICENSE](./LICENSE) for the full license.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## 聯絡方式 / Contact
+## License
 
-如有任何疑問或建議，請透過以下方式與我們聯絡：
+All rights reserved. See [LICENSE](./LICENSE) for the full terms.
 
-- 💬 **討論區 (Discussions)**：[一般討論、想法分享或尋求協助](https://github.com/andrewck24/volleybro/discussions)
-- 🛡️ **安全漏洞 (Security Vulnerabilities)**：[私下回報安全漏洞（請勿建立公開 issue）](https://github.com/andrewck24/volleybro/security/advisories/new)
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-If you have any questions or suggestions, please contact us via the following methods:
+## Contact
 
-- 💬 **Discussions**: [General discussions, sharing ideas, or seeking help](https://github.com/andrewck24/volleybro/discussions)
-- 🛡️ **Security Vulnerabilities**: [Privately report security vulnerabilities (please do not create public issues)](https://github.com/andrewck24/volleybro/security/advisories/new)
+- 💬 **[Discussions][discussions-url]** — general questions, ideas, and help
+- 🐛 **[Issues][issues-url]** — bug reports and feature requests
+- 🛡️ **[Security advisories](https://github.com/AndrewCK24/volleybro/security/advisories/new)** — please report vulnerabilities privately rather than opening a public issue
 
-If you have any questions or suggestions, please contact us via GitHub Issues.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- Badge definitions -->
+
+[nextjs-badge]: https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[nextjs-url]: https://nextjs.org/
+[react-badge]: https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black
+[react-url]: https://react.dev/
+[typescript-badge]: https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white
+[typescript-url]: https://www.typescriptlang.org/
+[mongodb-badge]: https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white
+[mongodb-url]: https://www.mongodb.com/
+[tailwind-badge]: https://img.shields.io/badge/Tailwind-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white
+[tailwind-url]: https://tailwindcss.com/
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/AndrewCK24/volleybro/ci.yml?branch=main&style=flat-square&label=CI
+[ci-url]: https://github.com/AndrewCK24/volleybro/actions/workflows/ci.yml
+[version-badge]: https://img.shields.io/github/package-json/v/AndrewCK24/volleybro/main?style=flat-square
+[changelog-url]: ./CHANGELOG.md
+[issues-url]: https://github.com/AndrewCK24/volleybro/issues
+[discussions-url]: https://github.com/AndrewCK24/volleybro/discussions
+[blueprint-url]: https://volleybro-blueprint.andrewck24.workers.dev
