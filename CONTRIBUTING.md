@@ -3,7 +3,7 @@
 Thank you for contributing! This guide covers everything you need to know before opening a PR.
 
 Read [`WORKFLOW.md`](./WORKFLOW.md) before starting delivery work. It is the canonical contract for
-intake, Spectra and Blueprint artifacts, readiness, validation, review, release gates, handoff, and
+intake, Blueprint Change artifacts, readiness, validation, review, release gates, handoff, and
 archive behavior; provider-specific instruction files are entry-point bridges only.
 
 ---

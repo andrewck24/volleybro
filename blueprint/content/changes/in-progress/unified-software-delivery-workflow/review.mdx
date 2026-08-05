@@ -312,3 +312,35 @@ a false-green live check.
 
 Formatting, 12 workflow tests, live conformance, and repository whitespace checks pass after the
 fix. A second fresh independent review is required.
+
+## Fresh-dev independent review round 2 · 2026-08-05
+
+The second independent review confirmed that the executable Spectra workflows and active OpenSpec
+authority were retired correctly, but rejected two remaining contract drifts. Active contributor
+guidance still described Spectra as a delivery artifact, and the Change itself had introduced all
+completed slice JSON files after the corresponding work was already distributed across earlier
+commits. The latter did not satisfy the new same-commit traceability rule and had not been disclosed
+as a plan-versus-actual deviation.
+
+`CONTRIBUTING.md` now points only to the canonical repository workflow and Blueprint Change
+artifacts. Workflow conformance also rejects any future Spectra reference in active contributor
+guidance. For commit traceability, this Change uses the narrowly defined bootstrap exception: its
+work began before repository-native slices existed and its existing commits were later replayed
+onto a fresh `dev` base, so otherwise valid history was not rewritten solely to manufacture the new
+commit shape. The exception ends once this workflow contract lands on the base branch.
+
+The durable actual-delivery mapping is:
+
+| Slice | Actual implementation commits                              | Verification evidence                                                                         |
+| ----- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| S01   | `57afdf31`, `97b0673e`, `8eee2b46`, `67fd044a`, `965cca76` | 13 workflow tests, live conformance, strict TypeScript, lint                                  |
+| S02   | `4f02dfc8`                                                 | 7 focused Blueprint suites / 20 tests; 60-page Blueprint build                                |
+| S03   | Symphony `3b1c738`, VolleyBro `965cca76`                   | Symphony delivery-profile checks recorded above; live repository conformance                  |
+| S04   | `2cf6f149`, `4f02dfc8`, `194c7a1e`                         | App 100 suites / 784 tests; App build; service-worker assertion; Blueprint build              |
+| S05   | `6a16f487`, `965cca76`, `4f02dfc8`, `194c7a1e`             | shared-skill, artifact-lifecycle, ADR parser, Archive loader, and authority-retirement checks |
+| S06   | `4f02dfc8`                                                 | Change catalog and navigation component tests plus rendered UI inspection                     |
+
+The earlier commits lack the new commit-body trailers; this table and the preserved commits are the
+explicit bootstrap substitute, not a claim that those commits complied retroactively. All Changes
+created after adoption must update the completed slice alongside code and tests and use the required
+commit body without this exception.

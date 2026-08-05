@@ -47,6 +47,7 @@ async function makeRepository(overrides = {}) {
     "docs/agents/domain.md": "# Domain documentation adapter\n",
     "docs/agents/blueprint.md": "# Blueprint adapter\n",
     "docs/agents/artifact-lifecycle.md": "# Artifact lifecycle adapter\n",
+    "CONTRIBUTING.md": "Read WORKFLOW.md before delivery work.\n",
     ".gitignore": ".agents/settings.local.*\n",
     "skills-lock.json": JSON.stringify({
       version: 1,
@@ -166,6 +167,17 @@ test("reports an active legacy OpenSpec change", async () => {
       })
     ).join("\n"),
     /docs\/changes\/stale-change\/\.openspec\.yaml.*active-legacy-change/i,
+  );
+});
+
+test("reports Spectra as an active contributor authority", async () => {
+  assert.match(
+    (
+      await messages({
+        "CONTRIBUTING.md": "Use Spectra artifacts for delivery.\n",
+      })
+    ).join("\n"),
+    /CONTRIBUTING\.md.*retired-authority/i,
   );
 });
 

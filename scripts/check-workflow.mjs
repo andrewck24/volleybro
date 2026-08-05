@@ -54,6 +54,20 @@ const ACTIVE_ROOT_FILES = ["CLAUDE.md", "AGENTS.md", "package.json"];
 const ACTIVE_DIRECTORIES = [".github", "scripts"];
 const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
 
+async function validateContributorGuidance(root) {
+  const contributorPath = path.join(root, "CONTRIBUTING.md");
+  if (!(await exists(contributorPath))) return [];
+
+  const content = await readFile(contributorPath, "utf8");
+  if (/\bspectra\b/i.test(content)) {
+    return [
+      "CONTRIBUTING.md [retired-authority]: active contributor guidance must not present Spectra as a delivery authority",
+    ];
+  }
+
+  return [];
+}
+
 async function validateRetiredAuthorities(root) {
   const diagnostics = [];
   const workflowDirectory = path.join(root, ".agents", "workflows");
@@ -346,6 +360,7 @@ export async function checkWorkflow(root = process.cwd()) {
 
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));
+  diagnostics.push(...(await validateContributorGuidance(root)));
 
   for (const filePath of await activeReferenceFiles(root)) {
     if (!(await exists(filePath))) continue;
