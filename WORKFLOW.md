@@ -177,9 +177,10 @@ Apply is the same repository procedure in both execution modes:
 The same-commit rule applies once this contract exists on the branch's base. When this workflow is
 first adopted around work that was already committed, or when existing commits are surgically
 replayed onto a fresh base, do not rewrite otherwise valid history solely to fabricate compliance.
-Before Pre-PR review, Blueprint Review must instead identify the bootstrap deviation and provide a
-durable mapping from every completed slice to its actual implementation commits and verification.
-This exception ends after the workflow contract lands on the base branch.
+Before Pre-PR review completes and before developer acceptance, Blueprint Review must instead
+identify the bootstrap deviation and provide a durable mapping from every completed slice to its
+actual implementation commits and verification. This exception ends after the workflow contract
+lands on the base branch.
 
 Verification failures remain inside Apply. Diagnose whether the implementation is wrong or the
 approved design is no longer viable. Fix implementation defects without creating a separate stage.

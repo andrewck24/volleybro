@@ -344,3 +344,15 @@ The earlier commits lack the new commit-body trailers; this table and the preser
 explicit bootstrap substitute, not a claim that those commits complied retroactively. All Changes
 created after adoption must update the completed slice alongside code and tests and use the required
 commit body without this exception.
+
+## Fresh-dev independent review round 3 · 2026-08-05
+
+The third independent review confirmed the contributor-guidance correction, the narrow base-branch
+termination rule, and the accuracy of the S01–S06 commit and verification mapping. It found one
+timing contradiction: the bootstrap text required disclosure before Pre-PR review even though this
+deviation was discovered and corrected during the review/fix loop.
+
+The contract and Design now require disclosure before Pre-PR review **completes** and before
+developer acceptance. This preserves review rounds as a valid correction mechanism without
+extending the exception past the delivery gate or making it available after the contract lands on
+the target base branch. A fourth fresh independent review must confirm the fixed point.
