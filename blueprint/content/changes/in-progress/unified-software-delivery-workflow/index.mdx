@@ -3,6 +3,7 @@ title: Unified Software Delivery Workflow
 ---
 
 import { ChangeOverview } from "@/components/ChangeOverview";
+import { WorkflowBlastRadius } from "@/components/WorkflowBlastRadius";
 
 <ChangeOverview
   date="2026-07-31"
@@ -47,28 +48,7 @@ Symphony optionally invokes the same Apply contract a developer can run manually
 
 ## Blast radius
 
-```text
-Initial idea
-  └─ operational intake
-      ├─ focused change ──► grill-with-docs
-      └─ large/foggy ─────► Wayfinder decision map
-                               ↓
-                         Change boundaries
-                               ↓
-                     Blueprint Overview + Design
-                               ↓
-                    implementation-slice JSON
-                         ┌─────┴─────┐
-                    Manual Apply   Symphony Apply
-                         └─────┬─────┘
-                    code + tests + Review
-                               ↓
-                    developer acceptance
-                               ↓
-                    branch-local Archive
-                               ↓
-                          PR → merge
-```
+<WorkflowBlastRadius />
 
 ## Task progress
 

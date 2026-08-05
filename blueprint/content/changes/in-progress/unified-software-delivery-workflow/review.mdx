@@ -419,3 +419,17 @@ breadcrumb items with no duplicate href; every sidebar retained only All Changes
 Progress, and Archive; every detail-to-detail Previous/Next relationship was reciprocal; and the
 historical nested, folder-index, collision, and active Change routes all passed. The Change returns
 to `awaiting-delivery-review` for developer acceptance before Archive.
+
+## Developer delivery feedback: interactive workflow diagrams · 2026-08-06
+
+Developer review requested that the Overview `Blast radius` and Design `System shape` sections use
+interactive SVG flowcharts rather than plain-text diagrams. Both sections now use the existing
+`InteractiveFlowchart` rendering primitive through page-specific data wrappers. The diagrams keep
+the workflow content in the page itself, expose clickable nodes with explanatory details, and remain
+usable without Symphony: Overview shows intake routing, Change boundaries, Manual/Symphony Apply,
+Review, acceptance, Archive, and merge; Design shows the repository lifecycle, execution adapters,
+the Pre-PR acceptance loop, and delivery handoff.
+
+Rendered verification confirmed one SVG flowchart and clickable nodes on each page. Blueprint
+type-check, 16 suites / 37 tests, the 60-page production build, and whitespace checks passed. The
+Change remains `awaiting-delivery-review` for developer acceptance of this follow-up.

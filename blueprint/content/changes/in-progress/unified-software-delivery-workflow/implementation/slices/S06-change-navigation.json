@@ -14,13 +14,14 @@
     "Direct Change pages omitted by same-name artifact-directory collisions are restored from the canonical source page list.",
     "Breadcrumb context preserves the canonical Change page order and does not duplicate a folder index as a child page.",
     "Promoting a descendant page to a parent folder index does not leave a duplicate page-navigation entry or self-link.",
+    "Overview Blast radius and Design System shape render as interactive SVG flowcharts with clickable step details.",
     "Change cards show capability and tag badges.",
     "Archive navigation uses an external timeline with month accordions."
   ],
   "verification": [
     "pnpm --dir blueprint test --runInBand src/components/ChangesCatalog.test.tsx",
     "pnpm --filter blueprint build",
-    "Verify sidebar filters, Change breadcrumbs, and archive accordions in the rendered Blueprint."
+    "Verify sidebar filters, Change breadcrumbs, archive accordions, and interactive workflow flowcharts in the rendered Blueprint."
   ],
   "status": "completed"
 }

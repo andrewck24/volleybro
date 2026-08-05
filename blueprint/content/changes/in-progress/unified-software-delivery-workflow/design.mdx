@@ -3,30 +3,14 @@ title: Design
 ---
 
 import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { WorkflowLifecycleFlowchart } from "@/components/WorkflowLifecycleFlowchart";
 import repositoryOwnedLifecycle from "./design/decisions/D1-repository-owned-lifecycle.json";
 import repositoryNativeSlices from "./design/decisions/D2-repository-native-slices.json";
 import changeScopedAdrPromotion from "./design/decisions/D3-change-scoped-adr-promotion.json";
 
 ## System shape
 
-```text
-                    Repository-owned lifecycle
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Intake → Discuss → Propose → Prepare → Apply → Pre-PR → Human review       │
-│                                                  → Archive → PR → Merge     │
-└──────────────────────────────────────────────────────────────────────────────┘
-       │              │          │          │           │         │
-       │              │          │          │           │         └─ tracker Done
-       │              │          │          │           └─ promote + freeze
-       │              │          │          └─ code, tests, Review, Changeset
-       │              │          └─ Blueprint implementation JSON
-       │              └─ Blueprint Overview + Design
-       └─ operational state only
-
-Execution adapters
-├─ Manual: developer invokes Apply directly
-└─ Symphony: scheduler claims an armed Change and invokes the same Apply
-```
+<WorkflowLifecycleFlowchart />
 
 The lifecycle remains valid when Symphony is stopped or removed. Symphony neither interprets Matt
 Pocock artifacts nor owns Blueprint's data model; it consumes the approved repository contract.
