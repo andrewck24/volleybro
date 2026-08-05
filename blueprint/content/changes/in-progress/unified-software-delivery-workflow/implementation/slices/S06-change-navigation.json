@@ -8,13 +8,19 @@
   "acceptanceCriteria": [
     "Each Change declares validated catalog metadata with hierarchical capability references and tags.",
     "The Changes sidebar links directly to All, Discussing, In Progress, and Archive views.",
+    "Every Change page uses the built-in Fumadocs breadcrumb to navigate through lifecycle, Change, and page levels.",
+    "Nested historical folders without an explicit index resolve to a real descendant page so rendered breadcrumb items remain navigable.",
+    "Descendant resolution recognizes both child pages and Fumadocs folder.index pages.",
+    "Direct Change pages omitted by same-name artifact-directory collisions are restored from the canonical source page list.",
+    "Breadcrumb context preserves the canonical Change page order and does not duplicate a folder index as a child page.",
+    "Promoting a descendant page to a parent folder index does not leave a duplicate page-navigation entry or self-link.",
     "Change cards show capability and tag badges.",
     "Archive navigation uses an external timeline with month accordions."
   ],
   "verification": [
     "pnpm --dir blueprint test --runInBand src/components/ChangesCatalog.test.tsx",
     "pnpm --filter blueprint build",
-    "Verify sidebar filters and archive accordions in the rendered Blueprint."
+    "Verify sidebar filters, Change breadcrumbs, and archive accordions in the rendered Blueprint."
   ],
   "status": "completed"
 }

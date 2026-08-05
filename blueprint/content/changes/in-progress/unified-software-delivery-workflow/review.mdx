@@ -380,3 +380,42 @@ Final delivery verification on the fresh branch passed:
 - 7 focused Blueprint suites / 20 tests and the 60-page Blueprint production build;
 - 5 Symphony delivery-profile tests and the public `@spec` check; and
 - repository whitespace checks with a clean committed worktree expected after this evidence commit.
+
+## Developer delivery feedback: Change breadcrumbs · 2026-08-06
+
+Developer review found that Change detail pages lacked the Fumadocs breadcrumb needed to navigate
+within a Change. `DocsPage` already enabled the built-in component, but the compact Change catalog
+sidebar tree contained only All, Discussing, In Progress, and Archive filter links. Because the
+active URL was absent from that tree, Fumadocs resolved an empty breadcrumb path.
+
+The Change layout now keeps the compact catalog tree for the visible sidebar while supplying a
+dedicated Fumadocs fallback tree for breadcrumb resolution. That tree gives Changes, each lifecycle
+group, and each Change folder a navigable index. A shared Change page wrapper enables root and
+current-page items for every MDX page, TSX Design module, and Implementation route without creating
+a custom breadcrumb component.
+
+Verification passed Blueprint type-check, 8 focused suites / 21 tests, and the 60-page production
+build. Rendered checks confirmed fully linked
+`Changes → In Progress → Unified Software Delivery Workflow → Review` and
+`Changes → Archive → logo-v-splash-redesign → Design` paths while the sidebar remained limited to
+the four catalog navigation entries. Lifecycle returned to `pre-pr-review` for an independent
+review of this delivery-feedback fix.
+
+### Breadcrumb delivery review · fixed point
+
+Independent review found and closed six integration edge cases while validating the breadcrumb
+delivery feedback: nested Specs folders without an explicit index, index-only capability folders,
+fallback trees replacing the compact sidebar, same-name `design` / `implementation` artifact
+collisions, non-canonical Previous/Next ordering, and duplicate promoted indexes that created
+self-links. The final implementation keeps a compact catalog tree in the visible sidebar and
+supplies a page-local Fumadocs tree for breadcrumb and page navigation. It reconciles canonical
+direct pages, preserves Overview → Design → Implementation → Review order, and removes duplicate
+indexes without dropping descendants.
+
+The fixed-point review found no P0–P2 issues. A fresh production build generated 60 pages, all 16
+Blueprint suites / 37 tests passed, TypeScript and whitespace checks passed, and the rendered
+manifest contained the Changes index plus 47 Change detail routes. Every detail page had linked
+breadcrumb items with no duplicate href; every sidebar retained only All Changes, Discussing, In
+Progress, and Archive; every detail-to-detail Previous/Next relationship was reciprocal; and the
+historical nested, folder-index, collision, and active Change routes all passed. The Change returns
+to `awaiting-delivery-review` for developer acceptance before Archive.
