@@ -451,3 +451,14 @@ The realized Change ADR copies are marked `implemented`, include the origin Chan
 their rejected alternatives, consequences, and revisit triggers. Implementation slices, review
 evidence, validation history, and plan-versus-actual details remain only in this frozen Change.
 The archived Change is now tracker-neutral and ready for the pull request.
+
+### Post-Archive delivery correction · artifact links
+
+Archive smoke review found that the Overview artifact cards still contained the former
+`/changes/in-progress/...` absolute paths after the Change moved to its dated Archive directory.
+This was a content-link synchronization gap: `ChangeOverview` renders the supplied hrefs but cannot
+infer or rewrite a Change's lifecycle path. The archived Overview links were corrected to the dated
+Archive routes in commit `82570c81`, and the rendered Design, Implementation, and Review cards were
+verified against those routes. Future Archive reconciliation must include content-owned artifact
+links; a later component/API improvement can replace lifecycle-specific absolute hrefs with
+Change-local route references.
