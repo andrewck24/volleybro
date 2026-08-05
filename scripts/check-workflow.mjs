@@ -52,6 +52,38 @@ const REPOSITORY_ADAPTER_FILES = [
 const RETIRED_REFERENCE = ["spec", "loop"].join("-");
 const ACTIVE_ROOT_FILES = ["CLAUDE.md", "AGENTS.md", "package.json"];
 const ACTIVE_DIRECTORIES = [".github", "scripts"];
+const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
+
+async function validateRetiredAuthorities(root) {
+  const diagnostics = [];
+  const workflowDirectory = path.join(root, ".agents", "workflows");
+  if (await exists(workflowDirectory)) {
+    const entries = await readdir(workflowDirectory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && RETIRED_WORKFLOW_PATTERN.test(entry.name)) {
+        diagnostics.push(
+          `.agents/workflows/${entry.name} [retired-workflow]: executable Spectra workflows must not be tracked`,
+        );
+      }
+    }
+  }
+
+  const changesDirectory = path.join(root, "docs", "changes");
+  if (await exists(changesDirectory)) {
+    const entries = await readdir(changesDirectory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name === "archive") continue;
+      const marker = path.join(changesDirectory, entry.name, ".openspec.yaml");
+      if (await exists(marker)) {
+        diagnostics.push(
+          `docs/changes/${entry.name}/.openspec.yaml [active-legacy-change]: move the legacy change to a dated archive snapshot`,
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
 
 async function validateSharedSkills(root) {
   const diagnostics = [];
@@ -313,6 +345,7 @@ export async function checkWorkflow(root = process.cwd()) {
   }
 
   diagnostics.push(...(await validateSharedSkills(root)));
+  diagnostics.push(...(await validateRetiredAuthorities(root)));
 
   for (const filePath of await activeReferenceFiles(root)) {
     if (!(await exists(filePath))) continue;

@@ -293,3 +293,22 @@ Blueprint suites / 20 tests, and the 60-page Blueprint production build. The low
 count is expected because the unrelated Feature migration was intentionally excluded. Slice S04 is
 completed again, but lifecycle remains `pre-pr-review` until a fresh independent review confirms
 the integrated branch.
+
+## Fresh-dev independent review round 1 · 2026-08-05
+
+The first independent review rejected the integrated branch because surgical porting had tracked
+ten executable Spectra workflows that were previously ignored and replayed the old OpenSpec proposal
+as an active `docs/changes` authority. Those files contradicted the repository-owned lifecycle even
+though the existing conformance gate remained green.
+
+The fix removed only the newly tracked executable workflow copies; the existing provider-specific
+Spectra skills remain available for the separately planned retirement backlog. The complete old
+proposal was preserved without rewriting under
+`docs/changes/archive/2026-07-22-unified-software-delivery-workflow-spectra-snapshot/`, making its
+historical status explicit. Conformance now rejects both tracked `spectra-*` workflow files under
+`.agents/workflows/` and direct active OpenSpec markers below `docs/changes/`. Two new negative
+fixtures raise the workflow-test total from 10 to 12 and prove those conflicts cannot return behind
+a false-green live check.
+
+Formatting, 12 workflow tests, live conformance, and repository whitespace checks pass after the
+fix. A second fresh independent review is required.

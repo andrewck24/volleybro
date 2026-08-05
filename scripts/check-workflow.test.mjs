@@ -147,6 +147,28 @@ test("reports a broken provider skill bridge", async () => {
   );
 });
 
+test("reports a tracked executable Spectra workflow", async () => {
+  assert.match(
+    (
+      await messages({
+        ".agents/workflows/spectra-apply.md": "# Apply\n",
+      })
+    ).join("\n"),
+    /\.agents\/workflows\/spectra-apply\.md.*retired-workflow/i,
+  );
+});
+
+test("reports an active legacy OpenSpec change", async () => {
+  assert.match(
+    (
+      await messages({
+        "docs/changes/stale-change/.openspec.yaml": "schema: spec-driven\n",
+      })
+    ).join("\n"),
+    /docs\/changes\/stale-change\/\.openspec\.yaml.*active-legacy-change/i,
+  );
+});
+
 test("reports an active retired harness reference", async () => {
   assert.match(
     (
