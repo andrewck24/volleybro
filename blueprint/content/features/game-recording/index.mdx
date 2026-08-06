@@ -1,0 +1,66 @@
+---
+title: Game Recording
+description: The rally-by-rally recording flow — lineup, live rally input, automatic rotation, and set completion.
+---
+
+export const nodes = [
+  { id: "lineup", label: "Lineup", x: 80, y: 70 },
+  { id: "rally", label: "Rally", x: 260, y: 70 },
+  { id: "score", label: "Score", x: 440, y: 70 },
+  { id: "rotation", label: "Rotation", x: 260, y: 180 },
+  { id: "end-set", label: "End Set", x: 440, y: 180 },
+];
+
+export const edges = [
+  { from: "lineup", to: "rally" },
+  { from: "rally", to: "score" },
+  { from: "rally", to: "rotation" },
+  { from: "score", to: "end-set" },
+];
+
+export const details = {
+  lineup: {
+    title: "Lineup Configuration",
+    body: "Set the starting six and their positions for the set. Libero substitution rules are enforced automatically.",
+  },
+  rally: {
+    title: "Rally Recording",
+    body: "Three taps per rally: pick the server, log your side's move, log the opponent's move and outcome. Substitutions are recorded inline.",
+  },
+  score: {
+    title: "Live Score",
+    body: "Score, rotation, and per-skill statistics update as you record. Set completion is derived from the score, not entered by hand.",
+  },
+  rotation: {
+    title: "Rotation Tracking",
+    body: "After a side-out win the positions rotate clockwise and the libero swaps in for the middle blocker.",
+  },
+  "end-set": {
+    title: "Set End & Summary",
+    body: "A set is won at 25 points (15 in a deciding set) with a two-point lead. The score locks and the next set begins.",
+  },
+};
+
+The recording flow guides the scorer through lineup setup, rally-by-rally input,
+and automatic rotation. Click a node to see what it does.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+Set and game completion are **derived, not stored** — a server-side fold over
+the append-only entry list decides whether a set is in progress, at set point,
+or won. Nothing has to be manually closed out.
+
+## Status
+
+| Capability                                        | Status                           |
+| ------------------------------------------------- | -------------------------------- |
+| Create game, create set, rally-by-rally recording | <StatusBadge status="shipped" /> |
+| Substitutions (recorded inline)                   | <StatusBadge status="shipped" /> |
+| Timeout & challenge recording                     | <StatusBadge status="planned" /> |
+| Multi-step game creation                          | <StatusBadge status="planned" /> |
+| Optimistic recording UI                           | <StatusBadge status="planned" /> |
+| Sync collaboration & Live View                    | <StatusBadge status="planned" /> |
+| Leagues & tournaments                             | <StatusBadge status="planned" /> |
+
+> Timeout and challenge exist as entity types today but have no recording flow
+> yet — no use case, API route, or panel trigger.

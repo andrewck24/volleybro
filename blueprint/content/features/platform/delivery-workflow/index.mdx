@@ -1,0 +1,33 @@
+---
+title: Delivery workflow
+description: A repository-owned, Manual-first lifecycle shared by developer sessions and optional Symphony execution.
+---
+
+import repositoryOwnedLifecycle from "./decisions/D1-repository-owned-lifecycle.json";
+import repositoryNativeSlices from "./decisions/D2-repository-native-slices.json";
+
+A repository-owned, Manual-first lifecycle shared by developer sessions and
+optional Symphony execution.
+
+## Current behavior
+
+- Discuss, Propose, Prepare, Apply, Pre-PR review, developer acceptance,
+  Archive, PR, and Merge are defined in `WORKFLOW.md`.
+- Manual and Symphony Apply consume the same approved Blueprint implementation
+  slices and verification commands.
+- Branch-local Archive freezes the Change and promotes verified current
+  knowledge before the PR opens.
+
+## Constraints
+
+- The repository must be deliverable without a running Symphony runtime.
+- `agent:ready` is a human arming gate and is never added by agents or
+  preparation automation.
+- No PR opens before accepted Blueprint Review and branch-local Archive; merge
+  performs no second knowledge sync.
+
+## Implemented decisions
+
+<DecisionTimeline
+  decisions={[repositoryOwnedLifecycle, repositoryNativeSlices]}
+/>

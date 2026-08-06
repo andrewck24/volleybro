@@ -1,0 +1,59 @@
+---
+title: Team Management
+description: Create a team, invite members, assign roles, and configure lineups per match.
+---
+
+export const nodes = [
+  { id: "create", label: "Create Team", x: 90, y: 70, w: 130 },
+  { id: "invite", label: "Invite", x: 290, y: 70 },
+  { id: "roles", label: "Roles", x: 470, y: 70 },
+  { id: "lineup", label: "Lineup", x: 290, y: 180 },
+  { id: "switch", label: "Switch Team", x: 470, y: 180, w: 130 },
+];
+
+export const edges = [
+  { from: "create", to: "invite" },
+  { from: "invite", to: "roles" },
+  { from: "roles", to: "lineup" },
+  { from: "roles", to: "switch" },
+];
+
+export const details = {
+  create: {
+    title: "Create Team",
+    body: "A signed-in user creates a team and becomes its OWNER. Editing team info is available afterwards.",
+  },
+  invite: {
+    title: "Invite Members",
+    body: "Find people by user search and invite them. Members move through an explicit lifecycle: NONE → INVITED → JOINED.",
+  },
+  roles: {
+    title: "Roles & Permissions",
+    body: "Three roles gate what a member can do: OWNER, ADMIN, MEMBER. Owners manage the team; members participate.",
+  },
+  lineup: {
+    title: "Lineup Configuration",
+    body: "Lineups are configured per match from the joined roster, setting positions for the starting six.",
+  },
+  switch: {
+    title: "Team Switching",
+    body: "A user who belongs to several teams switches the active team from the workspace.",
+  },
+};
+
+Team management covers the full lifecycle from creating a team to fielding a
+lineup. Click a node for detail.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                                                         | Status                           |
+| ------------------------------------------------------------------ | -------------------------------- |
+| Create team, edit info                                             | <StatusBadge status="shipped" /> |
+| Member add / edit / remove, user search, invite / accept / decline | <StatusBadge status="shipped" /> |
+| Roles (OWNER / ADMIN / MEMBER), lineups, team switching            | <StatusBadge status="shipped" /> |
+| Team entry-point UX                                                | <StatusBadge status="planned" /> |
+| Lineup: officials roster & captain attribute                       | <StatusBadge status="planned" /> |
+| Delete / disband team                                              | <StatusBadge status="planned" /> |
+| Public team search & join requests                                 | <StatusBadge status="planned" /> |

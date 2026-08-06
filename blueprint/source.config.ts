@@ -4,4 +4,8 @@ export const { docs, meta } = defineDocs({
   dir: "content/changes",
 });
 
+export const { docs: featureDocs, meta: featureMeta } = defineDocs({
+  dir: "content/features",
+});
+
 export default defineConfig();

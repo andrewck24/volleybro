@@ -1,0 +1,66 @@
+---
+title: Account & Settings
+description: Sign-in with Google, profile, appearance and language settings, and first-run onboarding.
+---
+
+export const nodes = [
+  { id: "signin", label: "Sign In", x: 90, y: 70, sublabel: "Google OAuth" },
+  { id: "onboard", label: "Onboarding", x: 290, y: 70, w: 130 },
+  { id: "profile", label: "Profile", x: 490, y: 70 },
+  {
+    id: "appearance",
+    label: "Appearance",
+    x: 290,
+    y: 180,
+    w: 130,
+    sublabel: "dark mode",
+  },
+  { id: "language", label: "Language", x: 490, y: 180, sublabel: "i18n" },
+];
+
+export const edges = [
+  { from: "signin", to: "onboard", dashed: true },
+  { from: "onboard", to: "profile" },
+  { from: "profile", to: "appearance" },
+  { from: "profile", to: "language", dashed: true },
+];
+
+export const details = {
+  signin: {
+    title: "Authentication",
+    body: "Sign up, sign in, and sign out with Google OAuth via Better Auth.",
+  },
+  onboard: {
+    title: "Onboarding",
+    body: "Planned: first-run guidance for new users. Not yet built.",
+  },
+  profile: {
+    title: "Profile",
+    body: "Personal profile management. In progress.",
+  },
+  appearance: {
+    title: "Appearance",
+    body: "Dark mode is shipped and respects the system theme.",
+  },
+  language: {
+    title: "Language",
+    body: "Planned: internationalisation (i18n). Not yet built.",
+  },
+};
+
+Account and settings cover everything scoped to a single user. Dashed edges mark
+planned work.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                                | Status                               |
+| ----------------------------------------- | ------------------------------------ |
+| Google OAuth sign-up / sign-in / sign-out | <StatusBadge status="shipped" />     |
+| Dark mode                                 | <StatusBadge status="shipped" />     |
+| Profile                                   | <StatusBadge status="in-progress" /> |
+| Internationalisation (i18n)               | <StatusBadge status="planned" />     |
+| First-run onboarding                      | <StatusBadge status="planned" />     |
+
+> Email sign-up is intentionally out of scope for now.

@@ -1,0 +1,52 @@
+---
+title: Landing
+description: The public marketing page — hero, highlights, feature showcase, call to action, and footer.
+---
+
+export const nodes = [
+  { id: "hero", label: "Hero", x: 80, y: 70 },
+  { id: "highlights", label: "Highlights", x: 250, y: 70, w: 130 },
+  { id: "features", label: "Features", x: 430, y: 70 },
+  { id: "cta", label: "CTA", x: 600, y: 70 },
+  { id: "footer", label: "Footer", x: 430, y: 180 },
+];
+
+export const edges = [
+  { from: "hero", to: "highlights" },
+  { from: "highlights", to: "features" },
+  { from: "features", to: "cta" },
+  { from: "cta", to: "footer" },
+];
+
+export const details = {
+  hero: {
+    title: "Hero",
+    body: "The opening pitch with the product image and primary call to action.",
+  },
+  highlights: {
+    title: "Highlights",
+    body: "Scroll-driven highlight cards covering the core value propositions.",
+  },
+  features: {
+    title: "Feature Showcase",
+    body: "Alternating feature cards for recording, analysis, and team management, with live demo imagery.",
+  },
+  cta: {
+    title: "Call to Action",
+    body: "The conversion section inviting the visitor into the app.",
+  },
+  footer: {
+    title: "Footer",
+    body: "Closing navigation and links.",
+  },
+};
+
+The landing page is the public front door. Click a section for detail.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                                             | Status                           |
+| ------------------------------------------------------ | -------------------------------- |
+| Landing page — hero, highlights, features, CTA, footer | <StatusBadge status="shipped" /> |
