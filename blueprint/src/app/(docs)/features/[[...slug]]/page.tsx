@@ -1,44 +1,38 @@
-import type { ComponentType } from "react";
 import { notFound } from "next/navigation";
+import { featuresSource } from "@/lib/source";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
+import defaultMdxComponents from "fumadocs-ui/mdx";
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
+import { StatusBadge } from "@/components/StatusBadge";
+
+const mdxComponents = {
+  ...defaultMdxComponents,
+  DecisionTimeline,
+  InteractiveFlowchart,
+  StatusBadge,
+};
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
 }
 
-// ponytail: static list for now; expand to dynamic discovery when features grow
-const featureModules: Record<
-  string,
-  () => Promise<{ default: ComponentType }>
-> = {
-  "game-recording": () =>
-    import("../../../../../content/features/game-recording/index"),
-  "platform/blueprint": () =>
-    import("../../../../../content/features/platform/blueprint/index"),
-  "platform/agent-orchestration": () =>
-    import("../../../../../content/features/platform/agent-orchestration/index"),
-  "platform/delivery-workflow": () =>
-    import("../../../../../content/features/platform/delivery-workflow/index"),
-};
-
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
-  const key = slug?.join("/") ?? "";
-  const loader = featureModules[key];
-  if (!loader) notFound();
+  const page = featuresSource.getPage(slug);
+  if (!page) notFound();
 
-  const { default: Feature } = await loader();
+  const Mdx = page.data.body;
   return (
-    <DocsPage>
+    <DocsPage toc={page.data.toc}>
       <DocsBody>
-        <Feature />
+        <h1>{page.data.title}</h1>
+        <Mdx components={mdxComponents} />
       </DocsBody>
     </DocsPage>
   );
 }
 
 export function generateStaticParams() {
-  return Object.keys(featureModules).map((key) => ({
-    slug: key.split("/"),
-  }));
+  return featuresSource.generateParams();
 }

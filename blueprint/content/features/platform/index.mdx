@@ -1,0 +1,52 @@
+---
+title: Platform
+description: The shared foundations every surface builds on — PWA, design system, unified error handling, and Clean Architecture.
+---
+
+export const nodes = [
+  { id: "arch", label: "Clean Architecture", x: 160, y: 70, w: 190 },
+  { id: "pwa", label: "PWA & Offline", x: 160, y: 180, w: 150 },
+  { id: "design", label: "Design System", x: 420, y: 70, w: 150 },
+  { id: "errors", label: "Error Handling", x: 420, y: 180, w: 150 },
+];
+
+export const edges = [
+  { from: "arch", to: "design" },
+  { from: "arch", to: "pwa" },
+  { from: "arch", to: "errors" },
+];
+
+export const details = {
+  arch: {
+    title: "Clean Architecture",
+    body: "Entities, use cases, interface, and infrastructure layers with dependencies pointing inward, resolved by InversifyJS at the boundary.",
+  },
+  pwa: {
+    title: "PWA & Offline",
+    body: "Installable app with a service worker, offline support, and platform-specific Apple/Android splash screens.",
+  },
+  design: {
+    title: "Design System",
+    body: "Brand, elevation, and colour tokens shared across the app and landing surfaces.",
+  },
+  errors: {
+    title: "Unified Error Handling",
+    body: "A single error-handling contract used consistently across the stack.",
+  },
+};
+
+Platform capabilities are the shared foundations the App and Landing surfaces
+build on, rather than user-facing features in themselves.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                                          | Status                           |
+| --------------------------------------------------- | -------------------------------- |
+| PWA & offline support, Apple/Android splash screens | <StatusBadge status="shipped" /> |
+| Brand & design system (tokens, elevation, colour)   | <StatusBadge status="shipped" /> |
+| Unified error handling                              | <StatusBadge status="shipped" /> |
+| Error page illustrations                            | <StatusBadge status="planned" /> |
+| Clean Architecture layering                         | <StatusBadge status="shipped" /> |
+| Tab container, pull-to-refresh, overlay modals      | <StatusBadge status="shipped" /> |
