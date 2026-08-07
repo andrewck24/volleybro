@@ -8,10 +8,10 @@ export const useLineup = (
   setIndex: number,
   status: ReduxStatus,
 ) => {
-  const { entryIndex, isServing, inProgress } = status;
+  const { entryIndex, isServing, isSetInProgress } = status;
   const { game } = useGame(gameId);
 
-  if (!inProgress || !game) return { starting: [], liberos: [] };
+  if (!isSetInProgress || !game) return { starting: [], liberos: [] };
 
   const set = game.sets[setIndex];
   if (!set) return { starting: [], liberos: [] };

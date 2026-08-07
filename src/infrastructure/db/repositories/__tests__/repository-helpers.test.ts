@@ -3,20 +3,29 @@ import {
   NotFoundError,
   TransientError,
   UnexpectedError,
+  ValidationError,
 } from "@/entities/errors";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
 
 describe("Repository error translation", () => {
-  describe("CastError → NotFoundError", () => {
-    it("translates Mongoose CastError to NotFoundError", () => {
+  describe("CastError", () => {
+    it("translates a CastError on _id to NotFoundError", () => {
       const castError = Object.assign(
         new Error("Cast to ObjectId failed for value bad-id"),
-        {
-          name: "CastError",
-        },
+        { name: "CastError", path: "_id" },
       );
       const result = translateRepositoryError(castError);
       expect(result).toBeInstanceOf(NotFoundError);
+    });
+
+    it("translates a CastError on any other path to ValidationError", () => {
+      const castError = Object.assign(
+        new Error('Cast to embedded failed at path "sets"'),
+        { name: "CastError", path: "sets" },
+      );
+      const result = translateRepositoryError(castError);
+      expect(result).toBeInstanceOf(ValidationError);
+      expect(result.httpStatus).toBe(400);
     });
   });
 

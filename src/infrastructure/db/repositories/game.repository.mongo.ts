@@ -151,16 +151,24 @@ export class GameRepositoryImpl implements IGameRepository {
 
   // --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
 
+  /** "No player" arrives as `""` as often as `null`, and only `null` casts. */
+  private toPlayerRef(id: string | null | undefined) {
+    return id || null;
+  }
+
   private mapLineupPlayerWrite(p: {
     id?: string | null;
     position?: string;
     sub?: { id?: string; entryIndex?: { in?: number; out?: number } };
   }) {
     return {
-      playerId: p?.id ?? null,
+      playerId: this.toPlayerRef(p?.id),
       position: p?.position,
       sub: p?.sub
-        ? { playerId: p.sub.id ?? null, entryIndex: p.sub.entryIndex }
+        ? {
+            playerId: this.toPlayerRef(p.sub.id),
+            entryIndex: p.sub.entryIndex,
+          }
         : undefined,
     };
   }
@@ -191,7 +199,7 @@ export class GameRepositoryImpl implements IGameRepository {
     snapshot: { id?: string | null } & Record<string, unknown>,
   ) {
     const { id, ...rest } = snapshot;
-    return { ...rest, playerId: id ?? null };
+    return { ...rest, playerId: this.toPlayerRef(id) };
   }
 
   private mapTeamWrite(
@@ -234,19 +242,33 @@ export class GameRepositoryImpl implements IGameRepository {
     if (!d?.player) return d;
     return {
       ...d,
-      player: { playerId: d.player.id ?? null, zone: d.player.zone },
+      player: {
+        playerId: this.toPlayerRef(d.player.id),
+        zone: d.player.zone,
+      },
     };
   }
 
   private mapEntryWrite(entry: Record<string, unknown> & { type?: EntryType }) {
-    // Substitution `players.in/out` keep their field names; Mongoose casts the
-    // hex strings to ObjectId on the declared paths. Only rally detail needs the
-    // `player.id -> player.playerId` rename.
     if (entry?.type === EntryType.RALLY) {
       return {
         ...entry,
         home: this.mapRallyDetailWrite(entry.home),
         away: this.mapRallyDetailWrite(entry.away),
+      };
+    }
+    // Substitution keeps the `players.in/out` field names; only the ids need
+    // the same empty-string collapse as every other ObjectId path.
+    if (entry?.type === EntryType.SUBSTITUTION) {
+      const players = entry.players as
+        { in?: string | null; out?: string | null } | undefined;
+      if (!players) return entry;
+      return {
+        ...entry,
+        players: {
+          in: this.toPlayerRef(players.in),
+          out: this.toPlayerRef(players.out),
+        },
       };
     }
     return entry;

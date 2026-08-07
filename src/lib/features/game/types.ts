@@ -289,7 +289,7 @@ export type ReduxStatus = {
   };
   entryIndex: number;
   isServing: boolean;
-  inProgress: boolean;
+  isSetInProgress: boolean;
   isSetPoint: boolean;
   panel: "home" | "away" | "substitutes";
 };

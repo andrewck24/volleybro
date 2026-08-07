@@ -1,5 +1,5 @@
 import { EntryType, MoveType } from "@/entities/game";
-import { gamePhaseHelper, getServingStatus } from "@/lib/features/game/helpers";
+import { getSetPhase, getServingStatus } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 type StatEntry = { success: number; error: number };
@@ -61,16 +61,20 @@ export const updateRallyHelper = (
   return { game, phase };
 };
 
+// A rally can name no player, and "nobody" must not match a squad member whose
+// own id is absent.
+const findScorer = (game: GameView, rally: RallyView) => {
+  const id = rally.home.player?.id;
+  return id ? game.teams.home.players.find((player) => player.id === id) : null;
+};
+
 const discardOriginalStats = (
   game: GameView,
   setIndex: number,
   originalRally: RallyView,
 ) => {
   const { win, home, away } = originalRally;
-  const homePlayerIndex = game.teams.home.players.findIndex(
-    (player) => player.id === home.player?.id,
-  );
-  const homePlayer = game.teams.home.players[homePlayerIndex];
+  const homePlayer = findScorer(game, originalRally);
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
@@ -102,10 +106,7 @@ const updateStats = (
   entryDraft: RallyView,
 ) => {
   const { win, home, away } = entryDraft;
-  const homePlayerIndex = game.teams.home.players.findIndex(
-    (player) => player.id === home.player?.id,
-  );
-  const homePlayer = game.teams.home.players[homePlayerIndex];
+  const homePlayer = findScorer(game, entryDraft);
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
@@ -150,11 +151,11 @@ const processGamePhase = (
   entryIndex: number,
   entryDraft: RallyView,
 ) => {
-  const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
+  const phase = getSetPhase(game, setIndex, entryIndex + 1);
   // setIndex is the active set being processed; guaranteed in bounds
   const set = game.sets[setIndex]!;
 
-  if (phase.inProgress) {
+  if (phase.isSetInProgress) {
     // Reset win status if the set/game is still in progress
     if (typeof set.win === "boolean") {
       set.win = null;

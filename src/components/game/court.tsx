@@ -27,7 +27,7 @@ export const GameCourt = ({
   );
   const { starting, liberos } = useLineup(gameId, setIndex, status);
 
-  if (status.inProgress === false) {
+  if (status.isSetInProgress === false) {
     return (
       <Court>
         <Outside className="inner">

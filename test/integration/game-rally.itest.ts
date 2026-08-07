@@ -22,9 +22,9 @@ describe("POST /api/games/:id/sets/rallies", () => {
 
   beforeEach(async () => {
     useFakeAuth();
-    // A guest player on the roster is the real-world trigger for the 404:
-    // create-set used to crash on its null id, so the set never persisted.
-    seeded = await seedGame({ includeGuest: true });
+    // A null roster id is not what broke rally recording, but create-set walks
+    // the whole squad and must not throw on one.
+    seeded = await seedGame({ includeNullIdPlayer: true });
   });
 
   const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
