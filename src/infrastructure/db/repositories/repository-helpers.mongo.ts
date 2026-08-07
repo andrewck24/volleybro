@@ -4,6 +4,7 @@ import {
   NotFoundError,
   TransientError,
   UnexpectedError,
+  ValidationError,
   CommonReason,
 } from "@/entities/errors";
 
@@ -16,9 +17,18 @@ export function translateRepositoryError(error: unknown): AppError {
   if (error instanceof AppError) return error;
   if (error instanceof Error) {
     if (error.name === "CastError") {
-      return new NotFoundError(
-        CommonReason.RESOURCE_NOT_FOUND,
-        "The requested resource was not found",
+      // Only an uncastable `_id` is a lookup miss; anywhere else it is the
+      // payload being written that the database cannot store.
+      if ((error as { path?: unknown }).path === "_id") {
+        return new NotFoundError(
+          CommonReason.RESOURCE_NOT_FOUND,
+          "The requested resource was not found",
+          error.message,
+        );
+      }
+      return new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "The request contains a value the database cannot store",
         error.message,
       );
     }
