@@ -1,5 +1,5 @@
 import { EntryType, MoveType } from "@/entities/game";
-import { gamePhaseHelper, getServingStatus } from "@/lib/features/game/helpers";
+import { getSetPhase, getServingStatus } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 type StatEntry = { success: number; error: number };
@@ -151,11 +151,11 @@ const processGamePhase = (
   entryIndex: number,
   entryDraft: RallyView,
 ) => {
-  const phase = gamePhaseHelper(game, setIndex, entryIndex + 1);
+  const phase = getSetPhase(game, setIndex, entryIndex + 1);
   // setIndex is the active set being processed; guaranteed in bounds
   const set = game.sets[setIndex]!;
 
-  if (phase.inProgress) {
+  if (phase.isSetInProgress) {
     // Reset win status if the set/game is still in progress
     if (typeof set.win === "boolean") {
       set.win = null;

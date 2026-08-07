@@ -13,7 +13,7 @@ import { useState } from "react";
 
 export type SummaryDrawerState = "idle" | "expanded";
 
-/** Props PreviewCard needs, minus `inProgress` (the caller already checked it). */
+/** Props PreviewCard needs, minus `hasPreview` (the caller already checked it). */
 export type SummaryDrawerPreview = {
   entry: EntryView;
   previousEntry: EntryView | undefined;
@@ -267,7 +267,7 @@ export const SummaryDrawer = ({
   // Only the uncommitted draft is the distinct Preview bar (while recording);
   // when idle the newest committed entry is simply the top row, so it appears
   // in the list rather than as a separate preview.
-  const recording = preview.inProgress && preview.isEditing;
+  const recording = preview.hasPreview && preview.isEditing;
   const listEntries = entries.map((entry, index) => ({ entry, index }));
 
   const handleEntryClick = (entryIndex: number) => {
@@ -281,7 +281,7 @@ export const SummaryDrawer = ({
       totalEntries={entries.length}
       players={players}
       state={state}
-      preview={recording && preview.inProgress ? preview : undefined}
+      preview={recording && preview.hasPreview ? preview : undefined}
       onToggle={onToggle}
       onSubmit={onSubmit}
       onEntryClick={handleEntryClick}

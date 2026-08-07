@@ -1,17 +1,17 @@
 import { EntryType, MoveType } from "@/entities/game";
-import { gamePhaseHelper } from "@/lib/features/game/helpers";
+import { getSetPhase } from "@/lib/features/game/helpers";
 import type { GameView } from "@/lib/features/game/types";
 
-describe("gamePhaseHelper", () => {
+describe("getSetPhase", () => {
   test("should return in progress when no entries exist but first set is created", () => {
     const mockGame = {
       sets: [{ entries: [] }],
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 0);
+    const result = getSetPhase(mockGame, 0, 0);
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: false });
   });
 
   test("should return game not started when no sets exist", () => {
@@ -20,9 +20,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 0);
+    const result = getSetPhase(mockGame, 0, 0);
 
-    expect(result).toEqual({ inProgress: false, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: false, isSetPoint: false });
   });
 
   test("should not report in progress for a set that was never created", () => {
@@ -31,9 +31,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 1, 0);
+    const result = getSetPhase(mockGame, 1, 0);
 
-    expect(result).toEqual({ inProgress: false, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: false, isSetPoint: false });
   });
 
   test("should return in progress for a later set with no entries yet", () => {
@@ -42,9 +42,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 1, 0);
+    const result = getSetPhase(mockGame, 1, 0);
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: false });
   });
 
   test("should indicate game in progress when both scores are below set point", () => {
@@ -64,9 +64,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 1);
+    const result = getSetPhase(mockGame, 0, 1);
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: false });
   });
 
   test("should indicate set point when one team reaches 24 and leads", () => {
@@ -86,9 +86,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 1);
+    const result = getSetPhase(mockGame, 0, 1);
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: true });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: true });
   });
 
   test("should indicate set point in deuce when scores are beyond 24", () => {
@@ -108,9 +108,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 1);
+    const result = getSetPhase(mockGame, 0, 1);
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: true });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: true });
   });
 
   test("should indicate game over when one team wins by 2 points", () => {
@@ -130,9 +130,9 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 0, 1);
+    const result = getSetPhase(mockGame, 0, 1);
 
-    expect(result).toEqual({ inProgress: false, isSetPoint: false });
+    expect(result).toEqual({ isSetInProgress: false, isSetPoint: false });
   });
 
   test("should use different winning points in deciding set", () => {
@@ -153,8 +153,8 @@ describe("gamePhaseHelper", () => {
       info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
     } as unknown as GameView;
 
-    const result = gamePhaseHelper(mockGame, 2, 1); // Last set (index 4)
+    const result = getSetPhase(mockGame, 2, 1); // Last set (index 4)
 
-    expect(result).toEqual({ inProgress: true, isSetPoint: true });
+    expect(result).toEqual({ isSetInProgress: true, isSetPoint: true });
   });
 });

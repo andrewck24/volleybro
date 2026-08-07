@@ -26,7 +26,7 @@ jest.mock("@/hooks/use-data", () => ({
 }));
 jest.mock("@/components/game/preview", () => ({
   ...jest.requireActual("@/components/game/preview"),
-  useEntryDraftPreview: () => ({ inProgress: false, isEditing: false }),
+  useEntryDraftPreview: () => ({ hasPreview: false, isEditing: false }),
 }));
 
 const players: GamePlayerView[] = [

@@ -101,11 +101,11 @@ export const useEntryDraftPreview = (
   const { setIndex } = useAppSelector((state) => state.game);
   const {
     entryDraft: draft,
-    status: { inProgress, entryIndex },
+    status: { isSetInProgress, entryIndex },
   } = useAppSelector((state) => state.game[mode]);
 
   // a rolled-back optimistic mutate can transiently leave game undefined
-  if (!game || !inProgress) return { inProgress: false as const };
+  if (!game || !isSetInProgress) return { hasPreview: false as const };
 
   const { players } = game.teams.home;
   const previousEntry =
@@ -142,14 +142,14 @@ export const useEntryDraftPreview = (
   const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;
 
   // first entry, before any input: nothing to preview
-  if (!entry) return { inProgress: false as const };
+  if (!entry) return { hasPreview: false as const };
 
   const { submittable } = getEntryProgress(draft);
   // === true so a valid num === 0 is not read as incomplete
   const isComplete = submittable === true;
 
   return {
-    inProgress: true as const,
+    hasPreview: true as const,
     entry,
     previousEntry,
     players,
@@ -173,7 +173,7 @@ export const GamePreview = ({
   className?: string;
 }) => {
   const preview = useEntryDraftPreview(gameId, mode);
-  if (!preview.inProgress) return null;
+  if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
 

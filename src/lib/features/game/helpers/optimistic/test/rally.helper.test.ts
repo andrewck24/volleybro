@@ -415,7 +415,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(true);
+        expect(result.phase.isSetInProgress).toBe(true);
         expect(result.phase.isSetPoint).toBe(false);
         expect(result.game.sets[0]!.win).toBeFalsy(); // 不應該設定勝負
       });
@@ -436,7 +436,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[0]!.win).toBe(true); // 主隊贏了這局
       });
 
@@ -456,7 +456,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[0]!.win).toBe(false); // 客隊贏了這局
       });
 
@@ -476,7 +476,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(true);
+        expect(result.phase.isSetInProgress).toBe(true);
         expect(result.phase.isSetPoint).toBe(true);
       });
 
@@ -511,7 +511,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[4]!.win).toBe(true); // 主隊贏了決勝局
       });
     });
@@ -547,7 +547,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[2]!.win).toBe(true);
         expect(result.game.win).toBe(true); // 主隊贏了比賽
       });
@@ -584,7 +584,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.game.sets[4]!.win).toBe(false);
         expect(result.game.win).toBe(false); // 客隊贏了比賽
       });
@@ -620,7 +620,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(true);
+        expect(result.phase.isSetInProgress).toBe(true);
         expect(result.game.win).toBeNull(); // 比賽還沒結束
       });
     });
@@ -657,7 +657,7 @@ describe("rally.helper.ts", () => {
           mockGame,
         );
 
-        expect(result.phase.inProgress).toBe(false);
+        expect(result.phase.isSetInProgress).toBe(false);
         expect(result.phase.isSetPoint).toBe(false);
         expect(result.game.sets[0]!.win).toBe(false);
       });

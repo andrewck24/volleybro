@@ -54,7 +54,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
     return <GameSkeleton />;
   }
 
-  if (!general.status.inProgress) {
+  if (!general.status.isSetInProgress) {
     return <Interval gameId={gameId} setIndex={setIndex} />;
   }
 

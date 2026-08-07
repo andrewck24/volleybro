@@ -1,6 +1,6 @@
 import { EntryType, Side } from "@/entities/game";
 import {
-  gamePhaseHelper,
+  getSetPhase,
   getPreviousScores,
   getServingStatus,
 } from "@/lib/features/game/helpers";
@@ -22,7 +22,7 @@ const statusState: ReduxStatus = {
   scores: { home: 0, away: 0 },
   entryIndex: 0,
   isServing: false,
-  inProgress: false,
+  isSetInProgress: false,
   isSetPoint: false,
   panel: "home",
 };
@@ -64,7 +64,7 @@ const initialize: CaseReducer<
   const { game, setIndex } = action.payload;
   const set = game.sets[setIndex];
   const entryIndex = set?.entries?.length || 0;
-  const { inProgress, isSetPoint } = gamePhaseHelper(
+  const { isSetInProgress, isSetPoint } = getSetPhase(
     game,
     setIndex,
     entryIndex,
@@ -77,7 +77,7 @@ const initialize: CaseReducer<
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     isServing,
-    inProgress,
+    isSetInProgress,
     isSetPoint,
     panel: "home" as ReduxStatus["panel"],
   };
@@ -154,9 +154,9 @@ const setEntryDraftAwayMove: CaseReducer<
 
 const confirmEntryDraftRally: CaseReducer<
   ReduxGameState,
-  PayloadAction<{ inProgress: boolean; isSetPoint: boolean }>
+  PayloadAction<{ isSetInProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
-  const { inProgress, isSetPoint } = action.payload;
+  const { isSetInProgress, isSetPoint } = action.payload;
   const { mode } = state;
   const { entryIndex } = state[mode].status;
 
@@ -168,7 +168,7 @@ const confirmEntryDraftRally: CaseReducer<
     },
     entryIndex: entryIndex + 1,
     isServing: state[mode].entryDraft.win ?? false,
-    inProgress,
+    isSetInProgress,
     isSetPoint,
     panel: "home",
   };
@@ -259,7 +259,7 @@ const setEditingEntryStatus: CaseReducer<
   const set = game.sets[setIndex];
   const entry = set?.entries[entryIndex];
   if (!entry) return;
-  const { inProgress, isSetPoint } = gamePhaseHelper(
+  const { isSetInProgress, isSetPoint } = getSetPhase(
     game,
     setIndex,
     entryIndex,
@@ -291,7 +291,7 @@ const setEditingEntryStatus: CaseReducer<
     isServing: getServingStatus(set, entryIndex),
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
-    inProgress: inProgress,
+    isSetInProgress,
     isSetPoint: isSetPoint,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",
   };
