@@ -217,6 +217,27 @@ describe("rally.helper.ts", () => {
 
       expect(result.game.teams.home.stats[0]!.rotation).toBe(0);
     });
+
+    it("should credit no one when the rally names no player", () => {
+      const mockGame = createMockGame();
+      // A guest on the roster carries a null id, the same value a rally with
+      // no named player stores.
+      mockGame.teams.home.players[0]!.id = null as unknown as string;
+      const unnamed = {
+        ...mockRally,
+        home: {
+          ...mockRally.home,
+          player: { id: null as unknown as string, zone: 0 },
+        },
+      };
+
+      const result = createRallyHelper(mockParams, unnamed, mockGame);
+
+      expect(
+        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
+      ).toBe(0);
+      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
+    });
   });
 
   describe("updateRallyOptimistic", () => {

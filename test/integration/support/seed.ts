@@ -6,7 +6,7 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { Types } from "mongoose";
 
-const oid = () => new Types.ObjectId().toString();
+export const oid = () => new Types.ObjectId().toString();
 
 const emptyTeam = (
   name: string,

@@ -61,16 +61,20 @@ export const updateRallyHelper = (
   return { game, phase };
 };
 
+// A roster guest carries a null id and a rally scored against the opponent
+// carries no player at all, so "nobody" must never match a squad member.
+const findScorer = (game: GameView, rally: RallyView) => {
+  const id = rally.home.player?.id;
+  return id ? game.teams.home.players.find((player) => player.id === id) : null;
+};
+
 const discardOriginalStats = (
   game: GameView,
   setIndex: number,
   originalRally: RallyView,
 ) => {
   const { win, home, away } = originalRally;
-  const homePlayerIndex = game.teams.home.players.findIndex(
-    (player) => player.id === home.player?.id,
-  );
-  const homePlayer = game.teams.home.players[homePlayerIndex];
+  const homePlayer = findScorer(game, originalRally);
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
@@ -102,10 +106,7 @@ const updateStats = (
   entryDraft: RallyView,
 ) => {
   const { win, home, away } = entryDraft;
-  const homePlayerIndex = game.teams.home.players.findIndex(
-    (player) => player.id === home.player?.id,
-  );
-  const homePlayer = game.teams.home.players[homePlayerIndex];
+  const homePlayer = findScorer(game, entryDraft);
   const homeTeam = game.teams.home;
   const awayTeam = game.teams.away;
 
