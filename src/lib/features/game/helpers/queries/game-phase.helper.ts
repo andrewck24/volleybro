@@ -12,14 +12,15 @@ export const gamePhaseHelper = (
   // To calculate the point to win the set
   const isDecidingSet = setIndex === game.info.scoring.setCount - 1;
   const point = isDecidingSet ? game.info.scoring.decidingSetPoints : 25;
-  const rally = getPreviousRally(game.sets[setIndex]?.entries, entryIndex);
+  const set = game.sets[setIndex];
+  const rally = getPreviousRally(set?.entries, entryIndex);
 
-  // In the first set, though there is no entries recorded yet,
-  // the game is `inProgress` if `entries` of the first set has been created
-  if (!rally) {
-    if (game?.sets[0]?.entries) return { inProgress: true, isSetPoint: false };
-    return { inProgress: false, isSetPoint: false };
-  }
+  // No rally to judge yet, so the set's own existence is the answer: a set that
+  // has been created is being played even with an empty `entries`, and one that
+  // has not must not report `inProgress` — the caller would render the
+  // recording court over a set the server has no row for, and every rally
+  // submitted from it is rejected.
+  if (!rally) return { inProgress: !!set, isSetPoint: false };
 
   const { home, away } = rally;
   // Game is in progress if both scores are less than point - 1

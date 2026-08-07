@@ -137,6 +137,11 @@ const Interval = ({
   gameId: string;
   setIndex: number;
 }) => {
+  const { game } = useGame(gameId);
+  // SetOptions only treats `sets.length` as a new set, and the viewed set is
+  // not always the last one.
+  const nextSetIndex = game?.sets.length ?? setIndex + 1;
+
   return (
     <>
       <GameHeader gameId={gameId} />
@@ -166,7 +171,7 @@ const Interval = ({
               新的一局
             </Button>
           </DialogTrigger>
-          <SetOptions gameId={gameId} setIndex={setIndex + 1} />
+          <SetOptions gameId={gameId} setIndex={nextSetIndex} />
         </Dialog>
       </div>
     </>

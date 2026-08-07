@@ -25,6 +25,28 @@ describe("gamePhaseHelper", () => {
     expect(result).toEqual({ inProgress: false, isSetPoint: false });
   });
 
+  test("should not report in progress for a set that was never created", () => {
+    const mockGame = {
+      sets: [{ entries: [] }],
+      info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
+    } as unknown as GameView;
+
+    const result = gamePhaseHelper(mockGame, 1, 0);
+
+    expect(result).toEqual({ inProgress: false, isSetPoint: false });
+  });
+
+  test("should return in progress for a later set with no entries yet", () => {
+    const mockGame = {
+      sets: [{ entries: [] }, { entries: [] }],
+      info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
+    } as unknown as GameView;
+
+    const result = gamePhaseHelper(mockGame, 1, 0);
+
+    expect(result).toEqual({ inProgress: true, isSetPoint: false });
+  });
+
   test("should indicate game in progress when both scores are below set point", () => {
     const mockGame = {
       sets: [
