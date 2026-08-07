@@ -61,8 +61,8 @@ export const updateRallyHelper = (
   return { game, phase };
 };
 
-// A roster guest carries a null id and a rally scored against the opponent
-// carries no player at all, so "nobody" must never match a squad member.
+// A rally can name no player, and "nobody" must not match a squad member whose
+// own id is absent.
 const findScorer = (game: GameView, rally: RallyView) => {
   const id = rally.home.player?.id;
   return id ? game.teams.home.players.find((player) => player.id === id) : null;

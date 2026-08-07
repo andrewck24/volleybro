@@ -92,8 +92,9 @@ export type Player = {
 
 /**
  * Validate that every player id referenced by a lineup exists on the roster.
- * Guest players carry a null id, so only non-null roster ids are allowed
- * targets; null references in the lineup are empty slots and are skipped.
+ * A null lineup reference is an unfilled slot and is skipped. A null roster id
+ * is dropped rather than stringified, so a lineup cannot reach it by naming the
+ * literal "null".
  * Throws ValidationError if the lineup shape is malformed or a referenced id
  * is not on the roster.
  */

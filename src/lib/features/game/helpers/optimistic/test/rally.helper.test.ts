@@ -220,8 +220,8 @@ describe("rally.helper.ts", () => {
 
     it("should credit no one when the rally names no player", () => {
       const mockGame = createMockGame();
-      // A guest on the roster carries a null id, the same value a rally with
-      // no named player stores.
+      // A squad member stored without an id carries the same value a rally
+      // with no named player stores.
       mockGame.teams.home.players[0]!.id = null as unknown as string;
       const unnamed = {
         ...mockRally,

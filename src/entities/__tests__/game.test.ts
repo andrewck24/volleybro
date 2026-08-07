@@ -145,12 +145,12 @@ describe("validateLineupPlayers", () => {
     ).toThrow(ValidationError);
   });
 
-  it("never treats a null-id guest on the roster as a valid target", () => {
-    const rosterWithGuest = [player("a"), player(null)];
+  it('never lets the literal "null" reference a null roster id', () => {
+    const rosterWithNullId = [player("a"), player(null)];
     expect(() =>
       validateLineupPlayers(
         lineup({ starting: [{ id: "a" }, { id: "null" }] }),
-        rosterWithGuest,
+        rosterWithNullId,
       ),
     ).toThrow(ValidationError);
   });

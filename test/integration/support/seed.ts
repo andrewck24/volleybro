@@ -46,8 +46,8 @@ export interface SeededGame {
 
 /** Persist a minimal game (home team with 6 players, no sets) for reuse. */
 export const seedGame = async ({
-  includeGuest = false,
-}: { includeGuest?: boolean } = {}): Promise<SeededGame> => {
+  includeNullIdPlayer = false,
+}: { includeNullIdPlayer?: boolean } = {}): Promise<SeededGame> => {
   const repo = container.get<IGameRepository>(TYPES.GameRepository);
   const teamId = oid();
   const playerIds = Array.from({ length: 6 }, oid);
@@ -57,12 +57,13 @@ export const seedGame = async ({
     number: i + 1,
     stats: [],
   }));
-  // Guest players carry no linked account: their persisted playerId is null,
-  // which round-trips to a null domain id.
-  if (includeGuest) {
+  // Stands in for a squad member stored through the unvalidated create-game
+  // body: no product path writes a null roster id, but the readers must not
+  // throw on one.
+  if (includeNullIdPlayer) {
     players.push({
       id: null as unknown as string,
-      name: "Guest",
+      name: "Unlinked",
       number: 99,
       stats: [],
     });
