@@ -5,6 +5,7 @@ import {
   MatchPhase,
   MoveType,
   Side,
+  type DerivedSetStats,
 } from "@/entities/game";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
@@ -292,6 +293,7 @@ export type ReduxStatus = {
   isSetInProgress: boolean;
   isSetPoint: boolean;
   panel: "home" | "away" | "substitutes";
+  stats: DerivedSetStats;
 };
 
 type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {

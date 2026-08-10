@@ -205,19 +205,6 @@ describe("substitution.helper.ts", () => {
       expect(updatedSub.sub!.entryIndex!.out).toBeUndefined();
     });
 
-    test("should decrease team substitution count", () => {
-      const mockGame = createMockGame();
-      mockGame.teams.home.stats[0]!.substitution = 6;
-
-      const result = createSubstitutionHelper(
-        mockParams,
-        mockSubstitution,
-        mockGame,
-      );
-
-      expect(result.teams.home.stats[0]!.substitution).toBe(7);
-    });
-
     test("should handle second substitution correctly", () => {
       const mockGame = createMockGame();
 
@@ -290,9 +277,6 @@ describe("substitution.helper.ts", () => {
       const updatedStarting = result.sets[0]!.lineups.away!.starting[0]!;
       expect(updatedStarting.id).toBe("rival-2");
       expect(updatedStarting.sub!.id).toBe("rival-1");
-
-      // Check that the away team substitution count is incremented
-      expect(result.teams.away.stats[0]!.substitution).toBe(7);
     });
   });
 });

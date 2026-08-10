@@ -36,7 +36,7 @@ export const Stats = ({ gameId }: { gameId: string }) => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={game!.teams} setIndex={setIndex} />
+          <TeamsStats sets={game!.sets} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>
@@ -63,7 +63,7 @@ export const StatsForOneSet = ({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="team-stats">
-          <TeamsStats teams={game!.teams} setIndex={setIndex} />
+          <TeamsStats sets={game!.sets} setIndex={setIndex} />
         </TabsContent>
         <TabsContent value="box-score"></TabsContent>
       </Tabs>

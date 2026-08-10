@@ -3,6 +3,7 @@ import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-
 import { getServingStatus } from "@/lib/features/game/helpers/queries/serving-status.helper";
 import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.helper";
 import { getSetPhase } from "@/lib/features/game/helpers/queries/set-phase.helper";
+import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.helper";
 
 import {
   createRallyHelper,
@@ -18,5 +19,6 @@ export {
   getServingStatus,
   getSetLineup,
   getSetPhase,
+  getTeamsStats,
   updateRallyHelper,
 };

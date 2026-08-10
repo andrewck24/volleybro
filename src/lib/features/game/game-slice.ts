@@ -1,4 +1,4 @@
-import { EntryType, Side } from "@/entities/game";
+import { EntryType, Side, deriveSetStats } from "@/entities/game";
 import {
   getSetPhase,
   getPreviousScores,
@@ -25,6 +25,7 @@ const statusState: ReduxStatus = {
   isSetInProgress: false,
   isSetPoint: false,
   panel: "home",
+  stats: deriveSetStats(undefined, { options: { serve: "home" } }),
 };
 
 const rallyDetailState: ReduxEntryDraft["home"] = {
@@ -70,6 +71,9 @@ const initialize: CaseReducer<
     entryIndex,
   );
   const isServing = getServingStatus(set, entryIndex);
+  const stats = deriveSetStats(set?.entries, {
+    options: set?.options ?? { serve: "home" },
+  });
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
@@ -80,6 +84,7 @@ const initialize: CaseReducer<
     isSetInProgress,
     isSetPoint,
     panel: "home" as ReduxStatus["panel"],
+    stats,
   };
   state.general.status = { ...state.general.status, ...status };
   state.editing.status = { ...state.editing.status, ...status };

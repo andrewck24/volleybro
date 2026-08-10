@@ -1,9 +1,5 @@
-import { EntryType, MoveType, Side } from "@/entities/game";
-import type {
-  GamePlayerView,
-  GameView,
-  SubstitutionView,
-} from "@/lib/features/game/types";
+import { EntryType, Side } from "@/entities/game";
+import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 export const createSubstitutionHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
@@ -57,20 +53,6 @@ export const createSubstitutionHelper = (
     },
   };
 
-  // Update game stats
-  const startingPlayer = lineup.starting.find(
-    (p) => p.id?.toString() === substitution.players.in,
-  );
-  if (startingPlayer?.sub?.entryIndex?.in !== undefined) {
-    const player = game.teams[side].players.find(
-      (p) => p.id.toString() === substitution.players.in,
-    );
-    if (player) {
-      player.stats[setIndex] = createEmptyPlayerStats();
-    }
-  }
-
-  game.teams[side].stats[setIndex]!.substitution++;
   set.entries[entryIndex] = {
     type: EntryType.SUBSTITUTION,
     ...substitution,
@@ -78,12 +60,3 @@ export const createSubstitutionHelper = (
 
   return game;
 };
-
-const createEmptyPlayerStats = (): GamePlayerView["stats"][number] => ({
-  [MoveType.SERVING]: { success: 0, error: 0 },
-  [MoveType.BLOCKING]: { success: 0, error: 0 },
-  [MoveType.ATTACK]: { success: 0, error: 0 },
-  [MoveType.RECEPTION]: { success: 0, error: 0 },
-  [MoveType.DEFENSE]: { success: 0, error: 0 },
-  [MoveType.SETTING]: { success: 0, error: 0 },
-});

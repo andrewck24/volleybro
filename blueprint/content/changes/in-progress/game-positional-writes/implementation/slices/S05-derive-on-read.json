@@ -15,5 +15,5 @@
     "pnpm test -- src/lib/features/game src/components/game",
     "pnpm test:integration"
   ],
-  "status": "pending"
+  "status": "completed"
 }
