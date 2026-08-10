@@ -11,9 +11,6 @@
     "Games recorded before this Change still display correct statistics, because the values are derived from their entries rather than read from the stored field.",
     "pnpm build succeeds with no remaining reference to the stored statistics."
   ],
-  "verification": [
-    "pnpm verify",
-    "pnpm test:integration"
-  ],
+  "verification": ["pnpm verify", "pnpm test:integration"],
   "status": "completed"
 }

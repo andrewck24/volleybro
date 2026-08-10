@@ -1,8 +1,4 @@
 {
   "title": "game-positional-writes",
-  "pages": [
-    "index",
-    "design",
-    "implementation"
-  ]
+  "pages": ["index", "design", "implementation"]
 }

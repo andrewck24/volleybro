@@ -11,9 +11,6 @@
     "The statistics mutations in create-substitution and the statistics initialisation in create-set are deleted, since those values are now derived.",
     "create-substitution still persists the lineup swap, written as a positional set alongside the appended entry."
   ],
-  "verification": [
-    "pnpm test:integration",
-    "pnpm test -- src/applications"
-  ],
+  "verification": ["pnpm test:integration", "pnpm test -- src/applications"],
   "status": "completed"
 }

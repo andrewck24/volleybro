@@ -10,11 +10,11 @@ S01 先行的理由是它同時是其餘每一片的前提：沒有 `deriveSetSt
 
 Design 的「三條可驗證的約束」不是散文，各自綁在一個切片的驗收條件上：
 
-| 約束 | 切片 | 驗收條件的形式 |
-| --- | --- | --- |
-| 資料庫語法不離開 `GameRepositoryImpl` | S02 | 三條 entry 路徑的 usecase 測試不得 mock 任何資料庫概念 |
-| `entities/` 不得 import server-only | S01 | `entities/` 對外 import 維持為零 |
-| 元件不得呼叫推導函式 | S05 | `src/components/` 底下不得出現 `deriveSetStats` 的 import |
+| 約束                                  | 切片 | 驗收條件的形式                                            |
+| ------------------------------------- | ---- | --------------------------------------------------------- |
+| 資料庫語法不離開 `GameRepositoryImpl` | S02  | 三條 entry 路徑的 usecase 測試不得 mock 任何資料庫概念    |
+| `entities/` 不得 import server-only   | S01  | `entities/` 對外 import 維持為零                          |
+| 元件不得呼叫推導函式                  | S05  | `src/components/` 底下不得出現 `deriveSetStats` 的 import |
 
 ## 兩個必須在整合測試驗證的行為
 
