@@ -545,7 +545,7 @@ const D0_OPTIONS: Option[] = [
     label: "B — 介面與實作一起做完",
     pros: [
       "三個問題真的被解決，而不是只被介面表達出來",
-      "D1-B 之後，資料庫綁定的程式碼只剩 $push、以路徑取代 entry、以及 matchedCount / modifiedCount 的錯誤對應，全部關在 GameRepositoryImpl 的兩個方法裡",
+      "D1-B 之後，資料庫綁定的程式碼只剩 $push、以路徑取代 entry、以及寫入條件不成立時的錯誤對應，全部關在 GameRepositoryImpl 的兩個方法裡",
       "選型評估拿到的是可量測的真實實作，而不是假設——這是比共同介面更好的輸入",
       "v0.15.0 的出場條件（資料完全持久化、多裝置不互相覆蓋）因此才寫得出可驗證的樣子",
     ],
@@ -1265,7 +1265,8 @@ export default function Design() {
       <section className="space-y-4">
         <h2 id="decisions">採納的決策</h2>
         <p>
-          以下四份是本 Change 的結構化 ADR，記錄不易回頭的決策。它們是持久的紀錄；本頁其餘各節的{" "}
+          以下四份是本 Change 的結構化
+          ADR，記錄不易回頭的決策。它們是持久的紀錄；本頁其餘各節的{" "}
           <code>D0</code>–<code>D7</code>{" "}
           是討論過程中的標籤，用來讓每個選項與它被否決的理由可被逐一檢視。對照如下：
         </p>
@@ -1937,7 +1938,9 @@ export default function Design() {
           的投影，不是獨立的狀態。差別在於它們的寫入頻率——一局一次，而不是一球一次，因此它不屬於
           D1-B 反對的「逐球累加」。
         </p>
-        <h3 id="d7-not-materialization">completeSet 不是局末 materialization</h3>
+        <h3 id="d7-not-materialization">
+          completeSet 不是局末 materialization
+        </h3>
         <p>
           兩者形式相同、範圍完全不同，值得先分清楚，否則很容易把{" "}
           <code>completeSet</code> 誤解成「順便把統計也存起來」。
@@ -1948,14 +1951,17 @@ export default function Design() {
               <tr>
                 <th className="text-left"></th>
                 <th className="text-left">completeSet（D7-A）</th>
-                <th className="text-left">局末 materialize 統計（D1-C，已否決）</th>
+                <th className="text-left">
+                  局末 materialize 統計（D1-C，已否決）
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>寫什麼</td>
                 <td>
-                  <code>sets.N.win</code> 一個布林，必要時加 <code>game.win</code>
+                  <code>sets.N.win</code> 一個布林，必要時加{" "}
+                  <code>game.win</code>
                 </td>
                 <td>
                   整組 <code>teams.X.stats[N]</code> 與{" "}
@@ -1965,19 +1971,15 @@ export default function Design() {
               <tr>
                 <td>為什麼要存</td>
                 <td>
-                  findGameSummaries 的 aggregation 需要它；不存就得把排球計分規則寫進
-                  pipeline
+                  findGameSummaries 的 aggregation
+                  需要它；不存就得把排球計分規則寫進 pipeline
                 </td>
-                <td>
-                  沒有理由——記錄中的顯示無論如何都得推導，存了也救不了
-                </td>
+                <td>沒有理由——記錄中的顯示無論如何都得推導，存了也救不了</td>
               </tr>
               <tr>
                 <td>對讀取端的影響</td>
                 <td>比賽列表維持現狀，零改動</td>
-                <td>
-                  同一欄位在局中／局後有兩種語意，讀取端必須知道差別
-                </td>
+                <td>同一欄位在局中／局後有兩種語意，讀取端必須知道差別</td>
               </tr>
             </tbody>
           </table>
@@ -2006,11 +2008,11 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
           <code>=== true</code> / <code>=== false</code> 分別數雙方勝局。
         </p>
         <Note>
-          但 <code>create-game.usecase.ts:46</code> 把新比賽的{" "}
-          <code>win</code> 初始化為 <code>false</code>。依這個 codebase 自己的慣例，
+          但 <code>create-game.usecase.ts:46</code> 把新比賽的 <code>win</code>{" "}
+          初始化為 <code>false</code>。依這個 codebase 自己的慣例，
           <code>false</code> 的意思是<strong>客隊贏</strong>，不是「還沒打完」。
-          <code>create-set.usecase.ts:75</code> 用的是{" "}
-          <code>null</code>，是對的——兩者不一致。
+          <code>create-set.usecase.ts:75</code> 用的是 <code>null</code>
+          ，是對的——兩者不一致。
         </Note>
         <p>
           第二層問題在讀模型：<code>GameSummary.win</code> 宣告為{" "}
@@ -2020,17 +2022,18 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
         </p>
         <p>
           持久化層兩邊都接受 <code>null</code>：Mongoose 的{" "}
-          <code>win: {"{ type: Boolean }"}</code> 沒有 <code>required</code> 也沒有{" "}
-          <code>default</code>；關聯式資料庫的 <code>BOOLEAN NULL</code>{" "}
-          是標準三值邏輯，而且 <code>COUNT(win)</code>{" "}
-          天生略過 null，數已完成的局反而更順。所以沒有任何持久化層面的理由用{" "}
+          <code>win: {"{ type: Boolean }"}</code> 沒有 <code>required</code>{" "}
+          也沒有 <code>default</code>；關聯式資料庫的 <code>BOOLEAN NULL</code>{" "}
+          是標準三值邏輯，而且 <code>COUNT(win)</code> 天生略過
+          null，數已完成的局反而更順。所以沒有任何持久化層面的理由用{" "}
           <code>false</code> 當佔位值。
         </p>
         <Note>
           <strong>納入 D7 範圍：</strong>
           <code>create-game</code> 的初始值改為 <code>null</code>，
           <code>GameSummary.win</code> 型別改為 <code>boolean | null</code>
-          ，並確認比賽列表能區分「進行中」與「已敗」。這與 D7 是同一個欄位的同一件事——
+          ，並確認比賽列表能區分「進行中」與「已敗」。這與 D7
+          是同一個欄位的同一件事——
           <strong>誰寫它、它能是什麼值</strong>。
         </Note>
         <DecisionPanel
@@ -2132,7 +2135,9 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
                 <td>
                   <code>entities/</code>
                 </td>
-                <td>只有 entities 自身（errors 5、team 2、game 2、player 1）</td>
+                <td>
+                  只有 entities 自身（errors 5、team 2、game 2、player 1）
+                </td>
                 <td className="text-success">
                   完全乾淨，零外部相依——D6-A 共用的前提成立
                 </td>
@@ -2141,9 +2146,7 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
                 <td>
                   <code>applications/</code>
                 </td>
-                <td>
-                  entities 103、applications 92、infrastructure 29、lib 3
-                </td>
+                <td>entities 103、applications 92、infrastructure 29、lib 3</td>
                 <td className="text-warning">兩處要看，見下方</td>
               </tr>
               <tr>
@@ -2192,7 +2195,9 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
           <Card>
             <CardContent className="space-y-2">
               <p className="m-0 flex flex-wrap items-center gap-2">
-                <code className="font-semibold">applications → lib（3 處）</code>
+                <code className="font-semibold">
+                  applications → lib（3 處）
+                </code>
                 <Badge
                   variant="outline"
                   className="border-destructive/40 bg-destructive/10 text-destructive"
@@ -2205,8 +2210,8 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
                 <code>@/lib/features/game/helpers</code>，
                 <code>create-player</code> import{" "}
                 <code>@/lib/validations/player</code> 的型別。
-                <strong>前兩處由本 Change 的 D6-A 修掉</strong>，第三處在 v0.16.0
-                的分層稽核票。修完後這個數字從 3 降到 1。
+                <strong>前兩處由本 Change 的 D6-A 修掉</strong>，第三處在
+                v0.16.0 的分層稽核票。修完後這個數字從 3 降到 1。
               </p>
             </CardContent>
           </Card>
@@ -2248,14 +2253,15 @@ Rally.win: boolean         // 一顆球一定有勝負，非空是對的`}</Code
                 <code>lib/auth.ts</code> 內含 <code>lib/data/mongodb</code> 的
                 DB client，本質就是 infrastructure，所以方向是 infrastructure →
                 infrastructure，沒有錯。實際代價是{" "}
-                <strong>路徑不再是分層的訊號</strong>：
-                <code>src/lib/</code> 同時裝著 infrastructure（
+                <strong>路徑不再是分層的訊號</strong>：<code>src/lib/</code>{" "}
+                同時裝著 infrastructure（
                 <code>auth.ts</code>、<code>data/</code>）、interface adapters（
                 <code>api/wrappers.ts</code>、<code>validations/</code>）與
                 presentation（<code>features/</code>、<code>redux/</code>、
                 <code>auth-client.ts</code>）。本次稽核必須逐一打開每個{" "}
-                <code>→ lib</code> 的 import 才能判斷，就是這個代價。不處理，但它是
-                v0.16.0 自動化 import 邊界規則的前置障礙。
+                <code>→ lib</code> 的 import
+                才能判斷，就是這個代價。不處理，但它是 v0.16.0 自動化 import
+                邊界規則的前置障礙。
               </p>
             </CardContent>
           </Card>
@@ -2276,8 +2282,8 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
           <strong>稽核暴露的一個設計細節。</strong>
           <code>options/overview</code> 與 <code>teams-stats</code>{" "}
           需要推導後的統計，但<strong>元件不應該自己呼叫</strong>{" "}
-          <code>deriveSetStats</code>——那會讓 components 開始 import
-          entities 的函式，而且會在 render 期間計算。正確位置是{" "}
+          <code>deriveSetStats</code>——那會讓 components 開始 import entities
+          的函式，而且會在 render 期間計算。正確位置是{" "}
           <code>game-slice.ts</code> 的 <code>initialize</code> reducer，與{" "}
           <code>isSetInProgress</code> 現在的做法完全一致：slice 算一次存進
           state，元件只讀 state。這同時滿足「元件只 import *View 型別」與「在
@@ -2287,7 +2293,8 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
         <h3 id="audit-verdict">結論</h3>
         <ul>
           <li>
-            <strong>entities 零外部相依</strong>，D6-A 前後端共用的前提成立且可驗證。
+            <strong>entities 零外部相依</strong>，D6-A
+            前後端共用的前提成立且可驗證。
           </li>
           <li>
             <strong>components 對後端層的 import 為 0</strong>
@@ -2299,7 +2306,8 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
             ，本 Change 修掉其中 2 處。
           </li>
           <li>
-            其餘兩項（DI 符號的位置、<code>lib/auth</code> 的位置）是命名與擺放問題，方向都正確，
+            其餘兩項（DI 符號的位置、<code>lib/auth</code>{" "}
+            的位置）是命名與擺放問題，方向都正確，
             <strong>不在本 Change 範圍</strong>。
           </li>
         </ul>
@@ -2308,7 +2316,8 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
       <section className="space-y-4">
         <h2 id="constraints">三條可驗證的約束</h2>
         <p>
-          本 Change 的分層正確性不靠設計意圖維持，靠三條可檢查的約束。它們分散在前面各節被提出，這裡集中列出，
+          本 Change
+          的分層正確性不靠設計意圖維持，靠三條可檢查的約束。它們分散在前面各節被提出，這裡集中列出，
           <strong>每一條都會成為切片的驗收條件</strong>
           ，而不只是寫在文件裡的期許。
         </p>
@@ -2344,13 +2353,11 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
                 <td>import 邊界規則</td>
               </tr>
               <tr>
-                <td>
-                  元件不得呼叫推導函式，推導只在 slice 執行
-                </td>
+                <td>元件不得呼叫推導函式，推導只在 slice 執行</td>
                 <td>分層稽核</td>
                 <td>
-                  <code>components/</code> 不得出現{" "}
-                  <code>deriveSetStats</code> 的 import；元件只讀 Redux state
+                  <code>components/</code> 不得出現 <code>deriveSetStats</code>{" "}
+                  的 import；元件只讀 Redux state
                 </td>
                 <td>import 邊界規則</td>
               </tr>
@@ -2360,17 +2367,16 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
         <Note>
           第三條同時解決兩個問題：維持 type-decoupling「元件只依賴{" "}
           <code>*View</code> 資料形狀」的規則，以及避免推導在 render
-          期間執行而非 append 時執行。它與{" "}
-          <code>isSetInProgress</code> 現行的做法一致——
+          期間執行而非 append 時執行。它與 <code>isSetInProgress</code>{" "}
+          現行的做法一致——
           <code>game-slice.ts</code> 的 <code>initialize</code> reducer
           算一次存進 state，元件只讀 state。
         </Note>
         <p className="text-sm text-muted-foreground">
-          三條的自動化都指向同一件事：一組可執行的 import
-          邊界規則。那屬於 v0.16.0 的分層稽核工作，而它的前置障礙是{" "}
-          <code>src/lib/</code>{" "}
-          目前同時裝著三個層的東西——路徑無法作為分層訊號，規則就寫不出來。本 Change
-          以 review 檢查項的形式先守住這三條。
+          三條的自動化都指向同一件事：一組可執行的 import 邊界規則。那屬於
+          v0.16.0 的分層稽核工作，而它的前置障礙是 <code>src/lib/</code>{" "}
+          目前同時裝著三個層的東西——路徑無法作為分層訊號，規則就寫不出來。本
+          Change 以 review 檢查項的形式先守住這三條。
         </p>
       </section>
 
@@ -2390,14 +2396,14 @@ interface/ · app/    → 解析 DI 容器（composition root）`}</Code>
         </p>
         <div className="space-y-4">
           <Scenario
-            given="定位寫入的目標 game 不存在"
-            when="更新以 _id 為條件執行"
-            then="matchedCount === 0 → GAME_NOT_FOUND (404)"
+            given="定位寫入的條件必須指名確切路徑"
+            when="filter 只放 _id，setIndex 超出 sets 長度"
+            then="MongoDB 不會失敗，而是把 sets 補上 null 直到該索引再寫入——所以 sets.N 的存在必須是寫入條件的一部分，而不是事後檢查"
           />
           <Scenario
-            given="game 存在但 setIndex 指向不存在的局"
-            when="定位寫入的路徑條件不成立"
-            then="matchedCount === 1 且 modifiedCount === 0 → SET_NOT_FOUND (404)；這是新寫入模型下唯一能區分兩者的依據"
+            given="定位寫入的目標 game 或 set 不存在"
+            when="寫入條件不成立，兩種情況都回報零筆命中"
+            then="以一次 exists({ _id }) 分辨：game 不存在 → GAME_NOT_FOUND (404)，game 存在 → SET_NOT_FOUND (404)。只發生在錯誤路徑，成功路徑仍是一次 round trip；matched 對 modified 的區分在索引式陣列路徑上不成立"
           />
           <Scenario
             given="新增的 entry 帶著一個資料庫存不下的值"
