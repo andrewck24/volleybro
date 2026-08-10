@@ -5,7 +5,7 @@ import {
   PlayerModel,
   type PlayerDocument,
 } from "@/infrastructure/db/mongoose/schemas/player";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
 export class PlayerRepositoryImpl implements IPlayerRepository {
   private toPlayer(doc: PlayerDocument): Player {

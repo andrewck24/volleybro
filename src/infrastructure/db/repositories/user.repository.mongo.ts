@@ -4,7 +4,7 @@ import {
   UserDocument,
   User as UserModel,
 } from "@/infrastructure/db/mongoose/schemas/user";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
 export class UserRepositoryImpl implements IUserRepository {
   private toUser(doc: UserDocument): User {

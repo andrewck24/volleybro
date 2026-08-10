@@ -94,7 +94,11 @@ describe("deriveSetStats matches per-rally accumulation", () => {
 
     const game = emptyGame();
     script.forEach((draft, entryIndex) => {
-      createRallyHelper({ gameId: "game-1", setIndex: 0, entryIndex }, draft, game);
+      createRallyHelper(
+        { gameId: "game-1", setIndex: 0, entryIndex },
+        draft,
+        game,
+      );
     });
 
     const set = game.sets[0]!;
@@ -129,7 +133,9 @@ describe("deriveSetStats matches per-rally accumulation", () => {
     for (const id of PLAYERS) {
       const accumulated = game.teams.home.players.find((p) => p.id === id)!
         .stats[0];
-      expect(derived.players[id] ?? new PlayerStatsClass()).toEqual(accumulated);
+      expect(derived.players[id] ?? new PlayerStatsClass()).toEqual(
+        accumulated,
+      );
     }
   });
 });

@@ -16,5 +16,5 @@
     "pnpm test:integration",
     "pnpm test -- src/applications/usecases/game"
   ],
-  "status": "pending"
+  "status": "completed"
 }

@@ -5,7 +5,7 @@ import {
   TeamDocument,
   Team as TeamModel,
 } from "@/infrastructure/db/mongoose/schemas/team";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 import { Types } from "mongoose";
 
 export class TeamRepositoryImpl implements ITeamRepository {

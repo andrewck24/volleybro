@@ -365,7 +365,10 @@ export function getPreviousRally(
 /** Whether the home team serves the rally at `entryIndex`. */
 export function deriveServingStatus(
   set:
-    | { options: { serve: "home" | "away" }; entries?: readonly DerivableEntry[] }
+    | {
+        options: { serve: "home" | "away" };
+        entries?: readonly DerivableEntry[];
+      }
     | undefined,
   entryIndex: number,
 ): boolean {

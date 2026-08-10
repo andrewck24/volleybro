@@ -1,11 +1,19 @@
-import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError, CommonReason } from "@/entities/errors";
-import { EntryType, type Game, type GameSummary } from "@/entities/game";
+import type {
+  EntryRef,
+  IGameRepository,
+} from "@/applications/repositories/game.repository.interface";
+import { NotFoundError, CommonReason, GameReason } from "@/entities/errors";
+import {
+  EntryType,
+  type Entry,
+  type Game,
+  type GameSummary,
+} from "@/entities/game";
 import {
   GameDocument,
   Game as GameModel,
 } from "@/infrastructure/db/mongoose/schemas/game";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 import mongoose, { type Types } from "mongoose";
 
 /** Raw (persisted) shapes returned by `doc.toObject()`, before id mapping. */
@@ -363,6 +371,61 @@ export class GameRepositoryImpl implements IGameRepository {
     } catch (error) {
       throw translateRepositoryError(error);
     }
+  }
+
+  /**
+   * A positional write touches one entry, so the guard has to keep the write
+   * off a path that does not exist yet — an out-of-range index would otherwise
+   * pad the array with nulls instead of failing.
+   */
+  private async writeEntry(
+    { gameId, setIndex }: EntryRef,
+    guardPath: string,
+    update: Record<string, unknown>,
+  ): Promise<Entry[]> {
+    try {
+      const doc = await this.model
+        .findOneAndUpdate(
+          { _id: gameId, [guardPath]: { $exists: true } },
+          update,
+          {
+            returnDocument: "after",
+            projection: { sets: { $slice: [setIndex, 1] } },
+          },
+        )
+        .exec();
+      if (doc) {
+        const [set] =
+          (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
+        return (set?.entries ?? []).map((e) =>
+          this.mapEntryRead(e),
+        ) as unknown as Entry[];
+      }
+      // The guard failed as a whole; one lookup says which half of it did.
+      const game = await this.model.exists({ _id: gameId }).exec();
+      throw game
+        ? new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found")
+        : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  async appendEntry(ref: EntryRef, entry: Entry): Promise<Entry[]> {
+    const path = `sets.${ref.setIndex}`;
+    return this.writeEntry(ref, path, {
+      $push: { [`${path}.entries`]: this.mapEntryWrite(entry) },
+    });
+  }
+
+  async replaceEntry(
+    ref: EntryRef & { entryIndex: number },
+    entry: Entry,
+  ): Promise<Entry[]> {
+    const path = `sets.${ref.setIndex}.entries.${ref.entryIndex}`;
+    return this.writeEntry(ref, path, {
+      $set: { [path]: this.mapEntryWrite(entry) },
+    });
   }
 
   async delete(id: string): Promise<boolean> {
