@@ -86,7 +86,6 @@ function createDefaultGameTeam(overrides?: Partial<GameTeam>): GameTeam {
     name: "Game Team",
     players: [],
     staffs: [],
-    stats: [],
     ...overrides,
   };
 }

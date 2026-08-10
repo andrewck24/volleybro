@@ -36,8 +36,8 @@ const game = (overrides: {
     scoring: { setCount: overrides.setCount ?? 3, decidingSetPoints: 15 },
   },
   teams: {
-    home: { id: "home", name: "Home", players: [], staffs: [], stats: [] },
-    away: { id: "away", name: "Away", players: [], staffs: [], stats: [] },
+    home: { id: "home", name: "Home", players: [], staffs: [] },
+    away: { id: "away", name: "Away", players: [], staffs: [] },
   },
   sets: overrides.sets,
 });

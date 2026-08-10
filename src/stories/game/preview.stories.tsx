@@ -4,9 +4,7 @@ import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 
-const players: GamePlayerView[] = [
-  { id: "p1", name: "選手一", number: 7, stats: [] },
-];
+const players: GamePlayerView[] = [{ id: "p1", name: "選手一", number: 7 }];
 
 const previousEntry: EntryView = {
   type: EntryType.RALLY,

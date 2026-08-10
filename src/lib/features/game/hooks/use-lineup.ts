@@ -1,4 +1,4 @@
-import { EntryType } from "@/entities/game";
+import { EntryType, deriveSetStats } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import type { GameView, ReduxStatus } from "@/lib/features/game/types";
 import type { LineupView } from "@/lib/features/team/types";
@@ -40,10 +40,9 @@ export const useLineup = (
 
 const getGeneralModeLineup = (game: GameView, setIndex: number) => {
   // called only after useLineup confirms the set exists
-  const { starting, liberos } = structuredClone(
-    game.sets[setIndex]!.lineups.home,
-  );
-  const { players, stats } = game.teams.home;
+  const set = game.sets[setIndex]!;
+  const { starting, liberos } = structuredClone(set.lineups.home);
+  const { players } = game.teams.home;
   const lineup = {
     liberos: liberos.map((libero) => {
       const player = players.find((p) => p.id === libero.id);
@@ -73,7 +72,10 @@ const getGeneralModeLineup = (game: GameView, setIndex: number) => {
     }),
   };
 
-  const rotation = stats[setIndex]!.rotation % 6;
+  const { rotation: usedRotation } = deriveSetStats(set.entries, {
+    options: set.options,
+  }).home;
+  const rotation = usedRotation % 6;
   if (rotation) {
     const rotatedPlayers = lineup.starting.splice(0, rotation);
     lineup.starting.push(...rotatedPlayers);

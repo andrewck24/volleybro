@@ -4,9 +4,7 @@ import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const players: GamePlayerView[] = [
-  { id: "p1", name: "選手一", number: 4, stats: [] },
-];
+const players: GamePlayerView[] = [{ id: "p1", name: "選手一", number: 4 }];
 
 const entry: EntryView = {
   type: EntryType.RALLY,

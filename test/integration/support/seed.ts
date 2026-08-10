@@ -16,7 +16,6 @@ const emptyTeam = (
   name,
   players,
   staffs: [],
-  stats: [],
 });
 
 /** A lineup referencing the given player ids for the starting six. */
@@ -59,7 +58,6 @@ export const seedGame = async ({
     id,
     name: `Player ${i + 1}`,
     number: i + 1,
-    stats: [],
   }));
   // Stands in for a squad member stored through the unvalidated create-game
   // body: no product path writes a null roster id, but the readers must not
@@ -69,7 +67,6 @@ export const seedGame = async ({
       id: null as unknown as string,
       name: "Unlinked",
       number: 99,
-      stats: [],
     });
   }
 

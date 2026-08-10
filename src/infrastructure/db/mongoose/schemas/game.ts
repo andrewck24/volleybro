@@ -142,6 +142,9 @@ interface PlayerDocument extends Document {
   playerId: Types.ObjectId | null;
   name: string;
   number: number;
+  // Statistics are derived from a set's entries (see deriveSetStats in
+  // src/entities/game.ts), not read from this field. It has no writer; the
+  // column is kept for a future materialization decision rather than dropped.
   stats: PlayerStatsDocument[];
 }
 
@@ -222,6 +225,8 @@ interface TeamDocument extends Document {
   name: string;
   players: PlayerDocument[];
   staffs: StaffDocument[];
+  // Same as PlayerDocument.stats: no writer, kept for a future materialization
+  // decision. Team totals are derived from entries on read.
   stats: TeamStatsDocument[];
   lineup: { [key: number]: Types.ObjectId };
 }

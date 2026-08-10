@@ -25,7 +25,7 @@ const PlayerStatsResponseSchema = z.object({
   [MoveType.SETTING]: StatEntryResponseSchema,
 });
 
-const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
+export const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
   [MoveType.UNFORCED]: StatEntryResponseSchema,
   rotation: z.number(),
   timeout: z.number(),
@@ -37,7 +37,6 @@ const GamePlayerResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   number: z.number(),
-  stats: z.array(PlayerStatsResponseSchema),
 });
 
 const StaffResponseSchema = z.object({
@@ -81,7 +80,6 @@ export const GameTeamResponseSchema = z.object({
   name: z.string(),
   players: z.array(GamePlayerResponseSchema),
   staffs: z.array(StaffResponseSchema),
-  stats: z.array(TeamStatsResponseSchema),
   lineup: LineupResponseSchema.optional(),
 });
 

@@ -84,76 +84,14 @@ describe("rally.helper.ts", () => {
       home: {
         id: "team-1",
         name: "Home Team",
-        players: [
-          {
-            id: "player-1",
-            name: "Player 1",
-            number: 1,
-            stats: [
-              {
-                [M.ATTACK]: { success: 0, error: 0 },
-                [M.SERVING]: { success: 1, error: 0 },
-                [M.BLOCKING]: { success: 0, error: 0 },
-                [M.RECEPTION]: { success: 0, error: 0 },
-                [M.DEFENSE]: { success: 0, error: 0 },
-                [M.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "player-1", name: "Player 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [M.ATTACK]: { success: 0, error: 0 },
-            [M.SERVING]: { success: 1, error: 0 },
-            [M.BLOCKING]: { success: 0, error: 0 },
-            [M.RECEPTION]: { success: 0, error: 0 },
-            [M.DEFENSE]: { success: 0, error: 0 },
-            [M.SETTING]: { success: 0, error: 0 },
-            [M.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
       away: {
         id: "team-2",
         name: "Away Team",
-        players: [
-          {
-            id: "rival-1",
-            name: "Rival 1",
-            number: 1,
-            stats: [
-              {
-                [M.RECEPTION]: { success: 0, error: 1 },
-                [M.ATTACK]: { success: 0, error: 0 },
-                [M.SERVING]: { success: 0, error: 0 },
-                [M.BLOCKING]: { success: 0, error: 0 },
-                [M.DEFENSE]: { success: 0, error: 0 },
-                [M.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "rival-1", name: "Rival 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [M.RECEPTION]: { success: 0, error: 1 },
-            [M.ATTACK]: { success: 0, error: 0 },
-            [M.SERVING]: { success: 0, error: 0 },
-            [M.BLOCKING]: { success: 0, error: 0 },
-            [M.DEFENSE]: { success: 0, error: 0 },
-            [M.SETTING]: { success: 0, error: 0 },
-            [M.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
     },
   });

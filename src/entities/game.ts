@@ -87,7 +87,6 @@ export type Player = {
   id: string;
   name: string;
   number: number;
-  stats: PlayerStats[];
 };
 
 /**
@@ -184,7 +183,6 @@ export type Team = {
   name: string;
   players: Player[];
   staffs: Staff[];
-  stats: TeamStats[];
   lineup?: Lineup;
 };
 

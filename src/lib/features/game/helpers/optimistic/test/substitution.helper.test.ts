@@ -73,76 +73,14 @@ describe("substitution.helper.ts", () => {
       home: {
         id: "team-1",
         name: "Home Team",
-        players: [
-          {
-            id: "player-1",
-            name: "Player 1",
-            number: 1,
-            stats: [
-              {
-                [MoveType.ATTACK]: { success: 0, error: 0 },
-                [MoveType.SERVING]: { success: 1, error: 0 },
-                [MoveType.BLOCKING]: { success: 0, error: 0 },
-                [MoveType.RECEPTION]: { success: 0, error: 0 },
-                [MoveType.DEFENSE]: { success: 0, error: 0 },
-                [MoveType.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "player-1", name: "Player 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [MoveType.ATTACK]: { success: 0, error: 0 },
-            [MoveType.SERVING]: { success: 1, error: 0 },
-            [MoveType.BLOCKING]: { success: 0, error: 0 },
-            [MoveType.RECEPTION]: { success: 0, error: 0 },
-            [MoveType.DEFENSE]: { success: 0, error: 0 },
-            [MoveType.SETTING]: { success: 0, error: 0 },
-            [MoveType.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
       away: {
         id: "team-2",
         name: "Away Team",
-        players: [
-          {
-            id: "rival-1",
-            name: "Rival 1",
-            number: 1,
-            stats: [
-              {
-                [MoveType.RECEPTION]: { success: 0, error: 1 },
-                [MoveType.ATTACK]: { success: 0, error: 0 },
-                [MoveType.SERVING]: { success: 0, error: 0 },
-                [MoveType.BLOCKING]: { success: 0, error: 0 },
-                [MoveType.DEFENSE]: { success: 0, error: 0 },
-                [MoveType.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "rival-1", name: "Rival 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [MoveType.RECEPTION]: { success: 0, error: 1 },
-            [MoveType.ATTACK]: { success: 0, error: 0 },
-            [MoveType.SERVING]: { success: 0, error: 0 },
-            [MoveType.BLOCKING]: { success: 0, error: 0 },
-            [MoveType.DEFENSE]: { success: 0, error: 0 },
-            [MoveType.SETTING]: { success: 0, error: 0 },
-            [MoveType.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
     },
   });

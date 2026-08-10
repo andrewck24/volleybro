@@ -21,7 +21,6 @@ const player = (id: string | null): Player => ({
   id: id as string,
   name: "P",
   number: 1,
-  stats: [],
 });
 
 const lineup = (overrides: Partial<Lineup> = {}): Lineup => ({
