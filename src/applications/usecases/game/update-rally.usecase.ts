@@ -2,10 +2,9 @@ import type { IGameRepository } from "@/applications/repositories/game.repositor
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { NotFoundError, GameReason } from "@/entities/errors";
-import type { Entry, Rally } from "@/entities/game";
+import { createRallyEntry, type Entry, type Rally } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
-import { updateRallyHelper } from "@/lib/features/game/helpers";
 import { inject, injectable } from "inversify";
 
 export type IUpdateRallyInput = {
@@ -33,13 +32,14 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
     input: IUpdateRallyInput,
   ): Promise<IUpdateRallyOutput | undefined> {
     const { params, data: rally } = input;
+    const { gameId, setIndex, entryIndex } = params;
     const user = await this.authenticationService.verifySession();
 
-    const game = await this.gameRepository.findById(params.gameId);
+    // Read for the team the caller must belong to; whether the entry exists is
+    // the write's own condition.
+    const game = await this.gameRepository.findById(gameId);
     if (!game)
       throw new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
-    if (!game.sets[params.setIndex])
-      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
     await this.authorizationService.verifyTeamRole(
       game.teamId.toString(),
@@ -47,16 +47,9 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
       PlayerRole.MEMBER,
     );
 
-    const { game: updatedGame } = updateRallyHelper(params, rally, game);
-
-    const persistedGame = await this.gameRepository.update(
-      game.id,
-      updatedGame,
+    return this.gameRepository.replaceEntry(
+      { gameId, setIndex, entryIndex },
+      createRallyEntry(rally),
     );
-
-    const persistedSet = persistedGame.sets[params.setIndex];
-    if (!persistedSet)
-      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
-    return persistedSet.entries;
   }
 }

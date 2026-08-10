@@ -47,10 +47,14 @@ export interface SeededGame {
 /** Persist a minimal game (home team with 6 players, no sets) for reuse. */
 export const seedGame = async ({
   includeNullIdPlayer = false,
-}: { includeNullIdPlayer?: boolean } = {}): Promise<SeededGame> => {
+  playerCount = 6,
+}: {
+  includeNullIdPlayer?: boolean;
+  playerCount?: number;
+} = {}): Promise<SeededGame> => {
   const repo = container.get<IGameRepository>(TYPES.GameRepository);
   const teamId = oid();
-  const playerIds = Array.from({ length: 6 }, oid);
+  const playerIds = Array.from({ length: playerCount }, oid);
   const players = playerIds.map((id, i) => ({
     id,
     name: `Player ${i + 1}`,

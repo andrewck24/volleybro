@@ -8,6 +8,7 @@ import {
   type Entry,
   type Game,
   type GameSummary,
+  type Set,
 } from "@/entities/game";
 import {
   GameDocument,
@@ -411,10 +412,24 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  async appendEntry(ref: EntryRef, entry: Entry): Promise<Entry[]> {
+  async appendEntry(
+    ref: EntryRef,
+    entry: Entry,
+    lineups?: Partial<Set["lineups"]>,
+  ): Promise<Entry[]> {
     const path = `sets.${ref.setIndex}`;
+    const setLineups = Object.entries(lineups ?? {}).map(
+      ([side, lineup]) =>
+        [
+          `${path}.lineups.${side}`,
+          this.toLineupWrite(
+            lineup as unknown as Parameters<typeof this.toLineupWrite>[0],
+          ),
+        ] as const,
+    );
     return this.writeEntry(ref, path, {
       $push: { [`${path}.entries`]: this.mapEntryWrite(entry) },
+      ...(setLineups.length && { $set: Object.fromEntries(setLineups) }),
     });
   }
 

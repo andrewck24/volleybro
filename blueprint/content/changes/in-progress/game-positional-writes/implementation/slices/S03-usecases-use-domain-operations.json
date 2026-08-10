@@ -15,5 +15,5 @@
     "pnpm test:integration",
     "pnpm test -- src/applications"
   ],
-  "status": "pending"
+  "status": "completed"
 }
