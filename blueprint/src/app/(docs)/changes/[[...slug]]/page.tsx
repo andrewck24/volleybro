@@ -29,8 +29,8 @@ const designModules: Record<string, () => Promise<DesignModule>> = {
     import("../../../../../content/changes/archive/2026-07-18-logo-v-splash-redesign/design"),
   "discussing/sync-recording/design": () =>
     import("../../../../../content/changes/discussing/sync-recording/design"),
-  "discussing/game-positional-writes/design": () =>
-    import("../../../../../content/changes/discussing/game-positional-writes/design"),
+  "in-progress/game-positional-writes/design": () =>
+    import("../../../../../content/changes/in-progress/game-positional-writes/design"),
   "archive/2026-07-16-elevation-depth-system/design": () =>
     import("../../../../../content/changes/archive/2026-07-16-elevation-depth-system/design"),
   "archive/2026-07-12-entry-ui/design": () =>

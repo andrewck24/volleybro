@@ -5,6 +5,7 @@ import { useState } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { FileTour } from "@/components/FileTour";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { RiskTable } from "@/components/RiskTable";
@@ -13,7 +14,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+import entriesAsSourceOfTruth from "./design/decisions/D1-entries-as-source-of-truth.json";
+import domainOperationRepository from "./design/decisions/D2-domain-operation-repository.json";
+import sharedDomainFunctions from "./design/decisions/D3-shared-domain-functions.json";
+import explicitSetCompletion from "./design/decisions/D4-explicit-set-completion.json";
+
 export const toc = [
+  { title: "採納的決策", url: "#decisions", depth: 2 },
   { title: "現況：一顆球走過的路", url: "#context", depth: 2 },
   { title: "名詞說明", url: "#concepts", depth: 2 },
   { title: "問題落在哪條路徑上", url: "#pressure-matrix", depth: 2 },
@@ -1255,6 +1262,59 @@ function Walkthrough() {
 export default function Design() {
   return (
     <div className="space-y-10">
+      <section className="space-y-4">
+        <h2 id="decisions">採納的決策</h2>
+        <p>
+          以下四份是本 Change 的結構化 ADR，記錄不易回頭的決策。它們是持久的紀錄；本頁其餘各節的{" "}
+          <code>D0</code>–<code>D7</code>{" "}
+          是討論過程中的標籤，用來讓每個選項與它被否決的理由可被逐一檢視。對照如下：
+        </p>
+        <div className="overflow-x-auto">
+          <table className="my-0 w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">ADR</th>
+                <th className="text-left">涵蓋的討論決策</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <code>D1</code> entries 為唯一真實來源
+                </td>
+                <td>D1（統計推導）、D5（既有欄位處置）</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>D2</code> 以領域操作表達寫入
+                </td>
+                <td>D0（交付範圍）、D2（範圍邊界）、D3（update() 去留）</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>D3</code> 共用推導規則
+                </td>
+                <td>D4（規則落在哪一層）、D6（共用 entities）</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>D4</code> 一局結束成為明確操作
+                </td>
+                <td>D7（set.win / game.win 由誰寫入）</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <DecisionTimeline
+          decisions={[
+            entriesAsSourceOfTruth,
+            domainOperationRepository,
+            sharedDomainFunctions,
+            explicitSetCompletion,
+          ]}
+        />
+      </section>
+
       <section className="space-y-4">
         <h2 id="context">現況：一顆球走過的路</h2>
         <p>

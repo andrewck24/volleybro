@@ -6,7 +6,7 @@ import { ChangeOverview } from "@/components/ChangeOverview";
 
 <ChangeOverview
   date="2026-08-08"
-  status="discussing"
+  status="in-progress"
   summary="每記一顆球都重寫整份 game 文件：任何一個 leaf 不合法會讓整局寫入失敗，兩個寫入者會無聲覆蓋彼此，寫入量隨比賽線性成長。改為以 entries 為唯一真實來源、統計由它推導，記一顆球就退化成往陣列尾端追加一個元素——沒有欄位路徑、沒有淨差量、沒有雙用 helper。八個決策全部定案，核心流程走查與分層稽核皆已完成。"
   artifacts={[
     {
@@ -74,6 +74,8 @@ Design 頁完整記錄各組替代方案與它們的後果。Overview 層級只�
 - **改用正規化的關聯式 schema**——會讓三個問題結構性消失，但那是資料庫選型的決策範圍，不是本 Change 能單方面決定的。
 
 ## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。下表是討論階段的決策標籤，逐一記錄了選項與否決理由；ADR 是它們收斂後的持久紀錄。
 
 | ID  | 問題                                     | 狀態                                               |
 | --- | ---------------------------------------- | -------------------------------------------------- |
