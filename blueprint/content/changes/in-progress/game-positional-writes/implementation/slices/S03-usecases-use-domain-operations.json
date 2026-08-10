@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "Switch the three entry use cases to the domain operations",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S02"],
+  "outcome": "Recording a rally, editing a rally and recording a substitution all write through the entry operations, and the application layer no longer reaches into the frontend module.",
+  "acceptanceCriteria": [
+    "create-rally, update-rally and create-substitution call appendEntry or replaceEntry and no longer call update().",
+    "No file under src/applications/ imports from @/lib/features/, reducing the application layer's outward imports from three to one.",
+    "The statistics mutations in create-substitution and the statistics initialisation in create-set are deleted, since those values are now derived.",
+    "create-substitution still persists the lineup swap, written as a positional set alongside the appended entry."
+  ],
+  "verification": [
+    "pnpm test:integration",
+    "pnpm test -- src/applications"
+  ],
+  "status": "pending"
+}

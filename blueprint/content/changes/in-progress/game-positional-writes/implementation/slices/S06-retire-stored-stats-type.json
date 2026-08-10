@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "Drop statistics from the domain type while keeping the persisted field",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S05"],
+  "outcome": "The domain model no longer claims that stored statistics are authoritative, while the persisted field stays available for a future materialization decision.",
+  "acceptanceCriteria": [
+    "The stats arrays are removed from the Game domain type and from the *View response schemas; nothing reads or writes them.",
+    "The Mongoose schema keeps the stats field with a comment recording that it has no writer and why it was kept.",
+    "Games recorded before this Change still display correct statistics, because the values are derived from their entries rather than read from the stored field.",
+    "pnpm build succeeds with no remaining reference to the stored statistics."
+  ],
+  "verification": [
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}

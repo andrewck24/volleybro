@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Add entry-level repository operations backed by positional writes",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S01"],
+  "outcome": "Appending and replacing an entry are domain operations on the repository, implemented as positional writes, so one bad value can no longer reject a set that was already recorded.",
+  "acceptanceCriteria": [
+    "IGameRepository exposes appendEntry and replaceEntry; update() carries a comment stating it serves set-level writes only and that new paths must not use it.",
+    "An entry carrying a value the database cannot store fails with a 400 and leaves every previously recorded entry in that set intact.",
+    "A write against a missing game reports GAME_NOT_FOUND and a write against a missing set reports SET_NOT_FOUND, distinguished by matched versus modified counts rather than by an in-memory check.",
+    "Use case tests for the three entry paths mock no database concept, which is the check that database syntax stayed inside GameRepositoryImpl.",
+    "repository-helpers.mongo.ts is renamed to error-translation.mongo.ts with no behaviour change."
+  ],
+  "verification": [
+    "pnpm test:integration",
+    "pnpm test -- src/applications/usecases/game"
+  ],
+  "status": "pending"
+}

@@ -2,6 +2,7 @@
   "title": "game-positional-writes",
   "pages": [
     "index",
-    "design"
+    "design",
+    "implementation"
   ]
 }
