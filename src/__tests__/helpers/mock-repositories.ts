@@ -41,6 +41,7 @@ export function createMockGameRepository(): jest.Mocked<IGameRepository> {
     update: jest.fn(),
     appendEntry: jest.fn(),
     replaceEntry: jest.fn(),
+    completeSet: jest.fn(),
     delete: jest.fn(),
     findGameSummaries: jest.fn(),
   };

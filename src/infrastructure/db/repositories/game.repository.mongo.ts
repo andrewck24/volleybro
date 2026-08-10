@@ -379,7 +379,7 @@ export class GameRepositoryImpl implements IGameRepository {
    * off a path that does not exist yet — an out-of-range index would otherwise
    * pad the array with nulls instead of failing.
    */
-  private async writeEntry(
+  private async writeToSet(
     { gameId, setIndex }: EntryRef,
     guardPath: string,
     update: Record<string, unknown>,
@@ -427,7 +427,7 @@ export class GameRepositoryImpl implements IGameRepository {
           ),
         ] as const,
     );
-    return this.writeEntry(ref, path, {
+    return this.writeToSet(ref, path, {
       $push: { [`${path}.entries`]: this.mapEntryWrite(entry) },
       ...(setLineups.length && { $set: Object.fromEntries(setLineups) }),
     });
@@ -438,8 +438,22 @@ export class GameRepositoryImpl implements IGameRepository {
     entry: Entry,
   ): Promise<Entry[]> {
     const path = `sets.${ref.setIndex}.entries.${ref.entryIndex}`;
-    return this.writeEntry(ref, path, {
+    return this.writeToSet(ref, path, {
       $set: { [path]: this.mapEntryWrite(entry) },
+    });
+  }
+
+  async completeSet(
+    ref: EntryRef,
+    win: boolean | null,
+    gameWin?: boolean | null,
+  ): Promise<void> {
+    const path = `sets.${ref.setIndex}`;
+    await this.writeToSet(ref, path, {
+      $set: {
+        [`${path}.win`]: win,
+        ...(gameWin !== undefined && { win: gameWin }),
+      },
     });
   }
 

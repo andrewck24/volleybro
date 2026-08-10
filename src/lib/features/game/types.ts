@@ -189,7 +189,7 @@ const GameSummaryTeamResponseSchema = z.object({
 
 export const GameSummaryResponseSchema = z.object({
   id: z.string(),
-  win: z.boolean(),
+  win: z.boolean().nullable(),
   info: MatchResponseSchema,
   teams: z.object({
     home: GameSummaryTeamResponseSchema,

@@ -1,6 +1,7 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { deriveSetCompletion } from "@/applications/usecases/game/derive-set-completion";
 import { NotFoundError, GameReason } from "@/entities/errors";
 import { createRallyEntry, type Entry, type Rally } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
@@ -47,9 +48,19 @@ export class CreateRallyUseCase implements ICreateRallyUseCase {
       PlayerRole.MEMBER,
     );
 
-    return this.gameRepository.appendEntry(
+    const entries = await this.gameRepository.appendEntry(
       { gameId, setIndex },
       createRallyEntry(rally),
     );
+
+    const completion = deriveSetCompletion(game, setIndex, entries);
+    if (completion)
+      await this.gameRepository.completeSet(
+        { gameId, setIndex },
+        completion.win,
+        completion.gameWin,
+      );
+
+    return entries;
   }
 }

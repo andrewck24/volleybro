@@ -28,6 +28,16 @@ export interface IGameRepository {
     ref: EntryRef & { entryIndex: number },
     entry: Entry,
   ): Promise<Entry[]>;
+  /**
+   * Records a set's result, and the match's when the match is decided. Both
+   * are derived values with no other writer, so they are written at the point
+   * the derivation changes rather than accumulated per rally.
+   */
+  completeSet(
+    ref: EntryRef,
+    win: boolean | null,
+    gameWin?: boolean | null,
+  ): Promise<void>;
   delete(id: string): Promise<boolean>;
   findGameSummaries(
     teamId: string,

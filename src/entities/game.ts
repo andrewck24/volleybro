@@ -291,7 +291,7 @@ export type Game = {
 
 export type GameSummary = {
   id: string;
-  win: boolean;
+  win: boolean | null;
   info: Match;
   teams: {
     home: { id: string; name: string; sets: number; scores: number[] };
