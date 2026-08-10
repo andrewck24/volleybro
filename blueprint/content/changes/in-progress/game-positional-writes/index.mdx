@@ -7,11 +7,15 @@ import { ChangeOverview } from "@/components/ChangeOverview";
 <ChangeOverview
   date="2026-08-08"
   status="in-progress"
-  summary="每記一顆球都重寫整份 game 文件：任何一個 leaf 不合法會讓整局寫入失敗，兩個寫入者會無聲覆蓋彼此，寫入量隨比賽線性成長。改為以 entries 為唯一真實來源、統計由它推導，記一顆球就退化成往陣列尾端追加一個元素——沒有欄位路徑、沒有淨差量、沒有雙用 helper。八個決策全部定案，核心流程走查與分層稽核皆已完成。"
+  summary="game 寫入從整份文件 $set 改為定位寫入：entries 成為唯一真實來源、統計改由推導，記一顆球退化成往陣列尾端 $push 一個元素。縮小 cast 爆炸半徑、消除 read-modify-write 的 lost update 窗口，並讓一局的結束成為明確的領域操作。"
   artifacts={[
     {
       title: "Design",
-      href: "/changes/discussing/game-positional-writes/design",
+      href: "/changes/in-progress/game-positional-writes/design",
+    },
+    {
+      title: "Implementation",
+      href: "/changes/in-progress/game-positional-writes/implementation",
     },
   ]}
 />
