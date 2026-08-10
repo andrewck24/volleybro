@@ -1,4 +1,4 @@
-import { MoveType, TeamStatsClass, deriveSetStats } from "@/entities/game";
+import { MoveType, deriveSetStats } from "@/entities/game";
 import type {
   GameView,
   ITeamsStats,
@@ -15,15 +15,10 @@ const MOVE_TYPES = [
   MoveType.UNFORCED,
 ] as const;
 
-// TeamStatsClass seeds the allowances with their limits; derived totals count
-// what was used, so start them at zero (matches deriveSetStats' own convention).
-const emptyTeamStats = (): TeamStatsView => {
-  const stats = new TeamStatsClass();
-  stats.substitution = 0;
-  stats.timeout = 0;
-  stats.challenge = 0;
-  return stats;
-};
+// A set with no entries, so the totals a derivation starts from — asking for
+// them keeps the zeroing convention in deriveSetStats alone.
+const emptyTeamStats = (): TeamStatsView =>
+  deriveSetStats(undefined, { options: { serve: "home" } }).home;
 
 const addTeamStats = (a: TeamStatsView, b: TeamStatsView): TeamStatsView => {
   const sum = emptyTeamStats();
