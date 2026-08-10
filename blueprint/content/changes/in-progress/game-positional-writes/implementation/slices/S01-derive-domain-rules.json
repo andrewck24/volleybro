@@ -2,7 +2,9 @@
   "$schema": "../../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "Move the derivation rules into entities and derive a set's statistics",
-  "capabilities": ["game-recording/statistics"],
+  "capabilities": [
+    "game-recording/statistics"
+  ],
   "dependsOn": [],
   "outcome": "The scoring rules live in the domain layer as pure functions that both the server and the Redux store can call, and a set's statistics can be computed from its entries alone.",
   "acceptanceCriteria": [
@@ -16,5 +18,5 @@
     "pnpm test -- src/entities",
     "pnpm typecheck:strict"
   ],
-  "status": "pending"
+  "status": "completed"
 }

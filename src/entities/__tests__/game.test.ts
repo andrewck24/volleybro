@@ -1,9 +1,16 @@
 import { ValidationError } from "@/entities/errors";
 import {
+  EntryType,
   MoveType,
   type Player,
   PlayerStatsClass,
+  SET_ALLOWANCES,
+  Side,
   TeamStatsClass,
+  deriveServingStatus,
+  deriveSetPhase,
+  deriveSetStats,
+  getPreviousRally,
   validateLineupPlayers,
 } from "@/entities/game";
 import { Position, type Lineup } from "@/entities/team";
@@ -153,5 +160,142 @@ describe("validateLineupPlayers", () => {
         rosterWithNullId,
       ),
     ).toThrow(ValidationError);
+  });
+});
+
+describe("set derivation", () => {
+  const rally = (
+    win: boolean,
+    homeScore: number,
+    awayScore: number,
+    scorerId?: string,
+    type: MoveType = MoveType.ATTACK,
+  ) => ({
+    type: EntryType.RALLY,
+    win,
+    home: {
+      score: homeScore,
+      type,
+      ...(scorerId ? { player: { id: scorerId } } : {}),
+    },
+    away: { score: awayScore, type: MoveType.DEFENSE },
+  });
+
+  const set = { options: { serve: "home" as const } };
+
+  describe("getPreviousRally", () => {
+    it("skips non-rally entries when looking back", () => {
+      const entries = [
+        rally(true, 1, 0),
+        { type: EntryType.SUBSTITUTION, team: Side.HOME },
+      ];
+      expect(getPreviousRally(entries, 2)?.home.score).toBe(1);
+    });
+
+    it("returns null before the first entry", () => {
+      expect(getPreviousRally([rally(true, 1, 0)], 0)).toBeNull();
+    });
+  });
+
+  describe("deriveServingStatus", () => {
+    it("falls back to the set's serve option with no rally yet", () => {
+      expect(deriveServingStatus({ ...set, entries: [] }, 0)).toBe(true);
+      expect(
+        deriveServingStatus({ options: { serve: "away" }, entries: [] }, 0),
+      ).toBe(false);
+    });
+
+    it("gives serve to whoever won the previous rally", () => {
+      const entries = [rally(false, 0, 1)];
+      expect(deriveServingStatus({ ...set, entries }, 1)).toBe(false);
+    });
+  });
+
+  describe("deriveSetPhase", () => {
+    const game = (entries: unknown[]) => ({
+      info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
+      sets: [{ entries }] as { entries?: never[] }[],
+    });
+
+    it("treats an existing set with no entries as in progress", () => {
+      expect(deriveSetPhase(game([]), 0, 0).isSetInProgress).toBe(true);
+    });
+
+    it("reports set point at 24 with a lead", () => {
+      expect(deriveSetPhase(game([rally(true, 24, 20)]), 0, 1)).toEqual({
+        isSetInProgress: true,
+        isSetPoint: true,
+      });
+    });
+
+    it("ends the set at 25 with a two point lead", () => {
+      expect(deriveSetPhase(game([rally(true, 25, 20)]), 0, 1)).toEqual({
+        isSetInProgress: false,
+        isSetPoint: false,
+      });
+    });
+
+    it("keeps a deuce going", () => {
+      expect(deriveSetPhase(game([rally(true, 25, 24)]), 0, 1)).toEqual({
+        isSetInProgress: true,
+        isSetPoint: true,
+      });
+    });
+
+    it("uses the deciding set points for the last set", () => {
+      const decider = {
+        info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
+        sets: [{}, {}, {}, {}, { entries: [rally(true, 15, 10)] }],
+      };
+      expect(deriveSetPhase(decider, 4, 1).isSetInProgress).toBe(false);
+    });
+  });
+
+  describe("deriveSetStats", () => {
+    it("counts team and player outcomes from the entries alone", () => {
+      const stats = deriveSetStats(
+        [rally(true, 1, 0, "p1"), rally(false, 1, 1, "p1")],
+        set,
+      );
+
+      expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 1 });
+      expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 1, error: 1 });
+      expect(stats.players["p1"]![MoveType.ATTACK]).toEqual({
+        success: 1,
+        error: 1,
+      });
+    });
+
+    it("leaves out a rally that names no player", () => {
+      const stats = deriveSetStats([rally(true, 1, 0)], set);
+      expect(Object.keys(stats.players)).toHaveLength(0);
+      expect(stats.home[MoveType.ATTACK].success).toBe(1);
+    });
+
+    it("rotates only when the home team wins a rally it did not serve", () => {
+      // home serves first, wins (no rotation), loses serve, wins it back (rotation)
+      const stats = deriveSetStats(
+        [rally(true, 1, 0), rally(false, 1, 1), rally(true, 2, 1)],
+        set,
+      );
+      expect(stats.home.rotation).toBe(1);
+    });
+
+    it("reports allowances as used counts starting from zero", () => {
+      const stats = deriveSetStats(
+        [
+          { type: EntryType.SUBSTITUTION, team: Side.HOME },
+          { type: EntryType.SUBSTITUTION, team: Side.AWAY },
+          { type: EntryType.TIMEOUT, team: Side.HOME },
+        ],
+        set,
+      );
+
+      expect(stats.home.substitution).toBe(1);
+      expect(stats.away.substitution).toBe(1);
+      expect(stats.home.timeout).toBe(1);
+      expect(stats.away.timeout).toBe(0);
+      expect(SET_ALLOWANCES.substitution - stats.home.substitution).toBe(5);
+    });
   });
 });
