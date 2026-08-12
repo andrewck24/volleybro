@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type { ChangeLifecycle } from "@/lib/change-types";
 import { cn } from "@/lib/utils";
 
 type Artifact = { title: string; href: string };
@@ -7,6 +8,7 @@ type Status = "archived" | "in-progress" | "discussing" | "draft";
 type Props = {
   date: string;
   status: Status;
+  lifecycle?: ChangeLifecycle;
   summary: string;
   artifacts: Artifact[];
 };
@@ -52,12 +54,21 @@ function ArtifactCard({ title, href }: Artifact) {
   );
 }
 
-export function ChangeOverview({ date, status, summary, artifacts }: Props) {
+export function ChangeOverview({
+  date,
+  status,
+  lifecycle,
+  summary,
+  artifacts,
+}: Props) {
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <span className="font-mono text-sm text-muted-foreground">{date}</span>
         <StatusBadge status={status} />
+        {lifecycle && lifecycle !== status && (
+          <Badge variant="secondary">{lifecycle}</Badge>
+        )}
       </div>
 
       <p className="mt-0 mb-7 leading-relaxed">{summary}</p>

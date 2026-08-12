@@ -252,8 +252,9 @@ Canonical execution data is JSON; MDX and React components render it for human r
 
 ```text
 blueprint/content/changes/<status>/<change-slug>/
-├── meta.json
-├── index.mdx
+├── change.json                 canonical Change metadata
+├── meta.json                   page list
+├── index.mdx                   Overview narrative only
 ├── design.mdx
 ├── design.tsx                  optional interactive design
 ├── design/
@@ -267,6 +268,28 @@ blueprint/content/changes/<status>/<change-slug>/
 │       └── S02-<name>.json
 └── review.mdx
 ```
+
+The Overview page renders status, lifecycle, and summary from `change.json`, its date from that
+file's `startedAt`, and its artifact links from the pages Blueprint actually registered for the
+Change, ordered by that Change's `meta.json`. `index.mdx` carries narrative content only and must
+not restate any of that as component props. Link text is each page's own frontmatter `title`, so an
+Overview cannot link to a page that does not exist, show a stale title, or omit a page that was
+added.
+
+The lifecycle directories `discussing/`, `in-progress/`, and `archive/` do not enumerate their
+Changes: their `meta.json` uses `["..."]`, and `archive/` uses `["z...a"]` so that dated directories
+list newest first. Do not replace those with an explicit list — enumerating them would make every
+lifecycle move edit two more files.
+
+Moving a Change between lifecycle directories therefore touches exactly three things: the directory
+itself, `change.json` (`status`, `lifecycle`, and `archivedAt` when archiving), and — only when the
+Change has a `design.tsx` — its key in the `designModules` map of the changes route. Forgetting the
+third one breaks the Blueprint build rather than failing quietly, which is what the Archive build
+check catches.
+
+A data directory shadows its sibling page in Blueprint's raw content tree, so a Change carrying
+`design/decisions/` or `implementation/slices/` needs no change to its `meta.json` `pages`: `design`
+and `implementation` stay listed and the rendering layer reconciles the shadowed pages.
 
 Durable slice statuses are `pending`, `completed`, and `superseded`. Runtime states such as
 `claimed`, `running`, executor identity, and retry count do not belong in Git and must not be added
