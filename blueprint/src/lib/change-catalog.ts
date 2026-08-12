@@ -16,27 +16,65 @@ const STATUS_DIRECTORIES: Record<ChangeStatus, string> = {
   archived: "archive",
 };
 
+const DIRECTORY_STATUSES = new Map(
+  CHANGE_STATUSES.map((status) => [STATUS_DIRECTORIES[status], status]),
+);
+
+async function readChange(
+  contentRoot: string,
+  statusDirectory: string,
+  changeDirectory: string,
+  status: ChangeStatus,
+): Promise<ChangeRecord> {
+  const metadata = JSON.parse(
+    await readFile(
+      path.join(contentRoot, statusDirectory, changeDirectory, "change.json"),
+      "utf8",
+    ),
+  );
+  return parseChangeMetadata(
+    metadata,
+    status,
+    changeDirectory,
+    statusDirectory,
+  );
+}
+
+/**
+ * Canonical metadata for one Change, read from its `change.json`. The Overview
+ * page renders these facts instead of restating them as MDX props.
+ *
+ * Returns undefined only for a directory that is not a lifecycle directory. A
+ * Change whose `change.json` is missing or invalid throws, so a broken contract
+ * fails the Blueprint build instead of silently rendering an empty Overview.
+ */
+export async function loadChangeMetadata(
+  statusDirectory: string,
+  changeDirectory: string,
+  contentRoot = path.join(process.cwd(), "content", "changes"),
+): Promise<ChangeRecord | undefined> {
+  const status = DIRECTORY_STATUSES.get(statusDirectory);
+  if (!status) return undefined;
+
+  return readChange(contentRoot, statusDirectory, changeDirectory, status);
+}
+
 export async function loadChangeCatalog(
   contentRoot = path.join(process.cwd(), "content", "changes"),
 ): Promise<ChangeRecord[]> {
   const records = await Promise.all(
     CHANGE_STATUSES.map(async (status) => {
-      const directory = STATUS_DIRECTORIES[status];
-      const statusRoot = path.join(contentRoot, directory);
-      const entries = await readdir(statusRoot, { withFileTypes: true });
+      const statusDirectory = STATUS_DIRECTORIES[status];
+      const entries = await readdir(path.join(contentRoot, statusDirectory), {
+        withFileTypes: true,
+      });
 
       return Promise.all(
         entries
           .filter((entry) => entry.isDirectory())
-          .map(async (entry) => {
-            const metadata = JSON.parse(
-              await readFile(
-                path.join(statusRoot, entry.name, "change.json"),
-                "utf8",
-              ),
-            );
-            return parseChangeMetadata(metadata, status, entry.name, directory);
-          }),
+          .map((entry) =>
+            readChange(contentRoot, statusDirectory, entry.name, status),
+          ),
       );
     }),
   );

@@ -8,7 +8,8 @@ import { ChangeOverview } from "@/components/ChangeOverview";
 import { ChangeCard } from "@/components/ChangeCard";
 import { ChangesCatalog } from "@/components/ChangesCatalog";
 import { ImplementationSlices } from "@/components/ImplementationSlices";
-import { loadChangeCatalog } from "@/lib/change-catalog";
+import { loadChangeCatalog, loadChangeMetadata } from "@/lib/change-catalog";
+import { changeArtifacts } from "@/lib/change-artifacts";
 import { loadImplementationPlan } from "@/lib/implementation-plan-loader";
 import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 
@@ -42,7 +43,7 @@ const designModules: Record<string, () => Promise<DesignModule>> = {
     import("../../../../../content/changes/archive/2026-06-16-team-routes-clean-architecture/design"),
 };
 
-const mdxComponents = { ...defaultMdxComponents, ChangeOverview, ChangeCard };
+const mdxComponents = { ...defaultMdxComponents, ChangeCard };
 const changesBreadcrumbTree = createChangesBreadcrumbTree(
   source.pageTree,
   source.getPages().map((page) => ({
@@ -127,6 +128,30 @@ export default async function Page({ params }: PageProps) {
   if (!page) notFound();
 
   const Mdx = page.data.body;
+
+  // Change Overview pages take their metadata from change.json and their
+  // artifact links from the page tree; the MDX below is narrative only.
+  if (slug?.length === 2) {
+    const change = await loadChangeMetadata(slug[0], slug[1]);
+    if (change) {
+      return (
+        <ChangeDocsPage toc={page.data.toc}>
+          <DocsBody>
+            <h1>{page.data.title}</h1>
+            <ChangeOverview
+              date={change.startedAt}
+              status={change.status}
+              lifecycle={change.lifecycle}
+              summary={change.summary}
+              artifacts={changeArtifacts(changesBreadcrumbTree, page.url)}
+            />
+            <Mdx components={mdxComponents} />
+          </DocsBody>
+        </ChangeDocsPage>
+      );
+    }
+  }
+
   return (
     <ChangeDocsPage toc={page.data.toc}>
       <DocsBody>
