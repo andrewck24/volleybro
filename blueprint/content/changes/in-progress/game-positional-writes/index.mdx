@@ -2,28 +2,6 @@
 title: Overview
 ---
 
-import { ChangeOverview } from "@/components/ChangeOverview";
-
-<ChangeOverview
-  date="2026-08-08"
-  status="in-progress"
-  summary="game 寫入從整份文件 $set 改為定位寫入：entries 成為唯一真實來源、統計改由推導，記一顆球退化成往陣列尾端 $push 一個元素。縮小 cast 爆炸半徑、消除 read-modify-write 的 lost update 窗口，並讓一局的結束成為明確的領域操作。"
-  artifacts={[
-    {
-      title: "Design",
-      href: "/changes/in-progress/game-positional-writes/design",
-    },
-    {
-      title: "Implementation",
-      href: "/changes/in-progress/game-positional-writes/implementation",
-    },
-    {
-      title: "Review",
-      href: "/changes/in-progress/game-positional-writes/review",
-    },
-  ]}
-/>
-
 ## Context
 
 `IGameRepository` 只有一個寫入方法 `update(id, Partial<Game>)`，五個 game usecase 全部呼叫它，實作是整份文件覆寫。
