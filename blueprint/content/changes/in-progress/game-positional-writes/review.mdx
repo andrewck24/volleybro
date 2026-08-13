@@ -6,16 +6,16 @@ title: Review
 
 ### Delivered
 
-六個切片全部完成，分支 `feat/game-positional-writes`，基準 `dd76a74d`。
+六個切片全部完成，基準 `4028dcc2`。下列 SHA 是 rebase 到該基準之後的值。
 
-- **S01** `74079c9f` — 計分規則移入 `entities/game.ts` 成為純函式（`deriveSetStats`、`deriveServingStatus`、`deriveSetPhase`、`getPreviousRally`），伺服器與 Redux store 共用；每個函式只宣告自己讀的結構，所以 `Entry[]` 與 `EntryView[]` 都能直接傳入。
-- **S02** `ceaff6e8` — `IGameRepository` 新增 `appendEntry` / `replaceEntry`，以定位寫入實作；`update()` 保留但標明只服務 set 層級寫入。`repository-helpers.mongo.ts` 更名為 `error-translation.mongo.ts`。
-- **S03** `058bd292` — 三條 entry 寫入路徑改走領域操作，`src/applications/` 對 `@/lib/features/` 的引用從三個降到一個；create-set 與 create-substitution 的統計初始化與累加刪除；換人的陣容交換與 entry 在同一次寫入落庫。
-- **S04** `7105b478` — `completeSet` 領域操作；局末由伺服器推導並寫入 `sets.N.win` 與（賽果底定時）`game.win`；新比賽的 `win` 由 `false` 改為 `null`，`GameSummary.win` 放寬為 `boolean | null`，比賽列表分辨進行中／獲勝／落敗。
-- **S05** `f196fbee` — Redux `initialize` 每次更新推導一次並存進 state；`updateStats`、`discardOriginalStats`、`updateRotation` 與換人 helper 的統計累加全部刪除。
-- **S06** `27a105c3` — `stats` 自 domain type 與 `*View` schema 移除，Mongoose schema 保留欄位並註記無寫入者與保留原因。
+- **S01** `9789f04a` — 計分規則移入 `entities/game.ts` 成為純函式（`deriveSetStats`、`deriveServingStatus`、`deriveSetPhase`、`getPreviousRally`），伺服器與 Redux store 共用；每個函式只宣告自己讀的結構，所以 `Entry[]` 與 `EntryView[]` 都能直接傳入。
+- **S02** `9b13ff21` — `IGameRepository` 新增 `appendEntry` / `replaceEntry`，以定位寫入實作；`update()` 保留但標明只服務 set 層級寫入。`repository-helpers.mongo.ts` 更名為 `error-translation.mongo.ts`。
+- **S03** `9e881baf` — 三條 entry 寫入路徑改走領域操作，`src/applications/` 對 `@/lib/features/` 的引用從三個降到一個；create-set 與 create-substitution 的統計初始化與累加刪除；換人的陣容交換與 entry 在同一次寫入落庫。
+- **S04** `7b351621` — `completeSet` 領域操作；局末由伺服器推導並寫入 `sets.N.win` 與（賽果底定時）`game.win`；新比賽的 `win` 由 `false` 改為 `null`，`GameSummary.win` 放寬為 `boolean | null`，比賽列表分辨進行中／獲勝／落敗。
+- **S05** `4afcab67` — Redux `initialize` 每次更新推導一次並存進 state；`updateStats`、`discardOriginalStats`、`updateRotation` 與換人 helper 的統計累加全部刪除。
+- **S06** `c5ba3a46` — `stats` 自 domain type 與 `*View` schema 移除，Mongoose schema 保留欄位並註記無寫入者與保留原因。
 
-`8be09a2f` 是一次 Ingest（見下方 plan-versus-actual）。`73c9bc7e` 是 changeset（patch）。
+`9bf08cdf` 是一次 Ingest（見下方 plan-versus-actual）。`1efb7506` 是 changeset（patch）。
 
 ### Validation evidence
 
@@ -47,7 +47,7 @@ Standards 軸標為 judgement call。`deriveSetPhase` 的參數形狀在 S01 定
 
 ### Plan versus actual
 
-**S02 驗收條件第三條經 Ingest 修正**（`8be09a2f`）。原文要求以 matchedCount 對 modifiedCount 區分 GAME_NOT_FOUND 與 SET_NOT_FOUND。實測（mongodb-memory-server）該機制不存在：filter 只放 `_id` 時，`$push` 到超出範圍的 `sets.N.entries` 不會失敗，MongoDB 會把 sets 補 null 補到該索引再寫入——靜默毀損文件。因此 `sets.N` 的存在必須是寫入條件的一部分，而那會讓兩種 miss 都回報零筆命中。行為承諾未變（寫入條件判定、不預先讀出來檢查），改變的是機制陳述：失敗路徑多一次 `exists({ _id })` 分辨。Design 的錯誤模型段落同步更新。
+**S02 驗收條件第三條經 Ingest 修正**（`9bf08cdf`）。原文要求以 matchedCount 對 modifiedCount 區分 GAME_NOT_FOUND 與 SET_NOT_FOUND。實測（mongodb-memory-server）該機制不存在：filter 只放 `_id` 時，`$push` 到超出範圍的 `sets.N.entries` 不會失敗，MongoDB 會把 sets 補 null 補到該索引再寫入——靜默毀損文件。因此 `sets.N` 的存在必須是寫入條件的一部分，而那會讓兩種 miss 都回報零筆命中。行為承諾未變（寫入條件判定、不預先讀出來檢查），改變的是機制陳述：失敗路徑多一次 `exists({ _id })` 分辨。Design 的錯誤模型段落同步更新。
 
 **S05 驗收條件第二條逐字滿足，但不是設計原本設想的形狀。** 條件為「`src/components/` 無檔案 import `deriveSetStats`；元件自 store 讀取推導值」。`components/game/options/overview` 確實改自 Redux `status.stats` 讀取。`components/game/stats/teams-stats` 則呼叫 `src/lib/` 的 `getTeamsStats`，該 helper 在 `useMemo` 內推導。
 
