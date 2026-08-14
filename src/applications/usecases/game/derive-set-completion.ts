@@ -1,6 +1,7 @@
 import {
   deriveSetPhase,
   getPreviousRally,
+  setTargetPoints,
   type Entry,
   type Game,
 } from "@/entities/game";
@@ -18,12 +19,10 @@ export function deriveSetCompletion(
   setIndex: number,
   entries: Entry[],
 ): SetCompletion | null {
-  const shimSets: { entries: Entry[] }[] = [];
-  shimSets[setIndex] = { entries };
   const phase = deriveSetPhase(
-    { info: game.info, sets: shimSets },
-    setIndex,
+    { entries },
     entries.length,
+    setTargetPoints(game.info.scoring, setIndex),
   );
 
   const lastRally = getPreviousRally(entries, entries.length);

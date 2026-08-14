@@ -1,5 +1,4 @@
-import { EntryType } from "@/entities/game";
-import { getSetPhase } from "@/lib/features/game/helpers";
+import { EntryType, deriveSetPhase, setTargetPoints } from "@/entities/game";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 export const createRallyHelper = (
@@ -50,7 +49,12 @@ const processGamePhase = (
   entryIndex: number,
   entryDraft: RallyView,
 ) => {
-  const phase = getSetPhase(game, setIndex, entryIndex + 1);
+  const targetPoints = setTargetPoints(game.info.scoring, setIndex);
+  const phase = deriveSetPhase(
+    game.sets[setIndex],
+    entryIndex + 1,
+    targetPoints,
+  );
   // setIndex is the active set being processed; guaranteed in bounds
   const set = game.sets[setIndex]!;
 

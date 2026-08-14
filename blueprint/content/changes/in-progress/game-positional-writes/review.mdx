@@ -21,7 +21,7 @@ title: Review
 
 | Scope                                                   | Command                 | Result                                                                        |
 | ------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
-| 單元與元件                                              | `pnpm test`             | Pass：103 suites / 801 tests                                                  |
+| 單元與元件                                              | `pnpm test`             | Pass：100 suites / 787 tests                                                  |
 | 整合（真實記憶體 MongoDB，route → usecase → repo → DB） | `pnpm test:integration` | Pass：9 suites / 24 tests                                                     |
 | 型別                                                    | `pnpm typecheck:strict` | Pass                                                                          |
 | Lint                                                    | `pnpm lint`             | Pass，零 warning                                                              |
@@ -40,8 +40,15 @@ S06 發現 `getGeneralModeLineup` 由 `game.teams.home.stats[setIndex]!.rotation
 **F3 — 推導的歸零約定被寫了兩次（已修）**
 Standards 軸指出 `deriveSetStats` 與 `team-stats.helper.ts` 的 `emptyTeamStats()` 各自編碼一次「配額欄位由上限改為從零計數」。後者改為向 `deriveSetStats(undefined, …)` 索取空集合的推導結果，規則只剩一處。
 
-**F4 — `derive-set-completion` 為呼叫 `deriveSetPhase` 而搭建臨時稀疏陣列（接受）**
-Standards 軸標為 judgement call。`deriveSetPhase` 的參數形狀在 S01 定案並同時服務前端，為單一伺服器呼叫端新增進入點會把 D3 想消除的分歧帶回來。兩行 shim 留著。
+**F4 — `derive-set-completion` 為呼叫 `deriveSetPhase` 而搭建臨時稀疏陣列（已修，見 F6）**
+Standards 軸標為 judgement call：呼叫端偽造一個只填了單一索引的假 `game`，只為配合被呼叫端的參數形狀。最初判定接受，理由是 `deriveSetPhase` 的簽章在 S01 定案且同時服務前端。追查該理由是否成立時發現前端根本沒有在用它（F6），於是連同 F6 一併處理：簽章改為直接吃 set，稀疏陣列消失。
+
+**F6 — 四個共用函式裡有三個前端仍用自己的複製品（已修）**
+D3-A 與 D6-A 的決策是「規則移入 domain 層成為純函式、前後端共用」。實際交付後 `deriveSetPhase`、`deriveServingStatus`、`getPreviousRally` 三者在 `src/lib/features/game/helpers/queries/` 各有一份逐行等價的複製品，Redux store、rally helper 與兩個元件用的都是複製品。四個函式裡只有 `deriveSetStats` 真的共用了。計分規則因此有兩份實作，正是本 Change 要消滅的形狀。
+
+**兩軸 review 都沒攔下它**，因為 S01 的驗收條件只要求 entities 匯出這四個函式、且傳 `EntryView[]` 與 `Entry[]` 都不需 cast 就過型別——兩條字面上都成立。可 cast 那條正是為了讓前端改用而寫的，只是沒有人真的去改，而驗收條件沒有把「前端已改用」寫成可檢查的事實。
+
+修法：`deriveSetPhase` 拆為 `setTargetPoints(scoring, setIndex)`（決勝局打 `decidingSetPoints`、其餘 25 的規則）與 `deriveSetPhase(set, entryIndex, targetPoints)`，兩者都留在 entities；三個複製品與其測試刪除，前端測試涵蓋而 entities 未涵蓋的案例（未建立的局回報 not-in-progress）移植進 entities 測試；六個呼叫點改用 entities。行為未變，這是收斂不是重新設計。
 
 **F5 — `TeamsStats` 在 render 期間推導而非自 store 讀取（接受，見 plan-versus-actual）**
 
@@ -69,3 +76,4 @@ D4 的 consequences 已列出「附加 entry 與完成一局是兩次寫入，�
 1. 定義並實作 entry 的穩定身分與寫入幂等性，據此收斂 R1（依 D4 revisit trigger，屬同步記錄範圍）。
 2. `src/entities/team.ts` 與 `src/infrastructure/db/mongoose/schemas/team.ts` 各有一個完全無人讀寫的 `stats` 欄位（名冊的 Team，非 Game 的）。不在本 Change 範圍，刪除屬判斷型決定，需開發者確認。
 3. 評估以 lint 規則強制 D2 的存續條件與分層邊界（`src/applications/` 不得 import `@/lib/features/`），取代 review 把關。
+4. F6 的教訓：「規則移入共用層」這類決策，驗收條件必須把「舊呼叫端已改用、舊實作已刪除」寫成可檢查的事實。只寫「新層匯出了它」與「型別相容」，會讓一份未被採用的共用實作通過驗收，而兩份實作正是該決策要消滅的東西。

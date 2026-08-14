@@ -375,20 +375,21 @@ export function deriveServingStatus(
   return set ? set.options.serve === "home" : true;
 }
 
+/** The score needed to win a set, which is higher in the deciding set. */
+export const setTargetPoints = (
+  scoring: { setCount: number; decidingSetPoints: number },
+  setIndex: number,
+): number =>
+  setIndex === scoring.setCount - 1 ? scoring.decidingSetPoints : 25;
+
 export type SetPhase = { isSetInProgress: boolean; isSetPoint: boolean };
 
 /** Whether the set is still being played, and whether it is at set point. */
 export function deriveSetPhase(
-  game: {
-    info: { scoring: { setCount: number; decidingSetPoints: number } };
-    sets: readonly { entries?: readonly DerivableEntry[] }[];
-  },
-  setIndex: number,
+  set: { entries?: readonly DerivableEntry[] } | undefined,
   entryIndex: number,
+  targetPoints: number,
 ): SetPhase {
-  const isDecidingSet = setIndex === game.info.scoring.setCount - 1;
-  const point = isDecidingSet ? game.info.scoring.decidingSetPoints : 25;
-  const set = game.sets[setIndex];
   const rally = getPreviousRally(set?.entries, entryIndex);
 
   // Nothing recorded yet: a set that exists is being played, and one that does
@@ -396,25 +397,25 @@ export function deriveSetPhase(
   if (!rally) return { isSetInProgress: !!set, isSetPoint: false };
 
   const { home, away } = rally;
-  if (home.score < point - 1 && away.score < point - 1)
+  if (home.score < targetPoints - 1 && away.score < targetPoints - 1)
     return { isSetInProgress: true, isSetPoint: false };
 
   if (
-    (home.score === point - 1 && home.score > away.score) ||
-    (away.score === point - 1 && away.score > home.score)
+    (home.score === targetPoints - 1 && home.score > away.score) ||
+    (away.score === targetPoints - 1 && away.score > home.score)
   )
     return { isSetInProgress: true, isSetPoint: true };
 
   if (
-    home.score >= point - 1 &&
-    away.score >= point - 1 &&
+    home.score >= targetPoints - 1 &&
+    away.score >= targetPoints - 1 &&
     (home.score - away.score === 1 || away.score - home.score === 1)
   )
     return { isSetInProgress: true, isSetPoint: true };
 
-  if (home.score >= point && home.score - away.score >= 2)
+  if (home.score >= targetPoints && home.score - away.score >= 2)
     return { isSetInProgress: false, isSetPoint: false };
-  if (away.score >= point && away.score - home.score >= 2)
+  if (away.score >= targetPoints && away.score - home.score >= 2)
     return { isSetInProgress: false, isSetPoint: false };
 
   return { isSetInProgress: true, isSetPoint: false };

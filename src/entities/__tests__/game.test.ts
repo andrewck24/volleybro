@@ -11,6 +11,7 @@ import {
   deriveSetPhase,
   deriveSetStats,
   getPreviousRally,
+  setTargetPoints,
   validateLineupPlayers,
 } from "@/entities/game";
 import { Position, type Lineup } from "@/entities/team";
@@ -210,43 +211,59 @@ describe("set derivation", () => {
     });
   });
 
-  describe("deriveSetPhase", () => {
-    const game = (entries: unknown[]) => ({
-      info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-      sets: [{ entries }] as { entries?: never[] }[],
-    });
+  describe("setTargetPoints", () => {
+    const scoring = { setCount: 5, decidingSetPoints: 15 };
 
-    it("treats an existing set with no entries as in progress", () => {
-      expect(deriveSetPhase(game([]), 0, 0).isSetInProgress).toBe(true);
-    });
-
-    it("reports set point at 24 with a lead", () => {
-      expect(deriveSetPhase(game([rally(true, 24, 20)]), 0, 1)).toEqual({
-        isSetInProgress: true,
-        isSetPoint: true,
-      });
-    });
-
-    it("ends the set at 25 with a two point lead", () => {
-      expect(deriveSetPhase(game([rally(true, 25, 20)]), 0, 1)).toEqual({
-        isSetInProgress: false,
-        isSetPoint: false,
-      });
-    });
-
-    it("keeps a deuce going", () => {
-      expect(deriveSetPhase(game([rally(true, 25, 24)]), 0, 1)).toEqual({
-        isSetInProgress: true,
-        isSetPoint: true,
-      });
+    it("uses 25 for a non-deciding set", () => {
+      expect(setTargetPoints(scoring, 0)).toBe(25);
     });
 
     it("uses the deciding set points for the last set", () => {
-      const decider = {
-        info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-        sets: [{}, {}, {}, {}, { entries: [rally(true, 15, 10)] }],
-      };
-      expect(deriveSetPhase(decider, 4, 1).isSetInProgress).toBe(false);
+      expect(setTargetPoints(scoring, 4)).toBe(15);
+    });
+  });
+
+  describe("deriveSetPhase", () => {
+    it("treats an existing set with no entries as in progress", () => {
+      expect(deriveSetPhase({ entries: [] }, 0, 25).isSetInProgress).toBe(true);
+    });
+
+    it("treats a set that was never created as not in progress", () => {
+      expect(deriveSetPhase(undefined, 0, 25).isSetInProgress).toBe(false);
+    });
+
+    it("reports set point at 24 with a lead", () => {
+      expect(deriveSetPhase({ entries: [rally(true, 24, 20)] }, 1, 25)).toEqual(
+        {
+          isSetInProgress: true,
+          isSetPoint: true,
+        },
+      );
+    });
+
+    it("ends the set at 25 with a two point lead", () => {
+      expect(deriveSetPhase({ entries: [rally(true, 25, 20)] }, 1, 25)).toEqual(
+        {
+          isSetInProgress: false,
+          isSetPoint: false,
+        },
+      );
+    });
+
+    it("keeps a deuce going", () => {
+      expect(deriveSetPhase({ entries: [rally(true, 25, 24)] }, 1, 25)).toEqual(
+        {
+          isSetInProgress: true,
+          isSetPoint: true,
+        },
+      );
+    });
+
+    it("uses the deciding set points for the last set", () => {
+      expect(
+        deriveSetPhase({ entries: [rally(true, 15, 10)] }, 1, 15)
+          .isSetInProgress,
+      ).toBe(false);
     });
   });
 
