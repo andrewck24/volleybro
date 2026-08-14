@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "blueprint",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "blueprint", "dev", "--port", "3100"],
+      "port": 3100
+    }
+  ]
+}
