@@ -174,13 +174,20 @@ Apply is the same repository procedure in both execution modes:
    verification;
 8. continue until no eligible pending slice remains.
 
+The commit body is the canonical slice-to-commit mapping. It travels with the commit through
+rebases, which rewrite hashes but preserve bodies, so `git log --grep` reconstructs the mapping at
+any time. Blueprint artifacts therefore reference slices by stable ID and must not pin commit
+hashes: a pinned hash is a copy of a fact the commit already states, and every history rewrite
+silently invalidates it. Already-archived Changes keep the records they were accepted with; this
+rule governs Changes still in flight.
+
 The same-commit rule applies once this contract exists on the branch's base. When this workflow is
 first adopted around work that was already committed, or when existing commits are surgically
 replayed onto a fresh base, do not rewrite otherwise valid history solely to fabricate compliance.
 Before Pre-PR review completes and before developer acceptance, Blueprint Review must instead
-identify the bootstrap deviation and provide a durable mapping from every completed slice to its
-actual implementation commits and verification. This exception ends after the workflow contract
-lands on the base branch.
+identify the bootstrap deviation and describe, per completed slice, what was delivered and how it
+was verified. This exception ends after the workflow contract lands on the base branch. It does not
+license pinning commit hashes, which stay out of Blueprint artifacts for the reason given above.
 
 Verification failures remain inside Apply. Diagnose whether the implementation is wrong or the
 approved design is no longer viable. Fix implementation defects without creating a separate stage.
@@ -211,7 +218,8 @@ After all slices complete:
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent review until both axes reach a fixed point;
 5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
-   plan-versus-actual differences, residual risks, and follow-ups; and
+   plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID
+   rather than by commit hash; and
 6. set the Change lifecycle to `awaiting-delivery-review`, notify the developer, and stop for
    acceptance of Blueprint Review.
 
@@ -330,6 +338,11 @@ back into the Change branch before final verification.
 
 Do not create a separate planning branch and do not merge proposal artifacts into `dev` before the
 Change is delivered. Push the Change branch when another session or Symphony must resume it.
+
+Merge a Change into `dev` with a merge commit. Squashing collapses the per-slice commits and
+discards the `Implements` and `Blueprint-Change` trailers that make delivery traceable, which is
+exactly the evidence Pre-PR review and Archive depend on. Squash only work that carries no slice
+history — a single-commit fix or a tooling change — and say so in the pull request.
 
 ## Execution modes
 
