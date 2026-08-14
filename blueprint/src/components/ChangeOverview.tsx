@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ChangeLifecycle } from "@/lib/change-types";
@@ -45,12 +47,12 @@ function StatusBadge({ status }: { status: Status }) {
 
 function ArtifactCard({ title, href }: Artifact) {
   return (
-    <a href={href} className="block text-inherit no-underline">
+    <Link href={href} className="block text-inherit no-underline">
       <Card className="flex-row items-center gap-2 border-l-4 border-l-primary px-4 py-3 text-sm font-medium transition-colors hover:bg-muted/50">
         {title}
         <span className="ml-auto text-xs text-muted-foreground">→</span>
       </Card>
-    </a>
+    </Link>
   );
 }
 

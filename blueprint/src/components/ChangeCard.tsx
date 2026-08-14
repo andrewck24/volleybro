@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -97,9 +99,9 @@ export function ChangeCard({
 
   if (href) {
     return (
-      <a href={href} className="block text-inherit !no-underline">
+      <Link href={href} className="block text-inherit !no-underline">
         {inner}
-      </a>
+      </Link>
     );
   }
   return inner;

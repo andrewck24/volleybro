@@ -3,6 +3,8 @@
 // .light/.dark scopes. The open Drawer-layer question and its interactive
 // comparison live in the elevation-depth-system change's design page.
 
+import Link from "next/link";
+
 const layers = [
   {
     name: "Level 0 · Page",
@@ -122,9 +124,9 @@ export default function ElevationDepthPage() {
         <code>bg-card</code> — the scrim separates it from the page, and the
         Drawer peek stays continuous with the page&apos;s card surfaces. The
         interactive comparison that settled this lives in the{" "}
-        <a href="/changes/archive/2026-07-16-elevation-depth-system/design">
+        <Link href="/changes/archive/2026-07-16-elevation-depth-system/design">
           elevation-depth-system change&apos;s design page
-        </a>
+        </Link>
         .
       </p>
 
