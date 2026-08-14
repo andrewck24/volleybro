@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SwatchGrid, type TokenInfo } from "../_shared";
 
 // Token groups only name the CSS custom property and its role — the rendered
@@ -79,8 +81,8 @@ export default function ColorPage() {
       <p>
         Three distinct background layers, ordered by elevation. This is the
         heart of the <code>elevation-depth-system</code> change — see{" "}
-        <a href="/design-system/elevation-depth">Elevation &amp; Depth</a> for
-        the layering rules and the overlay-replaces-ring model.
+        <Link href="/design-system/elevation-depth">Elevation &amp; Depth</Link>{" "}
+        for the layering rules and the overlay-replaces-ring model.
       </p>
       <SwatchGrid tokens={surface} />
 
