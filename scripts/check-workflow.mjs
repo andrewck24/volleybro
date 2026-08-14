@@ -53,6 +53,21 @@ const RETIRED_REFERENCE = ["spec", "loop"].join("-");
 const ACTIVE_ROOT_FILES = ["CLAUDE.md", "AGENTS.md", "package.json"];
 const ACTIVE_DIRECTORIES = [".github", "scripts"];
 const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
+const BLUEPRINT_CHANGES = "blueprint/content/changes";
+const BLUEPRINT_LINK_SOURCES = ["blueprint/src", "blueprint/content"];
+const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
+const CHANGES_ROUTE = path.join(
+  "blueprint",
+  "src",
+  "app",
+  "(docs)",
+  "changes",
+  "[[...slug]]",
+  "page.tsx",
+);
+const ANCHOR_TAG = /<a(\s[^>]*)>/g;
+const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
+const DESIGN_MODULE_KEY = /"([^"]+)\/design":/g;
 
 async function validateContributorGuidance(root) {
   const contributorPath = path.join(root, "CONTRIBUTING.md");
@@ -324,6 +339,82 @@ async function activeReferenceFiles(root) {
   });
 }
 
+// A Change Overview renders change.json and the registered pages. Restating any
+// of that as MDX props reintroduces the hand-synchronised copies the
+// Implementation-slice contract removed.
+async function validateOverviewSource(root) {
+  const files = await listFiles(path.join(root, BLUEPRINT_CHANGES));
+  const diagnostics = [];
+
+  for (const filePath of files) {
+    if (path.basename(filePath) !== "index.mdx") continue;
+    const content = await readFile(filePath, "utf8");
+    if (!content.includes("<ChangeOverview")) continue;
+    diagnostics.push(
+      `${path.relative(root, filePath)} [blueprint-overview-source]: Overview metadata comes from change.json, not ChangeOverview props`,
+    );
+  }
+
+  return diagnostics;
+}
+
+// A raw anchor is a full document load, which discards the sidebar state
+// fumadocs keeps in React state. Internal links have to route through next/link.
+async function validateInternalLinks(root) {
+  const files = (
+    await Promise.all(
+      BLUEPRINT_LINK_SOURCES.map((relativePath) =>
+        listFiles(path.join(root, relativePath)),
+      ),
+    )
+  )
+    .flat()
+    .filter((filePath) =>
+      BLUEPRINT_LINK_EXTENSIONS.has(path.extname(filePath)),
+    );
+
+  const diagnostics = [];
+  for (const filePath of files) {
+    const content = await readFile(filePath, "utf8");
+    for (const [, attributes] of content.matchAll(ANCHOR_TAG)) {
+      if (!attributes.includes("href=")) continue;
+      if (EXTERNAL_HREF.test(attributes)) continue;
+      diagnostics.push(
+        `${path.relative(root, filePath)} [blueprint-internal-link]: use next/link so navigation keeps the sidebar state`,
+      );
+      break;
+    }
+  }
+
+  return diagnostics;
+}
+
+// The design module registry repeats each Change's directory. Until that
+// coupling goes away, name the mismatch instead of failing as a module
+// resolution error deep inside the bundler.
+async function validateDesignModules(root) {
+  const routePath = path.join(root, CHANGES_ROUTE);
+  if (!(await exists(routePath))) return [];
+
+  const route = await readFile(routePath, "utf8");
+  const diagnostics = [];
+  for (const [, changePath] of route.matchAll(DESIGN_MODULE_KEY)) {
+    const designPath = path.join(
+      root,
+      BLUEPRINT_CHANGES,
+      changePath,
+      "design.tsx",
+    );
+    if (!(await exists(designPath))) {
+      diagnostics.push(
+        `${CHANGES_ROUTE} [blueprint-design-module]: ${changePath}/design.tsx does not exist`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
   const workflowPath = path.join(root, "WORKFLOW.md");
@@ -358,6 +449,9 @@ export async function checkWorkflow(root = process.cwd()) {
     }
   }
 
+  diagnostics.push(...(await validateOverviewSource(root)));
+  diagnostics.push(...(await validateInternalLinks(root)));
+  diagnostics.push(...(await validateDesignModules(root)));
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));
   diagnostics.push(...(await validateContributorGuidance(root)));

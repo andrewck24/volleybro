@@ -191,3 +191,73 @@ test("reports an active retired harness reference", async () => {
     /scripts\/dispatch\.mjs.*retired/i,
   );
 });
+
+test("reports Overview metadata restated as MDX props", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/content/changes/in-progress/sample/index.mdx":
+          '---\ntitle: Overview\n---\n\n<ChangeOverview date="2026-08-08" />\n',
+      })
+    ).join("\n"),
+    /sample\/index\.mdx.*blueprint-overview-source/i,
+  );
+});
+
+test("accepts an Overview that carries narrative content only", async () => {
+  assert.deepEqual(
+    await messages({
+      "blueprint/content/changes/in-progress/sample/index.mdx":
+        "---\ntitle: Overview\n---\n\n## Context\n",
+    }),
+    [],
+  );
+});
+
+test("reports an internal link that bypasses the router", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/src/components/Sample.tsx":
+          'export const Sample = () => <a href="/changes">Changes</a>;\n',
+      })
+    ).join("\n"),
+    /Sample\.tsx.*blueprint-internal-link/i,
+  );
+});
+
+test("accepts external links and in-page anchors", async () => {
+  assert.deepEqual(
+    await messages({
+      "blueprint/src/components/Sample.tsx":
+        'export const Sample = () => <a href="https://volleybro.dev">Site</a>;\n',
+      "blueprint/content/design-system/index.mdx":
+        '<a href="#tokens">Tokens</a>\n',
+    }),
+    [],
+  );
+});
+
+test("reports a design module without its interactive design page", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
+          'const designModules = {\n  "archive/moved-change/design": () => import("x"),\n};\n',
+      })
+    ).join("\n"),
+    /archive\/moved-change\/design\.tsx.*does not exist/i,
+  );
+});
+
+test("accepts a design module whose design page exists", async () => {
+  assert.deepEqual(
+    await messages({
+      "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
+        'const designModules = {\n  "archive/kept-change/design": () => import("x"),\n};\n',
+      "blueprint/content/changes/archive/kept-change/design.tsx":
+        "export default () => null;\n",
+    }),
+    [],
+  );
+});
