@@ -50,7 +50,8 @@ D3-A 與 D6-A 的決策是「規則移入 domain 層成為純函式、前後端�
 
 修法：`deriveSetPhase` 拆為 `setTargetPoints(scoring, setIndex)`（決勝局打 `decidingSetPoints`、其餘 25 的規則）與 `deriveSetPhase(set, entryIndex, targetPoints)`，兩者都留在 entities；三個複製品與其測試刪除，前端測試涵蓋而 entities 未涵蓋的案例（未建立的局回報 not-in-progress）移植進 entities 測試；六個呼叫點改用 entities。行為未變，這是收斂不是重新設計。
 
-**F5 — `TeamsStats` 在 render 期間推導而非自 store 讀取（接受，見 plan-versus-actual）**
+**F5 — `TeamsStats` 在 render 期間推導而非自 store 讀取（接受，見 plan versus actual）**
+初次記錄時的理由有誤，已更正。當時寫的是該元件不在記錄路徑上、因此很少重算；實際查證後 `StatsForOneSet` 就渲染在記錄頁。結論不變，但依據換成 `useMemo` 的 dependency array 把重算頻率釘在資料更新而非 render 次數。與 F4 同一種錯誤——以推論代替查證——差別在 F4 的結論也跟著錯了，F5 只有理由錯。
 
 ### Plan versus actual
 
@@ -58,9 +59,13 @@ D3-A 與 D6-A 的決策是「規則移入 domain 層成為純函式、前後端�
 
 **S05 驗收條件第二條逐字滿足，但不是設計原本設想的形狀。** 條件為「`src/components/` 無檔案 import `deriveSetStats`；元件自 store 讀取推導值」。`components/game/options/overview` 確實改自 Redux `status.stats` 讀取。`components/game/stats/teams-stats` 則呼叫 `src/lib/` 的 `getTeamsStats`，該 helper 在 `useMemo` 內推導。
 
-差異的原因是這兩個元件不在同一個世界：`options/overview` 在記錄頁，資料來自 Redux 記錄 store；`stats` 由 `useGame(gameId)` 取 SWR 資料，且需要任意 `setIndex`（含全場 `-1`），而 `initialize` reducer 只持有當前局的統計。把全場所有局的統計塞進記錄 store，等於把賽後檢視的資料放進記錄流程的 store，架構上更差。
+差異的原因是這兩個元件的資料來源不同：`options/overview` 讀 Redux 記錄 store；`stats` 由 `useGame(gameId)` 取 SWR 資料，且需要任意 `setIndex`（含全場 `-1`），而 `initialize` reducer 只持有當前記錄中那一局的統計。把全場所有局的統計塞進記錄 store，等於把賽後檢視的資料放進記錄流程的 store，架構上更差。
 
-設計對此的約束原文是「推導必須在 reducer 裡 append 後算一次，不能在 render 期間算——否則成本會隨 render 次數而非隨球數成長」，其風險描述同時記明「演算法本身可忽略（一局 ≤60 entry，建 Map 後約 O(N + P)）」。該約束針對的是記錄路徑：一顆球觸發多次 render。`TeamsStats` 的輸入是 SWR 資料且以 `[sets, setIndex]` memo，只在取得的比賽變動或使用者切換分頁時重算，不隨 render 次數成長。判定為接受，但記為與設計字面形狀的差異。
+設計對此的約束原文是「推導必須在 reducer 裡 append 後算一次，不能在 render 期間算——否則成本會隨 render 次數而非隨球數成長」，其風險描述同時記明「演算法本身可忽略（一局 ≤60 entry，建 Map 後約 O(N + P)）」。
+
+**`StatsForOneSet` 確實渲染在記錄頁上**（`components/game/index.tsx`，且外層 Accordion 預設展開），所以它不是賽後才碰得到的畫面。判定接受的依據是 `useMemo` 的 dependency array：`[sets, setIndex]`。Redux 狀態變動造成的 re-render——切換 panel、編輯 entry draft、選球員——不會重算，因為 `sets` 的 reference identity 未變；只有 SWR 資料更新才重算，而在記錄頁上那約等於每記一顆球一次。約束禁止的是成本隨 render 次數成長，允許的是隨球數成長，`useMemo` 讓它落在允許的那一側。
+
+已知代價：記錄頁上同一局的統計每顆球會被推導兩次——`initialize` reducer 算一次供 `options/overview` 使用，`TeamsStats` 再算一次。兩者算的是同一組數字。要收斂成一次，得在元件內分支判斷「`setIndex` 是否正好是當前記錄中那一局」以決定讀 store 還是自行推導，為省下一次 O(≤60) 的走訪而在元件裡引入兩種資料來源，不划算。記為已知事實而非待辦。
 
 ### Residual risks
 
