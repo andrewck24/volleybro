@@ -1,0 +1,44 @@
+---
+title: Statistics
+description: Per-set and whole-match totals, derived from a set's entries rather than stored alongside them.
+---
+
+import entriesAsSourceOfTruth from "./decisions/D1-entries-as-source-of-truth.json";
+import sharedDomainFunctions from "./decisions/D3-shared-domain-functions.json";
+
+Entries are the only stored record of what happened. Every total shown anywhere
+is computed from them.
+
+## Current behavior
+
+- `deriveSetStats` in `src/entities/game.ts` computes a set's per-player and
+  per-team totals from its entries. It is the only implementation of those
+  rules, and both the server and the Redux store call it.
+- The recording page derives once per store update in the `initialize` reducer
+  and keeps the result in state; components read it from there.
+- The match statistics view sums the per-set derivations. It memoises on the
+  set list, so a re-render caused by store state reuses the previous result and
+  only a data update recomputes.
+- Substitution, timeout and challenge counters are **used counts**. The
+  remaining allowance is `SET_ALLOWANCES[k]` minus the used count.
+
+## Constraints
+
+- Derivation must not run per render. Cost may grow with the number of rallies
+  recorded; it may not grow with the number of renders.
+- Components must not reimplement or reach past the shared derivation. There is
+  one implementation of the scoring rules, and a second one anywhere is the
+  defect this capability exists to prevent.
+- Nothing writes the stored `stats` field. It is absent from the domain type and
+  from the response schemas, and survives only in the Mongoose schema.
+
+## Known gaps
+
+- On the recording page one set's totals are derived twice per rally — once
+  into the store, once in the match statistics memo. Collapsing them would put
+  two data sources behind one component to save a pass over at most sixty
+  entries.
+
+## Implemented decisions
+
+<DecisionTimeline decisions={[entriesAsSourceOfTruth, sharedDomainFunctions]} />

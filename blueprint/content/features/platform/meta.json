@@ -1,4 +1,10 @@
 {
   "title": "Platform",
-  "pages": ["index", "delivery-workflow", "blueprint", "agent-orchestration"]
+  "pages": [
+    "index",
+    "delivery-workflow",
+    "blueprint",
+    "agent-orchestration",
+    "clean-architecture"
+  ]
 }

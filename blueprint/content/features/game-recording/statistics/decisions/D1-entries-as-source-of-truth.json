@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Entries are the only source of truth; statistics are a projection",
+  "status": "implemented",
+  "targets": ["game-recording/statistics", "game-recording/persistence"],
+  "context": "A set's entries record what happened in every rally, while teams[].stats[] and players[].stats[] separately store the running totals those entries produce. The same fact is written twice, and keeping the two copies in step is where this Change's difficulties originated: a field path that encodes a player's position in the roster array, the net delta an edited rally has to apply, and a helper that had to serve both an optimistic frontend and an atomic backend. The stored counters are also demonstrably unreliable — TeamStatsClass initialises substitution to 6, timeout to 2 and challenge to 2 (remaining allowances) while the substitution helper increments the same field, and nothing reads it, so the inconsistency was never noticed.",
+  "decision": "Entries become the only stored representation of what happened. Statistics, rotation and serve rights are derived from them by a pure function in the domain layer. Recording a rally reduces to appending one entry; no counter is written. Within a single game, derivation happens on read and is cheap: a set holds at most about sixty entries, and building a roster map first makes it O(N + P).",
+  "alternatives": [
+    {
+      "option": "Keep storing statistics and accumulate atomically with $inc plus arrayFilters matching playerId",
+      "reason": "Correct and workable, but it preserves the structure of one fact recorded twice — exactly the structure this Change exists to remove — and it keeps the net-delta arithmetic that is the easiest part to get wrong."
+    },
+    {
+      "option": "Derive during a set, then materialize and store at set end",
+      "reason": "The same field would mean different things during and after a set, and the live recording view has to derive regardless, so materialization saves nothing while pre-empting a materialization design that belongs to the database evaluation milestone."
+    }
+  ],
+  "consequences": [
+    "The write for one rally is a single append with no field paths, no arrayFilters and no delta arithmetic.",
+    "The frontend no longer accumulates incrementally either; updateStats, discardOriginalStats and updateRotation are deleted rather than moved, leaving one implementation of the scoring rules.",
+    "Read paths must derive: components/game/options/overview and components/game/stats/teams-stats change in the same Change, or they silently display zeros.",
+    "Counter semantics must be settled during derivation; used counts are derived and remaining allowances come from subtracting the rule limit."
+  ],
+  "revisitTriggers": [
+    "A materialization is introduced that accumulates independently instead of deriving from entries, which would end entries' status as the only source of truth.",
+    "Derivation cost stops being negligible for a single game, for example if a set can hold far more entries than a volleyball set does."
+  ],
+  "originChange": "game-positional-writes"
+}

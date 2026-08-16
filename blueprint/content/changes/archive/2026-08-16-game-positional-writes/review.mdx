@@ -67,6 +67,8 @@ D3-A 與 D6-A 的決策是「規則移入 domain 層成為純函式、前後端�
 
 已知代價：記錄頁上同一局的統計每顆球會被推導兩次——`initialize` reducer 算一次供 `options/overview` 使用，`TeamsStats` 再算一次。兩者算的是同一組數字。要收斂成一次，得在元件內分支判斷「`setIndex` 是否正好是當前記錄中那一局」以決定讀 store 還是自行推導，為省下一次 O(≤60) 的走訪而在元件裡引入兩種資料來源，不划算。記為已知事實而非待辦。
 
+**四份 ADR 從未被標記為 `accepted`。** WORKFLOW §3 規定核准時 Change ADR 由 `candidate` 轉 `accepted`，本 Change 的核准 commit 沒有做這件事，四份記錄一路以 `candidate` 走到 Archive，才在 Archive 直接轉為 `implemented`。這是流程遺漏而非決策內容有疑義——四項決策都經過核准並已交付。不回頭偽造中間狀態，在此記錄實情。
+
 ### Residual risks
 
 **R1 — `appendEntry` 之後 `completeSet` 失敗時的行為未定義。**

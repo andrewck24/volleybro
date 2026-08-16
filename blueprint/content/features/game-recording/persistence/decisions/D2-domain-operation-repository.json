@@ -1,9 +1,9 @@
 {
-  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D2",
   "title": "Express game writes as domain operations, not whole-document overwrite",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["game-recording/persistence"],
   "context": "IGameRepository exposes a single write method, update(id, Partial<Game>), and all five game use cases call it. Its implementation reads the whole document, modifies it in memory and writes it back, so recording the twenty-fifth point rewrites every set, every entry, both rosters and every statistic. Three problems follow: any invalid leaf rejects the whole sets path, the read-modify-write window lets two writers silently overwrite each other, and the payload grows with the match. The method also says nothing about what the caller intended — five use cases with entirely different meanings share one entry point shaped like persistence rather than like the domain.",
   "decision": "Add entry-level domain operations to the repository interface — appendEntry and replaceEntry — implemented with positional writes. Database-specific syntax stays inside GameRepositoryImpl, verified by the rule that use case tests must not mock any database concept. update() survives to serve set-level writes only, with a stated condition: new write paths must not use it. Interface granularity tracks the number of domain operations, not the number of field combinations.",

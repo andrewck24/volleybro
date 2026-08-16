@@ -37,7 +37,7 @@ export const details = {
   },
   "end-set": {
     title: "Set End & Summary",
-    body: "A set is won at 25 points (15 in a deciding set) with a two-point lead. The score locks and the next set begins.",
+    body: "A set is won at 25 points (the deciding set at its own target) with a two-point lead. The server records the result and the next set begins.",
   },
 };
 
@@ -46,9 +46,17 @@ and automatic rotation. Click a node to see what it does.
 
 <InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
 
-Set and game completion are **derived, not stored** — a server-side fold over
-the append-only entry list decides whether a set is in progress, at set point,
-or won. Nothing has to be manually closed out.
+Set and game completion are **derived by the server, then written once** — a
+fold over the append-only entry list decides whether a set is in progress, at
+set point, or won, and the result is recorded at the moment it changes rather
+than accumulated per rally. Nothing has to be manually closed out.
+
+Entries are the only stored record of what happened in a set. Statistics,
+rotation and serve rights are computed from them; see
+[Statistics](/features/game-recording/statistics). How those writes reach the
+database is described in [Persistence](/features/game-recording/persistence),
+and the recording flow itself in
+[Rally recording](/features/game-recording/rally-recording).
 
 ## Status
 

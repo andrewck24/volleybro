@@ -1,0 +1,44 @@
+---
+title: Clean architecture
+description: What each layer may depend on, and the rules that keep those dependencies verifiable rather than aspirational.
+---
+
+import sharedDomainFunctions from "./decisions/D3-shared-domain-functions.json";
+
+Layering is only real if something fails when it is broken. These are the
+dependency rules the codebase actually enforces, and how.
+
+## Current behavior
+
+- `src/entities/` imports nothing outside `src/entities/`. It is safe in the
+  browser bundle, which is what lets the server and the frontend share the same
+  domain rules instead of each keeping a copy.
+- Domain rules exported from entities declare only the structure they read, so
+  a caller holding a domain shape and a caller holding a presentation shape both
+  satisfy them without a cast and without either adopting the other's types.
+- `src/applications/` does not import from `src/lib/features/`. Its only
+  outward import is the create-player validation schema.
+- Database syntax stays inside repository implementations. The check is that use
+  case tests mock no database concept.
+
+## Constraints
+
+- Entities must not acquire a server-only dependency. The moment they do,
+  sharing them with the frontend becomes a leak rather than a decision.
+- Signatures on shared domain rules must not accept whole aggregates such as
+  `Game`, or arrays typed to one side's shape. Accepting the minimum structure
+  is what keeps the rule shareable.
+- A rule moved into a shared layer is not moved until the old callers use it and
+  the old implementation is deleted. An exported function that nobody calls is
+  a second implementation waiting to drift, which is the failure this rule
+  exists to prevent.
+
+## Known gaps
+
+- These boundaries are held by review rather than by tooling. `src/lib/`
+  currently holds code from three layers, so path alone is not a reliable
+  layering signal and a lint rule cannot yet express the constraint.
+
+## Implemented decisions
+
+<DecisionTimeline decisions={[sharedDomainFunctions]} />
