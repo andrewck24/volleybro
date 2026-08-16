@@ -1,0 +1,86 @@
+---
+title: Overview
+---
+
+## Context
+
+`IGameRepository` 只有一個寫入方法 `update(id, Partial<Game>)`，五個 game usecase 全部呼叫它，實作是整份文件覆寫。
+
+`v0.15.0 記錄穩定性與資料完整性` 修掉的 rally 送出一律回 404 的缺陷，就是這個模型的直接後果：對手側一個空字串讓 Mongoose 對 `sets` 整個路徑的 cast 失敗，那一局已記錄的所有 entry 一起存不進去。該缺陷的表層原因已修，寫入模型沒有動。
+
+三個結構性問題仍在：爆炸半徑（任一 leaf 不合法則整份寫入失敗）、lost update（read-modify-write 之間的窗口）、寫入量隨比賽線性成長。
+
+## Goals
+
+- 記一顆球的寫入，其失敗半徑限縮在新增的那個 entry，不波及該局既有資料。
+- 消除 read-modify-write 窗口，使並行寫入不會無聲覆蓋彼此——這是 `v0.20.0 同步記錄與即時觀看` 的前置條件。
+- 讓 repository 介面以領域操作表達，而非以「交給你一份文件請覆寫」表達。
+- 讓分層是可驗證的事實：資料庫專屬語法全部關在 `GameRepositoryImpl` 內，usecase 測試不得 mock 任何資料庫概念。
+- 修掉既有的分層倒置：`create-rally` 與 `update-rally` usecase 目前 import `@/lib/features/game/helpers`，application 層不應依賴前端 Redux 模組。
+
+## Non-goals
+
+- 不做全域錯誤訊息盤點。只重新定義新寫入路徑產生的錯誤語意。
+- 不改 team / player / profile 的寫入模型（理由見 Design）。
+- 不解決跨場次的聚合效能，那屬於 `v0.18.0 資料庫選型評估` 與 `v0.19.0 Analytics Dashboard`。
+- 不實作同步協作的衝突解決；本 Change 只移除它會踩到的地雷。
+- 不重劃 `src/lib/features/game/helpers/` 的目錄結構。本 Change 會讓 `optimistic/` 大幅萎縮、`queries/` 只剩兩個檔案，但目錄劃分要看實作後的實際規模才判斷得準，現在決定會決定錯。
+
+## Change boundaries
+
+八個決策全部定案，邊界如下：
+
+- **一定在內**：`create-rally`、`update-rally`、`create-substitution` 三條寫 `sets.N.entries` 的路徑。
+- **在內但常被低估**：停止寫入統計會連帶波及讀取端。`components/game/options/overview` 與 `components/game/stats/teams-stats` 必須在同一個 Change 內改成讀推導值，否則會靜默顯示一組零。
+- **在內**：`deriveSetStats` 純函式、`create-set` 與 `create-substitution` usecase 裡的統計變更刪除、前端逐球累加函式刪除。
+- **在內（審查中發現）**：一局的結束。`set.win` 與 `game.win` 目前只在 `rally.helper` 的 `processGamePhase` 裡被寫入，靠整份覆寫一併存下；改成定位寫入後它們會靜默停止更新。D7-A 讓它成為明確的 `completeSet` 領域操作，局末寫一次。
+- **在內（稽核中確認）**：推導的呼叫位置。`deriveSetStats` 由 `game-slice.ts` 的 `initialize` reducer 呼叫並存進 state，元件只讀 state——與 `isSetInProgress` 現行做法一致。元件不得自行呼叫推導函式。
+- **在內（走查中發現）**：`win` 的初始值與型別。`create-game` 寫 `false`（依 codebase 慣例等於「客隊贏」）而 `create-set` 寫 `null`，兩者不一致；`GameSummary.win` 宣告為非空 `boolean` 卻投影可能為 `null` 的 `game.win`。與 D7 是同一個欄位的同一件事。
+- **在內（順手）**：`repository-helpers.mongo.ts` 更名為 `error-translation.mongo.ts`——檔案只有一個 export，以職責命名而非以「helpers」命名。
+- **不在內**：`create-set`、`update-set`（沒有 lost update 壓力，且帶著需要一併重寫的 domain 驗證）。它們留在 `update()` 上，其存續條件是「只服務 set 層級寫入，新增路徑不得使用」。
+- **明確不在內**：其他 domain 的 repository。
+
+## Capability impact
+
+`game-recording/rally-recording` 與 `game-recording/persistence` 的可靠性契約會改變：目前「一次寫入要麼整局成功要麼整局失敗」，改為「單一 entry 的失敗不影響既有資料」。
+
+D1-B 也改變 `game-recording` 的資料模型契約：entries 成為唯一的真實來源，統計成為投影。這個差異對 `game-recording/collaboration` 是前置條件，因此錯誤語意與資料模型的重新定義都必須在本 Change 內完成，不能留到同步協作時才處理。
+
+一局的結束也從「記錄一顆球的副作用」變成明確的領域操作，伺服器因此成為勝負的權威來源——這是 `v0.20.0 同步記錄與即時觀看` 伺服器權威計分的第一步。
+
+這個契約對後續里程碑設下一條約束：**之後任何 materialization 都必須是從 entries 推導出來的快取，不得成為第二條獨立累加的寫入路徑。** 加上一層快取是相加的（新的讀路徑 + 場末的寫路徑），不會破壞本 Change 建立的結構；改回逐球累加才會，而那正是本 Change 移除的東西。
+
+## Alternatives considered
+
+Design 頁完整記錄各組替代方案與它們的後果。Overview 層級只記結論方向：
+
+- **維持整份 `$set`，只在應用層加防護**——不成立。防護擋得住已知的壞值，擋不住 read-modify-write 窗口。
+- **保留儲存統計，改以 `arrayFilters` 比對 playerId 原子累加**——可行且正確，但比推導多了一整組必須維持一致的寫入路徑。
+- **只交付與資料庫無關的那一層，實作等選型定案**——在 D1 定案前是合理的，D1-B 讓要迴避的作廢風險縮到只剩兩個 repository 方法體，而代價是一個觀察不到任何差別的 slice（`appendEntry` 內部仍是整份覆寫），對 v0.15.0 的出場條件貢獻為零。已否決，見 D0。
+- **改用正規化的關聯式 schema**——會讓三個問題結構性消失，但那是資料庫選型的決策範圍，不是本 Change 能單方面決定的。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。下表是討論階段的決策標籤，逐一記錄了選項與否決理由；ADR 是它們收斂後的持久紀錄。
+
+| ID  | 問題                                     | 狀態                                                       |
+| --- | ---------------------------------------- | ---------------------------------------------------------- |
+| D0  | 要不要在資料庫選型定案之前做，做到哪一層 | **已定案：B — 介面與實作一起交付**                         |
+| D1  | 統計該繼續儲存，還是由 entries 推導      | **已定案：B — entries 為唯一真實來源，統計為投影**         |
+| D2  | 範圍邊界涵蓋哪幾條寫入路徑               | **已定案：B — 寫 entries 的三條路徑**                      |
+| D3  | 既有 `update()` 的去留                   | **已定案：A — 留著，存續條件寫死**                         |
+| D4  | 共用規則落在哪一層                       | **已定案：A — 規則移入 domain 層成為純函式，逐球累加刪除** |
+| D5  | 既有 `stats` 欄位的處置                  | **已定案：D — 保留持久化欄位，從 domain type 移除**        |
+| D6  | 前後端是否共用 `entities`                | **已定案：A — 共用，移入四個領域函式**                     |
+| D7  | `set.win` / `game.win` 由誰寫入          | **已定案：A — 新增 `completeSet` 領域操作，局末寫一次**    |
+
+## Revisit triggers
+
+- 資料庫選型決定遷移至關聯式資料庫：本 Change 的文件資料庫特定實作作廢，但 repository 介面與資料模型決策應該原樣成立。若實際不成立，代表 persistence ignorance 沒有做到，需要回頭檢討分層。
+- 同步協作決定 entry 的穩定識別方式：目前 `entrySchema` 設定 `_id: false`，entries 只能以陣列位置定址。並行寫入下「取代第 N 顆球」不是穩定的目標，兩邊的決策必須對齊。
+- 實作完成後 `helpers/optimistic/` 與 `helpers/queries/` 的實際規模：若兩者都萎縮到一兩個檔案，該目錄劃分（讀寫分離的形式）是否還值得保留需要重新評估。這是刻意留到實作後的判斷，不是遺漏。
+- 出現第六條 game 寫入路徑：若它走了 `update()` 而非定位寫入，代表 D3 的存續條件沒有被遵守。
+- `entities/` 出現 server-only 相依：D6-A 的前提是 entities 可安全進前端 bundle。一旦破壞，前後端共用就變成洩漏，需要重新檢討共用邊界。
+- 任何 materialization 改以獨立累加而非從 entries 推導：這會使 entries 不再是唯一真實來源，本 Change 的資料模型契約失效，須整體重新檢討。
+- `v0.18.0 資料庫選型評估` 決定 materialization 的位置與粒度：若它選擇 per-game rollup 落在 `stats` 欄位，D5-D 保留的欄位即被啟用；若它另建 collection，該欄位可正式移除。
+- 統計的推導規則變更：規則變更會回溯改變歷史比賽的數字。單場推導沒有凍結點；跨場的凍結由 `v0.18.0 資料庫選型評估` 的 materialization 在整場結束時提供，本 Change 不自行決定 set 粒度的 materialization。

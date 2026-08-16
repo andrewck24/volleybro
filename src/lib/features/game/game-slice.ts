@@ -1,9 +1,12 @@
-import { EntryType, Side } from "@/entities/game";
 import {
-  getSetPhase,
-  getPreviousScores,
-  getServingStatus,
-} from "@/lib/features/game/helpers";
+  EntryType,
+  Side,
+  deriveServingStatus,
+  deriveSetPhase,
+  deriveSetStats,
+  setTargetPoints,
+} from "@/entities/game";
+import { getPreviousScores } from "@/lib/features/game/helpers";
 import type {
   GameView,
   ReduxEntryDraft,
@@ -25,6 +28,7 @@ const statusState: ReduxStatus = {
   isSetInProgress: false,
   isSetPoint: false,
   panel: "home",
+  stats: deriveSetStats(undefined, { options: { serve: "home" } }),
 };
 
 const rallyDetailState: ReduxEntryDraft["home"] = {
@@ -64,12 +68,15 @@ const initialize: CaseReducer<
   const { game, setIndex } = action.payload;
   const set = game.sets[setIndex];
   const entryIndex = set?.entries?.length || 0;
-  const { isSetInProgress, isSetPoint } = getSetPhase(
-    game,
-    setIndex,
+  const { isSetInProgress, isSetPoint } = deriveSetPhase(
+    set,
     entryIndex,
+    setTargetPoints(game.info.scoring, setIndex),
   );
-  const isServing = getServingStatus(set, entryIndex);
+  const isServing = deriveServingStatus(set, entryIndex);
+  const stats = deriveSetStats(set?.entries, {
+    options: set?.options ?? { serve: "home" },
+  });
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
@@ -80,6 +87,7 @@ const initialize: CaseReducer<
     isSetInProgress,
     isSetPoint,
     panel: "home" as ReduxStatus["panel"],
+    stats,
   };
   state.general.status = { ...state.general.status, ...status };
   state.editing.status = { ...state.editing.status, ...status };
@@ -259,10 +267,10 @@ const setEditingEntryStatus: CaseReducer<
   const set = game.sets[setIndex];
   const entry = set?.entries[entryIndex];
   if (!entry) return;
-  const { isSetInProgress, isSetPoint } = getSetPhase(
-    game,
-    setIndex,
+  const { isSetInProgress, isSetPoint } = deriveSetPhase(
+    set,
     entryIndex,
+    setTargetPoints(game.info.scoring, setIndex),
   );
 
   state.mode = "editing";
@@ -288,7 +296,7 @@ const setEditingEntryStatus: CaseReducer<
   };
   state.editing.status = {
     ...state.editing.status,
-    isServing: getServingStatus(set, entryIndex),
+    isServing: deriveServingStatus(set, entryIndex),
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     isSetInProgress,

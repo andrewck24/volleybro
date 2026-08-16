@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "Read derived statistics instead of stored counters",
+  "capabilities": ["game-recording/statistics"],
+  "dependsOn": ["S01", "S03"],
+  "outcome": "Every surface that shows statistics reads a derived value, so nothing silently displays zeros once the counters stop being written.",
+  "acceptanceCriteria": [
+    "The Redux initialize reducer calls deriveSetStats once per store update and keeps the result in state, matching how isSetInProgress is already handled.",
+    "No file under src/components/ imports deriveSetStats; components read the derived values from the store.",
+    "components/game/options/overview and components/game/stats/teams-stats show correct per-set and whole-match totals for a game whose stored counters were never written.",
+    "The frontend accumulation functions updateStats, discardOriginalStats and updateRotation are deleted rather than kept alongside the derivation."
+  ],
+  "verification": [
+    "pnpm test -- src/lib/features/game src/components/game",
+    "pnpm test:integration"
+  ],
+  "status": "completed"
+}

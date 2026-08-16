@@ -4,7 +4,7 @@ import {
   createRallyHelper,
   updateRallyHelper,
 } from "@/lib/features/game/helpers";
-import type { EntryView, GameView, RallyView } from "@/lib/features/game/types";
+import type { GameView, RallyView } from "@/lib/features/game/types";
 
 describe("rally.helper.ts", () => {
   const mockRally: RallyView = {
@@ -84,76 +84,14 @@ describe("rally.helper.ts", () => {
       home: {
         id: "team-1",
         name: "Home Team",
-        players: [
-          {
-            id: "player-1",
-            name: "Player 1",
-            number: 1,
-            stats: [
-              {
-                [M.ATTACK]: { success: 0, error: 0 },
-                [M.SERVING]: { success: 1, error: 0 },
-                [M.BLOCKING]: { success: 0, error: 0 },
-                [M.RECEPTION]: { success: 0, error: 0 },
-                [M.DEFENSE]: { success: 0, error: 0 },
-                [M.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "player-1", name: "Player 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [M.ATTACK]: { success: 0, error: 0 },
-            [M.SERVING]: { success: 1, error: 0 },
-            [M.BLOCKING]: { success: 0, error: 0 },
-            [M.RECEPTION]: { success: 0, error: 0 },
-            [M.DEFENSE]: { success: 0, error: 0 },
-            [M.SETTING]: { success: 0, error: 0 },
-            [M.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
       away: {
         id: "team-2",
         name: "Away Team",
-        players: [
-          {
-            id: "rival-1",
-            name: "Rival 1",
-            number: 1,
-            stats: [
-              {
-                [M.RECEPTION]: { success: 0, error: 1 },
-                [M.ATTACK]: { success: 0, error: 0 },
-                [M.SERVING]: { success: 0, error: 0 },
-                [M.BLOCKING]: { success: 0, error: 0 },
-                [M.DEFENSE]: { success: 0, error: 0 },
-                [M.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "rival-1", name: "Rival 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [M.RECEPTION]: { success: 0, error: 1 },
-            [M.ATTACK]: { success: 0, error: 0 },
-            [M.SERVING]: { success: 0, error: 0 },
-            [M.BLOCKING]: { success: 0, error: 0 },
-            [M.DEFENSE]: { success: 0, error: 0 },
-            [M.SETTING]: { success: 0, error: 0 },
-            [M.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
     },
   });
@@ -174,69 +112,6 @@ describe("rally.helper.ts", () => {
         type: EntryType.RALLY,
         ...mockRally,
       });
-    });
-
-    it("should update player stats when home team wins", () => {
-      const mockGame = createMockGame();
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
-
-      expect(
-        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
-      ).toBe(1);
-    });
-
-    it("should update team stats when home team wins", () => {
-      const mockGame = createMockGame();
-
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
-
-      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
-    });
-
-    it("should update rotation when winning and the last rally is lost", () => {
-      const mockGame = createMockGame();
-
-      // add a lost rally before the winning rally for rotation
-      (
-        mockGame.sets[0]!.entries[0] as EntryView & { type: EntryType.RALLY }
-      ).win = false;
-
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
-
-      expect(result.game.teams.home.stats[0]!.rotation).toBe(1);
-    });
-
-    it("should not update rotation when winning serving team", () => {
-      const mockGame = createMockGame();
-
-      // Set home team as serving team
-      mockGame.sets[0]!.options.serve = "home";
-
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
-
-      expect(result.game.teams.home.stats[0]!.rotation).toBe(0);
-    });
-
-    it("should credit no one when the rally names no player", () => {
-      const mockGame = createMockGame();
-      // A squad member stored without an id carries the same value a rally
-      // with no named player stores.
-      mockGame.teams.home.players[0]!.id = null as unknown as string;
-      const unnamed = {
-        ...mockRally,
-        home: {
-          ...mockRally.home,
-          player: { id: null as unknown as string, zone: 0 },
-        },
-      };
-
-      const result = createRallyHelper(mockParams, unnamed, mockGame);
-
-      expect(
-        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
-      ).toBe(0);
-      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
     });
   });
 
@@ -274,68 +149,6 @@ describe("rally.helper.ts", () => {
       });
     });
 
-    it("should update player and team stats when rally details change", () => {
-      const mockGame = createMockGame();
-
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
-
-      // Original stats should be removed
-      expect(
-        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
-      ).toBe(1);
-
-      // New stats should be added
-      expect(
-        result.game.teams.home.players[0]!.stats[0]![M.SERVING].success,
-      ).toBe(0);
-
-      // Team stats should also be updated
-      expect(result.game.teams.home.stats[0]![M.SERVING].success).toBe(0);
-      expect(result.game.teams.away.stats[0]![M.RECEPTION].error).toBe(0);
-      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
-    });
-
-    it("should update player and team stats when changing a rally from lost to won", () => {
-      const mockGame = createMockGame();
-      const mockParams = { gameId: "game-1", setIndex: 0, entryIndex: 1 };
-      const lostRally: RallyView = {
-        win: false,
-        home: {
-          score: 1,
-          type: M.ATTACK,
-          num: 1,
-          player: { id: "player-1", zone: 1 },
-        },
-        away: {
-          score: 1,
-          type: M.BLOCKING,
-          num: 1,
-          player: { id: "rival-1", zone: 1 },
-        },
-      };
-      createRallyHelper(mockParams, lostRally, mockGame);
-
-      // Change the first rally from lost to win
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
-
-      // Original stats should be removed
-      expect(result.game.teams.home.players[0]!.stats[0]![M.ATTACK].error).toBe(
-        0,
-      );
-
-      // New stats should be added
-      expect(
-        result.game.teams.home.players[0]!.stats[0]![M.ATTACK].success,
-      ).toBe(1);
-
-      // Team stats should also be updated
-      expect(result.game.teams.home.stats[0]![M.ATTACK].error).toBe(0);
-      expect(result.game.teams.away.stats[0]![M.BLOCKING].success).toBe(0);
-      expect(result.game.teams.home.stats[0]![M.ATTACK].success).toBe(1);
-      expect(result.game.teams.away.stats[0]![M.DEFENSE].error).toBe(1);
-    });
-
     it("should throw error when entry is not a rally", () => {
       const mockGame = createMockGame();
       mockGame.sets[0]!.entries[0]!.type = EntryType.TIMEOUT;
@@ -343,58 +156,6 @@ describe("rally.helper.ts", () => {
       expect(() => {
         updateRallyHelper(mockParams, newRally, mockGame);
       }).toThrow("Entry is not a rally");
-    });
-
-    it("should update rotation when rally win status changes", () => {
-      const mockGame = createMockGame();
-      // Add a second rally so we can see rotation change
-      mockGame.sets[0]!.entries.push({
-        type: EntryType.RALLY,
-        win: true,
-        home: {
-          score: 2,
-          type: M.ATTACK,
-          num: 1,
-          player: { id: "player-1", zone: 1 },
-        },
-        away: {
-          score: 0,
-          type: M.DEFENSE,
-          num: 1,
-          player: { id: "rival-1", zone: 1 },
-        },
-      });
-
-      // Change the first rally from win to loss
-      const newRally: RallyView = {
-        win: false, // Changed from true to false
-        home: {
-          score: 0,
-          type: M.ATTACK,
-          num: 1,
-          player: { id: "player-1", zone: 1 },
-        },
-        away: {
-          score: 1,
-          type: M.BLOCKING,
-          num: 1,
-          player: { id: "rival-1", zone: 1 },
-        },
-      };
-
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
-
-      // Rotation should be updated since we've changed win status
-      expect(result.game.teams.home.stats[0]!.rotation).toBe(1);
-    });
-
-    it("should not change rotation when win status remains the same", () => {
-      const mockGame = createMockGame();
-
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
-
-      // Rotation should remain unchanged
-      expect(result.game.teams.home.stats[0]!.rotation).toBe(0);
     });
   });
 
@@ -499,12 +260,6 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 13 },
         };
 
-        // 添加決勝局的統計數據
-        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0]!;
-        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0]!;
-        mockGame.teams.home.players[0]!.stats[4] =
-          mockGame.teams.home.players[0]!.stats[0]!;
-
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 4, entryIndex: 0 },
           fifthSet,
@@ -534,12 +289,6 @@ describe("rally.helper.ts", () => {
           home: { ...mockRally.home, score: 25 },
           away: { ...mockRally.away, score: 20 },
         };
-
-        // 添加第三局統計數據
-        mockGame.teams.home.stats[2] = mockGame.teams.home.stats[0]!;
-        mockGame.teams.away.stats[2] = mockGame.teams.away.stats[0]!;
-        mockGame.teams.home.players[0]!.stats[2] =
-          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 2, entryIndex: 0 },
@@ -572,12 +321,6 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 15 },
         };
 
-        // 添加決勝局統計數據
-        mockGame.teams.home.stats[4] = mockGame.teams.home.stats[0]!;
-        mockGame.teams.away.stats[4] = mockGame.teams.away.stats[0]!;
-        mockGame.teams.home.players[0]!.stats[4] =
-          mockGame.teams.home.players[0]!.stats[0]!;
-
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 4, entryIndex: 0 },
           fifthSetLoss,
@@ -607,12 +350,6 @@ describe("rally.helper.ts", () => {
           home: { ...mockRally.home, score: 10 },
           away: { ...mockRally.away, score: 5 },
         };
-
-        // 添加第四局統計數據
-        mockGame.teams.home.stats[3] = mockGame.teams.home.stats[0]!;
-        mockGame.teams.away.stats[3] = mockGame.teams.away.stats[0]!;
-        mockGame.teams.home.players[0]!.stats[3] =
-          mockGame.teams.home.players[0]!.stats[0]!;
 
         const result = createRallyHelper(
           { gameId: "game-1", setIndex: 3, entryIndex: 0 },

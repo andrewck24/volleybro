@@ -73,76 +73,14 @@ describe("substitution.helper.ts", () => {
       home: {
         id: "team-1",
         name: "Home Team",
-        players: [
-          {
-            id: "player-1",
-            name: "Player 1",
-            number: 1,
-            stats: [
-              {
-                [MoveType.ATTACK]: { success: 0, error: 0 },
-                [MoveType.SERVING]: { success: 1, error: 0 },
-                [MoveType.BLOCKING]: { success: 0, error: 0 },
-                [MoveType.RECEPTION]: { success: 0, error: 0 },
-                [MoveType.DEFENSE]: { success: 0, error: 0 },
-                [MoveType.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "player-1", name: "Player 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [MoveType.ATTACK]: { success: 0, error: 0 },
-            [MoveType.SERVING]: { success: 1, error: 0 },
-            [MoveType.BLOCKING]: { success: 0, error: 0 },
-            [MoveType.RECEPTION]: { success: 0, error: 0 },
-            [MoveType.DEFENSE]: { success: 0, error: 0 },
-            [MoveType.SETTING]: { success: 0, error: 0 },
-            [MoveType.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
       away: {
         id: "team-2",
         name: "Away Team",
-        players: [
-          {
-            id: "rival-1",
-            name: "Rival 1",
-            number: 1,
-            stats: [
-              {
-                [MoveType.RECEPTION]: { success: 0, error: 1 },
-                [MoveType.ATTACK]: { success: 0, error: 0 },
-                [MoveType.SERVING]: { success: 0, error: 0 },
-                [MoveType.BLOCKING]: { success: 0, error: 0 },
-                [MoveType.DEFENSE]: { success: 0, error: 0 },
-                [MoveType.SETTING]: { success: 0, error: 0 },
-              },
-            ],
-          },
-        ],
+        players: [{ id: "rival-1", name: "Rival 1", number: 1 }],
         staffs: [],
-        stats: [
-          {
-            [MoveType.RECEPTION]: { success: 0, error: 1 },
-            [MoveType.ATTACK]: { success: 0, error: 0 },
-            [MoveType.SERVING]: { success: 0, error: 0 },
-            [MoveType.BLOCKING]: { success: 0, error: 0 },
-            [MoveType.DEFENSE]: { success: 0, error: 0 },
-            [MoveType.SETTING]: { success: 0, error: 0 },
-            [MoveType.UNFORCED]: { success: 0, error: 0 },
-            rotation: 0,
-            timeout: 2,
-            substitution: 6,
-            challenge: 2,
-          },
-        ],
       },
     },
   });
@@ -203,19 +141,6 @@ describe("substitution.helper.ts", () => {
       expect(updatedSub.sub!.id).toBe("player-8");
       expect(updatedSub.sub!.entryIndex!.in).toBe(1);
       expect(updatedSub.sub!.entryIndex!.out).toBeUndefined();
-    });
-
-    test("should decrease team substitution count", () => {
-      const mockGame = createMockGame();
-      mockGame.teams.home.stats[0]!.substitution = 6;
-
-      const result = createSubstitutionHelper(
-        mockParams,
-        mockSubstitution,
-        mockGame,
-      );
-
-      expect(result.teams.home.stats[0]!.substitution).toBe(7);
     });
 
     test("should handle second substitution correctly", () => {
@@ -290,9 +215,6 @@ describe("substitution.helper.ts", () => {
       const updatedStarting = result.sets[0]!.lineups.away!.starting[0]!;
       expect(updatedStarting.id).toBe("rival-2");
       expect(updatedStarting.sub!.id).toBe("rival-1");
-
-      // Check that the away team substitution count is incremented
-      expect(result.teams.away.stats[0]!.substitution).toBe(7);
     });
   });
 });

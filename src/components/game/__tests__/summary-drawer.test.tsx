@@ -30,8 +30,8 @@ jest.mock("@/components/game/preview", () => ({
 }));
 
 const players: GamePlayerView[] = [
-  { id: "p1", name: "選手一", number: 4, stats: [] },
-  { id: "p2", name: "選手二", number: 7, stats: [] },
+  { id: "p1", name: "選手一", number: 4 },
+  { id: "p2", name: "選手二", number: 7 },
 ];
 
 const makeEntry = (homeScore: number, playerId: string): EntryView =>

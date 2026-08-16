@@ -1,4 +1,4 @@
-import { getPreviousRally } from "@/lib/features/game/helpers";
+import { getPreviousRally } from "@/entities/game";
 import type { EntryView } from "@/lib/features/game/types";
 
 export const getPreviousScores = (

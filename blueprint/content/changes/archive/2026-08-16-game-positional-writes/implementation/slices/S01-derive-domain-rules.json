@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Move the derivation rules into entities and derive a set's statistics",
+  "capabilities": ["game-recording/statistics"],
+  "dependsOn": [],
+  "outcome": "The scoring rules live in the domain layer as pure functions that both the server and the Redux store can call, and a set's statistics can be computed from its entries alone.",
+  "acceptanceCriteria": [
+    "entities/game.ts exports deriveSetStats, deriveServingStatus, deriveSetPhase and getPreviousRally, ordered as types, then rules, then derivation.",
+    "Each moved function declares only the structure it reads, so a call passing EntryView[] type-checks with no cast and a call passing Entry[] type-checks with no cast.",
+    "deriveSetStats returns the same per-player and per-team totals that the existing rally helper produces when fed the same entries.",
+    "Used counts are derived and remaining allowances are the rule limit minus the used count, replacing TeamStatsClass initialising substitution to 6 while the helper increments it.",
+    "entities/ still imports nothing outside entities/."
+  ],
+  "verification": ["pnpm test -- src/entities", "pnpm typecheck:strict"],
+  "status": "completed"
+}

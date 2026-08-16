@@ -4,9 +4,7 @@ import type { IAuthorizationService } from "@/applications/services/auth/authori
 import { NotFoundError, GameReason } from "@/entities/errors";
 import {
   type Entry,
-  type Game,
   type Substitution,
-  PlayerStatsClass,
   Side,
   createSubstitutionEntry,
 } from "@/entities/game";
@@ -62,13 +60,12 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Lineup not found");
 
     this.updateLineup(lineup, substitution, params.entryIndex);
-    this.updateGameStats(game, side, input);
 
-    const persistedGame = await this.gameRepository.update(params.gameId, game);
-    const persistedSet = persistedGame.sets[params.setIndex];
-    if (!persistedSet)
-      throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
-    return persistedSet.entries;
+    return this.gameRepository.appendEntry(
+      { gameId: params.gameId, setIndex: params.setIndex },
+      createSubstitutionEntry(substitution),
+      { [side]: lineup },
+    );
   }
 
   private updateLineup(
@@ -120,35 +117,5 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
             : { in: entryIndex },
       },
     };
-  }
-
-  private updateGameStats(
-    game: Game,
-    side: "home" | "away",
-    input: ICreateSubstitutionInput,
-  ) {
-    const {
-      params: { setIndex, entryIndex },
-      data: substitution,
-    } = input;
-    const set = game.sets[setIndex];
-    if (!set) return;
-    const lineup = set.lineups[side];
-    if (!lineup) return;
-
-    const startingPlayer = lineup.starting.find(
-      (p) => p.id?.toString() === substitution.players.in,
-    );
-    if (startingPlayer?.sub?.entryIndex?.in !== undefined) {
-      const player = game.teams[side].players.find(
-        (p) => p.id?.toString() === substitution.players.in,
-      );
-      if (player) player.stats[setIndex] = new PlayerStatsClass();
-    }
-
-    // stats are seeded alongside the set in create-set; skip rather than throw if absent
-    const teamSetStats = game.teams[side].stats[setIndex];
-    if (teamSetStats) teamSetStats.substitution++;
-    set.entries[entryIndex] = createSubstitutionEntry(substitution);
   }
 }

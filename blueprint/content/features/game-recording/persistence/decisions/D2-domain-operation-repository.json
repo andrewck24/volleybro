@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "Express game writes as domain operations, not whole-document overwrite",
+  "status": "implemented",
+  "targets": ["game-recording/persistence"],
+  "context": "IGameRepository exposes a single write method, update(id, Partial<Game>), and all five game use cases call it. Its implementation reads the whole document, modifies it in memory and writes it back, so recording the twenty-fifth point rewrites every set, every entry, both rosters and every statistic. Three problems follow: any invalid leaf rejects the whole sets path, the read-modify-write window lets two writers silently overwrite each other, and the payload grows with the match. The method also says nothing about what the caller intended — five use cases with entirely different meanings share one entry point shaped like persistence rather than like the domain.",
+  "decision": "Add entry-level domain operations to the repository interface — appendEntry and replaceEntry — implemented with positional writes. Database-specific syntax stays inside GameRepositoryImpl, verified by the rule that use case tests must not mock any database concept. update() survives to serve set-level writes only, with a stated condition: new write paths must not use it. Interface granularity tracks the number of domain operations, not the number of field combinations.",
+  "alternatives": [
+    {
+      "option": "Deliver only the database-agnostic interface now and leave the implementation until the database evaluation concludes",
+      "reason": "The first slice would change nothing observable, since appendEntry would still overwrite the whole document internally, and it would contribute nothing to this milestone's exit condition. After entries became the source of truth, the database-bound surface shrank to two method bodies, so the risk being avoided no longer justified the cost."
+    },
+    {
+      "option": "Convert all five write paths including create-set and update-set",
+      "reason": "Those two carry domain validation and delete semantics and have no lost-update pressure, so bundling them lengthens verification of the slice that actually matters."
+    },
+    {
+      "option": "Apply the same change to the team, player and profile repositories",
+      "reason": "None of the three problems hold there: those documents are small and bounded, written infrequently by a single user, and do not grow with a match."
+    }
+  ],
+  "consequences": [
+    "A rally write becomes O(1) and a failed cast can only damage the entry being added.",
+    "The read-modify-write window closes for the three paths that write entries, which is the prerequisite for multi-device recording.",
+    "Two write models coexist until set-level writes migrate; the surviving condition on update() must be enforced at review.",
+    "The error model changes: whether a set exists is judged by the write condition rather than by an in-memory check after reading."
+  ],
+  "revisitTriggers": [
+    "A sixth game write path appears and uses update() instead of a positional write, meaning the surviving condition was not honoured.",
+    "The database evaluation selects a relational store, which invalidates the positional implementation but should leave the interface and use cases untouched; if it does not, the layering was not achieved."
+  ],
+  "originChange": "game-positional-writes"
+}

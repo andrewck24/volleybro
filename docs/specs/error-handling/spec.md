@@ -337,7 +337,7 @@ code:
   - src/components/record/match.tsx
   - src/interface/controllers/player/ownership.controller.ts
   - src/applications/repositories/record.repository.interface.ts
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/app/api/records/[recordId]/sets/rallies/route.ts
   - src/components/game/stats/teams-stats/index.tsx
   - src/applications/usecases/player/accept-invitation.usecase.interface.ts
@@ -398,7 +398,7 @@ tests:
   - src/lib/features/record/helpers/optimistic/test/rally.helper.test.ts
   - src/app/api/teams/[teamId]/players/__tests__/route.test.ts
   - src/components/landing/__tests__/features.test.tsx
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/lib/features/game/helpers/queries/tests/game-phase.helper.test.ts
   - src/__tests__/helpers/mock-repositories.ts
   - src/app/api/teams/[teamId]/ownership/__tests__/route.test.ts
@@ -721,7 +721,7 @@ code:
   - src/components/record/match.tsx
   - src/interface/controllers/player/ownership.controller.ts
   - src/applications/repositories/record.repository.interface.ts
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/app/api/records/[recordId]/sets/rallies/route.ts
   - src/components/game/stats/teams-stats/index.tsx
   - src/applications/usecases/player/accept-invitation.usecase.interface.ts
@@ -782,7 +782,7 @@ tests:
   - src/lib/features/record/helpers/optimistic/test/rally.helper.test.ts
   - src/app/api/teams/[teamId]/players/__tests__/route.test.ts
   - src/components/landing/__tests__/features.test.tsx
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/lib/features/game/helpers/queries/tests/game-phase.helper.test.ts
   - src/__tests__/helpers/mock-repositories.ts
   - src/app/api/teams/[teamId]/ownership/__tests__/route.test.ts

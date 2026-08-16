@@ -1,0 +1,57 @@
+---
+title: Persistence
+description: How a game reaches the database — domain operations written positionally, with the failure radius limited to the entry being written.
+---
+
+import entriesAsSourceOfTruth from "./decisions/D1-entries-as-source-of-truth.json";
+import domainOperationRepository from "./decisions/D2-domain-operation-repository.json";
+import explicitSetCompletion from "./decisions/D4-explicit-set-completion.json";
+
+The repository speaks in domain operations, not in documents. Recording a rally
+appends one entry; it does not rewrite the game.
+
+## Current behavior
+
+- `IGameRepository` exposes `appendEntry`, `replaceEntry` and `completeSet`.
+  Each is a positional write touching only what it names.
+- A substitution writes its entry and the lineup it produces in one update, so
+  the two cannot disagree.
+- Whether a game or a set exists is decided by the write condition itself. The
+  condition names the exact path, because a filter carrying only the id does
+  not fail on an out-of-range index — MongoDB pads the array with nulls and
+  writes anyway. Both misses therefore report zero matched documents, and one
+  existence lookup on the failure path separates `GAME_NOT_FOUND` from
+  `SET_NOT_FOUND`.
+- `update()` survives for set-level writes only: `create-set` and `update-set`
+  carry domain validation and delete semantics and have no lost-update
+  pressure.
+- Database syntax lives inside `GameRepositoryImpl`. Use case tests mock no
+  database concept, which is what keeps it there.
+
+## Constraints
+
+- **New write paths must not use `update()`.** A sixth game write path that
+  reaches for it means this condition was not honoured.
+- A failed cast may damage only the entry being written. Every entry already
+  recorded in that set stays intact.
+- Statistics have no writer. The `stats` field remains in the Mongoose schema
+  for a future materialization decision, and any such materialization must be a
+  cache derived from entries — never a second accumulating write path.
+
+## Known gaps
+
+- Appending an entry and completing a set are two writes, and their combined
+  failure behaviour is undefined. A response lost after the append succeeds
+  leads a retry to append a duplicate, because `$push` is not idempotent.
+  Closing this needs a stable identity for entries, which synchronised
+  recording must settle anyway.
+
+## Implemented decisions
+
+<DecisionTimeline
+  decisions={[
+    entriesAsSourceOfTruth,
+    domainOperationRepository,
+    explicitSetCompletion,
+  ]}
+/>

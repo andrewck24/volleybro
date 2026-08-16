@@ -6,13 +6,22 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
-import { NotFoundError } from "@/entities/errors";
-import { EntryType, MoveType, Rally, TeamStatsClass } from "@/entities/game";
+import { GameReason, NotFoundError } from "@/entities/errors";
+import { EntryType, MoveType, Rally, createRallyEntry } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockGameRepository: ReturnType<typeof createMockGameRepository>;
 let mockAuthService: ReturnType<typeof createMockAuthenticationService>;
 let mockAuthzService: ReturnType<typeof createMockAuthorizationService>;
+
+const updatedRally: Rally = {
+  win: false,
+  home: { score: 1, type: MoveType.ATTACK, num: 1 },
+  away: { score: 1, type: MoveType.RECEPTION, num: 1 },
+};
+
+const useCase = () =>
+  new UpdateRallyUseCase(mockGameRepository, mockAuthService, mockAuthzService);
 
 beforeEach(() => {
   mockGameRepository = createMockGameRepository();
@@ -25,81 +34,47 @@ beforeEach(() => {
 describe("UpdateRallyUseCase", () => {
   it("throws NotFoundError when game not found", async () => {
     mockGameRepository.findById.mockResolvedValue(null);
-    const useCase = new UpdateRallyUseCase(
-      mockGameRepository,
-      mockAuthService,
-      mockAuthzService,
-    );
 
     await expect(
-      useCase.execute({
+      useCase().execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
         data: {} as unknown as Rally,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("throws NotFoundError when set not found", async () => {
-    mockGameRepository.findById.mockResolvedValue({
-      ...createGame(),
-      sets: [],
-    });
-    const useCase = new UpdateRallyUseCase(
-      mockGameRepository,
-      mockAuthService,
-      mockAuthzService,
-    );
+  it("replaces the entry and returns the set's entries", async () => {
+    const entries = [createRallyEntry(updatedRally)];
+    mockGameRepository.findById.mockResolvedValue(createGame());
+    mockGameRepository.replaceEntry.mockResolvedValue(entries);
 
-    await expect(
-      useCase.execute({
-        params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Rally,
-      }),
-    ).rejects.toBeInstanceOf(NotFoundError);
-  });
-
-  it("returns entries from persisted game after updating rally", async () => {
-    const game = createGame({
-      teams: {
-        home: {
-          ...createGame().teams.home,
-          stats: [new TeamStatsClass()],
-        },
-        away: {
-          ...createGame().teams.away,
-          stats: [new TeamStatsClass()],
-        },
-      },
-    });
-    const updatedRally: Rally = {
-      win: false,
-      home: { score: 1, type: MoveType.ATTACK, num: 1 },
-      away: { score: 1, type: MoveType.RECEPTION, num: 1 },
-    };
-    const persistedGame = createGame({
-      ...game,
-      sets: [
-        {
-          ...game.sets[0]!,
-          entries: [{ type: EntryType.RALLY, ...updatedRally }],
-        },
-      ],
-    });
-
-    mockGameRepository.findById.mockResolvedValue(game);
-    mockGameRepository.update.mockResolvedValue(persistedGame);
-
-    const useCase = new UpdateRallyUseCase(
-      mockGameRepository,
-      mockAuthService,
-      mockAuthzService,
-    );
-
-    const result = await useCase.execute({
+    const result = await useCase().execute({
       params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
       data: updatedRally,
     });
 
-    expect(result).toEqual(persistedGame.sets[0]!.entries);
+    expect(mockGameRepository.replaceEntry).toHaveBeenCalledWith(
+      { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+      { type: EntryType.RALLY, ...updatedRally },
+    );
+    expect(mockGameRepository.update).not.toHaveBeenCalled();
+    expect(result).toEqual(entries);
+  });
+
+  it("lets the write decide whether the entry exists", async () => {
+    mockGameRepository.findById.mockResolvedValue({
+      ...createGame(),
+      sets: [],
+    });
+    mockGameRepository.replaceEntry.mockRejectedValue(
+      new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found"),
+    );
+
+    await expect(
+      useCase().execute({
+        params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+        data: updatedRally,
+      }),
+    ).rejects.toMatchObject({ reason: GameReason.SET_NOT_FOUND });
   });
 });

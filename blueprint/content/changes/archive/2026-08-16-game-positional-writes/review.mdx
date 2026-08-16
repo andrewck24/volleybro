@@ -1,0 +1,86 @@
+---
+title: Review
+---
+
+## Pre-PR review round 1 · 2026-08-11
+
+### Delivered
+
+六個切片全部完成。每片的實作 commit 以 commit body 的 `Implements` trailer 指認，`git log --grep="Implements: S01"` 即可重建映射——那是 canonical 的來源，本頁一律以 slice ID 指稱。
+
+- **S01** — 計分規則移入 `entities/game.ts` 成為純函式（`deriveSetStats`、`deriveServingStatus`、`deriveSetPhase`、`getPreviousRally`），伺服器與 Redux store 共用；每個函式只宣告自己讀的結構，所以 `Entry[]` 與 `EntryView[]` 都能直接傳入。
+- **S02** — `IGameRepository` 新增 `appendEntry` / `replaceEntry`，以定位寫入實作；`update()` 保留但標明只服務 set 層級寫入。`repository-helpers.mongo.ts` 更名為 `error-translation.mongo.ts`。
+- **S03** — 三條 entry 寫入路徑改走領域操作，`src/applications/` 對 `@/lib/features/` 的引用從三個降到一個；create-set 與 create-substitution 的統計初始化與累加刪除；換人的陣容交換與 entry 在同一次寫入落庫。
+- **S04** — `completeSet` 領域操作；局末由伺服器推導並寫入 `sets.N.win` 與（賽果底定時）`game.win`；新比賽的 `win` 由 `false` 改為 `null`，`GameSummary.win` 放寬為 `boolean | null`，比賽列表分辨進行中／獲勝／落敗。
+- **S05** — Redux `initialize` 每次更新推導一次並存進 state；`updateStats`、`discardOriginalStats`、`updateRotation` 與換人 helper 的統計累加全部刪除。
+- **S06** — `stats` 自 domain type 與 `*View` schema 移除，Mongoose schema 保留欄位並註記無寫入者與保留原因。
+
+另有一次 Ingest 修正 S02 的驗收條件（見下方 plan versus actual），以及一份 patch changeset。
+
+### Validation evidence
+
+| Scope                                                   | Command                 | Result                                                                        |
+| ------------------------------------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| 單元與元件                                              | `pnpm test`             | Pass：100 suites / 787 tests                                                  |
+| 整合（真實記憶體 MongoDB，route → usecase → repo → DB） | `pnpm test:integration` | Pass：9 suites / 24 tests                                                     |
+| 型別                                                    | `pnpm typecheck:strict` | Pass                                                                          |
+| Lint                                                    | `pnpm lint`             | Pass，零 warning                                                              |
+| 完整閘門                                                | `pnpm verify:all`       | Pass（含 format、workflow 檢查、build、service worker 斷言、Blueprint build） |
+
+整合測試新增四個檔案：`game-entry-writes`（append／replace、cast 失敗僅影響該筆、GAME_NOT_FOUND 與 SET_NOT_FOUND）、`game-substitution`（entry 與陣容同一次寫入）、`game-set-completion`（局中不寫、局末才寫；三局賽事的 `set.win`／`game.win` 與列表勝局數）、`game-stale-stored-stats`（舊文件帶著與 entries 不符的 `stats`，推導仍依 entries）。
+
+### Findings and resolutions
+
+**F1 — 換人 helper 帶著同型的執行期當機路徑（已修）**
+S05 執行時將 `substitution.helper.ts` 的 `game.teams[side].stats[setIndex]!.substitution++` 判為「不在驗收條件內」而擬留給後續。該判斷不成立：它與 rally helper 是同一個根因（S03 移除寫入者後 stats 不再被初始化），同樣會在樂觀更新時丟 TypeError。已於 S05 一併刪除該段與連帶的 `createEmptyPlayerStats`，並移除兩個斷言舊累加行為的測試。
+
+**F2 — `use-lineup` 是最後一個以儲存欄位取輪轉的讀者（已修）**
+S06 發現 `getGeneralModeLineup` 由 `game.teams.home.stats[setIndex]!.rotation` 決定輪轉幾格。型別移除前編譯器無法標記它。已改為從該局 entries 推導，與同檔案 editing mode 分支一致。
+
+**F3 — 推導的歸零約定被寫了兩次（已修）**
+Standards 軸指出 `deriveSetStats` 與 `team-stats.helper.ts` 的 `emptyTeamStats()` 各自編碼一次「配額欄位由上限改為從零計數」。後者改為向 `deriveSetStats(undefined, …)` 索取空集合的推導結果，規則只剩一處。
+
+**F4 — `derive-set-completion` 為呼叫 `deriveSetPhase` 而搭建臨時稀疏陣列（已修，見 F6）**
+Standards 軸標為 judgement call：呼叫端偽造一個只填了單一索引的假 `game`，只為配合被呼叫端的參數形狀。最初判定接受，理由是 `deriveSetPhase` 的簽章在 S01 定案且同時服務前端。追查該理由是否成立時發現前端根本沒有在用它（F6），於是連同 F6 一併處理：簽章改為直接吃 set，稀疏陣列消失。
+
+**F6 — 四個共用函式裡有三個前端仍用自己的複製品（已修）**
+D3-A 與 D6-A 的決策是「規則移入 domain 層成為純函式、前後端共用」。實際交付後 `deriveSetPhase`、`deriveServingStatus`、`getPreviousRally` 三者在 `src/lib/features/game/helpers/queries/` 各有一份逐行等價的複製品，Redux store、rally helper 與兩個元件用的都是複製品。四個函式裡只有 `deriveSetStats` 真的共用了。計分規則因此有兩份實作，正是本 Change 要消滅的形狀。
+
+**兩軸 review 都沒攔下它**，因為 S01 的驗收條件只要求 entities 匯出這四個函式、且傳 `EntryView[]` 與 `Entry[]` 都不需 cast 就過型別——兩條字面上都成立。可 cast 那條正是為了讓前端改用而寫的，只是沒有人真的去改，而驗收條件沒有把「前端已改用」寫成可檢查的事實。
+
+修法：`deriveSetPhase` 拆為 `setTargetPoints(scoring, setIndex)`（決勝局打 `decidingSetPoints`、其餘 25 的規則）與 `deriveSetPhase(set, entryIndex, targetPoints)`，兩者都留在 entities；三個複製品與其測試刪除，前端測試涵蓋而 entities 未涵蓋的案例（未建立的局回報 not-in-progress）移植進 entities 測試；六個呼叫點改用 entities。行為未變，這是收斂不是重新設計。
+
+**F5 — `TeamsStats` 在 render 期間推導而非自 store 讀取（接受，見 plan versus actual）**
+初次記錄時的理由有誤，已更正。當時寫的是該元件不在記錄路徑上、因此很少重算；實際查證後 `StatsForOneSet` 就渲染在記錄頁。結論不變，但依據換成 `useMemo` 的 dependency array 把重算頻率釘在資料更新而非 render 次數。與 F4 同一種錯誤——以推論代替查證——差別在 F4 的結論也跟著錯了，F5 只有理由錯。
+
+### Plan versus actual
+
+**S02 驗收條件第三條經 Ingest 修正。** 原文要求以 matchedCount 對 modifiedCount 區分 GAME_NOT_FOUND 與 SET_NOT_FOUND。實測（mongodb-memory-server）該機制不存在：filter 只放 `_id` 時，`$push` 到超出範圍的 `sets.N.entries` 不會失敗，MongoDB 會把 sets 補 null 補到該索引再寫入——靜默毀損文件。因此 `sets.N` 的存在必須是寫入條件的一部分，而那會讓兩種 miss 都回報零筆命中。行為承諾未變（寫入條件判定、不預先讀出來檢查），改變的是機制陳述：失敗路徑多一次 `exists({ _id })` 分辨。Design 的錯誤模型段落同步更新。
+
+**S05 驗收條件第二條逐字滿足，但不是設計原本設想的形狀。** 條件為「`src/components/` 無檔案 import `deriveSetStats`；元件自 store 讀取推導值」。`components/game/options/overview` 確實改自 Redux `status.stats` 讀取。`components/game/stats/teams-stats` 則呼叫 `src/lib/` 的 `getTeamsStats`，該 helper 在 `useMemo` 內推導。
+
+差異的原因是這兩個元件的資料來源不同：`options/overview` 讀 Redux 記錄 store；`stats` 由 `useGame(gameId)` 取 SWR 資料，且需要任意 `setIndex`（含全場 `-1`），而 `initialize` reducer 只持有當前記錄中那一局的統計。把全場所有局的統計塞進記錄 store，等於把賽後檢視的資料放進記錄流程的 store，架構上更差。
+
+設計對此的約束原文是「推導必須在 reducer 裡 append 後算一次，不能在 render 期間算——否則成本會隨 render 次數而非隨球數成長」，其風險描述同時記明「演算法本身可忽略（一局 ≤60 entry，建 Map 後約 O(N + P)）」。
+
+**`StatsForOneSet` 確實渲染在記錄頁上**（`components/game/index.tsx`，且外層 Accordion 預設展開），所以它不是賽後才碰得到的畫面。判定接受的依據是 `useMemo` 的 dependency array：`[sets, setIndex]`。Redux 狀態變動造成的 re-render——切換 panel、編輯 entry draft、選球員——不會重算，因為 `sets` 的 reference identity 未變；只有 SWR 資料更新才重算，而在記錄頁上那約等於每記一顆球一次。約束禁止的是成本隨 render 次數成長，允許的是隨球數成長，`useMemo` 讓它落在允許的那一側。
+
+已知代價：記錄頁上同一局的統計每顆球會被推導兩次——`initialize` reducer 算一次供 `options/overview` 使用，`TeamsStats` 再算一次。兩者算的是同一組數字。要收斂成一次，得在元件內分支判斷「`setIndex` 是否正好是當前記錄中那一局」以決定讀 store 還是自行推導，為省下一次 O(≤60) 的走訪而在元件裡引入兩種資料來源，不划算。記為已知事實而非待辦。
+
+**四份 ADR 從未被標記為 `accepted`。** WORKFLOW §3 規定核准時 Change ADR 由 `candidate` 轉 `accepted`，本 Change 的核准 commit 沒有做這件事，四份記錄一路以 `candidate` 走到 Archive，才在 Archive 直接轉為 `implemented`。這是流程遺漏而非決策內容有疑義——四項決策都經過核准並已交付。不回頭偽造中間狀態，在此記錄實情。
+
+### Residual risks
+
+**R1 — `appendEntry` 之後 `completeSet` 失敗時的行為未定義。**
+D4 的 consequences 已列出「附加 entry 與完成一局是兩次寫入，兩者的合併失敗行為必須定義」，本 Change 未定義。目前若 `completeSet` 擲出（例如暫時性資料庫錯誤），該顆球已經落庫但請求回報失敗；客戶端重試會再 `$push` 一次，產生重複的 rally 並使比分失真。
+
+這個危險不是 `completeSet` 引入的——任何在 `$push` 成功之後失敗的回應都有相同性質，因為附加寫入本身不具幂等性。真正的修法需要 entry 的穩定身分，而 D4 的 revisitTriggers 已明確把它交給同步記錄：「Synchronised recording settles on a stable identity for entries」。在那之前這是已知且未緩解的風險，不是本 Change 可以就地收斂的問題。
+
+**R2 — 兩種寫入模型並存。** `create-set` 與 `update-set` 仍走整份覆寫。D2 的存續條件（新寫入路徑不得使用 `update()`）目前只由介面註解與 review 把關，沒有工具強制。
+
+### Follow-ups
+
+1. 定義並實作 entry 的穩定身分與寫入幂等性，據此收斂 R1（依 D4 revisit trigger，屬同步記錄範圍）。
+2. `src/entities/team.ts` 與 `src/infrastructure/db/mongoose/schemas/team.ts` 各有一個完全無人讀寫的 `stats` 欄位（名冊的 Team，非 Game 的）。不在本 Change 範圍，刪除屬判斷型決定，需開發者確認。
+3. 評估以 lint 規則強制 D2 的存續條件與分層邊界（`src/applications/` 不得 import `@/lib/features/`），取代 review 把關。
+4. F6 的教訓：「規則移入共用層」這類決策，驗收條件必須把「舊呼叫端已改用、舊實作已刪除」寫成可檢查的事實。只寫「新層匯出了它」與「型別相容」，會讓一份未被採用的共用實作通過驗收，而兩份實作正是該決策要消滅的東西。

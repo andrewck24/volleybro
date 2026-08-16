@@ -1,6 +1,7 @@
 "use client";
 import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
+import { Badge } from "@/components/ui/badge";
 import {
   Empty,
   EmptyDescription,
@@ -107,6 +108,7 @@ function Match({ match, ref, ...props }: MatchProps) {
       <Link href={`/game/${match.id}`}>
         <ItemHeader className="flex w-full flex-row items-center justify-center gap-2">
           <span className="flex-1">{match.info.name || "Regular Game"}</span>
+          <MatchResultBadge win={match.win} />
           <span>
             {match.info.time?.date
               ? format(new Date(match.info.time.date), "MMM. dd")
@@ -123,6 +125,15 @@ function Match({ match, ref, ...props }: MatchProps) {
         </ItemFooter>
       </Link>
     </Item>
+  );
+}
+
+function MatchResultBadge({ win }: { win: boolean | null }) {
+  if (win === null) return <Badge variant="secondary">進行中</Badge>;
+  return (
+    <Badge variant={win ? "default" : "destructive"}>
+      {win ? "獲勝" : "落敗"}
+    </Badge>
   );
 }
 

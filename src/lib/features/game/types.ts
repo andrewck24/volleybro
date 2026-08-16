@@ -5,6 +5,7 @@ import {
   MatchPhase,
   MoveType,
   Side,
+  type DerivedSetStats,
 } from "@/entities/game";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
@@ -24,7 +25,7 @@ const PlayerStatsResponseSchema = z.object({
   [MoveType.SETTING]: StatEntryResponseSchema,
 });
 
-const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
+export const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
   [MoveType.UNFORCED]: StatEntryResponseSchema,
   rotation: z.number(),
   timeout: z.number(),
@@ -36,7 +37,6 @@ const GamePlayerResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   number: z.number(),
-  stats: z.array(PlayerStatsResponseSchema),
 });
 
 const StaffResponseSchema = z.object({
@@ -80,7 +80,6 @@ export const GameTeamResponseSchema = z.object({
   name: z.string(),
   players: z.array(GamePlayerResponseSchema),
   staffs: z.array(StaffResponseSchema),
-  stats: z.array(TeamStatsResponseSchema),
   lineup: LineupResponseSchema.optional(),
 });
 
@@ -189,7 +188,7 @@ const GameSummaryTeamResponseSchema = z.object({
 
 export const GameSummaryResponseSchema = z.object({
   id: z.string(),
-  win: z.boolean(),
+  win: z.boolean().nullable(),
   info: MatchResponseSchema,
   teams: z.object({
     home: GameSummaryTeamResponseSchema,
@@ -292,6 +291,7 @@ export type ReduxStatus = {
   isSetInProgress: boolean;
   isSetPoint: boolean;
   panel: "home" | "away" | "substitutes";
+  stats: DerivedSetStats;
 };
 
 type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {

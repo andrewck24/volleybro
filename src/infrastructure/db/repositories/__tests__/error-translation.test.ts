@@ -5,7 +5,7 @@ import {
   UnexpectedError,
   ValidationError,
 } from "@/entities/errors";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
 describe("Repository error translation", () => {
   describe("CastError", () => {

@@ -16,7 +16,6 @@ const emptyTeam = (
   name,
   players,
   staffs: [],
-  stats: [],
 });
 
 /** A lineup referencing the given player ids for the starting six. */
@@ -47,15 +46,18 @@ export interface SeededGame {
 /** Persist a minimal game (home team with 6 players, no sets) for reuse. */
 export const seedGame = async ({
   includeNullIdPlayer = false,
-}: { includeNullIdPlayer?: boolean } = {}): Promise<SeededGame> => {
+  playerCount = 6,
+}: {
+  includeNullIdPlayer?: boolean;
+  playerCount?: number;
+} = {}): Promise<SeededGame> => {
   const repo = container.get<IGameRepository>(TYPES.GameRepository);
   const teamId = oid();
-  const playerIds = Array.from({ length: 6 }, oid);
+  const playerIds = Array.from({ length: playerCount }, oid);
   const players = playerIds.map((id, i) => ({
     id,
     name: `Player ${i + 1}`,
     number: i + 1,
-    stats: [],
   }));
   // Stands in for a squad member stored through the unvalidated create-game
   // body: no product path writes a null roster id, but the readers must not
@@ -65,7 +67,6 @@ export const seedGame = async ({
       id: null as unknown as string,
       name: "Unlinked",
       number: 99,
-      stats: [],
     });
   }
 

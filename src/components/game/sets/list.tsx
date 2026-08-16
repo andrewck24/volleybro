@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { getPreviousRally } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
-import { getPreviousRally } from "@/lib/features/game/helpers";
 import type { SetView } from "@/lib/features/game/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useRouter } from "next/navigation";

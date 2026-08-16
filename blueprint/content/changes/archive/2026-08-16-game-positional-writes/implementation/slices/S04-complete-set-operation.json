@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "Make completing a set an explicit operation",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S03"],
+  "outcome": "A set's result is written by an operation of its own rather than as a side effect of the whole-document overwrite that no longer happens, so the game list keeps reporting sets won and match results correctly.",
+  "acceptanceCriteria": [
+    "After appending the rally that ends a set, the use case derives completion and writes sets.N.win once, adding game.win when the match result is decided.",
+    "Recording a full three-set match leaves every set.win and game.win correct in the database, and the game list shows the right number of sets won rather than zero.",
+    "A new game starts with win null rather than false, and GameSummary.win is typed boolean or null so undecided is representable.",
+    "The game list distinguishes a match in progress from a lost match."
+  ],
+  "verification": [
+    "pnpm test:integration",
+    "pnpm test -- src/applications/usecases/game"
+  ],
+  "status": "completed"
+}
