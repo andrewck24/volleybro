@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "A Change directory is its slug, and its URL never moves",
+  "status": "candidate",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Changes live under a lifecycle directory, and archived ones additionally carry a date prefix: content/changes/archive/2026-08-16-game-positional-writes/. Because fumadocs derives a page's URL from its path, the URL contains a value that is expected to change several times during the Change's life, and the archive move renames the directory a second time. Every advance therefore invalidates the Change's URLs, the designModules key when it has a design.tsx, and the lifecycle page lists. This has already cost real work: a Change moved from discussing to in-progress while its Overview still linked to the old directory, producing dead links that nobody noticed until the pages were read.",
+  "decision": "Every Change lives at content/changes/<slug>/ and is served at /changes/<slug>/. The lifecycle directories are removed, and the archive date prefix is dropped — archivedAt in change.json already carries the date, and the catalog already sorts and groups by it. Because a flat directory produces the wanted URL directly, no loader url or slugs override is needed. parseChangeMetadata validates that the directory name equals the stable slug, which is the one thing about a Change that never changes.",
+  "alternatives": [
+    {
+      "option": "Keep the lifecycle directories and stabilise URLs with the loader's url override",
+      "reason": "It fixes only the links. The directory renames, the designModules edits, and the page-list edits all remain, and the path stops predicting the URL, so a maintainer has to hold a mapping in their head that the file system no longer shows."
+    },
+    {
+      "option": "Keep the date prefix on archived directories so the archive lists chronologically in a shell",
+      "reason": "Keeping it means renaming the directory at archive time, which is precisely the action this decision removes. The date is already in archivedAt, and the catalog sorts by it; ls ordering is a weak benefit against reintroducing the rename."
+    },
+    {
+      "option": "Group flat directories by year instead, such as content/changes/2026/<slug>/",
+      "reason": "The year a Change started is as unstable as its status for a Change that spans a year boundary, and it reintroduces a path segment that is not the slug. Worth revisiting only when the flat directory becomes hard to scan."
+    }
+  ],
+  "consequences": [
+    "A Change's URL is fixed from the moment it is created, so Overview links, breadcrumbs, and cross-references cannot be invalidated by lifecycle progress.",
+    "Advancing a Change edits change.json and nothing else. The Archive procedure loses its directory move and its designModules edit.",
+    "Every existing Change URL changes once, at this Change's Apply. Internal references are updated in the same commit; no redirects are added, since there are no external references.",
+    "The breadcrumb loses its lifecycle segment: Changes > <change> > <page> rather than Changes > Archive > <change> > <page>. The Overview badge carries that information instead.",
+    "createChangesBreadcrumbTree can no longer map lifecycle folder names onto filter URLs and has to be rebuilt.",
+    "The blueprint-design-module conformance check keeps its value for renames and deletions, but stops guarding lifecycle moves, because there are none."
+  ],
+  "revisitTriggers": [
+    "The flat content/changes/ directory grows past what is comfortable to scan, which would argue for grouping by a value that never changes — not by status.",
+    "An external system turns out to link to the old status-scoped URLs, which would require redirects that this decision deliberately omits."
+  ],
+  "originChange": "lifecycle-owned-status"
+}

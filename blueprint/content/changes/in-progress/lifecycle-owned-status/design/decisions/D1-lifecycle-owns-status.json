@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Lifecycle is the only stored state; status is derived",
+  "status": "candidate",
+  "targets": ["platform/blueprint"],
+  "context": "change.json stores both lifecycle and status, and change-metadata.ts validates that they agree through lifecycleMatchesStatus. That function is a total mapping from the nine lifecycle values onto the three status values: discussing maps to discussing, archived maps to archived, and the remaining seven map to in-progress. Nothing can be in a status that its lifecycle does not imply, which makes the stored status a copy of a fact the lifecycle already states. The repository therefore maintains a validator whose only job is to keep two fields from disagreeing — the same shape of problem as the Overview props that restated change.json, one level up. Status is also load-bearing elsewhere: the catalog offers three browse buckets, the sidebar links to them, and the archive groups by month within one of them.",
+  "decision": "change.json stores lifecycle only. status is removed from the file and from the schema, and becomes a value computed by statusOf(lifecycle), backed by a Record<ChangeLifecycle, ChangeStatus> in change-types.ts. The Record type makes the table exhaustive: adding a lifecycle value fails to compile until it is mapped, so the derivation cannot silently go stale. The derived status serves filtering, the sidebar links, and the archive grouping. It is never rendered: the status badge in ChangeCard and ChangeOverview shows the lifecycle instead, which removes the lifecycle-differs-from-status condition and the second badge with it.",
+  "alternatives": [
+    {
+      "option": "Delete status entirely and expose the nine lifecycle values as the catalog's filters",
+      "reason": "The coarse grouping is load-bearing — three filter buttons, four sidebar links, and the month-grouped archive all depend on it. Removing the field would move the mapping from change-types.ts into a component rather than eliminate it, leaving the same table somewhere harder to find. Ten Changes spread across nine filters also browse worse than across three, since most buckets would hold zero or one item."
+    },
+    {
+      "option": "Keep status stored and rely on the existing validator to catch disagreement",
+      "reason": "That is the current state. It works, but it is a check maintaining a copy rather than an absence of copies, and every new Change has to state a value that is already implied."
+    },
+    {
+      "option": "Derive status but keep showing it as its own badge alongside lifecycle",
+      "reason": "Two badges where one is computed from the other reads as redundancy, and the existing code has to suppress the second when the two coincide. The lifecycle value alone is strictly more informative."
+    }
+  ],
+  "consequences": [
+    "A Change advances by editing one field. The status can no longer disagree with the lifecycle because it is no longer written down.",
+    "lifecycleMatchesStatus disappears; it becomes a tautology once status is computed from lifecycle.",
+    "change.schema.json drops status from both properties and required, which is a breaking schema change for the ten existing change.json files.",
+    "The archivedAt requirement moves from status being archived to lifecycle being archived.",
+    "Readers see the precise stage. A Change in pre-pr-review or awaiting-delivery-review is labelled as such rather than as In Progress.",
+    "parseChangeMetadata no longer takes a status argument, and its directory-versus-status reconciliation goes away."
+  ],
+  "revisitTriggers": [
+    "A lifecycle value is added that does not belong in any of the three browse buckets, which would mean the grouping no longer follows from the lifecycle and needs its own stored field after all.",
+    "A consumer outside Blueprint needs the coarse status from change.json without running TypeScript, which would argue for emitting it into a generated artifact rather than restoring the stored field."
+  ],
+  "originChange": "lifecycle-owned-status"
+}

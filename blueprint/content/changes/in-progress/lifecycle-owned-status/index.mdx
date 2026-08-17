@@ -1,0 +1,50 @@
+---
+title: Overview
+---
+
+## Context
+
+A Change's status is stated in three places. It is a directory (`discussing/`, `in-progress/`, `archive/`), a field in `change.json`, and — for archived Changes — a date prefix on the directory name. `parseChangeMetadata` reconciles the first two by deriving status from the directory and rejecting a `change.json` that disagrees.
+
+Moving a Change between statuses therefore edits four things: the directory itself, the `status` and `lifecycle` fields, `archivedAt` when archiving, and the `designModules` key in the changes route when the Change has a `design.tsx`. Forgetting the last one breaks the Blueprint build.
+
+Worse, the move changes every URL the Change owns. Overview links, Change cards, breadcrumbs, and any cross-reference from another Change or from `docs/` point at a path that contains a lifecycle stage — a value that is expected to change several times over the Change's life. The recent Overview work removed the hand-copied metadata that drifted from `change.json`, but it could not remove the drift built into the paths themselves.
+
+`lifecycle` already determines `status` completely. `lifecycleMatchesStatus` encodes a total function from nine lifecycle values onto three status values, and validates that the stored `status` agrees with it. The repository stores a value it can compute, and then maintains a check to keep the copy honest.
+
+## Goals
+
+- A Change's URL is fixed for its whole life. Advancing its lifecycle never invalidates a link, a `designModules` key, or a page list.
+- One canonical statement of where a Change stands: `lifecycle` in `change.json`.
+- `status` survives only as a derived grouping key for the catalog's three browse buckets, computed from `lifecycle` by a table the compiler forces to stay exhaustive.
+- Readers see the precise stage. A Change in `pre-pr-review` says so, instead of being flattened to "In Progress" with a second badge to disambiguate.
+
+## Non-goals
+
+- No redirects for the old URLs. The developer confirmed there are no external references; internal ones are updated in this Change.
+- The historical snapshots under `docs/changes/` and `docs/specs/` keep their existing links. `WORKFLOW.md` already treats them as snapshots.
+- The lifecycle values themselves do not change, and neither does which lifecycle a stage sets. `proposing` and `ready-for-review` keep grouping under In Progress.
+- Feature pages are untouched. Their paths are capability-based and carry no lifecycle segment.
+
+## Boundaries
+
+In scope: the ten Change directories, `change.json` and its schema, `parseChangeMetadata`, `loadChangeCatalog`, the breadcrumb tree, the `designModules` registry, the status badges in `ChangeCard` and `ChangeOverview`, the surviving internal cross-links, and the sections of `WORKFLOW.md` and `docs/agents/artifact-lifecycle.md` that describe the directory layout.
+
+Out of scope: everything the catalog does with the three buckets. Filtering, the sidebar's four links, and the month grouping of the archive all keep working exactly as they do now.
+
+## Capability impact
+
+`platform/blueprint` gains a stable addressing scheme and loses the status-shaped directory tree. `platform/delivery-workflow` loses two steps from the Archive procedure.
+
+## Alternatives considered
+
+Keeping the status directories and stabilising URLs with the loader's `url` override was rejected: it fixes only the links while leaving the directory renames, the `designModules` edits, and the page-list edits in place, and it makes the path no longer predict the URL.
+
+Deleting `status` outright and exposing the nine lifecycle values as filters was rejected: the coarse grouping still has to exist, so the mapping would move from `change-types.ts` into a component rather than disappear, and ten Changes spread over nine filters browse worse than over three.
+
+Both are recorded with their full reasoning in the Design decisions.
+
+## Revisit triggers
+
+- A lifecycle value is added and the catalog needs a fourth browse bucket, which means the three-bucket grouping no longer fits the lifecycle.
+- Changes accumulate to the point where a flat `content/changes/` directory becomes hard to scan, which would argue for grouping by year rather than by status.
