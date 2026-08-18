@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "Give every Change a flat directory and a permanent URL",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": ["S01", "S02"],
+  "outcome": "Every Change lives at content/changes/<slug>/ and is served at /changes/<slug>/. Advancing a Change's lifecycle stops renaming anything, so its links cannot go stale.",
+  "acceptanceCriteria": [
+    "Every Change directory is named exactly its slug, with no lifecycle directory and no archive date prefix; the three lifecycle meta.json files are gone and content/changes/meta.json lists index plus the rest.",
+    "parseChangeMetadata validates directoryName against the slug and returns href as /changes/<slug>/.",
+    "loadChangeCatalog reads one directory; catalog sorting and the archive month grouping still use archivedAt ?? startedAt and produce the same order as before.",
+    "createChangesBreadcrumbTree no longer keys off lifecycle folder names; breadcrumbs read Changes > <change> > <page> and every Change page still has a breadcrumb.",
+    "Every designModules key is <slug>/design with a matching import path, and check-workflow reports no blueprint-design-module diagnostic.",
+    "The surviving internal references are updated: blueprint/src tests and the changes route, the two links in blueprint/content, WORKFLOW.md, and docs/agents/artifact-lifecycle.md. References inside docs/changes/ and docs/specs/ are historical snapshots and stay unchanged.",
+    "No link in the built site is dead, checked the same way as S02.",
+    "The catalog's three filter buttons, the sidebar's four links, and the ?status= query behave exactly as they did before."
+  ],
+  "verification": [
+    "pnpm --filter blueprint test",
+    "pnpm --filter blueprint build",
+    "pnpm check:workflow"
+  ],
+  "status": "pending"
+}
