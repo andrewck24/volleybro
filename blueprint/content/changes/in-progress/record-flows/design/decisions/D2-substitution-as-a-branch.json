@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "Substitution is a branch of the rally flow, not a panel mode",
+  "status": "candidate",
+  "targets": ["game-recording/substitution", "game-recording/rally-recording"],
+  "context": "Recording a substitution leaves the rally flow entirely. The 替補 button dispatches setPanel(\"substitutes\"), panel/index.tsx renders <Substitutes> in place of the whole panel, and that component brings its own Card header, back button and confirm button. The progress bar, the caption, the directional slide and the Preview submit are all skipped. A user recording a substitution is in a different interaction model from the one they were in a moment earlier, and the two models share no code.",
+  "decision": "Substitution becomes the step-2 branch of the rally flow, with steps [player, home, substitute]. The 替補 button on the home-move panel selects the substitution branch instead of a scoring move, and step 3 renders the substitute picker — the selection UI extracted from substitutes/index.tsx with its header, back and confirm controls removed. Step 1 keeps its meaning through the branch: the on-court player chosen there is the outgoing player, which is already how setEntryDraftSubstitution reads it. ReduxStatus[\"panel\"] loses the \"substitutes\" value, and submission moves to the Preview send button like every other flow.",
+  "alternatives": [
+    {
+      "option": "Keep the dedicated substitutes mode and give it its own progress bar and Preview wiring",
+      "reason": "It removes the visible inconsistency while keeping the structural one. Every shared behaviour — gesture handling, click suppression, submit affordance — would then exist twice and have to be kept in step by hand."
+    },
+    {
+      "option": "Model substitution as its own flow rather than a branch of the rally flow",
+      "reason": "Its first two steps are the rally flow's first two steps: choose an on-court player, then act on the home panel. A separate flow would duplicate them and force the 替補 button to abandon a partially built draft rather than continue it."
+    }
+  ],
+  "consequences": [
+    "Recording a substitution and recording a rally become the same interaction: same progress bar, same caption, same directional slide, same submit control.",
+    "ReduxStatus[\"panel\"] loses a value, which is a breaking change to client state types; every setPanel(\"substitutes\") call site and the setEditingEntryStatus branch that produced it have to move to flow and step state.",
+    "The Preview has to dispatch by flow on submit, and useEntryDraftPreview has to produce a substitution-shaped preview entry.",
+    "substitutes/index.tsx survives only as the picker; its confirm button and the createSubstitution call behind it move to the Preview."
+  ],
+  "revisitTriggers": [
+    "Editing an existing substitution entry turns out to need an entry point that does not pass through the rally flow's first two steps.",
+    "A substitution needs to be recorded without first selecting an on-court player, which would break the shared prefix this decision depends on."
+  ],
+  "originChange": "record-flows"
+}

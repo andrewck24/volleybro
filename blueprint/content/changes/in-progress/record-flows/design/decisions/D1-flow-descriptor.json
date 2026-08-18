@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "A record flow declares its steps instead of the panel hardcoding them",
+  "status": "candidate",
+  "targets": ["game-recording/rally-recording"],
+  "context": "entry-progress.ts expresses the rally flow as two constant arrays — STEPS and OPPONENT_ERROR_STEPS — and getEntryProgress(draft) picks between them. ProgressStep carries only key and caption, so which panel body a step renders, whether a step is reachable, and whether the flow can submit are all decided elsewhere: panel/index.tsx recomputes activeStep from status.panel plus a steps.length === 2 test for the opponent-error case. The knowledge of what a flow is, is spread across a constant array, a derivation function and a component's branching. Adding a fourth flow means adding another branch to each of them.",
+  "decision": "One flow descriptor replaces the constant arrays. A Step carries id, caption, body (which panel content it renders; the player step has none because the choice happens on the court), isReachable(draft) and isSubmittable(draft). getEntryProgress becomes deriveFlow(draft), returning steps, activeStep, reachableSteps, submittable and the flow identity. The panel stops recomputing any of it. The rally branch keeps its existing collapse rule — the home move being UNFORCED collapses three steps to two — restated as one possible result of the descriptor rather than a second array.",
+  "alternatives": [
+    {
+      "option": "Give each flow its own component tree managing its own state",
+      "reason": "That is the current situation and the direct cause of the substitutes special case. It also gives timeout and challenge no cheap way in: each would arrive as another parallel tree with its own progress bar, its own submit control and its own gesture wiring."
+    },
+    {
+      "option": "Keep the arrays and add a third one for substitution",
+      "reason": "It works for one more flow and fails for the two after that. The branching in panel/index.tsx grows with every flow, and each new array is another place the reachability rule can be stated inconsistently."
+    }
+  ],
+  "consequences": [
+    "Adding a flow means adding a descriptor, not editing the panel, the progress bar and the derivation.",
+    "The progress bar can be driven purely by steps and activeStep, which is what makes it a composable accessory rather than a fixed element of the recording panel.",
+    "Reachability and submittability become per-step rules that a test can assert directly, instead of properties of component branching.",
+    "deriveFlow becomes a single point of failure for every flow: a mistake there breaks all four rather than one."
+  ],
+  "revisitTriggers": [
+    "A flow needs a step whose reachability depends on something outside the draft, which the isReachable(draft) signature cannot express.",
+    "Two flows need to interleave or nest rather than branch, which a flat ordered step list cannot represent."
+  ],
+  "originChange": "record-flows"
+}
