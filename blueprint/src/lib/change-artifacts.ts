@@ -50,10 +50,6 @@ function label(name: unknown, fallback: string) {
  * loader actually registered. Titles come from each page's own frontmatter and
  * the order from the Change's `meta.json`, so an Overview cannot link to a page
  * that does not exist or drift from a page's real title.
- *
- * Pass the tree from `createChangesBreadcrumbTree`, not the raw source tree: a
- * data directory shadows its sibling page in the raw tree, so `design.mdx` is
- * absent from it whenever `design/decisions/` exists.
  */
 export function changeArtifacts(
   tree: Root,

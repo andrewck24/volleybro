@@ -2,6 +2,8 @@ import type { Root } from "fumadocs-core/page-tree";
 
 import { createChangesBreadcrumbTree } from "./changes-tree";
 
+// The loader indexes only meta.json, so a Change's design and implementation
+// pages reach the tree as pages; their data directories are not content.
 const sourceTree: Root = {
   name: "Changes",
   children: [
@@ -19,14 +21,14 @@ const sourceTree: Root = {
               url: "/changes/in-progress/example-change",
             },
             {
-              type: "folder",
+              type: "page",
               name: "Design",
-              children: [],
+              url: "/changes/in-progress/example-change/design",
             },
             {
-              type: "folder",
+              type: "page",
               name: "Implementation",
-              children: [],
+              url: "/changes/in-progress/example-change/implementation",
             },
             {
               type: "folder",
@@ -67,16 +69,7 @@ const sourceTree: Root = {
 };
 
 it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree", () => {
-  const tree = createChangesBreadcrumbTree(sourceTree, [
-    {
-      name: "Design",
-      url: "/changes/in-progress/example-change/design",
-    },
-    {
-      name: "Implementation",
-      url: "/changes/in-progress/example-change/implementation",
-    },
-  ]);
+  const tree = createChangesBreadcrumbTree(sourceTree);
   const root = tree.children[0];
 
   expect(root).toMatchObject({
@@ -110,7 +103,11 @@ it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree",
   const change = lifecycle.children[0];
   if (change.type !== "folder") throw new Error("expected Change folder");
 
-  expect(change.children[4]).toMatchObject({
+  const specs = change.children.find(
+    (child) => child.type === "folder" && child.name === "Specs",
+  );
+
+  expect(specs).toMatchObject({
     type: "folder",
     name: "Specs",
     index: {

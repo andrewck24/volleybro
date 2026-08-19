@@ -15,5 +15,5 @@
     "pnpm --filter blueprint test",
     "pnpm --filter blueprint build"
   ],
-  "status": "pending"
+  "status": "completed"
 }

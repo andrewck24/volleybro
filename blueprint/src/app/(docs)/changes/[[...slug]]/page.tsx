@@ -46,13 +46,7 @@ const designModules: Record<string, () => Promise<DesignModule>> = {
 };
 
 const mdxComponents = { ...defaultMdxComponents, ChangeCard };
-const changesBreadcrumbTree = createChangesBreadcrumbTree(
-  source.pageTree,
-  source.getPages().map((page) => ({
-    name: page.data.title ?? page.slugs.at(-1) ?? "Change page",
-    url: page.url,
-  })),
-);
+const changesBreadcrumbTree = createChangesBreadcrumbTree(source.pageTree);
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
@@ -145,7 +139,7 @@ export default async function Page({ params }: PageProps) {
               status={change.status}
               lifecycle={change.lifecycle}
               summary={change.summary}
-              artifacts={changeArtifacts(changesBreadcrumbTree, page.url)}
+              artifacts={changeArtifacts(source.pageTree, page.url)}
             />
             <Mdx components={mdxComponents} />
           </DocsBody>
