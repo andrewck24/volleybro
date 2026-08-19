@@ -189,7 +189,6 @@ export function ChangesCatalog({ changes }: { changes: ChangeRecord[] }) {
                 key={change.slug}
                 name={change.title}
                 date={change.startedAt}
-                status={change.status}
                 lifecycle={change.lifecycle}
                 summary={change.summary}
                 href={change.href}
@@ -228,7 +227,6 @@ export function ChangesCatalog({ changes }: { changes: ChangeRecord[] }) {
                         key={change.slug}
                         name={change.title}
                         date={change.archivedAt}
-                        status={change.status}
                         lifecycle={change.lifecycle}
                         summary={change.summary}
                         href={change.href}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { LifecycleBadge } from "@/components/LifecycleBadge";
 import {
   Card,
   CardContent,
@@ -8,42 +9,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import type { ChangeLifecycle } from "@/lib/change-types";
 
-type Status = "archived" | "in-progress" | "discussing" | "draft";
 type Props = {
   name: string;
   date?: string;
-  status: Status;
-  lifecycle?: string;
+  lifecycle: ChangeLifecycle;
   summary: string;
   href?: string;
   capabilities?: string[];
   tags?: string[];
 };
 
-const STATUS_LABEL: Record<Status, string> = {
-  archived: "Archived",
-  "in-progress": "In Progress",
-  discussing: "Discussing",
-  draft: "Draft",
-};
-
-const STATUS_CLASS: Record<Status, string> = {
-  archived:
-    "bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-[var(--primary)] border border-[color-mix(in_oklch,var(--primary)_35%,transparent)]",
-  "in-progress":
-    "bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-[var(--warning)] border border-[color-mix(in_oklch,var(--warning)_40%,transparent)]",
-  discussing:
-    "border border-dashed border-[var(--border)] bg-transparent text-[var(--color-fd-muted-foreground)]",
-  draft:
-    "bg-[var(--color-fd-muted)] text-[var(--color-fd-muted-foreground)] border border-[var(--border)]",
-};
-
 export function ChangeCard({
   name,
   date,
-  status,
   lifecycle,
   summary,
   href,
@@ -63,16 +43,7 @@ export function ChangeCard({
       <CardHeader className="gap-2 px-4">
         <div className="flex flex-wrap items-center gap-2">
           <CardTitle className="font-mono text-sm">{name}</CardTitle>
-          <Badge
-            variant="outline"
-            data-status={status}
-            className={cn(STATUS_CLASS[status])}
-          >
-            {STATUS_LABEL[status]}
-          </Badge>
-          {lifecycle && lifecycle !== status && (
-            <Badge variant="secondary">{lifecycle}</Badge>
-          )}
+          <LifecycleBadge lifecycle={lifecycle} />
           {date && (
             <span className="ml-auto font-mono text-xs text-muted-foreground">
               {date}

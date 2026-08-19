@@ -136,7 +136,6 @@ export default async function Page({ params }: PageProps) {
             <h1>{page.data.title}</h1>
             <ChangeOverview
               date={change.startedAt}
-              status={change.status}
               lifecycle={change.lifecycle}
               summary={change.summary}
               artifacts={changeArtifacts(source.pageTree, page.url)}

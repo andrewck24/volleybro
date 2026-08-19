@@ -189,13 +189,13 @@ export default function ComponentLibraryShowcase() {
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <ChangeCard
           name="elevation-depth-system"
-          status="in-progress"
+          lifecycle="applying"
           summary="Redefine background color tokens into a three-layer elevation model and unify Dialog layout on top of that foundation."
         />
         <ChangeCard
           name="apple-splash-dynamic"
           date="2026-06-28"
-          status="archived"
+          lifecycle="archived"
           summary="A parametric generator replaces nine hand-exported Apple splash PNGs, making splash screens track design tokens automatically."
         />
       </div>
@@ -285,7 +285,7 @@ export default function ComponentLibraryShowcase() {
       <h3>ChangeOverview</h3>
       <ChangeOverview
         date="2026-07-12"
-        status="in-progress"
+        lifecycle="pre-pr-review"
         summary="Add a design-system section and a component-library showcase page to the blueprint site."
         artifacts={[
           { title: "Proposal", href: "#proposal" },

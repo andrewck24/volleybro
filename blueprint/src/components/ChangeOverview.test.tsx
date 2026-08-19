@@ -5,28 +5,23 @@ import { ChangeOverview } from "./ChangeOverview";
 const base = {
   date: "2026-08-08",
   summary: "Canonical summary.",
-  artifacts: [{ title: "Design", href: "/changes/in-progress/sample/design" }],
+  artifacts: [{ title: "Design", href: "/changes/sample/design" }],
 };
 
 describe("ChangeOverview", () => {
-  it("shows the lifecycle when it is finer-grained than the status", () => {
-    render(
-      <ChangeOverview
-        {...base}
-        status="in-progress"
-        lifecycle="awaiting-delivery-review"
-      />,
-    );
+  it("labels the badge with the lifecycle, not the coarse status", () => {
+    render(<ChangeOverview {...base} lifecycle="pre-pr-review" />);
 
-    expect(screen.getByText("In Progress")).toBeInTheDocument();
-    expect(screen.getByText("awaiting-delivery-review")).toBeInTheDocument();
+    expect(screen.getByText("pre-pr-review")).toBeInTheDocument();
+    expect(screen.queryByText("In Progress")).not.toBeInTheDocument();
   });
 
-  it("does not repeat the status as a lifecycle badge", () => {
-    render(
-      <ChangeOverview {...base} status="discussing" lifecycle="discussing" />,
-    );
+  it("colours the badge by the status the lifecycle derives", () => {
+    render(<ChangeOverview {...base} lifecycle="awaiting-delivery-review" />);
 
-    expect(screen.getAllByText("Discussing")).toHaveLength(1);
+    expect(screen.getByText("awaiting-delivery-review")).toHaveAttribute(
+      "data-status",
+      "in-progress",
+    );
   });
 });
