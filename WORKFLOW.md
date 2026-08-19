@@ -43,7 +43,7 @@ acceptance. Provider instruction files are bridges only.
 | Section gate                           | `pnpm verify`                                                          |
 | Final gate                             | `pnpm verify:all`                                                      |
 | Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones |
-| Change-scoped durable knowledge        | `blueprint/content/changes/<status>/<slug>/`                           |
+| Change-scoped durable knowledge        | `blueprint/content/changes/<slug>/`                                    |
 | Canonical current capability knowledge | `blueprint/content/features/`                                          |
 | Execution plan                         | Change-local implementation-slice JSON                                 |
 | Version and changelog evidence         | `.changeset/` through Changesets                                       |
@@ -242,9 +242,8 @@ request opens. Follow `docs/agents/artifact-lifecycle.md`:
 4. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 5. keep execution slices, review rounds, validation evidence, and plan-versus-actual history in the
    archived Change rather than copying them into Features;
-6. set lifecycle to `archived`, add `archivedAt`, and move the complete Change to
-   `blueprint/content/changes/archive/YYYY-MM-DD-<slug>/` without changing its stable metadata
-   `slug`; and
+6. set lifecycle to `archived` and add `archivedAt`; the Change stays where it is, because its
+   directory is its slug and its URL does not depend on its lifecycle; and
 7. verify tracker neutrality, workflow conformance, and the Blueprint build.
 
 Open the pull request only after the Archive commit. If optional human PR feedback arrives and
@@ -259,7 +258,7 @@ rewrite the remaining snapshots.
 Canonical execution data is JSON; MDX and React components render it for human review.
 
 ```text
-blueprint/content/changes/<status>/<change-slug>/
+blueprint/content/changes/<change-slug>/
 ├── change.json                 canonical Change metadata
 ├── meta.json                   page list
 ├── index.mdx                   Overview narrative only
@@ -277,27 +276,26 @@ blueprint/content/changes/<status>/<change-slug>/
 └── review.mdx
 ```
 
-The Overview page renders status, lifecycle, and summary from `change.json`, its date from that
-file's `startedAt`, and its artifact links from the pages Blueprint actually registered for the
-Change, ordered by that Change's `meta.json`. `index.mdx` carries narrative content only and must
-not restate any of that as component props. Link text is each page's own frontmatter `title`, so an
+The Overview page renders lifecycle and summary from `change.json`, its date from that file's
+`startedAt`, and its artifact links from the pages Blueprint actually registered for the Change,
+ordered by that Change's `meta.json`. `index.mdx` carries narrative content only and must not
+restate any of that as component props. Link text is each page's own frontmatter `title`, so an
 Overview cannot link to a page that does not exist, show a stale title, or omit a page that was
 added.
 
-The lifecycle directories `discussing/`, `in-progress/`, and `archive/` do not enumerate their
-Changes: their `meta.json` uses `["..."]`, and `archive/` uses `["z...a"]` so that dated directories
-list newest first. Do not replace those with an explicit list — enumerating them would make every
-lifecycle move edit two more files.
+`change.json` states `lifecycle` and never `status`. The coarse status that groups the catalog into
+Discussing, In Progress and Archive is derived from the lifecycle by an exhaustive table in
+`change-types.ts`, so a new lifecycle value fails to compile until it is grouped. Do not reintroduce
+a stored `status`: it would be a second copy of what the lifecycle already says.
 
-Moving a Change between lifecycle directories therefore touches exactly three things: the directory
-itself, `change.json` (`status`, `lifecycle`, and `archivedAt` when archiving), and — only when the
-Change has a `design.tsx` — its key in the `designModules` map of the changes route. Forgetting the
-third one breaks the Blueprint build rather than failing quietly, which is what the Archive build
-check catches.
+A Change directory is named exactly its stable slug and is served at `/changes/<slug>/` for the
+Change's whole life. There are no lifecycle directories and no date prefixes; `archivedAt` in
+`change.json` carries the archive date, and the catalog sorts and groups by it. `content/changes/`
+does not enumerate its Changes — its `meta.json` uses `["index", "..."]` — so adding a Change
+edits no page list.
 
-A data directory shadows its sibling page in Blueprint's raw content tree, so a Change carrying
-`design/decisions/` or `implementation/slices/` needs no change to its `meta.json` `pages`: `design`
-and `implementation` stay listed and the rendering layer reconciles the shadowed pages.
+Advancing a Change therefore edits `change.json` and nothing else. Nothing is renamed, so no link,
+no `designModules` key and no page list can go stale behind it.
 
 Durable slice statuses are `pending`, `completed`, and `superseded`. Runtime states such as
 `claimed`, `running`, executor identity, and retry count do not belong in Git and must not be added

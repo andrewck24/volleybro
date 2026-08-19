@@ -18,7 +18,7 @@ is not the ADR authority. Developer plan approval changes qualifying Change ADRs
 `candidate` to `accepted`; they remain Change-scoped while implementation is active.
 
 Store these records under
-`blueprint/content/changes/<status>/<change-slug>/design/decisions/`.
+`blueprint/content/changes/<change-slug>/design/decisions/`.
 
 Branch-local Archive reconciles each realized ADR with delivered code and tests, changes the Change
 copy to `implemented`, and copies it to the narrowest affected Blueprint capability or sub-capability

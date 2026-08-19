@@ -13,5 +13,5 @@
     "New prose is hard-wrapped to the width the surrounding file already uses."
   ],
   "verification": ["pnpm check:workflow", "pnpm verify:all"],
-  "status": "pending"
+  "status": "completed"
 }

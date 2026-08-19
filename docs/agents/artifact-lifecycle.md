@@ -26,9 +26,9 @@ Archive runs after the developer accepts Blueprint Review and before the pull re
    plan-versus-actual details in the archived Change instead of promoting them to Features;
 8. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript
    text from durable Blueprint content;
-9. set lifecycle to `archived`, add `archivedAt`, and move the complete Change to
-   `blueprint/content/changes/archive/YYYY-MM-DD-<slug>/` without changing its stable metadata
-   `slug`; then validate workflow conformance plus the Blueprint build.
+9. set lifecycle to `archived` and add `archivedAt`; the Change stays at
+   `blueprint/content/changes/<slug>/`, since its directory is its stable metadata `slug`; then
+   validate workflow conformance plus the Blueprint build.
 
 The archived branch describes the intended post-merge canonical state. It becomes current on the
 default branch only when the pull request merges. If PR feedback changes behavior, constraints,
