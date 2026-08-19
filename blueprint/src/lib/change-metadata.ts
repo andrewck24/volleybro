@@ -42,7 +42,6 @@ function isDate(value: unknown): value is string {
 export function parseChangeMetadata(
   value: unknown,
   directoryName: string,
-  directory: string,
 ): ChangeRecord {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error(`${directoryName}/change.json must contain an object`);
@@ -53,17 +52,12 @@ export function parseChangeMetadata(
   const unknownKeys = Object.keys(record).filter(
     (key) => !ALLOWED_KEYS.has(key),
   );
-  const expectedDirectory =
-    lifecycle === "archived" && typeof record.archivedAt === "string"
-      ? `${record.archivedAt}-${record.slug}`
-      : record.slug;
-
   if (
     unknownKeys.length > 0 ||
     record.schemaVersion !== 1 ||
     typeof record.slug !== "string" ||
     !SLUG_PATTERN.test(record.slug) ||
-    expectedDirectory !== directoryName ||
+    record.slug !== directoryName ||
     !CHANGE_LIFECYCLES.includes(lifecycle) ||
     typeof record.title !== "string" ||
     record.title.length === 0 ||
@@ -91,6 +85,6 @@ export function parseChangeMetadata(
     summary: record.summary,
     capabilities: record.capabilities,
     tags: record.tags,
-    href: `/changes/${directory}/${directoryName}/`,
+    href: `/changes/${record.slug}/`,
   };
 }

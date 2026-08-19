@@ -1,11 +1,5 @@
 import type { Folder, Item, Root } from "fumadocs-core/page-tree";
 
-const lifecycleUrls: Record<string, string> = {
-  Discussing: "/changes?status=discussing",
-  "In Progress": "/changes?status=in-progress",
-  Archive: "/changes?status=archived#archive",
-};
-
 function firstPage(folder: Folder): Item | undefined {
   if (folder.index) return folder.index;
 
@@ -41,29 +35,13 @@ function withNavigableFolders(folder: Folder): Folder {
   };
 }
 
+// Changes sit directly under content/changes, so a breadcrumb reads
+// Changes > <change> > <page>. The lifecycle is not a path segment and is
+// shown by the Overview badge instead.
 export function createChangesBreadcrumbTree(sourceTree: Root): Root {
-  const lifecycleFolders = sourceTree.children.flatMap((node) => {
-    if (node.type !== "folder" || typeof node.name !== "string") return [];
-
-    const lifecycleUrl = lifecycleUrls[node.name];
-    if (!lifecycleUrl) return [];
-
-    const children = node.children.map((child) =>
-      child.type === "folder" ? withNavigableFolders(child) : child,
-    );
-
-    return [
-      {
-        ...node,
-        index: {
-          type: "page" as const,
-          name: node.name,
-          url: lifecycleUrl,
-        },
-        children,
-      },
-    ];
-  });
+  const changeFolders = sourceTree.children.flatMap((node) =>
+    node.type === "folder" ? [withNavigableFolders(node)] : [],
+  );
 
   return {
     $id: "blueprint-changes-breadcrumb-content",
@@ -74,7 +52,7 @@ export function createChangesBreadcrumbTree(sourceTree: Root): Root {
         name: "Changes",
         root: true,
         index: { type: "page", name: "All Changes", url: "/changes" },
-        children: lifecycleFolders,
+        children: changeFolders,
       },
     ],
   };

@@ -2,66 +2,61 @@ import type { Root } from "fumadocs-core/page-tree";
 
 import { createChangesBreadcrumbTree } from "./changes-tree";
 
-// The loader indexes only meta.json, so a Change's design and implementation
-// pages reach the tree as pages; their data directories are not content.
+// Changes sit directly under content/changes, and the loader indexes only
+// meta.json, so a Change's design and implementation pages reach the tree as
+// pages rather than as folders shadowing them.
 const sourceTree: Root = {
   name: "Changes",
   children: [
     {
       type: "folder",
-      name: "In Progress",
+      name: "Example Change",
       children: [
         {
+          type: "page",
+          name: "Overview",
+          url: "/changes/example-change",
+        },
+        {
+          type: "page",
+          name: "Design",
+          url: "/changes/example-change/design",
+        },
+        {
+          type: "page",
+          name: "Implementation",
+          url: "/changes/example-change/implementation",
+        },
+        {
           type: "folder",
-          name: "Example Change",
+          name: "Specs",
           children: [
             {
-              type: "page",
-              name: "Overview",
-              url: "/changes/in-progress/example-change",
-            },
-            {
-              type: "page",
-              name: "Design",
-              url: "/changes/in-progress/example-change/design",
-            },
-            {
-              type: "page",
-              name: "Implementation",
-              url: "/changes/in-progress/example-change/implementation",
+              type: "folder",
+              name: "Example Capability",
+              index: {
+                type: "page",
+                name: "Example Capability",
+                url: "/changes/example-change/specs/example-capability",
+              },
+              children: [],
             },
             {
               type: "folder",
-              name: "Specs",
-              children: [
-                {
-                  type: "folder",
-                  name: "Example Capability",
-                  index: {
-                    type: "page",
-                    name: "Example Capability",
-                    url: "/changes/in-progress/example-change/specs/example-capability",
-                  },
-                  children: [],
-                },
-                {
-                  type: "folder",
-                  name: "Another Capability",
-                  index: {
-                    type: "page",
-                    name: "Another Capability",
-                    url: "/changes/in-progress/example-change/specs/another-capability",
-                  },
-                  children: [],
-                },
-              ],
-            },
-            {
-              type: "page",
-              name: "Review",
-              url: "/changes/in-progress/example-change/review",
+              name: "Another Capability",
+              index: {
+                type: "page",
+                name: "Another Capability",
+                url: "/changes/example-change/specs/another-capability",
+              },
+              children: [],
             },
           ],
+        },
+        {
+          type: "page",
+          name: "Review",
+          url: "/changes/example-change/review",
         },
       ],
     },
@@ -79,29 +74,14 @@ it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree",
   });
   if (root.type !== "folder") throw new Error("expected root folder");
 
-  const lifecycle = root.children[0];
-  expect(lifecycle).toMatchObject({
-    type: "folder",
-    name: "In Progress",
-    index: {
-      type: "page",
-      name: "In Progress",
-      url: "/changes?status=in-progress",
-    },
-  });
-  if (lifecycle.type !== "folder") throw new Error("expected lifecycle folder");
-
-  expect(lifecycle.children[0]).toMatchObject({
-    type: "folder",
-    name: "Example Change",
-    index: {
-      type: "page",
-      name: "Overview",
-      url: "/changes/in-progress/example-change",
-    },
-  });
-  const change = lifecycle.children[0];
+  const change = root.children[0];
   if (change.type !== "folder") throw new Error("expected Change folder");
+
+  expect(change.index).toMatchObject({
+    type: "page",
+    name: "Overview",
+    url: "/changes/example-change",
+  });
 
   const specs = change.children.find(
     (child) => child.type === "folder" && child.name === "Specs",
@@ -113,7 +93,7 @@ it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree",
     index: {
       type: "page",
       name: "Example Capability",
-      url: "/changes/in-progress/example-change/specs/example-capability",
+      url: "/changes/example-change/specs/example-capability",
     },
     children: [
       {
@@ -122,26 +102,21 @@ it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree",
         index: {
           type: "page",
           name: "Another Capability",
-          url: "/changes/in-progress/example-change/specs/another-capability",
+          url: "/changes/example-change/specs/another-capability",
         },
         children: [],
       },
     ],
   });
 
-  expect(change.index).toMatchObject({
-    type: "page",
-    name: "Overview",
-    url: "/changes/in-progress/example-change",
-  });
   expect(
     change.children
       .filter((child) => child.type === "page")
       .map((page) => page.url),
   ).toEqual([
-    "/changes/in-progress/example-change/design",
-    "/changes/in-progress/example-change/implementation",
-    "/changes/in-progress/example-change/review",
+    "/changes/example-change/design",
+    "/changes/example-change/implementation",
+    "/changes/example-change/review",
   ]);
 
   const flattenedUrls: string[] = [];
@@ -155,11 +130,11 @@ it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree",
   collectPages(change);
 
   expect(flattenedUrls).toEqual([
-    "/changes/in-progress/example-change",
-    "/changes/in-progress/example-change/design",
-    "/changes/in-progress/example-change/implementation",
-    "/changes/in-progress/example-change/specs/example-capability",
-    "/changes/in-progress/example-change/specs/another-capability",
-    "/changes/in-progress/example-change/review",
+    "/changes/example-change",
+    "/changes/example-change/design",
+    "/changes/example-change/implementation",
+    "/changes/example-change/specs/example-capability",
+    "/changes/example-change/specs/another-capability",
+    "/changes/example-change/review",
   ]);
 });

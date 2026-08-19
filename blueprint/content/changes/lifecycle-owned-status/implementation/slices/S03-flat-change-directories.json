@@ -20,5 +20,5 @@
     "pnpm --filter blueprint build",
     "pnpm check:workflow"
   ],
-  "status": "pending"
+  "status": "completed"
 }

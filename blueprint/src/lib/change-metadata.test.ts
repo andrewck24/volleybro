@@ -13,12 +13,10 @@ const archived = {
 };
 
 describe("parseChangeMetadata", () => {
-  it("keeps the stable slug while using a dated archive directory", () => {
-    expect(
-      parseChangeMetadata(archived, "2026-08-04-stable-change", "archive"),
-    ).toMatchObject({
+  it("addresses a Change by its slug alone", () => {
+    expect(parseChangeMetadata(archived, "stable-change")).toMatchObject({
       slug: "stable-change",
-      href: "/changes/archive/2026-08-04-stable-change/",
+      href: "/changes/stable-change/",
     });
   });
 
@@ -27,7 +25,6 @@ describe("parseChangeMetadata", () => {
       parseChangeMetadata(
         { ...archived, lifecycle: "pre-pr-review", archivedAt: undefined },
         "stable-change",
-        "in-progress",
       ),
     ).toMatchObject({ lifecycle: "pre-pr-review", status: "in-progress" });
   });
@@ -37,7 +34,6 @@ describe("parseChangeMetadata", () => {
       parseChangeMetadata(
         { ...archived, archivedAt: undefined },
         "stable-change",
-        "archive",
       ),
     ).toThrow("does not satisfy the Change metadata contract");
   });
@@ -46,16 +42,14 @@ describe("parseChangeMetadata", () => {
     expect(() =>
       parseChangeMetadata(
         { ...archived, runtimeClaim: "worker-1" },
-        "2026-08-04-stable-change",
-        "archive",
+        "stable-change",
       ),
     ).toThrow("does not satisfy the Change metadata contract");
 
     expect(() =>
       parseChangeMetadata(
         { ...archived, lifecycle: "half-done" },
-        "2026-08-04-stable-change",
-        "archive",
+        "stable-change",
       ),
     ).toThrow("does not satisfy the Change metadata contract");
   });

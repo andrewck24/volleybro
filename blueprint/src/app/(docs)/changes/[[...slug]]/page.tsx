@@ -25,24 +25,24 @@ interface DesignModule {
 }
 
 const designModules: Record<string, () => Promise<DesignModule>> = {
-  "archive/2026-07-18-logo-v-splash-redesign/design": () =>
-    import("../../../../../content/changes/archive/2026-07-18-logo-v-splash-redesign/design"),
-  "discussing/sync-recording/design": () =>
-    import("../../../../../content/changes/discussing/sync-recording/design"),
-  "archive/2026-08-16-game-positional-writes/design": () =>
-    import("../../../../../content/changes/archive/2026-08-16-game-positional-writes/design"),
-  "archive/2026-07-16-elevation-depth-system/design": () =>
-    import("../../../../../content/changes/archive/2026-07-16-elevation-depth-system/design"),
-  "archive/2026-07-12-entry-ui/design": () =>
-    import("../../../../../content/changes/archive/2026-07-12-entry-ui/design"),
-  "archive/2026-06-28-apple-splash-dynamic/design": () =>
-    import("../../../../../content/changes/archive/2026-06-28-apple-splash-dynamic/design"),
-  "archive/2026-06-16-contextual-edit-pages/design": () =>
-    import("../../../../../content/changes/archive/2026-06-16-contextual-edit-pages/design"),
-  "archive/2026-06-16-api-objectid-guards/design": () =>
-    import("../../../../../content/changes/archive/2026-06-16-api-objectid-guards/design"),
-  "archive/2026-06-16-team-routes-clean-architecture/design": () =>
-    import("../../../../../content/changes/archive/2026-06-16-team-routes-clean-architecture/design"),
+  "logo-v-splash-redesign/design": () =>
+    import("../../../../../content/changes/logo-v-splash-redesign/design"),
+  "sync-recording/design": () =>
+    import("../../../../../content/changes/sync-recording/design"),
+  "game-positional-writes/design": () =>
+    import("../../../../../content/changes/game-positional-writes/design"),
+  "elevation-depth-system/design": () =>
+    import("../../../../../content/changes/elevation-depth-system/design"),
+  "entry-ui/design": () =>
+    import("../../../../../content/changes/entry-ui/design"),
+  "apple-splash-dynamic/design": () =>
+    import("../../../../../content/changes/apple-splash-dynamic/design"),
+  "contextual-edit-pages/design": () =>
+    import("../../../../../content/changes/contextual-edit-pages/design"),
+  "api-objectid-guards/design": () =>
+    import("../../../../../content/changes/api-objectid-guards/design"),
+  "team-routes-clean-architecture/design": () =>
+    import("../../../../../content/changes/team-routes-clean-architecture/design"),
 };
 
 const mdxComponents = { ...defaultMdxComponents, ChangeCard };
@@ -100,15 +100,11 @@ export default async function Page({ params }: PageProps) {
     );
   }
 
-  if (
-    slug?.length === 3 &&
-    (slug[0] === "in-progress" || slug[0] === "archive") &&
-    slug[2] === "implementation"
-  ) {
+  if (slug?.length === 2 && slug[1] === "implementation") {
     const page = source.getPage(slug);
     if (!page) notFound();
     const Mdx = page.data.body;
-    const slices = await loadImplementationPlan(slug[0], slug[1]);
+    const slices = await loadImplementationPlan(slug[0]);
     return (
       <ChangeDocsPage toc={page.data.toc}>
         <DocsBody>
@@ -127,24 +123,22 @@ export default async function Page({ params }: PageProps) {
 
   // Change Overview pages take their metadata from change.json and their
   // artifact links from the page tree; the MDX below is narrative only.
-  if (slug?.length === 2) {
-    const change = await loadChangeMetadata(slug[0], slug[1]);
-    if (change) {
-      return (
-        <ChangeDocsPage toc={page.data.toc}>
-          <DocsBody>
-            <h1>{page.data.title}</h1>
-            <ChangeOverview
-              date={change.startedAt}
-              lifecycle={change.lifecycle}
-              summary={change.summary}
-              artifacts={changeArtifacts(source.pageTree, page.url)}
-            />
-            <Mdx components={mdxComponents} />
-          </DocsBody>
-        </ChangeDocsPage>
-      );
-    }
+  if (slug?.length === 1) {
+    const change = await loadChangeMetadata(slug[0]);
+    return (
+      <ChangeDocsPage toc={page.data.toc}>
+        <DocsBody>
+          <h1>{page.data.title}</h1>
+          <ChangeOverview
+            date={change.startedAt}
+            lifecycle={change.lifecycle}
+            summary={change.summary}
+            artifacts={changeArtifacts(source.pageTree, page.url)}
+          />
+          <Mdx components={mdxComponents} />
+        </DocsBody>
+      </ChangeDocsPage>
+    );
   }
 
   return (

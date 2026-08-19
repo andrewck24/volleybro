@@ -7,10 +7,10 @@ jest.mock("server-only", () => ({}), { virtual: true });
 import { loadImplementationPlan } from "./implementation-plan-loader";
 
 describe("loadImplementationPlan", () => {
-  it("loads a stable-slug plan after the Change moves to a dated Archive directory", async () => {
+  it("loads a plan from the Change directory named by its slug", async () => {
     const contentRoot = await mkdtemp(path.join(tmpdir(), "blueprint-plan-"));
-    const changeDirectory = "2026-08-04-sample-change";
-    const root = path.join(contentRoot, "archive", changeDirectory);
+    const changeDirectory = "sample-change";
+    const root = path.join(contentRoot, changeDirectory);
     await mkdir(path.join(root, "implementation", "slices"), {
       recursive: true,
     });
@@ -51,7 +51,7 @@ describe("loadImplementationPlan", () => {
     );
 
     await expect(
-      loadImplementationPlan("archive", changeDirectory, contentRoot),
+      loadImplementationPlan(changeDirectory, contentRoot),
     ).resolves.toMatchObject([{ id: "S01" }]);
   });
 });
