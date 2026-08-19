@@ -39,7 +39,6 @@ export async function loadImplementationPlan(
   ]);
   const change = parseChangeMetadata(
     JSON.parse(metadataSource),
-    STATUS[directory],
     changeDirectory,
     directory,
   );

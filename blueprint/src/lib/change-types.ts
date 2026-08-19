@@ -33,3 +33,21 @@ export type ChangeRecord = {
   tags: string[];
   href: string;
 };
+
+// The coarse status is not stored: a lifecycle determines it. Record makes the
+// table exhaustive, so a new lifecycle value fails to compile until it is
+// mapped rather than silently defaulting to a bucket.
+const LIFECYCLE_STATUS: Record<ChangeLifecycle, ChangeStatus> = {
+  discussing: "discussing",
+  proposing: "in-progress",
+  "ready-for-review": "in-progress",
+  "ready-for-implementation": "in-progress",
+  applying: "in-progress",
+  ingesting: "in-progress",
+  "pre-pr-review": "in-progress",
+  "awaiting-delivery-review": "in-progress",
+  archived: "archived",
+};
+
+export const statusOf = (lifecycle: ChangeLifecycle): ChangeStatus =>
+  LIFECYCLE_STATUS[lifecycle];

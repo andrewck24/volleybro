@@ -20,7 +20,6 @@ describe("loadImplementationPlan", () => {
         schemaVersion: 1,
         slug: "sample-change",
         title: "Sample Change",
-        status: "archived",
         lifecycle: "archived",
         startedAt: "2026-08-01",
         archivedAt: "2026-08-04",

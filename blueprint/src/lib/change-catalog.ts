@@ -24,7 +24,6 @@ async function readChange(
   contentRoot: string,
   statusDirectory: string,
   changeDirectory: string,
-  status: ChangeStatus,
 ): Promise<ChangeRecord> {
   const metadata = JSON.parse(
     await readFile(
@@ -32,12 +31,21 @@ async function readChange(
       "utf8",
     ),
   );
-  return parseChangeMetadata(
+  const change = parseChangeMetadata(
     metadata,
-    status,
     changeDirectory,
     statusDirectory,
   );
+
+  // The lifecycle directories survive until they are flattened away, so the
+  // derived status still has to agree with the one the directory implies.
+  if (change.status !== DIRECTORY_STATUSES.get(statusDirectory)) {
+    throw new Error(
+      `${changeDirectory}/change.json has a lifecycle that does not belong in ${statusDirectory}/`,
+    );
+  }
+
+  return change;
 }
 
 /**
@@ -53,10 +61,9 @@ export async function loadChangeMetadata(
   changeDirectory: string,
   contentRoot = path.join(process.cwd(), "content", "changes"),
 ): Promise<ChangeRecord | undefined> {
-  const status = DIRECTORY_STATUSES.get(statusDirectory);
-  if (!status) return undefined;
+  if (!DIRECTORY_STATUSES.has(statusDirectory)) return undefined;
 
-  return readChange(contentRoot, statusDirectory, changeDirectory, status);
+  return readChange(contentRoot, statusDirectory, changeDirectory);
 }
 
 export async function loadChangeCatalog(
@@ -72,9 +79,7 @@ export async function loadChangeCatalog(
       return Promise.all(
         entries
           .filter((entry) => entry.isDirectory())
-          .map((entry) =>
-            readChange(contentRoot, statusDirectory, entry.name, status),
-          ),
+          .map((entry) => readChange(contentRoot, statusDirectory, entry.name)),
       );
     }),
   );

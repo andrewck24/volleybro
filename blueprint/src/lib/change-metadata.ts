@@ -2,7 +2,7 @@ import {
   CHANGE_LIFECYCLES,
   type ChangeLifecycle,
   type ChangeRecord,
-  type ChangeStatus,
+  statusOf,
 } from "@/lib/change-types";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -13,7 +13,6 @@ const ALLOWED_KEYS = new Set([
   "schemaVersion",
   "slug",
   "title",
-  "status",
   "lifecycle",
   "startedAt",
   "archivedAt",
@@ -40,18 +39,8 @@ function isDate(value: unknown): value is string {
   return !Number.isNaN(date.valueOf()) && date.toISOString().startsWith(value);
 }
 
-function lifecycleMatchesStatus(
-  lifecycle: ChangeLifecycle,
-  status: ChangeStatus,
-) {
-  if (status === "discussing") return lifecycle === "discussing";
-  if (status === "archived") return lifecycle === "archived";
-  return lifecycle !== "discussing" && lifecycle !== "archived";
-}
-
 export function parseChangeMetadata(
   value: unknown,
-  status: ChangeStatus,
   directoryName: string,
   directory: string,
 ): ChangeRecord {
@@ -65,7 +54,7 @@ export function parseChangeMetadata(
     (key) => !ALLOWED_KEYS.has(key),
   );
   const expectedDirectory =
-    status === "archived" && typeof record.archivedAt === "string"
+    lifecycle === "archived" && typeof record.archivedAt === "string"
       ? `${record.archivedAt}-${record.slug}`
       : record.slug;
 
@@ -75,14 +64,12 @@ export function parseChangeMetadata(
     typeof record.slug !== "string" ||
     !SLUG_PATTERN.test(record.slug) ||
     expectedDirectory !== directoryName ||
-    record.status !== status ||
     !CHANGE_LIFECYCLES.includes(lifecycle) ||
-    !lifecycleMatchesStatus(lifecycle, status) ||
     typeof record.title !== "string" ||
     record.title.length === 0 ||
     !isDate(record.startedAt) ||
     (record.archivedAt !== undefined && !isDate(record.archivedAt)) ||
-    (status === "archived" && !isDate(record.archivedAt)) ||
+    (lifecycle === "archived" && !isDate(record.archivedAt)) ||
     typeof record.summary !== "string" ||
     record.summary.length === 0 ||
     !isUniqueStringArray(record.capabilities, CAPABILITY_PATTERN) ||
@@ -97,7 +84,7 @@ export function parseChangeMetadata(
     schemaVersion: 1,
     slug: record.slug,
     title: record.title,
-    status,
+    status: statusOf(lifecycle),
     lifecycle,
     startedAt: record.startedAt,
     archivedAt: record.archivedAt,
