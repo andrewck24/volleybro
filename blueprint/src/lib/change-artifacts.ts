@@ -50,6 +50,9 @@ function label(name: unknown, fallback: string) {
  * loader actually registered. Titles come from each page's own frontmatter and
  * the order from the Change's `meta.json`, so an Overview cannot link to a page
  * that does not exist or drift from a page's real title.
+ *
+ * Takes the loader's own `source.pageTree`; the breadcrumb tree is a separate
+ * derivation and is not interchangeable with it.
  */
 export function changeArtifacts(
   tree: Root,

@@ -5,7 +5,7 @@ import {
   statusOf,
 } from "@/lib/change-types";
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CAPABILITY_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 const TAG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

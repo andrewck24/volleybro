@@ -4,9 +4,9 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 import type { ChangeRecord } from "@/lib/change-types";
-import { parseChangeMetadata } from "@/lib/change-metadata";
+import { SLUG_PATTERN, parseChangeMetadata } from "@/lib/change-metadata";
 
-const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
+export const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
 
 /**
  * Canonical metadata for one Change, read from its `change.json`. The Overview
@@ -20,6 +20,13 @@ export async function loadChangeMetadata(
   changeDirectory: string,
   contentRoot = CHANGES_ROOT,
 ): Promise<ChangeRecord> {
+  // The directory name reaches here from a route parameter, so it is checked
+  // before it becomes a path. parseChangeMetadata validates it again against
+  // the slug, but only after the file has been read.
+  if (!SLUG_PATTERN.test(changeDirectory)) {
+    throw new Error(`Unsupported Change directory: ${changeDirectory}`);
+  }
+
   const metadata = JSON.parse(
     await readFile(
       path.join(contentRoot, changeDirectory, "change.json"),
