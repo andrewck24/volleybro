@@ -15,16 +15,10 @@ function tree(children: Root["children"]): Root {
     children: [
       {
         type: "folder",
-        name: "In Progress",
+        name: "sample-change",
         children: [
-          {
-            type: "folder",
-            name: "sample-change",
-            children: [
-              { type: "page", name: "Overview", url: changeUrl },
-              ...children,
-            ],
-          },
+          { type: "page", name: "Overview", url: changeUrl },
+          ...children,
         ],
       },
     ],

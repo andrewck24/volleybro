@@ -20,6 +20,12 @@ describe("parseChangeMetadata", () => {
     });
   });
 
+  it("rejects a Change whose directory name is not its slug", () => {
+    expect(() =>
+      parseChangeMetadata(archived, "2026-08-04-stable-change"),
+    ).toThrow("does not satisfy the Change metadata contract");
+  });
+
   it("derives the coarse status from the lifecycle", () => {
     expect(
       parseChangeMetadata(

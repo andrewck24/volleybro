@@ -196,7 +196,7 @@ test("reports Overview metadata restated as MDX props", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/in-progress/sample/index.mdx":
+        "blueprint/content/changes/sample/index.mdx":
           '---\ntitle: Overview\n---\n\n<ChangeOverview date="2026-08-08" />\n',
       })
     ).join("\n"),
@@ -207,7 +207,7 @@ test("reports Overview metadata restated as MDX props", async () => {
 test("accepts an Overview that carries narrative content only", async () => {
   assert.deepEqual(
     await messages({
-      "blueprint/content/changes/in-progress/sample/index.mdx":
+      "blueprint/content/changes/sample/index.mdx":
         "---\ntitle: Overview\n---\n\n## Context\n",
     }),
     [],
@@ -243,10 +243,10 @@ test("reports a design module without its interactive design page", async () => 
     (
       await messages({
         "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
-          'const designModules = {\n  "archive/moved-change/design": () => import("x"),\n};\n',
+          'const designModules = {\n  "moved-change/design": () => import("x"),\n};\n',
       })
     ).join("\n"),
-    /archive\/moved-change\/design\.tsx.*does not exist/i,
+    /moved-change\/design\.tsx.*does not exist/i,
   );
 });
 
@@ -254,8 +254,8 @@ test("accepts a design module whose design page exists", async () => {
   assert.deepEqual(
     await messages({
       "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
-        'const designModules = {\n  "archive/kept-change/design": () => import("x"),\n};\n',
-      "blueprint/content/changes/archive/kept-change/design.tsx":
+        'const designModules = {\n  "kept-change/design": () => import("x"),\n};\n',
+      "blueprint/content/changes/kept-change/design.tsx":
         "export default () => null;\n",
     }),
     [],
