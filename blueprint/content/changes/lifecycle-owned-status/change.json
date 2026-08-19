@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "lifecycle-owned-status",
   "title": "Lifecycle Owned Status",
-  "lifecycle": "applying",
+  "lifecycle": "pre-pr-review",
   "startedAt": "2026-08-18",
   "summary": "Change status stops being a directory and a stored field. Lifecycle becomes the single source, status is derived from it as a grouping key, and every Change lives at a flat, permanent URL.",
   "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
