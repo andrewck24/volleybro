@@ -16,20 +16,26 @@ function statusVariant(status: DecisionStatus) {
     : "secondary";
 }
 
+// A decision id is unique within its Change, not within a capability. Once
+// Archive promotes records from several Changes into one Feature page, two of
+// them can both be D2, so the rendering key carries the origin Change too.
+function decisionKey(record: { id: string; originChange?: string }) {
+  return record.originChange
+    ? `${record.originChange}/${record.id}`
+    : record.id;
+}
+
 export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
   const records = decisions.map(parseDecisionRecord);
 
   return (
     <div className="not-prose relative my-6 pl-8 before:absolute before:inset-y-3 before:left-3 before:w-px before:bg-border">
-      <Accordion
-        type="multiple"
-        defaultValue={records.map((decision) => decision.id)}
-      >
+      <Accordion type="multiple" defaultValue={records.map(decisionKey)}>
         {records.map((record) => {
           return (
             <AccordionItem
-              key={record.id}
-              value={record.id}
+              key={decisionKey(record)}
+              value={decisionKey(record)}
               className="relative border-0"
             >
               <span className="absolute top-5 -left-5 size-2.5 rounded-full border-2 border-background bg-primary" />

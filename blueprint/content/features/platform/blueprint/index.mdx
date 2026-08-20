@@ -5,6 +5,8 @@ description: Repository-owned durable knowledge for Changes, implementation slic
 
 import repositoryNativeSlices from "./decisions/D2-repository-native-slices.json";
 import changeScopedAdrPromotion from "./decisions/D3-change-scoped-adr-promotion.json";
+import lifecycleOwnsStatus from "./decisions/D1-lifecycle-owns-status.json";
+import flatChangeDirectories from "./decisions/D2-flat-change-directories.json";
 
 Repository-owned durable knowledge for Changes, implementation slices, and
 human delivery review.
@@ -17,6 +19,12 @@ human delivery review.
   explanations for human review.
 - Archive promotes verified decisions and current constraints into the
   narrowest Feature target.
+- A Change is addressed by its stable slug at `/changes/<slug>/` for its whole
+  life, and its directory is that slug. Advancing a Change edits `change.json`
+  and renames nothing.
+- `change.json` states `lifecycle`; the coarse status that groups the catalog
+  is derived from it. Overview metadata and artifact links are read from the
+  canonical files rather than restated in MDX.
 
 ## Constraints
 
@@ -26,9 +34,19 @@ human delivery review.
   durable rationale and reviewed knowledge.
 - Execution claims, retries, workspace paths, and provider text are runtime
   facts, not durable Feature content.
+- A fact that can be derived is not stored a second time. Where a copy is
+  unavoidable it either fails the build when it drifts or carries an explicit
+  lifecycle that makes staleness visible.
+- A decision id is unique within its Change, not within a capability, so
+  promoted records are identified by their origin Change together with the id.
 
 ## Implemented decisions
 
 <DecisionTimeline
-  decisions={[repositoryNativeSlices, changeScopedAdrPromotion]}
+  decisions={[
+    repositoryNativeSlices,
+    changeScopedAdrPromotion,
+    lifecycleOwnsStatus,
+    flatChangeDirectories,
+  ]}
 />
