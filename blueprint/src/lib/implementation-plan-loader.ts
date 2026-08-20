@@ -3,46 +3,23 @@ import "server-only";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveImplementationPlan } from "@/lib/implementation-plan";
-import { parseChangeMetadata } from "@/lib/change-metadata";
-
-const DIRECTORY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const STATUS = {
-  "in-progress": "in-progress",
-  archive: "archived",
-} as const;
+import { CHANGES_ROOT, loadChangeMetadata } from "@/lib/change-catalog";
 
 export async function loadImplementationPlan(
-  directory: keyof typeof STATUS,
   changeDirectory: string,
-  contentRoot = path.join(process.cwd(), "content", "changes"),
+  contentRoot = CHANGES_ROOT,
 ) {
-  if (!STATUS[directory] || !DIRECTORY_PATTERN.test(changeDirectory)) {
-    throw new Error(
-      `Unsupported Change location: ${directory}/${changeDirectory}`,
-    );
-  }
-
   const implementationDirectory = path.join(
     contentRoot,
-    directory,
     changeDirectory,
     "implementation",
   );
   const sliceDirectory = path.join(implementationDirectory, "slices");
-  const [metadataSource, planSource, filenames] = await Promise.all([
-    readFile(
-      path.join(contentRoot, directory, changeDirectory, "change.json"),
-      "utf8",
-    ),
+  const [change, planSource, filenames] = await Promise.all([
+    loadChangeMetadata(changeDirectory, contentRoot),
     readFile(path.join(implementationDirectory, "plan.json"), "utf8"),
     readdir(sliceDirectory),
   ]);
-  const change = parseChangeMetadata(
-    JSON.parse(metadataSource),
-    STATUS[directory],
-    changeDirectory,
-    directory,
-  );
   const jsonFiles = filenames.filter((filename) => filename.endsWith(".json"));
   const entries = await Promise.all(
     jsonFiles.map(async (filename) => ({

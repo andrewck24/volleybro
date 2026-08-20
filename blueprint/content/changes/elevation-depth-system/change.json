@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "elevation-depth-system",
+  "title": "Elevation and Depth System",
+  "lifecycle": "archived",
+  "startedAt": "2026-07-15",
+  "archivedAt": "2026-07-16",
+  "summary": "建立三層 elevation 模型、overlay depth 規則與一致的 Dialog、AlertDialog、Drawer 組合。",
+  "capabilities": [
+    "platform/design-system/elevation",
+    "platform/design-system/overlays"
+  ],
+  "tags": ["design-system", "overlays", "visual-system"]
+}

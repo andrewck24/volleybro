@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Read Overview artifacts from the source page tree",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": [],
+  "outcome": "Overview artifact links come from the loader's own page tree rather than from the breadcrumb tree, so the flattening that follows can rebuild breadcrumbs without putting artifact links at risk.",
+  "acceptanceCriteria": [
+    "changeArtifacts is called with source.pageTree; the comment explaining why it needed the breadcrumb tree is removed, since the meta-collection fix removed the page shadowing it compensated for.",
+    "All ten Change Overviews render the same artifact titles, order, and hrefs as before this slice, verified against the built output rather than by inspection.",
+    "withDirectChangePages is assessed: if nothing reaches it any more it is deleted together with its tests, and if something still does, the reason is recorded in the Review page.",
+    "No link in the built site is dead, checked by resolving every /changes/ href in the prerendered HTML against the generated pages."
+  ],
+  "verification": [
+    "pnpm --filter blueprint test",
+    "pnpm --filter blueprint build"
+  ],
+  "status": "completed"
+}

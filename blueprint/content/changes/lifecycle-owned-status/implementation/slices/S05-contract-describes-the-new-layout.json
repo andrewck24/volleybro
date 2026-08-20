@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "Update the delivery contract to the flat layout",
+  "capabilities": ["platform/delivery-workflow"],
+  "dependsOn": ["S03"],
+  "outcome": "WORKFLOW.md describes the layout that exists, so the next Change is not created against a directory structure the repository no longer has.",
+  "acceptanceCriteria": [
+    "The Implementation-slice contract's directory tree shows content/changes/<change-slug>/ with no lifecycle segment, and change.json is documented as carrying lifecycle without status.",
+    "The sentence listing what a lifecycle move touches is replaced: advancing a Change edits change.json and nothing else.",
+    "Archive step 6 no longer moves or renames a directory; it sets lifecycle to archived and adds archivedAt.",
+    "docs/agents/artifact-lifecycle.md agrees with WORKFLOW.md on the layout.",
+    "New prose is hard-wrapped to the width the surrounding file already uses."
+  ],
+  "verification": ["pnpm check:workflow", "pnpm verify:all"],
+  "status": "completed"
+}

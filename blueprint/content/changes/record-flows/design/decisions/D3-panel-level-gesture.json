@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D3",
+  "title": "The swipe gesture belongs to the Panel, not to each body that responds to it",
+  "status": "candidate",
+  "targets": ["game-recording/rally-recording"],
+  "context": "useStepSwipe is called twice — once in progress-bar.tsx and once in moves/index.tsx — so there are two hook instances and two suppressClick refs. Swiping works on the progress bar track and on the GameMoves body, and nowhere else on the panel. Each new step body has to remember to wire the gesture up again, and the two suppression refs have no mechanism keeping them consistent with each other.",
+  "decision": "useStepSwipe is called once in the Panel container and its pointer and click-capture handlers are attached to the whole panel. The progress bar track, the moves body and any future step body are covered by one gesture with one suppressClick ref. progress-bar.tsx and moves/index.tsx stop calling the hook.",
+  "alternatives": [
+    {
+      "option": "Keep both call sites and synchronise the suppression refs",
+      "reason": "Two refs that must agree is the problem, not the solution. Every added step body would still have to opt in, and forgetting to would produce a body that silently does not respond to the gesture."
+    }
+  ],
+  "consequences": [
+    "A horizontal swipe anywhere on the panel switches to the adjacent reachable step.",
+    "Click suppression after a recognised swipe is decided in one place, so a swipe can no longer fire an underlying segment or button tap.",
+    "New step bodies get the gesture without wiring, which is what keeps the flow descriptor cheap to extend.",
+    "The Panel container becomes responsible for a behaviour it previously delegated, so a bug there affects every flow at once."
+  ],
+  "revisitTriggers": [
+    "A step body needs its own horizontal gesture — a carousel or a slider — which would conflict with the panel-level handler and need an opt-out."
+  ],
+  "originChange": "record-flows"
+}

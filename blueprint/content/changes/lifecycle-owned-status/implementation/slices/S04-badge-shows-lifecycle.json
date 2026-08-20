@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "Show the lifecycle on the badge instead of the coarse status",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": ["S01"],
+  "outcome": "A reader sees the stage a Change is actually in. The second badge, and the condition that decided whether to show it, are gone.",
+  "acceptanceCriteria": [
+    "ChangeCard and ChangeOverview take lifecycle and render one badge from it; the status prop and the lifecycle-differs-from-status condition are removed from both.",
+    "The badge colour still follows the derived coarse status, so an archived Change keeps its primary tint and an in-progress one its warning tint; only the label changes.",
+    "A Change in pre-pr-review is labelled pre-pr-review rather than In Progress, covered by a component test.",
+    "The design-system component showcase is updated to the new props and still renders."
+  ],
+  "verification": [
+    "pnpm --filter blueprint test",
+    "pnpm --filter blueprint build"
+  ],
+  "status": "completed"
+}

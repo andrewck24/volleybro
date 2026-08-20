@@ -51,9 +51,8 @@ function label(name: unknown, fallback: string) {
  * the order from the Change's `meta.json`, so an Overview cannot link to a page
  * that does not exist or drift from a page's real title.
  *
- * Pass the tree from `createChangesBreadcrumbTree`, not the raw source tree: a
- * data directory shadows its sibling page in the raw tree, so `design.mdx` is
- * absent from it whenever `design/decisions/` exists.
+ * Takes the loader's own `source.pageTree`; the breadcrumb tree is a separate
+ * derivation and is not interchangeable with it.
  */
 export function changeArtifacts(
   tree: Root,

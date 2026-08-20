@@ -1,0 +1,63 @@
+---
+title: Review
+---
+
+## Delivered
+
+五個切片全部完成。每片的實作 commit 以 commit body 的 `Implements` trailer 指認，`git log --grep="Implements: S01"` 即可重建映射——本頁一律以 slice ID 指稱。
+
+- **S01** — `statusOf()` 與窮舉的 `Record<ChangeLifecycle, ChangeStatus>` 進 `change-types.ts`；`change.json` 的 `status` 欄位、schema entry 與 `lifecycleMatchesStatus` 移除；`archivedAt` 改由 archived lifecycle 要求。
+- **S02** — `changeArtifacts` 改讀 `source.pageTree`；`withDirectChangePages` 的注入邏輯與 `containsPage` 刪除。
+- **S03** — 12 個 Change 目錄攤平為 `content/changes/<slug>/`；`parseChangeMetadata` 驗證 slug、`href` 為 `/changes/<slug>/`；catalog 單一 readdir；route slug 長度降為 1／2；`designModules` 九個 key 與 import 路徑；麵包屑重建。
+- **S04** — `LifecycleBadge` 共用元件；兩份重複的 label／colour 表與 `"draft"` 死狀態移除。
+- **S05** — `WORKFLOW.md` 目錄樹、Archive 步驟 6、Repository profile 表格，以及 `docs/agents/` 兩份 adapter。
+
+## 驗證證據
+
+- `pnpm verify:all` 通過。Blueprint 18 suites／48 tests，`pnpm test:workflow` 19 tests。
+- **窮舉性實測**：從 `LIFECYCLE_STATUS` 移除 `ingesting` → type-check 失敗；還原 → 通過。這是 S01 驗收條件要求的檢查，實跑而非宣稱。
+- **12 個 Change 的 prerender HTML 逐一比對**：artifact 標題、順序、href 與改動前相同；badge 為 archived ×9、discussing ×1、`(in-progress, applying)`、`(in-progress, proposing)`。
+- **死連結掃描**：全站 `/changes` href 對照產出頁面，S02 與 S03 各驗一次，皆為零。
+- **schema 以 ajv 實跑**：修正後 12 份 `change.json` 全部通過，且 archived 缺 `archivedAt` 仍被拒絕。
+
+## Review findings
+
+兩軸各跑兩輪，第二輪皆無新的阻斷發現。
+
+### 已修正
+
+1. **`change.schema.json` 兩個 `allOf` 分支仍以已移除的 `status` 為鍵**（兩軸獨立發現，最嚴重）。JSON Schema 對缺席的 key 是 vacuously true，加上 `additionalProperties: false` 保證 `status` 永不出現，於是兩個 `then` 無條件套用，同時要求 lifecycle 既是 `archived` 又是 `discussing`。以 ajv 驗證確認 **12 份 `change.json` 全部不通過**。修正保留以 lifecycle 為鍵的 `archivedAt` 約束，而非刪除整段——刪除會讓 schema 比 `change-metadata.ts` 的實際行為寬鬆。
+2. **schema 整份重排版**造成 71 行 diff 噪音。從改動前版本重建，diff 縮回語意行。
+3. **`implementation-plan-loader` 重複讀取與解析 `change.json`**，並帶著與 `SLUG_PATTERN` 逐字相同的 pattern 與內聯的 content root。改為呼叫 `loadChangeMetadata`。
+4. **去重時連帶移除了信任邊界的守衛**（第二輪兩軸皆提及）。目錄名自 route parameter 而來，原本在讀檔前被檢查；去重後檢查移到讀檔之後。pattern 改為自 `change-metadata` 匯出並在讀檔前檢查，修掉重複但不拆掉驗證。
+5. **Design 承諾但未覆蓋的測試**：「directory name 與 slug 不符會被拒絕」。行為正確，證據缺一條，已補。
+6. **三份 fixture 仍描述已移除的版面**：`change-artifacts.test.ts` 把 Change 包在 `In Progress` 資料夾下，`check-workflow.test.mjs` 使用 status-scoped 路徑。它們兩種版面都會過，這正是問題所在。
+7. **兩顆修正 commit 缺 `Implements` trailer**。若不補，`git log --grep` 重建出的交付映射就會漏掉真正讓 S01 驗收成立的那顆 commit——正是本 repo 剛寫進契約要避免的失效模式。已重切。
+
+### 已評估，不修正
+
+- **`docs/specs/*.md` 與 `docs/changes/archive/` 仍列舊的 status-scoped 路徑。** `WORKFLOW.md` 明文歷史 Spectra／OpenSpec artifacts 為不可變快照，兩軸第二輪皆確認此處置有依據。
+
+## Plan versus actual
+
+- **S02 的判定結果**：`withDirectChangePages` 的注入在 build 期間對 12 個 Change 全部回傳空集合，確認為死碼並刪除；它包裹的 `withNavigableFolders` 仍為麵包屑所需，故只刪注入半部。切片寫的是「判定」，實際兩者都做了，因此「否則記入 Review」的分支未觸發。
+- **S01 超出切片文字的一處**：lifecycle 目錄存續期間，`readChange` 增加「推導 status 必須與所在目錄相符」的檢查，補上 `record.status !== status` 移除後、S03 之前的短暫缺口。該檢查已隨目錄於 S03 移除。
+- **S04 超出切片文字的一處**：兩個元件原本各有一份 label／colour 表，改為共用 `LifecycleBadge`。切片只要求各自渲染一個 lifecycle badge；共用是為了不把同一張表複製兩份。
+- **S05 超出切片列舉的三處**：Repository profile 表格與 `docs/agents/domain.md` 帶有同樣過期的 `<status>` 路徑，一併修正；另刪除「資料目錄遮蔽同名兄弟頁」整段——meta collection 收斂後該行為已不存在，該段已成假敘述。兩軸第二輪皆確認刪除正確。
+
+## Archive 期間發現
+
+**ADR id 在升級後會相撞。** id 於 Change 內唯一，升級目的地卻是 capability——`platform/blueprint` 已有一份來自 `unified-software-delivery-workflow` 的 `D2`，本 Change 的 `D2` 落進同一個資料夾。`DecisionTimeline` 以 `record.id` 同時作為 React key 與 accordion value，兩份 D2 會共用同一個 key，展開其一會連動另一個。
+
+檔名帶 slug 所以檔案本身不衝突，衝突只在渲染層。修法是 key 改為 `originChange` 加 id——不動 schema 的 `^D[0-9]+$`、不重新編號、不破壞 Change 內部對 D1／D2 的指稱。這是本 Change 的 Archive 第一次讓兩個 Change 的 ADR 進到同一個 capability 才暴露的，先前無樣本。
+
+**ADR 少走了一個狀態。** 依 §3，計畫核准時 `candidate` 應轉 `accepted`，Archive 再轉 `implemented`。本 Change 的兩份 ADR 從 `candidate` 直接被設為 `implemented`——核准當下沒有執行那一步。記錄於此而非追溯補寫，因為 `accepted` 的意義是「當時被核准」，事後補上只會讓紀錄失真。
+
+## Changeset
+
+判定豁免。`src/` 零檔案變動，diff 只落在 `blueprint/`、`docs/` 與 `WORKFLOW.md`，對出貨的 app 無影響。與既有慣例一致：`291ddbe6`、`05d11894`、`b2a7965f`、`864c8f0a` 四個同範圍的合併皆未帶 changeset。
+
+## 殘留風險與後續
+
+- **schema 無人驗證。** 這次的最嚴重缺陷之所以能存在，是因為沒有任何 script 載入 `change.schema.json`；CI 綠燈掩蓋了契約與實作的分岔。`change-metadata.ts` 目前是實際權威，schema 是平行的文件。把 schema 驗證掛進 `check-workflow.mjs` 需要引入 ajv 作為直接相依，超出本 Change 範圍，列為後續。
+- **同批提出的第二個 Change**：`record-flows` 於本分支僅完成 Propose（lifecycle `proposing`），不含實作。它是 2026-07-12 以 OpenSpec 格式起草、從未進版控的提案，轉換前核對過前提仍成立。與本 Change 共用一支分支是開發者的明確決定，理由是不值得為單一 Propose commit 另開 PR；其 Apply 屆時自合併後的 `dev` 另開分支。

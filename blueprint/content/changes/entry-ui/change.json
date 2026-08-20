@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "entry-ui",
+  "title": "Entry UI",
+  "lifecycle": "archived",
+  "startedAt": "2026-07-09",
+  "archivedAt": "2026-07-12",
+  "summary": "重塑 rally entry 輸入流程與 Summary drawer，作為 sync-recording 的前置 UI slice。",
+  "capabilities": [
+    "game-recording/rally-input",
+    "game-recording/entry-history"
+  ],
+  "tags": ["interaction-design", "mobile", "recording"]
+}

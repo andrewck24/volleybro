@@ -2,7 +2,7 @@ import type { Root } from "fumadocs-core/page-tree";
 
 import { changeArtifacts } from "./change-artifacts";
 
-const changeUrl = "/changes/in-progress/sample-change";
+const changeUrl = "/changes/sample-change";
 
 /**
  * The shape fumadocs produces for these Changes: because each Change's
@@ -15,16 +15,10 @@ function tree(children: Root["children"]): Root {
     children: [
       {
         type: "folder",
-        name: "In Progress",
+        name: "sample-change",
         children: [
-          {
-            type: "folder",
-            name: "sample-change",
-            children: [
-              { type: "page", name: "Overview", url: changeUrl },
-              ...children,
-            ],
-          },
+          { type: "page", name: "Overview", url: changeUrl },
+          ...children,
         ],
       },
     ],
@@ -106,6 +100,6 @@ describe("changeArtifacts", () => {
   });
 
   it("returns nothing for a Change that is not in the tree", () => {
-    expect(changeArtifacts(tree([]), "/changes/archive/missing")).toEqual([]);
+    expect(changeArtifacts(tree([]), "/changes/missing")).toEqual([]);
   });
 });

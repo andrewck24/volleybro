@@ -1,0 +1,45 @@
+---
+title: Overview
+---
+
+## Context
+
+`entry-ui` 交付了 rally 記錄的三步驟進度條與 Preview 集中送出，但 step 導航硬編碼在 rally 的 `[player, home, away]` 上。`entry-progress.ts` 用兩個常數陣列表達「正常三步」與「對方失誤收合成兩步」，`ProgressStep` 只有 `key` 與 `caption`，沒有 body、reachability、submittable 的每-step 規則。
+
+換人走的是另一條路：`ours.tsx` 的「替補」按鈕 dispatch `setPanel("substitutes")`，`panel/index.tsx` 在該值下整段改渲染 `<Substitutes>`——自帶 Card header、返回鈕、確認鈕，完全跳過進度條與 GameMoves，送出也不經 Preview。同一個記錄面板因此有兩套互不共用的互動模型。
+
+timeout 與 challenge 在 `entities/game.ts` 已有 `EntryType` 與型別、draft 也有欄位插槽，缺的只是共用的 UI step 模型。若每種記錄各刻一條特例分支，面板會持續累積分岔。
+
+## Goals
+
+- step 導航抽象為 **PanelSteps**：一條 flow 宣告有序 steps，每個 step 帶 id、caption、body、`isReachable(draft)`、`isSubmittable(draft)`；active / reachable / submittable 全由 flow 加 draft 單一推導。
+- 進度條每個宣告的 step 渲染剛好一段 segment——rally 三段、對方失誤收合兩段、substitution 三段——不再有「假設三段」的隱性耦合。
+- swipe 手勢與 click-suppression 上移為 Panel 容器層的預設，取代目前 progress-bar 與 moves 各掛一份 hook、各持一份 `suppressClick` ref 的接法。
+- substitution 收攏為 rally flow 的 step-2 分支 `[player, home, substitute]`，與 rally 共用進度條、caption、方向滑動與 Preview 送出。
+- timeout 與 challenge 僅建模：以前瞻 scenarios 證明同一個抽象容納得下，程式不實作。
+
+## Non-goals
+
+- 不實作 timeout 與 challenge 的 UI 或 reducer。
+- 不動任何後端、API、同步或衝突偵測。與 `entry-ui` 一致的純前端範圍。
+- 不改 rally 既有的對方失誤收合語意（以 home move 為 `UNFORCED` 判斷），只是把它重新表達為 flow 描述子的一種收合結果。
+- 不重寫 Preview 的比分 Figures 三態與定格動畫。
+
+## Capability impact
+
+`game-recording/rally-recording` 取得可宣告的 flow 模型，取代硬編碼的 step 陣列。`game-recording/substitution` 從獨立面板模式變成 rally flow 的一個分支——這是新的 sub-capability，隨本 Change 首次成形。
+
+## Breaking change
+
+`ReduxStatus["panel"]` 移除 `"substitutes"` 值。substitution 分支改以 flow 與 step 狀態表達。這是 client state 型別的破壞性變更，範圍限於前端。
+
+## 本 Change 的來歷
+
+本 Change 於 2026-07-12 以當時的 OpenSpec 格式起草，包含完整的 proposal、design、兩份 capability spec 與 12 條 task，但未進入版控也未實作。轉換為 Blueprint 格式時核對過：proposal 描述的每一個檔案都仍存在，`panel === "substitutes"` 特例也仍在 `panel/index.tsx`，因此前提未過期。
+
+原本的 task 清單未一併轉換為 implementation slices——task 是步驟形狀、slice 是結果形狀，兩者不是逐條對應。Prepare execution 依現行 WORKFLOW 重做。
+
+## Revisit triggers
+
+- timeout 或 challenge 實作時發現 PanelSteps 容納不下其形狀，代表前瞻建模的 scenarios 沒有約束到真正的變異點。
+- 出現第五種記錄流程而它又走了獨立面板模式，代表這個抽象沒有真的降低分岔的成本。

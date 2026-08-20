@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "change": "lifecycle-owned-status",
+  "slices": ["S01", "S02", "S03", "S04", "S05"]
+}

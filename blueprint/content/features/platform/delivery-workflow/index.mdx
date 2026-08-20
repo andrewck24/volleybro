@@ -5,6 +5,7 @@ description: A repository-owned, Manual-first lifecycle shared by developer sess
 
 import repositoryOwnedLifecycle from "./decisions/D1-repository-owned-lifecycle.json";
 import repositoryNativeSlices from "./decisions/D2-repository-native-slices.json";
+import flatChangeDirectories from "./decisions/D2-flat-change-directories.json";
 
 A repository-owned, Manual-first lifecycle shared by developer sessions and
 optional Symphony execution.
@@ -16,7 +17,8 @@ optional Symphony execution.
 - Manual and Symphony Apply consume the same approved Blueprint implementation
   slices and verification commands.
 - Branch-local Archive freezes the Change and promotes verified current
-  knowledge before the PR opens.
+  knowledge before the PR opens. It sets `lifecycle` and `archivedAt`; the
+  Change stays where it is, because its directory is its slug.
 
 ## Constraints
 
@@ -29,5 +31,9 @@ optional Symphony execution.
 ## Implemented decisions
 
 <DecisionTimeline
-  decisions={[repositoryOwnedLifecycle, repositoryNativeSlices]}
+  decisions={[
+    repositoryOwnedLifecycle,
+    repositoryNativeSlices,
+    flatChangeDirectories,
+  ]}
 />

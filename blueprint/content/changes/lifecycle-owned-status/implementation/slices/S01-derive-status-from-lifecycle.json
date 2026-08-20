@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Derive status from lifecycle instead of storing it",
+  "capabilities": ["platform/blueprint"],
+  "dependsOn": [],
+  "outcome": "A Change states where it stands once, in change.json's lifecycle. The coarse status is computed from it by a table the compiler keeps exhaustive, so the two can no longer disagree.",
+  "acceptanceCriteria": [
+    "change-types.ts exports statusOf(lifecycle) backed by a Record<ChangeLifecycle, ChangeStatus>; removing a key from that record fails type-check, which is the check that the derivation cannot go stale.",
+    "The mapping reproduces today's grouping exactly: discussing to discussing, archived to archived, the other seven to in-progress. No Change changes bucket on the rendered catalog.",
+    "change.schema.json no longer lists status in properties or required, and no change.json in the repository carries a status field.",
+    "parseChangeMetadata takes no status argument, computes status with statusOf, and requires archivedAt when lifecycle is archived rather than when status is archived.",
+    "lifecycleMatchesStatus is deleted, and change-metadata.test.ts covers the archived-lifecycle requirement and the rejection of an unknown lifecycle value."
+  ],
+  "verification": [
+    "pnpm --filter blueprint type-check",
+    "pnpm --filter blueprint test",
+    "pnpm --filter blueprint build"
+  ],
+  "status": "completed"
+}

@@ -8,7 +8,6 @@
     "schemaVersion",
     "slug",
     "title",
-    "status",
     "lifecycle",
     "startedAt",
     "summary",
@@ -19,9 +18,6 @@
     "schemaVersion": { "const": 1 },
     "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
     "title": { "type": "string", "minLength": 1 },
-    "status": {
-      "enum": ["discussing", "in-progress", "archived"]
-    },
     "lifecycle": {
       "enum": [
         "discussing",
@@ -53,15 +49,8 @@
   },
   "allOf": [
     {
-      "if": { "properties": { "status": { "const": "archived" } } },
-      "then": {
-        "required": ["archivedAt"],
-        "properties": { "lifecycle": { "const": "archived" } }
-      }
-    },
-    {
-      "if": { "properties": { "status": { "const": "discussing" } } },
-      "then": { "properties": { "lifecycle": { "const": "discussing" } } }
+      "if": { "properties": { "lifecycle": { "const": "archived" } } },
+      "then": { "required": ["archivedAt"] }
     }
   ]
 }
