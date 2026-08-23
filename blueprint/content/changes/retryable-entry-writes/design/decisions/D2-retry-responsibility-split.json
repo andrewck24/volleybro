@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "Retry responsibility splits by failure kind: the server retries its own write, the client resolves its own uncertainty",
+  "status": "candidate",
+  "targets": ["game-recording/persistence", "game-recording/rally-recording"],
+  "context": "Submitting a rally fails in two structurally different ways that look identical from the outside. Either the write itself transiently fails while the server still holds the request, or the write succeeded and the response never arrived. Only the first is a failure the server knows about; in the second the server did its job and has no live invocation left to retry from, while the client is the only party aware that no confirmation came back. The error model already declares this distinction — TransientError carries a retryable flag — but nothing in the repository reads it, so declared retryability has never been acted on at any layer. There is also no background job infrastructure here: the server's ability to retry is bounded by a single request's lifetime.",
+  "decision": "completeSet retries inline inside the same request, three attempts at 50ms, 200ms and 500ms, before the response is sent. It is an idempotent write of a derived value that fires at most once per set, so a few hundred extra milliseconds are invisible against a wait the recorder is already in. This is where the retryable flag finally acquires a consumer. On the client the pending queue owns retrying: two immediate attempts at 300ms and 800ms, then a longer background backoff at 2s, 5s and 15s, always resending the same identity. Enqueuing a new entry flushes the whole queue in one request, so an entry that failed a moment ago usually rides along with the next rally and repairs itself before the recorder notices. A 4xx is not retried at all — validation and authorization do not improve with waiting — and escalates immediately.",
+  "alternatives": [
+    {
+      "option": "Retry on the server only",
+      "reason": "Cannot address a lost response after a genuinely successful write. There is no failed operation to retry and no execution context still alive to retry it in; the only party that knows the confirmation is missing is the client."
+    },
+    {
+      "option": "A durable background queue that retries outside the request lifetime",
+      "reason": "Disproportionate infrastructure for an occasional transient failure on a single write, and it would pre-empt the offline recording queue already scoped to a later milestone rather than complementing it."
+    },
+    {
+      "option": "One shared retry policy for both halves",
+      "reason": "The two halves have different cost profiles. completeSet fires once per set inside a wait the recorder is already in; entry writes fire on every rally and any added latency is felt on the hot path. A single policy would either be too slow for one or too impatient for the other."
+    },
+    {
+      "option": "Rely on piggybacking alone, without a background backoff",
+      "reason": "Piggybacking only fires when there is a next rally. If recording pauses — the set ends, the phone goes down — nothing would ever retry, and an indicator claiming a sync is still in progress would be untrue."
+    }
+  ],
+  "consequences": [
+    "The three action functions still on raw fetch move onto the shared HTTP client, so failures arrive as a typed error carrying status and code instead of an information-free generic Error. This incidentally repairs an existing defect: rally submission failures currently bypass the 5xx/4xx branching entirely and always render the unexpected-error fallback.",
+    "The shared HTTP client gains timeout support and network-failure normalisation, because retry logic cannot decide anything without being able to distinguish slow from dead, and losing connectivity — the most retryable condition there is — currently surfaces as an unrecognised error type.",
+    "The request carries one or more entries rather than exactly one, since a flush sends whatever the queue holds; the repository batches them into a single bulkWrite.",
+    "Retry counts and backoff intervals are unvalidated starting values. No mutation path in this repository had a retry convention to inherit; the only existing retry setting governs SWR revalidation on reads.",
+    "Successful automatic retries are invisible on the create path by design, which is why the always-visible indicator is part of this Change rather than a later refinement."
+  ],
+  "revisitTriggers": [
+    "Telemetry shows duplicated entries still reaching the database, or completeSet failures surviving three attempts often enough to be noticed, meaning the counts were chosen wrong.",
+    "A durable job queue enters the system for another reason, at which point the argument against server-side retry beyond the request lifetime weakens and the split should be reconsidered.",
+    "A second consumer of the retryable flag appears at a different layer, which would make the choice of layer worth stating explicitly rather than leaving implicit in this decision."
+  ],
+  "originChange": "retryable-entry-writes"
+}
