@@ -69,7 +69,12 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 1 },
-        data: { team: Side.HOME, players: { in: "p-in", out: "p-out" }, id: "entry-1", seq: 1 },
+        data: {
+          team: Side.HOME,
+          players: { in: "p-in", out: "p-out" },
+          id: "entry-1",
+          seq: 1,
+        },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

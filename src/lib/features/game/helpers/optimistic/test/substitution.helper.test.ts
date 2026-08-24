@@ -176,15 +176,16 @@ describe("substitution.helper.ts", () => {
       };
 
       // Now perform a second substitution, original player returns to court
-      const secondSubstitution: SubstitutionView & { id: string; seq: number } = {
-        id: "entry-2",
-        seq: 2,
-        team: Side.HOME,
-        players: {
-          in: "player-1", // Original player returning to court
-          out: "player-8", // Substitute player leaving
-        },
-      };
+      const secondSubstitution: SubstitutionView & { id: string; seq: number } =
+        {
+          id: "entry-2",
+          seq: 2,
+          team: Side.HOME,
+          players: {
+            in: "player-1", // Original player returning to court
+            out: "player-8", // Substitute player leaving
+          },
+        };
 
       const result = createSubstitutionHelper(
         { ...mockParams, entryIndex: 2 },

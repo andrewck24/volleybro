@@ -18,7 +18,8 @@
     "pnpm test",
     "pnpm test:integration",
     "pnpm typecheck:strict",
-    "pnpm lint"
+    "pnpm lint",
+    "pnpm format:check"
   ],
   "status": "completed"
 }

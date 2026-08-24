@@ -21,7 +21,8 @@
   "verification": [
     "pnpm test",
     "pnpm typecheck:strict",
-    "pnpm test:integration"
+    "pnpm test:integration",
+    "pnpm format:check"
   ],
   "status": "completed"
 }

@@ -18,6 +18,11 @@
     "The unsynced state offers a retry that closes the popover, flushes the queue immediately and moves the state to syncing.",
     "Tapping SyncIndicator does not open the statistics overview that the surrounding block opens."
   ],
-  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
   "status": "completed"
 }

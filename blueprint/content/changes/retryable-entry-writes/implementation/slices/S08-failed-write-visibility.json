@@ -13,6 +13,11 @@
     "Once attempts are exhausted the dialog can be left, which abandons that edit, and the recorder is told the edit was not saved.",
     "Creating a rally never shows a progress state on the draft card, because it advances immediately and its progress belongs to SyncIndicator."
   ],
-  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
   "status": "pending"
 }

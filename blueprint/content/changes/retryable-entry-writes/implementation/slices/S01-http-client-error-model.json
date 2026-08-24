@@ -12,6 +12,11 @@
     "The shared client accepts a timeout and rejects with a recognisable error when it elapses, using the platform's own AbortSignal rather than a new dependency.",
     "A network-layer failure is normalised into the same error type as an HTTP failure, so a caller can tell disconnection from a rejected request without inspecting a TypeError."
   ],
-  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
   "status": "completed"
 }

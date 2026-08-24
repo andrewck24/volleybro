@@ -12,6 +12,6 @@
     "The retryable flag the error model already declares is what decides whether to retry, giving that flag its first consumer in the repository.",
     "An error that is not retryable is not retried."
   ],
-  "verification": ["pnpm test", "pnpm typecheck:strict"],
+  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm format:check"],
   "status": "completed"
 }
