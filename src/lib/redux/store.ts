@@ -1,5 +1,6 @@
 import gameReducer from "@/lib/features/game/game-slice";
 import pendingWritesReducer from "@/lib/features/game/pending-writes-slice";
+import setCompletionReducer from "@/lib/features/game/set-completion-slice";
 import lineupReducer from "@/lib/features/team/lineup-slice";
 import { configureStore } from "@reduxjs/toolkit";
 
@@ -9,6 +10,7 @@ export const makeStore = () => {
       lineup: lineupReducer,
       game: gameReducer,
       pendingWrites: pendingWritesReducer,
+      setCompletion: setCompletionReducer,
     },
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({

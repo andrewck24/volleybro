@@ -19,5 +19,5 @@
     "pnpm test:integration",
     "pnpm format:check"
   ],
-  "status": "pending"
+  "status": "completed"
 }

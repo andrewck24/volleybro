@@ -9,6 +9,7 @@ import { GamePanel } from "@/components/game/panel";
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { SetOptions } from "@/components/game/set-options";
 import { StatsForOneSet } from "@/components/game/stats";
+import { UnconfirmedSetDialog } from "@/components/game/unconfirmed-set-dialog";
 import {
   SummaryDrawer,
   type SummaryDrawerState,
@@ -155,6 +156,7 @@ const Interval = ({
 
   return (
     <>
+      <UnconfirmedSetDialog gameId={gameId} setIndex={setIndex} />
       <GameHeader gameId={gameId} />
       <Accordion
         type="single"

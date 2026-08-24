@@ -66,6 +66,37 @@ describe("usePendingWrites", () => {
     expect(mutate).toHaveBeenCalled();
   });
 
+  it("records the set-completion result from the response when the field is present", async () => {
+    apiClient.mockResolvedValue({
+      entries: [{ id: "e1" }],
+      setCompletionConfirmed: false,
+    });
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(store.getState().setCompletion["game-1:0"]).toBe(false);
+  });
+
+  it("leaves the set-completion result untouched when the field is absent", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(store.getState().setCompletion["game-1:0"]).toBeUndefined();
+  });
+
   it("dedupes concurrent flush calls into a single in-flight request", async () => {
     let resolveRequest!: (v: unknown) => void;
     apiClient.mockReturnValue(

@@ -3,12 +3,13 @@ import { useCallback, useEffect, useRef } from "react";
 import { useGame } from "@/hooks/use-data";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
+import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/redux/hooks";
 
 export type FlushResult = { ok: true } | { ok: false; error: unknown };
 
-const applyFlushedEntries = (
+export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,
   entries: GameView["sets"][number]["entries"],
@@ -69,6 +70,19 @@ export function usePendingWrites(gameId: string, setIndex: number) {
             applyFlushedEntries(current, si, result.response.entries),
           { revalidate: false },
         );
+        // D3: the response is the only place this fact exists at submission
+        // time -- the local cache is already optimistically written to
+        // match entries, so comparing it against itself would never catch a
+        // completeSet failure. Undefined means no set result was attempted.
+        if (result.response.setCompletionConfirmed !== undefined) {
+          dispatch(
+            setCompletionActions.recorded({
+              gameId,
+              setIndex: si,
+              confirmed: result.response.setCompletionConfirmed,
+            }),
+          );
+        }
       } else {
         firstError ??= result.error;
         failedIdsByRetryable.set(result.retryable, [
