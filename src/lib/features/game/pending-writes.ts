@@ -6,14 +6,28 @@ export type SyncStatus = "synced" | "syncing" | "unsynced";
  * SyncIndicator and the per-row failure marker are both projections of the
  * queue, never stored state of their own. Empty reads as synced; any item
  * with a scheduled attempt reads as syncing; a queue whose items have all
- * exhausted their backoff reads as unsynced.
+ * exhausted their backoff reads as unsynced. Scoped to one game: a flush
+ * carries its own game identity now, so another game's in-flight flush
+ * never gets mistaken for this game's.
  */
-export const deriveSyncStatus = (state: PendingWritesState): SyncStatus =>
-  state.pending.length === 0
+export const deriveSyncStatus = (
+  state: PendingWritesState,
+  gameId: string,
+): SyncStatus => {
+  const pending = state.pending.filter((p) => p.gameId === gameId);
+  return pending.length === 0
     ? "synced"
-    : state.flushing || state.pending.some((p) => p.nextAttemptAt !== null)
+    : isFlushingGame(state, gameId) ||
+        pending.some((p) => p.nextAttemptAt !== null)
       ? "syncing"
       : "unsynced";
+};
+
+/** True while a flush for this exact game is on the wire. */
+export const isFlushingGame = (
+  state: PendingWritesState,
+  gameId: string,
+): boolean => state.flushingGameIds.includes(gameId);
 
 export const hasFailedWrite = (
   state: PendingWritesState,

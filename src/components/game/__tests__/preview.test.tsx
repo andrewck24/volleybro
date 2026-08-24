@@ -252,7 +252,11 @@ describe("GamePreview editing write status", () => {
       // shape) so this test's click doesn't race the background-retry
       // effect's own near-immediate flush of a freshly-enqueued entry.
       store.dispatch(
-        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+        pendingWritesActions.flushFailed({
+          gameId: "game-1",
+          ids: ["e1"],
+          retryable: true,
+        }),
       );
     });
 
@@ -278,7 +282,11 @@ describe("GamePreview editing write status", () => {
         }),
       );
       store.dispatch(
-        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+        pendingWritesActions.flushFailed({
+          gameId: "game-1",
+          ids: ["e1"],
+          retryable: false,
+        }),
       );
     });
 

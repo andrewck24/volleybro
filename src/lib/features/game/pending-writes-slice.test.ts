@@ -49,20 +49,32 @@ describe("pendingWrites reducer", () => {
         nextAttemptAt: Date.now(),
       },
     ]);
-    expect(deriveSyncStatus(state)).toBe("syncing");
+    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 
-  it("flushStarted flips flushing on", () => {
+  it("flushStarted adds the game to flushingGameIds", () => {
     const state = pendingWritesReducer(
       undefined,
-      pendingWritesActions.flushStarted(),
+      pendingWritesActions.flushStarted({ gameId: "game-1" }),
     );
-    expect(state.flushing).toBe(true);
+    expect(state.flushingGameIds).toEqual(["game-1"]);
   });
 
-  it("flushSucceeded removes only the confirmed ids and clears flushing", () => {
+  it("flushStarted tracks more than one game flushing at once", () => {
+    let state = pendingWritesReducer(
+      undefined,
+      pendingWritesActions.flushStarted({ gameId: "game-1" }),
+    );
+    state = pendingWritesReducer(
+      state,
+      pendingWritesActions.flushStarted({ gameId: "game-2" }),
+    );
+    expect([...state.flushingGameIds].sort()).toEqual(["game-1", "game-2"]);
+  });
+
+  it("flushSucceeded removes only the confirmed ids and clears flushing for that game only", () => {
     const seeded: PendingWritesState = {
-      flushing: true,
+      flushingGameIds: ["game-1", "game-2"],
       pending: [
         {
           entry: entry("e1"),
@@ -83,16 +95,16 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
     );
 
     expect(state.pending.map((p) => p.entry.id)).toEqual(["e2"]);
-    expect(state.flushing).toBe(false);
+    expect(state.flushingGameIds).toEqual(["game-2"]);
   });
 
   it("flushFailed schedules the next background delay by attempt count", () => {
     const seeded: PendingWritesState = {
-      flushing: true,
+      flushingGameIds: ["game-1"],
       pending: [
         {
           entry: entry("e1"),
@@ -106,19 +118,27 @@ describe("pendingWrites reducer", () => {
 
     let state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: true,
+      }),
     );
 
     expect(state.pending[0]!.attempts).toBe(1);
     expect(state.pending[0]!.nextAttemptAt).toBe(
       Date.now() + PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
     );
-    expect(state.flushing).toBe(false);
+    expect(state.flushingGameIds).toEqual([]);
 
     for (let i = 1; i < PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS.length; i++) {
       state = pendingWritesReducer(
         state,
-        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+        pendingWritesActions.flushFailed({
+          gameId: "game-1",
+          ids: ["e1"],
+          retryable: true,
+        }),
       );
       expect(state.pending[0]!.nextAttemptAt).toBe(
         Date.now() + PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[i]!,
@@ -128,15 +148,19 @@ describe("pendingWrites reducer", () => {
     // Budget exhausted: one more failure marks it unrecoverable.
     state = pendingWritesReducer(
       state,
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: true,
+      }),
     );
     expect(state.pending[0]!.nextAttemptAt).toBeNull();
-    expect(deriveSyncStatus(state)).toBe("unsynced");
+    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
   });
 
   it("flushFailed marks a non-retryable error as failed immediately, no backoff", () => {
     const seeded: PendingWritesState = {
-      flushing: true,
+      flushingGameIds: ["game-1"],
       pending: [
         {
           entry: entry("e1"),
@@ -150,7 +174,11 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
     );
 
     expect(state.pending[0]!.attempts).toBe(1);
@@ -159,7 +187,7 @@ describe("pendingWrites reducer", () => {
 
   it("retryRequested only resets items whose backoff is exhausted", () => {
     const seeded: PendingWritesState = {
-      flushing: false,
+      flushingGameIds: [],
       pending: [
         {
           entry: entry("e1"),
@@ -191,7 +219,7 @@ describe("pendingWrites reducer", () => {
 
   it("retryRequested only resets the requesting game's exhausted items", () => {
     const seeded: PendingWritesState = {
-      flushing: false,
+      flushingGameIds: [],
       pending: [
         {
           entry: entry("e1"),

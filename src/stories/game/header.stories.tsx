@@ -132,6 +132,7 @@ export const Unsynced: Story = {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
+          gameId,
           ids: ["pending-1"],
           retryable: false,
         }),

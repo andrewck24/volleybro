@@ -78,7 +78,11 @@ describe("SyncIndicator", () => {
       }),
     );
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
     );
     const user = userEvent.setup();
     render(
@@ -108,13 +112,15 @@ describe("SyncIndicator", () => {
       }),
     );
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
     );
-    // ...but a flush for this game (the retry, or the online listener) is
-    // now actually in flight. Gating `flushing` on `nextAttemptAt` would
-    // hardcode it to false here and misreport unsynced, hiding that a
-    // request for this exact game is on the wire.
-    store.dispatch(pendingWritesActions.flushStarted());
+    // ...but a flush for this exact game (the retry, or the online
+    // listener) is now actually in flight.
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     render(
       <Provider store={store}>
         <SyncIndicator gameId="game-1" />
@@ -123,6 +129,37 @@ describe("SyncIndicator", () => {
 
     const button = screen.getByRole("button", { name: "1 筆未同步" });
     expect(button).not.toHaveClass("ring-warning/30");
+  });
+
+  it("reads as unsynced, retry control visible, when this game's queue is exhausted and a different game's flush is in flight", () => {
+    store = makeStore();
+    // This game's item has exhausted its backoff...
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+    // ...and, at the same time, an unrelated game's flush is genuinely in
+    // flight. The flag now carries its own game identity, so this must not
+    // be read as this game's syncing state.
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
+    render(
+      <Provider store={store}>
+        <SyncIndicator gameId="game-1" />
+      </Provider>,
+    );
+
+    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    expect(button).toHaveClass("ring-warning/30");
   });
 
   it("ignores pending entries -- and an in-flight flush -- that belong to a different game", () => {
@@ -134,11 +171,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    // The other game's flush is genuinely in flight. `flushing` carries no
-    // game identity of its own, so a component that trusted it without
-    // requiring one of its own pending items would misread this as its own
-    // syncing state.
-    store.dispatch(pendingWritesActions.flushStarted());
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
     render(
       <Provider store={store}>
         <SyncIndicator gameId="game-1" />
@@ -169,7 +202,11 @@ describe("SyncIndicator", () => {
       }),
     );
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
     );
     const user = userEvent.setup();
     render(
@@ -206,7 +243,11 @@ describe("SyncIndicator", () => {
       }),
     );
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e0"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e0"],
+        retryable: false,
+      }),
     );
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -216,7 +257,11 @@ describe("SyncIndicator", () => {
       }),
     );
     store.dispatch(
-      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
     );
     const user = userEvent.setup();
     render(

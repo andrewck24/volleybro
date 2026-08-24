@@ -27,7 +27,7 @@ jest.mock("@/lib/redux/hooks", () => ({
           entry: { id },
           nextAttemptAt: null,
         })),
-        flushing: false,
+        flushingGameIds: [],
       },
     }),
 }));

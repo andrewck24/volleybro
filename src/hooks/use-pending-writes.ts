@@ -39,7 +39,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
     if (bySetIndex.size === 0) return { ok: true };
 
-    dispatch(pendingWritesActions.flushStarted());
+    dispatch(pendingWritesActions.flushStarted({ gameId }));
 
     const succeededIds: string[] = [];
     const failedIdsByRetryable = new Map<boolean, string[]>();
@@ -82,10 +82,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
 
     if (succeededIds.length > 0) {
-      dispatch(pendingWritesActions.flushSucceeded({ ids: succeededIds }));
+      dispatch(
+        pendingWritesActions.flushSucceeded({ gameId, ids: succeededIds }),
+      );
     }
     for (const [retryable, ids] of failedIdsByRetryable) {
-      dispatch(pendingWritesActions.flushFailed({ ids, retryable }));
+      dispatch(pendingWritesActions.flushFailed({ gameId, ids, retryable }));
     }
 
     return failedIdsByRetryable.size === 0

@@ -11,7 +11,7 @@ import {
 
 const initialState: PendingWritesState = {
   pending: [],
-  flushing: false,
+  flushingGameIds: [],
 };
 
 const enqueued: CaseReducer<
@@ -25,24 +25,31 @@ const enqueued: CaseReducer<
   });
 };
 
-const flushStarted: CaseReducer<PendingWritesState> = (state) => {
-  state.flushing = true;
+const flushStarted: CaseReducer<
+  PendingWritesState,
+  PayloadAction<{ gameId: string }>
+> = (state, action) => {
+  if (!state.flushingGameIds.includes(action.payload.gameId)) {
+    state.flushingGameIds.push(action.payload.gameId);
+  }
 };
 
 const flushSucceeded: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ ids: string[] }>
+  PayloadAction<{ gameId: string; ids: string[] }>
 > = (state, action) => {
   const ids = new Set(action.payload.ids);
   state.pending = state.pending.filter((p) => !ids.has(p.entry.id));
-  state.flushing = false;
+  state.flushingGameIds = state.flushingGameIds.filter(
+    (id) => id !== action.payload.gameId,
+  );
 };
 
 const flushFailed: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ ids: string[]; retryable: boolean }>
+  PayloadAction<{ gameId: string; ids: string[]; retryable: boolean }>
 > = (state, action) => {
-  const { ids, retryable } = action.payload;
+  const { gameId, ids, retryable } = action.payload;
   const idSet = new Set(ids);
   for (const item of state.pending) {
     if (!idSet.has(item.entry.id)) continue;
@@ -50,7 +57,7 @@ const flushFailed: CaseReducer<
     const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
     item.nextAttemptAt = delay === null ? null : Date.now() + delay;
   }
-  state.flushing = false;
+  state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);
 };
 
 // Manual retry: only items that exhausted their backoff are eligible, and

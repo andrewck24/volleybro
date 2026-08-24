@@ -97,7 +97,11 @@ describe("useEditingGuard", () => {
     );
     act(() =>
       store.dispatch(
-        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+        pendingWritesActions.flushFailed({
+          gameId: "game-1",
+          ids: ["e1"],
+          retryable: false,
+        }),
       ),
     );
 

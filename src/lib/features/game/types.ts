@@ -370,7 +370,12 @@ export type PendingEntry = {
 
 export type PendingWritesState = {
   pending: PendingEntry[];
-  flushing: boolean;
+  // gameIds with a flush request currently on the wire. A game identity,
+  // not a bare boolean, because a flush is scoped per game (see
+  // usePendingWrites) and more than one game's flush can be in flight at
+  // once -- e.g. one game's background retry firing while another is
+  // manually retried.
+  flushingGameIds: string[];
 };
 
 // For Other Components

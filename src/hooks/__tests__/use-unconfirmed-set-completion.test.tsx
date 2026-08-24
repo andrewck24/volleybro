@@ -76,7 +76,7 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted());
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
       { wrapper },
@@ -87,9 +87,9 @@ describe("useUnconfirmedSetCompletion", () => {
   });
 
   it("is not unconfirmed when a flush for an unrelated game/set is in flight", () => {
-    // Regression: `flushing` is a global flag. A flush triggered by an
-    // entry belonging to a different set must not raise the unconfirmed
-    // dialog over a set whose result already landed.
+    // Regression: a flush triggered by an entry belonging to a different
+    // set must not raise the unconfirmed dialog over a set whose result
+    // already landed.
     mockGame = gameWithSet(true); // stored result already landed correctly
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -98,13 +98,36 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 3,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted());
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-2" }));
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
       { wrapper },
     );
 
     expect(result.current.unconfirmed).toBe(false);
+    expect(result.current.attempting).toBe(false);
+  });
+
+  // The behaviour a bare boolean flag could not distinguish: this game/set's
+  // own entry sits unconfirmed in the queue (exhausted or not yet attempted)
+  // while a wholly different game's flush is genuinely on the wire. Without
+  // game identity on the flag, `flushing` alone would read this as this
+  // set's own in-flight attempt.
+  it("is not attempting when this set has a queued entry but the in-flight flush belongs to a different game", () => {
+    mockGame = gameWithSet(true); // optimistic write already applied
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-2" }));
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
     expect(result.current.attempting).toBe(false);
   });
 

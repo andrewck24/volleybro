@@ -3,7 +3,10 @@ import { useCallback, useState } from "react";
 import { useGame } from "@/hooks/use-data";
 import { EntryType } from "@/entities/game";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
-import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
+import {
+  applyFlushedEntries,
+  isFlushingGame,
+} from "@/lib/features/game/pending-writes";
 import {
   readSetCompletion,
   setCompletionActions,
@@ -32,9 +35,13 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   const sessionConfirmed = useAppSelector((state) =>
     readSetCompletion(state.setCompletion, gameId, setIndex),
   );
-  const flushing = useAppSelector((state) => state.pendingWrites.flushing);
-  // `flushing` is a global flag -- a flush triggered by an entry belonging
-  // to a different game or set must not be read as this set's signal.
+  const flushingThisGame = useAppSelector((state) =>
+    isFlushingGame(state.pendingWrites, gameId),
+  );
+  // A flush covers every pending set of this game, not only this one (see
+  // usePendingWrites), so flushing-for-this-game is necessary but not
+  // sufficient -- only read it as this set's signal when this set still has
+  // an entry in the queue.
   const hasPendingEntryForSet = useAppSelector((state) =>
     state.pendingWrites.pending.some(
       (p) => p.gameId === gameId && p.setIndex === setIndex,
@@ -45,11 +52,12 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   const noSessionSignalYet = sessionConfirmed === undefined;
   const coldStartUnconfirmed = noSessionSignalYet && set?.win === null;
   // The moment Interval mounts right after the set-ending submit, no
-  // session signal has arrived yet either -- `flushing` is what tells the
-  // dialog to cover the screen for that window instead of staying hidden
-  // until the response settles.
+  // session signal has arrived yet either -- `flushingThisGame` is what
+  // tells the dialog to cover the screen for that window instead of staying
+  // hidden until the response settles.
   const attempting =
-    retrying || (noSessionSignalYet && flushing && hasPendingEntryForSet);
+    retrying ||
+    (noSessionSignalYet && flushingThisGame && hasPendingEntryForSet);
   const unconfirmed =
     sessionConfirmed === false || coldStartUnconfirmed || attempting;
 

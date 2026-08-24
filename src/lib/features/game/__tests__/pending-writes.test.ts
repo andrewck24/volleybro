@@ -1,6 +1,7 @@
 import {
   deriveSyncStatus,
   hasFailedWrite,
+  isFlushingGame,
   isPendingWrite,
   nextAttemptDelayMs,
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
@@ -23,16 +24,16 @@ const makePendingEntry = (
 
 describe("deriveSyncStatus", () => {
   it("reads synced when the queue is empty", () => {
-    const state: PendingWritesState = { pending: [], flushing: false };
-    expect(deriveSyncStatus(state)).toBe("synced");
+    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
+    expect(deriveSyncStatus(state, "game-1")).toBe("synced");
   });
 
-  it("reads syncing when a flush is in flight", () => {
+  it("reads syncing when a flush for this game is in flight", () => {
     const state: PendingWritesState = {
       pending: [makePendingEntry({ nextAttemptAt: null })],
-      flushing: true,
+      flushingGameIds: ["game-1"],
     };
-    expect(deriveSyncStatus(state)).toBe("syncing");
+    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 
   it("reads syncing when any item still has a scheduled attempt", () => {
@@ -41,9 +42,9 @@ describe("deriveSyncStatus", () => {
         makePendingEntry({ nextAttemptAt: null }),
         makePendingEntry({ nextAttemptAt: Date.now() + 2000 }),
       ],
-      flushing: false,
+      flushingGameIds: [],
     };
-    expect(deriveSyncStatus(state)).toBe("syncing");
+    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 
   it("reads unsynced when every item has exhausted its backoff", () => {
@@ -52,9 +53,40 @@ describe("deriveSyncStatus", () => {
         makePendingEntry({ nextAttemptAt: null }),
         makePendingEntry({ nextAttemptAt: null }),
       ],
-      flushing: false,
+      flushingGameIds: [],
     };
-    expect(deriveSyncStatus(state)).toBe("unsynced");
+    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
+  });
+
+  // The two behaviours the flag needed identity to distinguish: with a bare
+  // boolean, "this game's queue exhausted, another game's flush in flight"
+  // and "this game's queue exhausted, this game's own flush in flight" were
+  // indistinguishable and one of them always misreported.
+  it("reads unsynced -- not syncing -- when this game's queue is exhausted and a different game's flush is in flight", () => {
+    const state: PendingWritesState = {
+      pending: [makePendingEntry({ gameId: "game-1", nextAttemptAt: null })],
+      flushingGameIds: ["game-2"],
+    };
+    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
+  });
+
+  it("reads syncing when this game's queue is exhausted but this game's own flush is in flight", () => {
+    const state: PendingWritesState = {
+      pending: [makePendingEntry({ gameId: "game-1", nextAttemptAt: null })],
+      flushingGameIds: ["game-1"],
+    };
+    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
+  });
+});
+
+describe("isFlushingGame", () => {
+  it("is true only for a game with a flush on the wire", () => {
+    const state: PendingWritesState = {
+      pending: [],
+      flushingGameIds: ["game-1"],
+    };
+    expect(isFlushingGame(state, "game-1")).toBe(true);
+    expect(isFlushingGame(state, "game-2")).toBe(false);
   });
 });
 
@@ -71,14 +103,14 @@ describe("hasFailedWrite", () => {
           nextAttemptAt: Date.now() + 2000,
         }),
       ],
-      flushing: false,
+      flushingGameIds: [],
     };
     expect(hasFailedWrite(state, "e1")).toBe(true);
     expect(hasFailedWrite(state, "e2")).toBe(false);
   });
 
   it("is false for an entry not in the queue at all", () => {
-    const state: PendingWritesState = { pending: [], flushing: false };
+    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
     expect(hasFailedWrite(state, "e1")).toBe(false);
   });
 });
@@ -96,14 +128,14 @@ describe("isPendingWrite", () => {
           nextAttemptAt: null,
         }),
       ],
-      flushing: false,
+      flushingGameIds: [],
     };
     expect(isPendingWrite(state, "e1")).toBe(true);
     expect(isPendingWrite(state, "e2")).toBe(false);
   });
 
   it("is false for an entry not in the queue at all", () => {
-    const state: PendingWritesState = { pending: [], flushing: false };
+    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
     expect(isPendingWrite(state, "e1")).toBe(false);
   });
 });
