@@ -51,19 +51,19 @@ describe("UpdateRallyUseCase", () => {
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("replaces the entry and returns the set's entries", async () => {
+  it("upserts the entry and returns the set's entries", async () => {
     const entries = [createRallyEntry(updatedRally)];
     mockGameRepository.findById.mockResolvedValue(createGame());
-    mockGameRepository.replaceEntry.mockResolvedValue(entries);
+    mockGameRepository.upsertEntry.mockResolvedValue(entries);
 
     const result = await useCase().execute({
       params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
       data: updatedRally,
     });
 
-    expect(mockGameRepository.replaceEntry).toHaveBeenCalledWith(
-      { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-      { type: EntryType.RALLY, ...updatedRally },
+    expect(mockGameRepository.upsertEntry).toHaveBeenCalledWith(
+      { gameId: "game-1", setIndex: 0 },
+      [{ type: EntryType.RALLY, ...updatedRally }],
     );
     expect(mockGameRepository.update).not.toHaveBeenCalled();
     expect(result).toEqual(entries);
@@ -74,7 +74,7 @@ describe("UpdateRallyUseCase", () => {
       ...createGame(),
       sets: [],
     });
-    mockGameRepository.replaceEntry.mockRejectedValue(
+    mockGameRepository.upsertEntry.mockRejectedValue(
       new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found"),
     );
 

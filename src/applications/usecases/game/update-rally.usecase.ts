@@ -38,7 +38,7 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
     input: IUpdateRallyInput,
   ): Promise<IUpdateRallyOutput | undefined> {
     const { params, data: rally } = input;
-    const { gameId, setIndex, entryIndex } = params;
+    const { gameId, setIndex } = params;
     const user = await this.authenticationService.verifySession();
 
     // Read for the team the caller must belong to; whether the entry exists is
@@ -53,9 +53,9 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
       PlayerRole.MEMBER,
     );
 
-    const entries = await this.gameRepository.replaceEntry(
-      { gameId, setIndex, entryIndex },
-      createRallyEntry(rally),
+    const entries = await this.gameRepository.upsertEntry(
+      { gameId, setIndex },
+      [createRallyEntry(rally)],
     );
 
     const completion = deriveSetCompletion(game, setIndex, entries);

@@ -62,9 +62,9 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
 
     this.updateLineup(lineup, substitution, params.entryIndex);
 
-    return this.gameRepository.appendEntry(
+    return this.gameRepository.upsertEntry(
       { gameId: params.gameId, setIndex: params.setIndex },
-      createSubstitutionEntry(substitution),
+      [createSubstitutionEntry(substitution)],
       { [side]: lineup },
     );
   }

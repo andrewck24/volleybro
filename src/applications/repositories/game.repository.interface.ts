@@ -14,19 +14,15 @@ export interface IGameRepository {
    */
   update(id: string, data: Partial<Game>): Promise<Game>;
   /**
-   * Records one more entry in a set and returns the set's entries. A
-   * substitution also changes who is on court, so the lineup the entry
-   * produces is written with it rather than after it.
+   * Writes or overwrites each entry by identity and returns the set's
+   * entries in sequence order, regardless of arrival order. A substitution
+   * also changes who is on court, so the lineup the entry produces is
+   * written with it rather than after it.
    */
-  appendEntry(
+  upsertEntry(
     ref: EntryRef,
-    entry: Entry,
+    entries: Entry[],
     lineups?: Partial<Set["lineups"]>,
-  ): Promise<Entry[]>;
-  /** Replaces one entry of a set and returns the set's entries. */
-  replaceEntry(
-    ref: EntryRef & { entryIndex: number },
-    entry: Entry,
   ): Promise<Entry[]>;
   /**
    * Records a set's result, and the match's when the match is decided. Both

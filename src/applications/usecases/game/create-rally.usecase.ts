@@ -53,9 +53,9 @@ export class CreateRallyUseCase implements ICreateRallyUseCase {
       PlayerRole.MEMBER,
     );
 
-    const entries = await this.gameRepository.appendEntry(
+    const entries = await this.gameRepository.upsertEntry(
       { gameId, setIndex },
-      createRallyEntry(rally),
+      [createRallyEntry(rally)],
     );
 
     const completion = deriveSetCompletion(game, setIndex, entries);
