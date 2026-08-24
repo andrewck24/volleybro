@@ -8,7 +8,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
 /**
- * D4: the editing dialog cannot be abandoned while its write is still in
+ * The editing dialog cannot be abandoned while its write is still in
  * flight -- only the pending-write queue (via `writing`/`failed`) knows
  * whether it's safe to leave. `guardDismiss` blocks the dialog primitive's
  * own escape/outside-click dismissal while writing (a no-op once failed or

@@ -45,16 +45,17 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Latest entry, at rest: no swipe reveal, no expansion yet
-// (D12 scenario "Left-swipe reveals action buttons" starts from here).
+// Latest entry, at rest: no swipe reveal, no expansion yet (`entry-ui`
+// change, scenario "Left-swipe reveals action buttons" starts from here).
 export const Collapsed: Story = {
   args: { isLatest: true },
 };
 
 // Left-swipe reveals the row's action buttons in place, without expanding it
-// (D12 scenario "Left-swipe reveals action buttons"). Runs in a real browser
-// via Storybook's play function, so a genuine PointerEvent sequence drives
-// the same capture-on-intent gesture used in panel/progress-bar.tsx.
+// (`entry-ui` change, scenario "Left-swipe reveals action buttons"). Runs in
+// a real browser via Storybook's play function, so a genuine PointerEvent
+// sequence drives the same capture-on-intent gesture used in
+// panel/progress-bar.tsx.
 export const SwipeRevealed: Story = {
   args: { isLatest: true },
   play: async ({ canvasElement }) => {
@@ -75,9 +76,9 @@ export const SwipeRevealed: Story = {
 };
 
 // Tap inline-expands the row in place to show the entry detail + actions,
-// without leaving the list (D12 scenario "Tap inline-expands the row in
-// place"). Runs a real click via Storybook's play function to reach the
-// expanded state.
+// without leaving the list (`entry-ui` change, scenario "Tap inline-expands
+// the row in place"). Runs a real click via Storybook's play function to
+// reach the expanded state.
 export const TapExpandedLatest: Story = {
   args: { isLatest: true },
   play: async ({ canvasElement }) => {
@@ -89,8 +90,8 @@ export const TapExpandedLatest: Story = {
 };
 
 // Non-latest entry, tap-expanded: edit + "roll back and re-record to here",
-// never a delete button (D12 scenario "Non-latest entry exposes rollback
-// instead of delete").
+// never a delete button (`entry-ui` change, scenario "Non-latest entry
+// exposes rollback instead of delete").
 export const TapExpandedNonLatest: Story = {
   args: { isLatest: false },
   play: async ({ canvasElement }) => {

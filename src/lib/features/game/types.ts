@@ -356,8 +356,8 @@ export type ReduxGameState = {
   };
 };
 
-// For the pending-write queue (D4): unconfirmed rally writes, kept in their
-// own slice because their lifetime differs from the per-set draft above.
+// For the pending-write queue: unconfirmed rally writes, kept in their own
+// slice because their lifetime differs from the per-set draft above.
 export type PendingEntry = {
   entry: RallyView & EntryIdentity;
   gameId: string;

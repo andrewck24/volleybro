@@ -213,9 +213,9 @@ describe("SummaryDrawerCard backdrop overlay", () => {
   });
 });
 
-// D8/D12 gesture split, exercised through the draft Preview bar (present only
-// while recording). PreviewCard's own tap-handling is covered in
-// preview.test.tsx.
+// `entry-ui` change's gesture split, exercised through the draft Preview bar
+// (present only while recording). PreviewCard's own tap-handling is covered
+// in preview.test.tsx.
 describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   it("tapping the Preview bar while editing and complete calls onSubmit, not onToggle", async () => {
     const user = userEvent.setup();

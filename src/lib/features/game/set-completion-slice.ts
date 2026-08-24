@@ -5,13 +5,13 @@ import {
 } from "@reduxjs/toolkit";
 
 /**
- * D3/D4: whether `completeSet` was confirmed for a set, keyed by gameId and
+ * Whether `completeSet` was confirmed for a set, keyed by gameId and
  * setIndex. This is not a copy of anything derivable -- the local cache is
  * already optimistically written to match entries by the time a response
- * arrives, so the only place this fact exists is the flush response itself
- * (see design "偵測機制"). Session-only by construction: the store is never
- * persisted, so a reload naturally falls back to the cold-start comparison
- * instead of a stale value here.
+ * arrives, so the only place this fact exists is the flush response itself.
+ * Session-only by construction: the store is never persisted, so a reload
+ * naturally falls back to the cold-start comparison instead of a stale value
+ * here.
  */
 export type SetCompletionState = Record<string, boolean>;
 

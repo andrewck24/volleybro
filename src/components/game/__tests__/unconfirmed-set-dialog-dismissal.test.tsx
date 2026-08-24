@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 
 // Proves UnconfirmedSetDialog's DialogContent actually receives handlers
 // that block every dismissal route -- escape, outside click, and the close
-// button (D3/D4: no exit until the retry lands). Content/state behavior is
+// button (no exit until the retry lands). Content/state behavior is
 // covered by unconfirmed-set-dialog.test.tsx against the real dialog; this
 // only checks the three exits are wired to reject dismissal.
 let capturedProps: {

@@ -22,9 +22,9 @@ jest.mock("@/components/game/options/overview", () => ({
 }));
 
 // A marker so the test can prove GameOptions never renders the Summary list,
-// regardless of which tab is requested -- it moved out into the D12 drawer
-// (src/components/game/summary-drawer.tsx) and is no longer reachable from
-// this dialog.
+// regardless of which tab is requested -- it moved out into the `entry-ui`
+// change's drawer (src/components/game/summary-drawer.tsx) and is no longer
+// reachable from this dialog.
 jest.mock("@/components/game/options/summary", () => ({
   GameOptionsSummary: () => <div data-testid="summary-marker" />,
 }));

@@ -1,5 +1,5 @@
 /**
- * Last-entry rule (D12): action buttons are a pure function of whether an
+ * Last-entry rule: action buttons are a pure function of whether an
  * entry is the latest one. The latest entry offers edit + delete; every
  * other entry offers edit + "roll back and re-record to here" -- never a
  * disabled delete button.

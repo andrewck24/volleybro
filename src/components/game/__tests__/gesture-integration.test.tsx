@@ -144,7 +144,7 @@ const setUpGame = () => {
   return { store };
 };
 
-describe("Game composition: gesture split integration (D8/D12)", () => {
+describe("Game composition: gesture split integration (`entry-ui` change)", () => {
   it("tapping the handle expands the drawer from the idle peek", async () => {
     const user = userEvent.setup();
     setUpGame();
