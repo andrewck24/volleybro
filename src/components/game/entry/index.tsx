@@ -226,7 +226,7 @@ export const EntryRow = ({
             <FailedWriteRetry
               onRetry={onRetry}
               testId="entry-row-retry"
-              interactive
+              passThroughPointerEvents
             />
           )}
         </div>

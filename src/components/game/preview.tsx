@@ -164,27 +164,13 @@ export const useEntryDraftPreview = (
       } as unknown as EntryView)
     : null;
 
+  const identity = { id: draft.id, seq: draft.seq };
   const draftEntry: EntryView | undefined = draft.substitution
-    ? {
-        type: EntryType.SUBSTITUTION,
-        id: draft.id,
-        seq: draft.seq,
-        ...draft.substitution,
-      }
+    ? { type: EntryType.SUBSTITUTION, ...identity, ...draft.substitution }
     : draft.timeout
-      ? {
-          type: EntryType.TIMEOUT,
-          id: draft.id,
-          seq: draft.seq,
-          ...draft.timeout,
-        }
+      ? { type: EntryType.TIMEOUT, ...identity, ...draft.timeout }
       : draft.challenge
-        ? {
-            type: EntryType.CHALLENGE,
-            id: draft.id,
-            seq: draft.seq,
-            ...draft.challenge,
-          }
+        ? { type: EntryType.CHALLENGE, ...identity, ...draft.challenge }
         : (draftRallyEntry ?? previousEntry);
 
   const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;
