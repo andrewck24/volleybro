@@ -68,7 +68,7 @@ describe("SyncIndicator", () => {
     expect(button).not.toHaveClass("ring-warning/30");
   });
 
-  it("shows the unsynced count once an item's backoff is exhausted", () => {
+  it("shows the unsynced count once an item's backoff is exhausted, with the retry control visible", async () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -80,20 +80,26 @@ describe("SyncIndicator", () => {
     store.dispatch(
       pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
     );
+    const user = userEvent.setup();
     render(
       <Provider store={store}>
         <SyncIndicator gameId="game-1" />
       </Provider>,
     );
 
+    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    expect(button).toHaveClass("ring-warning/30");
+
+    await user.click(button);
+
     expect(
-      screen.getByRole("button", { name: "1 筆未同步" }),
+      await screen.findByRole("button", { name: "重試" }),
     ).toBeInTheDocument();
   });
 
-  it("stays unsynced -- with the retry control visible -- while a different game is flushing", () => {
+  it("reads as syncing, not unsynced, when this game's own request is in flight even though its items have exhausted their backoff", () => {
     store = makeStore();
-    // This game's queue has exhausted its backoff.
+    // This game's item has exhausted its backoff...
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e1"),
@@ -104,14 +110,10 @@ describe("SyncIndicator", () => {
     store.dispatch(
       pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
     );
-    // A different game is mid-flush right now.
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("other-e1"),
-        gameId: "other-game",
-        setIndex: 0,
-      }),
-    );
+    // ...but a flush for this game (the retry, or the online listener) is
+    // now actually in flight. Gating `flushing` on `nextAttemptAt` would
+    // hardcode it to false here and misreport unsynced, hiding that a
+    // request for this exact game is on the wire.
     store.dispatch(pendingWritesActions.flushStarted());
     render(
       <Provider store={store}>
@@ -119,13 +121,11 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    // Not "syncing" (which would hide the retry control) -- this game's own
-    // queue is still exhausted regardless of the other game's flush.
     const button = screen.getByRole("button", { name: "1 筆未同步" });
-    expect(button).toHaveClass("ring-warning/30");
+    expect(button).not.toHaveClass("ring-warning/30");
   });
 
-  it("ignores pending entries that belong to a different game", () => {
+  it("ignores pending entries -- and an in-flight flush -- that belong to a different game", () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -134,6 +134,11 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
+    // The other game's flush is genuinely in flight. `flushing` carries no
+    // game identity of its own, so a component that trusted it without
+    // requiring one of its own pending items would misread this as its own
+    // syncing state.
+    store.dispatch(pendingWritesActions.flushStarted());
     render(
       <Provider store={store}>
         <SyncIndicator gameId="game-1" />

@@ -42,13 +42,12 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
   const pending = pendingWrites.pending.filter((p) => p.gameId === gameId);
   // `flushing` is a global flag -- a flush triggered by another game's queue
-  // must not be read as this game's signal. An item actually being flushed
-  // always carries a non-null `nextAttemptAt` (enqueue and manual retry both
-  // set it before triggering the flush), so gating on that keeps another
-  // game's in-flight flush from turning this game's exhausted queue into
-  // "syncing".
-  const flushing =
-    pendingWrites.flushing && pending.some((p) => p.nextAttemptAt !== null);
+  // must not be read as this game's signal. Ownership, not scheduling, scopes
+  // it: `runFlush` groups by game with no `nextAttemptAt` check, so an item
+  // whose backoff has already run out still goes out in this game's flush.
+  // Requiring a pending item that belongs to this game is enough to keep
+  // another game's in-flight flush from being read as this one's.
+  const flushing = pendingWrites.flushing && pending.length > 0;
   const status = deriveSyncStatus({ pending, flushing });
   // The count reflects everything the queue holds for this game, not only
   // the items that have exhausted their backoff -- syncing shows the count
