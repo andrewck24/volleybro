@@ -1,6 +1,8 @@
 "use client";
 import { Entry } from "@/components/game/entry";
+import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { getEntryProgress } from "@/components/game/panel/entry-progress";
+import { Spinner } from "@/components/ui/spinner";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
@@ -8,13 +10,12 @@ import {
   hasFailedWrite,
   isPendingWrite,
 } from "@/lib/features/game/pending-writes";
-import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type {
   EntryView,
   GamePlayerView,
   ReduxGameState,
 } from "@/lib/features/game/types";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { RiSendPlaneLine } from "react-icons/ri";
@@ -22,8 +23,8 @@ import { RiSendPlaneLine } from "react-icons/ri";
 // Draft row: pulses while incomplete, shows a send affordance when complete,
 // and freezes/flashes on submit until the parent remounts it via key.
 //
-// `writing`/`failed`/`onRetry` are D4 territory: only the editing path (an
-// existing rally being replaced, not optimistic) ever sets them. Create
+// `writing`/`failed`/`onRetry` only apply to the editing path (an existing
+// rally being replaced, not optimistic) -- only it ever sets them. Create
 // never does -- it advances immediately and its own progress belongs to
 // SyncIndicator, not this card.
 export const PreviewCard = ({
@@ -115,23 +116,10 @@ export const PreviewCard = ({
           aria-label="送出中"
           className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 text-muted-foreground"
         >
-          <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <Spinner />
         </span>
       )}
-      {failed && (
-        <span className="absolute inset-0 flex items-center justify-end pr-1.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRetry?.();
-            }}
-            className="rounded px-2 py-0.5 text-xs text-destructive ring-1 ring-destructive/50"
-          >
-            重試
-          </button>
-        </span>
-      )}
+      {failed && <FailedWriteRetry onRetry={onRetry} />}
     </div>
   );
 };
@@ -232,27 +220,21 @@ export const GamePreview = ({
   onExpandDrawer?: () => void;
   className?: string;
 }) => {
-  const dispatch = useAppDispatch();
   const setIndex = useAppSelector((state) => state.game.setIndex);
   const draftId = useAppSelector((state) => state.game[mode].entryDraft.id);
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
-  const { flush } = usePendingWrites(gameId, setIndex);
+  const { retry } = usePendingWrites(gameId, setIndex);
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
 
-  // D4: the update path doesn't advance optimistically, so unlike create it
+  // The update path doesn't advance optimistically, so unlike create it
   // keeps showing this card until the write resolves -- these are pure
   // projections of the same queue SyncIndicator reads, scoped to this draft's
   // identity.
   const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
   const failed = mode === "editing" && hasFailedWrite(pendingWrites, draftId);
-
-  const handleRetry = () => {
-    dispatch(pendingWritesActions.retryRequested());
-    void flush();
-  };
 
   return (
     <PreviewCard
@@ -266,7 +248,7 @@ export const GamePreview = ({
       isComplete={isComplete}
       writing={writing}
       failed={failed}
-      onRetry={mode === "editing" ? handleRetry : undefined}
+      onRetry={mode === "editing" ? () => void retry() : undefined}
       onSubmit={onSubmit}
       onExpand={onExpandDrawer}
       className={className}

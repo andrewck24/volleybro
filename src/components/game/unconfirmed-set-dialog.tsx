@@ -15,6 +15,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Spinner } from "@/components/ui/spinner";
 import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-completion";
 import { RiAlertLine } from "react-icons/ri";
 
@@ -27,11 +28,10 @@ const EXHAUSTED_TITLE = "哎呀，發球掛網了！";
 const EXHAUSTED_DESCRIPTION = "本局結果還沒存好，這一局的球都在，只差這一步。";
 
 /**
- * D3/D4: the entry itself already landed by the time this can render (see
- * design "兩種失敗，兩個介面") -- the only thing missing is the set result,
- * so this blocks the between-sets screen until it lands. No escape route:
- * a dismissable surface here would let the recorder start the next set on
- * top of a result that was never saved.
+ * The entry itself already landed by the time this can render -- the only
+ * thing missing is the set result, so this blocks the between-sets screen
+ * until it lands. No escape route: a dismissable surface here would let the
+ * recorder start the next set on top of a result that was never saved.
  */
 export const UnconfirmedSetDialog = ({
   gameId,
@@ -68,11 +68,7 @@ export const UnconfirmedSetDialog = ({
               }
             >
               {attempting ? (
-                <span
-                  role="status"
-                  aria-label="處理中"
-                  className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-                />
+                <Spinner role="status" aria-label="處理中" />
               ) : (
                 <RiAlertLine />
               )}

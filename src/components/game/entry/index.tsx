@@ -4,6 +4,7 @@ import {
 } from "@/components/game/entry/last-entry-rule";
 import { Rally } from "@/components/game/entry/rally";
 import { Substitution } from "@/components/game/entry/substitution";
+import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { EntryType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
@@ -152,7 +153,7 @@ export const EntryRow = ({
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
   onSwipeReveal?: (revealed: boolean) => void;
-  // D4: this row's write has exhausted its attempts (hasFailedWrite), matched
+  // This row's write has exhausted its attempts (hasFailedWrite), matched
   // to the queue by entry id. Not a toast -- persists until retried.
   failed?: boolean;
   onRetry?: () => void;
@@ -222,19 +223,11 @@ export const EntryRow = ({
             className={cn(failed && "ring-1 ring-destructive")}
           />
           {failed && (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-end pr-1.5">
-              <button
-                type="button"
-                data-testid="entry-row-retry"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRetry?.();
-                }}
-                className="pointer-events-auto rounded px-2 py-0.5 text-xs text-destructive ring-1 ring-destructive/50"
-              >
-                重試
-              </button>
-            </span>
+            <FailedWriteRetry
+              onRetry={onRetry}
+              testId="entry-row-retry"
+              interactive
+            />
           )}
         </div>
         {swipeRevealed && (

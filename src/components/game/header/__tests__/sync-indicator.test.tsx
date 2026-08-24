@@ -47,7 +47,7 @@ describe("SyncIndicator", () => {
     expect(screen.getByRole("button", { name: "已同步" })).toBeInTheDocument();
   });
 
-  it("shows syncing while an item still has a scheduled attempt", () => {
+  it("shows the count while syncing, wearing the syncing style", () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -62,7 +62,10 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    expect(screen.getByRole("button", { name: "同步中" })).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    expect(button).toBeInTheDocument();
+    // Syncing style, not the unsynced (warning ring) style.
+    expect(button).not.toHaveClass("ring-warning/30");
   });
 
   it("shows the unsynced count once an item's backoff is exhausted", () => {

@@ -2,27 +2,16 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useGame } from "@/hooks/use-data";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
+import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
-import type { GameView, PendingEntry } from "@/lib/features/game/types";
+import type { PendingEntry } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/redux/hooks";
 
 export type FlushResult = { ok: true } | { ok: false; error: unknown };
 
-export const applyFlushedEntries = (
-  game: GameView | undefined,
-  setIndex: number,
-  entries: GameView["sets"][number]["entries"],
-): GameView | undefined =>
-  game && {
-    ...game,
-    sets: game.sets.map((set, i) =>
-      i === setIndex ? { ...set, entries } : set,
-    ),
-  };
-
 /**
- * D4: the pending-write queue is the single source of truth for what the
+ * The pending-write queue is the single source of truth for what the
  * server has not confirmed. This hook owns enqueueing new writes for one
  * (gameId, setIndex) and flushing the queue — on demand (submit, reconnect)
  * and in the background once an entry's backoff comes due.
@@ -70,7 +59,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
             applyFlushedEntries(current, si, result.response.entries),
           { revalidate: false },
         );
-        // D3: the response is the only place this fact exists at submission
+        // The response is the only place this fact exists at submission
         // time -- the local cache is already optimistically written to
         // match entries, so comparing it against itself would never catch a
         // completeSet failure. Undefined means no set result was attempted.
@@ -123,6 +112,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     [dispatch, gameId, setIndex],
   );
 
+  // The one retry gesture: reset every exhausted item's backoff and flush.
+  const retry = useCallback((): Promise<FlushResult> => {
+    dispatch(pendingWritesActions.retryRequested());
+    return flush();
+  }, [dispatch, flush]);
+
   // Background retry: schedule the next flush for whenever the earliest
   // still-pending item comes due, and re-flush as soon as connectivity
   // returns so an entry queued while offline is written once, not lost.
@@ -149,5 +144,5 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     return () => window.removeEventListener("online", onOnline);
   }, [flush]);
 
-  return { enqueue, flush };
+  return { enqueue, flush, retry };
 }

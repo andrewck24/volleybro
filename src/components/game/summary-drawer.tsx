@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { hasFailedWrite } from "@/lib/features/game/pending-writes";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,7 @@ const SNAP_POINTS: (number | string)[] = [PEEK_SNAP, 0.85];
  * DrawerContent shows only its top edge at the peek snap and rises to ~85dvh
  * when expanded, so the peek's top row IS the top of the expanded drawer.
  *
- * The top row follows the two states (D8/D12):
+ * The top row follows the two states (`entry-ui` change):
  * - **recording**: a pulsing draft `PreviewCard` sits above the committed list;
  *   tapping it submits (when complete), the handle toggles the drawer.
  * - **idle**: there is no separate Preview bar -- the newest committed entry is
@@ -82,7 +83,7 @@ export const SummaryDrawerCard = ({
   onEntryClick?: (entryIndex: number) => void;
   onEntryDelete?: (entryIndex: number) => void;
   onEntryRollback?: (entryIndex: number) => void;
-  // D4: ids whose write exhausted its attempts (hasFailedWrite), a pure
+  // ids whose write exhausted its attempts (hasFailedWrite), a pure
   // projection of the pending-write queue -- not stored here.
   failedEntryIds?: Set<string>;
   onEntryRetry?: () => void;
@@ -270,7 +271,7 @@ export const SummaryDrawer = ({
     (s) =>
       new Set(
         s.pendingWrites.pending
-          .filter((p) => p.nextAttemptAt === null)
+          .filter((p) => hasFailedWrite(s.pendingWrites, p.entry.id))
           .map((p) => p.entry.id),
       ),
   );
