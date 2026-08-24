@@ -91,6 +91,40 @@ describe("SyncIndicator", () => {
     ).toBeInTheDocument();
   });
 
+  it("stays unsynced -- with the retry control visible -- while a different game is flushing", () => {
+    store = makeStore();
+    // This game's queue has exhausted its backoff.
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+    );
+    // A different game is mid-flush right now.
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("other-e1"),
+        gameId: "other-game",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(pendingWritesActions.flushStarted());
+    render(
+      <Provider store={store}>
+        <SyncIndicator gameId="game-1" />
+      </Provider>,
+    );
+
+    // Not "syncing" (which would hide the retry control) -- this game's own
+    // queue is still exhausted regardless of the other game's flush.
+    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    expect(button).toHaveClass("ring-warning/30");
+  });
+
   it("ignores pending entries that belong to a different game", () => {
     store = makeStore();
     store.dispatch(

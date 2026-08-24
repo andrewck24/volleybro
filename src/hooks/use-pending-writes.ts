@@ -112,11 +112,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     [dispatch, gameId, setIndex],
   );
 
-  // The one retry gesture: reset every exhausted item's backoff and flush.
+  // The one retry gesture: reset this game's exhausted items' backoff and
+  // flush.
   const retry = useCallback((): Promise<FlushResult> => {
-    dispatch(pendingWritesActions.retryRequested());
+    dispatch(pendingWritesActions.retryRequested({ gameId }));
     return flush();
-  }, [dispatch, flush]);
+  }, [dispatch, flush, gameId]);
 
   // Background retry: schedule the next flush for whenever the earliest
   // still-pending item comes due, and re-flush as soon as connectivity

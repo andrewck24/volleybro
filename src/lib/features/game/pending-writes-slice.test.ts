@@ -180,12 +180,45 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.retryRequested(),
+      pendingWritesActions.retryRequested({ gameId: "game-1" }),
     );
 
     expect(state.pending[0]!.nextAttemptAt).toBe(Date.now());
     expect(state.pending[1]!.nextAttemptAt).toBe(
       seeded.pending[1]!.nextAttemptAt,
     );
+  });
+
+  it("retryRequested only resets the requesting game's exhausted items", () => {
+    const seeded: PendingWritesState = {
+      flushing: false,
+      pending: [
+        {
+          entry: entry("e1"),
+          gameId: "game-1",
+          setIndex: 0,
+          attempts: 3,
+          nextAttemptAt: null,
+        },
+        {
+          entry: entry("e2"),
+          gameId: "game-2",
+          setIndex: 0,
+          attempts: 3,
+          nextAttemptAt: null,
+        },
+      ],
+    };
+
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.retryRequested({ gameId: "game-1" }),
+    );
+
+    expect(state.pending[0]!.nextAttemptAt).toBe(Date.now());
+    // A different game's exhausted item must stay unsynced -- resetting it
+    // here would move it to "scheduled" with nothing left to attempt it,
+    // since flush and the background scheduler both filter by game.
+    expect(state.pending[1]!.nextAttemptAt).toBeNull();
   });
 });

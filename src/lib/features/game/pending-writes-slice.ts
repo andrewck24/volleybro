@@ -56,9 +56,16 @@ const flushFailed: CaseReducer<
 // Manual retry: only items that exhausted their backoff are eligible, and
 // only `nextAttemptAt` resets to fire immediately -- `attempts` is left
 // untouched, so a subsequent failure exhausts the backoff table again
-// immediately rather than restarting the schedule.
-const retryRequested: CaseReducer<PendingWritesState> = (state) => {
+// immediately rather than restarting the schedule. Scoped to the requesting
+// game -- the flush and the background scheduler both filter by game, so
+// resetting another game's items here would move them to "scheduled" with
+// nothing left to ever attempt them.
+const retryRequested: CaseReducer<
+  PendingWritesState,
+  PayloadAction<{ gameId: string }>
+> = (state, action) => {
   for (const item of state.pending) {
+    if (item.gameId !== action.payload.gameId) continue;
     if (item.nextAttemptAt === null) {
       item.nextAttemptAt = Date.now();
     }
