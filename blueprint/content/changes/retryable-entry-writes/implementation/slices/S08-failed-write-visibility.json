@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S08",
+  "title": "A failed write is visible where the recorder is looking",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S06"],
+  "outcome": "When a rally really cannot be written, the recorder is told where they are already looking, and can retry it there. Editing an existing rally cannot be abandoned by accident while its result is still unknown.",
+  "acceptanceCriteria": [
+    "A rally whose write has exhausted its attempts is marked on its row in the per-rally record, matched by identity, with a way to retry it.",
+    "The failed state uses a solid destructive ring with a floating retry control in the slot the send affordance already occupies, and is not a toast, because it must persist until resolved.",
+    "Editing an existing rally shows progress while it is being written and the failed state if it cannot be.",
+    "While attempts are still running, the editing dialog cannot be left by its back control, by tapping outside it, or by pressing escape.",
+    "Once attempts are exhausted the dialog can be left, which abandons that edit, and the recorder is told the edit was not saved.",
+    "Creating a rally never shows a progress state on the draft card, because it advances immediately and its progress belongs to SyncIndicator."
+  ],
+  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
+  "status": "pending"
+}

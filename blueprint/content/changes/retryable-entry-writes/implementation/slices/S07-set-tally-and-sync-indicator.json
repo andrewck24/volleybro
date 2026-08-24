@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S07",
+  "title": "SetTally frees the header so SyncIndicator can live in it",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/persistence"
+  ],
+  "dependsOn": ["S06"],
+  "outcome": "The recorder can see at a glance whether everything has been saved, without that check costing the header any room. The numeric set score becomes per-side cells, which is both quicker to read and what makes space for the new control.",
+  "acceptanceCriteria": [
+    "SetTally shows one cell per set needed to win, on each side, sized from the match's own set count; cells fill from the bottom as sets are won, hollow until then, home in the primary colour and away in the destructive one.",
+    "SetTally sits between each score and the middle column, and the numeric set score is gone.",
+    "SyncIndicator occupies the middle column below the volleyball mark, in normal flow, without absolute positioning.",
+    "The header does not overflow at 375px or 320px, measured rather than assumed.",
+    "SyncIndicator shows synced, syncing, or a count of unsynced entries, all three derived from the queue and none stored.",
+    "Tapping it opens a single-line status that expands from the icon towards both sides, since it sits in the centre.",
+    "The unsynced state offers a retry that closes the popover, flushes the queue immediately and moves the state to syncing.",
+    "Tapping SyncIndicator does not open the statistics overview that the surrounding block opens."
+  ],
+  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
+  "status": "pending"
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "Entry writes become an identity-keyed, order-preserving upsert",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S02"],
+  "outcome": "Sending the same entry twice leaves the set exactly as sending it once did, and an entry that arrives late still lands in the position its sequence says it belongs to. The repository stops having one method for adding and another for replacing.",
+  "acceptanceCriteria": [
+    "A single repository operation accepts one or more entries and either writes or overwrites each by identity; the separate append and replace methods are gone and nothing calls them.",
+    "Resending an entry whose identity is already stored writes nothing and is not an error, verified by reading the set back and finding one copy.",
+    "An entry with a lower sequence arriving after a higher one is stored ahead of it, verified by reading the set back in order.",
+    "Two entries with different identities written concurrently are both kept.",
+    "The write stays an ordinary update rather than an aggregation pipeline update, so Mongoose casting still applies and a bad value can only damage the entry carrying it.",
+    "The lineup argument still travels with the write, because a substitution changes who is on court.",
+    "The repository's general-purpose update method is not used by this path."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm test:integration",
+    "pnpm typecheck:strict"
+  ],
+  "status": "pending"
+}
