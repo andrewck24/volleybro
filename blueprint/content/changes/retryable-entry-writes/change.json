@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "retryable-entry-writes",
   "title": "Retryable Entry Writes",
-  "lifecycle": "applying",
+  "lifecycle": "pre-pr-review",
   "startedAt": "2026-08-23",
   "summary": "每筆 entry 在送出前取得 client 產生的穩定身分，append 與 replace 合併為單一的 idempotent upsert。重送因此變安全，重試責任得以依失敗性質拆分：伺服器端處理寫入本身的暫時失敗，client 端處理「不知道結果」的回應遺失。",
   "capabilities": [
