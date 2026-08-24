@@ -1,9 +1,7 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
-import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
-import { showErrorToast } from "@/lib/api/error-toast";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
   createRallyHelper,
@@ -17,13 +15,12 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 /**
  * The real entry-submission path: creates a new rally (mode "general") or
  * persists an edit (mode "editing") via the optimistic helpers, then hands
- * the entry to the pending-write queue (D4) instead of sending it itself.
- * Shared by OppoMoves' own "tap the same move again" submit and by the
- * Preview's tap-to-submit gesture (group 6) so the Preview's freeze actually
- * persists the entry instead of just flashing.
+ * the entry to the pending-write queue instead of sending it itself. Shared
+ * by OppoMoves' own "tap the same move again" submit and by the Preview's
+ * tap-to-submit gesture so the Preview's freeze actually persists the entry
+ * instead of just flashing.
  */
 export const useSubmitEntryDraft = (gameId: string) => {
-  const { toast } = useToast();
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.game);
   const {
@@ -34,10 +31,10 @@ export const useSubmitEntryDraft = (gameId: string) => {
   const { enqueue, flush } = usePendingWrites(gameId, setIndex);
 
   // Create advances the draft the instant the entry is enqueued, without
-  // waiting for the server (D4 轉場時機) -- the queue's own retry and the
-  // sync indicator are what make that safe. The optimistic cache write no
-  // longer carries the request; the queue's flush owns the network and
-  // updates the cache again once it has a response.
+  // waiting for the server -- the queue's own retry and the sync indicator
+  // are what make that safe. The optimistic cache write no longer carries
+  // the request; the queue's flush owns the network and updates the cache
+  // again once it has a response.
   const create = () => {
     // A new rally always gets a fresh identity, generated here so it exists
     // before the optimistic update below applies it.
@@ -58,7 +55,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
   };
 
   // Editing still waits for its result -- the recorder is watching a dialog
-  // for it, unlike create's already-advanced draft (D4 consequences).
+  // for it, unlike create's already-advanced draft.
   const update = async () => {
     // Editing reuses the identity setEditingEntryStatus loaded onto the
     // draft; the entry being replaced must keep the same id.
@@ -75,7 +72,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
       // Not thrown, not rolled back, no toast: the editing card (mode
       // "editing" of GamePreview) is what shows this now -- syncing while
       // the queue still has an attempt scheduled, the destructive ring once
-      // exhausted (D4). The recorder is still watching the dialog, and the
+      // exhausted. The recorder is still watching the dialog, and the
       // optimistic write stays visible as the edit they're waiting on.
       return;
     }
@@ -84,14 +81,10 @@ export const useSubmitEntryDraft = (gameId: string) => {
   };
 
   return async () => {
-    try {
-      if (mode === "general") {
-        create();
-      } else {
-        await update();
-      }
-    } catch (error) {
-      showErrorToast(error, toast);
+    if (mode === "general") {
+      create();
+    } else {
+      await update();
     }
   };
 };
@@ -106,8 +99,8 @@ export const OppoMoves = () => {
   );
 
   // Selecting an away move only stages it in the draft; submission is owned by
-  // the Preview's send affordance (D12), so there is no second-tap-to-submit
-  // here anymore.
+  // the Preview's send affordance (`entry-ui` change), so there is no
+  // second-tap-to-submit here anymore.
   const onOppoClick = (move: ScoringMove) => {
     dispatch(gameActions.setEntryDraftAwayMove(move));
   };
