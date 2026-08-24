@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useState } from "react";
-import { applyFlushedEntries } from "@/hooks/use-pending-writes";
 import { useGame } from "@/hooks/use-data";
 import { EntryType } from "@/entities/game";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
+import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import {
   readSetCompletion,
   setCompletionActions,
@@ -12,8 +12,8 @@ import type { EntryView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 
 /**
- * D3/D4: whether `completeSet` landed for (gameId, setIndex) has two
- * detections that cannot share one mechanism (design "偵測機制"):
+ * Whether `completeSet` landed for (gameId, setIndex) has two detections
+ * that cannot share one mechanism:
  *
  * - Submission time: the local cache is already optimistically written to
  *   match entries, so comparing it against itself would always agree --
@@ -33,6 +33,13 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
     readSetCompletion(state.setCompletion, gameId, setIndex),
   );
   const flushing = useAppSelector((state) => state.pendingWrites.flushing);
+  // `flushing` is a global flag -- a flush triggered by an entry belonging
+  // to a different game or set must not be read as this set's signal.
+  const hasPendingEntryForSet = useAppSelector((state) =>
+    state.pendingWrites.pending.some(
+      (p) => p.gameId === gameId && p.setIndex === setIndex,
+    ),
+  );
 
   const set = game?.sets[setIndex];
   const noSessionSignalYet = sessionConfirmed === undefined;
@@ -41,7 +48,8 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   // session signal has arrived yet either -- `flushing` is what tells the
   // dialog to cover the screen for that window instead of staying hidden
   // until the response settles.
-  const attempting = retrying || (noSessionSignalYet && flushing);
+  const attempting =
+    retrying || (noSessionSignalYet && flushing && hasPendingEntryForSet);
   const unconfirmed =
     sessionConfirmed === false || coldStartUnconfirmed || attempting;
 

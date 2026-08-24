@@ -69,6 +69,13 @@ describe("UnconfirmedSetDialog", () => {
 
   it("shows the neutral attempting state while the initial write is in flight", () => {
     mockGame = gameWithSet(true);
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
     store.dispatch(pendingWritesActions.flushStarted());
 
     renderDialog();

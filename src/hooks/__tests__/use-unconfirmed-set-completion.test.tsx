@@ -69,6 +69,13 @@ describe("useUnconfirmedSetCompletion", () => {
 
   it("is unconfirmed and attempting while the initial flush is in flight", () => {
     mockGame = gameWithSet(true); // optimistic write already applied
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
     store.dispatch(pendingWritesActions.flushStarted());
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
@@ -77,6 +84,28 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(true);
+  });
+
+  it("is not unconfirmed when a flush for an unrelated game/set is in flight", () => {
+    // Regression: `flushing` is a global flag. A flush triggered by an
+    // entry belonging to a different set must not raise the unconfirmed
+    // dialog over a set whose result already landed.
+    mockGame = gameWithSet(true); // stored result already landed correctly
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "other" } as never,
+        gameId: "game-2",
+        setIndex: 3,
+      }),
+    );
+    store.dispatch(pendingWritesActions.flushStarted());
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    expect(result.current.unconfirmed).toBe(false);
+    expect(result.current.attempting).toBe(false);
   });
 
   it("is hidden once the session signal confirms the set result", () => {
