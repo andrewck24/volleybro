@@ -30,11 +30,36 @@ export class ApiClientError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 8000;
+
+function normalizeNetworkError(error: unknown): ApiClientError {
+  const isTimeout =
+    error instanceof DOMException && error.name === "TimeoutError";
+  const reason = isTimeout ? "TIMEOUT" : "NETWORK_ERROR";
+  const detail = isTimeout ? "Request timed out" : "Network request failed";
+
+  return new ApiClientError(detail, {
+    code: "TRANSIENT",
+    reason,
+    detail,
+    status: 503,
+  });
+}
+
 export async function apiClient<T = unknown>(
   url: string,
   options?: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
-  const res = await fetch(url, options);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    throw normalizeNetworkError(error);
+  }
 
   if (!res.ok) {
     const info = await parseApiError(res);

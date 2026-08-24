@@ -1,4 +1,5 @@
-import type { GameView, RallyView } from "@/lib/features/game/types";
+import { apiClient } from "@/lib/api/api-client";
+import type { EntryView, GameView, RallyView } from "@/lib/features/game/types";
 
 export const createRally = async (
   params: { gameId: string; setIndex: number; entryIndex: number },
@@ -7,7 +8,7 @@ export const createRally = async (
 ) => {
   const { gameId, setIndex, entryIndex } = params;
   try {
-    const res = await fetch(
+    const entries = await apiClient<EntryView[]>(
       `/api/games/${gameId}/sets/rallies?si=${setIndex}&ei=${entryIndex}`,
       {
         method: "POST",
@@ -15,8 +16,6 @@ export const createRally = async (
         body: JSON.stringify(entryDraft),
       },
     );
-    if (!res.ok) throw new Error("Network response was not ok");
-    const entries = await res.json();
     // setIndex references the active set that was just persisted; guaranteed present
     game.sets[setIndex]!.entries = entries;
     return game;

@@ -1,0 +1,59 @@
+import { ApiClientError } from "@/lib/api/api-client";
+import * as apiClientModule from "@/lib/api/api-client";
+import { updateRally } from "@/lib/features/game/actions/update-rally";
+import type { GameView, RallyView } from "@/lib/features/game/types";
+
+jest.mock("@/lib/api/api-client", () => ({
+  ...jest.requireActual("@/lib/api/api-client"),
+  apiClient: jest.fn(),
+}));
+
+const apiClient = apiClientModule.apiClient as jest.Mock;
+
+describe("updateRally", () => {
+  const params = { gameId: "game-1", setIndex: 0, entryIndex: 2 };
+  const entryDraft = {} as RallyView;
+  const makeGame = (): GameView =>
+    ({ sets: [{ entries: [] }] }) as unknown as GameView;
+
+  afterEach(() => jest.resetAllMocks());
+
+  it("goes through the shared HTTP client instead of raw fetch", async () => {
+    apiClient.mockResolvedValue([{ id: "e1" }]);
+    const game = makeGame();
+
+    await updateRally(params, entryDraft, game);
+
+    expect(apiClient).toHaveBeenCalledWith(
+      "/api/games/game-1/sets/rallies?si=0&ei=2",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify(entryDraft),
+      }),
+    );
+  });
+
+  it("writes the returned entries onto the active set", async () => {
+    const entries = [{ id: "e1" }];
+    apiClient.mockResolvedValue(entries);
+    const game = makeGame();
+
+    const result = await updateRally(params, entryDraft, game);
+
+    expect(result.sets[0]!.entries).toBe(entries);
+  });
+
+  it("rethrows the ApiClientError so the optimistic mutate rolls back", async () => {
+    const error = new ApiClientError("boom", {
+      code: "TRANSIENT",
+      reason: "NETWORK_ERROR",
+      detail: "boom",
+      status: 503,
+    });
+    apiClient.mockRejectedValue(error);
+
+    await expect(updateRally(params, entryDraft, makeGame())).rejects.toBe(
+      error,
+    );
+  });
+});
