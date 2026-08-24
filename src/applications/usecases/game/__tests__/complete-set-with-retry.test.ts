@@ -49,7 +49,7 @@ describe("completeSetWithRetry", () => {
     expect(mockGameRepository.completeSet).toHaveBeenCalledTimes(1);
   });
 
-  it("retries a retryable failure with the growing pauses from D2, then succeeds", async () => {
+  it("retries a retryable failure with the configured growing pauses, then succeeds", async () => {
     mockGameRepository.completeSet
       .mockRejectedValueOnce(transientError())
       .mockRejectedValueOnce(transientError())
