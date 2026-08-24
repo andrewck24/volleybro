@@ -21,6 +21,13 @@ export const hasFailedWrite = (
 ): boolean =>
   state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt === null);
 
+/** True while this entry has an attempt scheduled (in-request or background). */
+export const isPendingWrite = (
+  state: PendingWritesState,
+  entryId: string,
+): boolean =>
+  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt !== null);
+
 /**
  * D2: two immediate retries happen inline inside a single flush (300ms,
  * 800ms) before it reports failure. Once those are exhausted, the queue

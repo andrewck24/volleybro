@@ -1,11 +1,20 @@
 import { GamePreview } from "@/components/game/preview";
 import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
+
+// Only the editing-write-status suite below exercises a real flush (via
+// usePendingWrites -> GamePreview's retry); every other suite in this file
+// never enqueues anything, so the queue stays empty and apiClient is unused.
+jest.mock("@/lib/api/api-client", () => ({
+  ...jest.requireActual("@/lib/api/api-client"),
+  apiClient: jest.fn().mockResolvedValue({ entries: [{ id: "e1" }] }),
+}));
 
 // The previous (already committed) entry: home player #4 scored, 1-0.
 const mockGame = {
@@ -20,8 +29,11 @@ const mockGame = {
   },
   sets: [
     {
+      options: { serve: "home" },
       entries: [
         {
+          id: "e1",
+          seq: 0,
           type: EntryType.RALLY,
           win: true,
           home: {
@@ -194,6 +206,93 @@ describe("GamePreview empty-entries guard", () => {
     expect(
       screen.queryByRole("img", { name: SEND_LABEL }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// S08: the update path doesn't advance optimistically, so unlike create it
+// keeps showing progress and failure on this card -- pure projections of the
+// same pending-write queue SyncIndicator reads, scoped to the edited entry's
+// identity (e1, from mockGame).
+describe("GamePreview editing write status", () => {
+  const setUpEditing = () => {
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
+      );
+      store.dispatch(
+        gameActions.setEditingEntryStatus({
+          game: mockGame as never,
+          entryIndex: 0,
+        }),
+      );
+    });
+    const onSubmit = jest.fn();
+    render(
+      <Provider store={store}>
+        <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />
+      </Provider>,
+    );
+    return { store, onSubmit };
+  };
+
+  it("shows a progress indicator instead of the send affordance while the write is scheduled, and ignores taps", async () => {
+    const user = userEvent.setup();
+    const { store, onSubmit } = setUpEditing();
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e1", seq: 0, win: true, home: {}, away: {} } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      // Schedule its next attempt seconds out (the real background-backoff
+      // shape) so this test's click doesn't race the background-retry
+      // effect's own near-immediate flush of a freshly-enqueued entry.
+      store.dispatch(
+        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
+      );
+    });
+
+    expect(screen.getByRole("status", { name: "送出中" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: SEND_LABEL }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("shows the failed ring and a retry control once attempts are exhausted, and retry re-schedules the entry", async () => {
+    const user = userEvent.setup();
+    const { store } = setUpEditing();
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: { id: "e1", seq: 0, win: true, home: {}, away: {} } as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      store.dispatch(
+        pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
+      );
+    });
+
+    expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
+    const retry = screen.getByRole("button", { name: "重試" });
+
+    await user.click(retry);
+
+    // Same mechanism as SyncIndicator's retry: dispatches retryRequested and
+    // flushes -- confirmed here by the queue actually clearing once that
+    // flush succeeds, not by asserting on the dispatch call itself.
+    await waitFor(() =>
+      expect(store.getState().pendingWrites.pending).toHaveLength(0),
+    );
   });
 });
 

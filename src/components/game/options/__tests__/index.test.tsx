@@ -3,7 +3,15 @@ import { Dialog } from "@/components/ui/dialog";
 import { render, screen } from "@testing-library/react";
 
 jest.mock("@/lib/redux/hooks", () => ({
-  useAppSelector: () => ({ mode: "general", setIndex: 0 }),
+  useAppSelector: (selector: (state: unknown) => unknown) =>
+    selector({
+      game: {
+        mode: "general",
+        setIndex: 0,
+        editing: { entryDraft: { id: "" } },
+      },
+      pendingWrites: { pending: [], flushing: false },
+    }),
   useAppDispatch: () => jest.fn(),
 }));
 

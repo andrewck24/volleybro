@@ -1,6 +1,7 @@
 import {
   deriveSyncStatus,
   hasFailedWrite,
+  isPendingWrite,
   nextAttemptDelayMs,
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
 } from "@/lib/features/game/pending-writes";
@@ -79,6 +80,31 @@ describe("hasFailedWrite", () => {
   it("is false for an entry not in the queue at all", () => {
     const state: PendingWritesState = { pending: [], flushing: false };
     expect(hasFailedWrite(state, "e1")).toBe(false);
+  });
+});
+
+describe("isPendingWrite", () => {
+  it("is true only for an entry with a scheduled attempt", () => {
+    const state: PendingWritesState = {
+      pending: [
+        makePendingEntry({
+          entry: { id: "e1" } as never,
+          nextAttemptAt: Date.now() + 2000,
+        }),
+        makePendingEntry({
+          entry: { id: "e2" } as never,
+          nextAttemptAt: null,
+        }),
+      ],
+      flushing: false,
+    };
+    expect(isPendingWrite(state, "e1")).toBe(true);
+    expect(isPendingWrite(state, "e2")).toBe(false);
+  });
+
+  it("is false for an entry not in the queue at all", () => {
+    const state: PendingWritesState = { pending: [], flushing: false };
+    expect(isPendingWrite(state, "e1")).toBe(false);
   });
 });
 

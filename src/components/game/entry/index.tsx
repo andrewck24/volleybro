@@ -137,6 +137,8 @@ export const EntryRow = ({
   onToggleExpand,
   swipeRevealed: swipeRevealedProp,
   onSwipeReveal,
+  failed,
+  onRetry,
   className,
 }: {
   entry: EntryView;
@@ -150,6 +152,10 @@ export const EntryRow = ({
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
   onSwipeReveal?: (revealed: boolean) => void;
+  // D4: this row's write has exhausted its attempts (hasFailedWrite), matched
+  // to the queue by entry id. Not a toast -- persists until retried.
+  failed?: boolean;
+  onRetry?: () => void;
   className?: string;
 }) => {
   const [localExpanded, setLocalExpanded] = useState(false);
@@ -209,7 +215,28 @@ export const EntryRow = ({
       onClick={handleRowClick}
     >
       <div className="flex w-full flex-row items-center">
-        <Entry entry={entry} players={players} className="flex-1" />
+        <div className="relative flex-1">
+          <Entry
+            entry={entry}
+            players={players}
+            className={cn(failed && "ring-1 ring-destructive")}
+          />
+          {failed && (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-end pr-1.5">
+              <button
+                type="button"
+                data-testid="entry-row-retry"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRetry?.();
+                }}
+                className="pointer-events-auto rounded px-2 py-0.5 text-xs text-destructive ring-1 ring-destructive/50"
+              >
+                重試
+              </button>
+            </span>
+          )}
+        </div>
         {swipeRevealed && (
           <div
             data-testid="entry-row-swipe-actions"

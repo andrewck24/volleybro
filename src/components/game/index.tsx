@@ -23,7 +23,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
+import { usePendingWrites } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect, useState } from "react";
 
@@ -35,6 +37,14 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
   const submitEntryDraft = useSubmitEntryDraft(gameId);
+  const { flush } = usePendingWrites(gameId, setIndex);
+
+  // Same mechanism as SyncIndicator's retry: there is no per-row retry of
+  // its own, only the queue's.
+  const handleEntryRetry = () => {
+    dispatch(pendingWritesActions.retryRequested());
+    void flush();
+  };
 
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
@@ -78,6 +88,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
         onToggle={toggleDrawer}
         onSubmit={submitEntryDraft}
         onEditRequest={() => setDialogOpen(true)}
+        onEntryRetry={handleEntryRetry}
       />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <GameOptions

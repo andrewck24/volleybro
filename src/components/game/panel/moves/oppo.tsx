@@ -72,10 +72,12 @@ export const useSubmitEntryDraft = (gameId: string) => {
     enqueue(entry);
     const result = await flush();
     if (!result.ok) {
-      // The edit failed: leave the entry at the value the server already
-      // holds instead of the stale optimistic write.
-      mutate();
-      throw result.error;
+      // Not thrown, not rolled back, no toast: the editing card (mode
+      // "editing" of GamePreview) is what shows this now -- syncing while
+      // the queue still has an attempt scheduled, the destructive ring once
+      // exhausted (D4). The recorder is still watching the dialog, and the
+      // optimistic write stays visible as the edit they're waiting on.
+      return;
     }
     dispatch(gameActions.confirmEntryDraftRally(phase));
     dispatch(gameActions.setGameMode("general"));

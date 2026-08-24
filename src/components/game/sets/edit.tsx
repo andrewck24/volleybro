@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { useAppSelector } from "@/lib/redux/hooks";
 
 export const SetEdit = ({
@@ -18,9 +19,16 @@ export const SetEdit = ({
   setIndex: number;
 }) => {
   const { mode } = useAppSelector((state) => state.game);
+  const { guardDismiss, leaveEditing } = useEditingGuard();
 
   return (
-    <DialogContent size="lg" closeButton={mode === "general"}>
+    <DialogContent
+      size="lg"
+      closeButton={mode === "general"}
+      onEscapeKeyDown={guardDismiss}
+      onInteractOutside={guardDismiss}
+      onCloseAutoFocus={leaveEditing}
+    >
       {mode === "general" ? (
         <>
           <DialogHeader>

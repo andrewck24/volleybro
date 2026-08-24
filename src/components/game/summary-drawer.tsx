@@ -67,6 +67,8 @@ export const SummaryDrawerCard = ({
   onEntryClick,
   onEntryDelete,
   onEntryRollback,
+  failedEntryIds,
+  onEntryRetry,
   className,
 }: {
   entries: IndexedEntry[];
@@ -80,6 +82,10 @@ export const SummaryDrawerCard = ({
   onEntryClick?: (entryIndex: number) => void;
   onEntryDelete?: (entryIndex: number) => void;
   onEntryRollback?: (entryIndex: number) => void;
+  // D4: ids whose write exhausted its attempts (hasFailedWrite), a pure
+  // projection of the pending-write queue -- not stored here.
+  failedEntryIds?: Set<string>;
+  onEntryRetry?: () => void;
   className?: string;
 }) => {
   const expanded = state === "expanded";
@@ -217,6 +223,8 @@ export const SummaryDrawerCard = ({
                     onEdit={() => onEntryClick?.(index)}
                     onDelete={() => onEntryDelete?.(index)}
                     onRollbackToHere={() => onEntryRollback?.(index)}
+                    failed={failedEntryIds?.has(entry.id) ?? false}
+                    onRetry={onEntryRetry}
                   />
                 </div>
               ))}
@@ -236,6 +244,7 @@ export const SummaryDrawer = ({
   onToggle: controlledOnToggle,
   onSubmit,
   onEditRequest,
+  onEntryRetry,
   className,
 }: {
   gameId: string;
@@ -243,6 +252,7 @@ export const SummaryDrawer = ({
   onToggle?: () => void;
   onSubmit?: () => void;
   onEditRequest?: () => void;
+  onEntryRetry?: () => void;
   className?: string;
 }) => {
   const [uncontrolledState, setUncontrolledState] =
@@ -256,6 +266,14 @@ export const SummaryDrawer = ({
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((s) => s.game);
   const preview = useEntryDraftPreview(gameId, "general");
+  const failedEntryIds = useAppSelector(
+    (s) =>
+      new Set(
+        s.pendingWrites.pending
+          .filter((p) => p.nextAttemptAt === null)
+          .map((p) => p.entry.id),
+      ),
+  );
 
   // Guard a transient undefined game (e.g. a failed optimistic mutate rolling
   // back) so a submission error never crashes the whole Game tree.
@@ -285,6 +303,8 @@ export const SummaryDrawer = ({
       onToggle={onToggle}
       onSubmit={onSubmit}
       onEntryClick={handleEntryClick}
+      failedEntryIds={failedEntryIds}
+      onEntryRetry={onEntryRetry}
       className={className}
     />
   );

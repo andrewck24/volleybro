@@ -19,5 +19,5 @@
     "pnpm lint",
     "pnpm format:check"
   ],
-  "status": "pending"
+  "status": "completed"
 }

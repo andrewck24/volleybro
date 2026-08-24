@@ -8,12 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { gameActions } from "@/lib/features/game/game-slice";
-import { useAppDispatch } from "@/lib/redux/hooks";
+import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { RiArrowLeftWideLine } from "react-icons/ri";
 
 export const EntriesEdit = ({ gameId }: { gameId: string }) => {
-  const dispatch = useAppDispatch();
+  const { writing, leaveEditing } = useEditingGuard();
 
   return (
     <>
@@ -21,7 +20,8 @@ export const EntriesEdit = ({ gameId }: { gameId: string }) => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => dispatch(gameActions.setGameMode("general"))}
+          disabled={writing}
+          onClick={leaveEditing}
         >
           <RiArrowLeftWideLine />
           <span className="sr-only">back</span>
