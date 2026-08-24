@@ -54,8 +54,9 @@ const flushFailed: CaseReducer<
 };
 
 // Manual retry: only items that exhausted their backoff are eligible, and
-// they resume at attempt count 1 of the background schedule rather than
-// picking up wherever the previous run left off.
+// only `nextAttemptAt` resets to fire immediately -- `attempts` is left
+// untouched, so a subsequent failure exhausts the backoff table again
+// immediately rather than restarting the schedule.
 const retryRequested: CaseReducer<PendingWritesState> = (state) => {
   for (const item of state.pending) {
     if (item.nextAttemptAt === null) {
