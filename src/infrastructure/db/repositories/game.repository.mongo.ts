@@ -440,9 +440,7 @@ export class GameRepositoryImpl implements IGameRepository {
       : undefined;
 
     const ops = entries.flatMap((entry) => {
-      const mapped = this.mapEntryWrite(
-        entry as unknown as Record<string, unknown> & { type?: EntryType },
-      );
+      const mapped = this.mapEntryWrite(entry);
       return [
         {
           updateOne: {
@@ -488,9 +486,7 @@ export class GameRepositoryImpl implements IGameRepository {
       }
       const [set] =
         (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
-      return (set?.entries ?? []).map((e) =>
-        this.mapEntryRead(e),
-      ) as unknown as Entry[];
+      return (set?.entries ?? []).map((e) => this.mapEntryRead(e)) as Entry[];
     } catch (error) {
       throw translateRepositoryError(error);
     }
