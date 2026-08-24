@@ -6,11 +6,23 @@ import {
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
-import { deriveSyncStatus } from "@/lib/features/game/pending-writes";
+import {
+  deriveSyncStatus,
+  type SyncStatus,
+} from "@/lib/features/game/pending-writes";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { RiCheckLine, RiErrorWarningLine, RiRefreshLine } from "react-icons/ri";
+
+const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
+  {
+    synced: (className) => (
+      <RiCheckLine className={cn(className, "text-success")} />
+    ),
+    syncing: (className) => <Spinner className={className} />,
+    unsynced: (className) => <RiErrorWarningLine className={className} />,
+  };
 
 /**
  * SyncIndicator is a pure projection of the pending-write queue, scoped to
@@ -22,12 +34,13 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const currentSetIndex = useAppSelector((state) => state.game.setIndex);
   const { retry } = usePendingWrites(gameId, currentSetIndex);
 
-  const pending = useAppSelector((state) =>
-    state.pendingWrites.pending.filter((p) => p.gameId === gameId),
-  );
-  const globalFlushing = useAppSelector(
-    (state) => state.pendingWrites.flushing,
-  );
+  // Select the raw slice, not a filtered copy: `.filter` inside a selector
+  // returns a new array reference on every action, tripping the store's
+  // selector-identity warning even for actions this component doesn't care
+  // about. `state.pendingWrites` itself is reference-stable unless this
+  // slice's own reducer ran.
+  const pendingWrites = useAppSelector((state) => state.pendingWrites);
+  const pending = pendingWrites.pending.filter((p) => p.gameId === gameId);
   // `flushing` is a global flag -- a flush triggered by another game's queue
   // must not be read as this game's signal. An item actually being flushed
   // always carries a non-null `nextAttemptAt` (enqueue and manual retry both
@@ -35,7 +48,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   // game's in-flight flush from turning this game's exhausted queue into
   // "syncing".
   const flushing =
-    globalFlushing && pending.some((p) => p.nextAttemptAt !== null);
+    pendingWrites.flushing && pending.some((p) => p.nextAttemptAt !== null);
   const status = deriveSyncStatus({ pending, flushing });
   // The count reflects everything the queue holds for this game, not only
   // the items that have exhausted their backoff -- syncing shows the count
@@ -61,17 +74,11 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
             status === "unsynced" && "text-warning ring-1 ring-warning/30",
           )}
         >
-          {status === "synced" && (
-            <RiCheckLine className="size-4 text-success" />
-          )}
-          {status === "syncing" && <Spinner />}
+          {STATUS_ICON[status]("size-4")}
           {status === "unsynced" && (
-            <>
-              <RiErrorWarningLine className="size-4" />
-              <span className="absolute top-0 right-0 flex size-3 items-center justify-center rounded-full bg-warning text-[7px] font-bold text-warning-foreground">
-                {pendingCount}
-              </span>
-            </>
+            <span className="absolute top-0 right-0 flex size-3 items-center justify-center rounded-full bg-warning text-[7px] font-bold text-warning-foreground">
+              {pendingCount}
+            </span>
           )}
         </button>
       </PopoverTrigger>
@@ -81,31 +88,19 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex h-8 items-center gap-2 overflow-hidden px-2.5 text-xs whitespace-nowrap">
-          {status === "synced" && (
-            <>
-              <RiCheckLine className="size-4 shrink-0 text-success" />
-              已同步
-            </>
-          )}
-          {status === "syncing" && (
-            <>
-              <Spinner className="shrink-0" />
-              {pendingCount} 筆未同步
-            </>
-          )}
+          {STATUS_ICON[status]("size-4 shrink-0")}
+          <span className={status === "unsynced" ? "text-warning" : undefined}>
+            {label}
+          </span>
           {status === "unsynced" && (
-            <>
-              <RiErrorWarningLine className="size-4 shrink-0 text-warning" />
-              <span className="text-warning">{pendingCount} 筆未同步</span>
-              <button
-                type="button"
-                onClick={handleRetry}
-                className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border"
-              >
-                <RiRefreshLine className="size-3 shrink-0" />
-                重試
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border"
+            >
+              <RiRefreshLine className="size-3 shrink-0" />
+              重試
+            </button>
           )}
         </div>
       </PopoverContent>
