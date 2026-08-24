@@ -13,5 +13,5 @@
     "An error that is not retryable is not retried."
   ],
   "verification": ["pnpm test", "pnpm typecheck:strict"],
-  "status": "pending"
+  "status": "completed"
 }

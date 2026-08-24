@@ -1,6 +1,7 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import type { IAuthenticationService } from "@/applications/services/auth/authentication.service.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { completeSetWithRetry } from "@/applications/usecases/game/complete-set-with-retry";
 import { deriveSetCompletion } from "@/applications/usecases/game/derive-set-completion";
 import { NotFoundError, GameReason } from "@/entities/errors";
 import {
@@ -70,16 +71,15 @@ export class RecordRalliesUseCase implements IRecordRalliesUseCase {
     // The entries are already persisted at this point. A failing set-result
     // write must not throw past that and discard them — the client is told
     // its entries landed and that the result needs a retry, not that nothing
-    // happened. Retrying this write is a separate concern (S05).
-    try {
-      await this.gameRepository.completeSet(
-        { gameId, setIndex },
-        completion.win,
-        completion.gameWin,
-      );
-      return { entries, setCompletionConfirmed: true };
-    } catch {
-      return { entries, setCompletionConfirmed: false };
-    }
+    // happened. completeSetWithRetry absorbs transient failures inline
+    // before the response goes out; only a failure that survives every
+    // attempt is reported as unconfirmed.
+    const setCompletionConfirmed = await completeSetWithRetry(
+      this.gameRepository,
+      { gameId, setIndex },
+      completion.win,
+      completion.gameWin,
+    );
+    return { entries, setCompletionConfirmed };
   }
 }
