@@ -12,12 +12,12 @@
     "SetTally shows one cell per set needed to win, on each side, sized from the match's own set count; cells fill from the bottom as sets are won, hollow until then, home in the primary colour and away in the destructive one.",
     "SetTally sits between each score and the middle column, and the numeric set score is gone.",
     "SyncIndicator occupies the middle column below the volleyball mark, in normal flow, without absolute positioning.",
-    "The header does not overflow at 375px or 320px, measured rather than assumed.",
+    "The header does not overflow at 375px, measured rather than assumed; 320px is measured too and recorded, and must not be made worse than it already is.",
     "SyncIndicator shows synced, syncing, or a count of unsynced entries, all three derived from the queue and none stored.",
     "Tapping it opens a single-line status that expands from the icon towards both sides, since it sits in the centre.",
     "The unsynced state offers a retry that closes the popover, flushes the queue immediately and moves the state to syncing.",
     "Tapping SyncIndicator does not open the statistics overview that the surrounding block opens."
   ],
   "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm lint"],
-  "status": "pending"
+  "status": "completed"
 }

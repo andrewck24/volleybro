@@ -7,6 +7,7 @@ import {
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
   PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
 } from "@/lib/features/game/pending-writes";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 
@@ -155,6 +156,100 @@ describe("usePendingWrites", () => {
       // The online listener's flush is already in flight by now; flush()
       // dedupes to the same promise, so awaiting it waits for that request.
       await result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(4);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
+  // The recorder can start set N+1 while set N still has an unconfirmed
+  // entry -- the queue must not orphan it (defect closed by this slice).
+  it("flushes entries left behind by a previous set when instantiated with the new set index", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e0" }] });
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e0"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    const { result } = renderHook(() => usePendingWrites("game-1", 1), {
+      wrapper,
+    });
+
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledWith(
+      expect.stringContaining("si=0"),
+      expect.anything(),
+    );
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
+  it("flushes entries from every pending set in one call, each against its own endpoint", async () => {
+    apiClient.mockImplementation(async (url: string) =>
+      url.includes("si=0")
+        ? { entries: [{ id: "e0" }] }
+        : { entries: [{ id: "e1" }] },
+    );
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e0"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    const { result } = renderHook(() => usePendingWrites("game-1", 1), {
+      wrapper,
+    });
+    act(() => result.current.enqueue(entry("e1")));
+
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(2);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
+  it("still schedules a background retry for a set other than the currently recorded one", async () => {
+    apiClient
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValueOnce({ entries: [{ id: "e0" }] });
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e0"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    renderHook(() => usePendingWrites("game-1", 1), { wrapper });
+
+    // Nothing calls flush() directly here -- the hook's own background-retry
+    // effect must pick up an entry left behind by a set that is no longer
+    // the one being recorded.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+      for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
+        await jest.advanceTimersByTimeAsync(delay);
+      }
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(3);
+    expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).not.toBe(
+      null,
+    );
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(
+        PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
+      );
     });
 
     expect(apiClient).toHaveBeenCalledTimes(4);
