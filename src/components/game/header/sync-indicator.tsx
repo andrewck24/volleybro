@@ -87,7 +87,9 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex h-8 items-center gap-2 overflow-hidden px-2.5 text-xs whitespace-nowrap">
-          {STATUS_ICON[status]("size-4 shrink-0")}
+          {STATUS_ICON[status](
+            cn("size-4 shrink-0", status === "unsynced" && "text-warning"),
+          )}
           <span className={status === "unsynced" ? "text-warning" : undefined}>
             {label}
           </span>
