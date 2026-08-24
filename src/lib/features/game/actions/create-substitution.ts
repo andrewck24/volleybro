@@ -11,22 +11,18 @@ export const createSubstitution = async (
   game: GameView,
 ) => {
   const { gameId, setIndex, entryIndex } = params;
-  try {
-    const entries = await apiClient<EntryView[]>(
-      `/api/games/${gameId}/sets/substitutions?si=${setIndex}&ei=${entryIndex}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(substitution),
-      },
-    );
-    // setIndex references the active set that was just persisted; guaranteed present
-    game.sets[setIndex]!.entries = entries;
-    return game;
-  } catch (error) {
-    // Re-throw so the optimistic SWR mutate rolls back to the previous game
-    // instead of caching `undefined` (which would crash every `game!` reader).
-    console.error("[CREATE Substitution]", error);
-    throw error;
-  }
+  // A thrown request error propagates as-is, letting the optimistic SWR
+  // mutate roll back to the previous game instead of caching `undefined`
+  // (which would crash every `game!` reader).
+  const entries = await apiClient<EntryView[]>(
+    `/api/games/${gameId}/sets/substitutions?si=${setIndex}&ei=${entryIndex}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(substitution),
+    },
+  );
+  // setIndex references the active set that was just persisted; guaranteed present
+  game.sets[setIndex]!.entries = entries;
+  return game;
 };

@@ -1,10 +1,10 @@
-import { EntryType, MoveType, Side } from "@/entities/game";
+import { EntryType, MoveType, Side, type EntryIdentity } from "@/entities/game";
 import { Position } from "@/entities/team";
 import { createSubstitutionHelper } from "@/lib/features/game/helpers";
 import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 describe("substitution.helper.ts", () => {
-  const mockSubstitution: SubstitutionView & { id: string; seq: number } = {
+  const mockSubstitution: SubstitutionView & EntryIdentity = {
     id: "entry-mock",
     seq: 1,
     team: Side.HOME,
@@ -176,16 +176,15 @@ describe("substitution.helper.ts", () => {
       };
 
       // Now perform a second substitution, original player returns to court
-      const secondSubstitution: SubstitutionView & { id: string; seq: number } =
-        {
-          id: "entry-2",
-          seq: 2,
-          team: Side.HOME,
-          players: {
-            in: "player-1", // Original player returning to court
-            out: "player-8", // Substitute player leaving
-          },
-        };
+      const secondSubstitution: SubstitutionView & EntryIdentity = {
+        id: "entry-2",
+        seq: 2,
+        team: Side.HOME,
+        players: {
+          in: "player-1", // Original player returning to court
+          out: "player-8", // Substitute player leaving
+        },
+      };
 
       const result = createSubstitutionHelper(
         { ...mockParams, entryIndex: 2 },
@@ -204,7 +203,7 @@ describe("substitution.helper.ts", () => {
     test("should handle away team substitution", () => {
       const mockGame = createMockGame();
 
-      const awaySubstitution: SubstitutionView & { id: string; seq: number } = {
+      const awaySubstitution: SubstitutionView & EntryIdentity = {
         id: "entry-1",
         seq: 1,
         team: Side.AWAY,

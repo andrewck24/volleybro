@@ -1,4 +1,4 @@
-import { EntryType, MoveType as M } from "@/entities/game";
+import { EntryType, MoveType as M, type EntryIdentity } from "@/entities/game";
 import { Position } from "@/entities/team";
 import {
   createRallyHelper,
@@ -7,7 +7,7 @@ import {
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 describe("rally.helper.ts", () => {
-  const mockRally: RallyView & { id: string; seq: number } = {
+  const mockRally: RallyView & EntryIdentity = {
     id: "entry-mock",
     seq: 1,
     win: true,
@@ -126,7 +126,7 @@ describe("rally.helper.ts", () => {
       entryIndex: 0,
     };
 
-    const newRally: RallyView & { id: string; seq: number } = {
+    const newRally: RallyView & EntryIdentity = {
       id: "entry-0",
       seq: 0,
       win: true,
