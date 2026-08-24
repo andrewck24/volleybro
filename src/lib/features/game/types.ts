@@ -6,6 +6,7 @@ import {
   MoveType,
   Side,
   type DerivedSetStats,
+  type EntryIdentity,
 } from "@/entities/game";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
@@ -353,6 +354,23 @@ export type ReduxGameState = {
     status: ReduxStatus;
     entryDraft: ReduxEntryDraft;
   };
+};
+
+// For the pending-write queue (D4): unconfirmed rally writes, kept in their
+// own slice because their lifetime differs from the per-set draft above.
+export type PendingEntry = {
+  entry: RallyView & EntryIdentity;
+  gameId: string;
+  setIndex: number;
+  attempts: number;
+  // Timestamp of the next scheduled attempt; null means the backoff budget
+  // is exhausted or the error itself is not retryable.
+  nextAttemptAt: number | null;
+};
+
+export type PendingWritesState = {
+  pending: PendingEntry[];
+  flushing: boolean;
 };
 
 // For Other Components

@@ -1,0 +1,163 @@
+import { act, renderHook } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { usePendingWrites } from "@/hooks/use-pending-writes";
+import { ApiClientError } from "@/lib/api/api-client";
+import * as apiClientModule from "@/lib/api/api-client";
+import {
+  PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
+  PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
+} from "@/lib/features/game/pending-writes";
+import type { PendingEntry } from "@/lib/features/game/types";
+import { makeStore, type AppStore } from "@/lib/redux/store";
+
+jest.mock("@/lib/api/api-client", () => ({
+  ...jest.requireActual("@/lib/api/api-client"),
+  apiClient: jest.fn(),
+}));
+
+const apiClient = apiClientModule.apiClient as jest.Mock;
+
+const mutate = jest.fn();
+jest.mock("@/hooks/use-data", () => ({
+  useGame: () => ({ game: undefined, mutate }),
+}));
+
+const entry = (id: string) =>
+  ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
+
+const networkError = () =>
+  new ApiClientError("network down", {
+    code: "TRANSIENT",
+    reason: "NETWORK_ERROR",
+    detail: "network down",
+    status: 503,
+  });
+
+let store: AppStore;
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <Provider store={store}>{children}</Provider>
+);
+
+beforeEach(() => {
+  store = makeStore();
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+  jest.resetAllMocks();
+});
+
+describe("usePendingWrites", () => {
+  it("enqueue + flush sends the entry once and removes it from the queue on success", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it("dedupes concurrent flush calls into a single in-flight request", async () => {
+    let resolveRequest!: (v: unknown) => void;
+    apiClient.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => {
+      first = result.current.flush();
+      second = result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolveRequest({ entries: [{ id: "e1" }] });
+      await Promise.all([first, second]);
+    });
+  });
+
+  it("schedules a background retry after a retryable failure and eventually writes once", async () => {
+    apiClient
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValueOnce({ entries: [{ id: "e1" }] });
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      const promise = result.current.flush();
+      for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
+        await jest.advanceTimersByTimeAsync(delay);
+      }
+      await promise;
+    });
+
+    // Inline retries exhausted (3 calls); item now waits on the background
+    // schedule -- advance to the first background delay and let the
+    // effect-driven retry fire.
+    expect(apiClient).toHaveBeenCalledTimes(3);
+    expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).not.toBe(
+      null,
+    );
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(
+        PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
+      );
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(4);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+
+  it("flushes an entry queued while offline exactly once when connectivity returns", async () => {
+    apiClient
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockRejectedValueOnce(networkError())
+      .mockResolvedValueOnce({ entries: [{ id: "e1" }] });
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      const promise = result.current.flush();
+      for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
+        await jest.advanceTimersByTimeAsync(delay);
+      }
+      await promise;
+    });
+    expect(apiClient).toHaveBeenCalledTimes(3);
+    expect(store.getState().pendingWrites.pending).toHaveLength(1);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("online"));
+      // The online listener's flush is already in flight by now; flush()
+      // dedupes to the same promise, so awaiting it waits for that request.
+      await result.current.flush();
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(4);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});

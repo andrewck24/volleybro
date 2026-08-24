@@ -2,9 +2,8 @@
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
+import { usePendingWrites } from "@/hooks/use-pending-writes";
 import { showErrorToast } from "@/lib/api/error-toast";
-import { createRally } from "@/lib/features/game/actions/create-rally";
-import { updateRally } from "@/lib/features/game/actions/update-rally";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
   createRallyHelper,
@@ -17,10 +16,11 @@ import { FiMinus, FiPlus } from "react-icons/fi";
 
 /**
  * The real entry-submission path: creates a new rally (mode "general") or
- * persists an edit (mode "editing") via the optimistic helpers + API actions,
- * then confirms the draft in Redux. Shared by OppoMoves' own "tap the same
- * move again" submit and by the Preview's tap-to-submit gesture (group 6) so
- * the Preview's freeze actually persists the entry instead of just flashing.
+ * persists an edit (mode "editing") via the optimistic helpers, then hands
+ * the entry to the pending-write queue (D4) instead of sending it itself.
+ * Shared by OppoMoves' own "tap the same move again" submit and by the
+ * Preview's tap-to-submit gesture (group 6) so the Preview's freeze actually
+ * persists the entry instead of just flashing.
  */
 export const useSubmitEntryDraft = (gameId: string) => {
   const { toast } = useToast();
@@ -31,12 +31,14 @@ export const useSubmitEntryDraft = (gameId: string) => {
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
+  const { enqueue, flush } = usePendingWrites(gameId, setIndex);
 
-  // Await the optimistic mutate and only confirm the draft in Redux once the
-  // server actually persisted it. If the request fails the mutate rejects and
-  // rolls the SWR game back, we skip the confirm (draft stays put for a retry),
-  // and the error surfaces as a toast instead of a crash.
-  const create = async () => {
+  // Create advances the draft the instant the entry is enqueued, without
+  // waiting for the server (D4 轉場時機) -- the queue's own retry and the
+  // sync indicator are what make that safe. The optimistic cache write no
+  // longer carries the request; the queue's flush owns the network and
+  // updates the cache again once it has a response.
+  const create = () => {
     // A new rally always gets a fresh identity, generated here so it exists
     // before the optimistic update below applies it.
     const entry = {
@@ -49,13 +51,14 @@ export const useSubmitEntryDraft = (gameId: string) => {
       entry,
       game!,
     );
-    await mutate(createRally({ gameId, setIndex }, entry, game!), {
-      revalidate: false,
-      optimisticData: updatedGame,
-    });
+    mutate(updatedGame, { revalidate: false });
+    enqueue(entry);
     dispatch(gameActions.confirmEntryDraftRally(phase));
+    void flush();
   };
 
+  // Editing still waits for its result -- the recorder is watching a dialog
+  // for it, unlike create's already-advanced draft (D4 consequences).
   const update = async () => {
     // Editing reuses the identity setEditingEntryStatus loaded onto the
     // draft; the entry being replaced must keep the same id.
@@ -65,10 +68,15 @@ export const useSubmitEntryDraft = (gameId: string) => {
       entry,
       game!,
     );
-    await mutate(updateRally({ gameId, setIndex }, entry, game!), {
-      revalidate: false,
-      optimisticData: updatedGame,
-    });
+    mutate(updatedGame, { revalidate: false });
+    enqueue(entry);
+    const result = await flush();
+    if (!result.ok) {
+      // The edit failed: leave the entry at the value the server already
+      // holds instead of the stale optimistic write.
+      mutate();
+      throw result.error;
+    }
     dispatch(gameActions.confirmEntryDraftRally(phase));
     dispatch(gameActions.setGameMode("general"));
   };
@@ -76,7 +84,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
   return async () => {
     try {
       if (mode === "general") {
-        await create();
+        create();
       } else {
         await update();
       }
