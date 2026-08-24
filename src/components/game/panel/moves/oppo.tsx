@@ -49,7 +49,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
       entry,
       game!,
     );
-    await mutate(createRally({ gameId, setIndex, entryIndex }, entry, game!), {
+    await mutate(createRally({ gameId, setIndex }, entry, game!), {
       revalidate: false,
       optimisticData: updatedGame,
     });
@@ -65,7 +65,7 @@ export const useSubmitEntryDraft = (gameId: string) => {
       entry,
       game!,
     );
-    await mutate(updateRally({ gameId, setIndex, entryIndex }, entry, game!), {
+    await mutate(updateRally({ gameId, setIndex }, entry, game!), {
       revalidate: false,
       optimisticData: updatedGame,
     });

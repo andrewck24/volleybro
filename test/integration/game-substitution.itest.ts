@@ -3,7 +3,7 @@ import { EntryType, MoveType, Side } from "@/entities/game";
 import { Position } from "@/entities/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { POST as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { POST as createSubstitution } from "@/app/api/games/[gameId]/sets/substitutions/route";
 import { useFakeAuth } from "./support/auth";
@@ -49,9 +49,9 @@ describe("POST /api/games/:id/sets/substitutions", () => {
     // overwrite the set.
     await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: rally,
+      method: "PUT",
+      query: { si: 0 },
+      body: [rally],
     });
 
     const res = await callRoute(createSubstitution, {

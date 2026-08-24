@@ -31,8 +31,7 @@ export const TYPES = {
   FindGameSummariesUseCase: Symbol.for("FindGameSummariesUseCase"),
   CreateSetUseCase: Symbol.for("CreateSetUseCase"),
   UpdateSetUseCase: Symbol.for("UpdateSetUseCase"),
-  CreateRallyUseCase: Symbol.for("CreateRallyUseCase"),
-  UpdateRallyUseCase: Symbol.for("UpdateRallyUseCase"),
+  RecordRalliesUseCase: Symbol.for("RecordRalliesUseCase"),
   CreateSubstitutionUseCase: Symbol.for("CreateSubstitutionUseCase"),
 
   // player usecases

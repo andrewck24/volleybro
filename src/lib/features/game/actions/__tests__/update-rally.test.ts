@@ -11,31 +11,31 @@ jest.mock("@/lib/api/api-client", () => ({
 const apiClient = apiClientModule.apiClient as jest.Mock;
 
 describe("updateRally", () => {
-  const params = { gameId: "game-1", setIndex: 0, entryIndex: 2 };
+  const params = { gameId: "game-1", setIndex: 0 };
   const entryDraft = {} as RallyView;
   const makeGame = (): GameView =>
     ({ sets: [{ entries: [] }] }) as unknown as GameView;
 
   afterEach(() => jest.resetAllMocks());
 
-  it("goes through the shared HTTP client instead of raw fetch", async () => {
-    apiClient.mockResolvedValue([{ id: "e1" }]);
+  it("goes through the shared HTTP client with one or more entries", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
     const game = makeGame();
 
     await updateRally(params, entryDraft, game);
 
     expect(apiClient).toHaveBeenCalledWith(
-      "/api/games/game-1/sets/rallies?si=0&ei=2",
+      "/api/games/game-1/sets/rallies?si=0",
       expect.objectContaining({
         method: "PUT",
-        body: JSON.stringify(entryDraft),
+        body: JSON.stringify([entryDraft]),
       }),
     );
   });
 
   it("writes the returned entries onto the active set", async () => {
     const entries = [{ id: "e1" }];
-    apiClient.mockResolvedValue(entries);
+    apiClient.mockResolvedValue({ entries });
     const game = makeGame();
 
     const result = await updateRally(params, entryDraft, game);

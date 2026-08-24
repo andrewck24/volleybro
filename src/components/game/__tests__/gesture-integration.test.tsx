@@ -48,11 +48,11 @@ jest.mock("@/hooks/use-data", () => ({
 
 const originalFetch = global.fetch;
 beforeEach(() => {
-  // createRally/updateRally POST to the API; the helper already mutates the
+  // createRally/updateRally PUT to the API; the helper already mutates the
   // mock game in place, so the response body is irrelevant -- only `ok` matters.
   global.fetch = jest.fn(async () => ({
     ok: true,
-    json: async () => currentMockGame.sets[0].entries,
+    json: async () => ({ entries: currentMockGame.sets[0].entries }),
   })) as unknown as typeof fetch;
 });
 

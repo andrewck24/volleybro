@@ -1,19 +1,23 @@
 import { apiClient } from "@/lib/api/api-client";
-import type { EntryView, GameView, RallyView } from "@/lib/features/game/types";
+import type {
+  GameView,
+  RallyView,
+  RecordRalliesResponse,
+} from "@/lib/features/game/types";
 
 export const createRally = async (
-  params: { gameId: string; setIndex: number; entryIndex: number },
+  params: { gameId: string; setIndex: number },
   entryDraft: RallyView,
   game: GameView,
 ) => {
-  const { gameId, setIndex, entryIndex } = params;
+  const { gameId, setIndex } = params;
   try {
-    const entries = await apiClient<EntryView[]>(
-      `/api/games/${gameId}/sets/rallies?si=${setIndex}&ei=${entryIndex}`,
+    const { entries } = await apiClient<RecordRalliesResponse>(
+      `/api/games/${gameId}/sets/rallies?si=${setIndex}`,
       {
-        method: "POST",
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entryDraft),
+        body: JSON.stringify([entryDraft]),
       },
     );
     // setIndex references the active set that was just persisted; guaranteed present

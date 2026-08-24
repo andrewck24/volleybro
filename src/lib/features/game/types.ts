@@ -234,6 +234,17 @@ export type TimeoutView = z.infer<typeof TimeoutResponseSchema>;
 export type ChallengeView = z.infer<typeof ChallengeResponseSchema>;
 export type EntryView = z.infer<typeof EntryResponseSchema>;
 
+/**
+ * The rally endpoint's response: entries land whenever the entry write
+ * succeeds, and `setCompletionConfirmed` is only present when a set result
+ * was attempted, stating whether that second write landed. Undefined means
+ * no set result was attempted for this write.
+ */
+export type RecordRalliesResponse = {
+  entries: EntryView[];
+  setCompletionConfirmed?: boolean;
+};
+
 export type GameView = z.infer<typeof GameResponseSchema>;
 export type GameTeamView = z.infer<typeof GameTeamResponseSchema>;
 export type SetView = z.infer<typeof SetResponseSchema>;

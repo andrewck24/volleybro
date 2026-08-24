@@ -21,12 +21,11 @@ import { AuthenticationService } from "@/infrastructure/services/auth/authentica
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
 
 import { CreateGameUseCase } from "@/applications/usecases/game/create-game.usecase";
-import { CreateRallyUseCase } from "@/applications/usecases/game/create-rally.usecase";
 import { CreateSetUseCase } from "@/applications/usecases/game/create-set.usecase";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
 import { FindGameSummariesUseCase } from "@/applications/usecases/game/find-game-summaries.usecase";
 import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
-import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
+import { RecordRalliesUseCase } from "@/applications/usecases/game/record-rallies.usecase";
 import { UpdateSetUseCase } from "@/applications/usecases/game/update-set.usecase";
 import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
@@ -119,11 +118,8 @@ container
 container.bind<CreateSetUseCase>(TYPES.CreateSetUseCase).to(CreateSetUseCase);
 container.bind<UpdateSetUseCase>(TYPES.UpdateSetUseCase).to(UpdateSetUseCase);
 container
-  .bind<CreateRallyUseCase>(TYPES.CreateRallyUseCase)
-  .to(CreateRallyUseCase);
-container
-  .bind<UpdateRallyUseCase>(TYPES.UpdateRallyUseCase)
-  .to(UpdateRallyUseCase);
+  .bind<RecordRalliesUseCase>(TYPES.RecordRalliesUseCase)
+  .to(RecordRalliesUseCase);
 container
   .bind<CreateSubstitutionUseCase>(TYPES.CreateSubstitutionUseCase)
   .to(CreateSubstitutionUseCase);

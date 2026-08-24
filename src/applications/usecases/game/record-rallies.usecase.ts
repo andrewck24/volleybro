@@ -13,19 +13,27 @@ import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
-export type IUpdateRallyInput = {
-  params: { gameId: string; setIndex: number; entryIndex: number };
-  data: Rally & EntryIdentity;
-};
-
-export type IUpdateRallyOutput = Entry[];
-
-export interface IUpdateRallyUseCase {
-  execute(input: IUpdateRallyInput): Promise<IUpdateRallyOutput | undefined>;
+export interface IRecordRalliesInput {
+  params: { gameId: string; setIndex: number };
+  data: (Rally & EntryIdentity)[];
 }
 
+export type IRecordRalliesOutput = {
+  entries: Entry[];
+  setCompletionConfirmed?: boolean;
+};
+
+export interface IRecordRalliesUseCase {
+  execute(input: IRecordRalliesInput): Promise<IRecordRalliesOutput>;
+}
+
+/**
+ * Creating a rally and editing one write through the same upsert-by-identity
+ * repository operation, so they are the same code: whichever entries the
+ * client sends land at their identity, new or existing.
+ */
 @injectable()
-export class UpdateRallyUseCase implements IUpdateRallyUseCase {
+export class RecordRalliesUseCase implements IRecordRalliesUseCase {
   constructor(
     @inject(TYPES.GameRepository) private gameRepository: IGameRepository,
     @inject(TYPES.AuthenticationService)
@@ -34,14 +42,12 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
     private authorizationService: IAuthorizationService,
   ) {}
 
-  async execute(
-    input: IUpdateRallyInput,
-  ): Promise<IUpdateRallyOutput | undefined> {
-    const { params, data: rally } = input;
+  async execute(input: IRecordRalliesInput): Promise<IRecordRalliesOutput> {
+    const { params, data: rallies } = input;
     const { gameId, setIndex } = params;
     const user = await this.authenticationService.verifySession();
 
-    // Read for the team the caller must belong to; whether the entry exists is
+    // Read for the team the caller must belong to; whether the set exists is
     // the write's own condition.
     const game = await this.gameRepository.findById(gameId);
     if (!game)
@@ -55,17 +61,25 @@ export class UpdateRallyUseCase implements IUpdateRallyUseCase {
 
     const entries = await this.gameRepository.upsertEntry(
       { gameId, setIndex },
-      [createRallyEntry(rally)],
+      rallies.map(createRallyEntry),
     );
 
     const completion = deriveSetCompletion(game, setIndex, entries);
-    if (completion)
+    if (!completion) return { entries };
+
+    // The entries are already persisted at this point. A failing set-result
+    // write must not throw past that and discard them — the client is told
+    // its entries landed and that the result needs a retry, not that nothing
+    // happened. Retrying this write is a separate concern (S05).
+    try {
       await this.gameRepository.completeSet(
         { gameId, setIndex },
         completion.win,
         completion.gameWin,
       );
-
-    return entries;
+      return { entries, setCompletionConfirmed: true };
+    } catch {
+      return { entries, setCompletionConfirmed: false };
+    }
   }
 }

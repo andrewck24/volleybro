@@ -3,7 +3,7 @@ import { GameReason } from "@/entities/errors";
 import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { POST as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "./support/auth";
 import { callRoute } from "./support/request";
@@ -19,7 +19,7 @@ const rally = {
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-describe("POST /api/games/:id/sets/rallies", () => {
+describe("PUT /api/games/:id/sets/rallies", () => {
   let seeded: SeededGame;
 
   beforeEach(async () => {
@@ -46,9 +46,9 @@ describe("POST /api/games/:id/sets/rallies", () => {
 
     const res = await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: rally,
+      method: "PUT",
+      query: { si: 0 },
+      body: [rally],
     });
 
     expect(res.status).toBe(200);
@@ -64,9 +64,9 @@ describe("POST /api/games/:id/sets/rallies", () => {
   it("returns 404 SET_NOT_FOUND for a set index that does not exist", async () => {
     const res = await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: rally,
+      method: "PUT",
+      query: { si: 0 },
+      body: [rally],
     });
     expect(res.status).toBe(404);
     expect((res.json as { reason?: string }).reason).toBe(
