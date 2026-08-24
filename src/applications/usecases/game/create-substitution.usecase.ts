@@ -4,6 +4,7 @@ import type { IAuthorizationService } from "@/applications/services/auth/authori
 import { NotFoundError, GameReason } from "@/entities/errors";
 import {
   type Entry,
+  type EntryIdentity,
   type Substitution,
   Side,
   createSubstitutionEntry,
@@ -15,7 +16,7 @@ import { inject, injectable } from "inversify";
 
 export interface ICreateSubstitutionInput {
   params: { gameId: string; setIndex: number; entryIndex: number };
-  data: Substitution;
+  data: Substitution & EntryIdentity;
 }
 
 export type ICreateSubstitutionOutput = Entry[];

@@ -38,17 +38,21 @@ export const Substitutes = ({
 
   const onSubmit = async () => {
     try {
+      // A new substitution gets a fresh identity generated here, before the
+      // optimistic update below applies it; editing reuses the id
+      // setEditingEntryStatus already loaded onto the draft.
+      const entry = {
+        ...draft.substitution!,
+        id: draft.id || crypto.randomUUID(),
+        seq: entryIndex,
+      };
       mutate(
-        createSubstitution(
-          { gameId, setIndex, entryIndex },
-          draft.substitution!,
-          game!,
-        ),
+        createSubstitution({ gameId, setIndex, entryIndex }, entry, game!),
         {
           revalidate: false,
           optimisticData: createSubstitutionHelper(
             { gameId, setIndex, entryIndex },
-            draft.substitution!,
+            entry,
             game!,
           ),
         },

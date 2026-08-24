@@ -10,6 +10,8 @@ import { callRoute } from "./support/request";
 import { seedGame, type SeededGame } from "./support/seed";
 
 const rally = {
+  id: "entry-1",
+  seq: 0,
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 0 },
   away: { score: 0, type: MoveType.ATTACK, num: 0 },
@@ -52,6 +54,11 @@ describe("POST /api/games/:id/sets/rallies", () => {
     expect(res.status).toBe(200);
     const afterRally = await repo().findById(seeded.gameId);
     expect(afterRally!.sets[0]!.entries).toHaveLength(1);
+    // The identity and sequence the client sent must round-trip unchanged.
+    expect(afterRally!.sets[0]!.entries[0]).toMatchObject({
+      id: rally.id,
+      seq: rally.seq,
+    });
   });
 
   it("returns 404 SET_NOT_FOUND for a set index that does not exist", async () => {

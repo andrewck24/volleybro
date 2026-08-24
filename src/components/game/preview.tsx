@@ -132,11 +132,26 @@ export const useEntryDraftPreview = (
     : null;
 
   const draftEntry: EntryView | undefined = draft.substitution
-    ? { type: EntryType.SUBSTITUTION, ...draft.substitution }
+    ? {
+        type: EntryType.SUBSTITUTION,
+        id: draft.id,
+        seq: draft.seq,
+        ...draft.substitution,
+      }
     : draft.timeout
-      ? { type: EntryType.TIMEOUT, ...draft.timeout }
+      ? {
+          type: EntryType.TIMEOUT,
+          id: draft.id,
+          seq: draft.seq,
+          ...draft.timeout,
+        }
       : draft.challenge
-        ? { type: EntryType.CHALLENGE, ...draft.challenge }
+        ? {
+            type: EntryType.CHALLENGE,
+            id: draft.id,
+            seq: draft.seq,
+            ...draft.challenge,
+          }
         : (draftRallyEntry ?? previousEntry);
 
   const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;

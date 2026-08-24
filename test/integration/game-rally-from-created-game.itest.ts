@@ -75,6 +75,8 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     // The entry draft Redux actually submits: the home side carries the tapped
     // player, the away side keeps the initial-state placeholder `id: ""`.
     const draft = {
+      id: "entry-1",
+      seq: 0,
       win: true,
       home: {
         score: 1,

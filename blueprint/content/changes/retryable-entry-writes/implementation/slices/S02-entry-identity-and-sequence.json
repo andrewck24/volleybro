@@ -18,5 +18,5 @@
     "pnpm typecheck:strict",
     "pnpm test:integration"
   ],
-  "status": "pending"
+  "status": "completed"
 }

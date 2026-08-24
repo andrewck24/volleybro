@@ -8,9 +8,11 @@ import { useFakeAuth } from "./support/auth";
 import { callRoute } from "./support/request";
 import { oid, seedGame, type SeededGame } from "./support/seed";
 
-const rally = (score: number, playerId: string | null = null): Entry =>
+const rally = (score: number, playerId: string | null = null, seq = 0): Entry =>
   ({
     type: EntryType.RALLY,
+    id: `entry-${score}`,
+    seq,
     win: true,
     home: {
       score,

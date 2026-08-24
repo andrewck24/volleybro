@@ -37,34 +37,38 @@ export const useSubmitEntryDraft = (gameId: string) => {
   // rolls the SWR game back, we skip the confirm (draft stays put for a retry),
   // and the error surfaces as a toast instead of a crash.
   const create = async () => {
+    // A new rally always gets a fresh identity, generated here so it exists
+    // before the optimistic update below applies it.
+    const entry = {
+      ...(draft as RallyView),
+      id: crypto.randomUUID(),
+      seq: entryIndex,
+    };
     const { game: updatedGame, phase } = createRallyHelper(
       { gameId, setIndex, entryIndex },
-      draft as RallyView,
+      entry,
       game!,
     );
-    await mutate(
-      createRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
-      {
-        revalidate: false,
-        optimisticData: updatedGame,
-      },
-    );
+    await mutate(createRally({ gameId, setIndex, entryIndex }, entry, game!), {
+      revalidate: false,
+      optimisticData: updatedGame,
+    });
     dispatch(gameActions.confirmEntryDraftRally(phase));
   };
 
   const update = async () => {
+    // Editing reuses the identity setEditingEntryStatus loaded onto the
+    // draft; the entry being replaced must keep the same id.
+    const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
     const { game: updatedGame, phase } = updateRallyHelper(
       { gameId, setIndex, entryIndex },
-      draft as RallyView,
+      entry,
       game!,
     );
-    await mutate(
-      updateRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
-      {
-        revalidate: false,
-        optimisticData: updatedGame,
-      },
-    );
+    await mutate(updateRally({ gameId, setIndex, entryIndex }, entry, game!), {
+      revalidate: false,
+      optimisticData: updatedGame,
+    });
     dispatch(gameActions.confirmEntryDraftRally(phase));
     dispatch(gameActions.setGameMode("general"));
   };

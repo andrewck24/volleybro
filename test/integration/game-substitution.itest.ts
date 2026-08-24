@@ -13,6 +13,8 @@ import { lineupFor, seedGame, type SeededGame } from "./support/seed";
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
 const rally = {
+  id: "entry-rally-1",
+  seq: 0,
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 0 },
   away: { score: 0, type: MoveType.ATTACK, num: 0 },
@@ -57,6 +59,8 @@ describe("POST /api/games/:id/sets/substitutions", () => {
       method: "POST",
       query: { si: 0, ei: 1 },
       body: {
+        id: "entry-sub-1",
+        seq: 1,
         team: Side.HOME,
         players: { in: benchId, out: seeded.playerIds[0] },
       },

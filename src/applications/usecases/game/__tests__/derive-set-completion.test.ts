@@ -8,8 +8,10 @@ import {
 } from "@/entities/game";
 import { describe, expect, it } from "@jest/globals";
 
-const rally = (home: number, away: number): Entry => ({
+const rally = (home: number, away: number, seq = 0): Entry => ({
   type: EntryType.RALLY,
+  id: `entry-${home}-${away}`,
+  seq,
   win: home > away,
   home: { score: home, type: MoveType.ATTACK, num: 1 },
   away: { score: away, type: MoveType.RECEPTION, num: 1 },

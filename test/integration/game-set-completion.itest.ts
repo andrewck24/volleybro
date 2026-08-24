@@ -14,7 +14,10 @@ const decidingRally = (
   homeScore: number,
   awayScore: number,
   homeWinsPoint: boolean,
+  seq = 0,
 ) => ({
+  id: `entry-${homeScore}-${awayScore}`,
+  seq,
   win: homeWinsPoint,
   home: { score: homeScore, type: MoveType.ATTACK, num: 0 },
   away: { score: awayScore, type: MoveType.ATTACK, num: 0 },
@@ -97,7 +100,7 @@ describe("set and match completion", () => {
       gameId: seeded.gameId,
       method: "POST",
       query: { si: 0, ei: 1 },
-      body: decidingRally(25, 20, true),
+      body: decidingRally(25, 20, true, 1),
     });
     expect((await repo().findById(seeded.gameId))!.sets[0]!.win).toBe(true);
   });

@@ -7,7 +7,7 @@ import {
 } from "@/__tests__/helpers";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
 import { NotFoundError } from "@/entities/errors";
-import { Side, Substitution } from "@/entities/game";
+import { Side, type EntryIdentity, type Substitution } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockGameRepository: ReturnType<typeof createMockGameRepository>;
@@ -34,7 +34,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Substitution,
+        data: {} as unknown as Substitution & EntryIdentity,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -53,7 +53,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Substitution,
+        data: {} as unknown as Substitution & EntryIdentity,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
@@ -69,7 +69,7 @@ describe("CreateSubstitutionUseCase", () => {
     await expect(
       useCase.execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 1 },
-        data: { team: Side.HOME, players: { in: "p-in", out: "p-out" } },
+        data: { team: Side.HOME, players: { in: "p-in", out: "p-out" }, id: "entry-1", seq: 1 },
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

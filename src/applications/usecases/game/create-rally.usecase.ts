@@ -3,14 +3,19 @@ import type { IAuthenticationService } from "@/applications/services/auth/authen
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import { deriveSetCompletion } from "@/applications/usecases/game/derive-set-completion";
 import { NotFoundError, GameReason } from "@/entities/errors";
-import { createRallyEntry, type Entry, type Rally } from "@/entities/game";
+import {
+  createRallyEntry,
+  type Entry,
+  type EntryIdentity,
+  type Rally,
+} from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
 export interface ICreateRallyInput {
   params: { gameId: string; setIndex: number; entryIndex: number };
-  data: Rally;
+  data: Rally & EntryIdentity;
 }
 
 export type ICreateRallyOutput = Entry[];

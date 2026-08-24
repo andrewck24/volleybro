@@ -7,14 +7,22 @@ import {
 } from "@/__tests__/helpers";
 import { UpdateRallyUseCase } from "@/applications/usecases/game/update-rally.usecase";
 import { GameReason, NotFoundError } from "@/entities/errors";
-import { EntryType, MoveType, Rally, createRallyEntry } from "@/entities/game";
+import {
+  EntryType,
+  MoveType,
+  type EntryIdentity,
+  type Rally,
+  createRallyEntry,
+} from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 let mockGameRepository: ReturnType<typeof createMockGameRepository>;
 let mockAuthService: ReturnType<typeof createMockAuthenticationService>;
 let mockAuthzService: ReturnType<typeof createMockAuthorizationService>;
 
-const updatedRally: Rally = {
+const updatedRally: Rally & EntryIdentity = {
+  id: "entry-1",
+  seq: 0,
   win: false,
   home: { score: 1, type: MoveType.ATTACK, num: 1 },
   away: { score: 1, type: MoveType.RECEPTION, num: 1 },
@@ -38,7 +46,7 @@ describe("UpdateRallyUseCase", () => {
     await expect(
       useCase().execute({
         params: { gameId: "game-1", setIndex: 0, entryIndex: 0 },
-        data: {} as unknown as Rally,
+        data: {} as unknown as Rally & EntryIdentity,
       }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });

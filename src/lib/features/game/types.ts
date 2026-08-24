@@ -150,14 +150,30 @@ const ChallengeResponseSchema = z.object({
   success: z.boolean(),
 });
 
+// A stable identity and an ordering position, generated on the client before
+// the optimistic update runs. See entities/game.ts's EntryIdentity for why
+// they are separate fields.
+const EntryIdentityResponseSchema = z.object({
+  id: z.string(),
+  seq: z.number(),
+});
+
 export const EntryResponseSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal(EntryType.RALLY) }).merge(RallyResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.RALLY) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(RallyResponseSchema),
   z
     .object({ type: z.literal(EntryType.SUBSTITUTION) })
+    .merge(EntryIdentityResponseSchema)
     .merge(SubstitutionResponseSchema),
-  z.object({ type: z.literal(EntryType.TIMEOUT) }).merge(TimeoutResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.TIMEOUT) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(TimeoutResponseSchema),
   z
     .object({ type: z.literal(EntryType.CHALLENGE) })
+    .merge(EntryIdentityResponseSchema)
     .merge(ChallengeResponseSchema),
 ]);
 
@@ -300,6 +316,12 @@ type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {
 };
 
 export type ReduxEntryDraft = Omit<RallyView, "win" | "home" | "away"> & {
+  // Identity of the entry this draft becomes on submit. Empty/zero until
+  // then: a create fills it in just before the optimistic update runs (a
+  // fresh client-generated id, seq = the current entryIndex); an edit
+  // inherits the original entry's id and seq from setEditingEntryStatus.
+  id: string;
+  seq: number;
   win: RallyView["win"] | null;
   home: ReduxRallyDetail;
   away: ReduxRallyDetail;

@@ -15,6 +15,8 @@ const players: GamePlayerView[] = [
 const rawEntries: EntryView[] = [
   {
     type: EntryType.RALLY,
+    id: "entry-0",
+    seq: 0,
     win: true,
     home: {
       score: 1,
@@ -26,6 +28,8 @@ const rawEntries: EntryView[] = [
   },
   {
     type: EntryType.RALLY,
+    id: "entry-1",
+    seq: 1,
     win: false,
     home: {
       score: 1,
