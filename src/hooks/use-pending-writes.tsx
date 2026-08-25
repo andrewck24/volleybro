@@ -1,5 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+} from "react";
 import { useGame } from "@/hooks/use-data";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
 import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
@@ -148,4 +154,38 @@ export function usePendingWrites(gameId: string, setIndex: number) {
   }, [flush]);
 
   return { enqueue, flush, retry };
+}
+
+export type PendingWritesApi = ReturnType<typeof usePendingWrites>;
+
+const PendingWritesContext = createContext<PendingWritesApi | null>(null);
+
+/**
+ * `usePendingWrites` owns an `inFlight` ref and a background-retry timer, so
+ * it must be mounted exactly once per game -- `Game` (`src/components/game/
+ * index.tsx`) is that single owner. Everything below it that needs `enqueue`,
+ * `flush`, or `retry` reads them from this context instead of mounting its
+ * own instance, which would each fire an independent flush for the same due
+ * entry.
+ */
+export const PendingWritesProvider = ({
+  value,
+  children,
+}: {
+  value: PendingWritesApi;
+  children: React.ReactNode;
+}) => (
+  <PendingWritesContext.Provider value={value}>
+    {children}
+  </PendingWritesContext.Provider>
+);
+
+export function usePendingWritesContext(): PendingWritesApi {
+  const context = useContext(PendingWritesContext);
+  if (!context) {
+    throw new Error(
+      "usePendingWritesContext must be used within a <PendingWritesProvider />",
+    );
+  }
+  return context;
 }

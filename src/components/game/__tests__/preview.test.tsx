@@ -1,5 +1,9 @@
 import { GamePreview } from "@/components/game/preview";
 import { EntryType, MoveType } from "@/entities/game";
+import {
+  PendingWritesProvider,
+  usePendingWrites,
+} from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore } from "@/lib/redux/store";
@@ -7,6 +11,26 @@ import { scoringMoves } from "@/lib/scoring-moves";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
+
+// GamePreview reads enqueue/flush/retry from context now that `usePendingWrites`
+// mounts once in `Game` -- this harness stands in for that single owner so
+// GamePreview can still be rendered on its own here.
+const PendingWritesTestHarness = ({
+  gameId,
+  setIndex,
+  children,
+}: {
+  gameId: string;
+  setIndex: number;
+  children: React.ReactNode;
+}) => {
+  const pendingWrites = usePendingWrites(gameId, setIndex);
+  return (
+    <PendingWritesProvider value={pendingWrites}>
+      {children}
+    </PendingWritesProvider>
+  );
+};
 
 // Only the editing-write-status suite below exercises a real flush (via
 // usePendingWrites -> GamePreview's retry); every other suite in this file
@@ -75,12 +99,14 @@ const setUpPreview = (
   });
   render(
     <Provider store={store}>
-      <GamePreview
-        gameId="game-1"
-        mode="general"
-        onSubmit={onSubmit}
-        onExpandDrawer={onExpandDrawer}
-      />
+      <PendingWritesTestHarness gameId="game-1" setIndex={0}>
+        <GamePreview
+          gameId="game-1"
+          mode="general"
+          onSubmit={onSubmit}
+          onExpandDrawer={onExpandDrawer}
+        />
+      </PendingWritesTestHarness>
     </Provider>,
   );
   return { store, onSubmit, onExpandDrawer };
@@ -160,7 +186,9 @@ describe("GamePreview empty-entries guard", () => {
 
     render(
       <Provider store={store}>
-        <GamePreview gameId="game-1" mode="general" />
+        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
+          <GamePreview gameId="game-1" mode="general" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -193,7 +221,9 @@ describe("GamePreview empty-entries guard", () => {
     const onSubmit = jest.fn();
     render(
       <Provider store={store}>
-        <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />
+        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
+          <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -230,7 +260,9 @@ describe("GamePreview editing write status", () => {
     const onSubmit = jest.fn();
     render(
       <Provider store={store}>
-        <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />
+        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
+          <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />
+        </PendingWritesTestHarness>
       </Provider>,
     );
     return { store, onSubmit };

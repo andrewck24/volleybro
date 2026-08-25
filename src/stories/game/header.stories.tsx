@@ -1,5 +1,9 @@
 import { GameHeader } from "@/components/game/header";
 import { EntryType, MoveType } from "@/entities/game";
+import {
+  PendingWritesProvider,
+  usePendingWrites,
+} from "@/hooks/use-pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { GameView } from "@/lib/features/game/types";
@@ -8,6 +12,22 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 import { fn } from "storybook/test";
+
+// SyncIndicator reads enqueue/flush/retry from context now that
+// usePendingWrites mounts once in Game -- this decorator stands in for
+// that single owner so the story can render GameHeader on its own.
+const PendingWritesDecorator = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const pendingWrites = usePendingWrites(gameId, 2);
+  return (
+    <PendingWritesProvider value={pendingWrites}>
+      {children}
+    </PendingWritesProvider>
+  );
+};
 
 const gameId = "game-1";
 
@@ -82,7 +102,9 @@ const meta = {
         }}
       >
         <Provider store={store}>
-          <Story />
+          <PendingWritesDecorator>
+            <Story />
+          </PendingWritesDecorator>
         </Provider>
       </SWRConfig>
     ),

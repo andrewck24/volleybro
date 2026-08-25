@@ -1,7 +1,7 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
 import { useGame } from "@/hooks/use-data";
-import { usePendingWrites } from "@/hooks/use-pending-writes";
+import type { PendingWritesApi } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
   createRallyHelper,
@@ -19,8 +19,15 @@ import { FiMinus, FiPlus } from "react-icons/fi";
  * by OppoMoves' own "tap the same move again" submit and by the Preview's
  * tap-to-submit gesture so the Preview's freeze actually persists the entry
  * instead of just flashing.
+ *
+ * `enqueue`/`flush` come from the caller, not a hook call here -- `Game` is
+ * the single mounted owner of `usePendingWrites` and hands them down so this
+ * hook does not become a second flushing instance.
  */
-export const useSubmitEntryDraft = (gameId: string) => {
+export const useSubmitEntryDraft = (
+  gameId: string,
+  { enqueue, flush }: Pick<PendingWritesApi, "enqueue" | "flush">,
+) => {
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.game);
   const {
@@ -28,7 +35,6 @@ export const useSubmitEntryDraft = (gameId: string) => {
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
-  const { enqueue, flush } = usePendingWrites(gameId, setIndex);
 
   // Create advances the draft the instant the entry is enqueued, without
   // waiting for the server -- the queue's own retry and the sync indicator

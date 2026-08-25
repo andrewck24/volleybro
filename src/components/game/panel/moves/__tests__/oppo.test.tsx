@@ -1,11 +1,20 @@
 import { useSubmitEntryDraft } from "@/components/game/panel/moves/oppo";
 import { EntryType, MoveType } from "@/entities/game";
+import { usePendingWrites } from "@/hooks/use-pending-writes";
 import { ApiClientError } from "@/lib/api/api-client";
 import * as apiClientModule from "@/lib/api/api-client";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { act, renderHook } from "@testing-library/react";
 import { Provider } from "react-redux";
+
+// useSubmitEntryDraft now takes enqueue/flush from its caller (Game, the
+// single mounted owner of usePendingWrites) rather than mounting its own
+// instance -- this stands in for that owner here.
+const useTestSubmitEntryDraft = (gameId: string) => {
+  const pendingWrites = usePendingWrites(gameId, 0);
+  return useSubmitEntryDraft(gameId, pendingWrites);
+};
 
 jest.mock("@/lib/api/api-client", () => ({
   ...jest.requireActual("@/lib/api/api-client"),
@@ -87,7 +96,7 @@ beforeEach(() => {
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode, keeps the optimistic write, and shows no toast when the write fails", async () => {
     apiClient.mockRejectedValue(networkError());
-    const { result } = renderHook(() => useSubmitEntryDraft("game-1"), {
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
       wrapper,
     });
 
@@ -104,7 +113,7 @@ describe("useSubmitEntryDraft update path", () => {
 
   it("confirms the edit and returns to general mode once the write succeeds", async () => {
     apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
-    const { result } = renderHook(() => useSubmitEntryDraft("game-1"), {
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
       wrapper,
     });
 

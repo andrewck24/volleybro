@@ -1,6 +1,10 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 import { Provider } from "react-redux";
-import { usePendingWrites } from "@/hooks/use-pending-writes";
+import {
+  PendingWritesProvider,
+  usePendingWrites,
+  usePendingWritesContext,
+} from "@/hooks/use-pending-writes";
 import { ApiClientError } from "@/lib/api/api-client";
 import * as apiClientModule from "@/lib/api/api-client";
 import {
@@ -284,6 +288,71 @@ describe("usePendingWrites", () => {
     });
 
     expect(apiClient).toHaveBeenCalledTimes(4);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
+
+// A component reading enqueue/flush/retry through the context rather than
+// calling usePendingWrites itself, standing in for each of the four real
+// call sites (Game, useSubmitEntryDraft, GamePreview, SyncIndicator).
+const ContextConsumer = () => {
+  usePendingWritesContext();
+  return null;
+};
+
+describe("PendingWritesProvider: single owner", () => {
+  it("fires exactly one background-retry request for one due entry, no matter how many components read the queue", async () => {
+    // The request is held open deliberately: a mock that resolves
+    // instantly would let a first (buggy) flush finish and clear the queue
+    // before a second instance's timer even fires, hiding the very race
+    // this test exists to catch. Holding it open keeps the entry visibly
+    // "still pending" while every due timer fires, the way a real network
+    // request (which takes real time) would.
+    let resolveRequest!: (v: unknown) => void;
+    apiClient.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    const Owner = () => {
+      const pendingWrites = usePendingWrites("game-1", 0);
+      return (
+        <PendingWritesProvider value={pendingWrites}>
+          {/* Four consumers, mirroring the four real call sites that used to
+              each mount their own usePendingWrites instance. */}
+          <ContextConsumer />
+          <ContextConsumer />
+          <ContextConsumer />
+          <ContextConsumer />
+        </PendingWritesProvider>
+      );
+    };
+
+    render(
+      <Provider store={store}>
+        <Owner />
+      </Provider>,
+    );
+
+    // The entry is due immediately (enqueued's nextAttemptAt is Date.now()),
+    // so every mounted background-retry effect fires on this tick.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(0);
+    });
+
+    expect(apiClient).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveRequest({ entries: [{ id: "e1" }] });
+    });
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 });

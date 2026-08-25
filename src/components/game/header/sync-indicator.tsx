@@ -5,7 +5,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
-import { usePendingWrites } from "@/hooks/use-pending-writes";
+import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import {
   deriveSyncStatus,
   type SyncStatus,
@@ -31,8 +31,7 @@ const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
  */
 export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const [open, setOpen] = useState(false);
-  const currentSetIndex = useAppSelector((state) => state.game.setIndex);
-  const { retry } = usePendingWrites(gameId, currentSetIndex);
+  const { retry } = usePendingWritesContext();
 
   // Select the raw slice, not a filtered copy: `.filter` inside a selector
   // returns a new array reference on every action, tripping the store's
@@ -80,9 +79,15 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="inline-flex h-8 items-center gap-2 overflow-hidden px-2.5 text-xs whitespace-nowrap">
-          {STATUS_ICON[status](
-            cn("size-4 shrink-0", status === "unsynced" && "text-warning"),
-          )}
+          {/* `contents` keeps this span out of layout -- it exists only so
+              the warning color (explicit here, not inherited from the
+              trigger button) is a queryable, testable element. */}
+          <span
+            data-testid="sync-popover-icon"
+            className={cn("contents", status === "unsynced" && "text-warning")}
+          >
+            {STATUS_ICON[status]("size-4 shrink-0")}
+          </span>
           <span className={status === "unsynced" ? "text-warning" : undefined}>
             {label}
           </span>

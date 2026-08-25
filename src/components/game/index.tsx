@@ -24,7 +24,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
-import { usePendingWrites } from "@/hooks/use-pending-writes";
+import {
+  PendingWritesProvider,
+  usePendingWrites,
+} from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useEffect, useState } from "react";
@@ -36,8 +39,13 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   const [tabValue, setTabValue] = useState("overview");
   const [drawerState, setDrawerState] = useState<SummaryDrawerState>("idle");
   const { id, general } = useAppSelector((state) => state.game);
-  const submitEntryDraft = useSubmitEntryDraft(gameId);
-  const { retry } = usePendingWrites(gameId, setIndex);
+  // Single mounted owner of usePendingWrites for this game: Game sits above
+  // the branch between the recording view and the between-sets view, so one
+  // inFlight ref and one background-retry timer persist across both instead
+  // of each descendant that needs the queue mounting its own.
+  const pendingWrites = usePendingWrites(gameId, setIndex);
+  const submitEntryDraft = useSubmitEntryDraft(gameId, pendingWrites);
+  const { retry } = pendingWrites;
 
   const handleOptionOpen = (tabValue: string) => {
     dispatch(gameActions.initialize({ game: game!, setIndex }));
@@ -58,39 +66,49 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
   }
 
   if (!general.status.isSetInProgress) {
-    return <Interval gameId={gameId} setIndex={setIndex} />;
+    return (
+      <PendingWritesProvider value={pendingWrites}>
+        <Interval gameId={gameId} setIndex={setIndex} />
+      </PendingWritesProvider>
+    );
   }
 
   return (
-    <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
-      <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
-      {/* One viewport-height flex column: the fixed header's height is reserved
+    <PendingWritesProvider value={pendingWrites}>
+      <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
+        <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
+        {/* One viewport-height flex column: the fixed header's height is reserved
           once via pt, then court (fixed aspect) and panel (remaining height)
           fill the rest. The drawer is a vaul snap-point sheet portalled to
           <body> (fixed at the bottom), so pb reserves its idle peek height and
           the panel content never sits behind the peek. */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
-        <div className="w-full shrink-0 overflow-hidden rounded-lg">
-          <GameCourt gameId={gameId} mode="general" />
+        <div className="flex min-h-0 w-full flex-1 flex-col gap-1 pt-[calc(env(safe-area-inset-top)+5.75rem)] pb-21">
+          <div className="w-full shrink-0 overflow-hidden rounded-lg">
+            <GameCourt gameId={gameId} mode="general" />
+          </div>
+          <GamePanel
+            gameId={gameId}
+            mode="general"
+            className="min-h-0 flex-1"
+          />
         </div>
-        <GamePanel gameId={gameId} mode="general" className="min-h-0 flex-1" />
-      </div>
-      <SummaryDrawer
-        gameId={gameId}
-        state={drawerState}
-        onToggle={toggleDrawer}
-        onSubmit={submitEntryDraft}
-        onEditRequest={() => setDialogOpen(true)}
-        onEntryRetry={() => void retry()}
-      />
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <GameOptions
+        <SummaryDrawer
           gameId={gameId}
-          tabValue={tabValue}
-          setTabValue={setTabValue}
+          state={drawerState}
+          onToggle={toggleDrawer}
+          onSubmit={submitEntryDraft}
+          onEditRequest={() => setDialogOpen(true)}
+          onEntryRetry={() => void retry()}
         />
-      </Dialog>
-    </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <GameOptions
+            gameId={gameId}
+            tabValue={tabValue}
+            setTabValue={setTabValue}
+          />
+        </Dialog>
+      </div>
+    </PendingWritesProvider>
   );
 };
 

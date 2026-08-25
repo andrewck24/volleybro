@@ -1,4 +1,8 @@
 import { SyncIndicator } from "@/components/game/header/sync-indicator";
+import {
+  PendingWritesProvider,
+  usePendingWrites,
+} from "@/hooks/use-pending-writes";
 import * as apiClientModule from "@/lib/api/api-client";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
@@ -21,14 +25,32 @@ jest.mock("@/hooks/use-data", () => ({
 const entry = (id: string) =>
   ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
 
+// SyncIndicator reads enqueue/flush/retry from context now that
+// `usePendingWrites` mounts once in `Game` -- this harness stands in for
+// that single owner so SyncIndicator can still be rendered on its own here.
+const PendingWritesTestHarness = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const pendingWrites = usePendingWrites("game-1", 0);
+  return (
+    <PendingWritesProvider value={pendingWrites}>
+      {children}
+    </PendingWritesProvider>
+  );
+};
+
 let store: AppStore;
 const renderIndicator = (onSurroundingClick: () => void) => {
   store = makeStore();
   return render(
     <Provider store={store}>
-      <div onClick={onSurroundingClick}>
-        <SyncIndicator gameId="game-1" />
-      </div>
+      <PendingWritesTestHarness>
+        <div onClick={onSurroundingClick}>
+          <SyncIndicator gameId="game-1" />
+        </div>
+      </PendingWritesTestHarness>
     </Provider>,
   );
 };
@@ -58,7 +80,9 @@ describe("SyncIndicator", () => {
     );
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -87,7 +111,9 @@ describe("SyncIndicator", () => {
     const user = userEvent.setup();
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -99,6 +125,10 @@ describe("SyncIndicator", () => {
     expect(
       await screen.findByRole("button", { name: "重試" }),
     ).toBeInTheDocument();
+    // The popover's own icon carries the warning color explicitly (it
+    // doesn't inherit it from the trigger button, which is a different
+    // element in the portalled popover content).
+    expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
   });
 
   it("reads as syncing, not unsynced, when this game's own request is in flight even though its items have exhausted their backoff", () => {
@@ -123,7 +153,9 @@ describe("SyncIndicator", () => {
     store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -154,7 +186,9 @@ describe("SyncIndicator", () => {
     store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -174,7 +208,9 @@ describe("SyncIndicator", () => {
     store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -211,7 +247,9 @@ describe("SyncIndicator", () => {
     const user = userEvent.setup();
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
@@ -266,7 +304,9 @@ describe("SyncIndicator", () => {
     const user = userEvent.setup();
     render(
       <Provider store={store}>
-        <SyncIndicator gameId="game-1" />
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
       </Provider>,
     );
 
