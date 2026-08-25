@@ -7,7 +7,7 @@
 #### Record
 
 - Keep recording without waiting for the server between rallies, so a weak connection at the venue no longer holds up play
-- Show at a glance whether everything has been saved, with a count of anything still unsent and a way to retry it
+- Flag anything that has not been saved yet, with a count and a way to retry it, and stay out of the way while there is nothing to report
 - Show how many sets each side has won as filled cells beside each score, replacing the numeric set score
 - Mark a rally that could not be saved on its own row in the per-rally record, with a retry beside it
 - Hold the next set until the last one's result has been recorded, rather than letting it start on a result that was never saved
