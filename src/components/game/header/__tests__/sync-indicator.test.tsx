@@ -1,4 +1,7 @@
-import { SyncIndicator } from "@/components/game/header/sync-indicator";
+import {
+  SYNCED_ACK_MS,
+  SyncIndicator,
+} from "@/components/game/header/sync-indicator";
 import {
   PendingWritesProvider,
   usePendingWrites,
@@ -7,7 +10,7 @@ import * as apiClientModule from "@/lib/api/api-client";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 
@@ -63,10 +66,13 @@ afterEach(() => {
 });
 
 describe("SyncIndicator", () => {
-  it("shows synced when the queue is empty", () => {
+  it("renders no control at all when the queue is empty, but keeps the slot's size", () => {
     renderIndicator(jest.fn());
 
-    expect(screen.getByRole("button", { name: "已同步" })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    // The middle column centres its children, so a slot that collapsed
+    // would drag the volleyball mark up and down as writes come and go.
+    expect(screen.getByTestId("sync-indicator-slot")).toHaveClass("size-6");
   });
 
   it("shows the count while syncing, wearing the syncing style", () => {
@@ -214,17 +220,116 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    expect(screen.getByRole("button", { name: "已同步" })).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("does not open the surrounding block's overview on tap", async () => {
     const onSurroundingClick = jest.fn();
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
     const user = userEvent.setup();
-    renderIndicator(onSurroundingClick);
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <div onClick={onSurroundingClick}>
+            <SyncIndicator gameId="game-1" />
+          </div>
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
 
-    await user.click(screen.getByRole("button", { name: "已同步" }));
+    await user.click(screen.getByRole("button", { name: "1 筆未同步" }));
 
     expect(onSurroundingClick).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges a recovery with the check mark, then clears itself", async () => {
+    jest.useFakeTimers();
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+    expect(
+      screen.getByRole("button", { name: "1 筆未同步" }),
+    ).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      );
+    });
+
+    // A retry that simply vanished would read as the app having dropped the
+    // request rather than completed it.
+    expect(screen.getByRole("button", { name: "已同步" })).toBeInTheDocument();
+
+    act(() => {
+      jest.advanceTimersByTime(SYNCED_ACK_MS);
+    });
+
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    jest.useRealTimers();
+  });
+
+  it("does not acknowledge a routine send -- only a recovery from exhausted", () => {
+    jest.useFakeTimers();
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      );
+    });
+
+    // Every rally goes through this path; a check mark here would sit on
+    // screen longer than the send it is acknowledging.
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it("retry closes the popover, flushes the queue, and moves to syncing", async () => {
