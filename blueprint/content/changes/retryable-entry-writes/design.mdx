@@ -140,25 +140,38 @@ type PendingEntry = {
   nextAttemptAt: number | null; // null 代表退避預算已用盡，或錯誤本身不可重試
 };
 
-type SyncState = {
+type PendingWritesState = {
   pending: PendingEntry[];
-  flushing: boolean; // 是否有一次 flush 正在途中
+  flushingGameIds: string[]; // 目前有請求在途中的 game id；一場比賽同時只會出現一次
 };
 
 type SyncStatus = "synced" | "syncing" | "unsynced";
 
-export const deriveSyncStatus = (state: SyncState): SyncStatus =>
-  state.pending.length === 0
+export const deriveSyncStatus = (
+  state: PendingWritesState,
+  gameId: string,
+): SyncStatus => {
+  const pending = state.pending.filter((p) => p.gameId === gameId);
+  return pending.length === 0
     ? "synced"
-    : state.flushing || state.pending.some((p) => p.nextAttemptAt !== null)
+    : isFlushingGame(state, gameId) ||
+        pending.some((p) => p.nextAttemptAt !== null)
       ? "syncing"
       : "unsynced";
+};
 
-export const hasFailedWrite = (state: SyncState, entryId: string) =>
+export const isFlushingGame = (state: PendingWritesState, gameId: string) =>
+  state.flushingGameIds.includes(gameId);
+
+export const hasFailedWrite = (state: PendingWritesState, entryId: string) =>
   state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt === null);
 ```
 
-`flushing` 與 `nextAttemptAt` 分開表達兩件不同的事：前者是「請求正在途中」，後者是「已排定下次嘗試」。兩者任一成立都算同步中，但少了 `flushing` 就無法避免對同一批 entry 重複送出。
+`flushingGameIds` 與 `nextAttemptAt` 分開表達兩件不同的事：前者是「這場比賽正有一個請求在途中」，後者是「已排定下次嘗試」。兩者任一成立都算同步中。
+
+`flushingGameIds` 掛的是 game id 而非單一布林值，因為 flush 以整場比賽為範圍（見下方「單一擁有者」）——切換比賽或背景重試與手動重試重疊時，可能同時有不只一場比賽的 flush 在途中，各自的完成不該互相影響對方的狀態。
+
+避免對同一批 entry 重複送出，靠的不是這個欄位，而是 `usePendingWrites`（擁有 `inFlight` ref 與背景重試 timer 的那個 hook）在一場比賽的畫面上只掛載一次——見下方「單一擁有者」一節。`flushingGameIds` 只負責讓 indicator 與失敗標記知道「這場比賽現在是不是正有請求在飛」，兩者是不同層次的問題。
 
 一個實際的 state 快照——第 7 顆球正在重試（已試 2 次，排定下次），第 8 顆球剛入列尚未嘗試：
 
@@ -194,21 +207,21 @@ export const hasFailedWrite = (state: SyncState, entryId: string) =>
       "nextAttemptAt": 1755950409000
     }
   ],
-  "flushing": false
+  "flushingGameIds": []
 }
 ```
 
-此時 `deriveSyncStatus` 回 `"syncing"`（兩筆都有排定嘗試），`SyncIndicator` 顯示「2 筆未同步」的計數但維持同步中的樣式；兩筆的 entry row 都**不會**出現失敗標記，因為 `hasFailedWrite` 要求 `nextAttemptAt === null`。
+此時 `deriveSyncStatus(state, "66f1c0a2e4b0a1d2c3e4f5a6")` 回 `"syncing"`（兩筆都有排定嘗試），`SyncIndicator` 顯示「2 筆未同步」的計數但維持同步中的樣式；兩筆的 entry row 都**不會**出現失敗標記，因為 `hasFailedWrite` 要求 `nextAttemptAt === null`。
 
 slice 的 action 面：
 
-| Action           | 作用                                                                                                            |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| `enqueued`       | 推入一筆 `PendingEntry`（`attempts: 0`），並觸發一次 flush                                                      |
-| `flushStarted`   | `flushing = true`                                                                                               |
-| `flushSucceeded` | 依 `id` 移除已確認的項目，`flushing = false`                                                                    |
-| `flushFailed`    | 每筆 `attempts + 1`，依退避表寫入 `nextAttemptAt`；預算用盡或錯誤不可重試（4xx）則寫 `null`；`flushing = false` |
-| `retryRequested` | 手動重試：把所有 `nextAttemptAt === null` 的項目重設為立即，並觸發 flush                                        |
+| Action           | 作用                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `enqueued`       | 推入一筆 `PendingEntry`（`attempts: 0`），並觸發一次 flush                                                             |
+| `flushStarted`   | 把這場比賽的 game id 加進 `flushingGameIds`（已存在則不重複加）                                                        |
+| `flushSucceeded` | 依 `id` 移除已確認的項目，把這場比賽的 game id 從 `flushingGameIds` 移除                                               |
+| `flushFailed`    | 每筆 `attempts + 1`，依退避表寫入 `nextAttemptAt`；預算用盡或錯誤不可重試（4xx）則寫 `null`；把這場比賽的 game id 移除 |
+| `retryRequested` | 手動重試：把所有 `nextAttemptAt === null` 的項目重設為立即，並觸發 flush                                               |
 
 `gameId` 讓佇列在使用者切換比賽時仍能分辨項目歸屬，flush 時也以它決定要打哪一場的端點。
 
@@ -217,6 +230,12 @@ slice 的 action 面：
 佇列放進**獨立的 slice**，而非併入 `game-slice`：它的生命週期與 per-set 的 draft 狀態不同，且之後要被獨立持久化。
 
 與 SWR cache 不構成重複真相——兩者回答不同問題：SWR 的樂觀 cache 是「使用者看到什麼」，佇列是「伺服器還沒確認什麼」。
+
+### 單一擁有者：`usePendingWrites` 只掛載一次
+
+`usePendingWrites(gameId, setIndex)` 內部握有兩樣每場比賽只能存在一份的東西：判斷「目前有沒有 flush 在途中」的 `inFlight` ref，以及依最早到期時間排程下一次背景重試的 `useEffect` timer。四個地方需要用到佇列——`Game`（記錄畫面與局間畫面共同的上層）、`useSubmitEntryDraft`（送出 entry）、`GamePreview`（editing 卡片的送出中／失敗態與重試）、`SyncIndicator`——如果各自呼叫這個 hook，等於各自握有一份 `inFlight` 與一個 timer，同一筆到期的 entry 會被四邊各自的 timer 同時判定為到期，各自送出一個請求。
+
+所以 `Game`（`src/components/game/index.tsx`）是這個 hook**唯一**掛載的地方——它本來就在記錄畫面與局間畫面的分支之上，一個 instance 能同時橫跨兩者。往下需要 `enqueue`／`flush`／`retry` 的元件，改由 `PendingWritesContext`（`usePendingWritesContext()`）讀取同一份結果，而不是各自呼叫 `usePendingWrites`；`useSubmitEntryDraft` 因為呼叫點本來就在 `Game` 內，直接把 `enqueue`／`flush` 當參數傳入即可，不需要走 context。
 
 ## 兩種失敗，兩個介面
 
