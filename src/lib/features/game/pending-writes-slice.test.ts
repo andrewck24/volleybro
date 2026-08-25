@@ -60,6 +60,18 @@ describe("pendingWrites reducer", () => {
     expect(state.flushingGameIds).toEqual(["game-1"]);
   });
 
+  it("flushStarted does not add a second entry for a game already flushing", () => {
+    let state = pendingWritesReducer(
+      undefined,
+      pendingWritesActions.flushStarted({ gameId: "game-1" }),
+    );
+    state = pendingWritesReducer(
+      state,
+      pendingWritesActions.flushStarted({ gameId: "game-1" }),
+    );
+    expect(state.flushingGameIds).toEqual(["game-1"]);
+  });
+
   it("flushStarted tracks more than one game flushing at once", () => {
     let state = pendingWritesReducer(
       undefined,
@@ -102,9 +114,12 @@ describe("pendingWrites reducer", () => {
     expect(state.flushingGameIds).toEqual(["game-2"]);
   });
 
-  it("flushFailed schedules the next background delay by attempt count", () => {
+  it("flushFailed schedules the next background delay by attempt count, and clears flushing for that game only", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: ["game-1"],
+      // Two games seeded so clearing "game-1" here can be told apart from a
+      // bug that wipes the whole array -- the single-element fixture this
+      // replaced could not distinguish scoped from unscoped clearing.
+      flushingGameIds: ["game-1", "game-2"],
       pending: [
         {
           entry: entry("e1"),
@@ -129,7 +144,7 @@ describe("pendingWrites reducer", () => {
     expect(state.pending[0]!.nextAttemptAt).toBe(
       Date.now() + PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
     );
-    expect(state.flushingGameIds).toEqual([]);
+    expect(state.flushingGameIds).toEqual(["game-2"]);
 
     for (let i = 1; i < PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS.length; i++) {
       state = pendingWritesReducer(
