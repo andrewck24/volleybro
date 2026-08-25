@@ -3,10 +3,7 @@ import { useCallback, useState } from "react";
 import { useGame } from "@/hooks/use-data";
 import { EntryType } from "@/entities/game";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
-import {
-  applyFlushedEntries,
-  isFlushingGame,
-} from "@/lib/features/game/pending-writes";
+import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import {
   readSetCompletion,
   setCompletionActions,
@@ -35,16 +32,19 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   const sessionConfirmed = useAppSelector((state) =>
     readSetCompletion(state.setCompletion, gameId, setIndex),
   );
-  const flushingThisGame = useAppSelector((state) =>
-    isFlushingGame(state.pendingWrites, gameId),
-  );
-  // A flush covers every pending set of this game, not only this one (see
-  // usePendingWrites), so flushing-for-this-game is necessary but not
-  // sufficient -- only read it as this set's signal when this set still has
-  // an entry in the queue.
-  const hasPendingEntryForSet = useAppSelector((state) =>
+  // Same rule deriveSyncStatus uses: a scheduled attempt counts as work in
+  // progress, not only a request literally on the wire -- an item sits with
+  // nextAttemptAt !== null for its whole in-flight-or-backoff life, so this
+  // one check covers both without needing to know whether a flush happens
+  // to be in flight right now. Scoped to this exact (gameId, setIndex): a
+  // flush covers every pending set of this game (see usePendingWrites), so
+  // game identity alone would wrongly pick up a different set's entry.
+  const hasScheduledAttemptForSet = useAppSelector((state) =>
     state.pendingWrites.pending.some(
-      (p) => p.gameId === gameId && p.setIndex === setIndex,
+      (p) =>
+        p.gameId === gameId &&
+        p.setIndex === setIndex &&
+        p.nextAttemptAt !== null,
     ),
   );
 
@@ -52,12 +52,12 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   const noSessionSignalYet = sessionConfirmed === undefined;
   const coldStartUnconfirmed = noSessionSignalYet && set?.win === null;
   // The moment Interval mounts right after the set-ending submit, no
-  // session signal has arrived yet either -- `flushingThisGame` is what
-  // tells the dialog to cover the screen for that window instead of staying
-  // hidden until the response settles.
+  // session signal has arrived yet either -- `hasScheduledAttemptForSet` is
+  // what tells the dialog to cover the screen for that window (and for the
+  // whole backoff window after a failed attempt) instead of dropping in and
+  // out between attempts.
   const attempting =
-    retrying ||
-    (noSessionSignalYet && flushingThisGame && hasPendingEntryForSet);
+    retrying || (noSessionSignalYet && hasScheduledAttemptForSet);
   const unconfirmed =
     sessionConfirmed === false || coldStartUnconfirmed || attempting;
 

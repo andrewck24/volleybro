@@ -108,12 +108,11 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(result.current.attempting).toBe(false);
   });
 
-  // The behaviour a bare boolean flag could not distinguish: this game/set's
-  // own entry sits unconfirmed in the queue (exhausted or not yet attempted)
-  // while a wholly different game's flush is genuinely on the wire. Without
-  // game identity on the flag, `flushing` alone would read this as this
-  // set's own in-flight attempt.
-  it("is not attempting when this set has a queued entry but the in-flight flush belongs to a different game", () => {
+  // Defect regression: a scheduled background-retry attempt must read as
+  // attempting even with no request literally on the wire, or the dialog
+  // disappears for the whole backoff window between the failed attempt and
+  // the next flush -- exactly the flicker this hook must not reproduce.
+  it("is attempting during the background backoff window, with no flush in flight", () => {
     mockGame = gameWithSet(true); // optimistic write already applied
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -122,12 +121,44 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-2" }));
+    // A retryable failure schedules nextAttemptAt in the future and clears
+    // flushingGameIds -- no flush is in flight during this window.
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: true,
+      }),
+    );
+
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
       { wrapper },
     );
 
+    expect(result.current.unconfirmed).toBe(true);
+    expect(result.current.attempting).toBe(true);
+  });
+
+  // The set-dimension counterpart of the game-scoping test above: a flush
+  // covers every pending set of one game, so game identity alone is not
+  // enough -- an entry queued for a different set of this same game must
+  // not be read as this set's own attempt.
+  it("is not attempting when the queued entry belongs to a different set of the same game", () => {
+    mockGame = gameWithSet(true); // optimistic write already applied
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "other" } as never,
+        gameId: "game-1",
+        setIndex: 5,
+      }),
+    );
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    expect(result.current.unconfirmed).toBe(false);
     expect(result.current.attempting).toBe(false);
   });
 
