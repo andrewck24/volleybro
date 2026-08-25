@@ -47,6 +47,10 @@ title: Review
 
 **第三輪（單一擁有者）** — 兩項使用者可見的缺陷。`usePendingWrites` 被四個元件各自掛載，各自握有 `inFlight` ref 與背景 timer，同一筆到期 entry 因此被送出四次；改為 `Game` 單一擁有、其餘經 `PendingWritesContext` 讀取。以及 `useUnconfirmedSetCompletion` 的 `attempting` 與 `deriveSyncStatus` 用了不同訊號，退避空窗期間不可關閉的 dialog 會閃爍消失；改為兩者同源。兩項都以「退回舊碼確認測試轉紅」證明，前者退回後從 1 次呼叫變成 5 次。
 
+**驗收前的真實資料檢查** — 一項資料損壞缺陷，只有拿真實資料庫看才會浮現。`upsertEntry` 的兩個 bulkWrite op 都以 entry 的 id 為鍵；沒有 id 的 entry 會以 `entries.id: null` 落地，`arrayFilters` 因此**一次匹配該局所有沒有 id 的 entry**，一筆編輯把它們全部覆寫成同樣內容。integration test 全部從乾淨資料建起、每筆都有 id，所以整組測試都看不到它。以真實 MongoDB 重現：三筆 entry、前兩筆去掉 id/seq，編輯第 0 筆後第 1 筆的比分也跟著變。
+
+沒有資料需要回填——`id` 欄位從未進過 `dev`，而 production 資料庫連 `games` collection 都不存在。修正是在 repository 邊界加守衛：沒有 `id` 或 `seq` 的 entry 直接拒收。型別宣稱 entry 必有 id，collection 卻裝得下沒有 id 的舊文件，型別在這個邊界上是假的，所以這裡檢查而不信任。
+
 **對抗式驗證** — 推翻兩項宣稱，這是本次品保最有價值的一步。第二輪的修正把 `flushing` 用「有排程中的項目」把關，理由是「正在被 flush 的項目一定有非 null 的 `nextAttemptAt`」——該 invariant 為假（`runFlush` 分組不看 `nextAttemptAt`，online listener 無條件觸發），且 `deriveSyncStatus` 既有的分支已吸收該條件，等於把 flushing 訊號整個移除而非收斂。另推翻了 popover 圖示保留 `text-warning` 的宣稱。兩輪審查都只說「scoping 不一致」，是對抗式驗證去讀實作、造出反例，才確定修正的**推理**是錯的。
 
 ## Residual risks
