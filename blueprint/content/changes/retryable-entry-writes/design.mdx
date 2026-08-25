@@ -349,6 +349,16 @@ slice 的 action 面：
 
 `SyncIndicator` 位於 header 正中央，因此 popover **向兩側展開**（`origin-center`，Radix 的 `align="center"`）——從畫面正中央往單一方向展開會顯得偏移。
 
+### 何時現身
+
+**佇列空的時候完全不渲染。** 恆亮的綠勾資訊量為零——空佇列是記錄者整場比賽 99% 的狀態，而且那個勾連自己宣稱的事都沒在做：斷線但沒有待送項目時一樣是綠勾，它代表的是佇列空，不是連線好。
+
+版位不隨之伸縮。中欄用 `justify-center` 排列子元素，指示器若整個消失，排球 icon 會跟著上下位移；因此空佇列時渲染的是同尺寸的 `size-6` 佔位 div，只是裡面沒有東西、也沒有熱區。這同時讓 44×44 熱區與總覽入口的那筆交換**只在真的有東西要重試時才付**。
+
+**從 unsynced 復原時，綠勾停留 `SYNCED_ACK_MS`（1.5 秒）才收起。** 重試成功後若直接消失，讀起來像 app 把請求丟掉而不是完成了它。這個確認只給「本來壞掉、現在好了」的轉換；例行送出（`syncing` → `synced`）不給，否則每記一球都會留下一個比送出本身還久的綠勾。
+
+局間畫面（`Interval`）不渲染 `SyncIndicator`——`GameHeader` 在那裡不帶 `handleOptionOpen`，整塊 `Scores` 都不出現。這是正確的：轉場的前提就是 entry 已確認，局間沒有任何 entry 狀態需要提示，該階段唯一可能未完成的寫入是本局結果，而那件事由不可關閉的 dialog 獨佔呈現。
+
 <div className="not-prose my-6 flex flex-col gap-4">
   <div className="flex flex-col items-start gap-2">
     <div className="text-xs text-muted-foreground">展開動畫的兩端</div>
@@ -471,7 +481,13 @@ Scores 最小內容：72(w-18) + 16 + 64(w-16) + 16 + 72(w-18) = 224px
 
 三欄同寬（`w-18` → `w-16`，64px）。比分欄本來就有餘裕——`text-[3rem]` 的兩位數約 58px 寬，72px 是多出來的。375px 下還餘 3px，而現況本來只剩 1px。中欄垂直是排球 icon（維持 `size-12`）48px ＋ gap ＋ `SyncIndicator` 24px，共約 76px 落在 84px 內，上下各餘 4px——不需要 `absolute`，也不必壓縮任何既有元素。
 
-`SyncIndicator` 的觸控熱區約 24×24，低於 44×44 的建議值。要再放大只能往上侵入排球 icon 的區域；由於 `Scores` 整塊已掛 `onClick`（開啟數據總覽），熱區內需要 `stopPropagation`，中欄其餘區域仍屬總覽入口。實際尺寸與觸控準確度在 Apply 階段以真實元件在瀏覽器中量過，結果如下。
+**觸控熱區 44×44，視覺維持 24×24。** 兩者以透明的 `::after`（`after:size-11`）解耦：pseudo-element 不佔版面、不改 border box，所以 popover 的錨點仍是看得見的那 24px，header 寬度一個 px 都不動。
+
+Design 初稿寫「熱區受限於版位、只能是 24×24」，那句只算了高度。中欄是 84×64，垂直方向被排球 icon 吃掉大半，水平方向卻整整空著左右各 20px——**44px 的寬度是免費的，只有 16px 的高度需要借**：往上 10px 疊到排球 icon，往下 6px 越過 header 下緣（整條祖先鏈沒有 `overflow-hidden`，`rounded-b-lg` 不裁切子元素，因此不會被裁掉）。這兩塊區域原本冒泡到 `Scores` 的 `onClick`（開啟數據總覽），交換後只觸發重試 popover。這筆交換划算：總覽另有左右兩個比分欄可進入，而 `SyncIndicator` 是唯一的全域重試入口。
+
+順帶更正一處嚴重度：44×44 是 WCAG 2.5.5（AAA）與 Apple HIG 的數字，AA 層級適用的是 2.5.8 Target Size (Minimum)，門檻 24×24。原本的 24×24 卡在及格線上，並非 AA 不合規。
+
+實際尺寸與觸控準確度在 Apply 階段以真實元件在瀏覽器中量過，結果如下。
 
 - **375px：通過。** 內容跨距 220px 落在可用的 223px 內，設定鍵右緣距畫面邊界 8px。
 - **320px：不通過，且這是本 Change 之前就存在的狀況。** header 的固定內容合計 372px，超出 52px；改動前是 376px，超出 56px。本 Change 讓它好了 4px，但沒有解決它。

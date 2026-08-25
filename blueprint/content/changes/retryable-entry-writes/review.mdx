@@ -12,9 +12,9 @@ title: Review
 - **S04** — 兩個 rally usecase 併為 `RecordRalliesUseCase`，controller 收斂，route 只留 `PUT` 並移除 entry 索引；response 改為 `{ entries, setCompletionConfirmed? }`，entry 寫入成功後 entries 無條件回傳。
 - **S05** — 本局結果的寫入在同一 request 內重試三次（50／200／500ms），由錯誤模型既有的 `retryable` 旗標決定——該旗標在此之前全 repo 無任何讀取端。
 - **S06** — `pendingWrites` slice、`usePendingWrites`、兩張退避表與兩個純推導函式；送出改為入列，flush 從佇列組請求；create 樂觀推進、update 維持等待。
-- **S07** — `SetTally` 取代數字局數比，`SyncIndicator` 進入中欄的 flow；同時修掉 S06 遺留的 set-index 範圍缺陷。
+- **S07** — `SetTally` 取代數字局數比，`SyncIndicator` 進入中欄的 flow；同時修掉 S06 遺留的 set-index 範圍缺陷。驗收後追加兩項：觸控熱區以透明 `::after` 擴為 44×44（視覺與版面不變），以及佇列空時不渲染控制項、只留同尺寸佔位，從 unsynced 復原時綠勾停留 1.5 秒作為確認。
 - **S08** — 失敗標記進入 entry row 與編輯卡片；`useEditingGuard` 封鎖編輯視窗的三個出口。
-- **S09** — 局間畫面疊加不可關閉的 dialog；即時送出靠 response 欄位偵測，冷啟動靠既有推導函式比對。
+- **S09** — 局間畫面疊加不可關閉的 dialog；即時送出靠 response 欄位偵測，冷啟動靠既有推導函式比對。驗收後移除處理中那句描述文字：它要求使用者別做一件 dialog 本來就擋住的事。
 
 ## Plan versus actual
 
@@ -28,7 +28,7 @@ title: Review
 
 ## 驗證證據
 
-- `pnpm verify:all` 通過：116 suites／884 tests，加上 integration 的 9 suites／27 tests，format、workflow conformance、`typecheck:strict`、lint、production build、service worker 斷言與 Blueprint build 全綠。
+- `pnpm verify:all` 通過：116 suites／889 tests，加上 integration 的 9 suites／27 tests，format、workflow conformance、`typecheck:strict`、lint、production build、service worker 斷言與 Blueprint build 全綠。
 - **核心性質在 integration 層對真實資料庫證明**：同一 id 重送後該 id 僅存一筆；先寫 seq 8 再寫 seq 7，讀回為 `["entry-7", "entry-8"]`；`Promise.all` 兩個不同 id 並行寫入兩筆皆在。
 - **casting 存續有專屬測試**：送出無法解析的 ObjectId 回 400 且該局其餘資料未受影響——此條僅在「一般 update 而非 aggregation pipeline update」時成立，等於把 D1 的實作條件釘死。
 - **原始缺陷的反面有端到端證明**：只讓 `completeSet` 的驅動呼叫拋錯，entry 寫入照走真實 Mongo；斷言回 200、`setCompletionConfirmed: false`、entries 完整，並**重新自資料庫讀出**確認該 entry 存在、`sets[0].win` 仍為 `null`。全程無重試參與。
@@ -45,20 +45,22 @@ title: Review
 
 **第二輪** — 兩軸**獨立收斂到同一個缺陷**：`SyncIndicator` 與 `retryRequested` 未套用先前的收斂修正，後果是使用者可見的——別場 flush 時本場的重試按鈕消失，且手動重試會讓別場的項目更糟。另有一項硬性違規（新增的 `ui/` 元件缺 Storybook story）。
 
+**第三輪（單一擁有者）** — 兩項使用者可見的缺陷。`usePendingWrites` 被四個元件各自掛載，各自握有 `inFlight` ref 與背景 timer，同一筆到期 entry 因此被送出四次；改為 `Game` 單一擁有、其餘經 `PendingWritesContext` 讀取。以及 `useUnconfirmedSetCompletion` 的 `attempting` 與 `deriveSyncStatus` 用了不同訊號，退避空窗期間不可關閉的 dialog 會閃爍消失；改為兩者同源。兩項都以「退回舊碼確認測試轉紅」證明，前者退回後從 1 次呼叫變成 5 次。
+
 **對抗式驗證** — 推翻兩項宣稱，這是本次品保最有價值的一步。第二輪的修正把 `flushing` 用「有排程中的項目」把關，理由是「正在被 flush 的項目一定有非 null 的 `nextAttemptAt`」——該 invariant 為假（`runFlush` 分組不看 `nextAttemptAt`，online listener 無條件觸發），且 `deriveSyncStatus` 既有的分支已吸收該條件，等於把 flushing 訊號整個移除而非收斂。另推翻了 popover 圖示保留 `text-warning` 的宣稱。兩輪審查都只說「scoping 不一致」，是對抗式驗證去讀實作、造出反例，才確定修正的**推理**是錯的。
 
 ## Residual risks
 
 - **未同步的 entry 在 app 被關閉時遺失。** 佇列只存在記憶體。此情境比改動前更糟——改動前沒收到確認就不推進，最多損失當下草稿；改動後可能一次損失數筆。已登記並另票追蹤，排在 v0.16.0。
-- **`SyncIndicator` 的觸控熱區約 24×24**，低於 44×44 的建議值。這是該版位的空間上限，替代路徑記在 D4 的 alternatives。
 - **320px 螢幕的 header 溢出**（既有缺陷，本次改善 4px 但未解決），另票追蹤。
-- **`ring` 的使用與設計系統的 No-Ring Rule 存在未解衝突。** Design 明確指定失敗態用 `ring-1 ring-destructive` 並刻意否決虛線 border；`design-system.md` 則寫 `--ring` 僅保留給 focus-visible。既有的 `toast.tsx` 與 `alert.tsx` 已在使用標註為 experimental 的裝飾性 ring。此項待開發者裁決，所有修正輪均未觸碰任何 `ring` utility。
+- **`ring` 的使用與設計系統的 No-Ring Rule 存在衝突，已裁決。** Design 指定失敗態用 `ring-1 ring-destructive` 並刻意否決虛線 border；`design-system.md` 則寫 `--ring` 僅保留給 focus-visible。查證後認定衝突出在文件而非程式碼：六個 `ui/` 元件已在使用裝飾性 ring，文件自身有三處互相牴觸的例外，且 No-Ring Rule 那張表講的其實是 elevation 而非狀態標示。決議為維持所有既有 `ring` 用法不動，改由後續工作修正文件；所有修正輪均未觸碰任何 `ring` utility。
 - **`set-completion-slice` 是新增的儲存狀態。** Spec 軸將其列為未要求的擴充。判斷為保留：規格禁止的是**冷啟動**偵測依賴額外儲存狀態（實作確實沒有，用 `set.win === null` 比對），而即時送出那條路徑是 D3 明文承認回應欄位為唯一可用訊號——本地快取已被樂觀寫入，自己比對自己永遠相符。該 slice 刻意不持久化，重新載入會正確落回冷啟動比對。
 
 ## Follow-ups
 
 - 待送佇列持久化，關閉上述資料遺失缺口，排在 v0.16.0 之前完成。
 - 320px header 版面支援。
+- `design-system.md` 的 No-Ring Rule 釐清與 ring technique 正式化（不改任何既有元件外觀）。
 - `apiClient` 其餘健壯性問題：空 body 解析與 JSON 送出樣板。
 - `GET /api/games` 的分頁改為不透明 cursor。
 - 順序衝突解決（意圖錨點）與多裝置同步本身，仍屬各自的後續工作。
