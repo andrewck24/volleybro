@@ -2,7 +2,12 @@ import type {
   EntryRef,
   IGameRepository,
 } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError, CommonReason, GameReason } from "@/entities/errors";
+import {
+  NotFoundError,
+  ValidationError,
+  CommonReason,
+  GameReason,
+} from "@/entities/errors";
 import {
   EntryType,
   type Entry,
@@ -438,6 +443,20 @@ export class GameRepositoryImpl implements IGameRepository {
     const lineupSet = setLineups.length
       ? Object.fromEntries(setLineups)
       : undefined;
+
+    // An entry without an identity would be written as `entries.id: null`,
+    // which the arrayFilters below match against every other entry that also
+    // has none -- one edit silently overwriting all of them. The type says
+    // this cannot happen; the collection can still hold documents written
+    // before identities existed, so the boundary checks rather than trusts.
+    const anonymous = entries.find(
+      (entry) => typeof entry.id !== "string" || typeof entry.seq !== "number",
+    );
+    if (anonymous)
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "An entry must carry an id and a seq to be written",
+      );
 
     const ops = entries.flatMap((entry) => {
       const mapped = this.mapEntryWrite(entry);
