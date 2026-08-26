@@ -1,4 +1,14 @@
 "use client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +26,10 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import { useBackConfirmation } from "@/hooks/use-back-confirmation";
 import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-completion";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { RiAlertLine } from "react-icons/ri";
 
 const ATTEMPTING_TITLE = "正在記錄本局結果…";
@@ -27,6 +40,9 @@ const ATTEMPTING_DESCRIPTION = "正在儲存本局結果，請稍候。";
 // recorder sees an unrecoverable write.
 const EXHAUSTED_TITLE = "哎呀，發球掛網了！";
 const EXHAUSTED_DESCRIPTION = "本局結果還沒存好，這一局的球都在，只差這一步。";
+const LEAVE_TITLE = "本局結果還沒存好";
+const LEAVE_DESCRIPTION =
+  "現在離開，這一局的結果仍然沒有送出。回到這場比賽就能再試一次。";
 
 /**
  * The entry itself already landed by the time this can render -- the only
@@ -41,9 +57,20 @@ export const UnconfirmedSetDialog = ({
   gameId: string;
   setIndex: number;
 }) => {
+  const router = useRouter();
   const { unconfirmed, attempting, retry } = useUnconfirmedSetCompletion(
     gameId,
     setIndex,
+  );
+  // Blocking the dialog's own dismissals still leaves the back gesture, which
+  // on a phone is the way out of anything.
+  const leave = useCallback(
+    () => router.push(`/game/${gameId}`),
+    [router, gameId],
+  );
+  const { confirming, confirmLeave, cancelLeave } = useBackConfirmation(
+    unconfirmed,
+    leave,
   );
   const title = attempting ? ATTEMPTING_TITLE : EXHAUSTED_TITLE;
   const description = attempting
@@ -88,6 +115,25 @@ export const UnconfirmedSetDialog = ({
           </Empty>
         </DialogBody>
       </DialogContent>
+      <AlertDialog
+        open={confirming}
+        onOpenChange={(open) => !open && cancelLeave()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{LEAVE_TITLE}</AlertDialogTitle>
+            <AlertDialogDescription>{LEAVE_DESCRIPTION}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelLeave}>
+              留在這裡
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmLeave}>
+              仍要離開
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

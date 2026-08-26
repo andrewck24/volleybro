@@ -8,6 +8,11 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 
+const push = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
 jest.mock("@/lib/api/api-client", () => ({
   ...jest.requireActual("@/lib/api/api-client"),
   apiClient: jest.fn(),

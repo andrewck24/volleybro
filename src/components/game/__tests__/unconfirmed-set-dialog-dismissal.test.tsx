@@ -1,9 +1,15 @@
 import { UnconfirmedSetDialog } from "@/components/game/unconfirmed-set-dialog";
-import { render } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+const push = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
 
 // Proves UnconfirmedSetDialog's DialogContent actually receives handlers
 // that block every dismissal route -- escape, outside click, and the close
-// button (no exit until the retry lands). Content/state behavior is
+// button, and the back gesture. Content/state behavior is
 // covered by unconfirmed-set-dialog.test.tsx against the real dialog; this
 // only checks the three exits are wired to reject dismissal.
 let capturedProps: {
@@ -47,5 +53,34 @@ describe("UnconfirmedSetDialog dismissal", () => {
     const outsideEvent = { preventDefault: jest.fn() };
     capturedProps.onInteractOutside?.(outsideEvent);
     expect(outsideEvent.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  // Blocking the primitive's own exits still leaves the back gesture, which
+  // on a phone is the way out of anything.
+  it("asks before letting the back gesture leave, and stays put on cancel", async () => {
+    const user = userEvent.setup();
+    push.mockClear();
+    render(<UnconfirmedSetDialog gameId="game-1" setIndex={0} />);
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(push).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: "留在這裡" }));
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("leaves for the game once the recorder confirms", async () => {
+    const user = userEvent.setup();
+    push.mockClear();
+    render(<UnconfirmedSetDialog gameId="game-1" setIndex={0} />);
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await user.click(await screen.findByRole("button", { name: "仍要離開" }));
+
+    expect(push).toHaveBeenCalledWith("/game/game-1");
   });
 });
