@@ -45,6 +45,8 @@ const initialState: ReduxGameState = {
   general: {
     status: statusState,
     entryDraft: {
+      id: "",
+      seq: 0,
       win: null,
       home: rallyDetailState,
       away: rallyDetailState,
@@ -53,6 +55,8 @@ const initialState: ReduxGameState = {
   editing: {
     status: statusState,
     entryDraft: {
+      id: "",
+      seq: 0,
       win: null,
       home: rallyDetailState,
       away: rallyDetailState,
@@ -275,6 +279,8 @@ const setEditingEntryStatus: CaseReducer<
 
   state.mode = "editing";
   state.editing.entryDraft = {
+    id: entry.id,
+    seq: entry.seq,
     win: entry.type === EntryType.RALLY ? entry.win : null,
     home:
       entry.type === EntryType.RALLY

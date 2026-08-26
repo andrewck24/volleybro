@@ -1,0 +1,94 @@
+---
+title: Overview
+---
+
+## Context
+
+記一顆球是兩次資料庫寫入：一定執行的 `appendEntry`，以及該球剛好結束一局時才執行的 `completeSet`。`game-positional-writes` 的 D4 在 consequences 裡明列了「兩者合併後的失敗行為從未定義」，該 Change 沒有處理，登記為 residual risk R1。
+
+兩者的重試性質相反。`completeSet` 寫的是推導值，重複執行結果相同。`appendEntry` 是 `$push`，重複執行就多一個元素。目前沒有任何東西區分它們。
+
+實際的時間軸是：使用者記下讓該局結束的那顆球 → 前端樂觀更新、畫面顯示已記錄 → `appendEntry` 成功，**球已進資料庫** → `completeSet` 失敗 → 整個 request 回 500 → SWR rollback 且 `revalidate: false`，畫面退回「沒記到」且不跟伺服器對答案 → 使用者再記一次 → `$push` 再執行一次，同一顆球出現兩次，比分從此錯位。
+
+第 6 步是關鍵：rollback 不只沒幫上忙，它**主動誘發**了造成重複的重試。UI 明確告訴使用者「沒記到」，而事實相反。
+
+即使兩次寫入都成功，回應仍可能在網路上遺失。伺服器端已完成工作、無從得知確認未送達，使用者看到的同樣是失敗，重記的結果同樣是重複。
+
+還有第二個問題，範圍比第一個更大：**目前每記一顆球都要等伺服器回應才能記下一顆**。順利時那是一兩百毫秒，感覺不到；但球館的 wifi 與行動網路本來就不穩，網路一差每筆就要等上好幾秒，而排球的球速等不起——實質上就是不能記錄。
+
+## Goals
+
+- 重送同一筆 entry 不產生重複，使「不確定就再試一次」從危險操作變成安全操作。
+- 讓記錄流程在網路不佳時仍能連續進行，不被單筆寫入的往返時間卡住。
+- 抵達順序不再決定資料庫中的順序——晚到的球仍排在它該在的位置。
+- 讓系統自己承擔重試，而不是把「要不要再記一次」這個判斷丟給使用者；剩下真的需要人介入的失敗，必須恆常可見。
+- 消除「單一 entry 的寫入失敗影響該局既有資料」的最後一種形式。`game-positional-writes` 已讓失敗不再毀掉既有資料，但失敗後的重試仍會產生重複，同樣是 `v0.15.0 記錄穩定性與資料完整性` 出場條件涵蓋的資料完整性缺口。
+- 順帶讓錯誤模型宣告的 `retryable` 真正被某一層消費——該旗標目前全 repo 無任何讀取端。
+
+## Non-goals
+
+- 不做順序衝突解決。`seq` 保證的是**單一裝置記錄順序**不被抵達順序打亂；多裝置並行時語意層次的順序錨點屬 `intent-anchors`，本 Change 只保證不遺失、不重複、不亂序。
+- 不做多裝置即時同步本身。本 Change 只移除它會踩到的地雷。
+- 不動局間畫面的實作。是否移除局間畫面、改以多步驟 dialog 承載，屬 `game 流程一致性` 的討論範圍；本 Change 只在既有局間畫面上疊加提示。
+- **不做完整的同步狀態指示器。** `SyncIndicator` 在本 Change 只做待送佇列的三態（已同步／同步中／N 筆未同步），報告的是**佇列狀態而非連線狀態**。離線偵測、SSE 重連狀態與多裝置語意仍屬 `sse-transport` 與 `conflict-panel`，那裡是在本 Change 的指示器上**擴充**維度，不是重做。
+- **不做待送佇列的持久化。** 佇列只存在記憶體中，app 被關閉時未同步的 entry 會遺失；這是已登記的 residual risk，由獨立的後續工作在 v0.16.0 關閉。
+- 不將 repository 泛用 `update()` 的存續條件工具化。那是 `game-positional-writes` 的 residual risk R2，與分層倒置稽核的邊界規則自動化可能重疊，歸屬未定。
+- 不做資料遷移。專案尚未上線。
+- 不觸發全 repo 的 response envelope 遷移（理由見 Design 的 D3）。
+
+## Change boundaries
+
+- **一定在內**：`create-rally`、`update-rally` 兩條寫入路徑，以及它們共用的 repository 寫入操作與 API route。
+- **在內**：`entrySchema` 的 `id` 與 `seq` 兩個欄位、entity 層 `Entry` 型別、response schema、Redux draft——身分與順序必須存在於 entry 經過的每一層，且在樂觀推進**之前**就已產生。
+- **在內（討論中確認）**：待送佇列。樂觀推進之後必須有東西記得「伺服器還沒確認什麼」，它同時是 `SyncIndicator` 與 entry row 失敗標記的唯一來源。獨立成 slice。
+- **在內（討論中確認）**：`SyncIndicator`。失敗標記在 summary 的 entry row 上，而記錄畫面平常看不到那裡，沒有恆常可見的計數，一筆失敗的 entry 可能整局都沒人發現。
+- **在內（版位量測後確認）**：`SetTally`。header 三欄已卡在可用寬度的臨界，`SyncIndicator` 插不進去；把數字局數比換成兩側的格子，才空出中欄原本屬於數字的位置。`Scores` 元件因此進入本 Change 範圍。
+- **在內但常被低估**：`create-substitution`。它與 rally 共用同一個 repository 操作，合併後不可能只改一半。但它僅修錯誤處理，**不改 response 形狀**——換人永不觸發 `completeSet`，沒有第二件事要回報。
+- **在內（走查中發現）**：兩個 rally usecase 逐行相同，唯一差別是呼叫哪個 repository 方法；合併該方法就等於合併它們，controller 與 route 一併收斂。
+- **在內（討論中發現）**：編輯視窗的三個關閉出口。自動重試期間，返回按鈕、overlay 點擊、Escape 鍵都必須擋住，否則使用者會在結果未知時離開。原本只注意到返回按鈕。
+- **在內**：共用 HTTP client 的 timeout 與網路層錯誤正規化。重試邏輯若無法分辨「很慢」與「已死」就無法決定任何事。
+- **不在內**：`create-set`、`update-set`。它們是 set 層級寫入，不寫 entries，沒有身分問題。
+- **明確不在內**：其他 domain 的 repository。
+
+## Capability impact
+
+`game-recording/persistence` 的可靠性契約再進一步：目前是「單一 entry 的失敗不影響該局既有資料」（`game-positional-writes` 已達成），改為「單一 entry 的寫入結果對 client 而言是可確認的，重送不改變已達成的狀態，且抵達順序不影響儲存順序」。
+
+這對 `game-recording/collaboration` 是前置條件，而且是同一個解法一次涵蓋兩者：以身分為鍵的 upsert 在單一寫入者下提供重試安全，在並行寫入下提供不覆蓋——後者正是 `game-positional-writes` 的 D2 列為同步記錄前置條件的那一項。以陣列位置定址的方案能拿到前者卻會失去後者，因此不成立。
+
+`game-recording/rally-recording` 的互動契約改變更明顯：**記錄不再與網路往返同步**。create 路徑樂觀推進，寫入在背景進行；使用者看到的失敗只剩下真正需要介入的那些。代價是引入一個新的恆常可見元素（`SyncIndicator`）、連帶把局數比改為 `SetTally`，以及一個新的持久化缺口（見 Non-goals 與 Design 的 Risks）。
+
+## Alternatives considered
+
+Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記結論方向：
+
+- **只做 `completeSet` 的後端重試**——收掉一半，另一半（`appendEntry` 成功但回應遺失）症狀完全相同，使用者感受不到差別。不成立。
+- **index-addressed upsert（寫入第 N 格）**——單一寫入者的重試安全成立，但重新打開 lost update 窗口，等於推翻同步記錄的前置條件，之後必須反轉。
+- **等回應才推進，配延遲顯示的 loading**——順序由結構保證、無需佇列，但前提是「順利時很快」。網路持續不佳時該前提崩潰，而那正是本 app 最可能的使用環境。
+- **嚴格 FIFO 送出佇列**——伺服器永遠內部一致，但一顆球永久失敗會扣住它之後的每一顆。因為第五顆失敗而損失後面二十顆，比留一個會自癒的暫時空洞更糟。
+- **單一具順序語意的識別碼（UUIDv7／ULID）**——可行且省一個欄位，但把順序凍結在建立當下：賽後編輯要插入一顆球就得改身分，而身分絕不能改。
+- **沿用 Mongoose 自動 `_id` 作為身分**——身分必須在送出前存在才能讓重送被辨識為重送，伺服器產生的識別碼做不到。
+- **以 response header 傳遞 `completeSet` 的確認訊號**——本 repo 無任何以自訂 header 傳遞應用層資訊的先例，且該訊號屬業務資料，放 header 會脫離型別驗證。
+- **全 repo 改用 document envelope**——範圍遠超本 Change，且既有慣例本即「有真正獨立的額外事實才具名」，本次落在同一條規則內。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。
+
+| ID  | 問題                               | 結論                                                                  |
+| --- | ---------------------------------- | --------------------------------------------------------------------- |
+| D1  | entry 如何取得穩定身分與順序       | client 產生 `id` 與 `seq`，append 與 replace 合併為 idempotent upsert |
+| D2  | 重試該由誰負責                     | 依失敗性質拆分：伺服器處理寫入失敗，client 處理結果未知               |
+| D3  | 一次寫入的兩個結果如何回報         | entries 無條件回傳，set 結果的確認狀態以具名欄位並列                  |
+| D4  | 樂觀推進後由誰記得「還沒確認什麼」 | 待送佇列，`SyncIndicator` 與失敗標記皆為其投影                        |
+
+## Revisit triggers
+
+- 待送佇列被持久化：本 Change 登記的資料遺失 residual risk 屆時關閉，D4 的 consequences 需要一併校正。
+- 賽後編輯加入「中間插入」：那是第一個需要重新編號 `seq` 的操作，屆時要在 client 端批次重編與改用 fractional ordering 之間選擇。
+- 同步協作需要語意層次的順序保證，而非只要求不遺失、不重複、不亂序：D1 標註的 last-write-wins 邊界與「兩台裝置可能選到同一個 `seq`」屆時就是要重新檢討的地方。
+- 連線狀態隨同步記錄進場，`SyncIndicator` 多出第二個維度：本 Change 的佇列語意需要重新表述。
+- 出現第七條 game 寫入路徑且走了泛用 `update()`：代表 `game-positional-writes` 的 D3 存續條件沒有被遵守。
+- 重試次數與退避間隔被量測推翻：目前的數值是未經量測的起始值，repo 內沒有 mutation 路徑的既有慣例可繼承。
+- 系統因其他理由引入持久任務佇列：D2 反對「伺服器在 request 生命週期外重試」的論據會隨之減弱。
+- 資料庫選型決定遷移至關聯式資料庫：文件資料庫特定的 guard、`arrayFilters` 與 `$sort` 實作作廢，但介面、身分模型與順序模型應原樣成立。

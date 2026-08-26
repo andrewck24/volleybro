@@ -1,0 +1,17 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "Recording a set result retries before giving up",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S04"],
+  "outcome": "A transient failure while recording which side won the set repairs itself inside the same request, so the recorder never sees it. Only a failure that survives every attempt is reported as unconfirmed.",
+  "acceptanceCriteria": [
+    "The set-result write is retried a fixed number of times with growing pauses before the response is sent, and the counts and pauses are stated in one place rather than scattered.",
+    "A set result that succeeds on a later attempt is reported as confirmed, and the recorder sees an ordinary success.",
+    "A set result that fails every attempt is reported as unconfirmed while the entries still come back.",
+    "The retryable flag the error model already declares is what decides whether to retry, giving that flag its first consumer in the repository.",
+    "An error that is not retryable is not retried."
+  ],
+  "verification": ["pnpm test", "pnpm typecheck:strict", "pnpm format:check"],
+  "status": "completed"
+}

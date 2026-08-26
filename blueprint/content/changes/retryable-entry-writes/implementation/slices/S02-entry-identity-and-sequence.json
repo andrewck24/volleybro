@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Entries carry a stable identity and sequence",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": [],
+  "outcome": "Every entry leaves the client already carrying an identity that never changes and a sequence saying where it belongs in the set. Nothing depends on them yet; this slice only makes them exist at every layer the entry passes through, so the writes that follow have something to key on.",
+  "acceptanceCriteria": [
+    "The entry document schema stores an explicit identity field and a sequence field; Mongoose's automatic subdocument id stays disabled.",
+    "The entity-layer entry type, the response schema and the Redux entry draft all carry both fields.",
+    "The identity is generated on the client from the platform's own UUID generator before the optimistic update runs, not after it and not on the server.",
+    "The sequence is the entry's position in the set, taken from the value the client already tracks.",
+    "Recording a rally and reading the game back returns the entry with the same identity and sequence the client sent.",
+    "Write behaviour is otherwise unchanged: an append is still an append and nothing yet reads either field."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm test:integration",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

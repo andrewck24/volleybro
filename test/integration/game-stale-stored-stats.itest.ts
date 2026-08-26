@@ -66,12 +66,16 @@ describe("games recorded before stats were retired", () => {
           entries: [
             {
               type: EntryType.RALLY,
+              id: "entry-1",
+              seq: 0,
               win: true,
               home: { score: 1, type: MoveType.ATTACK, num: 1 },
               away: { score: 0, type: MoveType.ATTACK, num: 1 },
             },
             {
               type: EntryType.RALLY,
+              id: "entry-2",
+              seq: 1,
               win: false,
               home: { score: 1, type: MoveType.ATTACK, num: 1 },
               away: { score: 1, type: MoveType.ATTACK, num: 1 },

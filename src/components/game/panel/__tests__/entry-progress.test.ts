@@ -3,6 +3,8 @@ import { getEntryProgress } from "@/components/game/panel/entry-progress";
 import type { ReduxEntryDraft } from "@/lib/features/game/types";
 
 const baseDraft: ReduxEntryDraft = {
+  id: "",
+  seq: 0,
   win: null,
   home: { score: 0, type: null, num: null, player: { id: "", zone: 0 } },
   away: { score: 0, type: null, num: null, player: { id: "", zone: 0 } },

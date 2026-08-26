@@ -1,0 +1,82 @@
+---
+title: Review
+---
+
+## Delivered
+
+九個切片全部完成。每片的實作 commit 以 commit body 的 `Implements` trailer 指認，`git log --grep="Implements: S04"` 即可重建映射——本頁一律以 slice ID 指稱，不引用 commit hash。
+
+- **S01** — 三個寫入 action 改走共用 HTTP client；`apiClient` 補上 `AbortSignal.timeout` 與網路層錯誤正規化（逾時與斷線收斂為 503 加 transient code，讓既有的 5xx／4xx 分流首次真正生效）；`create-substitution` 吞掉錯誤不 rethrow 的既有缺陷一併修掉。
+- **S02** — `entrySchema`、entity `Entry`、response schema 與 Redux draft 全部帶上 `id` 與 `seq`，且在樂觀更新前產生。寫入語意未動。
+- **S03** — `appendEntry` 與 `replaceEntry` 併為 `upsertEntry`，收一至多筆，以 `bulkWrite` 逐筆命中「`arrayFilters` 覆寫」或「`$ne` 守衛的 `$push` ＋ `$each`／`$sort`」其一。
+- **S04** — 兩個 rally usecase 併為 `RecordRalliesUseCase`，controller 收斂，route 只留 `PUT` 並移除 entry 索引；response 改為 `{ entries, setCompletionConfirmed? }`，entry 寫入成功後 entries 無條件回傳。
+- **S05** — 本局結果的寫入在同一 request 內重試三次（50／200／500ms），由錯誤模型既有的 `retryable` 旗標決定——該旗標在此之前全 repo 無任何讀取端。
+- **S06** — `pendingWrites` slice、`usePendingWrites`、兩張退避表與兩個純推導函式；送出改為入列，flush 從佇列組請求；create 樂觀推進、update 維持等待。
+- **S07** — `SetTally` 取代數字局數比，`SyncIndicator` 進入中欄的 flow；同時修掉 S06 遺留的 set-index 範圍缺陷。驗收後追加兩項：觸控熱區以透明 `::after` 擴為 44×44（視覺與版面不變），以及佇列空時不渲染控制項、只留同尺寸佔位，從 unsynced 復原時綠勾停留 1.5 秒作為確認。
+- **S08** — 失敗標記進入 entry row 與編輯卡片；`useEditingGuard` 封鎖編輯視窗的三個出口。
+- **S09** — 局間畫面疊加不可關閉的 dialog；即時送出靠 response 欄位偵測，冷啟動靠既有推導函式比對。驗收後移除處理中那句描述文字：它要求使用者別做一件 dialog 本來就擋住的事。
+
+## Plan versus actual
+
+三處與核准計畫不同，都在審查中浮現並經判斷後採納：
+
+**手動重試的範圍。** D4 的 action 表描述 `retryRequested` 重設**所有**已耗盡項目。實作收斂為「發起的那一場」。不收斂的版本有害：flush 與背景排程都以 game 過濾，別場的已耗盡項目會被推成「已排定」卻沒有任何掛載中的 hook 會嘗試它們——從「未同步（可見、可重試）」永久翻成「同步中」。收斂後才符合 D4 自己的意圖，即指示器顯示的與重試清得掉的必須是同一組。
+
+**in-flight 訊號取得 game 身分。** `flushing` 原為無身分的布林。D4 與 Design 都把它描述為「請求正在途中」，而請求永遠屬於某一場比賽；狀態沒有反映這件事，導致「本場已耗盡＋別場在途中」與「本場已耗盡＋本場在途中」在元件眼中完全相同，任何建立其上的 guard 都只能二擇一。改為記錄 mid-flush 的 game id 集合後，兩個場景都成立，且兩個消費端的 guard 因此**變簡單**——不再需要 ownership 的變通寫法。
+
+**S07 的 320px 驗收條件。** 原文要求 header 在 375px 與 320px 都不溢出。實測 320px 溢出 52px，但改動前是 56px——**這是本 Change 之前就存在的缺陷，本次讓它好了 4px**。驗收條件是撰寫時把 Design 的「以兩個寬度確認」誤寫成「兩個寬度都不得溢出」，等於要求一片做版面元件的 slice 順手修掉無關的既有缺陷。條件已公開修正為「375px 不得溢出且須實測；320px 同樣量測並記錄，且不得更差」，320px 支援另票追蹤。
+
+## 驗證證據
+
+- `pnpm verify:all` 通過：116 suites／889 tests，加上 integration 的 9 suites／27 tests，format、workflow conformance、`typecheck:strict`、lint、production build、service worker 斷言與 Blueprint build 全綠。
+- **核心性質在 integration 層對真實資料庫證明**：同一 id 重送後該 id 僅存一筆；先寫 seq 8 再寫 seq 7，讀回為 `["entry-7", "entry-8"]`；`Promise.all` 兩個不同 id 並行寫入兩筆皆在。
+- **casting 存續有專屬測試**：送出無法解析的 ObjectId 回 400 且該局其餘資料未受影響——此條僅在「一般 update 而非 aggregation pipeline update」時成立，等於把 D1 的實作條件釘死。
+- **原始缺陷的反面有端到端證明**：只讓 `completeSet` 的驅動呼叫拋錯，entry 寫入照走真實 Mongo；斷言回 200、`setCompletionConfirmed: false`、entries 完整，並**重新自資料庫讀出**確認該 entry 存在、`sets[0].win` 仍為 `null`。全程無重試參與。
+- **重試次數以 fake timer 驅動，推進量取自匯出的常數本身**而非寫死數字，常數改動時測試自動跟上，且不真的等待。
+- **多處修正以「退回舊碼確認測試轉紅、再還原」證明**，而非宣稱測試有效。
+
+## Review findings
+
+兩軸各跑兩輪，另加兩輪對抗式驗證。
+
+**第一輪** — 十項全數採納並修正：註解中的決策代號（硬性違規，19 個檔案，多於審查估計的 15 個）、`SyncIndicator` 同步中遺失計數、`retryRequested` 註解與 reducer 不符、`useSubmitEntryDraft` 的死錯誤路徑、重試手勢寫在三處、兩套重複的重試引擎、重複的呈現、repository 接縫的型別 cast，以及三項瑣碎重複。
+
+其中兩項**查證後判定原本即合規**而非照單接受：裸 `<button>`（文件未要求每個 affordance 都用共用元件，且這些是遠低於 `h-9` 基準的行內 pill）與 `ring` 的使用（見下）。共用重試引擎的抽取先確認過不會把 server-only 或 client-only 的關切拖過分層邊界。
+
+**第二輪** — 兩軸**獨立收斂到同一個缺陷**：`SyncIndicator` 與 `retryRequested` 未套用先前的收斂修正，後果是使用者可見的——別場 flush 時本場的重試按鈕消失，且手動重試會讓別場的項目更糟。另有一項硬性違規（新增的 `ui/` 元件缺 Storybook story）。
+
+**第三輪（單一擁有者）** — 兩項使用者可見的缺陷。`usePendingWrites` 被四個元件各自掛載，各自握有 `inFlight` ref 與背景 timer，同一筆到期 entry 因此被送出四次；改為 `Game` 單一擁有、其餘經 `PendingWritesContext` 讀取。以及 `useUnconfirmedSetCompletion` 的 `attempting` 與 `deriveSyncStatus` 用了不同訊號，退避空窗期間不可關閉的 dialog 會閃爍消失；改為兩者同源。兩項都以「退回舊碼確認測試轉紅」證明，前者退回後從 1 次呼叫變成 5 次。
+
+**驗收前的真實資料檢查** — 一項資料損壞缺陷，只有拿真實資料庫看才會浮現。`upsertEntry` 的兩個 bulkWrite op 都以 entry 的 id 為鍵；沒有 id 的 entry 會以 `entries.id: null` 落地，`arrayFilters` 因此**一次匹配該局所有沒有 id 的 entry**，一筆編輯把它們全部覆寫成同樣內容。integration test 全部從乾淨資料建起、每筆都有 id，所以整組測試都看不到它。以真實 MongoDB 重現：三筆 entry、前兩筆去掉 id/seq，編輯第 0 筆後第 1 筆的比分也跟著變。
+
+沒有資料需要回填——`id` 欄位從未進過 `dev`，而 production 資料庫連 `games` collection 都不存在。修正是在 repository 邊界加守衛：沒有 `id` 或 `seq` 的 entry 直接拒收。型別宣稱 entry 必有 id，collection 卻裝得下沒有 id 的舊文件，型別在這個邊界上是假的，所以這裡檢查而不信任。
+
+**對抗式驗證** — 推翻兩項宣稱，這是本次品保最有價值的一步。第二輪的修正把 `flushing` 用「有排程中的項目」把關，理由是「正在被 flush 的項目一定有非 null 的 `nextAttemptAt`」——該 invariant 為假（`runFlush` 分組不看 `nextAttemptAt`，online listener 無條件觸發），且 `deriveSyncStatus` 既有的分支已吸收該條件，等於把 flushing 訊號整個移除而非收斂。另推翻了 popover 圖示保留 `text-warning` 的宣稱。兩輪審查都只說「scoping 不一致」，是對抗式驗證去讀實作、造出反例，才確定修正的**推理**是錯的。
+
+**驗收（真實瀏覽器、真實資料庫）** — 三項缺陷，全部在自動化測試綠燈之後才浮現。
+
+一、**退避耗盡後不可關閉的 dialog 會自己消失。** `unconfirmed` 的三個判斷項在最需要擋住畫面的那一刻同時失效：伺服器從未回應所以沒有失敗訊號、樂觀寫入已經把 `win` 寫進本地快取所以冷啟動比對認為已定案、`attempting` 跟著 `nextAttemptAt` 而最後一次退避把它清成 null。沒有任何一項在問「這一局還有東西沒送出去嗎」。實測：12 次 PUT 之後 dialog 於數秒內消失，畫面停在局間、「新的一局」可按、伺服器上該局 `win` 仍為 null。修正為直接查詢佇列。
+
+二、**手動重試成功後 entry 留在佇列裡。** 重試走的是 `flushPendingWrites` 而非 flush，沒有任何地方把它移除，指示器會整個 session 顯示一筆早已存好的未同步寫入。
+
+三、**返回手勢可以逃出不可關閉的 dialog。** 三個出口只擋了 dialog primitive 自己的兩個（Escape、點擊外部），history 層完全沒有防護——而在手機上返回手勢是離開任何畫面的主要方式。修正為攔截並詢問，備用 history entry 每次被吸收後重補，連按多次都擋得住。
+
+驗收另外確認：熱區四個探測點（中心與左右下各 16px）全數命中 trigger；失敗列帶 `ring-1 ring-destructive` 與並排的重試控制；編輯視窗在寫入失敗時維持 `data-state="open"`；閒置時排球圖示位置與寫入途中完全一致（top 6 / top 6）。
+
+綠勾停留時長無法在自動化環境量到精確值——該分頁 `visibilityState` 恆為 hidden，timer 被壓制——功能面已確認，時長由 fake-timer 單元測試涵蓋。
+
+## Residual risks
+
+- **未同步的 entry 在 app 被關閉時遺失。** 佇列只存在記憶體。此情境比改動前更糟——改動前沒收到確認就不推進，最多損失當下草稿；改動後可能一次損失數筆。已登記並另票追蹤，排在 v0.16.0。
+- **320px 螢幕的 header 溢出**（既有缺陷，本次改善 4px 但未解決），另票追蹤。
+- **`ring` 的使用與設計系統的 No-Ring Rule 存在衝突，已裁決。** Design 指定失敗態用 `ring-1 ring-destructive` 並刻意否決虛線 border；`design-system.md` 則寫 `--ring` 僅保留給 focus-visible。查證後認定衝突出在文件而非程式碼：六個 `ui/` 元件已在使用裝飾性 ring，文件自身有三處互相牴觸的例外，且 No-Ring Rule 那張表講的其實是 elevation 而非狀態標示。決議為維持所有既有 `ring` 用法不動，改由後續工作修正文件；所有修正輪均未觸碰任何 `ring` utility。
+- **`set-completion-slice` 是新增的儲存狀態。** Spec 軸將其列為未要求的擴充。判斷為保留：規格禁止的是**冷啟動**偵測依賴額外儲存狀態（實作確實沒有，用 `set.win === null` 比對），而即時送出那條路徑是 D3 明文承認回應欄位為唯一可用訊號——本地快取已被樂觀寫入，自己比對自己永遠相符。該 slice 刻意不持久化，重新載入會正確落回冷啟動比對。
+
+## Follow-ups
+
+- 待送佇列持久化，關閉上述資料遺失缺口，排在 v0.16.0 之前完成。
+- 320px header 版面支援。
+- `design-system.md` 的 No-Ring Rule 釐清與 ring technique 正式化（不改任何既有元件外觀）。
+- `apiClient` 其餘健壯性問題：空 body 解析與 JSON 送出樣板。
+- `GET /api/games` 的分頁改為不透明 cursor。
+- 順序衝突解決（意圖錨點）與多裝置同步本身，仍屬各自的後續工作。

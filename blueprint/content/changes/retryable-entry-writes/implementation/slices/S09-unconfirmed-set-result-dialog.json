@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S09",
+  "title": "An unconfirmed set result blocks the next set",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S05", "S06"],
+  "outcome": "The recorder is not allowed to start the next set while the last one's result is still not stored. The rally itself is already saved, so the flow is only held for the one thing that is genuinely missing.",
+  "acceptanceCriteria": [
+    "When a set result is reported unconfirmed, the between-sets screen is covered by a dialog that cannot be dismissed by any means until the result is recorded.",
+    "The dialog is a fixed size that does not change between its two states, and its content uses the existing empty-state composition.",
+    "While it is still being attempted the wording is plain; only once attempts are exhausted does it use the error voice and offer a retry.",
+    "Reopening the app on a set whose result was never stored shows the same dialog, detected by comparing the stored result against the one the entries imply rather than by any extra stored state.",
+    "The between-sets screen itself is unchanged, and the dialog is layered over it.",
+    "Moving to the recording screen still depends only on the rally being confirmed, never on the set result."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm test:integration",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

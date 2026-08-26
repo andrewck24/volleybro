@@ -1,8 +1,15 @@
 "use client";
 import { Entry } from "@/components/game/entry";
+import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { getEntryProgress } from "@/components/game/panel/entry-progress";
+import { Spinner } from "@/components/ui/spinner";
 import { EntryType } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
+import { usePendingWritesContext } from "@/hooks/use-pending-writes";
+import {
+  hasFailedWrite,
+  isPendingWrite,
+} from "@/lib/features/game/pending-writes";
 import type {
   EntryView,
   GamePlayerView,
@@ -15,6 +22,11 @@ import { RiSendPlaneLine } from "react-icons/ri";
 
 // Draft row: pulses while incomplete, shows a send affordance when complete,
 // and freezes/flashes on submit until the parent remounts it via key.
+//
+// `writing`/`failed`/`onRetry` only apply to the editing path (an existing
+// rally being replaced, not optimistic) -- only it ever sets them. Create
+// never does -- it advances immediately and its own progress belongs to
+// SyncIndicator, not this card.
 export const PreviewCard = ({
   entry,
   previousEntry,
@@ -22,6 +34,9 @@ export const PreviewCard = ({
   isEditing,
   isPulsing,
   isComplete,
+  writing,
+  failed,
+  onRetry,
   onSubmit,
   onExpand,
   className,
@@ -32,6 +47,9 @@ export const PreviewCard = ({
   isEditing?: boolean;
   isPulsing?: boolean;
   isComplete?: boolean;
+  writing?: boolean;
+  failed?: boolean;
+  onRetry?: () => void;
   onSubmit?: () => void;
   onExpand?: () => void;
   className?: string;
@@ -46,6 +64,8 @@ export const PreviewCard = ({
   }, [flashing]);
 
   const handleClick = () => {
+    // In flight or already failed: only the explicit retry control acts.
+    if (writing || failed) return;
     if (isEditing && isComplete && !frozen) {
       setFrozen(true);
       setFlashing(true);
@@ -56,7 +76,9 @@ export const PreviewCard = ({
   };
 
   const shownEntry = frozen ? (previousEntry ?? entry) : entry;
-  const showSendAffordance = Boolean(isEditing && isComplete && !frozen);
+  const showSendAffordance = Boolean(
+    isEditing && isComplete && !frozen && !writing && !failed,
+  );
 
   return (
     <div
@@ -75,6 +97,7 @@ export const PreviewCard = ({
             "transition-colors duration-500",
             showSendAffordance && "bg-primary text-primary-foreground",
             flashing && "bg-primary/30",
+            failed && "ring-1 ring-destructive",
           )}
         />
       </div>
@@ -87,6 +110,16 @@ export const PreviewCard = ({
           <RiSendPlaneLine className="size-5 text-primary-foreground" />
         </span>
       )}
+      {writing && !failed && (
+        <span
+          role="status"
+          aria-label="送出中"
+          className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 text-muted-foreground"
+        >
+          <Spinner />
+        </span>
+      )}
+      {failed && <FailedWriteRetry onRetry={onRetry} />}
     </div>
   );
 };
@@ -131,12 +164,13 @@ export const useEntryDraftPreview = (
       } as unknown as EntryView)
     : null;
 
+  const identity = { id: draft.id, seq: draft.seq };
   const draftEntry: EntryView | undefined = draft.substitution
-    ? { type: EntryType.SUBSTITUTION, ...draft.substitution }
+    ? { type: EntryType.SUBSTITUTION, ...identity, ...draft.substitution }
     : draft.timeout
-      ? { type: EntryType.TIMEOUT, ...draft.timeout }
+      ? { type: EntryType.TIMEOUT, ...identity, ...draft.timeout }
       : draft.challenge
-        ? { type: EntryType.CHALLENGE, ...draft.challenge }
+        ? { type: EntryType.CHALLENGE, ...identity, ...draft.challenge }
         : (draftRallyEntry ?? previousEntry);
 
   const entry = isEditing || entryIndex === 0 ? draftEntry : previousEntry;
@@ -172,10 +206,20 @@ export const GamePreview = ({
   onExpandDrawer?: () => void;
   className?: string;
 }) => {
+  const draftId = useAppSelector((state) => state.game[mode].entryDraft.id);
+  const pendingWrites = useAppSelector((state) => state.pendingWrites);
+  const { retry } = usePendingWritesContext();
   const preview = useEntryDraftPreview(gameId, mode);
   if (!preview.hasPreview) return null;
   const { entry, previousEntry, players, isEditing, isComplete, entryIndex } =
     preview;
+
+  // The update path doesn't advance optimistically, so unlike create it
+  // keeps showing this card until the write resolves -- these are pure
+  // projections of the same queue SyncIndicator reads, scoped to this draft's
+  // identity.
+  const writing = mode === "editing" && isPendingWrite(pendingWrites, draftId);
+  const failed = mode === "editing" && hasFailedWrite(pendingWrites, draftId);
 
   return (
     <PreviewCard
@@ -187,6 +231,9 @@ export const GamePreview = ({
       isEditing={isEditing}
       isPulsing={isEditing && !isComplete}
       isComplete={isComplete}
+      writing={writing}
+      failed={failed}
+      onRetry={mode === "editing" ? () => void retry() : undefined}
       onSubmit={onSubmit}
       onExpand={onExpandDrawer}
       className={className}

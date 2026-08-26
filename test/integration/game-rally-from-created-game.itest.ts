@@ -4,7 +4,7 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createGame } from "@/app/api/games/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
-import { POST as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { NextRequest } from "next/server";
 import { useFakeAuth } from "./support/auth";
 import { callRoute } from "./support/request";
@@ -75,6 +75,8 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
     // The entry draft Redux actually submits: the home side carries the tapped
     // player, the away side keeps the initial-state placeholder `id: ""`.
     const draft = {
+      id: "entry-1",
+      seq: 0,
       win: true,
       home: {
         score: 1,
@@ -92,9 +94,9 @@ describe("real recording flow: create game -> create set 0 -> first rally", () =
 
     const rallyRes = await callRoute(createRally, {
       gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: draft,
+      method: "PUT",
+      query: { si: 0 },
+      body: [draft],
     });
     expect(rallyRes.status).toBe(200);
   });

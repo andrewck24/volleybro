@@ -232,29 +232,49 @@ export enum EntryType {
   CHALLENGE = "Challenge",
 }
 
-export type RallyEntry = { type: EntryType.RALLY } & Rally;
-export type SubstitutionEntry = { type: EntryType.SUBSTITUTION } & Substitution;
-export type TimeoutEntry = { type: EntryType.TIMEOUT } & Timeout;
-export type ChallengeEntry = { type: EntryType.CHALLENGE } & Challenge;
+/**
+ * A stable identity and an ordering position, generated on the client before
+ * the optimistic update runs. Identity never changes once assigned; position
+ * is renumberable, which is why they are separate fields rather than one
+ * order-bearing id.
+ */
+export type EntryIdentity = {
+  id: string;
+  seq: number;
+};
+
+export type RallyEntry = { type: EntryType.RALLY } & EntryIdentity & Rally;
+export type SubstitutionEntry = {
+  type: EntryType.SUBSTITUTION;
+} & EntryIdentity &
+  Substitution;
+export type TimeoutEntry = { type: EntryType.TIMEOUT } & EntryIdentity &
+  Timeout;
+export type ChallengeEntry = { type: EntryType.CHALLENGE } & EntryIdentity &
+  Challenge;
 
 export type Entry =
   RallyEntry | SubstitutionEntry | TimeoutEntry | ChallengeEntry;
 
-export const createRallyEntry = (rally: Rally): RallyEntry => ({
+export const createRallyEntry = (rally: Rally & EntryIdentity): RallyEntry => ({
   type: EntryType.RALLY,
   ...rally,
 });
 export const createSubstitutionEntry = (
-  sub: Substitution,
+  sub: Substitution & EntryIdentity,
 ): SubstitutionEntry => ({
   type: EntryType.SUBSTITUTION,
   ...sub,
 });
-export const createTimeoutEntry = (timeout: Timeout): TimeoutEntry => ({
+export const createTimeoutEntry = (
+  timeout: Timeout & EntryIdentity,
+): TimeoutEntry => ({
   type: EntryType.TIMEOUT,
   ...timeout,
 });
-export const createChallengeEntry = (challenge: Challenge): ChallengeEntry => ({
+export const createChallengeEntry = (
+  challenge: Challenge & EntryIdentity,
+): ChallengeEntry => ({
   type: EntryType.CHALLENGE,
   ...challenge,
 });

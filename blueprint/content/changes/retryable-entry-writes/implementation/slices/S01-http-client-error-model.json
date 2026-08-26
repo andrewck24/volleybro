@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Rally writes report why they failed",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": [],
+  "outcome": "A failed rally submission surfaces the error it actually got. The three write actions that still call fetch directly move onto the shared HTTP client, so failures arrive as a typed error carrying status and code instead of a bare Error, and a hung request eventually settles instead of waiting forever.",
+  "acceptanceCriteria": [
+    "The rally create, rally update and substitution create actions go through the shared HTTP client; no write action calls fetch directly.",
+    "A 5xx rally submission renders the server-error toast and a 4xx renders its own message, which today never happens because the generic thrown Error never matches the branching.",
+    "The substitution create action rethrows on failure instead of swallowing the error and returning undefined.",
+    "The shared client accepts a timeout and rejects with a recognisable error when it elapses, using the platform's own AbortSignal rather than a new dependency.",
+    "A network-layer failure is normalised into the same error type as an HTTP failure, so a caller can tell disconnection from a rejected request without inspecting a TypeError."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

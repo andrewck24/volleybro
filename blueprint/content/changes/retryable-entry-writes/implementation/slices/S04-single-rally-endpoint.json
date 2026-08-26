@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "One rally endpoint that reports both of its outcomes",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S01", "S03"],
+  "outcome": "A rally write that succeeds is reported as a success even when recording the set result afterwards fails. The client can tell those two outcomes apart instead of being told the whole request failed, which is what made it record the same rally twice.",
+  "acceptanceCriteria": [
+    "The rally create and rally update use cases are one use case, because after the repository merge they were the same code; the controller collapses with them.",
+    "The route exposes one verb for this write, the idempotent one, and no longer takes an entry index; the set index stays.",
+    "The request carries one or more entries in a single call.",
+    "Once the entry write succeeds the response returns the set's entries regardless of what happened to the set result, and names whether that result was confirmed as written.",
+    "A failing set result no longer throws past the successful entry write and discards it, verified end to end against a real database.",
+    "The client reads the named response object rather than treating the body as an array.",
+    "The substitution endpoint still returns a bare array, because it never records a set result."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm test:integration",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

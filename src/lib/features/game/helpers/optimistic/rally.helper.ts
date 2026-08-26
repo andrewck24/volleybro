@@ -1,9 +1,14 @@
-import { EntryType, deriveSetPhase, setTargetPoints } from "@/entities/game";
+import {
+  EntryType,
+  deriveSetPhase,
+  setTargetPoints,
+  type EntryIdentity,
+} from "@/entities/game";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
 export const createRallyHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView,
+  entryDraft: RallyView & EntryIdentity,
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;
@@ -22,7 +27,7 @@ export const createRallyHelper = (
 
 export const updateRallyHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView,
+  entryDraft: RallyView & EntryIdentity,
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;

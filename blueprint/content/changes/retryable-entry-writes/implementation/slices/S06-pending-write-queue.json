@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "Recording keeps up when the network does not",
+  "capabilities": [
+    "game-recording/persistence",
+    "game-recording/rally-recording"
+  ],
+  "dependsOn": ["S04"],
+  "outcome": "The recorder can record one rally after another without waiting for the server between them. What has not yet been confirmed is remembered in one place, retried on its own, and carried along with the next rally so most failures repair themselves unnoticed.",
+  "acceptanceCriteria": [
+    "Unconfirmed writes live in their own Redux slice holding the entry, its attempt count and when it will next be attempted.",
+    "Submitting no longer sends the request itself; it enqueues, and a flush builds the request from whatever the queue holds so a failed entry rides along with the next rally.",
+    "The optimistic cache update no longer carries the request promise, since the queue owns the network; the cache is updated again from the flush response.",
+    "Creating a rally advances the draft immediately without waiting for the server, so the next rally can be recorded straight away.",
+    "Editing an existing rally still waits for its result, because the recorder is watching a dialog for it.",
+    "Attempts continue on a growing backoff after the immediate ones are exhausted, and an error that cannot be fixed by retrying is not retried.",
+    "Two pure functions derive the sync status and whether a given entry failed, so no status is stored anywhere.",
+    "An entry queued while offline is written once connectivity returns, and is not duplicated."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm test:integration",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

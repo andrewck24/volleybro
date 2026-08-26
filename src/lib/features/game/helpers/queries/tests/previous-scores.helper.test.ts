@@ -7,6 +7,8 @@ describe("getPreviousScores", () => {
     const mockEntries: EntryView[] = [
       {
         type: EntryType.RALLY,
+        id: "entry-0",
+        seq: 0,
         win: true,
         home: { score: 10, type: MoveType.SERVING, num: 1 },
         away: { score: 8, type: MoveType.RECEPTION, num: 1 },
@@ -25,6 +27,8 @@ describe("getPreviousScores", () => {
     const mockEntries: EntryView[] = [
       {
         type: EntryType.TIMEOUT, // Non-RALLY type
+        id: "entry-0",
+        seq: 0,
         team: Side.HOME,
       },
     ];
@@ -50,16 +54,22 @@ describe("getPreviousScores", () => {
     const mockEntries: EntryView[] = [
       {
         type: EntryType.RALLY,
+        id: "entry-0",
+        seq: 0,
         win: true,
         home: { score: 15, type: MoveType.SERVING, num: 1 },
         away: { score: 15, type: MoveType.RECEPTION, num: 1 },
       },
       {
         type: EntryType.TIMEOUT,
+        id: "entry-1",
+        seq: 1,
         team: Side.HOME,
       },
       {
         type: EntryType.RALLY,
+        id: "entry-2",
+        seq: 2,
         win: false,
         home: { score: 15, type: MoveType.ATTACK, num: 2 },
         away: { score: 16, type: MoveType.BLOCKING, num: 2 },

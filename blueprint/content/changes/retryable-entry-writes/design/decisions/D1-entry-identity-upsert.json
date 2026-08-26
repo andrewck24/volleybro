@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Entries carry a client-generated identity and sequence, and the two entry writes merge into one idempotent upsert",
+  "status": "implemented",
+  "targets": ["game-recording/persistence"],
+  "context": "Recording one rally is two database writes: appendEntry always, and completeSet when that rally happens to end the set. The two have opposite retry properties and nobody noticed. completeSet is a $set of a derived value, so running it twice lands the same result. appendEntry is a $push, so running it twice adds a second element. Nothing distinguishes them today, and the frontend cannot tell a failure that wrote nothing from a failure that wrote everything and lost the response. When it rolls back, the UI says the rally was not recorded while the database already holds it, and the natural response — record it again — is precisely what duplicates it. entrySchema sets `_id: false`, so entries can only be addressed by array position, which is not a stable target once writes can be retried out of order or come from more than one device. This gap is game-positional-writes' residual risk R1 and the revisit trigger on its D4.",
+  "decision": "The client generates two fields before submitting an entry and stores them on the draft before the optimistic advance: a stable identifier from the platform's native UUID generator, and a sequence number that is simply the entry's position in the set. Identity and position stay separate fields because they answer different questions — identity must never change, while position must be renumberable. entrySchema gains both explicitly rather than re-enabling Mongoose's automatic `_id`, whose server-side generation runs opposite to the requirement. appendEntry and replaceEntry collapse into one repository operation, upsertEntry, taking one or more entries and issuing a bulkWrite in which exactly one of two operations lands per entry: a $set through arrayFilters matching the identity when it already exists, or a $push guarded by $ne on that identity when it does not. The $push carries $each with $sort on the sequence, so an entry that arrives late is placed by its sequence rather than by its arrival. Both remain ordinary updates rather than aggregation pipeline updates, so Mongoose casting — the property game-positional-writes' blast-radius guarantee rests on — survives.",
+  "alternatives": [
+    {
+      "option": "Retry completeSet only, and leave appendEntry alone",
+      "reason": "Closes the half where the second write fails, but leaves the half where appendEntry succeeded and the response was lost. Both halves present identically to the recorder — a duplicated rally and a displaced score — so fixing one changes nothing observable."
+    },
+    {
+      "option": "Index-addressed upsert, writing to a named array position",
+      "reason": "Achieves retry idempotency for a single writer, but reopens the lost-update window: two devices that each believe they are writing the eighth entry overwrite one another and a rally disappears silently. That trades away exactly what game-positional-writes' D2 established as a prerequisite for synchronised recording, and would have to be reversed later."
+    },
+    {
+      "option": "One order-bearing identifier such as UUIDv7 or ULID, doing both jobs",
+      "reason": "Genuinely works and saves a field, but it freezes order at creation time: post-match editing that inserts a rally mid-set would have to change identities to change order, which identity must never do. It also needs a generator the platform does not provide — crypto.randomUUID emits v4, which is unordered — and derives order from the wall clock."
+    },
+    {
+      "option": "Let the server assign the sequence at write time",
+      "reason": "Authoritative, but it defeats the purpose: a retried entry arriving after a later one would be numbered after it, which is the very reordering the sequence exists to prevent. The sequence has to capture the order the rallies were recorded in, which only the client knows."
+    },
+    {
+      "option": "Reuse the Mongoose subdocument `_id` as the identity",
+      "reason": "The identity has to exist before the request is sent, which is what makes a resend recognisable as a resend. A server-generated identifier cannot serve that purpose, and every other `id` in this repository is a server-side projection of a document `_id`, so overloading the same name for a client-generated key would misrepresent where it comes from."
+    }
+  ],
+  "consequences": [
+    "The repository's entry-write surface shrinks from two operations to one taking a batch; the entry index leaves the reference parameters entirely, since neither identity nor order depends on position any more.",
+    "CreateRallyUseCase and UpdateRallyUseCase are line-for-line identical apart from which repository method they call, so merging that method merges them too — one use case, one controller, and a route that keeps only PUT, the verb whose HTTP semantics already mean idempotent.",
+    "The lineup parameter stays: a substitution changes who is on court, and that is independent of identity.",
+    "Idempotency holds for the same identifier carrying the same payload. The same identifier carrying a different payload is last-write-wins, which is an ordering question deferred to intent anchors rather than answered here.",
+    "Appending never renumbers, and deleting leaves a harmless gap that does not affect sorting; only inserting mid-set would require renumbering.",
+    "The entity-layer Entry type, the Redux draft, and the response schema all gain both fields, so identity and order exist at every layer the entry passes through.",
+    "No data migration is required — the project has not launched."
+  ],
+  "revisitTriggers": [
+    "Post-match editing gains mid-set insertion, which is the first operation that needs renumbering — either a client-computed batch rewrite of the affected sequences, bounded by a set holding roughly sixty entries, or a move to fractional ordering that never renumbers.",
+    "Synchronised recording needs semantic ordering guarantees rather than only no-loss and no-duplication, at which point both the last-write-wins boundary and the possibility of two devices choosing the same sequence become the thing to revisit.",
+    "A future entry write path reaches for the repository's general-purpose update() instead of upsertEntry, meaning game-positional-writes' D2 surviving condition was not honoured.",
+    "The database evaluation selects a relational store, which invalidates the document-specific guard, arrayFilters and $sort implementation but should leave the interface, the identity model and the ordering model untouched."
+  ],
+  "originChange": "retryable-entry-writes"
+}

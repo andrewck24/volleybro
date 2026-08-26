@@ -2,7 +2,12 @@ import type {
   EntryRef,
   IGameRepository,
 } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError, CommonReason, GameReason } from "@/entities/errors";
+import {
+  NotFoundError,
+  ValidationError,
+  CommonReason,
+  GameReason,
+} from "@/entities/errors";
 import {
   EntryType,
   type Entry,
@@ -412,12 +417,20 @@ export class GameRepositoryImpl implements IGameRepository {
     }
   }
 
-  async appendEntry(
+  /**
+   * One entry becomes two candidate operations, and exactly one lands: a
+   * `$set` through an array filter when the identity already exists, or a
+   * guarded `$push` when it does not. Both are ordinary updates rather than
+   * an aggregation pipeline update, so Mongoose casting still applies.
+   */
+  async upsertEntry(
     ref: EntryRef,
-    entry: Entry,
+    entries: Entry[],
     lineups?: Partial<Set["lineups"]>,
   ): Promise<Entry[]> {
-    const path = `sets.${ref.setIndex}`;
+    const { gameId, setIndex } = ref;
+    const path = `sets.${setIndex}`;
+    const guard = { _id: gameId, [path]: { $exists: true } };
     const setLineups = Object.entries(lineups ?? {}).map(
       ([side, lineup]) =>
         [
@@ -427,20 +440,73 @@ export class GameRepositoryImpl implements IGameRepository {
           ),
         ] as const,
     );
-    return this.writeToSet(ref, path, {
-      $push: { [`${path}.entries`]: this.mapEntryWrite(entry) },
-      ...(setLineups.length && { $set: Object.fromEntries(setLineups) }),
-    });
-  }
+    const lineupSet = setLineups.length
+      ? Object.fromEntries(setLineups)
+      : undefined;
 
-  async replaceEntry(
-    ref: EntryRef & { entryIndex: number },
-    entry: Entry,
-  ): Promise<Entry[]> {
-    const path = `sets.${ref.setIndex}.entries.${ref.entryIndex}`;
-    return this.writeToSet(ref, path, {
-      $set: { [path]: this.mapEntryWrite(entry) },
+    // `id: undefined` reaches Mongo as null, which the arrayFilters below
+    // match against every other entry that also has none -- one edit would
+    // overwrite all of them. Pre-identity documents make that reachable.
+    const anonymous = entries.find(
+      (entry) => typeof entry.id !== "string" || typeof entry.seq !== "number",
+    );
+    if (anonymous)
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "An entry must carry an id and a seq to be written",
+      );
+
+    const ops = entries.flatMap((entry) => {
+      const mapped = this.mapEntryWrite(entry);
+      return [
+        {
+          updateOne: {
+            filter: { ...guard, [`${path}.entries.id`]: entry.id },
+            update: {
+              $set: {
+                [`${path}.entries.$[e]`]: mapped,
+                ...lineupSet,
+              },
+            },
+            arrayFilters: [{ "e.id": entry.id }],
+          },
+        },
+        {
+          updateOne: {
+            filter: { ...guard, [`${path}.entries.id`]: { $ne: entry.id } },
+            update: {
+              $push: {
+                [`${path}.entries`]: { $each: [mapped], $sort: { seq: 1 } },
+              },
+              ...(lineupSet && { $set: lineupSet }),
+            },
+          },
+        },
+      ];
     });
+
+    try {
+      if (ops.length) await this.model.bulkWrite(ops, { ordered: true });
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+
+    try {
+      const doc = await this.model
+        .findOne(guard, { sets: { $slice: [setIndex, 1] } })
+        .exec();
+      if (!doc) {
+        const game = await this.model.exists({ _id: gameId }).exec();
+        throw game
+          ? new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found")
+          : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+      }
+      const [set] =
+        (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
+      return (set?.entries ?? []).map((e) => this.mapEntryRead(e)) as Entry[];
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
   }
 
   async completeSet(

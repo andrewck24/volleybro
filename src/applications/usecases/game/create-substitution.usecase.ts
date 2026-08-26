@@ -4,6 +4,7 @@ import type { IAuthorizationService } from "@/applications/services/auth/authori
 import { NotFoundError, GameReason } from "@/entities/errors";
 import {
   type Entry,
+  type EntryIdentity,
   type Substitution,
   Side,
   createSubstitutionEntry,
@@ -15,7 +16,7 @@ import { inject, injectable } from "inversify";
 
 export interface ICreateSubstitutionInput {
   params: { gameId: string; setIndex: number; entryIndex: number };
-  data: Substitution;
+  data: Substitution & EntryIdentity;
 }
 
 export type ICreateSubstitutionOutput = Entry[];
@@ -61,9 +62,9 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
 
     this.updateLineup(lineup, substitution, params.entryIndex);
 
-    return this.gameRepository.appendEntry(
+    return this.gameRepository.upsertEntry(
       { gameId: params.gameId, setIndex: params.setIndex },
-      createSubstitutionEntry(substitution),
+      [createSubstitutionEntry(substitution)],
       { [side]: lineup },
     );
   }

@@ -16,10 +16,20 @@ import userEvent from "@testing-library/user-event";
 // `PreviewCard` stays real so the SummaryDrawerCard suites above are unaffected.
 const mockDispatch = jest.fn();
 let mockGame: unknown;
+let mockFailedIds: string[] = [];
 jest.mock("@/lib/redux/hooks", () => ({
   useAppDispatch: () => mockDispatch,
   useAppSelector: (selector: (s: unknown) => unknown) =>
-    selector({ game: { setIndex: 0 } }),
+    selector({
+      game: { setIndex: 0 },
+      pendingWrites: {
+        pending: mockFailedIds.map((id) => ({
+          entry: { id },
+          nextAttemptAt: null,
+        })),
+        flushingGameIds: [],
+      },
+    }),
 }));
 jest.mock("@/hooks/use-data", () => ({
   useGame: () => ({ game: mockGame }),
@@ -34,8 +44,10 @@ const players: GamePlayerView[] = [
   { id: "p2", name: "選手二", number: 7 },
 ];
 
+let entryIdSeq = 0;
 const makeEntry = (homeScore: number, playerId: string): EntryView =>
   ({
+    id: `entry-${(entryIdSeq += 1)}`,
     type: EntryType.RALLY,
     win: true,
     home: {
@@ -71,6 +83,10 @@ const baseProps = {
   totalEntries: allEntries.length,
   players,
 };
+
+afterEach(() => {
+  mockFailedIds = [];
+});
 
 describe("SummaryDrawerCard structure", () => {
   it("idle peek renders only the single newest committed entry (no separate Preview bar)", async () => {
@@ -197,9 +213,9 @@ describe("SummaryDrawerCard backdrop overlay", () => {
   });
 });
 
-// D8/D12 gesture split, exercised through the draft Preview bar (present only
-// while recording). PreviewCard's own tap-handling is covered in
-// preview.test.tsx.
+// `entry-ui` change's gesture split, exercised through the draft Preview bar
+// (present only while recording). PreviewCard's own tap-handling is covered
+// in preview.test.tsx.
 describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   it("tapping the Preview bar while editing and complete calls onSubmit, not onToggle", async () => {
     const user = userEvent.setup();
@@ -257,6 +273,37 @@ describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
   });
 });
 
+// S08: a rally whose write exhausted its attempts is marked on its row,
+// matched by identity, with a way to retry it -- consuming hasFailedWrite
+// rather than storing status of its own.
+describe("SummaryDrawerCard failed-write marking", () => {
+  it("marks only the row whose id is in failedEntryIds and wires its retry", async () => {
+    const user = userEvent.setup();
+    const onEntryRetry = jest.fn();
+    const failedId = allEntries[1]!.id;
+    render(
+      <SummaryDrawerCard
+        {...baseProps}
+        state="expanded"
+        failedEntryIds={new Set([failedId])}
+        onEntryRetry={onEntryRetry}
+      />,
+    );
+
+    const retryControls = screen.getAllByTestId("entry-row-retry");
+    expect(retryControls).toHaveLength(1);
+
+    await user.click(retryControls[0]!);
+    expect(onEntryRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows no retry control when nothing has failed", () => {
+    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
+
+    expect(screen.queryByTestId("entry-row-retry")).not.toBeInTheDocument();
+  });
+});
+
 // Bridge regression (PR #311 review): the Summary drawer's edit action must both
 // flip Redux to "editing" (setEditingEntryStatus) AND signal the Game shell to
 // open the Options dialog (onEditRequest). Without the second call, edit is a
@@ -268,6 +315,25 @@ describe("SummaryDrawer edit bridge", () => {
       sets: [{ entries: allEntries }],
       teams: { home: { players } },
     };
+  });
+
+  it("marks the failed row from the pending-write queue and forwards a retry tap", async () => {
+    const user = userEvent.setup();
+    const onEntryRetry = jest.fn();
+    mockFailedIds = [allEntries[1]!.id];
+    render(
+      <SummaryDrawer
+        gameId="game-1"
+        state="expanded"
+        onEntryRetry={onEntryRetry}
+      />,
+    );
+
+    const retryControls = await screen.findAllByTestId("entry-row-retry");
+    expect(retryControls).toHaveLength(1);
+
+    await user.click(retryControls[0]!);
+    expect(onEntryRetry).toHaveBeenCalledTimes(1);
   });
 
   it("editing an entry row dispatches setEditingEntryStatus and fires onEditRequest", async () => {

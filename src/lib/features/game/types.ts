@@ -6,6 +6,7 @@ import {
   MoveType,
   Side,
   type DerivedSetStats,
+  type EntryIdentity,
 } from "@/entities/game";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
@@ -150,14 +151,30 @@ const ChallengeResponseSchema = z.object({
   success: z.boolean(),
 });
 
+// A stable identity and an ordering position, generated on the client before
+// the optimistic update runs. See entities/game.ts's EntryIdentity for why
+// they are separate fields.
+const EntryIdentityResponseSchema = z.object({
+  id: z.string(),
+  seq: z.number(),
+});
+
 export const EntryResponseSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal(EntryType.RALLY) }).merge(RallyResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.RALLY) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(RallyResponseSchema),
   z
     .object({ type: z.literal(EntryType.SUBSTITUTION) })
+    .merge(EntryIdentityResponseSchema)
     .merge(SubstitutionResponseSchema),
-  z.object({ type: z.literal(EntryType.TIMEOUT) }).merge(TimeoutResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.TIMEOUT) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(TimeoutResponseSchema),
   z
     .object({ type: z.literal(EntryType.CHALLENGE) })
+    .merge(EntryIdentityResponseSchema)
     .merge(ChallengeResponseSchema),
 ]);
 
@@ -217,6 +234,17 @@ export type SubstitutionView = z.infer<typeof SubstitutionResponseSchema>;
 export type TimeoutView = z.infer<typeof TimeoutResponseSchema>;
 export type ChallengeView = z.infer<typeof ChallengeResponseSchema>;
 export type EntryView = z.infer<typeof EntryResponseSchema>;
+
+/**
+ * The rally endpoint's response: entries land whenever the entry write
+ * succeeds, and `setCompletionConfirmed` is only present when a set result
+ * was attempted, stating whether that second write landed. Undefined means
+ * no set result was attempted for this write.
+ */
+export type RecordRalliesResponse = {
+  entries: EntryView[];
+  setCompletionConfirmed?: boolean;
+};
 
 export type GameView = z.infer<typeof GameResponseSchema>;
 export type GameTeamView = z.infer<typeof GameTeamResponseSchema>;
@@ -300,6 +328,12 @@ type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {
 };
 
 export type ReduxEntryDraft = Omit<RallyView, "win" | "home" | "away"> & {
+  // Identity of the entry this draft becomes on submit. Empty/zero until
+  // then: a create fills it in just before the optimistic update runs (a
+  // fresh client-generated id, seq = the current entryIndex); an edit
+  // inherits the original entry's id and seq from setEditingEntryStatus.
+  id: string;
+  seq: number;
   win: RallyView["win"] | null;
   home: ReduxRallyDetail;
   away: ReduxRallyDetail;
@@ -320,6 +354,28 @@ export type ReduxGameState = {
     status: ReduxStatus;
     entryDraft: ReduxEntryDraft;
   };
+};
+
+// For the pending-write queue: unconfirmed rally writes, kept in their own
+// slice because their lifetime differs from the per-set draft above.
+export type PendingEntry = {
+  entry: RallyView & EntryIdentity;
+  gameId: string;
+  setIndex: number;
+  attempts: number;
+  // Timestamp of the next scheduled attempt; null means the backoff budget
+  // is exhausted or the error itself is not retryable.
+  nextAttemptAt: number | null;
+};
+
+export type PendingWritesState = {
+  pending: PendingEntry[];
+  // gameIds with a flush request currently on the wire. A game identity,
+  // not a bare boolean, because a flush is scoped per game (see
+  // usePendingWrites) and more than one game's flush can be in flight at
+  // once -- e.g. one game's background retry firing while another is
+  // manually retried.
+  flushingGameIds: string[];
 };
 
 // For Other Components

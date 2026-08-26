@@ -1,9 +1,9 @@
-import { EntryType, Side } from "@/entities/game";
+import { EntryType, Side, type EntryIdentity } from "@/entities/game";
 import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
 export const createSubstitutionHelper = (
   params: { gameId: string; setIndex: number; entryIndex: number },
-  substitution: SubstitutionView,
+  substitution: SubstitutionView & EntryIdentity,
   game: GameView,
 ) => {
   const { setIndex, entryIndex } = params;

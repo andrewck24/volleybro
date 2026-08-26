@@ -1,8 +1,9 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { MoveType } from "@/entities/game";
+import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { POST as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "./support/auth";
 import { callRoute } from "./support/request";
@@ -14,7 +15,10 @@ const decidingRally = (
   homeScore: number,
   awayScore: number,
   homeWinsPoint: boolean,
+  seq = 0,
 ) => ({
+  id: `entry-${homeScore}-${awayScore}`,
+  seq,
   win: homeWinsPoint,
   home: { score: homeScore, type: MoveType.ATTACK, num: 0 },
   away: { score: awayScore, type: MoveType.ATTACK, num: 0 },
@@ -44,9 +48,9 @@ describe("set and match completion", () => {
 
     const res = await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: setIndex, ei: 0 },
-      body: decidingRally(homeScore, awayScore, homeScore > awayScore),
+      method: "PUT",
+      query: { si: setIndex },
+      body: [decidingRally(homeScore, awayScore, homeScore > awayScore)],
     });
     expect(res.status).toBe(200);
   };
@@ -87,17 +91,17 @@ describe("set and match completion", () => {
 
     await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: decidingRally(24, 20, true),
+      method: "PUT",
+      query: { si: 0 },
+      body: [decidingRally(24, 20, true)],
     });
     expect((await repo().findById(seeded.gameId))!.sets[0]!.win).toBeNull();
 
     await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 1 },
-      body: decidingRally(25, 20, true),
+      method: "PUT",
+      query: { si: 0 },
+      body: [decidingRally(25, 20, true, 1)],
     });
     expect((await repo().findById(seeded.gameId))!.sets[0]!.win).toBe(true);
   });
@@ -110,5 +114,50 @@ describe("set and match completion", () => {
     expect(game!.sets[0]!.win).toBe(true);
     expect(game!.sets[1]!.win).toBe(false);
     expect(game!.win).toBeNull();
+  });
+
+  it("keeps the deciding rally's entry when the set-result write fails, and reports it unconfirmed", async () => {
+    const created = await callRoute(createSet, {
+      gameId: seeded.gameId,
+      method: "POST",
+      query: { si: 0 },
+      body: { lineup: seeded.lineup, options },
+    });
+    expect(created.status).toBe(201);
+
+    // Force only the set-completion write to fail. upsertEntry uses
+    // bulkWrite, so the entry write below still goes through a real
+    // findOneAndUpdate-free path against the in-memory database.
+    const findOneAndUpdate = jest
+      .spyOn(GameModel, "findOneAndUpdate")
+      .mockImplementationOnce(() => {
+        throw new Error("simulated set-result write failure");
+      });
+
+    try {
+      const res = await callRoute(createRally, {
+        gameId: seeded.gameId,
+        method: "PUT",
+        query: { si: 0 },
+        body: [decidingRally(25, 20, true)],
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.json).toMatchObject({
+        setCompletionConfirmed: false,
+      });
+      expect((res.json as { entries: unknown[] }).entries).toHaveLength(1);
+    } finally {
+      findOneAndUpdate.mockRestore();
+    }
+
+    // The entry survived in the real database even though completeSet threw.
+    const persisted = await repo().findById(seeded.gameId);
+    expect(persisted!.sets[0]!.entries).toHaveLength(1);
+    expect(persisted!.sets[0]!.entries[0]).toMatchObject({
+      id: "entry-25-20",
+    });
+    // completeSet never landed, so the set is still undecided.
+    expect(persisted!.sets[0]!.win).toBeNull();
   });
 });

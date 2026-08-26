@@ -9,8 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { gameActions } from "@/lib/features/game/game-slice";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useEditingGuard } from "@/hooks/use-editing-guard";
+import { useAppSelector } from "@/lib/redux/hooks";
 
 export const GameOptions = ({
   gameId,
@@ -21,14 +21,16 @@ export const GameOptions = ({
   tabValue: string;
   setTabValue: (value: string) => void;
 }) => {
-  const dispatch = useAppDispatch();
   const { mode } = useAppSelector((state) => state.game);
+  const { guardDismiss, leaveEditing } = useEditingGuard();
 
   return (
     <DialogContent
       size="lg"
       closeButton={mode === "general"}
-      onCloseAutoFocus={() => dispatch(gameActions.setGameMode("general"))}
+      onEscapeKeyDown={guardDismiss}
+      onInteractOutside={guardDismiss}
+      onCloseAutoFocus={leaveEditing}
     >
       {mode === "editing" ? (
         <EntriesEdit gameId={gameId} />
