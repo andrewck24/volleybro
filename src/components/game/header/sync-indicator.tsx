@@ -15,11 +15,6 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import { RiCheckLine, RiErrorWarningLine, RiRefreshLine } from "react-icons/ri";
 
-/**
- * How long the check mark stays up after a queue recovers from exhausted.
- * The acknowledgement is the point -- a retry that silently vanishes reads
- * as the app having dropped the request rather than completed it.
- */
 export const SYNCED_ACK_MS = 1500;
 
 const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
@@ -55,9 +50,8 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
 
   const label = status === "synced" ? "已同步" : `${pendingCount} 筆未同步`;
 
-  // A queue that recovers from exhausted gets an acknowledgement; a routine
-  // send does not, since every rally would otherwise leave a check mark on
-  // screen for longer than the send itself took.
+  // Only a recovery is acknowledged: every rally passes through syncing,
+  // and a check mark there would outlast the send it acknowledges.
   const [acknowledging, setAcknowledging] = useState(false);
   const previousStatus = useRef(status);
   useEffect(() => {
@@ -74,10 +68,8 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     void retry();
   };
 
-  // Nothing to report reports nothing. The slot keeps its 24px either way:
-  // the middle column centres its children, so an indicator that came and
-  // went would drag the volleyball mark up and down with it. `open` holds
-  // the trigger mounted so a popover cannot outlive its own anchor.
+  // The slot keeps its size so the volleyball mark above it never shifts.
+  // `open` keeps the trigger mounted so a popover cannot outlive its anchor.
   if (status === "synced" && !acknowledging && !open) {
     return (
       <div
@@ -97,13 +89,8 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
           onClick={(e) => e.stopPropagation()}
           className={cn(
             "relative flex size-6 items-center justify-center rounded-md text-muted-foreground",
-            // The touch target is 44px; the mark stays 24px. A transparent
-            // pseudo-element takes no layout space and leaves the border box
-            // -- and so the popover's anchor -- at the visible size. The
-            // header's middle column has 20px of free width either side, so
-            // only the 16px of extra height is borrowed: 10px over the
-            // volleyball mark, 6px past the header's edge. Both regions
-            // otherwise open the overview, which the scores also open.
+            // 44px touch target, 24px mark: the pseudo-element takes no
+            // layout space, so the popover still anchors to the visible box.
             "after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
             status === "unsynced" && "text-warning ring-1 ring-warning/30",
           )}

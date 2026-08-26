@@ -20,9 +20,7 @@ import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-complet
 import { RiAlertLine } from "react-icons/ri";
 
 const ATTEMPTING_TITLE = "正在記錄本局結果…";
-// Screen-reader only. The spinner and the title already carry the whole
-// message on screen, and the recorder has no route out of this dialog to be
-// warned away from -- a second line could only restate one of the two.
+// Screen readers only: on screen the spinner and title already say this.
 const ATTEMPTING_DESCRIPTION = "正在儲存本局結果，請稍候。";
 // Mirrors the shared error toast helper's branded server-error wording
 // (src/lib/api/error-toast.ts) so the voice is consistent everywhere the

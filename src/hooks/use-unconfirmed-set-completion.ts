@@ -4,6 +4,7 @@ import { useGame } from "@/hooks/use-data";
 import { EntryType } from "@/entities/game";
 import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
 import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import {
   readSetCompletion,
   setCompletionActions,
@@ -48,11 +49,8 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
     ),
   );
 
-  // Whether anything for this set is still owed to the server at all,
-  // regardless of whether another attempt is scheduled. An entry whose
-  // backoff is spent stays queued with `nextAttemptAt === null`, and that
-  // is the state most in need of covering the screen: nothing will send it
-  // now except the recorder pressing retry.
+  // An entry whose backoff is spent stays queued with a null nextAttemptAt,
+  // and nothing will send it now except the recorder pressing retry.
   const hasPendingEntryForSet = useAppSelector((state) =>
     state.pendingWrites.pending.some(
       (p) => p.gameId === gameId && p.setIndex === setIndex,
@@ -69,12 +67,8 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
   // out between attempts.
   const attempting =
     retrying || (noSessionSignalYet && hasScheduledAttemptForSet);
-  // `coldStartUnconfirmed` cannot carry this on its own: the optimistic
-  // write already put `win` on the cached set, so the only remaining
-  // evidence that the result never landed is the queue itself. Without the
-  // queue term the dialog closes the instant the retry budget runs out --
-  // leaving the recorder on the between-sets screen, free to start the next
-  // set, with the result still unsent and no indicator there to say so.
+  // The optimistic write already put `win` on the cached set, so the queue
+  // is the only remaining evidence that the result never landed.
   const unconfirmed =
     sessionConfirmed === false ||
     coldStartUnconfirmed ||
@@ -106,6 +100,11 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
           setIndex,
           confirmed: result.response.setCompletionConfirmed ?? true,
         }),
+      );
+      // This retry sends the entry itself rather than going through flush,
+      // so nothing else takes it out of the queue.
+      dispatch(
+        pendingWritesActions.flushSucceeded({ gameId, ids: [lastRally.id] }),
       );
     }
     setRetrying(false);

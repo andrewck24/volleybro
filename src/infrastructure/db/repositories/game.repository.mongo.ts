@@ -444,11 +444,9 @@ export class GameRepositoryImpl implements IGameRepository {
       ? Object.fromEntries(setLineups)
       : undefined;
 
-    // An entry without an identity would be written as `entries.id: null`,
-    // which the arrayFilters below match against every other entry that also
-    // has none -- one edit silently overwriting all of them. The type says
-    // this cannot happen; the collection can still hold documents written
-    // before identities existed, so the boundary checks rather than trusts.
+    // `id: undefined` reaches Mongo as null, which the arrayFilters below
+    // match against every other entry that also has none -- one edit would
+    // overwrite all of them. Pre-identity documents make that reachable.
     const anonymous = entries.find(
       (entry) => typeof entry.id !== "string" || typeof entry.seq !== "number",
     );

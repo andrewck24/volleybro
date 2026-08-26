@@ -344,6 +344,9 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
     expect(result.current.unconfirmed).toBe(false);
+    // Nothing else takes the entry out: an entry left behind would keep the
+    // sync indicator reporting it unsent for the rest of the session.
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
   it("retry defaults to confirmed when the response omits the field", async () => {
