@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
 import { useBackConfirmation } from "@/hooks/use-back-confirmation";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-completion";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
@@ -72,6 +73,9 @@ export const UnconfirmedSetDialog = ({
     unconfirmed,
     leave,
   );
+  // The queue lives in memory, so a reload drops the unsent result outright.
+  // Only the browser's own prompt can cover that exit.
+  useLeavePageWarning(unconfirmed);
   const title = attempting ? ATTEMPTING_TITLE : EXHAUSTED_TITLE;
   const description = attempting
     ? ATTEMPTING_DESCRIPTION

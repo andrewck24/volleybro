@@ -71,6 +71,17 @@ describe("UnconfirmedSetDialog dismissal", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
+  // popstate covers the back gesture; only beforeunload covers a reload or a
+  // closed tab, and the queue is memory-only so that exit loses the write.
+  it("also warns the browser before a reload or a closed tab", () => {
+    render(<UnconfirmedSetDialog gameId="game-1" setIndex={0} />);
+
+    const event = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
   it("leaves for the game once the recorder confirms", async () => {
     const user = userEvent.setup();
     push.mockClear();
