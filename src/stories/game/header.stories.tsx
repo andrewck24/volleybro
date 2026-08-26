@@ -88,7 +88,7 @@ store.dispatch(gameActions.initialize({ game, setIndex: 2 }));
 const meta = {
   title: "Design System/Game/Header",
   component: GameHeader,
-  parameters: { layout: "fullscreen" },
+  parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
   tags: ["autodocs"],
   args: {
     gameId,
