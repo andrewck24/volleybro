@@ -4,6 +4,8 @@ description: Recording, editing and substituting rally by rally, with the server
 ---
 
 import explicitSetCompletion from "./decisions/D4-explicit-set-completion.json";
+import retryResponsibilitySplit from "./decisions/D2-retry-responsibility-split.json";
+import pendingQueueSourceOfTruth from "./decisions/D4-pending-queue-source-of-truth.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -12,12 +14,30 @@ the rotation, whether it is at set point — follows from the entries.
 
 - Three write paths record entries: creating a rally, editing a rally, and
   recording a substitution. Each writes only the entry it is about.
+- Creating a rally does not wait for the server. The entry joins a pending-write
+  queue and the draft advances immediately, so a weak connection at the venue
+  cannot hold up play. Editing still waits, because an edit that fails leaves
+  correct data on the server and the recorder is watching a dialog for it.
+- The queue is the single source of truth for what has not reached the server.
+  The sync indicator and the per-row failure marker are projections of it and
+  store no status of their own.
+- A failed write retries itself: twice inline within one attempt, then in the
+  background on a widening delay. Once that budget is spent the entry stays
+  queued and waits for the recorder to retry it by hand.
+- The sync indicator appears only when it has something to report. An empty
+  queue renders a same-sized empty slot, so nothing around it shifts, and a
+  queue recovering from failure holds a check mark briefly rather than
+  vanishing.
 - After an entry write the server derives whether the set has finished, and
   writes the set's result once when it has, together with the match result when
   that becomes decided. It writes only when the derived value differs from what
   it read, so this is once per set rather than once per rally.
 - Editing a rally that puts a finished set back in progress resets the set's
   result.
+- The between-sets screen is covered by a dialog that cannot be dismissed while
+  this set's result is still owed to the server — including by the back
+  gesture, which asks before leaving. The next set cannot start on a result
+  that was never saved.
 - A set is won at its target score with a two-point lead; the deciding set
   plays to its own target. Both are expressed by `setTargetPoints` and
   `deriveSetPhase` in the domain layer.
@@ -31,15 +51,28 @@ the rotation, whether it is at set point — follows from the entries.
   synchronised recording.
 - A set's result is a derived value written at a defined point, not an
   accumulation. It must not become a per-rally write.
+- Whether a write is outstanding is read from the queue, never stored beside
+  it. A second copy of that fact drifts from the queue the moment a retry
+  schedule changes.
+- The recorder is never left with an unsent result and no way to see or retry
+  it. A surface that hides the indicator must block the way forward instead.
 
 ## Known gaps
 
 - Timeout and challenge exist as entry types but have no recording flow — no
   use case, API route, or panel trigger.
+- Ordering conflicts between devices are out of reach: sequence numbers prevent
+  reordering and duplication, not two recorders disagreeing about what happened.
 - The target score is fixed at 25, or the deciding-set value from the match
   scoring. Informal matches played to another total cannot be recorded: the
   set never derives as finished, so its result is never written.
 
 ## Implemented decisions
 
-<DecisionTimeline decisions={[explicitSetCompletion]} />
+<DecisionTimeline
+  decisions={[
+    explicitSetCompletion,
+    retryResponsibilitySplit,
+    pendingQueueSourceOfTruth,
+  ]}
+/>

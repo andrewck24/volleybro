@@ -53,6 +53,18 @@ title: Review
 
 **對抗式驗證** — 推翻兩項宣稱，這是本次品保最有價值的一步。第二輪的修正把 `flushing` 用「有排程中的項目」把關，理由是「正在被 flush 的項目一定有非 null 的 `nextAttemptAt`」——該 invariant 為假（`runFlush` 分組不看 `nextAttemptAt`，online listener 無條件觸發），且 `deriveSyncStatus` 既有的分支已吸收該條件，等於把 flushing 訊號整個移除而非收斂。另推翻了 popover 圖示保留 `text-warning` 的宣稱。兩輪審查都只說「scoping 不一致」，是對抗式驗證去讀實作、造出反例，才確定修正的**推理**是錯的。
 
+**驗收（真實瀏覽器、真實資料庫）** — 三項缺陷，全部在自動化測試綠燈之後才浮現。
+
+一、**退避耗盡後不可關閉的 dialog 會自己消失。** `unconfirmed` 的三個判斷項在最需要擋住畫面的那一刻同時失效：伺服器從未回應所以沒有失敗訊號、樂觀寫入已經把 `win` 寫進本地快取所以冷啟動比對認為已定案、`attempting` 跟著 `nextAttemptAt` 而最後一次退避把它清成 null。沒有任何一項在問「這一局還有東西沒送出去嗎」。實測：12 次 PUT 之後 dialog 於數秒內消失，畫面停在局間、「新的一局」可按、伺服器上該局 `win` 仍為 null。修正為直接查詢佇列。
+
+二、**手動重試成功後 entry 留在佇列裡。** 重試走的是 `flushPendingWrites` 而非 flush，沒有任何地方把它移除，指示器會整個 session 顯示一筆早已存好的未同步寫入。
+
+三、**返回手勢可以逃出不可關閉的 dialog。** 三個出口只擋了 dialog primitive 自己的兩個（Escape、點擊外部），history 層完全沒有防護——而在手機上返回手勢是離開任何畫面的主要方式。修正為攔截並詢問，備用 history entry 每次被吸收後重補，連按多次都擋得住。
+
+驗收另外確認：熱區四個探測點（中心與左右下各 16px）全數命中 trigger；失敗列帶 `ring-1 ring-destructive` 與並排的重試控制；編輯視窗在寫入失敗時維持 `data-state="open"`；閒置時排球圖示位置與寫入途中完全一致（top 6 / top 6）。
+
+綠勾停留時長無法在自動化環境量到精確值——該分頁 `visibilityState` 恆為 hidden，timer 被壓制——功能面已確認，時長由 fake-timer 單元測試涵蓋。
+
 ## Residual risks
 
 - **未同步的 entry 在 app 被關閉時遺失。** 佇列只存在記憶體。此情境比改動前更糟——改動前沒收到確認就不推進，最多損失當下草稿；改動後可能一次損失數筆。已登記並另票追蹤，排在 v0.16.0。

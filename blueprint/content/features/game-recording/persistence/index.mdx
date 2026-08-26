@@ -1,21 +1,41 @@
 ---
 title: Persistence
-description: How a game reaches the database — domain operations written positionally, with the failure radius limited to the entry being written.
+description: How a game reaches the database — domain operations addressed by identity, with the failure radius limited to the entry being written.
 ---
 
 import entriesAsSourceOfTruth from "./decisions/D1-entries-as-source-of-truth.json";
 import domainOperationRepository from "./decisions/D2-domain-operation-repository.json";
 import explicitSetCompletion from "./decisions/D4-explicit-set-completion.json";
+import entryIdentityUpsert from "./decisions/D1-entry-identity-upsert.json";
+import retryResponsibilitySplit from "./decisions/D2-retry-responsibility-split.json";
+import entryWriteResponseContract from "./decisions/D3-entry-write-response-contract.json";
+import pendingQueueSourceOfTruth from "./decisions/D4-pending-queue-source-of-truth.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
 
 ## Current behavior
 
-- `IGameRepository` exposes `appendEntry`, `replaceEntry` and `completeSet`.
-  Each is a positional write touching only what it names.
+- `IGameRepository` exposes `upsertEntry` and `completeSet`. Each is a write
+  touching only what it names.
+- An entry carries a client-generated identity and a sequence number, both set
+  before it leaves the client. `upsertEntry` takes one or more entries and
+  issues a bulkWrite in which exactly one operation lands per entry: a `$set`
+  through `arrayFilters` matching the identity when it already exists, or a
+  `$push` guarded by `$ne` on that identity when it does not. The `$push`
+  sorts on the sequence, so an entry that arrives late is placed by the order
+  it was recorded in rather than the order it arrived.
+- Resending the same entry is therefore a no-op rather than a duplicate, which
+  is what makes a retry safe after a lost response.
+- An entry reaching the repository without an identity is rejected. `undefined`
+  would reach MongoDB as `null` and the arrayFilters would then match every
+  entry that also lacks one, so a single edit would overwrite all of them.
 - A substitution writes its entry and the lineup it produces in one update, so
   the two cannot disagree.
+- The set result is written after the entry write, retried in the same request
+  three times before the response goes out, and reported separately from the
+  entry write's own outcome. An entry that landed is never discarded because
+  the set result failed.
 - Whether a game or a set exists is decided by the write condition itself. The
   condition names the exact path, because a filter carrying only the id does
   not fail on an out-of-range index — MongoDB pads the array with nulls and
@@ -32,6 +52,10 @@ appends one entry; it does not rewrite the game.
 
 - **New write paths must not use `update()`.** A sixth game write path that
   reaches for it means this condition was not honoured.
+- Both entry operations stay ordinary updates rather than aggregation pipeline
+  updates, so Mongoose casting still bounds the blast radius.
+- Identity never changes; sequence may be renumbered. Overloading one field for
+  both would make reordering an edit to identity.
 - A failed cast may damage only the entry being written. Every entry already
   recorded in that set stays intact.
 - Statistics have no writer. The `stats` field remains in the Mongoose schema
@@ -40,11 +64,14 @@ appends one entry; it does not rewrite the game.
 
 ## Known gaps
 
-- Appending an entry and completing a set are two writes, and their combined
-  failure behaviour is undefined. A response lost after the append succeeds
-  leads a retry to append a duplicate, because `$push` is not idempotent.
-  Closing this needs a stable identity for entries, which synchronised
-  recording must settle anyway.
+- The pending-write queue lives only in memory. Entries not yet acknowledged are
+  lost if the app is closed, and losing several at once is possible now that
+  recording no longer waits for the server between rallies.
+- Idempotency holds for the same identity carrying the same payload. The same
+  identity carrying a different payload is last-write-wins, which is an
+  ordering question left to intent anchors.
+- Inserting a rally mid-set is the first operation that would need renumbering;
+  appending never does, and deleting leaves a harmless gap.
 
 ## Implemented decisions
 
@@ -53,5 +80,9 @@ appends one entry; it does not rewrite the game.
     entriesAsSourceOfTruth,
     domainOperationRepository,
     explicitSetCompletion,
+    entryIdentityUpsert,
+    retryResponsibilitySplit,
+    entryWriteResponseContract,
+    pendingQueueSourceOfTruth,
   ]}
 />
