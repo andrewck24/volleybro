@@ -17,17 +17,11 @@ export const deriveSyncStatus = (
   const pending = state.pending.filter((p) => p.gameId === gameId);
   return pending.length === 0
     ? "synced"
-    : isFlushingGame(state, gameId) ||
+    : state.flushingGameIds.includes(gameId) ||
         pending.some((p) => p.nextAttemptAt !== null)
       ? "syncing"
       : "unsynced";
 };
-
-/** True while a flush for this exact game is on the wire. */
-export const isFlushingGame = (
-  state: PendingWritesState,
-  gameId: string,
-): boolean => state.flushingGameIds.includes(gameId);
 
 export const hasFailedWrite = (
   state: PendingWritesState,

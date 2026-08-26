@@ -88,7 +88,7 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
     if (result.ok) {
       mutate(
         (current) =>
-          applyFlushedEntries(current, setIndex, result.response.entries),
+          applyFlushedEntries(current, setIndex, result.value.entries),
         { revalidate: false },
       );
       // The response can omit the field when a different attempt already
@@ -98,7 +98,7 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
         setCompletionActions.recorded({
           gameId,
           setIndex,
-          confirmed: result.response.setCompletionConfirmed ?? true,
+          confirmed: result.value.setCompletionConfirmed ?? true,
         }),
       );
       // This retry sends the entry itself rather than going through flush,

@@ -50,7 +50,7 @@ describe("flushPendingWrites", () => {
 
     const result = await flushPendingWrites("game-1", 0, entries);
 
-    expect(result).toEqual({ ok: true, response });
+    expect(result).toEqual({ ok: true, value: response });
     expect(apiClient).toHaveBeenCalledTimes(1);
   });
 
@@ -67,7 +67,7 @@ describe("flushPendingWrites", () => {
     }
     const result = await promise;
 
-    expect(result).toEqual({ ok: true, response });
+    expect(result).toEqual({ ok: true, value: response });
     expect(apiClient).toHaveBeenCalledTimes(3);
   });
 

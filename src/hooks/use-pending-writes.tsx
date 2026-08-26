@@ -61,20 +61,19 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       if (result.ok) {
         succeededIds.push(...ids);
         mutate(
-          (current) =>
-            applyFlushedEntries(current, si, result.response.entries),
+          (current) => applyFlushedEntries(current, si, result.value.entries),
           { revalidate: false },
         );
         // The response is the only place this fact exists at submission
         // time -- the local cache is already optimistically written to
         // match entries, so comparing it against itself would never catch a
         // completeSet failure. Undefined means no set result was attempted.
-        if (result.response.setCompletionConfirmed !== undefined) {
+        if (result.value.setCompletionConfirmed !== undefined) {
           dispatch(
             setCompletionActions.recorded({
               gameId,
               setIndex: si,
-              confirmed: result.response.setCompletionConfirmed,
+              confirmed: result.value.setCompletionConfirmed,
             }),
           );
         }

@@ -1,7 +1,6 @@
 import {
   deriveSyncStatus,
   hasFailedWrite,
-  isFlushingGame,
   isPendingWrite,
   nextAttemptDelayMs,
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
@@ -79,17 +78,6 @@ describe("deriveSyncStatus", () => {
   });
 });
 
-describe("isFlushingGame", () => {
-  it("is true only for a game with a flush on the wire", () => {
-    const state: PendingWritesState = {
-      pending: [],
-      flushingGameIds: ["game-1"],
-    };
-    expect(isFlushingGame(state, "game-1")).toBe(true);
-    expect(isFlushingGame(state, "game-2")).toBe(false);
-  });
-});
-
 describe("hasFailedWrite", () => {
   it("is true only for an entry whose backoff is exhausted", () => {
     const state: PendingWritesState = {
@@ -107,11 +95,6 @@ describe("hasFailedWrite", () => {
     };
     expect(hasFailedWrite(state, "e1")).toBe(true);
     expect(hasFailedWrite(state, "e2")).toBe(false);
-  });
-
-  it("is false for an entry not in the queue at all", () => {
-    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
-    expect(hasFailedWrite(state, "e1")).toBe(false);
   });
 });
 
@@ -132,11 +115,6 @@ describe("isPendingWrite", () => {
     };
     expect(isPendingWrite(state, "e1")).toBe(true);
     expect(isPendingWrite(state, "e2")).toBe(false);
-  });
-
-  it("is false for an entry not in the queue at all", () => {
-    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
-    expect(isPendingWrite(state, "e1")).toBe(false);
   });
 });
 

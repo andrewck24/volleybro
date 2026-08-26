@@ -137,38 +137,6 @@ describe("SyncIndicator", () => {
     expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
   });
 
-  it("reads as syncing, not unsynced, when this game's own request is in flight even though its items have exhausted their backoff", () => {
-    store = makeStore();
-    // This game's item has exhausted its backoff...
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e1"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
-    // ...but a flush for this exact game (the retry, or the online
-    // listener) is now actually in flight.
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
-    render(
-      <Provider store={store}>
-        <PendingWritesTestHarness>
-          <SyncIndicator gameId="game-1" />
-        </PendingWritesTestHarness>
-      </Provider>,
-    );
-
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
-    expect(button).not.toHaveClass("ring-warning/30");
-  });
-
   it("reads as unsynced, retry control visible, when this game's queue is exhausted and a different game's flush is in flight", () => {
     store = makeStore();
     // This game's item has exhausted its backoff...

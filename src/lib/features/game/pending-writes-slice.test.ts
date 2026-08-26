@@ -52,36 +52,24 @@ describe("pendingWrites reducer", () => {
     expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 
-  it("flushStarted adds the game to flushingGameIds", () => {
-    const state = pendingWritesReducer(
+  it("flushStarted tracks each flushing game once, and more than one at a time", () => {
+    const afterFirst = pendingWritesReducer(
       undefined,
       pendingWritesActions.flushStarted({ gameId: "game-1" }),
     );
-    expect(state.flushingGameIds).toEqual(["game-1"]);
-  });
+    expect(afterFirst.flushingGameIds).toEqual(["game-1"]);
 
-  it("flushStarted does not add a second entry for a game already flushing", () => {
-    let state = pendingWritesReducer(
-      undefined,
+    const afterRepeat = pendingWritesReducer(
+      afterFirst,
       pendingWritesActions.flushStarted({ gameId: "game-1" }),
     );
-    state = pendingWritesReducer(
-      state,
-      pendingWritesActions.flushStarted({ gameId: "game-1" }),
-    );
-    expect(state.flushingGameIds).toEqual(["game-1"]);
-  });
+    expect(afterRepeat.flushingGameIds).toEqual(["game-1"]);
 
-  it("flushStarted tracks more than one game flushing at once", () => {
-    let state = pendingWritesReducer(
-      undefined,
-      pendingWritesActions.flushStarted({ gameId: "game-1" }),
-    );
-    state = pendingWritesReducer(
-      state,
+    const afterSecondGame = pendingWritesReducer(
+      afterRepeat,
       pendingWritesActions.flushStarted({ gameId: "game-2" }),
     );
-    expect([...state.flushingGameIds].sort()).toEqual(["game-1", "game-2"]);
+    expect(afterSecondGame.flushingGameIds).toEqual(["game-1", "game-2"]);
   });
 
   it("flushSucceeded removes only the confirmed ids and clears flushing for that game only", () => {
