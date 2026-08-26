@@ -1,7 +1,7 @@
 import { GamePreview } from "@/components/game/preview";
 import { EntryType, MoveType } from "@/entities/game";
 import {
-  PendingWritesProvider,
+  PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -26,9 +26,9 @@ const PendingWritesTestHarness = ({
 }) => {
   const pendingWrites = usePendingWrites(gameId, setIndex);
   return (
-    <PendingWritesProvider value={pendingWrites}>
+    <PendingWritesContext.Provider value={pendingWrites}>
       {children}
-    </PendingWritesProvider>
+    </PendingWritesContext.Provider>
   );
 };
 

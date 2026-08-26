@@ -157,8 +157,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
 
 export type PendingWritesApi = ReturnType<typeof usePendingWrites>;
 
-const PendingWritesContext = createContext<PendingWritesApi | null>(null);
-
 /**
  * `usePendingWrites` owns an `inFlight` ref and a background-retry timer, so
  * it must be mounted exactly once per game -- `Game` (`src/components/game/
@@ -167,23 +165,15 @@ const PendingWritesContext = createContext<PendingWritesApi | null>(null);
  * own instance, which would each fire an independent flush for the same due
  * entry.
  */
-export const PendingWritesProvider = ({
-  value,
-  children,
-}: {
-  value: PendingWritesApi;
-  children: React.ReactNode;
-}) => (
-  <PendingWritesContext.Provider value={value}>
-    {children}
-  </PendingWritesContext.Provider>
+export const PendingWritesContext = createContext<PendingWritesApi | null>(
+  null,
 );
 
 export function usePendingWritesContext(): PendingWritesApi {
   const context = useContext(PendingWritesContext);
   if (!context) {
     throw new Error(
-      "usePendingWritesContext must be used within a <PendingWritesProvider />",
+      "usePendingWritesContext must be used within a PendingWritesContext.Provider",
     );
   }
   return context;

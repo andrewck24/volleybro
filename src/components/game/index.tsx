@@ -25,7 +25,7 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGame } from "@/hooks/use-data";
 import {
-  PendingWritesProvider,
+  PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -67,14 +67,14 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
 
   if (!general.status.isSetInProgress) {
     return (
-      <PendingWritesProvider value={pendingWrites}>
+      <PendingWritesContext.Provider value={pendingWrites}>
         <Interval gameId={gameId} setIndex={setIndex} />
-      </PendingWritesProvider>
+      </PendingWritesContext.Provider>
     );
   }
 
   return (
-    <PendingWritesProvider value={pendingWrites}>
+    <PendingWritesContext.Provider value={pendingWrites}>
       <div className="flex h-full w-full max-w-160 flex-col items-center justify-start overflow-hidden">
         <GameHeader gameId={gameId} handleOptionOpen={handleOptionOpen} />
         {/* One viewport-height flex column: the fixed header's height is reserved
@@ -108,7 +108,7 @@ const Game = ({ gameId, setIndex }: { gameId: string; setIndex: number }) => {
           />
         </Dialog>
       </div>
-    </PendingWritesProvider>
+    </PendingWritesContext.Provider>
   );
 };
 

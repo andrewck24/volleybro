@@ -3,7 +3,7 @@ import {
   SyncIndicator,
 } from "@/components/game/header/sync-indicator";
 import {
-  PendingWritesProvider,
+  PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import * as apiClientModule from "@/lib/api/api-client";
@@ -38,9 +38,9 @@ const PendingWritesTestHarness = ({
 }) => {
   const pendingWrites = usePendingWrites("game-1", 0);
   return (
-    <PendingWritesProvider value={pendingWrites}>
+    <PendingWritesContext.Provider value={pendingWrites}>
       {children}
-    </PendingWritesProvider>
+    </PendingWritesContext.Provider>
   );
 };
 

@@ -1,7 +1,7 @@
 import { act, render, renderHook } from "@testing-library/react";
 import { Provider } from "react-redux";
 import {
-  PendingWritesProvider,
+  PendingWritesContext,
   usePendingWrites,
   usePendingWritesContext,
 } from "@/hooks/use-pending-writes";
@@ -300,7 +300,7 @@ const ContextConsumer = () => {
   return null;
 };
 
-describe("PendingWritesProvider: single owner", () => {
+describe("PendingWritesContext: single owner", () => {
   it("fires exactly one background-retry request for one due entry, no matter how many components read the queue", async () => {
     // The request is held open deliberately: a mock that resolves
     // instantly would let a first (buggy) flush finish and clear the queue
@@ -325,14 +325,14 @@ describe("PendingWritesProvider: single owner", () => {
     const Owner = () => {
       const pendingWrites = usePendingWrites("game-1", 0);
       return (
-        <PendingWritesProvider value={pendingWrites}>
+        <PendingWritesContext.Provider value={pendingWrites}>
           {/* Four consumers, mirroring the four real call sites that used to
               each mount their own usePendingWrites instance. */}
           <ContextConsumer />
           <ContextConsumer />
           <ContextConsumer />
           <ContextConsumer />
-        </PendingWritesProvider>
+        </PendingWritesContext.Provider>
       );
     };
 

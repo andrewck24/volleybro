@@ -1,7 +1,7 @@
 import { GameHeader } from "@/components/game/header";
 import { EntryType, MoveType } from "@/entities/game";
 import {
-  PendingWritesProvider,
+  PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
@@ -23,9 +23,9 @@ const PendingWritesDecorator = ({
 }) => {
   const pendingWrites = usePendingWrites(gameId, 2);
   return (
-    <PendingWritesProvider value={pendingWrites}>
+    <PendingWritesContext.Provider value={pendingWrites}>
       {children}
-    </PendingWritesProvider>
+    </PendingWritesContext.Provider>
   );
 };
 
