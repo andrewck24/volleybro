@@ -140,6 +140,69 @@ describe("useUnconfirmedSetCompletion", () => {
     expect(result.current.attempting).toBe(true);
   });
 
+  // The whole point of this dialog is that the next set cannot start on a
+  // result that was never saved. Once the retry budget runs out the entry
+  // stops being "attempting", and the optimistic write has already put
+  // `win` on the cached set -- so if the queue is not consulted, every
+  // signal says confirmed and the dialog closes over an unsent result.
+  it("stays unconfirmed, no longer attempting, once the queued entry has exhausted its backoff", () => {
+    mockGame = gameWithSet(true); // optimistic write already applied
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    // retryable: false spends the budget outright -- nextAttemptAt becomes
+    // null and nothing will send this entry again without a manual retry.
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    expect(result.current.unconfirmed).toBe(true);
+    expect(result.current.attempting).toBe(false);
+  });
+
+  // The queue term must not outlive its purpose: once the flush lands, the
+  // entry leaves the queue and the dialog has nothing left to cover.
+  it("closes once the flush succeeds and the entry leaves the queue", () => {
+    mockGame = gameWithSet(true);
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+    );
+    store.dispatch(
+      setCompletionActions.recorded({
+        gameId: "game-1",
+        setIndex: 0,
+        confirmed: true,
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+
+    expect(result.current.unconfirmed).toBe(false);
+  });
+
   // The set-dimension counterpart of the game-scoping test above: a flush
   // covers every pending set of one game, so game identity alone is not
   // enough -- an entry queued for a different set of this same game must
@@ -245,6 +308,42 @@ describe("useUnconfirmedSetCompletion", () => {
       }),
     );
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
+  });
+
+  // The manual retry bypasses the queue -- it sends the entry itself rather
+  // than going through flush -- so nothing removes the entry from the queue
+  // on its way out. If the dialog consults the queue, a successful retry
+  // must still close it.
+  it("closes after a successful retry even though the entry is still queued", async () => {
+    mockGame = gameWithSet(true);
+    apiClient.mockResolvedValue({ entries: [lastRally] });
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: { id: "e1" } as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useUnconfirmedSetCompletion("game-1", 0),
+      { wrapper },
+    );
+    expect(result.current.unconfirmed).toBe(true);
+
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(store.getState().setCompletion["game-1:0"]).toBe(true);
+    expect(result.current.unconfirmed).toBe(false);
   });
 
   it("retry defaults to confirmed when the response omits the field", async () => {
