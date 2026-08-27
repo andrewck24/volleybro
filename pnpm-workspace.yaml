@@ -28,3 +28,13 @@ minimumReleaseAgeExclude:
   - "@tailwindcss/postcss@4.3.2"
   - tailwindcss@4.3.2
   - "@types/node@26.4.0"
+  - "@better-auth/core@1.7.2"
+  - "@better-auth/drizzle-adapter@1.7.2"
+  - "@better-auth/kysely-adapter@1.7.2"
+  - "@better-auth/memory-adapter@1.7.2"
+  - "@better-auth/mongo-adapter@1.7.2"
+  - "@better-auth/prisma-adapter@1.7.2"
+  - "@better-auth/telemetry@1.7.2"
+  - "@testing-library/react@16.3.3"
+  - better-auth@1.7.2
+  - chromatic@18.6.1
