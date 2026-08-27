@@ -12,6 +12,6 @@ describe("TaskProgress", () => {
     render(<TaskProgress done={3} total={7} />);
     const bar = screen.getByTestId("progress-bar");
     expect(bar).toHaveAttribute("role", "progressbar");
-    expect(bar).toHaveAttribute("aria-valuenow", `${(3 / 7) * 100}`);
+    expect(bar).toHaveValue((3 / 7) * 100);
   });
 });
