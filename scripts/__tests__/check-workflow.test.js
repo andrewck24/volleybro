@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { checkWorkflow } from "./check-workflow.mjs";
+import { checkWorkflow } from "../check-workflow.js";
 
 const validWorkflow = `---
 delivery:

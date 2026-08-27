@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-require-imports */
 // Run after `changeset version` (via the release:version script) to:
 // 1. Fix version headers:  ## X.Y.Z  →  ## [X.Y.Z](compare-link) YYYY-MM-DD
 // 2. Merge duplicate ### type headings within each version block
 
-const fs = require("fs");
-const path = require("path");
-const { execSync } = require("child_process");
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const REPO = "https://github.com/andrewck24/volleybro";
 const CHANGELOG = path.resolve(__dirname, "../CHANGELOG.md");
@@ -77,7 +79,9 @@ function mergeSections(body) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
-const cur = require("../package.json").version;
+const cur = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "../package.json"), "utf8"),
+).version;
 const prev = prevGitVersion(cur);
 
 const content = fs.readFileSync(CHANGELOG, "utf-8");

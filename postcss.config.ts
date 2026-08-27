@@ -1,4 +1,4 @@
-const config = {
+const config: { plugins: Record<string, object> } = {
   plugins: {
     "@tailwindcss/postcss": {},
   },

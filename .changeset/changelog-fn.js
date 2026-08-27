@@ -13,4 +13,4 @@ async function getDependencyReleaseLine() {
   return "";
 }
 
-module.exports = { getReleaseLine, getDependencyReleaseLine };
+export { getReleaseLine, getDependencyReleaseLine };

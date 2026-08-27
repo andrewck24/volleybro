@@ -1,4 +1,5 @@
 import bundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from "next";
 import { withSerwist } from "@serwist/turbopack";
 
 const withBundleAnalyzer = bundleAnalyzer({
@@ -10,8 +11,7 @@ const removeProperties =
     ? { properties: ["^data-testid$"] }
     : false;
 
-/** @type {import("next").NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   turbopack: {},
   experimental: {
     optimizePackageImports: ["react-icons"],

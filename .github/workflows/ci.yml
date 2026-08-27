@@ -70,7 +70,7 @@ jobs:
 
       # Guards the service-worker spec against the output just built; without
       # it the build runs and nothing ever looks at what it produced.
-      - run: node scripts/assert-sw.mjs
+      - run: node scripts/assert-sw.js
 
   blueprint:
     name: Blueprint
