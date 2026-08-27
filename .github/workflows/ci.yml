@@ -42,4 +42,9 @@ jobs:
 
       - run: pnpm build
 
+      # Guards the service-worker spec against the build output CI just
+      # produced; without it the only enforced check builds the worker and
+      # never looks at it.
+      - run: node scripts/assert-sw.mjs
+
       - run: pnpm --filter blueprint build

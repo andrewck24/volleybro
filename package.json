@@ -16,7 +16,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify": "pnpm format:check && pnpm test:workflow && pnpm check:workflow && pnpm typecheck:strict && pnpm lint && pnpm test",
-    "verify:all": "pnpm verify && pnpm build && node scripts/assert-sw.mjs && pnpm --filter blueprint build",
+    "verify:all": "pnpm verify && pnpm --filter blueprint test && pnpm build && node scripts/assert-sw.mjs && pnpm --filter blueprint build",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "knip": "knip",
