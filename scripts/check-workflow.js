@@ -335,7 +335,7 @@ async function activeReferenceFiles(root) {
 
   return [...rootFiles, ...directoryFiles].filter((filePath) => {
     const basename = path.basename(filePath);
-    return basename !== "check-workflow.mjs" && !basename.includes(".test.");
+    return basename !== "check-workflow.js" && !basename.includes(".test.");
   });
 }
 
