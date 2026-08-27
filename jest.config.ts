@@ -16,7 +16,7 @@ import nextJest from "next/jest.js";
 // workers via NODE_OPTIONS (covers the default parallel runner).
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
-const preload = `${process.cwd()}/jest.preload.integration.mjs`;
+const preload = `${process.cwd()}/jest.preload.integration.js`;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
     `${process.env.NODE_OPTIONS ?? ""} --import ${preload}`.trim();
