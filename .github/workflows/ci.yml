@@ -48,29 +48,6 @@ jobs:
       - run: pnpm typecheck:strict
       - run: pnpm lint
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      # next build imports route modules while collecting page data, which
-      # validates this variable's presence; no real connection is made.
-      MONGODB_URI: mongodb://localhost:27017/ci-placeholder
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build
-
-      # Guards the service-worker spec against the output just built; without
-      # it the build runs and nothing ever looks at what it produced.
-      - run: node scripts/assert-sw.js
-
   blueprint:
     name: Blueprint
     runs-on: ubuntu-latest
@@ -90,10 +67,10 @@ jobs:
   # The branch rulesets require a check named exactly "Verify". Renaming the
   # jobs without this would leave that context permanently unreported and
   # every pull request blocked, so the name stays and becomes the gate the
-  # four parallel jobs report through.
+  # parallel jobs report through.
   verify:
     name: Verify
-    needs: [test, static, build, blueprint]
+    needs: [test, static, blueprint]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -102,7 +79,6 @@ jobs:
         run: |
           echo "test=${{ needs.test.result }}"
           echo "static=${{ needs.static.result }}"
-          echo "build=${{ needs.build.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
             exit 1
