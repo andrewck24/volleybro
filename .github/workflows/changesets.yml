@@ -9,10 +9,15 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: changesets-${{ github.ref }}
+  cancel-in-progress: false # half a written release PR is worse than a slow one
+
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       # RELEASE_TOKEN (a PAT/App token, not the default GITHUB_TOKEN) so the
       # version PR and the sync PR are authored by a real identity — that is what

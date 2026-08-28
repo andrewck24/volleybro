@@ -1,9 +1,8 @@
-# Workflow name
 name: "Chromatic Publish"
+
 permissions:
   contents: read
 
-# Event for the workflow
 on:
   push:
     paths:
@@ -11,30 +10,33 @@ on:
       - ".storybook/**"
       - "src/components/ui/**"
       - "src/components/custom/**"
+      - "src/components/game/**"
       - "src/components/layout/**"
       - "src/stories/**"
+  workflow_dispatch:
 
-# List of jobs
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    # Operating System
+  chromatic:
+    name: Chromatic
     runs-on: ubuntu-latest
-    # Job steps
+    timeout-minutes: 20
     if: ${{ !contains(github.event.head_commit.message, '[skip chromatic]') }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Chromatic diffs against history to find a baseline
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      #👇 Adds Chromatic as a step in the workflow
+
       - uses: chromaui/action@latest
-        # Options required for Chromatic's GitHub Action
         with:
-          #👇 Chromatic projectToken,
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
