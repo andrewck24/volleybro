@@ -62,9 +62,6 @@ jobs:
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
 
-      # Proves idempotency, ordering and casting against a real in-memory
-      # MongoDB. `pnpm test` covers only the backend and frontend projects,
-      # so until now nothing on the merge path ran these.
       - run: pnpm test:integration
 
   blueprint:

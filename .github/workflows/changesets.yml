@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: changesets-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: false # half a written release PR is worse than a slow one
 
 jobs:
   release:

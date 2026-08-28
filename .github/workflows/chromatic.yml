@@ -3,11 +3,6 @@ name: "Chromatic Publish"
 permissions:
   contents: read
 
-# Paths that can change what a story renders. `src/components/game/**` is
-# here because five story files import from it -- without it, editing a
-# component only its story covers produces no visual check at all.
-# `src/components/layout/**` has no story importing it today and is kept so
-# coverage is already in place when one appears.
 on:
   push:
     paths:
@@ -20,7 +15,6 @@ on:
       - "src/stories/**"
   workflow_dispatch:
 
-# Snapshots are billed, so a superseded push should not keep capturing them.
 concurrency:
   group: chromatic-${{ github.ref }}
   cancel-in-progress: true
@@ -34,8 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Chromatic reads git history to find each build's baseline.
-          fetch-depth: 0
+          fetch-depth: 0 # Chromatic diffs against history to find a baseline
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
