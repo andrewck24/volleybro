@@ -5,12 +5,13 @@ on:
     branches:
       - dev
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,6 +49,24 @@ jobs:
       - run: pnpm typecheck:strict
       - run: pnpm lint
 
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      # Proves idempotency, ordering and casting against a real in-memory
+      # MongoDB. `pnpm test` covers only the backend and frontend projects,
+      # so until now nothing on the merge path ran these.
+      - run: pnpm test:integration
+
   blueprint:
     name: Blueprint
     runs-on: ubuntu-latest
@@ -70,7 +89,7 @@ jobs:
   # parallel jobs report through.
   verify:
     name: Verify
-    needs: [test, static, blueprint]
+    needs: [test, static, integration, blueprint]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -79,6 +98,7 @@ jobs:
         run: |
           echo "test=${{ needs.test.result }}"
           echo "static=${{ needs.static.result }}"
+          echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
             exit 1
