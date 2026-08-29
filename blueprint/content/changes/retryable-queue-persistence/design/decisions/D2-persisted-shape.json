@@ -1,0 +1,53 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "The snapshot stores the entry and its last error; retry state is recomputed on restore, and hopeless items expire",
+  "status": "candidate",
+  "targets": ["game-recording/persistence"],
+  "context": "Deciding what reaches the disk forces a distinction the in-memory queue is allowed to leave vague. `flushFailed` encodes two different facts into one field: `nextAttemptAt: null` means either that the backoff budget is spent — a 5xx that may well succeed later — or that the failure is not retryable at all. While the queue lives only in memory and the recorder is looking at the row, that conflation costs nothing, because a human decides whether to press retry. Once the queue is restored and resent automatically, the two have to be told apart: a 401 is a session that expired and everything queued behind it should go out the moment the user signs in again, while a 404 for a game somebody deleted can never succeed and should not cost a doomed request on every launch. There is a second consequence of writing the queue down that is easy to miss. Today the only way out of the queue for a permanently failing entry is closing the app; the queue is memory. Persisting it removes that escape hatch, so a stuck entry becomes stuck forever — the indicator reads unsynced for that game indefinitely, and under D3 the user cannot even see it once they leave the game.",
+  "decision": "One key, `pending-writes:v1`, holding `{ version, items: [{ entry, gameId, setIndex, lastError? }] }` written as a whole snapshot on every queue change. `lastError` carries `{ code, reason, status }` from `ApiClientError` and nothing else — `detail` and `message` are human-facing strings that move with copy changes and i18n. `attempts` and `nextAttemptAt` are not stored but recomputed on restore, and `flushingGameIds` is runtime state that is false by construction after a restart. A `version` that does not match causes the whole snapshot to be discarded rather than migrated. Whether a restored item may be retried is answered by the same `isRetryable` the flush path uses, never by a second table mapping codes to policy. Restoring resets eligible items to attempt immediately, which covers 401 without needing any sign-in signal: sign-in is a full-page OAuth redirect, so a successful login already is a restart. Against the lost escape hatch, restore applies a narrowed expiry — items whose last error was retryable never expire, while items whose last error was a non-retryable 4xx are dropped after seven days.",
+  "alternatives": [
+    {
+      "option": "Store a `retryable` boolean instead of the error code",
+      "reason": "Smaller, but it collapses 401 and 400 into the same value while their correct handling is opposite: one should go out again after the user signs in, the other can never succeed. It also leaves `offline-recording` nothing to key its conflict flow on."
+    },
+    {
+      "option": "Store nothing about the failure and reset every restored item to attempt immediately",
+      "reason": "Simplest, and it changes nothing about the shape of `PendingEntry`. But an entry for a deleted game then costs one doomed request on every single app launch and keeps the queue permanently non-empty with no way to tell it apart from work that might still succeed."
+    },
+    {
+      "option": "Persist `attempts` and `nextAttemptAt` verbatim",
+      "reason": "Preserves the schedule exactly, which sounds faithful but is wrong on both counts: a stored absolute timestamp is always in the past after a restart, and an item whose backoff was spent stays dead — invisible under D3, so nothing will ever attempt it again."
+    },
+    {
+      "option": "Hook restore to a sign-in success signal so 401 items resend at exactly the right moment",
+      "reason": "The most precise story, but there is no such moment to hook: sign-in leaves the app entirely for Google and returns as a fresh page load, so it is already indistinguishable from the restart that restore handles anyway. Extra wiring for no extra behaviour."
+    },
+    {
+      "option": "Migrate old snapshots when the shape changes instead of discarding them",
+      "reason": "A migration path is worth writing when the data is irreplaceable and long-lived. This queue holds seconds to hours of unsent work in the normal case, and a migration bug would corrupt exactly the data the Change exists to protect."
+    },
+    {
+      "option": "Give the user an explicit discard gesture on the failed row instead of an expiry",
+      "reason": "The semantically correct answer, and where this should eventually land. But a discard the user cannot see is not a discard, and making unsent work visible outside the recording screen is `offline-recording`'s criterion, not this Change's."
+    },
+    {
+      "option": "Expire every item after seven days, retryable or not",
+      "reason": "One rule instead of two, but it deletes work that could still succeed — a week-long tournament with no signal is the case that most needs the queue to hold, and it is exactly the case this would break."
+    }
+  ],
+  "consequences": [
+    "`PendingEntry` gains `lastError`. This is a small addition to a structure `retryable-entry-writes` has just delivered, and it is justified by serialisation rather than by the in-memory model needing it — the same fact was already reaching `flushFailed` as its `retryable` argument, only encoded into `nextAttemptAt` on arrival.",
+    "Restore behaviour has a data-loss path by construction: a non-retryable 4xx item silently disappears after seven days. Seven days has no measured basis; it is chosen to restore the property that persistence removed, not because the number means anything.",
+    "The expiry rule becomes the primary mechanism rather than a safety net once request validation lands on the rally endpoint and 400s become common. Because an entry is enqueued and written to disk before any request is sent, boundary validation cannot keep malformed entries out of the queue — it can only increase how many get stuck in it.",
+    "`isRetryable` is now consumed by two paths — the flush and the restore — which makes it the single place where retry policy can be changed, and the single place where a change to it affects both."
+  ],
+  "revisitTriggers": [
+    "`offline-recording` makes unsent work visible outside the recording screen: an explicit discard becomes possible and should replace the expiry rather than sit alongside it.",
+    "Request validation lands on the rally endpoint: 400s stop being rare, and the seven-day rule moves from insurance to the main path, which is the point at which its value deserves measurement.",
+    "A tournament longer than the expiry window is recorded offline, or the field shows entries expiring that should not have.",
+    "Anything else needs to know why a write failed — error reporting, a per-row explanation, the conflict flow — at which point the fields stored here should be reconsidered against that consumer rather than kept minimal by default."
+  ],
+  "originChange": "retryable-queue-persistence"
+}

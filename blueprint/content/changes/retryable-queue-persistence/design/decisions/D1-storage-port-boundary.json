@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Persistence sits behind a small client-side port whose signature is asynchronous from the first day",
+  "status": "candidate",
+  "targets": ["game-recording/persistence"],
+  "context": "This repository already has a ports-and-adapters layer, but it is the server's: `applications/repositories/*.repository.interface.ts` bound to Mongo adapters through inversify, and exactly one client file imports anything from `applications/`. The client has no such convention — the nearest precedent, `useFormDraft`, calls `sessionStorage` directly. So \"follow clean architecture here\" is not a question of reusing the existing layer; it is a question of whether to open a new seam on the client at all, and an interface with a single implementation is normally the thing to skip. What makes it worth its weight is not swappability, which is speculative, but two things that are true today. The first is that the signature is a one-way door: the storage that a native app would use — AsyncStorage, SQLite, Capacitor Preferences — is asynchronous without exception, so a synchronous signature chosen now has to be unpicked at every call site later, while an asynchronous one costs nothing because the localStorage implementation simply wraps a synchronous call. The second is testability: a seam lets the restore path be tested against a fake rather than a globally stubbed `localStorage`.",
+  "decision": "Persistence is reached through one module-level type with three methods — `load`, `save`, `clear` — and one localStorage implementation, both living in the client feature folder. No inversify, no `applications/` placement, no factory, no registry. Every method returns a Promise, and the localStorage adapter performs its synchronous `setItem` inside the async function body, so reliability is identical to calling it directly. Choosing localStorage over IndexedDB is part of this decision rather than an implementation detail: IndexedDB commits its transactions across an event-loop turn, so an app reclaimed by the operating system can lose the write that was in flight — and being reclaimed mid-recording is the exact scenario this Change exists to survive. A synchronous store is the remedy here, not the compromise. Capacity does not argue the other way at this scale: a fully offline day of matches is on the order of 300 KB of serialised entries against a typical 5 MB quota.",
+  "alternatives": [
+    {
+      "option": "No port at all — call localStorage directly, as `useFormDraft` does",
+      "reason": "Cheapest today and consistent with the one existing precedent, but it freezes the synchronous signature into every call site. The async decision is the one thing here that is expensive to reverse, and this option is the only one that gets it wrong."
+    },
+    {
+      "option": "Declare the port in `applications/repositories/` alongside the server ports",
+      "reason": "Most consistent by naming, but that layer carries inversify and node-only imports and is not reachable from client code by convention. Putting browser storage there misleads the next reader about which side of the app it runs on, and risks pulling server dependencies into the bundle."
+    },
+    {
+      "option": "IndexedDB behind the same port",
+      "reason": "Larger quota and per-record writes, so it avoids rewriting the whole snapshot. But its asynchronous transaction can still be uncommitted when the app is killed, which is precisely the failure this Change addresses; it also brings upgrade-blocked events across tabs, the transaction-goes-inactive-on-await trap, and in practice a dependency on `idb`. The volumes involved do not yet justify any of it."
+    },
+    {
+      "option": "Move the write into a Service Worker, or use Background Sync",
+      "reason": "A Service Worker is not a resident background process — browsers terminate idle ones aggressively — so handing the write to it adds a postMessage hop and widens the interruption window rather than narrowing it. Background Sync is unsupported on iOS, and `offline-recording` already decided against it in favour of an application-layer outbox."
+    },
+    {
+      "option": "Adopt `redux-persist`",
+      "reason": "It exists to persist a whole store generically. Here there is one slice and one key; the hand-written version is about twenty lines and does not require working around a rehydration lifecycle that solves a problem this Change does not have."
+    }
+  ],
+  "consequences": [
+    "The asynchronous signature has to be paid for immediately in three places: `preloadedState` cannot carry the restored queue because `makeStore()` is synchronous, so restoring needs its own action; that action has to merge rather than replace, because the user can record while the load is still in flight; and writes have to be serialised, because two snapshots completing out of order would leave the older one on disk.",
+    "The port has exactly one implementation, and that is intended. A second one arrives with a native target or with a volume that localStorage cannot hold — not before.",
+    "Restore can be tested against a fake store rather than a stubbed global, which is what makes the merge semantics testable at all.",
+    "Choosing a synchronous store means every write is the whole snapshot; there is no per-record path. That is acceptable at tens of entries and still acceptable at the ~300 KB an entire offline day would produce, but it is an O(n) write on the main thread and the ceiling is real."
+  ],
+  "revisitTriggers": [
+    "The target platform extends from PWA to a native app: the asynchronous signature exists for this moment, and the new adapter has to answer a question localStorage never had to — what happens to a write interrupted midway.",
+    "The queue approaches thousands of entries, or whole-snapshot writes become measurable: the first step is splitting the key per game so only the touched game is rewritten, and only then IndexedDB behind the same port.",
+    "A second consumer needs client-side persistence, at which point the port stops being a single-implementation interface and its shape should be re-examined against that second use rather than generalised speculatively."
+  ],
+  "originChange": "retryable-queue-persistence"
+}

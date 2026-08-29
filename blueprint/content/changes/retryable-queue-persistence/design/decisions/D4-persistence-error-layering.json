@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D4",
+  "title": "The adapter reports storage failures honestly; the decision to swallow them stays in the listener",
+  "status": "candidate",
+  "targets": ["game-recording/persistence"],
+  "context": "Writing to localStorage can throw — quota exhausted, private browsing, site data disabled by the user. The existing precedent in this repository, `useFormDraft`, catches and warns: a lost form draft is a small thing and silence is proportionate. A lost pending-write queue is not a small thing; it is the exact loss this Change exists to prevent, so silent degradation here means the user believes work is protected while it is not. That is the same shape as the residual risks under D3, and the honest answer eventually is to tell them. It is not this Change's to tell, though, because saying so needs somewhere to say it. What is this Change's to get right is where the error is caught, because that placement decides whether anyone can ever change the answer cheaply.",
+  "decision": "The adapter does not catch. `save` performs its write and lets a failure reject, so the port's contract is honest about whether the data reached the disk. The listener catches, logs, and continues — the policy of tolerating an unwritable store lives there, one line, next to the other queue policy. When the offline work needs to escalate this into something the user can see, it changes that line rather than the port's contract, every implementation of it, and every call site. This is the same principle applied elsewhere in the Change: retry policy has exactly one home in `isRetryable` rather than a second table on the restore path.",
+  "alternatives": [
+    {
+      "option": "Catch inside the adapter and always resolve",
+      "reason": "Slightly less code at the single call site, and it matches `useFormDraft` most literally. But it makes the port claim it always succeeds, so the later question — did this actually persist — cannot be asked without changing the interface everywhere. It also makes the failure untestable except by asserting on a console warning."
+    },
+    {
+      "option": "Record an unwritable store in the slice and let the sync indicator reflect it",
+      "reason": "The right end state, and it is what the offline work will need. But it adds a state field and a UI state to a Change that has deliberately touched no UI, and the situations that trigger it — private browsing, site data disabled — are ones where offline recording cannot work at all, which is a message that belongs with the feature that promises it."
+    },
+    {
+      "option": "Surface a toast when a write fails",
+      "reason": "Immediate and needs no new state, but it fires at the moment the recorder is mid-rally and can do nothing about it, and it repeats on every subsequent write. An always-visible status is the right shape for a persistent condition, not an interruption."
+    }
+  ],
+  "consequences": [
+    "There is one path in this Change where the user believes work is protected and it is not, and it is recorded as such rather than hidden.",
+    "Upgrading to a visible warning is a change to the listener, not to the port — which is the property this decision is buying.",
+    "Because the adapter rejects, the failure is testable directly: assert that an unwritable store does not take the app down, rather than asserting that something was logged.",
+    "The `ponytail:` marker on that catch names the ceiling and the upgrade path, so the deferral is discoverable rather than folklore."
+  ],
+  "revisitTriggers": [
+    "`offline-recording` begins implementing the offline promise, at which point an unwritable store stops being a degraded mode and becomes a reason the feature cannot function.",
+    "Field evidence of storage failures actually occurring, which would move this ahead of the offline work rather than travelling with it.",
+    "A second consumer of the port appears and needs its own failure policy, which would show whether keeping the policy at the call site was the right split."
+  ],
+  "originChange": "retryable-queue-persistence"
+}

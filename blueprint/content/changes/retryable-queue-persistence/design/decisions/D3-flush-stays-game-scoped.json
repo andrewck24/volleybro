@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D3",
+  "title": "Restoring the queue does not send it — flush stays mounted under the game screen",
+  "status": "candidate",
+  "targets": ["game-recording/persistence", "game-recording/rally-recording"],
+  "context": "The whole retry engine — the flush, the background schedule, the online listener — lives in one hook mounted in exactly one place, the recording screen for a single game. The queue itself is not scoped that way: every item carries its own `gameId`, and more than one game's entries can sit in it at once. Only sending is scoped, because the hook is. In memory this asymmetry is nearly invisible, since entries survive for about a second. Once the queue is restored from disk it becomes the defining question of this Change: an entry is durable now, but nothing will attempt it until the user walks back into that particular game. Making the flush global is a real option and it is what the eventual outbox will do, but a queue that sends itself regardless of which screen is open is the definition of an outbox, and that is `offline-recording`'s first acceptance criterion rather than this Change's.",
+  "decision": "The flush stays where it is. Restoring puts the entries back into the slice and stops there; they are sent when the user next opens that game, exactly as they would have been had the app never closed. This keeps the Change to a single claim — recorded work is not lost — and leaves delivery guarantees to the work chartered for them. It also gets an authorisation gate for free: reaching the recording screen already implies a session, so restore needs no auth check of its own, whereas a global flush would have to build one or it would fire 401s from the home screen and bounce the user to sign-in on every launch. The corresponding residual risks are recorded here and closed by `offline-recording`, whose acceptance criteria were extended to name them.",
+  "alternatives": [
+    {
+      "option": "Hoist the flush to a global provider that sends everything at app start",
+      "reason": "Delivers on restart without the user navigating anywhere, and is where this ends up. But the hook's signature is game-scoped throughout — enqueue needs the current game and set, the flush filters by game, and writing the response back to the cache goes through `useGame(gameId)`, which cannot be called per game in a loop. It also has to rebuild the authorisation gate that mounting under the game screen provides for nothing. That is the outbox, and it belongs with the conflict semantics that make an outbox safe."
+    },
+    {
+      "option": "Keep the flush where it is but surface unsent work on the home screen",
+      "reason": "Addresses the half that hurts most — the user not knowing — without touching the retry engine. But it is a new UI surface, and this Change has held the line at no UI changes precisely so its value comes only from work not being lost."
+    },
+    {
+      "option": "Replay the restored entries into the SWR cache at start-up so the screen is immediately correct",
+      "reason": "Would hide the visible half of the problem, but SWR overwrites optimistic cache writes on its next revalidation, so the fix would not hold. That overwrite is a defect in its own right, reachable while fully online, and it has its own Change; doing a start-up seed here would duplicate that logic in two places and still be wrong between revalidations."
+    }
+  ],
+  "consequences": [
+    "Two residual risks are accepted. Entries for a game the user does not revisit are never sent, and nothing outside that game's recording screen says so — the match list keeps showing a score missing those rallies, because the indicator lives in the game header. The queue spans games, so a user with unsent work in games A and B who only opens B leaves A waiting indefinitely.",
+    "Storage being unavailable — private browsing, site data disabled — degrades silently under D4, so there is one path where the user believes work is protected and it is not.",
+    "Restore is cheap and unconditional, which is what makes it safe to run at provider mount without knowing anything about the session.",
+    "The Change touches no UI component. The indicator, the per-row failure marker and the summary drawer are already projections of the queue and the cache, so restoring the queue makes them correct without being edited — which also keeps this work clear of the standing obstacle around screenshotting authenticated pages."
+  ],
+  "revisitTriggers": [
+    "`offline-recording` implements the outbox: both residual risks close, and this decision's premise — that delivery may depend on the user returning to the game — is exactly what that work removes.",
+    "Field evidence that entries are in fact stranded because users do not return to a finished match, which would move the visibility half ahead of the rest of the outbox.",
+    "The recording screen stops being the only authenticated entry point to a game, which would weaken the free authorisation gate this decision relies on."
+  ],
+  "originChange": "retryable-queue-persistence"
+}

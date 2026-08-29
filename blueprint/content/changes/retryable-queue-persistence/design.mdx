@@ -1,0 +1,269 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import storagePortBoundary from "./design/decisions/D1-storage-port-boundary.json";
+import persistedShape from "./design/decisions/D2-persisted-shape.json";
+import flushStaysGameScoped from "./design/decisions/D3-flush-stays-game-scoped.json";
+import persistenceErrorLayering from "./design/decisions/D4-persistence-error-layering.json";
+
+## Adopted shape
+
+Redux slice 在中央，兩側互不知情：左邊是持久化（listener → port → localStorage），右邊是網路（flush → API → Mongo）。持久化那一側完全不知道有伺服器存在，它只對 slice 的變動作反應。
+
+<svg
+  viewBox="0 0 1120 1080"
+  role="img"
+  aria-label="待送佇列的完整資料流：記一顆球時 UI dispatch enqueued，reducer 完成合併，listener 讀取整包狀態寫入 localStorage；flush 讀取整個佇列送往 rally 端點，由 upsertEntry 以 id 守衛寫入 Mongo，成功後 dispatch flushSucceeded、失敗後 dispatch flushFailed，兩者都再寫入一次；app 重啟時由 ReduxProvider 呼叫 load，檢查版本後 dispatch rehydrated 依 id 合併回 Redux。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1120 / 1080", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker
+      id="rqp-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-monospace, monospace">
+    <rect x="105" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="180" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">localStorage</text>
+    <text x="180" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">pending-writes:v1</text>
+
+    <rect x="265" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="340" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">persistence</text>
+    <text x="340" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">listener ＋ port</text>
+
+    <rect x="425" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="500" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">pendingWrites</text>
+    <text x="500" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">Redux slice</text>
+
+    <rect x="585" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="660" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">CLIENT</text>
+    <text x="660" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">記錄畫面／flush</text>
+
+    <rect x="745" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="820" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">API</text>
+    <text x="820" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">PUT /sets/rallies</text>
+
+    <rect x="905" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="980" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">MongoDB</text>
+    <text x="980" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">upsertEntry</text>
+
+    <line x1="180" y1="66" x2="180" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="340" y1="66" x2="340" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="500" y1="66" x2="500" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="660" y1="66" x2="660" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="820" y1="66" x2="820" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="980" y1="66" x2="980" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+
+    <rect x="16" y="90" width="22" height="200" rx="6" fill="var(--muted)" />
+    <text x="27" y="190" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 190)">記一顆球</text>
+
+    <text x="660" y="104" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">使用者記下一顆球（樂觀推進）</text>
+    <line x1="660" y1="130" x2="514" y2="130" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="580" y="122" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(enqueued)</text>
+    <rect x="430" y="142" width="140" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="500" y="157" textAnchor="middle" fontSize="10" fill="var(--success)">PUSH → 佇列即最新</text>
+    <text x="500" y="178" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">合併發生在 reducer</text>
+
+    <line x1="500" y1="200" x2="354" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="420" y="192" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener 只認這三個 action</text>
+    <rect x="265" y="212" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="340" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">getState() 取整包</text>
+
+    <line x1="340" y1="252" x2="194" y2="252" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="260" y="244" textAnchor="middle" fontSize="10" fill="var(--foreground)">await save()</text>
+    <text x="180" y="274" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同步寫入，返回即落地</text>
+
+    <line x1="16" y1="296" x2="1104" y2="296" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <rect x="16" y="316" width="22" height="254" rx="6" fill="var(--muted)" />
+    <text x="27" y="443" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 443)">送出成功</text>
+
+    <text x="660" y="330" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">flush() 讀取整個佇列</text>
+    <line x1="660" y1="356" x2="806" y2="356" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="733" y="348" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ {"{ id, seq, …entry }"} ]</text>
+
+    <line x1="820" y1="382" x2="966" y2="382" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="893" y="374" textAnchor="middle" fontSize="10" fill="var(--foreground)">upsertEntry（bulkWrite）</text>
+    <rect x="905" y="394" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="980" y="409" textAnchor="middle" fontSize="10" fill="var(--success)">id 守衛 → 寫入或 no-op</text>
+
+    <line x1="980" y1="434" x2="834" y2="434" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="900" y="426" textAnchor="middle" fontSize="10" fill="var(--foreground)">entries</text>
+    <line x1="820" y1="460" x2="674" y2="460" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="747" y="452" textAnchor="middle" fontSize="10" fill="var(--foreground)">200 {"{ entries, … }"}</text>
+
+    <line x1="660" y1="486" x2="514" y2="486" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="580" y="478" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushSucceeded)</text>
+    <rect x="430" y="498" width="140" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="500" y="513" textAnchor="middle" fontSize="10" fill="var(--success)">移除該批 id</text>
+
+    <line x1="500" y1="538" x2="354" y2="538" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="420" y="530" textAnchor="middle" fontSize="10" fill="var(--foreground)">同一條 listener</text>
+    <line x1="340" y1="562" x2="194" y2="562" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="260" y="554" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：快照變小</text>
+
+    <line x1="16" y1="590" x2="1104" y2="590" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <rect x="16" y="610" width="22" height="220" rx="6" fill="var(--muted)" />
+    <text x="27" y="720" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 720)">送出失敗</text>
+
+    <text x="660" y="624" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">flush() 再次送出</text>
+    <line x1="660" y1="648" x2="806" y2="648" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="733" y="640" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ … ]</text>
+    <rect x="745" y="660" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="820" y="675" textAnchor="middle" fontSize="10" fill="var(--warning)">5xx／離線 → 503</text>
+    <text x="820" y="696" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">normalizeNetworkError 正規化</text>
+
+    <line x1="820" y1="716" x2="674" y2="716" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="747" y="708" textAnchor="middle" fontSize="10" fill="var(--foreground)">失敗（retryable）</text>
+    <line x1="660" y1="740" x2="514" y2="740" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="580" y="732" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushFailed)</text>
+    <rect x="425" y="752" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="500" y="767" textAnchor="middle" fontSize="10" fill="var(--warning)">attempts+1、存 lastError</text>
+
+    <line x1="500" y1="792" x2="354" y2="792" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="420" y="784" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener</text>
+    <line x1="340" y1="816" x2="194" y2="816" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="260" y="808" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：含 lastError</text>
+
+    <line x1="16" y1="840" x2="1104" y2="840" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <rect x="16" y="860" width="22" height="180" rx="6" fill="var(--muted)" />
+    <text x="27" y="950" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 950)">app 重啟</text>
+
+    <text x="660" y="874" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">ReduxProvider 掛載</text>
+    <line x1="660" y1="898" x2="354" y2="898" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="507" y="890" textAnchor="middle" fontSize="10" fill="var(--foreground)">storage.load()</text>
+    <line x1="340" y1="922" x2="194" y2="922" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="267" y="914" textAnchor="middle" fontSize="10" fill="var(--foreground)">read pending-writes:v1</text>
+    <line x1="180" y1="946" x2="326" y2="946" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="253" y="938" textAnchor="middle" fontSize="10" fill="var(--foreground)">{"{ version, items }"}</text>
+    <rect x="265" y="958" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="340" y="973" textAnchor="middle" fontSize="10" fill="var(--warning)">version 不符 → 丟棄</text>
+
+    <line x1="340" y1="998" x2="486" y2="998" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="413" y="990" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(rehydrated)</text>
+    <rect x="425" y="1010" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="500" y="1025" textAnchor="middle" fontSize="10" fill="var(--success)">依 id 合併，記憶體優先</text>
+
+    <text x="800" y="1025" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">此時仍未送出——要等使用者走回該場比賽，flush 才會回到「送出成功」那一段</text>
+
+  </g>
+</svg>
+
+圖上最後一行是這張 Change 的邊界，也是 reviewer 最該看見的一件事：`rehydrated` 之後沒有任何箭頭指回網路。**讀回不等於送出。**
+
+## Contracts
+
+**Port。** 一個 type，三個方法，全部回傳 `Promise`：
+
+```ts
+export type PendingWritesStorage = {
+  load(): Promise<PersistedQueue | null>;
+  save(snapshot: PersistedQueue): Promise<void>;
+  clear(): Promise<void>;
+};
+```
+
+localStorage 實作在 async function body 裡做同步的 `setItem`，因此「函式返回時資料已在磁碟上」這個性質與直接呼叫完全相同——非同步只存在於簽章，不存在於時序。實作不 catch，見 D4。
+
+**磁碟格式。**
+
+```ts
+type PersistedQueue = {
+  version: 1;
+  items: {
+    entry: RallyView & EntryIdentity;
+    gameId: string;
+    setIndex: number;
+    lastError?: { code: AppErrorCode; reason: string; status: number };
+  }[];
+};
+```
+
+`attempts` 與 `nextAttemptAt` 不存：前者讀回歸零，後者是絕對時間戳、重啟後一律已過期，重算即可。`flushingGameIds` 不存：那是 runtime state，重啟後必然為假，與實作切片時不把 `claimed`／`running` 寫進 Git 是同一條規則。
+
+**寫入。** RTK 的 `createListenerMiddleware` 監聽 `enqueued`、`flushSucceeded`、`flushFailed` —— 三個會改動 `pending` 內容的 action。effect 在 reducer 之後執行，所以 `getState()` 拿到的已經是合併後的完整佇列：
+
+```ts
+listener.startListening({
+  matcher: isAnyOf(enqueued, flushSucceeded, flushFailed),
+  effect: (_action, api) => {
+    const { pending } = api.getState().pendingWrites;
+    save({ version: 1, items: pending.map(toPersisted) });
+  },
+});
+```
+
+**合併發生在 reducer，持久化層只照抄。** `enqueued` 的那一行 `state.pending.push(...)` 就是合併；`toPersisted` 只丟掉重算得到的欄位，沒有任何佇列邏輯。整份設計裡唯一真的需要寫合併邏輯的地方是 `rehydrated`，因為只有那裡有兩個來源。
+
+不做 debounce：記球是人的手速，而 localStorage 寫入是次毫秒級的；debounce 只會製造一個「已經記下但還沒寫入」的窗口，正是要消滅的東西。寫入串成一條 promise chain，因為快照是整包的，亂序的後果是磁碟上暫時留著舊快照——鏈把那個「暫時」也拿掉。
+
+**讀回。** `ReduxProvider` 掛載時呼叫 `load()`，`version` 不符即整份丟棄，然後 `dispatch(rehydrated)`。`rehydrated` 依 `entry.id` 合併且**記憶體優先**：`load()` 是非同步的，讀回期間使用者可能已經記了球，直接覆蓋會把那顆新球弄丟。
+
+重試狀態在此重算：`attempts` 歸零、`nextAttemptAt` 設為立刻，除非 `lastError` 經 `isRetryable` 判定為不可重試。判斷用的是 flush 路徑的**同一個** `isRetryable`，不另建 code 對照表——兩張表遲早漂移，而漂移的後果是某些球永遠不再被送出。
+
+**過期。** 讀回時，`lastError` 判定為可重試（5xx、離線正規化成的 503）的項目永不過期；判定為不可重試的 4xx 項目超過七天丟棄。這條規則存在的唯一理由是還原持久化拿掉的性質，見下一節。
+
+## 持久化拿掉了一個逃生口
+
+今天佇列裡一筆註定失敗的 entry——404 比賽被別人刪了、403 被移出球隊、400 被 `upsertEntry` 的身分守衛拒收——唯一的出路是**關掉 app**。佇列只在記憶體裡，重開就乾淨了。
+
+把佇列寫進磁碟，這個逃生口就沒了。那筆 entry 每天都還在：該場比賽的 `SyncIndicator` 永遠顯示未同步，而在 D3 的決定下，使用者一旦離開那場比賽就再也看不到它。**這是這張 Change 自己製造的回歸**，不是既有問題。
+
+正確的解法是讓使用者看得見並主動捨棄，但看不見的東西不能要求人捨棄，而可見性屬 `offline-recording`。因此這裡用最小的等價物：收窄的過期規則，只讓「註定失敗」的那一類自己消失，讓「還有希望」的那一類永遠留著。純資料層，無 UI。
+
+這條規則在 rally 端點加上 request schema 之後會從保險變成主要機制——那項工作會讓 400 大量增加，而 entry 是在任何請求發出之前就已入列並寫入磁碟的，所以邊界驗證擋不住它進佇列，只會增加卡死的數量。
+
+## Failure modes
+
+| 情境                             | 行為                                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| app 被 OS 回收，佇列非空         | 快照已在磁碟上（寫入發生在送出之前）。重開後讀回，使用者回到該場比賽即重送                      |
+| 讀回途中使用者已經記了新球       | `rehydrated` 依 `id` 合併、記憶體優先，新球不被覆蓋                                             |
+| 磁碟上是舊版格式                 | `version` 不符，整份丟棄。不做遷移                                                              |
+| 磁碟上是壞掉的 JSON              | `load()` 視同無資料。佇列從空的開始                                                             |
+| 儲存不可用（私密瀏覽、配額用盡） | adapter reject，listener catch 並記 log，app 繼續運作。使用者不會知道——已登記為 residual risk   |
+| 讀回的項目是 401                 | 視為可重試，立刻重送；失敗則由既有機制導向登入頁                                                |
+| 讀回的項目是 400／403／404       | 不自動重送。超過七天丟棄                                                                        |
+| 佇列為空時啟動                   | 不發出任何請求                                                                                  |
+| 兩個分頁同時開著同一場           | 各自重送，但 upsert 是 idempotent，不產生重複，只是多打一次 API。不處理，屬 `offline-recording` |
+
+## Testing strategy
+
+本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響。
+
+**frontend（jsdom 有 localStorage）**：讀回並重送、`version` 不符丟棄、`rehydrated` 的合併語意、空佇列不發請求、儲存拋錯時 app 不致命、過期規則對可重試與不可重試兩類的分別處置。合併語意與過期規則是最值得釘住的兩項——前者是非同步簽章帶來的、唯一會靜默弄丟資料的路徑，後者是唯一會主動刪除資料的路徑。
+
+**integration**：不需要新增。「重送已成功的 entry 為 no-op，不產生重複」已由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層的 auth 是以 DI double 取代的，不需要真實 session。
+
+**人工**：真實 app 被 OS 回收後重啟，特別是 iOS PWA。這一項沒有任何自動化層能證明，屬交付驗收。
+
+## Risks
+
+- **送達依賴使用者回到該場比賽。** 佇列是跨場的，A、B 兩場都有待送球而使用者只打開 B 時，A 的球會一直等，而比賽列表顯示的比分是少了那幾顆球的版本。由 `offline-recording` 的 outbox 關閉，對應的驗收條件已補上。
+- **儲存不可用時靜默降級。** 這是本 Change 唯一一個「使用者以為被保護、其實沒有」的路徑。錯誤處理的位置（D4）確保升級成可見警告時只需改一行。
+- **七天是沒有量測依據的數字。** 它會在長天期的巡迴賽中丟掉還有希望的資料——雖然收窄規則已經把「還有希望」的那一類排除在過期之外，判定依據仍是最後一次失敗的性質，而那可能是舊的。
+- **Safari 對 script-writable storage 的長期無互動清除政策**對 localStorage 與 IndexedDB 一視同仁，加到主畫面的 PWA 兩者都豁免。它不是選型依據，但是兩者共同的殘餘風險。
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    storagePortBoundary,
+    persistedShape,
+    flushStaysGameScoped,
+    persistenceErrorLayering,
+  ]}
+/>
