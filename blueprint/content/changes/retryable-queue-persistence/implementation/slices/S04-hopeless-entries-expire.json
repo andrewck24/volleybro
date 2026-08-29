@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "An entry that can never succeed stops living forever",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S03"],
+  "outcome": "Persisting the queue removed the only way out a doomed entry had — closing the app. This puts an equivalent back, without inventing a discard the recorder cannot see.",
+  "acceptanceCriteria": [
+    "An entry whose last failure was retryable never expires, however long it has been waiting. A week-long tournament with no signal keeps every rally.",
+    "An entry whose last failure was one that retrying cannot fix is dropped once it is older than seven days, and the threshold is stated in one place rather than inlined.",
+    "An entry that has never failed never expires.",
+    "Expiry is applied when the queue is read, not on a timer, so it costs nothing while the app runs.",
+    "The retryability judgement reuses the same predicate as the flush and the restore, so all three cannot disagree."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}

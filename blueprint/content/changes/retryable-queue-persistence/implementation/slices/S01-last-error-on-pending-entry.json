@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "A failed write records why it failed",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": [],
+  "outcome": "A queued entry whose flush failed carries the reason, so 'the backoff is spent' and 'this can never succeed' stop being the same value. Nothing observable changes yet; this is what makes the queue serialisable without losing a distinction.",
+  "acceptanceCriteria": [
+    "A pending entry carries the last failure's code, reason and HTTP status, and nothing else from the error — no human-facing message or detail, which move with copy and translation.",
+    "The failure recorded is the one the flush already reports, taken from the same place that currently decides the backoff, so there is no second source for what went wrong.",
+    "An entry that has never failed carries no error at all, rather than a placeholder standing in for one.",
+    "A later successful flush of the same entry leaves no stale error behind.",
+    "Existing derivations are untouched: the sync indicator, the per-row failure marker and the unconfirmed-set dialog read exactly what they read today, so this slice changes no screen."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}
