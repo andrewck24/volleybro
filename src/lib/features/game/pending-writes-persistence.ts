@@ -1,3 +1,4 @@
+import { hasExpired } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import {
   PENDING_WRITES_VERSION,
@@ -7,7 +8,8 @@ import {
 import type { PendingWritesState } from "@/lib/features/game/types";
 import { createListenerMiddleware, isAnyOf } from "@reduxjs/toolkit";
 
-const { enqueued, flushSucceeded, flushFailed } = pendingWritesActions;
+const { enqueued, flushSucceeded, flushFailed, rehydrated } =
+  pendingWritesActions;
 
 // Only the state this listener reads, rather than the whole store: it keeps
 // the middleware out of a cycle with the store that mounts it, and says
@@ -64,7 +66,10 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   };
 
   listener.startListening({
-    matcher: isAnyOf(enqueued, flushSucceeded, flushFailed),
+    // `rehydrated` is here so a restore that dropped an expired entry writes
+    // the shorter queue back, rather than re-reading and re-dropping it on
+    // every start until something else happens to trigger a save.
+    matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
     effect: (_action, api) => {
       persist(api.getState().pendingWrites.pending);
     },
@@ -100,5 +105,10 @@ export async function restorePendingWrites(
   ) {
     return;
   }
-  dispatch(pendingWritesActions.rehydrated({ items: snapshot.items }));
+  // Expiry is applied here, on the read, rather than on a timer: it costs
+  // nothing while the app runs, and a queue is only ever read once.
+  const now = Date.now();
+  const items = snapshot.items.filter((item) => !hasExpired(item, now));
+  if (items.length === 0) return;
+  dispatch(pendingWritesActions.rehydrated({ items }));
 }

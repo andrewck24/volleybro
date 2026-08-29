@@ -71,6 +71,7 @@ const flushFailed: CaseReducer<
     const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
     item.nextAttemptAt = delay === null ? null : Date.now() + delay;
     item.lastError = lastError;
+    item.failedAt = Date.now();
   }
   state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);
 };

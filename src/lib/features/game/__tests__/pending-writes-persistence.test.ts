@@ -1,3 +1,4 @@
+import { PENDING_WRITE_EXPIRY_MS } from "@/lib/features/game/pending-writes";
 import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
 import {
   PENDING_WRITES_KEY,
@@ -101,6 +102,7 @@ describe("pending-writes persistence", () => {
       gameId: "game-1",
       setIndex: 2,
       lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
+      failedAt: expect.any(Number),
     });
     // Recomputed on restore, so storing them would only be a second copy that
     // is already wrong by the time it is read.
@@ -466,5 +468,102 @@ describe("restorePendingWrites", () => {
 
     expect(store.getState().pendingWrites.pending).toEqual([]);
     warn.mockRestore();
+  });
+});
+
+describe("restorePendingWrites expiry", () => {
+  const stored = (snapshot: PersistedQueue | null): PendingWritesStorage => ({
+    load: async () => snapshot,
+    save: async () => {},
+    clear: async () => {},
+  });
+
+  const aged = (
+    id: string,
+    age: number,
+    lastError?: PersistedQueue["items"][number]["lastError"],
+  ) => ({
+    entry: entry(id),
+    gameId: "game-1",
+    setIndex: 0,
+    failedAt: Date.now() - age,
+    ...(lastError ? { lastError } : {}),
+  });
+
+  const restore = async (items: PersistedQueue["items"]) => {
+    const store = makeStore(stored(null));
+    await restorePendingWrites(store.dispatch, stored({ version: 1, items }));
+    return store.getState().pendingWrites.pending.map((p) => p.entry.id);
+  };
+
+  const week = PENDING_WRITE_EXPIRY_MS;
+  const deleted = {
+    code: "NOT_FOUND" as const,
+    reason: "GAME_NOT_FOUND",
+    status: 404,
+  };
+  const transient = {
+    code: "TRANSIENT" as const,
+    reason: "NETWORK_ERROR",
+    status: 503,
+  };
+
+  it("drops an entry that cannot succeed once it is older than the window", async () => {
+    expect(await restore([aged("stale", week + 1000, deleted)])).toEqual([]);
+  });
+
+  it("keeps one that cannot succeed but is still inside the window", async () => {
+    expect(await restore([aged("recent", week - 1000, deleted)])).toEqual([
+      "recent",
+    ]);
+  });
+
+  it("keeps work that might still land however long it has waited", async () => {
+    // A week-long tournament without signal is exactly when the queue has to
+    // hold, so age alone never drops a retryable entry.
+    expect(await restore([aged("offline", week * 4, transient)])).toEqual([
+      "offline",
+    ]);
+  });
+
+  it("keeps an expired session however long it has waited", async () => {
+    expect(
+      await restore([
+        aged("session", week * 4, {
+          code: "AUTHENTICATION",
+          reason: "SESSION_REQUIRED",
+          status: 401,
+        }),
+      ]),
+    ).toEqual(["session"]);
+  });
+
+  it("never drops an entry that has not failed at all", async () => {
+    expect(
+      await restore([{ entry: entry("fresh"), gameId: "game-1", setIndex: 0 }]),
+    ).toEqual(["fresh"]);
+  });
+
+  it("writes the shorter queue back so it is not re-dropped every start", async () => {
+    const saved: PersistedQueue[] = [];
+    const storage: PendingWritesStorage = {
+      load: async () => ({
+        version: 1,
+        items: [
+          aged("stale", week + 1000, deleted),
+          aged("live", 0, transient),
+        ],
+      }),
+      save: async (snapshot) => {
+        saved.push(snapshot);
+      },
+      clear: async () => {},
+    };
+    const store = makeStore(storage);
+
+    await restorePendingWrites(store.dispatch, storage);
+    await settled();
+
+    expect(saved.at(-1)!.items.map((i) => i.entry.id)).toEqual(["live"]);
   });
 });

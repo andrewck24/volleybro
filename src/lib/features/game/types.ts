@@ -380,6 +380,10 @@ export type PendingEntry = {
   // conflates a spent backoff with a failure that can never succeed; this
   // keeps them apart for anything that has to decide between them later.
   lastError?: WriteError;
+  // When that attempt failed. Kept beside the reason rather than inside it
+  // because it is a fact about the entry's history, not about the failure's
+  // identity, and it is still worth having when the reason could not be read.
+  failedAt?: number;
 };
 
 // The queue as it exists on disk. `version` is what makes a shape change
@@ -388,7 +392,7 @@ export type PendingEntry = {
 // migration bug would corrupt exactly what the queue exists to protect.
 export type PersistedPendingEntry = Pick<
   PendingEntry,
-  "entry" | "gameId" | "setIndex" | "lastError"
+  "entry" | "gameId" | "setIndex" | "lastError" | "failedAt"
 >;
 
 export type PersistedQueue = {

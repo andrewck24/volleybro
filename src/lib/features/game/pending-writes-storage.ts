@@ -35,6 +35,7 @@ export const toPersisted = (item: PendingEntry): PersistedPendingEntry => ({
   gameId: item.gameId,
   setIndex: item.setIndex,
   ...(item.lastError ? { lastError: item.lastError } : {}),
+  ...(item.failedAt === undefined ? {} : { failedAt: item.failedAt }),
 });
 
 export const snapshotOf = (pending: PendingEntry[]): PersistedQueue => ({

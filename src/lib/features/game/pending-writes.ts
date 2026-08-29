@@ -1,6 +1,7 @@
 import type {
   GameView,
   PendingWritesState,
+  PersistedPendingEntry,
   WriteError,
 } from "@/lib/features/game/types";
 
@@ -85,3 +86,29 @@ export const applyFlushedEntries = (
       i === setIndex ? { ...set, entries } : set,
     ),
   };
+
+/**
+ * How long a queued entry that cannot succeed is kept before it is dropped.
+ *
+ * Persisting the queue removed the only exit such an entry had -- closing the
+ * app, which used to empty a queue that lived in memory. Without something
+ * like this, a game somebody deleted leaves an entry that can never be sent,
+ * never be cleared, and after the recorder walks away from that game, never
+ * even be seen. Seven days has no measured basis; it restores the property
+ * persistence took away and nothing more.
+ *
+ * The proper fix is letting the recorder see the entry and discard it, which
+ * needs unsent work to be visible outside the game it belongs to.
+ */
+export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Whether a restored entry should be dropped rather than put back. Only ever
+ * true for one whose last failure cannot be fixed by sending it again: work
+ * that might still land is kept however long it has waited, because a week
+ * without signal is exactly when the queue has to hold.
+ */
+export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
+  !isWorthAttemptingAgain(item.lastError) &&
+  item.failedAt !== undefined &&
+  now - item.failedAt > PENDING_WRITE_EXPIRY_MS;
