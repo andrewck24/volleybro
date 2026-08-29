@@ -2,6 +2,7 @@ import { nextAttemptDelayMs } from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
   PendingWritesState,
+  WriteError,
 } from "@/lib/features/game/types";
 import {
   createSlice,
@@ -45,17 +46,27 @@ const flushSucceeded: CaseReducer<
   );
 };
 
+// `lastError` is assigned rather than merged, undefined included: it is the
+// reason the *latest* attempt failed, so keeping an older one when this
+// attempt's reason could not be read would attribute the wrong cause. A
+// success removes the item outright, so no stale error can survive one.
 const flushFailed: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ gameId: string; ids: string[]; retryable: boolean }>
+  PayloadAction<{
+    gameId: string;
+    ids: string[];
+    retryable: boolean;
+    lastError?: WriteError;
+  }>
 > = (state, action) => {
-  const { gameId, ids, retryable } = action.payload;
+  const { gameId, ids, retryable, lastError } = action.payload;
   const idSet = new Set(ids);
   for (const item of state.pending) {
     if (!idSet.has(item.entry.id)) continue;
     item.attempts += 1;
     const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
     item.nextAttemptAt = delay === null ? null : Date.now() + delay;
+    item.lastError = lastError;
   }
   state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);
 };

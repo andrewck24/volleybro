@@ -1,11 +1,27 @@
 import { ApiClientError, apiClient } from "@/lib/api/api-client";
 import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
-import type { RecordRalliesResponse } from "@/lib/features/game/types";
-import type { PendingEntry } from "@/lib/features/game/types";
+import type {
+  PendingEntry,
+  RecordRalliesResponse,
+  WriteError,
+} from "@/lib/features/game/types";
 import { withRetry, type RetryOutcome } from "@/lib/retry";
 
 function isRetryable(error: unknown): boolean {
   return error instanceof ApiClientError && error.status >= 500;
+}
+
+/**
+ * Narrows a failure to the part the queue keeps. Undefined for anything that
+ * is not an ApiClientError -- the queue records that it failed and that the
+ * reason is unknown, rather than inventing one. Network and timeout failures
+ * do not take that path: apiClient normalizes them into an ApiClientError of
+ * status 503 before they get here.
+ */
+export function toWriteError(error: unknown): WriteError | undefined {
+  return error instanceof ApiClientError
+    ? { code: error.code, reason: error.reason, status: error.status }
+    : undefined;
 }
 
 /**

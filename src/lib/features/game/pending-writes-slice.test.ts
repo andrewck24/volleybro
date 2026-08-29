@@ -161,6 +161,81 @@ describe("pendingWrites reducer", () => {
     expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
   });
 
+  it("records why the last attempt failed, and keeps no reason before one has", () => {
+    const enqueued = pendingWritesReducer(
+      undefined,
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    // An entry that has never failed carries no reason at all, rather than a
+    // placeholder standing in for one.
+    expect(enqueued.pending[0]!.lastError).toBeUndefined();
+
+    const failed = pendingWritesReducer(
+      enqueued,
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+        lastError: {
+          code: "AUTHENTICATION",
+          reason: "SESSION_REQUIRED",
+          status: 401,
+        },
+      }),
+    );
+    expect(failed.pending[0]!.lastError).toEqual({
+      code: "AUTHENTICATION",
+      reason: "SESSION_REQUIRED",
+      status: 401,
+    });
+
+    // The reason is the latest attempt's, not an accumulation: a later
+    // failure whose cause could not be read must not leave the older one
+    // standing as if it still applied.
+    const failedAgain = pendingWritesReducer(
+      failed,
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: true,
+      }),
+    );
+    expect(failedAgain.pending[0]!.lastError).toBeUndefined();
+  });
+
+  it("leaves no failure reason behind once the entry is confirmed", () => {
+    const seeded: PendingWritesState = {
+      flushingGameIds: [],
+      pending: [
+        {
+          entry: entry("e1"),
+          gameId: "game-1",
+          setIndex: 0,
+          attempts: 3,
+          nextAttemptAt: null,
+          lastError: {
+            code: "TRANSIENT",
+            reason: "NETWORK_ERROR",
+            status: 503,
+          },
+        },
+      ],
+    };
+
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+    );
+
+    // Confirmation removes the item outright, so a stale reason cannot
+    // survive it -- there is nothing left to carry one.
+    expect(state.pending).toEqual([]);
+  });
+
   it("flushFailed marks a non-retryable error as failed immediately, no backoff", () => {
     const seeded: PendingWritesState = {
       flushingGameIds: ["game-1"],

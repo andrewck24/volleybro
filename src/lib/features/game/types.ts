@@ -8,6 +8,7 @@ import {
   type DerivedSetStats,
   type EntryIdentity,
 } from "@/entities/game";
+import type { AppErrorCode } from "@/entities/errors";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
 import { z } from "zod";
@@ -358,6 +359,15 @@ export type ReduxGameState = {
 
 // For the pending-write queue: unconfirmed rally writes, kept in their own
 // slice because their lifetime differs from the per-set draft above.
+// The part of a failed write worth keeping. `detail` and `message` are
+// human-facing and move with copy and translation, so they are deliberately
+// absent: what survives is only what a later decision can act on.
+export type WriteError = {
+  code: AppErrorCode;
+  reason: string;
+  status: number;
+};
+
 export type PendingEntry = {
   entry: RallyView & EntryIdentity;
   gameId: string;
@@ -366,6 +376,10 @@ export type PendingEntry = {
   // Timestamp of the next scheduled attempt; null means the backoff budget
   // is exhausted or the error itself is not retryable.
   nextAttemptAt: number | null;
+  // Why the last attempt failed, absent until one has. `nextAttemptAt: null`
+  // conflates a spent backoff with a failure that can never succeed; this
+  // keeps them apart for anything that has to decide between them later.
+  lastError?: WriteError;
 };
 
 export type PendingWritesState = {

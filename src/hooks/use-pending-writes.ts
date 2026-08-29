@@ -7,7 +7,10 @@ import {
   useRef,
 } from "react";
 import { useGame } from "@/hooks/use-data";
-import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
+import {
+  flushPendingWrites,
+  toWriteError,
+} from "@/lib/features/game/actions/flush-pending-writes";
 import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
@@ -48,8 +51,14 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     dispatch(pendingWritesActions.flushStarted({ gameId }));
 
     const succeededIds: string[] = [];
-    const failedIdsByRetryable = new Map<boolean, string[]>();
-    let firstError: unknown;
+    // Failures are kept per set group rather than pooled by retryability:
+    // each group is its own request with its own outcome, and the reason
+    // recorded on an entry has to be the reason its own request failed.
+    const failures: {
+      ids: string[];
+      retryable: boolean;
+      error: unknown;
+    }[] = [];
 
     for (const [si, items] of bySetIndex) {
       const ids = items.map((p) => p.entry.id);
@@ -78,11 +87,11 @@ export function usePendingWrites(gameId: string, setIndex: number) {
           );
         }
       } else {
-        firstError ??= result.error;
-        failedIdsByRetryable.set(result.retryable, [
-          ...(failedIdsByRetryable.get(result.retryable) ?? []),
-          ...ids,
-        ]);
+        failures.push({
+          ids,
+          retryable: result.retryable,
+          error: result.error,
+        });
       }
     }
 
@@ -91,13 +100,20 @@ export function usePendingWrites(gameId: string, setIndex: number) {
         pendingWritesActions.flushSucceeded({ gameId, ids: succeededIds }),
       );
     }
-    for (const [retryable, ids] of failedIdsByRetryable) {
-      dispatch(pendingWritesActions.flushFailed({ gameId, ids, retryable }));
+    for (const { ids, retryable, error } of failures) {
+      dispatch(
+        pendingWritesActions.flushFailed({
+          gameId,
+          ids,
+          retryable,
+          lastError: toWriteError(error),
+        }),
+      );
     }
 
-    return failedIdsByRetryable.size === 0
+    return failures.length === 0
       ? { ok: true }
-      : { ok: false, error: firstError };
+      : { ok: false, error: failures[0]!.error };
   }, [dispatch, gameId, mutate, store]);
 
   // Only one flush in flight at a time; callers that ask for a flush while
