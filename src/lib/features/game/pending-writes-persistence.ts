@@ -1,5 +1,6 @@
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import {
+  PENDING_WRITES_VERSION,
   snapshotOf,
   type PendingWritesStorage,
 } from "@/lib/features/game/pending-writes-storage";
@@ -70,4 +71,34 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   });
 
   return listener.middleware;
+}
+
+/**
+ * Puts a previous run's queue back, once, when the store's provider mounts.
+ *
+ * A snapshot from a shape this build does not understand is discarded whole
+ * rather than migrated: the queue holds minutes of unsent work in the normal
+ * case, and a migration bug would corrupt precisely what it exists to
+ * protect. Nothing is sent here -- the entries go back into the queue and
+ * wait for the recorder to open that game, which is also what keeps this
+ * free of any session check.
+ */
+export async function restorePendingWrites(
+  dispatch: (
+    action: ReturnType<typeof pendingWritesActions.rehydrated>,
+  ) => void,
+  storage: PendingWritesStorage,
+): Promise<void> {
+  const snapshot = await storage.load().catch((error: unknown) => {
+    console.warn("[pendingWrites] restore failed:", error);
+    return null;
+  });
+  if (
+    snapshot?.version !== PENDING_WRITES_VERSION ||
+    !Array.isArray(snapshot.items) ||
+    snapshot.items.length === 0
+  ) {
+    return;
+  }
+  dispatch(pendingWritesActions.rehydrated({ items: snapshot.items }));
 }

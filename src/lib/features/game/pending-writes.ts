@@ -1,4 +1,8 @@
-import type { GameView, PendingWritesState } from "@/lib/features/game/types";
+import type {
+  GameView,
+  PendingWritesState,
+  WriteError,
+} from "@/lib/features/game/types";
 
 export type SyncStatus = "synced" | "syncing" | "unsynced";
 
@@ -49,6 +53,25 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
+
+/**
+ * The one threshold that decides whether a failure is worth another attempt.
+ * Both the flush and the restore read it, because two copies would drift and
+ * a drift here means entries that are never sent again.
+ */
+export const isRetryableStatus = (status: number): boolean => status >= 500;
+
+/**
+ * Whether a restored entry may be attempted again. Wider than the flush's
+ * question by exactly one case: an expired session is not a permanent
+ * failure, and because signing in leaves the app entirely and comes back as
+ * a fresh start, a restart is often the very thing that fixed it. Anything
+ * else in the 4xx range cannot be fixed by sending the same bytes again.
+ */
+export const isWorthAttemptingAgain = (lastError?: WriteError): boolean =>
+  lastError === undefined ||
+  isRetryableStatus(lastError.status) ||
+  lastError.status === 401;
 
 /** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (

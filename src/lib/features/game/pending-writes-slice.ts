@@ -1,7 +1,11 @@
-import { nextAttemptDelayMs } from "@/lib/features/game/pending-writes";
+import {
+  isWorthAttemptingAgain,
+  nextAttemptDelayMs,
+} from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
   PendingWritesState,
+  PersistedPendingEntry,
   WriteError,
 } from "@/lib/features/game/types";
 import {
@@ -90,6 +94,35 @@ const retryRequested: CaseReducer<
   }
 };
 
+/**
+ * Puts back what a previous run of the app left on disk.
+ *
+ * Merges rather than replaces, and the in-memory copy wins: the read is
+ * asynchronous, so the recorder can have recorded a rally while it was in
+ * flight, and overwriting would drop that rally with nothing to show for it.
+ *
+ * The schedule is recomputed rather than restored. A stored `nextAttemptAt`
+ * is an absolute timestamp and is always in the past by now, and a stored
+ * attempt count would leave an entry whose backoff was spent dead on
+ * arrival -- unable to schedule itself, and invisible until the recorder
+ * happens to reopen that game.
+ */
+const rehydrated: CaseReducer<
+  PendingWritesState,
+  PayloadAction<{ items: PersistedPendingEntry[] }>
+> = (state, action) => {
+  const known = new Set(state.pending.map((p) => p.entry.id));
+  const restored = action.payload.items
+    .filter((item) => !known.has(item.entry.id))
+    .map((item) => ({
+      ...item,
+      attempts: 0,
+      nextAttemptAt: isWorthAttemptingAgain(item.lastError) ? Date.now() : null,
+    }));
+  // Restored entries were recorded before anything now in memory.
+  state.pending = [...restored, ...state.pending];
+};
+
 const pendingWritesSlice = createSlice({
   name: "pendingWrites",
   initialState,
@@ -99,6 +132,7 @@ const pendingWritesSlice = createSlice({
     flushSucceeded,
     flushFailed,
     retryRequested,
+    rehydrated,
   },
 });
 

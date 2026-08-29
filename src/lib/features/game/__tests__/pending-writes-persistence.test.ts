@@ -1,3 +1,4 @@
+import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
 import {
   PENDING_WRITES_KEY,
   localStoragePendingWrites,
@@ -293,5 +294,177 @@ describe("localStoragePendingWrites", () => {
     ).rejects.toThrow("QuotaExceededError");
 
     setItem.mockRestore();
+  });
+});
+
+describe("restorePendingWrites", () => {
+  const stored = (snapshot: PersistedQueue | null): PendingWritesStorage => ({
+    load: async () => snapshot,
+    save: async () => {},
+    clear: async () => {},
+  });
+
+  const persisted = (
+    id: string,
+    lastError?: PersistedQueue["items"][number]["lastError"],
+  ) => ({
+    entry: entry(id),
+    gameId: "game-1",
+    setIndex: 0,
+    ...(lastError ? { lastError } : {}),
+  });
+
+  it("puts a previous run's entries back, ready to send", async () => {
+    const store = makeStore(stored({ version: 1, items: [persisted("e1")] }));
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: 1,
+        items: [persisted("e1")],
+      }),
+    );
+
+    expect(store.getState().pendingWrites.pending).toEqual([
+      {
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+        attempts: 0,
+        nextAttemptAt: expect.any(Number),
+      },
+    ]);
+  });
+
+  it("never loses a rally recorded while the read was still in flight", async () => {
+    const store = makeStore(stored(null));
+    // The recorder gets ahead of the asynchronous read -- the exact window
+    // the merge exists for. Overwriting here would drop e2 silently.
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e2"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: 1,
+        items: [persisted("e1"), persisted("e2")],
+      }),
+    );
+
+    const ids = store.getState().pendingWrites.pending.map((p) => p.entry.id);
+    // e2 is kept once, from memory, and the older e1 goes in front of it.
+    expect(ids).toEqual(["e1", "e2"]);
+  });
+
+  it("keeps the in-memory copy when both have the same entry", async () => {
+    const store = makeStore(stored(null));
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 3,
+      }),
+    );
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: 1,
+        items: [{ ...persisted("e1"), setIndex: 0 }],
+      }),
+    );
+
+    expect(store.getState().pendingWrites.pending).toHaveLength(1);
+    expect(store.getState().pendingWrites.pending[0]!.setIndex).toBe(3);
+  });
+
+  it("schedules a restored entry by whether sending it again could work", async () => {
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: 1,
+        items: [
+          persisted("transient", {
+            code: "TRANSIENT",
+            reason: "NETWORK_ERROR",
+            status: 503,
+          }),
+          persisted("expired-session", {
+            code: "AUTHENTICATION",
+            reason: "SESSION_REQUIRED",
+            status: 401,
+          }),
+          persisted("deleted-game", {
+            code: "NOT_FOUND",
+            reason: "GAME_NOT_FOUND",
+            status: 404,
+          }),
+        ],
+      }),
+    );
+
+    const due = Object.fromEntries(
+      store
+        .getState()
+        .pendingWrites.pending.map((p) => [p.entry.id, p.nextAttemptAt]),
+    );
+    expect(due.transient).toEqual(expect.any(Number));
+    // Signing in leaves the app and returns as a fresh start, so a restart is
+    // often the very thing that fixed an expired session.
+    expect(due["expired-session"]).toEqual(expect.any(Number));
+    // Sending the same bytes to a game that no longer exists cannot work.
+    expect(due["deleted-game"]).toBeNull();
+  });
+
+  it("discards a snapshot this build does not understand", async () => {
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(
+      store.dispatch,
+      stored({
+        version: 99,
+        items: [persisted("e1")],
+      }),
+    );
+
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
+  it("starts empty when there is nothing stored, and sends nothing", async () => {
+    const store = makeStore(stored(null));
+    const dispatch = jest.spyOn(store, "dispatch");
+
+    await restorePendingWrites(store.dispatch, stored(null));
+    await restorePendingWrites(
+      store.dispatch,
+      stored({ version: 1, items: [] }),
+    );
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+    dispatch.mockRestore();
+  });
+
+  it("treats an unreadable store as nothing stored", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(store.dispatch, {
+      load: async () => {
+        throw new Error("SecurityError");
+      },
+      save: async () => {},
+      clear: async () => {},
+    });
+
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+    warn.mockRestore();
   });
 });

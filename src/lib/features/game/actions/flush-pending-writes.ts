@@ -1,5 +1,8 @@
 import { ApiClientError, apiClient } from "@/lib/api/api-client";
-import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
+import {
+  PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS,
+  isRetryableStatus,
+} from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
   RecordRalliesResponse,
@@ -8,7 +11,7 @@ import type {
 import { withRetry, type RetryOutcome } from "@/lib/retry";
 
 function isRetryable(error: unknown): boolean {
-  return error instanceof ApiClientError && error.status >= 500;
+  return error instanceof ApiClientError && isRetryableStatus(error.status);
 }
 
 /**
