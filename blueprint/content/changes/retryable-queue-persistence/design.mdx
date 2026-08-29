@@ -160,7 +160,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <line x1="180" y1="946" x2="326" y2="946" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="253" y="938" textAnchor="middle" fontSize="10" fill="var(--foreground)">{"{ version, items }"}</text>
     <rect x="265" y="958" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
-    <text x="340" y="973" textAnchor="middle" fontSize="10" fill="var(--warning)">version 不符 → 丟棄</text>
+    <text x="340" y="973" textAnchor="middle" fontSize="10" fill="var(--warning)">version 不符 → 不採用</text>
 
     <line x1="340" y1="998" x2="486" y2="998" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="413" y="990" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(rehydrated)</text>
@@ -180,13 +180,15 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
 
 ```ts
 export type PendingWritesStorage = {
-  load(): Promise<PersistedQueue | null>;
+  load(): Promise<unknown>;
   save(snapshot: PersistedQueue): Promise<void>;
   clear(): Promise<void>;
 };
 ```
 
 localStorage 實作在 async function body 裡做同步的 `setItem`，因此「函式返回時資料已在磁碟上」這個性質與直接呼叫完全相同——非同步只存在於簽章，不存在於時序。實作不 catch，見 D4。
+
+`load()` 回傳 `unknown` 而非 `PersistedQueue`，是刻意的：store 的內容在驗證之前不可信，型別不該先替它背書。
 
 **磁碟格式。** 單一 key `pending-writes`，版本住在快照內容裡而不在 key 上。
 
@@ -225,9 +227,23 @@ listener.startListening({
 
 不做 debounce：記球是人的手速，而 localStorage 寫入是次毫秒級的；debounce 只會製造一個「已經記下但還沒寫入」的窗口，正是要消滅的東西。
 
-同理**也不用 promise chain**。鏈會把每一次寫入都推遲一個 microtask，等於在「記下」與「落地」之間重新開一個窗口。改為：閒置時直接寫入——同步的 store 因此在函式返回前就完成；已有寫入進行中時，後方的只保留**最新一份**。快照是完整的，中間那幾份本來就不值得寫，而最後留在磁碟上的一定是最新的。
+同理**也不用 promise chain**。鏈會把每一次寫入都推遲一個 microtask，等於在「記下」與「落地」之間重新開一個窗口。
 
-**讀回。** `ReduxProvider` 掛載時呼叫 `load()`，`version` 不符即整份丟棄，然後 `dispatch(rehydrated)`。`rehydrated` 依 `entry.id` 合併且**記憶體優先**：`load()` 是非同步的，讀回期間使用者可能已經記了球，直接覆蓋會把那顆新球弄丟。
+<AnnotatedDiff
+  lang="ts"
+  code={`// 鏈：保序，但每一次寫入都晚一個 microtask
+let chain = Promise.resolve(); // [!code --]
+const save = (s) => (chain = chain.then(() => storage.save(s))); // [!code --]
+
+// 閒置時直接寫（同步 store 因此在返回前完成）；
+// 進行中則後方只保留最新一份——快照是完整的，中間那些不值得寫
+const persist = (pending) => { // [!code ++]
+if (inFlight) { queued = pending; return; } // [!code ++]
+inFlight = run(pending); // [!code ++]
+}; // [!code ++]`}
+/>
+
+**讀回。** `ReduxProvider` 掛載時呼叫 `load()`，先讀 `version`、再驗形狀，然後 `dispatch(rehydrated)`。順序是這樣而非相反，因為 schema 描述的是**這個 build 寫出來的**形狀，先驗形狀會把真正的新版快照當成壞資料，版本檢查永遠到不了。`rehydrated` 依 `entry.id` 合併且**記憶體優先**：`load()` 是非同步的，讀回期間使用者可能已經記了球，直接覆蓋會把那顆新球弄丟。
 
 重試狀態在此重算：`attempts` 歸零、`nextAttemptAt` 設為立刻，除非 `lastError` 判定為不值得再試。
 
@@ -249,15 +265,31 @@ listener.startListening({
 
 ## Failure modes
 
+<Scenario
+  given="使用者在訊號不好的球場記了幾顆球，其中一批送出失敗"
+  when="app 被系統回收，之後重新開啟並走回那場比賽"
+  then="佇列從磁碟讀回、與記憶體中的合併，那幾顆球被重送；伺服器以 id 判定，不會產生重複"
+/>
+
+讀回時對磁碟上的內容有四種處置，差別在於**那份資料對未來的 build 還有沒有用**：
+
+| 磁碟上的東西                           | 處置                                                                                                         |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 本 build 的版本，形狀正確              | 套用過期規則後讀回                                                                                           |
+| **舊**版本                             | 不採用，**並清除**——沒有任何後續的 build 會回頭讀它                                                          |
+| **新**版本                             | 不採用，但**保留**——它可能屬於使用者同時在跑的另一個 build，而這是唯一「猜錯就毀掉未送資料」的地方           |
+| 壞掉的 JSON，或本 build 版本但形狀不符 | 不採用，**並清除**。`load()` 在此回傳原始字串而非 `null`，呼叫端才分辨得出「沒有東西」與「有東西但沒人能用」 |
+
+其餘情境：
+
 | 情境                             | 行為                                                                                            |
 | -------------------------------- | ----------------------------------------------------------------------------------------------- |
 | app 被 OS 回收，佇列非空         | 快照已在磁碟上（寫入發生在送出之前）。重開後讀回，使用者回到該場比賽即重送                      |
 | 讀回途中使用者已經記了新球       | `rehydrated` 依 `id` 合併、記憶體優先，新球不被覆蓋                                             |
-| 磁碟上是舊版格式                 | `version` 不符，整份丟棄。不做遷移                                                              |
-| 磁碟上是壞掉的 JSON              | `load()` 視同無資料。佇列從空的開始                                                             |
 | 儲存不可用（私密瀏覽、配額用盡） | adapter reject，listener catch 並記 log，app 繼續運作。使用者不會知道——已登記為 residual risk   |
-| 讀回的項目是 401                 | 視為可重試，立刻重送；失敗則由既有機制導向登入頁                                                |
-| 讀回的項目是 400／403／404       | 不自動重送。超過七天丟棄                                                                        |
+| 讀回的項目是 5xx／離線           | 排程立刻重送                                                                                    |
+| 讀回的項目是 4xx（含 401）       | 不自動重送。留在佇列、指示器顯示未同步，使用者可用既有的重試手勢送出；超過七天丟棄              |
+| 全部項目都過期                   | 不 dispatch，因此寫回的 listener 不會執行——改為直接清除，否則死掉的快照每次啟動重讀重丟         |
 | 佇列為空時啟動                   | 不發出任何請求                                                                                  |
 | 兩個分頁同時開著同一場           | 各自重送，但 upsert 是 idempotent，不產生重複，只是多打一次 API。不處理，屬 `offline-recording` |
 
