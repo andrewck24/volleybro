@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S03",
   "title": "Give every Change a flat directory and a permanent URL",
   "capabilities": ["platform/blueprint"],

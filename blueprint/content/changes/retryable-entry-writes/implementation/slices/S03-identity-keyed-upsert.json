@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S03",
   "title": "Entry writes become an identity-keyed, order-preserving upsert",
   "capabilities": ["game-recording/persistence"],

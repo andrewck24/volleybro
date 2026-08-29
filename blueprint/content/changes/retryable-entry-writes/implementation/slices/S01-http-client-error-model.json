@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "Rally writes report why they failed",
   "capabilities": ["game-recording/persistence"],

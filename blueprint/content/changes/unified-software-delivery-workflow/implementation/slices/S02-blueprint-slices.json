@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S02",
   "title": "Make implementation slices repository-native",
   "capabilities": ["platform/blueprint", "platform/delivery-workflow"],

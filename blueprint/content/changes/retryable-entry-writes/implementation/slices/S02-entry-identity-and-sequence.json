@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S02",
   "title": "Entries carry a stable identity and sequence",
   "capabilities": ["game-recording/persistence"],

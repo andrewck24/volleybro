@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S05",
   "title": "Update the delivery contract to the flat layout",
   "capabilities": ["platform/delivery-workflow"],

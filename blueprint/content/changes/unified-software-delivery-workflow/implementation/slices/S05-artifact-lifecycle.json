@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S05",
   "title": "Complete the Matt artifact lifecycle",
   "capabilities": ["platform/blueprint", "platform/delivery-workflow"],

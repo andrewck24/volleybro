@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S09",
   "title": "An unconfirmed set result blocks the next set",
   "capabilities": ["game-recording/rally-recording"],

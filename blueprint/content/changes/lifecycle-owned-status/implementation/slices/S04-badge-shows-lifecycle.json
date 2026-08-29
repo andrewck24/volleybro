@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S04",
   "title": "Show the lifecycle on the badge instead of the coarse status",
   "capabilities": ["platform/blueprint"],

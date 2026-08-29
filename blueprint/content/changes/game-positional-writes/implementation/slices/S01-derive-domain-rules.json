@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "Move the derivation rules into entities and derive a set's statistics",
   "capabilities": ["game-recording/statistics"],
