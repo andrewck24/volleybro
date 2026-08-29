@@ -289,9 +289,11 @@ describe("localStoragePendingWrites", () => {
     expect(await localStoragePendingWrites.load()).toBeNull();
   });
 
-  it("treats unreadable stored data as nothing stored", async () => {
+  it("hands back unreadable stored data rather than hiding it", async () => {
     localStorage.setItem(PENDING_WRITES_KEY, "{ not json");
-    expect(await localStoragePendingWrites.load()).toBeNull();
+    // Not null: the caller has to be able to tell "nothing stored" from
+    // "something stored that nobody can use", so it can clear the latter.
+    expect(await localStoragePendingWrites.load()).toBe("{ not json");
   });
 
   it("does not swallow a failure to write", async () => {
@@ -480,6 +482,49 @@ describe("restorePendingWrites", () => {
       clear: async () => {},
     });
 
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
+  it("clears anything stored that it cannot use", async () => {
+    const cleared: string[] = [];
+    const junk = (value: unknown): PendingWritesStorage => ({
+      load: async () => value,
+      save: async () => {},
+      clear: async () => {
+        cleared.push("cleared");
+      },
+    });
+    const store = makeStore(stored(null));
+
+    // Not a snapshot at all, and our own version with a shape we cannot read.
+    // Both are dead to every future build too, so neither is left to be
+    // re-read and re-discarded on every start.
+    await restorePendingWrites(store.dispatch, junk("{ not json"));
+    await restorePendingWrites(
+      store.dispatch,
+      junk({ version: 1, items: [{ gameId: "game-1" }] }),
+    );
+
+    expect(cleared).toHaveLength(2);
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
+  it("leaves a snapshot from a newer build alone", async () => {
+    let cleared = false;
+    const storage: PendingWritesStorage = {
+      load: async () => ({ version: 99, items: [] }),
+      save: async () => {},
+      clear: async () => {
+        cleared = true;
+      },
+    };
+    const store = makeStore(stored(null));
+
+    await restorePendingWrites(store.dispatch, storage);
+
+    // A build the user may also be running could own it, and this is the one
+    // place where guessing wrong destroys unsent work.
+    expect(cleared).toBe(false);
     expect(store.getState().pendingWrites.pending).toEqual([]);
   });
 

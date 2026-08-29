@@ -95,11 +95,17 @@ export async function restorePendingWrites(
     console.warn("[pendingWrites] restore failed:", error);
     return null;
   });
+  if (raw === null || raw === undefined) return;
+
   // Version before shape: the schema describes what this build writes, so
   // parsing first would reject a future snapshot as malformed and never reach
   // the version check at all.
   const envelope = z.object({ version: z.number() }).safeParse(raw);
-  if (!envelope.success) return;
+  if (!envelope.success) {
+    // Something is stored that is not a snapshot at all.
+    await discard(storage);
+    return;
+  }
   if (envelope.data.version !== PENDING_WRITES_VERSION) {
     // Only a version this build has already moved past is deleted. A newer one
     // may belong to a build the user is also running, and this is the one
@@ -109,7 +115,12 @@ export async function restorePendingWrites(
   }
 
   const parsed = PersistedQueueSchema.safeParse(raw);
-  if (!parsed.success) return;
+  if (!parsed.success) {
+    // Our own version, a shape we cannot read: corrupt, and no later build
+    // will read it either.
+    await discard(storage);
+    return;
+  }
 
   const snapshot = parsed.data;
   if (snapshot.items.length === 0) return;

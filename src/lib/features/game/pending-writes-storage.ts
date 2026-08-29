@@ -4,7 +4,11 @@ import type {
   PersistedQueue,
 } from "@/lib/features/game/types";
 
-export const PENDING_WRITES_KEY = "pending-writes:v1";
+// The version lives in the snapshot, not in the key. A versioned key would be
+// a second copy of the same number, and worse: a build that bumped it would
+// look somewhere else entirely, leaving the old snapshot unread, undiscarded
+// and unreachable -- so the version check below could never fire.
+export const PENDING_WRITES_KEY = "pending-writes";
 export const PENDING_WRITES_VERSION = 1;
 
 /**
@@ -49,9 +53,9 @@ export const localStoragePendingWrites: PendingWritesStorage = {
     try {
       return JSON.parse(raw);
     } catch {
-      // Nothing is recoverable from a half-written string, and failing here
-      // would take down the app over a queue that is usually empty.
-      return null;
+      // The string itself, so the caller can tell "nothing stored" from
+      // "something stored that nobody can use" and clear the latter.
+      return raw;
     }
   },
   async save(snapshot) {
