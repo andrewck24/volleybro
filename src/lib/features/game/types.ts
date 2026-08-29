@@ -387,8 +387,8 @@ export type PendingEntry = {
   firstFailedAt?: number;
 };
 
-// The queue as it exists on disk. A snapshot whose `version` does not match
-// is discarded rather than migrated -- see D2.
+// The queue as it exists on disk. A snapshot whose `version` does not match is
+// not used rather than migrated, and only an older one is cleared -- see D2.
 export type PersistedPendingEntry = Pick<
   PendingEntry,
   "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"

@@ -86,7 +86,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <text x="500" y="178" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">合併發生在 reducer</text>
 
     <line x1="500" y1="200" x2="354" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="420" y="192" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener 只認這三個 action</text>
+    <text x="420" y="192" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener 只認佇列內容變動</text>
     <rect x="265" y="212" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
     <text x="340" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">getState() 取整包快照</text>
 
