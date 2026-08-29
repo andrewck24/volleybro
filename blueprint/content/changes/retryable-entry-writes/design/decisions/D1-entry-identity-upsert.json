@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D1",
   "title": "Entries carry a client-generated identity and sequence, and the two entry writes merge into one idempotent upsert",
