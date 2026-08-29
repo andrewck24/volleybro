@@ -22,12 +22,14 @@ export type PendingWritesStorage = {
  * What survives a restart. `attempts` and `nextAttemptAt` are recomputed on
  * restore, and "currently on the wire" is false by construction after one.
  */
-export const toPersisted = (item: PendingEntry): PersistedPendingEntry => ({
+const toPersisted = (item: PendingEntry): PersistedPendingEntry => ({
   entry: item.entry,
   gameId: item.gameId,
   setIndex: item.setIndex,
   ...(item.lastError ? { lastError: item.lastError } : {}),
-  ...(item.failedAt === undefined ? {} : { failedAt: item.failedAt }),
+  ...(item.firstFailedAt === undefined
+    ? {}
+    : { firstFailedAt: item.firstFailedAt }),
 });
 
 export const snapshotOf = (pending: PendingEntry[]): PersistedQueue => ({

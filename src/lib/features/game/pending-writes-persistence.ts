@@ -10,6 +10,7 @@ import {
   type PendingWritesState,
 } from "@/lib/features/game/types";
 import { createListenerMiddleware, isAnyOf } from "@reduxjs/toolkit";
+import { z } from "zod";
 
 const { enqueued, flushSucceeded, flushFailed, rehydrated } =
   pendingWritesActions;
@@ -20,26 +21,17 @@ const { enqueued, flushSucceeded, flushFailed, rehydrated } =
 type StateWithPendingWrites = { pendingWrites: PendingWritesState };
 
 /**
- * Mirrors the queue to storage on every change to its contents.
- *
- * The listener runs after the reducer, so `getState()` already holds the
- * merged queue -- the merge is the reducer's `push` and `filter`, and nothing
- * here repeats it. The snapshot is the whole queue every time: at tens of
- * entries the cost is invisible, and an incremental format would have to keep
- * its own consistency for no benefit at this size.
- *
- * There is no debounce. Recording a rally and having it on disk must not be
- * separated by a window in which the app can die, which is the entire failure
- * this exists to prevent.
+ * Mirrors the queue to storage on every change to its contents. The listener
+ * runs after the reducer, so the state it reads is already merged and nothing
+ * here repeats that. No debounce: recording a rally and having it on disk must
+ * not be separated by a window in which the app can die.
  */
 export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   const listener = createListenerMiddleware<StateWithPendingWrites>();
 
-  // A save runs immediately when nothing is in flight -- which, for a
-  // synchronous store, means the write completes before this function
-  // returns. While one is in flight, only the newest snapshot is kept: each
-  // is complete, so an intermediate one is not worth writing, and the newest
-  // is the one that must end up on disk.
+  // A save runs immediately when nothing is in flight, so a synchronous store
+  // completes before this returns. Saves behind an open one collapse to the
+  // newest: each snapshot is whole, so only the last needs to survive.
   let inFlight: Promise<void> | null = null;
   let queued: PendingWritesState["pending"] | null = null;
 
@@ -81,15 +73,17 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   return listener.middleware;
 }
 
+// Nothing here is dispatched, so the listener that writes the queue back
+// never runs; without this the dead snapshot is re-read on every start.
+const discard = (storage: PendingWritesStorage) =>
+  storage.clear().catch((error: unknown) => {
+    console.warn("[pendingWrites] clear failed:", error);
+  });
+
 /**
  * Puts a previous run's queue back, once, when the store's provider mounts.
- *
- * A snapshot from a shape this build does not understand is discarded whole
- * rather than migrated: the queue holds minutes of unsent work in the normal
- * case, and a migration bug would corrupt precisely what it exists to
- * protect. Nothing is sent here -- the entries go back into the queue and
- * wait for the recorder to open that game, which is also what keeps this
- * free of any session check.
+ * Nothing is sent here -- the entries wait for the recorder to open that game,
+ * which is also why this needs no session check. See D2 and D3.
  */
 export async function restorePendingWrites(
   dispatch: (
@@ -101,8 +95,21 @@ export async function restorePendingWrites(
     console.warn("[pendingWrites] restore failed:", error);
     return null;
   });
+  // Version before shape: the schema describes what this build writes, so
+  // parsing first would reject a future snapshot as malformed and never reach
+  // the version check at all.
+  const envelope = z.object({ version: z.number() }).safeParse(raw);
+  if (!envelope.success) return;
+  if (envelope.data.version !== PENDING_WRITES_VERSION) {
+    // Only a version this build has already moved past is deleted. A newer one
+    // may belong to a build the user is also running, and this is the one
+    // place where guessing wrong destroys unsent work.
+    if (envelope.data.version < PENDING_WRITES_VERSION) await discard(storage);
+    return;
+  }
+
   const parsed = PersistedQueueSchema.safeParse(raw);
-  if (!parsed.success || parsed.data.version !== PENDING_WRITES_VERSION) return;
+  if (!parsed.success) return;
 
   const snapshot = parsed.data;
   if (snapshot.items.length === 0) return;
@@ -113,11 +120,8 @@ export async function restorePendingWrites(
   const items = snapshot.items.filter((item) => !hasExpired(item, now));
   if (items.length === 0) {
     // Nothing survived, so nothing is dispatched and the listener that
-    // normally writes the shorter queue back never runs. Without this the
-    // dead snapshot would be re-read and re-dropped on every start.
-    await storage.clear().catch((error: unknown) => {
-      console.warn("[pendingWrites] clear failed:", error);
-    });
+    // normally writes the shorter queue back never runs.
+    await discard(storage);
     return;
   }
   dispatch(pendingWritesActions.rehydrated({ items }));

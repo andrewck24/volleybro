@@ -380,19 +380,18 @@ export type PendingEntry = {
   // conflates a spent backoff with a failure that can never succeed; this
   // keeps them apart for anything that has to decide between them later.
   lastError?: WriteError;
-  // When that attempt failed. Kept beside the reason rather than inside it
-  // because it is a fact about the entry's history, not about the failure's
-  // identity, and it is still worth having when the reason could not be read.
-  failedAt?: number;
+  // When this entry first failed. Not refreshed by later attempts: a flush
+  // sends every pending entry for its game, so a doomed one is re-attempted
+  // whenever any rally is recorded, and a timestamp that moved with each
+  // attempt would measure the recorder's activity rather than the entry's age.
+  firstFailedAt?: number;
 };
 
-// The queue as it exists on disk. `version` is what makes a shape change
-// safe: a snapshot that does not match is discarded whole rather than
-// migrated, because this data is minutes old in the normal case and a
-// migration bug would corrupt exactly what the queue exists to protect.
+// The queue as it exists on disk. A snapshot whose `version` does not match
+// is discarded rather than migrated -- see D2.
 export type PersistedPendingEntry = Pick<
   PendingEntry,
-  "entry" | "gameId" | "setIndex" | "lastError" | "failedAt"
+  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"
 >;
 
 export type PersistedQueue = {
@@ -400,10 +399,8 @@ export type PersistedQueue = {
   items: PersistedPendingEntry[];
 };
 
-// Storage is outside the app's control: anything running on this origin can
-// write it, and whatever comes back goes into the queue and then onto the
-// wire. Parsing is what makes "malformed stored data is treated as no stored
-// data" true for a snapshot that is valid JSON but the wrong shape.
+// Storage is writable by anything on this origin and what comes back is sent
+// to the server, so it is parsed rather than cast.
 export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
   version: z.number(),
   items: z.array(
@@ -421,7 +418,7 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
           status: z.number(),
         })
         .optional(),
-      failedAt: z.number().optional(),
+      firstFailedAt: z.number().optional(),
     }),
   ),
 });

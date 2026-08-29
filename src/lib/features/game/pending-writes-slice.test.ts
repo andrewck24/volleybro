@@ -207,6 +207,42 @@ describe("pendingWrites reducer", () => {
     expect(failedAgain.pending[0]!.lastError).toBeUndefined();
   });
 
+  it("dates an entry from its first failure, not its latest attempt", () => {
+    let state = pendingWritesReducer(
+      undefined,
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    state = pendingWritesReducer(
+      state,
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+    const first = state.pending[0]!.firstFailedAt;
+    expect(first).toBe(Date.now());
+
+    // A flush sends every pending entry for its game, so a doomed one is
+    // re-attempted whenever any rally is recorded. Moving the timestamp with
+    // each attempt would measure the recorder's activity, not the entry's
+    // age, and it would never reach the expiry window.
+    jest.setSystemTime(Date.now() + 60_000);
+    state = pendingWritesReducer(
+      state,
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids: ["e1"],
+        retryable: false,
+      }),
+    );
+    expect(state.pending[0]!.firstFailedAt).toBe(first);
+  });
+
   it("leaves no failure reason behind once the entry is confirmed", () => {
     const seeded: PendingWritesState = {
       flushingGameIds: [],

@@ -55,19 +55,13 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-/**
- * The one threshold that decides whether a failure is worth another attempt.
- * Both the flush and the restore read it, because two copies would drift and
- * a drift here means entries that are never sent again.
- */
+/** The one threshold both the flush and the restore read, so neither drifts. */
 export const isRetryableStatus = (status: number): boolean => status >= 500;
 
 /**
- * Whether a restored entry may be attempted again. Wider than the flush's
- * question by exactly one case: an expired session is not a permanent
- * failure, and because signing in leaves the app entirely and comes back as
- * a fresh start, a restart is often the very thing that fixed it. Anything
- * else in the 4xx range cannot be fixed by sending the same bytes again.
+ * Whether a restored entry may be attempted again -- wider than the flush's
+ * question by one case, because signing in leaves the app and returns as a
+ * fresh start, so a restart is often what fixed an expired session.
  */
 export const isWorthAttemptingAgain = (lastError?: WriteError): boolean =>
   lastError === undefined ||
@@ -88,34 +82,19 @@ export const applyFlushedEntries = (
   };
 
 /**
- * How long a queued entry that cannot succeed is kept before it is dropped.
- *
- * Persisting the queue removed the only exit such an entry had -- closing the
- * app, which used to empty a queue that lived in memory. Without something
- * like this, a game somebody deleted leaves an entry that can never be sent,
- * never be cleared, and after the recorder walks away from that game, never
- * even be seen. Seven days has no measured basis; it restores the property
- * persistence took away and nothing more.
- *
- * The proper fix is letting the recorder see the entry and discard it, which
- * needs unsent work to be visible outside the game it belongs to.
+ * How long a queued entry that cannot succeed is kept. Seven days has no
+ * measured basis: it restores the exit persistence removed -- closing the app,
+ * which used to empty a queue that lived in memory -- and nothing more. See D2.
  */
 export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Whether a restored entry should be dropped rather than put back.
- *
- * Keyed on the flush's own threshold rather than the wider question restore
- * asks. The two differ over an expired session: restore lets it try again
- * straight away, because signing in may well be what the restart was for, but
- * a session nobody has signed back into for a week is as stuck as any other
- * 4xx. Widening eligibility to schedule an attempt is not a reason to keep the
- * entry forever.
- *
- * An entry that has never failed has nothing to measure and never expires.
+ * Whether a restored entry should be dropped rather than put back. Keyed on
+ * the flush's threshold, not restore's wider one: letting a stale session
+ * schedule an attempt is not a reason to keep it forever.
  */
 export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
   item.lastError !== undefined &&
   !isRetryableStatus(item.lastError.status) &&
-  item.failedAt !== undefined &&
-  now - item.failedAt > PENDING_WRITE_EXPIRY_MS;
+  item.firstFailedAt !== undefined &&
+  now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS;

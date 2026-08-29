@@ -112,7 +112,7 @@ describe("pending-writes persistence", () => {
       gameId: "game-1",
       setIndex: 2,
       lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
-      failedAt: expect.any(Number),
+      firstFailedAt: expect.any(Number),
     });
     // Recomputed on restore, so storing them would only be a second copy that
     // is already wrong by the time it is read.
@@ -515,7 +515,7 @@ describe("restorePendingWrites expiry", () => {
     entry: entry(id),
     gameId: "game-1",
     setIndex: 0,
-    failedAt: Date.now() - age,
+    firstFailedAt: Date.now() - age,
     ...(lastError ? { lastError } : {}),
   });
 
