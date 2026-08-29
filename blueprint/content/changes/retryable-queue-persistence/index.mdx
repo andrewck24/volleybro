@@ -86,5 +86,5 @@ Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記�
 - `offline-recording` 開始實作 outbox：D3 登記的兩條 residual risk（送達依賴使用者回到該場比賽、儲存不可用時靜默降級）屆時關閉，該 Change 已收下對應的驗收條件。
 - 佇列規模逼近數千筆：整包快照的 O(n) 寫入開始有感，屆時換的是 D1 的 adapter 而非架構，第一步是把 key 拆成每場一把。
 - 目標平台從 PWA 延伸到 native app：D1 的非同步簽章正是為此而存在，屆時要驗證的是「寫到一半被殺」在新 adapter 上的行為，那是 localStorage 不需要處理而 native 需要的。
-- rally 端點加上 request schema：400 會大量增加，D2 的過期規則從保險變成主要機制。兩張 Change 在 `isRetryable` 這一個函式上相接。
+- rally 端點加上 request schema：400 會大量增加，D2 的過期規則從保險變成主要機制。兩張 Change 在 `isRetryableStatus` 這一個函式上相接。
 - 過期天數被實地推翻：七天是一個沒有量測依據的起始值，長天期的巡迴賽是最可能推翻它的場景。

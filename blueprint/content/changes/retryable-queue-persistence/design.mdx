@@ -211,17 +211,19 @@ type PersistedQueue = {
 
 讀回的內容不是被 cast 而是被 parse：storage 是同源的任何程式都能寫的，而讀回的東西會進佇列、接著被送往伺服器。schema 的型別綁為 `z.ZodType<PersistedQueue>`，所以 schema 與型別不可能漂移。
 
-**寫入。** RTK 的 `createListenerMiddleware` 監聽 `enqueued`、`flushSucceeded`、`flushFailed` —— 三個會改動 `pending` 內容的 action。effect 在 reducer 之後執行，所以 `getState()` 拿到的已經是合併後的完整佇列：
+**寫入。** RTK 的 `createListenerMiddleware` 監聽四個會改動 `pending` 內容的 action。前三個是佇列自己的進出，第四個是讀回——被過期規則縮短的佇列要靠它寫回磁碟，否則死掉的項目每次啟動重讀重丟。effect 在 reducer 之後執行，所以 `getState()` 拿到的已經是合併後的完整佇列：
 
 ```ts
 listener.startListening({
-  matcher: isAnyOf(enqueued, flushSucceeded, flushFailed),
+  matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
   effect: (_action, api) => {
     const { pending } = api.getState().pendingWrites;
-    save({ version: 1, items: pending.map(toPersisted) });
+    save(snapshotOf(pending));
   },
 });
 ```
+
+`snapshotOf` 而非就地組出 `{ version: 1, ... }`：版本號只有一個來源。
 
 **合併發生在 reducer，持久化層只照抄。** `enqueued` 的那一行 `state.pending.push(...)` 就是合併；`toPersisted` 只丟掉重算得到的欄位，沒有任何佇列邏輯。整份設計裡唯一真的需要寫合併邏輯的地方是 `rehydrated`，因為只有那裡有兩個來源。
 
@@ -297,7 +299,7 @@ inFlight = run(pending); // [!code ++]
 
 本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響。
 
-**frontend（jsdom 有 localStorage）**：讀回並重送、`version` 不符丟棄、`rehydrated` 的合併語意、空佇列不發請求、儲存拋錯時 app 不致命、過期規則對可重試與不可重試兩類的分別處置。合併語意與過期規則是最值得釘住的兩項——前者是非同步簽章帶來的、唯一會靜默弄丟資料的路徑，後者是唯一會主動刪除資料的路徑。
+**frontend（jsdom 有 localStorage）**：讀回並重送、四種磁碟內容各自的處置（含「新版本不清除」）、`rehydrated` 的合併語意、空佇列不發請求、儲存拋錯時 app 不致命、過期規則對可重試與不可重試兩類的分別處置。合併語意與過期規則是最值得釘住的兩項——前者是非同步簽章帶來的、唯一會靜默弄丟資料的路徑，後者是唯一會主動刪除資料的路徑。
 
 **integration**：不需要新增。「重送已成功的 entry 為 no-op，不產生重複」已由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層的 auth 是以 DI double 取代的，不需要真實 session。
 
