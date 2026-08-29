@@ -1,0 +1,91 @@
+---
+title: Review
+---
+
+## Delivered
+
+四個切片全部完成。每片的實作 commit 以 commit body 的 `Implements` trailer 指認，`git log --grep="Implements: S03"` 即可重建映射——本頁一律以 slice ID 指稱，不引用 commit hash。
+
+- **S01** — `PendingEntry` 帶上 `lastError`（`{ code, reason, status }`，不含會隨 i18n 變動的 `detail` 與 `message`）。取得這個值的過程順帶修掉一個既有缺陷：失敗原本以「可否重試」的布林分組收集，跨 set 合併，因此一個 set 的 entry 會被記上另一個 set 的失敗原因。改為以 `(gameId, setIndex)` 群組收集，各自帶自己的結果。
+- **S02** — 三方法的 client 端 storage port 與其 localStorage 實作；RTK listener middleware 在佇列內容變動時寫入整包快照。無 debounce；寫入不可亂序，且進行中的寫入後方只保留最新一份快照。adapter 不 catch，政策留在 listener 的 `.catch` 並附 `ponytail:` 標記。
+- **S03** — `rehydrated` action 依 `entry.id` 合併且記憶體優先；`ReduxProvider` 掛載時讀回。重試排程一律重算，判斷共用 flush 的門檻並就「過期 session」放寬一格。
+- **S04** — 收窄的過期規則：可重試的永不過期，不可重試的 4xx 超過七天丟棄；門檻集中在一個常數。
+
+## Plan versus actual
+
+五處與核准計畫不同。前四處是文件落後於程式碼，Archive 時校正；第五處是審查中發現的設計缺陷。
+
+**磁碟上多一個欄位。** D2 列的形狀是 `{ entry, gameId, setIndex, lastError? }`，實作另存 `firstFailedAt`。S04 的「超過七天」需要一個時間基準，而那四個欄位裡沒有——規格的疏漏，不是實作越界。
+
+**listener 多聽一個 action。** S02 列了三個，實作聽四個：`rehydrated` 也改動佇列內容，聽它才能讓「被過期規則縮短的佇列」寫回磁碟。S02 排除的是「無關的 dispatch」，這一個不是。
+
+**「同一個 predicate」不成立，而程式碼是對的那一邊。** S04 寫「重試判斷與 flush、restore 共用同一個 predicate，三者不可能不一致」，實作有兩個：`isRetryableStatus`（能不能再送）與 `isWorthAttemptingAgain`（該不該再排一次）。兩者只在 401 上分歧，而那正是它們該分歧的地方——若共用單一 predicate，過期的 session 要嘛永遠卡住、要嘛永遠不過期。S04 真正要防的漂移沒有發生：門檻仍然只有一份。該條應改寫為「共用同一個 threshold」。
+
+**storage key 的名字變了。** D2 與 design 頁的圖寫的是 `pending-writes:v1`，實作用的是 `pending-writes`。理由見下一節——這不只是改名。
+
+**寫入的排序機制與 Design 描述的不同。** Design 的 Contracts 寫「寫入串成一條 promise chain」。實作沒有用鏈：閒置時直接寫入（同步 store 因此在函式返回前就完成），進行中則只保留最新一份待寫快照。鏈會把每一次寫入都推遲一個 microtask，破壞「記一顆球到落地之間沒有窗口」這個前提；而因為快照是完整的，中間那幾份本來就不值得寫。結果比計畫的更嚴格，不是放寬。
+
+## Review findings
+
+四輪獨立審查，兩軸（標準／規格）分開進行。前三輪都有實質發現，第四輪兩軸皆達固定點。
+
+### 第二輪：過期的時鐘量錯了東西（最嚴重）
+
+`failedAt` 在每次失敗時更新。但 flush 會送出該場比賽**所有**待送 entry，不看排程——所以一筆註定失敗的 entry，只要使用者還在記那場比賽，每記一顆球就被重試一次、時間戳跟著往前推，**永遠到不了七天**。量到的是使用者的活躍度，不是 entry 的年齡。
+
+改為只在第一次失敗時記錄（`firstFailedAt`，`??=`），並補一條測試釘住「後續失敗不刷新」。
+
+### 第三輪：版本化的 key 讓版本檢查永遠不可能觸發
+
+版本號同時寫在 storage key（`pending-writes:v1`）與快照內容裡。除了兩份來源會漂移，更嚴重的是**結構問題**：換版的 build 會去看另一把 key，於是舊快照永遠不會被讀到，「版本不符就丟棄」那段邏輯在構造上無法執行，舊資料也永遠不會被清掉。
+
+key 改為不帶版本，快照內容成為版本的唯一來源。
+
+### 第一輪：磁碟資料未經驗證就進入佇列
+
+`JSON.parse(raw) as PersistedQueue` 是信任邊界上的無檢查轉型。storage 是同源的任何程式都能寫的，而讀回的東西會進佇列、接著被送往伺服器。S03 要求「無法讀取或格式不符的資料視同沒有資料」，原本只處理了「無法讀取」。
+
+改為以 zod schema 驗證，並將 schema 型別綁為 `z.ZodType<PersistedQueue>`，使 schema 與型別不可能漂移。`load()` 的回傳型別改為 `unknown`，明說 store 的內容在驗證前不可信。**這也暴露了測試 fixture 一直是假的**（`home: {}` 從來就不是合法的 rally），fixture 一併改為真實形狀。
+
+### 第一與第三輪：無法使用的快照沒有被清掉
+
+「全部過期」原本不 dispatch，因此寫回的 listener 不會執行，死掉的快照每次啟動重讀重丟。第三輪指出同樣的道理適用於另外兩條路徑。四條路徑現在一致：不是快照、自家版本但形狀不符、全部過期——都清除；**只有更新版本的快照刻意保留**，因為它可能屬於使用者同時在跑的另一個 build，而那是這裡唯一「猜錯就毀掉未送資料」的地方。
+
+為了讓呼叫端分辨「沒有東西」與「有東西但沒人能用」，adapter 在 JSON 解析失敗時回傳原始字串而非 `null`。
+
+### 其餘已修
+
+測試 helper 的 snake_case 命名；失敗 payload 組好又重組（順帶消掉一個 non-null assertion）；`toPersisted` 無外部呼叫端卻 export；註解大量重述 ADR 內容——裁掉指向 ADR，只留程式碼讀不出來的（七天沒有量測依據、restore 的判斷為何比 flush 寬、被吞掉的儲存失敗）。
+
+### 明確不修
+
+- **測試檔位置**：`src/lib/features/game/` 同時有 co-located 與 `__tests__/` 兩種，而這在本 Change 之前就存在（`__tests__/pending-writes.test.ts`）。兩種放法都無法消除混用，屬既有問題，指出不修。
+- **`version` 型別是 `number` 而非字面量 `1`**：字面量會讓「來自未知版本的快照」在型別上無法表達，而那正是要處理的情況。
+- **`z.custom<AppErrorCode>`**：在 schema 裡以字串檢查而非比對 union。union 住在 error model，在這裡重列會是第二份來源，而沒有任何程式分支讀這個值——只有 `status` 決定事情。已調整註解使其不宣稱超過實際做到的。
+
+## 驗證證據
+
+| 項目                    | 結果                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `pnpm verify:all`       | 通過（format、workflow、typecheck:strict、lint、test、blueprint test、build、assert-sw、blueprint build） |
+| `pnpm test`             | 118 suites / 926 tests 全綠（本 Change 新增 29 個）                                                       |
+| `pnpm test:integration` | 10 suites / 28 tests 全綠，未新增                                                                         |
+| 獨立審查                | 四輪、兩軸，第四輪達固定點                                                                                |
+
+沒有新增 integration 測試：「重送已成功的 entry 為 no-op，不產生重複」由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層以 DI double 取代 auth，不需要真實 session。
+
+沒有瀏覽器驗證：本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響，也沒有可截圖的對象。
+
+## Residual risks
+
+- **送達仍依賴使用者回到該場比賽。** 佇列是跨場的，A、B 兩場都有待送球而使用者只打開 B 時，A 的球會一直等，而比賽列表顯示的比分是少了那幾顆球的版本。由 `offline-recording` 的 outbox 關閉，對應驗收條件已補上。
+- **儲存不可用時靜默降級。** 本 Change 唯一一個「使用者以為被保護、其實沒有」的路徑。錯誤處理的位置（D4）確保升級成可見警告時只需改一行。
+- **七天沒有量測依據。** 收窄規則已把「還有希望」的那一類排除在過期之外，但判定依據是最後一次失敗的性質，而那可能是舊的。
+- **Safari 對 script-writable storage 的長期無互動清除政策**對 localStorage 與 IndexedDB 一視同仁，加到主畫面的 PWA 兩者都豁免。不是選型依據，是兩者共同的殘餘風險。
+- **兩個極窄的視窗**（第四輪指出，低於處理門檻）：儲存值恰為字面 `"null"` 時會被當成「沒有東西」而永不清除，只有外部寫入者能造成；discard 與並行 enqueue 之間可能清掉剛寫入的快照，但 entry 仍在記憶體，下次佇列變動即重寫。
+
+## Follow-ups
+
+- Archive 時校正 D2（欄位清單、storage key 名稱）、S02（listener 監聽的 action）、S04（「同一個 predicate」改為「同一個 threshold」）、以及 design 頁時序圖裡兩處 `pending-writes:v1` 標籤。
+- 佇列的重試狀態實際上是 `(gameId, setIndex)` 群組層級的事實卻複製到每一筆 entry 上，已獨立登記。本 Change 不持久化那些欄位，因此兩者互不影響。
+- 使用者仍無法在比賽畫面之外看到有未送出的球，也無法主動捨棄一筆註定失敗的 entry；兩者都屬 `offline-recording`。
