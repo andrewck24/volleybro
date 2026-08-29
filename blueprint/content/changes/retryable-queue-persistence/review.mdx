@@ -133,15 +133,20 @@ import { TaskProgress } from "@/components/TaskProgress";
 
 <AnnotatedDiff
   lang="ts"
-  code={`const flushFailed = (state, action) => {
+  code={`// src/lib/features/game/pending-writes-slice.ts
+> = (state, action) => {
+  const { gameId, ids, retryable, lastError } = action.payload;
+  const idSet = new Set(ids);
   for (const item of state.pending) {
     if (!idSet.has(item.entry.id)) continue;
     item.attempts += 1;
+    const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
+    item.nextAttemptAt = delay === null ? null : Date.now() + delay;
     item.lastError = lastError;
     item.failedAt = Date.now(); // [!code --]
-    // 量到的是使用者的活躍度，不是 entry 的年齡
     item.firstFailedAt ??= Date.now(); // [!code ++]
   }
+  state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);
 };`}
 />
 
@@ -151,9 +156,12 @@ import { TaskProgress } from "@/components/TaskProgress";
 
 <AnnotatedDiff
   lang="ts"
-  code={`export const PENDING_WRITES_KEY = "pending-writes:v1"; // [!code --]
-// 版本住在快照裡，不住在 key 裡：版本化的 key 是同一個數字的第二份來源，
-// 而且會讓 bump 過的 build 去看別的地方，舊快照從此無人讀取也無人清除。
+  code={`// src/lib/features/game/pending-writes-storage.ts
+export const PENDING_WRITES_KEY = "pending-writes:v1"; // [!code --]
+// The version lives in the snapshot, not in the key. A versioned key would be
+// a second copy of the same number, and worse: a build that bumped it would
+// look somewhere else entirely, leaving the old snapshot unread, undiscarded
+// and unreachable -- so the version check below could never fire.
 export const PENDING_WRITES_KEY = "pending-writes"; // [!code ++]
 export const PENDING_WRITES_VERSION = 1;`}
 />
@@ -164,12 +172,34 @@ storage 是同源的任何程式都能寫的，而讀回的東西會進佇列、
 
 <AnnotatedDiff
   lang="ts"
-  code={`load(): Promise<PersistedQueue | null>; // [!code --]
-load(): Promise<unknown>; // [!code ++] 驗證之前，型別不該替 store 背書
+  code={`// src/lib/features/game/pending-writes-storage.ts
+export type PendingWritesStorage = {
+  load(): Promise<PersistedQueue | null>; // [!code --]
+  load(): Promise<unknown>; // [!code ++]
+  save(snapshot: PersistedQueue): Promise<void>;
+  clear(): Promise<void>;
+};
 
-const snapshot = (await storage.load()) as PersistedQueue; // [!code --]
-const parsed = PersistedQueueSchema.safeParse(await storage.load()); // [!code ++]
-// schema 型別綁為 z.ZodType<PersistedQueue>，兩者不可能漂移`}
+async load() {
+const raw = localStorage.getItem(PENDING_WRITES_KEY);
+if (raw === null) return null;
+try {
+return JSON.parse(raw) as PersistedQueue; // [!code --]
+return JSON.parse(raw); // [!code ++]
+} catch {
+return null; // [!code --]
+// The string itself, so the caller can tell "nothing stored" from
+// "something stored that nobody can use" and clear the latter.
+return raw; // [!code ++]
+}
+},
+
+// src/lib/features/game/pending-writes-persistence.ts
+const parsed = PersistedQueueSchema.safeParse(raw); // [!code ++]
+if (!parsed.success) { // [!code ++]
+await discard(storage); // [!code ++]
+return; // [!code ++]
+} // [!code ++]`}
 />
 
 ### 無法使用的快照沒有被清掉
@@ -178,12 +208,17 @@ const parsed = PersistedQueueSchema.safeParse(await storage.load()); // [!code +
 
 <AnnotatedDiff
   lang="ts"
-  code={`const items = snapshot.items.filter((i) => !hasExpired(i, now));
-if (items.length === 0) return; // [!code --]
-if (items.length === 0) { // [!code ++]
-  await discard(storage); // [!code ++] 沒有 dispatch，listener 就不會寫回
-  return; // [!code ++]
-} // [!code ++]`}
+  code={`// src/lib/features/game/pending-writes-persistence.ts
+  const now = Date.now();
+  const items = snapshot.items.filter((item) => !hasExpired(item, now));
+  if (items.length === 0) return; // [!code --]
+  if (items.length === 0) { // [!code ++]
+    // Nothing survived, so nothing is dispatched and the listener that
+    // normally writes the shorter queue back never runs.
+    await discard(storage); // [!code ++]
+    return; // [!code ++]
+  } // [!code ++]
+  dispatch(pendingWritesActions.rehydrated({ items }));`}
 />
 
 ### 失敗原因跨 set 張冠李戴
@@ -192,9 +227,31 @@ if (items.length === 0) { // [!code ++]
 
 <AnnotatedDiff
   lang="ts"
-  code={`const failedIdsByRetryable = new Map<boolean, string[]>(); // [!code --]
-// 每個 set 是自己的請求、自己的結果
-const failures: { payload: FlushFailedPayload; error: unknown }[] = []; // [!code ++]`}
+  code={`// src/hooks/use-pending-writes.ts
+    const failedIdsByRetryable = new Map<boolean, string[]>(); // [!code --]
+    let firstError: unknown; // [!code --]
+    // Failures are kept per set group rather than pooled by retryability:
+    // each group is its own request with its own outcome, and the reason
+    // recorded on an entry has to be the reason its own request failed.
+    const failures: { payload: FlushFailedPayload; error: unknown }[] = []; // [!code ++]
+
+      } else {
+        firstError ??= result.error; // [!code --]
+        failedIdsByRetryable.set(result.retryable, [ // [!code --]
+          ...(failedIdsByRetryable.get(result.retryable) ?? []), // [!code --]
+          ...ids, // [!code --]
+        ]); // [!code --]
+        failures.push({ // [!code ++]
+          payload: { // [!code ++]
+            gameId, // [!code ++]
+            ids, // [!code ++]
+            retryable: result.retryable, // [!code ++]
+            lastError: toWriteError(result.error), // [!code ++]
+          }, // [!code ++]
+          error: result.error, // [!code ++]
+        }); // [!code ++]
+      }`}
+
 />
 
 ## Plan versus actual

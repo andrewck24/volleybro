@@ -2,7 +2,6 @@
 title: Design
 ---
 
-import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
@@ -23,11 +22,11 @@ import persistenceErrorLayering from "./design/decisions/D4-persistence-error-la
 Redux slice 在中央，兩側互不知情：左邊是持久化（listener → port → localStorage），右邊是網路（flush → API → Mongo）。持久化那一側完全不知道有伺服器存在，它只對 slice 的變動作反應。
 
 <svg
-  viewBox="0 0 1120 1080"
+  viewBox="0 0 1120 1070"
   role="img"
-  aria-label="待送佇列的完整資料流：記一顆球時 UI dispatch enqueued，reducer 完成合併，listener 讀取整包狀態寫入 localStorage；flush 讀取整個佇列送往 rally 端點，由 upsertEntry 以 id 守衛寫入 Mongo，成功後 dispatch flushSucceeded、失敗後 dispatch flushFailed，兩者都再寫入一次；app 重啟時由 ReduxProvider 呼叫 load，檢查版本後 dispatch rehydrated 依 id 合併回 Redux。"
+  aria-label="待送佇列的完整資料流，分為三段。記一球並送出成功：UI dispatch enqueued，reducer 完成合併，listener 取整包快照寫入 localStorage，寫入完成後才送出 PUT，由 upsertEntry 以 id 守衛寫入 Mongo，回應後 dispatch flushSucceeded 並再寫一次快照。送出失敗：伺服器回 5xx 或離線正規化的 503 屬於值得再試，4xx 不值得再試，兩者都 dispatch flushFailed 並記下失敗原因與第一次失敗的時間。app 重啟：ReduxProvider 呼叫 load，先看 version 再驗形狀，dispatch rehydrated 依 id 合併回 Redux，但不送出。"
   preserveAspectRatio="xMidYMid meet"
-  style={{ aspectRatio: "1120 / 1080", width: "100%", height: "auto" }}
+  style={{ aspectRatio: "1120 / 1070", width: "100%", height: "auto" }}
 >
   <defs>
     <marker
@@ -68,15 +67,15 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <text x="980" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">MongoDB</text>
     <text x="980" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">upsertEntry</text>
 
-    <line x1="180" y1="66" x2="180" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
-    <line x1="340" y1="66" x2="340" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
-    <line x1="500" y1="66" x2="500" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
-    <line x1="660" y1="66" x2="660" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
-    <line x1="820" y1="66" x2="820" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
-    <line x1="980" y1="66" x2="980" y2="1035" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="180" y1="66" x2="180" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="340" y1="66" x2="340" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="500" y1="66" x2="500" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="660" y1="66" x2="660" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="820" y1="66" x2="820" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="980" y1="66" x2="980" y2="1030" stroke="var(--border)" strokeDasharray="4 5" />
 
-    <rect x="16" y="90" width="22" height="200" rx="6" fill="var(--muted)" />
-    <text x="27" y="190" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 190)">記一顆球</text>
+    <rect x="16" y="90" width="22" height="404" rx="6" fill="var(--muted)" />
+    <text x="27" y="292" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 292)">記一球，送出成功</text>
 
     <text x="660" y="104" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">使用者記下一顆球（樂觀推進）</text>
     <line x1="660" y1="130" x2="514" y2="130" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
@@ -90,84 +89,84 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <rect x="265" y="212" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
     <text x="340" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">getState() 取整包快照</text>
 
-    <line x1="340" y1="252" x2="194" y2="252" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="260" y="244" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：閒置時直接寫</text>
-    <text x="180" y="274" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同步寫入，返回即落地——不經排程</text>
+    <line x1="340" y1="256" x2="194" y2="256" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="260" y="248" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：閒置時直接寫</text>
+    <text x="180" y="276" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同步寫入，返回即落地</text>
 
-    <line x1="16" y1="296" x2="1104" y2="296" stroke="var(--border)" strokeDasharray="6 6" />
+    <line x1="105" y1="296" x2="1055" y2="296" stroke="var(--success)" strokeOpacity="0.35" strokeDasharray="2 4" />
+    <text x="580" y="292" textAnchor="middle" fontSize="9" fill="var(--success)">到這裡球已在磁碟上——之後才開始送</text>
 
-    <rect x="16" y="316" width="22" height="254" rx="6" fill="var(--muted)" />
-    <text x="27" y="443" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 443)">送出成功</text>
+    <line x1="660" y1="322" x2="806" y2="322" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="733" y="314" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ {"{ id, seq, …entry }"} ]</text>
 
-    <text x="660" y="330" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">flush() 讀取整個佇列</text>
-    <line x1="660" y1="356" x2="806" y2="356" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="733" y="348" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ {"{ id, seq, …entry }"} ]</text>
+    <line x1="820" y1="346" x2="966" y2="346" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="893" y="338" textAnchor="middle" fontSize="10" fill="var(--foreground)">upsertEntry（bulkWrite）</text>
+    <rect x="905" y="358" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="980" y="373" textAnchor="middle" fontSize="10" fill="var(--success)">id 守衛 → 寫入或 no-op</text>
 
-    <line x1="820" y1="382" x2="966" y2="382" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="893" y="374" textAnchor="middle" fontSize="10" fill="var(--foreground)">upsertEntry（bulkWrite）</text>
-    <rect x="905" y="394" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
-    <text x="980" y="409" textAnchor="middle" fontSize="10" fill="var(--success)">id 守衛 → 寫入或 no-op</text>
+    <line x1="820" y1="402" x2="674" y2="402" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="747" y="394" textAnchor="middle" fontSize="10" fill="var(--foreground)">200 {"{ entries, … }"}</text>
 
-    <line x1="980" y1="434" x2="834" y2="434" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="900" y="426" textAnchor="middle" fontSize="10" fill="var(--foreground)">entries</text>
-    <line x1="820" y1="460" x2="674" y2="460" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="747" y="452" textAnchor="middle" fontSize="10" fill="var(--foreground)">200 {"{ entries, … }"}</text>
+    <line x1="660" y1="426" x2="514" y2="426" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="580" y="418" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushSucceeded)</text>
+    <rect x="430" y="438" width="140" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="500" y="453" textAnchor="middle" fontSize="10" fill="var(--success)">移除該批 id</text>
 
-    <line x1="660" y1="486" x2="514" y2="486" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="580" y="478" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushSucceeded)</text>
-    <rect x="430" y="498" width="140" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
-    <text x="500" y="513" textAnchor="middle" fontSize="10" fill="var(--success)">移除該批 id</text>
+    <line x1="500" y1="482" x2="194" y2="482" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="347" y="474" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener → save()：快照變小</text>
 
-    <line x1="500" y1="538" x2="354" y2="538" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="420" y="530" textAnchor="middle" fontSize="10" fill="var(--foreground)">同一條 listener</text>
-    <line x1="340" y1="562" x2="194" y2="562" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="260" y="554" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：進行中則最新者勝</text>
+    <line x1="16" y1="502" x2="1104" y2="502" stroke="var(--border)" strokeDasharray="6 6" />
 
-    <line x1="16" y1="590" x2="1104" y2="590" stroke="var(--border)" strokeDasharray="6 6" />
+    <rect x="16" y="522" width="22" height="290" rx="6" fill="var(--muted)" />
+    <text x="27" y="667" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 667)">送出失敗：兩種</text>
 
-    <rect x="16" y="610" width="22" height="220" rx="6" fill="var(--muted)" />
-    <text x="27" y="720" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 720)">送出失敗</text>
+    <text x="660" y="536" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">flush() 送出，伺服器沒有接受</text>
+    <line x1="660" y1="558" x2="806" y2="558" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="733" y="550" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ … ]</text>
 
-    <text x="660" y="624" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">flush() 再次送出</text>
-    <line x1="660" y1="648" x2="806" y2="648" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="733" y="640" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT [ … ]</text>
-    <rect x="745" y="660" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
-    <text x="820" y="675" textAnchor="middle" fontSize="10" fill="var(--warning)">5xx／離線 → 503</text>
-    <text x="820" y="696" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">normalizeNetworkError 正規化</text>
+    <rect x="745" y="570" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="820" y="585" textAnchor="middle" fontSize="10" fill="var(--warning)">5xx／離線 → 503</text>
+    <rect x="745" y="598" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="820" y="613" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">4xx：400 401 403 404</text>
+    <text x="820" y="634" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同一條標準：status ≥ 500 才值得再試</text>
 
-    <line x1="820" y1="716" x2="674" y2="716" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="747" y="708" textAnchor="middle" fontSize="10" fill="var(--foreground)">失敗（retryable）</text>
-    <line x1="660" y1="740" x2="514" y2="740" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="580" y="732" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushFailed)</text>
-    <rect x="425" y="752" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
-    <text x="500" y="767" textAnchor="middle" fontSize="10" fill="var(--warning)">attempts+1、存 lastError</text>
+    <line x1="820" y1="656" x2="674" y2="656" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="747" y="648" textAnchor="middle" fontSize="10" fill="var(--foreground)">失敗（帶 status）</text>
+    <line x1="660" y1="680" x2="514" y2="680" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="580" y="672" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(flushFailed)</text>
 
-    <line x1="500" y1="792" x2="354" y2="792" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="420" y="784" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener</text>
-    <line x1="340" y1="816" x2="194" y2="816" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="260" y="808" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：含 lastError</text>
+    <rect x="425" y="692" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="500" y="707" textAnchor="middle" fontSize="10" fill="var(--warning)">值得再試 → 排退避</text>
+    <rect x="425" y="720" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="500" y="735" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">不值得 → nextAttemptAt null</text>
+    <text x="500" y="756" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">兩者都記 lastError 與 firstFailedAt</text>
 
-    <line x1="16" y1="840" x2="1104" y2="840" stroke="var(--border)" strokeDasharray="6 6" />
+    <line x1="500" y1="778" x2="194" y2="778" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="347" y="770" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener → save()：含失敗原因</text>
+    <text x="820" y="800" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">不值得再試的，只有使用者的重試手勢能再送；七天後過期</text>
 
-    <rect x="16" y="860" width="22" height="180" rx="6" fill="var(--muted)" />
-    <text x="27" y="950" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 950)">app 重啟</text>
+    <line x1="16" y1="820" x2="1104" y2="820" stroke="var(--border)" strokeDasharray="6 6" />
 
-    <text x="660" y="874" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">ReduxProvider 掛載</text>
-    <line x1="660" y1="898" x2="354" y2="898" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="507" y="890" textAnchor="middle" fontSize="10" fill="var(--foreground)">storage.load()</text>
-    <line x1="340" y1="922" x2="194" y2="922" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="267" y="914" textAnchor="middle" fontSize="10" fill="var(--foreground)">read pending-writes</text>
-    <line x1="180" y1="946" x2="326" y2="946" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="253" y="938" textAnchor="middle" fontSize="10" fill="var(--foreground)">{"{ version, items }"}</text>
-    <rect x="265" y="958" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
-    <text x="340" y="973" textAnchor="middle" fontSize="10" fill="var(--warning)">version 不符 → 不採用</text>
+    <rect x="16" y="840" width="22" height="190" rx="6" fill="var(--muted)" />
+    <text x="27" y="935" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 935)">app 重啟</text>
 
-    <line x1="340" y1="998" x2="486" y2="998" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="413" y="990" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(rehydrated)</text>
-    <rect x="425" y="1010" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
-    <text x="500" y="1025" textAnchor="middle" fontSize="10" fill="var(--success)">依 id 合併，記憶體優先</text>
+    <text x="660" y="854" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">ReduxProvider 掛載</text>
+    <line x1="660" y1="878" x2="354" y2="878" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="507" y="870" textAnchor="middle" fontSize="10" fill="var(--foreground)">storage.load()</text>
+    <line x1="340" y1="902" x2="194" y2="902" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="267" y="894" textAnchor="middle" fontSize="10" fill="var(--foreground)">read pending-writes</text>
+    <line x1="180" y1="926" x2="326" y2="926" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="253" y="918" textAnchor="middle" fontSize="10" fill="var(--foreground)">raw（未必是快照）</text>
+    <rect x="265" y="938" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="340" y="953" textAnchor="middle" fontSize="10" fill="var(--warning)">先看 version，再驗形狀</text>
+    <text x="340" y="974" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">四種處置，只有新版本保留</text>
 
-    <text x="800" y="1025" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">此時仍未送出——要等使用者走回該場比賽，flush 才會回到「送出成功」那一段</text>
+    <line x1="340" y1="996" x2="486" y2="996" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
+    <text x="413" y="988" textAnchor="middle" fontSize="10" fill="var(--foreground)">dispatch(rehydrated)</text>
+    <rect x="425" y="1008" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="500" y="1023" textAnchor="middle" fontSize="10" fill="var(--success)">依 id 合併，記憶體優先</text>
+
+    <text x="820" y="1023" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">此時仍未送出——要等使用者走回該場比賽</text>
 
   </g>
 </svg>
@@ -231,19 +230,30 @@ listener.startListening({
 
 同理**也不用 promise chain**。鏈會把每一次寫入都推遲一個 microtask，等於在「記下」與「落地」之間重新開一個窗口。
 
-<AnnotatedDiff
-  lang="ts"
-  code={`// 鏈：保序，但每一次寫入都晚一個 microtask
-let chain = Promise.resolve(); // [!code --]
-const save = (s) => (chain = chain.then(() => storage.save(s))); // [!code --]
+```ts
+// 閒置時直接寫：同步的 store 因此在這個函式返回前就完成
+const persist = (pending: PendingWritesState["pending"]) => {
+  if (inFlight) {
+    queued = pending; // 進行中：只留最新一份，中間那些不值得寫
+    return;
+  }
+  inFlight = run(pending);
+};
 
-// 閒置時直接寫（同步 store 因此在返回前完成）；
-// 進行中則後方只保留最新一份——快照是完整的，中間那些不值得寫
-const persist = (pending) => { // [!code ++]
-if (inFlight) { queued = pending; return; } // [!code ++]
-inFlight = run(pending); // [!code ++]
-}; // [!code ++]`}
-/>
+const run = (pending: PendingWritesState["pending"]): Promise<void> =>
+  storage
+    .save(snapshotOf(pending))
+    .catch((error: unknown) => {
+      console.warn("[pendingWrites] persist failed:", error);
+    })
+    .then(() => {
+      const next = queued;
+      queued = null;
+      inFlight = next === null ? null : run(next);
+    });
+```
+
+一條 `chain = chain.then(() => storage.save(s))` 會保序，但**每一次**寫入都因此晚一個 microtask——包括沒有任何寫入進行中的那一次，也就是絕大多數。上面的寫法在同樣保序的前提下，把最常見的情況變回同步。
 
 **讀回。** `ReduxProvider` 掛載時呼叫 `load()`，先讀 `version`、再驗形狀，然後 `dispatch(rehydrated)`。順序是這樣而非相反，因為 schema 描述的是**這個 build 寫出來的**形狀，先驗形狀會把真正的新版快照當成壞資料，版本檢查永遠到不了。`rehydrated` 依 `entry.id` 合併且**記憶體優先**：`load()` 是非同步的，讀回期間使用者可能已經記了球，直接覆蓋會把那顆新球弄丟。
 
