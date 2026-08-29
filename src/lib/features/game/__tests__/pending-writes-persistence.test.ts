@@ -430,10 +430,10 @@ describe("restorePendingWrites", () => {
         .pendingWrites.pending.map((p) => [p.entry.id, p.nextAttemptAt]),
     );
     expect(due.transient).toEqual(expect.any(Number));
-    // Signing in leaves the app and returns as a fresh start, so a restart is
-    // often the very thing that fixed an expired session.
-    expect(due["expired-session"]).toEqual(expect.any(Number));
-    // Sending the same bytes to a game that no longer exists cannot work.
+    // One standard, applied everywhere: a 4xx is not scheduled, and that
+    // includes an expired session. It stays queued and visible, and the
+    // recorder's retry gesture sends it once they have signed back in.
+    expect(due["expired-session"]).toBeNull();
     expect(due["deleted-game"]).toBeNull();
   });
 
@@ -607,14 +607,9 @@ describe("restorePendingWrites expiry", () => {
       status: 401,
     };
 
-    // Inside the window it is kept, and restore still lets it try again
-    // straight away -- signing in may well be what the restart was for.
     expect(await restore([aged("recent", week - 1000, session)])).toEqual([
       "recent",
     ]);
-    // A session nobody has signed back into for a week is as stuck as any
-    // other 4xx. Being eligible to schedule an attempt is not a reason to
-    // keep the entry forever.
     expect(await restore([aged("stale", week + 1000, session)])).toEqual([]);
   });
 

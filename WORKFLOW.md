@@ -410,3 +410,39 @@ active. Blueprint must not copy those tracker-specific references into its durab
 Provider-native subagents remain within one root session and Change workspace. They never poll or
 claim the external queue, arm unattended execution, reprioritize intake, or create a parallel
 lifecycle authority.
+
+### Presentation
+
+Blueprint pages exist to be read by a human deciding whether to accept delivery, so structure a
+reader can scan is part of the artifact rather than decoration. Prose alone is insufficient wherever
+the information is spatial, comparative, or ranked by severity: no paragraph shows at a glance which
+files changed, which finding blocks acceptance, or which line a fix landed on.
+
+Render such information with the components the repository already has, rather than describing it:
+
+| Information                                          | Component              |
+| ---------------------------------------------------- | ---------------------- |
+| The page's claim, before any detail                  | `TLDR`                 |
+| A behavior stated as given / when / then             | `Scenario`             |
+| What changed per file, or a term-by-term walkthrough | `FileTour`             |
+| Before and after of a specific edit                  | `AnnotatedDiff`        |
+| Risks or review findings, ranked by severity         | `RiskTable`            |
+| A process whose steps a reader may want to open      | `InteractiveFlowchart` |
+| Completion against a total                           | `TaskProgress`         |
+| A dated sequence                                     | `Timeline`             |
+| Structured decision records                          | `DecisionTimeline`     |
+
+Minimum per page: Overview opens with `TLDR`; Design carries at least one diagram of the adopted
+shape and states its risks through `RiskTable`; Review states delivery through `FileTour`, findings
+and residual risks through `RiskTable`, and shows every defect it reports as an `AnnotatedDiff` of
+the fix. Implementation needs no slice component — the page shell already renders the slice JSON.
+
+Four rules bind this:
+
+- A component earns its place by carrying structure prose cannot. The narrative that explains _why_
+  still belongs beside it, and a page that is only components has lost the argument.
+- Components render data and never become a second source for it. A page must not restate what the
+  page shell already renders from `change.json`, the slice JSON, or the decision records.
+- Diagrams are part of the specification, not illustrations of it. When delivery diverges from what
+  a diagram shows, the diagram is corrected in the same round as the text.
+- Use an ordered list wherever items are referred to by number elsewhere on the page.

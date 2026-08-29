@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "retryable-queue-persistence",
   "title": "Retryable Queue Persistence",
-  "lifecycle": "awaiting-delivery-review",
+  "lifecycle": "pre-pr-review",
   "startedAt": "2026-08-29",
   "summary": "待送佇列從記憶體延伸到磁碟：佇列變動即寫入 localStorage，app 啟動時讀回。儲存介面是一個 client 端的小 port，簽章從第一天就是非同步的，因為換到 native 時整批對應物都是非同步的；同步的 localStorage 實作在這裡不是妥協，而是對症——這張 Change 防的正是「app 突然被回收」。",
   "capabilities": [

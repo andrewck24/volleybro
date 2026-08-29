@@ -1,5 +1,5 @@
 import {
-  isWorthAttemptingAgain,
+  mayBeAttemptedAgain,
   nextAttemptDelayMs,
 } from "@/lib/features/game/pending-writes";
 import type {
@@ -118,7 +118,7 @@ const rehydrated: CaseReducer<
     .map((item) => ({
       ...item,
       attempts: 0,
-      nextAttemptAt: isWorthAttemptingAgain(item.lastError) ? Date.now() : null,
+      nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null,
     }));
   // Restored entries were recorded before anything now in memory.
   state.pending = [...restored, ...state.pending];

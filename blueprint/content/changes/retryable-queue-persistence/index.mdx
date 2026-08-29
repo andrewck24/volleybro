@@ -2,6 +2,22 @@
 title: Overview
 ---
 
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  樂觀推進讓記錄不必等伺服器，代價是未確認的球只存在記憶體裡——app
+  被回收就一次損失數筆，比改動前更糟。本 Change
+  把待送佇列寫進磁碟，並在啟動時讀回。不改任何畫面，不把送出提升為全域（那是
+  outbox，屬 `offline-recording`）。
+</TLDR>
+
+<Scenario
+  given="使用者在訊號不好的球場記球，有幾顆還沒送出去"
+  when="app 被系統回收，或使用者直接關掉"
+  then="改動前那幾顆球就沒了；改動後它們在磁碟上，重開並走回那場比賽時自動重送"
+/>
+
 ## Context
 
 `retryable-entry-writes` 讓 create 路徑改為樂觀推進：使用者記完一顆球立刻可以記下一顆，不必等伺服器回應。那是網路不佳時仍能連續記錄的前提，而它成立的三根支柱之一，是一個記得「伺服器還沒確認什麼」的待送佇列。
@@ -51,7 +67,8 @@ Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記�
 - **把 port 放進 `applications/repositories/`**——命名最一致，但那一層綁著 inversify 與 node-only 的 import，client 端只有一個檔案碰得到它；放進去會誤導讀者，也有把伺服器端相依打包進 bundle 的風險。
 - **`preloadedState` 注入讀回的資料**——`makeStore()` 是同步的而 `load()` 不是，這條路在選擇非同步簽章的那一刻就關閉了。
 - **`pagehide` / `visibilitychange` 時才寫入**——寫入次數最少，但 iOS PWA 被系統回收時不保證觸發，正是要防的情境。
-- **儲存 `retryable` 布林而非 error code**——分不出 401（重新登入後應該送出）與 400（永遠不可能成功），而這兩者在讀回時的處置相反。
+- **儲存 `retryable` 布林而非 error code**——布林分不出各種失敗，而後續處理（是否過期、衝突流程要接什麼）需要那個區別。
+- **為 401 另立一種判斷，讓它在重啟後自動重送**——理由成立（登入是整頁 redirect，重啟往往正是修好 session 的那件事），但它是第二種標準，而它買到的很窄：本來就要等使用者走回那場比賽才會送出，而那時重試手勢已經在畫面上。一種標準加一個已經存在的手勢，勝過兩種標準。
 
 ## Decisions
 

@@ -2,11 +2,21 @@
 title: Design
 ---
 
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
 import storagePortBoundary from "./design/decisions/D1-storage-port-boundary.json";
 import persistedShape from "./design/decisions/D2-persisted-shape.json";
 import flushStaysGameScoped from "./design/decisions/D3-flush-stays-game-scoped.json";
 import persistenceErrorLayering from "./design/decisions/D4-persistence-error-layering.json";
+
+<TLDR>
+  待送佇列從記憶體延伸到磁碟。slice
+  在中央，左邊是持久化、右邊是網路，兩側互不知情——持久化只對 slice
+  的變動作反應，完全不知道有伺服器存在。寫入發生在送出**之前**，讀回**不等於**送出。
+</TLDR>
 
 ## Adopted shape
 
@@ -36,7 +46,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
   <g fontFamily="ui-monospace, monospace">
     <rect x="105" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
     <text x="180" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">localStorage</text>
-    <text x="180" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">pending-writes:v1</text>
+    <text x="180" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">pending-writes</text>
 
     <rect x="265" y="20" width="150" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
     <text x="340" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">persistence</text>
@@ -78,11 +88,11 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <line x1="500" y1="200" x2="354" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="420" y="192" textAnchor="middle" fontSize="10" fill="var(--foreground)">listener 只認這三個 action</text>
     <rect x="265" y="212" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
-    <text x="340" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">getState() 取整包</text>
+    <text x="340" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">getState() 取整包快照</text>
 
     <line x1="340" y1="252" x2="194" y2="252" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="260" y="244" textAnchor="middle" fontSize="10" fill="var(--foreground)">await save()</text>
-    <text x="180" y="274" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同步寫入，返回即落地</text>
+    <text x="260" y="244" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：閒置時直接寫</text>
+    <text x="180" y="274" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">同步寫入，返回即落地——不經排程</text>
 
     <line x1="16" y1="296" x2="1104" y2="296" stroke="var(--border)" strokeDasharray="6 6" />
 
@@ -111,7 +121,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <line x1="500" y1="538" x2="354" y2="538" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="420" y="530" textAnchor="middle" fontSize="10" fill="var(--foreground)">同一條 listener</text>
     <line x1="340" y1="562" x2="194" y2="562" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="260" y="554" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：快照變小</text>
+    <text x="260" y="554" textAnchor="middle" fontSize="10" fill="var(--foreground)">save()：進行中則最新者勝</text>
 
     <line x1="16" y1="590" x2="1104" y2="590" stroke="var(--border)" strokeDasharray="6 6" />
 
@@ -146,7 +156,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
     <line x1="660" y1="898" x2="354" y2="898" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="507" y="890" textAnchor="middle" fontSize="10" fill="var(--foreground)">storage.load()</text>
     <line x1="340" y1="922" x2="194" y2="922" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
-    <text x="267" y="914" textAnchor="middle" fontSize="10" fill="var(--foreground)">read pending-writes:v1</text>
+    <text x="267" y="914" textAnchor="middle" fontSize="10" fill="var(--foreground)">read pending-writes</text>
     <line x1="180" y1="946" x2="326" y2="946" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rqp-arrow)" />
     <text x="253" y="938" textAnchor="middle" fontSize="10" fill="var(--foreground)">{"{ version, items }"}</text>
     <rect x="265" y="958" width="150" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
@@ -178,21 +188,26 @@ export type PendingWritesStorage = {
 
 localStorage 實作在 async function body 裡做同步的 `setItem`，因此「函式返回時資料已在磁碟上」這個性質與直接呼叫完全相同——非同步只存在於簽章，不存在於時序。實作不 catch，見 D4。
 
-**磁碟格式。**
+**磁碟格式。** 單一 key `pending-writes`，版本住在快照內容裡而不在 key 上。
 
 ```ts
 type PersistedQueue = {
-  version: 1;
+  version: number;
   items: {
     entry: RallyView & EntryIdentity;
     gameId: string;
     setIndex: number;
     lastError?: { code: AppErrorCode; reason: string; status: number };
+    firstFailedAt?: number;
   }[];
 };
 ```
 
 `attempts` 與 `nextAttemptAt` 不存：前者讀回歸零，後者是絕對時間戳、重啟後一律已過期，重算即可。`flushingGameIds` 不存：那是 runtime state，重啟後必然為假，與實作切片時不把 `claimed`／`running` 寫進 Git 是同一條規則。
+
+`firstFailedAt` 只在**第一次**失敗時寫入。flush 會送出該場比賽所有待送 entry、不看排程，所以一筆註定失敗的 entry 只要使用者還在記那場比賽就會不斷被重試；時間戳若跟著更新，量到的會是使用者的活躍度而不是 entry 的年齡。
+
+讀回的內容不是被 cast 而是被 parse：storage 是同源的任何程式都能寫的，而讀回的東西會進佇列、接著被送往伺服器。schema 的型別綁為 `z.ZodType<PersistedQueue>`，所以 schema 與型別不可能漂移。
 
 **寫入。** RTK 的 `createListenerMiddleware` 監聽 `enqueued`、`flushSucceeded`、`flushFailed` —— 三個會改動 `pending` 內容的 action。effect 在 reducer 之後執行，所以 `getState()` 拿到的已經是合併後的完整佇列：
 
@@ -208,13 +223,19 @@ listener.startListening({
 
 **合併發生在 reducer，持久化層只照抄。** `enqueued` 的那一行 `state.pending.push(...)` 就是合併；`toPersisted` 只丟掉重算得到的欄位，沒有任何佇列邏輯。整份設計裡唯一真的需要寫合併邏輯的地方是 `rehydrated`，因為只有那裡有兩個來源。
 
-不做 debounce：記球是人的手速，而 localStorage 寫入是次毫秒級的；debounce 只會製造一個「已經記下但還沒寫入」的窗口，正是要消滅的東西。寫入串成一條 promise chain，因為快照是整包的，亂序的後果是磁碟上暫時留著舊快照——鏈把那個「暫時」也拿掉。
+不做 debounce：記球是人的手速，而 localStorage 寫入是次毫秒級的；debounce 只會製造一個「已經記下但還沒寫入」的窗口，正是要消滅的東西。
+
+同理**也不用 promise chain**。鏈會把每一次寫入都推遲一個 microtask，等於在「記下」與「落地」之間重新開一個窗口。改為：閒置時直接寫入——同步的 store 因此在函式返回前就完成；已有寫入進行中時，後方的只保留**最新一份**。快照是完整的，中間那幾份本來就不值得寫，而最後留在磁碟上的一定是最新的。
 
 **讀回。** `ReduxProvider` 掛載時呼叫 `load()`，`version` 不符即整份丟棄，然後 `dispatch(rehydrated)`。`rehydrated` 依 `entry.id` 合併且**記憶體優先**：`load()` 是非同步的，讀回期間使用者可能已經記了球，直接覆蓋會把那顆新球弄丟。
 
-重試狀態在此重算：`attempts` 歸零、`nextAttemptAt` 設為立刻，除非 `lastError` 經 `isRetryable` 判定為不可重試。判斷用的是 flush 路徑的**同一個** `isRetryable`，不另建 code 對照表——兩張表遲早漂移，而漂移的後果是某些球永遠不再被送出。
+重試狀態在此重算：`attempts` 歸零、`nextAttemptAt` 設為立刻，除非 `lastError` 判定為不值得再試。
 
-**過期。** 讀回時，`lastError` 判定為可重試（5xx、離線正規化成的 503）的項目永不過期；判定為不可重試的 4xx 項目超過七天丟棄。這條規則存在的唯一理由是還原持久化拿掉的性質，見下一節。
+**判斷只有一種標準。** flush、restore 與過期規則讀的是同一份門檻，沒有第二個 predicate，也沒有 code 到政策的對照表——兩份判斷遲早漂移，而漂移的後果是某些球永遠不再被送出。
+
+這條的代價是 401：session 過期的 entry 不會在重啟後自動重送。它留在佇列裡、SyncIndicator 顯示未同步，使用者重新登入後以既有的重試手勢送出。代價很小，因為在下一節的決定之下，**本來就要等使用者走回那場比賽**才會有任何東西被送出，而那時重試手勢已經在畫面上。
+
+**過期。** 讀回時，`lastError` 判定為值得再試（5xx、離線正規化成的 503）的項目永不過期；判定為不值得再試的超過七天丟棄。用的是上面那**同一種標準**。這條規則存在的唯一理由是還原持久化拿掉的性質，見下一節。
 
 ## 持久化拿掉了一個逃生口
 
@@ -252,10 +273,40 @@ listener.startListening({
 
 ## Risks
 
-- **送達依賴使用者回到該場比賽。** 佇列是跨場的，A、B 兩場都有待送球而使用者只打開 B 時，A 的球會一直等，而比賽列表顯示的比分是少了那幾顆球的版本。由 `offline-recording` 的 outbox 關閉，對應的驗收條件已補上。
-- **儲存不可用時靜默降級。** 這是本 Change 唯一一個「使用者以為被保護、其實沒有」的路徑。錯誤處理的位置（D4）確保升級成可見警告時只需改一行。
-- **七天是沒有量測依據的數字。** 它會在長天期的巡迴賽中丟掉還有希望的資料——雖然收窄規則已經把「還有希望」的那一類排除在過期之外，判定依據仍是最後一次失敗的性質，而那可能是舊的。
-- **Safari 對 script-writable storage 的長期無互動清除政策**對 localStorage 與 IndexedDB 一視同仁，加到主畫面的 PWA 兩者都豁免。它不是選型依據，但是兩者共同的殘餘風險。
+<RiskTable
+  risks={[
+    {
+      name: "送達依賴使用者回到該場比賽",
+      severity: "warning",
+      mitigation:
+        "佇列跨場：A、B 兩場都有待送球而使用者只打開 B 時，A 的球會一直等，比賽列表顯示的比分少了那幾顆球。由 offline-recording 的 outbox 關閉，對應驗收條件已補上。",
+    },
+    {
+      name: "儲存不可用時靜默降級",
+      severity: "warning",
+      mitigation:
+        "本 Change 唯一一個「使用者以為被保護、其實沒有」的路徑。錯誤處理的位置（D4）確保升級成可見警告時只需改 listener 一行。",
+    },
+    {
+      name: "401 不再自動重送",
+      severity: "info",
+      mitigation:
+        "收斂為單一標準的代價。entry 留在佇列、指示器顯示未同步，使用者重新登入後以既有的重試手勢送出；七天後與其他不值得再試的失敗一同過期。",
+    },
+    {
+      name: "七天沒有量測依據",
+      severity: "info",
+      mitigation:
+        "收窄規則已把「還有希望」的那一類排除在過期之外，但判定依據是最後一次失敗的性質，而那可能是舊的。",
+    },
+    {
+      name: "Safari 對 script-writable storage 的長期無互動清除",
+      severity: "info",
+      mitigation:
+        "對 localStorage 與 IndexedDB 一視同仁，加到主畫面的 PWA 兩者都豁免。不是選型依據，是兩者共同的殘餘風險。",
+    },
+  ]}
+/>
 
 ## Decisions
 

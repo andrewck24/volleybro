@@ -12,8 +12,8 @@
     "The queue is read once when the store's provider mounts, and a snapshot whose version does not match is discarded whole rather than migrated.",
     "Unreadable or malformed stored data is treated as no stored data: the app starts with an empty queue instead of failing.",
     "Restoring merges into the queue by entry identity with the in-memory copy winning, because the read is asynchronous and the recorder may already have recorded a rally while it was in flight. A rally recorded during the read is never lost.",
-    "Restored entries get a fresh attempt schedule rather than the stored one, and are eligible to send immediately — which covers an expired session, since signing in leaves the app entirely and returns as a fresh start.",
-    "Whether a restored entry may be retried is decided by the same predicate the flush path uses, not by a second table mapping error codes to policy.",
+    "Restored entries get a fresh attempt schedule rather than the stored one, and are eligible to send immediately when their last failure is one worth retrying.",
+    "Whether a restored entry may be retried is decided by the same standard the flush path applies — one threshold, no second predicate and no table mapping error codes to policy.",
     "An empty queue at start-up issues no request at all.",
     "Restoring does not send: nothing is flushed until the recorder opens that game, and the queue may hold entries for more than one game at once.",
     "No screen changes. The indicator, the per-row failure marker and the summary drawer are already projections of the queue and the cache, and become correct by the queue being correct."

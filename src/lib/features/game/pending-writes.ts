@@ -55,18 +55,16 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-/** The one threshold both the flush and the restore read, so neither drifts. */
+/**
+ * The one standard for whether another attempt is worth making. The flush, the
+ * restore and the expiry rule all read it, so none of them can disagree about
+ * which failures are worth carrying.
+ */
 export const isRetryableStatus = (status: number): boolean => status >= 500;
 
-/**
- * Whether a restored entry may be attempted again -- wider than the flush's
- * question by one case, because signing in leaves the app and returns as a
- * fresh start, so a restart is often what fixed an expired session.
- */
-export const isWorthAttemptingAgain = (lastError?: WriteError): boolean =>
-  lastError === undefined ||
-  isRetryableStatus(lastError.status) ||
-  lastError.status === 401;
+/** The same standard, over an entry that may not have failed yet. */
+export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
+  lastError === undefined || isRetryableStatus(lastError.status);
 
 /** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (
@@ -88,13 +86,8 @@ export const applyFlushedEntries = (
  */
 export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
-/**
- * Whether a restored entry should be dropped rather than put back. Keyed on
- * the flush's threshold, not restore's wider one: letting a stale session
- * schedule an attempt is not a reason to keep it forever.
- */
+/** Whether a restored entry should be dropped rather than put back. */
 export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
-  item.lastError !== undefined &&
-  !isRetryableStatus(item.lastError.status) &&
+  !mayBeAttemptedAgain(item.lastError) &&
   item.firstFailedAt !== undefined &&
   now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS;

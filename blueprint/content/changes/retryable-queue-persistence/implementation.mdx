@@ -2,6 +2,17 @@
 title: Implementation
 ---
 
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  四個切片，一條直線，沒有可並行的起點——每一片都需要前一片留下的東西。S03
+  是價值兌現的那一片，也是唯一有靜默資料遺失風險的；S04 修的是這個 Change
+  自己造成的回歸。
+</TLDR>
+
+<TaskProgress done={4} total={4} />
+
 四個切片，一條直線。沒有可以並行的起點——每一片都需要前一片留下的東西，而這正是這個 Change 範圍夠窄的證據。
 
 ## 為什麼 S01 要單獨存在

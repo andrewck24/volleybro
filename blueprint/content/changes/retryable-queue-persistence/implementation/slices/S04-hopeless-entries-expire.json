@@ -6,11 +6,12 @@
   "dependsOn": ["S03"],
   "outcome": "Persisting the queue removed the only way out a doomed entry had — closing the app. This puts an equivalent back, without inventing a discard the recorder cannot see.",
   "acceptanceCriteria": [
-    "An entry whose last failure was retryable never expires, however long it has been waiting. A week-long tournament with no signal keeps every rally.",
-    "An entry whose last failure was one that retrying cannot fix is dropped once it is older than seven days, and the threshold is stated in one place rather than inlined.",
+    "An entry whose last failure is one worth retrying never expires, however long it has been waiting. A week-long tournament with no signal keeps every rally.",
+    "An entry whose last failure is not worth retrying is dropped once it is older than seven days, and the threshold is stated in one place rather than inlined.",
+    "Age is measured from the entry's first failure, not its latest attempt: a flush re-sends every pending entry for its game, so a timestamp that moved with each attempt would measure the recorder's activity and never reach the window.",
     "An entry that has never failed never expires.",
     "Expiry is applied when the queue is read, not on a timer, so it costs nothing while the app runs.",
-    "The retryability judgement reuses the same predicate as the flush and the restore, so all three cannot disagree."
+    "The judgement reuses the same standard as the flush and the restore, so all three cannot disagree."
   ],
   "verification": [
     "pnpm test",
