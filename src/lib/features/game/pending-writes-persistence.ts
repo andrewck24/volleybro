@@ -5,7 +5,10 @@ import {
   snapshotOf,
   type PendingWritesStorage,
 } from "@/lib/features/game/pending-writes-storage";
-import type { PendingWritesState } from "@/lib/features/game/types";
+import {
+  PersistedQueueSchema,
+  type PendingWritesState,
+} from "@/lib/features/game/types";
 import { createListenerMiddleware, isAnyOf } from "@reduxjs/toolkit";
 
 const { enqueued, flushSucceeded, flushFailed, rehydrated } =
@@ -94,21 +97,28 @@ export async function restorePendingWrites(
   ) => void,
   storage: PendingWritesStorage,
 ): Promise<void> {
-  const snapshot = await storage.load().catch((error: unknown) => {
+  const raw = await storage.load().catch((error: unknown) => {
     console.warn("[pendingWrites] restore failed:", error);
     return null;
   });
-  if (
-    snapshot?.version !== PENDING_WRITES_VERSION ||
-    !Array.isArray(snapshot.items) ||
-    snapshot.items.length === 0
-  ) {
-    return;
-  }
+  const parsed = PersistedQueueSchema.safeParse(raw);
+  if (!parsed.success || parsed.data.version !== PENDING_WRITES_VERSION) return;
+
+  const snapshot = parsed.data;
+  if (snapshot.items.length === 0) return;
+
   // Expiry is applied here, on the read, rather than on a timer: it costs
   // nothing while the app runs, and a queue is only ever read once.
   const now = Date.now();
   const items = snapshot.items.filter((item) => !hasExpired(item, now));
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    // Nothing survived, so nothing is dispatched and the listener that
+    // normally writes the shorter queue back never runs. Without this the
+    // dead snapshot would be re-read and re-dropped on every start.
+    await storage.clear().catch((error: unknown) => {
+      console.warn("[pendingWrites] clear failed:", error);
+    });
+    return;
+  }
   dispatch(pendingWritesActions.rehydrated({ items }));
 }

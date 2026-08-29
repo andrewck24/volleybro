@@ -8,27 +8,19 @@ export const PENDING_WRITES_KEY = "pending-writes:v1";
 export const PENDING_WRITES_VERSION = 1;
 
 /**
- * The queue's storage, reached through nothing larger than this. Every method
- * is asynchronous because the stores a native target would use -- AsyncStorage,
- * SQLite, Capacitor Preferences -- have no synchronous form, and a synchronous
- * signature chosen here would have to be unpicked at every call site later.
- * Wrapping a synchronous store costs nothing in the other direction.
- *
- * Failures are not swallowed here. Whether an unwritable store is tolerable is
- * a policy, and it lives with the caller (see pending-writes-persistence).
+ * The queue's storage. Asynchronous throughout, and failures are not swallowed
+ * here -- see D1 and D4 for both arguments. `load` returns whatever was in the
+ * store, unvalidated: the caller decides what an unrecognisable snapshot means.
  */
 export type PendingWritesStorage = {
-  load(): Promise<PersistedQueue | null>;
+  load(): Promise<unknown>;
   save(snapshot: PersistedQueue): Promise<void>;
   clear(): Promise<void>;
 };
 
 /**
- * What survives a restart: the entry, where it belongs, and why it last
- * failed. `attempts` and `nextAttemptAt` are left out because they are
- * recomputed on restore -- a stored absolute timestamp is always in the past
- * by then anyway -- and `flushingGameIds` because "currently on the wire" is
- * false by construction after a restart.
+ * What survives a restart. `attempts` and `nextAttemptAt` are recomputed on
+ * restore, and "currently on the wire" is false by construction after one.
  */
 export const toPersisted = (item: PendingEntry): PersistedPendingEntry => ({
   entry: item.entry,
@@ -45,20 +37,18 @@ export const snapshotOf = (pending: PendingEntry[]): PersistedQueue => ({
 
 /**
  * The synchronous `setItem` runs inside the asynchronous body, so returning
- * from `save` means the bytes are already on disk. That is the property this
- * whole Change rests on: an app the operating system reclaims mid-recording
- * cannot lose a write that has already returned.
+ * from `save` means the bytes are already on disk -- an app reclaimed
+ * mid-recording cannot lose a write that has already returned.
  */
 export const localStoragePendingWrites: PendingWritesStorage = {
   async load() {
     const raw = localStorage.getItem(PENDING_WRITES_KEY);
     if (raw === null) return null;
     try {
-      return JSON.parse(raw) as PersistedQueue;
+      return JSON.parse(raw);
     } catch {
-      // Unreadable stored data is treated as no stored data. There is nothing
-      // to recover from a half-written string, and failing here would take
-      // down the app over a queue that is usually empty.
+      // Nothing is recoverable from a half-written string, and failing here
+      // would take down the app over a queue that is usually empty.
       return null;
     }
   },

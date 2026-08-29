@@ -103,12 +103,19 @@ export const applyFlushedEntries = (
 export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * Whether a restored entry should be dropped rather than put back. Only ever
- * true for one whose last failure cannot be fixed by sending it again: work
- * that might still land is kept however long it has waited, because a week
- * without signal is exactly when the queue has to hold.
+ * Whether a restored entry should be dropped rather than put back.
+ *
+ * Keyed on the flush's own threshold rather than the wider question restore
+ * asks. The two differ over an expired session: restore lets it try again
+ * straight away, because signing in may well be what the restart was for, but
+ * a session nobody has signed back into for a week is as stuck as any other
+ * 4xx. Widening eligibility to schedule an attempt is not a reason to keep the
+ * entry forever.
+ *
+ * An entry that has never failed has nothing to measure and never expires.
  */
 export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
-  !isWorthAttemptingAgain(item.lastError) &&
+  item.lastError !== undefined &&
+  !isRetryableStatus(item.lastError.status) &&
   item.failedAt !== undefined &&
   now - item.failedAt > PENDING_WRITE_EXPIRY_MS;

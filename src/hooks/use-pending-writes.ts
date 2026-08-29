@@ -17,6 +17,10 @@ import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector, useAppStore } from "@/lib/redux/hooks";
 
+type FlushFailedPayload = Parameters<
+  typeof pendingWritesActions.flushFailed
+>[0];
+
 export type FlushResult = { ok: true } | { ok: false; error: unknown };
 
 /**
@@ -54,11 +58,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     // Failures are kept per set group rather than pooled by retryability:
     // each group is its own request with its own outcome, and the reason
     // recorded on an entry has to be the reason its own request failed.
-    const failures: {
-      ids: string[];
-      retryable: boolean;
-      error: unknown;
-    }[] = [];
+    const failures: { payload: FlushFailedPayload; error: unknown }[] = [];
 
     for (const [si, items] of bySetIndex) {
       const ids = items.map((p) => p.entry.id);
@@ -88,8 +88,12 @@ export function usePendingWrites(gameId: string, setIndex: number) {
         }
       } else {
         failures.push({
-          ids,
-          retryable: result.retryable,
+          payload: {
+            gameId,
+            ids,
+            retryable: result.retryable,
+            lastError: toWriteError(result.error),
+          },
           error: result.error,
         });
       }
@@ -100,20 +104,14 @@ export function usePendingWrites(gameId: string, setIndex: number) {
         pendingWritesActions.flushSucceeded({ gameId, ids: succeededIds }),
       );
     }
-    for (const { ids, retryable, error } of failures) {
-      dispatch(
-        pendingWritesActions.flushFailed({
-          gameId,
-          ids,
-          retryable,
-          lastError: toWriteError(error),
-        }),
-      );
+    for (const { payload } of failures) {
+      dispatch(pendingWritesActions.flushFailed(payload));
     }
 
-    return failures.length === 0
+    const [firstFailure] = failures;
+    return firstFailure === undefined
       ? { ok: true }
-      : { ok: false, error: failures[0]!.error };
+      : { ok: false, error: firstFailure.error };
   }, [dispatch, gameId, mutate, store]);
 
   // Only one flush in flight at a time; callers that ask for a flush while

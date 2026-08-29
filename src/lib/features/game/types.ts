@@ -400,6 +400,32 @@ export type PersistedQueue = {
   items: PersistedPendingEntry[];
 };
 
+// Storage is outside the app's control: anything running on this origin can
+// write it, and whatever comes back goes into the queue and then onto the
+// wire. Parsing is what makes "malformed stored data is treated as no stored
+// data" true for a snapshot that is valid JSON but the wrong shape.
+export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
+  version: z.number(),
+  items: z.array(
+    z.object({
+      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),
+      gameId: z.string(),
+      setIndex: z.number(),
+      lastError: z
+        .object({
+          // The union lives in the error model; re-listing it here would be a
+          // second copy free to drift from it, and nothing branches on the
+          // value -- only `status` decides anything.
+          code: z.custom<AppErrorCode>((value) => typeof value === "string"),
+          reason: z.string(),
+          status: z.number(),
+        })
+        .optional(),
+      failedAt: z.number().optional(),
+    }),
+  ),
+});
+
 export type PendingWritesState = {
   pending: PendingEntry[];
   // gameIds with a flush request currently on the wire. A game identity,

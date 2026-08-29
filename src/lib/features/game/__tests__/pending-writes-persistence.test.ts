@@ -1,3 +1,4 @@
+import { MoveType } from "@/entities/game";
 import { PENDING_WRITE_EXPIRY_MS } from "@/lib/features/game/pending-writes";
 import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
 import {
@@ -13,8 +14,15 @@ import { makeStore, type AppStore } from "@/lib/redux/store";
 // asserting a later snapshot has to let the microtask queue drain first.
 const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-const entry = (id: string) =>
-  ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
+// A real rally shape, not a cast: restore parses what it reads, so a fixture
+// that could never have been stored would not survive the round trip.
+const entry = (id: string): PendingEntry["entry"] => ({
+  id,
+  seq: 0,
+  win: true,
+  home: { score: 1, type: MoveType.ATTACK, num: 7 },
+  away: { score: 0, type: MoveType.DEFENSE, num: 3 },
+});
 
 const fakeStorage = () => {
   const saved: PersistedQueue[] = [];
@@ -32,10 +40,12 @@ const fakeStorage = () => {
   return {
     storage,
     saved,
-    hold: () => {
+    // Holds the next save open so a burst of dispatches can be observed
+    // while one write is still in flight.
+    blockSaves: () => {
       release = () => {};
     },
-    let_go: () => {
+    releaseSaves: () => {
       const r = release;
       release = null;
       r?.();
@@ -140,9 +150,9 @@ describe("pending-writes persistence", () => {
   });
 
   it("leaves the newest snapshot on disk when writes overlap", async () => {
-    const { storage, saved, hold, let_go } = fakeStorage();
+    const { storage, saved, blockSaves, releaseSaves } = fakeStorage();
     store = makeStore(storage);
-    hold();
+    blockSaves();
 
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -170,7 +180,7 @@ describe("pending-writes persistence", () => {
     // snapshot is complete, so only the newest is worth writing.
     expect(saved).toHaveLength(1);
 
-    let_go();
+    releaseSaves();
     await settled();
 
     expect(saved).toHaveLength(2);
@@ -454,6 +464,25 @@ describe("restorePendingWrites", () => {
     dispatch.mockRestore();
   });
 
+  it("treats a snapshot of the wrong shape as nothing stored", async () => {
+    const store = makeStore(stored(null));
+
+    // Valid JSON, wrong shape. Storage is writable by anything on this
+    // origin, and whatever comes back goes on to be sent to the server.
+    await restorePendingWrites(store.dispatch, {
+      load: async () => ({ version: 1, items: [{ gameId: "game-1" }] }),
+      save: async () => {},
+      clear: async () => {},
+    });
+    await restorePendingWrites(store.dispatch, {
+      load: async () => "not an object at all",
+      save: async () => {},
+      clear: async () => {},
+    });
+
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+  });
+
   it("treats an unreadable store as nothing stored", async () => {
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
     const store = makeStore(stored(null));
@@ -526,22 +555,51 @@ describe("restorePendingWrites expiry", () => {
     ]);
   });
 
-  it("keeps an expired session however long it has waited", async () => {
-    expect(
-      await restore([
-        aged("session", week * 4, {
-          code: "AUTHENTICATION",
-          reason: "SESSION_REQUIRED",
-          status: 401,
-        }),
-      ]),
-    ).toEqual(["session"]);
+  it("gives an expired session the window, then drops it like any other 4xx", async () => {
+    const session = {
+      code: "AUTHENTICATION" as const,
+      reason: "SESSION_REQUIRED",
+      status: 401,
+    };
+
+    // Inside the window it is kept, and restore still lets it try again
+    // straight away -- signing in may well be what the restart was for.
+    expect(await restore([aged("recent", week - 1000, session)])).toEqual([
+      "recent",
+    ]);
+    // A session nobody has signed back into for a week is as stuck as any
+    // other 4xx. Being eligible to schedule an attempt is not a reason to
+    // keep the entry forever.
+    expect(await restore([aged("stale", week + 1000, session)])).toEqual([]);
   });
 
   it("never drops an entry that has not failed at all", async () => {
     expect(
       await restore([{ entry: entry("fresh"), gameId: "game-1", setIndex: 0 }]),
     ).toEqual(["fresh"]);
+  });
+
+  it("clears the store when nothing at all survives", async () => {
+    let cleared = false;
+    const storage: PendingWritesStorage = {
+      load: async () => ({
+        version: 1,
+        items: [aged("stale", week + 1000, deleted)],
+      }),
+      save: async () => {},
+      clear: async () => {
+        cleared = true;
+      },
+    };
+    const store = makeStore(storage);
+
+    await restorePendingWrites(store.dispatch, storage);
+
+    // Nothing is dispatched, so the listener that normally writes the shorter
+    // queue back never runs -- without the clear, this snapshot would be
+    // re-read and re-dropped on every start.
+    expect(store.getState().pendingWrites.pending).toEqual([]);
+    expect(cleared).toBe(true);
   });
 
   it("writes the shorter queue back so it is not re-dropped every start", async () => {
