@@ -382,6 +382,20 @@ export type PendingEntry = {
   lastError?: WriteError;
 };
 
+// The queue as it exists on disk. `version` is what makes a shape change
+// safe: a snapshot that does not match is discarded whole rather than
+// migrated, because this data is minutes old in the normal case and a
+// migration bug would corrupt exactly what the queue exists to protect.
+export type PersistedPendingEntry = Pick<
+  PendingEntry,
+  "entry" | "gameId" | "setIndex" | "lastError"
+>;
+
+export type PersistedQueue = {
+  version: number;
+  items: PersistedPendingEntry[];
+};
+
 export type PendingWritesState = {
   pending: PendingEntry[];
   // gameIds with a flush request currently on the wire. A game identity,
