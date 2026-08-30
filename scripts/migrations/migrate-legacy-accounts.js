@@ -22,8 +22,15 @@
  *
  * Dry run by default. Pass --apply to write:
  *
- *   node scripts/migrate-legacy-accounts.js
- *   node scripts/migrate-legacy-accounts.js --apply
+ *   node scripts/migrations/migrate-legacy-accounts.js
+ *   node scripts/migrations/migrate-legacy-accounts.js --apply
+ *
+ * One-off. Applied to:
+ *   - development (the `test` database), 2026-08-30 — 7 converted, 1 removed
+ *   - production: not yet
+ *
+ * It stays runnable until every environment is listed above; it is idempotent,
+ * so running it twice is safe and the second run reports nothing to do.
  */
 import { readFileSync } from "node:fs";
 import { MongoClient } from "mongodb";
