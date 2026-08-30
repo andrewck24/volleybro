@@ -47,7 +47,7 @@ When existing data has to be reconciled, the migration is a script under `script
 - it is a **dry run by default**, with `--apply` to write;
 - it **converts rather than deletes** wherever a record still belongs to someone — deleting eight legacy account records would have been one line and would have cost seven people their sign-in;
 - it **verifies afterwards** that the constraint can now hold, since a migration that leaves one collision behind has fixed nothing;
-- it is **idempotent**, and its header records which environments it has been applied to. It stays in the repository until that list is complete, because until then it is a tool rather than a record.
+- it is **idempotent**, and its header records which environments it has been applied to. It lives under `scripts/migrations/` while that list is incomplete, because until then it is something to run; once every environment is accounted for it moves to `docs/migrations/`, where it is a record of what was done rather than an invitation to do it again.
 
 ---
 

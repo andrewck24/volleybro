@@ -20,17 +20,20 @@
  * Tokens are not carried across. They live under different names, every one of
  * them has long expired, and signing in issues new ones.
  *
- * Dry run by default. Pass --apply to write:
+ * SPENT. Kept as a record of what was done, not as something to run.
  *
- *   node scripts/migrations/migrate-legacy-accounts.js
- *   node scripts/migrations/migrate-legacy-accounts.js --apply
- *
- * One-off. Applied to:
  *   - development (the `test` database), 2026-08-30 — 7 converted, 1 removed
- *   - production: not yet
+ *   - production — nothing to do: the project is pre-production and that
+ *     database holds no records
  *
- * It stays runnable until every environment is listed above; it is idempotent,
- * so running it twice is safe and the second run reports nothing to do.
+ * Every environment is accounted for, so this lives under docs/ rather than
+ * scripts/. It remains idempotent and would report nothing to do, but a script
+ * that is finished should not sit where the runnable ones are.
+ *
+ * It was run as:
+ *
+ *   node docs/migrations/migrate-legacy-accounts.js            # show the plan
+ *   node docs/migrations/migrate-legacy-accounts.js --apply    # write
  */
 import { readFileSync } from "node:fs";
 import { MongoClient } from "mongodb";
