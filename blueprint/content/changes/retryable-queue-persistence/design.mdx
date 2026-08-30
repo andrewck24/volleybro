@@ -178,6 +178,7 @@ Redux slice 在中央，兩側互不知情：左邊是持久化（listener → p
 **Port。** 一個 type，三個方法，全部回傳 `Promise`：
 
 ```ts
+// src/lib/features/game/pending-writes-storage.ts
 export type PendingWritesStorage = {
   load(): Promise<unknown>;
   save(snapshot: PersistedQueue): Promise<void>;
@@ -192,7 +193,8 @@ localStorage 實作在 async function body 裡做同步的 `setItem`，因此「
 **磁碟格式。** 單一 key `pending-writes`，版本住在快照內容裡而不在 key 上。
 
 ```ts
-type PersistedQueue = {
+// src/lib/features/game/types.ts
+export type PersistedQueue = {
   version: number;
   items: {
     entry: RallyView & EntryIdentity;
@@ -213,13 +215,19 @@ type PersistedQueue = {
 **寫入。** RTK 的 `createListenerMiddleware` 監聽四個會改動 `pending` 內容的 action。前三個是佇列自己的進出，第四個是讀回——被過期規則縮短的佇列要靠它寫回磁碟，否則死掉的項目每次啟動重讀重丟。effect 在 reducer 之後執行，所以 `getState()` 拿到的已經是合併後的完整佇列：
 
 ```ts
-listener.startListening({
-  matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
-  effect: (_action, api) => {
-    const { pending } = api.getState().pendingWrites;
-    save(snapshotOf(pending));
-  },
-});
+export function createPendingWritesPersistence(storage: PendingWritesStorage) {
+  const listener = createListenerMiddleware<StateWithPendingWrites>();
+
+  // persist 見下一段
+  listener.startListening({
+    matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
+    effect: (_action, api) => {
+      persist(api.getState().pendingWrites.pending);
+    },
+  });
+
+  return listener.middleware;
+}
 ```
 
 `snapshotOf` 而非就地組出 `{ version: 1, ... }`：版本號只有一個來源。
@@ -231,6 +239,10 @@ listener.startListening({
 同理**也不用 promise chain**。鏈會把每一次寫入都推遲一個 microtask，等於在「記下」與「落地」之間重新開一個窗口。
 
 ```ts
+// createPendingWritesPersistence 內部
+let inFlight: Promise<void> | null = null;
+let queued: PendingWritesState["pending"] | null = null;
+
 // 閒置時直接寫：同步的 store 因此在這個函式返回前就完成
 const persist = (pending: PendingWritesState["pending"]) => {
   if (inFlight) {
