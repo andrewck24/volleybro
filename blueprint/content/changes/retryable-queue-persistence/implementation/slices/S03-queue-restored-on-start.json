@@ -16,7 +16,8 @@
     "Whether a restored entry may be retried is decided by the same standard the flush path applies — one threshold, no second predicate and no table mapping error codes to policy.",
     "An empty queue at start-up issues no request at all.",
     "Restoring does not send: nothing is flushed until the recorder opens that game, and the queue may hold entries for more than one game at once.",
-    "No screen changes. The indicator, the per-row failure marker and the summary drawer are already projections of the queue and the cache, and become correct by the queue being correct."
+    "No screen changes. The indicator, the per-row failure marker and the summary drawer are already projections of the queue and the cache, and become correct by the queue being correct.",
+    "The wiring itself is covered, not only the logic: `makeStore()` with no argument reaches localStorage, and mounting the real provider restores a previous run's queue."
   ],
   "verification": [
     "pnpm test",

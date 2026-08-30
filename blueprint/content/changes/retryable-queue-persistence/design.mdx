@@ -321,6 +321,8 @@ const run = (pending: PendingWritesState["pending"]): Promise<void> =>
 
 本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響。
 
+**接線本身也要測到。** 其餘測試都是把假的 storage 交給 `makeStore`、再自己呼叫 `restorePendingWrites`，於是「在真實 app 裡到底有沒有生效」的兩個接線點——`makeStore()` 不帶參數時是否真的接上 localStorage、provider 掛載時是否真的讀回——反而沒有被涵蓋。jsdom 有真的 `localStorage`，所以兩者都測得到。
+
 **frontend（jsdom 有 localStorage）**：讀回並重送、四種磁碟內容各自的處置（含「新版本不清除」）、`rehydrated` 的合併語意、空佇列不發請求、儲存拋錯時 app 不致命、過期規則對可重試與不可重試兩類的分別處置。合併語意與過期規則是最值得釘住的兩項——前者是非同步簽章帶來的、唯一會靜默弄丟資料的路徑，後者是唯一會主動刪除資料的路徑。
 
 **integration**：不需要新增。「重送已成功的 entry 為 no-op，不產生重複」已由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層的 auth 是以 DI double 取代的，不需要真實 session。
