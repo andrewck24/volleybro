@@ -9,7 +9,12 @@
  * This FileTour component covers the "file by file with the why for each" section. It also
  * doubles as a concept walkthrough: entries that omit `change`/`added`/`removed`
  * render as a plain term → definition → example row (the former ConceptExplainer).
+ *
+ * `code` carries Shiki's diff notation, so an entry for a modified file can show
+ * what changed rather than only what it now says. A snippet without the notation
+ * renders unchanged.
  */
+import { transformerNotationDiff } from "@shikijs/transformers";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 
 import {
@@ -100,6 +105,10 @@ export function FileTour({ files }: FileTourProps) {
                   <DynamicCodeBlock
                     lang={file.lang ?? "tsx"}
                     code={file.code}
+                    options={{
+                      themes: { light: "github-light", dark: "github-dark" },
+                      transformers: [transformerNotationDiff()],
+                    }}
                   />
                 </div>
               )}

@@ -27,7 +27,7 @@ import { TaskProgress } from "@/components/TaskProgress";
       path: "src/lib/features/game/pending-writes-storage.ts",
       change: "added",
       summary:
-        "S02。三方法的 port 與其 localStorage 實作。同步的 setItem 在 async function body 內執行，因此 save 返回即代表資料已落地——這是整個 Change 賴以成立的性質。adapter 不 catch。",
+        "S02。三方法的 port 與其 localStorage 實作。同步的 setItem 在 async function body 內執行，因此 save 返回即代表資料已落地——這是整個 Change 賴以成立的性質。adapter 不 catch。整份是新檔，因此無 diff 可對照。",
       lang: "ts",
       code: 'export const PENDING_WRITES_KEY = "pending-writes";\nexport const PENDING_WRITES_VERSION = 1;\n\nexport type PendingWritesStorage = {\n  load(): Promise<unknown>;\n  save(snapshot: PersistedQueue): Promise<void>;\n  clear(): Promise<void>;\n};\n\nexport const localStoragePendingWrites: PendingWritesStorage = {\n  async load() {\n    const raw = localStorage.getItem(PENDING_WRITES_KEY);\n    if (raw === null) return null;\n    try {\n      return JSON.parse(raw);\n    } catch {\n      // 原始字串，呼叫端才分辨得出「沒有東西」與「有東西但沒人能用」\n      return raw;\n    }\n  },\n\n  async save(snapshot) {\n    // 同步的 setItem 在 async body 內執行：返回即代表已落地\n    localStorage.setItem(PENDING_WRITES_KEY, JSON.stringify(snapshot));\n  },\n\n  async clear() {\n    localStorage.removeItem(PENDING_WRITES_KEY);\n  },\n};',
     },
@@ -35,7 +35,7 @@ import { TaskProgress } from "@/components/TaskProgress";
       path: "src/lib/features/game/pending-writes-persistence.ts",
       change: "added",
       summary:
-        "S02 與 S03。listener 在佇列內容變動時寫入整包快照；restorePendingWrites 在 provider 掛載時讀回。磁碟上無法使用的內容一律清除——不是快照、舊版本、自家版本但形狀不符、全部過期——只有「更新版本」刻意保留。",
+        "S02 與 S03。listener 在佇列內容變動時寫入整包快照；restorePendingWrites 在 provider 掛載時讀回。磁碟上無法使用的內容一律清除——不是快照、舊版本、自家版本但形狀不符、全部過期——只有「更新版本」刻意保留。整份是新檔。",
       lang: "ts",
       code: 'export function createPendingWritesPersistence(storage: PendingWritesStorage) {\n  const listener = createListenerMiddleware<StateWithPendingWrites>();\n\n  let inFlight: Promise<void> | null = null;\n  let queued: PendingWritesState["pending"] | null = null;\n\n  const persist = (pending: PendingWritesState["pending"]) => {\n    if (inFlight) {\n      queued = pending; // 進行中：只留最新一份\n      return;\n    }\n    inFlight = run(pending); // 閒置：同步 store 在此就寫完了\n  };\n\n  listener.startListening({\n    matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),\n    effect: (_action, api) => {\n      persist(api.getState().pendingWrites.pending);\n    },\n  });\n\n  return listener.middleware;\n}\n\nexport async function restorePendingWrites(\n  dispatch: (action: ReturnType<typeof pendingWritesActions.rehydrated>) => void,\n  storage: PendingWritesStorage,\n): Promise<void> {\n  const raw = await storage.load().catch(() => null);\n  if (raw === null || raw === undefined) return;\n\n  // 先看 version 再驗形狀：schema 描述的是「這個 build 寫出來的」形狀，\n  // 先驗形狀會把真正的新版快照當成壞資料，版本檢查永遠到不了\n  const envelope = z.object({ version: z.number() }).safeParse(raw);\n  if (!envelope.success) {\n    await discard(storage); // 不是快照\n    return;\n  }\n\n  if (envelope.data.version !== PENDING_WRITES_VERSION) {\n    // 只清除本 build 已經越過的版本；更新的可能屬於另一個 build\n    if (envelope.data.version < PENDING_WRITES_VERSION) await discard(storage);\n    return;\n  }\n\n  const parsed = PersistedQueueSchema.safeParse(raw);\n  if (!parsed.success) {\n    await discard(storage); // 自家版本，卻是讀不懂的形狀\n    return;\n  }\n\n  const now = Date.now();\n  const items = parsed.data.items.filter((item) => !hasExpired(item, now));\n  if (items.length === 0) {\n    await discard(storage); // 全部過期：沒有 dispatch，listener 就不會寫回\n    return;\n  }\n\n  dispatch(pendingWritesActions.rehydrated({ items }));\n}',
     },
@@ -45,43 +45,47 @@ import { TaskProgress } from "@/components/TaskProgress";
       summary:
         "S01 與 S03。flushFailed 記下失敗原因與第一次失敗的時間；新增 rehydrated，依 entry.id 合併且記憶體優先。",
       lang: "ts",
-      code: "const flushFailed: CaseReducer<PendingWritesState, PayloadAction<Failed>> = (\n  state,\n  action,\n) => {\n  const { gameId, ids, retryable, lastError } = action.payload;\n  const idSet = new Set(ids);\n\n  for (const item of state.pending) {\n    if (!idSet.has(item.entry.id)) continue;\n    item.attempts += 1;\n    const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;\n    item.nextAttemptAt = delay === null ? null : Date.now() + delay;\n    item.lastError = lastError;\n    // 只在第一次失敗時寫入：flush 會重送該場所有待送 entry，時間戳\n    // 若跟著更新，量到的會是使用者的活躍度而不是 entry 的年齡\n    item.firstFailedAt ??= Date.now();\n  }\n\n  state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);\n};\n\nconst rehydrated: CaseReducer<PendingWritesState, PayloadAction<Restored>> = (\n  state,\n  action,\n) => {\n  const known = new Set(state.pending.map((p) => p.entry.id));\n  const restored = action.payload.items\n    .filter((item) => !known.has(item.entry.id)) // 記憶體優先\n    .map((item) => ({\n      ...item,\n      attempts: 0,\n      nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null,\n    }));\n\n  // 讀回的那些，是在記憶體裡任何東西之前被記下的\n  state.pending = [...restored, ...state.pending];\n};",
+      code: "const flushFailed: CaseReducer<PendingWritesState, PayloadAction<Failed>> = (\n  state,\n  action,\n) => {\n  const { gameId, ids, retryable, lastError } = action.payload;\n  const idSet = new Set(ids);\n\n  for (const item of state.pending) {\n    if (!idSet.has(item.entry.id)) continue;\n    item.attempts += 1;\n    const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;\n    item.nextAttemptAt = delay === null ? null : Date.now() + delay;\n    item.lastError = lastError; // [!code ++]\n    // 只在第一次失敗時寫入：flush 會重送該場所有待送 entry，時間戳\n    // 若跟著更新，量到的會是使用者的活躍度而不是 entry 的年齡\n    item.firstFailedAt ??= Date.now(); // [!code ++]\n  }\n\n  state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);\n};\n\nconst rehydrated: CaseReducer<PendingWritesState, PayloadAction<Restored>> = ( // [!code ++]\n  state, // [!code ++]\n  action, // [!code ++]\n) => { // [!code ++]\n  const known = new Set(state.pending.map((p) => p.entry.id)); // [!code ++]\n  const restored = action.payload.items // [!code ++]\n    .filter((item) => !known.has(item.entry.id)) // [!code ++]\n    .map((item) => ({ // [!code ++]\n      ...item, // [!code ++]\n      attempts: 0, // [!code ++]\n      nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null, // [!code ++]\n    })); // [!code ++]\n  state.pending = [...restored, ...state.pending]; // [!code ++]\n}; // [!code ++]",
     },
     {
       path: "src/lib/features/game/pending-writes.ts",
       change: "modified",
-      summary: "S03 與 S04。重試的單一標準與建立其上的過期判斷。",
+      summary:
+        "S03 與 S04。重試的單一標準與建立其上的過期判斷。flush 原本就地判斷 status >= 500，現在改讀同一份門檻。",
       lang: "ts",
-      code: "// 唯一的標準。flush、restore、expiry 三者都讀它，所以不可能互相不一致\nexport const isRetryableStatus = (status: number): boolean => status >= 500;\n\n// 同一條標準，套在「可能還沒失敗過」的項目上\nexport const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>\n  lastError === undefined || isRetryableStatus(lastError.status);\n\nexport const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;\n\nexport const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>\n  !mayBeAttemptedAgain(item.lastError) &&\n  item.firstFailedAt !== undefined &&\n  now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS;",
+      code: "// flush-pending-writes.ts\nfunction isRetryable(error: unknown): boolean {\n  return error instanceof ApiClientError && error.status >= 500; // [!code --]\n  return error instanceof ApiClientError && isRetryableStatus(error.status); // [!code ++]\n}\n\n// pending-writes.ts\nexport const isRetryableStatus = (status: number): boolean => status >= 500; // [!code ++]\n\nexport const mayBeAttemptedAgain = (lastError?: WriteError): boolean => // [!code ++]\n  lastError === undefined || isRetryableStatus(lastError.status); // [!code ++]\n\nexport const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // [!code ++]\n\nexport const hasExpired = (item: PersistedPendingEntry, now: number) => // [!code ++]\n  !mayBeAttemptedAgain(item.lastError) && // [!code ++]\n  item.firstFailedAt !== undefined && // [!code ++]\n  now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS; // [!code ++]",
     },
     {
       path: "src/hooks/use-pending-writes.ts",
       change: "modified",
-      summary: "S01。失敗改以 (gameId, setIndex) 群組收集。",
+      summary:
+        "S01。失敗改以 (gameId, setIndex) 群組收集——原本以「可否重試」的布林分組並跨 set 合併，因此一個 set 的 entry 會被記上另一個 set 的失敗原因。",
       lang: "ts",
-      code: "const runFlush = useCallback(async (): Promise<FlushResult> => {\n  const bySetIndex = groupPendingBySet(store.getState(), gameId);\n  const succeededIds: string[] = [];\n\n  // 每個 set 是自己的請求、自己的結果——原本以「可否重試」的布林分組，\n  // 會把一個 set 的失敗原因記到另一個 set 的 entry 上\n  const failures: { payload: FlushFailedPayload; error: unknown }[] = [];\n\n  for (const [si, items] of bySetIndex) {\n    const ids = items.map((p) => p.entry.id);\n    const entries = items.map((p) => p.entry);\n    const result = await flushPendingWrites(gameId, si, entries);\n\n    if (result.ok) {\n      succeededIds.push(...ids);\n    } else {\n      failures.push({\n        payload: {\n          gameId,\n          ids,\n          retryable: result.retryable,\n          lastError: toWriteError(result.error),\n        },\n        error: result.error,\n      });\n    }\n  }\n\n  for (const { payload } of failures) {\n    dispatch(pendingWritesActions.flushFailed(payload));\n  }\n}, [dispatch, gameId, mutate, store]);",
+      code: "  const succeededIds: string[] = [];\n  const failedIdsByRetryable = new Map<boolean, string[]>(); // [!code --]\n  let firstError: unknown; // [!code --]\n  const failures: { payload: FlushFailedPayload; error: unknown }[] = []; // [!code ++]\n\n  for (const [si, items] of bySetIndex) {\n    const result = await flushPendingWrites(gameId, si, entries);\n    if (result.ok) {\n      succeededIds.push(...ids);\n    } else {\n      firstError ??= result.error; // [!code --]\n      failedIdsByRetryable.set(result.retryable, [ // [!code --]\n        ...(failedIdsByRetryable.get(result.retryable) ?? []), // [!code --]\n        ...ids, // [!code --]\n      ]); // [!code --]\n      failures.push({ // [!code ++]\n        payload: { // [!code ++]\n          gameId, // [!code ++]\n          ids, // [!code ++]\n          retryable: result.retryable, // [!code ++]\n          lastError: toWriteError(result.error), // [!code ++]\n        }, // [!code ++]\n        error: result.error, // [!code ++]\n      }); // [!code ++]\n    }\n  }",
     },
     {
       path: "src/lib/features/game/types.ts",
       change: "modified",
       summary:
-        "S01、S02、S04。lastError 與 firstFailedAt；磁碟形狀與其 zod schema。",
+        "S01、S02、S04。entry 上的 lastError 與 firstFailedAt；磁碟形狀與其 zod schema。",
       lang: "ts",
-      code: 'export type PersistedPendingEntry = Pick<\n  PendingEntry,\n  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"\n>;\n\nexport type PersistedQueue = {\n  version: number;\n  items: PersistedPendingEntry[];\n};\n\n// 型別綁在 schema 上，兩者不可能漂移\nexport const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({\n  version: z.number(),\n  items: z.array(\n    z.object({\n      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),\n      gameId: z.string(),\n      setIndex: z.number(),\n      lastError: z\n        .object({\n          code: z.custom<AppErrorCode>((value) => typeof value === "string"),\n          reason: z.string(),\n          status: z.number(),\n        })\n        .optional(),\n      firstFailedAt: z.number().optional(),\n    }),\n  ),\n});',
+      code: 'export type PendingEntry = {\n  entry: RallyView & EntryIdentity;\n  gameId: string;\n  setIndex: number;\n  attempts: number;\n  nextAttemptAt: number | null;\n  lastError?: WriteError; // [!code ++]\n  firstFailedAt?: number; // [!code ++]\n};\n\nexport type PersistedPendingEntry = Pick< // [!code ++]\n  PendingEntry, // [!code ++]\n  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt" // [!code ++]\n>; // [!code ++]\n\nexport type PersistedQueue = { // [!code ++]\n  version: number; // [!code ++]\n  items: PersistedPendingEntry[]; // [!code ++]\n}; // [!code ++]\n\nexport const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({ // [!code ++]\n  version: z.number(), // [!code ++]\n  items: z.array( // [!code ++]\n    z.object({ // [!code ++]\n      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema), // [!code ++]\n      gameId: z.string(), // [!code ++]\n      setIndex: z.number(), // [!code ++]\n      lastError: writeErrorSchema.optional(), // [!code ++]\n      firstFailedAt: z.number().optional(), // [!code ++]\n    }), // [!code ++]\n  ), // [!code ++]\n}); // [!code ++]',
     },
     {
       path: "src/lib/redux/store.ts",
       change: "modified",
-      summary: "S02。掛上 listener middleware。",
+      summary:
+        "S02。掛上 listener middleware。storage 是預設參數，讓測試能塞入假實作而不必 stub 全域。",
       lang: "ts",
-      code: "// storage 是預設參數：測試塞得進假實作，不必 stub 全域\nexport const makeStore = (\n  storage: PendingWritesStorage = localStoragePendingWrites,\n) => {\n  return configureStore({\n    reducer: {\n      lineup: lineupReducer,\n      game: gameReducer,\n      pendingWrites: pendingWritesReducer,\n      setCompletion: setCompletionReducer,\n    },\n    middleware: (getDefaultMiddleware) =>\n      getDefaultMiddleware({\n        serializableCheck: false,\n      }).prepend(createPendingWritesPersistence(storage)),\n  });\n};",
+      code: "export const makeStore = () => { // [!code --]\nexport const makeStore = ( // [!code ++]\n  storage: PendingWritesStorage = localStoragePendingWrites, // [!code ++]\n) => { // [!code ++]\n  return configureStore({\n    reducer: {\n      lineup: lineupReducer,\n      game: gameReducer,\n      pendingWrites: pendingWritesReducer,\n      setCompletion: setCompletionReducer,\n    },\n    middleware: (getDefaultMiddleware) =>\n      getDefaultMiddleware({\n        serializableCheck: false,\n      }), // [!code --]\n      }).prepend(createPendingWritesPersistence(storage)), // [!code ++]\n  });\n};",
     },
     {
       path: "src/lib/redux/provider.tsx",
       change: "modified",
-      summary: "S03。掛載時讀回一次。",
+      summary:
+        "S03。掛載時讀回一次。放在 effect 而非 makeStore 旁邊，因為這個元件在伺服器上也會渲染，而那裡沒有 storage 可讀。",
       lang: "tsx",
-      code: "export const ReduxProvider = ({ children }: { children: ReactNode }) => {\n  const store = getStore();\n\n  // 放在 effect 而非 makeStore 旁邊：這個元件在伺服器上也會渲染，而那裡\n  // 沒有 storage 可讀。合併是冪等的，StrictMode 重跑不會把東西放兩次。\n  useEffect(() => {\n    void restorePendingWrites(store.dispatch, localStoragePendingWrites);\n  }, [store]);\n\n  return <Provider store={store}>{children}</Provider>;\n};",
+      code: "export const ReduxProvider = ({ children }: { children: ReactNode }) => {\n  return <Provider store={getStore()}>{children}</Provider>; // [!code --]\n  const store = getStore(); // [!code ++]\n\n  // 合併是冪等的，StrictMode 重跑不會把東西放兩次 // [!code ++]\n  useEffect(() => { // [!code ++]\n    void restorePendingWrites(store.dispatch, localStoragePendingWrites); // [!code ++]\n  }, [store]); // [!code ++]\n\n  return <Provider store={store}>{children}</Provider>; // [!code ++]\n};",
     },
   ]}
 />
