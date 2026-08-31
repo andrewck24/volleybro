@@ -10,6 +10,10 @@ import entryIdentityUpsert from "./decisions/D1-entry-identity-upsert.json";
 import retryResponsibilitySplit from "./decisions/D2-retry-responsibility-split.json";
 import entryWriteResponseContract from "./decisions/D3-entry-write-response-contract.json";
 import pendingQueueSourceOfTruth from "./decisions/D4-pending-queue-source-of-truth.json";
+import storagePortBoundary from "./decisions/D1-storage-port-boundary.json";
+import persistedShape from "./decisions/D2-persisted-shape.json";
+import flushStaysGameScoped from "./decisions/D3-flush-stays-game-scoped.json";
+import persistenceErrorLayering from "./decisions/D4-persistence-error-layering.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
@@ -47,6 +51,29 @@ appends one entry; it does not rewrite the game.
   pressure.
 - Database syntax lives inside `GameRepositoryImpl`. Use case tests mock no
   database concept, which is what keeps it there.
+- The pending-write queue outlives the process. Its contents are mirrored to
+  `localStorage` whenever they change, and the write happens before the request
+  is sent, so an app the operating system reclaims mid-recording has already
+  saved what it accepted. The snapshot is the whole queue each time, written
+  immediately when nothing is in flight and collapsing to the newest when
+  something is.
+- Storage is reached through one client-side type — `load`, `save`, `clear` —
+  with a `localStorage` implementation. Every method is asynchronous even
+  though this one is not, because the stores a native target would use have no
+  synchronous form. The implementation writes synchronously inside that
+  asynchronous body, so returning from `save` means the bytes are down.
+- What survives a restart is the entry, where it belongs, why it last failed
+  and when it first failed. The attempt schedule is recomputed rather than
+  stored, and the version lives in the snapshot rather than in the key, so a
+  snapshot this build cannot read can still be found and discarded.
+- Restoring merges by entry identity with the in-memory copy winning, because
+  the read is asynchronous and a rally can be recorded while it is in flight.
+- Whether another attempt is worth making has exactly one home. The flush, the
+  restore and the expiry rule read the same threshold, so none of them can
+  disagree about which failures are worth carrying.
+- Storage that cannot be read or cannot be understood is cleared rather than
+  left to be re-read on every start. The single exception is a snapshot from a
+  newer version, which may belong to a build the user is also running.
 
 ## Constraints
 
@@ -58,15 +85,33 @@ appends one entry; it does not rewrite the game.
   both would make reordering an edit to identity.
 - A failed cast may damage only the entry being written. Every entry already
   recorded in that set stays intact.
+- **An unwritable store is tolerated at the call site, never inside the
+  adapter.** The port reports honestly whether data reached the disk; whether
+  that failure is survivable is a policy, and it lives in one line next to the
+  rest of the queue's policy.
+- An entry whose last failure cannot be fixed by sending it again is dropped
+  after seven days. Persisting the queue removed the only exit such an entry
+  had — closing the app — and this restores it. Work that might still land
+  never expires, however long it has waited.
+- Age is measured from an entry's first failure, not its latest attempt. A
+  flush re-sends every pending entry for its game, so a timestamp that moved
+  with each attempt would measure the recorder's activity instead.
 - Statistics have no writer. The `stats` field remains in the Mongoose schema
   for a future materialization decision, and any such materialization must be a
   cache derived from entries — never a second accumulating write path.
 
 ## Known gaps
 
-- The pending-write queue lives only in memory. Entries not yet acknowledged are
-  lost if the app is closed, and losing several at once is possible now that
-  recording no longer waits for the server between rallies.
+- Delivery still depends on the recorder returning to that game. The queue
+  spans games but the flush is mounted under one, so entries for a game nobody
+  reopens wait indefinitely, and nothing outside that game's recording screen
+  says so. Closing this is the offline recording work.
+- An unwritable store degrades silently. The recorder believes the work is
+  protected and is not told otherwise, which is the one place in this
+  capability where that is true.
+- Seven days has no measured basis. It restores a property persistence removed
+  rather than expressing anything known about how long a stuck entry is worth
+  keeping.
 - Idempotency holds for the same identity carrying the same payload. The same
   identity carrying a different payload is last-write-wins, which is an
   ordering question left to intent anchors.
@@ -84,5 +129,9 @@ appends one entry; it does not rewrite the game.
     retryResponsibilitySplit,
     entryWriteResponseContract,
     pendingQueueSourceOfTruth,
+    storagePortBoundary,
+    persistedShape,
+    flushStaysGameScoped,
+    persistenceErrorLayering,
   ]}
 />

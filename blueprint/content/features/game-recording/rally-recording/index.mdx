@@ -6,6 +6,8 @@ description: Recording, editing and substituting rally by rally, with the server
 import explicitSetCompletion from "./decisions/D4-explicit-set-completion.json";
 import retryResponsibilitySplit from "./decisions/D2-retry-responsibility-split.json";
 import pendingQueueSourceOfTruth from "./decisions/D4-pending-queue-source-of-truth.json";
+import persistedShape from "./decisions/D2-persisted-shape.json";
+import flushStaysGameScoped from "./decisions/D3-flush-stays-game-scoped.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -24,6 +26,13 @@ the rotation, whether it is at set point — follows from the entries.
 - A failed write retries itself: twice inline within one attempt, then in the
   background on a widening delay. Once that budget is spent the entry stays
   queued and waits for the recorder to retry it by hand.
+- Closing the app no longer discards what the queue held. Entries come back on
+  the next start and go out when the recorder opens that game again — the same
+  place they would have been waiting had the app stayed open. Restoring does
+  not send: nothing leaves until that game is open.
+- A failure the server will refuse again — an expired session among them — is
+  not resent on its own. The entry stays queued and the recorder's own retry
+  sends it, which for an expired session means after signing back in.
 - The sync indicator appears only when it has something to report. An empty
   queue renders a same-sized empty slot, so nothing around it shifts, and a
   queue recovering from failure holds a check mark briefly rather than
@@ -66,6 +75,9 @@ the rotation, whether it is at set point — follows from the entries.
 - The target score is fixed at 25, or the deciding-set value from the match
   scoring. Informal matches played to another total cannot be recorded: the
   set never derives as finished, so its result is never written.
+- Unsent work is visible only inside the game it belongs to. A recorder who
+  finishes a match and walks away is never told that something never left, and
+  the match list meanwhile shows a score missing those rallies.
 
 ## Implemented decisions
 
@@ -74,5 +86,7 @@ the rotation, whether it is at set point — follows from the entries.
     explicitSetCompletion,
     retryResponsibilitySplit,
     pendingQueueSourceOfTruth,
+    persistedShape,
+    flushStaysGameScoped,
   ]}
 />
