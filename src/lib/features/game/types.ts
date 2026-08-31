@@ -359,9 +359,8 @@ export type ReduxGameState = {
 
 // For the pending-write queue: unconfirmed rally writes, kept in their own
 // slice because their lifetime differs from the per-set draft above.
-// The part of a failed write worth keeping. `detail` and `message` are
-// human-facing and move with copy and translation, so they are deliberately
-// absent: what survives is only what a later decision can act on.
+// The part of a failed write worth keeping. `detail` and `message` are absent
+// on purpose: they move with copy and translation, and nothing can act on them.
 export type WriteError = {
   code: AppErrorCode;
   reason: string;
@@ -376,14 +375,12 @@ export type PendingEntry = {
   // Timestamp of the next scheduled attempt; null means the backoff budget
   // is exhausted or the error itself is not retryable.
   nextAttemptAt: number | null;
-  // Why the last attempt failed, absent until one has. `nextAttemptAt: null`
-  // conflates a spent backoff with a failure that can never succeed; this
-  // keeps them apart for anything that has to decide between them later.
+  // Why the last attempt failed. `nextAttemptAt: null` conflates a spent
+  // backoff with a failure that can never succeed; this keeps them apart.
   lastError?: WriteError;
-  // When this entry first failed. Not refreshed by later attempts: a flush
-  // sends every pending entry for its game, so a doomed one is re-attempted
-  // whenever any rally is recorded, and a timestamp that moved with each
-  // attempt would measure the recorder's activity rather than the entry's age.
+  // When this entry first failed, never refreshed: a flush re-sends every
+  // pending entry for its game, so a moving timestamp would measure the
+  // recorder's activity rather than the entry's age.
   firstFailedAt?: number;
 };
 
@@ -410,9 +407,8 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
       setIndex: z.number(),
       lastError: z
         .object({
-          // Checked as a string rather than against the union, which lives in
-          // the error model and would be a second copy here. Nothing branches
-          // on the value -- only `status` decides anything.
+          // A string rather than the union, which lives in the error model.
+          // Nothing branches on it -- only `status` decides anything.
           code: z.custom<AppErrorCode>((value) => typeof value === "string"),
           reason: z.string(),
           status: z.number(),

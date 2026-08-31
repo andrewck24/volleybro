@@ -31,8 +31,6 @@ const fakeStorage = () => {
     load: async () => null,
     save: async (snapshot) => {
       saved.push(snapshot);
-      // Held open on demand so a burst can be observed mid-write; resolved
-      // immediately otherwise, matching a synchronous store.
       if (release) await new Promise<void>((r) => (release = r));
     },
     clear: async () => {},
@@ -114,8 +112,6 @@ describe("pending-writes persistence", () => {
       lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
       firstFailedAt: expect.any(Number),
     });
-    // Recomputed on restore, so storing them would only be a second copy that
-    // is already wrong by the time it is read.
     expect(last.items[0]).not.toHaveProperty("attempts");
     expect(last.items[0]).not.toHaveProperty("nextAttemptAt");
     expect(last).not.toHaveProperty("flushingGameIds");
@@ -176,8 +172,7 @@ describe("pending-writes persistence", () => {
       }),
     );
 
-    // The first write is still open, so the two behind it collapse: each
-    // snapshot is complete, so only the newest is worth writing.
+    // The first write is still open, so the two behind it collapse.
     expect(saved).toHaveLength(1);
 
     releaseSaves();
@@ -214,8 +209,7 @@ describe("pending-writes persistence", () => {
 
     await settled();
     expect(warn).toHaveBeenCalled();
-    // The queue itself is untouched -- storage failing does not lose the
-    // rally from memory, it only leaves it unprotected against a restart.
+    // Storage failing does not lose the rally, only its protection.
     expect(store.getState().pendingWrites.pending).toHaveLength(1);
     warn.mockRestore();
   });
@@ -371,7 +365,6 @@ describe("restorePendingWrites", () => {
     );
 
     const ids = store.getState().pendingWrites.pending.map((p) => p.entry.id);
-    // e2 is kept once, from memory, and the older e1 goes in front of it.
     expect(ids).toEqual(["e1", "e2"]);
   });
 
@@ -496,9 +489,7 @@ describe("restorePendingWrites", () => {
     });
     const store = makeStore(stored(null));
 
-    // Not a snapshot at all, and our own version with a shape we cannot read.
-    // Both are dead to every future build too, so neither is left to be
-    // re-read and re-discarded on every start.
+    // Both are dead to every future build too, so neither is left behind.
     await restorePendingWrites(store.dispatch, junk("{ not json"));
     await restorePendingWrites(
       store.dispatch,
@@ -593,8 +584,7 @@ describe("restorePendingWrites expiry", () => {
   });
 
   it("keeps work that might still land however long it has waited", async () => {
-    // A week-long tournament without signal is exactly when the queue has to
-    // hold, so age alone never drops a retryable entry.
+    // A week-long tournament without signal is when the queue has to hold.
     expect(await restore([aged("offline", week * 4, transient)])).toEqual([
       "offline",
     ]);
@@ -635,9 +625,8 @@ describe("restorePendingWrites expiry", () => {
 
     await restorePendingWrites(store.dispatch, storage);
 
-    // Nothing is dispatched, so the listener that normally writes the shorter
-    // queue back never runs -- without the clear, this snapshot would be
-    // re-read and re-dropped on every start.
+    // Nothing is dispatched, so the listener never writes the shorter queue
+    // back -- without the clear it would be re-read on every start.
     expect(store.getState().pendingWrites.pending).toEqual([]);
     expect(cleared).toBe(true);
   });

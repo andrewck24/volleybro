@@ -55,9 +55,8 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     dispatch(pendingWritesActions.flushStarted({ gameId }));
 
     const succeededIds: string[] = [];
-    // Failures are kept per set group rather than pooled by retryability:
-    // each group is its own request with its own outcome, and the reason
-    // recorded on an entry has to be the reason its own request failed.
+    // Per set group, not pooled by retryability: each group is its own
+    // request, and an entry has to record why its own request failed.
     const failures: { payload: FlushFailedPayload; error: unknown }[] = [];
 
     for (const [si, items] of bySetIndex) {

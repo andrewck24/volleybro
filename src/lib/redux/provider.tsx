@@ -13,10 +13,8 @@ function getStore() {
 
 export const ReduxProvider = ({ children }: { children: ReactNode }) => {
   const store = getStore();
-  // In an effect rather than beside makeStore: this component renders on the
-  // server too, where there is no storage to read. Restoring is idempotent --
-  // it merges by entry id and the in-memory copy wins -- so a second run
-  // (StrictMode, a remount) puts nothing back twice.
+  // In an effect because this component renders on the server too, where there
+  // is no storage to read. Running twice is harmless: `rehydrated` merges.
   useEffect(() => {
     void restorePendingWrites(store.dispatch, localStoragePendingWrites);
   }, [store]);

@@ -11,15 +11,12 @@ import { makeStore } from "@/lib/redux/store";
 import { act, render, screen } from "@testing-library/react";
 import { useSelector } from "react-redux";
 
-// Every other test in this Change hands `makeStore` a fake store and calls
-// `restorePendingWrites` itself, which leaves untested the two pieces of
-// wiring that decide whether any of it runs in the real app: that `makeStore()`
-// with no argument reaches localStorage, and that the provider restores on
-// mount. jsdom has a real localStorage, so both are checkable here.
+// Every other test here hands `makeStore` a fake store and calls
+// `restorePendingWrites` itself, leaving the two joints that decide whether any
+// of it runs in the real app untested. jsdom has a real localStorage.
 //
-// `provider.tsx` keeps its store in a module-level singleton, so the provider
-// can only be mounted for the first time once per test file -- which is what a
-// cold start is. That mount is the second test below.
+// `provider.tsx` holds its store in a module-level singleton, so it can only be
+// mounted cold once per file -- which is what a cold start is.
 
 const entry = (id: string): PendingEntry["entry"] => ({
   id,
@@ -73,19 +70,15 @@ describe("persistence wiring", () => {
   });
 
   it("restores a previous run's queue when the provider mounts", async () => {
-    // What the last run left behind, written by nothing but the store above.
     const previous = makeStore();
     previous.dispatch(enqueue("e1"));
     expect(storedIds()).toEqual(["e1"]);
 
-    // A cold start: the provider builds its own store and reads the disk.
     render(
       <ReduxProvider>
         <Queue />
       </ReduxProvider>,
     );
-    // The read is asynchronous, which is the entire reason the restore has to
-    // merge rather than replace.
     await act(async () => {
       await Promise.resolve();
     });

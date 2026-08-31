@@ -224,8 +224,7 @@ describe("usePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
-  // Two sets fail for different reasons in the same flush. Pooling the
-  // failures by retryability would give one set's entries the other set's
+  // Pooling by retryability would give one set's entries the other set's
   // cause, which is what decides whether they are ever retried.
   it("records each set's own failure reason on that set's entries", async () => {
     const authError = new ApiClientError("session expired", {

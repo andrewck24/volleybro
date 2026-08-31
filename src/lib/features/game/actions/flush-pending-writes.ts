@@ -15,11 +15,9 @@ function isRetryable(error: unknown): boolean {
 }
 
 /**
- * Narrows a failure to the part the queue keeps. Undefined for anything that
- * is not an ApiClientError -- the queue records that it failed and that the
- * reason is unknown, rather than inventing one. Network and timeout failures
- * do not take that path: apiClient normalizes them into an ApiClientError of
- * status 503 before they get here.
+ * Narrows a failure to the part the queue keeps. Undefined records that the
+ * reason could not be read rather than inventing one; network and timeout
+ * failures do not land here, apiClient having normalized them to a 503.
  */
 export function toWriteError(error: unknown): WriteError | undefined {
   return error instanceof ApiClientError

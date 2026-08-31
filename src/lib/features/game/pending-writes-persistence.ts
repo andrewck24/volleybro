@@ -15,34 +15,30 @@ import { z } from "zod";
 const { enqueued, flushSucceeded, flushFailed, rehydrated } =
   pendingWritesActions;
 
-// Only the state this listener reads, rather than the whole store: it keeps
-// the middleware out of a cycle with the store that mounts it, and says
-// plainly that nothing else here is its business.
+// Only the state this listener reads: it keeps the middleware out of a cycle
+// with the store that mounts it.
 type StateWithPendingWrites = { pendingWrites: PendingWritesState };
 
 /**
- * Mirrors the queue to storage on every change to its contents. The listener
- * runs after the reducer, so the state it reads is already merged and nothing
- * here repeats that. No debounce: recording a rally and having it on disk must
- * not be separated by a window in which the app can die.
+ * Mirrors the queue to storage on every change to its contents. No debounce:
+ * recording a rally and having it on disk must not be separated by a window in
+ * which the app can die.
  */
 export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   const listener = createListenerMiddleware<StateWithPendingWrites>();
 
-  // A save runs immediately when nothing is in flight, so a synchronous store
-  // completes before this returns. Saves behind an open one collapse to the
-  // newest: each snapshot is whole, so only the last needs to survive.
+  // Immediate when nothing is in flight, so a synchronous store completes
+  // before this returns. Saves behind an open one collapse to the newest.
   let inFlight: Promise<void> | null = null;
   let queued: PendingWritesState["pending"] | null = null;
 
   const run = (pending: PendingWritesState["pending"]): Promise<void> =>
     storage
       .save(snapshotOf(pending))
-      // ponytail: silent degradation. An unwritable store -- private
-      // browsing, exhausted quota, site data disabled -- means the queue is
-      // not protected and the recorder is never told. Offline recording needs
-      // this in the state so the indicator can say so; until then this catch
-      // is also what keeps a failure from stalling every later save.
+      // ponytail: silent degradation -- an unwritable store leaves the queue
+      // unprotected and the recorder untold. Offline recording puts this in
+      // the state; until then, this catch also stops one failure from
+      // stalling every save behind it.
       .catch((error: unknown) => {
         console.warn("[pendingWrites] persist failed:", error);
       })
@@ -61,9 +57,8 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   };
 
   listener.startListening({
-    // `rehydrated` is here so a restore that dropped an expired entry writes
-    // the shorter queue back, rather than re-reading and re-dropping it on
-    // every start until something else happens to trigger a save.
+    // `rehydrated` too: a restore that dropped an expired entry has to write
+    // the shorter queue back.
     matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
     effect: (_action, api) => {
       persist(api.getState().pendingWrites.pending);
@@ -73,8 +68,8 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   return listener.middleware;
 }
 
-// Nothing here is dispatched, so the listener that writes the queue back
-// never runs; without this the dead snapshot is re-read on every start.
+// Nothing is dispatched on these paths, so the listener that writes the queue
+// back never runs and the dead snapshot would be re-read on every start.
 const discard = (storage: PendingWritesStorage) =>
   storage.clear().catch((error: unknown) => {
     console.warn("[pendingWrites] clear failed:", error);
@@ -102,7 +97,6 @@ export async function restorePendingWrites(
   // the version check at all.
   const envelope = z.object({ version: z.number() }).safeParse(raw);
   if (!envelope.success) {
-    // Something is stored that is not a snapshot at all.
     await discard(storage);
     return;
   }
@@ -116,8 +110,6 @@ export async function restorePendingWrites(
 
   const parsed = PersistedQueueSchema.safeParse(raw);
   if (!parsed.success) {
-    // Our own version, a shape we cannot read: corrupt, and no later build
-    // will read it either.
     await discard(storage);
     return;
   }
@@ -130,8 +122,6 @@ export async function restorePendingWrites(
   const now = Date.now();
   const items = snapshot.items.filter((item) => !hasExpired(item, now));
   if (items.length === 0) {
-    // Nothing survived, so nothing is dispatched and the listener that
-    // normally writes the shorter queue back never runs.
     await discard(storage);
     return;
   }

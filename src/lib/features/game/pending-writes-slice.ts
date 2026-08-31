@@ -50,10 +50,8 @@ const flushSucceeded: CaseReducer<
   );
 };
 
-// `lastError` is assigned rather than merged, undefined included: it is the
-// reason the *latest* attempt failed, so keeping an older one when this
-// attempt's reason could not be read would attribute the wrong cause. A
-// success removes the item outright, so no stale error can survive one.
+// `lastError` is assigned, undefined included: keeping an older reason when
+// this attempt's could not be read would attribute the wrong cause.
 const flushFailed: CaseReducer<
   PendingWritesState,
   PayloadAction<{
@@ -96,17 +94,9 @@ const retryRequested: CaseReducer<
 };
 
 /**
- * Puts back what a previous run of the app left on disk.
- *
- * Merges rather than replaces, and the in-memory copy wins: the read is
- * asynchronous, so the recorder can have recorded a rally while it was in
- * flight, and overwriting would drop that rally with nothing to show for it.
- *
- * The schedule is recomputed rather than restored. A stored `nextAttemptAt`
- * is an absolute timestamp and is always in the past by now, and a stored
- * attempt count would leave an entry whose backoff was spent dead on
- * arrival -- unable to schedule itself, and invisible until the recorder
- * happens to reopen that game.
+ * Puts back what a previous run left on disk. Merges rather than replaces and
+ * the in-memory copy wins, because the read is asynchronous and a rally can be
+ * recorded while it is still in flight. The schedule is recomputed: see D2.
  */
 const rehydrated: CaseReducer<
   PendingWritesState,
