@@ -1,0 +1,240 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+import measuredFailure from "./design/decisions/D1-measured-failure-over-connectivity-signal.json";
+import warningTracksLoss from "./design/decisions/D2-warning-tracks-unrecoverable-loss.json";
+import storageAvailability from "./design/decisions/D3-storage-availability-is-a-first-class-state.json";
+import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json";
+
+<TLDR>
+  一道由上而下的關卡，第一個命中者勝出。風險最高的排最前面，最樂觀的排最後面——所以任何一種不確定都不可能被說成「同步中」。`navigator.onLine`
+  站在關卡之外，只在其中一關決定要用哪一種措辭。
+</TLDR>
+
+## Adopted shape
+
+指示器不儲存任何狀態，它是佇列事實加上一個儲存可用性旗標的投影。判斷是一道有序關卡：**由最壞的可能性往最好的可能性走**，因為每一關代表的風險都比下一關高，而一個被誤判為樂觀的狀態正是本 Change 要消除的東西。
+
+<svg
+  viewBox="0 0 1000 830"
+  role="img"
+  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出：本機儲存不可用時顯示警告的無法保存；佇列為空時隱藏；有 entry 不可重試時顯示警告的送不出去；有 entry 實測失敗達兩次時顯示中性的待送；其餘顯示同步中的轉圈。下半部是待送狀態的文案分岔：navigator.onLine 為 false 時說離線中並隱藏重試按鈕，為 true 時說連線有問題並顯示重試按鈕。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1000 / 830", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker
+      id="hss-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <rect x="60" y="24" width="880" height="44" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="500" y="51" textAnchor="middle" fontSize="13" fill="var(--foreground)">輸入：這場比賽的待送佇列（以 gameId 過濾）　＋　本機儲存是否可寫</text>
+
+    <rect x="16" y="92" width="22" height="474" rx="6" fill="var(--muted)" />
+    <text x="27" y="329" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)" transform="rotate(-90 27 329)">風險由高到低</text>
+
+    <line x1="250" y1="68" x2="250" y2="560" stroke="var(--border)" strokeDasharray="4 5" />
+
+    <rect x="60" y="92" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="80" y="115" fontSize="12" fill="var(--muted-foreground)">1</text>
+    <text x="250" y="115" textAnchor="middle" fontSize="13" fill="var(--foreground)">本機儲存寫不進去</text>
+    <text x="250" y="133" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">佇列是否為空都一樣</text>
+    <line x1="440" y1="118" x2="546" y2="118" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="560" y="92" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="750" y="115" textAnchor="middle" fontSize="13" fill="var(--warning)">無法保存　⚠</text>
+    <text x="750" y="133" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">關掉 app 就沒了——唯一無關佇列的狀態</text>
+
+    <rect x="60" y="186" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="80" y="209" fontSize="12" fill="var(--muted-foreground)">2</text>
+    <text x="250" y="209" textAnchor="middle" fontSize="13" fill="var(--foreground)">佇列為空</text>
+    <text x="250" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">沒有任何風險</text>
+    <line x1="440" y1="212" x2="546" y2="212" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="560" y="186" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="750" y="209" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">隱藏</text>
+    <text x="750" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">佔位不塌陷，上方的排球標記不位移</text>
+
+    <rect x="60" y="280" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="80" y="303" fontSize="12" fill="var(--muted-foreground)">3</text>
+    <text x="250" y="303" textAnchor="middle" fontSize="13" fill="var(--foreground)">有 entry 不可重試</text>
+    <text x="250" y="321" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">4xx——再試一次也不會成功</text>
+    <line x1="440" y1="306" x2="546" y2="306" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="560" y="280" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="750" y="303" textAnchor="middle" fontSize="13" fill="var(--warning)">送不出去　⚠</text>
+    <text x="750" y="321" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">唯一真的會遺失的一類（本 Change 不提供出口）</text>
+
+    <rect x="60" y="374" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="80" y="397" fontSize="12" fill="var(--muted-foreground)">4</text>
+    <text x="250" y="397" textAnchor="middle" fontSize="13" fill="var(--foreground)">有 entry 實測失敗達兩次</text>
+    <text x="250" y="415" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">約三秒——濾掉自己會好的網路打嗝</text>
+    <line x1="440" y1="400" x2="546" y2="400" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="560" y="374" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="750" y="397" textAnchor="middle" fontSize="13" fill="var(--foreground)">待送　☁</text>
+    <text x="750" y="415" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">靜態圖示，不轉圈——見下方文案分岔</text>
+
+    <rect x="60" y="468" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="80" y="491" fontSize="12" fill="var(--muted-foreground)">5</text>
+    <text x="250" y="491" textAnchor="middle" fontSize="13" fill="var(--foreground)">其餘</text>
+    <text x="250" y="509" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">剛入列，或正在飛</text>
+    <line x1="440" y1="494" x2="546" y2="494" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="560" y="468" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="750" y="491" textAnchor="middle" fontSize="13" fill="var(--success)">同步中　◌</text>
+    <text x="750" y="509" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">spinner 只出現在它真的能兌現承諾的地方</text>
+
+    <line x1="16" y1="566" x2="984" y2="566" stroke="var(--border)" strokeDasharray="6 6" />
+    <text x="500" y="596" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">狀態 4 的文案與按鈕分岔——navigator.onLine 只在這裡出現，不影響上面任何一關</text>
+
+    <rect x="60" y="620" width="880" height="86" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="150" y="650" textAnchor="middle" fontSize="12" fill="var(--foreground)">onLine 為 false</text>
+    <text x="150" y="668" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">它唯一可靠的方向</text>
+    <text x="150" y="690" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">重試按鈕：不顯示</text>
+    <line x1="250" y1="663" x2="286" y2="663" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <text x="620" y="656" textAnchor="middle" fontSize="13" fill="var(--foreground)">離線中</text>
+    <text x="620" y="678" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">N 筆已保存，恢復連線後自動送出</text>
+
+    <rect x="60" y="722" width="880" height="86" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="150" y="752" textAnchor="middle" fontSize="12" fill="var(--foreground)">onLine 為 true</text>
+    <text x="150" y="770" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">訊號滿格卻送不出去</text>
+    <text x="150" y="792" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">重試按鈕：顯示</text>
+    <line x1="250" y1="765" x2="286" y2="765" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <text x="620" y="758" textAnchor="middle" fontSize="13" fill="var(--foreground)">連線有問題</text>
+    <text x="620" y="780" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">N 筆已保存，會持續嘗試送出</text>
+
+  </g>
+</svg>
+
+順序不是任意的。關卡 1 排在關卡 2 之前，是因為「隱藏」的原意是**沒有任何風險**，而不是佇列為空——store 不可寫時即使一球未記，風險已經存在。關卡 1 排在關卡 3 之前，是因為前者危及整個佇列而後者只危及特定幾筆；被壓下去的資訊不會消失，Entry List 上的 per-rally 標記獨立於這道優先序呈現。而 spinner 被放到最後一關，正是因為它是最樂觀的陳述，任何一種已知的不確定都應該在抵達它之前被攔下來。
+
+## Contracts
+
+判斷式的精確形式如下，`pending` 皆已以 `p.gameId === gameId` 過濾：
+
+| 關卡 | 條件                                                     | 對應的事實                                        |
+| ---- | -------------------------------------------------------- | ------------------------------------------------- |
+| 1    | `storageUnavailable`                                     | 開機探測或執行期寫入失敗                          |
+| 2    | `pending.length === 0`                                   | 伺服器已確認全部                                  |
+| 3    | `pending.some((p) => !mayBeAttemptedAgain(p.lastError))` | 存在 4xx 失敗，`isRetryableStatus` 判定不值得再試 |
+| 4    | `pending.some((p) => p.attempts >= 2)`                   | 至少一筆實際送出並實際失敗兩次                    |
+| 5    | 其餘                                                     | 剛入列或正在飛                                    |
+
+三件事被這張表釘住：
+
+- **`navigator.onLine` 不在表內。** 它在關卡 4 命中之後才被讀取，而那時「送不出去」已經是既定事實。兩種措辭因此都是真話：`false` 是它唯一可靠的方向；`true` 時「送不出去」的依據是失敗紀錄，不是它。
+- **`attempts` 是實測，不是推測。** 它記錄的是真的發出過請求、真的收到失敗。這使得「飛航模式」與「連上網路卻到不了伺服器」走同一條路——後者在球場上更常發生。
+- **門檻是次數不是時間。** `attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 `setTimeout` 與其清理責任。
+
+`hasFailedWrite` 改讀與關卡 3 相同的判準，使指示器與 per-rally 標記不可能互相矛盾。這**收窄了 `retryable-entry-writes` 的 S08 已驗收行為**——該切片的判準是「嘗試用盡」，此後只有不可重試者被標記。被收窄掉的那一類會自己好，不需要使用者做任何事。
+
+`flushingGameIds` 在此模型下失去唯一的消費者，連同 `flushStarted` 一併移除。它是本 Change 改變狀態模型的證據：舊模型需要知道「有沒有 request 在飛」，新模型不需要。
+
+## Failure modes
+
+<Scenario
+  given="使用者在體育館，手機顯示 wifi 滿格，但該 wifi 的上游已經斷了"
+  when="他連續記了十顆球"
+  then="`navigator.onLine` 全程為 `true`，但 `attempts` 在第一次 flush 失敗後開始累積；約三秒後指示器轉為靜態的「連線有問題」，並提供重試按鈕——這是使用者唯一能做的事，因為沒有 `online` 事件會被觸發"
+/>
+
+<Scenario
+  given="網路只是打了一個嗝，兩秒後自己好了"
+  when="第一次 flush 失敗、背景重試在兩秒後成功"
+  then="`attempts` 只到 1，從未跨過門檻；指示器全程維持 spinner，沒有任何圖示閃動"
+/>
+
+<Scenario
+  given="使用者在 Safari 私密瀏覽下開啟記錄畫面，一顆球都還沒記"
+  when="開機探測嘗試寫入並失敗"
+  then="指示器立刻顯示「無法保存到本機」，而他還有時間離開私密模式或換一台裝置——這是本 Change 唯一在第一顆球之前就會出現的狀態"
+/>
+
+<Scenario
+  given="一筆 entry 因為 4xx 被判定不可重試"
+  when="使用者恢復連線，其餘的球全部送出"
+  then="指示器維持警告而非回到隱藏；Entry List 上那一列帶著 destructive ring 與 per-row 重試控制。從指示器導航過去的路屬 ATE-132，本 Change 不提供"
+/>
+
+## Testing strategy
+
+判斷式是純函式，五道關卡與其邊界（尤其是門檻的 1 與 2、以及「不可重試」與「退避用盡」的區隔）在 `deriveSyncStatus` 的單元測試中窮舉，不需要渲染。
+
+呈現層的測試針對可觀察的結果而非實作：狀態 4 不得渲染 `Spinner`、狀態 1 在佇列為空時仍須渲染、重試按鈕只在單一分支出現、`aria-label` 帶完整句子。`useIsOnline` 以派送 `online` / `offline` 事件驅動。
+
+移除 `flushingGameIds` 是行為中性的，其現有測試連同被移除的 action 一併刪除——保留它們會是在測一個不再存在的概念。
+
+`navigator.storage.persist()` 只驗證「被呼叫一次」。它的實際效果無法在測試中觀察，宣稱能觀察就是本 Change 正在消除的那種假話。
+
+真實裝置上的飛航模式與私密瀏覽觀感屬 developer acceptance，不由自動化測試承擔。
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "警告狀態在本 Change 內沒有出口",
+      severity: "warning",
+      mitigation:
+        "關卡 3 的 popover 不提供動作——重試對 4xx 必定再次失敗。Entry List 上 S08 的 per-row 重試控制仍然存在並仍然標記它們，缺的只是從指示器過去的路。ATE-132 已登記並以本 Change 為前置。這是已知缺口，不是靜默的。",
+    },
+    {
+      name: "手動重試把機制的責任交給使用者的手指",
+      severity: "warning",
+      mitigation:
+        "退避表約二十二秒後終止，而 onLine 恆真時沒有任何機制偵測伺服器恢復。這是有意識、有期限的妥協，期限記在 ATE-39 的驗收條件上——持久重播上線後移除該按鈕。",
+    },
+    {
+      name: "ITP 清除與磁碟壓力回收仍然是靜默的",
+      severity: "warning",
+      mitigation:
+        "這兩個成因不拋錯，開機探測看不到——資料是之後才消失的。persist() 是唯一的槓桿，而它的效果無法驗證。本 Change 不關閉這條 residual risk，只縮小它。",
+    },
+    {
+      name: "persist() 帶進一個無法驗證的東西",
+      severity: "info",
+      mitigation:
+        "回傳 true 只代表請求被接受。驗收條件因此收窄為「開機呼叫一次、結果記錄於 log、不顯示於 UI」，不附加任何保證。iOS PWA 的授予條件待實地確認；若確認不可靠，應移除而非留著假裝有用。",
+    },
+    {
+      name: "三秒門檻沒有量測依據",
+      severity: "info",
+      mitigation:
+        "取自退避表的第一格（兩秒）加上一次請求，是一個可調的常數。Notion 用三十秒，但其使用者在寫文件；記錄員在球與球之間抬頭掃一眼，三十秒足以讓他經歷好幾球的焦慮。",
+    },
+    {
+      name: "指示器不再是佇列的純投影",
+      severity: "info",
+      mitigation:
+        "它多了一個不來自佇列內容的輸入。`sync-indicator.tsx` 檔頭那句「pure projection of the pending-write queue」必須在同一輪更新，否則它會變成一句過時的斷言。",
+    },
+    {
+      name: "ATE-128 會改變本模型讀取的欄位",
+      severity: "info",
+      mitigation:
+        "attempts 與 lastError 的持有位置將由 entry 移至 (game, set) 群組。本 Change 排在它之前，使 ATE-128 面對的是一個已釐清的狀態模型；門檻語意屆時須重新檢視，已登記為 revisit trigger。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    measuredFailure,
+    warningTracksLoss,
+    storageAvailability,
+    datedPatch,
+  ]}
+/>

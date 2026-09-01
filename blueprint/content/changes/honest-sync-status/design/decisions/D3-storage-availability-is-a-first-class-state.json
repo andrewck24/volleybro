@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D3",
+  "title": "本機儲存可用性升為指示器的第一級狀態，並在開機時就探測",
+  "status": "candidate",
+  "targets": ["game-recording/persistence"],
+  "context": "retryable-queue-persistence 的 D4 記下了一條 residual risk：localStorage 寫不進去時 adapter 誠實 reject，listener catch、log、繼續，app 完全照常運作，唯一失去的是「被回收後救得回」這個保證，而畫面上沒有任何一個像素改變。D4 的原文寫著「靜默降級在這裡代表使用者相信工作被保護了，但其實沒有」，並說明誠實的做法最終是告訴他們，只是「要說出來，得先有一個地方可以說」；它否決的替代方案「在 slice 記錄不可寫並讓指示器反映」原文標註為 the right end state，並刻意把 catch 留在 listener 而非 adapter，使日後的升級只需改一行。本 Change 造出了那個地方，而且不只是造出來——它把 UI 的說法從「N 筆未同步」（store 壞掉時仍為真）升級為「已保存」（store 壞掉時為假）。這張 Change 是讓這個謊言第一次成為可能的變更。寫不進去有五個成因：配額用盡、私密瀏覽、使用者關閉站台資料、iOS ITP 的長期無互動清除、以及磁碟壓力回收；後兩者不會拋錯，資料是之後才消失的。",
+  "decision": "在 `pendingWrites` slice 新增一個布林欄位表示本機儲存不可用，並讓它成為指示器優先序的第一關——即使佇列為空也顯示。「隱藏」的原意是沒有任何風險而非佇列空，store 不可寫時即使一球未記，風險已經存在。該欄位有兩個寫入者：`provider.tsx` 在既有的 restorePendingWrites 旁做一次開機探測（寫入微小 key、讀回、刪除），以及 D4 已經留在 listener 的那個 catch，因為 store 可能比賽中才變得不可寫。額外在開機時呼叫一次 `navigator.storage.persist()`，補探測看不到的兩個成因。不新增 Redux slice、不新增 context、不新增 selector：SyncIndicator 既有的 `useAppSelector((state) => state.pendingWrites)` 自動取得新欄位。文案不依成因分岔，只說明風險與唯一在所有成因下都正確的行動（別關掉 app）。",
+  "alternatives": [
+    {
+      "option": "偵測私密瀏覽並封鎖或警告",
+      "reason": "私密瀏覽是隱私功能，瀏覽器廠商持續封鎖各種偵測手法，任何基於此的判斷都會在某次更新後無聲失效。而且它問錯了問題：我們在意的是「寫得進去嗎」，直接寫一次就知道，且一次涵蓋全部五個成因。這與 D1 拒絕 navigator.onLine 是同一個教訓——不要問代理訊號。封鎖更不成立：app 在私密瀏覽下完全可用，失去的只是一個降級的保證。"
+    },
+    {
+      "option": "只在執行期 save 失敗時才告知",
+      "reason": "那時候已經有球在佇列裡，警告來得太晚，使用者在比賽中什麼都做不了。開機探測把它變成一個還有出路的前置條件：離開私密瀏覽、清出空間、開啟站台資料、換一台裝置。一個沒有行動的警告只是把焦慮轉嫁給使用者。"
+    },
+    {
+      "option": "改用 IndexedDB",
+      "reason": "五個成因只解掉配額一項，而該項在此規模下最不可能發生；私密瀏覽、站台資料被關、ITP 清除、磁碟壓力回收全部一視同仁。且 D1 of retryable-queue-persistence 已把選型寫入決策本體：IndexedDB 跨 event-loop turn 才提交 transaction，app 被回收時可能尚未 commit，而那正是持久化要存活的情境——同步的 setItem 在這裡是解方而非妥協。"
+    },
+    {
+      "option": "在配額用盡時降級到 sessionStorage 或 IndexedDB",
+      "reason": "sessionStorage 在 app 被回收時一樣消失，沒有解決任何事。IndexedDB 作為配額專用的後備確實對症，但要為一個罕見成因引入第二套 adapter 與 idb 相依。留待現場證據出現——這正是 D4 of retryable-queue-persistence 自己寫下的 revisit trigger。"
+    },
+    {
+      "option": "把 navigator.storage.persist() 另立一張票",
+      "reason": "程式碼是三行，掛在已經存在的開機路徑上，而它補的正是探測的盲區（ITP 清除與磁碟壓力回收不拋錯，探測看不到）。分票的行政成本高於三行程式碼。代價是它帶進一個無法驗證的東西，由收窄的驗收條件承擔。"
+    }
+  ],
+  "consequences": [
+    "指示器不再是「佇列的純投影」。它多了一個不來自佇列內容的輸入，因此 SyncIndicator 檔頭那句「pure projection of the pending-write queue」的註解必須更新，否則它會變成一句過時的斷言。",
+    "`navigator.storage.persist()` 的效果無法驗證。回傳 true 只代表請求被接受，不代表資料不會被清掉；要證實得讓裝置進入磁碟壓力狀態再等它回收。其驗收條件因此誠實地只寫「開機呼叫一次、結果記錄於 log、不顯示於 UI」，不附加任何保證。",
+    "探測本身要寫入一次 localStorage。在配額已經吃緊的裝置上，探測有可能是壓垮它的那一次寫入——但那個結果正是探測要回報的事實，而且探測的 key 微小且立即刪除。",
+    "ITP 清除與磁碟壓力回收仍然是靜默的：探測在開機當下成功，資料是之後才消失的。persist() 是唯一的槓桿，而它無法驗證。這條 residual risk 不因本 Change 關閉。"
+  ],
+  "revisitTriggers": [
+    "現場證據顯示 storage 失敗實際發生，且集中於某一個成因——那會把「不依成因分岔文案」這個決定推翻，因為屆時我們知道該建議什麼。",
+    "navigator.storage.persist() 在 iOS PWA 上的授予條件被實地確認：若確認為可靠，ITP 與磁碟壓力那兩條 residual risk 可以關閉；若確認為不可靠，這三行應該移除而非留著假裝有用。",
+    "offline-recording 開始實作離線承諾：屆時不可寫的 store 從降級模式變成功能無法運作的理由，本狀態的語氣要從警告升級為阻斷。這是 D4 of retryable-queue-persistence 已登記的觸發條件。"
+  ],
+  "originChange": "honest-sync-status"
+}
