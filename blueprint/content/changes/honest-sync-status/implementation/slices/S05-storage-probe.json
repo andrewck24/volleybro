@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "A boot-time probe answers whether local storage can actually be written",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S02"],
+  "outcome": "The 無法保存 condition is finally driven by a real signal: a probe that writes a throwaway key, reads it back, and deletes it, run once next to `restorePendingWrites` at boot, plus the queue's existing runtime write failures. SyncIndicator needs no new plumbing to see it.",
+  "acceptanceCriteria": [
+    "`provider.tsx` runs a small write-read-delete probe against the same storage `restorePendingWrites` uses, in the same effect or immediately alongside it, and dispatches its result into `storageUnavailable`.",
+    "The existing `catch` around the persistence listener -- kept there deliberately by D4 of `retryable-queue-persistence` -- also sets `storageUnavailable` on a runtime save failure, because the store can become unwritable mid-match even after a successful boot probe.",
+    "A successful probe followed by a later runtime failure still surfaces 無法保存: the field is not written once and forgotten.",
+    "No new Redux slice, context, or selector is introduced: SyncIndicator's existing `useAppSelector((state) => state.pendingWrites)` picks up `storageUnavailable` because it already reads the whole slice.",
+    "The stale comment at the top of `sync-indicator.tsx` describing the component as 'a pure projection of the pending-write queue' is corrected, since it now also reflects a signal that does not come from queue contents.",
+    "The probe runs once per mount, not on every render or on every queue change."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}

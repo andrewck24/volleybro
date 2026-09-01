@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Sync status stops conflating five different situations into three",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": [],
+  "outcome": "`deriveSyncStatus` returns one of five ordered conditions instead of three, each backed by a distinct, observable fact about the queue rather than a guess. `flushingGameIds` is gone: nothing read it that the new order does not already cover.",
+  "acceptanceCriteria": [
+    "`deriveSyncStatus` filters `pending` by `p.gameId === gameId` first, then evaluates five conditions in order and returns the first that matches: `storageUnavailable` set, the filtered queue empty, some pending item whose last error is not retryable, some pending item with `attempts >= 2`, and otherwise the default syncing state.",
+    "`PendingWritesState` gains a `storageUnavailable: boolean` field; this slice only adds and reads the field, it does not set it from a real probe -- that arrives in S05.",
+    "`flushingGameIds` is removed entirely: the field and its `initialState` entry, the `flushStarted` action and reducer, its dispatch in `usePendingWrites`, and the two lines that filtered it inside `flushSucceeded` and `flushFailed`. `flushSucceeded`'s id-filtering of `pending` is unchanged.",
+    "No persistence migration is needed for the removal: `toPersisted` already only maps fields off a single pending item and never touched `flushingGameIds`.",
+    "`SYNCED_ACK_MS`'s recovery check widens from 'previous state was unsynced' to 'previous state was the 送不出去 or 待送 condition', so a recovery from either is still acknowledged.",
+    "Existing tests exercising `deriveSyncStatus` are updated to the five-condition shape rather than deleted."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}

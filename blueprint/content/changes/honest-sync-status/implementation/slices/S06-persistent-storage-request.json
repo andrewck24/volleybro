@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "Requesting persistent storage, with no claim about what it guarantees",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S05"],
+  "outcome": "`navigator.storage.persist()` is called once at boot, best-effort, covering the two loss causes the write-read-delete probe cannot see -- iOS ITP clearing storage after long inactivity and disk-pressure eviction -- neither of which throws anything for the probe to catch.",
+  "acceptanceCriteria": [
+    "`navigator.storage.persist()` is called exactly once per app boot, guarded for browsers where `navigator.storage` or `persist` is absent.",
+    "Its resolved boolean is logged (or otherwise recorded for diagnostics) and nothing more.",
+    "Nothing is displayed to the user based on the result: it does not set `storageUnavailable`, does not change any of the five sync-status conditions, and adds no new UI.",
+    "The acceptance criteria and any accompanying comment are explicit that a `true` result means only that the request was accepted by the browser, not that data will survive eviction -- no durability guarantee is claimed anywhere in code or copy.",
+    "A rejected or unsupported call does not throw and does not block the rest of boot."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "A retry button only where retrying is actually useful",
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S02"],
+  "outcome": "The retry button appears only in the 待送 condition and only while the browser reports a connection -- offline, retrying cannot succeed, so the button is not shown. Its own busy state never touches the global sync status.",
+  "acceptanceCriteria": [
+    "The retry button renders only when the current condition is 待送 (`attempts >= 2`) and `useIsOnline()` is true; it does not render in 送不出去, 無法保存, or while offline in 待送.",
+    "The button sits on its own row below the sentence, not inline with it.",
+    "Clicking the button drives a component-local `useState` spinner and disables the button while its own `retry()` promise is pending, independent of any Redux state.",
+    "No new global in-flight signal is introduced for this button: `deriveSyncStatus` and the five conditions from S01 are untouched by this slice, because a global flag would flash the spinner on every background retry across the app -- the exact over-signalling `attempts >= 2` exists to avoid.",
+    "The button re-enables once its promise settles, whether the retry succeeded or failed, without waiting for a subsequent render triggered by store state."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}
