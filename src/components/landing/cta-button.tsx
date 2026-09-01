@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { isStandalone } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
