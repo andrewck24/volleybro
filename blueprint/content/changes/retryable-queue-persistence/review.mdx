@@ -296,21 +296,40 @@ error: result.error, // [!code ++]
 | `pnpm test`               | 119 suites / 928 tests 全綠，本 Change 新增 31 個                                                           |
 | `pnpm test:integration`   | 10 suites / 28 tests 全綠，未新增                                                                           |
 | 獨立審查                  | 四輪、兩軸，第四輪達固定點                                                                                  |
-| 真實 app 被 OS 回收後重啟 | **未完成**，見下                                                                                            |
+| 真實 app 被 OS 回收後重啟 | **已完成**，見下                                                                                            |
 
 沒有新增 integration 測試：「重送已成功的 entry 為 no-op，不產生重複」由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層以 DI double 取代 auth，不需要真實 session。
 
 沒有瀏覽器驗證：本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響，也沒有可截圖的對象。
 
-### 一項尚未完成的檢查
+### 那項無法自動化的檢查
 
 **「真實 app 被 OS 回收後重啟」沒有任何自動化層能證明**，特別是 iOS 的主畫面 PWA。它驗的是一個平台假設：iOS 回收 standalone web app 之後，localStorage 是否仍然存在。
 
-**驗收時這項尚未執行**，將在合併後於 `dev` 的 preview 部署上進行——不在 production，因為這個 Change 的主題就是資料完整性，讓它第一次被真正執行的場合不該是面對真實使用者資料的環境。
+**驗收時這項尚未執行**，於合併後在 `dev` 的 preview 部署上進行——不在 production，因為這個 Change 的主題就是資料完整性，讓它第一次被真正執行的場合不該是面對真實使用者資料的環境。
 
 之所以可以在這項完成前合併：**它失敗不會造成回歸**。若 iOS 沒有保住 localStorage，這個 Change 只是在該平台上沒有帶來好處——記憶體中的佇列行為與合併前完全相同，沒有需要回退的東西。其餘部分由測試涵蓋，包含接線本身：`makeStore()` 是否真的接上 localStorage、provider 掛載時是否真的讀回。
 
-結果回填至本頁的 Follow-ups。
+#### 結果：通過
+
+在 `dev` preview（合併 commit `ff6c0a47`）上，以加到主畫面的 iOS PWA 執行：開飛航模式、記數球、由 app switcher 強制關閉、重開後走回該場比賽。
+
+裝置端：**那些球都還在畫面上**，SyncIndicator 維持未同步；關閉飛航後**未經手動介入即自行送出**。
+
+資料庫端，比對測試前後的快照：
+
+| 檢查                                  | 結果                |
+| ------------------------------------- | ------------------- |
+| 離線記下的 entry 是否全數送達         | 是                  |
+| 每個 `entry.id` 是否各一筆            | 是                  |
+| 同一 `id` 是否配到不同 `seq`          | 否                  |
+| `seq` 是否單調遞增                    | 是                  |
+| 測試前既有的 entry 是否被動到         | 否                  |
+| `game.win` / `set.win` 是否被提早填入 | 否，兩者仍為 `null` |
+
+**平台假設成立**：iOS 回收主畫面 PWA 之後 localStorage 仍然存在，這個 Change 在該平台上確實帶來它承諾的保護。冪等 upsert 也一併得到真實環境的佐證——強制關閉前若有請求已送達而回應未收到，重開後的重送沒有變成第二筆。
+
+這次驗證同時暴露了一個不在本 Change 範圍內的顯示缺陷：離線全程 SyncIndicator 顯示轉圈的「同步中」，見 Follow-ups。
 
 ## Residual risks
 
@@ -360,4 +379,5 @@ error: result.error, // [!code ++]
 - 上表第 1、2 項在本輪已一併寫入 D2 與 S02，Archive 時只需複核而非補寫。
 - 佇列的重試狀態實際上是 `(gameId, setIndex)` 群組層級的事實卻複製到每一筆 entry 上，已獨立登記。本 Change 不持久化那些欄位，因此兩者互不影響。
 - 使用者仍無法在比賽畫面之外看到有未送出的球，也無法主動捨棄一筆註定失敗的 entry；兩者都屬 `offline-recording`。
-- **在 `dev` preview 上完成 iOS PWA 的回收後重啟檢查**，並把結果回填到本頁。流程：加到主畫面、離線記數球、由 app switcher 強制關閉、重開後走回該場比賽，確認那些球送出且資料庫中各一筆。
+- ~~在 `dev` preview 上完成 iOS PWA 的回收後重啟檢查~~ **已完成並通過**，結果見上節。
+- 該次驗證發現的新缺陷：**離線期間 SyncIndicator 全程顯示轉圈的「同步中」**。`deriveSyncStatus` 以 `nextAttemptAt !== null` 判定 syncing，而每次 `enqueued` 都會重設它，所以持續記球時狀態永遠不會走到 unsynced；加上 syncing 的圖示是 Spinner，讀起來像系統卡住。本 Change 讓資料變安全了，UI 卻沒有任何狀態把這個保證說出口。已獨立登記，與本 Change 的佇列行為無關，只在顯示層。
