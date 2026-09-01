@@ -8,6 +8,12 @@ jest.mock("fumadocs-ui/components/dynamic-codeblock", () => ({
   DynamicCodeBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
 }));
 
+// @shikijs/transformers ships ESM-only; jest doesn't transform node_modules and
+// the transformer never runs under the mocked code block anyway, so stub it.
+jest.mock("@shikijs/transformers", () => ({
+  transformerNotationDiff: () => ({}),
+}));
+
 const files = [
   {
     path: "src/a.ts",

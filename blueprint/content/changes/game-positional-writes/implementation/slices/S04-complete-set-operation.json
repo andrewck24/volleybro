@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S04",
   "title": "Make completing a set an explicit operation",
   "capabilities": ["game-recording/rally-recording"],

@@ -1,7 +1,12 @@
-import { nextAttemptDelayMs } from "@/lib/features/game/pending-writes";
+import {
+  mayBeAttemptedAgain,
+  nextAttemptDelayMs,
+} from "@/lib/features/game/pending-writes";
 import type {
   PendingEntry,
   PendingWritesState,
+  PersistedPendingEntry,
+  WriteError,
 } from "@/lib/features/game/types";
 import {
   createSlice,
@@ -45,17 +50,26 @@ const flushSucceeded: CaseReducer<
   );
 };
 
+// `lastError` is assigned, undefined included: keeping an older reason when
+// this attempt's could not be read would attribute the wrong cause.
 const flushFailed: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ gameId: string; ids: string[]; retryable: boolean }>
+  PayloadAction<{
+    gameId: string;
+    ids: string[];
+    retryable: boolean;
+    lastError?: WriteError;
+  }>
 > = (state, action) => {
-  const { gameId, ids, retryable } = action.payload;
+  const { gameId, ids, retryable, lastError } = action.payload;
   const idSet = new Set(ids);
   for (const item of state.pending) {
     if (!idSet.has(item.entry.id)) continue;
     item.attempts += 1;
     const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
     item.nextAttemptAt = delay === null ? null : Date.now() + delay;
+    item.lastError = lastError;
+    item.firstFailedAt ??= Date.now();
   }
   state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);
 };
@@ -79,6 +93,27 @@ const retryRequested: CaseReducer<
   }
 };
 
+/**
+ * Puts back what a previous run left on disk. Merges rather than replaces and
+ * the in-memory copy wins, because the read is asynchronous and a rally can be
+ * recorded while it is still in flight. The schedule is recomputed: see D2.
+ */
+const rehydrated: CaseReducer<
+  PendingWritesState,
+  PayloadAction<{ items: PersistedPendingEntry[] }>
+> = (state, action) => {
+  const known = new Set(state.pending.map((p) => p.entry.id));
+  const restored = action.payload.items
+    .filter((item) => !known.has(item.entry.id))
+    .map((item) => ({
+      ...item,
+      attempts: 0,
+      nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null,
+    }));
+  // Restored entries were recorded before anything now in memory.
+  state.pending = [...restored, ...state.pending];
+};
+
 const pendingWritesSlice = createSlice({
   name: "pendingWrites",
   initialState,
@@ -88,6 +123,7 @@ const pendingWritesSlice = createSlice({
     flushSucceeded,
     flushFailed,
     retryRequested,
+    rehydrated,
   },
 });
 

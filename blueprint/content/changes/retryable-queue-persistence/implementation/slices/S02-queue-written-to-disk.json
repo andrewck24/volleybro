@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Every queue change is written to disk",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": ["S01"],
+  "outcome": "The moment a rally is recorded, the queue's contents exist outside the app's memory — and they get there before the request is sent, so an app killed mid-send has already saved the work.",
+  "acceptanceCriteria": [
+    "Storage is reached through one client-side type with load, save and clear, every method asynchronous, and one localStorage implementation of it. The type does not live in the server's ports layer and pulls in no dependency-injection container.",
+    "The implementation performs its write synchronously inside the asynchronous body, so returning from save means the data is on disk.",
+    "The implementation does not catch its own failures: an unwritable store rejects, and the caller decides what that means.",
+    "A snapshot is written whenever the queue's contents change — an entry enqueued, a batch succeeding, a batch failing, a previous run's queue restored — and not on dispatches that leave the contents alone.",
+    "The snapshot is the whole queue read straight from the store after the reducer has run, carrying the entry, its game, its set index, its last error and when it first failed; attempt count, next attempt time and in-flight game ids are not written.",
+    "Writes cannot land out of order, so the newest snapshot is the one left on disk, and a write is never deferred behind a scheduler — a save runs immediately when nothing is in flight, and saves queued behind an open one collapse to the newest, since each snapshot is whole.",
+    "No debounce: recording a rally and finding it on disk are not separated by a window in which the app could die.",
+    "An unwritable store is caught at the call site, logged, and does not take the app down; the marker left there names the ceiling and points at where a visible warning would go.",
+    "Recording a rally writes to disk before the request is sent, matching the order the recording path already uses."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

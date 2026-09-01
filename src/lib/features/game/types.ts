@@ -8,6 +8,7 @@ import {
   type DerivedSetStats,
   type EntryIdentity,
 } from "@/entities/game";
+import type { AppErrorCode } from "@/entities/errors";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
 import { z } from "zod";
@@ -358,6 +359,14 @@ export type ReduxGameState = {
 
 // For the pending-write queue: unconfirmed rally writes, kept in their own
 // slice because their lifetime differs from the per-set draft above.
+// The part of a failed write worth keeping. `detail` and `message` are absent
+// on purpose: they move with copy and translation, and nothing can act on them.
+export type WriteError = {
+  code: AppErrorCode;
+  reason: string;
+  status: number;
+};
+
 export type PendingEntry = {
   entry: RallyView & EntryIdentity;
   gameId: string;
@@ -366,7 +375,49 @@ export type PendingEntry = {
   // Timestamp of the next scheduled attempt; null means the backoff budget
   // is exhausted or the error itself is not retryable.
   nextAttemptAt: number | null;
+  // Why the last attempt failed. `nextAttemptAt: null` conflates a spent
+  // backoff with a failure that can never succeed; this keeps them apart.
+  lastError?: WriteError;
+  // When this entry first failed, never refreshed: a flush re-sends every
+  // pending entry for its game, so a moving timestamp would measure the
+  // recorder's activity rather than the entry's age.
+  firstFailedAt?: number;
 };
+
+// The queue as it exists on disk. A snapshot whose `version` does not match is
+// not used rather than migrated, and only an older one is cleared -- see D2.
+export type PersistedPendingEntry = Pick<
+  PendingEntry,
+  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"
+>;
+
+export type PersistedQueue = {
+  version: number;
+  items: PersistedPendingEntry[];
+};
+
+// Storage is writable by anything on this origin and what comes back is sent
+// to the server, so it is parsed rather than cast.
+export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
+  version: z.number(),
+  items: z.array(
+    z.object({
+      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),
+      gameId: z.string(),
+      setIndex: z.number(),
+      lastError: z
+        .object({
+          // A string rather than the union, which lives in the error model.
+          // Nothing branches on it -- only `status` decides anything.
+          code: z.custom<AppErrorCode>((value) => typeof value === "string"),
+          reason: z.string(),
+          status: z.number(),
+        })
+        .optional(),
+      firstFailedAt: z.number().optional(),
+    }),
+  ),
+});
 
 export type PendingWritesState = {
   pending: PendingEntry[];

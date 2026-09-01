@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "Derive status from lifecycle instead of storing it",
   "capabilities": ["platform/blueprint"],

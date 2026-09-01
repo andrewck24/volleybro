@@ -224,6 +224,55 @@ describe("usePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
+  // Pooling by retryability would give one set's entries the other set's
+  // cause, which is what decides whether they are ever retried.
+  it("records each set's own failure reason on that set's entries", async () => {
+    const authError = new ApiClientError("session expired", {
+      code: "AUTHENTICATION",
+      reason: "SESSION_REQUIRED",
+      detail: "session expired",
+      status: 401,
+    });
+    apiClient.mockImplementation(async (url: string) => {
+      throw url.includes("si=0") ? authError : networkError();
+    });
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e0"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    const { result } = renderHook(() => usePendingWrites("game-1", 1), {
+      wrapper,
+    });
+    act(() => result.current.enqueue(entry("e1")));
+
+    await act(async () => {
+      const flushed = result.current.flush();
+      await jest.advanceTimersByTimeAsync(
+        PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS.reduce((a, b) => a + b, 0),
+      );
+      await flushed;
+    });
+
+    const byId = Object.fromEntries(
+      store
+        .getState()
+        .pendingWrites.pending.map((p) => [p.entry.id, p.lastError]),
+    );
+    expect(byId.e0).toEqual({
+      code: "AUTHENTICATION",
+      reason: "SESSION_REQUIRED",
+      status: 401,
+    });
+    expect(byId.e1).toEqual({
+      code: "TRANSIENT",
+      reason: "NETWORK_ERROR",
+      status: 503,
+    });
+  });
+
   it("flushes entries from every pending set in one call, each against its own endpoint", async () => {
     apiClient.mockImplementation(async (url: string) =>
       url.includes("si=0")

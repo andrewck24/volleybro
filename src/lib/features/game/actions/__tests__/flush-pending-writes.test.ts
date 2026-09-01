@@ -1,6 +1,9 @@
 import * as apiClientModule from "@/lib/api/api-client";
 import { ApiClientError } from "@/lib/api/api-client";
-import { flushPendingWrites } from "@/lib/features/game/actions/flush-pending-writes";
+import {
+  flushPendingWrites,
+  toWriteError,
+} from "@/lib/features/game/actions/flush-pending-writes";
 import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import type { PendingEntry } from "@/lib/features/game/types";
 
@@ -99,5 +102,20 @@ describe("flushPendingWrites", () => {
 
     expect(result).toMatchObject({ ok: false, retryable: false });
     expect(apiClient).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("toWriteError", () => {
+  it("keeps what a later decision can act on, and drops what cannot survive a copy change", () => {
+    expect(toWriteError(transientError())).toEqual({
+      code: "TRANSIENT",
+      reason: "NETWORK_ERROR",
+      status: 503,
+    });
+  });
+
+  it("reports an unrecognised failure as unknown rather than inventing a reason", () => {
+    expect(toWriteError(new Error("boom"))).toBeUndefined();
+    expect(toWriteError(undefined)).toBeUndefined();
   });
 });

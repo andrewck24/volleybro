@@ -1,0 +1,363 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+import { TaskProgress } from "@/components/TaskProgress";
+
+<TLDR>
+  四片全部交付，四輪獨立審查後兩軸達固定點。三輪各有實質發現，其中兩個是**在結構上永遠不可能執行的機制**：過期的時鐘量到的是使用者的活躍度而非
+  entry 的年齡，以及版本化的 storage key
+  讓版本檢查無法觸發。五處與核准計畫不同：第 3 與第 5 處經 Ingest
+  修正了程式碼與規格，其餘三處是文件落後於程式碼，已在同一輪補回規格。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={4} total={4} />
+
+切片內容與依賴由本頁下方的 Implementation 頁呈現；此處只記交付的實質。commit 以 body 的 `Implements` trailer 指認，`git log --grep="Implements: S03"` 即可重建映射——本頁一律以 slice ID 指稱，不引用 commit hash。
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/features/game/pending-writes-storage.ts",
+      change: "added",
+      summary:
+        "S02。三方法的 port 與其 localStorage 實作。同步的 setItem 在 async function body 內執行，因此 save 返回即代表資料已落地——這是整個 Change 賴以成立的性質。adapter 不 catch。整份是新檔，因此無 diff 可對照。",
+      lang: "ts",
+      code: 'export const PENDING_WRITES_KEY = "pending-writes";\nexport const PENDING_WRITES_VERSION = 1;\n\nexport type PendingWritesStorage = {\n  load(): Promise<unknown>;\n  save(snapshot: PersistedQueue): Promise<void>;\n  clear(): Promise<void>;\n};\n\nexport const localStoragePendingWrites: PendingWritesStorage = {\n  async load() {\n    const raw = localStorage.getItem(PENDING_WRITES_KEY);\n    if (raw === null) return null;\n    try {\n      return JSON.parse(raw);\n    } catch {\n      // 原始字串，呼叫端才分辨得出「沒有東西」與「有東西但沒人能用」\n      return raw;\n    }\n  },\n\n  async save(snapshot) {\n    // 同步的 setItem 在 async body 內執行：返回即代表已落地\n    localStorage.setItem(PENDING_WRITES_KEY, JSON.stringify(snapshot));\n  },\n\n  async clear() {\n    localStorage.removeItem(PENDING_WRITES_KEY);\n  },\n};',
+    },
+    {
+      path: "src/lib/features/game/pending-writes-persistence.ts",
+      change: "added",
+      summary:
+        "S02 與 S03。listener 在佇列內容變動時寫入整包快照；restorePendingWrites 在 provider 掛載時讀回。磁碟上無法使用的內容一律清除——不是快照、舊版本、自家版本但形狀不符、全部過期——只有「更新版本」刻意保留。整份是新檔。",
+      lang: "ts",
+      code: 'export function createPendingWritesPersistence(storage: PendingWritesStorage) {\n  const listener = createListenerMiddleware<StateWithPendingWrites>();\n\n  let inFlight: Promise<void> | null = null;\n  let queued: PendingWritesState["pending"] | null = null;\n\n  const persist = (pending: PendingWritesState["pending"]) => {\n    if (inFlight) {\n      queued = pending; // 進行中：只留最新一份\n      return;\n    }\n    inFlight = run(pending); // 閒置：同步 store 在此就寫完了\n  };\n\n  listener.startListening({\n    matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),\n    effect: (_action, api) => {\n      persist(api.getState().pendingWrites.pending);\n    },\n  });\n\n  return listener.middleware;\n}\n\nexport async function restorePendingWrites(\n  dispatch: (action: ReturnType<typeof pendingWritesActions.rehydrated>) => void,\n  storage: PendingWritesStorage,\n): Promise<void> {\n  const raw = await storage.load().catch(() => null);\n  if (raw === null || raw === undefined) return;\n\n  // 先看 version 再驗形狀：schema 描述的是「這個 build 寫出來的」形狀，\n  // 先驗形狀會把真正的新版快照當成壞資料，版本檢查永遠到不了\n  const envelope = z.object({ version: z.number() }).safeParse(raw);\n  if (!envelope.success) {\n    await discard(storage); // 不是快照\n    return;\n  }\n\n  if (envelope.data.version !== PENDING_WRITES_VERSION) {\n    // 只清除本 build 已經越過的版本；更新的可能屬於另一個 build\n    if (envelope.data.version < PENDING_WRITES_VERSION) await discard(storage);\n    return;\n  }\n\n  const parsed = PersistedQueueSchema.safeParse(raw);\n  if (!parsed.success) {\n    await discard(storage); // 自家版本，卻是讀不懂的形狀\n    return;\n  }\n\n  const now = Date.now();\n  const items = parsed.data.items.filter((item) => !hasExpired(item, now));\n  if (items.length === 0) {\n    await discard(storage); // 全部過期：沒有 dispatch，listener 就不會寫回\n    return;\n  }\n\n  dispatch(pendingWritesActions.rehydrated({ items }));\n}',
+    },
+    {
+      path: "src/lib/features/game/pending-writes-slice.ts",
+      change: "modified",
+      summary:
+        "S01 與 S03。flushFailed 記下失敗原因與第一次失敗的時間；新增 rehydrated，依 entry.id 合併且記憶體優先。",
+      lang: "ts",
+      code: "const flushFailed: CaseReducer<PendingWritesState, PayloadAction<Failed>> = (\n  state,\n  action,\n) => {\n  const { gameId, ids, retryable, lastError } = action.payload;\n  const idSet = new Set(ids);\n\n  for (const item of state.pending) {\n    if (!idSet.has(item.entry.id)) continue;\n    item.attempts += 1;\n    const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;\n    item.nextAttemptAt = delay === null ? null : Date.now() + delay;\n    item.lastError = lastError; // [!code ++]\n    // 只在第一次失敗時寫入：flush 會重送該場所有待送 entry，時間戳\n    // 若跟著更新，量到的會是使用者的活躍度而不是 entry 的年齡\n    item.firstFailedAt ??= Date.now(); // [!code ++]\n  }\n\n  state.flushingGameIds = state.flushingGameIds.filter((id) => id !== gameId);\n};\n\nconst rehydrated: CaseReducer<PendingWritesState, PayloadAction<Restored>> = ( // [!code ++]\n  state, // [!code ++]\n  action, // [!code ++]\n) => { // [!code ++]\n  const known = new Set(state.pending.map((p) => p.entry.id)); // [!code ++]\n  const restored = action.payload.items // [!code ++]\n    .filter((item) => !known.has(item.entry.id)) // [!code ++]\n    .map((item) => ({ // [!code ++]\n      ...item, // [!code ++]\n      attempts: 0, // [!code ++]\n      nextAttemptAt: mayBeAttemptedAgain(item.lastError) ? Date.now() : null, // [!code ++]\n    })); // [!code ++]\n  state.pending = [...restored, ...state.pending]; // [!code ++]\n}; // [!code ++]",
+    },
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      summary:
+        "S03 與 S04。重試的單一標準與建立其上的過期判斷。flush 原本就地判斷 status >= 500，現在改讀同一份門檻。",
+      lang: "ts",
+      code: "// flush-pending-writes.ts\nfunction isRetryable(error: unknown): boolean {\n  return error instanceof ApiClientError && error.status >= 500; // [!code --]\n  return error instanceof ApiClientError && isRetryableStatus(error.status); // [!code ++]\n}\n\n// pending-writes.ts\nexport const isRetryableStatus = (status: number): boolean => status >= 500; // [!code ++]\n\nexport const mayBeAttemptedAgain = (lastError?: WriteError): boolean => // [!code ++]\n  lastError === undefined || isRetryableStatus(lastError.status); // [!code ++]\n\nexport const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // [!code ++]\n\nexport const hasExpired = (item: PersistedPendingEntry, now: number) => // [!code ++]\n  !mayBeAttemptedAgain(item.lastError) && // [!code ++]\n  item.firstFailedAt !== undefined && // [!code ++]\n  now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS; // [!code ++]",
+    },
+    {
+      path: "src/hooks/use-pending-writes.ts",
+      change: "modified",
+      summary:
+        "S01。失敗改以 (gameId, setIndex) 群組收集——原本以「可否重試」的布林分組並跨 set 合併，因此一個 set 的 entry 會被記上另一個 set 的失敗原因。",
+      lang: "ts",
+      code: "  const succeededIds: string[] = [];\n  const failedIdsByRetryable = new Map<boolean, string[]>(); // [!code --]\n  let firstError: unknown; // [!code --]\n  const failures: { payload: FlushFailedPayload; error: unknown }[] = []; // [!code ++]\n\n  for (const [si, items] of bySetIndex) {\n    const result = await flushPendingWrites(gameId, si, entries);\n    if (result.ok) {\n      succeededIds.push(...ids);\n    } else {\n      firstError ??= result.error; // [!code --]\n      failedIdsByRetryable.set(result.retryable, [ // [!code --]\n        ...(failedIdsByRetryable.get(result.retryable) ?? []), // [!code --]\n        ...ids, // [!code --]\n      ]); // [!code --]\n      failures.push({ // [!code ++]\n        payload: { // [!code ++]\n          gameId, // [!code ++]\n          ids, // [!code ++]\n          retryable: result.retryable, // [!code ++]\n          lastError: toWriteError(result.error), // [!code ++]\n        }, // [!code ++]\n        error: result.error, // [!code ++]\n      }); // [!code ++]\n    }\n  }",
+    },
+    {
+      path: "src/lib/features/game/types.ts",
+      change: "modified",
+      summary:
+        "S01、S02、S04。entry 上的 lastError 與 firstFailedAt；磁碟形狀與其 zod schema。",
+      lang: "ts",
+      code: 'export type PendingEntry = {\n  entry: RallyView & EntryIdentity;\n  gameId: string;\n  setIndex: number;\n  attempts: number;\n  nextAttemptAt: number | null;\n  lastError?: WriteError; // [!code ++]\n  firstFailedAt?: number; // [!code ++]\n};\n\nexport type PersistedPendingEntry = Pick< // [!code ++]\n  PendingEntry, // [!code ++]\n  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt" // [!code ++]\n>; // [!code ++]\n\nexport type PersistedQueue = { // [!code ++]\n  version: number; // [!code ++]\n  items: PersistedPendingEntry[]; // [!code ++]\n}; // [!code ++]\n\nexport const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({ // [!code ++]\n  version: z.number(), // [!code ++]\n  items: z.array( // [!code ++]\n    z.object({ // [!code ++]\n      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema), // [!code ++]\n      gameId: z.string(), // [!code ++]\n      setIndex: z.number(), // [!code ++]\n      lastError: writeErrorSchema.optional(), // [!code ++]\n      firstFailedAt: z.number().optional(), // [!code ++]\n    }), // [!code ++]\n  ), // [!code ++]\n}); // [!code ++]',
+    },
+    {
+      path: "src/lib/redux/store.ts",
+      change: "modified",
+      summary:
+        "S02。掛上 listener middleware。storage 是預設參數，讓測試能塞入假實作而不必 stub 全域。",
+      lang: "ts",
+      code: "export const makeStore = () => { // [!code --]\nexport const makeStore = ( // [!code ++]\n  storage: PendingWritesStorage = localStoragePendingWrites, // [!code ++]\n) => { // [!code ++]\n  return configureStore({\n    reducer: {\n      lineup: lineupReducer,\n      game: gameReducer,\n      pendingWrites: pendingWritesReducer,\n      setCompletion: setCompletionReducer,\n    },\n    middleware: (getDefaultMiddleware) =>\n      getDefaultMiddleware({\n        serializableCheck: false,\n      }), // [!code --]\n      }).prepend(createPendingWritesPersistence(storage)), // [!code ++]\n  });\n};",
+    },
+    {
+      path: "src/lib/redux/provider.tsx",
+      change: "modified",
+      summary:
+        "S03。掛載時讀回一次。放在 effect 而非 makeStore 旁邊，因為這個元件在伺服器上也會渲染，而那裡沒有 storage 可讀。",
+      lang: "tsx",
+      code: "export const ReduxProvider = ({ children }: { children: ReactNode }) => {\n  return <Provider store={getStore()}>{children}</Provider>; // [!code --]\n  const store = getStore(); // [!code ++]\n\n  // 合併是冪等的，StrictMode 重跑不會把東西放兩次 // [!code ++]\n  useEffect(() => { // [!code ++]\n    void restorePendingWrites(store.dispatch, localStoragePendingWrites); // [!code ++]\n  }, [store]); // [!code ++]\n\n  return <Provider store={store}>{children}</Provider>; // [!code ++]\n};",
+    },
+  ]}
+/>
+
+## Review findings
+
+四輪、兩軸（標準／規格）分開進行，每輪都在獨立 context。第四輪兩軸皆達固定點。
+
+<RiskTable
+  risks={[
+    {
+      name: "第二輪：過期的時鐘量錯了東西",
+      severity: "critical",
+      mitigation:
+        "改為只在第一次失敗時記錄（firstFailedAt，??=），並補測試釘住「後續失敗不刷新」。",
+    },
+    {
+      name: "第三輪：版本化的 key 讓版本檢查無法觸發",
+      severity: "critical",
+      mitigation:
+        "key 改為不帶版本，快照內容成為版本的唯一來源，「版本不符就丟棄」因此真的可能執行。",
+    },
+    {
+      name: "第一輪：磁碟資料未經驗證就進入佇列",
+      severity: "warning",
+      mitigation:
+        "改以 zod schema 驗證，schema 型別綁為 z.ZodType<PersistedQueue>；load() 回傳 unknown。也因此暴露測試 fixture 一直是假的，一併改為真實形狀。",
+    },
+    {
+      name: "第一與第三輪：無法使用的快照沒有被清掉",
+      severity: "warning",
+      mitigation:
+        "四條路徑一致化：不是快照、舊版本、自家版本但形狀不符、全部過期都清除；只有更新版本刻意保留，因為它可能屬於使用者同時在跑的另一個 build。",
+    },
+    {
+      name: "第一輪：失敗原因跨 set 張冠李戴",
+      severity: "warning",
+      mitigation:
+        "失敗改以 (gameId, setIndex) 群組收集，各自帶自己的結果。此缺陷在加上 lastError 之前無從觀察。",
+    },
+    {
+      name: "第一與第三輪：命名、重複組裝、多餘 export、註解重述 ADR",
+      severity: "info",
+      mitigation:
+        "helper 改 camelCase；payload 一次組好（順帶消掉一個 non-null assertion）；toPersisted 收回 module-private；註解裁掉指向 ADR，只留程式碼讀不出來的。",
+    },
+    {
+      name: "明確不修：測試檔位置、version 型別、z.custom 的字串檢查",
+      severity: "ok",
+      mitigation:
+        "測試位置的混用早於本 Change；字面量 version 會讓「未知版本的快照」在型別上無法表達，而那正是要處理的情況；union 住在 error model，在 schema 重列會是第二份來源，而沒有任何分支讀它。",
+    },
+  ]}
+/>
+
+### 過期的時鐘：為什麼它永遠到不了七天
+
+`flushFailed` 每次失敗都更新時間戳，而 `runFlush` 送出該場比賽**所有**待送 entry、不看排程。所以只要使用者還在記那場比賽，註定失敗的那筆每記一顆球就被重試一次、時間戳跟著往前推。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/lib/features/game/pending-writes-slice.ts
+  for (const item of state.pending) {
+    if (!idSet.has(item.entry.id)) continue;
+    item.attempts += 1;
+    const delay = retryable ? nextAttemptDelayMs(item.attempts) : null;
+    item.nextAttemptAt = delay === null ? null : Date.now() + delay;
+    item.lastError = lastError;
+    item.failedAt = Date.now(); // [!code --]
+    item.firstFailedAt ??= Date.now(); // [!code ++]
+  }`}
+/>
+
+### 版本化的 key：為什麼版本檢查不可能執行
+
+版本號同時寫在 storage key 和快照內容裡。換版的 build 會去看另一把 key，於是舊快照永遠不會被讀到——「版本不符就丟棄」那段邏輯在構造上無法執行，舊資料也永遠不會被清掉。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/lib/features/game/pending-writes-storage.ts
+export const PENDING_WRITES_KEY = "pending-writes:v1"; // [!code --]
+// 版本住在快照裡而不在 key 上：版本化的 key 是同一個數字的第二份來源，
+// 而且會讓 bump 過的 build 去看別的地方，舊快照從此無人讀取也無人清除——
+// 下面這個版本檢查因此永遠不可能執行。
+export const PENDING_WRITES_KEY = "pending-writes"; // [!code ++]
+export const PENDING_WRITES_VERSION = 1;`}
+/>
+
+### 磁碟資料未經驗證就進入佇列
+
+storage 是同源的任何程式都能寫的，而讀回的東西會進佇列、接著被送往伺服器。原本只處理「無法解析」，沒處理「解析得出但形狀不對」。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/lib/features/game/pending-writes-storage.ts
+export type PendingWritesStorage = {
+  load(): Promise<PersistedQueue | null>; // [!code --]
+  load(): Promise<unknown>; // [!code ++]
+  save(snapshot: PersistedQueue): Promise<void>;
+  clear(): Promise<void>;
+};
+
+export const localStoragePendingWrites: PendingWritesStorage = {
+  async load() {
+    const raw = localStorage.getItem(PENDING_WRITES_KEY);
+    if (raw === null) return null;
+    try {
+      return JSON.parse(raw) as PersistedQueue; // [!code --]
+      return JSON.parse(raw); // [!code ++]
+    } catch {
+      return null; // [!code --]
+      return raw; // [!code ++] 讓呼叫端分辨得出「有東西但沒人能用」
+    }
+  },
+};
+
+// src/lib/features/game/pending-writes-persistence.ts
+const parsed = PersistedQueueSchema.safeParse(raw); // [!code ++]
+if (!parsed.success) { // [!code ++]
+await discard(storage); // [!code ++]
+return; // [!code ++]
+} // [!code ++]`}
+/>
+
+### 無法使用的快照沒有被清掉
+
+「全部過期」不 dispatch，因此寫回的 listener 不會執行——死掉的快照每次啟動重讀重丟。同樣的道理適用於另外三條路徑。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/lib/features/game/pending-writes-persistence.ts
+  const now = Date.now();
+  const items = parsed.data.items.filter((item) => !hasExpired(item, now));
+
+if (items.length === 0) return; // [!code --]
+if (items.length === 0) { // [!code ++]
+// 沒有 dispatch，寫回的 listener 就不會執行——沒有這一步，
+// 死掉的快照每次啟動都會被重讀、重丟
+await discard(storage); // [!code ++]
+return; // [!code ++]
+} // [!code ++]
+
+dispatch(pendingWritesActions.rehydrated({ items }));`}
+/>
+
+### 失敗原因跨 set 張冠李戴
+
+失敗原本以「可否重試」的布林分組收集並跨 set 合併，所以一個 set 的 entry 會被記上另一個 set 的失敗原因——而那個值決定它會不會再被送出。這個缺陷在加上 `lastError` 之前無從觀察。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/hooks/use-pending-writes.ts
+  const succeededIds: string[] = [];
+  const failedIdsByRetryable = new Map<boolean, string[]>(); // [!code --]
+  let firstError: unknown; // [!code --]
+  const failures: { payload: FlushFailedPayload; error: unknown }[] = []; // [!code ++]
+
+for (const [si, items] of bySetIndex) {
+const result = await flushPendingWrites(gameId, si, entries);
+if (result.ok) {
+succeededIds.push(...ids);
+} else {
+firstError ??= result.error; // [!code --]
+failedIdsByRetryable.set(result.retryable, [ // [!code --]
+...(failedIdsByRetryable.get(result.retryable) ?? []), // [!code --]
+...ids, // [!code --]
+]); // [!code --]
+failures.push({ // [!code ++]
+payload: { // [!code ++]
+gameId, // [!code ++]
+ids, // [!code ++]
+retryable: result.retryable, // [!code ++]
+lastError: toWriteError(result.error), // [!code ++]
+}, // [!code ++]
+error: result.error, // [!code ++]
+}); // [!code ++]
+}
+}`}
+/>
+
+## Plan versus actual
+
+五處與核准計畫不同。第 3 與第 5 處在驗收前經 Ingest 修正——程式碼與規格都改了；其餘三處是文件落後於程式碼，已在同一輪補回規格，Archive 時只需複核。
+
+<ol>
+  <li>
+    **磁碟上多兩個欄位。** D2 原本列的形狀是 `{ entry, gameId, setIndex, lastError? }`，實作另存 `firstFailedAt`。S04 的「超過七天」需要一個時間基準，而那四個欄位裡沒有——規格的疏漏，不是實作越界。D2 已於 Ingest 一併補上。
+  </li>
+  <li>
+    **listener 多聽一個 action。** S02 列了三個，實作聽四個：`rehydrated` 也改動佇列內容，聽它才能讓被過期規則縮短的佇列寫回磁碟。S02 排除的是「無關的 dispatch」，這一個不是。已改寫該條驗收條件。
+  </li>
+  <li>
+    **兩個 predicate 收斂為一個標準（Ingest）。** 原本 `isRetryableStatus`（能不能再送）之外另有 `isWorthAttemptingAgain`，兩者只在 401 上分歧，理由是「登入是整頁 redirect，重啟往往正是修好 session 的那件事」。開發者判定系統只需要一種標準，實作照辦：401 不再於重啟後自動重送。代價很小——在 F1 之下本來就要等使用者走回那場比賽，而那時 SyncIndicator 會顯示未同步、重試手勢已經在那裡。D2 的 decision 與 alternatives、S03 與 S04 的驗收條件一併更新。
+  </li>
+  <li>
+    **storage key 的名字變了。** D2 與 Design 圖寫的是 `pending-writes:v1`，實作用 `pending-writes`。理由見上一節，這不只是改名。已於 Ingest 更新 D2 與圖。
+  </li>
+  <li>
+    **寫入的排序機制與 Design 描述的不同（Ingest）。** Design 原本寫「寫入串成一條 promise chain」。鏈會把每一次寫入都推遲一個 microtask，破壞「記一顆球到落地之間沒有窗口」這個前提。實作改為：閒置時直接寫入（同步 store 因此在函式返回前完成），進行中則只保留最新一份待寫快照——因為快照是完整的，中間那幾份本來就不值得寫。結果比計畫**更嚴格**，不是放寬。Design 的 Contracts、時序圖與 S02 的驗收條件已更新。
+  </li>
+</ol>
+
+## 驗證證據
+
+| 項目                      | 結果                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `pnpm verify:all`         | exit 0（format、workflow、typecheck:strict、lint、test、blueprint test、build、assert-sw、blueprint build） |
+| `pnpm test`               | 119 suites / 928 tests 全綠，本 Change 新增 31 個                                                           |
+| `pnpm test:integration`   | 10 suites / 28 tests 全綠，未新增                                                                           |
+| 獨立審查                  | 四輪、兩軸，第四輪達固定點                                                                                  |
+| 真實 app 被 OS 回收後重啟 | **未完成**，見下                                                                                            |
+
+沒有新增 integration 測試：「重送已成功的 entry 為 no-op，不產生重複」由 `retryable-entry-writes` 交付的 `game-entry-writes.itest.ts` 覆蓋，而該層以 DI double 取代 auth，不需要真實 session。
+
+沒有瀏覽器驗證：本 Change 沒有 UI 變更，因此不受「agent 無法對需登入頁面截圖」那個既有阻礙影響，也沒有可截圖的對象。
+
+### 一項尚未完成的檢查
+
+**「真實 app 被 OS 回收後重啟」沒有任何自動化層能證明**，特別是 iOS 的主畫面 PWA。它驗的是一個平台假設：iOS 回收 standalone web app 之後，localStorage 是否仍然存在。
+
+**驗收時這項尚未執行**，將在合併後於 `dev` 的 preview 部署上進行——不在 production，因為這個 Change 的主題就是資料完整性，讓它第一次被真正執行的場合不該是面對真實使用者資料的環境。
+
+之所以可以在這項完成前合併：**它失敗不會造成回歸**。若 iOS 沒有保住 localStorage，這個 Change 只是在該平台上沒有帶來好處——記憶體中的佇列行為與合併前完全相同，沒有需要回退的東西。其餘部分由測試涵蓋，包含接線本身：`makeStore()` 是否真的接上 localStorage、provider 掛載時是否真的讀回。
+
+結果回填至本頁的 Follow-ups。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "送達仍依賴使用者回到該場比賽",
+      severity: "warning",
+      mitigation:
+        "佇列跨場：A、B 兩場都有待送球而使用者只打開 B 時，A 的球會一直等，比賽列表顯示的比分少了那幾顆球。由 offline-recording 的 outbox 關閉，對應驗收條件已補上。",
+    },
+    {
+      name: "儲存不可用時靜默降級",
+      severity: "warning",
+      mitigation:
+        "本 Change 唯一一個「使用者以為被保護、其實沒有」的路徑。錯誤處理的位置（D4）確保升級成可見警告時只需改 listener 一行。",
+    },
+    {
+      name: "401 不再自動重送",
+      severity: "info",
+      mitigation:
+        "收斂為單一標準的代價。entry 留在佇列、SyncIndicator 顯示未同步，使用者重新登入後以既有的重試手勢送出；七天後與其他 4xx 一同過期。",
+    },
+    {
+      name: "七天沒有量測依據",
+      severity: "info",
+      mitigation:
+        "收窄規則已把「還有希望」的那一類排除在過期之外，但判定依據是最後一次失敗的性質，而那可能是舊的。",
+    },
+    {
+      name: "Safari 對 script-writable storage 的長期無互動清除",
+      severity: "info",
+      mitigation:
+        "對 localStorage 與 IndexedDB 一視同仁，加到主畫面的 PWA 兩者都豁免。不是選型依據，是兩者共同的殘餘風險。",
+    },
+    {
+      name: "兩個極窄的視窗（第四輪指出，低於處理門檻）",
+      severity: "ok",
+      mitigation:
+        '儲存值恰為字面 "null" 時會被當成沒有東西而永不清除，只有外部寫入者能造成；discard 與並行 enqueue 之間可能清掉剛寫入的快照，但 entry 仍在記憶體，下次佇列變動即重寫。',
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- 上表第 1、2 項在本輪已一併寫入 D2 與 S02，Archive 時只需複核而非補寫。
+- 佇列的重試狀態實際上是 `(gameId, setIndex)` 群組層級的事實卻複製到每一筆 entry 上，已獨立登記。本 Change 不持久化那些欄位，因此兩者互不影響。
+- 使用者仍無法在比賽畫面之外看到有未送出的球，也無法主動捨棄一筆註定失敗的 entry；兩者都屬 `offline-recording`。
+- **在 `dev` preview 上完成 iOS PWA 的回收後重啟檢查**，並把結果回填到本頁。流程：加到主畫面、離線記數球、由 app switcher 強制關閉、重開後走回該場比賽，確認那些球送出且資料庫中各一筆。

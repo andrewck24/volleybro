@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S06",
   "title": "Drop statistics from the domain type while keeping the persisted field",
   "capabilities": ["game-recording/persistence"],

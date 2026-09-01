@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S02",
   "title": "Add entry-level repository operations backed by positional writes",
   "capabilities": ["game-recording/persistence"],

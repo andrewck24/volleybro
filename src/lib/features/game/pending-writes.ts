@@ -1,4 +1,9 @@
-import type { GameView, PendingWritesState } from "@/lib/features/game/types";
+import type {
+  GameView,
+  PendingWritesState,
+  PersistedPendingEntry,
+  WriteError,
+} from "@/lib/features/game/types";
 
 export type SyncStatus = "synced" | "syncing" | "unsynced";
 
@@ -50,6 +55,17 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
+/**
+ * The one standard for whether another attempt is worth making. The flush, the
+ * restore and the expiry rule all read it, so none of them can disagree about
+ * which failures are worth carrying.
+ */
+export const isRetryableStatus = (status: number): boolean => status >= 500;
+
+/** The same standard, over an entry that may not have failed yet. */
+export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
+  lastError === undefined || isRetryableStatus(lastError.status);
+
 /** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (
   game: GameView | undefined,
@@ -62,3 +78,16 @@ export const applyFlushedEntries = (
       i === setIndex ? { ...set, entries } : set,
     ),
   };
+
+/**
+ * How long a queued entry that cannot succeed is kept. Seven days has no
+ * measured basis: it restores the exit persistence removed -- closing the app,
+ * which used to empty a queue that lived in memory -- and nothing more. See D2.
+ */
+export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Whether a restored entry should be dropped rather than put back. */
+export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
+  !mayBeAttemptedAgain(item.lastError) &&
+  item.firstFailedAt !== undefined &&
+  now - item.firstFailedAt > PENDING_WRITE_EXPIRY_MS;

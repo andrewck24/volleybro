@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "Adopt the repo-native delivery lifecycle",
   "capabilities": ["platform/delivery-workflow"],

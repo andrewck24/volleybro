@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D3",
   "title": "Share derivation rules from entities using minimal structural signatures",

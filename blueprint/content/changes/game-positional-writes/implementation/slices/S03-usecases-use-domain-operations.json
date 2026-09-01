@@ -1,5 +1,5 @@
 {
-  "$schema": "../../../../../../schemas/implementation-slice.schema.json",
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S03",
   "title": "Switch the three entry use cases to the domain operations",
   "capabilities": ["game-recording/rally-recording"],

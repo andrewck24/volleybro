@@ -1,0 +1,90 @@
+---
+title: Overview
+---
+
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  樂觀推進讓記錄不必等伺服器，代價是未確認的球只存在記憶體裡——app
+  被回收就一次損失數筆，比改動前更糟。本 Change
+  把待送佇列寫進磁碟，並在啟動時讀回。不改任何畫面，不把送出提升為全域（那是
+  outbox，屬 `offline-recording`）。
+</TLDR>
+
+<Scenario
+  given="使用者在訊號不好的球場記球，有幾顆還沒送出去"
+  when="app 被系統回收，或使用者直接關掉"
+  then="改動前那幾顆球就沒了；改動後它們在磁碟上，重開並走回那場比賽時自動重送"
+/>
+
+## Context
+
+`retryable-entry-writes` 讓 create 路徑改為樂觀推進：使用者記完一顆球立刻可以記下一顆，不必等伺服器回應。那是網路不佳時仍能連續記錄的前提，而它成立的三根支柱之一，是一個記得「伺服器還沒確認什麼」的待送佇列。
+
+那個佇列只存在記憶體裡。該 Change 的 D4 在 consequences 明列了代價：「An app killed while entries are unconfirmed loses them, which is worse than today's behaviour in that one scenario」——因為改動前沒收到確認就不會推進，app 被回收最多損失當下那一筆草稿；改動後可能一次損失數筆。本 Change 負責關閉它。
+
+值得先講清楚的是，佇列並不是「失敗才進去的地方」，而是**每一顆球的必經之路**。`oppo.tsx` 的 create 與 update 都是先 `enqueue(entry)` 才 `void flush()`，送成功後由 `flushSucceeded` 移除。正常情況下一筆 entry 在佇列裡活不到一秒；佇列非空只有三種原因——離線、伺服器掛了、session 過期。這三種正是這張 Change 存在的理由。
+
+順序上還有一個推論：既然 entry 在**任何請求發出之前**就已入列，那麼把它寫進磁碟這件事也發生在送出之前。就算送出那一瞬間 app 就死了，球已經在磁碟上。
+
+## Goals
+
+- 未確認的 entry 在 app 被關閉或被系統回收之後仍然存在，使用者回到該場比賽時自動重送。
+- 重送不產生重複——這一點由 `retryable-entry-writes` 的 identity-keyed upsert 免費提供，本 Change 只需不破壞它。
+- 儲存的實作可以整批替換而不動任何呼叫端，因為 PWA 之後的下一步是 native app，屆時整批對應物都是非同步的。
+- 不讓「永久失敗的 entry」因為持久化而變成永久卡住——那會是一個回歸。
+
+## Non-goals
+
+- **不還原畫面。** 重啟後不把未送 entry 樂觀套回 SWR cache。畫面正確性是另一個缺陷（SWR revalidation 會覆蓋樂觀寫入），有自己的 Change，兩者獨立可交付。若在此一併做掉，兩張票會各寫一份同樣的樂觀套用邏輯。
+- **不把 flush 提升為全域。** 送出仍由 `usePendingWrites` 在 `Game` 底下掛載，也就是仍然需要使用者回到那場比賽。一個不綁畫面、自己負責把東西送出去的背景佇列就是 outbox 的定義，而 outbox 是 `offline-recording` 的第一條驗收條件。
+- **不改 `PendingEntry` 的重試狀態形狀。** 走查中發現重試狀態實際上是 `(gameId, setIndex)` 群組層級的事實卻被複製到每一筆 entry 上，那是 `retryable-entry-writes` 剛交付的核心結構，改它是重新設計而不是持久化，已獨立登記。
+- **不改用 IndexedDB。** 理由在 Design 的 D1，簡言之：它是非同步的，而本 Change 防的正是「app 突然被回收」。
+- 不做離線的完整語意——批次重播、跨裝置合併、連線狀態機、衝突解決，全部屬 `offline-recording`。
+
+## Change boundaries
+
+- **一定在內**：一個 client 端的儲存 port（三個方法）與它的 localStorage 實作、寫入的 listener middleware、讀回的進入點、以及 `pendingWrites` slice 新增的 `rehydrated` action。
+- **在內**：`PendingEntry` 新增 `lastError`。持久化逼出了一個記憶體裡可以含糊、寫到磁碟就不行的區別——`nextAttemptAt: null` 目前同時表示「退避用盡」與「不可重試」，而 401 與 404 的後續處理完全不同。
+- **在內（討論中發現）**：讀回時的過期規則。今天一筆註定失敗的 entry 的唯一出路是「關掉 app」，持久化拿掉了這個逃生口，必須補回一個等價的東西，否則這張 Change 自己製造一個回歸。
+- **不在內**：任何 UI 元件。`SyncIndicator`、entry row 的失敗標記、summary drawer 全部不動——它們已經是佇列與快取的投影，佇列被還原它們就自動正確。這也讓本 Change 不受「agent 無法對需登入頁面截圖」那個既有阻礙影響。
+- **不在內**：`useGame`、SWR 設定、rally 端點、repository、Mongoose schema。
+
+## Capability impact
+
+`game-recording/persistence` 的可靠性契約從「單一 entry 的寫入結果對 client 而言是可確認的」延伸為「**未確認的寫入在 app 生命週期之外仍然存在**」。這是該能力第一次擁有跨行程的狀態。
+
+`game-recording/rally-recording` 的行為契約不變——使用者記球的體驗、失敗的呈現方式、重試的手勢全部照舊。唯一的差別是重開 app 之後那些球還在。這是刻意的：這張 Change 的價值必須完全來自「東西沒不見」，而不是任何新的介面。
+
+## Alternatives considered
+
+Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記結論方向：
+
+- **IndexedDB**——容量大得多、可逐筆寫入，但非同步的 transaction 可能在 app 被回收時尚未 commit，而那正是要防的情境；同步寫入在這裡是對症而非妥協。算過的量（整天賽事全程離線約 300 KB）距離 localStorage 的配額還很遠。
+- **Service Worker 或 Background Sync 承接寫入**——Service Worker 不是常駐程序，瀏覽器會積極終止閒置的它；把寫入交給它是多一次非同步跳躍，中斷窗口變大而非變小。Background Sync 另有 iOS 不支援的問題，而且 `offline-recording` 的原始決策已經明確選擇 application-layer outbox 而非它。
+- **`redux-persist`**——為了通用地持久化整個 store 而存在。這裡只有一個 slice、一個 key，自己寫約二十行，還不必跟它的 rehydrate 生命週期打架。
+- **把 port 放進 `applications/repositories/`**——命名最一致，但那一層綁著 inversify 與 node-only 的 import，client 端只有一個檔案碰得到它；放進去會誤導讀者，也有把伺服器端相依打包進 bundle 的風險。
+- **`preloadedState` 注入讀回的資料**——`makeStore()` 是同步的而 `load()` 不是，這條路在選擇非同步簽章的那一刻就關閉了。
+- **`pagehide` / `visibilitychange` 時才寫入**——寫入次數最少，但 iOS PWA 被系統回收時不保證觸發，正是要防的情境。
+- **儲存 `retryable` 布林而非 error code**——布林分不出各種失敗，而後續處理（是否過期、衝突流程要接什麼）需要那個區別。
+- **為 401 另立一種判斷，讓它在重啟後自動重送**——理由成立（登入是整頁 redirect，重啟往往正是修好 session 的那件事），但它是第二種標準，而它買到的很窄：本來就要等使用者走回那場比賽才會送出，而那時重試手勢已經在畫面上。一種標準加一個已經存在的手勢，勝過兩種標準。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。
+
+| ID  | 問題                           | 結論                                                                     |
+| --- | ------------------------------ | ------------------------------------------------------------------------ |
+| D1  | 儲存的邊界畫在哪、簽章長什麼樣 | client 端輕量 port，三個方法，簽章從第一天就是非同步的                   |
+| D2  | 磁碟上存什麼                   | 整包快照，含 `lastError` 的 code；重試狀態一律重算，並套用收窄的過期規則 |
+| D3  | 誰負責在讀回之後把東西送出去   | 維持 game-scoped，讀回不等於送出                                         |
+| D4  | 儲存失敗時誰知道               | adapter 誠實 reject，政策留在 listener                                   |
+
+## Revisit triggers
+
+- `offline-recording` 開始實作 outbox：D3 登記的兩條 residual risk（送達依賴使用者回到該場比賽、儲存不可用時靜默降級）屆時關閉，該 Change 已收下對應的驗收條件。
+- 佇列規模逼近數千筆：整包快照的 O(n) 寫入開始有感，屆時換的是 D1 的 adapter 而非架構，第一步是把 key 拆成每場一把。
+- 目標平台從 PWA 延伸到 native app：D1 的非同步簽章正是為此而存在，屆時要驗證的是「寫到一半被殺」在新 adapter 上的行為，那是 localStorage 不需要處理而 native 需要的。
+- rally 端點加上 request schema：400 會大量增加，D2 的過期規則從保險變成主要機制。兩張 Change 在 `isRetryableStatus` 這一個函式上相接。
+- 過期天數被實地推翻：七天是一個沒有量測依據的起始值，長天期的巡迴賽是最可能推翻它的場景。
