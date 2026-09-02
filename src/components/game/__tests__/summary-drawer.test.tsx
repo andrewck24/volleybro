@@ -26,6 +26,9 @@ jest.mock("@/lib/redux/hooks", () => ({
         pending: mockFailedIds.map((id) => ({
           entry: { id },
           nextAttemptAt: null,
+          // A 4xx: nothing will send this entry, which is what the row's
+          // marker is for now that an exhausted backoff no longer qualifies.
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         })),
         storageUnavailable: false,
       },

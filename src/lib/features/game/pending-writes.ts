@@ -58,11 +58,21 @@ export const deriveSyncStatus = (
   return "syncing";
 };
 
+/**
+ * Whether this entry's row should carry the failure marker. The same judgement
+ * the indicator's warning tone uses, so the two cannot disagree about one
+ * entry. An exhausted backoff is deliberately not enough: those entries ride
+ * out on the next rally's flush or on reconnect, and marking a row destructive
+ * for work that heals itself is the per-row version of the over-warning this
+ * Change removes -- offline it would redden most of the list.
+ */
 export const hasFailedWrite = (
   state: PendingWritesState,
   entryId: string,
 ): boolean =>
-  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt === null);
+  state.pending.some(
+    (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
+  );
 
 /** True while this entry has an attempt scheduled (in-request or background). */
 export const isPendingWrite = (

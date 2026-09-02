@@ -83,7 +83,7 @@ export const SummaryDrawerCard = ({
   onEntryClick?: (entryIndex: number) => void;
   onEntryDelete?: (entryIndex: number) => void;
   onEntryRollback?: (entryIndex: number) => void;
-  // ids whose write exhausted its attempts (hasFailedWrite), a pure
+  // ids whose write cannot be sent at all (hasFailedWrite), a pure
   // projection of the pending-write queue -- not stored here.
   failedEntryIds?: Set<string>;
   onEntryRetry?: () => void;

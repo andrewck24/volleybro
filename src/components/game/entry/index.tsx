@@ -153,7 +153,7 @@ export const EntryRow = ({
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
   onSwipeReveal?: (revealed: boolean) => void;
-  // This row's write has exhausted its attempts (hasFailedWrite), matched
+  // This row's write cannot be sent at all (hasFailedWrite), matched
   // to the queue by entry id. Not a toast -- persists until retried.
   failed?: boolean;
   onRetry?: () => void;

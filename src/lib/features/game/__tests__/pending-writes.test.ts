@@ -109,20 +109,23 @@ describe("deriveSyncStatus", () => {
 });
 
 describe("hasFailedWrite", () => {
-  it("is true only for an entry whose backoff is exhausted", () => {
-    const state: PendingWritesState = {
-      pending: [
-        makePendingEntry({
-          entry: { id: "e1" } as never,
-          nextAttemptAt: null,
-        }),
-        makePendingEntry({
-          entry: { id: "e2" } as never,
-          nextAttemptAt: Date.now() + 2000,
-        }),
-      ],
-      storageUnavailable: false,
-    };
+  // The same judgement the indicator's warning tone uses: an exhausted
+  // backoff is not enough, because those entries send themselves on the next
+  // flush. Only an entry nothing can send carries the marker.
+  it("is true only for an entry that cannot be attempted again", () => {
+    const state = stateOf([
+      makePendingEntry({
+        entry: { id: "e1" } as never,
+        attempts: 1,
+        lastError: notRetryable as never,
+      }),
+      makePendingEntry({
+        entry: { id: "e2" } as never,
+        attempts: 4,
+        nextAttemptAt: null,
+        lastError: retryable as never,
+      }),
+    ]);
     expect(hasFailedWrite(state, "e1")).toBe(true);
     expect(hasFailedWrite(state, "e2")).toBe(false);
   });

@@ -318,6 +318,7 @@ describe("GamePreview editing write status", () => {
           gameId: "game-1",
           ids: ["e1"],
           retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
       );
     });
