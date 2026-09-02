@@ -110,21 +110,33 @@ Affected code，逐檔與各自的理由：
         "只移除 `flushStarted` 的 dispatch。flush、退避排程、`online` 監聽、`retry` 的行為全部不動——本 Change 不碰送出邏輯。",
     },
     {
+      path: "src/lib/features/game/pending-writes-storage.ts",
+      change: "modified",
+      summary:
+        "port 從三個方法變成四個，新增的那個回報「這個 store 現在寫得進去嗎」。這是擴充而非變更——既有三個方法的簽章與語意都不動，沒有既有呼叫端受影響。探測走 port 而非在 provider 內直接碰 `localStorage`，是因為 `makeStore` 與 `createPendingWritesPersistence` 都已經收一個 storage 參數（註解寫著「A parameter only so a test can hand in a fake」），走 port 免費拿到那個接縫；繞過去則探測失敗只能靠 mock 全域來驗證。",
+    },
+    {
+      path: "src/lib/features/game/pending-writes-persistence.ts",
+      change: "modified",
+      summary:
+        "`storageUnavailable` 的第二個寫入者。這裡的 `catch` 帶著一個 `ponytail:` 註解，明寫了「an unwritable store leaves the queue unprotected and the recorder untold」以及升級路徑——本 Change 就是來走那條路徑的。注意它不是字面上的改一行：`run()` 是個 closure，手上沒有 dispatch（dispatch 只在 listener effect 的 api 上），得先把它傳進去。",
+    },
+    {
       path: "src/lib/redux/provider.tsx",
       change: "modified",
       summary:
-        "既有的 `restorePendingWrites` 旁多兩件事：一次本機儲存可用性探測，以及一次 `navigator.storage.persist()`。探測結果 dispatch 進 slice 的新欄位；`persist()` 的結果只進 log。",
+        "既有的 `restorePendingWrites` 旁多兩件事：呼叫一次 port 的探測方法，以及一次 `navigator.storage.persist()`。它不自己碰 `localStorage`——儲存細節留在 port 後面。探測結果 dispatch 進 slice 的新欄位；`persist()` 的結果只進 log。",
     },
     {
       path: "src/lib/features/game/__tests__/",
       change: "modified",
       summary:
-        "`deriveSyncStatus` 的既有測試改寫為五條件形狀而非刪除；`flushStarted` 的測試隨其 action 一併刪除，保留它們會是在測一個不再存在的概念；新增門檻邊界（`attempts` 為 1 與 2）與「不可重試 ≠ 退避用盡」的案例。",
+        "`deriveSyncStatus` 的既有測試改寫為五條件形狀而非刪除；`flushStarted` 的測試隨其 action 一併刪除，保留它們會是在測一個不再存在的概念；新增門檻邊界（`attempts` 為 1 與 2）與「不可重試 ≠ 退避用盡」的案例。探測失敗以注入一個會失敗的 storage double 驗證，走既有的參數接縫，不 mock `localStorage` 全域。",
     },
   ]}
 />
 
-不在影響範圍內：rally 端點、repository、Mongoose schema、SWR 設定、Entry List 的互動控制項（只有標記的觸發條件改變，控制項本身不動）、`pending-writes-storage.ts` 的 port 契約。
+不在影響範圍內：rally 端點、repository、Mongoose schema、SWR 設定、Entry List 的互動控制項（只有標記的觸發條件改變，控制項本身不動）、以及 port 既有三個方法的簽章與語意。
 
 ## Alternatives considered
 

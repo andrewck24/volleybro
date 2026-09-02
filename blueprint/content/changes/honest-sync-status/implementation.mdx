@@ -45,6 +45,5 @@ diff
 ## 驗證的層次
 
 六片共用同一組指令，沒有新增 integration 測試。S05
-的「重開分頁後探測仍會執行」與「執行期寫入失敗也會設定同一個欄位」都可以用單元測試覆蓋既有的
-`localStorage` mock，不需要真的耗盡裝置儲存或關掉持久化權限——那類情境（iOS
+的「重開分頁後探測仍會執行」與「執行期寫入失敗也會設定同一個欄位」都可以用單元測試覆蓋，做法是注入一個會失敗的 storage double——`makeStore` 與 `createPendingWritesPersistence` 收的那個參數本來就是為此存在的——而不是 mock `localStorage` 全域，也不需要真的耗盡裝置儲存或關掉持久化權限——那類情境（iOS
 ITP、實際磁碟壓力）沒有自動化層能證明，同 `retryable-queue-persistence` 的判斷，留給交付驗收。
