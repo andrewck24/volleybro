@@ -36,10 +36,8 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   let inFlight: Promise<void> | null = null;
   let queued: PendingWritesState["pending"] | null = null;
 
-  // A store can pass the boot probe and fail later -- a quota another origin
-  // fills mid-match is the ordinary way. Reporting it from here is what keeps
-  // the flag true of the whole session rather than of one moment at start-up.
-  // The catch also stops one failure from stalling every save behind it.
+  // A store can pass the boot probe and fail later, so report it from here
+  // too. The catch also stops one failure stalling every save behind it.
   const run = (
     pending: PendingWritesState["pending"],
     dispatch: StorageDispatch,
@@ -87,14 +85,10 @@ const discard = (storage: PendingWritesStorage) =>
   });
 
 /**
- * Asks the store, once at start-up, whether it can hold anything at all --
- * before the first rally rather than after it. The difference is the whole
- * point: told at start-up the recorder can still leave private browsing, free
- * space, or switch device; told at the first failed save they are already
- * mid-match with rallies at stake and no move left.
- *
- * Only a failure is reported. Nothing here can observe the store recovering,
- * so there is no honest moment to clear the flag.
+ * At start-up rather than at the first failed save, which is the point: the
+ * recorder still has moves available before the first rally. Only a failure
+ * is reported -- nothing here can observe a store recovering.
+ * See honest-sync-status D3.
  */
 export async function probePendingWritesStorage(
   dispatch: StorageDispatch,

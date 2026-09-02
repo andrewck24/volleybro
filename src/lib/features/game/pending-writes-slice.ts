@@ -100,13 +100,7 @@ const rehydrated: CaseReducer<
   state.pending = [...restored, ...state.pending];
 };
 
-/**
- * The local store has been found unable to hold the queue. One-way: nothing
- * clears it. The boot probe only reports a failure, and a later save failing
- * reports the same thing, so there is no moment at which this component knows
- * the store recovered -- and claiming it did is the exact false reassurance
- * this flag exists to prevent.
- */
+/** One-way: nothing observes a store recovering. See honest-sync-status D3. */
 const storageUnavailable: CaseReducer<PendingWritesState> = (state) => {
   state.storageUnavailable = true;
 };

@@ -24,16 +24,9 @@ import {
 export const SYNCED_ACK_MS = 1500;
 
 /**
- * Everything that varies by status and nothing else: the mark, whether the
- * tone is a warning, and whether a count rides on it. One table rather than a
- * switch per question, so adding a condition cannot leave one of the three
- * behind. The wording is separate because it needs the count and the network.
- *
- * Warning is for the two conditions the recorder has to act on -- an entry
- * nothing can send, and a store that will not keep what is unsent. Waiting is
- * not one of them: those rallies send themselves. The count rides on the two
- * conditions where the queue has stopped draining; a syncing queue is about
- * to be empty and a number there is noise.
+ * One table rather than a switch per question, so a new condition cannot be
+ * added to some of them and not others. Warning is for the two conditions the
+ * recorder has to act on; waiting is not one of them. See honest-sync-status D2.
  */
 const STATUS_STYLE: Record<
   SyncStatus,
@@ -60,18 +53,14 @@ const STATUS_STYLE: Record<
     warning: true,
     showsCount: true,
   },
-  // Cloud, not wifi: the wifi bars on the recorder's phone can be full while
-  // nothing reaches the server, and an icon arguing with the status bar reads
-  // as the app being wrong rather than the connection.
+  // Cloud, not wifi: the phone's bars can be full while nothing gets through.
   unsent: {
     icon: (className) => <RiCloudOffLine className={className} />,
     warning: false,
     showsCount: true,
   },
   syncing: {
-    // Test id for the same reason the popover icon has one: "is it still
-    // spinning" is the assertion this Change exists to make, and a spinner
-    // has no role or text to query it by.
+    // Test id because a spinner has no role or text to query it by.
     icon: (className) => (
       <Spinner className={className} data-testid="sync-spinner" />
     ),
@@ -81,16 +70,9 @@ const STATUS_STYLE: Record<
 };
 
 /**
- * What the indicator says, as a heading and the sentence under it. The
- * sentence is the point: the queue being unsent is not news to anyone
- * watching a spinner, but whether the rallies are safe is, and nothing in
- * this component said so before.
- *
- * `online` is read only inside the unsent case, and only to choose between
- * two sentences that are both true. `false` is the one answer that signal
- * can be trusted on, so it can promise an automatic send; `true` promises
- * only continued attempts, because what is actually known there is that the
- * writes are failing, which came from the queue and not from the browser.
+ * `online` is read only in the unsent case, and only to choose between two
+ * sentences that are both true: `false` can promise an automatic send, `true`
+ * can promise only further attempts. See honest-sync-status D1.
  */
 const copyFor = (
   status: SyncStatus,
@@ -147,14 +129,11 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
 
   const { icon, warning, showsCount } = STATUS_STYLE[status];
   const { title, detail } = copyFor(status, pendingCount, online);
-  // Screen reader users have no "open it to see more" step, so the trigger
-  // carries the whole sentence rather than only its heading.
+  // No "open it to see more" step for a screen reader, so carry the sentence.
   const label = detail ? `${title}，${detail}` : title;
 
-  // Only a recovery is acknowledged: every rally passes through syncing,
-  // and a check mark there would outlast the send it acknowledges. Both
-  // conditions that stop reading as progress count as something to recover
-  // from -- an entry that could not be sent, and a queue that gave up waiting.
+  // Only a recovery: every rally passes through syncing, and a check mark
+  // there would outlast the send it acknowledges.
   const [acknowledging, setAcknowledging] = useState(false);
   const previousStatus = useRef(status);
   useEffect(() => {
@@ -168,11 +147,9 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     return () => clearTimeout(timer);
   }, [status]);
 
-  // Pressing retry changes no queue state -- attempts is left alone so a
-  // failure exhausts the table again immediately -- so without a pending
-  // state of its own the button looks like it did nothing. Kept local: a
-  // global in-flight signal would flash the spinner on every background
-  // retry too, which is exactly what the failure threshold exists to stop.
+  // Retry changes no queue state, so the button needs its own pending mark.
+  // Local, not global: a shared in-flight signal would flash the spinner on
+  // every background retry too. See honest-sync-status D4.
   const [retrying, setRetrying] = useState(false);
   const handleRetry = () => {
     setRetrying(true);
@@ -249,11 +226,9 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               {detail}
             </p>
           )}
-          {/* Offline the button is certain to fail, and the recorder already
-              knows the network is off -- offering it would only suggest that
-              pressing it might help. Online it is the only recourse there is:
-              nothing detects the server coming back, because no `online`
-              event fires when the device never left the network. */}
+          {/* Offline it can only fail; online it is the only recourse, since
+              no `online` event fires for a device that never left the
+              network. See honest-sync-status D4. */}
           {status === "unsent" && online && (
             <button
               type="button"

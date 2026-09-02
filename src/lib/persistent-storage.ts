@@ -9,9 +9,6 @@
  */
 export async function requestPersistentStorage(): Promise<void> {
   try {
-    // Only a refusal is logged. A granted request is the ordinary case and
-    // would print on every start, and the log would be the only thing here
-    // that looked like a guarantee.
     const granted = await navigator.storage?.persist?.();
     if (granted === false) {
       console.warn("[persistentStorage] request declined by the browser");

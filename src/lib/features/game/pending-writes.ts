@@ -7,8 +7,7 @@ import type {
 
 /**
  * The one standard for whether another attempt is worth making. The flush, the
- * restore and the expiry rule all read it, so none of them can disagree about
- * which failures are worth carrying.
+ * restore and the expiry rule all read it.
  */
 export const isRetryableStatus = (status: number): boolean => status >= 500;
 
@@ -19,30 +18,15 @@ export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
 export type SyncStatus =
   "unwritable" | "synced" | "failed" | "unsent" | "syncing";
 
-/**
- * How many measured failures an entry needs before the queue stops reading as
- * work in progress. One failure is a blip -- the first background retry is 2s
- * away and usually succeeds. Two means the failure outlived that retry, which
- * offline and an unreachable server both do and a hiccup does not. Counted
- * rather than timed: `attempts` rises by dispatch, so the status turns over on
- * its own without a timer to schedule and clean up.
- */
+/** Two, so the failure outlived the first background retry. See
+ * honest-sync-status D1. */
 export const PENDING_WRITE_UNSENT_ATTEMPTS = 2;
 
 /**
- * SyncIndicator and the per-row failure marker are both projections of the
- * queue, never stored state of their own.
- *
- * Five conditions, worst possibility first, and the first match wins. The
- * order is the design: every gate stands for a higher risk than the one below
- * it, so nothing uncertain can be reported as the most optimistic answer.
- * `syncing` sits last for that reason -- a spinner promises "this finishes
- * shortly", and it is only allowed where that promise holds.
- *
- * An unwritable store outranks an empty queue because "hidden" means no risk,
- * not no queue: work recorded from here will not survive the app being
- * reclaimed, whether or not anything is queued yet. Note this is the one input
- * that does not come from queue contents.
+ * Worst possibility first, first match wins -- the order is the design, not an
+ * implementation detail, so keep it. `storageUnavailable` outranks the empty
+ * queue because it is the one input that does not come from queue contents.
+ * See honest-sync-status D1 and D3.
  */
 export const deriveSyncStatus = (
   state: PendingWritesState,
@@ -59,12 +43,8 @@ export const deriveSyncStatus = (
 };
 
 /**
- * Whether this entry's row should carry the failure marker. The same judgement
- * the indicator's warning tone uses, so the two cannot disagree about one
- * entry. An exhausted backoff is deliberately not enough: those entries ride
- * out on the next rally's flush or on reconnect, and marking a row destructive
- * for work that heals itself is the per-row version of the over-warning this
- * Change removes -- offline it would redden most of the list.
+ * Deliberately the same judgement as the indicator's warning tone, so the two
+ * cannot disagree about one entry. An exhausted backoff is not enough. See honest-sync-status D2.
  */
 export const hasFailedWrite = (
   state: PendingWritesState,

@@ -1,9 +1,7 @@
 "use client";
 import { useSyncExternalStore } from "react";
 
-// Module scope so the reference never changes: a subscribe defined inside the
-// component would be a new function every render, and React would tear the
-// listeners down and put them back each time.
+// Module scope: a new reference each render would re-subscribe each render.
 const subscribe = (onChange: () => void) => {
   window.addEventListener("online", onChange);
   window.addEventListener("offline", onChange);
@@ -15,17 +13,12 @@ const subscribe = (onChange: () => void) => {
 
 const getSnapshot = () => navigator.onLine;
 
-// Next.js renders client components on the server too, where there is no
-// navigator at all. Assumed online because nothing is queued during a server
-// render, so the value cannot be displayed from one.
+// Client components still render on the server, where there is no navigator.
 const getServerSnapshot = () => true;
 
 /**
- * Whether the device is attached to a network. Only the `false` answer is
- * trustworthy -- a device on a captive portal, or on wifi whose upstream is
- * down, reports `true` while nothing reaches the server. So this never decides
- * what state the queue is in; it only picks which of two true sentences to say
- * about a queue already known, from measured failures, not to be sending.
+ * Only the `false` answer is trustworthy: a captive portal or a dead upstream
+ * both report `true`. Never let this decide queue state -- see honest-sync-status D1.
  */
 export const useIsOnline = (): boolean =>
   useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

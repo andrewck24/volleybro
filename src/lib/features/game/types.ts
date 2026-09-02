@@ -421,10 +421,7 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
 
 export type PendingWritesState = {
   pending: PendingEntry[];
-  // Whether this device's local store has been found unwritable. Not derived
-  // from the queue -- it is the one thing SyncIndicator reports that the
-  // queue's contents cannot tell it, and it stays true regardless of how much
-  // is pending, because what is at stake is everything unsent.
+  // The one thing SyncIndicator reports that the queue cannot tell it.
   storageUnavailable: boolean;
 };
 

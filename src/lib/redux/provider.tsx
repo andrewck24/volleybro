@@ -22,10 +22,7 @@ export const ReduxProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     void restorePendingWrites(store.dispatch, localStoragePendingWrites);
     void probePendingWritesStorage(store.dispatch, localStoragePendingWrites);
-    // Covers what the probe cannot see: eviction under disk pressure and
-    // iOS ITP's inactivity sweep throw nothing, so a store that passes the
-    // probe can still lose the queue later. Best effort and unverifiable --
-    // nothing here reads the outcome.
+    // Covers what the probe cannot see: eviction and ITP throw nothing.
     void requestPersistentStorage();
   }, [store]);
 
