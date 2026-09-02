@@ -21,60 +21,90 @@ const makePendingEntry = (
   ...overrides,
 });
 
+const stateOf = (
+  pending: PendingEntry[],
+  storageUnavailable = false,
+): PendingWritesState => ({ pending, storageUnavailable });
+
+const retryable = { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 };
+const notRetryable = { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 };
+
 describe("deriveSyncStatus", () => {
   it("reads synced when the queue is empty", () => {
-    const state: PendingWritesState = { pending: [], flushingGameIds: [] };
+    expect(deriveSyncStatus(stateOf([]), "game-1")).toBe("synced");
+  });
+
+  it("reads syncing while attempts are below the threshold", () => {
+    expect(
+      deriveSyncStatus(stateOf([makePendingEntry({ attempts: 0 })]), "game-1"),
+    ).toBe("syncing");
+  });
+
+  // The hiccup case: one failure is survivable, and the 2s background retry
+  // usually clears it. Turning the icon over here would flicker on every
+  // transient failure.
+  it("still reads syncing after a single measured failure", () => {
+    const state = stateOf([
+      makePendingEntry({ attempts: 1, lastError: retryable as never }),
+    ]);
+    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
+  });
+
+  it("reads unsent once any entry has failed twice", () => {
+    const state = stateOf([
+      makePendingEntry({ entry: { id: "e1" } as never, attempts: 0 }),
+      makePendingEntry({
+        entry: { id: "e2" } as never,
+        attempts: 2,
+        lastError: retryable as never,
+      }),
+    ]);
+    expect(deriveSyncStatus(state, "game-1")).toBe("unsent");
+  });
+
+  it("reads failed when an entry cannot be attempted again", () => {
+    const state = stateOf([
+      makePendingEntry({ attempts: 1, lastError: notRetryable as never }),
+    ]);
+    expect(deriveSyncStatus(state, "game-1")).toBe("failed");
+  });
+
+  // An entry that will never send outranks a queue that is merely waiting.
+  it("prefers failed over unsent when both are true", () => {
+    const state = stateOf([
+      makePendingEntry({
+        entry: { id: "e1" } as never,
+        attempts: 3,
+        lastError: retryable as never,
+      }),
+      makePendingEntry({
+        entry: { id: "e2" } as never,
+        attempts: 1,
+        lastError: notRetryable as never,
+      }),
+    ]);
+    expect(deriveSyncStatus(state, "game-1")).toBe("failed");
+  });
+
+  // "Hidden" means no risk, not no queue: nothing recorded from here would
+  // survive the app being reclaimed, so an empty queue is not reassuring.
+  it("reads unwritable even when the queue is empty", () => {
+    expect(deriveSyncStatus(stateOf([], true), "game-1")).toBe("unwritable");
+  });
+
+  it("prefers unwritable over failed, because everything unsent is at stake", () => {
+    const state = stateOf(
+      [makePendingEntry({ attempts: 1, lastError: notRetryable as never })],
+      true,
+    );
+    expect(deriveSyncStatus(state, "game-1")).toBe("unwritable");
+  });
+
+  it("ignores another game's queue", () => {
+    const state = stateOf([
+      makePendingEntry({ gameId: "game-2", attempts: 5 }),
+    ]);
     expect(deriveSyncStatus(state, "game-1")).toBe("synced");
-  });
-
-  it("reads syncing when a flush for this game is in flight", () => {
-    const state: PendingWritesState = {
-      pending: [makePendingEntry({ nextAttemptAt: null })],
-      flushingGameIds: ["game-1"],
-    };
-    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
-  });
-
-  it("reads syncing when any item still has a scheduled attempt", () => {
-    const state: PendingWritesState = {
-      pending: [
-        makePendingEntry({ nextAttemptAt: null }),
-        makePendingEntry({ nextAttemptAt: Date.now() + 2000 }),
-      ],
-      flushingGameIds: [],
-    };
-    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
-  });
-
-  it("reads unsynced when every item has exhausted its backoff", () => {
-    const state: PendingWritesState = {
-      pending: [
-        makePendingEntry({ nextAttemptAt: null }),
-        makePendingEntry({ nextAttemptAt: null }),
-      ],
-      flushingGameIds: [],
-    };
-    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
-  });
-
-  // The two behaviours the flag needed identity to distinguish: with a bare
-  // boolean, "this game's queue exhausted, another game's flush in flight"
-  // and "this game's queue exhausted, this game's own flush in flight" were
-  // indistinguishable and one of them always misreported.
-  it("reads unsynced -- not syncing -- when this game's queue is exhausted and a different game's flush is in flight", () => {
-    const state: PendingWritesState = {
-      pending: [makePendingEntry({ gameId: "game-1", nextAttemptAt: null })],
-      flushingGameIds: ["game-2"],
-    };
-    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
-  });
-
-  it("reads syncing when this game's queue is exhausted but this game's own flush is in flight", () => {
-    const state: PendingWritesState = {
-      pending: [makePendingEntry({ gameId: "game-1", nextAttemptAt: null })],
-      flushingGameIds: ["game-1"],
-    };
-    expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 });
 
@@ -91,7 +121,7 @@ describe("hasFailedWrite", () => {
           nextAttemptAt: Date.now() + 2000,
         }),
       ],
-      flushingGameIds: [],
+      storageUnavailable: false,
     };
     expect(hasFailedWrite(state, "e1")).toBe(true);
     expect(hasFailedWrite(state, "e2")).toBe(false);
@@ -111,7 +141,7 @@ describe("isPendingWrite", () => {
           nextAttemptAt: null,
         }),
       ],
-      flushingGameIds: [],
+      storageUnavailable: false,
     };
     expect(isPendingWrite(state, "e1")).toBe(true);
     expect(isPendingWrite(state, "e2")).toBe(false);

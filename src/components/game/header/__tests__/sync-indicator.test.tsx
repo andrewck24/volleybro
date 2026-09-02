@@ -44,6 +44,32 @@ const PendingWritesTestHarness = ({
   );
 };
 
+// Two measured failures is what the queue needs before it stops reading as
+// work in progress; one is a hiccup the first background retry usually clears.
+const failTwice = (store: AppStore, ids: string[]) => {
+  for (let i = 0; i < 2; i++) {
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        gameId: "game-1",
+        ids,
+        retryable: true,
+        lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
+      }),
+    );
+  }
+};
+
+// A 4xx: waiting does not improve it, so nothing will send this entry.
+const failUnrecoverably = (store: AppStore, ids: string[]) =>
+  store.dispatch(
+    pendingWritesActions.flushFailed({
+      gameId: "game-1",
+      ids,
+      retryable: false,
+      lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+    }),
+  );
+
 let store: AppStore;
 const renderIndicator = (onSurroundingClick: () => void) => {
   store = makeStore();
@@ -98,7 +124,7 @@ describe("SyncIndicator", () => {
     expect(button).not.toHaveClass("ring-warning/30");
   });
 
-  it("shows the unsynced count once an item's backoff is exhausted, with the retry control visible", async () => {
+  it("shows the count with the retry control once an entry has failed twice", async () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -107,13 +133,45 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
+    failTwice(store, ["e1"]);
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    // Waiting is not a warning: these entries send themselves once the
+    // connection is back, so the tone stays neutral.
+    expect(button).not.toHaveClass("ring-warning/30");
+
+    await user.click(button);
+
+    expect(
+      await screen.findByRole("button", { name: "重試" }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("sync-popover-icon")).not.toHaveClass(
+      "text-warning",
+    );
+  });
+
+  // The warning tone belongs to the one condition the recorder has to act on:
+  // an entry a retry cannot fix. The popover's own icon carries that colour
+  // explicitly -- it does not inherit it from the trigger button, which is a
+  // different element in the portalled popover content.
+  it("wears the warning tone, without a retry control, for an entry that cannot be sent", async () => {
+    store = makeStore();
     store.dispatch(
-      pendingWritesActions.flushFailed({
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
         gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
+        setIndex: 0,
       }),
     );
+    failUnrecoverably(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -128,49 +186,15 @@ describe("SyncIndicator", () => {
 
     await user.click(button);
 
-    expect(
-      await screen.findByRole("button", { name: "重試" }),
-    ).toBeInTheDocument();
-    // The popover's own icon carries the warning color explicitly (it
-    // doesn't inherit it from the trigger button, which is a different
-    // element in the portalled popover content).
     expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
+    // Retrying a 4xx fails the same way; the route to resolving it is the
+    // per-rally control in the entry list, not this popover.
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("reads as unsynced, retry control visible, when this game's queue is exhausted and a different game's flush is in flight", () => {
-    store = makeStore();
-    // This game's item has exhausted its backoff...
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: entry("e1"),
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
-    // ...and, at the same time, an unrelated game's flush is genuinely in
-    // flight. The flag now carries its own game identity, so this must not
-    // be read as this game's syncing state.
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
-    render(
-      <Provider store={store}>
-        <PendingWritesTestHarness>
-          <SyncIndicator gameId="game-1" />
-        </PendingWritesTestHarness>
-      </Provider>,
-    );
-
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
-    expect(button).toHaveClass("ring-warning/30");
-  });
-
-  it("ignores pending entries -- and an in-flight flush -- that belong to a different game", () => {
+  it("ignores pending entries that belong to a different game", () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -179,7 +203,6 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -201,13 +224,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failTwice(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -234,13 +251,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failTwice(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -310,13 +321,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failTwice(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -353,13 +358,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e0"],
-        retryable: false,
-      }),
-    );
+    failTwice(store, ["e0"]);
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e1"),
@@ -367,13 +366,7 @@ describe("SyncIndicator", () => {
         setIndex: 1,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failTwice(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>

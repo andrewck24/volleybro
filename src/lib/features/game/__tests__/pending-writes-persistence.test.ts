@@ -114,14 +114,13 @@ describe("pending-writes persistence", () => {
     });
     expect(last.items[0]).not.toHaveProperty("attempts");
     expect(last.items[0]).not.toHaveProperty("nextAttemptAt");
-    expect(last).not.toHaveProperty("flushingGameIds");
+    expect(last).not.toHaveProperty("storageUnavailable");
   });
 
   it("ignores dispatches that do not change the queue's contents", async () => {
     const { storage, saved } = fakeStorage();
     store = makeStore(storage);
 
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     store.dispatch(pendingWritesActions.retryRequested({ gameId: "game-1" }));
 
     expect(saved).toHaveLength(0);

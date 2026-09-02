@@ -52,8 +52,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
     if (bySetIndex.size === 0) return { ok: true };
 
-    dispatch(pendingWritesActions.flushStarted({ gameId }));
-
     const succeededIds: string[] = [];
     // Per set group, not pooled by retryability: each group is its own
     // request, and an entry has to record why its own request failed.

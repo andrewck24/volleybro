@@ -81,7 +81,6 @@ describe("UnconfirmedSetDialog", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
 
     renderDialog();
 

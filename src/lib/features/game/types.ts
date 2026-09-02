@@ -421,12 +421,11 @@ export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
 
 export type PendingWritesState = {
   pending: PendingEntry[];
-  // gameIds with a flush request currently on the wire. A game identity,
-  // not a bare boolean, because a flush is scoped per game (see
-  // usePendingWrites) and more than one game's flush can be in flight at
-  // once -- e.g. one game's background retry firing while another is
-  // manually retried.
-  flushingGameIds: string[];
+  // Whether this device's local store has been found unwritable. Not derived
+  // from the queue -- it is the one thing SyncIndicator reports that the
+  // queue's contents cannot tell it, and it stays true regardless of how much
+  // is pending, because what is at stake is everything unsent.
+  storageUnavailable: boolean;
 };
 
 // For Other Components

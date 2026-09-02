@@ -19,12 +19,22 @@ export const SYNCED_ACK_MS = 1500;
 
 const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
   {
+    unwritable: (className) => <RiErrorWarningLine className={className} />,
     synced: (className) => (
       <RiCheckLine className={cn(className, "text-success")} />
     ),
+    failed: (className) => <RiErrorWarningLine className={className} />,
+    unsent: (className) => <RiErrorWarningLine className={className} />,
     syncing: (className) => <Spinner className={className} />,
-    unsynced: (className) => <RiErrorWarningLine className={className} />,
   };
+
+/**
+ * Warning tone is for the two conditions the recorder has to act on, not for
+ * work that is merely waiting: an entry that will never send, and a store that
+ * will not keep what is unsent. Everything else is neutral.
+ */
+const isWarning = (status: SyncStatus): boolean =>
+  status === "unwritable" || status === "failed";
 
 /**
  * SyncIndicator is a pure projection of the pending-write queue, scoped to
@@ -51,11 +61,15 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const label = status === "synced" ? "已同步" : `${pendingCount} 筆未同步`;
 
   // Only a recovery is acknowledged: every rally passes through syncing,
-  // and a check mark there would outlast the send it acknowledges.
+  // and a check mark there would outlast the send it acknowledges. Both
+  // conditions that stop reading as progress count as something to recover
+  // from -- an entry that could not be sent, and a queue that gave up waiting.
   const [acknowledging, setAcknowledging] = useState(false);
   const previousStatus = useRef(status);
   useEffect(() => {
-    const recovered = previousStatus.current === "unsynced";
+    const recovered =
+      previousStatus.current === "failed" ||
+      previousStatus.current === "unsent";
     previousStatus.current = status;
     if (!recovered || status !== "synced") return;
     setAcknowledging(true);
@@ -92,11 +106,11 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
             // 44px touch target, 24px mark: the pseudo-element takes no
             // layout space, so the popover still anchors to the visible box.
             "after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
-            status === "unsynced" && "text-warning ring-1 ring-warning/30",
+            isWarning(status) && "text-warning ring-1 ring-warning/30",
           )}
         >
           {STATUS_ICON[status]("size-4")}
-          {status === "unsynced" && (
+          {isWarning(status) && (
             <span className="absolute top-0 right-0 flex size-3 items-center justify-center rounded-full bg-warning text-[7px] font-bold text-warning-foreground">
               {pendingCount}
             </span>
@@ -114,14 +128,14 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               trigger button) is a queryable, testable element. */}
           <span
             data-testid="sync-popover-icon"
-            className={cn("contents", status === "unsynced" && "text-warning")}
+            className={cn("contents", isWarning(status) && "text-warning")}
           >
             {STATUS_ICON[status]("size-4 shrink-0")}
           </span>
-          <span className={status === "unsynced" ? "text-warning" : undefined}>
+          <span className={isWarning(status) ? "text-warning" : undefined}>
             {label}
           </span>
-          {status === "unsynced" && (
+          {status === "unsent" && (
             <button
               type="button"
               onClick={handleRetry}
