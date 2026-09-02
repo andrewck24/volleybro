@@ -75,9 +75,7 @@ describe("pending-writes persistence", () => {
       items: [{ entry: entry("e1"), gameId: "game-1", setIndex: 0 }],
     });
 
-    store.dispatch(
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-    );
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     await settled();
     expect(saved).toHaveLength(2);
     expect(saved[1]).toEqual({ version: 1, items: [] });
@@ -96,7 +94,6 @@ describe("pending-writes persistence", () => {
     );
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
         lastError: {

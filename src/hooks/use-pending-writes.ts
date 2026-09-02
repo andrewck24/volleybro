@@ -86,7 +86,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       } else {
         failures.push({
           payload: {
-            gameId,
             ids,
             retryable: result.retryable,
             lastError: toWriteError(result.error),
@@ -97,9 +96,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
 
     if (succeededIds.length > 0) {
-      dispatch(
-        pendingWritesActions.flushSucceeded({ gameId, ids: succeededIds }),
-      );
+      dispatch(pendingWritesActions.flushSucceeded({ ids: succeededIds }));
     }
     for (const { payload } of failures) {
       dispatch(pendingWritesActions.flushFailed(payload));

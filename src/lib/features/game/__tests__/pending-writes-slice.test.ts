@@ -75,7 +75,7 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
     );
 
     expect(state.pending.map((p) => p.entry.id)).toEqual(["e2"]);
@@ -98,7 +98,6 @@ describe("pendingWrites reducer", () => {
     let state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -113,7 +112,6 @@ describe("pendingWrites reducer", () => {
       state = pendingWritesReducer(
         state,
         pendingWritesActions.flushFailed({
-          gameId: "game-1",
           ids: ["e1"],
           retryable: true,
         }),
@@ -127,7 +125,6 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -154,7 +151,6 @@ describe("pendingWrites reducer", () => {
     const failed = pendingWritesReducer(
       enqueued,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
         lastError: {
@@ -176,7 +172,6 @@ describe("pendingWrites reducer", () => {
     const failedAgain = pendingWritesReducer(
       failed,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -196,7 +191,6 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -212,7 +206,6 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -241,7 +234,7 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
     );
 
     // Confirmation removes the item outright, so a stale reason cannot
@@ -266,7 +259,6 @@ describe("pendingWrites reducer", () => {
     const state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),

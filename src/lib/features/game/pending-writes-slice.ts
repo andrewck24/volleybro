@@ -32,7 +32,7 @@ const enqueued: CaseReducer<
 
 const flushSucceeded: CaseReducer<
   PendingWritesState,
-  PayloadAction<{ gameId: string; ids: string[] }>
+  PayloadAction<{ ids: string[] }>
 > = (state, action) => {
   const ids = new Set(action.payload.ids);
   state.pending = state.pending.filter((p) => !ids.has(p.entry.id));
@@ -43,7 +43,6 @@ const flushSucceeded: CaseReducer<
 const flushFailed: CaseReducer<
   PendingWritesState,
   PayloadAction<{
-    gameId: string;
     ids: string[];
     retryable: boolean;
     lastError?: WriteError;

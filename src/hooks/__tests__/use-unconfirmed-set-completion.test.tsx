@@ -123,7 +123,6 @@ describe("useUnconfirmedSetCompletion", () => {
     // window has no request on the wire at all.
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -156,7 +155,6 @@ describe("useUnconfirmedSetCompletion", () => {
     // null and nothing will send this entry again without a manual retry.
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -182,9 +180,7 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-    );
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     store.dispatch(
       setCompletionActions.recorded({
         gameId: "game-1",
@@ -324,7 +320,6 @@ describe("useUnconfirmedSetCompletion", () => {
     );
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),

@@ -101,13 +101,19 @@ Affected code，逐檔與各自的理由：
       path: "src/hooks/use-is-online.ts",
       change: "added",
       summary:
-        "以 `useSyncExternalStore` 訂閱 `online` / `offline` 的一個 hook，約八行。`subscribe` 置於 module scope 使其 reference 穩定，否則每次 render 都會退訂再重訂；`getServerSnapshot` 必填，因為 Next.js 仍會在伺服器上渲染 client component，而伺服器沒有 `navigator`。這是本 Change 唯一的新檔。",
+        "以 `useSyncExternalStore` 訂閱 `online` / `offline` 的一個 hook，約八行。`subscribe` 置於 module scope 使其 reference 穩定，否則每次 render 都會退訂再重訂；`getServerSnapshot` 必填，因為 Next.js 仍會在伺服器上渲染 client component，而伺服器沒有 `navigator`。",
+    },
+    {
+      path: "src/lib/persistent-storage.ts",
+      change: "added",
+      summary:
+        "`navigator.storage.persist()` 的單一呼叫點。獨立成檔而非寫在 `provider.tsx` 裡，因為它與待送佇列無關——它請求的是整個 origin 的儲存不被回收——而且那讓「拒絕、拋錯、API 不存在三種情況都不影響 app」可以被單獨測到。回傳型別是 `void`：沒有任何值可以被誤讀成耐久性保證。",
     },
     {
       path: "src/hooks/use-pending-writes.ts",
       change: "modified",
       summary:
-        "只移除 `flushStarted` 的 dispatch。flush、退避排程、`online` 監聽、`retry` 的行為全部不動——本 Change 不碰送出邏輯。",
+        "移除 `flushStarted` 的 dispatch，以及 `flushSucceeded` / `flushFailed` payload 裡的 `gameId`——那兩個欄位只服務過 `flushingGameIds`，reducer 已無人讀取。flush、退避排程、`online` 監聽、`retry` 的行為全部不動——本 Change 不碰送出邏輯。",
     },
     {
       path: "src/lib/features/game/pending-writes-storage.ts",
@@ -128,13 +134,27 @@ Affected code，逐檔與各自的理由：
         "既有的 `restorePendingWrites` 旁多兩件事：呼叫一次 port 的探測方法，以及一次 `navigator.storage.persist()`。它不自己碰 `localStorage`——儲存細節留在 port 後面。探測結果 dispatch 進 slice 的新欄位；`persist()` 的結果只進 log。",
     },
     {
-      path: "src/lib/features/game/__tests__/",
+      path: "src/components/game/entry/index.tsx　·　src/components/game/summary-drawer.tsx",
+      change: "modified",
+      summary:
+        "只有註解。兩處都描述 per-row 失敗標記的觸發條件為「嘗試用盡」，那在本 Change 之後不再成立。留著會是兩句過時的斷言。",
+    },
+    {
+      path: "src/stories/game/header.stories.tsx",
+      change: "modified",
+      summary:
+        "原本的 `Unsynced` story 在新模型下會渲染成轉圈的 spinner——它 dispatch 一次不帶 `lastError` 的失敗，於是落在門檻之下。視覺回歸基準說謊比沒有基準更糟，因此換成三個對應新狀態的 story：`Unsent`、`Failed`、`StorageUnavailable`。",
+    },
+    {
+      path: "src/lib/features/game/__tests__/　·　src/hooks/__tests__/　·　src/components/game/__tests__/",
       change: "modified",
       summary:
         "`deriveSyncStatus` 的既有測試改寫為五條件形狀而非刪除；`flushStarted` 的測試隨其 action 一併刪除，保留它們會是在測一個不再存在的概念；新增門檻邊界（`attempts` 為 1 與 2）與「不可重試 ≠ 退避用盡」的案例。探測失敗以注入一個會失敗的 storage double 驗證，走既有的參數接縫，不 mock `localStorage` 全域。",
     },
   ]}
 />
+
+本 Change 另外修改了 `WORKFLOW.md`：它在提案過程中暴露了兩條交付契約沒有寫明的規則——Overview 必須有 Impact 段落，以及 durable knowledge 該用什麼指稱其他工作。兩條都是被這張 Change 違反之後才補上的，所以與它同一個分支；細節見該檔的 commit。
 
 不在影響範圍內：rally 端點、repository、Mongoose schema、SWR 設定、Entry List 的互動控制項（只有標記的觸發條件改變，控制項本身不動）、以及 port 既有三個方法的簽章與語意。
 

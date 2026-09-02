@@ -50,7 +50,6 @@ const failTwice = (store: AppStore, ids: string[]) => {
   for (let i = 0; i < 2; i++) {
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids,
         retryable: true,
         lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
@@ -63,7 +62,6 @@ const failTwice = (store: AppStore, ids: string[]) => {
 const failUnrecoverably = (store: AppStore, ids: string[]) =>
   store.dispatch(
     pendingWritesActions.flushFailed({
-      gameId: "game-1",
       ids,
       retryable: false,
       lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
@@ -269,15 +267,15 @@ describe("SyncIndicator", () => {
     );
 
     const button = screen.getByRole("button", {
-      name: "1 筆送不出去，重試無法解決，請在紀錄列表中處理",
+      name: "1 筆送不出去，請在紀錄列表中查看這幾筆",
     });
     expect(button).toHaveClass("ring-warning/30");
 
     await user.click(button);
 
     expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
-    // Retrying a 4xx fails the same way; the route to resolving it is the
-    // per-rally control in the entry list, not this popover.
+    // No action here: what a 4xx needs is to look at the rally itself, and
+    // the route to it is the entry list, not this popover.
     expect(
       screen.queryByRole("button", { name: "重試" }),
     ).not.toBeInTheDocument();
@@ -388,9 +386,7 @@ describe("SyncIndicator", () => {
     ).toBeInTheDocument();
 
     act(() => {
-      store.dispatch(
-        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-      );
+      store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     });
 
     // A retry that simply vanished would read as the app having dropped the
@@ -424,9 +420,7 @@ describe("SyncIndicator", () => {
     );
 
     act(() => {
-      store.dispatch(
-        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-      );
+      store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     });
 
     // Every rally goes through this path; a check mark here would sit on

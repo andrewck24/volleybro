@@ -23,36 +23,62 @@ import {
 
 export const SYNCED_ACK_MS = 1500;
 
-const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
+/**
+ * Everything that varies by status and nothing else: the mark, whether the
+ * tone is a warning, and whether a count rides on it. One table rather than a
+ * switch per question, so adding a condition cannot leave one of the three
+ * behind. The wording is separate because it needs the count and the network.
+ *
+ * Warning is for the two conditions the recorder has to act on -- an entry
+ * nothing can send, and a store that will not keep what is unsent. Waiting is
+ * not one of them: those rallies send themselves. The count rides on the two
+ * conditions where the queue has stopped draining; a syncing queue is about
+ * to be empty and a number there is noise.
+ */
+const STATUS_STYLE: Record<
+  SyncStatus,
   {
-    unwritable: (className) => <RiErrorWarningLine className={className} />,
-    synced: (className) => (
+    icon: (className: string) => React.ReactNode;
+    warning: boolean;
+    showsCount: boolean;
+  }
+> = {
+  unwritable: {
+    icon: (className) => <RiErrorWarningLine className={className} />,
+    warning: true,
+    showsCount: false,
+  },
+  synced: {
+    icon: (className) => (
       <RiCheckLine className={cn(className, "text-success")} />
     ),
-    failed: (className) => <RiErrorWarningLine className={className} />,
-    // Cloud, not wifi: the wifi bars on the recorder's phone can be full
-    // while nothing reaches the server, and an icon arguing with the status
-    // bar reads as the app being wrong rather than the connection.
-    unsent: (className) => <RiCloudOffLine className={className} />,
+    warning: false,
+    showsCount: false,
+  },
+  failed: {
+    icon: (className) => <RiErrorWarningLine className={className} />,
+    warning: true,
+    showsCount: true,
+  },
+  // Cloud, not wifi: the wifi bars on the recorder's phone can be full while
+  // nothing reaches the server, and an icon arguing with the status bar reads
+  // as the app being wrong rather than the connection.
+  unsent: {
+    icon: (className) => <RiCloudOffLine className={className} />,
+    warning: false,
+    showsCount: true,
+  },
+  syncing: {
     // Test id for the same reason the popover icon has one: "is it still
     // spinning" is the assertion this Change exists to make, and a spinner
     // has no role or text to query it by.
-    syncing: (className) => (
+    icon: (className) => (
       <Spinner className={className} data-testid="sync-spinner" />
     ),
-  };
-
-/**
- * Warning tone is for the two conditions the recorder has to act on, not for
- * work that is merely waiting: an entry that will never send, and a store that
- * will not keep what is unsent. Everything else is neutral.
- */
-const isWarning = (status: SyncStatus): boolean =>
-  status === "unwritable" || status === "failed";
-
-/** The count belongs to the conditions where the queue has stopped draining. */
-const showsCount = (status: SyncStatus): boolean =>
-  status === "failed" || status === "unsent";
+    warning: false,
+    showsCount: false,
+  },
+};
 
 /**
  * What the indicator says, as a heading and the sentence under it. The
@@ -80,7 +106,7 @@ const copyFor = (
     case "failed":
       return {
         title: `${count} 筆送不出去`,
-        detail: "重試無法解決，請在紀錄列表中處理",
+        detail: "請在紀錄列表中查看這幾筆",
       };
     case "unsent":
       return online
@@ -119,6 +145,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const status = deriveSyncStatus(pendingWrites, gameId);
   const pendingCount = pending.length;
 
+  const { icon, warning, showsCount } = STATUS_STYLE[status];
   const { title, detail } = copyFor(status, pendingCount, online);
   // Screen reader users have no "open it to see more" step, so the trigger
   // carries the whole sentence rather than only its heading.
@@ -179,15 +206,15 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
             // 44px touch target, 24px mark: the pseudo-element takes no
             // layout space, so the popover still anchors to the visible box.
             "after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
-            isWarning(status) && "text-warning ring-1 ring-warning/30",
+            warning && "text-warning ring-1 ring-warning/30",
           )}
         >
-          {STATUS_ICON[status]("size-4")}
-          {showsCount(status) && (
+          {icon("size-4")}
+          {showsCount && (
             <span
               className={cn(
                 "absolute top-0 right-0 flex size-3 items-center justify-center rounded-full text-[7px] font-bold",
-                isWarning(status)
+                warning
                   ? "bg-warning text-warning-foreground"
                   : "bg-muted text-muted-foreground",
               )}
@@ -209,11 +236,11 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
                 trigger button) is a queryable, testable element. */}
             <span
               data-testid="sync-popover-icon"
-              className={cn("contents", isWarning(status) && "text-warning")}
+              className={cn("contents", warning && "text-warning")}
             >
-              {STATUS_ICON[status]("size-4 shrink-0")}
+              {icon("size-4 shrink-0")}
             </span>
-            <span className={isWarning(status) ? "text-warning" : undefined}>
+            <span className={warning ? "text-warning" : undefined}>
               {title}
             </span>
           </div>
