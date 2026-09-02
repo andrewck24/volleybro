@@ -1,0 +1,219 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  六片全部交付，兩軸各跑一輪獨立審查。三個實質發現，其中兩個是**本 Change
+  自己製造出來的不誠實**——Storybook
+  的視覺基準渲染成錯的狀態，以及指示器把使用者導向一個它同時宣稱無用的地方。兩處與核准計畫不同：Impact
+  清單漏了兩個新檔，`WORKFLOW.md`
+  的修改未記在任何邊界內；皆為文件落後於程式碼，已在同一輪補回。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={6} total={6} />
+
+切片內容與依賴由 Implementation 頁呈現；此處只記交付的實質。commit 以 body 的 `Implements` trailer 指認，`git log --grep="Implements: S01"` 即可重建映射——本頁一律以 slice ID 指稱，不引用 commit hash。
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      summary:
+        "S01、S04。判斷式由三分支改為五條有序條件；`hasFailedWrite` 改讀與警告語氣同一個判準。門檻常數 `PENDING_WRITE_UNSENT_ATTEMPTS` 為 2，取自退避表第一格（2s）加一次請求——撐過第一次背景重試的失敗才算數。",
+      lang: "ts",
+      code: `export const deriveSyncStatus = (\n  state: PendingWritesState,\n  gameId: string,\n): SyncStatus => {\n  if (state.storageUnavailable) return "unwritable";\n\n  const pending = state.pending.filter((p) => p.gameId === gameId);\n  if (pending.length === 0) return "synced";\n  if (pending.some((p) => !mayBeAttemptedAgain(p.lastError))) return "failed";\n  if (pending.some((p) => p.attempts >= PENDING_WRITE_UNSENT_ATTEMPTS))\n    return "unsent";\n  return "syncing";\n};`,
+    },
+    {
+      path: "src/components/game/header/sync-indicator.tsx",
+      change: "modified",
+      summary:
+        "S01–S03，加上審查後的合併。狀態相關的三件事——圖示、語氣、是否帶數字——合成一張表；文案獨立成 `copyFor`，因為它另外需要數量與連線狀態。`navigator.onLine` 只出現在兩個位置：`copyFor` 的 unsent 分支，以及重試按鈕的顯示條件。",
+    },
+    {
+      path: "src/hooks/use-is-online.ts",
+      change: "added",
+      summary:
+        "S02。八行，`useSyncExternalStore` 訂閱 `online` / `offline`。`subscribe` 在 module scope，`getServerSnapshot` 回傳 `true`。",
+    },
+    {
+      path: "src/lib/features/game/pending-writes-storage.ts",
+      change: "modified",
+      summary:
+        "S05。port 由三方法變四方法。`probe` 寫入自己的 key、讀回、刪除——讀回那一半是關鍵：Safari 私密模式發放的是關掉分頁就消失的配額而不拋錯，只看 `setItem` 會把不可用的 store 判為健康。",
+      lang: "ts",
+      code: `async probe() {\n  const key = \`\${PENDING_WRITES_KEY}:probe\`;\n  localStorage.setItem(key, PROBE_VALUE);\n  const readBack = localStorage.getItem(key);\n  localStorage.removeItem(key);\n  if (readBack !== PROBE_VALUE) {\n    throw new Error("pending-writes storage did not keep what it was given");\n  }\n},`,
+    },
+    {
+      path: "src/lib/features/game/pending-writes-persistence.ts",
+      change: "modified",
+      summary:
+        "S05。新增 `probePendingWritesStorage`，並讓既有的 save catch 一併回報。`run()` 是 closure，手上沒有 dispatch，因此那一側不是預想中的「改一行」——dispatch 得先穿進來。`retryable-queue-persistence` 的 D4 承諾的「改的是 listener 而不是 port 契約」仍然成立。",
+    },
+    {
+      path: "src/lib/persistent-storage.ts",
+      change: "added",
+      summary:
+        "S06。回傳 `void`，沒有任何值可以被誤讀成耐久性保證。審查後只在瀏覽器**拒絕**時才 log——原本每次啟動都印出結果，而那是全檔唯一看起來像保證的東西。",
+    },
+    {
+      path: "src/lib/features/game/pending-writes-slice.ts　·　src/lib/features/game/types.ts",
+      change: "modified",
+      summary:
+        "S01、S05。移除 `flushingGameIds` 與 `flushStarted`，新增 `storageUnavailable` 欄位與其單向 action。審查另外找出兩個殘留的 payload 欄位，見下方發現三。",
+    },
+    {
+      path: "src/stories/game/header.stories.tsx",
+      change: "modified",
+      summary:
+        "審查發現。原 `Unsynced` story 在新模型下渲染成 spinner，換成 `Unsent` / `Failed` / `StorageUnavailable` 三個。見下方發現一。",
+    },
+  ]}
+/>
+
+## Findings
+
+三個實質發現，皆已修正並重跑受影響的檢查。兩軸各跑一輪，第二輪無新發現。
+
+### 一、Storybook 的視覺基準在說謊（Standards 軸）
+
+`header.stories.tsx` 的 `Unsynced` story 只 dispatch 一次不帶 `lastError` 的失敗。在新模型下 `mayBeAttemptedAgain(undefined)` 為 `true`、`attempts` 為 1——它渲染出來的是**轉圈的 spinner**，也就是這張 Change 存在要消滅的那個畫面。名稱、註解與視覺三者同時失真。
+
+`docs/testing-strategy.md` 把 Storybook 列為視覺回歸基準，所以一個說謊的基準比沒有基準更糟：它會讓下一個人以為離線狀態長這樣。
+
+<AnnotatedDiff
+  lang="tsx"
+  code={`// src/stories/game/header.stories.tsx
+// The unsynced state: a failed write left in the queue, retry offered. // [!code --]
+export const Unsynced: Story = { // [!code --]
+// 三個 story 對應三個真實狀態，而不是一個已經不存在的名字
+export const Unsent: Story = { // [!code ++]
+  decorators: [
+    (Story) => {
+      queueRally();
+      store.dispatch( // [!code --]
+        pendingWritesActions.flushFailed({ ids: ["pending-1"], retryable: false }), // [!code --]
+      ); // [!code --]
+      // 兩次「值得再試」的失敗才跨過門檻——這才是離線真正會走到的狀態
+      for (let i = 0; i < 2; i++) { // [!code ++]
+        store.dispatch( // [!code ++]
+          pendingWritesActions.flushFailed({ // [!code ++]
+            ids: ["pending-1"], // [!code ++]
+            retryable: true, // [!code ++]
+            lastError: transient, // [!code ++]
+          }), // [!code ++]
+        ); // [!code ++]
+      } // [!code ++]
+      return <Story />;
+    },
+  ],
+};`}
+/>
+
+### 二、指示器把使用者導向一個它同時宣稱無用的地方（Standards 軸）
+
+`failed` 狀態的文案原本寫「重試無法解決，請在紀錄列表中處理」，但紀錄列表上唯一的動作**就是**那顆 per-row 重試。同一句話裡先否定一個動作，再指向只有那個動作的地方。
+
+審查也指出這句話本身過度宣稱：4xx 中最現實的一種是 session 過期（401），重新登入後那顆 per-row 重試**會成功**。`entry/index.tsx` 的註解「persists until retried」同樣需要修，它對其餘 4xx 不成立。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/components/game/header/sync-indicator.tsx
+    case "failed":
+      return {
+        title: \`\${count} 筆送不出去\`,
+        detail: "重試無法解決，請在紀錄列表中處理", // [!code --]
+        // 不宣稱重試無用：401 在重新登入後是會成功的
+        detail: "請在紀錄列表中查看這幾筆", // [!code ++]
+      };`}
+/>
+
+### 三、Redux action 上的死 payload 欄位（兩軸都提出）
+
+`flushingGameIds` 移除後，`flushSucceeded` 與 `flushFailed` 的 `gameId` 沒有任何 reducer 讀取，卻仍是必填、所有呼叫端仍在傳。S01 的驗收條件寫的是「entirely」，這兩個欄位是它服務過的殘留。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`// src/lib/features/game/pending-writes-slice.ts
+const flushSucceeded: CaseReducer<
+  PendingWritesState,
+  PayloadAction<{ gameId: string; ids: string[] }> // [!code --]
+  PayloadAction<{ ids: string[] }> // [!code ++]
+> = (state, action) => {
+  const ids = new Set(action.payload.ids);
+  state.pending = state.pending.filter((p) => !ids.has(p.entry.id));
+};`}
+/>
+
+## Plan versus actual
+
+| 差異                                                                                                 | 處置                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Impact 清單漏了 `src/lib/persistent-storage.ts` 與其測試，且宣稱 `use-is-online.ts` 是「唯一的新檔」 | S06 實作時把 `persist()` 抽成獨立模組而非寫在 `provider.tsx` 內，理由是它與待送佇列無關且需要單獨測到三種失敗。抽法保留，Overview 已補正 |
+| `WORKFLOW.md` 的修改不在任何 goal、邊界或切片內                                                      | 兩條規則都是本 Change 違反後才補上的，與它同分支合理，但未被記錄。Overview 的 Impact 段落已補上說明                                      |
+| Impact 清單未列只改註解的兩個檔與較廣的測試目錄                                                      | 已補入，該段落既然宣稱「逐檔」就不該有例外                                                                                               |
+| S05 的「改一行」低估                                                                                 | `run()` 是 closure，dispatch 得先穿進去。D3 的 consequences 在 Propose 階段就已改寫記下此事                                              |
+| 指示器的三個 status switch 合併為一張表                                                              | 審查列為判斷題（Repeated Switches）。採納：新增狀態時漏改一處的風險是實際存在的                                                          |
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "警告狀態在本 Change 內沒有出口",
+      severity: "warning",
+      mitigation:
+        "已知且已登記，由「不可重試 entry 的導向與刪除」關閉。Entry List 上的 per-row 控制仍然存在並仍標記它們；缺的只是從指示器過去的路。",
+    },
+    {
+      name: "手動重試把機制的責任交給使用者的手指",
+      severity: "warning",
+      mitigation:
+        "有意識、有期限的妥協。期限記在 `offline-recording` 的驗收條件上——持久重播上線後移除該按鈕。",
+    },
+    {
+      name: "ITP 清除與磁碟壓力回收仍然是靜默的",
+      severity: "warning",
+      mitigation:
+        "兩者不拋錯，開機探測看不到。`persist()` 是唯一槓桿而其效果無法驗證。本 Change 縮小這條風險，不關閉它。",
+    },
+    {
+      name: "無法分類的失敗被當成值得再試",
+      severity: "info",
+      mitigation:
+        "非 `ApiClientError` 的例外產生 `retryable: false` 但 `lastError: undefined`，於是 `mayBeAttemptedAgain` 回傳 `true`，該 entry 落在待送而非送不出去。與 `hasExpired`、`mayBeAttemptedAgain` 的既有語意一致（未知即視為值得再試），entry 仍在佇列、仍隨下一次 flush 送出、兩次失敗後仍顯示為待送並提供重試。實作時發現，非審查發現。",
+    },
+    {
+      name: "三秒門檻沒有量測依據",
+      severity: "info",
+      mitigation:
+        "取自退避表第一格加一次請求，是一個可調的常數。現場出現閃動或使用者在門檻成立前就開始擔心，都是推翻它的證據。",
+    },
+    {
+      name: "`persist()` 的效果無法被任何測試證明",
+      severity: "info",
+      mitigation:
+        "其測試只證明請求被發出，以及拒絕、拋錯、API 不存在三種情況都不影響 app。驗收條件當初就是照這個範圍寫的。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- **不可重試 entry 的導向與刪除**：以本 Change 為前置，補上從指示器到 Entry List 的路，以及丟棄動作。本 Change 交付後，警告狀態第一次成為一個獨立可辨識的狀態，那張票的前提因此成立。
+- **重試狀態群組化**：`attempts` 與 `lastError` 的持有位置將由 entry 移至 (game, set) 群組，`PENDING_WRITE_UNSENT_ATTEMPTS` 的門檻語意屆時由「單一 entry」變為「群組」，`deriveSyncStatus` 須重新檢視。
+- **`navigator.storage.persist()` 在 iOS PWA 的授予條件**：待實地確認。確認可靠則可關閉兩條 residual risk；確認不可靠則應移除那三行，而不是留著假裝有用。
+
+## Validation
+
+`pnpm verify:all` 通過：`format:check`、workflow 測試與檢查、`typecheck:strict`、`lint`、946 個測試、Next build、service worker 斷言、Blueprint build。
+
+真實裝置上的飛航模式與私密瀏覽觀感屬 developer acceptance，不由自動化測試承擔——本 Change 的價值有一部分只在那裡看得見。
