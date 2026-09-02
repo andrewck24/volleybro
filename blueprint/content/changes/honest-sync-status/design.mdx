@@ -21,11 +21,11 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 指示器不儲存任何狀態，它是佇列事實加上一個儲存可用性旗標的投影。判斷是一道有序關卡：**由最壞的可能性往最好的可能性走**，因為每一關代表的風險都比下一關高，而一個被誤判為樂觀的狀態正是本 Change 要消除的東西。
 
 <svg
-  viewBox="0 0 1000 830"
+  viewBox="0 0 1160 552"
   role="img"
-  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出：本機儲存不可用時顯示警告的無法保存；佇列為空時隱藏；有 entry 不可重試時顯示警告的送不出去；有 entry 實測失敗達兩次時顯示中性的待送；其餘顯示同步中的轉圈。下半部是待送狀態的文案分岔：navigator.onLine 為 false 時說離線中並隱藏重試按鈕，為 true 時說連線有問題並顯示重試按鈕。"
+  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出，每一關同時標示其判斷式與該狀態實際顯示的文案。一：storageUnavailable 為真時顯示警告的無法保存到本機，並說關閉 app 會遺失未送出的紀錄。二：佇列為空時隱藏。三：有 entry 的 lastError 不可重試時顯示警告的 N 筆送不出去，並請使用者到紀錄列表查看。四：有 entry 的 attempts 達到二時顯示中性的待送，此時再依 navigator.onLine 分岔為離線中或連線有問題兩種文案，前者不提供重試按鈕。五：其餘顯示同步中的轉圈，沒有補充文案。"
   preserveAspectRatio="xMidYMid meet"
-  style={{ aspectRatio: "1000 / 830", width: "100%", height: "auto" }}
+  style={{ aspectRatio: "1160 / 552", width: "100%", height: "auto" }}
 >
   <defs>
     <marker
@@ -42,77 +42,86 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
   </defs>
 
   <g fontFamily="ui-sans-serif, system-ui, sans-serif">
-    <rect x="60" y="24" width="880" height="44" rx="8" fill="var(--card)" stroke="var(--border)" />
-    <text x="500" y="51" textAnchor="middle" fontSize="13" fill="var(--foreground)">輸入：這場比賽的待送佇列（以 gameId 過濾）　＋　本機儲存是否可寫</text>
+    <rect x="40" y="24" width="1080" height="42" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="580" y="50" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">輸入：pending（已以 p.gameId === gameId 過濾）　＋　state.storageUnavailable</text>
 
-    <rect x="16" y="92" width="22" height="474" rx="6" fill="var(--muted)" />
-    <text x="27" y="329" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)" transform="rotate(-90 27 329)">風險由高到低</text>
+    <text x="185" y="86" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">關卡與判斷式</text>
+    <text x="465" y="86" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">狀態</text>
+    <text x="616" y="86" fontSize="10" fill="var(--muted-foreground)">實際顯示的文案</text>
 
-    <line x1="250" y1="68" x2="250" y2="560" stroke="var(--border)" strokeDasharray="4 5" />
+    <rect x="14" y="96" width="18" height="396" rx="6" fill="var(--muted)" />
+    <text x="23" y="294" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 23 294)">風險由高到低</text>
 
-    <rect x="60" y="92" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
-    <text x="80" y="115" fontSize="12" fill="var(--muted-foreground)">1</text>
-    <text x="250" y="115" textAnchor="middle" fontSize="13" fill="var(--foreground)">本機儲存寫不進去</text>
-    <text x="250" y="133" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">佇列是否為空都一樣</text>
-    <line x1="440" y1="118" x2="546" y2="118" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <rect x="560" y="92" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
-    <text x="750" y="115" textAnchor="middle" fontSize="13" fill="var(--warning)">無法保存　⚠</text>
-    <text x="750" y="133" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">關掉 app 就沒了——唯一無關佇列的狀態</text>
+    <rect x="40" y="96" width="290" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="54" y="116" fontSize="11" fill="var(--muted-foreground)">1</text>
+    <text x="185" y="118" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">本機儲存寫不進去</text>
+    <text x="185" y="140" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">state.storageUnavailable</text>
+    <line x1="330" y1="128" x2="356" y2="128" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="96" width="190" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="465" y="120" textAnchor="middle" fontSize="12.5" fill="var(--warning)">無法保存　⚠</text>
+    <text x="465" y="140" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">警告・不看佇列</text>
+    <line x1="560" y1="128" x2="586" y2="128" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="96" width="520" height="64" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="120" fontSize="12.5" fill="var(--foreground)">無法保存到本機</text>
+    <text x="616" y="142" fontSize="10.5" fill="var(--muted-foreground)">關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成</text>
 
-    <rect x="60" y="186" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
-    <text x="80" y="209" fontSize="12" fill="var(--muted-foreground)">2</text>
-    <text x="250" y="209" textAnchor="middle" fontSize="13" fill="var(--foreground)">佇列為空</text>
-    <text x="250" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">沒有任何風險</text>
-    <line x1="440" y1="212" x2="546" y2="212" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <rect x="560" y="186" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
-    <text x="750" y="209" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">隱藏</text>
-    <text x="750" y="227" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">佔位不塌陷，上方的排球標記不位移</text>
+    <rect x="40" y="176" width="290" height="48" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="54" y="196" fontSize="11" fill="var(--muted-foreground)">2</text>
+    <text x="185" y="196" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">佇列為空</text>
+    <text x="185" y="214" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">pending.length === 0</text>
+    <line x1="330" y1="200" x2="356" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="176" width="190" height="48" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="465" y="205" textAnchor="middle" fontSize="12.5" fill="var(--muted-foreground)">隱藏</text>
+    <line x1="560" y1="200" x2="586" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="176" width="520" height="48" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="616" y="205" fontSize="10.5" fill="var(--muted-foreground)">沒有文案。佔位保留 24px，上方的排球標記才不會位移</text>
 
-    <rect x="60" y="280" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
-    <text x="80" y="303" fontSize="12" fill="var(--muted-foreground)">3</text>
-    <text x="250" y="303" textAnchor="middle" fontSize="13" fill="var(--foreground)">有 entry 不可重試</text>
-    <text x="250" y="321" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">4xx——再試一次也不會成功</text>
-    <line x1="440" y1="306" x2="546" y2="306" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <rect x="560" y="280" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--warning)" />
-    <text x="750" y="303" textAnchor="middle" fontSize="13" fill="var(--warning)">送不出去　⚠</text>
-    <text x="750" y="321" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">唯一真的會遺失的一類（本 Change 不提供出口）</text>
+    <rect x="40" y="240" width="290" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="54" y="260" fontSize="11" fill="var(--muted-foreground)">3</text>
+    <text x="185" y="262" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">有 entry 不可重試</text>
+    <text x="185" y="284" textAnchor="middle" fontSize="9" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">some((p) =&gt; !mayBeAttemptedAgain(p.lastError))</text>
+    <line x1="330" y1="272" x2="356" y2="272" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="240" width="190" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="465" y="264" textAnchor="middle" fontSize="12.5" fill="var(--warning)">送不出去　⚠</text>
+    <text x="465" y="284" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">警告・帶數字角標</text>
+    <line x1="560" y1="272" x2="586" y2="272" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="240" width="520" height="64" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="264" fontSize="12.5" fill="var(--foreground)">N 筆送不出去</text>
+    <text x="616" y="286" fontSize="10.5" fill="var(--muted-foreground)">請在紀錄列表中查看這幾筆　·　無重試按鈕</text>
 
-    <rect x="60" y="374" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
-    <text x="80" y="397" fontSize="12" fill="var(--muted-foreground)">4</text>
-    <text x="250" y="397" textAnchor="middle" fontSize="13" fill="var(--foreground)">有 entry 實測失敗達兩次</text>
-    <text x="250" y="415" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">約三秒——濾掉自己會好的網路打嗝</text>
-    <line x1="440" y1="400" x2="546" y2="400" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <rect x="560" y="374" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
-    <text x="750" y="397" textAnchor="middle" fontSize="13" fill="var(--foreground)">待送　☁</text>
-    <text x="750" y="415" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">靜態圖示，不轉圈——見下方文案分岔</text>
+    <rect x="40" y="320" width="290" height="104" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="54" y="340" fontSize="11" fill="var(--muted-foreground)">4</text>
+    <text x="185" y="358" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">有 entry 實測失敗達兩次</text>
+    <text x="185" y="380" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">some((p) =&gt; p.attempts &gt;= 2)</text>
+    <text x="185" y="400" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">約三秒，濾掉自己會好的打嗝</text>
+    <line x1="330" y1="372" x2="356" y2="372" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="320" width="190" height="104" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="465" y="360" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">待送　☁</text>
+    <text x="465" y="380" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">中性・靜態圖示</text>
+    <text x="465" y="398" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">帶數字角標</text>
+    <line x1="560" y1="372" x2="586" y2="372" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <text x="592" y="336" fontSize="9" fill="var(--muted-foreground)" transform="rotate(-90 592 336)">onLine</text>
+    <rect x="600" y="320" width="520" height="48" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="340" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">navigator.onLine === false</text>
+    <text x="616" y="358" fontSize="12.5" fill="var(--foreground)">離線中　—　<tspan fontSize="10.5" fill="var(--muted-foreground)">N 筆已保存，恢復連線後自動送出　·　無重試按鈕</tspan></text>
+    <rect x="600" y="376" width="520" height="48" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="396" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">navigator.onLine === true</text>
+    <text x="616" y="414" fontSize="12.5" fill="var(--foreground)">連線有問題　—　<tspan fontSize="10.5" fill="var(--muted-foreground)">N 筆已保存，會持續嘗試送出　·　有重試按鈕</tspan></text>
 
-    <rect x="60" y="468" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
-    <text x="80" y="491" fontSize="12" fill="var(--muted-foreground)">5</text>
-    <text x="250" y="491" textAnchor="middle" fontSize="13" fill="var(--foreground)">其餘</text>
-    <text x="250" y="509" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">剛入列，或正在飛</text>
-    <line x1="440" y1="494" x2="546" y2="494" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <rect x="560" y="468" width="380" height="52" rx="8" fill="var(--background)" stroke="var(--success)" />
-    <text x="750" y="491" textAnchor="middle" fontSize="13" fill="var(--success)">同步中　◌</text>
-    <text x="750" y="509" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">spinner 只出現在它真的能兌現承諾的地方</text>
+    <rect x="40" y="440" width="290" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="54" y="460" fontSize="11" fill="var(--muted-foreground)">5</text>
+    <text x="185" y="462" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">其餘</text>
+    <text x="185" y="480" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">剛入列，或正在飛</text>
+    <line x1="330" y1="466" x2="356" y2="466" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="440" width="190" height="52" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="465" y="463" textAnchor="middle" fontSize="12.5" fill="var(--success)">同步中　◌</text>
+    <text x="465" y="481" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">中性・轉圈</text>
+    <line x1="560" y1="466" x2="586" y2="466" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="440" width="520" height="52" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="463" fontSize="12.5" fill="var(--foreground)">同步中</text>
+    <text x="616" y="481" fontSize="10.5" fill="var(--muted-foreground)">沒有補充文案——它要兌現的承諾在幾百毫秒內就會兌現</text>
 
-    <line x1="16" y1="566" x2="984" y2="566" stroke="var(--border)" strokeDasharray="6 6" />
-    <text x="500" y="596" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">狀態 4 的文案與按鈕分岔——navigator.onLine 只在這裡出現，不影響上面任何一關</text>
-
-    <rect x="60" y="620" width="880" height="86" rx="8" fill="var(--card)" stroke="var(--border)" />
-    <text x="150" y="650" textAnchor="middle" fontSize="12" fill="var(--foreground)">onLine 為 false</text>
-    <text x="150" y="668" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">它唯一可靠的方向</text>
-    <text x="150" y="690" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">重試按鈕：不顯示</text>
-    <line x1="250" y1="663" x2="286" y2="663" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <text x="620" y="656" textAnchor="middle" fontSize="13" fill="var(--foreground)">離線中</text>
-    <text x="620" y="678" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">N 筆已保存，恢復連線後自動送出</text>
-
-    <rect x="60" y="722" width="880" height="86" rx="8" fill="var(--card)" stroke="var(--border)" />
-    <text x="150" y="752" textAnchor="middle" fontSize="12" fill="var(--foreground)">onLine 為 true</text>
-    <text x="150" y="770" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">訊號滿格卻送不出去</text>
-    <text x="150" y="792" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">重試按鈕：顯示</text>
-    <line x1="250" y1="765" x2="286" y2="765" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
-    <text x="620" y="758" textAnchor="middle" fontSize="13" fill="var(--foreground)">連線有問題</text>
-    <text x="620" y="780" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">N 筆已保存，會持續嘗試送出</text>
+    <text x="580" y="522" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">navigator.onLine 只出現在關卡 4 命中之後，決定措辭與按鈕；它不參與上面任何一關的判斷</text>
 
   </g>
 </svg>
@@ -121,23 +130,13 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 
 ## Contracts
 
-判斷式的精確形式如下，`pending` 皆已以 `p.gameId === gameId` 過濾：
+判斷式與文案都畫在上圖裡，因為那是規格本身而不是規格的插圖。這一節只講圖上看不出來的三件事。
 
-| 關卡 | 條件                                                     | 對應的事實                                        |
-| ---- | -------------------------------------------------------- | ------------------------------------------------- |
-| 1    | `storageUnavailable`                                     | 開機探測或執行期寫入失敗                          |
-| 2    | `pending.length === 0`                                   | 伺服器已確認全部                                  |
-| 3    | `pending.some((p) => !mayBeAttemptedAgain(p.lastError))` | 存在 4xx 失敗，`isRetryableStatus` 判定不值得再試 |
-| 4    | `pending.some((p) => p.attempts >= 2)`                   | 至少一筆實際送出並實際失敗兩次                    |
-| 5    | 其餘                                                     | 剛入列或正在飛                                    |
+**`navigator.onLine` 不在判斷裡。** 它在關卡 4 命中之後才被讀取，而那時「送不出去」已經是既定事實。兩種措辭因此都是真話：`false` 是它唯一可靠的方向；`true` 時「送不出去」的依據是失敗紀錄，不是它。
 
-三件事被這張表釘住：
+**`attempts` 是實測，不是推測。** 它記錄的是真的發出過請求、真的收到失敗。這使得「飛航模式」與「連上網路卻到不了伺服器」走同一條路——後者在球場上更常發生。門檻用次數而非時間：`attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 `setTimeout` 與其清理責任。
 
-- **`navigator.onLine` 不在表內。** 它在關卡 4 命中之後才被讀取，而那時「送不出去」已經是既定事實。兩種措辭因此都是真話：`false` 是它唯一可靠的方向；`true` 時「送不出去」的依據是失敗紀錄，不是它。
-- **`attempts` 是實測，不是推測。** 它記錄的是真的發出過請求、真的收到失敗。這使得「飛航模式」與「連上網路卻到不了伺服器」走同一條路——後者在球場上更常發生。
-- **門檻是次數不是時間。** `attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 `setTimeout` 與其清理責任。
-
-`hasFailedWrite` 改讀與關卡 3 相同的判準，使指示器與 per-rally 標記不可能互相矛盾。這**收窄了 `retryable-entry-writes` 的 S08 已驗收行為**——該切片的判準是「嘗試用盡」，此後只有不可重試者被標記。被收窄掉的那一類會自己好，不需要使用者做任何事。
+**同一個判準供兩個表面使用。** `hasFailedWrite` 改讀關卡 3 的判斷式，使指示器與 Entry List 的 per-row 標記不可能對同一筆 entry 給出矛盾的語氣。這**收窄了 `retryable-entry-writes` 的 S08 已驗收行為**——該切片的判準是「嘗試用盡」，此後只有不可重試者被標記。被收窄掉的那一類會自己好，不需要使用者做任何事。
 
 `flushingGameIds` 在此模型下失去唯一的消費者，連同 `flushStarted` 一併移除。它是本 Change 改變狀態模型的證據：舊模型需要知道「有沒有 request 在飛」，新模型不需要。
 
