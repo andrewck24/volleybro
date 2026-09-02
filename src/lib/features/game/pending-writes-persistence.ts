@@ -19,6 +19,10 @@ const { enqueued, flushSucceeded, flushFailed, rehydrated } =
 // with the store that mounts it.
 type StateWithPendingWrites = { pendingWrites: PendingWritesState };
 
+type StorageDispatch = (
+  action: ReturnType<typeof pendingWritesActions.storageUnavailable>,
+) => void;
+
 /**
  * Mirrors the queue to storage on every change to its contents. No debounce:
  * recording a rally and having it on disk must not be separated by a window in
@@ -32,28 +36,35 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
   let inFlight: Promise<void> | null = null;
   let queued: PendingWritesState["pending"] | null = null;
 
-  const run = (pending: PendingWritesState["pending"]): Promise<void> =>
+  // A store can pass the boot probe and fail later -- a quota another origin
+  // fills mid-match is the ordinary way. Reporting it from here is what keeps
+  // the flag true of the whole session rather than of one moment at start-up.
+  // The catch also stops one failure from stalling every save behind it.
+  const run = (
+    pending: PendingWritesState["pending"],
+    dispatch: StorageDispatch,
+  ): Promise<void> =>
     storage
       .save(snapshotOf(pending))
-      // ponytail: silent degradation -- an unwritable store leaves the queue
-      // unprotected and the recorder untold. Offline recording puts this in
-      // the state; until then, this catch also stops one failure from
-      // stalling every save behind it.
       .catch((error: unknown) => {
         console.warn("[pendingWrites] persist failed:", error);
+        dispatch(pendingWritesActions.storageUnavailable());
       })
       .then(() => {
         const next = queued;
         queued = null;
-        inFlight = next === null ? null : run(next);
+        inFlight = next === null ? null : run(next, dispatch);
       });
 
-  const persist = (pending: PendingWritesState["pending"]) => {
+  const persist = (
+    pending: PendingWritesState["pending"],
+    dispatch: StorageDispatch,
+  ) => {
     if (inFlight) {
       queued = pending;
       return;
     }
-    inFlight = run(pending);
+    inFlight = run(pending, dispatch);
   };
 
   listener.startListening({
@@ -61,7 +72,7 @@ export function createPendingWritesPersistence(storage: PendingWritesStorage) {
     // the shorter queue back.
     matcher: isAnyOf(enqueued, flushSucceeded, flushFailed, rehydrated),
     effect: (_action, api) => {
-      persist(api.getState().pendingWrites.pending);
+      persist(api.getState().pendingWrites.pending, api.dispatch);
     },
   });
 
@@ -74,6 +85,26 @@ const discard = (storage: PendingWritesStorage) =>
   storage.clear().catch((error: unknown) => {
     console.warn("[pendingWrites] clear failed:", error);
   });
+
+/**
+ * Asks the store, once at start-up, whether it can hold anything at all --
+ * before the first rally rather than after it. The difference is the whole
+ * point: told at start-up the recorder can still leave private browsing, free
+ * space, or switch device; told at the first failed save they are already
+ * mid-match with rallies at stake and no move left.
+ *
+ * Only a failure is reported. Nothing here can observe the store recovering,
+ * so there is no honest moment to clear the flag.
+ */
+export async function probePendingWritesStorage(
+  dispatch: StorageDispatch,
+  storage: PendingWritesStorage,
+): Promise<void> {
+  await storage.probe().catch((error: unknown) => {
+    console.warn("[pendingWrites] storage probe failed:", error);
+    dispatch(pendingWritesActions.storageUnavailable());
+  });
+}
 
 /**
  * Puts a previous run's queue back, once, when the store's provider mounts.

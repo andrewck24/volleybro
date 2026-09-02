@@ -1,5 +1,8 @@
 "use client";
-import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
+import {
+  probePendingWritesStorage,
+  restorePendingWrites,
+} from "@/lib/features/game/pending-writes-persistence";
 import { localStoragePendingWrites } from "@/lib/features/game/pending-writes-storage";
 import { AppStore, makeStore } from "@/lib/redux/store";
 import { useEffect, type ReactNode } from "react";
@@ -17,6 +20,7 @@ export const ReduxProvider = ({ children }: { children: ReactNode }) => {
   // is no storage to read. Running twice is harmless: `rehydrated` merges.
   useEffect(() => {
     void restorePendingWrites(store.dispatch, localStoragePendingWrites);
+    void probePendingWritesStorage(store.dispatch, localStoragePendingWrites);
   }, [store]);
 
   return <Provider store={store}>{children}</Provider>;

@@ -11,6 +11,8 @@ import type {
 export const PENDING_WRITES_KEY = "pending-writes";
 export const PENDING_WRITES_VERSION = 1;
 
+const PROBE_VALUE = "1";
+
 /**
  * The queue's storage. Asynchronous throughout, and failures are not swallowed
  * here -- see D1 and D4 for both arguments. `load` returns whatever was in the
@@ -20,6 +22,12 @@ export type PendingWritesStorage = {
   load(): Promise<unknown>;
   save(snapshot: PersistedQueue): Promise<void>;
   clear(): Promise<void>;
+  // Rejects when this store cannot hold anything. Asked rather than inferred:
+  // the reasons a store is unusable -- private browsing, an exhausted quota,
+  // site data switched off -- are not distinguishable from the outside, and
+  // trying to name them would mean detecting private browsing, which browsers
+  // actively defeat. Writing once answers all of them at the same time.
+  probe(): Promise<void>;
 };
 
 /**
@@ -63,5 +71,19 @@ export const localStoragePendingWrites: PendingWritesStorage = {
   },
   async clear() {
     localStorage.removeItem(PENDING_WRITES_KEY);
+  },
+
+  // Reading back is the half that catches a store which accepts writes and
+  // keeps nothing -- Safari's private mode hands out an ephemeral quota
+  // rather than throwing, so a bare setItem would report it as healthy. Its
+  // own key, removed immediately, so a probe can never disturb the queue.
+  async probe() {
+    const key = `${PENDING_WRITES_KEY}:probe`;
+    localStorage.setItem(key, PROBE_VALUE);
+    const readBack = localStorage.getItem(key);
+    localStorage.removeItem(key);
+    if (readBack !== PROBE_VALUE) {
+      throw new Error("pending-writes storage did not keep what it was given");
+    }
   },
 };

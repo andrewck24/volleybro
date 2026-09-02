@@ -283,6 +283,35 @@ describe("SyncIndicator", () => {
     ).not.toBeInTheDocument();
   });
 
+  // "Hidden" has always meant no risk, not no queue. A store that cannot keep
+  // what is unsent is a risk before a single rally is recorded, and telling
+  // the recorder then is the only point at which they can still do something
+  // about it.
+  it("speaks up about an unwritable store even with nothing queued", async () => {
+    store = makeStore();
+    store.dispatch(pendingWritesActions.storageUnavailable());
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "無法保存到本機，關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
+    });
+    expect(button).toHaveClass("ring-warning/30");
+
+    await user.click(button);
+    expect(
+      await screen.findByText(
+        "關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("ignores pending entries that belong to a different game", () => {
     store = makeStore();
     store.dispatch(
