@@ -70,6 +70,23 @@ const failUnrecoverably = (store: AppStore, ids: string[]) =>
     }),
   );
 
+// jsdom reports the device as online; this is the whole of what the browser
+// signal can be trusted to say, so the copy branch needs it flipped.
+const goOffline = () => {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: false,
+  });
+  window.dispatchEvent(new Event("offline"));
+};
+
+afterEach(() => {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: true,
+  });
+});
+
 let store: AppStore;
 const renderIndicator = (onSurroundingClick: () => void) => {
   store = makeStore();
@@ -118,7 +135,7 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    const button = screen.getByRole("button", { name: "同步中" });
     expect(button).toBeInTheDocument();
     // Syncing style, not the unsynced (warning ring) style.
     expect(button).not.toHaveClass("ring-warning/30");
@@ -143,7 +160,9 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    const button = screen.getByRole("button", {
+      name: "連線有問題，1 筆已保存，會持續嘗試送出",
+    });
     // Waiting is not a warning: these entries send themselves once the
     // connection is back, so the tone stays neutral.
     expect(button).not.toHaveClass("ring-warning/30");
@@ -156,6 +175,74 @@ describe("SyncIndicator", () => {
     expect(screen.getByTestId("sync-popover-icon")).not.toHaveClass(
       "text-warning",
     );
+  });
+
+  // The spinner is a promise that the wait ends shortly. Offline it cannot be
+  // kept, so the icon has to stop moving before the promise is broken.
+  it("stops spinning, and says the rallies are safe, once the queue is waiting", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+    expect(screen.getByTestId("sync-spinner")).toBeInTheDocument();
+
+    act(() => failTwice(store, ["e1"]));
+
+    expect(screen.queryByTestId("sync-spinner")).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
+    expect(
+      await screen.findByText("1 筆已保存，會持續嘗試送出"),
+    ).toBeInTheDocument();
+  });
+
+  // Both sentences are true; the device being off the network is the one
+  // thing navigator.onLine answers reliably, and it is what lets this one
+  // promise the send happens by itself.
+  it("promises an automatic send only while the device is off the network", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failTwice(store, ["e1"]);
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    act(() => goOffline());
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "離線中，1 筆已保存，恢復連線後自動送出",
+      }),
+    );
+    expect(
+      await screen.findByText("1 筆已保存，恢復連線後自動送出"),
+    ).toBeInTheDocument();
   });
 
   // The warning tone belongs to the one condition the recorder has to act on:
@@ -181,7 +268,9 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    const button = screen.getByRole("button", {
+      name: "1 筆送不出去，重試無法解決，請在紀錄列表中處理",
+    });
     expect(button).toHaveClass("ring-warning/30");
 
     await user.click(button);
@@ -236,7 +325,11 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "1 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
 
     expect(onSurroundingClick).not.toHaveBeenCalled();
   });
@@ -260,7 +353,9 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
     expect(
-      screen.getByRole("button", { name: "1 筆未同步" }),
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
     ).toBeInTheDocument();
 
     act(() => {
@@ -331,7 +426,11 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "1 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
     const retryButton = await screen.findByRole("button", { name: "重試" });
     await user.click(retryButton);
 
@@ -377,7 +476,11 @@ describe("SyncIndicator", () => {
     );
 
     // The badge counts both sets' failures, not just the current set (0).
-    await user.click(screen.getByRole("button", { name: "2 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，2 筆已保存，會持續嘗試送出",
+      }),
+    );
     const retryButton = await screen.findByRole("button", { name: "重試" });
     await user.click(retryButton);
 

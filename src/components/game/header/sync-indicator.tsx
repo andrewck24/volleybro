@@ -5,6 +5,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Spinner } from "@/components/ui/spinner";
+import { useIsOnline } from "@/hooks/use-is-online";
 import { usePendingWritesContext } from "@/hooks/use-pending-writes";
 import {
   deriveSyncStatus,
@@ -13,7 +14,12 @@ import {
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { RiCheckLine, RiErrorWarningLine, RiRefreshLine } from "react-icons/ri";
+import {
+  RiCheckLine,
+  RiCloudOffLine,
+  RiErrorWarningLine,
+  RiRefreshLine,
+} from "react-icons/ri";
 
 export const SYNCED_ACK_MS = 1500;
 
@@ -24,8 +30,16 @@ const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
       <RiCheckLine className={cn(className, "text-success")} />
     ),
     failed: (className) => <RiErrorWarningLine className={className} />,
-    unsent: (className) => <RiErrorWarningLine className={className} />,
-    syncing: (className) => <Spinner className={className} />,
+    // Cloud, not wifi: the wifi bars on the recorder's phone can be full
+    // while nothing reaches the server, and an icon arguing with the status
+    // bar reads as the app being wrong rather than the connection.
+    unsent: (className) => <RiCloudOffLine className={className} />,
+    // Test id for the same reason the popover icon has one: "is it still
+    // spinning" is the assertion this Change exists to make, and a spinner
+    // has no role or text to query it by.
+    syncing: (className) => (
+      <Spinner className={className} data-testid="sync-spinner" />
+    ),
   };
 
 /**
@@ -36,14 +50,64 @@ const STATUS_ICON: Record<SyncStatus, (className: string) => React.ReactNode> =
 const isWarning = (status: SyncStatus): boolean =>
   status === "unwritable" || status === "failed";
 
+/** The count belongs to the conditions where the queue has stopped draining. */
+const showsCount = (status: SyncStatus): boolean =>
+  status === "failed" || status === "unsent";
+
 /**
- * SyncIndicator is a pure projection of the pending-write queue, scoped to
- * this game -- it stores no status of its own. It sits in the header's
- * middle column, in normal flow, below the volleyball mark.
+ * What the indicator says, as a heading and the sentence under it. The
+ * sentence is the point: the queue being unsent is not news to anyone
+ * watching a spinner, but whether the rallies are safe is, and nothing in
+ * this component said so before.
+ *
+ * `online` is read only inside the unsent case, and only to choose between
+ * two sentences that are both true. `false` is the one answer that signal
+ * can be trusted on, so it can promise an automatic send; `true` promises
+ * only continued attempts, because what is actually known there is that the
+ * writes are failing, which came from the queue and not from the browser.
+ */
+const copyFor = (
+  status: SyncStatus,
+  count: number,
+  online: boolean,
+): { title: string; detail?: string } => {
+  switch (status) {
+    case "unwritable":
+      return {
+        title: "無法保存到本機",
+        detail: "關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
+      };
+    case "failed":
+      return {
+        title: `${count} 筆送不出去`,
+        detail: "重試無法解決，請在紀錄列表中處理",
+      };
+    case "unsent":
+      return online
+        ? {
+            title: "連線有問題",
+            detail: `${count} 筆已保存，會持續嘗試送出`,
+          }
+        : {
+            title: "離線中",
+            detail: `${count} 筆已保存，恢復連線後自動送出`,
+          };
+    case "syncing":
+      return { title: "同步中" };
+    case "synced":
+      return { title: "已同步" };
+  }
+};
+
+/**
+ * SyncIndicator projects the pending-write queue for one game, plus whether
+ * this device can keep what is unsent. It stores no status of its own. It sits
+ * in the header's middle column, in normal flow, below the volleyball mark.
  */
 export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const [open, setOpen] = useState(false);
   const { retry } = usePendingWritesContext();
+  const online = useIsOnline();
 
   // Select the raw slice, not a filtered copy: `.filter` inside a selector
   // returns a new array reference on every action, tripping the store's
@@ -53,12 +117,12 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const pendingWrites = useAppSelector((state) => state.pendingWrites);
   const pending = pendingWrites.pending.filter((p) => p.gameId === gameId);
   const status = deriveSyncStatus(pendingWrites, gameId);
-  // The count reflects everything the queue holds for this game, not only
-  // the items that have exhausted their backoff -- syncing shows the count
-  // too, just wearing the syncing style rather than the unsynced one.
   const pendingCount = pending.length;
 
-  const label = status === "synced" ? "已同步" : `${pendingCount} 筆未同步`;
+  const { title, detail } = copyFor(status, pendingCount, online);
+  // Screen reader users have no "open it to see more" step, so the trigger
+  // carries the whole sentence rather than only its heading.
+  const label = detail ? `${title}，${detail}` : title;
 
   // Only a recovery is acknowledged: every rally passes through syncing,
   // and a check mark there would outlast the send it acknowledges. Both
@@ -110,8 +174,15 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
           )}
         >
           {STATUS_ICON[status]("size-4")}
-          {isWarning(status) && (
-            <span className="absolute top-0 right-0 flex size-3 items-center justify-center rounded-full bg-warning text-[7px] font-bold text-warning-foreground">
+          {showsCount(status) && (
+            <span
+              className={cn(
+                "absolute top-0 right-0 flex size-3 items-center justify-center rounded-full text-[7px] font-bold",
+                isWarning(status)
+                  ? "bg-warning text-warning-foreground"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
               {pendingCount}
             </span>
           )}
@@ -119,27 +190,34 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
       </PopoverTrigger>
       <PopoverContent
         align="center"
-        className="w-auto rounded-md p-0"
+        className="w-auto max-w-[16rem] rounded-md p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="inline-flex h-8 items-center gap-2 overflow-hidden px-2.5 text-xs whitespace-nowrap">
-          {/* `contents` keeps this span out of layout -- it exists only so
-              the warning color (explicit here, not inherited from the
-              trigger button) is a queryable, testable element. */}
-          <span
-            data-testid="sync-popover-icon"
-            className={cn("contents", isWarning(status) && "text-warning")}
-          >
-            {STATUS_ICON[status]("size-4 shrink-0")}
-          </span>
-          <span className={isWarning(status) ? "text-warning" : undefined}>
-            {label}
-          </span>
+        <div className="flex flex-col gap-1 px-2.5 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            {/* `contents` keeps this span out of layout -- it exists only so
+                the warning color (explicit here, not inherited from the
+                trigger button) is a queryable, testable element. */}
+            <span
+              data-testid="sync-popover-icon"
+              className={cn("contents", isWarning(status) && "text-warning")}
+            >
+              {STATUS_ICON[status]("size-4 shrink-0")}
+            </span>
+            <span className={isWarning(status) ? "text-warning" : undefined}>
+              {title}
+            </span>
+          </div>
+          {detail && (
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              {detail}
+            </p>
+          )}
           {status === "unsent" && (
             <button
               type="button"
               onClick={handleRetry}
-              className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border"
+              className="mt-1 inline-flex shrink-0 items-center justify-center gap-1 self-start rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border"
             >
               <RiRefreshLine className="size-3 shrink-0" />
               重試
