@@ -75,6 +75,27 @@ Key conventions:
 - Variables/functions: `camelCase`; booleans: `is`/`has`/`can` prefix; event handlers: `handle` prefix; constants: `UPPER_SNAKE_CASE`
 - Path aliases: `@/*` for absolute imports from `src/`
 
+### Comments
+
+Default to none. Code that needs a comment to be understood usually needs a better name or a smaller function — try that first, and keep the comment only if the rewrite does not carry the information.
+
+Write one only for what the code cannot say by itself:
+
+- a constraint that is invisible locally — a browser quirk, an ordering requirement, a platform limit;
+- why an obvious alternative was rejected, where the next reader would otherwise reintroduce it;
+- a consequence that lands somewhere else in the codebase.
+
+Never restate what the line does, and never re-argue a decision a Blueprint Change already owns. Reference it instead of copying it, or the two drift apart — and qualify the id with the Change slug, because `D2` alone is ambiguous as soon as a file has been touched by more than one Change:
+
+```ts
+// Deliberately the same judgement as the indicator's warning tone.
+// See honest-sync-status D2.
+```
+
+Keep what survives short. One or two lines is the norm; a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file.
+
+No volatile references: issue ids and ticket numbers belong in commit bodies and pull requests, never in source.
+
 ---
 
 ## Testing

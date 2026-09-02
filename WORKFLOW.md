@@ -223,6 +223,11 @@ After all slices complete:
 6. set the Change lifecycle to `awaiting-delivery-review`, notify the developer, and stop for
    acceptance of Blueprint Review.
 
+The standards axis exists to cover what the repository documents and no tool checks — comment
+necessity and density above all, since lint, types and formatting all pass regardless of how much
+prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
+unwritten standard is one the reviewer cannot apply: state it in `CONTRIBUTING.md` first.
+
 Do not open the pull request before developer acceptance and branch-local Archive. The repository
 does not run an automated Claude review after the pull request opens. Human PR review and comment
 fix rounds remain available, but they are optional and the default delivery path does not wait for
