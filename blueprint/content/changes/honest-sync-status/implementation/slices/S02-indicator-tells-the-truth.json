@@ -2,12 +2,8 @@
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S02",
   "title": "The indicator's copy and icon stop implying a single cause",
-  "capabilities": [
-    "game-recording/rally-recording"
-  ],
-  "dependsOn": [
-    "S01"
-  ],
+  "capabilities": ["game-recording/rally-recording"],
+  "dependsOn": ["S01"],
   "outcome": "The 待送 condition shows a static offline icon instead of a spinner that lies about work in progress, and its popover text says one of two different things depending on whether the browser reports a connection -- instead of one sentence that used to cover both.",
   "acceptanceCriteria": [
     "A `useIsOnline` hook is added via `useSyncExternalStore`, with its `subscribe` function defined once at module scope so the reference passed to `useSyncExternalStore` is stable across renders, and `getServerSnapshot` returning `true` because Next.js still server-renders this client component and the server has no `navigator`.",

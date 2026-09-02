@@ -406,6 +406,81 @@ describe("SyncIndicator", () => {
     jest.useRealTimers();
   });
 
+  it("offers no retry while the device is off the network", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failTwice(store, ["e1"]);
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    act(() => goOffline());
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "離線中，1 筆已保存，恢復連線後自動送出",
+      }),
+    );
+    // It would fail every time, and the recorder already knows the network
+    // is off -- the only useful action is turning it back on.
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Retry resets nothing the status reads, so without feedback of its own the
+  // button looks inert. The feedback stays on the button rather than in the
+  // status, which would flash on every background retry too.
+  it("shows the retry control as busy while its own request is in flight", async () => {
+    let release!: (value: unknown) => void;
+    apiClient.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failTwice(store, ["e1"]);
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "重試" }));
+
+    expect(screen.getByRole("button", { name: "重試" })).toBeDisabled();
+
+    await act(async () => {
+      release({ entries: [{ id: "e1" }] });
+    });
+  });
+
   it("retry closes the popover, flushes the queue, and moves to syncing", async () => {
     apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
     store = makeStore();

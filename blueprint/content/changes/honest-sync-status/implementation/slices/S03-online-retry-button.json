@@ -2,8 +2,12 @@
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S03",
   "title": "A retry button only where retrying is actually useful",
-  "capabilities": ["game-recording/rally-recording"],
-  "dependsOn": ["S02"],
+  "capabilities": [
+    "game-recording/rally-recording"
+  ],
+  "dependsOn": [
+    "S02"
+  ],
   "outcome": "The retry button appears only in the 待送 condition and only while the browser reports a connection -- offline, retrying cannot succeed, so the button is not shown. Its own busy state never touches the global sync status.",
   "acceptanceCriteria": [
     "The retry button renders only when the current condition is 待送 (`attempts >= 2`) and `useIsOnline()` is true; it does not render in 送不出去, 無法保存, or while offline in 待送.",
@@ -18,5 +22,5 @@
     "pnpm lint",
     "pnpm format:check"
   ],
-  "status": "pending"
+  "status": "completed"
 }

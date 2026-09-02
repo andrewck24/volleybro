@@ -141,9 +141,18 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
     return () => clearTimeout(timer);
   }, [status]);
 
+  // Pressing retry changes no queue state -- attempts is left alone so a
+  // failure exhausts the table again immediately -- so without a pending
+  // state of its own the button looks like it did nothing. Kept local: a
+  // global in-flight signal would flash the spinner on every background
+  // retry too, which is exactly what the failure threshold exists to stop.
+  const [retrying, setRetrying] = useState(false);
   const handleRetry = () => {
-    setOpen(false);
-    void retry();
+    setRetrying(true);
+    void retry().finally(() => {
+      setRetrying(false);
+      setOpen(false);
+    });
   };
 
   // The slot keeps its size so the volleyball mark above it never shifts.
@@ -213,13 +222,23 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               {detail}
             </p>
           )}
-          {status === "unsent" && (
+          {/* Offline the button is certain to fail, and the recorder already
+              knows the network is off -- offering it would only suggest that
+              pressing it might help. Online it is the only recourse there is:
+              nothing detects the server coming back, because no `online`
+              event fires when the device never left the network. */}
+          {status === "unsent" && online && (
             <button
               type="button"
               onClick={handleRetry}
-              className="mt-1 inline-flex shrink-0 items-center justify-center gap-1 self-start rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border"
+              disabled={retrying}
+              className="mt-1 inline-flex shrink-0 items-center justify-center gap-1 self-start rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border disabled:opacity-60"
             >
-              <RiRefreshLine className="size-3 shrink-0" />
+              {retrying ? (
+                <Spinner className="size-3 shrink-0" />
+              ) : (
+                <RiRefreshLine className="size-3 shrink-0" />
+              )}
               重試
             </button>
           )}
