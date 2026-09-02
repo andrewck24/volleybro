@@ -150,7 +150,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 />
 
 <Scenario
-  given="網路只是打了一個嗝，兩秒後自己好了"
+  given="網路發生一次 transient failure，兩秒後自行恢復"
   when="第一次 flush 失敗、背景重試在兩秒後成功"
   then="`attempts` 只到 1，從未跨過門檻；指示器全程維持 spinner，沒有任何圖示閃動"
 />
@@ -180,6 +180,8 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 真實裝置上的飛航模式與私密瀏覽觀感屬 developer acceptance，不由自動化測試承擔。
 
 ## Risks
+
+前兩條是本 Change 選擇不關閉的缺口，兩者都有指定的關閉者（ATE-132 與 ATE-39）而非留在原地；第三條是它縮小但關不掉的。其餘四條是取捨的代價，記在這裡是為了讓推翻它們的證據出現時有東西可以對照。
 
 <RiskTable
   risks={[

@@ -2,6 +2,7 @@
 title: Overview
 ---
 
+import { FileTour } from "@/components/FileTour";
 import { Scenario } from "@/components/Scenario";
 import { TLDR } from "@/components/TLDR";
 
@@ -60,11 +61,70 @@ import { TLDR } from "@/components/TLDR";
 - **不在內**：佇列的送出、重試、退避、過期行為。`enqueued`、`flushSucceeded`、`flushFailed`、`retryRequested`、`rehydrated`、`hasExpired`、`nextAttemptDelayMs` 的語意全部不動。
 - **不在內**：rally 端點、repository、SWR 設定、Entry List 的互動（只有標記的觸發條件改變，控制項本身不動）。
 
-## Capability impact
+## Impact
+
+Affected capabilities：`game-recording/rally-recording`、`game-recording/persistence`。兩者都不新增 sub-capability——本 Change 改變的是既有能力對自己處境的陳述，不是能力本身。
 
 `game-recording/rally-recording` 的行為契約不變——記球的手勢、樂觀推進、送出的時機全部照舊。改變的是**系統對自己處境的陳述**：同一組佇列事實，被投影成一組不再說謊的狀態。
 
 `game-recording/persistence` 第一次獲得一個對使用者可見的可用性契約。在此之前，「本機儲存是否可用」只存在於 console warning 裡；此後它是一個會出現在畫面上的狀態，而且在第一顆球被記錄之前就會出現。
+
+Affected code，逐檔與各自的理由：
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      summary:
+        "本 Change 的重心。`deriveSyncStatus` 由三個分支改為五條有序條件，`hasFailedWrite` 的判準由「退避用盡」改為「不可重試」——兩者自此讀同一個事實，指示器與 per-rally 標記不可能互相矛盾。`isRetryableStatus`、`mayBeAttemptedAgain`、退避表、過期規則全部不動。",
+    },
+    {
+      path: "src/lib/features/game/pending-writes-slice.ts",
+      change: "modified",
+      summary:
+        "新增一個表示本機儲存不可用的布林欄位，這是本 Change 唯一新增的狀態。同時移除 `flushStarted` action 與 reducer、`initialState` 的 `flushingGameIds`、以及 `flushSucceeded` 與 `flushFailed` 中維護它的兩行；`flushSucceeded` 過濾 id 的邏輯保留。不新增 Redux slice——為一個布林開一個 slice 是把 slice 當成一塊 state 而不是一個 domain feature。",
+    },
+    {
+      path: "src/lib/features/game/types.ts",
+      change: "modified",
+      summary:
+        "`PendingWritesState` 加一個欄位、減一個欄位。減掉的 `flushingGameIds` 從未落盤（`toPersisted` 只映射單筆 pending 的欄位），所以不需要 migration，也不需要動 `PENDING_WRITES_VERSION`。",
+    },
+    {
+      path: "src/components/game/header/sync-indicator.tsx",
+      change: "modified",
+      summary:
+        "五個狀態的圖示與語氣、popover 由單行改為兩行、`aria-label` 帶完整句子、重試按鈕移到獨立一列並取得自己的 pending 呈現、`SYNCED_ACK_MS` 的觸發條件改為「前一狀態為送不出去或待送」。檔頭那句「pure projection of the pending-write queue」必須在同一輪更新——指示器多了一個不來自佇列內容的輸入，留著它會變成一句過時的斷言。",
+    },
+    {
+      path: "src/hooks/use-is-online.ts",
+      change: "added",
+      summary:
+        "以 `useSyncExternalStore` 訂閱 `online` / `offline` 的一個 hook，約八行。`subscribe` 置於 module scope 使其 reference 穩定，否則每次 render 都會退訂再重訂；`getServerSnapshot` 必填，因為 Next.js 仍會在伺服器上渲染 client component，而伺服器沒有 `navigator`。這是本 Change 唯一的新檔。",
+    },
+    {
+      path: "src/hooks/use-pending-writes.ts",
+      change: "modified",
+      summary:
+        "只移除 `flushStarted` 的 dispatch。flush、退避排程、`online` 監聽、`retry` 的行為全部不動——本 Change 不碰送出邏輯。",
+    },
+    {
+      path: "src/lib/redux/provider.tsx",
+      change: "modified",
+      summary:
+        "既有的 `restorePendingWrites` 旁多兩件事：一次本機儲存可用性探測，以及一次 `navigator.storage.persist()`。探測結果 dispatch 進 slice 的新欄位；`persist()` 的結果只進 log。",
+    },
+    {
+      path: "src/lib/features/game/__tests__/",
+      change: "modified",
+      summary:
+        "`deriveSyncStatus` 的既有測試改寫為五條件形狀而非刪除；`flushStarted` 的測試隨其 action 一併刪除，保留它們會是在測一個不再存在的概念；新增門檻邊界（`attempts` 為 1 與 2）與「不可重試 ≠ 退避用盡」的案例。",
+    },
+  ]}
+/>
+
+不在影響範圍內：rally 端點、repository、Mongoose schema、SWR 設定、Entry List 的互動控制項（只有標記的觸發條件改變，控制項本身不動）、`pending-writes-storage.ts` 的 port 契約。
 
 ## Alternatives considered
 
