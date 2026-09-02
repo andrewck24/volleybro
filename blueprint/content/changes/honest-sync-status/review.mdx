@@ -5,6 +5,7 @@ title: Review
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
 import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
 import { TaskProgress } from "@/components/TaskProgress";
 import { TLDR } from "@/components/TLDR";
 
@@ -216,4 +217,40 @@ const flushSucceeded: CaseReducer<
 
 `pnpm verify:all` 通過：`format:check`、workflow 測試與檢查、`typecheck:strict`、`lint`、946 個測試、Next build、service worker 斷言、Blueprint build。
 
-真實裝置上的飛航模式與私密瀏覽觀感屬 developer acceptance，不由自動化測試承擔——本 Change 的價值有一部分只在那裡看得見。
+真實裝置上的觀感屬 developer acceptance，不由自動化測試承擔。本 Change 改的多半是**動態與時序**——圖示停不停、幾秒後停、停了之後說什麼——那是螢幕上才看得見的東西。
+
+### 驗收腳本
+
+以加到主畫面的 iOS PWA 執行，逐條對照。
+
+<Scenario
+  given="開啟飛航模式，進入記錄畫面"
+  when="記兩球，等三秒"
+  then="圖示由轉圈變為靜態雲朵、維持中性色並帶數字角標；點開為「離線中 / N 筆已保存，恢復連線後自動送出」，且**沒有重試按鈕**"
+/>
+
+<Scenario
+  given="連上一個連得上但到不了伺服器的網路——關掉上游的熱點最容易重現"
+  when="記兩球，等三秒"
+  then="圖示同樣轉為靜態，但文案是「連線有問題 / N 筆已保存，會持續嘗試送出」，且**有重試按鈕**；按下後該按鈕自己轉圈並停用，其餘狀態不動"
+/>
+
+<Scenario
+  given="短暫斷網兩秒後自行恢復"
+  when="其間記一球"
+  then="圖示**全程維持轉圈**，不應閃出雲朵——這是門檻存在的理由，也是最容易回歸的一條"
+/>
+
+<Scenario
+  given="Safari 私密瀏覽，或設定中封鎖所有 Cookie"
+  when="進入記錄畫面，一球都還沒記"
+  then="立刻顯示警告的「無法保存到本機 / 關閉 app 會遺失未送出的紀錄」——在第一顆球之前，是這條的全部意義"
+/>
+
+<Scenario
+  given="上述離線情境結束"
+  when="恢復連線"
+  then="圖示轉回轉圈，送出成功後打勾約 1.5 秒再隱藏；資料庫比對每筆一份、無重複"
+/>
+
+關卡 3（送不出去）需要伺服器回 4xx，真機不易重現，由單元測試覆蓋。
