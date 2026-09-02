@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D1",
   "title": "狀態由實測失敗判定，navigator.onLine 只選文案",
-  "status": "candidate",
+  "status": "accepted",
   "targets": ["game-recording/rally-recording"],
   "context": "指示器目前以 `pending.some((p) => p.nextAttemptAt !== null)` 判定 syncing，而 `enqueued` 每次入列都設 `nextAttemptAt: Date.now()`。離線時每記一球就把整組重置回 syncing，spinner 全程轉動。原始票的方向是新增一個由 `navigator.onLine` 驅動的 offline 狀態，但那個訊號只能證偽不能證實：裝置連上一個上游掛掉的 wifi、或未登入的 captive portal 時它回報 true，而球送不出去。以 VolleyBro 的使用情境——體育館、地下場館、共用 wifi——訊號滿格卻連不出去比飛航模式更常發生，若以它為判準，原始缺陷在最常見的情境下原封不動。真正的訊號已經在 state 裡：`attempts` 記錄的是實際送出並實際失敗的次數，對兩種情境一視同仁。Notion 的離線指示同樣以伺服器可達性而非 navigator.onLine 為準。",
   "decision": "狀態改由五條有序條件判定，第一個命中者勝出：storageUnavailable → 佇列空 → 存在不可重試的 entry → 存在 attempts 達門檻的 entry → 其餘為同步中。`navigator.onLine` 完全不參與判定，只在「待送」狀態下分岔文案與重試按鈕的顯示；兩種文案都是真話，因為「送不出去」的依據永遠是失敗紀錄，false 則是它唯一可靠的方向。抖動門檻取 `attempts >= 2`（約三秒，撐過第一次背景重試）而非計時器：`attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 setTimeout 與其清理責任。Notion 採三十秒，對在球與球之間抬頭掃一眼的記錄員過長，而「看起來卡住」正是本 Change 的起因。連線狀態以 `useSyncExternalStore` 訂閱 online/offline 事件讀取，subscribe 置於 module scope，getServerSnapshot 回傳 true。",
@@ -32,7 +32,7 @@
     "從第一次失敗到門檻成立之間約三秒，離線仍顯示 spinner。這是刻意的取捨：短到在下一球之前就給出答案，長到濾掉自己會好的網路打嗝。"
   ],
   "revisitTriggers": [
-    "ATE-128 的重試狀態群組化落地：attempts 與 lastError 的持有位置由 entry 移至 (game, set) 群組，門檻語意由「單一 entry」變為「群組」，本決策的條件式須重新檢視。",
+    "重試狀態改以 (game, set) 群組為單位的後續工作落地：attempts 與 lastError 的持有位置由 entry 移至 (game, set) 群組，門檻語意由「單一 entry」變為「群組」，本決策的條件式須重新檢視。",
     "現場證據顯示三秒門檻過短或過長——過短表現為打嗝仍造成圖示閃動，過長表現為使用者在門檻成立前就已經開始擔心。",
     "一個真正可靠的伺服器可達性訊號出現（例如 outbox 自帶的心跳），屆時 navigator.onLine 連文案的工作都可以交出去。"
   ],

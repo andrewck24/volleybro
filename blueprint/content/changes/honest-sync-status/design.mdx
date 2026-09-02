@@ -164,7 +164,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 <Scenario
   given="一筆 entry 因為 4xx 被判定不可重試"
   when="使用者恢復連線，其餘的球全部送出"
-  then="指示器維持警告而非回到隱藏；Entry List 上那一列帶著 destructive ring 與 per-row 重試控制。從指示器導航過去的路屬 ATE-132，本 Change 不提供"
+  then="指示器維持警告而非回到隱藏；Entry List 上那一列帶著 destructive ring 與 per-row 重試控制。從指示器導航過去的路屬後續工作「不可重試 entry 的導向與刪除」，本 Change 不提供"
 />
 
 ## Testing strategy
@@ -181,7 +181,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 
 ## Risks
 
-前兩條是本 Change 選擇不關閉的缺口，兩者都有指定的關閉者（ATE-132 與 ATE-39）而非留在原地；第三條是它縮小但關不掉的。其餘四條是取捨的代價，記在這裡是為了讓推翻它們的證據出現時有東西可以對照。
+前兩條是本 Change 選擇不關閉的缺口，兩者都有指定的關閉者（「不可重試 entry 的導向與刪除」與 `offline-recording`）而非留在原地；第三條是它縮小但關不掉的。其餘四條是取捨的代價，記在這裡是為了讓推翻它們的證據出現時有東西可以對照。
 
 <RiskTable
   risks={[
@@ -189,13 +189,13 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
       name: "警告狀態在本 Change 內沒有出口",
       severity: "warning",
       mitigation:
-        "關卡 3 的 popover 不提供動作——重試對 4xx 必定再次失敗。Entry List 上 S08 的 per-row 重試控制仍然存在並仍然標記它們，缺的只是從指示器過去的路。ATE-132 已登記並以本 Change 為前置。這是已知缺口，不是靜默的。",
+        "關卡 3 的 popover 不提供動作——重試對 4xx 必定再次失敗。Entry List 上 S08 的 per-row 重試控制仍然存在並仍然標記它們，缺的只是從指示器過去的路。該後續工作已獨立登記，並以本 Change 為前置。這是已知缺口，不是靜默的。",
     },
     {
       name: "手動重試把機制的責任交給使用者的手指",
       severity: "warning",
       mitigation:
-        "退避表約二十二秒後終止，而 onLine 恆真時沒有任何機制偵測伺服器恢復。這是有意識、有期限的妥協，期限記在 ATE-39 的驗收條件上——持久重播上線後移除該按鈕。",
+        "退避表約二十二秒後終止，而 onLine 恆真時沒有任何機制偵測伺服器恢復。這是有意識、有期限的妥協，期限記在 `offline-recording` 的驗收條件上——持久重播上線後移除該按鈕。",
     },
     {
       name: "ITP 清除與磁碟壓力回收仍然是靜默的",
@@ -222,10 +222,10 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
         "它多了一個不來自佇列內容的輸入。`sync-indicator.tsx` 檔頭那句「pure projection of the pending-write queue」必須在同一輪更新，否則它會變成一句過時的斷言。",
     },
     {
-      name: "ATE-128 會改變本模型讀取的欄位",
+      name: "重試狀態群組化會改變本模型讀取的欄位",
       severity: "info",
       mitigation:
-        "attempts 與 lastError 的持有位置將由 entry 移至 (game, set) 群組。本 Change 排在它之前，使 ATE-128 面對的是一個已釐清的狀態模型；門檻語意屆時須重新檢視，已登記為 revisit trigger。",
+        "attempts 與 lastError 的持有位置將由 entry 移至 (game, set) 群組。本 Change 排在它之前，使該後續工作面對的是一個已釐清的狀態模型；門檻語意屆時須重新檢視，已登記為 revisit trigger。",
     },
   ]}
 />
@@ -240,3 +240,20 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
     datedPatch,
   ]}
 />
+
+## References
+
+D1 與 D4 的兩處經驗性主張——「其他 local-first 產品怎麼講離線」與「它們不提供手動重試」——的出處記在這裡，連同各自的證據強度。**兩者都是二手來源的歸納，不是對那些產品的實地稽核**，因此它們支撐的是決策的方向，不足以支撐更強的宣稱。
+
+| 來源                                                                                                                                                                                  | 支撐了什麼                                                                                                                                                                                                                                                 | 證據強度                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [Google Drive 社群討論串](https://support.google.com/drive/thread/173911234/working-offline-looks-like-you-re-offline-changes-are-saved-to-this-device-now-and-will-save-to-dr?hl=en) | Google Docs 離線提示的實際字串：`Working offline — Looks like you're offline. Changes are saved to this device now, and will save to Drive…`。結構是短標題加一句完整的話，且那句話同時講「已存在裝置上」與「之後會存回雲端」——與本 Change 的兩行文案同形。 | **中**。字串來自使用者張貼的畫面內容，非 Google 官方文件。 |
+| [Google Workspace Updates：新的儲存狀態與離線指示器](https://workspaceupdates.googleblog.com/2020/06/new-save-status-online-offline-google-docs.html)                                 | 常駐層只有一個小灰色 icon，完整說明點開才出現——即分層揭露。                                                                                                                                                                                                | **中**。官方來源，但只描述行為，未逐字引用 UI 字串。       |
+| [Local-First Content：Caching、Offline Modes 與 UX](https://pavilion.network/blog/local-first-content-caching-offline-ux)                                                             | 以不張揚的 sync badge 隱藏同步複雜度，用顏色與 microcopy 傳達風險程度。                                                                                                                                                                                    | **低**。二手綜述。                                         |
+| [KoruUX：設計狀態指示器的五個最佳實務](https://www.koruux.com/blog/ux-best-practices-designing-status-indicators/)                                                                    | 狀態指示器需要簡潔的 microcopy 說明等待的原因，以及使用者能否做點什麼。                                                                                                                                                                                    | **低**。二手綜述。                                         |
+| [Expensify `OFFLINE_UX.md`](https://github.com/Em01/App/blob/main/contributingGuides/OFFLINE_UX.md)                                                                                   | 一份真實產品的離線 UX 契約：樂觀推進、待送項目以視覺標記呈現、重試自動發生而非要求使用者觸發。                                                                                                                                                             | **中**。一手工程文件，但屬他人專案的內部約定。             |
+
+兩件**未經一手確認**、但影響了決策的事，記在這裡以免日後被當成已驗證的事實：
+
+- **Notion 在連不到伺服器約三十秒後才顯示離線**，判準是伺服器可達性而非 `navigator.onLine`。這在 D1 中被當作「不信任該訊號」的旁證。來源為二手綜述，未在 Notion 官方文件中確認。
+- **Google Docs、Notion、Linear 皆不提供手動重試按鈕**，因其背景重試永不終止。這是 D4 全部論證的前提——按鈕之所以存在，是因為我們有一個它們沒有的終局狀態。若這個前提被推翻（例如其中之一其實有這顆按鈕，或其重試其實會終止），D4 應重新檢視。
