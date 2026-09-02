@@ -88,7 +88,6 @@ const discard = (storage: PendingWritesStorage) =>
  * At start-up rather than at the first failed save, which is the point: the
  * recorder still has moves available before the first rally. Only a failure
  * is reported -- nothing here can observe a store recovering.
- * See honest-sync-status D3.
  */
 export async function probePendingWritesStorage(
   dispatch: StorageDispatch,

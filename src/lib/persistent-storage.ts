@@ -1,11 +1,7 @@
 /**
- * Asks the browser to mark this origin's storage as persistent, once, at app
- * start. This is a request, not a result: a resolved `true` means only that
- * the browser accepted it, not that data will survive disk-pressure eviction
- * or iOS ITP's inactivity sweep -- both of which throw nothing, so nothing
- * short of this call can even try to prevent them (see D3 of
- * honest-sync-status). No caller may treat the outcome as a durability
- * guarantee; nothing is returned to make that mistake with.
+ * Storage an origin has not been granted persistence for is evictable: the
+ * system reclaims it under disk pressure, and iOS clears it after a stretch of
+ * inactivity. Neither throws, so asking is the only defence there is.
  */
 export async function requestPersistentStorage(): Promise<void> {
   try {

@@ -26,7 +26,7 @@ export const SYNCED_ACK_MS = 1500;
 /**
  * One table rather than a switch per question, so a new condition cannot be
  * added to some of them and not others. Warning is for the two conditions the
- * recorder has to act on; waiting is not one of them. See honest-sync-status D2.
+ * recorder has to act on; waiting is not one of them.
  */
 const STATUS_STYLE: Record<
   SyncStatus,
@@ -72,7 +72,7 @@ const STATUS_STYLE: Record<
 /**
  * `online` is read only in the unsent case, and only to choose between two
  * sentences that are both true: `false` can promise an automatic send, `true`
- * can promise only further attempts. See honest-sync-status D1.
+ * can promise only further attempts.
  */
 const copyFor = (
   status: SyncStatus,
@@ -149,7 +149,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
 
   // Retry changes no queue state, so the button needs its own pending mark.
   // Local, not global: a shared in-flight signal would flash the spinner on
-  // every background retry too. See honest-sync-status D4.
+  // every background retry too.
   const [retrying, setRetrying] = useState(false);
   const handleRetry = () => {
     setRetrying(true);

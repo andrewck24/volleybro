@@ -18,7 +18,7 @@ const getServerSnapshot = () => true;
 
 /**
  * Only the `false` answer is trustworthy: a captive portal or a dead upstream
- * both report `true`. Never let this decide queue state -- see honest-sync-status D1.
+ * both report `true`. Never let this decide queue state.
  */
 export const useIsOnline = (): boolean =>
   useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

@@ -100,7 +100,7 @@ const rehydrated: CaseReducer<
   state.pending = [...restored, ...state.pending];
 };
 
-/** One-way: nothing observes a store recovering. See honest-sync-status D3. */
+/** One-way: nothing here observes a store recovering. */
 const storageUnavailable: CaseReducer<PendingWritesState> = (state) => {
   state.storageUnavailable = true;
 };

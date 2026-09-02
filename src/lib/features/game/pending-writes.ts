@@ -18,8 +18,7 @@ export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
 export type SyncStatus =
   "unwritable" | "synced" | "failed" | "unsent" | "syncing";
 
-/** Two, so the failure outlived the first background retry. See
- * honest-sync-status D1. */
+/** Two, so the failure outlived the first background retry. */
 export const PENDING_WRITE_UNSENT_ATTEMPTS = 2;
 
 /**
@@ -44,7 +43,7 @@ export const deriveSyncStatus = (
 
 /**
  * Deliberately the same judgement as the indicator's warning tone, so the two
- * cannot disagree about one entry. An exhausted backoff is not enough. See honest-sync-status D2.
+ * cannot disagree about one entry. An exhausted backoff is not enough.
  */
 export const hasFailedWrite = (
   state: PendingWritesState,
