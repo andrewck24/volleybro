@@ -6,9 +6,7 @@
     "game-recording/rally-recording",
     "game-recording/persistence"
   ],
-  "dependsOn": [
-    "S01"
-  ],
+  "dependsOn": ["S01"],
   "outcome": "`hasFailedWrite` marks an Entry List row only when its write can never succeed, matching the standard the indicator's 送不出去 condition already uses. A row whose write has merely exhausted its backoff heals itself and is no longer marked as failed.",
   "acceptanceCriteria": [
     "`hasFailedWrite` changes from `nextAttemptAt === null` to `!mayBeAttemptedAgain(lastError)`.",
