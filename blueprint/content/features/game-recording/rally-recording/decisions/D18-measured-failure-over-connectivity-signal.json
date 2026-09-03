@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D18",
   "title": "狀態由實測失敗判定，navigator.onLine 只選文案",
   "status": "implemented",
   "targets": ["game-recording/rally-recording"],
@@ -36,5 +36,6 @@
     "現場證據顯示三秒門檻過短或過長——過短表現為打嗝仍造成圖示閃動，過長表現為使用者在門檻成立前就已經開始擔心。",
     "一個真正可靠的伺服器可達性訊號出現（例如 outbox 自帶的心跳），屆時 navigator.onLine 連文案的工作都可以交出去。"
   ],
-  "originChange": "honest-sync-status"
+  "originChange": "honest-sync-status",
+  "originDecision": "D1"
 }

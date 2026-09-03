@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D21",
   "title": "不新增慢速輪詢；手動重試作為有期限的機制補丁",
   "status": "implemented",
   "targets": ["game-recording/rally-recording"],
@@ -37,5 +37,6 @@
     "退避表被調整為不終止（例如改為無上限的指數退避加抖動）：那等於在本 Change 之外把洞補起來，按鈕同樣應該移除。",
     "本決策的前提被推翻：它成立於「其他 local-first 產品不提供手動重試，因為其背景重試永不終止」，而該前提是二手來源的歸納而非實地稽核（見 Design 頁的 References）。若其中之一其實有這顆按鈕、或其重試其實會終止，論證的基礎就變了。"
   ],
-  "originChange": "honest-sync-status"
+  "originChange": "honest-sync-status",
+  "originDecision": "D4"
 }

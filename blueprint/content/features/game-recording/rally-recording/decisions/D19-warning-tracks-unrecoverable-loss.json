@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D19",
   "title": "警告語氣改掛「不可重試」，per-rally 標記一併收窄",
   "status": "implemented",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
@@ -32,5 +32,6 @@
     "rally 端點補上 request schema：400 會大量增加，此狀態從罕見變成需要正視的常態，屆時「不可重試」的呈現密度與 hasExpired 的七天規則都要重估。",
     "現場證據顯示某類 4xx 其實會自己好（例如伺服器修好之後），那會推翻 isRetryableStatus 的分界而非本決策，但兩者相接。"
   ],
-  "originChange": "honest-sync-status"
+  "originChange": "honest-sync-status",
+  "originDecision": "D2"
 }

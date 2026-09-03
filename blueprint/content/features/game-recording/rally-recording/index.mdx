@@ -8,6 +8,9 @@ import retryResponsibilitySplit from "./decisions/D11-retry-responsibility-split
 import pendingQueueSourceOfTruth from "./decisions/D13-pending-queue-source-of-truth.json";
 import persistedShape from "./decisions/D15-persisted-shape.json";
 import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
+import measuredFailureOverConnectivitySignal from "./decisions/D18-measured-failure-over-connectivity-signal.json";
+import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
+import manualRetryIsADatedPatch from "./decisions/D21-manual-retry-is-a-dated-patch.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -21,8 +24,22 @@ the rotation, whether it is at set point — follows from the entries.
   cannot hold up play. Editing still waits, because an edit that fails leaves
   correct data on the server and the recorder is watching a dialog for it.
 - The queue is the single source of truth for what has not reached the server.
-  The sync indicator and the per-row failure marker are projections of it and
-  store no status of their own.
+  The sync indicator and the per-row failure marker are projections of it, plus
+  one flag for whether this device can keep what is unsent; neither stores a
+  status of its own.
+- The indicator reports five conditions, worst possibility first, so nothing
+  uncertain can be shown as the most optimistic answer. A spinner appears only
+  where its implied "this finishes shortly" holds; two measured failures move
+  the queue to a static mark that says the rallies are saved and what happens
+  next. The threshold is counted rather than timed, so a two-second blip never
+  reaches it.
+- The browser's connectivity signal decides no condition. It chooses between
+  two true sentences once the queue already knows it is failing, because only
+  its negative answer is trustworthy — a device on a dead network reports
+  itself online.
+- The warning tone marks entries a retry cannot save, not entries waiting out
+  a backoff. Those send themselves on the next flush or on reconnect, and the
+  per-row marker reads the same judgement so the two cannot disagree.
 - A failed write retries itself: twice inline within one attempt, then in the
   background on a widening delay. Once that budget is spent the entry stays
   queued and waits for the recorder to retry it by hand.
@@ -65,6 +82,9 @@ the rotation, whether it is at set point — follows from the entries.
   schedule changes.
 - The recorder is never left with an unsent result and no way to see or retry
   it. A surface that hides the indicator must block the way forward instead.
+- The indicator may not claim more than the queue knows. Every sentence it
+  shows has to be true of every state that reaches it, which is why the
+  browser's connectivity signal picks wording and never a condition.
 
 ## Known gaps
 
@@ -78,6 +98,15 @@ the rotation, whether it is at set point — follows from the entries.
 - Unsent work is visible only inside the game it belongs to. A recorder who
   finishes a match and walks away is never told that something never left, and
   the match list meanwhile shows a score missing those rallies.
+- An entry a retry cannot save has no route out of the queue. The indicator
+  names it and the entry list marks the row, but reaching that row from the
+  indicator, or discarding it, is not built.
+- The manual retry stands in for a mechanism. The backoff table terminates, and
+  a device that never left the network sees no reconnect event, so nothing
+  notices the server coming back. Durable replay is what removes the button.
+- The connection that reports itself online while reaching nothing has never
+  been exercised on a device; it failed to reproduce twice and rests on unit
+  tests alone.
 
 ## Implemented decisions
 
@@ -88,5 +117,8 @@ the rotation, whether it is at set point — follows from the entries.
     pendingQueueSourceOfTruth,
     persistedShape,
     flushStaysGameScoped,
+    measuredFailureOverConnectivitySignal,
+    warningTracksUnrecoverableLoss,
+    manualRetryIsADatedPatch,
   ]}
 />

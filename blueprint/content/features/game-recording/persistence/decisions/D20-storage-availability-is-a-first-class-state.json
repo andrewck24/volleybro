@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D20",
   "title": "本機儲存可用性升為指示器的第一級狀態，並在開機時就探測",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -52,5 +52,6 @@
     "offline-recording 開始實作離線承諾：屆時不可寫的 store 從降級模式變成功能無法運作的理由，本狀態的語氣要從警告升級為阻斷。這是 D4 of retryable-queue-persistence 已登記的觸發條件。",
     "出現一個可靠且不被瀏覽器主動封鎖的方式，能區分「持久的儲存」與「關閉即消失的儲存」——`navigator.storage.estimate()` 的配額大小是目前唯一的線索，但它是啟發式的，且各瀏覽器版本差異大。"
   ],
-  "originChange": "honest-sync-status"
+  "originChange": "honest-sync-status",
+  "originDecision": "D3"
 }
