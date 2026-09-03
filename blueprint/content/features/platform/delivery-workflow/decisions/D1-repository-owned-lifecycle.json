@@ -24,5 +24,6 @@
   "revisitTriggers": [
     "A future orchestrator-neutral standard can preserve the same Manual execution guarantees with less repository policy."
   ],
-  "originChange": "unified-software-delivery-workflow"
+  "originChange": "unified-software-delivery-workflow",
+  "originDecision": "D1"
 }

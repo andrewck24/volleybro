@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D8",
   "title": "Lifecycle is the only stored state; status is derived",
   "status": "implemented",
   "targets": ["platform/blueprint"],
@@ -33,5 +33,6 @@
     "A lifecycle value is added that does not belong in any of the three browse buckets, which would mean the grouping no longer follows from the lifecycle and needs its own stored field after all.",
     "A consumer outside Blueprint needs the coarse status from change.json without running TypeScript, which would argue for emitting it into a generated artifact rather than restoring the stored field."
   ],
-  "originChange": "lifecycle-owned-status"
+  "originChange": "lifecycle-owned-status",
+  "originDecision": "D1"
 }

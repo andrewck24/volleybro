@@ -241,7 +241,8 @@ request opens. Follow `docs/agents/artifact-lifecycle.md`:
 1. reconcile Overview, Design, implementation slices, and Review with delivered code and tests;
 2. promote implemented behavior and durable constraints to the narrowest affected sub-capability;
 3. reconcile each realized Change ADR and change its status from `accepted` to `implemented`; the
-   decision-record contract below owns what is copied where, and what stays in the archived Change;
+   decision-record contract below owns the numbering, what is copied where, and what stays in the
+   archived Change;
 4. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 5. keep execution slices, review rounds, validation evidence, and plan-versus-actual history in the
    archived Change rather than copying them into Features;
@@ -326,9 +327,21 @@ consequences, and revisit triggers. `DecisionTimeline` renders these records in 
 knowledge pages; rendering never becomes a second editable decision source.
 
 Archive retains each reconciled ADR in the complete Change and copies the implemented record to
-`blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy records the
-origin Change slug and becomes canonical current knowledge. Later Changes may mark that Feature copy
-`superseded` without editing the historical ADR in the archived Change.
+`blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy becomes
+canonical current knowledge. Later Changes may mark that Feature copy `superseded` without editing
+the historical ADR in the archived Change.
+
+A promoted record is renumbered, because the two copies answer to different namespaces. Inside its
+Change, `D3` means the third decision of that piece of reasoning, and the archived Change keeps it
+untouched. Inside Features it has to be unique across everything promoted so far, so Archive assigns
+the next free number in **one sequence spanning the whole Features tree** and records where the
+record came from in `originChange` and `originDecision`. Both coordinates therefore resolve: the
+Change's own numbering stays the way to cite the reasoning, and the Feature number is the way to
+cite current knowledge.
+
+The sequence is global rather than per capability because one ADR may target several. Numbering per
+capability would give a single decision two numbers, and a decision is one entry however many pages
+index it. The number says nothing about which capability it governs; the directory it sits in does.
 
 ## Branch and commit strategy
 

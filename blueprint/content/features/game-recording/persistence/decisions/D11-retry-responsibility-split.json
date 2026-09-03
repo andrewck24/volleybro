@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D11",
   "title": "Retry responsibility splits by failure kind: the server retries its own write, the client resolves its own uncertainty",
   "status": "implemented",
   "targets": ["game-recording/persistence", "game-recording/rally-recording"],
@@ -37,5 +37,6 @@
     "A durable job queue enters the system for another reason, at which point the argument against server-side retry beyond the request lifetime weakens and the split should be reconsidered.",
     "A second consumer of the retryable flag appears at a different layer, which would make the choice of layer worth stating explicitly rather than leaving implicit in this decision."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "originDecision": "D2"
 }

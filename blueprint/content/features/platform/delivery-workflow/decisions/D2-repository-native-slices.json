@@ -24,5 +24,6 @@
   "revisitTriggers": [
     "A tracker-neutral durable slice store can provide equivalent Git history and offline Manual Apply."
   ],
-  "originChange": "unified-software-delivery-workflow"
+  "originChange": "unified-software-delivery-workflow",
+  "originDecision": "D2"
 }

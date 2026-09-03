@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D10",
   "title": "Entries carry a client-generated identity and sequence, and the two entry writes merge into one idempotent upsert",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -44,5 +44,6 @@
     "A future entry write path reaches for the repository's general-purpose update() instead of upsertEntry, meaning game-positional-writes' D2 surviving condition was not honoured.",
     "The database evaluation selects a relational store, which invalidates the document-specific guard, arrayFilters and $sort implementation but should leave the interface, the identity model and the ordering model untouched."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "originDecision": "D1"
 }

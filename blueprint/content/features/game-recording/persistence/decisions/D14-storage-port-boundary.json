@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D14",
   "title": "Persistence sits behind a small client-side port whose signature is asynchronous from the first day",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -40,5 +40,6 @@
     "The queue approaches thousands of entries, or whole-snapshot writes become measurable: the first step is splitting the key per game so only the touched game is rewritten, and only then IndexedDB behind the same port.",
     "A second consumer needs client-side persistence, at which point the port stops being a single-implementation interface and its shape should be re-examined against that second use rather than generalised speculatively."
   ],
-  "originChange": "retryable-queue-persistence"
+  "originChange": "retryable-queue-persistence",
+  "originDecision": "D1"
 }

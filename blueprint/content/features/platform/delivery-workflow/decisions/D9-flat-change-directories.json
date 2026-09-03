@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D9",
   "title": "A Change directory is its slug, and its URL never moves",
   "status": "implemented",
   "targets": ["platform/blueprint", "platform/delivery-workflow"],
@@ -33,5 +33,6 @@
     "The flat content/changes/ directory grows past what is comfortable to scan, which would argue for grouping by a value that never changes — not by status.",
     "An external system turns out to link to the old status-scoped URLs, which would require redirects that this decision deliberately omits."
   ],
-  "originChange": "lifecycle-owned-status"
+  "originChange": "lifecycle-owned-status",
+  "originDecision": "D2"
 }

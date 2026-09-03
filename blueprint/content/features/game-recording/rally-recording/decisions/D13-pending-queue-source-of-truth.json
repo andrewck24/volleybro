@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D13",
   "title": "A pending-write queue is the single source of truth for what the server has not confirmed",
   "status": "implemented",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
@@ -54,5 +54,6 @@
     "Connection state arrives with synchronised recording and the indicator gains a second dimension, making the current queue-only semantics worth restating.",
     "Backoff intervals prove wrong in the field — too eager to alarm, or too slow to recover — which is a tuning change to the queue rather than a change of shape."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "originDecision": "D4"
 }

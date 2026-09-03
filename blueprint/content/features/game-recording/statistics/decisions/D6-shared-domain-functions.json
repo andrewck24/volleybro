@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D6",
   "title": "Share derivation rules from entities using minimal structural signatures",
   "status": "implemented",
   "targets": ["platform/clean-architecture", "game-recording/statistics"],
@@ -31,5 +31,6 @@
     "Entities acquires a server-only dependency, which would turn sharing into a leak and require rethinking the shared boundary.",
     "A moved function's signature is widened to accept a domain data shape, which would reintroduce the coupling type-decoupling removed."
   ],
-  "originChange": "game-positional-writes"
+  "originChange": "game-positional-writes",
+  "originDecision": "D3"
 }

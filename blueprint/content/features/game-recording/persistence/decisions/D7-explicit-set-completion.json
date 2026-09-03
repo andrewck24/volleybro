@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D7",
   "title": "Completing a set becomes an explicit domain operation",
   "status": "implemented",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
@@ -27,5 +27,6 @@
     "Synchronised recording settles on a stable identity for entries, since replacing entry N is not a stable target once writers are concurrent, and set completion must agree with whatever anchor it chooses.",
     "A second consumer needs a derived value stored, which should reuse this pattern rather than reintroduce per-rally accumulation."
   ],
-  "originChange": "game-positional-writes"
+  "originChange": "game-positional-writes",
+  "originDecision": "D4"
 }

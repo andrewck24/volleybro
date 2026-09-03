@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D17",
   "title": "The adapter reports storage failures honestly; the decision to swallow them stays in the listener",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -32,5 +32,6 @@
     "Field evidence of storage failures actually occurring, which would move this ahead of the offline work rather than travelling with it.",
     "A second consumer of the port appears and needs its own failure policy, which would show whether keeping the policy at the call site was the right split."
   ],
-  "originChange": "retryable-queue-persistence"
+  "originChange": "retryable-queue-persistence",
+  "originDecision": "D4"
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D15",
   "title": "The snapshot stores the entry and its last error; retry state is recomputed on restore, and hopeless items expire",
   "status": "implemented",
   "targets": ["game-recording/persistence", "game-recording/rally-recording"],
@@ -50,5 +50,6 @@
     "A tournament longer than the expiry window is recorded offline, or the field shows entries expiring that should not have.",
     "Anything else needs to know why a write failed — error reporting, a per-row explanation, the conflict flow — at which point the fields stored here should be reconsidered against that consumer rather than kept minimal by default."
   ],
-  "originChange": "retryable-queue-persistence"
+  "originChange": "retryable-queue-persistence",
+  "originDecision": "D2"
 }

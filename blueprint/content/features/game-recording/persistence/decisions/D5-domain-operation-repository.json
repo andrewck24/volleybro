@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D5",
   "title": "Express game writes as domain operations, not whole-document overwrite",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -31,5 +31,6 @@
     "A sixth game write path appears and uses update() instead of a positional write, meaning the surviving condition was not honoured.",
     "The database evaluation selects a relational store, which invalidates the positional implementation but should leave the interface and use cases untouched; if it does not, the layering was not achieved."
   ],
-  "originChange": "game-positional-writes"
+  "originChange": "game-positional-writes",
+  "originDecision": "D2"
 }

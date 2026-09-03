@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D16",
   "title": "Restoring the queue does not send it — flush stays mounted under the game screen",
   "status": "implemented",
   "targets": ["game-recording/persistence", "game-recording/rally-recording"],
@@ -32,5 +32,6 @@
     "Field evidence that entries are in fact stranded because users do not return to a finished match, which would move the visibility half ahead of the rest of the outbox.",
     "The recording screen stops being the only authenticated entry point to a game, which would weaken the free authorisation gate this decision relies on."
   ],
-  "originChange": "retryable-queue-persistence"
+  "originChange": "retryable-queue-persistence",
+  "originDecision": "D3"
 }

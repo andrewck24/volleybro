@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D4",
   "title": "Entries are the only source of truth; statistics are a projection",
   "status": "implemented",
   "targets": ["game-recording/statistics", "game-recording/persistence"],
@@ -27,5 +27,6 @@
     "A materialization is introduced that accumulates independently instead of deriving from entries, which would end entries' status as the only source of truth.",
     "Derivation cost stops being negligible for a single game, for example if a set can hold far more entries than a volleyball set does."
   ],
-  "originChange": "game-positional-writes"
+  "originChange": "game-positional-writes",
+  "originDecision": "D1"
 }

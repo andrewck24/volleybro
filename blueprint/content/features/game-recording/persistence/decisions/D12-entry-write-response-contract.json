@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D12",
   "title": "The rally write reports its two outcomes separately instead of failing as one",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -37,5 +37,6 @@
     "Set completion stops being derivable on the client — for instance if scoring rules move server-side — which would change what the response has to carry.",
     "The pagination contract work lands and settles on field naming for collections beside metadata, which this decision should then be read against for consistency."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "originDecision": "D3"
 }
