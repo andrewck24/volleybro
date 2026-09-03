@@ -25,7 +25,6 @@ export const PENDING_WRITE_UNSENT_ATTEMPTS = 2;
  * Worst possibility first, first match wins -- the order is the design, not an
  * implementation detail, so keep it. `storageUnavailable` outranks the empty
  * queue because it is the one input that does not come from queue contents.
- * See honest-sync-status D1 and D3.
  */
 export const deriveSyncStatus = (
   state: PendingWritesState,

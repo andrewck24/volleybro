@@ -9,7 +9,7 @@
     "A `useIsOnline` hook is added via `useSyncExternalStore`, with its `subscribe` function defined once at module scope so the reference passed to `useSyncExternalStore` is stable across renders, and `getServerSnapshot` returning `true` because Next.js still server-renders this client component and the server has no `navigator`.",
     "In the 待送 condition (`attempts >= 2`), the persistent icon is the static `RiCloudOffLine`, replacing the `Spinner` that condition previously showed.",
     "The popover sentence for 待送 is two lines: 'N 筆已保存' followed by '恢復連線後自動送出' when `useIsOnline()` is false, or '會持續嘗試送出' when it is true -- `navigator.onLine` plays no part in which of the five conditions is chosen, only in picking this copy.",
-    "The 無法保存 condition's popover text is the fixed two lines '無法保存到本機' / '關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成', unconditional on `useIsOnline()`.",
+    "The 無法保存 condition names the quota -- `本機空間已滿` -- and its second line branches on whether any other game still has unsent entries, since sending those is what frees the space. It does not read `useIsOnline()`: the network has nothing to do with a store that cannot hold anything.",
     "The button's `aria-label` carries the full two-line sentence for whichever condition is showing, not just the short badge count.",
     "The persistent layer outside the popover is unchanged in shape: icon plus count badge; only the icon choice and the popover's internal text layout change."
   ],

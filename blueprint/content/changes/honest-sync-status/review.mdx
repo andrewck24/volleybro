@@ -49,7 +49,7 @@ import { TLDR } from "@/components/TLDR";
       path: "src/lib/features/game/pending-writes-storage.ts",
       change: "modified",
       summary:
-        "S05。port 由三方法變四方法。`probe` 寫入自己的 key、讀回、刪除——讀回那一半是關鍵：Safari 私密模式發放的是關掉分頁就消失的配額而不拋錯，只看 `setItem` 會把不可用的 store 判為健康。",
+        "S05。port 由三方法變四方法。`probe` 寫入自己的 key、讀回、刪除。讀回那一半是為了「既不拋錯也沒留住」的寫入，那是單看 `setItem` 報不出來的；它抓不到「這個 session 內有效、關掉才消失」的 store——見發現五。",
       lang: "ts",
       code: `async probe() {\n  const key = \`\${PENDING_WRITES_KEY}:probe\`;\n  localStorage.setItem(key, PROBE_VALUE);\n  const readBack = localStorage.getItem(key);\n  localStorage.removeItem(key);\n  if (readBack !== PROBE_VALUE) {\n    throw new Error("pending-writes storage did not keep what it was given");\n  }\n},`,
     },
@@ -209,6 +209,18 @@ popover 的說明文字用 `text-[11px]`，重試按鈕也是。設計系統的�
 所以**開機探測唯一還會觸發的情境是「開 app 時配額就已經滿了」**。而 listener 的 catch 會在第一顆球入列時抓到同一件事——探測買到的是「第一顆球之前」而非「第一顆球當下」，一顆球的差距。保留它是開發者的決定：那顆球記下去之後才被告知，感受完全不同。D3 對它價值的設想比實際大得多，已第三度更正。
 
 **文案同時改為指名配額。** 本 app 的 `localStorage` 只有佇列一個寫入者（表單草稿在 `sessionStorage`），塞滿它的幾乎必然是自己累積的未送出 entry——而佇列跨比賽、送出卻是 game-scoped，這正是 `retryable-queue-persistence` 的 D3 記下的「送達依賴使用者回到該場比賽」的長期後果。兩張 Change 在這裡接上了。文案依「是否有其他比賽的未送出 entry」分岔，才不會叫人去找不存在的比賽。
+
+### 第二輪審查：Ingest 改了文件卻沒改程式碼
+
+Spec 軸抓到最嚴重的一項：`pending-writes-storage.ts` 的 `probe` 註解**仍寫著發現五判定為錯的那句話**——「Safari 私密模式發放的是關掉分頁就消失的配額而不拋錯」。Ingest 更正了 D3 與三份 MDX，卻漏掉了原始碼裡同一個宣稱，而那是最會被相信的一份。同一句話也殘留在本頁的 FileTour 裡，與四節之外的發現五直接矛盾。
+
+其餘同源的殘留一併更正：D3 的 context 與 consequences 對「哪兩個成因當下就失敗」說法不一致；`design.mdx` 的 risk 仍把站台資料被封鎖算進涵蓋範圍；D3 與 Overview 都還留著「配額在此規模下最不可能發生」，而配額如今是唯一可觸及的成因；D3 宣稱真機驗證涵蓋 Chrome，實際只在 iOS PWA 上執行。S02 的驗收條件是唯一沒隨 Ingest 更新的切片，仍描述舊的固定兩行文案。Changeset 的最後一條也仍在講「切換瀏覽器模式」這個探測看不到的成因。
+
+Standards 軸的發現集中在新的註解規則第一次被實際套用：兩處 decision reference 在註解已把理由講完之後仍附上，四處測試註解在重新論證 Blueprint 擁有的決策（其中一處與原始碼註解實質重複），`failTwice` 與 Storybook story 各自硬編門檻 `2` 而非引用 `PENDING_WRITE_UNSENT_ATTEMPTS`。`copyFor` 的 `unwritable` 分支則收斂為共用 title 加三元 detail——兩支原本只有 detail 不同。
+
+**未採納一項**：Feature Envy 的判斷，指 `pendingCount` 與 `othersPending` 應移入 `deriveSyncStatus`。兩者是呈現用的衍生值——一個印在角標、一個決定講哪句話；`deriveSyncStatus` 回答的是佇列語意。移進去等於讓佇列模組知道 UI 要顯示什麼。
+
+**延後兩項**：五處未以 Change slug 限定的 decision id，以及三處長於程式碼的常數註解，全部來自更早的兩張 Change。註解規則是本輪才寫下的，回頭套用整個檔案庫是獨立工作。移除本 Change 自己那兩處之後，每個檔案只剩它自己那張 Change 的 id，歧義風險回到原本的水準。
 
 ## Plan versus actual
 

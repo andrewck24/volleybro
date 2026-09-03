@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "honest-sync-status",
   "title": "Honest Sync Status",
-  "lifecycle": "applying",
+  "lifecycle": "awaiting-delivery-review",
   "startedAt": "2026-09-02",
   "summary": "SyncIndicator 說的每一句話都必須是真的。離線時的 spinner 承諾了它兌現不了的進度，警告色掛在會自己好的情況上，而「已保存」在 localStorage 不可寫時是謊話。狀態改由實測失敗判定，navigator.onLine 退為純文案訊號，警告語氣改掛不可重試，並新增一個本機儲存不可用的第一級狀態。",
   "capabilities": [

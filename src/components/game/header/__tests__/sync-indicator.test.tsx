@@ -7,6 +7,7 @@ import {
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import * as apiClientModule from "@/lib/api/api-client";
+import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
@@ -44,10 +45,8 @@ const PendingWritesTestHarness = ({
   );
 };
 
-// Two measured failures is what the queue needs before it stops reading as
-// work in progress; one is a hiccup the first background retry usually clears.
-const failTwice = (store: AppStore, ids: string[]) => {
-  for (let i = 0; i < 2; i++) {
+const failToThreshold = (store: AppStore, ids: string[]) => {
+  for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
     store.dispatch(
       pendingWritesActions.flushFailed({
         ids,
@@ -148,7 +147,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -175,8 +174,6 @@ describe("SyncIndicator", () => {
     );
   });
 
-  // The spinner is a promise that the wait ends shortly. Offline it cannot be
-  // kept, so the icon has to stop moving before the promise is broken.
   it("stops spinning, and says the rallies are safe, once the queue is waiting", async () => {
     store = makeStore();
     store.dispatch(
@@ -195,7 +192,7 @@ describe("SyncIndicator", () => {
     );
     expect(screen.getByTestId("sync-spinner")).toBeInTheDocument();
 
-    act(() => failTwice(store, ["e1"]));
+    act(() => failToThreshold(store, ["e1"]));
 
     expect(screen.queryByTestId("sync-spinner")).not.toBeInTheDocument();
     const user = userEvent.setup();
@@ -209,9 +206,6 @@ describe("SyncIndicator", () => {
     ).toBeInTheDocument();
   });
 
-  // Both sentences are true; the device being off the network is the one
-  // thing navigator.onLine answers reliably, and it is what lets this one
-  // promise the send happens by itself.
   it("promises an automatic send only while the device is off the network", async () => {
     store = makeStore();
     store.dispatch(
@@ -221,7 +215,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -281,10 +275,6 @@ describe("SyncIndicator", () => {
     ).not.toBeInTheDocument();
   });
 
-  // "Hidden" has always meant no risk, not no queue. A store that cannot keep
-  // what is unsent is a risk before a single rally is recorded, and telling
-  // the recorder then is the only point at which they can still do something
-  // about it.
   it("speaks up about an unwritable store even with nothing queued", async () => {
     store = makeStore();
     store.dispatch(pendingWritesActions.storageUnavailable());
@@ -310,9 +300,6 @@ describe("SyncIndicator", () => {
     ).toBeInTheDocument();
   });
 
-  // The store is full of something, and the only thing this app puts there is
-  // the queue -- so when another game still has unsent rallies, that is the
-  // lead worth giving, since sending them is what frees the space.
   it("points at the other games' unsent rallies when there are any", async () => {
     store = makeStore();
     store.dispatch(
@@ -372,7 +359,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -403,7 +390,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -470,7 +457,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -512,7 +499,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -546,7 +533,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -587,7 +574,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    failTwice(store, ["e0"]);
+    failToThreshold(store, ["e0"]);
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e1"),
@@ -595,7 +582,7 @@ describe("SyncIndicator", () => {
         setIndex: 1,
       }),
     );
-    failTwice(store, ["e1"]);
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>

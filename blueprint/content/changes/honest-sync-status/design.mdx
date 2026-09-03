@@ -213,7 +213,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
       name: "「現在可用、之後消失」的儲存偵測不到",
       severity: "warning",
       mitigation:
-        "私密瀏覽、iOS ITP 的長期無互動清除、磁碟壓力回收，三者都不拋錯——探測只能回答「現在寫得進去嗎」。persist() 是後兩者唯一的槓桿且效果無法驗證；私密瀏覽連槓桿都沒有，而偵測私密瀏覽本身是 D3 明確否決的事。unwritable 的真實涵蓋範圍是配額用盡與站台資料被封鎖兩項。",
+        "私密瀏覽、iOS ITP 的長期無互動清除、磁碟壓力回收，三者都不拋錯——探測只能回答「現在寫得進去嗎」。persist() 是後兩者唯一的槓桿且效果無法驗證；私密瀏覽連槓桿都沒有，而偵測私密瀏覽本身是 D3 明確否決的事。unwritable 唯一可觸及的成因是配額用盡：站台資料被封鎖雖然探測得到，但 Cookie 一被封鎖登入就先失敗，沒有人到得了會顯示它的畫面。",
     },
     {
       name: "persist() 帶進一個無法驗證的東西",

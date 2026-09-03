@@ -146,7 +146,13 @@ Affected code，逐檔與各自的理由：
         "原本的 `Unsynced` story 在新模型下會渲染成轉圈的 spinner——它 dispatch 一次不帶 `lastError` 的失敗，於是落在門檻之下。視覺回歸基準說謊比沒有基準更糟，因此換成三個對應新狀態的 story：`Unsent`、`Failed`、`StorageUnavailable`。",
     },
     {
-      path: "src/lib/features/game/__tests__/　·　src/hooks/__tests__/　·　src/components/game/__tests__/",
+      path: "src/hooks/use-unconfirmed-set-completion.ts",
+      change: "modified",
+      summary:
+        "只有一行：`flushSucceeded` 的 dispatch 少傳一個 `gameId`。該欄位隨 `flushingGameIds` 一起失去讀者。",
+    },
+    {
+      path: "src/lib/features/game/__tests__/　·　src/hooks/__tests__/　·　src/components/game/__tests__/　·　src/components/game/header/__tests__/　·　src/lib/__tests__/　·　src/lib/redux/__tests__/",
       change: "modified",
       summary:
         "`deriveSyncStatus` 的既有測試改寫為五條件形狀而非刪除；`flushStarted` 的測試隨其 action 一併刪除，保留它們會是在測一個不再存在的概念；新增門檻邊界（`attempts` 為 1 與 2）與「不可重試 ≠ 退避用盡」的案例。探測失敗以注入一個會失敗的 storage double 驗證，走既有的參數接縫，不 mock `localStorage` 全域。",
@@ -164,7 +170,7 @@ Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記�
 - **把 syncing 收窄為「真的有 request 在飛」**——離線期間會在退避空檔與嘗試瞬間之間反覆切換，反而製造抖動；退避用盡後仍落到警告語氣，語氣依舊不對。
 - **以計時器實作抖動門檻**（Notion 用三十秒）——需要一個 `setTimeout` 在門檻到期時強制 re-render。次數門檻用既有的 dispatch 推動狀態，效果相同而無新機制。而三十秒對在球與球之間抬頭掃一眼的記錄員過長。
 - **偵測並封鎖私密瀏覽**——瀏覽器廠商持續封鎖偵測手法，且 app 在私密瀏覽下完全可用，失去的只是一個降級的保證。直接測「寫得進去嗎」涵蓋所有當下就失敗的成因；「現在可用、之後消失」的那幾種偵測不到。
-- **改用 IndexedDB**——五個成因只解掉配額一項，而該項在此規模下最不可能發生；且它的非同步 transaction 在「app 被回收」時可能尚未 commit，那正是持久化要存活的情境。
+- **改用 IndexedDB**——五個成因只解掉配額一項；且它的非同步 transaction 在「app 被回收」時可能尚未 commit，那正是持久化要存活的情境。
 - **加一道慢速輪詢讓兩種情境的承諾都成真**——動到重試機制，並帶進「輪詢什麼時候停」這個新的生命週期問題。那是 outbox 要回答的。
 - **兩種情境都顯示或都不顯示重試按鈕**——都顯示會給出一顆必定失敗的按鈕；都不顯示則讓連線異常的使用者完全沒有出路。Google Docs 與 Notion 不提供這顆按鈕，是因為它們的背景重試永不終止，那是我們沒有的前提。
 

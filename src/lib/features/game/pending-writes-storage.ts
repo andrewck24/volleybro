@@ -70,8 +70,9 @@ export const localStoragePendingWrites: PendingWritesStorage = {
     localStorage.removeItem(PENDING_WRITES_KEY);
   },
 
-  // Reading back catches a store that accepts writes and keeps nothing:
-  // Safari's private mode hands out an ephemeral quota rather than throwing.
+  // Reading back is for a write that neither throws nor sticks, which a bare
+  // setItem cannot report. It does not catch a store that keeps the value for
+  // this session and drops it afterwards -- nothing synchronous can.
   async probe() {
     const key = `${PENDING_WRITES_KEY}:probe`;
     localStorage.setItem(key, PROBE_VALUE);

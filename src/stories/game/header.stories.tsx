@@ -4,6 +4,7 @@ import {
   PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
+import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { GameView } from "@/lib/features/game/types";
@@ -156,13 +157,11 @@ const transient = {
   status: 503,
 } as const;
 
-// Waiting: two measured failures, both worth retrying. Static cloud mark,
-// neutral tone, and the sentence saying the rally is already saved.
 export const Unsent: Story = {
   decorators: [
     (Story) => {
       queueRally();
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
         store.dispatch(
           pendingWritesActions.flushFailed({
             ids: ["pending-1"],

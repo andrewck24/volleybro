@@ -72,7 +72,8 @@ const STATUS_STYLE: Record<
 /**
  * `online` is read only in the unsent case, and only to choose between two
  * sentences that are both true: `false` can promise an automatic send, `true`
- * can promise only further attempts.
+ * can promise only further attempts. `othersPending` likewise only names the
+ * way out of a full store when there is one to name.
  */
 const copyFor = (
   status: SyncStatus,
@@ -82,16 +83,12 @@ const copyFor = (
 ): { title: string; detail?: string } => {
   switch (status) {
     case "unwritable":
-      return othersPending
-        ? {
-            title: "本機空間已滿",
-            detail: "請回到其他尚未同步的比賽完成同步，以釋出空間",
-          }
-        : {
-            title: "本機空間已滿",
-            detail:
-              "未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
-          };
+      return {
+        title: "本機空間已滿",
+        detail: othersPending
+          ? "請回到其他尚未同步的比賽完成同步，以釋出空間"
+          : "未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
+      };
     case "failed":
       return {
         title: `${count} 筆送不出去`,
@@ -244,7 +241,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
           )}
           {/* Offline it can only fail; online it is the only recourse, since
               no `online` event fires for a device that never left the
-              network. See honest-sync-status D4. */}
+              network. */}
           {status === "unsent" && online && (
             <button
               type="button"
