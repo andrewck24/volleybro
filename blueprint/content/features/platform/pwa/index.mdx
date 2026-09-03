@@ -3,6 +3,9 @@ title: PWA
 description: Service worker registration and update posture, install and launch appearance, and how the app treats connectivity changes.
 ---
 
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import reloadOnOnlineOff from "./decisions/D22-reload-on-online-off.json";
+
 VolleyBro installs as a standalone PWA (`@serwist/turbopack`). These are the boundaries the codebase actually enforces around caching, install appearance, and connectivity.
 
 ## Current behavior
@@ -28,3 +31,7 @@ VolleyBro installs as a standalone PWA (`@serwist/turbopack`). These are the bou
 
 - The manifest `background_color`/splash-color relationship and the `BodyBackdrop` no-fourth-layer rule are also documented in `docs/design-system.md` (Depth, Elevation & Edge Definition). Moving that documentation here fully is a separate decision the main session has not taken; until then the same two facts live in both places.
 - Caching boundaries (`NetworkOnly` on auth routes, `defaultCache` for everything else) are held by the explicit matcher list in `src/app/sw.ts` rather than by a naming convention — a new auth-adjacent route that leaks session state into cache would not be caught automatically.
+
+## Implemented decisions
+
+<DecisionTimeline decisions={[reloadOnOnlineOff]} />

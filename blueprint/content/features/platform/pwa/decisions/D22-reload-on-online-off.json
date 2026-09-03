@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D22",
   "title": "Turn reloadOnOnline off app-wide instead of scoping it away from recording",
   "status": "implemented",
   "targets": ["platform/pwa"],
@@ -29,5 +29,6 @@
     "A future route genuinely needs a stale page refreshed on reconnect: the per-route exception rejected here becomes worth revisiting, now that there is a concrete route to scope it to instead of a hypothetical one.",
     "SWR's `revalidateOnReconnect` is ever turned off globally in `swr-provider.tsx`: this decision loses the mechanism that replaced `reloadOnOnline`, and reconnect handling needs a new owner."
   ],
-  "originChange": "reconnect-without-reload"
+  "originChange": "reconnect-without-reload",
+  "originDecision": "D1"
 }
