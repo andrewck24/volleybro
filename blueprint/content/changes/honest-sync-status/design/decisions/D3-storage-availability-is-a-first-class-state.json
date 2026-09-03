@@ -5,12 +5,12 @@
   "title": "本機儲存可用性升為指示器的第一級狀態，並在開機時就探測",
   "status": "accepted",
   "targets": ["game-recording/persistence"],
-  "context": "retryable-queue-persistence 的 D4 記下了一條 residual risk：localStorage 寫不進去時 adapter 誠實 reject，listener catch、log、繼續，app 完全照常運作，唯一失去的是「被回收後救得回」這個保證，而畫面上沒有任何一個像素改變。D4 的原文寫著「靜默降級在這裡代表使用者相信工作被保護了，但其實沒有」，並說明誠實的做法最終是告訴他們，只是「要說出來，得先有一個地方可以說」；它否決的替代方案「在 slice 記錄不可寫並讓指示器反映」原文標註為 the right end state，並刻意把 catch 留在 listener 而非 adapter，使日後的升級只需改一行。本 Change 造出了那個地方，而且不只是造出來——它把 UI 的說法從「N 筆未同步」（store 壞掉時仍為真）升級為「已保存」（store 壞掉時為假）。這張 Change 是讓這個謊言第一次成為可能的變更。寫不進去有五個成因：配額用盡、私密瀏覽、使用者關閉站台資料、iOS ITP 的長期無互動清除、以及磁碟壓力回收；後兩者不會拋錯，資料是之後才消失的。",
+  "context": "retryable-queue-persistence 的 D4 記下了一條 residual risk：localStorage 寫不進去時 adapter 誠實 reject，listener catch、log、繼續，app 完全照常運作，唯一失去的是「被回收後救得回」這個保證，而畫面上沒有任何一個像素改變。D4 的原文寫著「靜默降級在這裡代表使用者相信工作被保護了，但其實沒有」，並說明誠實的做法最終是告訴他們，只是「要說出來，得先有一個地方可以說」；它否決的替代方案「在 slice 記錄不可寫並讓指示器反映」原文標註為 the right end state，並刻意把 catch 留在 listener 而非 adapter，使日後的升級只需改一行。本 Change 造出了那個地方，而且不只是造出來——它把 UI 的說法從「N 筆未同步」（store 壞掉時仍為真）升級為「已保存」（store 壞掉時為假）。這張 Change 是讓這個謊言第一次成為可能的變更。儲存失效有五個成因：配額用盡、私密瀏覽、使用者關閉站台資料、iOS ITP 的長期無互動清除、以及磁碟壓力回收。其中只有前者兩個會讓寫入當下就失敗；私密瀏覽與後兩者都是「現在寫得進去，之後才消失」，同步的探測看不到它們。",
   "decision": "在 `pendingWrites` slice 新增一個布林欄位表示本機儲存不可用，並讓它成為指示器優先序的第一關——即使佇列為空也顯示。「隱藏」的原意是沒有任何風險而非佇列空，store 不可寫時即使一球未記，風險已經存在。探測透過既有的 storage port 進行：`PendingWritesStorage` 增加第四個方法，其 localStorage 實作寫入一個微小 key、讀回、刪除，`provider.tsx` 只呼叫它而不知道底層是什麼。該欄位因此有兩個寫入者：`provider.tsx` 在既有的 restorePendingWrites 旁呼叫一次探測，以及 D4 已經留在 listener 的那個 catch，因為 store 可能比賽中才變得不可寫。額外在開機時呼叫一次 `navigator.storage.persist()`，補探測看不到的兩個成因。不新增 Redux slice、不新增 context、不新增 selector：SyncIndicator 既有的 `useAppSelector((state) => state.pendingWrites)` 自動取得新欄位。文案不依成因分岔，只說明風險與唯一在所有成因下都正確的行動（別關掉 app）。",
   "alternatives": [
     {
       "option": "偵測私密瀏覽並封鎖或警告",
-      "reason": "私密瀏覽是隱私功能，瀏覽器廠商持續封鎖各種偵測手法，任何基於此的判斷都會在某次更新後無聲失效。而且它問錯了問題：我們在意的是「寫得進去嗎」，直接寫一次就知道，且一次涵蓋全部五個成因。這與 D1 拒絕 navigator.onLine 是同一個教訓——不要問代理訊號。封鎖更不成立：app 在私密瀏覽下完全可用，失去的只是一個降級的保證。"
+      "reason": "私密瀏覽是隱私功能，瀏覽器廠商持續封鎖各種偵測手法，任何基於此的判斷都會在某次更新後無聲失效。而且它問錯了問題：我們在意的是「寫得進去嗎」，直接寫一次就知道，且涵蓋所有當下就失敗的成因（「現在可用、之後消失」的那幾種偵測不到，見 consequences）。這與 D1 拒絕 navigator.onLine 是同一個教訓——不要問代理訊號。封鎖更不成立：app 在私密瀏覽下完全可用，失去的只是一個降級的保證。"
     },
     {
       "option": "探測直接在 `provider.tsx` 內操作 localStorage，不動 port",
@@ -34,6 +34,8 @@
     }
   ],
   "consequences": [
+    "探測涵蓋的是「當下就寫不進去」的成因——配額用盡、站台資料被封鎖。**私密瀏覽不在其中**：真機驗收確認 Safari 與 Chrome 的私密／無痕模式下 `localStorage` 在同一個 session 內完全正常，寫得進去也讀得回來，資料是關閉之後才消失的。同步探測在原理上看不到「之後才消失」。Propose 階段本決策曾宣稱讀回那一半能抓到私密瀏覽，那句話是錯的，已於 Ingest 更正——這正是本 Change 要消除的那種宣稱。",
+    "因此 `unwritable` 狀態的真實涵蓋範圍是兩個成因，不是五個。其餘三個（私密瀏覽、ITP 清除、磁碟壓力回收）全部落在 residual risk，其中只有後兩者有 `persist()` 這個無法驗證的槓桿，私密瀏覽連槓桿都沒有。",
     "指示器不再是「佇列的純投影」。它多了一個不來自佇列內容的輸入，因此 SyncIndicator 檔頭那句「pure projection of the pending-write queue」的註解必須更新，否則它會變成一句過時的斷言。",
     "port 從三個方法變成四個。這是擴充而非變更：既有三個方法的簽章與語意都不動，沒有既有呼叫端受影響，`localStoragePendingWrites` 以外的實作（目前只有測試的 fake）補上一個方法即可。D1 of retryable-queue-persistence 把 port 設計成「整批替換而不動任何呼叫端」，加一個方法不牴觸它。",
     "執行期的寫入者位於 `pending-writes-persistence.ts` 的 `run()`，而它是一個 closure，手上沒有 dispatch——dispatch 只在 listener effect 的 api 上。因此那裡不是字面上的「改一行」，要把 dispatch 傳進去或提到 closure 外。D4 of retryable-queue-persistence 承諾的「改的是 listener 而不是 port 契約」仍然成立：動的範圍沒有外溢到呼叫端。",
@@ -44,7 +46,8 @@
   "revisitTriggers": [
     "現場證據顯示 storage 失敗實際發生，且集中於某一個成因——那會把「不依成因分岔文案」這個決定推翻，因為屆時我們知道該建議什麼。",
     "navigator.storage.persist() 在 iOS PWA 上的授予條件被實地確認：若確認為可靠，ITP 與磁碟壓力那兩條 residual risk 可以關閉；若確認為不可靠，這三行應該移除而非留著假裝有用。",
-    "offline-recording 開始實作離線承諾：屆時不可寫的 store 從降級模式變成功能無法運作的理由，本狀態的語氣要從警告升級為阻斷。這是 D4 of retryable-queue-persistence 已登記的觸發條件。"
+    "offline-recording 開始實作離線承諾：屆時不可寫的 store 從降級模式變成功能無法運作的理由，本狀態的語氣要從警告升級為阻斷。這是 D4 of retryable-queue-persistence 已登記的觸發條件。",
+    "出現一個可靠且不被瀏覽器主動封鎖的方式，能區分「持久的儲存」與「關閉即消失的儲存」——`navigator.storage.estimate()` 的配額大小是目前唯一的線索，但它是啟發式的，且各瀏覽器版本差異大。"
   ],
   "originChange": "honest-sync-status"
 }

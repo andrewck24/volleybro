@@ -155,9 +155,15 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 />
 
 <Scenario
-  given="使用者在 Safari 私密瀏覽下開啟記錄畫面，一顆球都還沒記"
+  given="Safari 設定中封鎖所有 Cookie，或裝置配額已滿"
   when="開機探測嘗試寫入並失敗"
-  then="指示器立刻顯示「無法保存到本機」，而他還有時間離開私密模式或換一台裝置——這是本 Change 唯一在第一顆球之前就會出現的狀態"
+  then="指示器立刻顯示「無法保存到本機」，而他還有時間換一台裝置或改設定——這是本 Change 唯一在第一顆球之前就會出現的狀態"
+/>
+
+<Scenario
+  given="Safari 或 Chrome 的私密／無痕模式"
+  when="開機探測寫入、讀回、刪除"
+  then="**三步都成功，因此沒有警告**。`localStorage` 在該 session 內完全正常，資料是關閉之後才消失的——同步探測看不到「之後才消失」。這是本 Change 關不掉的缺口，不是缺陷"
 />
 
 <Scenario
@@ -176,7 +182,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 
 `navigator.storage.persist()` 只驗證「被呼叫一次」。它的實際效果無法在測試中觀察，宣稱能觀察就是本 Change 正在消除的那種假話。
 
-真實裝置上的飛航模式與私密瀏覽觀感屬 developer acceptance，不由自動化測試承擔。
+真實裝置上的觀感屬 developer acceptance，不由自動化測試承擔。
 
 ## Risks
 
@@ -197,10 +203,10 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
         "退避表約二十二秒後終止，而 onLine 恆真時沒有任何機制偵測伺服器恢復。這是有意識、有期限的妥協，期限記在 `offline-recording` 的驗收條件上——持久重播上線後移除該按鈕。",
     },
     {
-      name: "ITP 清除與磁碟壓力回收仍然是靜默的",
+      name: "「現在可用、之後消失」的儲存偵測不到",
       severity: "warning",
       mitigation:
-        "這兩個成因不拋錯，開機探測看不到——資料是之後才消失的。persist() 是唯一的槓桿，而它的效果無法驗證。本 Change 不關閉這條 residual risk，只縮小它。",
+        "私密瀏覽、iOS ITP 的長期無互動清除、磁碟壓力回收，三者都不拋錯——探測只能回答「現在寫得進去嗎」。persist() 是後兩者唯一的槓桿且效果無法驗證；私密瀏覽連槓桿都沒有，而偵測私密瀏覽本身是 D3 明確否決的事。unwritable 的真實涵蓋範圍是配額用盡與站台資料被封鎖兩項。",
     },
     {
       name: "persist() 帶進一個無法驗證的東西",

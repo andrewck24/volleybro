@@ -206,7 +206,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
         className="w-auto max-w-[16rem] rounded-md p-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex flex-col gap-1 px-2.5 py-2 text-xs">
+        <div className="flex flex-col gap-1.5 px-3 py-2.5 text-sm">
           <div className="flex items-center gap-2">
             {/* `contents` keeps this span out of layout -- it exists only so
                 the warning color (explicit here, not inherited from the
@@ -222,7 +222,7 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
             </span>
           </div>
           {detail && (
-            <p className="text-[11px] leading-snug text-muted-foreground">
+            <p className="text-xs leading-snug text-muted-foreground">
               {detail}
             </p>
           )}
@@ -234,12 +234,12 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
               type="button"
               onClick={handleRetry}
               disabled={retrying}
-              className="mt-1 inline-flex shrink-0 items-center justify-center gap-1 self-start rounded px-1.5 py-0.5 text-[11px] ring-1 ring-border disabled:opacity-60"
+              className="mt-1 inline-flex h-9 shrink-0 items-center justify-center gap-1 self-start rounded-md px-3 text-sm ring-1 ring-border disabled:opacity-60"
             >
               {retrying ? (
-                <Spinner className="size-3 shrink-0" />
+                <Spinner className="size-3.5 shrink-0" />
               ) : (
-                <RiRefreshLine className="size-3 shrink-0" />
+                <RiRefreshLine className="size-3.5 shrink-0" />
               )}
               重試
             </button>
