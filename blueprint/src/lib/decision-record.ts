@@ -7,6 +7,9 @@ const DECISION_STATUSES = [
 const ID_PATTERN = /^D[0-9]+$/;
 const TARGET_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
 const CHANGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// A promoted record is renumbered for the Features namespace and keeps the
+// number it had inside its Change here, so both coordinates resolve.
+const DECISION_ID_PATTERN = /^D[0-9]+$/;
 const ALLOWED_KEYS = new Set([
   "$schema",
   "schemaVersion",
@@ -20,6 +23,7 @@ const ALLOWED_KEYS = new Set([
   "consequences",
   "revisitTriggers",
   "originChange",
+  "originDecision",
 ]);
 const ALTERNATIVE_KEYS = new Set(["option", "reason"]);
 
@@ -37,6 +41,7 @@ export type DecisionRecord = {
   consequences: string[];
   revisitTriggers: string[];
   originChange?: string;
+  originDecision?: string;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -101,7 +106,10 @@ export function parseDecisionRecord(value: unknown): DecisionRecord {
     !isStringArray(record.revisitTriggers, { nonEmpty: true }) ||
     (record.originChange !== undefined &&
       (!isNonEmptyString(record.originChange) ||
-        !CHANGE_SLUG_PATTERN.test(record.originChange)))
+        !CHANGE_SLUG_PATTERN.test(record.originChange))) ||
+    (record.originDecision !== undefined &&
+      (!isNonEmptyString(record.originDecision) ||
+        !DECISION_ID_PATTERN.test(record.originDecision)))
   ) {
     throw new Error(
       `Invalid decision record: ${String(record.id ?? "unknown")}`,

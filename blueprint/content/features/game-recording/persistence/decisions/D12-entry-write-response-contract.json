@@ -1,10 +1,12 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D12",
   "title": "The rally write reports its two outcomes separately instead of failing as one",
   "status": "implemented",
-  "targets": ["game-recording/persistence"],
+  "targets": [
+    "game-recording/persistence"
+  ],
   "context": "The create-rally use case awaits appendEntry, derives whether the set is complete, and awaits completeSet — all on one return path. A completeSet failure therefore throws past a successful appendEntry and discards the entries it already produced, so the request reports total failure for a write that partly succeeded. That is the code-level origin of the duplicate-rally bug: the recorder is told nothing was recorded when the rally is already stored. The response body is currently the bare entries array, which leaves no room to say anything about the second write. This repository's unified-error-handling Change established \"no envelope, success responses return the entity directly\", and that rule has never had to answer what a response should look like when one write genuinely produces two independent facts.",
   "decision": "Once the entry write succeeds, the use case returns entries unconditionally, regardless of how completeSet went. The response body becomes a named object carrying entries plus an optional boolean stating whether the set result was confirmed as written, and the status stays 200 because the entries were in fact persisted and there is nothing for the client to correct. The field names the server's write outcome, not whether the rally ended the set — the client derives the latter from entries on its own, so returning it would restate something the client already knows. The endpoint keeps only PUT, whose HTTP semantics already mean idempotent, and accepts one or more entries per request so a queue flush is a single round trip.",
   "alternatives": [
@@ -37,5 +39,6 @@
     "Set completion stops being derivable on the client — for instance if scoring rules move server-side — which would change what the response has to carry.",
     "The pagination contract work lands and settles on field naming for collections beside metadata, which this decision should then be read against for consistency."
   ],
-  "originChange": "retryable-entry-writes"
+  "originChange": "retryable-entry-writes",
+  "originDecision": "D3"
 }

@@ -1,10 +1,12 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D17",
   "title": "The adapter reports storage failures honestly; the decision to swallow them stays in the listener",
   "status": "implemented",
-  "targets": ["game-recording/persistence"],
+  "targets": [
+    "game-recording/persistence"
+  ],
   "context": "Writing to localStorage can throw — quota exhausted, private browsing, site data disabled by the user. The existing precedent in this repository, `useFormDraft`, catches and warns: a lost form draft is a small thing and silence is proportionate. A lost pending-write queue is not a small thing; it is the exact loss this Change exists to prevent, so silent degradation here means the user believes work is protected while it is not. That is the same shape as the residual risks under D3, and the honest answer eventually is to tell them. It is not this Change's to tell, though, because saying so needs somewhere to say it. What is this Change's to get right is where the error is caught, because that placement decides whether anyone can ever change the answer cheaply.",
   "decision": "The adapter does not catch. `save` performs its write and lets a failure reject, so the port's contract is honest about whether the data reached the disk. The listener catches, logs, and continues — the policy of tolerating an unwritable store lives there, one line, next to the other queue policy. When the offline work needs to escalate this into something the user can see, it changes that line rather than the port's contract, every implementation of it, and every call site. This is the same principle applied elsewhere in the Change: retry policy has exactly one home in `isRetryableStatus` rather than a second table on the restore path.",
   "alternatives": [
@@ -32,5 +34,6 @@
     "Field evidence of storage failures actually occurring, which would move this ahead of the offline work rather than travelling with it.",
     "A second consumer of the port appears and needs its own failure policy, which would show whether keeping the policy at the call site was the right split."
   ],
-  "originChange": "retryable-queue-persistence"
+  "originChange": "retryable-queue-persistence",
+  "originDecision": "D4"
 }

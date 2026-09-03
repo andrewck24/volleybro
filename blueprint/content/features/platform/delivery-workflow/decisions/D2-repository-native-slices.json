@@ -4,7 +4,10 @@
   "id": "D2",
   "title": "Store implementation slices in the Blueprint Change",
   "status": "implemented",
-  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "targets": [
+    "platform/blueprint",
+    "platform/delivery-workflow"
+  ],
   "context": "Operational issues may be archived or deleted, but Apply commits must retain a durable, reviewable description of each vertical implementation unit.",
   "decision": "Adapt ticket decomposition into Change-local JSON implementation slices with stable IDs, dependencies, outcomes, acceptance criteria, verification, and durable statuses.",
   "alternatives": [
@@ -24,5 +27,6 @@
   "revisitTriggers": [
     "A tracker-neutral durable slice store can provide equivalent Git history and offline Manual Apply."
   ],
-  "originChange": "unified-software-delivery-workflow"
+  "originChange": "unified-software-delivery-workflow",
+  "originDecision": "D2"
 }
