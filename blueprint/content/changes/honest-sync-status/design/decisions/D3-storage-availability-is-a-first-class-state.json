@@ -36,6 +36,9 @@
   "consequences": [
     "探測涵蓋的是「當下就寫不進去」的成因——配額用盡、站台資料被封鎖。**私密瀏覽不在其中**：真機驗收確認 Safari 與 Chrome 的私密／無痕模式下 `localStorage` 在同一個 session 內完全正常，寫得進去也讀得回來，資料是關閉之後才消失的。同步探測在原理上看不到「之後才消失」。Propose 階段本決策曾宣稱讀回那一半能抓到私密瀏覽，那句話是錯的，已於 Ingest 更正——這正是本 Change 要消除的那種宣稱。",
     "因此 `unwritable` 狀態的真實涵蓋範圍是兩個成因，不是五個。其餘三個（私密瀏覽、ITP 清除、磁碟壓力回收）全部落在 residual risk，其中只有後兩者有 `persist()` 這個無法驗證的槓桿，私密瀏覽連槓桿都沒有。",
+    "兩個「當下就失敗」的成因裡，**站台資料被封鎖實際上不可觸及**：Cookie 被封鎖時 Better Auth 建不起 session，使用者停在登入失敗，永遠到不了記錄畫面。真機驗收確認了這一點。因此開機探測唯一還會觸發的情境是「開 app 時配額就已經滿了」。",
+    "探測與 listener 的 catch 只差一顆球——listener 在第一顆球入列時就會嘗試寫入，配額滿時當場就會回報。探測買到的是「第一顆球之前」而非「第一顆球當下」。保留它是因為那顆球記下去之後才被告知，感受完全不同；但它的價值比 Propose 階段所設想的小得多。",
+    "配額既然是唯一可觸及的成因，狀態 1 的文案就從泛用的「無法保存到本機」改為指名配額。而本 app 的 `localStorage` 只有佇列一個寫入者（表單草稿在 `sessionStorage`），所以塞滿它的幾乎必然是自己累積的未送出 entry；佇列跨比賽而送出是 game-scoped，這正是 retryable-queue-persistence 的 D3 記下的「送達依賴使用者回到該場比賽」的長期後果。文案依「是否有其他比賽的未送出 entry」分岔，才不會叫人去找不存在的比賽。",
     "指示器不再是「佇列的純投影」。它多了一個不來自佇列內容的輸入，因此 SyncIndicator 檔頭那句「pure projection of the pending-write queue」的註解必須更新，否則它會變成一句過時的斷言。",
     "port 從三個方法變成四個。這是擴充而非變更：既有三個方法的簽章與語意都不動，沒有既有呼叫端受影響，`localStoragePendingWrites` 以外的實作（目前只有測試的 fake）補上一個方法即可。D1 of retryable-queue-persistence 把 port 設計成「整批替換而不動任何呼叫端」，加一個方法不牴觸它。",
     "執行期的寫入者位於 `pending-writes-persistence.ts` 的 `run()`，而它是一個 closure，手上沒有 dispatch——dispatch 只在 listener effect 的 api 上。因此那裡不是字面上的「改一行」，要把 dispatch 傳進去或提到 closure 外。D4 of retryable-queue-persistence 承諾的「改的是 listener 而不是 port 契約」仍然成立：動的範圍沒有外溢到呼叫端。",

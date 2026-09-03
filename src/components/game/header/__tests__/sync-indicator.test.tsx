@@ -298,15 +298,47 @@ describe("SyncIndicator", () => {
     );
 
     const button = screen.getByRole("button", {
-      name: "無法保存到本機，關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
+      name: "本機空間已滿，未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
     });
     expect(button).toHaveClass("ring-warning/30");
 
     await user.click(button);
     expect(
       await screen.findByText(
-        "關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
+        "未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
       ),
+    ).toBeInTheDocument();
+  });
+
+  // The store is full of something, and the only thing this app puts there is
+  // the queue -- so when another game still has unsent rallies, that is the
+  // lead worth giving, since sending them is what frees the space.
+  it("points at the other games' unsent rallies when there are any", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("other"),
+        gameId: "game-2",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(pendingWritesActions.storageUnavailable());
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "本機空間已滿，請回到其他尚未同步的比賽完成同步，以釋出空間",
+      }),
+    );
+    expect(
+      await screen.findByText("請回到其他尚未同步的比賽完成同步，以釋出空間"),
     ).toBeInTheDocument();
   });
 

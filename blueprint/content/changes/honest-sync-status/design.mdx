@@ -23,7 +23,7 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 <svg
   viewBox="0 0 1160 552"
   role="img"
-  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出，每一關同時標示其判斷式與該狀態實際顯示的文案。一：storageUnavailable 為真時顯示警告的無法保存到本機，並說關閉 app 會遺失未送出的紀錄。二：佇列為空時隱藏。三：有 entry 的 lastError 不可重試時顯示警告的 N 筆送不出去，並請使用者到紀錄列表查看。四：有 entry 的 attempts 達到二時顯示中性的待送，此時再依 navigator.onLine 分岔為離線中或連線有問題兩種文案，前者不提供重試按鈕。五：其餘顯示同步中的轉圈，沒有補充文案。"
+  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出，每一關同時標示其判斷式與該狀態實際顯示的文案。一：storageUnavailable 為真時顯示警告的本機空間已滿，並依是否有其他比賽尚未同步分岔為兩種建議。二：佇列為空時隱藏。三：有 entry 的 lastError 不可重試時顯示警告的 N 筆送不出去，並請使用者到紀錄列表查看。四：有 entry 的 attempts 達到二時顯示中性的待送，此時再依 navigator.onLine 分岔為離線中或連線有問題兩種文案，前者不提供重試按鈕。五：其餘顯示同步中的轉圈，沒有補充文案。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "1160 / 552", width: "100%", height: "auto" }}
 >
@@ -62,8 +62,9 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
     <text x="465" y="140" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">警告・不看佇列</text>
     <line x1="560" y1="128" x2="586" y2="128" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
     <rect x="600" y="96" width="520" height="64" rx="8" fill="var(--card)" stroke="var(--border)" />
-    <text x="616" y="120" fontSize="12.5" fill="var(--foreground)">無法保存到本機</text>
-    <text x="616" y="142" fontSize="10.5" fill="var(--muted-foreground)">關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成</text>
+    <text x="616" y="116" fontSize="12.5" fill="var(--foreground)">本機空間已滿</text>
+    <text x="616" y="134" fontSize="10.5" fill="var(--muted-foreground)">有其他比賽待送：請回到其他尚未同步的比賽完成同步，以釋出空間</text>
+    <text x="616" y="150" fontSize="10.5" fill="var(--muted-foreground)">沒有：未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置</text>
 
     <rect x="40" y="176" width="290" height="48" rx="8" fill="var(--background)" stroke="var(--border)" />
     <text x="54" y="196" fontSize="11" fill="var(--muted-foreground)">2</text>
@@ -155,9 +156,15 @@ import datedPatch from "./design/decisions/D4-manual-retry-is-a-dated-patch.json
 />
 
 <Scenario
-  given="Safari 設定中封鎖所有 Cookie，或裝置配額已滿"
+  given="開 app 時本機配額就已經滿了"
   when="開機探測嘗試寫入並失敗"
-  then="指示器立刻顯示「無法保存到本機」，而他還有時間換一台裝置或改設定——這是本 Change 唯一在第一顆球之前就會出現的狀態"
+  then="指示器立刻顯示「本機空間已滿」，並在有其他比賽尚未同步時指名那條出路——這是本 Change 唯一在第一顆球之前就會出現的狀態"
+/>
+
+<Scenario
+  given="Safari 設定中封鎖所有 Cookie"
+  when="嘗試登入"
+  then="**登入本身就會失敗**，使用者到不了記錄畫面。這個成因探測抓得到，但沒有人看得到——真機驗收確認"
 />
 
 <Scenario

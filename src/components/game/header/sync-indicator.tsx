@@ -78,13 +78,20 @@ const copyFor = (
   status: SyncStatus,
   count: number,
   online: boolean,
+  othersPending: boolean,
 ): { title: string; detail?: string } => {
   switch (status) {
     case "unwritable":
-      return {
-        title: "無法保存到本機",
-        detail: "關閉 app 會遺失未送出的紀錄，請保持開啟直到同步完成",
-      };
+      return othersPending
+        ? {
+            title: "本機空間已滿",
+            detail: "請回到其他尚未同步的比賽完成同步，以釋出空間",
+          }
+        : {
+            title: "本機空間已滿",
+            detail:
+              "未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
+          };
     case "failed":
       return {
         title: `${count} 筆送不出去`,
@@ -128,7 +135,16 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const pendingCount = pending.length;
 
   const { icon, warning, showsCount } = STATUS_STYLE[status];
-  const { title, detail } = copyFor(status, pendingCount, online);
+  // The queue is the only thing this app puts in localStorage, and it is not
+  // scoped per game while sending is -- so a full store is usually unsent
+  // rallies from a game nobody has reopened. Only say so when there are some.
+  const othersPending = pendingWrites.pending.some((p) => p.gameId !== gameId);
+  const { title, detail } = copyFor(
+    status,
+    pendingCount,
+    online,
+    othersPending,
+  );
   // No "open it to see more" step for a screen reader, so carry the sentence.
   const label = detail ? `${title}，${detail}` : title;
 
