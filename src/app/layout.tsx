@@ -146,6 +146,10 @@ export default async function RootLayout({
         <SerwistProvider
           swUrl="/serwist/sw.js"
           disable={process.env.NODE_ENV !== "production"}
+          // Defaults to true, which reloads the page on every `online` event.
+          // Recording is live input, so a reload mid-match discards the set in
+          // progress; a stale offline page is the lesser problem here.
+          reloadOnOnline={false}
         >
           <SWRProvider>
             <ReduxProvider>
