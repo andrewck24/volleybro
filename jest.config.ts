@@ -78,6 +78,7 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "integration",
     testEnvironment: "node",
+    globalSetup: "<rootDir>/jest.global-setup.integration.ts",
     setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
     testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
   };
