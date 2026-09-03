@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Reconnecting no longer reloads the page",
+  "capabilities": ["platform/pwa"],
+  "dependsOn": [],
+  "outcome": "SerwistProvider stops calling location.reload() on the browser's online event, so regaining connection mid-match no longer discards the set in progress, the rally being edited, or scroll position. Reconnect refresh keeps happening through SWR's existing per-request revalidation instead.",
+  "acceptanceCriteria": [
+    "SerwistProvider in src/app/layout.tsx passes reloadOnOnline={false}, so its online-event listener is never registered.",
+    "No other behaviour of SerwistProvider changes: service worker registration stays disabled outside production, and swUrl is untouched.",
+    "SWRConfig in src/components/layout/swr-provider.tsx is unmodified, so revalidateOnReconnect keeps SWR's default of true and every hook still refetches on reconnect."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

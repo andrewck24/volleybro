@@ -1,0 +1,97 @@
+---
+title: Overview
+---
+
+import { FileTour } from "@/components/FileTour";
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  連線中斷又恢復,會讓整頁重載——記錄中的 set 被丟掉,實務上得把 app
+  關掉重開才能繼續記錄。原因是 `SerwistProvider` 預設把 `reloadOnOnline` 開著,而
+  `layout.tsx` 從沒傳過這個 prop。本 Change 把它關掉;取代它的機制原本就在——SWR
+  的逐 hook reconnect revalidation。
+</TLDR>
+
+<Scenario
+  given="使用者在訊號不好的球場記錄比賽,正在記一個 set"
+  when="連線中斷又恢復"
+  then="改動前整頁 reload,記錄中的 set、正在編輯的 rally、捲動位置全部遺失,實務上得關掉 app 重開才能繼續;改動後畫面狀態原封不動,SWR 逐 hook 重新驗證資料"
+/>
+
+## Context
+
+`SerwistProvider`(`@serwist/turbopack/react`)對 `reloadOnOnline`
+的預設是 `true`:函式庫原始碼裡是
+`const reloadOnOnline = t4 === void 0 ? true : t4;`,接著
+`if (reloadOnOnline) window.addEventListener("online", reload)`,其中
+`reload = () => location.reload()`。`src/app/layout.tsx`
+掛載這個 provider 時從沒傳過 `reloadOnOnline`,所以每一次瀏覽器的
+`online` 事件都會呼叫 `location.reload()`。
+
+未送出的 rally 從沒有風險——待送佇列已經寫在磁碟上,是
+`retryable-queue-persistence` 交付的。遺失的是記錄畫面自己的狀態:進行中的
+set、正在編輯的 rally、捲動位置。這在使用者眼中是同一種中斷。
+
+這個問題是在 `honest-sync-status` 的裝置驗收過程中發現的,但它比那張
+Change 更早存在——`honest-sync-status`
+只是第一次讓「連線恢復的那一刻」變成有人在看著的畫面。它在本機開發環境從沒出現過,因為
+service worker 只在 production build 註冊,`reloadOnOnline` 的監聽者從沒被掛上去過。
+
+## Goals
+
+- 連線恢復不再丟掉記錄畫面的狀態。
+- 保留連線恢復時資料仍會更新的行為——只是換一個已經存在、更精準的機制。
+
+## Non-goals
+
+- **不改資料重新驗證的邏輯本身。** SWR 的 `revalidateOnReconnect`
+  維持它原本就有的預設值,這張 Change 不新增、不調整任何 SWR 設定。
+- **不處理 service worker 的更新時機。** `skipWaiting` 與
+  `clientsClaim` 已經讓新版本在下一次導覽時生效,不依賴這次拿掉的
+  reload,也不是這張 Change 要調整的範圍。
+- **不做路由層級的例外。** 見 Design 的 D1——單一 provider、單一 prop,沒有值得為單一路由另外維護一份行為的理由。
+
+## Change boundaries
+
+- **一定在內**:`src/app/layout.tsx` 上 `SerwistProvider` 的
+  `reloadOnOnline` prop。
+- **不在內**:`SWRConfig`(`src/components/layout/swr-provider.tsx`)、
+  `src/app/sw.ts` 的快取與更新設定、任何記錄畫面的元件。這張 Change 不修改取代
+  `reloadOnOnline` 的機制,只是讓它不再被蓋過去。
+
+## Impact
+
+受影響的能力是 `platform/pwa`——連線恢復後的行為契約,從「整頁重載」改為「逐請求重新驗證,不丟畫面狀態」。
+
+<FileTour
+  files={[
+    {
+      path: "src/app/layout.tsx",
+      change: "modified",
+      summary:
+        "SerwistProvider 加上 reloadOnOnline={false}。這是整張 Change 唯一觸及的一行——provider 在整個 app 只掛載這一次,沒有第二個呼叫點需要跟著改。",
+    },
+  ]}
+/>
+
+## Alternatives considered
+
+Design 的 D1 完整記錄評估過程與否決理由,這裡只記結論方向:
+
+- **保留預設值**——每次連線恢復都可能在記錄比賽中途丟掉一個 set,是這張 Change 要移除的確切失敗。
+- **只在記錄路由關閉**——provider 只掛載在根 layout 一次,路由層級的例外得多開一個 provider,或在唯一的這個裡面塞路由判斷,為的是一個沒有任何路由真正受益的行為。
+- **保留 reload 但先跳確認對話框**——在記一顆球的當下跳出確認框,比整頁 reload 或完全不 reload 都更糟。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`,由 Design 頁呈現。
+
+| ID  | 問題                                        | 結論                                                                  |
+| --- | ------------------------------------------- | --------------------------------------------------------------------- |
+| D1  | 連線恢復時要不要整頁重載,關掉的話關多大範圍 | 全域關閉 `reloadOnOnline`,交由 SWR 既有的 reconnect revalidation 取代 |
+
+## Revisit triggers
+
+- 未來有路由真的需要在連線恢復時強制刷新一份停滯的頁面:D1 否決的路由層級例外屆時值得重新評估,而且會有一個具體路由可以拿來評估,而不是假設性的。
+- `swr-provider.tsx` 的 `revalidateOnReconnect` 被全域關閉:取代 `reloadOnOnline` 的機制就沒了,連線恢復的處理需要新的負責對象。

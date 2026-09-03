@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Turn reloadOnOnline off app-wide instead of scoping it away from recording",
+  "status": "accepted",
+  "targets": ["platform/pwa"],
+  "context": "`SerwistProvider` (`@serwist/turbopack/react`) defaults `reloadOnOnline` to `true`: `const reloadOnOnline = t4 === void 0 ? true : t4;`, then `if (reloadOnOnline) window.addEventListener(\"online\", reload)` where `reload = () => location.reload()`. `src/app/layout.tsx` never passed the prop, so every `online` event reloaded the whole page. On the recording screen that discards the set in progress, the rally being edited, and scroll position; in practice the app had to be killed and reopened before recording could continue. Unsent rallies were never at risk — the pending-write queue is on disk, delivered by `retryable-queue-persistence` — but the recorder's own state is not, and losing it mid-match is the same interruption from the user's side. The bug predates `honest-sync-status`; that Change only made the moment of reconnection something anyone was watching, which is how this surfaced during device acceptance. It never appeared in development because the service worker `disable`s outside production builds, so `reloadOnOnline`'s listener was never registered locally. The option exists to refresh a page that sat stale while offline. Recording is live input, so that trade runs the wrong way: a slightly stale page costs nothing next to a reload during a rally. What replaces it was already in the tree — `src/components/layout/swr-provider.tsx` configures `SWRConfig` with only `onError`, so `revalidateOnReconnect` keeps SWR's own default of `true`, and every hook already refetches on reconnect, per request, without discarding component state.",
+  "decision": "Pass `reloadOnOnline={false}` on the single `SerwistProvider` in `src/app/layout.tsx`. The behaviour is off for the whole app, not only the recording route. `reloadOnOnline` was a blunt duplicate of something SWR already does per-request and without discarding state; once SWR's reconnect revalidation is recognised as the actual mechanism, there is no route that benefits from the coarser one still running underneath it.",
+  "alternatives": [
+    {
+      "option": "Leave the default (reloadOnOnline: true)",
+      "reason": "Costs a set mid-match on every reconnect during a live recording session — the exact failure this Change exists to remove."
+    },
+    {
+      "option": "Disable it only on recording routes",
+      "reason": "SerwistProvider sits once in the root layout. A route-scoped exception would need a second provider instance, or a route check threaded inside the one provider, to buy behaviour no route actually benefits from — the reload never helped any screen enough to keep it as the default elsewhere."
+    },
+    {
+      "option": "Keep the reload but confirm first",
+      "reason": "A confirm dialog interrupting a rally is worse than either a silent reload or no reload — it adds a decision the user did not ask to make, at the worst possible moment to ask it."
+    }
+  ],
+  "consequences": [
+    "The app no longer picks up a new JS bundle on reconnect via this path. This is not a regression: `src/app/sw.ts` sets `skipWaiting: true` and `clientsClaim: true`, so a new service worker activates immediately once it finishes installing, and the next navigation already gets the new assets — the reload was never load-bearing for correctness.",
+    "Any future hook that opts out of SWR's default `revalidateOnReconnect` silently loses reconnect refresh entirely, since the coarser page-level fallback this Change removes is gone."
+  ],
+  "revisitTriggers": [
+    "A future route genuinely needs a stale page refreshed on reconnect: the per-route exception rejected here becomes worth revisiting, now that there is a concrete route to scope it to instead of a hypothetical one.",
+    "SWR's `revalidateOnReconnect` is ever turned off globally in `swr-provider.tsx`: this decision loses the mechanism that replaced `reloadOnOnline`, and reconnect handling needs a new owner."
+  ],
+  "originChange": "reconnect-without-reload"
+}

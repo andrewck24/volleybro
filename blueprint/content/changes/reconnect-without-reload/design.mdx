@@ -1,0 +1,149 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+import reloadOnOnlineOff from "./design/decisions/D1-reload-on-online-off.json";
+
+<TLDR>
+  `reloadOnOnline` 關掉之後，連線恢復不再有任何路徑呼叫
+  `location.reload()`。取代它的路徑不是新的——`SWRConfig` 的
+  `revalidateOnReconnect` 今天就是預設的 `true`，每個 hook 早就在重新連線時各自
+  revalidate，只是過去被同一個事件上的 reload 蓋過去而沒人看見。
+</TLDR>
+
+## Adopted shape
+
+改動前，同一個瀏覽器 `online` 事件掛著兩個互不知情的監聽者：`SerwistProvider` 的整頁
+reload，與 SWR 內部的逐 hook revalidate。前者先跑完、頁面已經在重新載入，後者的結果永遠沒有機會被看到。改動只是拿掉左邊那條路徑，右邊的行為完全沒有變動。
+
+<svg
+  viewBox="0 0 900 420"
+  role="img"
+  aria-label="連線恢復時的兩條路徑。改動前：瀏覽器觸發 online 事件，SerwistProvider 的監聽者呼叫 location.reload，整頁重載，記錄中的 set、正在編輯的 rally、捲動位置全部遺失；SWR 的逐 hook revalidate 雖然也被同一事件觸發，但頁面已經在重載，它的結果沒有機會被看到。改動後：SerwistProvider 不再監聽 online 事件；SWR 的 revalidateOnReconnect 保持它原本就有的預設值 true，每個掛載中的 hook 各自重新驗證資料，畫面狀態原封不動。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "900 / 420", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker
+      id="rwr-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-monospace, monospace">
+    <text x="20" y="24" fontSize="13" fill="var(--muted-foreground)">改動前</text>
+    <rect x="20" y="36" width="150" height="40" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="95" y="60" textAnchor="middle" fontSize="11" fill="var(--foreground)">window "online"</text>
+
+    <line x1="170" y1="46" x2="290" y2="46" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="26" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--destructive)" />
+    <text x="400" y="50" textAnchor="middle" fontSize="11" fill="var(--destructive)">SerwistProvider → location.reload()</text>
+
+    <line x1="170" y1="66" x2="290" y2="96" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="80" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="400" y="104" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)">SWR revalidateOnReconnect</text>
+
+    <line x1="510" y1="46" x2="640" y2="46" stroke="var(--destructive)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="640" y="26" width="240" height="60" rx="8" fill="var(--background)" stroke="var(--destructive)" />
+    <text x="760" y="48" textAnchor="middle" fontSize="11" fill="var(--destructive)">整頁重載</text>
+    <text x="760" y="66" textAnchor="middle" fontSize="10" fill="var(--destructive)">set／編輯中的 rally／捲動位置全部遺失</text>
+
+    <text x="640" y="112" fontSize="9" fill="var(--muted-foreground)">頁面已重載，這條路徑的結果沒人看得到</text>
+
+    <line x1="16" y1="150" x2="884" y2="150" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <text x="20" y="184" fontSize="13" fill="var(--muted-foreground)">改動後</text>
+    <rect x="20" y="196" width="150" height="40" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="95" y="220" textAnchor="middle" fontSize="11" fill="var(--foreground)">window "online"</text>
+
+    <line x1="170" y1="216" x2="290" y2="216" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="4 4" />
+    <rect x="290" y="196" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="400" y="220" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)">SerwistProvider：無監聽者</text>
+
+    <line x1="170" y1="236" x2="290" y2="266" stroke="var(--success)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="250" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="400" y="274" textAnchor="middle" fontSize="11" fill="var(--success)">SWR revalidateOnReconnect</text>
+
+    <line x1="510" y1="270" x2="640" y2="270" stroke="var(--success)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="640" y="250" width="240" height="60" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="760" y="272" textAnchor="middle" fontSize="11" fill="var(--success)">逐 hook 重新驗證</text>
+    <text x="760" y="290" textAnchor="middle" fontSize="10" fill="var(--success)">畫面狀態原封不動</text>
+
+    <text x="290" y="330" fontSize="10" fill="var(--muted-foreground)">此路徑的行為在改動前後完全相同——它從第一天就存在，只是被上面那條蓋過去</text>
+
+    <text x="290" y="360" fontSize="9" fill="var(--muted-foreground)">skipWaiting + clientsClaim 已確保新版 JS 在下一次導覽時生效，reload 不是新版本上線的必要條件</text>
+
+  </g>
+</svg>
+
+## Contracts
+
+改動本身沒有新的契約——`reloadOnOnline` 是 `@serwist/turbopack/react` 既有的 prop，這裡只是把它從隱式的預設值改成顯式的 `false`：
+
+```tsx
+// src/app/layout.tsx
+<SerwistProvider
+  swUrl="/serwist/sw.js"
+  disable={process.env.NODE_ENV !== "production"}
+  reloadOnOnline={false}
+>
+```
+
+`SWRConfig` 完全不動——`onError` 是它今天僅有的設定，`revalidateOnReconnect` 從沒被覆寫過：
+
+```tsx
+// src/components/layout/swr-provider.tsx
+<SWRConfig value={{ onError }}>{children}</SWRConfig>
+```
+
+## Failure modes
+
+<Scenario
+  given="使用者在記錄畫面上，訊號中斷又恢復"
+  when="瀏覽器觸發 online 事件"
+  then="SerwistProvider 不再監聽這個事件，頁面不重載；畫面上掛載的 SWR hook 依各自的 revalidateOnReconnect（預設 true）各自重新驗證，記錄中的 set 與正在編輯的 rally 原封不動"
+/>
+
+| 情境                                         | 行為                                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 連線恢復時使用者不在任何掛載 SWR hook 的畫面 | 沒有任何請求發出，與改動前 SWR 那一半的行為相同——改動只拿掉 reload，不影響 revalidate 的觸發條件                         |
+| 連線恢復後 SW 有新版本待啟用                 | `skipWaiting: true`／`clientsClaim: true` 已讓新 SW 在安裝完成後立刻啟用；下一次導覽即拿到新資產，不依賴這次的 reload    |
+| 開發環境（service worker `disable`）         | 不受影響——`reloadOnOnline` 的監聽者原本就掛在 `disable` 為 true 時從未註冊的路徑上，這也是為什麼這個問題在本機從未出現過 |
+
+## Testing strategy
+
+沒有新增自動化測試。這是單一 provider 上單一 prop 的改動，`pnpm typecheck:strict` 與既有的建置流程足以確認 prop 被正確傳遞；`location.reload()` 是否真的不再被呼叫,是瀏覽器對 `online` 事件的行為，jsdom 沒有對應的可觀察副作用可以斷言。真實裝置離線再恢復連線、確認記錄畫面狀態保留,是交付驗收的一部分，不屬於任何切片的 verification。
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "新版 JS 不再透過 reload 主動拉取",
+      severity: "info",
+      mitigation:
+        "`src/app/sw.ts` 的 skipWaiting 與 clientsClaim 已確保新 service worker 安裝完成後立刻啟用；下一次導覽即拿到新資產，reload 從來不是正確性的必要條件，只是提早了時機。",
+    },
+    {
+      name: "退回單一標準的代價要靠下一位讀者自己去 swr-provider.tsx 確認",
+      severity: "info",
+      mitigation:
+        "S01 的驗收條件把「SWRConfig 未被改動、revalidateOnReconnect 維持預設 true」明列出來，讓 reviewer 不必自己去確認取代機制原本就在。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionTimeline decisions={[reloadOnOnlineOff]} />

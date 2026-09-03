@@ -1,0 +1,23 @@
+---
+title: Implementation
+---
+
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  一片切片，一個 prop。沒有分片的理由——這是單一 provider
+  上單一參數的改動，切得更細只會製造沒有意義的中間狀態。
+</TLDR>
+
+<TaskProgress done={1} total={1} />
+
+## 為什麼只有一片
+
+改動的落點是 `src/app/layout.tsx` 裡唯一一個 `SerwistProvider` 呼叫上的一個 prop。沒有第二個呼叫點，沒有跨檔案的接線,也沒有可以獨立驗證的中間狀態——`reloadOnOnline={false}` 要嘛生效、要嘛沒生效，中間沒有第三種狀態值得單獨切一片來釘住。
+
+`SWRConfig` 的 `revalidateOnReconnect` 不在這片的驗收條件之外另外驗證,因為它本來就沒有被改動——它今天已經是預設的 `true`。S01 的驗收條件裡列出它保持不變,是為了讓 reviewer 一眼看到「取代 `reloadOnOnline` 的機制原本就在」,而不必自己去 `swr-provider.tsx` 確認。
+
+## 驗證的層次
+
+`pnpm verify:all` 涵蓋這片列出的四個指令。連線恢復後畫面狀態是否真的保留下來,需要真實裝置離線再恢復連線,自動化測試看不到 `location.reload()` 有沒有被呼叫——jsdom 沒有這個副作用可以斷言,而 mock 它只是在重複讀原始碼。這一項留給交付驗收。
