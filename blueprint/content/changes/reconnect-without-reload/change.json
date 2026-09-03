@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "reconnect-without-reload",
+  "title": "Reconnect Without Reload",
+  "lifecycle": "archived",
+  "startedAt": "2026-09-03",
+  "summary": "SerwistProvider 預設連線恢復時整頁 reload，正在記錄的那一 set 因此被丟掉。這張 Change 關掉這個預設值——已經存在的 SWRConfig 會在重新連線時逐請求重新驗證，不必丟掉任何畫面狀態。",
+  "capabilities": ["platform/pwa"],
+  "tags": ["pwa", "offline", "reliability"],
+  "archivedAt": "2026-09-04"
+}

@@ -1,0 +1,37 @@
+---
+title: PWA
+description: Service worker registration and update posture, install and launch appearance, and how the app treats connectivity changes.
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import reloadOnOnlineOff from "./decisions/D22-reload-on-online-off.json";
+
+VolleyBro installs as a standalone PWA (`@serwist/turbopack`). These are the boundaries the codebase actually enforces around caching, install appearance, and connectivity.
+
+## Current behavior
+
+- The service worker (`src/app/sw.ts`) registers only in production builds — `SerwistProvider`'s `disable` prop is `process.env.NODE_ENV !== "production"` — so nothing here is exercisable in local development.
+- `skipWaiting: true` and `clientsClaim: true` are both set. A new service worker activates as soon as it finishes installing, and it takes control of open clients immediately; the next navigation already runs the new version.
+- `navigationPreload: true` lets the browser start the navigation request in parallel with service worker startup, instead of waiting for the worker to boot before the request can begin.
+- Auth routes are excluded from caching with an explicit `NetworkOnly` matcher: `/api/auth/callback/google`, `/api/auth/signin`, `/api/auth/signout`. These carry state (OAuth callback params, CSRF tokens) that must never be served from cache; everything else falls through to `defaultCache`.
+- Regaining connectivity does not reload the page. `SerwistProvider` passes `reloadOnOnline={false}`; reconnect data freshness instead comes from `SWRConfig`'s default `revalidateOnReconnect` (`src/components/layout/swr-provider.tsx` only sets `onError` and never touches this default), so each mounted hook revalidates on its own rather than the whole page reloading.
+- Install and launch appearance is driven by `public/manifest.json` (`display: "standalone"`, `start_url: "/home"`) plus `metadata.appleWebApp` in `src/app/layout.tsx` for iOS.
+- iOS launch screens are generated, not static assets. `src/app/apple-splash/[size]/route.tsx` renders the brand mark on brand ground per requested size via `next/og`; `src/app/apple-splash/devices.ts` maps each supported iPhone/iPad screen to its expected pixel dimensions, and `layout.tsx` builds `appleWebApp.startupImage` from that same device list so the URL and the supported-size check can never disagree with each other.
+- The splash route's response carries `Cache-Control: public, max-age=31536000, immutable`. `SPLASH_VERSION` in `devices.ts` is a manual version key appended to the URL (`/apple-splash/{width}x{height}?v={SPLASH_VERSION}`) — bumping it is how a rendering change busts the CDN/service-worker/browser cache layers; an iOS home-screen install still caches the splash it saw at install time regardless, which only a remove-and-re-add clears.
+- Standalone routes set `document.body.style.backgroundColor` (via `BodyBackdrop`, `src/components/layout/body-backdrop.tsx`) to keep translucent system chrome visually continuous with the app chrome beneath it — auth routes use the brand primary, recording entry routes use the card surface color.
+
+## Constraints
+
+- The manifest's `background_color` must match the brand `--primary` teal (`#10687e`), the same value the iOS launch screens use. Chrome composes the Android install splash from this field plus the maskable icon's own background (the same teal), so the splash reads as a bare mark on brand ground rather than a near-white frame. `src/app/apple-splash/__tests__/manifest.test.ts` pins this value.
+- `BodyBackdrop` must not become a fourth background layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and this backdrop exists only as a backstop behind translucent system chrome, not as a page or surface background of its own.
+- A rendering change to the generated splash requires bumping `SPLASH_VERSION` in the same change — otherwise the new rendering is masked by the immutable cache header at every layer that isn't a fresh iOS home-screen add.
+- `reloadOnOnline` staying off is app-wide, not route-scoped: the provider mounts exactly once in the root layout, so there is no per-route override point without adding a second provider instance.
+
+## Known gaps
+
+- The manifest `background_color`/splash-color relationship and the `BodyBackdrop` no-fourth-layer rule are also documented in `docs/design-system.md` (Depth, Elevation & Edge Definition). Moving that documentation here fully is a separate decision the main session has not taken; until then the same two facts live in both places.
+- Caching boundaries (`NetworkOnly` on auth routes, `defaultCache` for everything else) are held by the explicit matcher list in `src/app/sw.ts` rather than by a naming convention — a new auth-adjacent route that leaks session state into cache would not be caught automatically.
+
+## Implemented decisions
+
+<DecisionTimeline decisions={[reloadOnOnlineOff]} />

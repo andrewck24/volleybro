@@ -5,6 +5,7 @@
     "delivery-workflow",
     "blueprint",
     "agent-orchestration",
-    "clean-architecture"
+    "clean-architecture",
+    "pwa"
   ]
 }

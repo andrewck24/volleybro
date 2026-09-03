@@ -146,6 +146,7 @@ export default async function RootLayout({
         <SerwistProvider
           swUrl="/serwist/sw.js"
           disable={process.env.NODE_ENV !== "production"}
+          reloadOnOnline={false}
         >
           <SWRProvider>
             <ReduxProvider>
