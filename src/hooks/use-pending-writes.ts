@@ -52,8 +52,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
     if (bySetIndex.size === 0) return { ok: true };
 
-    dispatch(pendingWritesActions.flushStarted({ gameId }));
-
     const succeededIds: string[] = [];
     // Per set group, not pooled by retryability: each group is its own
     // request, and an entry has to record why its own request failed.
@@ -88,7 +86,6 @@ export function usePendingWrites(gameId: string, setIndex: number) {
       } else {
         failures.push({
           payload: {
-            gameId,
             ids,
             retryable: result.retryable,
             lastError: toWriteError(result.error),
@@ -99,9 +96,7 @@ export function usePendingWrites(gameId: string, setIndex: number) {
     }
 
     if (succeededIds.length > 0) {
-      dispatch(
-        pendingWritesActions.flushSucceeded({ gameId, ids: succeededIds }),
-      );
+      dispatch(pendingWritesActions.flushSucceeded({ ids: succeededIds }));
     }
     for (const { payload } of failures) {
       dispatch(pendingWritesActions.flushFailed(payload));

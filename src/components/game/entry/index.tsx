@@ -153,8 +153,9 @@ export const EntryRow = ({
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
   onSwipeReveal?: (revealed: boolean) => void;
-  // This row's write has exhausted its attempts (hasFailedWrite), matched
-  // to the queue by entry id. Not a toast -- persists until retried.
+  // hasFailedWrite: matched to the queue by entry id. Not a toast -- it
+  // persists until the entry leaves the queue, which a retry achieves only
+  // once whatever the server rejected has changed.
   failed?: boolean;
   onRetry?: () => void;
   className?: string;

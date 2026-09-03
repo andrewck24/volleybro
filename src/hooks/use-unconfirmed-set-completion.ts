@@ -103,9 +103,7 @@ export function useUnconfirmedSetCompletion(gameId: string, setIndex: number) {
       );
       // This retry sends the entry itself rather than going through flush,
       // so nothing else takes it out of the queue.
-      dispatch(
-        pendingWritesActions.flushSucceeded({ gameId, ids: [lastRally.id] }),
-      );
+      dispatch(pendingWritesActions.flushSucceeded({ ids: [lastRally.id] }));
     }
     setRetrying(false);
   }, [dispatch, gameId, mutate, set, setIndex]);

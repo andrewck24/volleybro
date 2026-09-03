@@ -76,7 +76,6 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
       { wrapper },
@@ -98,7 +97,6 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 3,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-2" }));
     const { result } = renderHook(
       () => useUnconfirmedSetCompletion("game-1", 0),
       { wrapper },
@@ -121,11 +119,10 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    // A retryable failure schedules nextAttemptAt in the future and clears
-    // flushingGameIds -- no flush is in flight during this window.
+    // A retryable failure schedules nextAttemptAt in the future, so this
+    // window has no request on the wire at all.
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -158,7 +155,6 @@ describe("useUnconfirmedSetCompletion", () => {
     // null and nothing will send this entry again without a manual retry.
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -184,9 +180,7 @@ describe("useUnconfirmedSetCompletion", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-    );
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     store.dispatch(
       setCompletionActions.recorded({
         gameId: "game-1",
@@ -326,7 +320,6 @@ describe("useUnconfirmedSetCompletion", () => {
     );
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),

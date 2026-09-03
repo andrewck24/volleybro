@@ -1,6 +1,9 @@
 import { MoveType } from "@/entities/game";
 import { PENDING_WRITE_EXPIRY_MS } from "@/lib/features/game/pending-writes";
-import { restorePendingWrites } from "@/lib/features/game/pending-writes-persistence";
+import {
+  probePendingWritesStorage,
+  restorePendingWrites,
+} from "@/lib/features/game/pending-writes-persistence";
 import {
   PENDING_WRITES_KEY,
   localStoragePendingWrites,
@@ -34,6 +37,7 @@ const fakeStorage = () => {
       if (release) await new Promise<void>((r) => (release = r));
     },
     clear: async () => {},
+    probe: async () => {},
   };
   return {
     storage,
@@ -71,9 +75,7 @@ describe("pending-writes persistence", () => {
       items: [{ entry: entry("e1"), gameId: "game-1", setIndex: 0 }],
     });
 
-    store.dispatch(
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-    );
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     await settled();
     expect(saved).toHaveLength(2);
     expect(saved[1]).toEqual({ version: 1, items: [] });
@@ -92,7 +94,6 @@ describe("pending-writes persistence", () => {
     );
     store.dispatch(
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
         lastError: {
@@ -114,14 +115,13 @@ describe("pending-writes persistence", () => {
     });
     expect(last.items[0]).not.toHaveProperty("attempts");
     expect(last.items[0]).not.toHaveProperty("nextAttemptAt");
-    expect(last).not.toHaveProperty("flushingGameIds");
+    expect(last).not.toHaveProperty("storageUnavailable");
   });
 
   it("ignores dispatches that do not change the queue's contents", async () => {
     const { storage, saved } = fakeStorage();
     store = makeStore(storage);
 
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "game-1" }));
     store.dispatch(pendingWritesActions.retryRequested({ gameId: "game-1" }));
 
     expect(saved).toHaveLength(0);
@@ -194,6 +194,7 @@ describe("pending-writes persistence", () => {
         throw new Error("QuotaExceededError");
       },
       clear: async () => {},
+      probe: async () => {},
     };
     store = makeStore(storage);
 
@@ -228,6 +229,7 @@ describe("pending-writes persistence", () => {
         saved.push(snapshot);
       },
       clear: async () => {},
+      probe: async () => {},
     };
     store = makeStore(storage);
 
@@ -283,6 +285,44 @@ describe("localStoragePendingWrites", () => {
     expect(await localStoragePendingWrites.load()).toBeNull();
   });
 
+  it("probes with its own key and leaves the queue's untouched", async () => {
+    const snapshot: PersistedQueue = { version: 1, items: [] };
+    await localStoragePendingWrites.save(snapshot);
+
+    await expect(localStoragePendingWrites.probe()).resolves.toBeUndefined();
+
+    expect(localStorage.getItem(PENDING_WRITES_KEY)).toBe(
+      JSON.stringify(snapshot),
+    );
+    // Nothing of the probe's own is left behind.
+    expect(localStorage.length).toBe(1);
+  });
+
+  it("fails the probe when the store throws on a write", async () => {
+    const setItem = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("QuotaExceededError");
+      });
+
+    await expect(localStoragePendingWrites.probe()).rejects.toThrow();
+
+    setItem.mockRestore();
+  });
+
+  // Safari's private mode hands out an ephemeral quota rather than throwing,
+  // so a bare setItem would report an unusable store as healthy. Reading back
+  // is the half that catches it.
+  it("fails the probe when the store accepts a write and keeps nothing", async () => {
+    const getItem = jest
+      .spyOn(Storage.prototype, "getItem")
+      .mockReturnValue(null);
+
+    await expect(localStoragePendingWrites.probe()).rejects.toThrow();
+
+    getItem.mockRestore();
+  });
+
   it("hands back unreadable stored data rather than hiding it", async () => {
     localStorage.setItem(PENDING_WRITES_KEY, "{ not json");
     // Not null: the caller has to be able to tell "nothing stored" from
@@ -305,11 +345,76 @@ describe("localStoragePendingWrites", () => {
   });
 });
 
+describe("probePendingWritesStorage", () => {
+  const storageWith = (probe: () => Promise<void>) => ({
+    load: async () => null,
+    save: async () => {},
+    clear: async () => {},
+    probe,
+  });
+
+  it("leaves the flag alone when the store can hold something", async () => {
+    const store = makeStore();
+
+    await probePendingWritesStorage(
+      store.dispatch,
+      storageWith(async () => {}),
+    );
+
+    expect(store.getState().pendingWrites.storageUnavailable).toBe(false);
+  });
+
+  // Reported before the first rally, which is the only point at which the
+  // recorder still has moves available -- leaving private browsing, freeing
+  // space, or picking up another device.
+  it("records an unwritable store rather than letting the failure through", async () => {
+    const store = makeStore();
+
+    await expect(
+      probePendingWritesStorage(
+        store.dispatch,
+        storageWith(async () => {
+          throw new Error("quota");
+        }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(store.getState().pendingWrites.storageUnavailable).toBe(true);
+  });
+});
+
+describe("the queue's own save failing", () => {
+  it("reports the store as unwritable, because it can fail after a clean probe", async () => {
+    // A quota another origin fills mid-match is the ordinary way this
+    // happens: start-up said yes and the store still stopped keeping things.
+    const store = makeStore({
+      load: async () => null,
+      save: async () => {
+        throw new Error("quota");
+      },
+      clear: async () => {},
+      probe: async () => {},
+    });
+
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    await settled();
+
+    expect(store.getState().pendingWrites.storageUnavailable).toBe(true);
+  });
+});
+
 describe("restorePendingWrites", () => {
   const stored = (snapshot: PersistedQueue | null): PendingWritesStorage => ({
     load: async () => snapshot,
     save: async () => {},
     clear: async () => {},
+    probe: async () => {},
   });
 
   const persisted = (
@@ -468,11 +573,13 @@ describe("restorePendingWrites", () => {
       load: async () => ({ version: 1, items: [{ gameId: "game-1" }] }),
       save: async () => {},
       clear: async () => {},
+      probe: async () => {},
     });
     await restorePendingWrites(store.dispatch, {
       load: async () => "not an object at all",
       save: async () => {},
       clear: async () => {},
+      probe: async () => {},
     });
 
     expect(store.getState().pendingWrites.pending).toEqual([]);
@@ -486,6 +593,7 @@ describe("restorePendingWrites", () => {
       clear: async () => {
         cleared.push("cleared");
       },
+      probe: async () => {},
     });
     const store = makeStore(stored(null));
 
@@ -508,6 +616,7 @@ describe("restorePendingWrites", () => {
       clear: async () => {
         cleared = true;
       },
+      probe: async () => {},
     };
     const store = makeStore(stored(null));
 
@@ -529,6 +638,7 @@ describe("restorePendingWrites", () => {
       },
       save: async () => {},
       clear: async () => {},
+      probe: async () => {},
     });
 
     expect(store.getState().pendingWrites.pending).toEqual([]);
@@ -541,6 +651,7 @@ describe("restorePendingWrites expiry", () => {
     load: async () => snapshot,
     save: async () => {},
     clear: async () => {},
+    probe: async () => {},
   });
 
   const aged = (
@@ -620,6 +731,7 @@ describe("restorePendingWrites expiry", () => {
       clear: async () => {
         cleared = true;
       },
+      probe: async () => {},
     };
     const store = makeStore(storage);
 
@@ -645,6 +757,7 @@ describe("restorePendingWrites expiry", () => {
         saved.push(snapshot);
       },
       clear: async () => {},
+      probe: async () => {},
     };
     const store = makeStore(storage);
 

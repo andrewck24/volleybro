@@ -285,7 +285,6 @@ describe("GamePreview editing write status", () => {
       // effect's own near-immediate flush of a freshly-enqueued entry.
       store.dispatch(
         pendingWritesActions.flushFailed({
-          gameId: "game-1",
           ids: ["e1"],
           retryable: true,
         }),
@@ -315,9 +314,9 @@ describe("GamePreview editing write status", () => {
       );
       store.dispatch(
         pendingWritesActions.flushFailed({
-          gameId: "game-1",
           ids: ["e1"],
           retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
       );
     });

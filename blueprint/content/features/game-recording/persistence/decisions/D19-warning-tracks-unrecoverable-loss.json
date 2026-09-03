@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D19",
+  "title": "警告語氣改掛「不可重試」，per-rally 標記一併收窄",
+  "status": "implemented",
+  "targets": ["game-recording/rally-recording", "game-recording/persistence"],
+  "context": "unsynced 目前的觸發條件是「退避表用盡」，配 warning 色與驚嘆號。但退避用盡不代表資料有危險：retryable-queue-persistence 讓它落盤了，任何一顆新球的 flush 或 online 事件都會帶著它一起送出，`retryable-queue-persistence` 的人工驗證也確認恢復連線後全數自送。用警告標記一個已被妥善處理的情況，正是本 Change 要消除的過度警告。真正會遺失的是另一類——`mayBeAttemptedAgain(lastError) === false` 的 entry，也就是 retryable-entry-writes 的 D2 決定「立即 escalate、不重試」的 4xx。online 事件救不了它（伺服器會以同樣的理由再次拒絕），retryRequested 也救不了（它只重設 nextAttemptAt，不改變會再次失敗的事實），最終被 hasExpired 在七天後於 rehydrate 時靜默丟棄。retryable-entry-writes 的 S08 建立的 per-rally 失敗標記（實心 destructive ring）使用同一個含糊的判準「嘗試用盡」，因為當時還沒有人區分「暫時送不出去」與「永遠送不出去」。",
+  "decision": "警告語氣的觸發條件由「退避表用盡」改為「存在不可重試的 entry」，`hasFailedWrite` 同步改讀 `mayBeAttemptedAgain(lastError) === false`。指示器與 per-rally 標記自此讀同一個判準，不可能一個是中性而另一個標紅。退避用盡但仍可重試的 entry 落入中性的「待送」狀態，不觸發警告色、不觸發 per-rally 標記。此判準不需要抖動門檻：不可重試是終局事實，不會來回翻動。",
+  "alternatives": [
+    {
+      "option": "維持 unsynced 的既有判準，只改指示器不改 per-rally 標記",
+      "reason": "兩個表面會對同一批 entry 給出矛盾的語氣——指示器說中性、Entry List 上整片紅色 destructive ring。離線連續記球時後者會一次標紅數十列，那是本 Change 所指問題的逐列版本。"
+    },
+    {
+      "option": "退避用盡與不可重試各給一種警告強度",
+      "reason": "兩級警告要求使用者先讀懂級別才能判斷要不要行動，而其中一級的正確行動是「什麼都不用做」。一個不需要行動的警告不該是警告。"
+    },
+    {
+      "option": "沿用 nextAttemptAt === null 作為判準，另外在文案上區分",
+      "reason": "顏色與圖示的語氣比文字先到達，這正是原始缺陷（誠實的文字被轉圈的動態蓋過）的形狀。用文案修正錯誤的視覺語氣是同一個錯誤的第二次。"
+    }
+  ],
+  "consequences": [
+    "這縮減了 retryable-entry-writes 的 S08 已驗收行為。該切片的驗收寫的是「已用盡嘗試的 rally 會在該列上被標記」；此後只有不可重試者被標記。縮減是刻意的，理由如上，且被縮減掉的那一類不需要使用者做任何事。",
+    "警告狀態在本 Change 內沒有可執行的動作——popover 不提供重試（對 4xx 必定再次失敗），導航與刪除屬 「不可重試 entry 的導向與刪除」。這個缺口是已知且已登記的，不是靜默的：Entry List 上 S08 的 per-row 重試控制仍然存在並仍然標記它們，缺的只是從指示器過去的路。",
+    "401 的 entry 落在此狀態。api-client 對 401 另有導向重新登入的路徑，但那些 entry 的 lastError 已是 401、nextAttemptAt 已是 null，重新登入後不會自動送出，須由 S08 的 per-row 重試控制送出。",
+    "指示器的優先序中，警告排在「待送」之前但排在「無法保存」之後。被壓下的資訊不會消失：per-rally 標記獨立於指示器的優先序呈現。"
+  ],
+  "revisitTriggers": [
+    "「不可重試 entry 的導向與刪除」交付：此狀態自此有可執行的動作，警告的語氣與文案應一併重新檢視。",
+    "rally 端點補上 request schema：400 會大量增加，此狀態從罕見變成需要正視的常態，屆時「不可重試」的呈現密度與 hasExpired 的七天規則都要重估。",
+    "現場證據顯示某類 4xx 其實會自己好（例如伺服器修好之後），那會推翻 isRetryableStatus 的分界而非本決策，但兩者相接。"
+  ],
+  "originChange": "honest-sync-status",
+  "originDecision": "D2"
+}

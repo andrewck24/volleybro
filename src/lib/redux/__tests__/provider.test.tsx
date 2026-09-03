@@ -61,9 +61,7 @@ describe("persistence wiring", () => {
     store.dispatch(enqueue("e1"));
     expect(storedIds()).toEqual(["e1"]);
 
-    store.dispatch(
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-    );
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     // This one does await: a save behind an open one collapses to the newest.
     await settled();
     expect(storedIds()).toEqual([]);

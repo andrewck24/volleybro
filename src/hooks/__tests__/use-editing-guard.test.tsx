@@ -98,9 +98,9 @@ describe("useEditingGuard", () => {
     act(() =>
       store.dispatch(
         pendingWritesActions.flushFailed({
-          gameId: "game-1",
           ids: ["e1"],
           retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
       ),
     );

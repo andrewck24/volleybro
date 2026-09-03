@@ -4,6 +4,7 @@ import {
   PendingWritesContext,
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
+import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { GameView } from "@/lib/features/game/types";
@@ -135,30 +136,69 @@ export const Width320: Story = {
   },
 };
 
-// The unsynced state: a failed write left in the queue, retry offered.
-export const Unsynced: Story = {
+const queueRally = () =>
+  store.dispatch(
+    pendingWritesActions.enqueued({
+      entry: {
+        id: "pending-1",
+        seq: 1,
+        win: true,
+        home: { score: 7, type: MoveType.ATTACK, num: 4 },
+        away: { score: 3, type: MoveType.DEFENSE, num: 7 },
+      },
+      gameId,
+      setIndex: 2,
+    }),
+  );
+
+const transient = {
+  code: "TRANSIENT",
+  reason: "NETWORK_ERROR",
+  status: 503,
+} as const;
+
+export const Unsent: Story = {
   decorators: [
     (Story) => {
-      store.dispatch(
-        pendingWritesActions.enqueued({
-          entry: {
-            id: "pending-1",
-            seq: 1,
-            win: true,
-            home: { score: 7, type: MoveType.ATTACK, num: 4 },
-            away: { score: 3, type: MoveType.DEFENSE, num: 7 },
-          },
-          gameId,
-          setIndex: 2,
-        }),
-      );
+      queueRally();
+      for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
+        store.dispatch(
+          pendingWritesActions.flushFailed({
+            ids: ["pending-1"],
+            retryable: true,
+            lastError: transient,
+          }),
+        );
+      }
+      return <Story />;
+    },
+  ],
+};
+
+// Lost: a 4xx, which waiting does not improve. The only state that still
+// wears the warning tone, and the only one carrying a count in that colour.
+export const Failed: Story = {
+  decorators: [
+    (Story) => {
+      queueRally();
       store.dispatch(
         pendingWritesActions.flushFailed({
-          gameId,
           ids: ["pending-1"],
           retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
         }),
       );
+      return <Story />;
+    },
+  ],
+};
+
+// The one state that does not come from the queue at all: this device
+// cannot keep what is unsent, so it shows even with nothing pending.
+export const StorageUnavailable: Story = {
+  decorators: [
+    (Story) => {
+      store.dispatch(pendingWritesActions.storageUnavailable());
       return <Story />;
     },
   ],

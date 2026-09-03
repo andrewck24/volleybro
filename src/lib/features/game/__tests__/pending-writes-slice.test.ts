@@ -52,29 +52,9 @@ describe("pendingWrites reducer", () => {
     expect(deriveSyncStatus(state, "game-1")).toBe("syncing");
   });
 
-  it("flushStarted tracks each flushing game once, and more than one at a time", () => {
-    const afterFirst = pendingWritesReducer(
-      undefined,
-      pendingWritesActions.flushStarted({ gameId: "game-1" }),
-    );
-    expect(afterFirst.flushingGameIds).toEqual(["game-1"]);
-
-    const afterRepeat = pendingWritesReducer(
-      afterFirst,
-      pendingWritesActions.flushStarted({ gameId: "game-1" }),
-    );
-    expect(afterRepeat.flushingGameIds).toEqual(["game-1"]);
-
-    const afterSecondGame = pendingWritesReducer(
-      afterRepeat,
-      pendingWritesActions.flushStarted({ gameId: "game-2" }),
-    );
-    expect(afterSecondGame.flushingGameIds).toEqual(["game-1", "game-2"]);
-  });
-
-  it("flushSucceeded removes only the confirmed ids and clears flushing for that game only", () => {
+  it("flushSucceeded removes only the confirmed ids", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: ["game-1", "game-2"],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),
@@ -95,19 +75,15 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
     );
 
     expect(state.pending.map((p) => p.entry.id)).toEqual(["e2"]);
-    expect(state.flushingGameIds).toEqual(["game-2"]);
   });
 
-  it("flushFailed schedules the next background delay by attempt count, and clears flushing for that game only", () => {
+  it("flushFailed schedules the next background delay by attempt count", () => {
     const seeded: PendingWritesState = {
-      // Two games seeded so clearing "game-1" here can be told apart from a
-      // bug that wipes the whole array -- the single-element fixture this
-      // replaced could not distinguish scoped from unscoped clearing.
-      flushingGameIds: ["game-1", "game-2"],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),
@@ -122,7 +98,6 @@ describe("pendingWrites reducer", () => {
     let state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -132,13 +107,11 @@ describe("pendingWrites reducer", () => {
     expect(state.pending[0]!.nextAttemptAt).toBe(
       Date.now() + PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[0]!,
     );
-    expect(state.flushingGameIds).toEqual(["game-2"]);
 
     for (let i = 1; i < PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS.length; i++) {
       state = pendingWritesReducer(
         state,
         pendingWritesActions.flushFailed({
-          gameId: "game-1",
           ids: ["e1"],
           retryable: true,
         }),
@@ -152,13 +125,14 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
     );
     expect(state.pending[0]!.nextAttemptAt).toBeNull();
-    expect(deriveSyncStatus(state, "game-1")).toBe("unsynced");
+    // Retryable, so it is still worth sending -- it just has no schedule of
+    // its own left. That reads as waiting, not as lost.
+    expect(deriveSyncStatus(state, "game-1")).toBe("unsent");
   });
 
   it("records why the last attempt failed, and keeps no reason before one has", () => {
@@ -177,7 +151,6 @@ describe("pendingWrites reducer", () => {
     const failed = pendingWritesReducer(
       enqueued,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
         lastError: {
@@ -199,7 +172,6 @@ describe("pendingWrites reducer", () => {
     const failedAgain = pendingWritesReducer(
       failed,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: true,
       }),
@@ -219,7 +191,6 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -235,7 +206,6 @@ describe("pendingWrites reducer", () => {
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -245,7 +215,7 @@ describe("pendingWrites reducer", () => {
 
   it("leaves no failure reason behind once the entry is confirmed", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: [],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),
@@ -264,7 +234,7 @@ describe("pendingWrites reducer", () => {
 
     const state = pendingWritesReducer(
       seeded,
-      pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
+      pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
     );
 
     // Confirmation removes the item outright, so a stale reason cannot
@@ -274,7 +244,7 @@ describe("pendingWrites reducer", () => {
 
   it("flushFailed marks a non-retryable error as failed immediately, no backoff", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: ["game-1"],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),
@@ -289,7 +259,6 @@ describe("pendingWrites reducer", () => {
     const state = pendingWritesReducer(
       seeded,
       pendingWritesActions.flushFailed({
-        gameId: "game-1",
         ids: ["e1"],
         retryable: false,
       }),
@@ -301,7 +270,7 @@ describe("pendingWrites reducer", () => {
 
   it("retryRequested only resets items whose backoff is exhausted", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: [],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),
@@ -333,7 +302,7 @@ describe("pendingWrites reducer", () => {
 
   it("retryRequested only resets the requesting game's exhausted items", () => {
     const seeded: PendingWritesState = {
-      flushingGameIds: [],
+      storageUnavailable: false,
       pending: [
         {
           entry: entry("e1"),

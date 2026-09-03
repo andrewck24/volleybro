@@ -10,7 +10,7 @@ jest.mock("@/lib/redux/hooks", () => ({
         setIndex: 0,
         editing: { entryDraft: { id: "" } },
       },
-      pendingWrites: { pending: [], flushingGameIds: [] },
+      pendingWrites: { pending: [], storageUnavailable: false },
     }),
   useAppDispatch: () => jest.fn(),
 }));

@@ -7,6 +7,7 @@ import {
   usePendingWrites,
 } from "@/hooks/use-pending-writes";
 import * as apiClientModule from "@/lib/api/api-client";
+import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
@@ -43,6 +44,45 @@ const PendingWritesTestHarness = ({
     </PendingWritesContext.Provider>
   );
 };
+
+const failToThreshold = (store: AppStore, ids: string[]) => {
+  for (let i = 0; i < PENDING_WRITE_UNSENT_ATTEMPTS; i++) {
+    store.dispatch(
+      pendingWritesActions.flushFailed({
+        ids,
+        retryable: true,
+        lastError: { code: "TRANSIENT", reason: "NETWORK_ERROR", status: 503 },
+      }),
+    );
+  }
+};
+
+// A 4xx: waiting does not improve it, so nothing will send this entry.
+const failUnrecoverably = (store: AppStore, ids: string[]) =>
+  store.dispatch(
+    pendingWritesActions.flushFailed({
+      ids,
+      retryable: false,
+      lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+    }),
+  );
+
+// jsdom reports the device as online; this is the whole of what the browser
+// signal can be trusted to say, so the copy branch needs it flipped.
+const goOffline = () => {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: false,
+  });
+  window.dispatchEvent(new Event("offline"));
+};
+
+afterEach(() => {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    value: true,
+  });
+});
 
 let store: AppStore;
 const renderIndicator = (onSurroundingClick: () => void) => {
@@ -92,13 +132,13 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
+    const button = screen.getByRole("button", { name: "同步中" });
     expect(button).toBeInTheDocument();
     // Syncing style, not the unsynced (warning ring) style.
     expect(button).not.toHaveClass("ring-warning/30");
   });
 
-  it("shows the unsynced count once an item's backoff is exhausted, with the retry control visible", async () => {
+  it("shows the count with the retry control once an entry has failed twice", async () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -107,13 +147,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -123,23 +157,25 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
-    expect(button).toHaveClass("ring-warning/30");
+    const button = screen.getByRole("button", {
+      name: "連線有問題，1 筆已保存，會持續嘗試送出",
+    });
+    // Waiting is not a warning: these entries send themselves once the
+    // connection is back, so the tone stays neutral.
+    expect(button).not.toHaveClass("ring-warning/30");
 
     await user.click(button);
 
     expect(
       await screen.findByRole("button", { name: "重試" }),
     ).toBeInTheDocument();
-    // The popover's own icon carries the warning color explicitly (it
-    // doesn't inherit it from the trigger button, which is a different
-    // element in the portalled popover content).
-    expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
+    expect(screen.getByTestId("sync-popover-icon")).not.toHaveClass(
+      "text-warning",
+    );
   });
 
-  it("reads as unsynced, retry control visible, when this game's queue is exhausted and a different game's flush is in flight", () => {
+  it("stops spinning, and says the rallies are safe, once the queue is waiting", async () => {
     store = makeStore();
-    // This game's item has exhausted its backoff...
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e1"),
@@ -147,17 +183,39 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+    expect(screen.getByTestId("sync-spinner")).toBeInTheDocument();
+
+    act(() => failToThreshold(store, ["e1"]));
+
+    expect(screen.queryByTestId("sync-spinner")).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
       }),
     );
-    // ...and, at the same time, an unrelated game's flush is genuinely in
-    // flight. The flag now carries its own game identity, so this must not
-    // be read as this game's syncing state.
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
+    expect(
+      await screen.findByText("1 筆已保存，會持續嘗試送出"),
+    ).toBeInTheDocument();
+  });
+
+  it("promises an automatic send only while the device is off the network", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failToThreshold(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -166,11 +224,112 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    const button = screen.getByRole("button", { name: "1 筆未同步" });
-    expect(button).toHaveClass("ring-warning/30");
+    act(() => goOffline());
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "離線中，1 筆已保存，恢復連線後自動送出",
+      }),
+    );
+    expect(
+      await screen.findByText("1 筆已保存，恢復連線後自動送出"),
+    ).toBeInTheDocument();
   });
 
-  it("ignores pending entries -- and an in-flight flush -- that belong to a different game", () => {
+  // The warning tone belongs to the one condition the recorder has to act on:
+  // an entry a retry cannot fix. The popover's own icon carries that colour
+  // explicitly -- it does not inherit it from the trigger button, which is a
+  // different element in the portalled popover content.
+  it("wears the warning tone, without a retry control, for an entry that cannot be sent", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failUnrecoverably(store, ["e1"]);
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "1 筆送不出去，請在紀錄列表中查看這幾筆",
+    });
+    expect(button).toHaveClass("ring-warning/30");
+
+    await user.click(button);
+
+    expect(screen.getByTestId("sync-popover-icon")).toHaveClass("text-warning");
+    // No action here: what a 4xx needs is to look at the rally itself, and
+    // the route to it is the entry list, not this popover.
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("speaks up about an unwritable store even with nothing queued", async () => {
+    store = makeStore();
+    store.dispatch(pendingWritesActions.storageUnavailable());
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    const button = screen.getByRole("button", {
+      name: "本機空間已滿，未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
+    });
+    expect(button).toHaveClass("ring-warning/30");
+
+    await user.click(button);
+    expect(
+      await screen.findByText(
+        "未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("points at the other games' unsent rallies when there are any", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("other"),
+        gameId: "game-2",
+        setIndex: 0,
+      }),
+    );
+    store.dispatch(pendingWritesActions.storageUnavailable());
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "本機空間已滿，請回到其他尚未同步的比賽完成同步，以釋出空間",
+      }),
+    );
+    expect(
+      await screen.findByText("請回到其他尚未同步的比賽完成同步，以釋出空間"),
+    ).toBeInTheDocument();
+  });
+
+  it("ignores pending entries that belong to a different game", () => {
     store = makeStore();
     store.dispatch(
       pendingWritesActions.enqueued({
@@ -179,7 +338,6 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(pendingWritesActions.flushStarted({ gameId: "other-game" }));
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -201,13 +359,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -219,7 +371,11 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "1 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
 
     expect(onSurroundingClick).not.toHaveBeenCalled();
   });
@@ -234,13 +390,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e1"]);
     render(
       <Provider store={store}>
         <PendingWritesTestHarness>
@@ -249,13 +399,13 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
     expect(
-      screen.getByRole("button", { name: "1 筆未同步" }),
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
     ).toBeInTheDocument();
 
     act(() => {
-      store.dispatch(
-        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-      );
+      store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     });
 
     // A retry that simply vanished would read as the app having dropped the
@@ -289,15 +439,88 @@ describe("SyncIndicator", () => {
     );
 
     act(() => {
-      store.dispatch(
-        pendingWritesActions.flushSucceeded({ gameId: "game-1", ids: ["e1"] }),
-      );
+      store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
     });
 
     // Every rally goes through this path; a check mark here would sit on
     // screen longer than the send it is acknowledging.
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     jest.useRealTimers();
+  });
+
+  it("offers no retry while the device is off the network", async () => {
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failToThreshold(store, ["e1"]);
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    act(() => goOffline());
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", {
+        name: "離線中，1 筆已保存，恢復連線後自動送出",
+      }),
+    );
+    // It would fail every time, and the recorder already knows the network
+    // is off -- the only useful action is turning it back on.
+    expect(
+      screen.queryByRole("button", { name: "重試" }),
+    ).not.toBeInTheDocument();
+  });
+
+  // Retry resets nothing the status reads, so without feedback of its own the
+  // button looks inert. The feedback stays on the button rather than in the
+  // status, which would flash on every background retry too.
+  it("shows the retry control as busy while its own request is in flight", async () => {
+    let release!: (value: unknown) => void;
+    apiClient.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    store = makeStore();
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+    failToThreshold(store, ["e1"]);
+    const user = userEvent.setup();
+    render(
+      <Provider store={store}>
+        <PendingWritesTestHarness>
+          <SyncIndicator gameId="game-1" />
+        </PendingWritesTestHarness>
+      </Provider>,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "重試" }));
+
+    expect(screen.getByRole("button", { name: "重試" })).toBeDisabled();
+
+    await act(async () => {
+      release({ entries: [{ id: "e1" }] });
+    });
   });
 
   it("retry closes the popover, flushes the queue, and moves to syncing", async () => {
@@ -310,13 +533,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -326,7 +543,11 @@ describe("SyncIndicator", () => {
       </Provider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "1 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，1 筆已保存，會持續嘗試送出",
+      }),
+    );
     const retryButton = await screen.findByRole("button", { name: "重試" });
     await user.click(retryButton);
 
@@ -353,13 +574,7 @@ describe("SyncIndicator", () => {
         setIndex: 0,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e0"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e0"]);
     store.dispatch(
       pendingWritesActions.enqueued({
         entry: entry("e1"),
@@ -367,13 +582,7 @@ describe("SyncIndicator", () => {
         setIndex: 1,
       }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        gameId: "game-1",
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
+    failToThreshold(store, ["e1"]);
     const user = userEvent.setup();
     render(
       <Provider store={store}>
@@ -384,7 +593,11 @@ describe("SyncIndicator", () => {
     );
 
     // The badge counts both sets' failures, not just the current set (0).
-    await user.click(screen.getByRole("button", { name: "2 筆未同步" }));
+    await user.click(
+      screen.getByRole("button", {
+        name: "連線有問題，2 筆已保存，會持續嘗試送出",
+      }),
+    );
     const retryButton = await screen.findByRole("button", { name: "重試" });
     await user.click(retryButton);
 

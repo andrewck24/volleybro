@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D18",
+  "title": "狀態由實測失敗判定，navigator.onLine 只選文案",
+  "status": "implemented",
+  "targets": ["game-recording/rally-recording"],
+  "context": "指示器目前以 `pending.some((p) => p.nextAttemptAt !== null)` 判定 syncing，而 `enqueued` 每次入列都設 `nextAttemptAt: Date.now()`。離線時每記一球就把整組重置回 syncing，spinner 全程轉動。原始票的方向是新增一個由 `navigator.onLine` 驅動的 offline 狀態，但那個訊號只能證偽不能證實：裝置連上一個上游掛掉的 wifi、或未登入的 captive portal 時它回報 true，而球送不出去。以 VolleyBro 的使用情境——體育館、地下場館、共用 wifi——訊號滿格卻連不出去比飛航模式更常發生，若以它為判準，原始缺陷在最常見的情境下原封不動。真正的訊號已經在 state 裡：`attempts` 記錄的是實際送出並實際失敗的次數，對兩種情境一視同仁。Notion 的離線指示同樣以伺服器可達性而非 navigator.onLine 為準。",
+  "decision": "狀態改由五條有序條件判定，第一個命中者勝出：storageUnavailable → 佇列空 → 存在不可重試的 entry → 存在 attempts 達門檻的 entry → 其餘為同步中。`navigator.onLine` 完全不參與判定，只在「待送」狀態下分岔文案與重試按鈕的顯示；兩種文案都是真話，因為「送不出去」的依據永遠是失敗紀錄，false 則是它唯一可靠的方向。抖動門檻取 `attempts >= 2`（約三秒，撐過第一次背景重試）而非計時器：`attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 setTimeout 與其清理責任。Notion 採三十秒，對在球與球之間抬頭掃一眼的記錄員過長，而「看起來卡住」正是本 Change 的起因。連線狀態以 `useSyncExternalStore` 訂閱 online/offline 事件讀取，subscribe 置於 module scope，getServerSnapshot 回傳 true。",
+  "alternatives": [
+    {
+      "option": "新增由 navigator.onLine 驅動的 offline 狀態，如原始票所提",
+      "reason": "只修好飛航模式。裝置連上網路卻到不了伺服器時 navigator.onLine 為 true，指示器落回 syncing 並繼續轉圈——那正是本 Change 要消除的謊言，而且是更常見的那一半。它挑了比較好偵測的情境，不是比較常發生的。"
+    },
+    {
+      "option": "把 syncing 的定義收窄為「真的有 request 在飛」（只讀 flushingGameIds）",
+      "reason": "等待下一次重試確實屬於重試生命週期，判斷本身不算錯，錯的是 spinner 隱含的「稍等即可」。收窄後離線期間會在退避空檔與嘗試瞬間之間反覆切換，反而製造抖動；退避用盡後仍落到警告語氣，語氣依舊不對。"
+    },
+    {
+      "option": "以計時器實作抖動門檻，如 Notion 的三十秒",
+      "reason": "需要一個 setTimeout 在門檻到期時強制 re-render，是新的機制與新的清理責任。次數門檻用既有的 dispatch 推動狀態，效果相同而無新機制。"
+    },
+    {
+      "option": "把連線狀態放進 Redux，由 online/offline 事件 dispatch",
+      "reason": "它不是應用程式狀態，是瀏覽器狀態的投影。放進 store 會多一份需要保持同步的副本，而 useSyncExternalStore 正是為此存在，且不會在 concurrent rendering 下撕裂。"
+    }
+  ],
+  "consequences": [
+    "`flushingGameIds` 失去唯一的消費者。舊模型需要知道「有沒有 request 在飛」，新模型不需要，因此該欄位連同 flushStarted action 與 reducer、其 dispatch、flushSucceeded 與 flushFailed 中的兩行清理一併移除。行為中性且未曾落盤，不需要 migration。",
+    "手動重試按下後狀態不變，畫面沒有任何回饋。回饋改以元件內的 useState 呈現於按鈕自身，不得把 flushingGameIds 拉回優先序——那會讓每次背景重試閃一次 spinner，正是門檻要消除的抖動。",
+    "SYNCED_ACK_MS 的確認動畫觸發條件改為「前一狀態為送不出去或待送」。同步中每球都經過，從它回到隱藏不該打勾。",
+    "從第一次失敗到門檻成立之間約三秒，離線仍顯示 spinner。這是刻意的取捨：短到在下一球之前就給出答案，長到濾掉自己會好的網路打嗝。"
+  ],
+  "revisitTriggers": [
+    "重試狀態改以 (game, set) 群組為單位的後續工作落地：attempts 與 lastError 的持有位置由 entry 移至 (game, set) 群組，門檻語意由「單一 entry」變為「群組」，本決策的條件式須重新檢視。",
+    "現場證據顯示三秒門檻過短或過長——過短表現為打嗝仍造成圖示閃動，過長表現為使用者在門檻成立前就已經開始擔心。",
+    "一個真正可靠的伺服器可達性訊號出現（例如 outbox 自帶的心跳），屆時 navigator.onLine 連文案的工作都可以交出去。"
+  ],
+  "originChange": "honest-sync-status",
+  "originDecision": "D1"
+}

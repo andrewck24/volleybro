@@ -5,34 +5,52 @@ import type {
   WriteError,
 } from "@/lib/features/game/types";
 
-export type SyncStatus = "synced" | "syncing" | "unsynced";
+/**
+ * The one standard for whether another attempt is worth making. The flush, the
+ * restore and the expiry rule all read it.
+ */
+export const isRetryableStatus = (status: number): boolean => status >= 500;
+
+/** The same standard, over an entry that may not have failed yet. */
+export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
+  lastError === undefined || isRetryableStatus(lastError.status);
+
+export type SyncStatus =
+  "unwritable" | "synced" | "failed" | "unsent" | "syncing";
+
+/** Two, so the failure outlived the first background retry. */
+export const PENDING_WRITE_UNSENT_ATTEMPTS = 2;
 
 /**
- * SyncIndicator and the per-row failure marker are both projections of the
- * queue, never stored state of their own. Empty reads as synced; any item
- * with a scheduled attempt reads as syncing; a queue whose items have all
- * exhausted their backoff reads as unsynced. Scoped to one game: a flush
- * carries its own game identity now, so another game's in-flight flush
- * never gets mistaken for this game's.
+ * Worst possibility first, first match wins -- the order is the design, not an
+ * implementation detail, so keep it. `storageUnavailable` outranks the empty
+ * queue because it is the one input that does not come from queue contents.
  */
 export const deriveSyncStatus = (
   state: PendingWritesState,
   gameId: string,
 ): SyncStatus => {
+  if (state.storageUnavailable) return "unwritable";
+
   const pending = state.pending.filter((p) => p.gameId === gameId);
-  return pending.length === 0
-    ? "synced"
-    : state.flushingGameIds.includes(gameId) ||
-        pending.some((p) => p.nextAttemptAt !== null)
-      ? "syncing"
-      : "unsynced";
+  if (pending.length === 0) return "synced";
+  if (pending.some((p) => !mayBeAttemptedAgain(p.lastError))) return "failed";
+  if (pending.some((p) => p.attempts >= PENDING_WRITE_UNSENT_ATTEMPTS))
+    return "unsent";
+  return "syncing";
 };
 
+/**
+ * Deliberately the same judgement as the indicator's warning tone, so the two
+ * cannot disagree about one entry. An exhausted backoff is not enough.
+ */
 export const hasFailedWrite = (
   state: PendingWritesState,
   entryId: string,
 ): boolean =>
-  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt === null);
+  state.pending.some(
+    (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
+  );
 
 /** True while this entry has an attempt scheduled (in-request or background). */
 export const isPendingWrite = (
@@ -54,17 +72,6 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
-
-/**
- * The one standard for whether another attempt is worth making. The flush, the
- * restore and the expiry rule all read it, so none of them can disagree about
- * which failures are worth carrying.
- */
-export const isRetryableStatus = (status: number): boolean => status >= 500;
-
-/** The same standard, over an entry that may not have failed yet. */
-export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
-  lastError === undefined || isRetryableStatus(lastError.status);
 
 /** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (

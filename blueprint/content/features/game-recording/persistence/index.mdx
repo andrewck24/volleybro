@@ -14,6 +14,8 @@ import storagePortBoundary from "./decisions/D14-storage-port-boundary.json";
 import persistedShape from "./decisions/D15-persisted-shape.json";
 import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
 import persistenceErrorLayering from "./decisions/D17-persistence-error-layering.json";
+import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
+import storageAvailabilityIsAFirstClassState from "./decisions/D20-storage-availability-is-a-first-class-state.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
@@ -106,9 +108,21 @@ appends one entry; it does not rewrite the game.
   spans games but the flush is mounted under one, so entries for a game nobody
   reopens wait indefinitely, and nothing outside that game's recording screen
   says so. Closing this is the offline recording work.
-- An unwritable store degrades silently. The recorder believes the work is
-  protected and is not told otherwise, which is the one place in this
-  capability where that is true.
+- A store that cannot be written is now reported: probed once at start-up
+  through the same port the queue uses, and again whenever a save fails, since
+  a store can pass at start-up and fill during a match. The flag is one-way,
+  because nothing here can observe a store recovering.
+- Only one cause of that reaches a recorder. Blocked site data is detectable
+  but unreachable — cookies being blocked stops the sign-in first — so a full
+  quota is what the condition actually reports, and the wording names it. The
+  queue is the only thing this app puts in local storage, so a full store is
+  usually its own unsent rallies from a game nobody has reopened.
+- A store that works for this session and forgets afterwards cannot be seen at
+  all. Private browsing, the platform's long-inactivity clearing and eviction
+  under disk pressure all write and read back correctly; nothing synchronous
+  distinguishes them from a healthy store. Persistence is requested once at
+  start-up for the two the browser can act on, and that request's effect is
+  not verifiable from inside the app.
 - Seven days has no measured basis. It restores a property persistence removed
   rather than expressing anything known about how long a stuck entry is worth
   keeping.
@@ -133,5 +147,7 @@ appends one entry; it does not rewrite the game.
     persistedShape,
     flushStaysGameScoped,
     persistenceErrorLayering,
+    warningTracksUnrecoverableLoss,
+    storageAvailabilityIsAFirstClassState,
   ]}
 />
