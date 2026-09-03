@@ -176,6 +176,14 @@ The PWA manifest `background_color` must match the brand `--primary` teal (`#106
 | Saira        | `--font-saira`        | Primary - headings, body text |
 | Noto Sans TC | `--font-noto-sans-tc` | CJK fallback                  |
 
+### Size Floor
+
+The rendered scale in the blueprint `design-system` section stops at `text-xs` (0.75rem / 12px). Take sizes from that scale and do not go under it.
+
+Never reach for an arbitrary `text-[Npx]`. A px literal ignores the reader's own font-size preference; a rem value from the scale follows it.
+
+One exception: a digit inside a fixed-size badge may be smaller, because the badge cannot grow with it. It must never be the only place that number appears.
+
 ## Spacing
 
 Standard Tailwind 4px-base scale. No custom spacing tokens defined beyond the default Tailwind set.

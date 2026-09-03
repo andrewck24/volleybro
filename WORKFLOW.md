@@ -73,6 +73,7 @@ not from an additional workflow skill.
 
 - Linear owns intake and current operational state. Issues may be archived or deleted after the
   development lifecycle, so durable repository knowledge must not depend on Linear URLs or IDs.
+  Name other work by its Change slug, or by a short description of it when it has no slug yet.
 - Blueprint Changes own durable rationale, adopted design, implementation slices, lifecycle, and
   human review presentation. Blueprint does not know which issue tracker is configured.
 - Blueprint Features own current capability and sub-capability behavior, constraints, implemented
@@ -218,10 +219,14 @@ After all slices complete:
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent review until both axes reach a fixed point;
 5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
-   plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID
-   rather than by commit hash; and
+   plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID; and
 6. set the Change lifecycle to `awaiting-delivery-review`, notify the developer, and stop for
    acceptance of Blueprint Review.
+
+The standards axis exists to cover what the repository documents and no tool checks — comment
+necessity and density above all, since lint, types and formatting all pass regardless of how much
+prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
+unwritten standard is one the reviewer cannot apply: state it in `CONTRIBUTING.md` first.
 
 Do not open the pull request before developer acceptance and branch-local Archive. The repository
 does not run an automated Claude review after the pull request opens. Human PR review and comment
@@ -235,10 +240,8 @@ request opens. Follow `docs/agents/artifact-lifecycle.md`:
 
 1. reconcile Overview, Design, implementation slices, and Review with delivered code and tests;
 2. promote implemented behavior and durable constraints to the narrowest affected sub-capability;
-3. reconcile each realized Change ADR, change its status from `accepted` to `implemented`, then copy
-   it to the narrowest affected Feature capability or sub-capability as canonical current knowledge;
-   preserve the original ADR in the archived Change together with rejected alternatives, rationale,
-   consequences, and revisit triggers;
+3. reconcile each realized Change ADR and change its status from `accepted` to `implemented`; the
+   decision-record contract below owns what is copied where, and what stays in the archived Change;
 4. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 5. keep execution slices, review rounds, validation evidence, and plan-versus-actual history in the
    archived Change rather than copying them into Features;
@@ -432,10 +435,12 @@ Render such information with the components the repository already has, rather t
 | A dated sequence                                     | `Timeline`             |
 | Structured decision records                          | `DecisionTimeline`     |
 
-Minimum per page: Overview opens with `TLDR`; Design carries at least one diagram of the adopted
-shape and states its risks through `RiskTable`; Review states delivery through `FileTour`, findings
-and residual risks through `RiskTable`, and shows every defect it reports as an `AnnotatedDiff` of
-the fix. Implementation needs no slice component — the page shell already renders the slice JSON.
+Minimum per page: Overview opens with `TLDR` and carries an Impact section naming the affected
+capabilities and, through `FileTour`, the affected files with the why for each; Design carries at
+least one diagram of the adopted shape and states its risks through `RiskTable`; Review states
+delivery through `FileTour`, findings and residual risks through `RiskTable`, and shows every defect
+it reports as an `AnnotatedDiff` of the fix. Implementation needs no slice component — the page
+shell already renders the slice JSON.
 
 Four rules bind this:
 
