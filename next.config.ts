@@ -11,8 +11,24 @@ const removeProperties =
     ? { properties: ["^data-testid$"] }
     : false;
 
+// The test deployment is a production deployment of a second project, because
+// Hobby's protection covers everything except production -- which leaves it
+// publicly reachable, so it has to declare itself unindexable. A header rather
+// than a robots.txt disallow: blocking the crawl would stop a crawler ever
+// reading the noindex.
+const noIndexHeaders =
+  process.env.DISALLOW_INDEXING === "true"
+    ? [
+        {
+          source: "/:path*",
+          headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+        },
+      ]
+    : [];
+
 const nextConfig: NextConfig = {
   turbopack: {},
+  headers: async () => noIndexHeaders,
   experimental: {
     optimizePackageImports: ["react-icons"],
   },
