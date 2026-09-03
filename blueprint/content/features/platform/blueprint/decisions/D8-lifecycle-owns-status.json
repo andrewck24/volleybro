@@ -4,9 +4,7 @@
   "id": "D8",
   "title": "Lifecycle is the only stored state; status is derived",
   "status": "implemented",
-  "targets": [
-    "platform/blueprint"
-  ],
+  "targets": ["platform/blueprint"],
   "context": "change.json stores both lifecycle and status, and change-metadata.ts validates that they agree through lifecycleMatchesStatus. That function is a total mapping from the nine lifecycle values onto the three status values: discussing maps to discussing, archived maps to archived, and the remaining seven map to in-progress. Nothing can be in a status that its lifecycle does not imply, which makes the stored status a copy of a fact the lifecycle already states. The repository therefore maintains a validator whose only job is to keep two fields from disagreeing — the same shape of problem as the Overview props that restated change.json, one level up. Status is also load-bearing elsewhere: the catalog offers three browse buckets, the sidebar links to them, and the archive groups by month within one of them.",
   "decision": "change.json stores lifecycle only. status is removed from the file and from the schema, and becomes a value computed by statusOf(lifecycle), backed by a Record<ChangeLifecycle, ChangeStatus> in change-types.ts. The Record type makes the table exhaustive: adding a lifecycle value fails to compile until it is mapped, so the derivation cannot silently go stale. The derived status serves filtering, the sidebar links, and the archive grouping. It is never rendered: the status badge in ChangeCard and ChangeOverview shows the lifecycle instead, which removes the lifecycle-differs-from-status condition and the second badge with it.",
   "alternatives": [

@@ -4,10 +4,7 @@
   "id": "D6",
   "title": "Share derivation rules from entities using minimal structural signatures",
   "status": "implemented",
-  "targets": [
-    "platform/clean-architecture",
-    "game-recording/statistics"
-  ],
+  "targets": ["platform/clean-architecture", "game-recording/statistics"],
   "context": "The scoring rules live in src/lib/features/game/helpers, a frontend Redux module, and the application layer reaches outward to reach them: create-rally and update-rally import from @/lib/features/game/helpers. Deriving statistics needs those same rules on the server. The type-decoupling change deliberately separated domain data shapes from the *View types derived from API response schemas, and restricted components to importing values from entities rather than data shapes, on the stated ground that values do not create coupling but data shapes do.",
   "decision": "Move the rules the derivation needs into entities/game.ts as pure functions: deriveSetStats, deriveServingStatus, deriveSetPhase and getPreviousRally, which keeps its get prefix because it is a lookup rather than a computation. Each declares only the minimal structure it actually reads, so both the domain Entry and the presentation EntryView satisfy it structurally and neither caller adopts the other's shape. getSetLineup and getPreviousScores are UI concerns and stay in the frontend. Two conditions make this sound rather than a violation: signatures must not accept Entry[] or Game, and entities must not import server-only modules.",
   "alternatives": [

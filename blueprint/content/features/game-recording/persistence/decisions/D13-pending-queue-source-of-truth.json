@@ -4,10 +4,7 @@
   "id": "D13",
   "title": "A pending-write queue is the single source of truth for what the server has not confirmed",
   "status": "implemented",
-  "targets": [
-    "game-recording/rally-recording",
-    "game-recording/persistence"
-  ],
+  "targets": ["game-recording/rally-recording", "game-recording/persistence"],
   "context": "Recording rallies while the network is poor is the case that decides this design. If the draft only advances once the server confirms, every rally costs a round trip plus retries, and in a gym with weak signal the recorder simply cannot keep up with play. Advancing optimistically fixes that, but it moves the failure somewhere the recorder cannot see: the preview card has already become the next draft, so a rally that never reached the server leaves no trace on the screen the recorder is looking at. Something has to remember what is still unconfirmed, and something has to say so where it is always visible.",
   "decision": "Unconfirmed writes live in a pending queue in its own Redux slice, holding the entry together with its attempt count and the timestamp of its next scheduled attempt. Both the header component named SyncIndicator and the per-row failure marker are pure derivations of that queue rather than stored status of their own, following the same rule this repository already adopted for statistics: a fact that can drift is derived, not stored. Empty queue reads as synced; any item with a scheduled attempt reads as syncing; a queue whose items have all exhausted their backoff reads as unsynced, with the count. The queue also owns retry scheduling — in-request attempts first, then a longer background backoff — and flushes in full whenever a new entry is enqueued, so a transient failure usually repairs itself on the next rally without the recorder doing anything.",
   "alternatives": [

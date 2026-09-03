@@ -4,10 +4,7 @@
   "id": "D16",
   "title": "Restoring the queue does not send it — flush stays mounted under the game screen",
   "status": "implemented",
-  "targets": [
-    "game-recording/persistence",
-    "game-recording/rally-recording"
-  ],
+  "targets": ["game-recording/persistence", "game-recording/rally-recording"],
   "context": "The whole retry engine — the flush, the background schedule, the online listener — lives in one hook mounted in exactly one place, the recording screen for a single game. The queue itself is not scoped that way: every item carries its own `gameId`, and more than one game's entries can sit in it at once. Only sending is scoped, because the hook is. In memory this asymmetry is nearly invisible, since entries survive for about a second. Once the queue is restored from disk it becomes the defining question of this Change: an entry is durable now, but nothing will attempt it until the user walks back into that particular game. Making the flush global is a real option and it is what the eventual outbox will do, but a queue that sends itself regardless of which screen is open is the definition of an outbox, and that is `offline-recording`'s first acceptance criterion rather than this Change's.",
   "decision": "The flush stays where it is. Restoring puts the entries back into the slice and stops there; they are sent when the user next opens that game, exactly as they would have been had the app never closed. This keeps the Change to a single claim — recorded work is not lost — and leaves delivery guarantees to the work chartered for them. It also gets an authorisation gate for free: reaching the recording screen already implies a session, so restore needs no auth check of its own, whereas a global flush would have to build one or it would fire 401s from the home screen and bounce the user to sign-in on every launch. The corresponding residual risks are recorded here and closed by `offline-recording`, whose acceptance criteria were extended to name them.",
   "alternatives": [

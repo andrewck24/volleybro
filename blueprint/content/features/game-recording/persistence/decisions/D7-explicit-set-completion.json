@@ -4,10 +4,7 @@
   "id": "D7",
   "title": "Completing a set becomes an explicit domain operation",
   "status": "implemented",
-  "targets": [
-    "game-recording/rally-recording",
-    "game-recording/persistence"
-  ],
+  "targets": ["game-recording/rally-recording", "game-recording/persistence"],
   "context": "set.win and game.win are written in exactly one place: processGamePhase inside the frontend rally helper, which the server reached only because it overwrote the whole document. Once a rally write is a plain append, neither field is ever written again. The recording page does not break, because isSetInProgress is derived from entries in the Redux initialize reducer, but findGameSummaries reads $$set.win to count sets won and projects game.win, so the game list would show zero sets won and a result frozen at the value create-game writes on creation. Nothing would report an error. The root cause is that finishing a set is currently a side effect of recording a rally rather than an operation in its own right.",
   "decision": "Add a completeSet domain operation. After appending an entry the use case derives whether the set has finished and, when it has, writes sets.N.win with a positional set, together with game.win when the match result is decided. This happens at most once per set rather than once per rally, so it is not the per-rally accumulation this Change removes; it is a derived value written at a defined point with a consumer that requires it. Alongside it, the initial value of a game's win becomes null rather than false, and GameSummary.win widens to boolean or null, so that undecided is representable rather than indistinguishable from a loss.",
   "alternatives": [

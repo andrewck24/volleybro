@@ -4,9 +4,7 @@
   "id": "D3",
   "title": "Keep ADRs Change-scoped until verified Archive promotion",
   "status": "implemented",
-  "targets": [
-    "platform/blueprint"
-  ],
+  "targets": ["platform/blueprint"],
   "context": "Candidate and accepted implementation decisions should be visible during plan review without being mistaken for current Feature knowledge before delivery is verified.",
   "decision": "Draft structured ADRs inside Change Design, accept them at plan approval, and promote implemented copies to the narrowest Feature targets only during branch-local Archive. Preserve the original records in the frozen Change.",
   "alternatives": [

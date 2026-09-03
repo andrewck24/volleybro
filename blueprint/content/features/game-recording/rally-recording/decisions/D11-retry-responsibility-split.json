@@ -4,10 +4,7 @@
   "id": "D11",
   "title": "Retry responsibility splits by failure kind: the server retries its own write, the client resolves its own uncertainty",
   "status": "implemented",
-  "targets": [
-    "game-recording/persistence",
-    "game-recording/rally-recording"
-  ],
+  "targets": ["game-recording/persistence", "game-recording/rally-recording"],
   "context": "Submitting a rally fails in two structurally different ways that look identical from the outside. Either the write itself transiently fails while the server still holds the request, or the write succeeded and the response never arrived. Only the first is a failure the server knows about; in the second the server did its job and has no live invocation left to retry from, while the client is the only party aware that no confirmation came back. The error model already declares this distinction — TransientError carries a retryable flag — but nothing in the repository reads it, so declared retryability has never been acted on at any layer. There is also no background job infrastructure here: the server's ability to retry is bounded by a single request's lifetime.",
   "decision": "completeSet retries inline inside the same request, three attempts at 50ms, 200ms and 500ms, before the response is sent. It is an idempotent write of a derived value that fires at most once per set, so a few hundred extra milliseconds are invisible against a wait the recorder is already in. This is where the retryable flag finally acquires a consumer. On the client the pending queue owns retrying: two immediate attempts at 300ms and 800ms, then a longer background backoff at 2s, 5s and 15s, always resending the same identity. Enqueuing a new entry flushes the whole queue in one request, so an entry that failed a moment ago usually rides along with the next rally and repairs itself before the recorder notices. A 4xx is not retried at all — validation and authorization do not improve with waiting — and escalates immediately.",
   "alternatives": [

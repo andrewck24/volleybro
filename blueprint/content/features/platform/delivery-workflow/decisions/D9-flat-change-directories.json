@@ -4,10 +4,7 @@
   "id": "D9",
   "title": "A Change directory is its slug, and its URL never moves",
   "status": "implemented",
-  "targets": [
-    "platform/blueprint",
-    "platform/delivery-workflow"
-  ],
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
   "context": "Changes live under a lifecycle directory, and archived ones additionally carry a date prefix: content/changes/archive/2026-08-16-game-positional-writes/. Because fumadocs derives a page's URL from its path, the URL contains a value that is expected to change several times during the Change's life, and the archive move renames the directory a second time. Every advance therefore invalidates the Change's URLs, the designModules key when it has a design.tsx, and the lifecycle page lists. This has already cost real work: a Change moved from discussing to in-progress while its Overview still linked to the old directory, producing dead links that nobody noticed until the pages were read.",
   "decision": "Every Change lives at content/changes/<slug>/ and is served at /changes/<slug>/. The lifecycle directories are removed, and the archive date prefix is dropped — archivedAt in change.json already carries the date, and the catalog already sorts and groups by it. Because a flat directory produces the wanted URL directly, no loader url or slugs override is needed. parseChangeMetadata validates that the directory name equals the stable slug, which is the one thing about a Change that never changes.",
   "alternatives": [

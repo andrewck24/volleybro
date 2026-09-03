@@ -4,10 +4,7 @@
   "id": "D4",
   "title": "Entries are the only source of truth; statistics are a projection",
   "status": "implemented",
-  "targets": [
-    "game-recording/statistics",
-    "game-recording/persistence"
-  ],
+  "targets": ["game-recording/statistics", "game-recording/persistence"],
   "context": "A set's entries record what happened in every rally, while teams[].stats[] and players[].stats[] separately store the running totals those entries produce. The same fact is written twice, and keeping the two copies in step is where this Change's difficulties originated: a field path that encodes a player's position in the roster array, the net delta an edited rally has to apply, and a helper that had to serve both an optimistic frontend and an atomic backend. The stored counters are also demonstrably unreliable — TeamStatsClass initialises substitution to 6, timeout to 2 and challenge to 2 (remaining allowances) while the substitution helper increments the same field, and nothing reads it, so the inconsistency was never noticed.",
   "decision": "Entries become the only stored representation of what happened. Statistics, rotation and serve rights are derived from them by a pure function in the domain layer. Recording a rally reduces to appending one entry; no counter is written. Within a single game, derivation happens on read and is cheap: a set holds at most about sixty entries, and building a roster map first makes it O(N + P).",
   "alternatives": [
