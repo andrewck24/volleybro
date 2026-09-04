@@ -4,7 +4,7 @@
   "title": "Honest Sync Status",
   "lifecycle": "archived",
   "startedAt": "2026-09-02",
-  "summary": "SyncIndicator 說的每一句話都必須是真的。離線時的 spinner 承諾了它兌現不了的進度，警告色掛在會自己好的情況上，而「已保存」在 localStorage 不可寫時是謊話。狀態改由實測失敗判定，navigator.onLine 退為純文案訊號，警告語氣改掛不可重試，並新增一個本機儲存不可用的第一級狀態。",
+  "summary": "離線記球時指示器全程轉圈，看起來像卡住了。追下去發現轉圈只是症狀：指示器會說三種不同的假話——spinner 承諾了它兌現不了的進度，警告色掛在會自己好的情況上，而「已保存」在 localStorage 不可寫時根本是謊話。本 Change 讓它說的每一句話都是真的：狀態改由實測失敗判定，navigator.onLine 退為純文案訊號，警告語氣改掛不可重試，並新增一個本機儲存不可用的第一級狀態。",
   "capabilities": [
     "game-recording/rally-recording",
     "game-recording/persistence"

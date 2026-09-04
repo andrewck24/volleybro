@@ -2,6 +2,13 @@
 title: Overview
 ---
 
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  記錄面板的 step 導航抽象為可重用的 PanelSteps 模型，四種 record flow
+  共用同一套骨幹；substitution 從獨立面板模式收攏為 rally flow 的 step-2 分支。
+</TLDR>
+
 ## Context
 
 `entry-ui` 交付了 rally 記錄的三步驟進度條與 Preview 集中送出，但 step 導航硬編碼在 rally 的 `[player, home, away]` 上。`entry-progress.ts` 用兩個常數陣列表達「正常三步」與「對方失誤收合成兩步」，`ProgressStep` 只有 `key` 與 `caption`，沒有 body、reachability、submittable 的每-step 規則。

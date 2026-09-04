@@ -4,7 +4,6 @@ import { ChangeOverview } from "./ChangeOverview";
 
 const base = {
   date: "2026-08-08",
-  summary: "Canonical summary.",
   artifacts: [{ title: "Design", href: "/changes/sample/design" }],
 };
 

@@ -2,6 +2,15 @@
 title: Overview
 ---
 
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  每筆 entry 在送出前取得 client 產生的穩定身分，append 與 replace 合併為單一的
+  idempotent
+  upsert。重送因此變安全，重試責任得以依失敗性質拆分：伺服器端處理寫入本身的暫時失敗，client
+  端處理「不知道結果」的回應遺失。
+</TLDR>
+
 ## Context
 
 記一顆球是兩次資料庫寫入：一定執行的 `appendEntry`，以及該球剛好結束一局時才執行的 `completeSet`。`game-positional-writes` 的 D4 在 consequences 裡明列了「兩者合併後的失敗行為從未定義」，該 Change 沒有處理，登記為 residual risk R1。

@@ -7,10 +7,11 @@ import { Scenario } from "@/components/Scenario";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
-  連線中斷又恢復,會讓整頁重載——記錄中的 set 被丟掉,實務上得把 app
-  關掉重開才能繼續記錄。原因是 `SerwistProvider` 預設把 `reloadOnOnline` 開著,而
-  `layout.tsx` 從沒傳過這個 prop。本 Change 把它關掉;取代它的機制原本就在——SWR
-  的逐 hook reconnect revalidation。
+  連線中斷又恢復會讓整頁重載，記錄中的 set 被丟掉，實務上得把 app
+  關掉重開才能繼續記錄。原因是 `SerwistProvider` 預設把 `reloadOnOnline`
+  開著，而 `layout.tsx` 從沒傳過這個 prop。本 Change
+  把它關掉——取代它的機制原本就在，已經存在的 SWRConfig
+  會在重新連線時逐請求重新驗證，不必丟掉任何畫面狀態。
 </TLDR>
 
 <Scenario
