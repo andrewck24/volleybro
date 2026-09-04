@@ -27,7 +27,10 @@ jest.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-const mutate = jest.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mutate = jest.fn((updater?: any) =>
+  typeof updater === "function" ? updater(baseGame) : updater,
+);
 const baseGame = {
   id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },

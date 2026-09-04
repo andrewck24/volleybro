@@ -2,7 +2,9 @@
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
   "title": "記一顆球的寫入不再就地改動快取物件",
-  "capabilities": ["game-recording/rally-recording"],
+  "capabilities": [
+    "game-recording/rally-recording"
+  ],
   "dependsOn": [],
   "outcome": "`createRallyHelper` 與 `updateRallyHelper` 成為純函式，回傳新的 `GameView` 而不改動傳進來的那個；`oppo.tsx` 改用 `mutate` 的函式形式取得未合併的快取。行為完全不變——函式參數現在拿到的就是 raw cache，寫進去的內容與改動前相同——但「寫入只碰 raw」這條路從此存在，S03 才能只做合併一件事。",
   "acceptanceCriteria": [
@@ -19,5 +21,5 @@
     "pnpm lint",
     "pnpm format:check"
   ],
-  "status": "pending"
+  "status": "completed"
 }

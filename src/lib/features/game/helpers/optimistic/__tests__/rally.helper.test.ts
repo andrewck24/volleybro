@@ -117,6 +117,16 @@ describe("rally.helper.ts", () => {
         ...mockRally,
       });
     });
+
+    it("should not mutate the game passed in", () => {
+      const mockGame = createMockGame();
+      const before = JSON.parse(JSON.stringify(mockGame));
+
+      const result = createRallyHelper(mockParams, mockRally, mockGame);
+
+      expect(mockGame).toEqual(before);
+      expect(result.game).not.toBe(mockGame);
+    });
   });
 
   describe("updateRallyOptimistic", () => {
@@ -162,6 +172,16 @@ describe("rally.helper.ts", () => {
       expect(() => {
         updateRallyHelper(mockParams, newRally, mockGame);
       }).toThrow("Entry is not a rally");
+    });
+
+    it("should not mutate the game passed in", () => {
+      const mockGame = createMockGame();
+      const before = JSON.parse(JSON.stringify(mockGame));
+
+      const result = updateRallyHelper(mockParams, newRally, mockGame);
+
+      expect(mockGame).toEqual(before);
+      expect(result.game).not.toBe(mockGame);
     });
   });
 

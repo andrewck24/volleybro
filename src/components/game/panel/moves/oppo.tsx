@@ -1,5 +1,6 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
+import type { SetPhase } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import type { PendingWritesApi } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
@@ -34,7 +35,7 @@ export const useSubmitEntryDraft = (
     status: { entryIndex },
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
-  const { game, mutate } = useGame(gameId);
+  const { mutate } = useGame(gameId);
 
   // Create advances the draft the instant the entry is enqueued, without
   // waiting for the server -- the queue's own retry and the sync indicator
@@ -49,12 +50,19 @@ export const useSubmitEntryDraft = (
       id: crypto.randomUUID(),
       seq: entryIndex,
     };
-    const { game: updatedGame, phase } = createRallyHelper(
-      { gameId, setIndex, entryIndex },
-      entry,
-      game!,
+    let phase!: SetPhase;
+    mutate(
+      (raw) => {
+        const result = createRallyHelper(
+          { gameId, setIndex, entryIndex },
+          entry,
+          raw!,
+        );
+        phase = result.phase;
+        return result.game;
+      },
+      { revalidate: false },
     );
-    mutate(updatedGame, { revalidate: false });
     enqueue(entry);
     dispatch(gameActions.confirmEntryDraftRally(phase));
     void flush();
@@ -66,12 +74,19 @@ export const useSubmitEntryDraft = (
     // Editing reuses the identity setEditingEntryStatus loaded onto the
     // draft; the entry being replaced must keep the same id.
     const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
-    const { game: updatedGame, phase } = updateRallyHelper(
-      { gameId, setIndex, entryIndex },
-      entry,
-      game!,
+    let phase!: SetPhase;
+    mutate(
+      (raw) => {
+        const result = updateRallyHelper(
+          { gameId, setIndex, entryIndex },
+          entry,
+          raw!,
+        );
+        phase = result.phase;
+        return result.game;
+      },
+      { revalidate: false },
     );
-    mutate(updatedGame, { revalidate: false });
     enqueue(entry);
     const result = await flush();
     if (!result.ok) {
