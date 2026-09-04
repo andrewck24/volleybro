@@ -4,16 +4,13 @@ title: Design
 
 import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { RiskTable } from "@/components/RiskTable";
-import { Scenario } from "@/components/Scenario";
 import { TLDR } from "@/components/TLDR";
 import outboxProjection from "./design/decisions/D1-outbox-projection-lives-in-usegame.json";
 import mergeContract from "./design/decisions/D2-merge-mirrors-upsert-and-never-touches-win.json";
 
 <TLDR>
-  一條分界線：**寫入永遠只碰 raw cache，合併永遠發生在 cache 之後、永不進
-  cache**。左邊兩條寫入路徑各自進自己的
-  store，右邊一個純函式把兩者疊成記錄員該看到的比賽。SWR
-  依舊可以隨時整包覆蓋它擁有的那一格——那不再是損失，因為 outbox 不在裡面。
+  一條規則：寫入只碰快取，合併發生在讀出來的時候。SWR
+  照樣可以隨時把快取整包換掉，換掉也不損失什麼，因為待送的球不在裡面。
 </TLDR>
 
 ## Adopted shape
@@ -81,99 +78,80 @@ import mergeContract from "./design/decisions/D2-merge-mirrors-upsert-and-never-
   </g>
 </svg>
 
-`mergeGame` 是純函式，輸入兩份 state、輸出一份 `GameView`，沒有副作用、不認識比賽規則。它只做三件事：依 `setIndex` 分組、依 `entry.id` upsert、依 `seq` 排序。這三件事全部鏡像 `IGameRepository.upsertEntry` 早就遵守的契約——「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」——所以兩端不可能對同一批 entry 得出不同順序。
+左邊兩條寫入路徑各自進自己的地方，右邊一個函式把兩者疊起來。SWR 那格照樣屬於伺服器，照樣隨時被換掉。
 
-`useGame` 的回傳 shape **完全不變**，仍是 `{ game, error, isLoading, isValidating, mutate }`。唯一需要 raw 的是寫入，而寫入透過 `mutate(fn)` 的參數取得它，不透過回傳值。變的只有 `game` 這個字的意義：從「伺服器快取」變成「記錄員該看到的比賽」。
+### 合併做什麼
+
+`mergeGame` 收兩份資料：伺服器回來的比賽，和佇列裡屬於這場比賽的球。輸出一份新的比賽資料。它做三件事：
+
+1. 把佇列依 `setIndex` 分組，一局一局處理。
+2. 佇列裡的球，如果該局的 entries 已經有同一個 `entry.id`，用佇列的版本覆蓋掉。
+3. 沒有的，依 `seq` 放進它該在的位置。
+
+舉例：伺服器回來的第一局有 A、B 兩顆球，佇列裡有 B（記錄員改過）和 C。合併後是 A、改過的 B、C。
+
+這三條規則不是新發明的。伺服器的 `IGameRepository.upsertEntry` 早就這樣做了——它的契約寫著「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。合併只是把同一套規則複述到讀取端，兩邊才不會對同一批球排出不同順序。
+
+`mergeGame` 不認識排球規則，只疊 entries，不碰 `win`。
+
+### 寫入路徑為什麼要跟著改
+
+目前 `useGame` 回傳的 `game` 就是快取裡那個物件本身，不是複製品。`createRallyHelper` 直接改它，再把同一個物件交回 `mutate`——那一行只是通知 SWR 重新繪製，物件其實已經改好了。
+
+合併之後，`useGame` 回傳的是一份新做出來的資料。這時候如果寫入路徑不動，記一顆球就會把**合併過的內容寫回快取**，下次讀取再疊一次，同一顆球出現兩次、比分翻倍。
+
+所以寫入改成 `mutate` 的函式形式，函式拿到的參數是還沒合併的快取：
+
+```ts
+const phase = deriveEntryPhase(game, setIndex, entryIndex, entry); // 吃合併過的
+mutate((raw) => applyRallyEntry(raw, setIndex, entryIndex, entry, phase), {
+  revalidate: false,
+}); // 寫沒合併的
+```
+
+算 phase 要吃合併過的資料，因為它要看得到待送的球。少了那幾顆，下一顆球會拿到過期的比分，而 phase 會被寫進 Redux 推進記錄狀態——那不只是顯示錯。
+
+`usePendingWrites` 的 flush 和 `useUnconfirmedSetCompletion` 的 retry 本來就用函式形式，不用改。
 
 ## Contracts
 
-- **合併永不進 cache。** 合併是 cache 下游的轉換。任何把合併結果交給 `mutate` 的路徑都會讓下一次讀取再合併一次，造成同一顆球出現兩次、比分翻倍。
-- **`pending` 依 enqueue 時間序排列。** 從偶然升格為明文契約並配測試釘住。合併的「同 id 取最後一筆」與 flush payload 的去重都已在依賴它；`rehydrated` 把還原項目放在陣列最前面，時間序一致。
-- **`runFlush` 的 `mutate` 必須在 `dispatch(flushSucceeded)` 之前。** 反過來會出現「佇列已放手、raw 未收到」的空窗一幀。順序正確時仍有一幀是「raw 已有、佇列也還有」，依 id upsert 使其在視覺上無縫。
-- **`GameView.win` 是伺服器確認記號，不是大比分。** 單一寫入者 `completeSet` 持久化的推導值，`null` 表示推導尚未被記錄。畫面上的大比分改用推導；樂觀寫入繼續填 `win`，因為那正是讓冷啟動偵測在 live session 期間保持沉默的東西。
-- **推導吃 merged，套用寫 raw。** 算 phase 必須看得到待送的球——否則 revalidation 後的下一顆球會拿到過期比分，而 phase 會推進記錄狀態機，不只是顯示錯。
+三條在實作與後續維護時不能破的規則：
 
-## Failure modes
-
-<Scenario
-  given="app 被系統回收後重開，佇列已從磁碟還原三顆球"
-  when="冷啟動時 `revalidateOnMount` 為 true，必定抓到不含那三顆球的伺服器版本"
-  then="合併在第一次讀取就發生，三顆球立刻在畫面上。這是必然而非競態，也是 `retryable-queue-persistence` 留下唯一還沒被證明的那半"
-/>
-
-<Scenario
-  given="佇列裡有未送出的球，裝置恢復連線"
-  when="`revalidateOnReconnect` 與佇列的 `online` flush 同時觸發，revalidation 先回來"
-  then="raw 被換成乾淨版本，但合併不受影響——那些球還在佇列裡，讀取端立刻疊回去。誰先回來不再決定畫面"
-/>
-
-<Scenario
-  given="一局打超過五分鐘，記錄員切出去又切回來"
-  when="`dedupingInterval` 五分鐘已過，`revalidateOnFocus` 觸發一次重新驗證"
-  then="同上。這條完全不需要網路有問題，是最容易在正常使用中踩到的一種"
-/>
-
-<Scenario
-  given="flush 帶著 A、B 出門，記錄員在它回來之前記了 C"
-  when="flush 回來，`applyFlushedEntries` 用只含 A、B 的伺服器版本整批覆蓋該局的 entries"
-  then="C 從 raw 被抹掉，但它還在佇列裡，合併立刻把它疊回去。這個既有破洞順帶修好，不需額外程式碼"
-/>
-
-<Scenario
-  given="一顆球因 4xx 永久失敗，留在佇列裡"
-  when="記錄員打開 summary drawer 想找出是哪一顆"
-  then="那顆球有列可以掛，失敗標記顯示在它身上，逐列重試可用。`failedEntryIds` 從佇列算、列從資料渲染，合併之後這兩者才對得起來"
-/>
-
-<Scenario
-  given="記錄員編輯一顆尚未送出的球"
-  when="同一個 `entry.id` 再次 enqueue，佇列裡出現兩筆相同 id"
-  then="取最後一筆，畫面顯示編輯後的內容。伺服器側同一批 payload 的去重也取決於同一個順序契約"
-/>
+- **合併結果不可以進快取。** 任何把合併結果交給 `mutate` 的路徑都會造成重複疊加。
+- **`pending` 陣列依入列時間排序。** 目前是這樣，但沒有寫下來也沒有測試守著。合併的「同 id 取最後一筆」和 flush 送出時的去重都靠它，`rehydrated` 把還原的項目放最前面也是同一個時間序。這張 Change 把它變成明文契約並補上測試。
+- **`runFlush` 裡 `mutate` 要在 `dispatch(flushSucceeded)` 之前。** 反過來會有一幀是「佇列已經放手、快取還沒收到」，畫面閃一下。順序對的時候也有一幀是兩邊都有，但依 id 覆蓋讓它看不出來。
 
 ## Testing strategy
 
-兩個 seam，越高越好、越少越好。
+兩個 seam。
 
-**`use-data.test.ts` —— 合併本身。** 四種觸發情境全部歸結為同一個可斷言的事實：raw 被伺服器版本取代之後，`useGame` 的回傳值仍含那些 entry。以 `renderHook` 搭配持有待送項目的 Redux store 與受控 fetcher 驅動，不需要在元件層各自製造冷啟動、reconnect、focus 與 flush 窗口。同一個 seam 另外守住三條：雙重合併的回歸（記兩顆球，每顆只出現一次）、依 id upsert 取最後一筆、依 seq 排序。
+**`use-data.test.ts`——合併本身。** Overview 列的四種情況，斷言起來是同一件事：快取被伺服器版本換掉之後，`useGame` 回傳的資料裡還有那些球。用 `renderHook` 搭一個裝了待送項目的 Redux store 和受控的 fetcher 就能驅動，不用在元件層各自製造冷啟動、reconnect、focus 和 flush 窗口。同一個檔案再守三條：記兩顆球每顆只出現一次（重複疊加的回歸）、同 id 取最後一筆、依 seq 排序。
 
-**`summary-drawer.test.tsx` —— 失敗標記掛得到列。** 這條必須在元件層，因為它證的正是「兩個不同來源對齊了」：`failedEntryIds` 從佇列算、列從 `useGame` 的資料渲染。在 `use-data` 那一層只看得到 entries 還在，看不到標記與列接上了。這是本 Change 對使用者的主要承諾，也是讓 `retryable-entry-writes` 的逐列重試 UI 重新可用的關鍵斷言。
+**`summary-drawer.test.tsx`——失敗標記掛得到列。** 這條得在元件層，因為它證的是兩個不同來源對上了：標記從佇列算，列從 `useGame` 的資料渲染。在 `use-data` 那一層只看得到球還在，看不到標記跟列接上了。
 
-既有的 `use-pending-writes.test.tsx` 以 `jest.mock` 把 `useGame` 換成 `{ game: undefined, mutate }`，本 Change 不改變 `runFlush`，該檔案不受影響。
+`use-pending-writes.test.tsx` 把 `useGame` 換成假的 `{ game: undefined, mutate }`，這張 Change 不動 flush，那個檔案不受影響。
 
 ## Risks
 
 <RiskTable
   risks={[
     {
-      name: "資料層開始相依 Redux",
+      name: "資料層開始讀 Redux",
       severity: "warning",
       mitigation:
-        "`platform/clean-architecture` 的分層約束由 review 而非工具維持，其 Known gaps 已記載 `src/lib/` 混雜三層、路徑不是可靠的分層訊號。此處的相依是刻意的——outbox 的讀取端投影必須同時看得到兩個 store，這在任何快取函式庫下都成立。若該約束因此需要調整，那是一份新的 ADR，不是把既有的改掉。",
+        "`platform/clean-architecture` 的分層靠 review 維持，沒有工具擋。這裡的相依是刻意的：要把兩邊的資料疊起來，就得同時看得到兩邊。若該分層約束因此需要調整，那是一份新的 ADR。",
     },
     {
-      name: "4xx 永久失敗的球會釘在畫面與比分上",
+      name: "永久失敗的球會留在畫面與比分上",
       severity: "warning",
       mitigation:
-        "佇列沒有主動丟棄手勢，錯球要等七天過期才會消失。合併範圍刻意包含它們，否則失敗標記永遠掛不到列，逐列重試依舊失效。丟棄手勢已獨立登記為後續工作，這是已知缺口，不是靜默的。",
+        "要等七天過期才會消失，佇列沒有主動丟棄的路徑。合併刻意包含它們，否則失敗標記永遠掛不到列，逐列重試還是按不到。丟棄手勢已另開一票。",
     },
     {
-      name: "畫面比分與伺服器暫時不一致",
+      name: "畫面比分和伺服器暫時對不上",
       severity: "info",
       mitigation:
-        "刻意的取捨，遵循「前後端狀態不一致由 app 自行解決，不要造成使用者的操作負擔」。記錄員看到的比分就該是他記的那個；不一致會在 flush 成功那一刻自行消失。",
-    },
-    {
-      name: "合併結果未記憶化會讓下游全部重繪",
-      severity: "info",
-      mitigation:
-        "以 `useMemo([data, pending])` 記憶化。缺少它時每次 render 都給新物件，二十一個呼叫端的 referential equality 全部失效，症狀明顯且會在開發階段就浮現。",
-    },
-    {
-      name: "局結果在編輯中間球時仍會錯亂",
-      severity: "info",
-      mitigation:
-        "既有缺陷，本 Change 不修：client 的 `processGamePhase` 與 server 的 `deriveSetCompletion` 是同一條規則的兩份實作且已漂移。已登記為後續 Change 並排在本票之後——兩票都要動 `rally.helper`，順序反過來會改兩次同一段。",
+        "刻意的取捨。記錄員看到的比分就該是他記的那個，對不上會在球送出去那一刻自己消失。",
     },
   ]}
 />
@@ -184,8 +162,7 @@ import mergeContract from "./design/decisions/D2-merge-mirrors-upsert-and-never-
 
 ## References
 
-- `IGameRepository.upsertEntry` 的契約敘述，合併規則直接鏡像它
-- `retryable-queue-persistence`：讓待送的球安全落盤，本 Change 讓它們看得見
-- `retryable-entry-writes`：逐列重試 UI，本 Change 讓它在被覆蓋的情境下重新可用
-- `honest-sync-status`：指示器說真話，本 Change 讓畫面不再說假話
-- `reconnect-without-reload`：移除了掩蓋本缺陷的整頁重載
+- `IGameRepository.upsertEntry` 的契約敘述——合併的三條規則出自這裡
+- `retryable-queue-persistence`：讓待送的球安全落盤，這張 Change 讓它們看得見
+- `retryable-entry-writes`：逐列重試 UI，這張 Change 讓它在被覆蓋的情境下按得到
+- `honest-sync-status`：指示器說真話，這張 Change 讓畫面跟上

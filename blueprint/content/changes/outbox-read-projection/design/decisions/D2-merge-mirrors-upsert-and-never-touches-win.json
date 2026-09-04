@@ -2,27 +2,27 @@
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D2",
-  "title": "合併鏡像 upsertEntry 的既存契約，且完全不碰 win",
+  "title": "合併沿用伺服器的 upsert 規則，且完全不碰 win",
   "status": "candidate",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
-  "context": "合併需要回答兩個問題：同一個 entry.id 在伺服器與佇列各有一版時誰贏、以及疊上去的 entry 放在哪個位置。兩個問題在伺服器側都已經有答案——IGameRepository.upsertEntry 的契約是「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。第三個問題是 win：合併之後畫面上的大比分若仍讀 GameView.win，就會顯示未包含待送球的舊值。但 win 目前同時是兩種東西——畫面讀它時當「推導結果的快取」，useUnconfirmedSetCompletion 讀它時當「伺服器是否確認過局結果的記號」，而後者正是冷啟動偵測未確認局結果的依據。同一欄位兩種語義，是為什麼「讓合併順手重算 win」會誤傷那個偵測。另有一個已查證的缺口：pending-writes-slice 的 enqueued 是無條件 push、沒有依 id 去重，而編輯一顆尚未送出的球會用同一個 id 再 enqueue 一次，佇列可以自己跟自己撞號。",
-  "decision": "合併規則直接鏡像 upsertEntry：依 id upsert、依 seq 排序，佇列版本勝過伺服器版本，佇列內同 id 多筆取最後一筆。這不是新規則，是把伺服器早就遵守的契約複述到讀取端，於是兩端不可能對同一批 entry 得出不同順序。「pending 陣列依 enqueue 時間序排列」從偶然升格為明文契約並配測試釘住——合併與 flush payload 兩處都已在依賴它（同一批 payload 出現兩個相同 id 時，伺服器留下哪一個也取決於同一個順序）；rehydrated 把還原項目放在陣列最前面，時間序一致。合併範圍是該場比賽的全部 pending，包含 4xx 永久失敗的 entry，失敗標記因此掛得到列。合併函式完全不碰 win，只疊 entries——它不需要認識比賽規則。畫面上的大比分改用推導：新增 deriveSetsWon 至 entries 層，sets/list 直接用既有的 deriveSetPhase。GameView.win 保留原義，即單一寫入者 completeSet 持久化的推導值，null 表示推導尚未被記錄；樂觀寫入繼續填它，因為那正是讓冷啟動偵測在 live session 期間保持沉默的東西，而冷啟動時樂觀寫入的 win 本來就已被沖掉，偵測依然拿得到伺服器的 null。runFlush 的 mutate 必須維持在 dispatch(flushSucceeded) 之前，否則會出現「佇列已放手、raw 未收到」的空窗一幀。",
+  "context": "合併要回答兩個問題：同一個 entry.id 在伺服器和佇列各有一版時聽誰的，疊上去的球放在哪個位置。伺服器那邊早就有答案。IGameRepository.upsertEntry 的契約是「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。第三個問題是 win。合併之後畫面上的大比分若還讀 GameView.win，顯示的會是不含待送球的舊值。但 win 現在同時是兩種東西：畫面讀它時當大比分用，useUnconfirmedSetCompletion 讀它時當作「伺服器確認過局結果了沒」的記號，而後者正是冷啟動偵測未確認局結果的依據。一個欄位兩種意思，所以「讓合併順手重算 win」會誤傷那個偵測。另外查到一個缺口：pending-writes-slice 的 enqueued 是無條件 push，沒有依 id 去重，而編輯一顆還沒送出的球會用同一個 id 再入列一次。佇列可以自己跟自己撞號。",
+  "decision": "合併沿用伺服器的規則：依 id 覆蓋、依 seq 排序，佇列的版本贏過伺服器的版本，佇列裡同一個 id 有多筆就取最後一筆。這樣兩邊不會對同一批球排出不同順序。「pending 依入列時間排序」從一個碰巧成立的事實，變成寫下來並有測試守著的契約。合併的取最後一筆和 flush 送出時的去重都靠它；rehydrated 把還原的項目放最前面，時間序一致。合併範圍是這場比賽的全部待送球，包含永久失敗的那些，失敗標記才掛得到列。合併完全不碰 win，只疊 entries。畫面上的大比分改用推導：新增 deriveSetsWon，sets/list 直接用既有的 deriveSetPhase。GameView.win 保留原本的意思，也就是 completeSet 這個唯一寫入者存下來的推導值，null 表示還沒被記錄。樂觀寫入繼續填它，因為那正是讓冷啟動偵測在使用中保持安靜的東西；冷啟動時樂觀寫入的值本來就已經被沖掉，偵測還是拿得到伺服器的 null。",
   "alternatives": [
     {
-      "option": "伺服器版本勝，佇列版本只在伺服器沒有該 id 時才疊上",
-      "reason": "編輯一顆尚未送出的球時，畫面會顯示編輯前的內容——記錄員剛改完就看到它變回去。佇列版本必然比伺服器版本新，這個方向沒有站得住的情境。"
+      "option": "伺服器的版本贏，佇列的版本只在伺服器沒有那個 id 時才疊上去",
+      "reason": "編輯一顆還沒送出的球時，畫面會顯示編輯前的內容——記錄員剛改完就看到它變回去。佇列的版本一定比伺服器新，這個方向找不到站得住的情境。"
     },
     {
       "option": "合併時順手重算 win，讓局結果也即時正確",
-      "reason": "會誤傷 useUnconfirmedSetCompletion 的冷啟動偵測，它正是靠 GameView.win 為 null 判斷伺服器尚未確認局結果。win 的兩種語義必須先拆開，畫面改用推導，合併才可以完全不碰它。"
+      "reason": "會誤傷 useUnconfirmedSetCompletion 的冷啟動偵測，它靠 GameView.win 為 null 判斷伺服器還沒確認局結果。win 的兩種用途得先分開，畫面改用推導，合併才能完全不碰它。"
     },
     {
-      "option": "合併只疊可重試的 entry，排除 4xx 永久失敗的",
-      "reason": "失敗標記從佇列算、列從資料渲染，排除掉它們等於讓標記永遠掛不到列，retryable-entry-writes 的逐列重試 UI 依舊失效——那正是本 Change 要修的東西之一。"
+      "option": "合併只疊還能重試的球，排除永久失敗的",
+      "reason": "失敗標記從佇列算、列從資料渲染。排除掉它們，標記就永遠掛不到列，逐列重試依舊按不到——那正是這張 Change 要修的東西之一。"
     },
     {
-      "option": "在 enqueued 加上依 id 去重，讓佇列不可能自己撞號",
-      "reason": "那會改變佇列的寫入語義，影響 flush 的 payload 與重試計數，屬於佇列本身的行為變更而非讀取端投影。取最後一筆在讀取端達到同樣效果且不動寫入路徑；去重若要做，是另一個 Change 的事。"
+      "option": "在 enqueued 加上依 id 去重，讓佇列不會自己撞號",
+      "reason": "那會改到佇列的寫入語義，影響送出時的內容和重試次數，屬於佇列自己的行為變更。在讀取端取最後一筆效果相同，不用動寫入。要去重的話是另一張 Change 的事。"
     }
   ],
   "consequences": [
