@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "useGame 回傳伺服器快取疊上待送的球",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/persistence"
+  ],
+  "dependsOn": ["S01"],
+  "outcome": "本 Change 的使用者可見修正。重新驗證把快取換成伺服器版本之後，未送出的球仍然在畫面上，失敗標記掛得到對應的列，逐列重試恢復可用。四種觸發情境——冷啟動、恢復連線、離開超過五分鐘、flush 進行中記球——不再讓球從畫面消失。",
+  "acceptanceCriteria": [
+    "`pending-writes.ts` 新增合併函式：收一份 `GameView` 與該場比賽的待送項目，依 `setIndex` 分組，依 `entry.id` 覆蓋既有 entry，其餘依 `seq` 插入應在的位置，回傳新的 `GameView`。它不讀也不寫 `win`。",
+    "佇列裡同一個 `entry.id` 有多筆時取最後一筆，與伺服器 `upsertEntry` 對同一批 payload 的處理一致。",
+    "`useGame` 以 `useMemo` 記憶化合併結果，相依為 SWR 的 `data` 與該場比賽的待送項目。回傳的欄位組成不變。",
+    "合併結果永遠不進快取：`mutate` 的任何呼叫路徑都不得收到合併過的資料。以「連記兩顆球，每顆在快取中只出現一次」的測試釘住。",
+    "合併範圍包含 4xx 永久失敗的 entry，失敗標記因此掛得到列。",
+    "`pending` 依入列時間排序從偶然升格為明文契約，並以測試釘住：`enqueued` 追加在尾端，`rehydrated` 置於最前端。",
+    "`runFlush` 中 `mutate` 早於 `dispatch(flushSucceeded)` 的既有順序以測試釘住，避免日後被調換造成空窗一幀。"
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check",
+    "use-data.test.ts：待送佇列有球時觸發一次重新驗證，斷言它們仍在 useGame 的回傳值裡；並涵蓋雙重合併、同 id 取最後一筆、依 seq 排序",
+    "summary-drawer.test.tsx：一顆永久失敗的待送球，其失敗標記顯示在對應的列上"
+  ],
+  "status": "pending"
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "大比分改由 entries 推導，win 窄化為伺服器確認記號",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/statistics"
+  ],
+  "dependsOn": [],
+  "outcome": "畫面上「贏幾局」不再讀 `GameView.win`，改由 entries 推導。`win` 從此只服務 `useUnconfirmedSetCompletion` 的冷啟動偵測，一個欄位一種語義。三處重複的計數收成一份共用推導。",
+  "acceptanceCriteria": [
+    "`entities/game` 新增 `deriveSetsWon`，從各局 entries 算出雙方各贏幾局。它只收它真正讀的最小結構，不收 `Game` 或 `GameView` aggregate，使 domain 與 presentation 兩種形狀都不需轉型即可滿足。",
+    "`header/scores.tsx` 與 `banner/teams.tsx` 兩份 `sets.filter((set) => set.win === ...).length` 都改用 `deriveSetsWon`，舊的行內計數刪除。",
+    "`sets/list.tsx` 判斷一局是否結束改用既有的 `deriveSetPhase`，不再讀 `typeof set.win === \"boolean\"`。",
+    "`useUnconfirmedSetCompletion` 一行不改，且其既有測試不需調整——它讀 `win` 的語義沒有變。",
+    "樂觀寫入仍然填 `win`：拿掉會讓冷啟動偵測在記錄期間誤報。",
+    "`completeSet` 失敗而伺服器 `win` 停在 `null` 時，畫面的大比分顯示推導出的結果而非 `null`——這是本片唯一的可見行為變化。"
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}
