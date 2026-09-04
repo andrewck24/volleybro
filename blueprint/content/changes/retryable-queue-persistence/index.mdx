@@ -8,8 +8,11 @@ import { TLDR } from "@/components/TLDR";
 <TLDR>
   樂觀推進讓記錄不必等伺服器，代價是未確認的球只存在記憶體裡——app
   被回收就一次損失數筆，比改動前更糟。本 Change
-  把待送佇列寫進磁碟，並在啟動時讀回。不改任何畫面，不把送出提升為全域（那是
-  outbox，屬 `offline-recording`）。
+  把待送佇列寫進磁碟：佇列變動即寫入 localStorage，app
+  啟動時讀回。儲存介面是一個 client 端的小
+  port，簽章從第一天就是非同步的，因為換到 native
+  時整批對應物都是非同步的。不改任何畫面，不把送出提升為全域（那是 outbox，屬
+  `offline-recording`）。
 </TLDR>
 
 <Scenario

@@ -2,6 +2,14 @@
 title: Overview
 ---
 
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  Change status stops being a directory and a stored field. Lifecycle becomes
+  the single source, status is derived from it as a grouping key, and every
+  Change lives at a flat, permanent URL.
+</TLDR>
+
 ## Context
 
 A Change's status is stated in three places. It is a directory (`discussing/`, `in-progress/`, `archive/`), a field in `change.json`, and — for archived Changes — a date prefix on the directory name. `parseChangeMetadata` reconciles the first two by deriving status from the directory and rejecting a `change.json` that disagrees.
