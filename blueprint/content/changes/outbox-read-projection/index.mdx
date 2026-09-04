@@ -1,0 +1,66 @@
+---
+title: Overview
+---
+
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  記錄員記下的球先進 SWR cache，再進待送佇列。但 cache
+  是伺服器擁有的格子，任何一次 revalidation 都會整包換掉它——球從畫面上消失，而
+  SyncIndicator 還在旁邊說「3 筆已保存」。本 Change
+  把合併從寫入端移到讀取端：`useGame`
+  回傳伺服器快取疊上待送佇列的結果，寫入端改吃未合併的原始快取。
+</TLDR>
+
+<Scenario
+  given="記錄員在訊號不穩的場館記了三顆球，`retryable-queue-persistence` 已經讓它們安全落盤，SyncIndicator 誠實地說「3 筆已保存，恢復連線後自動送出」"
+  when="他切出去看了一下訊息，五分鐘後切回來"
+  then="改動前那三顆球從畫面上消失，比分退回五分鐘前，而指示器仍然說有 3 筆已保存——他找不到是哪三顆，也沒得逐筆重試；改動後三顆球都還在，比分是他記的那個"
+/>
+
+## Context
+
+`retryable-queue-persistence`（ATE-121）讓待送的球安全落盤，`honest-sync-status`（ATE-131）讓 SyncIndicator 說真話。兩者合起來產生了一個新的矛盾：**指示器說有 3 筆已保存，畫面上一顆都看不到。**
+
+`reconnect-without-reload`（ATE-135）把 `reloadOnOnline` 關掉之後，這個矛盾變得更刺眼。先前復網會整頁重載，重載後畫面本來就會變成伺服器版本，看起來「本來就該這樣」；現在頁面不重載了，被覆蓋這件事再也沒有東西替它打掩護。
+
+根因在記一顆球的那兩行：
+
+```ts
+mutate(updatedGame, { revalidate: false }); // 樂觀寫進 SWR cache
+enqueue(entry); // 進待送佇列
+```
+
+`revalidate: false` 的意思是「直接改快取，不要問伺服器」。問題是那個格子從來不屬於我們。SWR 是一個帶 revalidation 策略的 server cache，它對每一個 key 的假設是「這裡面是伺服器擁有的資料，我隨時可以用一次 fetch 整包換掉」。把 client 才知道的事實塞進去，再怪它被蓋掉——**是我們騙了 SWR，不是 SWR 做錯**。
+
+而待送佇列裝的東西完全不符合 optimistic update 的前提。optimistic update 假設 mutation 立刻送出、很快成功或回滾；佇列裡的 entry 會落盤、活過 app 重啟、可能躺數天、可能永遠送不出去。**它是 outbox。** 一個 outbox 的內容不可能安全地寄放在伺服器擁有的快取格子裡。
+
+## 什麼時候會踩到
+
+四種情境，**沒有一種需要「離線」**：
+
+1. **app 被系統回收後重開——不是競態，是必然。** 冷啟動時 `revalidateOnMount` 為 true，必定抓伺服器版本；佇列已從磁碟還原，畫面卻沒有那些球。`retryable-queue-persistence` 的價值在這一刻完全看不見。
+2. **恢復連線——競態。** `revalidateOnReconnect`（SWR 預設開啟，本專案沒有關掉）與佇列的 `online` flush 同時觸發，誰先回來誰決定畫面。`focusThrottleInterval` 管不到 reconnect。
+3. **離開 app 超過五分鐘再回來——競態。** `dedupingInterval` 是五分鐘，只在「剛剛才抓過」時擋得住，而一局打超過五分鐘是常態。
+4. **flush 進行中記的球，被那趟 flush 自己抹掉。** 同時只有一趟 flush 在飛，進行中入列的項目要搭下一班。於是：flush 帶著 A、B 出門 → 記錄員記了 C → flush 回來，用只含 A、B 的伺服器版本整批覆蓋該局的 entries，C 從快取被抹掉。
+
+## 為什麼這是缺陷，不只是顯示問題
+
+失敗標記與列本身來自**兩個不同的來源**：`summary-drawer` 的 `failedEntryIds` 從佇列算，但列是從伺服器資料渲染的。
+
+列被覆蓋掉之後，佇列裡那筆有失敗標記、卻沒有列可以掛。使用者看得到指示器說「未同步」，卻找不到是哪一顆，也沒得逐筆重試——**`retryable-entry-writes`（ATE-113）剛交付的逐列重試 UI 在這個情境下是失效的。**
+
+## 這次改什麼
+
+合併點只有一個：`useGame` 回傳 `game` 之前，把佇列裡屬於這場比賽的未送 entry 疊上去。所有下游——drawer、entry list、preview、stats、header——都從 `useGame` 拿資料，改一個點全部就對了，二十一個呼叫端一行不改。
+
+代價要明講：**畫面上的比分可能與伺服器暫時不一致。** 這是刻意的取捨，遵循的原則是「前後端狀態不一致由 app 自行解決，不要造成使用者的操作負擔」——記錄員看到的比分就該是他記的那個。
+
+## 不屬於本 Change
+
+**推導對齊（另開 Change，接在本票之後）。** client 的 `processGamePhase` 與 server 的 `deriveSetCompletion` 是同一條規則的兩份實作，且已經漂移：編輯中間某一顆球時，client 判定「這局還在進行中」而把局結果清掉，伺服器判定「早就結束了」而根本不寫。那是既有缺陷、沒有本票也該修，驗收面與本票不重疊。相依方向單向——兩票都要動 `rally.helper`，所以本票先。
+
+**4xx 失敗的 entry 沒有丟棄路徑（另開一票）。** 合併之後，永久失敗的錯球會釘在畫面與比分上直到七天過期，而佇列沒有任何主動丟棄手勢。丟棄是新的使用者手勢，與本 Change 的修正定位不同。
+
+**SWR 到 RTK Query 的整批遷移。** 見 Design 的 D1：遷移不會讓讀取端合併消失，只會讓它更便宜地表達。

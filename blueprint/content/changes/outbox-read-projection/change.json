@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "outbox-read-projection",
+  "title": "Outbox Read Projection",
+  "lifecycle": "proposing",
+  "startedAt": "2026-09-04",
+  "summary": "待送佇列是 outbox，不是 optimistic update：entry 會落盤、活過 app 重啟、可能永遠送不出去。樂觀寫入卻把它們藏在 SWR cache 裡，而 cache 是伺服器擁有的格子，任何一次 revalidation 都整包換掉它。合併改到讀取端——useGame 回傳 server cache 疊上 outbox 的 read model，寫入端改吃 raw cache，兩條路從此分開。",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/persistence",
+    "platform/clean-architecture"
+  ],
+  "tags": ["offline", "data-integrity", "caching", "architecture"]
+}
