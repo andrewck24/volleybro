@@ -333,3 +333,44 @@ describe("pendingWrites reducer", () => {
     expect(state.pending[1]!.nextAttemptAt).toBeNull();
   });
 });
+
+// The read-side merge inserts by seq but resolves a repeated id by queue
+// position, so `pending` order is a contract rather than an accident.
+describe("pending order", () => {
+  const seeded: PendingWritesState = {
+    storageUnavailable: false,
+    pending: [
+      {
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+        attempts: 0,
+        nextAttemptAt: Date.now(),
+      },
+    ],
+  };
+
+  it("appends an enqueued entry after what is already queued", () => {
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.enqueued({
+        entry: entry("e2"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    expect(state.pending.map((p) => p.entry.id)).toEqual(["e1", "e2"]);
+  });
+
+  it("puts restored entries ahead of what is in memory", () => {
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.rehydrated({
+        items: [{ entry: entry("e0"), gameId: "game-1", setIndex: 0 }],
+      }),
+    );
+
+    expect(state.pending.map((p) => p.entry.id)).toEqual(["e0", "e1"]);
+  });
+});

@@ -25,5 +25,5 @@
     "use-data.test.ts：待送佇列有球時觸發一次重新驗證，斷言它們仍在 useGame 的回傳值裡；並涵蓋雙重合併、同 id 取最後一筆、依 seq 排序",
     "summary-drawer.test.tsx：一顆永久失敗的待送球，其失敗標記顯示在對應的列上"
   ],
-  "status": "pending"
+  "status": "completed"
 }

@@ -2,9 +2,11 @@ import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameSummaryView, GameView } from "@/lib/features/game/types";
 import type { PlayerView, TeamView } from "@/lib/features/team/types";
-import { useCallback } from "react";
+import { useAppSelector } from "@/lib/redux/hooks";
+import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 
@@ -189,7 +191,17 @@ export const useGame = (
     ...options,
   });
 
-  return { game: data, error, isLoading, isValidating, mutate };
+  // `data` is the server's, and revalidation replaces it wholesale. Rallies
+  // still in the outbox are laid over it on the way out so a revalidation
+  // cannot take them off the screen. `mutate` still writes the server's
+  // version: the merge exists only on this side of the return.
+  const pendingWrites = useAppSelector((state) => state.pendingWrites);
+  const game = useMemo(
+    () => mergePendingEntries(data, pendingWrites, gameId),
+    [data, pendingWrites, gameId],
+  );
+
+  return { game, error, isLoading, isValidating, mutate };
 };
 
 export const useGameSummaries = (

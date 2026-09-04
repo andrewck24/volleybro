@@ -1,5 +1,7 @@
+import { EntryType } from "@/entities/game";
 import type {
   GameView,
+  PendingEntry,
   PendingWritesState,
   PersistedPendingEntry,
   WriteError,
@@ -85,6 +87,56 @@ export const applyFlushedEntries = (
       i === setIndex ? { ...set, entries } : set,
     ),
   };
+
+/**
+ * The read side: the server's cached game with everything still queued laid
+ * on top. Mirrors `upsertEntry` -- an id already in the set is replaced,
+ * anything else is inserted and the set re-sorted by `seq` -- so the recorder
+ * sees now what the server will hold once the queue drains. Never written
+ * back to the cache: the cache stays the server's, this is what is read from
+ * it. `win` is untouched, because it means "the server confirmed this set
+ * ended" and nothing merged here has been confirmed.
+ */
+export const mergePendingEntries = (
+  game: GameView | undefined,
+  state: PendingWritesState,
+  gameId: string,
+): GameView | undefined => {
+  if (!game) return game;
+
+  const bySet = new Map<number, PendingEntry[]>();
+  for (const item of state.pending) {
+    if (item.gameId !== gameId) continue;
+    const group = bySet.get(item.setIndex);
+    if (group) group.push(item);
+    else bySet.set(item.setIndex, [item]);
+  }
+  if (bySet.size === 0) return game;
+
+  return {
+    ...game,
+    sets: game.sets.map((set, setIndex) => {
+      const group = bySet.get(setIndex);
+      if (!group) return set;
+
+      const entries = [...set.entries];
+      let inserted = false;
+      // Queue order decides: a later item for the same id supersedes an
+      // earlier one, as the server's ordered bulk write does.
+      for (const { entry } of group) {
+        const merged = { type: EntryType.RALLY, ...entry } as const;
+        const at = entries.findIndex((e) => e.id === entry.id);
+        if (at === -1) {
+          entries.push(merged);
+          inserted = true;
+        } else entries[at] = merged;
+      }
+      if (inserted) entries.sort((a, b) => a.seq - b.seq);
+
+      return { ...set, entries };
+    }),
+  };
+};
 
 /**
  * How long a queued entry that cannot succeed is kept. Seven days has no

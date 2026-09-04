@@ -2,10 +2,12 @@ import {
   deriveSyncStatus,
   hasFailedWrite,
   isPendingWrite,
+  mergePendingEntries,
   nextAttemptDelayMs,
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS,
 } from "@/lib/features/game/pending-writes";
 import type {
+  GameView,
   PendingEntry,
   PendingWritesState,
 } from "@/lib/features/game/types";
@@ -162,5 +164,123 @@ describe("nextAttemptDelayMs", () => {
     expect(
       nextAttemptDelayMs(PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS.length + 1),
     ).toBeNull();
+  });
+});
+
+const makeGame = (entrySeqs: number[][]): GameView =>
+  ({
+    id: "game-1",
+    win: null,
+    sets: entrySeqs.map((seqs) => ({
+      win: null,
+      entries: seqs.map((seq) => ({ type: "rally", id: `s${seq}`, seq })),
+    })),
+  }) as never;
+
+const queued = (
+  id: string,
+  seq: number,
+  overrides: Partial<PendingEntry> = {},
+) =>
+  makePendingEntry({
+    entry: { id, seq, win: true, home: {}, away: {} } as never,
+    ...overrides,
+  });
+
+const seqsOf = (game: GameView | undefined, setIndex = 0) =>
+  game?.sets[setIndex]?.entries.map((e) => e.id);
+
+describe("mergePendingEntries", () => {
+  it("returns the same game when nothing is queued for it", () => {
+    const game = makeGame([[0, 1]]);
+    expect(mergePendingEntries(game, stateOf([]), "game-1")).toBe(game);
+    expect(mergePendingEntries(game, stateOf([queued("q", 2)]), "game-2")).toBe(
+      game,
+    );
+  });
+
+  it("inserts a queued entry at its seq rather than at the end", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0, 2]]),
+      stateOf([queued("q", 1)]),
+      "game-1",
+    );
+    expect(seqsOf(merged)).toEqual(["s0", "q", "s2"]);
+  });
+
+  it("replaces an entry the server already holds under the same id", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0, 1]]),
+      stateOf([queued("s1", 1)]),
+      "game-1",
+    );
+    expect(seqsOf(merged)).toEqual(["s0", "s1"]);
+    expect(merged?.sets[0]?.entries[1]).toMatchObject({ win: true });
+  });
+
+  // The server's bulk write is ordered, so the last operation for an id wins.
+  it("takes the last queued item when one id is queued twice", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0]]),
+      stateOf([
+        queued("q", 1, { attempts: 1 }),
+        makePendingEntry({
+          entry: { id: "q", seq: 1, win: false, home: {}, away: {} } as never,
+        }),
+      ]),
+      "game-1",
+    );
+    expect(seqsOf(merged)).toEqual(["s0", "q"]);
+    expect(merged?.sets[0]?.entries[1]).toMatchObject({ win: false });
+  });
+
+  it("merges each set's queue into that set only", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0], [0]]),
+      stateOf([queued("q", 1, { setIndex: 1 })]),
+      "game-1",
+    );
+    expect(seqsOf(merged, 0)).toEqual(["s0"]);
+    expect(seqsOf(merged, 1)).toEqual(["s0", "q"]);
+  });
+
+  // The queue holds writes the server has not accepted; `win` says it has.
+  it("leaves win alone", () => {
+    const game = makeGame([[0]]);
+    game.win = null;
+    const merged = mergePendingEntries(
+      game,
+      stateOf([queued("q", 1)]),
+      "game-1",
+    );
+    expect(merged?.win).toBeNull();
+    expect(merged?.sets[0]?.win).toBeNull();
+  });
+
+  it("does not touch the game it was given", () => {
+    const game = makeGame([[0]]);
+    const before = JSON.stringify(game);
+    mergePendingEntries(game, stateOf([queued("q", 1)]), "game-1");
+    expect(JSON.stringify(game)).toBe(before);
+  });
+
+  it("merges an entry that can never be sent, so its failure can be shown", () => {
+    const merged = mergePendingEntries(
+      makeGame([[0]]),
+      stateOf([
+        queued("q", 1, {
+          nextAttemptAt: null,
+          lastError: notRetryable as never,
+        }),
+      ]),
+      "game-1",
+    );
+    expect(seqsOf(merged)).toEqual(["s0", "q"]);
+  });
+
+  it("returns undefined while the game has not loaded", () => {
+    expect(
+      mergePendingEntries(undefined, stateOf([queued("q", 1)]), "game-1"),
+    ).toBeUndefined();
   });
 });

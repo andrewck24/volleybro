@@ -405,3 +405,27 @@ describe("PendingWritesContext: single owner", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 });
+
+// The cache write has to land before the queue drops the entry, or the merged
+// read loses the ball for the frame in between.
+describe("flush ordering", () => {
+  it("writes the confirmed entries to the cache before clearing the queue", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    let stillQueuedWhenMutated: number | null = null;
+    mutate.mockImplementation(() => {
+      stillQueuedWhenMutated = store.getState().pendingWrites.pending.length;
+    });
+
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(stillQueuedWhenMutated).toBe(1);
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
