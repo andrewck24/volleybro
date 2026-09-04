@@ -2,6 +2,7 @@
 import { Figure } from "@/components/custom/stats/figures";
 import { SetTally } from "@/components/game/header/set-tally";
 import { SyncIndicator } from "@/components/game/header/sync-indicator";
+import { deriveSetsWon } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
@@ -20,8 +21,9 @@ export const Scores = ({
   );
   const isHomeSetPoint = isSetPoint && scores.home > scores.away;
   const isAwaySetPoint = isSetPoint && scores.away > scores.home;
-  const setsWonHome = game?.sets.filter((set) => set.win === true).length ?? 0;
-  const setsWonAway = game?.sets.filter((set) => set.win === false).length ?? 0;
+  const { home: setsWonHome, away: setsWonAway } = game
+    ? deriveSetsWon(game.sets, game.info.scoring)
+    : { home: 0, away: 0 };
   const setsNeeded = game ? Math.ceil(game.info.scoring.setCount / 2) : 0;
 
   return (

@@ -10,10 +10,14 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { getPreviousRally } from "@/entities/game";
+import {
+  deriveSetPhase,
+  getPreviousRally,
+  setTargetPoints,
+} from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
-import type { SetView } from "@/lib/features/game/types";
+import type { MatchView, SetView } from "@/lib/features/game/types";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -51,6 +55,7 @@ export const SetsList = ({ gameId }: { gameId: string }) => {
             gameId={gameId}
             set={set}
             setIndex={index}
+            scoring={game.info.scoring}
             handleOptionsOpen={handleOptionsOpen}
             handleEditOpen={handleEditOpen}
           />
@@ -74,18 +79,25 @@ const SetItem = ({
   gameId,
   set,
   setIndex,
+  scoring,
   handleOptionsOpen,
   handleEditOpen,
 }: {
   gameId: string;
   set: SetView;
   setIndex: number;
+  scoring: MatchView["scoring"];
   handleOptionsOpen: (setIndex: number) => void;
   handleEditOpen: (setIndex: number) => void;
 }) => {
   const router = useRouter();
   const rally = getPreviousRally(set.entries, set.entries.length);
-  const isFinished = typeof set.win === "boolean";
+  const { isSetInProgress } = deriveSetPhase(
+    set,
+    set.entries.length,
+    setTargetPoints(scoring, setIndex),
+  );
+  const isFinished = !isSetInProgress;
 
   return (
     <AccordionItem

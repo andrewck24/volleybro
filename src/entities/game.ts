@@ -441,6 +441,32 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
+/** How many sets each side has won, derived from each set's final rally. */
+export function deriveSetsWon(
+  sets: readonly { entries?: readonly DerivableEntry[] }[],
+  scoring: { setCount: number; decidingSetPoints: number },
+): { home: number; away: number } {
+  let home = 0;
+  let away = 0;
+
+  sets.forEach((set, setIndex) => {
+    const rally = getPreviousRally(set.entries, set.entries?.length ?? 0);
+    if (!rally) return;
+
+    const { isSetInProgress } = deriveSetPhase(
+      set,
+      set.entries?.length ?? 0,
+      setTargetPoints(scoring, setIndex),
+    );
+    if (isSetInProgress) return;
+
+    if (rally.home.score > rally.away.score) home += 1;
+    else away += 1;
+  });
+
+  return { home, away };
+}
+
 export type DerivedSetStats = {
   home: TeamStats;
   away: TeamStats;

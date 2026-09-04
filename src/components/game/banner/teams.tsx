@@ -1,7 +1,12 @@
 "use client";
 import { Figure } from "@/components/custom/stats/figures";
+import { deriveSetsWon } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
-import type { GameTeamView, SetView } from "@/lib/features/game/types";
+import type {
+  GameTeamView,
+  MatchView,
+  SetView,
+} from "@/lib/features/game/types";
 import { RiGroupLine } from "react-icons/ri";
 
 export const Teams = ({ gameId }: { gameId: string }) => {
@@ -10,7 +15,7 @@ export const Teams = ({ gameId }: { gameId: string }) => {
   return (
     <div className="flex w-full flex-row items-center justify-center gap-2 py-2">
       <TeamAvatar team={game!.teams.home} isHome={true} />
-      <SetScore sets={game!.sets} />
+      <SetScore sets={game!.sets} scoring={game!.info.scoring} />
       <TeamAvatar team={game!.teams.away} isHome={false} />
     </div>
   );
@@ -33,9 +38,14 @@ const TeamAvatar = ({
   );
 };
 
-const SetScore = ({ sets }: { sets: SetView[] }) => {
-  const homeSetsWon = sets.filter((set) => set.win === true).length;
-  const awaySetsWon = sets.filter((set) => set.win === false).length;
+const SetScore = ({
+  sets,
+  scoring,
+}: {
+  sets: SetView[];
+  scoring: MatchView["scoring"];
+}) => {
+  const { home: homeSetsWon, away: awaySetsWon } = deriveSetsWon(sets, scoring);
   const isHomeWin = homeSetsWon > awaySetsWon;
   const isAwayWin = awaySetsWon > homeSetsWon;
 
