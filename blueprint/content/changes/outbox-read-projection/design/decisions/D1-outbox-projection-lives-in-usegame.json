@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D1",
   "title": "未送出的球在 useGame 的回傳值疊回去，寫入路徑改吃未合併的快取",
-  "status": "candidate",
+  "status": "accepted",
   "targets": ["game-recording/rally-recording", "platform/clean-architecture"],
   "context": "待送佇列裝的東西不符合 optimistic update 的前提。optimistic update 假設一個 mutation 立刻送出，很快成功或回滾。佇列裡的球會寫進磁碟，活過 app 重啟，可能躺好幾天，也可能永遠送不出去。現在 client state 在 Redux、server cache 在 SWR，兩個獨立的地方，而樂觀寫入把球放進了 SWR。沒有任何東西負責把兩邊兜起來，缺陷就從這裡來。SWR 對每個 key 的假設是「這裡面是伺服器的資料，我隨時可以整包換掉」。把只有 client 知道的事實塞進去，再抱怨它被蓋掉，站不住腳。還有一個限制來自寫入路徑目前的形狀：useGame 回傳的 game 就是快取裡那個物件本身，createRallyHelper 直接改它再交回 mutate。若 useGame 改成回傳合併後的新資料而寫入不動，樂觀寫入會把合併結果寫回快取，下次讀取再疊一次，同一顆球出現兩次。",
   "decision": "useGame 回傳伺服器快取疊上這場比賽待送球的結果，用 useMemo 記憶化。寫入路徑改用 mutate 的函式形式，函式收到的參數就是未合併的快取。分界畫在讀與寫之間，不在哪個 hook。二十一個呼叫端一行不用改，而合併永遠發生在快取之後，不會進到快取裡。useGame 的回傳欄位一個都沒變。要拿未合併資料的只有寫入，它從 mutate 的參數拿，不從回傳值拿。變的是 game 這個字的意思：從伺服器快取，變成記錄員該看到的比賽。rally.helper 跟著拆成兩個純函式。算 phase 的那個吃合併過的資料，因為它要看得到待送的球——少了那幾顆，下一顆球會拿到過期比分，而 phase 會被寫進 Redux 推進記錄狀態。產生新快取內容的那個吃未合併的。runFlush 和 useUnconfirmedSetCompletion 的 retry 已經是函式形式，不動。",

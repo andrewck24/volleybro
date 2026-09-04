@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "outbox-read-projection",
   "title": "Outbox Read Projection",
-  "lifecycle": "ready-for-review",
+  "lifecycle": "ready-for-implementation",
   "startedAt": "2026-09-04",
   "summary": "記下的球會從畫面上消失。它們沒有遺失——待送佇列好好地存在磁碟上，SyncIndicator 也誠實地說有幾筆還沒送出——但畫面上看不到，記錄員找不到是哪幾顆。原因是記球時把球寫進了 SWR 的快取，那格資料屬於伺服器，SWR 隨時會拿伺服器的版本整包換掉它。本 Change 改成在讀出來的時候才把待送的球疊上去。",
   "capabilities": [

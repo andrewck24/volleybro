@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D2",
   "title": "合併沿用伺服器的 upsert 規則，且完全不碰 win",
-  "status": "candidate",
+  "status": "accepted",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
   "context": "合併要回答兩個問題：同一個 entry.id 在伺服器和佇列各有一版時聽誰的，疊上去的球放在哪個位置。伺服器那邊早就有答案。IGameRepository.upsertEntry 的契約是「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。第三個問題是 win。合併之後畫面上的大比分若還讀 GameView.win，顯示的會是不含待送球的舊值。但 win 現在同時是兩種東西：畫面讀它時當大比分用，useUnconfirmedSetCompletion 讀它時當作「伺服器確認過局結果了沒」的記號，而後者正是冷啟動偵測未確認局結果的依據。一個欄位兩種意思，所以「讓合併順手重算 win」會誤傷那個偵測。另外查到一個缺口：pending-writes-slice 的 enqueued 是無條件 push，沒有依 id 去重，而編輯一顆還沒送出的球會用同一個 id 再入列一次。佇列可以自己跟自己撞號。",
   "decision": "合併沿用伺服器的規則：依 id 覆蓋、依 seq 排序，佇列的版本贏過伺服器的版本，佇列裡同一個 id 有多筆就取最後一筆。這樣兩邊不會對同一批球排出不同順序。「pending 依入列時間排序」從一個碰巧成立的事實，變成寫下來並有測試守著的契約。合併的取最後一筆和 flush 送出時的去重都靠它；rehydrated 把還原的項目放最前面，時間序一致。合併範圍是這場比賽的全部待送球，包含永久失敗的那些，失敗標記才掛得到列。合併完全不碰 win，只疊 entries。畫面上的大比分改用推導：新增 deriveSetsWon，sets/list 直接用既有的 deriveSetPhase。GameView.win 保留原本的意思，也就是 completeSet 這個唯一寫入者存下來的推導值，null 表示還沒被記錄。樂觀寫入繼續填它，因為那正是讓冷啟動偵測在使用中保持安靜的東西；冷啟動時樂觀寫入的值本來就已經被沖掉，偵測還是拿得到伺服器的 null。",
