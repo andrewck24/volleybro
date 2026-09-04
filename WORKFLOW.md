@@ -280,9 +280,10 @@ blueprint/content/changes/<change-slug>/
 └── review.mdx
 ```
 
-The Overview page renders lifecycle and summary from `change.json`, its date from that file's
-`startedAt`, and its artifact links from the pages Blueprint actually registered for the Change,
-ordered by that Change's `meta.json`. `index.mdx` carries narrative content only and must not
+The Overview page renders lifecycle from `change.json`, its date from that file's `startedAt`, and
+its artifact links from the pages Blueprint actually registered for the Change, ordered by that
+Change's `meta.json`. `summary` is the catalog card's text, not page content; the Overview opens on
+`index.mdx`'s `TLDR`, which repeats it. `index.mdx` carries narrative content only and must not
 restate any of that as component props. Link text is each page's own frontmatter `title`, so an
 Overview cannot link to a page that does not exist, show a stale title, or omit a page that was
 added.
