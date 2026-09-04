@@ -122,7 +122,9 @@ export default async function Page({ params }: PageProps) {
   const Mdx = page.data.body;
 
   // Change Overview pages take their metadata from change.json and their
-  // artifact links from the page tree; the MDX below is narrative only.
+  // artifact links from the page tree; the MDX below is narrative only. The
+  // change's summary is the catalog card's text and stays there -- repeating
+  // it above the MDX gave every Overview two openings saying the same thing.
   if (slug?.length === 1) {
     const change = await loadChangeMetadata(slug[0]);
     return (
@@ -132,7 +134,6 @@ export default async function Page({ params }: PageProps) {
           <ChangeOverview
             date={change.startedAt}
             lifecycle={change.lifecycle}
-            summary={change.summary}
             artifacts={changeArtifacts(source.pageTree, page.url)}
           />
           <Mdx components={mdxComponents} />

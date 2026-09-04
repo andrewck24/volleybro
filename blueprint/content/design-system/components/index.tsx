@@ -286,7 +286,6 @@ export default function ComponentLibraryShowcase() {
       <ChangeOverview
         date="2026-07-12"
         lifecycle="pre-pr-review"
-        summary="Add a design-system section and a component-library showcase page to the blueprint site."
         artifacts={[
           { title: "Proposal", href: "#proposal" },
           { title: "Design", href: "#design" },

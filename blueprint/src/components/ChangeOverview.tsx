@@ -8,7 +8,6 @@ type Artifact = { title: string; href: string };
 type Props = {
   date: string;
   lifecycle: ChangeLifecycle;
-  summary: string;
   artifacts: Artifact[];
 };
 
@@ -23,7 +22,7 @@ function ArtifactCard({ title, href }: Artifact) {
   );
 }
 
-export function ChangeOverview({ date, lifecycle, summary, artifacts }: Props) {
+export function ChangeOverview({ date, lifecycle, artifacts }: Props) {
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -31,9 +30,7 @@ export function ChangeOverview({ date, lifecycle, summary, artifacts }: Props) {
         <LifecycleBadge lifecycle={lifecycle} />
       </div>
 
-      <p className="mt-0 mb-7 leading-relaxed">{summary}</p>
-
-      <div className="flex flex-col gap-2">
+      <div className="mt-7 flex flex-col gap-2">
         {artifacts.map((a) => (
           <ArtifactCard key={a.href} {...a} />
         ))}
