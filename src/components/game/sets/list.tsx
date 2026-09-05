@@ -10,11 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import {
-  deriveSetPhase,
-  getPreviousRally,
-  setTargetPoints,
-} from "@/entities/game";
+import { getPreviousRally, isSetFinished } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
 import type { MatchView, SetView } from "@/lib/features/game/types";
@@ -92,12 +88,7 @@ const SetItem = ({
 }) => {
   const router = useRouter();
   const rally = getPreviousRally(set.entries, set.entries.length);
-  const { isSetInProgress } = deriveSetPhase(
-    set,
-    set.entries.length,
-    setTargetPoints(scoring, setIndex),
-  );
-  const isFinished = !isSetInProgress;
+  const isFinished = isSetFinished(set, scoring, setIndex);
 
   return (
     <AccordionItem

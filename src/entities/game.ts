@@ -468,6 +468,20 @@ export function upsertEntries<T extends EntryIdentity>(
   return next;
 }
 
+/** Whether a set has been played out, judged on its own entries. */
+export function isSetFinished(
+  set: { entries?: readonly DerivableEntry[] } | undefined,
+  scoring: { setCount: number; decidingSetPoints: number },
+  setIndex: number,
+): boolean {
+  const { isSetInProgress } = deriveSetPhase(
+    set,
+    set?.entries?.length ?? 0,
+    setTargetPoints(scoring, setIndex),
+  );
+  return !isSetInProgress;
+}
+
 /** How many sets each side has won, derived from each set's final rally. */
 export function deriveSetsWon(
   sets: readonly { entries?: readonly DerivableEntry[] }[],
@@ -477,15 +491,9 @@ export function deriveSetsWon(
   let away = 0;
 
   sets.forEach((set, setIndex) => {
+    if (!isSetFinished(set, scoring, setIndex)) return;
     const rally = getPreviousRally(set.entries, set.entries?.length ?? 0);
     if (!rally) return;
-
-    const { isSetInProgress } = deriveSetPhase(
-      set,
-      set.entries?.length ?? 0,
-      setTargetPoints(scoring, setIndex),
-    );
-    if (isSetInProgress) return;
 
     if (rally.home.score > rally.away.score) home += 1;
     else away += 1;
