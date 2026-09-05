@@ -485,6 +485,27 @@ async function validateFileTours(root, changeDirectories) {
   return diagnostics;
 }
 
+// MDX strips the leading whitespace from every continuation line of a
+// multi-line template literal in a JSX attribute, so a snippet written that
+// way renders flush left. An escaped single-line string survives intact.
+const MULTILINE_TEMPLATE_ATTRIBUTE = /=\{`[^`]*\n/;
+
+async function validateSnippetLiterals(root, changeDirectories) {
+  const diagnostics = [];
+  for (const directory of changeDirectories) {
+    for (const filePath of await listFiles(directory)) {
+      if (!filePath.endsWith(".mdx")) continue;
+      const content = await readFile(filePath, "utf8");
+      if (!MULTILINE_TEMPLATE_ATTRIBUTE.test(content)) continue;
+      diagnostics.push(
+        `${path.relative(root, filePath)} [blueprint-snippet]: a snippet prop must be an escaped string, not a multi-line template literal`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 // The route derives slice progress from the plan and renders it. A count
 // written into the page is a second copy that goes stale the moment a slice
 // completes -- which is how every one of these was found reading 0.
@@ -545,6 +566,9 @@ export async function checkWorkflow(root = process.cwd()) {
   diagnostics.push(...(await validateFileTours(root, changeArtifacts.active)));
   diagnostics.push(
     ...(await validateSliceProgress(root, changeArtifacts.active)),
+  );
+  diagnostics.push(
+    ...(await validateSnippetLiterals(root, changeArtifacts.active)),
   );
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));

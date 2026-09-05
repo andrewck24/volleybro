@@ -361,3 +361,32 @@ test("reports an implementation page that writes its own slice progress", async 
     /blueprint-slice-progress/i,
   );
 });
+
+// MDX eats the indentation of a multi-line template literal in an attribute.
+test("reports a snippet written as a multi-line template literal", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/content/changes/c/change.json": change("applying"),
+        "blueprint/content/changes/c/meta.json": meta("index"),
+        "blueprint/content/changes/c/index.mdx":
+          "---\ntitle: Overview\n---\n\n<AnnotatedDiff\n  code={`const a = 1;\n  const b = 2;`}\n/>\n",
+      })
+    ).join("\n"),
+    /blueprint-snippet/i,
+  );
+});
+
+test("accepts a snippet written as an escaped string", async () => {
+  assert.doesNotMatch(
+    (
+      await messages({
+        "blueprint/content/changes/c/change.json": change("applying"),
+        "blueprint/content/changes/c/meta.json": meta("index"),
+        "blueprint/content/changes/c/index.mdx":
+          '---\ntitle: Overview\n---\n\n<AnnotatedDiff code={"const a = 1;\\n  const b = 2;"} />\n',
+      })
+    ).join("\n"),
+    /blueprint-snippet/i,
+  );
+});

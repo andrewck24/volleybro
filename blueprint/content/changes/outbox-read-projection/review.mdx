@@ -111,9 +111,7 @@ S01 與 S02 互相獨立，由兩個 executor 在各自的 worktree 平行完成
 
 <AnnotatedDiff
   lang="text"
-  code={`raw entries: 1  merged entries: 2  -> entryIndex 2
-new cache entries length: 3  holes: x,,x
-SECOND MERGE THROWS: TypeError: Cannot read properties of undefined (reading 'id')`}
+  code="raw entries: 1  merged entries: 2  -> entryIndex 2\nnew cache entries length: 3  holes: x,,x\nSECOND MERGE THROWS: TypeError: Cannot read properties of undefined (reading 'id')"
 />
 
 崩潰點是合併裡的 `entries.findIndex((e) => e.id === entry.id)`：`findIndex` 會走訪 hole，`e` 是 `undefined`。
@@ -122,17 +120,7 @@ SECOND MERGE THROWS: TypeError: Cannot read properties of undefined (reading 'id
 
 <AnnotatedDiff
   lang="ts"
-  code={`export const applyEntry = (
-  game: GameView,
-  setIndex: number,
-  entryIndex: number, // [!code --]
-  entryDraft: RallyView & EntryIdentity,
-  phase: SetPhase,
-): GameView => {
-  const set = game.sets[setIndex]!;
-  const entries = set.entries.slice(); // [!code --]
-  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft }; // [!code --]
-  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]); // [!code ++]`}
+  code="export const applyEntry = (\n  game: GameView,\n  setIndex: number,\n  entryIndex: number, // [!code --]\n  entryDraft: RallyView & EntryIdentity,\n  phase: SetPhase,\n): GameView => {\n  const set = game.sets[setIndex]!;\n  const entries = set.entries.slice(); // [!code --]\n  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft }; // [!code --]\n  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]); // [!code ++]"
 />
 
 `upsertEntries` 依 `id` 覆蓋、依 `seq` 插入——讀取側合併與 repository 的 `upsertEntry` 用同一條規則，三條路徑共用一份實作。

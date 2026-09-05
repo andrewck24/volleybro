@@ -10,6 +10,11 @@ and lifecycle metadata in Git. These artifacts remain mutable while active and b
 historical record at Archive. An archived Change may describe behavior later superseded by another
 Change; it is durable history, not the authority for current behavior.
 
+Pass a code snippet to a component as an escaped single-line string. MDX strips
+the leading whitespace from every continuation line of a multi-line template
+literal in a JSX attribute, so a snippet written that way renders flush left and
+unreadable. `check:workflow` rejects it.
+
 Structured ADR JSON follows `blueprint/schemas/decision-record.schema.json`. Design and Feature
 pages render those records with `DecisionTimeline`; new Changes must not maintain a parallel
 hard-coded `DECISIONS` array as a second editable source.
