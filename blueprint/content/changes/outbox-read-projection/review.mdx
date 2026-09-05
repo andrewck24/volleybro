@@ -1,0 +1,212 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  三片全部交付。獨立驗證第一輪 **REFUTED**：合併後的讀取模型讓記錄流程數出來的
+  index 對不上底下的快取，照著寫會留下空洞，下一次合併踩上去讓整個比賽畫面
+  throw——正是本 Change 宣稱要修的兩個情境才會發生。修法是寫入改依 entry
+  身分定位，第二輪
+  CONFIRMED。另有兩件事在關卡上失手：元件層的接線一度沒有任何測試釘住，而註解品質檢查沒有被帶進
+  Standards 軸的 brief。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={3} total={3} />
+
+切片內容與依賴由 Implementation 頁呈現；此處只記交付的實質。commit 以 body 的 `Implements` trailer 指認，本頁一律以 slice ID 指稱。
+
+S01 與 S02 互相獨立，由兩個 executor 在各自的 worktree 平行完成後整合；S03 相依 S01，合併規則、記憶化與兩個 seam 的測試彼此耦合，留在主 session。
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      summary:
+        "`mergePendingEntries`——讀取側投影。收伺服器的快取與待送佇列，依 setIndex 分組後交給 `upsertEntries`。不碰 `win`。",
+    },
+    {
+      path: "src/hooks/use-data.ts",
+      change: "modified",
+      summary:
+        "`useGame` 以 `useMemo` 疊上待送項目後才回傳。相依是 SWR 的 `data` 與佇列陣列；沒有待送項目時原樣回傳 `data`，參考保持穩定。",
+    },
+    {
+      path: "src/entities/game.ts",
+      change: "modified",
+      summary:
+        "`upsertEntries` 依 id 覆蓋、依 seq 排序，讀取合併與樂觀寫入共用。`isSetFinished` 與 `deriveSetsWon` 讓大比分改由 entries 推導。",
+    },
+    {
+      path: "src/lib/features/game/helpers/optimistic/rally.helper.ts",
+      change: "modified",
+      summary:
+        "推導與套用拆成 `deriveEntryPhase` 與 `applyEntry`，兩者皆為純函式。`createRallyHelper`／`updateRallyHelper` 刪除。",
+    },
+    {
+      path: "src/components/game/panel/moves/oppo.tsx",
+      change: "modified",
+      summary:
+        "`create`／`update` 先從合併後的 `game` 同步取得 phase，再以 `mutate` 的函式形式把 entry 寫進 raw cache。",
+    },
+    {
+      path: "src/hooks/__tests__/use-game-merge.test.tsx",
+      change: "added",
+      summary:
+        "合併本身的六個測試：重新驗證、依 seq 排序、連記兩顆各一次、對縮短過的快取記球、冷啟動還原、flush 進行中記球。",
+    },
+    {
+      path: "src/components/game/__tests__/summary-drawer-merge.test.tsx",
+      change: "added",
+      summary:
+        "失敗標記掛得到列。刻意不 mock SWR 與 Redux——受測的 seam 就是兩者的交界。",
+    },
+  ]}
+/>
+
+## Findings
+
+### 一、寫入依陣列位置定位，會讓整個比賽畫面崩潰（獨立驗證，REFUTED）
+
+`gameActions.initialize` 吃的是 `useGame` 回傳的合併結果，所以 `entryIndex` 數的是合併後那個陣列。但 `mutate((raw) => ...)` 寫的是未合併、可能更短的快取。同一個數字在兩個陣列裡指的不是同一個位置。
+
+驗證者用真實模組重現：
+
+<AnnotatedDiff
+  lang="text"
+  code={`raw entries: 1  merged entries: 2  -> entryIndex 2
+new cache entries length: 3  holes: x,,x
+SECOND MERGE THROWS: TypeError: Cannot read properties of undefined (reading 'id')`}
+/>
+
+崩潰點是合併裡的 `entries.findIndex((e) => e.id === entry.id)`：`findIndex` 會走訪 hole，`e` 是 `undefined`。
+
+**可達路徑正是本 Change 宣稱要修的情境。** 冷啟動時佇列從硬碟還原，快取由伺服器回應填滿而不含未送出的球；或者一顆 4xx 永久失敗的球卡在佇列裡，而網路正常，所以每次 revalidation 都成功把它從快取移除。此後記的第一顆球就中招。改動前 `useGame` 回傳快取本身，index 與寫入目標是同一個陣列，沒有這個問題——這是本 Change 引入的迴歸。
+
+<AnnotatedDiff
+  lang="ts"
+  code={`export const applyEntry = (
+  game: GameView,
+  setIndex: number,
+  entryIndex: number, // [!code --]
+  entryDraft: RallyView & EntryIdentity,
+  phase: SetPhase,
+): GameView => {
+  const set = game.sets[setIndex]!;
+  const entries = set.entries.slice(); // [!code --]
+  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft }; // [!code --]
+  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]); // [!code ++]`}
+/>
+
+`upsertEntries` 依 `id` 覆蓋、依 `seq` 插入——讀取側合併與 repository 的 `upsertEntry` 用同一條規則，三條路徑共用一份實作。
+
+### 二、守衛移進 SWR updater 後，壞資料仍會入列（獨立驗證）
+
+`updateRallyHelper` 的「entry 不是 rally 就拋錯」原本從 `submitEntryDraft()` 同步拋給呼叫端。移進 `mutate` 的 updater 之後，SWR 把同步 throw 收進 rejected promise，而該次 `mutate` 沒有被 await：流程繼續 `enqueue(entry)`，再拿未賦值的 `phase` 去 dispatch。錯誤處理從乾淨拋出變成先把壞資料入佇列、再以另一種方式炸掉。
+
+守衛抽成 `assertRallyAt`，在 `mutate` 之外同步呼叫，恢復原行為。
+
+### 三、元件層的接線沒有任何測試釘住（獨立驗證第二輪指出）
+
+第二輪對程式碼副本做了四種 mutation，確認六個合併測試每一個都殺得掉東西。但同時發現：把 `oppo.tsx` 改回「在 updater 內推導 phase、守衛也放進去」，整個 frontend 專案 592 個測試仍然全綠。也就是說發現一與發現二所修的接線本身沒有被釘住，只有 helper 與 hook 層有。
+
+補了兩個測試：把 `mutate` mock 成交回一份縮短的快取，斷言編輯仍落在正確的那顆球；以及非 rally 的目標在入列前就同步拋出。兩者對上一版都會失敗。
+
+### 四、註解品質檢查沒有進到 Standards 軸（流程失手）
+
+`WORKFLOW.md` §5 寫明標準軸存在的理由是涵蓋「文件寫了而工具檢不到」的東西，「comment necessity and density above all」，而 `CONTRIBUTING.md` §Comments 把規則寫全了。但送給 Standards sub-agent 的 brief 把 `CONTRIBUTING.md` 標成「commit format」，並附上一份與註解無關的 code smell 清單。Sub-agent 是空白 context，只知道 brief 裡有的東西。
+
+補做之後，本分支所有變更檔案的註解由 245 行降到 186 行，其中 71 行是既有註解。刪掉的多數是複述——重複函式名的 doc comment、標註下方常數的標籤、把 `5 * 60 * 1000` 換算成「5 minutes」的行內註解、以及 13 條複述 fixture 分數的中文註解。屬於某張 Change 的理由改成指標。
+
+## Plan versus actual
+
+`applyEntry` 的簽章與 Design 原本寫的 `applyRallyEntry(raw, setIndex, entryIndex, entry, phase)` 不同——`entryIndex` 拿掉了，這是發現一的修法。Design 已更新。
+
+Design 原本說「phase 吃 raw 會拿到過期的比分」。實際上這對記新球不成立：`deriveSetPhase` 往回掃第一個撞到的就是那顆球自己。但對**編輯**成立：被編輯的球在快取裡的位置比在畫面上前面，往回掃會先撞到 seq 更大的球。理由已改寫成成立的版本。
+
+S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.tsx`，實際落在 `use-game-merge.test.tsx` 與 `summary-drawer-merge.test.tsx`——既有檔案整檔 mock 掉 SWR，無法承載這些斷言。切片契約已更新。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "待送項目的 setIndex 超出伺服器已有的局數時，那顆球從畫面上靜默消失",
+      severity: "info",
+      mitigation:
+        "目前不可達：新局由伺服器確認後才進記錄頁，所以快取裡一定先有那一局。真的發生時是靜默毀損而非崩潰，沒有防護。",
+    },
+    {
+      name: "同一個 entry.id 在佇列中出現兩次且 seq 不同時，client 與 server 的順序會分歧",
+      severity: "info",
+      mitigation:
+        "目前不可達：編輯沿用原 seq，enqueue 後 seq 凍結，且沒有任何 entry 刪除路徑。`upsertEntries` 無條件排序已消除其中一半。",
+    },
+    {
+      name: "替補寫入仍以陣列位置定位，且把合併結果當 optimisticData 寫回快取",
+      severity: "warning",
+      mitigation:
+        "同一個根因唯一沒收斂的呼叫點。目前不會產生空洞（entryIndex 與傳入的 game 同源），已開 ATE-139。",
+    },
+    {
+      name: "冷啟動且完全離線時，未送出的球看不到",
+      severity: "info",
+      mitigation:
+        "快取為空時合併回傳 undefined，畫面停在骨架。要修需要把 game 本身也落盤，超出本 Change 邊界。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- **ATE-136** 局結果的推導下沉為兩端共用——`applyEntry` 仍在客戶端寫 `win`，與伺服器的 `deriveSetCompletion` 是兩份實作。
+- **ATE-137** 送不出去的球沒有丟棄路徑。
+- **ATE-138** 建立 `CONTEXT.md`。
+- **ATE-139** 替補寫入收斂到同一條規則（本次 Review 產生）。
+
+## Validation
+
+`pnpm verify:all` 全綠，含 `pnpm build` 與 blueprint 的靜態輸出。`pnpm test:integration` 10 suites / 28 tests。單元測試 122 suites / 974 tests。
+
+### 驗收腳本
+
+需要真實裝置——auth 擋住瀏覽器自動化，這幾條無法由測試代勞。
+
+<Scenario
+  given="開啟飛航模式，在記錄畫面記三球"
+  when="關閉 app，重新開啟並回到同一場比賽"
+  then="三球都還在列表上，分數是三球之後的分數，不是伺服器那一版"
+/>
+
+<Scenario
+  given="離線記三球後恢復連線，但其中一球被伺服器以 4xx 拒絕"
+  when="停在記錄畫面，等待或切換 app 觸發一次 revalidation"
+  then="被拒絕的那球仍在列表上，且該列顯示失敗標記與重試"
+/>
+
+<Scenario
+  given="離線記三球，畫面停在記錄頁超過五分鐘"
+  when="切回 app（觸發 focus revalidation），再記一球"
+  then="四球都在，順序正確，畫面沒有崩潰或空白"
+/>
+
+<Scenario
+  given="網路很慢的環境，記一球後在請求還沒回來時"
+  when="立刻再記第二球"
+  then="兩球都在畫面上，第一球確認後第二球不會消失"
+/>
+
+<Scenario
+  given="一局打完但 completeSet 沒有成功（伺服器的 win 停在 null）"
+  when="看比賽標頭的大比分"
+  then="顯示推導出的局數，而不是少一局"
+/>
