@@ -485,10 +485,15 @@ async function validateFileTours(root, changeDirectories) {
   return diagnostics;
 }
 
-// MDX strips the leading whitespace from every continuation line of a
-// multi-line template literal in a JSX attribute, so a snippet written that
-// way renders flush left. An escaped single-line string survives intact.
-const MULTILINE_TEMPLATE_ATTRIBUTE = /=\{`[^`]*\n/;
+// Two ways a snippet prop loses its shape. MDX strips the leading whitespace
+// from every continuation line of a multi-line template literal, so the code
+// renders flush left; and a bare JSX string attribute is a literal, so its
+// escapes render as the characters "\\n". An escaped string inside braces is
+// the only form that survives.
+const SNIPPET_FORMS = [
+  [/=\{`[^`]*\n/, "a multi-line template literal"],
+  [/\n\s*code="/, "a bare string attribute"],
+];
 
 async function validateSnippetLiterals(root, changeDirectories) {
   const diagnostics = [];
@@ -496,10 +501,12 @@ async function validateSnippetLiterals(root, changeDirectories) {
     for (const filePath of await listFiles(directory)) {
       if (!filePath.endsWith(".mdx")) continue;
       const content = await readFile(filePath, "utf8");
-      if (!MULTILINE_TEMPLATE_ATTRIBUTE.test(content)) continue;
-      diagnostics.push(
-        `${path.relative(root, filePath)} [blueprint-snippet]: a snippet prop must be an escaped string, not a multi-line template literal`,
-      );
+      for (const [form, label] of SNIPPET_FORMS) {
+        if (!form.test(content)) continue;
+        diagnostics.push(
+          `${path.relative(root, filePath)} [blueprint-snippet]: a snippet prop is ${label}, not an escaped string in braces`,
+        );
+      }
     }
   }
 

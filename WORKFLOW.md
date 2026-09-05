@@ -221,8 +221,10 @@ After all slices complete:
    independent review until both axes reach a fixed point;
 5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
    plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID; and
-6. set the Change lifecycle to `awaiting-delivery-review`, notify the developer, and stop for
-   acceptance of Blueprint Review.
+6. set the Change lifecycle to `awaiting-delivery-review`, read every page of the Change rendered
+   in a browser as the developer will, then notify the developer and stop for acceptance of
+   Blueprint Review. Reading the source is not reading the page: a stale count, a column that does
+   not line up, an unreadable snippet are all invisible in the file that produces them.
 
 The standards axis exists to cover what the repository documents and no tool checks — comment
 necessity and density above all, since lint, types and formatting all pass regardless of how much
