@@ -56,8 +56,10 @@ const baseGame = {
     },
   ],
 };
+// Reassigned by the tests that need the merged view to differ from the cache.
+let mockGame: typeof baseGame = baseGame;
 jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: baseGame, mutate }),
+  useGame: () => ({ game: mockGame, mutate }),
 }));
 
 const networkError = () =>
@@ -75,7 +77,13 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 beforeEach(() => {
   store = makeStore();
-  mutate.mockClear();
+  mockGame = baseGame;
+  mutate.mockReset();
+  mutate.mockImplementation((updater?: unknown) =>
+    typeof updater === "function"
+      ? (updater as (g: unknown) => unknown)(baseGame)
+      : updater,
+  );
   mockToast.mockClear();
   apiClient.mockReset();
   act(() => {
@@ -127,5 +135,66 @@ describe("useSubmitEntryDraft update path", () => {
     expect(mockToast).not.toHaveBeenCalled();
     expect(store.getState().game.mode).toBe("general");
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
+
+// The seam the read model creates: `entryIndex` and the draft's identity are
+// both counted off the merged view, while the write lands on the raw cache
+// underneath it. Mocking `mutate` to hand back a shorter cache is what makes
+// the two differ here.
+describe("useSubmitEntryDraft against a cache the server has cut back", () => {
+  const rawGame = {
+    ...baseGame,
+    sets: [{ ...baseGame.sets[0]!, entries: [] as unknown[] }],
+  };
+
+  it("writes the edited rally by its identity, leaving no gap in the cache", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    let written: typeof baseGame | undefined;
+    mutate.mockImplementation((updater?: unknown) => {
+      written =
+        typeof updater === "function"
+          ? (updater as (g: unknown) => typeof baseGame)(rawGame)
+          : (updater as typeof baseGame);
+      return written;
+    });
+
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
+      wrapper,
+    });
+    await act(async () => {
+      await result.current();
+    });
+
+    const entries = written!.sets[0]!.entries;
+    expect(entries.map((e) => e.id)).toEqual(["e1"]);
+    expect(entries.every((e) => e !== undefined)).toBe(true);
+  });
+
+  it("throws before queuing anything when the entry is not a rally", async () => {
+    const notARally = {
+      ...baseGame,
+      sets: [
+        {
+          ...baseGame.sets[0]!,
+          entries: [
+            { ...baseGame.sets[0]!.entries[0]!, type: EntryType.TIMEOUT },
+          ],
+        },
+      ],
+    };
+    mockGame = notARally;
+
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
+      wrapper,
+    });
+    await expect(
+      act(async () => {
+        await result.current();
+      }),
+    ).rejects.toThrow("Entry is not a rally");
+
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(mutate).not.toHaveBeenCalled();
   });
 });

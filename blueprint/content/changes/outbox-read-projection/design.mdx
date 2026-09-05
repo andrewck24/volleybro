@@ -109,9 +109,9 @@ mutate((raw) => applyEntry(raw, setIndex, entry, phase), {
 }); // 寫沒合併的
 ```
 
-算 phase 吃合併過的資料，因為它要看得到待送的球。
+算 phase 吃合併過的資料，因為它要看得到待送的球。記一顆新球時看不出差別——`deriveSetPhase` 往回掃第一個撞到的就是這顆球自己，不管底下的陣列多短。編輯一顆舊球時就會錯：那顆球在快取裡的位置比在畫面上前面，往回掃會先撞到排在它後面、seq 更大的球，phase 用錯的那一顆算出來，然後寫進 Redux 推進記錄狀態。
 
-寫入不能用陣列位置定位。記錄流程的 `entryIndex` 是數合併後那個陣列來的，快取底下的陣列短了幾顆，同一個數字在兩邊指的不是同一個位置——照著寫會在快取裡留下空洞，下一次合併走到那個洞就整個畫面 throw。所以 `applyEntry` 收的是 entry 本身而不是 index，依 `id` 覆蓋、依 `seq` 插入，跟讀取端和 repository 的 `upsertEntry` 用同一條規則。三條路徑共用 `entities/game` 的 `upsertEntries`。
+寫入則不能用陣列位置定位。記錄流程的 `entryIndex` 是數合併後那個陣列來的，快取底下的陣列短了幾顆，同一個數字在兩邊指的不是同一個位置——照著寫會在快取裡留下空洞，下一次合併走到那個洞就整個畫面 throw。所以 `applyEntry` 收的是 entry 本身而不是 index，依 `id` 覆蓋、依 `seq` 插入，跟讀取端和 repository 的 `upsertEntry` 用同一條規則。三條路徑共用 `entities/game` 的 `upsertEntries`。
 
 `usePendingWrites` 的 flush 和 `useUnconfirmedSetCompletion` 的 retry 本來就用函式形式，不用改。
 
