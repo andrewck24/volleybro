@@ -8,9 +8,7 @@ import { makeStore, type AppStore } from "@/lib/redux/store";
 import { act, renderHook } from "@testing-library/react";
 import { Provider } from "react-redux";
 
-// useSubmitEntryDraft now takes enqueue/flush from its caller (Game, the
-// single mounted owner of usePendingWrites) rather than mounting its own
-// instance -- this stands in for that owner here.
+// Stands in for Game, the single mounted owner of usePendingWrites.
 const useTestSubmitEntryDraft = (gameId: string) => {
   const pendingWrites = usePendingWrites(gameId, 0);
   return useSubmitEntryDraft(gameId, pendingWrites);
@@ -99,11 +97,8 @@ beforeEach(() => {
   });
 });
 
-// S08: the update path used to throw and roll back on a write failure,
-// which surfaced as a toast -- now the editing card (GamePreview mode
-// "editing") is the single place that shows this, so a failed write must
-// leave the dialog in editing mode with no toast and the optimistic write
-// still standing.
+// The editing card is the single place a failed write shows.
+// See honest-sync-status S08.
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode, keeps the optimistic write, and shows no toast when the write fails", async () => {
     apiClient.mockRejectedValue(networkError());
@@ -138,8 +133,6 @@ describe("useSubmitEntryDraft update path", () => {
   });
 });
 
-// `mutate` hands back a shorter cache here, so the merged view the recorder
-// counts off and the array written to are no longer the same length.
 describe("useSubmitEntryDraft against a cache the server has cut back", () => {
   const rawGame = {
     ...baseGame,

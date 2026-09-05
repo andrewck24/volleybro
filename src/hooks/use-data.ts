@@ -10,13 +10,6 @@ import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
 
-/**
- * Centralized SWR configuration to:
- * - Reduce redundant API requests
- * - Optimize cache strategies per resource type
- * - Improve consistency across all data hooks
- */
-
 export { ApiClientError };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -27,22 +20,17 @@ const useHasCache = (key: string) => {
   return cache.get(key) !== undefined;
 };
 
-// Optimized SWR configuration presets
-// Deduplication intervals prevent redundant requests when multiple components mount simultaneously
 const SWR_CONFIG = {
-  // Default config for single-resource fetches (user, team, game)
   DEFAULT: {
-    dedupingInterval: 5 * 60 * 1000, // 5 minutes - prevent concurrent requests
-    focusThrottleInterval: 5 * 60 * 1000, // 5 minutes - prevent refetch on window focus
-    errorRetryInterval: 5000, // 5 seconds - retry failed requests
+    dedupingInterval: 5 * 60 * 1000,
+    focusThrottleInterval: 5 * 60 * 1000,
+    errorRetryInterval: 5000,
   },
-  // Config for frequently-changing data (lists)
   LIST: {
-    dedupingInterval: 2 * 60 * 1000, // 2 minutes - more aggressive for lists
+    dedupingInterval: 2 * 60 * 1000,
     focusThrottleInterval: 3 * 60 * 1000,
     errorRetryInterval: 5000,
   },
-  // Config for infinite scrolling data
   INFINITE: {
     dedupingInterval: 2 * 60 * 1000,
     focusThrottleInterval: 3 * 60 * 1000,
@@ -82,10 +70,7 @@ export const useUserPlayers = (
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
 
-/**
- * Returns the active team ID for the current user.
- * Falls back to the first JOINED player's teamId when profile.activeTeamId is null.
- */
+/** Falls back to the first JOINED player's team when activeTeamId is null. */
 export const useActiveTeamId = () => {
   const {
     user,
@@ -191,7 +176,6 @@ export const useGame = (
     ...options,
   });
 
-  // `mutate` still writes the server's version, never this.
   const pending = useAppSelector((state) => state.pendingWrites.pending);
   const game = useMemo(
     () => mergePendingEntries(data, pending, gameId),

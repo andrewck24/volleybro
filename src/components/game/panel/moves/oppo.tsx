@@ -14,16 +14,9 @@ import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
 /**
- * The real entry-submission path: creates a new rally (mode "general") or
- * persists an edit (mode "editing") via the optimistic helpers, then hands
- * the entry to the pending-write queue instead of sending it itself. Shared
- * by OppoMoves' own "tap the same move again" submit and by the Preview's
- * tap-to-submit gesture so the Preview's freeze actually persists the entry
- * instead of just flashing.
- *
  * `enqueue`/`flush` come from the caller, not a hook call here -- `Game` is
- * the single mounted owner of `usePendingWrites` and hands them down so this
- * hook does not become a second flushing instance.
+ * the single mounted owner of `usePendingWrites`, so taking them as arguments
+ * is what stops this hook becoming a second flushing instance.
  */
 export const useSubmitEntryDraft = (
   gameId: string,
@@ -35,18 +28,12 @@ export const useSubmitEntryDraft = (
     status: { entryIndex },
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
-  // `game` is merged and only the phase reads it; the updater's `raw` is the
-  // only thing written to.
   const { game, mutate } = useGame(gameId);
 
-  // Create advances the draft the instant the entry is enqueued, without
-  // waiting for the server -- the queue's own retry and the sync indicator
-  // are what make that safe. The optimistic cache write no longer carries
-  // the request; the queue's flush owns the network and updates the cache
-  // again once it has a response.
+  // Advances the draft the instant the entry is enqueued, without waiting for
+  // the server: the queue's retry and the sync indicator are what make the
+  // recorder safe to keep going.
   const create = () => {
-    // A new rally always gets a fresh identity, generated here so it exists
-    // before the optimistic update below applies it.
     const entry = {
       ...(draft as RallyView),
       id: crypto.randomUUID(),
@@ -61,11 +48,8 @@ export const useSubmitEntryDraft = (
     void flush();
   };
 
-  // Editing still waits for its result -- the recorder is watching a dialog
-  // for it, unlike create's already-advanced draft.
+  // Waits for its result, unlike create: the recorder is watching a dialog.
   const update = async () => {
-    // Editing reuses the identity setEditingEntryStatus loaded onto the
-    // draft; the entry being replaced must keep the same id.
     const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
     assertRallyAt(game!, setIndex, entryIndex);
     const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
@@ -75,11 +59,8 @@ export const useSubmitEntryDraft = (
     enqueue(entry);
     const result = await flush();
     if (!result.ok) {
-      // Not thrown, not rolled back, no toast: the editing card (mode
-      // "editing" of GamePreview) is what shows this now -- syncing while
-      // the queue still has an attempt scheduled, the destructive ring once
-      // exhausted. The recorder is still watching the dialog, and the
-      // optimistic write stays visible as the edit they're waiting on.
+      // Not thrown, not rolled back, no toast: the editing card is what
+      // shows a failed write now. See honest-sync-status.
       return;
     }
     dispatch(gameActions.confirmEntryDraftRally(phase));

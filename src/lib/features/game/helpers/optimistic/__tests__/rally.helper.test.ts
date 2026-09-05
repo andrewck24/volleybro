@@ -218,7 +218,6 @@ describe("rally.helper.ts", () => {
 
       it("should mark the set as completed when home team reaches winning score with 2-point lead", () => {
         const mockGame = createMockGame();
-        // 建立25-23得分情境
         const mockRallyHomeWin = {
           ...mockRally,
           win: true,
@@ -238,7 +237,6 @@ describe("rally.helper.ts", () => {
 
       it("should mark the set as completed when away team reaches winning score with 2-point lead", () => {
         const mockGame = createMockGame();
-        // 建立23-25得分情境
         const mockRallyAwayWin = {
           ...mockRally,
           win: false,
@@ -258,7 +256,6 @@ describe("rally.helper.ts", () => {
 
       it("should detect a set point correctly", () => {
         const mockGame = createMockGame();
-        // 建立24-22得分情境 (set point)
         const mockRallySetPoint = {
           ...mockRally,
           win: true,
@@ -287,7 +284,6 @@ describe("rally.helper.ts", () => {
           entries: [],
         });
 
-        // 決勝局主隊15-13獲勝
         const fifthSet = {
           ...mockRally,
           win: true,
@@ -309,7 +305,6 @@ describe("rally.helper.ts", () => {
     describe("game completion", () => {
       it("should mark the game as completed when a team wins majority of sets (3-0)", () => {
         const mockGame = createMockGame();
-        // 已經有兩局主隊獲勝
         mockGame.sets[0]!.win = true;
         mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
         mockGame.sets.push({
@@ -317,7 +312,6 @@ describe("rally.helper.ts", () => {
           entries: [],
         });
 
-        // 主隊第三局獲勝 25-20
         const thirdSetWin = {
           ...mockRally,
           win: true,
@@ -338,7 +332,6 @@ describe("rally.helper.ts", () => {
 
       it("should mark the game as completed when a team wins majority of sets (2-3)", () => {
         const mockGame = createMockGame();
-        // 2-2平局狀態
         mockGame.sets[0]!.win = true;
         mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
         mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
@@ -348,7 +341,6 @@ describe("rally.helper.ts", () => {
           entries: [],
         });
 
-        // 客隊決勝局獲勝 13-15
         const fifthSetLoss = {
           ...mockRally,
           win: false,
@@ -369,7 +361,6 @@ describe("rally.helper.ts", () => {
 
       it("should not mark the game as completed when no team has won majority of sets yet (2-1)", () => {
         const mockGame = createMockGame();
-        // 2-1領先狀態
         mockGame.sets[0]!.win = true;
         mockGame.sets.push({ ...mockGame.sets[0]!, win: false });
         mockGame.sets.push({ ...mockGame.sets[0]!, win: true });
@@ -378,7 +369,6 @@ describe("rally.helper.ts", () => {
           entries: [],
         });
 
-        // 主隊獲勝這球但比賽未結束
         const fourthSet = {
           ...mockRally,
           win: true,
@@ -397,11 +387,9 @@ describe("rally.helper.ts", () => {
       });
     });
 
-    // 測試更新賽事紀錄時的邏輯
     describe("when updating rally", () => {
       it("should recalculate set and game status when rally is updated", () => {
         const mockGame = createMockGame();
-        // 先增加一個決勝得分的記錄
         const winningRally = {
           ...mockRally,
           win: true,
@@ -415,7 +403,6 @@ describe("rally.helper.ts", () => {
         };
         mockGame.sets[0]!.win = true; // 已經標記為主隊勝
 
-        // 修改這個記錄，改為客隊贏
         const updatedRally = {
           ...winningRally,
           win: false,

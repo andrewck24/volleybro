@@ -75,7 +75,6 @@ export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-/** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,

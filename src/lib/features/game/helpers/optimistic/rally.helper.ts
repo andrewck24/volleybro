@@ -31,7 +31,6 @@ export const deriveEntryPhase = (
   entryDraft: RallyView & EntryIdentity,
 ): SetPhase =>
   deriveSetPhase(
-    // setIndex is the active set being processed; guaranteed in bounds
     {
       entries: upsertEntries(game.sets[setIndex]!.entries, [
         asEntry(entryDraft),
@@ -41,15 +40,12 @@ export const deriveEntryPhase = (
     setTargetPoints(game.info.scoring, setIndex),
   );
 
-// Runs against the cache, which holds fewer entries than the view the phase
-// came from -- hence by identity, never by index.
 export const applyEntry = (
   game: GameView,
   setIndex: number,
   entryDraft: RallyView & EntryIdentity,
   phase: SetPhase,
 ): GameView => {
-  // setIndex is the active set being processed; guaranteed in bounds
   const set = game.sets[setIndex]!;
   const sets = game.sets.slice();
   const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
