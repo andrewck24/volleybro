@@ -191,8 +191,7 @@ export const useGame = (
     ...options,
   });
 
-  // Laid over the server's answer on the way out, so a revalidation cannot
-  // take queued rallies off the screen. `mutate` still writes the server's.
+  // `mutate` still writes the server's version, never this.
   const pending = useAppSelector((state) => state.pendingWrites.pending);
   const game = useMemo(
     () => mergePendingEntries(data, pending, gameId),

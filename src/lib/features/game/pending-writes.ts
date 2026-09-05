@@ -88,13 +88,8 @@ export const applyFlushedEntries = (
     ),
   };
 
-/**
- * The read side: the server's cached game with everything still queued laid
- * on top, so the recorder sees now what the server will hold once the queue
- * drains. Never written back -- the cache stays the server's. `win` is left
- * alone: it means the server confirmed this set ended, and nothing here has
- * been confirmed.
- */
+// The result must never be written back to the cache, and `win` stays the
+// server's. See outbox-read-projection D1, D2.
 export const mergePendingEntries = (
   game: GameView | undefined,
   pending: readonly PendingEntry[],

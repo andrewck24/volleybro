@@ -11,7 +11,6 @@ import type { GameView, RallyView } from "@/lib/features/game/types";
 const asEntry = (entryDraft: RallyView & EntryIdentity) =>
   ({ type: EntryType.RALLY, ...entryDraft }) as const;
 
-/** An edit must land on a rally; anything else is a bug in the caller. */
 export const assertRallyAt = (
   game: GameView,
   setIndex: number,
@@ -23,11 +22,8 @@ export const assertRallyAt = (
   }
 };
 
-/**
- * Derives the set phase as of the entry being written, without writing it.
- * Must be given the merged view. Editing a rally the cache has fewer entries
- * before would otherwise walk back onto a later rally and read its score.
- */
+// Give this the merged view, never the cache: on an edit, a shorter array
+// walks back onto a later rally and reads its score.
 export const deriveEntryPhase = (
   game: GameView,
   setIndex: number,
@@ -45,11 +41,8 @@ export const deriveEntryPhase = (
     setTargetPoints(game.info.scoring, setIndex),
   );
 
-/**
- * Applies the entry and a previously-derived phase, returning a new GameView.
- * Written by identity rather than by position, because this runs against the
- * raw cache, which may hold fewer entries than the view the phase came from.
- */
+// Runs against the cache, which holds fewer entries than the view the phase
+// came from -- hence by identity, never by index.
 export const applyEntry = (
   game: GameView,
   setIndex: number,
@@ -61,8 +54,6 @@ export const applyEntry = (
   const sets = game.sets.slice();
   const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
 
-  // Editing a rally back into a set that is still being played withdraws any
-  // result recorded for it, and with it the game result it fed.
   if (phase.isSetInProgress) {
     sets[setIndex] = { ...set, entries, win: null };
     return { ...game, sets, win: null };

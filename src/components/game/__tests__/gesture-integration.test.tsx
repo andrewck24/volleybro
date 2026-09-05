@@ -30,10 +30,8 @@ jest.mock("@/lib/api/error-toast", () => ({ showErrorToast: jest.fn() }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let currentMockGame: any;
-// mutate mirrors SWR's functional-updater contract closely enough for the
-// submit path: it invokes the updater against the current raw cache
-// synchronously and keeps the result as the new cache, the way SWR's local
-// (non-revalidating) mutate does.
+// Like SWR's local mutate: runs the updater synchronously against the cache
+// and keeps what it returns.
 jest.mock("@/hooks/use-data", () => ({
   useGame: () => ({
     game: currentMockGame,

@@ -51,8 +51,6 @@ beforeEach(() => {
   store = makeStore();
 });
 
-// The bug this change fixes: a revalidation replaces the cache with the
-// server's version, which does not know about anything still queued.
 it("keeps queued rallies on screen across a revalidation", async () => {
   const fetcher = jest.fn(async () => serverGame([0]));
   const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
@@ -89,8 +87,6 @@ it("orders a queued rally by its seq, not by arrival", async () => {
   ]);
 });
 
-// The merge is a read-side projection. Writing it back would put a rally that
-// is already queued into the cache too, and the next merge would show it twice.
 it("records two rallies without either landing in the cache twice", async () => {
   const fetcher = jest.fn(async () => serverGame([0]));
   const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
@@ -104,7 +100,6 @@ it("records two rallies without either landing in the cache twice", async () => 
       home: { score: entryIndex, type: 0, num: 0 },
       away: { score: 0 },
     } as never;
-    // The phase comes from what is on screen, the write goes to the cache.
     const phase = deriveEntryPhase(result.current.game!, 0, entryIndex, draft);
     await act(async () => {
       await result.current.mutate((raw) => applyEntry(raw!, 0, draft, phase), {
@@ -136,16 +131,11 @@ it("records two rallies without either landing in the cache twice", async () => 
   ]);
 });
 
-// The regression the read model makes reachable: the recorder counts entries
-// on the merged view, so that index means nothing to the cache underneath it.
-// Writing by identity is what keeps the two from drifting apart.
 it("records onto a cache the server has cut back, without leaving a gap", async () => {
   const fetcher = jest.fn(async () => serverGame([0]));
   const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
   await waitFor(() => expect(result.current.game).toBeDefined());
 
-  // A rally that will never send: the queue keeps it, every revalidation
-  // after this drops it from the cache.
   enqueue("q1", 1);
   await act(async () => {
     await result.current.mutate();
@@ -190,7 +180,6 @@ it("records onto a cache the server has cut back, without leaving a gap", async 
   ]);
 });
 
-// A cold start: the queue comes back off disk before the first fetch lands.
 it("shows rallies restored from disk once the game loads", async () => {
   act(() => {
     store.dispatch(
@@ -210,8 +199,7 @@ it("shows rallies restored from disk once the game loads", async () => {
   ]);
 });
 
-// A flush replaces the set's entries with the server's answer. Anything
-// recorded while that request was in flight is not in it.
+// A flush replaces the set's entries wholesale with the server's answer.
 it("keeps a rally recorded while a flush was in flight", async () => {
   const fetcher = jest.fn(async () => serverGame([0]));
   const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
@@ -220,7 +208,6 @@ it("keeps a rally recorded while a flush was in flight", async () => {
   enqueue("q1", 1);
   enqueue("q2", 2);
 
-  // The flush that was already in flight answers for q1 alone.
   await act(async () => {
     await result.current.mutate(
       (raw) =>

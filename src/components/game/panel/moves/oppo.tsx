@@ -35,8 +35,8 @@ export const useSubmitEntryDraft = (
     status: { entryIndex },
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
-  // `game` is merged and the phase must read it; `mutate`'s updater hands
-  // back the raw cache, which is the only thing written to.
+  // `game` is merged and only the phase reads it; the updater's `raw` is the
+  // only thing written to.
   const { game, mutate } = useGame(gameId);
 
   // Create advances the draft the instant the entry is enqueued, without

@@ -441,18 +441,14 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
-/**
- * Identity decides where a write lands, not position: an id already present
- * is replaced, anything else is inserted in `seq` order -- the rule the
- * repository's own upsert writes by.
- */
+// The repository writes entries by this same rule; the two must not diverge.
+// See outbox-read-projection D2.
 export function upsertEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
 ): T[] {
   const next = entries.slice();
 
-  // Later wins for a repeated id, as the server's ordered bulk write does.
   for (const entry of incoming) {
     const at = next.findIndex((e) => e.id === entry.id);
     if (at === -1) next.push(entry);
@@ -462,7 +458,6 @@ export function upsertEntries<T extends EntryIdentity>(
   return next.sort((a, b) => a.seq - b.seq);
 }
 
-/** Whether a set has been played out, judged on its own entries. */
 export function isSetFinished(
   set: { entries?: readonly DerivableEntry[] } | undefined,
   scoring: { setCount: number; decidingSetPoints: number },
@@ -476,7 +471,6 @@ export function isSetFinished(
   return !isSetInProgress;
 }
 
-/** How many sets each side has won, derived from each set's final rally. */
 export function deriveSetsWon(
   sets: readonly { entries?: readonly DerivableEntry[] }[],
   scoring: { setCount: number; decidingSetPoints: number },

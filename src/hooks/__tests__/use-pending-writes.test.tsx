@@ -406,8 +406,6 @@ describe("PendingWritesContext: single owner", () => {
   });
 });
 
-// The cache write has to land before the queue drops the entry, or the merged
-// read loses the ball for the frame in between.
 describe("flush ordering", () => {
   it("writes the confirmed entries to the cache before clearing the queue", async () => {
     apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });

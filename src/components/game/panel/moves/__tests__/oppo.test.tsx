@@ -138,10 +138,8 @@ describe("useSubmitEntryDraft update path", () => {
   });
 });
 
-// The seam the read model creates: `entryIndex` and the draft's identity are
-// both counted off the merged view, while the write lands on the raw cache
-// underneath it. Mocking `mutate` to hand back a shorter cache is what makes
-// the two differ here.
+// `mutate` hands back a shorter cache here, so the merged view the recorder
+// counts off and the array written to are no longer the same length.
 describe("useSubmitEntryDraft against a cache the server has cut back", () => {
   const rawGame = {
     ...baseGame,

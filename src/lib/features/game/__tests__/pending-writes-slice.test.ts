@@ -334,8 +334,7 @@ describe("pendingWrites reducer", () => {
   });
 });
 
-// The read-side merge inserts by seq but resolves a repeated id by queue
-// position, so `pending` order is a contract rather than an accident.
+// The read-side merge depends on this order. See outbox-read-projection.
 describe("pending order", () => {
   const seeded: PendingWritesState = {
     storageUnavailable: false,

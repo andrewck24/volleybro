@@ -7,8 +7,7 @@ import {
 } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
-// The sequence useSubmitEntryDraft runs per rally, against one game rather
-// than a merged view and a raw cache.
+// What useSubmitEntryDraft runs per rally, collapsed onto one game.
 const record = (
   { setIndex, entryIndex }: { setIndex: number; entryIndex: number },
   draft: RallyView & EntryIdentity,

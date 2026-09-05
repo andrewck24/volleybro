@@ -216,7 +216,6 @@ describe("mergePendingEntries", () => {
     expect(merged?.sets[0]?.entries[1]).toMatchObject({ win: true });
   });
 
-  // The server's bulk write is ordered, so the last operation for an id wins.
   it("takes the last queued item when one id is queued twice", () => {
     const merged = mergePendingEntries(
       makeGame([[0]]),
@@ -242,7 +241,6 @@ describe("mergePendingEntries", () => {
     expect(seqsOf(merged, 1)).toEqual(["s0", "q"]);
   });
 
-  // The queue holds writes the server has not accepted; `win` says it has.
   it("leaves win alone", () => {
     const game = makeGame([[0]]);
     game.win = null;
