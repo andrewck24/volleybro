@@ -31,46 +31,194 @@ S01 與 S02 互相獨立，由兩個 executor 在各自的 worktree 平行完成
     {
       path: "src/lib/features/game/pending-writes.ts",
       change: "modified",
+      added: 36,
+      removed: 22,
       summary:
-        "`mergePendingEntries`——讀取側投影。收伺服器的快取與待送佇列，依 setIndex 分組後交給 `upsertEntries`。不碰 `win`。",
+        "讀取側投影。收伺服器的快取與待送佇列，依 `setIndex` 分組後交給 `upsertEntries`。不碰 `win`——那是伺服器已確認此局結束的記號。沒有待送項目時原樣回傳 `game`，參考保持穩定，下游的記憶化才不會失效。",
+      code: `export const mergePendingEntries = (
+  game: GameView | undefined,
+  pending: readonly PendingEntry[],
+  gameId: string,
+): GameView | undefined => {
+  if (!game) return game;
+
+const bySet = new Map<number, PendingEntry[]>();
+for (const item of pending) {
+if (item.gameId !== gameId) continue;
+const group = bySet.get(item.setIndex);
+if (group) group.push(item);
+else bySet.set(item.setIndex, [item]);
+}
+if (bySet.size === 0) return game;
+
+return {
+...game,
+sets: game.sets.map((set, setIndex) => {
+const group = bySet.get(setIndex);
+if (!group) return set;
+
+      return {
+        ...set,
+        entries: upsertEntries(
+          set.entries,
+          group.map(({ entry }) => ({ type: EntryType.RALLY, ...entry })),
+        ),
+      };
+    }),
+
+};
+};`,
     },
     {
       path: "src/hooks/use-data.ts",
       change: "modified",
+      added: 14,
+      removed: 22,
       summary:
-        "`useGame` 以 `useMemo` 疊上待送項目後才回傳。相依是 SWR 的 `data` 與佇列陣列；沒有待送項目時原樣回傳 `data`，參考保持穩定。",
+        "投影掛在 `useGame` 的回傳上，二十一個消費端一行不改。`mutate`原樣回傳——寫入路徑拿到的仍是伺服器那一份。",
+      code:`const pending = useAppSelector((state) => state.pendingWrites.pending);
+const game = useMemo(
+() => mergePendingEntries(data, pending, gameId),
+[data, pending, gameId],
+);
+
+return { game, error, isLoading, isValidating, mutate };`,
     },
     {
       path: "src/entities/game.ts",
       change: "modified",
+      added: 49,
+      removed: 26,
       summary:
-        "`upsertEntries` 依 id 覆蓋、依 seq 排序，讀取合併與樂觀寫入共用。`isSetFinished` 與 `deriveSetsWon` 讓大比分改由 entries 推導。",
+        "`upsertEntries`是讀取合併與樂觀寫入共用的那條規則，也是 repository 的`upsertEntry`寫入時用的規則。另加`isSetFinished`與`deriveSetsWon`，讓大比分改由 entries 推導而不是讀 `win`。",
+      code: `export function upsertEntries<T extends EntryIdentity>(
+entries: readonly T[],
+incoming: readonly T[],
+): T[] {
+const next = entries.slice();
+
+for (const entry of incoming) {
+const at = next.findIndex((e) => e.id === entry.id);
+if (at === -1) next.push(entry);
+else next[at] = entry;
+}
+
+return next.sort((a, b) => a.seq - b.seq);
+}`,
     },
     {
       path: "src/lib/features/game/helpers/optimistic/rally.helper.ts",
       change: "modified",
+      added: 40,
+      removed: 63,
       summary:
-        "推導與套用拆成 `deriveEntryPhase` 與 `applyEntry`，兩者皆為純函式。`createRallyHelper`／`updateRallyHelper` 刪除。",
+        "推導與套用拆成兩個純函式。`createRallyHelper`/`updateRallyHelper`刪除——它們把兩件事綁在同一份`game`上，而呼叫端需要的正是兩份不同的資料。淨減 23 行。",
+      code:`// Give this the merged view, never the cache: on an edit, a shorter array
+// walks back onto a later rally and reads its score.
+export const deriveEntryPhase = (
+game: GameView,
+setIndex: number,
+entryIndex: number,
+entryDraft: RallyView & EntryIdentity,
+): SetPhase =>
+deriveSetPhase(
+{ entries: upsertEntries(game.sets[setIndex]!.entries, [asEntry(entryDraft)]) },
+entryIndex + 1,
+setTargetPoints(game.info.scoring, setIndex),
+);
+
+export const applyEntry = (
+  game: GameView,
+  setIndex: number,
+  entryDraft: RallyView & EntryIdentity,
+  phase: SetPhase,
+): GameView => {
+  const set = game.sets[setIndex]!;
+  const sets = game.sets.slice();
+  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
+
+if (phase.isSetInProgress) {
+sets[setIndex] = { ...set, entries, win: null };
+return { ...game, sets, win: null };
+}
+
+const { home, away } = entryDraft;
+sets[setIndex] = { ...set, entries, win: home.score > away.score };
+...
+};`,
     },
     {
       path: "src/components/game/panel/moves/oppo.tsx",
       change: "modified",
+      added: 15,
+      removed: 42,
       summary:
-        "`create`／`update` 先從合併後的 `game` 同步取得 phase，再以 `mutate` 的函式形式把 entry 寫進 raw cache。",
+        "整份 Change 的規則在這五行裡：phase 讀合併後的 `game`，寫入只碰 updater 交回來的 `raw`。守衛在 `mutate`之外——放進 updater 會變成 unhandled rejection，而流程還會繼續入列。",
+      code:`assertRallyAt(game!, setIndex, entryIndex);
+const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
+mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
+revalidate: false,
+});
+enqueue(entry);`,
     },
     {
       path: "src/hooks/__tests__/use-game-merge.test.tsx",
       change: "added",
+      added: 230,
+      removed: 0,
       summary:
-        "合併本身的六個測試：重新驗證、依 seq 排序、連記兩顆各一次、對縮短過的快取記球、冷啟動還原、flush 進行中記球。",
+        "六個測試，真實 SWR 加真實 store。獨立驗證用 mutation 確認過每一個都殺得掉東西：換回位置寫入掛 2 個、拿掉 seq 排序掛 2 個、合併變 no-op 掛 5 個、upsert 永遠 append 掛 2 個。",
+      code: `it("records onto a cache the server has cut back, without leaving a gap", async () => {
+// ...enqueue q1, then revalidate so the cache drops it
+const entryIndex = result.current.game!.sets[0]!.entries.length;
+expect(entryIndex).toBe(2);
+
+const draft = { id: "q2", seq: entryIndex, win: true, home: {}, away: {} };
+const phase = deriveEntryPhase(result.current.game!, 0, entryIndex, draft);
+await act(async () => {
+await result.current.mutate((raw) => applyEntry(raw!, 0, draft, phase), {
+revalidate: false,
+});
+});
+enqueue("q2", entryIndex);
+
+expect(cachedEntries.map((e) => e.id)).toEqual(["s0", "q2"]);
+expect(cachedEntries.every((e) => e !== undefined)).toBe(true);
+expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
+"s0", "q1", "q2",
+]);
+});`,
     },
     {
       path: "src/components/game/__tests__/summary-drawer-merge.test.tsx",
       change: "added",
+      added: 88,
+      removed: 0,
       summary:
-        "失敗標記掛得到列。刻意不 mock SWR 與 Redux——受測的 seam 就是兩者的交界。",
-    },
-  ]}
+        "失敗標記掛得到列。刻意不 mock SWR 與 Redux——受測的 seam 就是兩者的交界，mock 任一邊都證不出東西。這是本 Change 唯一刻意偏離 `docs/testing-strategy.md`元件層規範的地方。",
+      code:`it("marks a queued rally the server rejected, on a row only the merge provides", async () => {
+store.dispatch(pendingWritesActions.enqueued({ entry: rally("queued-1", 1, 2), gameId: "game-1", setIndex: 0 }));
+store.dispatch(pendingWritesActions.flushFailed({
+ids: ["queued-1"], retryable: false, lastError: permanentFailure,
+}));
+
+render(
+
+<Provider store={store}>
+  <SWRConfig
+    value={{ provider: () => new Map([["/api/games/game-1", { data: game }]]) }}
+  >
+    <SummaryDrawer gameId="game-1" state="expanded" />
+  </SWRConfig>
+</Provider>
+, );
+
+await waitFor(() =>
+expect(screen.getAllByTestId("entry-row-retry")).toHaveLength(1),
+);
+});`,
+},
+]}
 />
 
 ## Findings
@@ -155,7 +303,7 @@ S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.ts
       name: "替補寫入仍以陣列位置定位，且把合併結果當 optimisticData 寫回快取",
       severity: "warning",
       mitigation:
-        "同一個根因唯一沒收斂的呼叫點。目前不會產生空洞（entryIndex 與傳入的 game 同源），已開 ATE-139。",
+        "同一個根因唯一沒收斂的呼叫點。目前不會產生空洞，因為它的 entryIndex 與它傳進去的 game 同源，而合併又會依 id 去重。已列為後續工作。",
     },
     {
       name: "冷啟動且完全離線時，未送出的球看不到",
@@ -168,10 +316,13 @@ S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.ts
 
 ## Follow-ups
 
-- **ATE-136** 局結果的推導下沉為兩端共用——`applyEntry` 仍在客戶端寫 `win`，與伺服器的 `deriveSetCompletion` 是兩份實作。
-- **ATE-137** 送不出去的球沒有丟棄路徑。
-- **ATE-138** 建立 `CONTEXT.md`。
-- **ATE-139** 替補寫入收斂到同一條規則（本次 Review 產生）。
+- **局結果的推導下沉為兩端共用。** `applyEntry` 仍然在客戶端把 `win` 寫進快取，而伺服器的 `deriveSetCompletion` 是另一份實作。兩份目前用的是同一組規則，所以看不出差異——但那是巧合而不是保證，沒有任何測試跨在兩端上。這條也是本 Change 把 `win` 窄化為「伺服器已確認」之後，最後一個還在客戶端寫它的地方。
+
+- **送不出去的球需要一條丟棄路徑。** 本 Change 讓 4xx 永久失敗的球留在畫面上並掛出失敗標記，記錄者因此第一次看得見它。但看得見之後沒有下一步：那顆球既送不出去，也沒有辦法把它從佇列裡拿掉。七天的過期規則只在重新開啟 app 時生效，記錄途中不會清。
+
+- **替補寫入收斂到同一條規則。** 替補的呼叫端仍以陣列位置定位，而且把合併結果當 `optimisticData` 寫回快取——後者正是本 Change 建立的契約禁止的事。目前不會產生記球路徑上那個空洞，是因為它的 index 與它傳進去的資料同源，屬於僥倖而非設計。本次 Review 產生。
+
+- **建立 `CONTEXT.md`。** `Match` 與 `Game`、`Entry` 與 `Rally` 這兩組詞在程式碼裡各有明確分工，但沒有任何一份文件說明差別，讀者只能從型別反推。
 
 ## Validation
 
