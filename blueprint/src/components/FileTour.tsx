@@ -70,29 +70,31 @@ export function FileTour({ files }: FileTourProps) {
             value={`${file.path}-${index}`}
             className="px-4"
           >
-            <AccordionTrigger>
-              <span className="flex flex-1 items-center justify-between gap-3 pr-3">
-                <span className="font-mono text-sm">{file.path}</span>
-                <span className="flex items-center gap-2">
+            <AccordionTrigger className="min-w-0">
+              <span className="flex w-full min-w-0 items-center justify-between gap-3 pr-3">
+                <span className="min-w-0 truncate font-mono text-sm">
+                  {file.path}
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
                   {file.change && (
                     <Badge
                       variant="outline"
-                      className={cn(badgeClassName[file.change])}
+                      className={cn(
+                        "w-12 justify-center",
+                        badgeClassName[file.change],
+                      )}
                     >
                       {badgeLabel[file.change]}
                     </Badge>
                   )}
                   {(file.added != null || file.removed != null) && (
-                    <span className="font-mono text-xs">
-                      {file.added != null && (
-                        <span className="text-chart-2">+{file.added}</span>
-                      )}
-                      {file.added != null && file.removed != null && " "}
-                      {file.removed != null && (
-                        <span className="text-destructive">
-                          −{file.removed}
-                        </span>
-                      )}
+                    <span className="flex gap-1.5 font-mono text-xs tabular-nums">
+                      <span className="w-9 text-right text-primary">
+                        {file.added != null && `+${file.added}`}
+                      </span>
+                      <span className="w-9 text-right text-destructive">
+                        {file.removed != null && `−${file.removed}`}
+                      </span>
                     </span>
                   )}
                 </span>

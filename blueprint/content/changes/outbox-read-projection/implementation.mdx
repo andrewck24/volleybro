@@ -2,15 +2,12 @@
 title: Implementation
 ---
 
-import { TaskProgress } from "@/components/TaskProgress";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
   三片，只有一條相依邊。S01 先把「寫入只碰未合併的快取」這條路建好，S03
   才能只做合併一件事；S02 與它們都無關，可以並行。使用者看得到的修正全部在 S03。
 </TLDR>
-
-<TaskProgress done={0} total={3} />
 
 ## S01 是 prefactor，不是第一步功能
 

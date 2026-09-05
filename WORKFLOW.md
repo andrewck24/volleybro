@@ -215,7 +215,8 @@ After all slices complete:
 2. evaluate the whole Change for Changeset applicability and the correct semantic version bump, or
    record the applicable repository-defined exemption;
 3. run the `code-review` playbook in an independent context against both repository standards and
-   the approved Change specification;
+   the approved Change specification, giving the standards reviewer `CONTRIBUTING.md`'s own rules
+   verbatim — an independent context knows only what its brief carries;
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent review until both axes reach a fixed point;
 5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
