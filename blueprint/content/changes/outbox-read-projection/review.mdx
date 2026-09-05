@@ -206,38 +206,34 @@ S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.ts
 
 ## Validation
 
-`pnpm verify:all` 全綠，含 `pnpm build` 與 blueprint 的靜態輸出。`pnpm test:integration` 10 suites / 28 tests。單元測試 122 suites / 974 tests。
+`pnpm verify:all` 全綠，含 `pnpm build` 與 blueprint 的靜態輸出。`pnpm test:integration` 10 suites / 28 tests。單元測試 122 suites / 974 tests。`pnpm test:workflow` 25 tests，含本次新增的三條 Blueprint 產物檢查。
 
-### 驗收腳本
+### 裝置驗證
 
-需要真實裝置——auth 擋住瀏覽器自動化，這幾條無法由測試代勞。
+在已登入的開發環境上跑過，方法是在頁面層攔截 `fetch`，只把 rally 的 PUT 擋成 400、讓 GET 照常——這正是「伺服器拒收但讀取正常」那個狀態，也是崩潰唯一的入口。攔截只影響瀏覽器分頁，沒有動任何程式碼。
 
 <Scenario
-  given="開啟飛航模式，在記錄畫面記三球"
-  when="關閉 app，重新開啟並回到同一場比賽"
-  then="三球都還在列表上，分數是三球之後的分數，不是伺服器那一版"
+  given="記一顆球，其寫入被伺服器以 400 拒絕，因此永久留在佇列裡"
+  when="重新載入頁面——快取清空由伺服器重填（9 顆），佇列從 localStorage 還原（1 筆）"
+  then="畫面顯示 10 顆球與 10 分。冷啟動沒有讓未送出的那顆消失"
 />
 
 <Scenario
-  given="離線記三球後恢復連線，但其中一球被伺服器以 4xx 拒絕"
-  when="停在記錄畫面，等待或切換 app 觸發一次 revalidation"
-  then="被拒絕的那球仍在列表上，且該列顯示失敗標記與重試"
+  given="承上，畫面有 10 顆球而快取只有 9 顆"
+  when="再記一顆球"
+  then="分數變 11，沒有崩潰、沒有 unhandled rejection。修復前這一步會在下一次合併時 throw 掉整個比賽畫面"
 />
 
 <Scenario
-  given="離線記三球，畫面停在記錄頁超過五分鐘"
-  when="切回 app（觸發 focus revalidation），再記一球"
-  then="四球都在，順序正確，畫面沒有崩潰或空白"
+  given="再記一顆球並讓它的寫入被拒"
+  when="展開逐球紀錄"
+  then="第 12 列右側出現重試鍵，掛在正確的那一列上；解除攔截後點它，該球送出、標記消失、佇列清空"
 />
 
-<Scenario
-  given="網路很慢的環境，記一球後在請求還沒回來時"
-  when="立刻再記第二球"
-  then="兩球都在畫面上，第一球確認後第二球不會消失"
-/>
+### 尚未驗證
 
-<Scenario
-  given="一局打完但 completeSet 沒有成功（伺服器的 win 停在 null）"
-  when="看比賽標頭的大比分"
-  then="顯示推導出的局數，而不是少一局"
-/>
+`revalidateOnFocus` 與 `revalidateOnReconnect` 兩條路徑沒有實地觸發成功——合成的 `focus` / `online` 事件被 SWR 五分鐘的 `focusThrottleInterval` 擋掉，網路面板確認期間沒有第二次 GET。冷啟動走的是同一個合併函式，覆蓋的是同一件事，但那兩條的觸發時機本身未經實測。
+
+「flush 進行中記球」也沒有手動製造出來，時序太短。它有單元測試，沒有裝置證據。
+
+`completeSet` 失敗時大比分顯示推導結果，需要打完一局並讓那一次寫入失敗，未做。
