@@ -13,11 +13,6 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
-/**
- * `enqueue`/`flush` come from the caller, not a hook call here -- `Game` is
- * the single mounted owner of `usePendingWrites`, so taking them as arguments
- * is what stops this hook becoming a second flushing instance.
- */
 export const useSubmitEntryDraft = (
   gameId: string,
   { enqueue, flush }: Pick<PendingWritesApi, "enqueue" | "flush">,
@@ -48,7 +43,6 @@ export const useSubmitEntryDraft = (
     void flush();
   };
 
-  // Waits for its result, unlike create: the recorder is watching a dialog.
   const update = async () => {
     const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
     assertRallyAt(game!, setIndex, entryIndex);
@@ -59,8 +53,6 @@ export const useSubmitEntryDraft = (
     enqueue(entry);
     const result = await flush();
     if (!result.ok) {
-      // Not thrown, not rolled back, no toast: the editing card is what
-      // shows a failed write now. See honest-sync-status.
       return;
     }
     dispatch(gameActions.confirmEntryDraftRally(phase));

@@ -151,8 +151,6 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       "data-state",
       "idle",
     );
-    // Idle (not recording) has no separate Preview bar -- the peek row is the
-    // newest committed entry; the handle toggles the drawer.
     expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId("summary-drawer-handle"));
@@ -173,19 +171,13 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
-    // Recording now: the draft Preview bar appears at the top of the drawer.
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    // Real submit persisted the entry; the drawer state is unchanged (idle).
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
     );
 
-    // The draft is reset (no longer recording), so there is no Preview bar; the
-    // just-committed entry (#7) is simply the newest row. Expand via the handle
-    // to see the full committed list, newest-first (#7 then the pre-existing
-    // #4).
     await user.click(screen.getByTestId("summary-drawer-handle"));
     const rows = await screen.findAllByTestId("summary-drawer-row");
     expect(rows).toHaveLength(2);
@@ -205,7 +197,6 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
 
     await user.click(await screen.findByTestId("preview-trigger"));
 
-    // Editing + incomplete: the tap does nothing -- the drawer stays idle.
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
       "idle",
@@ -217,7 +208,6 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
     const { store } = setUpGame();
 
     await screen.findByTestId("summary-drawer");
-    // Expand from the peek via the handle.
     await user.click(screen.getByTestId("summary-drawer-handle"));
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",
@@ -228,8 +218,6 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
-    // The in-progress draft is the pulsing Preview bar (not a committed row);
-    // the one pre-existing committed entry (#4) stays as a row below it.
     expect(await screen.findByTestId("preview-trigger")).toHaveClass(
       "animate-pulse",
     );
@@ -238,8 +226,6 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       screen.queryByTestId("summary-drawer-draft-row"),
     ).not.toBeInTheDocument();
 
-    // Escape collapses the expanded sheet back to the peek (onOpenChange ->
-    // collapse-to-peek), regardless of input progress.
     await user.keyboard("{Escape}");
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
       "data-state",

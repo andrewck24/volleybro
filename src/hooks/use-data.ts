@@ -70,7 +70,6 @@ export const useUserPlayers = (
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
 
-/** Falls back to the first JOINED player's team when activeTeamId is null. */
 export const useActiveTeamId = () => {
   const {
     user,

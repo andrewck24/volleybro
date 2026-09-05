@@ -97,8 +97,6 @@ beforeEach(() => {
   });
 });
 
-// The editing card is the single place a failed write shows.
-// See honest-sync-status S08.
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode, keeps the optimistic write, and shows no toast when the write fails", async () => {
     apiClient.mockRejectedValue(networkError());
@@ -113,7 +111,6 @@ describe("useSubmitEntryDraft update path", () => {
     expect(mockToast).not.toHaveBeenCalled();
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().pendingWrites.pending).toHaveLength(1);
-    // Only the initial optimistic mutate -- no second call rolling it back.
     expect(mutate).toHaveBeenCalledTimes(1);
   });
 

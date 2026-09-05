@@ -42,9 +42,6 @@ describe("deriveSyncStatus", () => {
     ).toBe("syncing");
   });
 
-  // The hiccup case: one failure is survivable, and the 2s background retry
-  // usually clears it. Turning the icon over here would flicker on every
-  // transient failure.
   it("still reads syncing after a single measured failure", () => {
     const state = stateOf([
       makePendingEntry({ attempts: 1, lastError: retryable as never }),
@@ -71,7 +68,6 @@ describe("deriveSyncStatus", () => {
     expect(deriveSyncStatus(state, "game-1")).toBe("failed");
   });
 
-  // An entry that will never send outranks a queue that is merely waiting.
   it("prefers failed over unsent when both are true", () => {
     const state = stateOf([
       makePendingEntry({
@@ -88,8 +84,6 @@ describe("deriveSyncStatus", () => {
     expect(deriveSyncStatus(state, "game-1")).toBe("failed");
   });
 
-  // "Hidden" means no risk, not no queue: nothing recorded from here would
-  // survive the app being reclaimed, so an empty queue is not reassuring.
   it("reads unwritable even when the queue is empty", () => {
     expect(deriveSyncStatus(stateOf([], true), "game-1")).toBe("unwritable");
   });
@@ -111,9 +105,6 @@ describe("deriveSyncStatus", () => {
 });
 
 describe("hasFailedWrite", () => {
-  // The same judgement the indicator's warning tone uses: an exhausted
-  // backoff is not enough, because those entries send themselves on the next
-  // flush. Only an entry nothing can send carries the marker.
   it("is true only for an entry that cannot be attempted again", () => {
     const state = stateOf([
       makePendingEntry({
