@@ -193,16 +193,14 @@ const seqsOf = (game: GameView | undefined, setIndex = 0) =>
 describe("mergePendingEntries", () => {
   it("returns the same game when nothing is queued for it", () => {
     const game = makeGame([[0, 1]]);
-    expect(mergePendingEntries(game, stateOf([]), "game-1")).toBe(game);
-    expect(mergePendingEntries(game, stateOf([queued("q", 2)]), "game-2")).toBe(
-      game,
-    );
+    expect(mergePendingEntries(game, [], "game-1")).toBe(game);
+    expect(mergePendingEntries(game, [queued("q", 2)], "game-2")).toBe(game);
   });
 
   it("inserts a queued entry at its seq rather than at the end", () => {
     const merged = mergePendingEntries(
       makeGame([[0, 2]]),
-      stateOf([queued("q", 1)]),
+      [queued("q", 1)],
       "game-1",
     );
     expect(seqsOf(merged)).toEqual(["s0", "q", "s2"]);
@@ -211,7 +209,7 @@ describe("mergePendingEntries", () => {
   it("replaces an entry the server already holds under the same id", () => {
     const merged = mergePendingEntries(
       makeGame([[0, 1]]),
-      stateOf([queued("s1", 1)]),
+      [queued("s1", 1)],
       "game-1",
     );
     expect(seqsOf(merged)).toEqual(["s0", "s1"]);
@@ -222,12 +220,12 @@ describe("mergePendingEntries", () => {
   it("takes the last queued item when one id is queued twice", () => {
     const merged = mergePendingEntries(
       makeGame([[0]]),
-      stateOf([
+      [
         queued("q", 1, { attempts: 1 }),
         makePendingEntry({
           entry: { id: "q", seq: 1, win: false, home: {}, away: {} } as never,
         }),
-      ]),
+      ],
       "game-1",
     );
     expect(seqsOf(merged)).toEqual(["s0", "q"]);
@@ -237,7 +235,7 @@ describe("mergePendingEntries", () => {
   it("merges each set's queue into that set only", () => {
     const merged = mergePendingEntries(
       makeGame([[0], [0]]),
-      stateOf([queued("q", 1, { setIndex: 1 })]),
+      [queued("q", 1, { setIndex: 1 })],
       "game-1",
     );
     expect(seqsOf(merged, 0)).toEqual(["s0"]);
@@ -248,11 +246,7 @@ describe("mergePendingEntries", () => {
   it("leaves win alone", () => {
     const game = makeGame([[0]]);
     game.win = null;
-    const merged = mergePendingEntries(
-      game,
-      stateOf([queued("q", 1)]),
-      "game-1",
-    );
+    const merged = mergePendingEntries(game, [queued("q", 1)], "game-1");
     expect(merged?.win).toBeNull();
     expect(merged?.sets[0]?.win).toBeNull();
   });
@@ -260,19 +254,19 @@ describe("mergePendingEntries", () => {
   it("does not touch the game it was given", () => {
     const game = makeGame([[0]]);
     const before = JSON.stringify(game);
-    mergePendingEntries(game, stateOf([queued("q", 1)]), "game-1");
+    mergePendingEntries(game, [queued("q", 1)], "game-1");
     expect(JSON.stringify(game)).toBe(before);
   });
 
   it("merges an entry that can never be sent, so its failure can be shown", () => {
     const merged = mergePendingEntries(
       makeGame([[0]]),
-      stateOf([
+      [
         queued("q", 1, {
           nextAttemptAt: null,
           lastError: notRetryable as never,
         }),
-      ]),
+      ],
       "game-1",
     );
     expect(seqsOf(merged)).toEqual(["s0", "q"]);
@@ -280,7 +274,7 @@ describe("mergePendingEntries", () => {
 
   it("returns undefined while the game has not loaded", () => {
     expect(
-      mergePendingEntries(undefined, stateOf([queued("q", 1)]), "game-1"),
+      mergePendingEntries(undefined, [queued("q", 1)], "game-1"),
     ).toBeUndefined();
   });
 });

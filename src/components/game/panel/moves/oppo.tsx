@@ -1,12 +1,12 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
-import type { SetPhase } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import type { PendingWritesApi } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
-  createRallyHelper,
-  updateRallyHelper,
+  applyEntry,
+  assertRallyAt,
+  deriveEntryPhase,
 } from "@/lib/features/game/helpers";
 import type { RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -35,7 +35,10 @@ export const useSubmitEntryDraft = (
     status: { entryIndex },
     entryDraft: draft,
   } = useAppSelector((state) => state.game[mode]);
-  const { mutate } = useGame(gameId);
+  // Two different views, deliberately: `game` is the merged read model, which
+  // the phase must be derived from, and `mutate`'s updater hands back the raw
+  // cache, which is the only thing written to.
+  const { game, mutate } = useGame(gameId);
 
   // Create advances the draft the instant the entry is enqueued, without
   // waiting for the server -- the queue's own retry and the sync indicator
@@ -50,19 +53,10 @@ export const useSubmitEntryDraft = (
       id: crypto.randomUUID(),
       seq: entryIndex,
     };
-    let phase!: SetPhase;
-    mutate(
-      (raw) => {
-        const result = createRallyHelper(
-          { gameId, setIndex, entryIndex },
-          entry,
-          raw!,
-        );
-        phase = result.phase;
-        return result.game;
-      },
-      { revalidate: false },
-    );
+    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
+    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
+      revalidate: false,
+    });
     enqueue(entry);
     dispatch(gameActions.confirmEntryDraftRally(phase));
     void flush();
@@ -74,19 +68,11 @@ export const useSubmitEntryDraft = (
     // Editing reuses the identity setEditingEntryStatus loaded onto the
     // draft; the entry being replaced must keep the same id.
     const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
-    let phase!: SetPhase;
-    mutate(
-      (raw) => {
-        const result = updateRallyHelper(
-          { gameId, setIndex, entryIndex },
-          entry,
-          raw!,
-        );
-        phase = result.phase;
-        return result.game;
-      },
-      { revalidate: false },
-    );
+    assertRallyAt(game!, setIndex, entryIndex);
+    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
+    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
+      revalidate: false,
+    });
     enqueue(entry);
     const result = await flush();
     if (!result.ok) {

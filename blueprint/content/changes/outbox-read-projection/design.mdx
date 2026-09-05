@@ -104,12 +104,14 @@ import mergeContract from "./design/decisions/D2-merge-mirrors-upsert-and-never-
 
 ```ts
 const phase = deriveEntryPhase(game, setIndex, entryIndex, entry); // 吃合併過的
-mutate((raw) => applyRallyEntry(raw, setIndex, entryIndex, entry, phase), {
+mutate((raw) => applyEntry(raw, setIndex, entry, phase), {
   revalidate: false,
 }); // 寫沒合併的
 ```
 
-算 phase 要吃合併過的資料，因為它要看得到待送的球。少了那幾顆，下一顆球會拿到過期的比分，而 phase 會被寫進 Redux 推進記錄狀態——那不只是顯示錯。
+算 phase 吃合併過的資料，因為它要看得到待送的球。
+
+寫入不能用陣列位置定位。記錄流程的 `entryIndex` 是數合併後那個陣列來的，快取底下的陣列短了幾顆，同一個數字在兩邊指的不是同一個位置——照著寫會在快取裡留下空洞，下一次合併走到那個洞就整個畫面 throw。所以 `applyEntry` 收的是 entry 本身而不是 index，依 `id` 覆蓋、依 `seq` 插入，跟讀取端和 repository 的 `upsertEntry` 用同一條規則。三條路徑共用 `entities/game` 的 `upsertEntries`。
 
 `usePendingWrites` 的 flush 和 `useUnconfirmedSetCompletion` 的 retry 本來就用函式形式，不用改。
 
@@ -119,15 +121,16 @@ mutate((raw) => applyRallyEntry(raw, setIndex, entryIndex, entry, phase), {
 
 - **合併結果不可以進快取。** 任何把合併結果交給 `mutate` 的路徑都會造成重複疊加。
 - **`pending` 陣列依入列時間排序。** 目前是這樣，但沒有寫下來也沒有測試守著。合併的「同 id 取最後一筆」和 flush 送出時的去重都靠它，`rehydrated` 把還原的項目放最前面也是同一個時間序。這張 Change 把它變成明文契約並補上測試。
+- **寫入依 entry 身分定位，不依陣列位置。** 記錄流程的 index 是數合併後的陣列來的，快取的陣列可能更短。
 - **`runFlush` 裡 `mutate` 要在 `dispatch(flushSucceeded)` 之前。** 反過來會有一幀是「佇列已經放手、快取還沒收到」，畫面閃一下。順序對的時候也有一幀是兩邊都有，但依 id 覆蓋讓它看不出來。
 
 ## Testing strategy
 
 兩個 seam。
 
-**`use-data.test.ts`——合併本身。** Overview 列的四種情況，斷言起來是同一件事：快取被伺服器版本換掉之後，`useGame` 回傳的資料裡還有那些球。用 `renderHook` 搭一個裝了待送項目的 Redux store 和受控的 fetcher 就能驅動，不用在元件層各自製造冷啟動、reconnect、focus 和 flush 窗口。同一個檔案再守三條：記兩顆球每顆只出現一次（重複疊加的回歸）、同 id 取最後一筆、依 seq 排序。
+**`use-game-merge.test.tsx`——合併本身。** Overview 列的四種情況，斷言起來是同一件事：快取被伺服器版本換掉之後，`useGame` 回傳的資料裡還有那些球。用 `renderHook` 搭一個裝了待送項目的 Redux store 和受控的 fetcher 就能驅動，不用在元件層各自製造冷啟動、reconnect、focus 和 flush 窗口。同一個檔案再守四條：記兩顆球每顆只出現一次（重複疊加的回歸）、依 seq 排序、對縮短過的快取記球不留空洞、冷啟動還原的球在資料載入後看得到。同 id 取最後一筆與其他純合併規則在 `pending-writes.test.ts`。
 
-**`summary-drawer.test.tsx`——失敗標記掛得到列。** 這條得在元件層，因為它證的是兩個不同來源對上了：標記從佇列算，列從 `useGame` 的資料渲染。在 `use-data` 那一層只看得到球還在，看不到標記跟列接上了。
+**`summary-drawer-merge.test.tsx`——失敗標記掛得到列。** 這條得在元件層，因為它證的是兩個不同來源對上了：標記從佇列算，列從 `useGame` 的資料渲染。在 `use-data` 那一層只看得到球還在，看不到標記跟列接上了。
 
 `use-pending-writes.test.tsx` 把 `useGame` 換成假的 `{ game: undefined, mutate }`，這張 Change 不動 flush，那個檔案不受影響。
 

@@ -7,9 +7,9 @@
   "outcome": "`createRallyHelper` 與 `updateRallyHelper` 成為純函式，回傳新的 `GameView` 而不改動傳進來的那個；`oppo.tsx` 改用 `mutate` 的函式形式取得未合併的快取。行為完全不變——函式參數現在拿到的就是 raw cache，寫進去的內容與改動前相同——但「寫入只碰 raw」這條路從此存在，S03 才能只做合併一件事。",
   "acceptanceCriteria": [
     "`rally.helper.ts` 的兩個 helper 不再對參數執行 `set.entries[entryIndex] = ...`、`set.win = ...` 或 `game.win = ...`，改為回傳新的 `GameView`；傳進去的物件在呼叫前後深度相等。",
-    "phase 的推導與套用分成兩個匯出：一個從 `GameView` 算出 `SetPhase`，一個把 entry 與 phase 套用成新的 `GameView`。推導不寫入，套用不推導。",
-    "`useSubmitEntryDraft` 的 `create` 與 `update` 都改為 `mutate((raw) => ..., { revalidate: false })`；phase 仍同步取得，`dispatch(confirmEntryDraftRally(phase))` 不等待任何 promise。",
-    "`update` 路徑「entry 不是 rally 就拋錯」的既有行為保留。",
+    "phase 的推導與套用分成兩個匯出：一個從 `GameView` 算出 `SetPhase`，一個把 entry 與 phase 套用成新的 `GameView`。推導不寫入，套用不推導。套用依 entry 的 `id`／`seq` 定位，不依陣列位置——它跑在 raw cache 上，而 `entryIndex` 是數合併後的陣列來的。",
+    "`useSubmitEntryDraft` 的 `create` 與 `update` 都改為：先從合併後的 `game` 同步取得 phase，再 `mutate((raw) => ..., { revalidate: false })` 把 entry 寫進 raw cache。`dispatch(confirmEntryDraftRally(phase))` 不等待任何 promise。",
+    "`update` 路徑「entry 不是 rally 就拋錯」的既有行為保留，且仍是同步拋出——在 `mutate` 的 updater 內拋會變成 unhandled rejection，流程還會繼續入列。",
     "局結果的推導內容一行不改——as-of `entryIndex` 判定、以 `entryDraft` 的比分決定 `set.win`，全部照舊。與伺服器 `deriveSetCompletion` 對齊是另一張 Change 的事。",
     "`usePendingWrites` 的 `runFlush` 與 `useUnconfirmedSetCompletion` 的 `retry` 不修改：兩者本來就是函式形式。"
   ],

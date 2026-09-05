@@ -1,10 +1,22 @@
 import { EntryType, MoveType as M, type EntryIdentity } from "@/entities/game";
 import { Position } from "@/entities/team";
 import {
-  createRallyHelper,
-  updateRallyHelper,
+  applyEntry,
+  assertRallyAt,
+  deriveEntryPhase,
 } from "@/lib/features/game/helpers";
 import type { GameView, RallyView } from "@/lib/features/game/types";
+
+// The sequence useSubmitEntryDraft runs per rally, against one game rather
+// than a merged view and a raw cache.
+const record = (
+  { setIndex, entryIndex }: { setIndex: number; entryIndex: number },
+  draft: RallyView & EntryIdentity,
+  game: GameView,
+) => {
+  const phase = deriveEntryPhase(game, setIndex, entryIndex, draft);
+  return { phase, game: applyEntry(game, setIndex, draft, phase) };
+};
 
 describe("rally.helper.ts", () => {
   const mockRally: RallyView & EntryIdentity = {
@@ -102,7 +114,6 @@ describe("rally.helper.ts", () => {
 
   describe("createRallyOptimistic", () => {
     const mockParams = {
-      gameId: "game-1",
       setIndex: 0,
       entryIndex: 1,
     };
@@ -110,7 +121,7 @@ describe("rally.helper.ts", () => {
     it("should create new rally entry at specified index", () => {
       const mockGame = createMockGame();
 
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
+      const result = record(mockParams, mockRally, mockGame);
 
       expect(result.game.sets[0]!.entries[1]).toEqual({
         type: EntryType.RALLY,
@@ -122,7 +133,7 @@ describe("rally.helper.ts", () => {
       const mockGame = createMockGame();
       const before = JSON.parse(JSON.stringify(mockGame));
 
-      const result = createRallyHelper(mockParams, mockRally, mockGame);
+      const result = record(mockParams, mockRally, mockGame);
 
       expect(mockGame).toEqual(before);
       expect(result.game).not.toBe(mockGame);
@@ -131,7 +142,6 @@ describe("rally.helper.ts", () => {
 
   describe("updateRallyOptimistic", () => {
     const mockParams = {
-      gameId: "game-1",
       setIndex: 0,
       entryIndex: 0,
     };
@@ -157,7 +167,7 @@ describe("rally.helper.ts", () => {
     it("should update existing rally entry with new data", () => {
       const mockGame = createMockGame();
 
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
+      const result = record(mockParams, newRally, mockGame);
 
       expect(result.game.sets[0]!.entries[0]).toEqual({
         type: EntryType.RALLY,
@@ -170,7 +180,7 @@ describe("rally.helper.ts", () => {
       mockGame.sets[0]!.entries[0]!.type = EntryType.TIMEOUT;
 
       expect(() => {
-        updateRallyHelper(mockParams, newRally, mockGame);
+        assertRallyAt(mockGame, mockParams.setIndex, mockParams.entryIndex);
       }).toThrow("Entry is not a rally");
     });
 
@@ -178,7 +188,7 @@ describe("rally.helper.ts", () => {
       const mockGame = createMockGame();
       const before = JSON.parse(JSON.stringify(mockGame));
 
-      const result = updateRallyHelper(mockParams, newRally, mockGame);
+      const result = record(mockParams, newRally, mockGame);
 
       expect(mockGame).toEqual(before);
       expect(result.game).not.toBe(mockGame);
@@ -196,8 +206,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 18 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 0, entryIndex: 1 },
+        const result = record(
+          { setIndex: 0, entryIndex: 1 },
           mockRallyLowScore,
           mockGame,
         );
@@ -217,8 +227,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 23 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 0, entryIndex: 1 },
+        const result = record(
+          { setIndex: 0, entryIndex: 1 },
           mockRallyHomeWin,
           mockGame,
         );
@@ -237,8 +247,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 25 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 0, entryIndex: 1 },
+        const result = record(
+          { setIndex: 0, entryIndex: 1 },
           mockRallyAwayWin,
           mockGame,
         );
@@ -257,8 +267,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 22 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 0, entryIndex: 1 },
+        const result = record(
+          { setIndex: 0, entryIndex: 1 },
           mockRallySetPoint,
           mockGame,
         );
@@ -286,8 +296,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 13 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 4, entryIndex: 0 },
+        const result = record(
+          { setIndex: 4, entryIndex: 0 },
           fifthSet,
           mockGame,
         );
@@ -316,8 +326,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 20 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 2, entryIndex: 0 },
+        const result = record(
+          { setIndex: 2, entryIndex: 0 },
           thirdSetWin,
           mockGame,
         );
@@ -347,8 +357,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 15 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 4, entryIndex: 0 },
+        const result = record(
+          { setIndex: 4, entryIndex: 0 },
           fifthSetLoss,
           mockGame,
         );
@@ -377,8 +387,8 @@ describe("rally.helper.ts", () => {
           away: { ...mockRally.away, score: 5 },
         };
 
-        const result = createRallyHelper(
-          { gameId: "game-1", setIndex: 3, entryIndex: 0 },
+        const result = record(
+          { setIndex: 3, entryIndex: 0 },
           fourthSet,
           mockGame,
         );
@@ -414,8 +424,8 @@ describe("rally.helper.ts", () => {
           away: { ...winningRally.away, score: 25 },
         };
 
-        const result = updateRallyHelper(
-          { gameId: "game-1", setIndex: 0, entryIndex: 0 },
+        const result = record(
+          { setIndex: 0, entryIndex: 0 },
           updatedRally,
           mockGame,
         );

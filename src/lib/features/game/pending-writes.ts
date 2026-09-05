@@ -1,4 +1,4 @@
-import { EntryType } from "@/entities/game";
+import { EntryType, upsertEntries } from "@/entities/game";
 import type {
   GameView,
   PendingEntry,
@@ -90,22 +90,22 @@ export const applyFlushedEntries = (
 
 /**
  * The read side: the server's cached game with everything still queued laid
- * on top. Mirrors `upsertEntry` -- an id already in the set is replaced,
- * anything else is inserted and the set re-sorted by `seq` -- so the recorder
- * sees now what the server will hold once the queue drains. Never written
+ * on top, through the same identity rule the repository writes by, so the
+ * recorder sees now what the server will hold once the queue drains. Never
+ * written
  * back to the cache: the cache stays the server's, this is what is read from
  * it. `win` is untouched, because it means "the server confirmed this set
  * ended" and nothing merged here has been confirmed.
  */
 export const mergePendingEntries = (
   game: GameView | undefined,
-  state: PendingWritesState,
+  pending: readonly PendingEntry[],
   gameId: string,
 ): GameView | undefined => {
   if (!game) return game;
 
   const bySet = new Map<number, PendingEntry[]>();
-  for (const item of state.pending) {
+  for (const item of pending) {
     if (item.gameId !== gameId) continue;
     const group = bySet.get(item.setIndex);
     if (group) group.push(item);
@@ -119,21 +119,13 @@ export const mergePendingEntries = (
       const group = bySet.get(setIndex);
       if (!group) return set;
 
-      const entries = [...set.entries];
-      let inserted = false;
-      // Queue order decides: a later item for the same id supersedes an
-      // earlier one, as the server's ordered bulk write does.
-      for (const { entry } of group) {
-        const merged = { type: EntryType.RALLY, ...entry } as const;
-        const at = entries.findIndex((e) => e.id === entry.id);
-        if (at === -1) {
-          entries.push(merged);
-          inserted = true;
-        } else entries[at] = merged;
-      }
-      if (inserted) entries.sort((a, b) => a.seq - b.seq);
-
-      return { ...set, entries };
+      return {
+        ...set,
+        entries: upsertEntries(
+          set.entries,
+          group.map(({ entry }) => ({ type: EntryType.RALLY, ...entry })),
+        ),
+      };
     }),
   };
 };

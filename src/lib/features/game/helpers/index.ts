@@ -3,16 +3,18 @@ import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.hel
 import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.helper";
 
 import {
-  createRallyHelper,
-  updateRallyHelper,
+  applyEntry,
+  assertRallyAt,
+  deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
 import { createSubstitutionHelper } from "@/lib/features/game/helpers/optimistic/substitution.helper";
 
 export {
-  createRallyHelper,
+  applyEntry,
+  assertRallyAt,
   createSubstitutionHelper,
+  deriveEntryPhase,
   getPreviousScores,
   getSetLineup,
   getTeamsStats,
-  updateRallyHelper,
 };

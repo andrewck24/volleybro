@@ -195,10 +195,10 @@ export const useGame = (
   // still in the outbox are laid over it on the way out so a revalidation
   // cannot take them off the screen. `mutate` still writes the server's
   // version: the merge exists only on this side of the return.
-  const pendingWrites = useAppSelector((state) => state.pendingWrites);
+  const pending = useAppSelector((state) => state.pendingWrites.pending);
   const game = useMemo(
-    () => mergePendingEntries(data, pendingWrites, gameId),
-    [data, pendingWrites, gameId],
+    () => mergePendingEntries(data, pending, gameId),
+    [data, pending, gameId],
   );
 
   return { game, error, isLoading, isValidating, mutate };

@@ -2,7 +2,11 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 import { useGame } from "@/hooks/use-data";
-import { createRallyHelper } from "@/lib/features/game/helpers/optimistic/rally.helper";
+import {
+  applyEntry,
+  deriveEntryPhase,
+} from "@/lib/features/game/helpers/optimistic/rally.helper";
+import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
@@ -95,22 +99,19 @@ it("records two rallies without either landing in the cache twice", async () => 
   // What useSubmitEntryDraft does per rally: write through the updater, then
   // queue the same entry.
   const record = async (id: string, entryIndex: number) => {
+    const draft = {
+      id,
+      seq: entryIndex,
+      win: true,
+      home: { score: entryIndex, type: 0, num: 0 },
+      away: { score: 0 },
+    } as never;
+    // The phase comes from what is on screen, the write goes to the cache.
+    const phase = deriveEntryPhase(result.current.game!, 0, entryIndex, draft);
     await act(async () => {
-      await result.current.mutate(
-        (raw) =>
-          createRallyHelper(
-            { gameId: "game-1", setIndex: 0, entryIndex },
-            {
-              id,
-              seq: entryIndex,
-              win: true,
-              home: { score: entryIndex, type: 0, num: 0 },
-              away: { score: 0 },
-            } as never,
-            raw!,
-          ).game,
-        { revalidate: false },
-      );
+      await result.current.mutate((raw) => applyEntry(raw!, 0, draft, phase), {
+        revalidate: false,
+      });
     });
     enqueue(id, entryIndex);
   };
@@ -130,6 +131,112 @@ it("records two rallies without either landing in the cache twice", async () => 
   });
 
   expect(cached?.sets[0]?.entries.map((e) => e.id)).toEqual(["s0", "q1", "q2"]);
+  expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
+    "s0",
+    "q1",
+    "q2",
+  ]);
+});
+
+// The regression the read model makes reachable: the recorder counts entries
+// on the merged view, so that index means nothing to the cache underneath it.
+// Writing by identity is what keeps the two from drifting apart.
+it("records onto a cache the server has cut back, without leaving a gap", async () => {
+  const fetcher = jest.fn(async () => serverGame([0]));
+  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  await waitFor(() => expect(result.current.game).toBeDefined());
+
+  // A rally that will never send: the queue keeps it, every revalidation
+  // after this drops it from the cache.
+  enqueue("q1", 1);
+  await act(async () => {
+    await result.current.mutate();
+  });
+
+  const entryIndex = result.current.game!.sets[0]!.entries.length;
+  expect(entryIndex).toBe(2);
+
+  const draft = { id: "q2", seq: entryIndex, win: true, home: {}, away: {} };
+  const phase = deriveEntryPhase(
+    result.current.game!,
+    0,
+    entryIndex,
+    draft as never,
+  );
+  await act(async () => {
+    await result.current.mutate(
+      (raw) => applyEntry(raw!, 0, draft as never, phase),
+      { revalidate: false },
+    );
+  });
+  enqueue("q2", entryIndex);
+
+  let cached: GameView | undefined;
+  await act(async () => {
+    await result.current.mutate(
+      (raw) => {
+        cached = raw;
+        return raw;
+      },
+      { revalidate: false },
+    );
+  });
+
+  const cachedEntries = cached!.sets[0]!.entries;
+  expect(cachedEntries.map((e) => e.id)).toEqual(["s0", "q2"]);
+  expect(cachedEntries.every((e) => e !== undefined)).toBe(true);
+  expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
+    "s0",
+    "q1",
+    "q2",
+  ]);
+});
+
+// A cold start: the queue comes back off disk before the first fetch lands.
+it("shows rallies restored from disk once the game loads", async () => {
+  act(() => {
+    store.dispatch(
+      pendingWritesActions.rehydrated({
+        items: [{ entry: entry("q1", 1), gameId: "game-1", setIndex: 0 }],
+      }),
+    );
+  });
+
+  const fetcher = jest.fn(async () => serverGame([0]));
+  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+
+  await waitFor(() => expect(result.current.game).toBeDefined());
+  expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
+    "s0",
+    "q1",
+  ]);
+});
+
+// A flush replaces the set's entries with the server's answer. Anything
+// recorded while that request was in flight is not in it.
+it("keeps a rally recorded while a flush was in flight", async () => {
+  const fetcher = jest.fn(async () => serverGame([0]));
+  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  await waitFor(() => expect(result.current.game).toBeDefined());
+
+  enqueue("q1", 1);
+  enqueue("q2", 2);
+
+  // The flush that was already in flight answers for q1 alone.
+  await act(async () => {
+    await result.current.mutate(
+      (raw) =>
+        applyFlushedEntries(raw, 0, [
+          ...raw!.sets[0]!.entries,
+          { type: "rally", id: "q1", seq: 1 } as never,
+        ])!,
+      { revalidate: false },
+    );
+  });
+  act(() => {
+    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["q1"] }));
+  });
+
   expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
     "s0",
     "q1",

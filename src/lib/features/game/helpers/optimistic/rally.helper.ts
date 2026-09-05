@@ -2,96 +2,79 @@ import {
   EntryType,
   deriveSetPhase,
   setTargetPoints,
+  upsertEntries,
   type EntryIdentity,
   type SetPhase,
 } from "@/entities/game";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
-export const createRallyHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView & EntryIdentity,
-  game: GameView,
-) => {
-  const { setIndex, entryIndex } = params;
-  const phase = deriveEntryPhase(game, setIndex, entryIndex, entryDraft);
-  const updatedGame = applyEntry(game, setIndex, entryIndex, entryDraft, phase);
+const asEntry = (entryDraft: RallyView & EntryIdentity) =>
+  ({ type: EntryType.RALLY, ...entryDraft }) as const;
 
-  return { game: updatedGame, phase };
-};
-
-export const updateRallyHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView & EntryIdentity,
+/** An edit must land on a rally; anything else is a bug in the caller. */
+export const assertRallyAt = (
   game: GameView,
+  setIndex: number,
+  entryIndex: number,
 ) => {
-  const { setIndex, entryIndex } = params;
-  // setIndex is the active set being edited; guaranteed in bounds
-  const originalEntry = game.sets[setIndex]!.entries[entryIndex];
-  if (!originalEntry || originalEntry.type !== EntryType.RALLY) {
+  const entry = game.sets[setIndex]?.entries[entryIndex];
+  if (!entry || entry.type !== EntryType.RALLY) {
     throw new Error("Entry is not a rally");
   }
-
-  const phase = deriveEntryPhase(game, setIndex, entryIndex, entryDraft);
-  const updatedGame = applyEntry(game, setIndex, entryIndex, entryDraft, phase);
-
-  return { game: updatedGame, phase };
 };
 
-/** Derives the set phase as of the entry being written, without writing it. */
+/**
+ * Derives the set phase as of the entry being written, without writing it.
+ * Reads the merged view: a phase derived from the server's entries alone
+ * would carry a score that is short every rally still waiting to be sent.
+ */
 export const deriveEntryPhase = (
   game: GameView,
   setIndex: number,
   entryIndex: number,
   entryDraft: RallyView & EntryIdentity,
-): SetPhase => {
-  const targetPoints = setTargetPoints(game.info.scoring, setIndex);
-  // setIndex is the active set being processed; guaranteed in bounds
-  const set = game.sets[setIndex]!;
-  const entries = set.entries.slice();
-  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft };
+): SetPhase =>
+  deriveSetPhase(
+    // setIndex is the active set being processed; guaranteed in bounds
+    {
+      entries: upsertEntries(game.sets[setIndex]!.entries, [
+        asEntry(entryDraft),
+      ]),
+    },
+    entryIndex + 1,
+    setTargetPoints(game.info.scoring, setIndex),
+  );
 
-  return deriveSetPhase({ entries }, entryIndex + 1, targetPoints);
-};
-
-/** Applies the entry and a previously-derived phase, returning a new GameView. */
+/**
+ * Applies the entry and a previously-derived phase, returning a new GameView.
+ * Written by identity rather than by position, because this runs against the
+ * raw cache, which may hold fewer entries than the view the phase came from.
+ */
 export const applyEntry = (
   game: GameView,
   setIndex: number,
-  entryIndex: number,
   entryDraft: RallyView & EntryIdentity,
   phase: SetPhase,
 ): GameView => {
   // setIndex is the active set being processed; guaranteed in bounds
   const set = game.sets[setIndex]!;
-  const entries = set.entries.slice();
-  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft };
-
-  let win = set.win;
-  if (phase.isSetInProgress) {
-    // Reset win status if the set/game is still in progress
-    if (typeof win === "boolean") win = null;
-  } else {
-    // Set is complete, determine winners
-    const { home, away } = entryDraft;
-    win = home.score > away.score;
-  }
-
   const sets = game.sets.slice();
-  sets[setIndex] = { ...set, entries, win };
+  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
 
-  let gameWin = game.win;
+  // Editing a rally back into a set that is still being played withdraws any
+  // result recorded for it, and with it the game result it fed.
   if (phase.isSetInProgress) {
-    if (typeof gameWin === "boolean") gameWin = null;
-  } else {
-    // If the game is finished, calculate the overall game result
-    const homeSetsWonCount = sets.filter((s) => s.win).length;
-    const awaySetsWonCount = sets.filter((s) => s.win === false).length;
-    const setsCount = game.info.scoring.setCount;
-
-    if (homeSetsWonCount > setsCount / 2 || awaySetsWonCount > setsCount / 2) {
-      gameWin = homeSetsWonCount > awaySetsWonCount;
-    }
+    sets[setIndex] = { ...set, entries, win: null };
+    return { ...game, sets, win: null };
   }
 
-  return { ...game, sets, win: gameWin };
+  const { home, away } = entryDraft;
+  sets[setIndex] = { ...set, entries, win: home.score > away.score };
+
+  const setsWonHome = sets.filter((s) => s.win).length;
+  const setsWonAway = sets.filter((s) => s.win === false).length;
+  const { setCount } = game.info.scoring;
+  const decided = setsWonHome > setCount / 2 || setsWonAway > setCount / 2;
+
+  return { ...game, sets, win: decided ? setsWonHome > setsWonAway : game.win };
 };
