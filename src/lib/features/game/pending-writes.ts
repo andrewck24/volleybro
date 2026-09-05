@@ -90,12 +90,10 @@ export const applyFlushedEntries = (
 
 /**
  * The read side: the server's cached game with everything still queued laid
- * on top, through the same identity rule the repository writes by, so the
- * recorder sees now what the server will hold once the queue drains. Never
- * written
- * back to the cache: the cache stays the server's, this is what is read from
- * it. `win` is untouched, because it means "the server confirmed this set
- * ended" and nothing merged here has been confirmed.
+ * on top, so the recorder sees now what the server will hold once the queue
+ * drains. Never written back -- the cache stays the server's. `win` is left
+ * alone: it means the server confirmed this set ended, and nothing here has
+ * been confirmed.
  */
 export const mergePendingEntries = (
   game: GameView | undefined,

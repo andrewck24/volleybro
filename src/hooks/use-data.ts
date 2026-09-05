@@ -191,10 +191,8 @@ export const useGame = (
     ...options,
   });
 
-  // `data` is the server's, and revalidation replaces it wholesale. Rallies
-  // still in the outbox are laid over it on the way out so a revalidation
-  // cannot take them off the screen. `mutate` still writes the server's
-  // version: the merge exists only on this side of the return.
+  // Laid over the server's answer on the way out, so a revalidation cannot
+  // take queued rallies off the screen. `mutate` still writes the server's.
   const pending = useAppSelector((state) => state.pendingWrites.pending);
   const game = useMemo(
     () => mergePendingEntries(data, pending, gameId),

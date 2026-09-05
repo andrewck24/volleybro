@@ -25,8 +25,8 @@ export const assertRallyAt = (
 
 /**
  * Derives the set phase as of the entry being written, without writing it.
- * Reads the merged view: a phase derived from the server's entries alone
- * would carry a score that is short every rally still waiting to be sent.
+ * Must be given the merged view. Editing a rally the cache has fewer entries
+ * before would otherwise walk back onto a later rally and read its score.
  */
 export const deriveEntryPhase = (
   game: GameView,

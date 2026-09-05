@@ -50,10 +50,8 @@ const permanentFailure = {
 };
 
 // Deliberately outside the Component row of docs/testing-strategy.md, which
-// says to mock SWR and Redux here: the seam under test is the join between
-// them, so mocking either proves nothing.
-// The seam this change exists for: a rally the server has never accepted still
-// has a row, so the marker matched by id has something to mark.
+// says to mock SWR and Redux here: the seam is the join between them, and a
+// rally the server never accepted still needs the row its marker matches.
 it("marks a queued rally the server rejected, on a row only the merge provides", async () => {
   const store: AppStore = makeStore();
   store.dispatch(

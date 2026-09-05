@@ -443,29 +443,23 @@ export function deriveSetPhase(
 
 /**
  * Identity decides where a write lands, not position: an id already present
- * is replaced, anything else is inserted in `seq` order. Mirrors the
- * repository's upsert, so a rally written on the client ends up where the
- * server will put it -- and so a client whose entries are a subset of what it
- * is writing cannot leave a hole.
+ * is replaced, anything else is inserted in `seq` order -- the rule the
+ * repository's own upsert writes by.
  */
 export function upsertEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
 ): T[] {
   const next = entries.slice();
-  let inserted = false;
 
   // Later wins for a repeated id, as the server's ordered bulk write does.
   for (const entry of incoming) {
     const at = next.findIndex((e) => e.id === entry.id);
-    if (at === -1) {
-      next.push(entry);
-      inserted = true;
-    } else next[at] = entry;
+    if (at === -1) next.push(entry);
+    else next[at] = entry;
   }
-  if (inserted) next.sort((a, b) => a.seq - b.seq);
 
-  return next;
+  return next.sort((a, b) => a.seq - b.seq);
 }
 
 /** Whether a set has been played out, judged on its own entries. */

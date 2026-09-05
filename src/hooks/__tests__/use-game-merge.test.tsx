@@ -96,8 +96,6 @@ it("records two rallies without either landing in the cache twice", async () => 
   const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
   await waitFor(() => expect(result.current.game).toBeDefined());
 
-  // What useSubmitEntryDraft does per rally: write through the updater, then
-  // queue the same entry.
   const record = async (id: string, entryIndex: number) => {
     const draft = {
       id,
