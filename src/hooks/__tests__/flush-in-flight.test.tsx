@@ -57,8 +57,10 @@ beforeEach(() => {
   apiClient.mockReset();
 });
 
-// The flush replaces the set's entries with the server's answer, which cannot
-// include a rally recorded after that request went out.
+// Mocks neither SWR nor Redux, against the Component row of
+// docs/testing-strategy.md: the timing under test spans both. The flush
+// replaces the set's entries with the server's answer, which cannot include a
+// rally recorded after that request went out.
 it("keeps a rally recorded while a flush was already in flight", async () => {
   let settle!: (value: { entries: unknown[] }) => void;
   apiClient.mockReturnValue(
@@ -76,7 +78,6 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
   );
   await waitFor(() => expect(result.current.game.game).toBeDefined());
 
-  // First rally: optimistic write, queued, flush leaves and stays out.
   const first = entry("q1", 1);
   await act(async () => {
     await result.current.game.mutate(
@@ -94,7 +95,6 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
     flushed = result.current.queue.flush();
   });
 
-  // Second rally, recorded before the first request comes back.
   const second = entry("q2", 2);
   await act(async () => {
     await result.current.game.mutate(
@@ -108,7 +108,6 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
   });
   act(() => result.current.queue.enqueue(second));
 
-  // The server answers for the first rally alone, replacing the set's entries.
   await act(async () => {
     settle({
       entries: [
@@ -119,7 +118,6 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
     await flushed;
   });
 
-  // The flush confirmed only what it sent; the newer rally is still queued.
   expect(store.getState().pendingWrites.pending.map((p) => p.entry.id)).toEqual(
     ["q2"],
   );
@@ -128,8 +126,10 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
       ["s0", "q1", "q2"],
     ),
   );
-  // The request that was already out could not have carried the second rally.
-  const [, firstRequest] = apiClient.mock.calls[0]!;
-  expect(JSON.stringify(firstRequest)).toContain("q1");
-  expect(JSON.stringify(firstRequest)).not.toContain("q2");
+  const [, firstRequest] = apiClient.mock.calls[0] as [
+    string,
+    { body: string },
+  ];
+  const sent = JSON.parse(firstRequest.body) as { id: string }[];
+  expect(sent.map((r) => r.id)).toEqual(["q1"]);
 });

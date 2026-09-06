@@ -6,7 +6,6 @@ import {
   applyEntry,
   deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
-import { applyFlushedEntries } from "@/lib/features/game/pending-writes";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
@@ -196,35 +195,5 @@ it("shows rallies restored from disk once the game loads", async () => {
   expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
     "s0",
     "q1",
-  ]);
-});
-
-// A flush replaces the set's entries wholesale with the server's answer.
-it("keeps a rally recorded while a flush was in flight", async () => {
-  const fetcher = jest.fn(async () => serverGame([0]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
-  await waitFor(() => expect(result.current.game).toBeDefined());
-
-  enqueue("q1", 1);
-  enqueue("q2", 2);
-
-  await act(async () => {
-    await result.current.mutate(
-      (raw) =>
-        applyFlushedEntries(raw, 0, [
-          ...raw!.sets[0]!.entries,
-          { type: "rally", id: "q1", seq: 1 } as never,
-        ])!,
-      { revalidate: false },
-    );
-  });
-  act(() => {
-    store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["q1"] }));
-  });
-
-  expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
-    "s0",
-    "q1",
-    "q2",
   ]);
 });

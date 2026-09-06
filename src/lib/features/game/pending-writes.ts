@@ -7,7 +7,6 @@ import type {
   WriteError,
 } from "@/lib/features/game/types";
 
-// The flush, the restore and the expiry rule all read this one standard.
 export const isRetryableStatus = (status: number): boolean => status >= 500;
 
 export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
