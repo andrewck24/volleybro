@@ -11,6 +11,10 @@ is computed from them.
 
 ## Current behavior
 
+- `deriveSetsWon` derives how many sets each side has won from the entries,
+  through the same `deriveSetPhase` the rest of the rules use, so the tally
+  reads the same threshold as everything else. It stands apart from `win`,
+  which records that the server confirmed a set ended.
 - `deriveSetStats` in `src/entities/game.ts` computes a set's per-player and
   per-team totals from its entries. It is the only implementation of those
   rules, and both the server and the Redux store call it.

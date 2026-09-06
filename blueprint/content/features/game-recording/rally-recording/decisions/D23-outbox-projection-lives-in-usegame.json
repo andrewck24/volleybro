@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D23",
   "title": "未送出的球在 useGame 的回傳值疊回去，寫入路徑改吃未合併的快取",
   "status": "implemented",
   "targets": ["game-recording/rally-recording", "platform/clean-architecture"],
@@ -42,5 +42,6 @@
     "outbox 開始承載 rally 以外的 entry 型別（substitution、timeout、challenge）：合併目前只疊 entries 而不碰 win，若新型別的推導需要更多欄位，合併的職責邊界須重新檢視。",
     "出現第二個需要同樣投影的 server resource（例如 team）：屆時該考慮把投影抽成可重用的形狀，而不是在第二個 hook 裡再寫一次。"
   ],
-  "originChange": "outbox-read-projection"
+  "originChange": "outbox-read-projection",
+  "originDecision": "D1"
 }

@@ -4,6 +4,7 @@ description: What each layer may depend on, and the rules that keep those depend
 ---
 
 import sharedDomainFunctions from "./decisions/D6-shared-domain-functions.json";
+import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
 
 Layering is only real if something fails when it is broken. These are the
 dependency rules the codebase actually enforces, and how.
@@ -41,4 +42,6 @@ dependency rules the codebase actually enforces, and how.
 
 ## Implemented decisions
 
-<DecisionTimeline decisions={[sharedDomainFunctions]} />
+<DecisionTimeline
+  decisions={[sharedDomainFunctions, outboxProjectionLivesInUseGame]}
+/>

@@ -228,8 +228,12 @@ S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.ts
   then="大比分顯示 1:0、局分 25-0。改動前這裡會顯示 0:0，因為它讀的是 `win`。同時 `useUnconfirmedSetCompletion` 正確跳出「本局結果還沒存好」的對話框"
 />
 
+### 部署驗證
+
+`revalidateOnFocus` 與 `revalidateOnReconnect` 在本機都觸發不了——合成的 `focus` / `visibilitychange` / `online` 事件都沒讓 SWR 發出第二次讀取，而網路面板確認距上次 GET 已 43 分鐘，兩個節流間隔都只有 5 分鐘，所以不是節流擋的。原因未查明，但那是 SWR 的觸發時機而非本 Change 的程式碼：兩條路徑的終點都是 `data` 被換掉後 `useMemo` 重算合併。
+
+改以部署到 `volleybro-test` 由開發者在真實裝置上測試，兩條都通過：切到背景超過五分鐘再切回、以及斷線後恢復連線，未送出的球都還在畫面上。
+
 ### 尚未驗證
 
-`revalidateOnFocus` 與 `revalidateOnReconnect` 沒有實地觸發成功。合成的 `focus` / `visibilitychange` / `online` 事件都沒有讓 SWR 發出第二次讀取——網路面板確認距上次 GET 已 43 分鐘、`dedupingInterval` 與 `focusThrottleInterval` 都只有 5 分鐘，所以不是節流。原因未查明，但那是 SWR 的觸發時機，不是本 Change 的程式碼：兩條路徑的終點都是 `data` 被換掉後 `useMemo` 重算合併，而那一段由冷啟動那條實測涵蓋。要補這一條需要真人操作——把 app 切到背景超過五分鐘再切回，或關閉再開啟網路連線。
-
-「flush 進行中記球」沒有手動製造，時序只有毫秒。改以 `flush-in-flight.test.tsx` 涵蓋：真實 store、真實 SWR、把 flush 的請求握住不放，期間記第二顆球，再讓伺服器只回答第一顆。斷言飛行中那次請求不含第二顆球，且合併之後兩顆都在。把合併停用，這個測試會失敗。
+「flush 進行中記球」沒有手動製造，時序只有毫秒。改以 `flush-in-flight.test.tsx` 涵蓋：真實 store、真實 SWR，把 flush 的請求握住不放，期間記第二顆球，再讓伺服器只回答第一顆。斷言飛行中那次請求的 payload 只含第一顆，且合併之後兩顆都在。把合併停用，這個測試會失敗。

@@ -11,6 +11,8 @@ import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
 import measuredFailureOverConnectivitySignal from "./decisions/D18-measured-failure-over-connectivity-signal.json";
 import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
 import manualRetryIsADatedPatch from "./decisions/D21-manual-retry-is-a-dated-patch.json";
+import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
+import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -23,6 +25,16 @@ the rotation, whether it is at set point — follows from the entries.
   queue and the draft advances immediately, so a weak connection at the venue
   cannot hold up play. Editing still waits, because an edit that fails leaves
   correct data on the server and the recorder is watching a dialog for it.
+- What the recorder sees is the server's answer with the queue laid over it.
+  The cache holds only what the server has accepted, so a revalidation replaces
+  it wholesale; the merge happens on the way out of the hook, which is why a
+  reconnect, a return after minutes away or a cold start cannot take an unsent
+  rally off the screen. The merged value is never written back.
+- A write is addressed by the entry's identity, not by its position in the
+  list. The recorder counts positions off what is on screen, and the cache
+  underneath can hold fewer entries, so the two only agree by identity.
+- The set tally is derived from the entries. `win` means the server confirmed
+  the set ended, and nothing else reads it that way.
 - The queue is the single source of truth for what has not reached the server.
   The sync indicator and the per-row failure marker are projections of it, plus
   one flag for whether this device can keep what is unsent; neither stores a
@@ -80,6 +92,11 @@ the rotation, whether it is at set point — follows from the entries.
 - Whether a write is outstanding is read from the queue, never stored beside
   it. A second copy of that fact drifts from the queue the moment a retry
   schedule changes.
+- The merged view is a read. Writing it back to the cache would put a rally
+  that is already queued into the cache too, and the next merge would show it
+  twice.
+- An index counted off the merged view means nothing to the cache underneath
+  it. Writing by position there leaves gaps, and the next merge walks into one.
 - The recorder is never left with an unsent result and no way to see or retry
   it. A surface that hides the indicator must block the way forward instead.
 - The indicator may not claim more than the queue knows. Every sentence it
@@ -120,5 +137,7 @@ the rotation, whether it is at set point — follows from the entries.
     measuredFailureOverConnectivitySignal,
     warningTracksUnrecoverableLoss,
     manualRetryIsADatedPatch,
+    outboxProjectionLivesInUseGame,
+    mergeMirrorsUpsert,
   ]}
 />
