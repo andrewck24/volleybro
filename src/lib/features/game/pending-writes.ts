@@ -1,31 +1,22 @@
+import { EntryType, upsertEntries } from "@/entities/game";
 import type {
   GameView,
+  PendingEntry,
   PendingWritesState,
   PersistedPendingEntry,
   WriteError,
 } from "@/lib/features/game/types";
 
-/**
- * The one standard for whether another attempt is worth making. The flush, the
- * restore and the expiry rule all read it.
- */
 export const isRetryableStatus = (status: number): boolean => status >= 500;
 
-/** The same standard, over an entry that may not have failed yet. */
 export const mayBeAttemptedAgain = (lastError?: WriteError): boolean =>
   lastError === undefined || isRetryableStatus(lastError.status);
 
 export type SyncStatus =
   "unwritable" | "synced" | "failed" | "unsent" | "syncing";
 
-/** Two, so the failure outlived the first background retry. */
 export const PENDING_WRITE_UNSENT_ATTEMPTS = 2;
 
-/**
- * Worst possibility first, first match wins -- the order is the design, not an
- * implementation detail, so keep it. `storageUnavailable` outranks the empty
- * queue because it is the one input that does not come from queue contents.
- */
 export const deriveSyncStatus = (
   state: PendingWritesState,
   gameId: string,
@@ -52,28 +43,18 @@ export const hasFailedWrite = (
     (p) => p.entry.id === entryId && !mayBeAttemptedAgain(p.lastError),
   );
 
-/** True while this entry has an attempt scheduled (in-request or background). */
 export const isPendingWrite = (
   state: PendingWritesState,
   entryId: string,
 ): boolean =>
   state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt !== null);
 
-/**
- * Two immediate retries happen inline inside a single flush (300ms, 800ms)
- * before it reports failure. Once those are exhausted, the queue schedules a
- * longer background backoff (2s, 5s, 15s) between flushes, indexed by the
- * entry's attempt count after that failed flush. Past the end of the table
- * the budget is exhausted and the entry stops retrying on its own until a
- * manual retry.
- */
 export const PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS = [300, 800];
 export const PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS = [2000, 5000, 15000];
 
 export const nextAttemptDelayMs = (attempts: number): number | null =>
   PENDING_WRITE_BACKGROUND_RETRY_DELAYS_MS[attempts - 1] ?? null;
 
-/** Applies a flush response's confirmed entries onto the cached game. */
 export const applyFlushedEntries = (
   game: GameView | undefined,
   setIndex: number,
@@ -86,6 +67,39 @@ export const applyFlushedEntries = (
     ),
   };
 
+export const mergePendingEntries = (
+  game: GameView | undefined,
+  pending: readonly PendingEntry[],
+  gameId: string,
+): GameView | undefined => {
+  if (!game) return game;
+
+  const bySet = new Map<number, PendingEntry[]>();
+  for (const item of pending) {
+    if (item.gameId !== gameId) continue;
+    const group = bySet.get(item.setIndex);
+    if (group) group.push(item);
+    else bySet.set(item.setIndex, [item]);
+  }
+  if (bySet.size === 0) return game;
+
+  return {
+    ...game,
+    sets: game.sets.map((set, setIndex) => {
+      const group = bySet.get(setIndex);
+      if (!group) return set;
+
+      return {
+        ...set,
+        entries: upsertEntries(
+          set.entries,
+          group.map(({ entry }) => ({ type: EntryType.RALLY, ...entry })),
+        ),
+      };
+    }),
+  };
+};
+
 /**
  * How long a queued entry that cannot succeed is kept. Seven days has no
  * measured basis: it restores the exit persistence removed -- closing the app,
@@ -93,7 +107,6 @@ export const applyFlushedEntries = (
  */
 export const PENDING_WRITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Whether a restored entry should be dropped rather than put back. */
 export const hasExpired = (item: PersistedPendingEntry, now: number): boolean =>
   !mayBeAttemptedAgain(item.lastError) &&
   item.firstFailedAt !== undefined &&

@@ -2,89 +2,66 @@ import {
   EntryType,
   deriveSetPhase,
   setTargetPoints,
+  upsertEntries,
   type EntryIdentity,
+  type SetPhase,
 } from "@/entities/game";
 import type { GameView, RallyView } from "@/lib/features/game/types";
 
-export const createRallyHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView & EntryIdentity,
-  game: GameView,
-) => {
-  const { setIndex, entryIndex } = params;
-  // setIndex is the active set being recorded; sets are in bounds
-  const set = game.sets[setIndex]!;
+const asEntry = (entryDraft: RallyView & EntryIdentity) =>
+  ({ type: EntryType.RALLY, ...entryDraft }) as const;
 
-  set.entries[entryIndex] = {
-    type: EntryType.RALLY,
-    ...entryDraft,
-  };
-
-  const phase = processGamePhase(game, setIndex, entryIndex, entryDraft);
-
-  return { game, phase };
-};
-
-export const updateRallyHelper = (
-  params: { gameId: string; setIndex: number; entryIndex: number },
-  entryDraft: RallyView & EntryIdentity,
-  game: GameView,
-) => {
-  const { setIndex, entryIndex } = params;
-  // setIndex is the active set being edited; guaranteed in bounds
-  const set = game.sets[setIndex]!;
-  const originalEntry = set.entries[entryIndex];
-  if (!originalEntry || originalEntry.type !== EntryType.RALLY) {
-    throw new Error("Entry is not a rally");
-  }
-
-  set.entries[entryIndex] = {
-    type: EntryType.RALLY,
-    ...entryDraft,
-  };
-
-  const phase = processGamePhase(game, setIndex, entryIndex, entryDraft);
-
-  return { game, phase };
-};
-
-const processGamePhase = (
+export const assertRallyAt = (
   game: GameView,
   setIndex: number,
   entryIndex: number,
-  entryDraft: RallyView,
 ) => {
-  const targetPoints = setTargetPoints(game.info.scoring, setIndex);
-  const phase = deriveSetPhase(
-    game.sets[setIndex],
+  const entry = game.sets[setIndex]?.entries[entryIndex];
+  if (!entry || entry.type !== EntryType.RALLY) {
+    throw new Error("Entry is not a rally");
+  }
+};
+
+// Give this the merged view, never the cache: on an edit, a shorter array
+// walks back onto a later rally and reads its score.
+export const deriveEntryPhase = (
+  game: GameView,
+  setIndex: number,
+  entryIndex: number,
+  entryDraft: RallyView & EntryIdentity,
+): SetPhase =>
+  deriveSetPhase(
+    {
+      entries: upsertEntries(game.sets[setIndex]!.entries, [
+        asEntry(entryDraft),
+      ]),
+    },
     entryIndex + 1,
-    targetPoints,
+    setTargetPoints(game.info.scoring, setIndex),
   );
-  // setIndex is the active set being processed; guaranteed in bounds
+
+export const applyEntry = (
+  game: GameView,
+  setIndex: number,
+  entryDraft: RallyView & EntryIdentity,
+  phase: SetPhase,
+): GameView => {
   const set = game.sets[setIndex]!;
+  const sets = game.sets.slice();
+  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]);
 
   if (phase.isSetInProgress) {
-    // Reset win status if the set/game is still in progress
-    if (typeof set.win === "boolean") {
-      set.win = null;
-    }
-    if (typeof game.win === "boolean") game.win = null;
-  } else {
-    // Set is complete, determine winners
-    const { home, away } = entryDraft;
-    set.win = home.score > away.score;
-
-    // If the game is finished, calculate the overall game result
-    const homeSetsWonCount = game.sets.filter((set) => set.win).length;
-    const awaySetsWonCount = game.sets.filter(
-      (set) => set.win === false,
-    ).length;
-    const setsCount = game.info.scoring.setCount;
-
-    if (homeSetsWonCount > setsCount / 2 || awaySetsWonCount > setsCount / 2) {
-      game.win = homeSetsWonCount > awaySetsWonCount;
-    }
+    sets[setIndex] = { ...set, entries, win: null };
+    return { ...game, sets, win: null };
   }
 
-  return phase;
+  const { home, away } = entryDraft;
+  sets[setIndex] = { ...set, entries, win: home.score > away.score };
+
+  const setsWonHome = sets.filter((s) => s.win).length;
+  const setsWonAway = sets.filter((s) => s.win === false).length;
+  const { setCount } = game.info.scoring;
+  const decided = setsWonHome > setCount / 2 || setsWonAway > setCount / 2;
+
+  return { ...game, sets, win: decided ? setsWonHome > setsWonAway : game.win };
 };

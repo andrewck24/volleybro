@@ -89,14 +89,6 @@ export type Player = {
   number: number;
 };
 
-/**
- * Validate that every player id referenced by a lineup exists on the roster.
- * A null lineup reference is an unfilled slot and is skipped. A null roster id
- * is dropped rather than stringified, so a lineup cannot reach it by naming the
- * literal "null".
- * Throws ValidationError if the lineup shape is malformed or a referenced id
- * is not on the roster.
- */
 export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
   // The lineup arrives unvalidated from the request body, so reject a
   // malformed shape here instead of letting a spread throw a raw TypeError.
@@ -364,7 +356,6 @@ const isRally = (
   entry.away !== undefined &&
   entry.win !== undefined;
 
-/** The last rally recorded before `entryIndex`, or null when there is none. */
 export function getPreviousRally(
   entries: readonly DerivableEntry[] | undefined,
   entryIndex: number,
@@ -380,7 +371,6 @@ export function getPreviousRally(
   return null;
 }
 
-/** Whether the home team serves the rally at `entryIndex`. */
 export function deriveServingStatus(
   set:
     | {
@@ -395,7 +385,6 @@ export function deriveServingStatus(
   return set ? set.options.serve === "home" : true;
 }
 
-/** The score needed to win a set, which is higher in the deciding set. */
 export const setTargetPoints = (
   scoring: { setCount: number; decidingSetPoints: number },
   setIndex: number,
@@ -404,7 +393,6 @@ export const setTargetPoints = (
 
 export type SetPhase = { isSetInProgress: boolean; isSetPoint: boolean };
 
-/** Whether the set is still being played, and whether it is at set point. */
 export function deriveSetPhase(
   set: { entries?: readonly DerivableEntry[] } | undefined,
   entryIndex: number,
@@ -412,8 +400,6 @@ export function deriveSetPhase(
 ): SetPhase {
   const rally = getPreviousRally(set?.entries, entryIndex);
 
-  // Nothing recorded yet: a set that exists is being played, and one that does
-  // not would otherwise render a recording court that rejects every rally.
   if (!rally) return { isSetInProgress: !!set, isSetPoint: false };
 
   const { home, away } = rally;
@@ -441,20 +427,61 @@ export function deriveSetPhase(
   return { isSetInProgress: true, isSetPoint: false };
 }
 
+// The repository writes entries by this same rule; the two must not diverge.
+// See outbox-read-projection D2.
+export function upsertEntries<T extends EntryIdentity>(
+  entries: readonly T[],
+  incoming: readonly T[],
+): T[] {
+  const next = entries.slice();
+
+  for (const entry of incoming) {
+    const at = next.findIndex((e) => e.id === entry.id);
+    if (at === -1) next.push(entry);
+    else next[at] = entry;
+  }
+
+  return next.sort((a, b) => a.seq - b.seq);
+}
+
+export function isSetFinished(
+  set: { entries?: readonly DerivableEntry[] } | undefined,
+  scoring: { setCount: number; decidingSetPoints: number },
+  setIndex: number,
+): boolean {
+  const { isSetInProgress } = deriveSetPhase(
+    set,
+    set?.entries?.length ?? 0,
+    setTargetPoints(scoring, setIndex),
+  );
+  return !isSetInProgress;
+}
+
+export function deriveSetsWon(
+  sets: readonly { entries?: readonly DerivableEntry[] }[],
+  scoring: { setCount: number; decidingSetPoints: number },
+): { home: number; away: number } {
+  let home = 0;
+  let away = 0;
+
+  sets.forEach((set, setIndex) => {
+    if (!isSetFinished(set, scoring, setIndex)) return;
+    const rally = getPreviousRally(set.entries, set.entries?.length ?? 0);
+    if (!rally) return;
+
+    if (rally.home.score > rally.away.score) home += 1;
+    else away += 1;
+  });
+
+  return { home, away };
+}
+
 export type DerivedSetStats = {
   home: TeamStats;
   away: TeamStats;
-  /** Keyed by player id; only players who recorded something appear. */
   players: Record<string, PlayerStats>;
 };
 
-/**
- * Totals for one set, computed from its entries.
- *
- * `substitution`, `timeout` and `challenge` are **used counts**. The remaining
- * allowance is `SET_ALLOWANCES[k] - used`, which is why they start at zero here
- * rather than at the limit.
- */
 export function deriveSetStats(
   entries: readonly DerivableEntry[] | undefined,
   set: { options: { serve: "home" | "away" } },
@@ -463,8 +490,6 @@ export function deriveSetStats(
   const away = new TeamStatsClass();
   const players: Record<string, PlayerStats> = {};
 
-  // TeamStatsClass seeds the allowances with their limits; derived totals count
-  // what was used, so start them at zero.
   home.substitution = 0;
   home.timeout = 0;
   home.challenge = 0;
@@ -504,8 +529,6 @@ export function deriveSetStats(
         else moveStat.error += 1;
       }
 
-      // Serve rights pass to the winner; the home team rotates whenever it wins
-      // a rally it did not serve.
       if (win && !isHomeServing) home.rotation += 1;
       isHomeServing = win;
       continue;

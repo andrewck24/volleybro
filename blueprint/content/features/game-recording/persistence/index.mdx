@@ -16,6 +16,7 @@ import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
 import persistenceErrorLayering from "./decisions/D17-persistence-error-layering.json";
 import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
 import storageAvailabilityIsAFirstClassState from "./decisions/D20-storage-availability-is-a-first-class-state.json";
+import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
@@ -78,6 +79,10 @@ appends one entry; it does not rewrite the game.
   newer version, which may belong to a build the user is also running.
 
 ## Constraints
+
+- The queue is laid over the server's answer by the same identity-and-sequence
+  rule the repository writes by, so what the recorder sees now is what the
+  server will hold once the queue drains.
 
 - **New write paths must not use `update()`.** A sixth game write path that
   reaches for it means this condition was not honoured.
@@ -149,5 +154,6 @@ appends one entry; it does not rewrite the game.
     persistenceErrorLayering,
     warningTracksUnrecoverableLoss,
     storageAvailabilityIsAFirstClassState,
+    mergeMirrorsUpsert,
   ]}
 />

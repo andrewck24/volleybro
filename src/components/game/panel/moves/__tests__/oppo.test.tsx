@@ -8,9 +8,7 @@ import { makeStore, type AppStore } from "@/lib/redux/store";
 import { act, renderHook } from "@testing-library/react";
 import { Provider } from "react-redux";
 
-// useSubmitEntryDraft now takes enqueue/flush from its caller (Game, the
-// single mounted owner of usePendingWrites) rather than mounting its own
-// instance -- this stands in for that owner here.
+// Stands in for Game, the single mounted owner of usePendingWrites.
 const useTestSubmitEntryDraft = (gameId: string) => {
   const pendingWrites = usePendingWrites(gameId, 0);
   return useSubmitEntryDraft(gameId, pendingWrites);
@@ -27,7 +25,10 @@ jest.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-const mutate = jest.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mutate = jest.fn((updater?: any) =>
+  typeof updater === "function" ? updater(baseGame) : updater,
+);
 const baseGame = {
   id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
@@ -53,8 +54,10 @@ const baseGame = {
     },
   ],
 };
+// Reassigned by the tests that need the merged view to differ from the cache.
+let mockGame: typeof baseGame = baseGame;
 jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: baseGame, mutate }),
+  useGame: () => ({ game: mockGame, mutate }),
 }));
 
 const networkError = () =>
@@ -72,7 +75,13 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 beforeEach(() => {
   store = makeStore();
-  mutate.mockClear();
+  mockGame = baseGame;
+  mutate.mockReset();
+  mutate.mockImplementation((updater?: unknown) =>
+    typeof updater === "function"
+      ? (updater as (g: unknown) => unknown)(baseGame)
+      : updater,
+  );
   mockToast.mockClear();
   apiClient.mockReset();
   act(() => {
@@ -88,11 +97,6 @@ beforeEach(() => {
   });
 });
 
-// S08: the update path used to throw and roll back on a write failure,
-// which surfaced as a toast -- now the editing card (GamePreview mode
-// "editing") is the single place that shows this, so a failed write must
-// leave the dialog in editing mode with no toast and the optimistic write
-// still standing.
 describe("useSubmitEntryDraft update path", () => {
   it("stays in editing mode, keeps the optimistic write, and shows no toast when the write fails", async () => {
     apiClient.mockRejectedValue(networkError());
@@ -107,7 +111,6 @@ describe("useSubmitEntryDraft update path", () => {
     expect(mockToast).not.toHaveBeenCalled();
     expect(store.getState().game.mode).toBe("editing");
     expect(store.getState().pendingWrites.pending).toHaveLength(1);
-    // Only the initial optimistic mutate -- no second call rolling it back.
     expect(mutate).toHaveBeenCalledTimes(1);
   });
 
@@ -124,5 +127,62 @@ describe("useSubmitEntryDraft update path", () => {
     expect(mockToast).not.toHaveBeenCalled();
     expect(store.getState().game.mode).toBe("general");
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
+
+describe("useSubmitEntryDraft against a cache the server has cut back", () => {
+  const rawGame = {
+    ...baseGame,
+    sets: [{ ...baseGame.sets[0]!, entries: [] as unknown[] }],
+  };
+
+  it("writes the edited rally by its identity, leaving no gap in the cache", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    let written: typeof baseGame | undefined;
+    mutate.mockImplementation((updater?: unknown) => {
+      written =
+        typeof updater === "function"
+          ? (updater as (g: unknown) => typeof baseGame)(rawGame)
+          : (updater as typeof baseGame);
+      return written;
+    });
+
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
+      wrapper,
+    });
+    await act(async () => {
+      await result.current();
+    });
+
+    const entries = written!.sets[0]!.entries;
+    expect(entries.map((e) => e.id)).toEqual(["e1"]);
+    expect(entries.every((e) => e !== undefined)).toBe(true);
+  });
+
+  it("throws before queuing anything when the entry is not a rally", async () => {
+    const notARally = {
+      ...baseGame,
+      sets: [
+        {
+          ...baseGame.sets[0]!,
+          entries: [
+            { ...baseGame.sets[0]!.entries[0]!, type: EntryType.TIMEOUT },
+          ],
+        },
+      ],
+    };
+    mockGame = notARally;
+
+    const { result } = renderHook(() => useTestSubmitEntryDraft("game-1"), {
+      wrapper,
+    });
+    await expect(
+      act(async () => {
+        await result.current();
+      }),
+    ).rejects.toThrow("Entry is not a rally");
+
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+    expect(mutate).not.toHaveBeenCalled();
   });
 });

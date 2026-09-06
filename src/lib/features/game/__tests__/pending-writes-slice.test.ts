@@ -121,7 +121,6 @@ describe("pendingWrites reducer", () => {
       );
     }
 
-    // Budget exhausted: one more failure marks it unrecoverable.
     state = pendingWritesReducer(
       state,
       pendingWritesActions.flushFailed({
@@ -130,8 +129,6 @@ describe("pendingWrites reducer", () => {
       }),
     );
     expect(state.pending[0]!.nextAttemptAt).toBeNull();
-    // Retryable, so it is still worth sending -- it just has no schedule of
-    // its own left. That reads as waiting, not as lost.
     expect(deriveSyncStatus(state, "game-1")).toBe("unsent");
   });
 
@@ -144,8 +141,6 @@ describe("pendingWrites reducer", () => {
         setIndex: 0,
       }),
     );
-    // An entry that has never failed carries no reason at all, rather than a
-    // placeholder standing in for one.
     expect(enqueued.pending[0]!.lastError).toBeUndefined();
 
     const failed = pendingWritesReducer(
@@ -166,9 +161,6 @@ describe("pendingWrites reducer", () => {
       status: 401,
     });
 
-    // The reason is the latest attempt's, not an accumulation: a later
-    // failure whose cause could not be read must not leave the older one
-    // standing as if it still applied.
     const failedAgain = pendingWritesReducer(
       failed,
       pendingWritesActions.flushFailed({
@@ -198,10 +190,6 @@ describe("pendingWrites reducer", () => {
     const first = state.pending[0]!.firstFailedAt;
     expect(first).toBe(Date.now());
 
-    // A flush sends every pending entry for its game, so a doomed one is
-    // re-attempted whenever any rally is recorded. Moving the timestamp with
-    // each attempt would measure the recorder's activity, not the entry's
-    // age, and it would never reach the expiry window.
     jest.setSystemTime(Date.now() + 60_000);
     state = pendingWritesReducer(
       state,
@@ -237,8 +225,6 @@ describe("pendingWrites reducer", () => {
       pendingWritesActions.flushSucceeded({ ids: ["e1"] }),
     );
 
-    // Confirmation removes the item outright, so a stale reason cannot
-    // survive it -- there is nothing left to carry one.
     expect(state.pending).toEqual([]);
   });
 
@@ -327,9 +313,45 @@ describe("pendingWrites reducer", () => {
     );
 
     expect(state.pending[0]!.nextAttemptAt).toBe(Date.now());
-    // A different game's exhausted item must stay unsynced -- resetting it
-    // here would move it to "scheduled" with nothing left to attempt it,
-    // since flush and the background scheduler both filter by game.
     expect(state.pending[1]!.nextAttemptAt).toBeNull();
+  });
+});
+
+describe("pending order", () => {
+  const seeded: PendingWritesState = {
+    storageUnavailable: false,
+    pending: [
+      {
+        entry: entry("e1"),
+        gameId: "game-1",
+        setIndex: 0,
+        attempts: 0,
+        nextAttemptAt: Date.now(),
+      },
+    ],
+  };
+
+  it("appends an enqueued entry after what is already queued", () => {
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.enqueued({
+        entry: entry("e2"),
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+
+    expect(state.pending.map((p) => p.entry.id)).toEqual(["e1", "e2"]);
+  });
+
+  it("puts restored entries ahead of what is in memory", () => {
+    const state = pendingWritesReducer(
+      seeded,
+      pendingWritesActions.rehydrated({
+        items: [{ entry: entry("e0"), gameId: "game-1", setIndex: 0 }],
+      }),
+    );
+
+    expect(state.pending.map((p) => p.entry.id)).toEqual(["e0", "e1"]);
   });
 });

@@ -197,8 +197,6 @@ describe("usePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
-  // The recorder can start set N+1 while set N still has an unconfirmed
-  // entry -- the queue must not orphan it (defect closed by this slice).
   it("flushes entries left behind by a previous set when instantiated with the new set index", async () => {
     apiClient.mockResolvedValue({ entries: [{ id: "e0" }] });
     store.dispatch(
@@ -224,8 +222,6 @@ describe("usePendingWrites", () => {
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
-  // Pooling by retryability would give one set's entries the other set's
-  // cause, which is what decides whether they are ever retried.
   it("records each set's own failure reason on that set's entries", async () => {
     const authError = new ApiClientError("session expired", {
       code: "AUTHENTICATION",
@@ -402,6 +398,28 @@ describe("PendingWritesContext: single owner", () => {
     await act(async () => {
       resolveRequest({ entries: [{ id: "e1" }] });
     });
+    expect(store.getState().pendingWrites.pending).toHaveLength(0);
+  });
+});
+
+describe("flush ordering", () => {
+  it("writes the confirmed entries to the cache before clearing the queue", async () => {
+    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    let stillQueuedWhenMutated: number | null = null;
+    mutate.mockImplementation(() => {
+      stillQueuedWhenMutated = store.getState().pendingWrites.pending.length;
+    });
+
+    const { result } = renderHook(() => usePendingWrites("game-1", 0), {
+      wrapper,
+    });
+
+    act(() => result.current.enqueue(entry("e1")));
+    await act(async () => {
+      await result.current.flush();
+    });
+
+    expect(stillQueuedWhenMutated).toBe(1);
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 });

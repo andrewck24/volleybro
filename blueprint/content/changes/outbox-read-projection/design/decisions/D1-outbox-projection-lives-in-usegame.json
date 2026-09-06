@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "未送出的球在 useGame 的回傳值疊回去，寫入路徑改吃未合併的快取",
+  "status": "implemented",
+  "targets": ["game-recording/rally-recording", "platform/clean-architecture"],
+  "context": "待送佇列裝的東西不符合 optimistic update 的前提。optimistic update 假設一個 mutation 立刻送出，很快成功或回滾。佇列裡的球會寫進磁碟，活過 app 重啟，可能躺好幾天，也可能永遠送不出去。現在 client state 在 Redux、server cache 在 SWR，兩個獨立的地方，而樂觀寫入把球放進了 SWR。沒有任何東西負責把兩邊兜起來，缺陷就從這裡來。SWR 對每個 key 的假設是「這裡面是伺服器的資料，我隨時可以整包換掉」。把只有 client 知道的事實塞進去，再抱怨它被蓋掉，站不住腳。還有一個限制來自寫入路徑目前的形狀：useGame 回傳的 game 就是快取裡那個物件本身，createRallyHelper 直接改它再交回 mutate。若 useGame 改成回傳合併後的新資料而寫入不動，樂觀寫入會把合併結果寫回快取，下次讀取再疊一次，同一顆球出現兩次。",
+  "decision": "useGame 回傳伺服器快取疊上這場比賽待送球的結果，用 useMemo 記憶化。寫入路徑改用 mutate 的函式形式，函式收到的參數就是未合併的快取。分界畫在讀與寫之間，不在哪個 hook。二十一個呼叫端一行不用改，而合併永遠發生在快取之後，不會進到快取裡。useGame 的回傳欄位一個都沒變。要拿未合併資料的只有寫入，它從 mutate 的參數拿，不從回傳值拿。變的是 game 這個字的意思：從伺服器快取，變成記錄員該看到的比賽。rally.helper 跟著拆成兩個純函式。算 phase 的那個吃合併過的資料，因為它要看得到待送的球——少了那幾顆，下一顆球會拿到過期比分，而 phase 會被寫進 Redux 推進記錄狀態。產生新快取內容的那個吃未合併的。runFlush 和 useUnconfirmedSetCompletion 的 retry 已經是函式形式，不動。",
+  "alternatives": [
+    {
+      "option": "另開一個 useGameView，讓 useGame 保持不碰 Redux",
+      "reason": "分界會落在「哪個 hook」而不是讀與寫之間。二十一個呼叫端要逐一判定該用哪一個，漏掉任何一個就是靜默留著這個 bug。換到 RTK Query 時還得再分一次，因為那邊的分界本來就在讀寫之間。"
+    },
+    {
+      "option": "每個消費端自己合併",
+      "reason": "同一份邏輯複製多份，遲早互相對不上。把合併收斂到一個地方就是為了避免這個。"
+    },
+    {
+      "option": "拿掉樂觀寫入，畫面完全靠合併呈現",
+      "reason": "單一資料流看起來乾淨，但 set.win 和 game.win 的重算沒有地方放。而且球送出去那一刻，畫面的資料來源會從合併切回伺服器，切換前後必須完全一樣才不會閃。留著樂觀寫入，兩者在依 id 覆蓋之下自然疊合。"
+    },
+    {
+      "option": "關掉 revalidateOnFocus 與 revalidateOnReconnect",
+      "reason": "只擋得住四種情況裡的兩種。冷啟動走的是 revalidateOnMount，每次都會發生；flush 覆蓋跟重新驗證無關。而且關掉等於放棄拿到伺服器上其他來源的更新，代價比缺陷本身大。"
+    },
+    {
+      "option": "等 SWR 換成 RTK Query 再一起處理",
+      "reason": "換過去這個問題不會消失。RTK Query 的 updateQueryData 和 SWR 的 mutate 語義一樣，一樣會被重新抓的資料蓋掉；endpoint 的 merge option 合併的是新回應和既有的伺服器快取，兩邊都是伺服器資料，不認識佇列；RTK Query 本身也沒有提供待送佇列。換過去之後合併會變成一個 selector，同一個 store 裡讀兩份 state，比現在便宜，但還是得有人做。順帶一提，RTK Query 的 updateQueryData 交給呼叫端的永遠是未合併的快取草稿——讀寫分離在那邊是內建的，本決策等於現在就採用同一個形狀。"
+    }
+  ],
+  "consequences": [
+    "useGame 從純資料層變成 domain-aware 的讀取端投影，src/hooks/use-data.ts 開始相依 Redux。platform/clean-architecture 的分層約束若因此需要調整，那是一份新的 ADR，不是把既有的改掉。",
+    "合併結果必須以 useMemo([data, pending]) 記憶化，否則每次 render 都給新物件，下游的 referential equality 全部失效。",
+    "rally.helper 的兩個 helper 從就地 mutate 改為純函式回傳新物件。phase 仍同步取得，dispatch 不需要等 promise。",
+    "畫面上的比分可能與伺服器暫時不一致。這是刻意的取捨——記錄員看到的比分就該是他記的那個。",
+    "flush 進行中記的球被 applyFlushedEntries 抹掉的既有破洞順帶修好，不需額外程式碼：那顆球還在佇列裡，讀取端立刻把它疊回去。",
+    "useUnconfirmedSetCompletion 的 retry 讀 merged 反而更正確——目前那顆球被 revalidation 沖掉時，retry 會找不到球可送。"
+  ],
+  "revisitTriggers": [
+    "SWR 遷移至 RTK Query 落地：合併改寫為 createSelector，寫入端改用 api.util.updateQueryData，本決策的形狀直譯過去，但落點段落須重寫。",
+    "outbox 開始承載 rally 以外的 entry 型別（substitution、timeout、challenge）：合併目前只疊 entries 而不碰 win，若新型別的推導需要更多欄位，合併的職責邊界須重新檢視。",
+    "出現第二個需要同樣投影的 server resource（例如 team）：屆時該考慮把投影抽成可重用的形狀，而不是在第二個 hook 裡再寫一次。"
+  ],
+  "originChange": "outbox-read-projection"
+}

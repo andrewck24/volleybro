@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D24",
+  "title": "合併沿用伺服器的 upsert 規則，且完全不碰 win",
+  "status": "implemented",
+  "targets": ["game-recording/rally-recording", "game-recording/persistence"],
+  "context": "合併要回答兩個問題：同一個 entry.id 在伺服器和佇列各有一版時聽誰的，疊上去的球放在哪個位置。伺服器那邊早就有答案。IGameRepository.upsertEntry 的契約是「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。第三個問題是 win。合併之後畫面上的大比分若還讀 GameView.win，顯示的會是不含待送球的舊值。但 win 現在同時是兩種東西：畫面讀它時當大比分用，useUnconfirmedSetCompletion 讀它時當作「伺服器確認過局結果了沒」的記號，而後者正是冷啟動偵測未確認局結果的依據。一個欄位兩種意思，所以「讓合併順手重算 win」會誤傷那個偵測。另外查到一個缺口：pending-writes-slice 的 enqueued 是無條件 push，沒有依 id 去重，而編輯一顆還沒送出的球會用同一個 id 再入列一次。佇列可以自己跟自己撞號。",
+  "decision": "合併沿用伺服器的規則：依 id 覆蓋、依 seq 排序，佇列的版本贏過伺服器的版本，佇列裡同一個 id 有多筆就取最後一筆。這樣兩邊不會對同一批球排出不同順序。「pending 依入列時間排序」從一個碰巧成立的事實，變成寫下來並有測試守著的契約。合併的取最後一筆和 flush 送出時的去重都靠它；rehydrated 把還原的項目放最前面，時間序一致。合併範圍是這場比賽的全部待送球，包含永久失敗的那些，失敗標記才掛得到列。合併完全不碰 win，只疊 entries。畫面上的大比分改用推導：新增 deriveSetsWon，sets/list 直接用既有的 deriveSetPhase。GameView.win 保留原本的意思，也就是 completeSet 這個唯一寫入者存下來的推導值，null 表示還沒被記錄。樂觀寫入繼續填它，因為那正是讓冷啟動偵測在使用中保持安靜的東西；冷啟動時樂觀寫入的值本來就已經被沖掉，偵測還是拿得到伺服器的 null。",
+  "alternatives": [
+    {
+      "option": "伺服器的版本贏，佇列的版本只在伺服器沒有那個 id 時才疊上去",
+      "reason": "編輯一顆還沒送出的球時，畫面會顯示編輯前的內容——記錄員剛改完就看到它變回去。佇列的版本一定比伺服器新，這個方向找不到站得住的情境。"
+    },
+    {
+      "option": "合併時順手重算 win，讓局結果也即時正確",
+      "reason": "會誤傷 useUnconfirmedSetCompletion 的冷啟動偵測，它靠 GameView.win 為 null 判斷伺服器還沒確認局結果。win 的兩種用途得先分開，畫面改用推導，合併才能完全不碰它。"
+    },
+    {
+      "option": "合併只疊還能重試的球，排除永久失敗的",
+      "reason": "失敗標記從佇列算、列從資料渲染。排除掉它們，標記就永遠掛不到列，逐列重試依舊按不到——那正是這張 Change 要修的東西之一。"
+    },
+    {
+      "option": "在 enqueued 加上依 id 去重，讓佇列不會自己撞號",
+      "reason": "那會改到佇列的寫入語義，影響送出時的內容和重試次數，屬於佇列自己的行為變更。在讀取端取最後一筆效果相同，不用動寫入。要去重的話是另一張 Change 的事。"
+    }
+  ],
+  "consequences": [
+    "header/scores 與 banner/teams 不再讀 GameView.win，改用 deriveSetsWon；sets/list 改用 deriveSetPhase。這四處的大比分從此包含待送的球。",
+    "GameView.win 的語義窄化為「伺服器確認記號」，必須寫進 rally-recording 的 Feature 敘述，否則下一個讀它的人會再犯同一個錯。",
+    "pending 陣列的順序成為明文契約，未來任何改動 enqueued、rehydrated 或 flushSucceeded 順序的工作都必須維持它，並有測試會失敗。",
+    "4xx 永久失敗的錯球會釘在畫面與比分上直到七天過期，而佇列沒有主動丟棄手勢。這是已知缺口，已獨立登記為後續工作，不是靜默的。",
+    "合併函式不認識比賽規則，因此可以被 entries 層以外的任何地方安全重用，也不會隨規則變更而需要修改。"
+  ],
+  "revisitTriggers": [
+    "丟棄手勢落地：4xx entry 有了出口之後，合併範圍是否仍應包含它們須重新檢視。",
+    "推導對齊的後續 Change 落地：deriveSetCompletion 下沉為兩端共用之後，deriveSetsWon 會被它吸收，本決策關於大比分推導的段落須更新。",
+    "entry 的排序改以伺服器指派的序號而非 client 的 seq：屆時依 seq 排序的規則要改成依新序號，而佇列版本勝出的規則不受影響。"
+  ],
+  "originChange": "outbox-read-projection",
+  "originDecision": "D2"
+}

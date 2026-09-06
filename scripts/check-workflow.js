@@ -415,6 +415,122 @@ async function validateDesignModules(root) {
   return diagnostics;
 }
 
+// A Change that says it is ready for the developer must carry the page that
+// asks for the decision. Archived Changes are frozen history and predate this.
+const REVIEWED_LIFECYCLE = "awaiting-delivery-review";
+
+async function validateChangeArtifacts(root) {
+  const changesRoot = path.join(root, BLUEPRINT_CHANGES);
+  if (!(await exists(changesRoot))) return { diagnostics: [], active: [] };
+
+  const diagnostics = [];
+  const active = [];
+  const entries = await readdir(changesRoot, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const dir = path.join(changesRoot, entry.name);
+    const changePath = path.join(dir, "change.json");
+    const metaPath = path.join(dir, "meta.json");
+    if (!(await exists(changePath)) || !(await exists(metaPath))) continue;
+
+    const change = JSON.parse(await readFile(changePath, "utf8"));
+    const meta = JSON.parse(await readFile(metaPath, "utf8"));
+    if (change.lifecycle !== "archived") active.push(dir);
+    if (change.lifecycle !== REVIEWED_LIFECYCLE) continue;
+    if (meta.pages?.includes("review")) continue;
+
+    diagnostics.push(
+      `${BLUEPRINT_CHANGES}/${entry.name} [blueprint-review]: lifecycle "${change.lifecycle}" without a review page`,
+    );
+  }
+
+  return { diagnostics, active };
+}
+
+// A Review's FileTour of prose alone asks the reader to take the summary on
+// trust. Overview tours are written before the code exists, so this binds
+// review.mdx only; archived Changes are frozen history and are left alone.
+function fileTourGaps(relativePath, content) {
+  const start = content.indexOf("<FileTour");
+  if (start === -1) return [];
+
+  // Not the first "/>": a snippet can contain one. The tour closes on its
+  // own array literal.
+  const close = content.slice(start).search(/\n\s*\]\}\s*\/>/);
+  if (close === -1) return [];
+  const tour = content.slice(start, start + close);
+  const cuts = [...tour.matchAll(/\bpath:\s*["'`]([^"'`]+)["'`]/g)];
+  return cuts.flatMap((cut, index) => {
+    const body = tour.slice(cut.index, cuts[index + 1]?.index ?? tour.length);
+    if (!/\bchange:\s*["'`]/.test(body)) return [];
+    if (/\bcode:\s*["'`]/.test(body)) return [];
+    return [`${relativePath} [blueprint-file-tour]: ${cut[1]} has no code`];
+  });
+}
+
+async function validateFileTours(root, changeDirectories) {
+  const diagnostics = [];
+  for (const directory of changeDirectories) {
+    for (const filePath of await listFiles(directory)) {
+      if (!filePath.endsWith("review.mdx")) continue;
+      diagnostics.push(
+        ...fileTourGaps(
+          path.relative(root, filePath),
+          await readFile(filePath, "utf8"),
+        ),
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
+// Two ways a snippet prop loses its shape. MDX strips the leading whitespace
+// from every continuation line of a multi-line template literal, so the code
+// renders flush left; and a bare JSX string attribute is a literal, so its
+// escapes render as the characters "\\n". An escaped string inside braces is
+// the only form that survives.
+const SNIPPET_FORMS = [
+  [/=\{`[^`]*\n/, "a multi-line template literal"],
+  [/\n\s*code="/, "a bare string attribute"],
+];
+
+async function validateSnippetLiterals(root, changeDirectories) {
+  const diagnostics = [];
+  for (const directory of changeDirectories) {
+    for (const filePath of await listFiles(directory)) {
+      if (!filePath.endsWith(".mdx")) continue;
+      const content = await readFile(filePath, "utf8");
+      for (const [form, label] of SNIPPET_FORMS) {
+        if (!form.test(content)) continue;
+        diagnostics.push(
+          `${path.relative(root, filePath)} [blueprint-snippet]: a snippet prop is ${label}, not an escaped string in braces`,
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+// The route derives slice progress from the plan and renders it. A count
+// written into the page is a second copy that goes stale the moment a slice
+// completes -- which is how every one of these was found reading 0.
+async function validateSliceProgress(root, changeDirectories) {
+  const diagnostics = [];
+  for (const directory of changeDirectories) {
+    const pagePath = path.join(directory, "implementation.mdx");
+    if (!(await exists(pagePath))) continue;
+    const content = await readFile(pagePath, "utf8");
+    if (!/<TaskProgress\b/.test(content)) continue;
+    diagnostics.push(
+      `${path.relative(root, pagePath)} [blueprint-slice-progress]: progress comes from the plan, not a prop`,
+    );
+  }
+
+  return diagnostics;
+}
+
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
   const workflowPath = path.join(root, "WORKFLOW.md");
@@ -452,6 +568,15 @@ export async function checkWorkflow(root = process.cwd()) {
   diagnostics.push(...(await validateOverviewSource(root)));
   diagnostics.push(...(await validateInternalLinks(root)));
   diagnostics.push(...(await validateDesignModules(root)));
+  const changeArtifacts = await validateChangeArtifacts(root);
+  diagnostics.push(...changeArtifacts.diagnostics);
+  diagnostics.push(...(await validateFileTours(root, changeArtifacts.active)));
+  diagnostics.push(
+    ...(await validateSliceProgress(root, changeArtifacts.active)),
+  );
+  diagnostics.push(
+    ...(await validateSnippetLiterals(root, changeArtifacts.active)),
+  );
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));
   diagnostics.push(...(await validateContributorGuidance(root)));

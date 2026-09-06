@@ -10,6 +10,7 @@ import {
   deriveServingStatus,
   deriveSetPhase,
   deriveSetStats,
+  deriveSetsWon,
   getPreviousRally,
   setTargetPoints,
   validateLineupPlayers,
@@ -264,6 +265,39 @@ describe("set derivation", () => {
         deriveSetPhase({ entries: [rally(true, 15, 10)] }, 1, 15)
           .isSetInProgress,
       ).toBe(false);
+    });
+  });
+
+  describe("deriveSetsWon", () => {
+    const scoring = { setCount: 5, decidingSetPoints: 15 };
+
+    it("counts a finished set for whoever reached target with a two point lead", () => {
+      const sets = [
+        { entries: [rally(true, 25, 20)] },
+        { entries: [rally(false, 10, 25)] },
+      ];
+      expect(deriveSetsWon(sets, scoring)).toEqual({ home: 1, away: 1 });
+    });
+
+    it("does not count a set still in progress", () => {
+      const sets = [{ entries: [rally(true, 24, 20)] }];
+      expect(deriveSetsWon(sets, scoring)).toEqual({ home: 0, away: 0 });
+    });
+
+    it("does not count a set with no entries yet", () => {
+      const sets = [{ entries: [] }];
+      expect(deriveSetsWon(sets, scoring)).toEqual({ home: 0, away: 0 });
+    });
+
+    it("uses the deciding set points for the last set", () => {
+      const sets = [
+        { entries: [] },
+        { entries: [] },
+        { entries: [] },
+        { entries: [] },
+        { entries: [rally(true, 15, 10)] },
+      ];
+      expect(deriveSetsWon(sets, scoring)).toEqual({ home: 1, away: 0 });
     });
   });
 
