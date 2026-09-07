@@ -7,47 +7,56 @@ import { RiskTable } from "@/components/RiskTable";
 import { TLDR } from "@/components/TLDR";
 import routeBoundary from "./design/decisions/D1-request-validation-happens-at-the-route-boundary.json";
 import useCaseOwnsInput from "./design/decisions/D2-the-use-case-owns-its-input-type.json";
-import statelessAtBoundary from "./design/decisions/D3-stateless-validation-lives-at-the-boundary-once.json";
+import parsingAtBoundary from "./design/decisions/D3-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
 import strictNeverCoerce from "./design/decisions/D4-schemas-reject-unknown-fields-and-never-coerce.json";
 import awayKeepsTeamType from "./design/decisions/D5-away-keeps-the-team-type-with-optional-fields.json";
 
 <TLDR>
-  一條規則決定每個檢查該放哪一層：**它需要資料庫裡的狀態嗎？**
-  不需要的（欄位在不在、型別對不對、值在不在範圍內）屬邊界，只寫一次；需要的（這個球員在不在名單上）留在
-  entities。`validateRallyEntry` 整個屬於前者，所以它移到 schema 而不是與 schema
-  並存。
+  兩個問題決定每個檢查該放哪一層，有順序：**這是在重建 wire format
+  丟失的型別嗎？** 是的話屬邊界，parse
+  一次。**這是一條關於排球、換掉傳輸協定與資料庫都仍然成立的規則嗎？** 是的話屬
+  entity。`validateRallyEntry`
+  的四個檢查全部落在第一問，沒有一條是排球規則——所以它移到 schema，而不是與
+  schema 並存。
 </TLDR>
 
 ## Adopted shape
 
 每一層只回答一個問題，而且只有一層回答它。
 
-| 層                        | 回答什麼                  | 需要資料庫狀態嗎 | 例子                                                        |
-| ------------------------- | ------------------------- | ---------------- | ----------------------------------------------------------- |
-| route（`assertObjectId`） | 路徑參數的形狀對不對      | 否               | `gameId` 是 24 位十六進位                                   |
-| route（`Schema.parse`）   | request body 的形狀對不對 | 否               | `type` 在 `MoveType` 內、`num` 在表的範圍內、沒有未宣告欄位 |
-| use case                  | 這個人可以做這件事嗎      | 是               | `verifyTeamRole`                                            |
-| entity                    | 這符合領域的不變式嗎      | 是               | `validateLineupPlayers` 的 roster 比對                      |
-| repository                | 儲存機制自己的坑          | —                | `anonymous` 檢查（arrayFilters 對 `null` 的匹配風險）       |
+| 層                        | 回答什麼                      | 例子                                                       |
+| ------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| route（`assertObjectId`） | 路徑參數是它宣稱的型別嗎      | `gameId` 是 24 位十六進位                                  |
+| route（`Schema.parse`）   | request body 是它宣稱的型別嗎 | `type` 是 `MoveType`、`num` 是表的合法索引、沒有未宣告欄位 |
+| use case                  | 這個人可以做這件事嗎          | `verifyTeamRole`                                           |
+| entity                    | 這符合排球與 Game 的規則嗎    | `validateLineupPlayers` 的 roster 比對                     |
+| repository                | 儲存機制自己的坑              | `anonymous` 檢查（arrayFilters 對 `null` 的匹配風險）      |
 
-前兩列合起來是「同一個請求的形狀」，所以它們同層、同機制——`assertObjectId` 拋 `ValidationError`、`Schema.parse` 拋 `ZodError`，都由 `withErrorHandler` 轉成 400。這不是新發明：path param 那一半在 `api-objectid-guards` 就已經這樣定案，本 Change 只是把 body 那一半補上。
+前兩列合起來是「這個請求的每個值都是它宣稱的型別」，所以它們同層、同機制——`assertObjectId` 拋 `ValidationError`、`Schema.parse` 拋 `ZodError`，都由 `withErrorHandler` 轉成 400。這不是新發明：path param 那一半在 `api-objectid-guards` 就已經這樣定案，本 Change 只是把 body 那一半補上。
+
+### 一個被撤回的判準
+
+本 Change 一度用「這個檢查需不需要資料庫狀態」來分層。它很好用，也給出了正確的結論，但**它不是 Clean Architecture 的判準**——CA 問的是規則的射程，而狀態相依性只是與之相關的一個表徵。兩個方向都會誤判：
+
+- **stateless 卻是領域規則**：`away.num` 必須在 `scoringMoves[home.num].outcome` 內。這是排球規則（主隊扣球得分時，客隊那一側只可能是特定幾種動作），卻只需要查表。
+- **stateful 卻不是領域規則**：「這個 `gameId` 存在嗎」。需要資料庫，但那是 404，不是業務規則。
+
+它在 `validateRallyEntry` 上恰好答對，是因為那四條本來就不是領域規則——**正確結論配錯誤理由，會在下一個案例上失效**。所以判準改為上方 TLDR 的兩問。
 
 ### 為什麼 `validateRallyEntry` 整個移走，而 `validateLineupPlayers` 只移走一半
 
-因為分野不是「zod 能不能表達」——`validateRallyEntry` 的四個檢查 zod 全部寫得出來——而是**需不需要狀態**。
-
-`validateRallyEntry` 檢查 `type` 在 enum 內、`num` 在 0 至 14、`win` 是 boolean、`score` 是數字。四條都只看那筆資料本身，不需要任何查詢。依 `rally-entry-validation` 自己 D2 的分類，這**全部都是「形狀」**——該決策也明說「意義」那半（`num` 與 `type` / `win` 的自洽）尚無人守護。所以它整個屬邊界。
+`validateRallyEntry` 檢查 `type` 在 enum 內、`num` 是 0 至 14 的整數、`win` 是 boolean、`score` 是數字。**四條都在回答「這個值真的是它宣稱的型別嗎」**，之所以需要在執行期問，只因為 TypeScript 的型別被抹除而 JSON 沒有型別。真正的排球規則長這樣：「後排球員不得記錄前排攻擊」——`validateRallyEntry` 裡一條都沒有。所以它整個落在第一問，屬邊界。
 
 `validateLineupPlayers` 是兩件事黏在一起：
 
 ```ts
-// (a) shape：lineup 是物件、三個陣列都在 —— 不需要狀態
+// (a) 型別重建：lineup 是物件、三個陣列都在
 if (lineup == null || !Array.isArray(lineup.starting) ...) throw
-// (b) roster 比對 —— 需要 game.teams.home.players
+// (b) 領域規則：被指名的球員必須在這支隊伍的名單上
 for (const id of referencedIds) if (!rosterIds.has(id)) throw
 ```
 
-(a) 的註解自承它存在的理由是「lineup 未經驗證就從 request body 進來」——**本 Change 之後那句話就是假的**，所以它跟著走。(b) 要拿資料庫裡的名單比對，schema 沒有那個資訊，留下。
+(a) 的註解自承它存在的理由是「lineup 未經驗證就從 request body 進來」——**本 Change 之後那句話就是假的**，所以它跟著走。(b) 換掉 HTTP、換掉 MongoDB 都仍然成立，是第二問的典型例子；它需要的名單由 use case 傳入，entity 自己不查詢。
 
 ### 這是執行既有決策，不是推翻它
 
@@ -57,11 +66,15 @@ for (const id of referencedIds) if (!rosterIds.has(id)) throw
 
 本 Change 就是那個觸發點。兩份已晉升的 D26 記錄（`game-recording/rally-recording` 與 `game-recording/persistence`）與 `platform/clean-architecture` 的一條 Known gap 需要在 Archive 時標記 superseded 或改寫。
 
-### 一個意外解開的結
+### 一個看起來被解開、其實沒有的結
 
-跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致、`away.num` 在 `outcome` 內）原本卡在一個前置條件：entities 不能 import `src/lib/scoring-moves.ts`，因為該檔 `import { MoveType } from "@/entities/game"`，反向會成環。所以那個檢查必須等整張表下沉到 entities。
+跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致、`away.num` 在 `outcome` 內）卡在一個前置條件：entities 不能 import `src/lib/scoring-moves.ts`，因為該檔 `import { MoveType } from "@/entities/game"`，反向會成環。所以它必須等整張表下沉到 entities。
 
-schema 住在 `src/interface/validations/`，相依方向是 `interface → lib → entities`——**一條直線**。所以那個檢查現在就有地方放，`scoringMoves` 的下沉不再是它的前置。連帶地，`num` 的上界改用 `scoringMoves.length - 1`，手抄的 `LAST_SCORING_MOVE = 14` 與釘住它的測試一併消失。
+schema 住在 `src/interface/validations/`，相依方向 `interface → lib → entities` 是一條直線，所以把那個檢查放進 `.refine()` **技術上做得到**。本 Change 一度打算這麼做，理由是它同樣只需查表。
+
+**但那是撤回的判準在說話。** 依第二問，「主隊扣球得分時，客隊那一側只可能是這幾種動作」是排球規則，換掉傳輸與儲存都成立——它屬 entity。技術上放得進 schema，不代表它該放在那裡。**所以那個結沒有被解開，`scoringMoves` 的下沉仍然是它的前置。**
+
+被真正解開的只有一件小事：`num` 的上界。它不是規則，是「合法索引的範圍」——型別重建的一部分——所以改用 `scoringMoves.length - 1` 由 schema 取得，手抄的 `LAST_SCORING_MOVE = 14` 與釘住它的測試一併消失。
 
 ## Contracts
 
@@ -93,7 +106,7 @@ schema 住在 `src/interface/validations/`，相依方向是 `interface → lib 
       name: "「邊界是唯一入口」沒有工具守著",
       severity: "warning",
       mitigation:
-        "D3 刪掉 entity 層的 stateless 驗證，前提是所有寫入都經 route。今天為真，但一個未來的 Server Action 若不經 controller 就會靜默失去全部 rally 驗證。緩解是把這條前提寫進慣例並記為 revisit trigger；真正的解法是 import 邊界規則，而它要等 src/lib/ 的層歸屬清乾淨。",
+        "D3 把型別重建收斂到邊界一份，前提是所有寫入都經過那個邊界。今天為真，但一個未來的 Server Action 若不經 controller，rally 的型別重建就會靜默消失。緩解是把這條前提寫進慣例並記為 revisit trigger；正解是讓所有 delivery mechanism 共用同一份 parse，而不是在內層補第二份。",
     },
     {
       name: "6 條既有路由 retrofit .strict()",
@@ -134,7 +147,7 @@ schema 住在 `src/interface/validations/`，相依方向是 `interface → lib 
   decisions={[
     routeBoundary,
     useCaseOwnsInput,
-    statelessAtBoundary,
+    parsingAtBoundary,
     strictNeverCoerce,
     awayKeepsTeamType,
   ]}

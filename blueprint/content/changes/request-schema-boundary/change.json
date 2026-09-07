@@ -4,7 +4,7 @@
   "title": "Request Schema Boundary",
   "lifecycle": "ready-for-review",
   "startedAt": "2026-09-08",
-  "summary": "game 的五條寫入路由把 request body 原封不動往下送，而 team 與 player 的九條全部都會 parse——game 是唯一的例外。但補上 schema 只是一半：schema 目前散在三個層，沒有一套可以被指為「這個 repo 的做法」，所以下一個人會再選一次。本 Change 補齊 game 的缺口，並把三套慣例收斂成一套：request 驗證在邊界發生一次，entity 只保留需要資料庫狀態才能判斷的規則。",
+  "summary": "game 的五條寫入路由把 request body 原封不動往下送，而 team 與 player 的九條全部都會 parse——game 是唯一的例外。但補上 schema 只是一半：schema 目前散在三個層，沒有一套可以被指為「這個 repo 的做法」，所以下一個人會再選一次。本 Change 補齊 game 的缺口，並把三套慣例收斂成一套：型別重建在邊界發生一次，entity 只保留換掉傳輸協定與資料庫都仍然成立的規則。",
   "capabilities": [
     "platform/clean-architecture",
     "game-recording/rally-recording",

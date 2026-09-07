@@ -58,9 +58,11 @@ S05 刪掉驗證器，而 `test/integration/rally-validation.itest.ts` 的三個
 
 ## 在 S05 裡要抗拒的一件事
 
-刪掉 `validateRallyEntry` 的時候，順手把跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致）加進 schema 會很誘人——反正都在改那個檔案，而 D3 也說了那就是它的新家。
+刪掉 `validateRallyEntry` 的時候，順手把跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致、`away.num` 在 `outcome` 內）加進 schema 的 `.refine()` 會很誘人——schema 住在 `interface/`，import `scoringMoves` 不成環，**技術上完全做得到**。
 
-**不要。** 本 Change 確立的是落點，不是實作。那個檢查會改變哪些 rally 被接受，需要對照既有的 13 筆資料驗證不會誤殺，而那份掃描與遷移屬另一張票。混進來會讓一個純收斂的 slice 帶上一個行為變更，且沒有對應的資料驗證。
+**不要，而且理由不是「留給另一張票」。** 依 D3 的第二問，那是一條排球規則——「主隊扣球得分時，客隊那一側只可能是這幾種動作」換掉傳輸協定與資料庫都仍然成立——所以它屬 entity，不屬邊界。**放得進去不代表該放進去。** 而 entity 要查 `scoringMoves` 仍然會成環，所以它依舊以那張表下沉為前置，落點與順序都不歸本 Change 決定。
+
+（本 Change 的早期版本主張過相反的話。判準修正的完整說明在 Design 的「一個被撤回的判準」。）
 
 ## 驗證的層次
 

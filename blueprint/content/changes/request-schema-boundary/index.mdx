@@ -11,8 +11,8 @@ import { TLDR } from "@/components/TLDR";
   的九條全部都會 parse——game 是唯一的例外。但補上 schema 只是一半：schema
   目前散在三個層，沒有一套可以被指為「這個 repo
   的做法」，所以下一個人會再選一次。本 Change 補齊 game
-  的缺口，並把三套慣例收斂成一套：request 驗證在邊界發生一次，entity
-  只保留需要資料庫狀態才能判斷的規則。
+  的缺口，並把三套慣例收斂成一套：型別重建在邊界發生一次，entity
+  只保留換掉傳輸協定與資料庫都仍然成立的規則。
 </TLDR>
 
 <Scenario
@@ -75,7 +75,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 - **不把 controller 變成 interface adapter。** 那會動全部 14 個 handler 與 15 個 controller，並牴觸一份已封存的 spec。本 Change 的 route 層驗證是過渡；終局已承諾，由 `api-route-restructure` 承接，且 schema 檔案不需要再搬。
 - **不加 import 邊界的 lint 規則。** 每個候選工具都以路徑判層，而 `src/lib/` 仍裝著三個層的程式碼。本 Change 只消掉其中一層。
 - **不把 `scoringMoves` 下沉到 entities。** 它混著 domain 欄位與 zh-TW 顯示字串，拆分需要一個獨立的設計決定。
-- **不移除 rally 的跨欄位冗餘。** `num` 決定 `type` 與 `win`，三者可能矛盾——本 Change 讓那個檢查有地方放，但不動儲存的欄位。
+- **不加跨欄位自洽檢查，也不移除 rally 的跨欄位冗餘。** `num` 決定 `type` 與 `win`，三者可能矛盾。那條檢查是排球規則，屬 entity，而 entity 要查 `scoringMoves` 仍會成環——它**仍然以那張表下沉為前置**，本 Change 不改變該順序。
 - **不修 `docs/specs/api-objectid-validation/spec.md`。** 它是不可變的歷史快照，即使其 `@trace` 會因本 Change 搬檔案而指向舊路徑。現行知識改由 Blueprint 承載。
 
 ## Change boundaries
@@ -144,7 +144,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 | --- | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | D1  | 驗證發生在哪一層，schema 住哪裡               | route 邊界 `.parse()`；schema 集中於 `src/interface/validations/`；過渡狀態，終局是 controller |
 | D2  | usecase 與 schema 誰擁有輸入契約              | usecase 擁有；schema 以 `satisfies z.ZodType<...>` 反向證明相容                                |
-| D3  | 邊界有了 schema 之後，entity 層的驗證還留不留 | stateless 只在邊界一份；`validateRallyEntry` 刪除；stateful 的 roster 比對留下                 |
+| D3  | 邊界有了 schema 之後，entity 層的驗證還留不留 | 型別重建屬邊界、領域規則屬 entity；`validateRallyEntry` 四條都是前者故刪除；roster 比對留下    |
 | D4  | schema 對未宣告欄位與型別不符的值怎麼辦       | 一律 `.strict()`；一律不做 coercion，改修 client                                               |
 | D5  | `Team` 的型別要怎麼與現實對齊                 | 同一個型別上把欄位改選填，不拆窄型別；`Match.weather` 整個移除                                 |
 
