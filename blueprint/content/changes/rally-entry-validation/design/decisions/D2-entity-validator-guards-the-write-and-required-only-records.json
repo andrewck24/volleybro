@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D2",
   "title": "寫入守衛是 entities 層的獨立 validator，Mongoose 的 required 只是欄位必要性的紀錄",
-  "status": "candidate",
+  "status": "accepted",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
   "context": "把 `rallyDetailSchema` 的 `score` / `type` / `num` 與 `rallySchema` 的 `win` 補上 `required: true` 是直覺的第一反應，但它攔不到任何東西。rally 的唯一寫入路徑是 `upsertEntry` 的 `bulkWrite`，裡面全是 `updateOne`，而 Mongoose 只對 `bulkWrite` 中的 `insertOne` 與 `replaceOne` 執行驗證；`updateOne` 不驗，`runValidators` 傳了也被忽略。以 `mongodb-memory-server` 實測：四個欄位全標 `required` 之後，`bulkWrite` + `$push` 仍然接受缺欄位的球（加不加 `runValidators` 都一樣），而同樣兩種指令形狀單獨以 `Model.updateOne(..., { runValidators: true })` 呼叫時會拒絕——是 `bulkWrite` 這個載體吃掉了驗證。同一組實測也顯示更新路徑只做 cast、不做 validate：`type: \"attack\"` 被 `CastError` 擋下，但缺欄位與超出 enum 範圍的值一律放行，所以災難有兩個入口而非一個。本專案已經掉進這個坑一次：`entrySchema` 的 `id` 與 `seq` 同樣標了 `required` 同樣不執行，`upsertEntry` 因此另外手寫了 `anonymous` 檢查。那道守衛留在 repository 是對的——它防的是 arrayFilters 對 `null` 的匹配風險，屬儲存機制自己的坑；「一顆球必須說得出球種」不是儲存機制的坑。",
   "decision": "新增 `validateRallyEntry` 至 `src/entities/game.ts`，緊鄰 `validateLineupPlayers`，由 `record-rallies.usecase.ts` 在授權之後、寫入之前逐筆呼叫，與 `create-set.usecase.ts` 呼叫 `validateLineupPlayers` 的層次與位置一致——entities 層的驗證在本 repo 一律是獨立 method（`validateLineupPlayers`、`validatePlayerStatus`），內嵌是其他層的做法。檢查每個欄位單獨合法：兩側的 `type` 在 `MoveType` 的合法值內（含範圍，不只是存在）、`num` 在 0 至 14、`win` 是 boolean、`score` 是數字。不檢查跨欄位一致性。`rallyDetailSchema` 與 `rallySchema` 的四個欄位仍然補上 `required: true`，但它的角色是**欄位必要性的紀錄**而非寫入守衛，並以兩行註解指向本記錄；`setSchema` 與 `gameSchema` 的 `win` 不加，它們在結果存在前刻意是 `null`。因為單元測試證明不了「有人在該拒絕時呼叫了它」，本決策附帶一條不可省的整合測試：畸形的球經真實 route 送出得到 400 且未被寫入。",
