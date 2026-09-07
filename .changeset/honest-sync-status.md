@@ -4,7 +4,7 @@
 
 ### Fixed
 
-#### Record
+#### Game
 
 - Stop the sync indicator spinning through an entire offline stretch. It now settles into a static state a few seconds after the writes actually start failing, and says the rallies are saved and what happens next, instead of implying the app is stuck
 - Treat a connection that reports itself as online but cannot reach the server the same as being offline, which is the more common case in a gym
