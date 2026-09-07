@@ -9,11 +9,12 @@ import { TaskProgress } from "@/components/TaskProgress";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
-  兩片如計畫交付，行為與 Design 一致，獨立審查三輪後判定 **CONVERGED**，`pnpm
-  verify:all` 連續兩次全綠。最有價值的一筆是 Spec 軸抓到 changeset
-  寫了卻沒有進任何 commit——檔案在、內容對、肉眼看不出問題。Gate
-  另外擋下兩件事：一條與本 Change 無關但在此分支上更常紅的既有 flaky
-  測試（已診斷並修在本分支，見發現八），以及三個缺 `code` 的 FileTour 條目。
+  兩片如計畫交付，行為與 Design
+  一致。獨立審查四輪：前三輪覆蓋兩片的實作並收斂，第四輪覆蓋前三輪之後才產生的五個
+  commit——包含這一頁本身與那條擋住 gate 的 flaky 測試修正。`pnpm verify:all`
+  連續兩次全綠。最有價值的兩筆都是「肉眼看不出來」的：changeset 寫了卻沒有進任何
+  commit，以及這一頁一度宣稱三輪就已收斂，而那個判定的固定點比交付狀態早了兩個
+  commit。
 </TLDR>
 
 ## Delivered
@@ -29,7 +30,7 @@ import { TLDR } from "@/components/TLDR";
     {
       path: "src/entities/game.ts",
       change: "modified",
-      added: 60,
+      added: 59,
       removed: 25,
       summary:
         "S01 的守衛包住統計累加，rotation 與發球權留在外面；S02 的 validateRallyEntry 緊鄰 validateLineupPlayers，逐欄位檢查後丟 ValidationError。",
@@ -59,7 +60,7 @@ import { TLDR } from "@/components/TLDR";
     {
       path: "src/entities/__tests__/game.test.ts",
       change: "modified",
-      added: 84,
+      added: 82,
       removed: 0,
       summary:
         "deriveSetStats 對缺 type 與超出 enum 兩種輸入的容錯，輪轉數與合法情形對照；validateRallyEntry 的十一種拒絕條件。",
@@ -69,12 +70,22 @@ import { TLDR } from "@/components/TLDR";
     {
       path: "test/integration/rally-validation.itest.ts",
       change: "added",
-      added: 84,
+      added: 83,
       removed: 0,
       summary:
         "三種畸形 rally 經真實 route 得到 400 且未寫入，加一個正向對照。拿掉呼叫 validator 的那一行，單元測試全綠而這裡四條紅三條。",
       lang: "ts",
       code: 'const res = await callRoute(recordRallies, {\n  gameId: seeded.gameId,\n  method: "PUT",\n  query: { si: 0 },\n  body: [rally(overrides)],\n});\n\nexpect(res.status).toBe(400);\nexpect((res.json as { reason?: string }).reason).toBe(CommonReason.INVALID_INPUT);\n\nconst after = await repo().findById(seeded.gameId);\nexpect(after!.sets[0]!.entries).toHaveLength(0);',
+    },
+    {
+      path: "src/hooks/__tests__/flush-in-flight.test.tsx",
+      change: "modified",
+      added: 12,
+      removed: 5,
+      summary:
+        "與本 Change 無關的既有 flaky 測試，因為擋住 gate 而修在此處。只回答第一個請求，第二個停在測試名稱所描述的狀態。見發現八。",
+      lang: "ts",
+      code: "let calls = 0;\napiClient.mockImplementation(() => {\n  calls += 1;\n  return calls === 1\n    ? new Promise((resolve) => {\n        settle = resolve;\n      })\n    : new Promise(() => {});\n});",
     },
     {
       path: ".changeset/rally-entry-validation.md",
@@ -159,6 +170,16 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 
 修法經兩種變異驗證：關掉待送項目的合併，三次全紅（鑑別力還在）；在斷言前強制多跑一個 macrotask，三次全綠（時序不再決定結果）。修正前後者是三次全紅。
 
+### 九、審查的固定點比交付狀態早了兩個 commit（第四輪，Spec）
+
+前三輪的 diff 終點是 `9da4fdc8`，而在那之後又有五個 commit：套用第三輪發現的註解修正、lifecycle 轉換、這一頁、flake 修正、以及這一頁的更新。**其中兩個帶有實質判斷，卻沒有經過任何一輪審查**，而本頁一度直接宣稱「三輪後判定 CONVERGED」。
+
+第四輪因此補跑，範圍就是那五個 commit，並要求審查者自行複驗發現八宣稱的變異檢查而非採信。複驗結果全部成立，Standards 軸另外回頭掃了整條分支的註解形狀，確認前三輪那種「重述 Change 已擁有的決策」沒有殘留實例。它同時抓出本頁三個 FileTour 條目的行數與 diff 不符，以及漏列 `flush-in-flight.test.tsx` 這個交付檔案，均已更正。
+
+**這是流程缺陷，不是個案。** `WORKFLOW.md` §5 的步驟 1（gate）與步驟 5（本頁）都會產生新的 commit，而合約沒有說這些要重新進入步驟 4 的迴圈。「fixed point」在數學上已經蘊含輸入不再改變，但實作上很容易讀成「連續兩輪沒新發現就結束」。
+
+**終止條件**：程式碼在第四輪之後已全部經過審查。本次更正之後仍未經審查的，只剩「描述第四輪的那幾段散文」——那是自我指涉，再跑一輪只會產生下一段自我指涉的散文。以此為固定點。
+
 ## Plan versus actual
 
 **`LAST_SCORING_MOVE = 14` 是一份硬抄，Design 沒有說它該住在哪裡。** D2 寫的是「`num` 在 0 至 14」，沒有交代這個上界的來源。實作上它成了 entities 對 `src/lib/scoring-moves.ts` 那張表的最後索引的複製——那張表若增加一個動作，這個常數會靜靜落後，而沒有任何測試會紅。這個缺口落在 D2 已有的 revisit trigger 底下（`scoringMoves` 下沉之後 `validateRallyEntry` 擴充），但 Design 當時沒有把「上界會被硬抄」這件事說出來。此處明記。
@@ -207,6 +228,7 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 - **rally 的 `type` / `win` / `score` 都是 `num` 的推導值，三份拷貝無一致性保證。** 前置是 `scoringMoves` 下沉至 entities，完成後 `validateRallyEntry` 擴充為含跨欄位自洽檢查。本 Change 期間對現有資料掃過一次，六項自洽檢查全部乾淨。
 - **app 缺少 error boundary 策略。** 全 repo 只有一條 route 有，且是佔位符。它對本 Change 的失敗模式沒有作用——錯誤來自資料庫裡的資料，重試會再炸一次——但下一個未預期的 render 錯誤仍會讓整條 route 消失。
 - **knip 不在任何 verify gate 內**，且預設模式看不見「只被測試引用」的死碼。`validatePlayerStatus` 是實例：十一個全綠的單元測試，零個生產呼叫端。
+- **`WORKFLOW.md` §5 沒有說「審查的 diff 終點必須是最後一個 commit」。** 見發現九。步驟 1 的 gate 與步驟 5 的本頁都會產生新 commit，合約未要求它們重新進入步驟 4 的迴圈。
 - **入列後永遠有一個 0 毫秒的背景 flush 在排隊。** 任何在 flush 前後斷言佇列或快取內容的測試都會踩到這個時序，發現八是第一個。這件事沒有寫在任何地方。
 - **Blueprint 的 JSON 欄位渲染成純文字**，且 SVG `<text>` 的撰寫陷阱沒有任何機制擋。後者在本 Change 的圖表初版上發生過一次。
 
