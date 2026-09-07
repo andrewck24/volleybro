@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "change": "rally-entry-validation",
+  "slices": ["S01", "S02"]
+}

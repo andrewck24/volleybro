@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "讀取端對非法球種容錯，該場比賽照常打開",
+  "capabilities": ["game-recording/statistics"],
+  "dependsOn": [],
+  "outcome": "一顆球種非法的球不再讓整場比賽渲染失敗。該筆不計入統計，其餘 entry 的統計、輪轉數與發球權完全不受影響。既有資料庫沒有這種資料，所以這一片沒有可見的行為變化——它讓一個目前只能靠運氣避開的災難失去發生條件。",
+  "acceptanceCriteria": [
+    "`deriveSetStats` 的迴圈在 `home[entry.home.type]` 或 `away[entry.away.type]` 任一取不到統計格時，跳過該筆的統計累加而不拋錯。",
+    "同一個守衛涵蓋迴圈內的兩處取值：隊伍統計的 `homeStat` / `awayStat`，以及球員統計的 `stats[entry.home.type]`。後者今天是同一個迴圈裡的第二個拋出點，只擋前者仍會在有球員 id 的 rally 上拋。",
+    "迴圈尾端的 `rotation` 累加與 `isHomeServing` 指派照常執行。跳過的是統計累加，不是整筆 entry——以 `continue` 略過整筆會讓該筆之後的輪轉數與發球權全部錯掉。",
+    "`isRally` 一行不改。`getPreviousRally` 那條線只讀 `score` 與 `win`，其行為必須完全不變。",
+    "`deriveSetStats` 的單元測試涵蓋兩種非法輸入——`type` 缺失、`type` 超出 `MoveType` 範圍——並分別斷言：不拋錯、其餘 entry 的統計數字正確、`rotation` 與發球權的推進與該筆合法時相同。",
+    "既有的 `deriveSetStats` 測試全部維持綠燈，且未被修改以遷就新行為。"
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "pending"
+}
