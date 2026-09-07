@@ -1,0 +1,211 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  兩片如計畫交付，行為與 Design 一致，獨立審查三輪後判定
+  **CONVERGED**。最有價值的一筆是 Spec 軸抓到 changeset 寫了卻沒有進任何
+  commit——檔案在、內容對、肉眼看不出問題。**但交付門檻尚未滿足**：`pnpm
+  verify:all` 有一條前端時序測試間歇性失敗，那條測試與本 Change
+  無關，然而在本分支九次全套執行中紅了三次，在 `dev`
+  四次中零次。這件事未結案，見 Validation。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={2} total={2} />
+
+切片內容與相依由 Implementation 頁呈現；此處只記交付的實質。commit 以 body 的 `Implements` trailer 指認，本頁一律以 slice ID 指稱。
+
+兩片都在主 session 完成，沒有分派 worker。S02 相依 S01，兩片又落在同一個檔案的兩個位置，拆進各自的 worktree 只會多付一次整合。獨立 context 用在它真正有價值的地方：Pre-PR 的兩軸審查。
+
+<FileTour
+  files={[
+    {
+      path: "src/entities/game.ts",
+      change: "modified",
+      added: 60,
+      removed: 25,
+      summary:
+        "S01 的守衛包住統計累加，rotation 與發球權留在外面；S02 的 validateRallyEntry 緊鄰 validateLineupPlayers，逐欄位檢查後丟 ValidationError。",
+      lang: "ts",
+      code: "const homeStat = home[entry.home.type] as Tally | undefined;\nconst awayStat = away[entry.away.type] as Tally | undefined;\n\n// A stored rally can name a move outside MoveType, which has no tally to\n// add to. See rally-entry-validation D1.\nif (homeStat && awayStat) {\n  // ...team tally, then player tally...\n}\n\nif (win && !isHomeServing) home.rotation += 1;\nisHomeServing = win;",
+    },
+    {
+      path: "src/applications/usecases/game/record-rallies.usecase.ts",
+      change: "modified",
+      added: 3,
+      removed: 0,
+      summary:
+        "在 verifyTeamRole 之後、upsertEntry 之前逐筆驗證，與 create-set 呼叫 validateLineupPlayers 的位置一致。",
+      lang: "ts",
+      code: "rallies.forEach(validateRallyEntry);\n\nconst entries = await this.gameRepository.upsertEntry(\n  { gameId, setIndex },\n  rallies.map(createRallyEntry),\n);",
+    },
+    {
+      path: "src/infrastructure/db/mongoose/schemas/game.ts",
+      change: "modified",
+      added: 6,
+      removed: 3,
+      summary:
+        "四個欄位補上 required，並以兩行說明它不是守衛。setSchema 與 gameSchema 的 win 未動——它們在結果存在前刻意是 null。",
+      lang: "ts",
+      code: "// `required` records which fields a rally cannot do without; it guards nothing,\n// as bulkWrite updates skip validation. See rally-entry-validation D2.\nconst rallyDetailSchema = new Schema<RallyDetailDocument>(\n  {\n    score: { type: Number, required: true },",
+    },
+    {
+      path: "src/entities/__tests__/game.test.ts",
+      change: "modified",
+      added: 84,
+      removed: 0,
+      summary:
+        "deriveSetStats 對缺 type 與超出 enum 兩種輸入的容錯，輪轉數與合法情形對照；validateRallyEntry 的十一種拒絕條件。",
+    },
+    {
+      path: "test/integration/rally-validation.itest.ts",
+      change: "added",
+      added: 84,
+      removed: 0,
+      summary:
+        "三種畸形 rally 經真實 route 得到 400 且未寫入，加一個正向對照。拿掉呼叫 validator 的那一行，單元測試全綠而這裡四條紅三條。",
+    },
+    {
+      path: ".changeset/rally-entry-validation.md",
+      change: "added",
+      added: 9,
+      removed: 0,
+      summary:
+        "patch。只寫讀取端那一句——寫入端的 400 從記錄員的角度什麼都沒變。",
+    },
+  ]}
+/>
+
+## Findings
+
+### 一、helper 回傳 `never` 卻被當 statement 用（Standards）
+
+`validateRallyEntry` 原本把丟錯包成一個回傳 `never` 的 `reject()`，然後以 statement 形式呼叫。TypeScript 不會因為一個函式回傳 `never` 就把呼叫點當終止點，所以 `move.num` 的型別在後續分支裡仍是 `number | undefined`，只能用兩個 non-null assertion 壓過去。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    "const reject = (detail: string): never => { // [!code --]\n  throw new ValidationError(CommonReason.INVALID_INPUT, detail); // [!code --]\n}; // [!code --]\nconst invalid = (detail: string) => // [!code ++]\n  new ValidationError(CommonReason.INVALID_INPUT, detail); // [!code ++]\n\nelse if (!Number.isInteger(move.num) || move.num! < 0) // [!code --]\n  reject(`A rally's ${side} move number must index a scoring move`); // [!code --]\nif ( // [!code ++]\n  typeof move.num !== \"number\" || // [!code ++]\n  !Number.isInteger(move.num) || // [!code ++]\n  move.num < 0 // [!code ++]\n) // [!code ++]\n  throw invalid(`A rally's ${side} move number must index a scoring move`); // [!code ++]"
+  }
+/>
+
+在決定的地方直接 `throw`，並讓 `typeof` 檢查走在前面，兩個 assertion 就都不需要了。型別因此說的是實話，而不是被一個斷言壓住。
+
+### 二、註解重述了 D2 已經擁有的決策（Standards）
+
+`validateRallyEntry` 上方原本有一段說明「為什麼在這一層擋」。`CONTRIBUTING.md` §Comments 寫得很明確：
+
+> never re-argue a decision a Blueprint Change already owns. Reference it instead of copying it, or the two drift apart
+
+那正是 D2 的內容。刪除。另外兩處註解——`LAST_SCORING_MOVE` 為何硬抄、統計累加為何只跳過自己——留著，它們說的是本地看不見的約束。
+
+`rallyDetailSchema` 上方那段同時被 Spec 軸點名超出驗收條件的兩行上限，一併縮短。
+
+### 三、changeset 寫了，卻沒有進任何 commit（Spec）
+
+`.changeset/rally-entry-validation.md` 存在於工作樹，但 `git diff` 看不到它——它從頭到尾沒有被 `git add` 過。這是 Spec 軸最有價值的一筆：檔案在，內容正確，肉眼看不出問題，只有比對 diff 才會發現它不在變更裡。已補上 commit。
+
+### 四、輪轉的斷言沒有照驗收條件比對合法情形（Spec）
+
+S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法時相同**」，而測試只斷言了 `rotation` 等於 1。數字是對的，但它證明的是「等於某個我寫下的常數」，不是「與合法情形一致」。改成同時跑一次合法序列並比對兩者。
+
+### 五、兩項判斷型建議，附理由拒絕
+
+**`Object.values(MoveType).filter(...)` 在 entities 與 schema 各有一份。** 拒絕：schema 那份餵的是 Mongoose 的 `enum` validator，而 D2 已經確立它在 rally 的寫入路徑上不執行——所有 entry 都經 `bulkWrite` 的 `updateOne`，而新建的 game 沒有任何 entry。兩份拷貝因此不可能觀察得到分歧。為此加一條 infrastructure 到 entities 的相依，換不到任何行為上的好處。
+
+**`num` 是裸 number，索引一張住在 entities 之外的表。** 拒絕：D2 自己的 revisit trigger 已經涵蓋它，且解法的前置是把 `scoringMoves` 下沉到 entities，屬另一份工作。
+
+第二輪與第三輪對這兩項的處置都沒有異議。
+
+### 六、對照只加到兩個非法輸入的其中一個（第二輪，Spec）
+
+修正四把「與合法情形比對」加進了缺 `type` 的測試，卻沒有加進 `type` 超出 enum 的那一個，而後者也少了姊妹測試已有的 away 統計斷言。S01 的驗收條件寫的是「涵蓋兩種非法輸入……並**分別**斷言」。合法序列因此抽成一個兩邊共用的 `legal()`，兩條測試各自比對。
+
+### 七、同一種註解形狀漏掉三處（第二、三輪，Standards）
+
+第一輪從驗證器上刪掉的那種「重述 Change 已經擁有的決策」的註解，在另外三個地方以同樣形狀存在：測試裡解釋為什麼不能 `continue`、`deriveSetStats` 裡複述 D1 的決策文字、整合測試開頭整段搬運 D2 的論證。三處都改成一句話加 `See rally-entry-validation D1/D2.`。
+
+一種規則、三輪才收乾淨，這件事本身值得記：第一輪的 brief 讓審查者去找「違反 CONTRIBUTING 的地方」，它找到了一處就回報一處，沒有回頭掃同一種形狀的其他實例。
+
+## Plan versus actual
+
+**`LAST_SCORING_MOVE = 14` 是一份硬抄，Design 沒有說它該住在哪裡。** D2 寫的是「`num` 在 0 至 14」，沒有交代這個上界的來源。實作上它成了 entities 對 `src/lib/scoring-moves.ts` 那張表的最後索引的複製——那張表若增加一個動作，這個常數會靜靜落後，而沒有任何測試會紅。這個缺口落在 D2 已有的 revisit trigger 底下（`scoringMoves` 下沉之後 `validateRallyEntry` 擴充），但 Design 當時沒有把「上界會被硬抄」這件事說出來。此處明記。
+
+**`validateRallyEntry` 多擋了一件驗收條件沒列的事。** 條件列的是兩側的 `type` / `num` / `score` 與 `win`，但要檢查「兩側的 `type`」，前提是 `home` / `away` 這個物件存在。驗證器因此也拒絕缺席的一側。Spec 軸確認這是條件的必要前提而非範圍外的行為。
+
+**S02 預留的 fixture 修補沒有用到。** 驗收條件寫了「既有 fixture 若因不完整而失敗，修 fixture 而非放寬驗證」。實際上 `record-rallies.usecase.test.ts` 的三筆 fixture 本來就是完整合法的 rally，一條都沒有紅。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "守衛只涵蓋走 use case 的寫入路徑",
+      severity: "warning",
+      mitigation:
+        "匯入功能、資料遷移腳本或第二個 client 都繞得過。唯一繞不過的是資料庫層的 collection validator，但今天只有一個寫入者。D2 的 revisit trigger 承接。",
+    },
+    {
+      name: "schema 裡留著一個不生效的 required",
+      severity: "warning",
+      mitigation:
+        "兩行註解指向 D2 是唯一的緩解，而註解會被刪。留著它的理由是資料庫評估若選關聯式儲存，這份標記就是 NOT NULL 的對照表。",
+    },
+    {
+      name: "LAST_SCORING_MOVE 會隨表的成長靜靜落後",
+      severity: "warning",
+      mitigation:
+        "沒有測試會紅。落在 D2 的 revisit trigger 底下，真正的修法是把 scoringMoves 下沉到 entities，屆時上界由那張表自己提供。",
+    },
+    {
+      name: "跳過統計是靜默的",
+      severity: "info",
+      mitigation:
+        "刻意的。寫入端守好之後這種資料不該存在；真的出現時它是缺陷徵兆，不是需要向使用者解釋的狀態。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+本 Change 期間查出、範圍在外的事：
+
+- **rally 的 `type` / `win` / `score` 都是 `num` 的推導值，三份拷貝無一致性保證。** 前置是 `scoringMoves` 下沉至 entities，完成後 `validateRallyEntry` 擴充為含跨欄位自洽檢查。本 Change 期間對現有資料掃過一次，六項自洽檢查全部乾淨。
+- **app 缺少 error boundary 策略。** 全 repo 只有一條 route 有，且是佔位符。它對本 Change 的失敗模式沒有作用——錯誤來自資料庫裡的資料，重試會再炸一次——但下一個未預期的 render 錯誤仍會讓整條 route 消失。
+- **knip 不在任何 verify gate 內**，且預設模式看不見「只被測試引用」的死碼。`validatePlayerStatus` 是實例：十一個全綠的單元測試，零個生產呼叫端。
+- **`flush-in-flight` 的間歇性失敗尚未歸因。** 見 Validation。它是本 Change 唯一未結案的項目，且尚無獨立的工作項目。
+- **Blueprint 的 JSON 欄位渲染成純文字**，且 SVG `<text>` 的撰寫陷阱沒有任何機制擋。後者在本 Change 的圖表初版上發生過一次。
+
+## Validation
+
+兩處刻意的變異驗證，確認測試真的釘得住：
+
+- 拿掉 `deriveSetStats` 的守衛並讓 `MOVE_TYPES` 的檢查恆假——單元測試紅 5 條。
+- 拿掉 use case 裡呼叫 validator 的那一行——**單元測試全綠**，整合測試紅 3 條。這正是那條整合測試存在的理由。
+
+`pnpm test:integration` 32 個測試通過，含本 Change 新增的 4 個。`pnpm typecheck:strict`、`pnpm lint`、`pnpm format:check`、blueprint 的 48 個測試與 108 頁 build 全部通過。
+
+### 未結案：`pnpm verify:all` 間歇性失敗
+
+`src/hooks/__tests__/flush-in-flight.test.tsx` 的「keeps a rally recorded while a flush was already in flight」會間歇性失敗，斷言是 `pendingWrites.pending` 應為 `["q2"]` 而實得 `[]`——flush 把它啟動之後才入列的那一顆也一併認領了。
+
+| 分支   | 全套執行次數 | 該條失敗次數 |
+| ------ | ------------ | ------------ |
+| `dev`  | 4            | 0            |
+| 本分支 | 9            | 3            |
+
+已知的：該測試單獨執行五次全綠；失敗的斷言完全落在 pending-writes 佇列的認領邊界，那段程式碼本 Change 一行未動；本 Change 唯一可能觸及該測試的路徑是 `initialize` 呼叫的 `deriveSetStats`，而新增的守衛只在統計格取不到時改變行為，該測試的 rally 全部合法——若不合法，它在改動前就會拋。
+
+未知的：為什麼失敗率在本分支上不為零而在 `dev` 上是零。`dev` 只跑了四次，不足以排除它本來就是間歇的；而本分支加了 14 個測試與一個新的 integration 檔案，足以改變 jest 在 worker 之間的排程。
+
+**這條紅燈使交付門檻尚未滿足**，因此本 Change 停在 `pre-pr-review` 而非 `awaiting-delivery-review`。需要開發者判斷：先查清這條測試，或判定它與本 Change 無關而另案處理。
+
+Blueprint 的四個頁面已在瀏覽器逐頁讀過，深色與淺色主題各一次。
