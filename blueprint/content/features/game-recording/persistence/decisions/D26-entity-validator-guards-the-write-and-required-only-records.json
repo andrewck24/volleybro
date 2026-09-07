@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D26",
   "title": "寫入守衛是 entities 層的獨立 validator，Mongoose 的 required 只是欄位必要性的紀錄",
   "status": "implemented",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
@@ -42,5 +42,7 @@
     "Mongoose 改為對 `bulkWrite` 中的 `updateOne` 執行驗證，屆時 `required` 會自己變成一道真的防線，本記錄的核心前提消失。",
     "`scoringMoves` 下沉至 entities 之後，`validateRallyEntry` 擴充為包含跨欄位自洽檢查。",
     "route 層的 request schema 上線之後，重新確認兩層驗證的分工：邊界回答「形狀對不對」，entity 回答「意義對不對」，兩者不應互相複製。"
-  ]
+  ],
+  "originChange": "rally-entry-validation",
+  "originDecision": "D2"
 }

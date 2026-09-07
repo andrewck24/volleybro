@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D25",
   "title": "讀取端跳過的是那一筆的統計累加，不是那一筆 entry，而守衛放在讀取該欄位的地方",
   "status": "implemented",
   "targets": ["game-recording/statistics"],
@@ -35,5 +35,7 @@
     "統計畫面開始需要表達「有幾顆球沒被計入」，屆時靜默跳過要重新決定是否該被看見。",
     "`TeamStats` 的 key 不再是固定的 `MoveType` 集合，屆時「取不到統計格」這個判準本身要重新定義。",
     "app 具備 error boundary 之後，讀取端容錯與邊界之間的分工要重新確認——容錯負責「這一筆不算」，邊界負責「我們沒預料到的那一類」，兩者不應互相取代。"
-  ]
+  ],
+  "originChange": "rally-entry-validation",
+  "originDecision": "D1"
 }

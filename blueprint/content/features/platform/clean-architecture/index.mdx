@@ -39,6 +39,13 @@ dependency rules the codebase actually enforces, and how.
 - These boundaries are held by review rather than by tooling. `src/lib/`
   currently holds code from three layers, so path alone is not a reliable
   layering signal and a lint rule cannot yet express the constraint.
+- The game routes parse no request body, so the boundary layer contributes
+  nothing there and the domain layer is the first thing an unvalidated payload
+  meets. The team and player routes all parse; game is the outlier.
+- A rule that has to live in `src/entities/` while the table it reads sits
+  outside it gets copied instead. `validateRallyEntry` holds the last index of
+  the scoring-move table for that reason, pinned by a test rather than shared,
+  until that table moves inward.
 
 ## Implemented decisions
 
