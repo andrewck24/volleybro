@@ -63,11 +63,18 @@ beforeEach(() => {
 // rally recorded after that request went out.
 it("keeps a rally recorded while a flush was already in flight", async () => {
   let settle!: (value: { entries: unknown[] }) => void;
-  apiClient.mockReturnValue(
-    new Promise((resolve) => {
-      settle = resolve;
-    }),
-  );
+  // Enqueuing schedules a background flush for the next macrotask, so a second
+  // request goes out mid-test. Only the first is answered: replaying its answer
+  // to the second would let a stale response decide what is on screen.
+  let calls = 0;
+  apiClient.mockImplementation(() => {
+    calls += 1;
+    return calls === 1
+      ? new Promise((resolve) => {
+          settle = resolve;
+        })
+      : new Promise(() => {});
+  });
 
   const { result } = renderHook(
     () => ({
