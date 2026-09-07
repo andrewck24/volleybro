@@ -127,6 +127,41 @@ export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
   }
 }
 
+const MOVE_TYPES: ReadonlySet<unknown> = new Set(
+  Object.values(MoveType).filter((value) => typeof value === "number"),
+);
+
+// The scoring-move table a `num` indexes into still lives outside entities, so
+// its last index is repeated here. See rally-entry-validation D2.
+const LAST_SCORING_MOVE = 14;
+
+export function validateRallyEntry(rally: Rally & EntryIdentity): void {
+  // The rally arrives unvalidated from the request body, so reject a malformed
+  // one here rather than storing a rally no reader can make sense of.
+  const reject = (detail: string): never => {
+    throw new ValidationError(CommonReason.INVALID_INPUT, detail);
+  };
+
+  if (typeof rally?.win !== "boolean")
+    reject("A rally must record which side won it");
+
+  for (const side of ["home", "away"] as const) {
+    const move: Partial<RallyDetail> | undefined = rally[side];
+    if (move == null || typeof move !== "object")
+      reject(`A rally must record its ${side} side`);
+    else if (!MOVE_TYPES.has(move.type))
+      reject(`A rally's ${side} move type must be one this codebase defines`);
+    else if (
+      !Number.isInteger(move.num) ||
+      move.num! < 0 ||
+      move.num! > LAST_SCORING_MOVE
+    )
+      reject(`A rally's ${side} move number must index a scoring move`);
+    else if (!Number.isFinite(move.score))
+      reject(`A rally's ${side} score must be a number`);
+  }
+}
+
 export type TeamStats = PlayerStats & {
   [MoveType.UNFORCED]: { success: number; error: number };
   rotation: number;
