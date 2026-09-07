@@ -20,9 +20,8 @@ const rally = (overrides: Record<string, unknown> = {}) => ({
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-// The entity validator has its own unit tests. This one exists to show that
-// something on the request path actually calls it: nothing in a unit test can
-// tell a guarded write path from an unguarded one.
+// Proves the request path calls the validator, which no unit test can.
+// See rally-entry-validation D2.
 describe("PUT /api/games/:id/sets/rallies rejects a malformed rally", () => {
   let seeded: SeededGame;
   const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
