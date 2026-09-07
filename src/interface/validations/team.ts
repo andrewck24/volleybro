@@ -10,19 +10,24 @@ const objectId = z
     message: "Invalid ObjectId format",
   });
 
-const LineupPlayerSchema = z.object({
-  id: objectId,
-  position: z.nativeEnum(Position).optional(),
-  sub: z
-    .object({
-      id: objectId,
-      entryIndex: z.object({
-        in: z.number().int().optional(),
-        out: z.number().int().optional(),
-      }),
-    })
-    .optional(),
-});
+const LineupPlayerSchema = z
+  .object({
+    id: objectId,
+    position: z.nativeEnum(Position).optional(),
+    sub: z
+      .object({
+        id: objectId,
+        entryIndex: z
+          .object({
+            in: z.number().int().optional(),
+            out: z.number().int().optional(),
+          })
+          .strict(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 export const TeamUpdateSchema = z
   .object({
@@ -33,15 +38,17 @@ export const TeamUpdateSchema = z
 
 const LineupSchema = z
   .object({
-    options: z.object({
-      liberoReplaceMode: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-      liberoReplacePosition: z.enum([
-        Position.NONE,
-        Position.OH,
-        Position.MB,
-        Position.OP,
-      ]),
-    }),
+    options: z
+      .object({
+        liberoReplaceMode: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+        liberoReplacePosition: z.enum([
+          Position.NONE,
+          Position.OH,
+          Position.MB,
+          Position.OP,
+        ]),
+      })
+      .strict(),
     starting: z.array(LineupPlayerSchema),
     liberos: z.array(LineupPlayerSchema),
     substitutes: z.array(LineupPlayerSchema),

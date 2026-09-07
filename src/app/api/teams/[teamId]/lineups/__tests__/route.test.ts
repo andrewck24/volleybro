@@ -218,4 +218,31 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
     expect(mockUpdateTeamLineupsController).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
+
+  it("returns 400 for an undeclared field nested inside a lineup player", async () => {
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
+      method: "PATCH",
+      json: async () => [
+        {
+          ...VALID_LINEUP,
+          starting: [
+            { id: VALID_OBJECT_ID, position: Position.OH, list: "starting" },
+          ],
+        },
+      ],
+    };
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockUpdateTeamLineupsController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });
