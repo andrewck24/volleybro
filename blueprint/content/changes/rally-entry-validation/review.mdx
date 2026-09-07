@@ -9,12 +9,11 @@ import { TaskProgress } from "@/components/TaskProgress";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
-  兩片如計畫交付，行為與 Design 一致，獨立審查三輪後判定
-  **CONVERGED**。最有價值的一筆是 Spec 軸抓到 changeset 寫了卻沒有進任何
-  commit——檔案在、內容對、肉眼看不出問題。**但交付門檻尚未滿足**：`pnpm
-  verify:all` 有一條前端時序測試間歇性失敗，那條測試與本 Change
-  無關，然而在本分支九次全套執行中紅了三次，在 `dev`
-  四次中零次。這件事未結案，見 Validation。
+  兩片如計畫交付，行為與 Design 一致，獨立審查三輪後判定 **CONVERGED**，`pnpm
+  verify:all` 連續兩次全綠。最有價值的一筆是 Spec 軸抓到 changeset
+  寫了卻沒有進任何 commit——檔案在、內容對、肉眼看不出問題。Gate
+  另外擋下兩件事：一條與本 Change 無關但在此分支上更常紅的既有 flaky
+  測試（已診斷並修在本分支，見發現八），以及三個缺 `code` 的 FileTour 條目。
 </TLDR>
 
 ## Delivered
@@ -64,6 +63,8 @@ import { TLDR } from "@/components/TLDR";
       removed: 0,
       summary:
         "deriveSetStats 對缺 type 與超出 enum 兩種輸入的容錯，輪轉數與合法情形對照；validateRallyEntry 的十一種拒絕條件。",
+      lang: "ts",
+      code: 'const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);\n\nexpect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });\nexpect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });\nexpect(Object.keys(stats.players)).toEqual(["p2"]);\nexpect(stats.home.rotation).toBe(legal().home.rotation);',
     },
     {
       path: "test/integration/rally-validation.itest.ts",
@@ -72,6 +73,8 @@ import { TLDR } from "@/components/TLDR";
       removed: 0,
       summary:
         "三種畸形 rally 經真實 route 得到 400 且未寫入，加一個正向對照。拿掉呼叫 validator 的那一行，單元測試全綠而這裡四條紅三條。",
+      lang: "ts",
+      code: 'const res = await callRoute(recordRallies, {\n  gameId: seeded.gameId,\n  method: "PUT",\n  query: { si: 0 },\n  body: [rally(overrides)],\n});\n\nexpect(res.status).toBe(400);\nexpect((res.json as { reason?: string }).reason).toBe(CommonReason.INVALID_INPUT);\n\nconst after = await repo().findById(seeded.gameId);\nexpect(after!.sets[0]!.entries).toHaveLength(0);',
     },
     {
       path: ".changeset/rally-entry-validation.md",
@@ -80,6 +83,8 @@ import { TLDR } from "@/components/TLDR";
       removed: 0,
       summary:
         "patch。只寫讀取端那一句——寫入端的 400 從記錄員的角度什麼都沒變。",
+      lang: "md",
+      code: "### Fixed\n\n#### Game\n\n- Keep a match openable when one of its rallies does not say how the point\n  was won. Such a match used to fail to open at all, on every device, with\n  nothing the recorder could do about it",
     },
   ]}
 />
@@ -135,6 +140,25 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 
 一種規則、三輪才收乾淨，這件事本身值得記：第一輪的 brief 讓審查者去找「違反 CONTRIBUTING 的地方」，它找到了一處就回報一處，沒有回頭掃同一種形狀的其他實例。
 
+### 八、一條既有的 flaky 測試擋住 gate（診斷後修在本分支）
+
+`src/hooks/__tests__/flush-in-flight.test.tsx` 間歇性失敗——本分支九次全套執行紅三次，`dev` 四次零次。它與本 Change 沒有任何程式碼關聯，但擋住 gate，所以修在這裡。
+
+成因是測試在跟一個 0 毫秒的 timer 賽跑。`enqueued` 把 `nextAttemptAt` 設成 `Date.now()`，所以每次入列都排一個立刻到期的背景 flush。測試在第一次 flush 還在飛時入列 q2，於是第二次 flush 一定會發出——而 `mockReturnValue` 把**第一次那個已經 resolved 的 promise** 交給了它。第二次 flush 因此立刻「成功」，帶著一個早於 q2 的回應：佇列被清空，或快取失去 q2，端看 timer 有沒有搶在斷言前面。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    "apiClient.mockReturnValue( // [!code --]\n  new Promise((resolve) => { // [!code --]\n    settle = resolve; // [!code --]\n  }), // [!code --]\n); // [!code --]\nlet calls = 0; // [!code ++]\napiClient.mockImplementation(() => { // [!code ++]\n  calls += 1; // [!code ++]\n  return calls === 1 // [!code ++]\n    ? new Promise((resolve) => { // [!code ++]\n        settle = resolve; // [!code ++]\n      }) // [!code ++]\n    : new Promise(() => {}); // [!code ++]\n}); // [!code ++]"
+  }
+/>
+
+只回答第一個請求，第二個就停在它名字所描述的狀態——已發出、未回應——而這也正是讓「合併」成為 q2 唯一能留在畫面上的理由。
+
+**產品行為未動，也不該動**：入列後盡快送出、在飛的那次結束後補送剩下的，正是這套佇列該做的事。
+
+修法經兩種變異驗證：關掉待送項目的合併，三次全紅（鑑別力還在）；在斷言前強制多跑一個 macrotask，三次全綠（時序不再決定結果）。修正前後者是三次全紅。
+
 ## Plan versus actual
 
 **`LAST_SCORING_MOVE = 14` 是一份硬抄，Design 沒有說它該住在哪裡。** D2 寫的是「`num` 在 0 至 14」，沒有交代這個上界的來源。實作上它成了 entities 對 `src/lib/scoring-moves.ts` 那張表的最後索引的複製——那張表若增加一個動作，這個常數會靜靜落後，而沒有任何測試會紅。這個缺口落在 D2 已有的 revisit trigger 底下（`scoringMoves` 下沉之後 `validateRallyEntry` 擴充），但 Design 當時沒有把「上界會被硬抄」這件事說出來。此處明記。
@@ -142,6 +166,8 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 **`validateRallyEntry` 多擋了一件驗收條件沒列的事。** 條件列的是兩側的 `type` / `num` / `score` 與 `win`，但要檢查「兩側的 `type`」，前提是 `home` / `away` 這個物件存在。驗證器因此也拒絕缺席的一側。Spec 軸確認這是條件的必要前提而非範圍外的行為。
 
 **S02 預留的 fixture 修補沒有用到。** 驗收條件寫了「既有 fixture 若因不完整而失敗，修 fixture 而非放寬驗證」。實際上 `record-rallies.usecase.test.ts` 的三筆 fixture 本來就是完整合法的 rally，一條都沒有紅。
+
+**一個與本 Change 無關的測試修正搭了便車。** 發現八不屬於本 Change 的任何一片，正常情況應該另案處理。它進來的理由只有一個：它擋住 `verify:all`，而沒有綠燈就開不了 PR。判準是「阻擋交付」而非「順手看到」——同期查出的 error boundary、knip、Blueprint 元件三件事都留在外面，因為它們不擋 gate。
 
 ## Residual risks
 
@@ -181,7 +207,7 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 - **rally 的 `type` / `win` / `score` 都是 `num` 的推導值，三份拷貝無一致性保證。** 前置是 `scoringMoves` 下沉至 entities，完成後 `validateRallyEntry` 擴充為含跨欄位自洽檢查。本 Change 期間對現有資料掃過一次，六項自洽檢查全部乾淨。
 - **app 缺少 error boundary 策略。** 全 repo 只有一條 route 有，且是佔位符。它對本 Change 的失敗模式沒有作用——錯誤來自資料庫裡的資料，重試會再炸一次——但下一個未預期的 render 錯誤仍會讓整條 route 消失。
 - **knip 不在任何 verify gate 內**，且預設模式看不見「只被測試引用」的死碼。`validatePlayerStatus` 是實例：十一個全綠的單元測試，零個生產呼叫端。
-- **`flush-in-flight` 的間歇性失敗尚未歸因。** 見 Validation。它是本 Change 唯一未結案的項目，且尚無獨立的工作項目。
+- **入列後永遠有一個 0 毫秒的背景 flush 在排隊。** 任何在 flush 前後斷言佇列或快取內容的測試都會踩到這個時序，發現八是第一個。這件事沒有寫在任何地方。
 - **Blueprint 的 JSON 欄位渲染成純文字**，且 SVG `<text>` 的撰寫陷阱沒有任何機制擋。後者在本 Change 的圖表初版上發生過一次。
 
 ## Validation
@@ -193,19 +219,13 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 
 `pnpm test:integration` 32 個測試通過，含本 Change 新增的 4 個。`pnpm typecheck:strict`、`pnpm lint`、`pnpm format:check`、blueprint 的 48 個測試與 108 頁 build 全部通過。
 
-### 未結案：`pnpm verify:all` 間歇性失敗
+### Gate
 
-`src/hooks/__tests__/flush-in-flight.test.tsx` 的「keeps a rally recorded while a flush was already in flight」會間歇性失敗，斷言是 `pendingWrites.pending` 應為 `["q2"]` 而實得 `[]`——flush 把它啟動之後才入列的那一顆也一併認領了。
+`pnpm verify:all` 連續兩次全綠：format、workflow conformance、`typecheck:strict`、lint、988 個單元測試、blueprint 48 個測試、app build、service worker 斷言、blueprint build 109 頁。`pnpm test:integration` 32 個測試通過，含本 Change 新增的 4 個。
 
-| 分支   | 全套執行次數 | 該條失敗次數 |
-| ------ | ------------ | ------------ |
-| `dev`  | 4            | 0            |
-| 本分支 | 9            | 3            |
+兩件事是 gate 自己擋下來的，值得記：
 
-已知的：該測試單獨執行五次全綠；失敗的斷言完全落在 pending-writes 佇列的認領邊界，那段程式碼本 Change 一行未動；本 Change 唯一可能觸及該測試的路徑是 `initialize` 呼叫的 `deriveSetStats`，而新增的守衛只在統計格取不到時改變行為，該測試的 rally 全部合法——若不合法，它在改動前就會拋。
-
-未知的：為什麼失敗率在本分支上不為零而在 `dev` 上是零。`dev` 只跑了四次，不足以排除它本來就是間歇的；而本分支加了 14 個測試與一個新的 integration 檔案，足以改變 jest 在 worker 之間的排程。
-
-**這條紅燈使交付門檻尚未滿足**，因此本 Change 停在 `pre-pr-review` 而非 `awaiting-delivery-review`。需要開發者判斷：先查清這條測試，或判定它與本 Change 無關而另案處理。
+- **發現八的 flaky 測試。** 修正前它在本分支九次全套執行中紅三次。修正後單檔連跑八次、全套連跑四次、完整 gate 連跑兩次，零失敗。
+- **三個 FileTour 條目缺 `code`。** `check-workflow` 的 `blueprint-file-tour` 規則要求每個條目都帶程式碼片段。這條在本頁寫完之前的每一次 gate 執行裡都不可能出現——它是本頁自己引入的，而 gate 在本頁提交後的第一次執行就抓到了。
 
 Blueprint 的四個頁面已在瀏覽器逐頁讀過，深色與淺色主題各一次。
