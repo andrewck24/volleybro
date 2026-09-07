@@ -218,7 +218,11 @@ After all slices complete:
    the approved Change specification, giving the standards reviewer `CONTRIBUTING.md`'s own rules
    verbatim — an independent context knows only what its brief carries;
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
-   independent review until both axes reach a fixed point;
+   independent review until both axes reach a fixed point. A round reviews the diff to the
+   branch's last commit, so a commit made after one — a fix that unblocks the gate, or the Review
+   page itself — reopens the loop. The fixed point is a reviewed state, not a count of rounds that
+   stopped finding things; it is reached when what remains unreviewed is prose describing the
+   review, or a fix that transcribes what a round dictated;
 5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
    plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID; and
 6. set the Change lifecycle to `awaiting-delivery-review`, read every page of the Change rendered

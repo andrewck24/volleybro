@@ -204,6 +204,8 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 
 **S02 預留的 fixture 修補沒有用到。** 驗收條件寫了「既有 fixture 若因不完整而失敗，修 fixture 而非放寬驗證」。實際上 `record-rallies.usecase.test.ts` 的三筆 fixture 本來就是完整合法的 rally，一條都沒有紅。
 
+**`WORKFLOW.md` §5 的一句補充也搭了便車。** 發現九指出的條文缺口——審查迴圈的不動點沒有定義是誰的不動點——由開發者授權在本分支直接修補：步驟 4 現在寫明「a round reviews the diff to the branch's last commit」，並給出終止判準。它同樣不屬於本 Change 的任何一片，理由與下一項相同：這條缺口是本 Change 自己踩出來的，而且它會讓下一個 Change 用同樣的方式踩。
+
 **一個與本 Change 無關的測試修正搭了便車。** 發現八不屬於本 Change 的任何一片，正常情況應該另案處理。它進來的理由只有一個：它擋住 `verify:all`，而沒有綠燈就開不了 PR。判準是「阻擋交付」而非「順手看到」——同期查出的 error boundary、knip、Blueprint 元件三件事都留在外面，因為它們不擋 gate。
 
 ## Residual risks
