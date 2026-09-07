@@ -542,8 +542,7 @@ export function deriveSetStats(
       const awayStat = away[entry.away.type] as Tally | undefined;
 
       // A stored rally can name a move outside MoveType, which has no tally to
-      // add to. Only the tally is skipped: the serve and rotation below still
-      // follow from who won. See rally-entry-validation D1.
+      // add to. See rally-entry-validation D1.
       if (homeStat && awayStat) {
         if (win) {
           homeStat.success += 1;

@@ -356,6 +356,11 @@ describe("set derivation", () => {
   });
 
   describe("deriveSetStats", () => {
+    // The legal counterpart of the two broken sequences below: the counts a
+    // skipped rally must not disturb. See rally-entry-validation D1.
+    const legal = () =>
+      deriveSetStats([rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")], set);
+
     it("counts team and player outcomes from the entries alone", () => {
       const stats = deriveSetStats(
         [rally(true, 1, 0, "p1"), rally(false, 1, 1, "p1")],
@@ -394,15 +399,7 @@ describe("set derivation", () => {
       expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
       expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
       expect(Object.keys(stats.players)).toEqual(["p2"]);
-      // The broken rally still loses home the serve, so winning the next one
-      // is a rotation -- the same count the legal sequence produces. Skipping
-      // the entry outright would report zero.
-      const legal = deriveSetStats(
-        [rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")],
-        set,
-      );
-      expect(stats.home.rotation).toBe(legal.home.rotation);
-      expect(stats.home.rotation).toBe(1);
+      expect(stats.home.rotation).toBe(legal().home.rotation);
     });
 
     it("treats a move type outside the enum the same way", () => {
@@ -411,8 +408,9 @@ describe("set derivation", () => {
       const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);
 
       expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
+      expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
       expect(Object.keys(stats.players)).toEqual(["p2"]);
-      expect(stats.home.rotation).toBe(1);
+      expect(stats.home.rotation).toBe(legal().home.rotation);
     });
 
     it("reports allowances as used counts starting from zero", () => {
