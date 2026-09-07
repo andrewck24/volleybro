@@ -12,9 +12,8 @@ const rallyWithNum = (num: number) =>
   }) as unknown as Parameters<typeof validateRallyEntry>[0];
 
 describe("scoringMoves", () => {
-  // The validator carries its own copy of this table's last index, because
-  // entities cannot import from here. Adding a move without widening that
-  // bound would have the validator reject the new move and nothing else fail.
+  // Nothing else goes red when this table grows past the bound the validator
+  // copied from it. See rally-entry-validation D2.
   it("ends where the rally validator's accepted range ends", () => {
     const last = scoringMoves.at(-1)!.num;
 
