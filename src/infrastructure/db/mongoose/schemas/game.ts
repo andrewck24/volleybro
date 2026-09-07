@@ -253,9 +253,8 @@ interface RallyDetailDocument extends Document {
   };
 }
 
-// `required` here records which fields a rally cannot do without; it guards
-// nothing, because Mongoose skips validation for the bulkWrite updates that
-// write every entry. See rally-entry-validation D2.
+// `required` records which fields a rally cannot do without; it guards nothing,
+// as bulkWrite updates skip validation. See rally-entry-validation D2.
 const rallyDetailSchema = new Schema<RallyDetailDocument>(
   {
     score: { type: Number, required: true },

@@ -395,7 +395,13 @@ describe("set derivation", () => {
       expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
       expect(Object.keys(stats.players)).toEqual(["p2"]);
       // The broken rally still loses home the serve, so winning the next one
-      // is a rotation. Skipping the entry outright would report zero.
+      // is a rotation -- the same count the legal sequence produces. Skipping
+      // the entry outright would report zero.
+      const legal = deriveSetStats(
+        [rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")],
+        set,
+      );
+      expect(stats.home.rotation).toBe(legal.home.rotation);
       expect(stats.home.rotation).toBe(1);
     });
 
