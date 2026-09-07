@@ -502,31 +502,31 @@ export function deriveSetStats(
   for (const entry of entries ?? []) {
     if (isRally(entry)) {
       const { win } = entry;
-      const homeStat = home[entry.home.type] as {
-        success: number;
-        error: number;
-      };
-      const awayStat = away[entry.away.type] as {
-        success: number;
-        error: number;
-      };
+      type Tally = { success: number; error: number };
+      const homeStat = home[entry.home.type] as Tally | undefined;
+      const awayStat = away[entry.away.type] as Tally | undefined;
 
-      if (win) {
-        homeStat.success += 1;
-        awayStat.error += 1;
-      } else {
-        homeStat.error += 1;
-        awayStat.success += 1;
-      }
+      // A stored rally can name a move outside MoveType, which has no tally to
+      // add to. Only the tally is skipped: the serve and rotation below still
+      // follow from who won. See rally-entry-validation D1.
+      if (homeStat && awayStat) {
+        if (win) {
+          homeStat.success += 1;
+          awayStat.error += 1;
+        } else {
+          homeStat.error += 1;
+          awayStat.success += 1;
+        }
 
-      const scorerId = entry.home.player?.id;
-      if (scorerId && entry.home.type !== MoveType.UNFORCED) {
-        const stats = (players[scorerId] ??= new PlayerStatsClass());
-        const moveStat = stats[
-          entry.home.type as Exclude<MoveType, MoveType.UNFORCED>
-        ] as { success: number; error: number };
-        if (win) moveStat.success += 1;
-        else moveStat.error += 1;
+        const scorerId = entry.home.player?.id;
+        if (scorerId && entry.home.type !== MoveType.UNFORCED) {
+          const stats = (players[scorerId] ??= new PlayerStatsClass());
+          const moveStat = stats[
+            entry.home.type as Exclude<MoveType, MoveType.UNFORCED>
+          ] as Tally;
+          if (win) moveStat.success += 1;
+          else moveStat.error += 1;
+        }
       }
 
       if (win && !isHomeServing) home.rotation += 1;

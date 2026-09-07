@@ -331,6 +331,30 @@ describe("set derivation", () => {
       expect(stats.home.rotation).toBe(1);
     });
 
+    it("keeps counting the rest when a rally names no move type", () => {
+      const broken = rally(false, 0, 1, "p1");
+      delete (broken.home as { type?: MoveType }).type;
+
+      const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);
+
+      expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
+      expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
+      expect(Object.keys(stats.players)).toEqual(["p2"]);
+      // The broken rally still loses home the serve, so winning the next one
+      // is a rotation. Skipping the entry outright would report zero.
+      expect(stats.home.rotation).toBe(1);
+    });
+
+    it("treats a move type outside the enum the same way", () => {
+      const broken = rally(false, 0, 1, "p1", 99 as MoveType);
+
+      const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);
+
+      expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
+      expect(Object.keys(stats.players)).toEqual(["p2"]);
+      expect(stats.home.rotation).toBe(1);
+    });
+
     it("reports allowances as used counts starting from zero", () => {
       const stats = deriveSetStats(
         [
