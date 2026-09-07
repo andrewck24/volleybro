@@ -1,4 +1,3 @@
-import type { PlayerRole } from "@/entities/player";
 import * as membershipController from "@/interface/controllers/player/membership.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
@@ -29,7 +28,7 @@ export const POST = (
     const player = await membershipController.createInvitation({
       playerId,
       email: validatedData.email,
-      role: validatedData.role as PlayerRole,
+      role: validatedData.role,
       userId,
     });
 
@@ -50,7 +49,7 @@ export const PATCH = (
 
     const player = await membershipController.updateRole({
       playerId,
-      newRole: validatedData.role as PlayerRole,
+      newRole: validatedData.role,
       userId,
     });
 

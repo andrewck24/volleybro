@@ -215,4 +215,48 @@ describe("PATCH /api/teams/[teamId]", () => {
       nickname: undefined,
     });
   });
+
+  // The exact body TeamForm's onSubmit sends (src/components/team/form.tsx):
+  // JSON.stringify(formData) where formData is { name, nickname }, both
+  // always present because the form's own zod schema marks them required.
+  it("returns 200 for the payload the edit-team form actually sends", async () => {
+    const updated = { id: VALID_OBJECT_ID, name: "RyuJin", nickname: "RYUJIN" };
+    mockUpdateTeamController.mockResolvedValue(updated);
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      method: "PATCH",
+      json: async () => ({ name: "RyuJin", nickname: "RYUJIN" }),
+    };
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual(updated);
+    expect(mockUpdateTeamController).toHaveBeenCalledWith(VALID_OBJECT_ID, {
+      name: "RyuJin",
+      nickname: "RYUJIN",
+    });
+  });
+
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      method: "PATCH",
+      json: async () => ({ name: "New Name", extra: true }),
+    };
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockUpdateTeamController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });

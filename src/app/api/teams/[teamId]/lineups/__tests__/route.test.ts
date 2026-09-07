@@ -168,4 +168,54 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
       [VALID_LINEUP],
     );
   });
+
+  // The exact shape Lineup's handleSave sends (src/components/team/lineup/index.tsx):
+  // JSON.stringify(lineups) where lineups: LineupView[] comes straight from
+  // redux state, whose fields are exactly options/starting/liberos/substitutes.
+  it("returns 200 for the payload the lineup editor actually sends", async () => {
+    const realLineup = {
+      options: { liberoReplaceMode: 1, liberoReplacePosition: Position.OH },
+      starting: [
+        { id: "507f1f77bcf86cd799439012", position: Position.OH },
+        { id: null },
+      ],
+      liberos: [{ id: "507f1f77bcf86cd799439013", position: Position.L }],
+      substitutes: [],
+    };
+    mockUpdateTeamLineupsController.mockResolvedValue([realLineup]);
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
+      method: "PATCH",
+      json: async () => [realLineup],
+    };
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateTeamLineupsController).toHaveBeenCalledWith(
+      VALID_OBJECT_ID,
+      [realLineup],
+    );
+  });
+
+  it("returns 400 for a lineup with an undeclared field", async () => {
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const req = {
+      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
+      method: "PATCH",
+      json: async () => [{ ...VALID_LINEUP, extra: true }],
+    };
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockUpdateTeamLineupsController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });

@@ -1,3 +1,4 @@
+import type { ICreateTeamInput } from "@/applications/usecases/team/create-team.usecase";
 import { Position } from "@/entities/team";
 import { OBJECT_ID_RE } from "@/lib/api/guards";
 import { z } from "zod";
@@ -23,24 +24,39 @@ const LineupPlayerSchema = z.object({
     .optional(),
 });
 
-export const TeamUpdateSchema = z.object({
-  name: z.string().optional(),
-  nickname: z.string().optional(),
-});
+export const TeamUpdateSchema = z
+  .object({
+    name: z.string().optional(),
+    nickname: z.string().optional(),
+  })
+  .strict();
 
-const LineupSchema = z.object({
-  options: z.object({
-    liberoReplaceMode: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-    liberoReplacePosition: z.enum([
-      Position.NONE,
-      Position.OH,
-      Position.MB,
-      Position.OP,
-    ]),
-  }),
-  starting: z.array(LineupPlayerSchema),
-  liberos: z.array(LineupPlayerSchema),
-  substitutes: z.array(LineupPlayerSchema),
-});
+const LineupSchema = z
+  .object({
+    options: z.object({
+      liberoReplaceMode: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+      liberoReplacePosition: z.enum([
+        Position.NONE,
+        Position.OH,
+        Position.MB,
+        Position.OP,
+      ]),
+    }),
+    starting: z.array(LineupPlayerSchema),
+    liberos: z.array(LineupPlayerSchema),
+    substitutes: z.array(LineupPlayerSchema),
+  })
+  .strict();
 
 export const UpdateLineupsSchema = z.array(LineupSchema);
+
+/**
+ * Schema for creating a new team
+ * POST /api/teams
+ */
+export const CreateTeamSchema = z
+  .object({
+    name: z.string().min(1),
+    nickname: z.string().optional(),
+  })
+  .strict() satisfies z.ZodType<Pick<ICreateTeamInput, "name" | "nickname">>;

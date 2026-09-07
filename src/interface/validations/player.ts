@@ -36,24 +36,28 @@ export type Player = z.infer<typeof PlayerSchema>;
 /**
  * Schema for creating a new player (with or without email for invitation)
  */
-export const CreatePlayerSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  number: z.number().int().min(0).max(99).optional(),
-  position: PositionSchema.optional(),
-  role: PlayerRoleSchema.default(PlayerRole.MEMBER),
-  email: z.email("Invalid email format").optional(), // Has email = invitation, no email = pure player
-}) satisfies z.ZodType<ICreatePlayerInput["data"]>;
+export const CreatePlayerSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    number: z.number().int().min(0).max(99).optional(),
+    position: PositionSchema.optional(),
+    role: PlayerRoleSchema.default(PlayerRole.MEMBER),
+    email: z.email("Invalid email format").optional(), // Has email = invitation, no email = pure player
+  })
+  .strict() satisfies z.ZodType<ICreatePlayerInput["data"]>;
 
 export type CreatePlayerInput = z.infer<typeof CreatePlayerSchema>;
 
 /**
  * Schema for updating player information (name, number, position)
  */
-export const UpdatePlayerInfoSchema = z.object({
-  name: z.string().min(1, "Name is required").optional(),
-  number: z.number().int().min(0).max(99).optional(),
-  position: PositionSchema.optional(),
-}) satisfies z.ZodType<IUpdatePlayerInfoInput["updates"]>;
+export const UpdatePlayerInfoSchema = z
+  .object({
+    name: z.string().min(1, "Name is required").optional(),
+    number: z.number().int().min(0).max(99).optional(),
+    position: PositionSchema.optional(),
+  })
+  .strict() satisfies z.ZodType<IUpdatePlayerInfoInput["updates"]>;
 
 export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
 
@@ -62,9 +66,11 @@ export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
  */
 const MemberAdminRoleSchema = z.enum([PlayerRole.MEMBER, PlayerRole.ADMIN]);
 
-export const UpdatePlayerRoleSchema = z.object({
-  role: MemberAdminRoleSchema,
-});
+export const UpdatePlayerRoleSchema = z
+  .object({
+    role: MemberAdminRoleSchema,
+  })
+  .strict();
 
 export type UpdatePlayerRoleInput = z.infer<typeof UpdatePlayerRoleSchema>;
 
@@ -72,10 +78,12 @@ export type UpdatePlayerRoleInput = z.infer<typeof UpdatePlayerRoleSchema>;
  * Schema for creating an invitation to an existing PURE_PLAYER
  * POST /api/players/{playerId}/memberships
  */
-export const ManagePlayerMembershipSchema = z.object({
-  email: z.email("請輸入有效的電子郵件"),
-  role: MemberAdminRoleSchema.default(PlayerRole.MEMBER),
-}) satisfies z.ZodType<Pick<ICreateInvitationInput, "email" | "role">>;
+export const ManagePlayerMembershipSchema = z
+  .object({
+    email: z.email("請輸入有效的電子郵件"),
+    role: MemberAdminRoleSchema.default(PlayerRole.MEMBER),
+  })
+  .strict() satisfies z.ZodType<Pick<ICreateInvitationInput, "email" | "role">>;
 
 export type ManagePlayerMembershipInput = z.infer<
   typeof ManagePlayerMembershipSchema
@@ -84,20 +92,42 @@ export type ManagePlayerMembershipInput = z.infer<
 /**
  * Schema for invitation response (accept/reject)
  * PATCH /api/players/{playerId}/invitations
+ *
+ * No `satisfies` binding: `action` dispatches to a different use case per
+ * branch, it is not input data for any single one of them.
  */
-export const InvitationResponseSchema = z.object({
-  action: z.enum(["accept", "reject"]),
-});
+export const InvitationResponseSchema = z
+  .object({
+    action: z.enum(["accept", "reject"]),
+  })
+  .strict();
 
 export type InvitationResponseInput = z.infer<typeof InvitationResponseSchema>;
+
+/**
+ * Schema for accepting, rejecting, or leaving via an existing membership
+ * PATCH /api/players/{playerId}/invitations
+ *
+ * No `satisfies` binding: `action` dispatches to a different use case per
+ * branch, it is not input data for any single one of them.
+ */
+export const PatchInvitationSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("accept") }).strict(),
+  z.object({ action: z.literal("reject") }).strict(),
+  z.object({ action: z.literal("leave") }).strict(),
+]);
+
+export type PatchInvitationInput = z.infer<typeof PatchInvitationSchema>;
 
 /**
  * Schema for transferring team ownership
  * POST /api/teams/{teamId}/ownership
  */
-export const TransferOwnershipSchema = z.object({
-  newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
-}) satisfies z.ZodType<Pick<ITransferOwnershipInput, "newOwnerId">>;
+export const TransferOwnershipSchema = z
+  .object({
+    newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
+  })
+  .strict() satisfies z.ZodType<Pick<ITransferOwnershipInput, "newOwnerId">>;
 
 export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
 
@@ -110,22 +140,32 @@ export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
  * - leave: Leave team (clear userId)
  */
 export const UpdatePlayerStatusSchema = z.discriminatedUnion("action", [
-  z.object({
-    action: z.literal("invite"),
-    email: z.email("Please enter a valid email address"),
-  }),
-  z.object({
-    action: z.literal("cancel"),
-  }),
-  z.object({
-    action: z.literal("accept"),
-  }),
-  z.object({
-    action: z.literal("reject"),
-  }),
-  z.object({
-    action: z.literal("leave"),
-  }),
+  z
+    .object({
+      action: z.literal("invite"),
+      email: z.email("Please enter a valid email address"),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("cancel"),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("accept"),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("reject"),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("leave"),
+    })
+    .strict(),
 ]);
 
 export type UpdatePlayerStatusInput = z.infer<typeof UpdatePlayerStatusSchema>;

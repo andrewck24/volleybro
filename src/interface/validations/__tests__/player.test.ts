@@ -210,10 +210,7 @@ describe("Player Validation Schemas", () => {
           extra: "data",
         };
 
-        // Should either strip or throw - Zod by default strips unknown properties
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("cancel");
-        expect("extra" in result).toBe(false);
+        expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
       });
     });
 
