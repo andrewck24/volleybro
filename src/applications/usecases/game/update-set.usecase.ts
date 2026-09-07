@@ -51,7 +51,7 @@ export class UpdateSetUseCase implements IUpdateSetUseCase {
       throw new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found");
 
     if (data.lineup) {
-      validateLineupPlayers(data.lineup, game.teams.home.players);
+      validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
     }
     set.options = data.options;
     if (data.lineup) {

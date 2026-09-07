@@ -22,5 +22,5 @@
     "pnpm format:check",
     "grep -rn \"weather\\|temperature\" src/ 回傳零筆"
   ],
-  "status": "pending"
+  "status": "completed"
 }

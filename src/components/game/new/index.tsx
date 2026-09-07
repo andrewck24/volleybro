@@ -59,7 +59,6 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     scoring: { setCount: "3", decidingSetPoints: 15 },
     location: { city: "", hall: "" },
     time: { date: new Date(), start: "", end: "" },
-    weather: { temperature: "" },
   });
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {

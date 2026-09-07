@@ -109,11 +109,6 @@ export const MatchResponseSchema = z.object({
       end: z.string().optional(),
     })
     .optional(),
-  weather: z
-    .object({
-      temperature: z.number(),
-    })
-    .optional(),
 });
 
 const RallyPlayerResponseSchema = z.object({
@@ -279,11 +274,6 @@ export const MatchInfoFormSchema = z.object({
       date: z.date().optional(),
       start: z.string().optional(),
       end: z.string().optional(),
-    })
-    .optional(),
-  weather: z
-    .object({
-      temperature: z.string().optional(),
     })
     .optional(),
 });

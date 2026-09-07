@@ -41,9 +41,6 @@ export type Match = {
     start?: string;
     end?: string;
   };
-  weather?: {
-    temperature: number;
-  };
 };
 
 export enum MoveType {
@@ -206,10 +203,10 @@ export type Staff = {
 };
 
 export type Team = {
-  id: string;
+  id?: string;
   name: string;
-  players: Player[];
-  staffs: Staff[];
+  players?: Player[];
+  staffs?: Staff[];
   lineup?: Lineup;
 };
 

@@ -39,9 +39,6 @@ interface MatchDocument extends Document {
     start?: string;
     end?: string;
   };
-  weather?: {
-    temperature: number;
-  };
 }
 
 const matchSchema = new Schema<MatchDocument>({
@@ -75,9 +72,6 @@ const matchSchema = new Schema<MatchDocument>({
     date: { type: String },
     start: { type: String },
     end: { type: String },
-  },
-  weather: {
-    temperature: { type: Number },
   },
 });
 

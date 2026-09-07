@@ -23,7 +23,9 @@ describe("integration harness smoke", () => {
     const game = await repo.findById(gameId);
 
     expect(game).not.toBeNull();
-    expect(game!.teams.home.players.map((p) => p.id)).toEqual(playerIds);
+    expect((game!.teams.home.players ?? []).map((p) => p.id)).toEqual(
+      playerIds,
+    );
     expect(game!.sets).toEqual([]);
   });
 

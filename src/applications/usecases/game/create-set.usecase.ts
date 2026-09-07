@@ -46,7 +46,7 @@ export class CreateSetUseCase implements ICreateSetUseCase {
       PlayerRole.MEMBER,
     );
 
-    validateLineupPlayers(data.lineup, game.teams.home.players);
+    validateLineupPlayers(data.lineup, game.teams.home.players ?? []);
 
     if (params.setIndex === 0) delete game.teams.home.lineup;
 
