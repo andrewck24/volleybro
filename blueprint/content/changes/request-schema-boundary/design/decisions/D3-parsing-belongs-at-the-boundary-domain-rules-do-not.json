@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D3",
   "title": "型別重建屬邊界，領域規則屬 entity——validateRallyEntry 全部是前者",
-  "status": "candidate",
+  "status": "accepted",
   "targets": [
     "game-recording/rally-recording",
     "game-recording/persistence",
