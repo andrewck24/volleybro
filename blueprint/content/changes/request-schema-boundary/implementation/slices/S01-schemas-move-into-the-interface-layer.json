@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "schema 遷入 interface 層，use case 取回自己的輸入契約",
+  "capabilities": ["platform/clean-architecture"],
+  "dependsOn": [],
+  "outcome": "schema 有了一個可以指認的家，而 application 層對外的相依歸零。純搬移與型別重整，沒有任何行為改變——沒有一條 route 的回應在這一片之後有所不同。",
+  "acceptanceCriteria": [
+    "`src/lib/validations/team.ts` 與 `player.ts` 移至 `src/interface/validations/`，`src/lib/validations/` 目錄不再存在（含其 `__tests__/`，測試一併搬移）。",
+    "11 個 importer 全部改指新路徑：6 條 route、`create-player.usecase.ts`、`components/team/players/create-form.tsx`、`edit-form.tsx`、`teams/[teamId]/players/__tests__/create-player.test.ts`。全 repo grep `lib/validations` 無殘留。",
+    "`create-player.usecase.ts` 自行宣告 `ICreatePlayerInput[\"data\"]` 的五個欄位（`name` / `number` / `position` / `role` / `email`），刪除 `import type { CreatePlayerInput }`。`ICreatePlayerInput` 的結構不變，所有呼叫端不需修改。",
+    "`CreatePlayerSchema` 加上 `satisfies z.ZodType<ICreatePlayerInput[\"data\"]>`；`UpdatePlayerInfoSchema` 與 `UpdateProfileRequestSchema` 比照綁到各自 usecase 的 `updates` 子物件。",
+    "扁平 input 的三個以 `Pick<>` 綁定：`CreateTeamSchema` → `Pick<ICreateTeamInput, \"name\" | \"nickname\">`、`TransferOwnershipSchema` → `Pick<ITransferOwnershipInput, \"newOwnerId\">`、`ManagePlayerMembershipSchema` → `Pick<ICreateInvitationInput, \"email\" | \"role\">`。",
+    "`src/applications/` 底下沒有任何檔案 import `src/interface/` 或 `src/lib/validations`——`satisfies` 的方向是 interface 指向 application，不得反向。",
+    "本片不加 `.strict()`、不改任何 schema 的欄位定義、不動任何 route 的行為。"
+  ],
+  "verification": [
+    "pnpm typecheck:strict",
+    "pnpm test",
+    "pnpm lint",
+    "pnpm format:check",
+    "grep -rn \"lib/validations\" src/ test/ 回傳零筆",
+    "grep -rn \"@/interface/\" src/applications/ 回傳零筆"
+  ],
+  "status": "pending"
+}

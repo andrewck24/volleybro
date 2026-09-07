@@ -1,0 +1,32 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "entity 層卸下 stateless 檢查，只留需要資料庫狀態的規則",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/persistence",
+    "platform/clean-architecture"
+  ],
+  "dependsOn": ["S04"],
+  "outcome": "「什麼構成一顆合法的 rally」只剩一份定義。這一片刻意排在 S04 之後——先讓邊界守住，再卸下 entity 的那一份，中間沒有任何一刻是兩邊都不擋。",
+  "acceptanceCriteria": [
+    "`src/entities/game.ts` 刪除 `validateRallyEntry`、私有常數 `MOVE_TYPES` 與 `LAST_SCORING_MOVE`，以及 `record-rallies.usecase.ts` 中的 `rallies.forEach(validateRallyEntry)`。",
+    "`validateLineupPlayers` 開頭的 shape 前置檢查（`lineup == null`、三個 `Array.isArray`）刪除，連同其上方那段說明它為何存在的註解——該註解的前提在 S04 之後已不成立。roster 成員比對**留下**，它需要資料庫裡的名單。",
+    "`src/lib/__tests__/scoring-moves.test.ts` 刪除。它釘住的是 `LAST_SCORING_MOVE` 與表的最後一筆一致，該常數已不存在。",
+    "`src/entities/__tests__/game.test.ts` 的 `validateRallyEntry` describe 區塊刪除。`deriveSetStats` 的既有測試一行不改。",
+    "`src/lib/features/game/__tests__/draft-passes-validation.test.ts` **不刪，改指向 rally schema**。它證明的是「記錄員實際送出的 draft 通過伺服器契約」，與驗證住在哪一層無關；改完之後它成為 S04 那條「真實 client payload」慣例在 game 端的第二個實例。",
+    "`test/integration/rally-validation.itest.ts` **一行不改且維持綠燈**。它的三個案例（缺 `type`、`type` 超出 enum、缺 `win`）在 zod 之下產生同樣的 400 與 `CommonReason.INVALID_INPUT`，且 entries 長度仍為 0。若它需要修改才能通過，代表 S04 的 schema 與被刪除的驗證器行為不等價，必須回頭修 schema 而非改測試。",
+    "全 repo grep `validateRallyEntry` 在 `src/` 與 `test/` 下回傳零筆。",
+    "**不新增**跨欄位自洽檢查。本 Change 只確立它的落點是 rally schema 的 `.refine()`（相依方向 `interface → lib → entities` 無循環，因此不再以 `scoringMoves` 下沉為前置）；實作屬 rally 推導值那張票。"
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm test:integration",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check",
+    "grep -rn \"validateRallyEntry\\|LAST_SCORING_MOVE\" src/ test/ 回傳零筆",
+    "確認 test/integration/rally-validation.itest.ts 未出現在本片的 diff 中"
+  ],
+  "status": "pending"
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "Team 與 Match 的型別改為與實際寫入一致",
+  "capabilities": ["game-recording/persistence"],
+  "dependsOn": [],
+  "outcome": "`Game[\"teams\"]` 的型別描述 app 真正送出的東西，所以 S04 的 schema 寫得出來且不需要任何 cast。一個從未被讀取的欄位隨之消失。",
+  "acceptanceCriteria": [
+    "`src/entities/game.ts` 的 `Team` 將 `id` / `players` / `staffs` 改為選填。**維持同一個 `Team` 型別**，不新增 away 專用的窄型別——對手取得真實身分後這些欄位會被填滿，拆開之後需要合併回來。",
+    "所有讀 `teams.away` 或 `teams.home` 這三個欄位的地方處理 undefined。以 `pnpm typecheck:strict` 逐一驅動，不得以 `!` 或 cast 消音。",
+    "`Match.weather` 自六處移除：`entities/game.ts`、`infrastructure/db/mongoose/schemas/game.ts` 的 document interface 與 schema 定義、`lib/features/game/types.ts` 的 `MatchResponseSchema` 與 `MatchInfoFormSchema`、`components/game/new/index.tsx` 的表單初始值。",
+    "`components/game/new/index.tsx` 的 `createGame` 不再送出 `weather`。",
+    "`teamSchema` 的 `_id` 設定不動。mongoose 仍會替 away 生成一個不指向任何 Team 的 `_id`；改它會影響既有文件的讀取，屬對手連結為真實隊伍的工作。",
+    "既有 game 文件裡的 `weather` 資料未被刪除或改寫——只是讀取時不再映射。以整合測試對一筆帶 `weather` 的既有文件斷言讀取正常。",
+    "全 repo grep `weather` 與 `temperature` 在 `src/` 下回傳零筆。"
+  ],
+  "verification": [
+    "pnpm typecheck:strict",
+    "pnpm test",
+    "pnpm test:integration",
+    "pnpm lint",
+    "pnpm format:check",
+    "grep -rn \"weather\\|temperature\" src/ 回傳零筆"
+  ],
+  "status": "pending"
+}

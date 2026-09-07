@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "既有九條路由收斂為一套慣例並拒絕未宣告欄位",
+  "capabilities": ["platform/clean-architecture"],
+  "dependsOn": ["S01"],
+  "outcome": "三套並行的做法變成一套：所有 request schema 住同一個目錄、在 route 層 `.parse()`、拒絕未宣告欄位。`profile.controller.ts` 不再是唯一用 `.strict()` 的特例，也不再持有一段與 `withErrorHandler` 重複的手寫包裝。",
+  "acceptanceCriteria": [
+    "`CreateTeamSchema`（`app/api/teams/route.ts` 內 inline）與 `PatchInvitationSchema`（`invitations/route.ts` 內 inline）移入 `src/interface/validations/`。route 檔案不再 import zod。",
+    "`UpdateProfileRequestSchema` 移出 `profile.controller.ts` 至 `src/interface/validations/`，parse 改在 `app/api/profiles/route.ts` 以 `.parse()` 進行；controller 內的 `safeParse` 與手寫 `ValidationError` 包裝刪除。controller 回到純委派。",
+    "9 個既有 request schema 全部加上 `.strict()`。",
+    "`memberships/route.ts:32` 與 `:53` 的 `as PlayerRole` cast 移除。若編譯器認為其中任何一個仍必要，保留該處並在程式碼中記下原因，不得以 cast 掩蓋型別落差。wire 欄位維持 `role`，route 內映射為 usecase 的 `newRole`。",
+    "6 條 retrofit `.strict()` 的路由各有一個測試，餵入該路由的 **client 實際建構的 payload**（取自對應的表單或 hook，不是手寫的最小物件），斷言 200/201 而非 400。",
+    "`InvitationResponseSchema` 與 `PatchInvitationSchema` 不加 `satisfies`——它們是 dispatch schema，`action` 是 route 的分派依據而非任何 usecase 的輸入。此判斷在程式碼註解中一行說明。",
+    "`TeamUpdateSchema` 與 `UpdateLineupsSchema` 暫不加 `satisfies`，其 usecase 使用位置參數而無 input DTO。此缺口在程式碼中不留註解，由 `api-route-restructure` 承接。",
+    "response 端的 8 處 `PlayerSchema.parse()` 一處不動。"
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm test:integration",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check",
+    "grep -rn \"from \\\"zod\\\"\" src/app/api/ 回傳零筆",
+    "grep -rn \"safeParse\" src/interface/controllers/ 回傳零筆"
+  ],
+  "status": "pending"
+}
