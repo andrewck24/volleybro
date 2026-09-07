@@ -88,6 +88,16 @@ import { TLDR } from "@/components/TLDR";
       code: "let calls = 0;\napiClient.mockImplementation(() => {\n  calls += 1;\n  return calls === 1\n    ? new Promise((resolve) => {\n        settle = resolve;\n      })\n    : new Promise(() => {});\n});",
     },
     {
+      path: "src/lib/features/game/__tests__/draft-passes-validation.test.ts",
+      change: "added",
+      added: 46,
+      removed: 0,
+      summary:
+        "把 Redux draft 與驗證器之間的契約釘住：跑真的 reducer，再把送出的那份 draft 餵給 validateRallyEntry。整合測試用的是手寫 payload，證明不了這件事。",
+      lang: "ts",
+      code: "store.dispatch(gameActions.setEntryDraftHomeMove(move));\nstore.dispatch(\n  gameActions.setEntryDraftAwayMove(scoringMoves[move.outcome[0]!]!),\n);\n\nexpect(() => validateRallyEntry(submitted(store))).not.toThrow();",
+    },
+    {
       path: "src/lib/__tests__/scoring-moves.test.ts",
       change: "added",
       added: 29,
@@ -207,6 +217,16 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 **`WORKFLOW.md` §5 的一句補充也搭了便車。** 發現九指出的條文缺口——審查迴圈的不動點沒有定義是誰的不動點——由開發者授權在本分支直接修補：步驟 4 現在寫明「a round reviews the diff to the branch's last commit」，並給出終止判準。它同樣不屬於本 Change 的任何一片，理由與下一項相同：這條缺口是本 Change 自己踩出來的，而且它會讓下一個 Change 用同樣的方式踩。
 
 **一個與本 Change 無關的測試修正搭了便車。** 發現八不屬於本 Change 的任何一片，正常情況應該另案處理。它進來的理由只有一個：它擋住 `verify:all`，而沒有綠燈就開不了 PR。判準是「阻擋交付」而非「順手看到」——同期查出的 error boundary、knip、Blueprint 元件三件事都留在外面，因為它們不擋 gate。
+
+### 十、UI 送出的 payload 從未被驗證器檢驗過（交付驗收前補上）
+
+開發者在接受交付前問「除了自動化測試之外還需要什麼手動驗證」。答案是不需要人，但**確實有一件事沒被驗證過**：驗證器現在坐在寫入路徑上，而它看到的是 Redux 的 `ReduxEntryDraft` 直接強制轉型的結果（`{ ...(draft as RallyView), id, seq }`），而那個型別允許 `win` / `type` / `num` 為 `null`。
+
+風險的方向和本 Change 原本要修的相反：不是壞資料進得去，是**好資料可能被擋住**——記錄員按下送出得到 400。而整合測試用的是手寫的 payload，**沒有任何測試把 UI 實際產生的 draft 餵給驗證器**。
+
+`src/lib/features/game/__tests__/draft-passes-validation.test.ts` 補上這一條：跑真的 reducer 走完一般得分（七個前排動作各配它的第一個 outcome）與對方失誤（六個）兩條流程，斷言送出的 draft 通過驗證；外加一個反例，未動過的 draft 被拒——那也證明驗證器真的有被呼叫到。
+
+變異驗證：讓 `setEntryDraftHomeMove` 不再填 `win`（draft 的型別本來就允許），14 條紅 13，唯一存活的是那個反例。
 
 ## Residual risks
 
