@@ -127,6 +127,41 @@ export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
   }
 }
 
+const MOVE_TYPES: ReadonlySet<unknown> = new Set(
+  Object.values(MoveType).filter((value) => typeof value === "number"),
+);
+
+// The scoring-move table a `num` indexes into still lives outside entities, so
+// its last index is repeated here. See rally-entry-validation D2.
+const LAST_SCORING_MOVE = 14;
+
+export function validateRallyEntry(rally: Rally & EntryIdentity): void {
+  const invalid = (detail: string) =>
+    new ValidationError(CommonReason.INVALID_INPUT, detail);
+
+  if (typeof rally?.win !== "boolean")
+    throw invalid("A rally must record which side won it");
+
+  for (const side of ["home", "away"] as const) {
+    const move: Partial<RallyDetail> | undefined = rally[side];
+    if (move == null || typeof move !== "object")
+      throw invalid(`A rally must record its ${side} side`);
+    if (!MOVE_TYPES.has(move.type))
+      throw invalid(
+        `A rally's ${side} move type must be one this codebase defines`,
+      );
+    if (
+      typeof move.num !== "number" ||
+      !Number.isInteger(move.num) ||
+      move.num < 0 ||
+      move.num > LAST_SCORING_MOVE
+    )
+      throw invalid(`A rally's ${side} move number must index a scoring move`);
+    if (typeof move.score !== "number" || !Number.isFinite(move.score))
+      throw invalid(`A rally's ${side} score must be a number`);
+  }
+}
+
 export type TeamStats = PlayerStats & {
   [MoveType.UNFORCED]: { success: number; error: number };
   rotation: number;
@@ -502,31 +537,30 @@ export function deriveSetStats(
   for (const entry of entries ?? []) {
     if (isRally(entry)) {
       const { win } = entry;
-      const homeStat = home[entry.home.type] as {
-        success: number;
-        error: number;
-      };
-      const awayStat = away[entry.away.type] as {
-        success: number;
-        error: number;
-      };
+      type Tally = { success: number; error: number };
+      const homeStat = home[entry.home.type] as Tally | undefined;
+      const awayStat = away[entry.away.type] as Tally | undefined;
 
-      if (win) {
-        homeStat.success += 1;
-        awayStat.error += 1;
-      } else {
-        homeStat.error += 1;
-        awayStat.success += 1;
-      }
+      // A stored rally can name a move outside MoveType, which has no tally to
+      // add to. See rally-entry-validation D1.
+      if (homeStat && awayStat) {
+        if (win) {
+          homeStat.success += 1;
+          awayStat.error += 1;
+        } else {
+          homeStat.error += 1;
+          awayStat.success += 1;
+        }
 
-      const scorerId = entry.home.player?.id;
-      if (scorerId && entry.home.type !== MoveType.UNFORCED) {
-        const stats = (players[scorerId] ??= new PlayerStatsClass());
-        const moveStat = stats[
-          entry.home.type as Exclude<MoveType, MoveType.UNFORCED>
-        ] as { success: number; error: number };
-        if (win) moveStat.success += 1;
-        else moveStat.error += 1;
+        const scorerId = entry.home.player?.id;
+        if (scorerId && entry.home.type !== MoveType.UNFORCED) {
+          const stats = (players[scorerId] ??= new PlayerStatsClass());
+          const moveStat = stats[
+            entry.home.type as Exclude<MoveType, MoveType.UNFORCED>
+          ] as Tally;
+          if (win) moveStat.success += 1;
+          else moveStat.error += 1;
+        }
       }
 
       if (win && !isHomeServing) home.rotation += 1;

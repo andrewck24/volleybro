@@ -4,7 +4,7 @@
 
 ### Fixed
 
-#### Record
+#### Game
 
 - Record rallies again: every submission failed with a "not found" error, because a point won against the opponent has no player to name on their side
 - Stop showing the recording court for a set that was never started, where every rally submitted from it was rejected

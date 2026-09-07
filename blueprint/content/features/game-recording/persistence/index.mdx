@@ -17,6 +17,7 @@ import persistenceErrorLayering from "./decisions/D17-persistence-error-layering
 import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
 import storageAvailabilityIsAFirstClassState from "./decisions/D20-storage-availability-is-a-first-class-state.json";
 import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
+import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
@@ -77,8 +78,19 @@ appends one entry; it does not rewrite the game.
 - Storage that cannot be read or cannot be understood is cleared rather than
   left to be re-read on every start. The single exception is a snapshot from a
   newer version, which may belong to a build the user is also running.
+- The Mongoose schema marks a rally's score, move type, move number and win as
+  required, and none of those marks runs. Every entry is written through
+  `bulkWrite`, and Mongoose validates only the `insertOne` and `replaceOne`
+  operations in one — `runValidators` is ignored for the rest. Casting still
+  applies, so a value of the wrong type is refused while a missing one and one
+  outside an enum are not. The marks are a record of which fields a rally
+  cannot do without, not a guard; the guard is in the domain layer.
 
 ## Constraints
+
+- Nothing may rely on the Mongoose schema to reject an entry. It is the layer
+  that looks like it does and does not, which is how a rally missing the move
+  it recorded reached the database in the first place.
 
 - The queue is laid over the server's answer by the same identity-and-sequence
   rule the repository writes by, so what the recorder sees now is what the
@@ -155,5 +167,6 @@ appends one entry; it does not rewrite the game.
     warningTracksUnrecoverableLoss,
     storageAvailabilityIsAFirstClassState,
     mergeMirrorsUpsert,
+    entityValidatorGuardsTheWrite,
   ]}
 />

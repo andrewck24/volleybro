@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "寫入守衛是 entities 層的獨立 validator，Mongoose 的 required 只是欄位必要性的紀錄",
+  "status": "implemented",
+  "targets": ["game-recording/rally-recording", "game-recording/persistence"],
+  "context": "把 `rallyDetailSchema` 的 `score` / `type` / `num` 與 `rallySchema` 的 `win` 補上 `required: true` 是直覺的第一反應，但它攔不到任何東西。rally 的唯一寫入路徑是 `upsertEntry` 的 `bulkWrite`，裡面全是 `updateOne`，而 Mongoose 只對 `bulkWrite` 中的 `insertOne` 與 `replaceOne` 執行驗證；`updateOne` 不驗，`runValidators` 傳了也被忽略。以 `mongodb-memory-server` 實測：四個欄位全標 `required` 之後，`bulkWrite` + `$push` 仍然接受缺欄位的球（加不加 `runValidators` 都一樣），而同樣兩種指令形狀單獨以 `Model.updateOne(..., { runValidators: true })` 呼叫時會拒絕——是 `bulkWrite` 這個載體吃掉了驗證。同一組實測也顯示更新路徑只做 cast、不做 validate：`type: \"attack\"` 被 `CastError` 擋下，但缺欄位與超出 enum 範圍的值一律放行，所以災難有兩個入口而非一個。本專案已經掉進這個坑一次：`entrySchema` 的 `id` 與 `seq` 同樣標了 `required` 同樣不執行，`upsertEntry` 因此另外手寫了 `anonymous` 檢查。那道守衛留在 repository 是對的——它防的是 arrayFilters 對 `null` 的匹配風險，屬儲存機制自己的坑；「一顆球必須說得出球種」不是儲存機制的坑。",
+  "decision": "新增 `validateRallyEntry` 至 `src/entities/game.ts`，緊鄰 `validateLineupPlayers`，由 `record-rallies.usecase.ts` 在授權之後、寫入之前逐筆呼叫，與 `create-set.usecase.ts` 呼叫 `validateLineupPlayers` 的層次與位置一致——entities 層的驗證在本 repo 一律是獨立 method（`validateLineupPlayers`、`validatePlayerStatus`），內嵌是其他層的做法。檢查每個欄位單獨合法：兩側的 `type` 在 `MoveType` 的合法值內（含範圍，不只是存在）、`num` 在 0 至 14、`win` 是 boolean、`score` 是數字。不檢查跨欄位一致性。`rallyDetailSchema` 與 `rallySchema` 的四個欄位仍然補上 `required: true`，但它的角色是**欄位必要性的紀錄**而非寫入守衛，並以兩行註解指向本記錄；`setSchema` 與 `gameSchema` 的 `win` 不加，它們在結果存在前刻意是 `null`。因為單元測試證明不了「有人在該拒絕時呼叫了它」，本決策附帶一條不可省的整合測試：畸形的球經真實 route 送出得到 400 且未被寫入。",
+  "alternatives": [
+    {
+      "option": "驗證寫進 `createRallyEntry` 內部，讓它結構上不可能被忘記",
+      "reason": "確實多一個性質：未來新增的寫入路徑自動受保護。但它會是 entities 層唯一的內嵌驗證，違反該層既有的一致慣例；而「被忘記」這個風險本來就該由整合測試承擔，而整合測試在兩種落點下都必須寫。用一致性去換一個已有其他機制覆蓋的性質，不划算。"
+    },
+    {
+      "option": "守衛放在 repository，比照 `anonymous` 的 id/seq 檢查",
+      "reason": "誤讀了那個先例。`anonymous` 防的是 arrayFilters 把 `id: null` 匹配到所有其他 entry 的儲存機制風險，屬 infrastructure 的關切，放在 infrastructure 正確。領域規則放在 repository 會讓 entity 層對自己的不變式一無所知。"
+    },
+    {
+      "option": "拆掉 `bulkWrite`，改成逐一 `updateOne` 加 `runValidators`，讓 `required` 真的生效",
+      "reason": "實測證明這樣 `required` 會執行，但代價是把一次 flush 的一趟往返變成 2N 趟。批次是為了對抗場館弱網路而刻意選的特性，拿掉它等於用一個已論證過的決策去換另一個。"
+    },
+    {
+      "option": "開啟 MongoDB 的 collection validator，取得一道任何 driver 都繞不過的約束",
+      "reason": "這是唯一 `bulkWrite` 繞不過的防線，但今天只有一個寫入者，代價是維護第二份 schema 定義與遷移流程，換一道現在沒有東西會去撞的牆。記為 revisit trigger 而非現在做。"
+    },
+    {
+      "option": "既然 `required` 不執行就乾脆不加",
+      "reason": "程式碼會更誠實，但會丟掉一份剛做完的判斷。若資料庫評估選擇關聯式儲存，schema 裡標記為必要的欄位就是最直接的 `NOT NULL` 對照表；重新判斷一次的成本高於兩行註解。"
+    }
+  ],
+  "consequences": [
+    "缺欄位或超出 `MoveType` 範圍的球從此進不了資料庫，且被拒絕時是帶訊息的 400，不是儲存層的 500。",
+    "`validateRallyEntry` 只涵蓋走 use case 的寫入路徑。匯入功能、遷移腳本或第二個 client 都繞得過，這是接受的殘餘風險，並由 revisit trigger 承接。",
+    "schema 裡的 `required` 是一個看得見卻不生效的東西，因此必須明文標註，否則下一個讀者會信賴它並移除 entity 層的守衛——那才是真正的損失。",
+    "`record-rallies.usecase.test.ts` 既有 fixture 若因不完整而開始失敗，那是正確訊號：修 fixture，不放寬驗證。",
+    "跨欄位一致性仍然無人守護——`num` 決定 `type` 與 `win`，三者可能互相矛盾。這需要 `scoringMoves` 先從 `src/lib/` 下沉至 entities（它目前 import `MoveType`，反向依賴會成環），屬另一份工作。"
+  ],
+  "revisitTriggers": [
+    "出現第二個寫入者（匯入功能、資料遷移腳本、第二個 client），屆時 use case 層的守衛不再涵蓋全部路徑，collection validator 那道硬牆要重新評估。",
+    "資料庫評估選擇關聯式儲存：`NOT NULL` 由資料庫伺服器強制，第五層直接成立，schema 裡的 `required` 從紀錄轉為遷移對照，本記錄關於「它不是守衛」的部分隨之失效。",
+    "Mongoose 改為對 `bulkWrite` 中的 `updateOne` 執行驗證，屆時 `required` 會自己變成一道真的防線，本記錄的核心前提消失。",
+    "`scoringMoves` 下沉至 entities 之後，`validateRallyEntry` 擴充為包含跨欄位自洽檢查。",
+    "route 層的 request schema 上線之後，重新確認兩層驗證的分工：邊界回答「形狀對不對」，entity 回答「意義對不對」，兩者不應互相複製。"
+  ]
+}

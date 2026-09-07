@@ -13,6 +13,7 @@ import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrec
 import manualRetryIsADatedPatch from "./decisions/D21-manual-retry-is-a-dated-patch.json";
 import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
 import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
+import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -81,9 +82,16 @@ the rotation, whether it is at set point — follows from the entries.
   `deriveSetPhase` in the domain layer.
 - A game starts undecided. `win` is `null` until a result exists, because by
   this codebase's convention a boolean means the match is over.
+- A rally is refused before it is stored unless every field it is read by
+  carries a value in range: both sides' move type and move number, the score,
+  and which side won. The refusal is a 400 naming the field, from the domain
+  layer, before the write is attempted.
 
 ## Constraints
 
+- What a rally must carry has one definition. The write refuses by it and the
+  read tolerates by it; stating it twice would let the reader drift wider than
+  the writer, which is how a rally that cannot be read got stored.
 - The server is the authority on whether a set is won. The client does not
   declare it, which is the prerequisite for server-authoritative scoring under
   synchronised recording.
@@ -139,5 +147,6 @@ the rotation, whether it is at set point — follows from the entries.
     manualRetryIsADatedPatch,
     outboxProjectionLivesInUseGame,
     mergeMirrorsUpsert,
+    entityValidatorGuardsTheWrite,
   ]}
 />

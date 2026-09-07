@@ -14,6 +14,7 @@ import {
   getPreviousRally,
   setTargetPoints,
   validateLineupPlayers,
+  validateRallyEntry,
 } from "@/entities/game";
 import { Position, type Lineup } from "@/entities/team";
 
@@ -164,6 +165,59 @@ describe("validateLineupPlayers", () => {
   });
 });
 
+describe("validateRallyEntry", () => {
+  const detail = (overrides: Record<string, unknown> = {}) => ({
+    score: 1,
+    type: MoveType.ATTACK,
+    num: 4,
+    ...overrides,
+  });
+
+  const submitted = (overrides: Record<string, unknown> = {}) =>
+    ({
+      id: "e1",
+      seq: 0,
+      win: true,
+      home: detail(),
+      away: detail({ type: MoveType.DEFENSE, score: 0, num: 7 }),
+      ...overrides,
+    }) as unknown as Parameters<typeof validateRallyEntry>[0];
+
+  it("accepts a rally whose every field is in range", () => {
+    expect(() => validateRallyEntry(submitted())).not.toThrow();
+  });
+
+  it.each([
+    ["no win", { win: undefined }],
+    ["a win that is not a boolean", { win: "true" }],
+    ["no home side", { home: undefined }],
+  ])("rejects a rally with %s", (_name, overrides) => {
+    expect(() => validateRallyEntry(submitted(overrides))).toThrow(
+      ValidationError,
+    );
+  });
+
+  it.each([
+    ["no move type", { type: undefined }],
+    ["a move type outside the enum", { type: 99 }],
+    ["no score", { score: undefined }],
+    ["a score that is not a number", { score: "12" }],
+    ["no move number", { num: undefined }],
+    ["a move number past the last scoring move", { num: 15 }],
+    ["a negative move number", { num: -1 }],
+  ])("rejects a rally whose home side has %s", (_name, overrides) => {
+    expect(() =>
+      validateRallyEntry(submitted({ home: detail(overrides) })),
+    ).toThrow(ValidationError);
+  });
+
+  it("checks the away side too", () => {
+    expect(() =>
+      validateRallyEntry(submitted({ away: detail({ type: 99 }) })),
+    ).toThrow(ValidationError);
+  });
+});
+
 describe("set derivation", () => {
   const rally = (
     win: boolean,
@@ -302,6 +356,11 @@ describe("set derivation", () => {
   });
 
   describe("deriveSetStats", () => {
+    // The legal counterpart of the two broken sequences below: the counts a
+    // skipped rally must not disturb. See rally-entry-validation D1.
+    const legal = () =>
+      deriveSetStats([rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")], set);
+
     it("counts team and player outcomes from the entries alone", () => {
       const stats = deriveSetStats(
         [rally(true, 1, 0, "p1"), rally(false, 1, 1, "p1")],
@@ -329,6 +388,29 @@ describe("set derivation", () => {
         set,
       );
       expect(stats.home.rotation).toBe(1);
+    });
+
+    it("keeps counting the rest when a rally names no move type", () => {
+      const broken = rally(false, 0, 1, "p1");
+      delete (broken.home as { type?: MoveType }).type;
+
+      const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);
+
+      expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
+      expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
+      expect(Object.keys(stats.players)).toEqual(["p2"]);
+      expect(stats.home.rotation).toBe(legal().home.rotation);
+    });
+
+    it("treats a move type outside the enum the same way", () => {
+      const broken = rally(false, 0, 1, "p1", 99 as MoveType);
+
+      const stats = deriveSetStats([broken, rally(true, 1, 1, "p2")], set);
+
+      expect(stats.home[MoveType.ATTACK]).toEqual({ success: 1, error: 0 });
+      expect(stats.away[MoveType.DEFENSE]).toEqual({ success: 0, error: 1 });
+      expect(Object.keys(stats.players)).toEqual(["p2"]);
+      expect(stats.home.rotation).toBe(legal().home.rotation);
     });
 
     it("reports allowances as used counts starting from zero", () => {

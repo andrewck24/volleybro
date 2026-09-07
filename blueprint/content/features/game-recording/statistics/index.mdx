@@ -4,6 +4,7 @@ description: Per-set and whole-match totals, derived from a set's entries rather
 ---
 
 import entriesAsSourceOfTruth from "./decisions/D4-entries-as-source-of-truth.json";
+import readSideTolerance from "./decisions/D25-read-side-skips-the-tally-not-the-entry.json";
 import sharedDomainFunctions from "./decisions/D6-shared-domain-functions.json";
 
 Entries are the only stored record of what happened. Every total shown anywhere
@@ -23,6 +24,9 @@ is computed from them.
 - The match statistics view sums the per-set derivations. It memoises on the
   set list, so a re-render caused by store state reuses the previous result and
   only a data update recomputes.
+- A rally naming a move outside `MoveType` has no tally to add to, so that
+  rally's tally is skipped rather than throwing. Only the tally: the rotation
+  count and the serve still follow from who won it, which is known regardless.
 - Substitution, timeout and challenge counters are **used counts**. The
   remaining allowance is `SET_ALLOWANCES[k]` minus the used count.
 
@@ -30,6 +34,9 @@ is computed from them.
 
 - Derivation must not run per render. Cost may grow with the number of rallies
   recorded; it may not grow with the number of renders.
+- Skipping is silent. No total says a rally went uncounted, because the write
+  side now refuses such a rally: one reaching a reader is a defect elsewhere,
+  not a state to explain to the recorder.
 - Components must not reimplement or reach past the shared derivation. There is
   one implementation of the scoring rules, and a second one anywhere is the
   defect this capability exists to prevent.
@@ -45,4 +52,6 @@ is computed from them.
 
 ## Implemented decisions
 
-<DecisionTimeline decisions={[entriesAsSourceOfTruth, sharedDomainFunctions]} />
+<DecisionTimeline
+  decisions={[entriesAsSourceOfTruth, sharedDomainFunctions, readSideTolerance]}
+/>

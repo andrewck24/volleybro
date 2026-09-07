@@ -253,14 +253,17 @@ interface RallyDetailDocument extends Document {
   };
 }
 
+// `required` records which fields a rally cannot do without; it guards nothing,
+// as bulkWrite updates skip validation. See rally-entry-validation D2.
 const rallyDetailSchema = new Schema<RallyDetailDocument>(
   {
-    score: { type: Number },
+    score: { type: Number, required: true },
     type: {
       type: Number,
+      required: true,
       enum: Object.values(MoveType).filter((v) => typeof v === "number"),
     },
-    num: { type: Number },
+    num: { type: Number, required: true },
     player: {
       playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
       zone: { type: Number },
@@ -276,7 +279,7 @@ interface RallyDocument extends Document {
 }
 
 const rallySchema = new Schema<RallyDocument>({
-  win: { type: Boolean },
+  win: { type: Boolean, required: true },
   home: { type: rallyDetailSchema },
   away: { type: rallyDetailSchema },
 });

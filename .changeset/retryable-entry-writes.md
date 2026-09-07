@@ -4,7 +4,7 @@
 
 ### Added
 
-#### Record
+#### Game
 
 - Keep recording without waiting for the server between rallies, so a weak connection at the venue no longer holds up play
 - Flag anything that has not been saved yet, with a count and a way to retry it, and stay out of the way while there is nothing to report
@@ -14,7 +14,7 @@
 
 ### Fixed
 
-#### Record
+#### Game
 
 - Stop the same rally being recorded twice after a failed submission: recording the ball that ended a set could save the rally, report failure anyway, and invite recording it again
 - Keep a rally that arrived late in its right place in the set instead of after the ones recorded since
