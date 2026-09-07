@@ -88,6 +88,16 @@ import { TLDR } from "@/components/TLDR";
       code: "let calls = 0;\napiClient.mockImplementation(() => {\n  calls += 1;\n  return calls === 1\n    ? new Promise((resolve) => {\n        settle = resolve;\n      })\n    : new Promise(() => {});\n});",
     },
     {
+      path: "src/lib/__tests__/scoring-moves.test.ts",
+      change: "added",
+      added: 30,
+      removed: 0,
+      summary:
+        "把驗證器的上界釘在 scoringMoves 這張表上。表增長而上界沒跟上時這裡會紅，取代原本「沒有測試會紅」的狀態。",
+      lang: "ts",
+      code: "const last = scoringMoves.at(-1)!.num;\n\nexpect(() => validateRallyEntry(rallyWithNum(last))).not.toThrow();\nexpect(() => validateRallyEntry(rallyWithNum(last + 1))).toThrow(\n  ValidationError,\n);",
+    },
+    {
       path: ".changeset/rally-entry-validation.md",
       change: "added",
       added: 9,
@@ -182,7 +192,11 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
 
 ## Plan versus actual
 
-**`LAST_SCORING_MOVE = 14` 是一份硬抄，Design 沒有說它該住在哪裡。** D2 寫的是「`num` 在 0 至 14」，沒有交代這個上界的來源。實作上它成了 entities 對 `src/lib/scoring-moves.ts` 那張表的最後索引的複製——那張表若增加一個動作，這個常數會靜靜落後，而沒有任何測試會紅。這個缺口落在 D2 已有的 revisit trigger 底下（`scoringMoves` 下沉之後 `validateRallyEntry` 擴充），但 Design 當時沒有把「上界會被硬抄」這件事說出來。此處明記。
+**`LAST_SCORING_MOVE = 14` 是一份硬抄，Design 沒有說它該住在哪裡。** D2 寫的是「`num` 在 0 至 14」，沒有交代這個上界的來源。實作上它成了 entities 對 `src/lib/scoring-moves.ts` 那張表的最後索引的複製。Design 當時沒有把「上界會被硬抄」這件事說出來，此處明記。
+
+下沉那張表是唯一能真正消除重複的做法，但它需要一個設計決定——`ScoringMove` 帶著 `text: "攔網"` 這種 zh-TW 顯示字串，整張搬進 entities 等於把介面文案放進領域層，拆開搬則要改動表的形狀與全部呼叫端。那個決定屬 ATE-140 的 S1，不該夾帶進一張止血票。
+
+**但危險的不是重複，是重複而且不會有任何測試變紅**，而後者今天就能解決：`src/lib/__tests__/scoring-moves.test.ts` 把驗證器接受的上界釘在表的最後一筆上。測試檔不受分層約束，可以同時 import 兩邊，而且它釘的是**行為**而非常數，所以不必為了測試把常數 export 出去。在表末加一個動作，這條測試立刻紅。表下沉之後，這個檔案連同常數一起刪除。
 
 **`validateRallyEntry` 多擋了一件驗收條件沒列的事。** 條件列的是兩側的 `type` / `num` / `score` 與 `win`，但要檢查「兩側的 `type`」，前提是 `home` / `away` 這個物件存在。驗證器因此也拒絕缺席的一側。Spec 軸確認這是條件的必要前提而非範圍外的行為。
 
@@ -207,10 +221,10 @@ S01 的驗收條件寫的是「`rotation` 與發球權的推進**與該筆合法
         "兩行註解指向 D2 是唯一的緩解，而註解會被刪。留著它的理由是資料庫評估若選關聯式儲存，這份標記就是 NOT NULL 的對照表。",
     },
     {
-      name: "LAST_SCORING_MOVE 會隨表的成長靜靜落後",
-      severity: "warning",
+      name: "LAST_SCORING_MOVE 是 scoringMoves 最後索引的一份複製",
+      severity: "info",
       mitigation:
-        "沒有測試會紅。落在 D2 的 revisit trigger 底下，真正的修法是把 scoringMoves 下沉到 entities，屆時上界由那張表自己提供。",
+        "重複仍在，但已被 src/lib/__tests__/scoring-moves.test.ts 釘住：表增長而上界沒跟上時它會紅。真正的修法仍是把 scoringMoves 下沉到 entities，屆時上界由表自己提供，該測試與常數一併刪除。",
     },
     {
       name: "跳過統計是靜默的",
