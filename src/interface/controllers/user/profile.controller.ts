@@ -29,7 +29,7 @@ export const UpdateProfileRequestSchema = z
     info: z.record(z.string(), z.unknown()).optional(),
     preferences: z.record(z.string(), z.unknown()).optional(),
   })
-  .strict(); // 拒絕未知欄位
+  .strict() satisfies z.ZodType<IUpdateProfileInput["updates"]>; // 拒絕未知欄位
 
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
 

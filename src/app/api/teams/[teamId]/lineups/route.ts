@@ -6,7 +6,7 @@ import type { IAuthorizationService } from "@/applications/services/auth/authori
 import { updateTeamLineupsController } from "@/interface/controllers/team/update-team-lineups.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
-import { UpdateLineupsSchema } from "@/lib/validations/team";
+import { UpdateLineupsSchema } from "@/interface/validations/team";
 import { PlayerRole } from "@/entities/player";
 
 export const PATCH = (

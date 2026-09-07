@@ -26,7 +26,7 @@ import { showErrorToast } from "@/lib/api/error-toast";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
-} from "@/lib/validations/player";
+} from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

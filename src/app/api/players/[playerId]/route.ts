@@ -1,7 +1,10 @@
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
-import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
+import {
+  PlayerSchema,
+  UpdatePlayerInfoSchema,
+} from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**

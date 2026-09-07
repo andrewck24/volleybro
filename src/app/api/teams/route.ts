@@ -1,3 +1,4 @@
+import type { ICreateTeamInput } from "@/applications/usecases/team/create-team.usecase";
 import { AuthenticationError, AuthReason } from "@/entities/errors";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { createTeamController } from "@/interface/controllers/team/team.controller";
@@ -10,7 +11,7 @@ import { z } from "zod";
 const CreateTeamSchema = z.object({
   name: z.string().min(1),
   nickname: z.string().optional(),
-});
+}) satisfies z.ZodType<Pick<ICreateTeamInput, "name" | "nickname">>;
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const session = await auth.api.getSession({ headers: await headers() });

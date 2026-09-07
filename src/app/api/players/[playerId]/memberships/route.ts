@@ -6,7 +6,7 @@ import {
   ManagePlayerMembershipSchema,
   PlayerSchema,
   UpdatePlayerRoleSchema,
-} from "@/lib/validations/player";
+} from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**

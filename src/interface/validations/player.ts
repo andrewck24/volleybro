@@ -1,3 +1,7 @@
+import type { ICreatePlayerInput } from "@/applications/usecases/player/create-player.usecase";
+import type { ICreateInvitationInput } from "@/applications/usecases/player/create-invitation.usecase";
+import type { ITransferOwnershipInput } from "@/applications/usecases/player/transfer-ownership.usecase";
+import type { IUpdatePlayerInfoInput } from "@/applications/usecases/player/update-player-info.usecase";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { z } from "zod";
 
@@ -38,7 +42,7 @@ export const CreatePlayerSchema = z.object({
   position: PositionSchema.optional(),
   role: PlayerRoleSchema.default(PlayerRole.MEMBER),
   email: z.email("Invalid email format").optional(), // Has email = invitation, no email = pure player
-});
+}) satisfies z.ZodType<ICreatePlayerInput["data"]>;
 
 export type CreatePlayerInput = z.infer<typeof CreatePlayerSchema>;
 
@@ -49,7 +53,7 @@ export const UpdatePlayerInfoSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
   number: z.number().int().min(0).max(99).optional(),
   position: PositionSchema.optional(),
-});
+}) satisfies z.ZodType<IUpdatePlayerInfoInput["updates"]>;
 
 export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
 
@@ -71,7 +75,7 @@ export type UpdatePlayerRoleInput = z.infer<typeof UpdatePlayerRoleSchema>;
 export const ManagePlayerMembershipSchema = z.object({
   email: z.email("請輸入有效的電子郵件"),
   role: MemberAdminRoleSchema.default(PlayerRole.MEMBER),
-});
+}) satisfies z.ZodType<Pick<ICreateInvitationInput, "email" | "role">>;
 
 export type ManagePlayerMembershipInput = z.infer<
   typeof ManagePlayerMembershipSchema
@@ -93,7 +97,7 @@ export type InvitationResponseInput = z.infer<typeof InvitationResponseSchema>;
  */
 export const TransferOwnershipSchema = z.object({
   newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
-});
+}) satisfies z.ZodType<Pick<ITransferOwnershipInput, "newOwnerId">>;
 
 export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
 
