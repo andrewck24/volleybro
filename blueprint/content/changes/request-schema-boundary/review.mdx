@@ -61,7 +61,7 @@ design.mdx 要求三層驗證，第一層是「schema 單元測試——證明�
 
 ### #6 S04 的 slice 與 Overview 對 `player.id` 說法相反 — Spec，✅ 已修
 
-S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字串是記錄員未指派球員時的合法編碼，Overview 在 `7f59b9d8` 改成「邊界必須接受它」，slice 沒跟著改。已更新 slice 並寫明 lineup 沒有這個豁免。
+S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字串是記錄員未指派球員時的合法編碼，Overview 在實作中改成「邊界必須接受它」，slice 沒跟著改。已更新 slice 並寫明 lineup 沒有這個豁免。
 
 ### #7 repository 讀取路徑是未宣告的邊界擴張 — Spec，✅ 已修
 
@@ -83,11 +83,11 @@ S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字�
 
 | 計畫說 | 實際 | 處置 |
 | --- | --- | --- |
-| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了 | index.mdx 與 S04 改寫（`7f59b9d8` + 本輪） |
-| D4「一律不做 coercion」 | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分（`7f59b9d8`） |
+| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了 | index.mdx 與 S04 改寫 |
+| D4「一律不做 coercion」 | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分 |
 | `role` → `newRole` 重新命名 | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱 | 撤回，改由 route 映射 |
 
-**D3 的判準在 Propose 之後被替換過**（`a3bc8bcf`）。原本的「它需要資料庫裡的狀態嗎」不是乾淨架構的分界——`away.num ∈ outcome` 是無狀態卻是排球規則，「這個 gameId 存在嗎」是有狀態卻只是 404。改成兩個有序問題：**這是在重建型別，還是在判斷領域規則？** design.mdx 保留「一個被撤回的判準」一節記錄這件事。
+**D3 的判準在 Propose 之後、Apply 之前被替換過。**原本的「它需要資料庫裡的狀態嗎」不是乾淨架構的分界——`away.num ∈ outcome` 是無狀態卻是排球規則，「這個 gameId 存在嗎」是有狀態卻只是 404。改成兩個有序問題：**這是在重建型別，還是在判斷領域規則？** design.mdx 保留「一個被撤回的判準」一節記錄這件事。
 
 ## Residual risks
 
