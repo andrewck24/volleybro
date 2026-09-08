@@ -76,8 +76,8 @@ export class GameRepositoryImpl implements IGameRepository {
   private toLineupRead(lineup: RawLineup | undefined) {
     if (!lineup) return lineup;
     // Named fields only: the lineup subdocument carries its own Mongoose
-    // `_id`, which `Lineup` has no field for and which a `.strict()` request
-    // schema rejects when this read value is resubmitted verbatim.
+    // `_id`, which a `.strict()` request schema rejects when the client
+    // resubmits this read value verbatim. See request-schema-boundary D4.
     return {
       options: lineup.options,
       starting: (lineup.starting ?? []).map((p) => this.mapLineupPlayerRead(p)),

@@ -11,12 +11,8 @@ export const nullableObjectId = z
   .nullable()
   .refine((v) => v === null || isObjectId(v), { message });
 
-/**
- * A rally's `player.id` is legitimately an empty string: the recorder only
- * attributes a player to the side that acted, and the Redux draft still
- * carries the field with its unset placeholder for the other side. The
- * repository normalises it to `null` on write.
- */
+// Empty means the recorder attributed nobody to that side.
+// See the request-schema-boundary Overview.
 export const rallyPlayerId = z
   .string()
   .refine((v) => v === "" || isObjectId(v), { message });

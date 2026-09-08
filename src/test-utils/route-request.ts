@@ -1,12 +1,6 @@
-/**
- * Route handlers read four things off a request. Building that literal by hand
- * in every test made the body — the only part that varies — the hardest part
- * of the test to find.
- *
- * Call sites add `as never`: the handlers under test are imported dynamically
- * and typed with `req: never`, which is what lets them skip a real NextRequest.
- */
-export function routeRequest(url: string, method: string, body: unknown) {
+/** Call sites add `as never`: the handlers are imported dynamically and typed
+ * `req: never`, which is what lets them skip building a real NextRequest. */
+export function routeRequest(url: string, method: string, body?: unknown) {
   return {
     url,
     method,

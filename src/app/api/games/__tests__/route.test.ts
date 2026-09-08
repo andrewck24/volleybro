@@ -53,11 +53,7 @@ describe("GET /api/games", () => {
 
   it("returns 400 when teamId query is missing", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: "http://localhost/api/games",
-      method: "GET",
-      nextUrl: { searchParams: new URLSearchParams() },
-    };
+    const req = routeRequest("http://localhost/api/games", "GET");
 
     const res = await GET(req as never);
     const body = (await res.json()) as { reason: string; detail: string };
@@ -91,11 +87,7 @@ describe("GET /api/games", () => {
 
   it("uses default limit of 10 when not provided", async () => {
     const summaries = { gameSummaries: [], hasMore: false, lastId: "" };
-    const req = {
-      url: "http://localhost/api/games?ti=team-1",
-      method: "GET",
-      nextUrl: { searchParams: new URLSearchParams("ti=team-1") },
-    };
+    const req = routeRequest("http://localhost/api/games?ti=team-1", "GET");
     mockFindGameSummariesController.mockResolvedValue(summaries);
 
     await GET(req as never);
@@ -142,12 +134,11 @@ describe("POST /api/games", () => {
         away: { name: "B" },
       },
     };
-    const req = {
-      url: "http://localhost/api/games?ti=team-1",
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams("ti=team-1") },
-      json: async () => body,
-    };
+    const req = routeRequest(
+      "http://localhost/api/games?ti=team-1",
+      "POST",
+      body,
+    );
     mockCreateGameController.mockResolvedValue(createdGame);
 
     const res = await POST(req as never);
@@ -164,15 +155,10 @@ describe("POST /api/games", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: "http://localhost/api/games?ti=team-1",
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams("ti=team-1") },
-      json: async () => ({
-        info: { title: "Game 1" },
-        teams: {},
-      }),
-    };
+    const req = routeRequest("http://localhost/api/games?ti=team-1", "POST", {
+      info: { title: "Game 1" },
+      teams: {},
+    });
 
     const res = await POST(req as never);
     const body = (await res.json()) as { code: string };
