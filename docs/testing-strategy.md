@@ -92,7 +92,9 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 - Catch layout, spacing, color, and responsive breakpoint regressions via screenshot diffing
 - Stories serve as living documentation and visual test cases
-- Run Chromatic on CI to gate visual changes
+- Run Chromatic on CI to gate visual changes, with TurboSnap (`onlyChanged`) so a
+  trigger snapshots only the stories the change can reach — the workflow's path
+  filter admits edits that are not visual at all
 - Stories do **not** include `play()` functions — Storybook is not used for interaction testing
 - `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
 - The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels
