@@ -40,3 +40,11 @@ jobs:
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Without this every trigger snapshots all 105 stories, and the paths
+          # filter above cannot tell a payload edit inside src/components/game/
+          # from a visual one.
+          onlyChanged: true
+          # Served from staticDirs, so no story imports them and the dependency
+          # graph cannot see them; changing one falls back to a full snapshot.
+          externals: |
+            public/**
