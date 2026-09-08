@@ -82,7 +82,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .sort((a, b) => a.number - b.number);
 
   const createGame = async () => {
-    const infoData = {
+    const { teams: _teams, ...infoData } = {
       ...info,
       phase: Number(info.phase),
       division: Number(info.division),
@@ -103,7 +103,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
             home: {
               id: teamId,
               name: info.teams.home.name,
-              players,
+              players: players.map(({ list: _list, ...player }) => player),
               lineup: team?.lineups[lineupIndex],
             },
             away: { name: info.teams.away.name },

@@ -156,29 +156,53 @@ describe("POST /api/games", () => {
 
   it("creates game when teamId query is provided", async () => {
     const createdGame = { id: "game-1" };
+    const body = {
+      info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
+      teams: {
+        home: { name: "A", players: [] },
+        away: { name: "B" },
+      },
+    };
+    const req = {
+      url: "http://localhost/api/games?ti=team-1",
+      method: "POST",
+      nextUrl: { searchParams: new URLSearchParams("ti=team-1") },
+      json: async () => body,
+    };
+    mockCreateGameController.mockResolvedValue(createdGame);
+
+    const res = await POST(req as never);
+    const resBody = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(resBody).toEqual(createdGame);
+    expect(mockConnectToMongoDB).toHaveBeenCalled();
+    expect(mockCreateGameController).toHaveBeenCalledWith({
+      params: { teamId: "team-1" },
+      data: body,
+    });
+  });
+
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     const req = {
       url: "http://localhost/api/games?ti=team-1",
       method: "POST",
       nextUrl: { searchParams: new URLSearchParams("ti=team-1") },
       json: async () => ({
         info: { title: "Game 1" },
-        teams: { home: { name: "A" }, away: { name: "B" } },
+        teams: {},
       }),
     };
-    mockCreateGameController.mockResolvedValue(createdGame);
 
     const res = await POST(req as never);
-    const body = await res.json();
+    const body = (await res.json()) as { code: string };
 
-    expect(res.status).toBe(201);
-    expect(body).toEqual(createdGame);
-    expect(mockConnectToMongoDB).toHaveBeenCalled();
-    expect(mockCreateGameController).toHaveBeenCalledWith({
-      params: { teamId: "team-1" },
-      data: {
-        info: { title: "Game 1" },
-        teams: { home: { name: "A" }, away: { name: "B" } },
-      },
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreateGameController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

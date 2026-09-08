@@ -20,22 +20,19 @@ const newGameBody = (teamId: string, playerIds: string[]) => ({
     phase: 0,
     division: 0,
     category: 0,
-    teams: { home: { name: "Home" }, away: { name: "Away" } },
     scoring: { setCount: 3, decidingSetPoints: 15 },
     location: { city: "", hall: "" },
     time: { date: new Date().toISOString(), start: "", end: "" },
-    weather: { temperature: "" },
   },
   teams: {
     home: {
       id: teamId,
       name: "Home",
-      // NewGameForm sends {id, name, number, list} — no `stats` key.
+      // NewGameForm strips the local `list` grouping field before sending.
       players: playerIds.map((id, i) => ({
         id,
         name: `Player ${i + 1}`,
         number: i + 1,
-        list: i < 6 ? "starting" : "substitutes",
       })),
       lineup: lineupFor(playerIds),
     },

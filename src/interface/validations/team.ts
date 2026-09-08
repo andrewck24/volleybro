@@ -36,7 +36,7 @@ export const TeamUpdateSchema = z
   })
   .strict();
 
-const LineupSchema = z
+export const LineupSchema = z
   .object({
     options: z
       .object({

@@ -31,5 +31,5 @@
     "pnpm format:check",
     "手動：對五條路由各送一次畸形 body，確認回應是 400 且 body 帶欄位路徑"
   ],
-  "status": "pending"
+  "status": "completed"
 }
