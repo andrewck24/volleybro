@@ -31,6 +31,12 @@ jest.mock("next/headers", () => ({
 }));
 
 const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const VALID_LINEUP = {
+  options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+  starting: [],
+  liberos: [],
+  substitutes: [],
+};
 
 type RouteResponse = { status: number; json: () => Promise<unknown> };
 
@@ -60,6 +66,36 @@ describe("POST /api/games/[gameId]/sets", () => {
       method: "POST",
       nextUrl: { searchParams: new URLSearchParams() },
       json: async () => ({ lineup: {}, options: {}, extra: true }),
+    };
+    const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreateSetController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  // The entity used to reject these shapes before reading them. That guard
+  // moved to the boundary, so the cases it covered move here with it.
+  it.each([
+    ["null", null],
+    ["undefined", undefined],
+    ["empty object", {}],
+    ["non-array starting", { ...VALID_LINEUP, starting: "nope" }],
+    ["non-array liberos", { ...VALID_LINEUP, liberos: 42 }],
+    ["non-array substitutes", { ...VALID_LINEUP, substitutes: null }],
+  ])("returns 400 for a malformed lineup (%s)", async (_label, lineup) => {
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const req = {
+      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
+      method: "POST",
+      nextUrl: { searchParams: new URLSearchParams() },
+      json: async () => ({ lineup, options: { serve: "home" } }),
     };
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
