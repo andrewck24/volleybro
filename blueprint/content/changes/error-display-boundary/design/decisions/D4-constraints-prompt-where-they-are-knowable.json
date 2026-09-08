@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D4",
+  "title": "A constraint prompts where it is knowable, not where it is enforced",
+  "status": "candidate",
+  "targets": ["platform/clean-architecture"],
+  "context": "Creating a game with a blank opponent name produced a generic failure notice after the request had gone to the server and come back. The constraint — this field is required — was knowable in the browser before anything was sent. The preceding schema work added a test that stops the form and request schemas drifting apart, but that test proves the form can submit something the server accepts; it does not make the form block what the server would reject, and nothing decides which failures belong to which stage. The result is that a whole category of failure arrives late, and because the display path was fail-open it also arrived in developer English.",
+  "decision": "A constraint that the client can evaluate is evaluated in the client, before submit, and shown beside the field. Required, format, length and range all fall here: the submit never fires. A constraint that only the server can evaluate — uniqueness, authorization, existence, conflict — is evaluated after submit and reported through the resolver, pointing at a field when D3's path allows it. The test is not who enforces the constraint but who can know the answer: the server keeps enforcing everything, because a client check is a convenience and never a guarantee.",
+  "alternatives": [
+    {
+      "option": "Let the server be the single validation authority and round-trip everything",
+      "reason": "It has the appeal of one implementation, and it is genuinely how enforcement must work. But it makes every typo cost a network round trip, and it forces the server's vocabulary onto the field-level message — which is the coupling D3 exists to cut. One authority for enforcement and one for prompting are not in conflict."
+    },
+    {
+      "option": "Derive the form schema from the request schema so the two can never disagree",
+      "reason": "This is the right long-term shape and is the subject of separate work, but it is blocked on this Change: piping the request schema into the form makes the server's auto-generated English the field's message. That work resumes once D3 removes those messages from the contract."
+    },
+    {
+      "option": "Duplicate the constraints by hand in the form schema",
+      "reason": "It is what happens today, held together by a drift test rather than by derivation. Acceptable as an interim state and explicitly what this decision leaves in place, but it is not the destination and should not be recorded as one."
+    }
+  ],
+  "consequences": [
+    "A form whose schema is looser than the request schema is a defect, not a stylistic difference. The existing drift test detects one direction of that; blocking invalid input is the direction this decision adds.",
+    "The rule is a reusable interaction rule rather than capability behaviour, so it promotes to the Design System rather than being copied across feature pages.",
+    "It constrains the form-schema derivation work: whatever mechanism derives a form schema must preserve client-side evaluation before submit, not merely reuse the server's shape.",
+    "It does not decide which actions get a confirmation dialog. That is a separate interaction rule about reversibility; where an error renders follows from it mechanically, because a dialog that is open when the action fails is where the user is looking."
+  ],
+  "revisitTriggers": [
+    "A constraint appears that the client could evaluate only by holding data it should not have, which would mean the knowable/enforceable line has moved and the category boundary needs restating.",
+    "Form schemas become derived rather than hand-written, at which point this decision's interim duplication ends and the acceptance criteria that guard it change.",
+    "A form is found that blocks input the server would in fact accept, which is the opposite failure and equally a defect."
+  ],
+  "originChange": "error-display-boundary"
+}

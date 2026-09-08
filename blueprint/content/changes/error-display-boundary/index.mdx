@@ -1,0 +1,149 @@
+---
+title: Overview
+---
+
+import { FileTour } from "@/components/FileTour";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  開發者散文停在伺服器：錯誤回應只帶 `code`、`reason`、`status`，使用者讀到的每
+  一句話都從單一目錄裡挑選，查不到就退到安全的通用訊息。同時把「客戶端判斷得出
+  來的約束」擋在送出之前，讓它不再繞一趟網路才回來說資料格式不正確。
+</TLDR>
+
+## Context
+
+`AppError` 的建構子有三格：`reason`（穩定的 enum）、`detail`（上 wire）、`internalMessage`（只進 log）。這個設計是對的，**但沒有任何機制強制執行它**。
+
+分工在「識別碼」這件事上被守住了：全 repo 113 個錯誤建構點裡，只有兩處內插真實 id（`get-user-by-id.usecase.ts` 與 `search-user.usecase.ts`），兩處都正確地放在第三格，而 `wrappers.test.ts` 已有一個測試釘住它不外洩。
+
+守不住的是**詞彙**。許多站點把開發者散文寫進第二格、第三格留空：
+
+- `INVITED status must have exactly one of userId or email, not both`
+- `Invalid teamId format`
+- `Cannot update userId or id fields`
+
+這些都上了 wire，而且被直接渲染給使用者看——因為顯示端是 fail-open 的：`REASON_MESSAGES` 只覆蓋 24 個 reason 裡的 2 個，查不到就回退到 `error.detail`。
+
+於是一個 zh-TW 產品對絕大多數 4xx 顯示英文開發者散文。三個 AlertDialog 的呼叫點更是連那 2 個對照都不查，**100% 顯示英文**。
+
+第二個症狀是階段錯置：建立比賽時對手名稱留空，會繞一趟網路回來說「操作失敗：資料格式不正確」。那個約束客戶端自己就判斷得出來，根本不該成為一次 request。
+
+## Goals
+
+- 讓「開發者散文外洩」在結構上不可能發生，而不是靠審查發現。
+- 讓使用者讀到的每一句話都來自單一目錄，查不到時退到安全的通用訊息而非伺服器欄位。
+- 消除兩條顯示路徑對同一個錯誤給出不同答案的分歧。
+- 讓「客戶端判斷得出來的約束」在送出前就擋下，並讓「只有伺服器判斷得出來的約束」能指向出錯的欄位而不是彈一則通用 toast。
+- 讓錯誤文案成為 i18n 可以一次機械式遷移的單一檔案。
+
+## Non-goals
+
+- 不動錯誤碼、HTTP 狀態碼，也不動 `withErrorHandler` 的映射。傳輸語意本身是對的。
+- 不在每個 throw 站點強制 `detail` / `internalMessage` 的分工。本 Change 把 `detail` 從 wire 移除，該分工對客戶端就失去意義；收緊伺服器端的紀律沒有使用者可見的效果，屬於另一件事。
+- 不建立翻譯層。函式庫的選擇會決定 API 形狀，那屬於 i18n 那件工作；本 Change 只保證目錄的形狀值得被遷移。
+- 不修 401 轉址門閂的釋放條件（見下方 Change boundaries）。
+- 不處理「搜尋使用者把所有失敗都報成查無此人」——那個錯誤根本沒有進入任何顯示路徑，是另一件事。
+
+## Change boundaries
+
+- **一定在內**：`detail` 的八個產生與消費點。其中 `src/proxy.ts` 的 Edge 401 **完全繞過 `serializeError`**，自己組回應——這是最容易漏掉的一個，而且它讓同一個 `SESSION_REQUIRED` 存在兩種 `detail`。
+- **在內**：`ApiClientError` 的建構子。只拿掉 `.detail` getter 不夠，`new ApiClientError(info.detail, info)` 讓同一條字串繼續活在 `error.message` 上，而 `tsc` 不會列舉 `.message` 的讀取者。
+- **在內**：兩條顯示路徑收斂成一個 total function。`getErrorMessage` 這個名字一併退役——它回傳的不只是 message，也不是所有錯誤都有 message。
+- **在內（前置條件）**：`profile.usecase.ts` 把 `"Cannot update userId or id fields"` 配給 `ProfileReason.INVALID_EMAIL`。今天無害，因為沒人看 reason；改成 reason-keyed 目錄之後，使用者會被告知 email 格式錯誤。**新機制會把一個潛伏的標錯放大成螢幕上的錯誤文案**，所以它是前置而非順手清理。
+- **在內**：`ValidationError.details` 的形狀。今天整包 `ZodError.issues` 原樣送出而客戶端零讀取。
+- **在內但常被低估**：12 個測試檔會紅。`detail` 被斷言的地方遠多於它被讀取的地方。
+- **不在內**：401 轉址門閂的釋放條件。`swr-provider` 的 `redirecting` 設了就不重置，但這只在「同一次 page load 內完成重新登入」時才會咬人，而登入只有 Google OAuth 一種、必然是整頁載入。本 Change 只把那個假設寫成註解，讓未來加上 email/password 或頁內 session refresh 的人看得到。
+- **不在內**：使用者搜尋的空 catch。
+
+## Capability impact
+
+`platform/clean-architecture` 的邊界契約多一條：**錯誤回應的 body 是封閉集合。** 今天的 Known gap 記載「客戶端保有自己的 request-shaped schema」，本 Change 補上對稱的另一半——伺服器不再送出只有開發者能讀的散文，客戶端也就不再有東西可以誤用。
+
+這條契約同時是 i18n 的前置：錯誤文案從散落在元件裡的字面值，變成一份以穩定常數為 key 的扁平目錄。
+
+`design-system` 在 Archive 時會收到一條可重用的 UI/UX 規則（約束該在哪個階段提示），依 `docs/agents/blueprint.md` 的規定放在 Design System 而不是複製到各 Feature。
+
+## Affected files
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/api/wrappers.ts",
+      change: "modified",
+      summary:
+        "serializeError 把 detail 寫進每一則錯誤回應；同檔案的 unreachable fallback 也寫了一份。",
+    },
+    {
+      path: "src/proxy.ts",
+      change: "modified",
+      summary:
+        "Edge 401 繞過 serializeError 自組回應，是第二個 detail 來源，也是同一個 reason 的第二種措辭。",
+    },
+    {
+      path: "src/lib/api/api-client.ts",
+      change: "modified",
+      summary:
+        "detail 的 getter、把 detail 當 Error.message 的建構子呼叫，以及 normalizeNetworkError 自造的 detail。",
+    },
+    {
+      path: "src/lib/api/parse-api-error.ts",
+      change: "modified",
+      summary:
+        "ApiError 介面宣告 detail，並在缺漏時合成一則，讓型別繼續承諾一個不會到達的欄位。",
+    },
+    {
+      path: "src/lib/api/error-messages.ts",
+      change: "added",
+      summary:
+        "新增。使用者可見錯誤字串的唯一存放處，key 是 reason 常數或類別常數。",
+    },
+    {
+      path: "src/lib/api/error-toast.ts",
+      change: "modified",
+      summary:
+        "兩條分歧的顯示路徑收斂成一個 resolver；REASON_MESSAGES 與五個 inline title 遷入目錄。",
+    },
+    {
+      path: "src/applications/usecases/user/profile.usecase.ts",
+      change: "modified",
+      summary:
+        "protected-field 的錯誤配了 INVALID_EMAIL 的 reason，在 reason-keyed 目錄下會顯示錯誤文案。",
+    },
+    {
+      path: "src/components/layout/swr-provider.tsx",
+      change: "modified",
+      summary:
+        "401 門閂靠整頁載入重置，而整頁載入之所以必然發生只因為登入是 OAuth-only。記下這個相依。",
+    },
+  ]}
+/>
+
+## Alternatives considered
+
+Design 頁記錄各決策的完整替代方案與否決理由。Overview 只記結論方向：
+
+- **保留 `detail`，改為在每個 throw 站點檢查它是否適合顯示**——把結構性問題換成一條靠審查維持的紀律，而審查正是它現在失效的方式。
+- **保留 `detail`，只修顯示端**——字串仍在回應 body 裡，DevTools 打得開，而且下一個顯示路徑會再犯一次。
+- **文案分兩張表（類別給 title、reason 給 description）**——省掉重複的字串，但先驗地禁止任何 reason 擁有比「操作失敗」更好的標題，而改善文案正是本 Change 的目的之一。
+- **`details` 整包照送**——不外洩使用者送出的值（Zod v4 序列化時會剝掉 `input`），但會把 schema 形狀與自動產生的英文訊息一起送出，而後者正是 form schema 衍生工作被卡住的原因。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。
+
+| ID  | 問題                                          | 定案                                                     |
+| --- | --------------------------------------------- | -------------------------------------------------------- |
+| D1  | `detail` 該留在 wire 上嗎                     | 不留。回應 body 收斂為 `code` + `reason` + `status`      |
+| D2  | 使用者可見文案放哪裡、resolver 的簽章長什麼樣 | 單一目錄、`{title, description}`、total function         |
+| D3  | `ValidationError.details` 送不送、送什麼      | 只送 `path`                                              |
+| D4  | 約束該在哪個階段提示                          | 客戶端判斷得出來的一律不送出，只有伺服器能判斷的才走回應 |
+
+## Revisit triggers
+
+- **出現第三條顯示路徑**（例如 inline form error 或 error boundary）：若它不經過 resolver，D2 建立的單一權威就已失效。
+- **`detail` 或等價的自由文字回到回應 body**：不論以什麼名字，D1 即被推翻。
+- **登入不再只有 Google OAuth**：`swr-provider` 的 401 門閂靠整頁載入重置。加上 email/password 或頁內 session refresh 之後，該門閂必須改為明確釋放，否則轉址會靜默停止。
+- **i18n 選定函式庫**：`ERROR_MESSAGES` 的 value 換成翻譯查詢，屆時要確認目錄形狀仍然是一次機械式替換，而不是已經長出第二種 key。
+- **`TIMEOUT` / `NETWORK_ERROR` 的 status 不再是 5xx**：這兩個由客戶端發明的 reason 不屬任何 enum，今天只因為 status 是 503 才不會走到 reason 查表。改了 status 就會掉進去。
+- **`REASON_MESSAGES` 的窮盡性測試需要例外**：若有人為了讓測試轉綠而加入佔位文案，該測試就從「文案齊全」的守門員退化成儀式。
