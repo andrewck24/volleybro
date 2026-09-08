@@ -1,6 +1,7 @@
 "use client";
 import { MatchInfo } from "@/components/game/match";
 import { MatchInfoForm } from "@/components/game/new/info-form";
+import { newGameBody } from "@/lib/features/game/new-game-body";
 import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -82,33 +83,18 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .sort((a, b) => a.number - b.number);
 
   const createGame = async () => {
-    const { teams: _teams, ...infoData } = {
-      ...info,
-      phase: Number(info.phase),
-      division: Number(info.division),
-      category: Number(info.category),
-      scoring: {
-        ...info.scoring,
-        setCount: Number(info.scoring.setCount),
-      },
-    };
-
     try {
       const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          info: infoData,
-          teams: {
-            home: {
-              id: teamId,
-              name: info.teams.home.name,
-              players: players.map(({ list: _list, ...player }) => player),
-              lineup: team?.lineups[lineupIndex],
-            },
-            away: { name: info.teams.away.name },
-          },
-        }),
+        body: JSON.stringify(
+          newGameBody({
+            info,
+            teamId,
+            players,
+            lineup: team?.lineups[lineupIndex],
+          }),
+        ),
       });
 
       mutate(`/api/games/${game.id}`, game, false);

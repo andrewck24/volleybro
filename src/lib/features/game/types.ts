@@ -284,8 +284,8 @@ export const SetOptionsFormSchema = z.object({
   serve: z.enum(["home", "away"]),
   time: z
     .object({
-      start: z.string().optional(),
-      end: z.string().optional(),
+      start: z.string(),
+      end: z.string(),
     })
     .optional(),
 });
