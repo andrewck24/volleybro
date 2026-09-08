@@ -55,3 +55,17 @@ describe("the draft a recorded rally is submitted as", () => {
     expect(passesSchema(makeStore())).toBe(false);
   });
 });
+
+describe("the substitution a recorded entry is submitted as", () => {
+  const OID = "507f1f77bcf86cd799439011";
+
+  it("is not drafted at all until a player is on the way out", () => {
+    const store = makeStore();
+
+    store.dispatch(gameActions.setEntryDraftSubstitution(OID));
+
+    expect(
+      store.getState().game.general.entryDraft.substitution,
+    ).toBeUndefined();
+  });
+});
