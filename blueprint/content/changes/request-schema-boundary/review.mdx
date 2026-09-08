@@ -158,6 +158,20 @@ Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」
 
 ---
 
+## 開發者驗收時發現的回歸
+
+**陣容編輯頁調整替補名單後無法儲存。** 這是本 Change 造成的回歸，由開發者實際操作發現——三輪 review 與全部自動化測試都沒抓到。
+
+`lineupSchema` 是 team mongoose schema 裡**唯一沒有 `{ _id: false }`** 的 sub-schema，所以每份 lineup 都帶著自己的 `_id`。`team.repository.mongo.ts` 的 `toTeam` 用 `...lineup` 展開，那個 `_id` 於是進入 API 回應、進入 Redux，再被 `PATCH /api/teams/:id/lineups` 原樣送回——撞上新的 `.strict()`，400。
+
+這與 #7 是**同一個缺陷的兩個實例**。S04 期間在 `game.repository.mongo.ts` 修掉了 `toLineupRead`，卻沒有去看 team 那一份，因為當時是從 game 的 `.strict()` 失敗反推回去的，不是從「哪些讀取路徑會被原樣送回」正面盤點。
+
+修法相同：列出具名欄位。真正的問題是先前沒有任何東西表達這條不變式，所以補上 `test/integration/lineup-read-is-a-legal-request.itest.ts`——它把讀到的 lineup 直接餵回它自己的 request schema，team 與 game 兩條路徑各一個案例。**已做突變檢驗**：把任一條改回 `...lineup`，對應的案例就轉紅。
+
+這件事也修正了 Testing strategy 的一個盲點：「餵 client 實際建構的 payload」擋不住這類缺陷，因為 payload 本身是**伺服器發給 client 的**。read 與 write 的往返才是那條不變式。
+
+---
+
 ## Plan vs. actual
 
 三處實作推翻了計畫時的說法，全部已回寫到 artifacts：
@@ -175,6 +189,7 @@ Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」
 - **route 層驗證是過渡狀態。** D1 承諾終局是 controller 成為 interface adapter，由 `api-route-restructure` 承接。在那之前，「邊界是唯一入口」這個前提靠 review 把關，沒有工具強制——`src/lib/` 仍混著三個層的程式碼，任何以路徑判層的 lint 規則都還無法表達。
 - **`.strict()` 對向後相容的假設。** 目前前後端同時發布，所以拒絕未宣告欄位是安全的。兩者一旦拆開發布，舊 client 多送一個欄位就會拿到 400。已列為 revisit trigger。
 - **舊 game 文件缺 `teams.home.players` 時的錯誤語意不精確。** usecase 以 `?? []` 承接，所以缺席的名單會表現成一份空名單，錯誤在 lineup 比對時才以「球員不在名單上」的 400 現身。本 Change 之後建立的比賽不會有這個狀態（`HomeTeamSchema` 要求 `players`），舊資料則沒有偵測手段。
+- **`.strict()` 的往返不變式只有兩條路徑被證明。** 新的整合測試涵蓋 team 與 game 的 lineup。任何其他「讀取值會被 client 原樣送回」的欄位若也帶著 Mongoose 的 `_id`，會以同樣的方式失敗。`lineupSchema` 是目前唯一缺 `{ _id: false }` 的 sub-schema，但那是巡過一次的結論，不是工具保證的。
 - **`away` 的選填欄位是暫時的。** 隊伍查詢與資料分享功能上線後，away 會承載與 home 幾乎相同的結構，D5 的選填欄位會被填滿。
 
 ## Follow-ups

@@ -87,7 +87,7 @@ lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，
 ## Change boundaries
 
 - **一定在內**：五條 game route、`src/interface/validations/`（新增 `game.ts`，遷入 `team.ts` 與 `player.ts`）、11 個 importer、`src/entities/game.ts` 的 `Team` / `Match` / `RallyDetail` 型別與 `validateRallyEntry` / `validateLineupPlayers`、`record-rallies.usecase.ts` 的呼叫點、`create-player.usecase.ts` 的 input 型別、`src/components/game/new/index.tsx` 的三處 payload 修正。
-- **後來納入**：`game.repository.mongo.ts` 的 `toLineupRead`。讀取路徑原本展開 `...lineup`，把 lineup subdocument 的 Mongoose `_id` 一起交給前端；前端把該值原封不動送回時，新的 `.strict()` 會擋下它。這個耦合在 S04 之前不存在，是 `.strict()` 本身製造出來的，所以留在本 Change 而非另開一票。
+- **後來納入**：`game.repository.mongo.ts` 的 `toLineupRead` 與 `team.repository.mongo.ts` 的 `toTeam`。兩條讀取路徑原本都展開 `...lineup`，把 lineup subdocument 的 Mongoose `_id` 一起交給前端（`lineupSchema` 是唯一沒有 `{ _id: false }` 的 sub-schema）；前端把該值原封不動送回時，新的 `.strict()` 會擋下它。這個耦合在 S04 之前不存在，是 `.strict()` 本身製造出來的，所以留在本 Change 而非另開一票。
 - **後來納入**：`jest.setup.backend.ts` 與 `src/test-utils/route-request.ts`。十三個 route test 各自帶著逐字元相同的 `next/server` / `next/headers` stub 與 request literal；本 Change 是製造出這批測試的那張票，所以收斂它們屬本 Change。
 - **不在內**：`withErrorHandler` 的錯誤映射邏輯、`assertObjectId` 的實作與位置、repository 的任何**寫入**路徑、mongoose 的 `teamSchema._id` 設定、response 端的 `.parse()`。
 
@@ -134,6 +134,12 @@ lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，
       change: "modified",
       summary:
         "toLineupRead 改列具名欄位，停止把 lineup subdocument 的 Mongoose _id 交給前端——該值會被原封不動送回而撞上 .strict()。",
+    },
+    {
+      path: "src/infrastructure/db/repositories/team.repository.mongo.ts",
+      change: "modified",
+      summary:
+        "toTeam 的 lineups 對映同樣改列具名欄位。陣容編輯頁把讀到的 lineup 原樣 PATCH 回來，是這條路徑上第一個踩到 _id 的人。",
     },
     {
       path: "src/applications/usecases/player/create-player.usecase.ts",

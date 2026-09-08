@@ -68,7 +68,10 @@ export class TeamRepositoryImpl implements ITeamRepository {
       id: obj._id.toString(),
       lineups:
         obj.lineups?.map((lineup) => ({
-          ...lineup,
+          // Named fields only: `lineupSchema` is the one sub-schema without
+          // `{ _id: false }`, and the editor sends this value straight back.
+          // See request-schema-boundary D4.
+          options: lineup.options,
           starting: lineup.starting.map((p) => this.mapLineupPlayer(p)),
           liberos: lineup.liberos.map((p) => this.mapLineupPlayer(p)),
           substitutes: lineup.substitutes.map((p) => this.mapLineupPlayer(p)),
