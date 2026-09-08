@@ -1,0 +1,20 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "Copy for every reachable reason, then a test that keeps it complete",
+  "capabilities": ["platform/clean-architecture", "team-management"],
+  "dependsOn": ["S03", "S04"],
+  "outcome": "A user who is stopped reads a zh-TW sentence naming what actually happened, and a reason added later without copy fails a test instead of degrading silently.",
+  "acceptanceCriteria": [
+    "The inventory is grouped by surface, not listed by reason. The three AlertDialog sites are all irreversible membership actions, where the user is stopped mid-action and a generic message costs the most; the toast sites include three read paths where it costs least.",
+    "The inventory records which reasons are unreachable and why, with UNHANDLED_ERROR as the worked example: it is always an UnexpectedError or TransientError and is absorbed by the server-error branch before any reason lookup.",
+    "Every reachable reason has a zh-TW title and description that name what went wrong in the user's terms. A reason whose best title beats the shared default gets one — that freedom is why the catalogue stores titles per entry.",
+    "The exhaustiveness test derives its reason set from the exports of src/entities/errors/index.ts. A hand-written list is what dropped ProfileReason from the original scoping, and it would drop the next enum too.",
+    "The exhaustiveness test lands after the copy, not before. Landing it first makes placeholder strings the cheapest way to green, and a green test over placeholder copy is worse than no test: it reports completeness that does not exist."
+  ],
+  "verification": [
+    "pnpm test -- src/lib/api src/components/team",
+    "pnpm typecheck"
+  ],
+  "status": "pending"
+}

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "error-display-boundary",
   "title": "Error Display Boundary",
-  "lifecycle": "proposing",
+  "lifecycle": "ready-for-review",
   "startedAt": "2026-09-09",
   "summary": "開發者散文停在伺服器：錯誤回應只帶 code、reason、status，使用者讀到的每一句話都從單一目錄裡挑選，查不到就退到安全的通用訊息。同時把「客戶端判斷得出來的約束」擋在送出之前，讓它不再繞一趟網路才回來說資料格式不正確。",
   "capabilities": ["platform/clean-architecture"],

@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "Every reason names the failure it is attached to",
+  "capabilities": ["platform/clean-architecture"],
+  "dependsOn": [],
+  "outcome": "No reason constant is paired with a message about a different failure, so keying copy by reason cannot put the wrong sentence on screen.",
+  "acceptanceCriteria": [
+    "profile.usecase's protected-field rejection no longer carries ProfileReason.INVALID_EMAIL. Under a reason-keyed catalogue that pairing tells a user their email format is wrong when they attempted to update a protected field.",
+    "The reason it carries instead exists in the enums, or is added to them; a reason that describes the failure is the point, and reusing a near-miss to avoid touching an enum recreates the defect.",
+    "Every other reason constant is checked against the message at its construction sites, and any further mismatch is fixed here or recorded with the reason it is acceptable. This pairing has never been checked by anything, so one known instance is evidence about the class, not the whole of it.",
+    "This slice depends on nothing and must land before S05. It is a prerequisite rather than an adjacent cleanup: the new mechanism turns a latent mislabelling into visible wrong copy."
+  ],
+  "verification": [
+    "pnpm test -- src/applications/usecases/user src/app/api/profiles",
+    "pnpm typecheck"
+  ],
+  "status": "pending"
+}

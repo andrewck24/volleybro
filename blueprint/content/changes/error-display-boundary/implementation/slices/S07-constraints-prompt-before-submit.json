@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S07",
+  "title": "Client-knowable constraints stop becoming requests",
+  "capabilities": ["platform/clean-architecture", "game-recording"],
+  "dependsOn": ["S05", "S06"],
+  "outcome": "A field the browser could have judged is judged there, beside the field and before submit, and only constraints that need the server travel to it.",
+  "acceptanceCriteria": [
+    "Game creation with a blank opponent name is blocked at the field. This is the reported instance: today it round-trips and returns a generic failure notice.",
+    "Every form producing a request is audited against its request schema for the looser direction, and each finding is either fixed here or recorded with why it stays. The existing drift test covers the opposite direction — that the form can submit something valid — so this direction has never been checked.",
+    "A server-only failure carrying a path highlights that field rather than raising a toast, using the paths S06 puts on the wire.",
+    "The per-field copy comes from the form's own schema, not from the response. The server no longer sends a message, and reintroducing one under another name would reverse D1.",
+    "The staging rule is written where it can be applied to the next form: an interaction rule about which stage evaluates a constraint, promoted to the Design System at Archive rather than copied onto feature pages."
+  ],
+  "verification": [
+    "pnpm test -- src/lib/features/game src/components/game",
+    "pnpm test:integration",
+    "pnpm verify"
+  ],
+  "status": "pending"
+}
