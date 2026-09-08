@@ -90,8 +90,6 @@ jest.mock("bson", () => ({
   ObjectId: createMockObjectId(),
 }));
 
-// Route handlers under test only ever read `status` and the JSON body off a
-// NextResponse, and only ever await `headers()`.
 jest.mock("next/server", () => ({
   NextResponse: {
     json: jest.fn((body: unknown, init?: ResponseInit) => ({

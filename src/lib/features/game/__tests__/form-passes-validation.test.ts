@@ -15,7 +15,7 @@ import { Position, type Lineup } from "@/entities/team";
 const TEAM_ID = "507f1f77bcf86cd799439011";
 const PLAYER_ID = "507f1f77bcf86cd799439012";
 
-// NewGameForm's own useState initialiser, verbatim.
+// Verbatim from NewGameForm's useState initialiser; the test is void if it drifts.
 const formDefaults = (teamName: string | undefined): TMatchInfoForm => ({
   name: "",
   number: 1,

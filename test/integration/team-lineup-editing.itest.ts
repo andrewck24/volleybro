@@ -6,8 +6,7 @@ import { NextRequest } from "next/server";
 import { useFakeAuth } from "./support/auth";
 import { lineupFor, oid } from "./support/seed";
 
-// `withAuth` reads Better Auth directly rather than through the container, so
-// the identity provider is the one thing this test cannot run for real.
+// `withAuth` bypasses the container, so this is the one seam that cannot run for real.
 jest.mock("@/lib/auth", () => ({
   auth: {
     api: { getSession: async () => ({ user: { id: "0".repeat(24) } }) },
