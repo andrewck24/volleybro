@@ -4,7 +4,7 @@ title: Review
 
 # Code Review: request-schema-boundary
 
-兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了兩輪，第二輪同樣是空白 context 且不看第一輪的結論。以下記錄實際交付、驗證、發現與處置。
+兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了三輪，每輪都是新的空白 context，且不看前一輪的結論。第三輪的 Standards 軸回報「沒有硬性違規」，Spec 軸回報「(a) 缺漏 /(b) 越界 /(c) 實作錯誤：無」——兩軸只剩敘述性修正，達到 fixed point。以下記錄實際交付、驗證、發現與處置。
 
 ---
 
@@ -119,6 +119,28 @@ S03 的 `grep weather src/` 現在會打到新的 schema 測試（它刻意送�
 **`Team` 的三個欄位改選填削弱了 entity 的保證**（Standards 判斷題）。這正是 D5 的內容，且不是疏漏：對手取得真實身分後這些欄位會被填滿，此刻拆成 home/away 兩個窄型別，之後要合併回來。維持 D5。
 
 **`teams.home.players ?? []` 把缺席的名單變成空名單**（Spec 判斷題）。屬實——舊資料若缺 `players`，錯誤會以「球員不在名單上」的 400 現身，而不是以它自己的樣子。但 `HomeTeamSchema` 已要求 `players` 必填，本 Change 之後建立的比賽不會有這個狀態，而替舊資料設計一個新的錯誤語意超出本 Change。列入下方 residual risks。
+
+---
+
+## Round 3
+
+兩軸都回報沒有實作缺漏。剩下的四項全是「註解帶著理由而不是指向理由」，加上兩處 artifact 敘述超前實作。
+
+### #15 四處註解比它描述的程式碼長 — Standards，✅ 已修
+
+CONTRIBUTING 明寫「a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file」。`object-id.ts` 的 `rallyPlayerId`（5 行註解／3 行程式碼）、`route-request.ts` 的檔頭、`game.repository.mongo.ts` 的 `toLineupRead`、`game.ts` 的 `HomeTeamSchema` 都犯了同一條，且多數只帶 slug 沒帶 decision id。全部壓成引用。
+
+### #16 S04 的 outcome 說 parse 在開資料庫連線之前 — Spec，✅ 已修
+
+五條路由都是 `connectToMongoDB()` 先、`Schema.parse()` 後。驗收條件只要求 parse 在 `teamId` 檢查之後（成立），是 outcome 的敘述超前實作。改為「觸及任何 controller 或 usecase 之前」。
+
+### #17 review 的 suite 數字錯誤 — Spec，✅ 已修
+
+寫成「backend 135 suites + frontend 18 suites」，實際 135 是 backend+frontend 的合計（62 + 73），18 是 blueprint 那一輪。
+
+### #18 兩個 id 欄位仍未走那份唯一定義 — Spec，✅ 已修
+
+`TransferOwnershipSchema.newOwnerId` 是 `z.string().min(1)`，卻直接送進 `playerRepository.findById()`——非 ObjectId 的字串會變成 Mongoose CastError，也就是 500 而非 400。`MatchInfoSchema.id` 同樣是裸字串，而 `matchSchema._id` 是 `Schema.Types.ObjectId`。兩者都改為 `objectId`，#10 的「唯一」因此成真而不是被改寫。
 
 ---
 

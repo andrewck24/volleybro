@@ -49,7 +49,7 @@ const AwayTeamSchema = HomeTeamSchema.extend({
 
 const MatchInfoSchema = z
   .object({
-    id: z.string().optional(),
+    id: objectId.optional(),
     name: z.string().optional(),
     number: z.number().int().optional(),
     phase: z.nativeEnum(MatchPhase).optional(),

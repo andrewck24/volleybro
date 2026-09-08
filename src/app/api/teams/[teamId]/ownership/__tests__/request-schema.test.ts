@@ -14,6 +14,7 @@ jest.mock("@/lib/auth", () => ({
 }));
 
 const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const NEW_OWNER_ID = "507f1f77bcf86cd799439012";
 const SESSION = { user: { id: "user-1" } };
 
 type RouteResponse = { status: number; json: () => Promise<unknown> };
@@ -36,7 +37,7 @@ describe("POST /api/teams/[teamId]/ownership", () => {
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
       method: "POST",
-      json: async () => ({ newOwnerId: "player_456", confirm: true }),
+      json: async () => ({ newOwnerId: NEW_OWNER_ID, confirm: true }),
     };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
@@ -53,7 +54,7 @@ describe("POST /api/teams/[teamId]/ownership", () => {
   // JSON.stringify({ newOwnerId: player.id }).
   it("returns 200 for the payload the transfer-ownership control actually sends", async () => {
     const updated = {
-      id: "player_456",
+      id: NEW_OWNER_ID,
       name: "New Owner",
       status: PlayerStatus.JOINED,
       role: PlayerRole.OWNER,
@@ -64,7 +65,7 @@ describe("POST /api/teams/[teamId]/ownership", () => {
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
       method: "POST",
-      json: async () => ({ newOwnerId: "player_456" }),
+      json: async () => ({ newOwnerId: NEW_OWNER_ID }),
     };
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
@@ -75,7 +76,7 @@ describe("POST /api/teams/[teamId]/ownership", () => {
     expect(body).toEqual(updated);
     expect(mockTransferOwnership).toHaveBeenCalledWith({
       teamId: VALID_OBJECT_ID,
-      newOwnerId: "player_456",
+      newOwnerId: NEW_OWNER_ID,
       userId: SESSION.user.id,
     });
   });

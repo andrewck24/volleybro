@@ -8,7 +8,7 @@
     "platform/clean-architecture"
   ],
   "dependsOn": ["S01", "S03"],
-  "outcome": "形狀錯誤的 body 在開任何資料庫連線之前就被擋下，回 400 並指出欄位路徑。先前會讓 `rallies.forEach` 丟 `TypeError` 而回 500 的請求，現在得到一個說得出哪裡不對的答案；而先前無人驗的 `player` 子物件第一次有東西擋——`zone` 必須是整數，`id` 必須是 ObjectId 或記錄員未指派球員時的空字串。",
+  "outcome": "形狀錯誤的 body 在觸及任何 controller 或 usecase 之前就被擋下，回 400 並指出欄位路徑。先前會讓 `rallies.forEach` 丟 `TypeError` 而回 500 的請求，現在得到一個說得出哪裡不對的答案；而先前無人驗的 `player` 子物件第一次有東西擋——`zone` 必須是整數，`id` 必須是 ObjectId 或記錄員未指派球員時的空字串。",
   "acceptanceCriteria": [
     "`src/interface/validations/game.ts` 新增，涵蓋五條路由的 body：`POST /api/games` 的 `info` 與 `teams`、`POST/PUT /sets` 的 `lineup` 與 `options`、`PUT /sets/rallies` 的 rally 陣列、`POST /sets/substitutions` 的 substitution。",
     "全部 `.strict()`，且**不使用任何 `z.coerce.*`**。型別不符的值回 400，不做轉換——`z.coerce.number()` 會把空字串變成 `0`、把無效字串變成 `NaN`，兩者都會靜默入庫。",

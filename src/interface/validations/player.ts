@@ -3,6 +3,7 @@ import type { ICreateInvitationInput } from "@/applications/usecases/player/crea
 import type { ITransferOwnershipInput } from "@/applications/usecases/player/transfer-ownership.usecase";
 import type { IUpdatePlayerInfoInput } from "@/applications/usecases/player/update-player-info.usecase";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
+import { objectId } from "@/interface/validations/object-id";
 import { z } from "zod";
 
 const PlayerRoleSchema = z.nativeEnum(PlayerRole);
@@ -84,7 +85,7 @@ export type PatchInvitationInput = z.infer<typeof PatchInvitationSchema>;
 /** POST /api/teams/{teamId}/ownership */
 export const TransferOwnershipSchema = z
   .object({
-    newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
+    newOwnerId: objectId,
   })
   .strict() satisfies z.ZodType<Pick<ITransferOwnershipInput, "newOwnerId">>;
 
