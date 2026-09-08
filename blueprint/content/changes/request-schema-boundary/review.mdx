@@ -1,0 +1,102 @@
+---
+title: Review
+---
+
+# Code Review: request-schema-boundary
+
+兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。以下記錄實際交付、驗證、發現與處置。
+
+---
+
+## Delivered
+
+| Slice | 標題 | 狀態 |
+| --- | --- | --- |
+| S01 | team 與 player 的 schema 遷入 `src/interface/validations/` | ✅ |
+| S02 | 三套慣例收斂成一套（`.strict()` + `satisfies`） | ✅ |
+| S03 | `Team` / `Match` 型別與實際寫入對齊 | ✅ |
+| S04 | game 五條寫入路由在邊界 parse | ✅ |
+| S05 | entity 卸下型別重建，只留領域規則 | ✅ |
+
+14 個 commit，75 個檔案，+2648 / −643。
+
+## Verification
+
+| 閘門 | 結果 |
+| --- | --- |
+| `pnpm verify:all` | exit 0 — 1019 backend/frontend unit tests，135 suites |
+| `pnpm test:integration` | exit 0 — 38 tests，13 suites |
+| `pnpm typecheck:strict` | 0 errors |
+| `test/integration/rally-validation.itest.ts` | 未出現在本 Change 的 diff 中，且維持綠燈——S04 的 schema 與 S05 刪除的檢查行為等價 |
+
+---
+
+## Findings
+
+### #1 三份 `objectId` 定義 — Standards，✅ 已修
+
+`game.ts` 與 `team.ts` 各自寫了一份 `OBJECT_ID_RE.test(...)` 的 refine，加上 `rallyPlayerId` 是第三份。這正是本 Change 要消滅的東西——「什麼構成一筆合法的請求」只有一份定義——卻在自己的實作裡複製了三次。
+
+新增 `src/interface/validations/object-id.ts`，匯出 `objectId`、`nullableObjectId`、`rallyPlayerId`，三個 refine 共用同一個 `isObjectId` 述詞。
+
+### #2 十三個 route test 的 mock 樣板 — Standards，✅ 已修
+
+`next/server` 與 `next/headers` 的 stub 在十三個檔案裡逐字元相同，且不引用任何檔案內的區域變數。已上移到 `jest.setup.backend.ts`。`@/lib/auth` 與 `connect-to-mongodb` 的 mock **留在原地**——它們綁定各檔案自己的 `jest.fn()`，斷言要看得到那個引用。
+
+### #3 註解重新論證已記錄的決定 — Standards，✅ 已修
+
+`game.ts` 的 `HomeTeamSchema` 上方有六行在重新論證 D5；`player.ts` 兩處在重新論證 D2。三處都沒有指向本 Change 的 slug，讀者無從查證。縮成一行並帶上 `request-schema-boundary`。
+
+### #4 註解複述程式碼 — Standards，✅ 已修
+
+`player.ts` 的檔頭、`game.ts` 五處、`profile.ts` 一處，形如 `Schema for creating a game`。**路由那一行留下**——`POST /api/games` 不在程式碼裡，是這個 schema 唯一無法從自身推導的事實。
+
+### #5 `src/interface/validations/game.ts` 沒有 schema 單元測試 — Spec，✅ 已修
+
+design.mdx 要求三層驗證，第一層是「schema 單元測試——證明規則本身正確」。S04 交付的是 route 接線測試與 integration 測試，跳過了這一層。
+
+補上 12 個測試，涵蓋 `.strict()` 的巢狀行為、不做 coercion、`num` 上界綁在 `scoringMoves.length - 1`、home 需要 roster 而 away 不需要、ISO 字串轉 `Date`，以及 `rallyPlayerId` 接受空字串但 lineup 的 `objectId` 不接受。
+
+**已做突變檢驗**：把 `players` 改成 `.optional()`、把 `rallyPlayerId` 的 refine 改成恆真，各有一個測試轉紅。測試會分辨。
+
+### #6 S04 的 slice 與 Overview 對 `player.id` 說法相反 — Spec，✅ 已修
+
+S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字串是記錄員未指派球員時的合法編碼，Overview 在 `7f59b9d8` 改成「邊界必須接受它」，slice 沒跟著改。已更新 slice 並寫明 lineup 沒有這個豁免。
+
+### #7 repository 讀取路徑是未宣告的邊界擴張 — Spec，✅ 已修
+
+`toLineupRead` 從展開 `...lineup` 改成列出具名欄位。程式碼裡有理由（lineup subdocument 的 Mongoose `_id` 會被前端原封不動送回，撞上 `.strict()`），但 Change boundaries 明列「repository 的任何寫入路徑」不在內，讀取路徑則完全沒提。
+
+已在 index.mdx 加上「後來納入」一項並說明它是 `.strict()` 自己製造出來的耦合，同時把「不在內」那條收窄為**寫入**路徑。
+
+### #8 四個沒有生產呼叫端的 export — Standards，✅ 已刪（開發者確認）
+
+`InvitationResponseSchema`、`UpdatePlayerStatusSchema`、`PlayerStatusSchema`、`PositionSchema` 在本 Change 之前就已無人引用，S01 只是搬了檔案。依 CLAUDE.md，判斷型刪除先送開發者確認；確認依據是它們全部可以從 `src/entities/player.ts` 的欄位一行重建。
+
+`PlayerRoleSchema` 一併降級為模組私有——它同樣沒有生產呼叫端，但 `PlayerSchema` 內部還在用。
+
+---
+
+## Plan vs. actual
+
+三處實作推翻了計畫時的說法，全部已回寫到 artifacts：
+
+| 計畫說 | 實際 | 處置 |
+| --- | --- | --- |
+| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了 | index.mdx 與 S04 改寫（`7f59b9d8` + 本輪） |
+| D4「一律不做 coercion」 | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分（`7f59b9d8`） |
+| `role` → `newRole` 重新命名 | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱 | 撤回，改由 route 映射 |
+
+**D3 的判準在 Propose 之後被替換過**（`a3bc8bcf`）。原本的「它需要資料庫裡的狀態嗎」不是乾淨架構的分界——`away.num ∈ outcome` 是無狀態卻是排球規則，「這個 gameId 存在嗎」是有狀態卻只是 404。改成兩個有序問題：**這是在重建型別，還是在判斷領域規則？** design.mdx 保留「一個被撤回的判準」一節記錄這件事。
+
+## Residual risks
+
+- **route 層驗證是過渡狀態。** D1 承諾終局是 controller 成為 interface adapter，由 `api-route-restructure` 承接。在那之前，「邊界是唯一入口」這個前提靠 review 把關，沒有工具強制——`src/lib/` 仍混著三個層的程式碼，任何以路徑判層的 lint 規則都還無法表達。
+- **`.strict()` 對向後相容的假設。** 目前前後端同時發布，所以拒絕未宣告欄位是安全的。兩者一旦拆開發布，舊 client 多送一個欄位就會拿到 400。已列為 revisit trigger。
+- **`away` 的選填欄位是暫時的。** 隊伍查詢與資料分享功能上線後，away 會承載與 home 幾乎相同的結構，D5 的選填欄位會被填滿。
+
+## Follow-ups
+
+- 跨欄位自洽檢查（`num` 決定 `type` 與 `win`）仍以 `scoringMoves` 下沉到 entities 為前置——依 D3 第二問它是排球規則，屬 entity，而 entity 現在查那張表會成環。
+- response 端 8 處 `PlayerSchema.parse()` 方向相反（驗的是我們自己產生的資料，失敗代表資料層壞了卻回報成 400），另票處理。
+- import 邊界的 lint 規則，等 `src/lib/` 的層歸屬清理完成。

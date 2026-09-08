@@ -83,7 +83,8 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 ## Change boundaries
 
 - **一定在內**：五條 game route、`src/interface/validations/`（新增 `game.ts`，遷入 `team.ts` 與 `player.ts`）、11 個 importer、`src/entities/game.ts` 的 `Team` / `Match` 型別與 `validateRallyEntry` / `validateLineupPlayers`、`record-rallies.usecase.ts` 的呼叫點、`create-player.usecase.ts` 的 input 型別、`src/components/game/new/index.tsx` 的三處 payload 修正。
-- **不在內**：`withErrorHandler` 的錯誤映射邏輯、`assertObjectId` 的實作與位置、repository 的任何寫入路徑、mongoose 的 `teamSchema._id` 設定、response 端的 `.parse()`。
+- **後來納入**：`game.repository.mongo.ts` 的 `toLineupRead`。讀取路徑原本展開 `...lineup`，把 lineup subdocument 的 Mongoose `_id` 一起交給前端；前端把該值原封不動送回時，新的 `.strict()` 會擋下它。這個耦合在 S04 之前不存在，是 `.strict()` 本身製造出來的，所以留在本 Change 而非另開一票。
+- **不在內**：`withErrorHandler` 的錯誤映射邏輯、`assertObjectId` 的實作與位置、repository 的任何**寫入**路徑、mongoose 的 `teamSchema._id` 設定、response 端的 `.parse()`。
 
 ## Impact
 
@@ -98,6 +99,12 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
       change: "added",
       summary:
         "五條 game 路由的 request schema。lineup 重用既有的 LineupSchema（唯一擋得住空字串的定義），num 的上界取自 scoringMoves.length - 1。",
+    },
+    {
+      path: "src/interface/validations/object-id.ts",
+      change: "added",
+      summary:
+        "邊界對「什麼是 ObjectId」的單一定義：objectId、nullableObjectId，以及接受空字串的 rallyPlayerId。三份實作在 review 時收斂成這一份。",
     },
     {
       path: "src/interface/validations/team.ts",
@@ -116,6 +123,12 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
       change: "modified",
       summary:
         "刪除 validateRallyEntry、MOVE_TYPES、LAST_SCORING_MOVE 與 validateLineupPlayers 的 shape 前置檢查；roster 比對留下。Team 的 id/players/staffs 改選填，Match.weather 移除。",
+    },
+    {
+      path: "src/infrastructure/db/repositories/game.repository.mongo.ts",
+      change: "modified",
+      summary:
+        "toLineupRead 改列具名欄位，停止把 lineup subdocument 的 Mongoose _id 交給前端——該值會被原封不動送回而撞上 .strict()。",
     },
     {
       path: "src/applications/usecases/player/create-player.usecase.ts",
