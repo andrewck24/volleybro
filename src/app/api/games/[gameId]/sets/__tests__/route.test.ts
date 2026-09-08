@@ -1,3 +1,4 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
@@ -45,15 +46,12 @@ describe("POST /api/games/[gameId]/sets", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({ lineup: {}, options: {}, extra: true }),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
+      "POST",
+      { lineup: {}, options: {}, extra: true },
+    );
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -65,8 +63,7 @@ describe("POST /api/games/[gameId]/sets", () => {
     consoleSpy.mockRestore();
   });
 
-  // The entity used to reject these shapes before reading them. That guard
-  // moved to the boundary, so the cases it covered move here with it.
+  // Coverage that moved here with the guard, see `request-schema-boundary` D3.
   it.each([
     ["null", null],
     ["undefined", undefined],
@@ -75,15 +72,12 @@ describe("POST /api/games/[gameId]/sets", () => {
     ["non-array liberos", { ...VALID_LINEUP, liberos: 42 }],
     ["non-array substitutes", { ...VALID_LINEUP, substitutes: null }],
   ])("returns 400 for a malformed lineup (%s)", async (_label, lineup) => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({ lineup, options: { serve: "home" } }),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
+      "POST",
+      { lineup, options: { serve: "home" } },
+    );
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -105,15 +99,12 @@ describe("PUT /api/games/[gameId]/sets", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
-      method: "PUT",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({ options: {}, extra: true }),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets`,
+      "PUT",
+      { options: {}, extra: true },
+    );
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
     const res = await PUT(req as never, props);

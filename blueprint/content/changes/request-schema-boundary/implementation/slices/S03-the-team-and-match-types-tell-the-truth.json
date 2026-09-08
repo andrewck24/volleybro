@@ -20,7 +20,7 @@
     "pnpm test:integration",
     "pnpm lint",
     "pnpm format:check",
-    "grep -rn \"weather\\|temperature\" src/ 回傳零筆"
+    "grep -rn \"weather\\|temperature\" src/ --include=\"*.ts\" --include=\"*.tsx\" | grep -v __tests__ 回傳零筆"
   ],
   "status": "completed"
 }

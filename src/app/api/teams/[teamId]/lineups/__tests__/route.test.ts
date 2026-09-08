@@ -1,3 +1,4 @@
+import { silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { Position } from "@/entities/team";
 
@@ -74,9 +75,7 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when teamId is not a valid ObjectId", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: "http://localhost/api/teams/bad-id/lineups",
       method: "PATCH",
@@ -95,9 +94,7 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when payload is not an array", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
       method: "PATCH",
@@ -115,9 +112,7 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 when lineup item has wrong liberoReplaceMode type", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const badLineup = {
       ...VALID_LINEUP,
       options: { liberoReplaceMode: "0", liberoReplacePosition: Position.NONE },
@@ -187,9 +182,7 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 for a lineup with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
       method: "PATCH",
@@ -207,9 +200,7 @@ describe("PATCH /api/teams/[teamId]/lineups", () => {
   });
 
   it("returns 400 for an undeclared field nested inside a lineup player", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/lineups`,
       method: "PATCH",

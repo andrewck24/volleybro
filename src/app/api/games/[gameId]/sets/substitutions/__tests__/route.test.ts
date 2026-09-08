@@ -1,3 +1,4 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
@@ -34,21 +35,18 @@ describe("POST /api/games/[gameId]/sets/substitutions", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets/substitutions`,
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets/substitutions`,
+      "POST",
+      {
         id: "entry-1",
         seq: 0,
         team: 1,
         players: { in: VALID_OBJECT_ID, out: VALID_OBJECT_ID },
         extra: true,
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);

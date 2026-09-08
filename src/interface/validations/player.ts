@@ -72,10 +72,7 @@ export type ManagePlayerMembershipInput = z.infer<
   typeof ManagePlayerMembershipSchema
 >;
 
-/**
- * PATCH /api/players/{playerId}/invitations — no `satisfies` binding, because
- * `action` dispatches to a different use case per branch (`request-schema-boundary`).
- */
+/** PATCH /api/players/{playerId}/invitations — dispatch schema, see `request-schema-boundary` D2. */
 export const PatchInvitationSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept") }).strict(),
   z.object({ action: z.literal("reject") }).strict(),

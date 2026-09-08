@@ -10,10 +10,5 @@
     "game-recording/rally-recording",
     "game-recording/persistence"
   ],
-  "tags": [
-    "validation",
-    "boundary",
-    "data-integrity",
-    "convention"
-  ]
+  "tags": ["validation", "boundary", "data-integrity", "convention"]
 }

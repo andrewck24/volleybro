@@ -4,29 +4,29 @@ title: Review
 
 # Code Review: request-schema-boundary
 
-兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。以下記錄實際交付、驗證、發現與處置。
+兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了兩輪，第二輪同樣是空白 context 且不看第一輪的結論。以下記錄實際交付、驗證、發現與處置。
 
 ---
 
 ## Delivered
 
-| Slice | 標題 | 狀態 |
-| --- | --- | --- |
-| S01 | team 與 player 的 schema 遷入 `src/interface/validations/` | ✅ |
-| S02 | 三套慣例收斂成一套（`.strict()` + `satisfies`） | ✅ |
-| S03 | `Team` / `Match` 型別與實際寫入對齊 | ✅ |
-| S04 | game 五條寫入路由在邊界 parse | ✅ |
-| S05 | entity 卸下型別重建，只留領域規則 | ✅ |
+| Slice | 標題                                                       | 狀態 |
+| ----- | ---------------------------------------------------------- | ---- |
+| S01   | team 與 player 的 schema 遷入 `src/interface/validations/` | ✅   |
+| S02   | 三套慣例收斂成一套（`.strict()` + `satisfies`）            | ✅   |
+| S03   | `Team` / `Match` 型別與實際寫入對齊                        | ✅   |
+| S04   | game 五條寫入路由在邊界 parse                              | ✅   |
+| S05   | entity 卸下型別重建，只留領域規則                          | ✅   |
 
 14 個 commit，75 個檔案，+2648 / −643。
 
 ## Verification
 
-| 閘門 | 結果 |
-| --- | --- |
-| `pnpm verify:all` | exit 0 — 1019 backend/frontend unit tests，135 suites |
-| `pnpm test:integration` | exit 0 — 38 tests，13 suites |
-| `pnpm typecheck:strict` | 0 errors |
+| 閘門                                         | 結果                                                                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| `pnpm verify:all`                            | exit 0 — 1019 backend/frontend unit tests，135 suites                             |
+| `pnpm test:integration`                      | exit 0 — 38 tests，13 suites                                                      |
+| `pnpm typecheck:strict`                      | 0 errors                                                                          |
 | `test/integration/rally-validation.itest.ts` | 未出現在本 Change 的 diff 中，且維持綠燈——S04 的 schema 與 S05 刪除的檢查行為等價 |
 
 ---
@@ -69,11 +69,56 @@ S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字�
 
 已在 index.mdx 加上「後來納入」一項並說明它是 `.strict()` 自己製造出來的耦合，同時把「不在內」那條收窄為**寫入**路徑。
 
-### #8 四個沒有生產呼叫端的 export — Standards，✅ 已刪（開發者確認）
+### #8 四個沒有生產呼叫端的 export — Standards，✅ 已處理（開發者確認）
 
-`InvitationResponseSchema`、`UpdatePlayerStatusSchema`、`PlayerStatusSchema`、`PositionSchema` 在本 Change 之前就已無人引用，S01 只是搬了檔案。依 CLAUDE.md，判斷型刪除先送開發者確認；確認依據是它們全部可以從 `src/entities/player.ts` 的欄位一行重建。
+四個在本 Change 之前就已無人引用，S01 只是搬了檔案。依 CLAUDE.md，判斷型刪除先送開發者確認；確認依據是它們全部可以從 `src/entities/player.ts` 的欄位一行重建。處置分兩種，因為其中兩個仍有檔案內的呼叫端：
 
-`PlayerRoleSchema` 一併降級為模組私有——它同樣沒有生產呼叫端，但 `PlayerSchema` 內部還在用。
+| Export                     | 處置                                                |
+| -------------------------- | --------------------------------------------------- |
+| `InvitationResponseSchema` | 刪除——`PatchInvitationSchema` 已涵蓋它的三個 action |
+| `UpdatePlayerStatusSchema` | 刪除——沒有任何 route 掛過它                         |
+| `PlayerStatusSchema`       | 降為模組私有——`PlayerSchema.status` 還在用          |
+| `PositionSchema`           | 降為模組私有——三個 schema 還在用                    |
+
+`PlayerRoleSchema` 一併降為模組私有，理由相同。
+
+---
+
+---
+
+## Round 2
+
+同樣兩軸、同樣空白 context，跑在第一輪修正之後。
+
+### #9 `HomeTeamSchema` 與 `AwayTeamSchema` 逐欄位重複 — Standards，✅ 已修
+
+兩者只差 `players` 的必填與否，其餘五個欄位逐字元相同。改為 `HomeTeamSchema.extend({ players: ... })`，並補一個測試證明 `.extend()` 之後 `.strict()` 仍然生效。
+
+### #10 team `id` 沒有走那份唯一的 ObjectId 定義 — Spec，✅ 已修
+
+`HomeTeamSchema.id` 與 `AwayTeamSchema.id` 是 `z.string().optional()`，是新邊界上唯一沒用 `objectId` 的 id 欄位——而 `home.id` 在資料庫裡是 `ref: "Team"`。本 Change 的 Goal 明寫「『什麼構成一筆合法的請求』只有一份定義」，這裡自己破了例。改為 `objectId.optional()`。
+
+### #11 五個測試檔名說的是測試手法，不是被測對象 — Standards，✅ 已修
+
+`wired-route.test.ts` ×3、`update-route.test.ts`、`create-route.test.ts`，全部與既有的 `route.test.ts` 並存。「wired」是 harness 的實作細節。統一改名為 `request-schema.test.ts`——它們測的是同一件事：這條路由的 request 契約。
+
+### #12 route test 的 request literal 與 console 靜音樣板 — Standards，✅ 已修
+
+`{ url, method, nextUrl, json }` 這個五行字面值在十個測試裡重複，把唯一會變的 body 埋在最不顯眼的位置。抽成 `src/test-utils/route-request.ts` 的 `routeRequest()` 與 `silenceConsoleError()`。
+
+### #13 測試基礎設施是第二處未宣告的邊界擴張 — Spec，✅ 已修
+
+`jest.setup.backend.ts` 與新的 test helper 都不在原本的 Change boundaries 裡。已比照 `toLineupRead` 加入「後來納入」。
+
+### #14 兩條驗收 grep 寫得太寬 — Spec，✅ 已修
+
+S03 的 `grep weather src/` 現在會打到新的 schema 測試（它刻意送一個 `weather` 欄位證明 `.strict()` 擋得住）；S04 的 `grep "\.\.\.lineup"` 打到 `toLineupWrite`，而受規範的是 `toLineupRead`。兩條都收窄成它們原本要說的意思。
+
+### 未採納的兩項
+
+**`Team` 的三個欄位改選填削弱了 entity 的保證**（Standards 判斷題）。這正是 D5 的內容，且不是疏漏：對手取得真實身分後這些欄位會被填滿，此刻拆成 home/away 兩個窄型別，之後要合併回來。維持 D5。
+
+**`teams.home.players ?? []` 把缺席的名單變成空名單**（Spec 判斷題）。屬實——舊資料若缺 `players`，錯誤會以「球員不在名單上」的 400 現身，而不是以它自己的樣子。但 `HomeTeamSchema` 已要求 `players` 必填，本 Change 之後建立的比賽不會有這個狀態，而替舊資料設計一個新的錯誤語意超出本 Change。列入下方 residual risks。
 
 ---
 
@@ -81,11 +126,11 @@ S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字�
 
 三處實作推翻了計畫時的說法，全部已回寫到 artifacts：
 
-| 計畫說 | 實際 | 處置 |
-| --- | --- | --- |
-| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了 | index.mdx 與 S04 改寫 |
-| D4「一律不做 coercion」 | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分 |
-| `role` → `newRole` 重新命名 | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱 | 撤回，改由 route 映射 |
+| 計畫說                            | 實際                                                                                                                     | 處置                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了                                                               | index.mdx 與 S04 改寫 |
+| D4「一律不做 coercion」           | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分       |
+| `role` → `newRole` 重新命名       | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱                                         | 撤回，改由 route 映射 |
 
 **D3 的判準在 Propose 之後、Apply 之前被替換過。**原本的「它需要資料庫裡的狀態嗎」不是乾淨架構的分界——`away.num ∈ outcome` 是無狀態卻是排球規則，「這個 gameId 存在嗎」是有狀態卻只是 404。改成兩個有序問題：**這是在重建型別，還是在判斷領域規則？** design.mdx 保留「一個被撤回的判準」一節記錄這件事。
 
@@ -93,6 +138,7 @@ S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字�
 
 - **route 層驗證是過渡狀態。** D1 承諾終局是 controller 成為 interface adapter，由 `api-route-restructure` 承接。在那之前，「邊界是唯一入口」這個前提靠 review 把關，沒有工具強制——`src/lib/` 仍混著三個層的程式碼，任何以路徑判層的 lint 規則都還無法表達。
 - **`.strict()` 對向後相容的假設。** 目前前後端同時發布，所以拒絕未宣告欄位是安全的。兩者一旦拆開發布，舊 client 多送一個欄位就會拿到 400。已列為 revisit trigger。
+- **舊 game 文件缺 `teams.home.players` 時的錯誤語意不精確。** usecase 以 `?? []` 承接，所以缺席的名單會表現成一份空名單，錯誤在 lineup 比對時才以「球員不在名單上」的 400 現身。本 Change 之後建立的比賽不會有這個狀態（`HomeTeamSchema` 要求 `players`），舊資料則沒有偵測手段。
 - **`away` 的選填欄位是暫時的。** 隊伍查詢與資料分享功能上線後，away 會承載與 home 幾乎相同的結構，D5 的選填欄位會被填滿。
 
 ## Follow-ups

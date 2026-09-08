@@ -1,3 +1,4 @@
+import { silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockAcceptInvitation = jest.fn<(input: unknown) => Promise<unknown>>();
@@ -32,9 +33,7 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
       method: "PATCH",

@@ -1,3 +1,4 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
@@ -34,15 +35,12 @@ describe("PUT /api/games/[gameId]/sets/rallies", () => {
   });
 
   it("returns 400 when the body is not an array", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: `http://localhost/api/games/${VALID_OBJECT_ID}/sets/rallies`,
-      method: "PUT",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({}),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/games/${VALID_OBJECT_ID}/sets/rallies`,
+      "PUT",
+      {},
+    );
     const props = { params: Promise.resolve({ gameId: VALID_OBJECT_ID }) };
 
     const res = await PUT(req as never, props);

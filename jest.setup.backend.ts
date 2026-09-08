@@ -91,8 +91,7 @@ jest.mock("bson", () => ({
 }));
 
 // Route handlers under test only ever read `status` and the JSON body off a
-// NextResponse, and only ever await `headers()`. Both stubs were identical in
-// all thirteen route test files.
+// NextResponse, and only ever await `headers()`.
 jest.mock("next/server", () => ({
   NextResponse: {
     json: jest.fn((body: unknown, init?: ResponseInit) => ({

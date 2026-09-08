@@ -2,12 +2,8 @@
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S02",
   "title": "既有九條路由收斂為一套慣例並拒絕未宣告欄位",
-  "capabilities": [
-    "platform/clean-architecture"
-  ],
-  "dependsOn": [
-    "S01"
-  ],
+  "capabilities": ["platform/clean-architecture"],
+  "dependsOn": ["S01"],
   "outcome": "三套並行的做法變成一套：所有 request schema 住同一個目錄、在 route 層 `.parse()`、拒絕未宣告欄位。`profile.controller.ts` 不再是唯一用 `.strict()` 的特例，也不再持有一段與 `withErrorHandler` 重複的手寫包裝。",
   "acceptanceCriteria": [
     "`CreateTeamSchema`（`app/api/teams/route.ts` 內 inline）與 `PatchInvitationSchema`（`invitations/route.ts` 內 inline）移入 `src/interface/validations/`。route 檔案不再 import zod。",

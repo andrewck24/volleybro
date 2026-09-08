@@ -35,7 +35,7 @@ const StaffSchema = z
 /** Home is a resolvable Team, away is a typed-in name — see `request-schema-boundary`. */
 const HomeTeamSchema = z
   .object({
-    id: z.string().optional(),
+    id: objectId.optional(),
     name: z.string().min(1),
     players: z.array(GamePlayerSchema),
     staffs: z.array(StaffSchema).optional(),
@@ -43,15 +43,9 @@ const HomeTeamSchema = z
   })
   .strict();
 
-const AwayTeamSchema = z
-  .object({
-    id: z.string().optional(),
-    name: z.string().min(1),
-    players: z.array(GamePlayerSchema).optional(),
-    staffs: z.array(StaffSchema).optional(),
-    lineup: LineupSchema.optional(),
-  })
-  .strict();
+const AwayTeamSchema = HomeTeamSchema.extend({
+  players: z.array(GamePlayerSchema).optional(),
+});
 
 const MatchInfoSchema = z
   .object({

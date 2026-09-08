@@ -49,6 +49,18 @@ describe("CreateGameSchema", () => {
     expect(() => CreateGameSchema.parse(body)).toThrow();
   });
 
+  it("keeps rejecting undeclared fields on the derived away schema", () => {
+    const body = gameBody();
+    (body.teams.away as Record<string, unknown>).coach = "someone";
+    expect(() => CreateGameSchema.parse(body)).toThrow();
+  });
+
+  it("rejects a home id that is not an ObjectId", () => {
+    const body = gameBody();
+    body.teams.home.id = "not-an-id";
+    expect(() => CreateGameSchema.parse(body)).toThrow();
+  });
+
   it("rejects an undeclared field nested inside info", () => {
     const body = gameBody();
     (body.info as Record<string, unknown>).weather = { temperature: 25 };

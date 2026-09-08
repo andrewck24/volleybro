@@ -1,3 +1,4 @@
+import { silenceConsoleError } from "@/test-utils/route-request";
 import {
   beforeAll,
   beforeEach,
@@ -66,9 +67,7 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for invalid teamId format", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = { url: "http://localhost/api/teams/undefined", method: "GET" };
     const props = { params: Promise.resolve({ teamId: "undefined" }) };
 
@@ -82,9 +81,7 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for arbitrary non-ObjectId string", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = { url: "http://localhost/api/teams/abc", method: "GET" };
     const props = { params: Promise.resolve({ teamId: "abc" }) };
 
@@ -97,9 +94,7 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 404 with NOT_FOUND code when valid ObjectId but team not found", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     mockGetTeamController.mockResolvedValue(null);
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
@@ -164,9 +159,7 @@ describe("PATCH /api/teams/[teamId]", () => {
   });
 
   it("returns 400 when teamId is not a valid ObjectId", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: "http://localhost/api/teams/bad-id",
       method: "PATCH",
@@ -228,9 +221,7 @@ describe("PATCH /api/teams/[teamId]", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
       method: "PATCH",

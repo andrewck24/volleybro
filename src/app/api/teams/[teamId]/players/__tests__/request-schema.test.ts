@@ -1,3 +1,4 @@
+import { silenceConsoleError } from "@/test-utils/route-request";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -33,9 +34,7 @@ describe("POST /api/teams/[teamId]/players", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
       method: "POST",

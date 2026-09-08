@@ -1,3 +1,4 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import {
   beforeAll,
   beforeEach,
@@ -51,9 +52,7 @@ describe("GET /api/games", () => {
   });
 
   it("returns 400 when teamId query is missing", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: "http://localhost/api/games",
       method: "GET",
@@ -118,18 +117,11 @@ describe("POST /api/games", () => {
   });
 
   it("returns 400 when teamId query is missing", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: "http://localhost/api/games",
-      method: "POST",
-      nextUrl: { searchParams: new URLSearchParams() },
-      json: async () => ({
-        info: { title: "Game 1" },
-        teams: {},
-      }),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest("http://localhost/api/games", "POST", {
+      info: { title: "Game 1" },
+      teams: {},
+    });
 
     const res = await POST(req as never);
     const body = (await res.json()) as { reason: string; detail: string };
@@ -171,9 +163,7 @@ describe("POST /api/games", () => {
   });
 
   it("returns 400 for a body with an undeclared field", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     const req = {
       url: "http://localhost/api/games?ti=team-1",
       method: "POST",
