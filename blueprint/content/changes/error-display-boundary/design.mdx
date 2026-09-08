@@ -24,7 +24,7 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 <InteractiveFlowchart
   nodes={[
     { id: "throw", label: "throw AppError", x: 140, y: 50, w: 210 },
-    { id: "log", label: "logError", x: 440, y: 50, w: 170 },
+    { id: "log", label: "logError", x: 510, y: 50, w: 170 },
     { id: "serialize", label: "serializeError", x: 140, y: 150, w: 210 },
     { id: "proxy", label: "proxy.ts Edge 401", x: 420, y: 150, w: 200 },
     {
@@ -43,12 +43,12 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
       w: 230,
     },
     { id: "catalogue", label: "ERROR_MESSAGES", x: 590, y: 450, w: 200 },
-    { id: "unknown", label: "UNKNOWN 條目", x: 590, y: 545, w: 200, h: 44 },
+    { id: "unknown", label: "UNKNOWN 條目", x: 590, y: 565, w: 200, h: 44 },
     { id: "toast", label: "toast", x: 160, y: 560, w: 150 },
     { id: "dialog", label: "AlertDialog", x: 370, y: 560, w: 170 },
   ]}
   edges={[
-    { from: "throw", to: "log", dashed: true, label: "detail 只到這裡" },
+    { from: "throw", to: "log", dashed: true, label: "只進 log" },
     { from: "throw", to: "serialize" },
     { from: "serialize", to: "body" },
     { from: "proxy", to: "body" },
