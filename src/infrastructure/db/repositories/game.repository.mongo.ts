@@ -168,7 +168,7 @@ export class GameRepositoryImpl implements IGameRepository {
 
   // --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
 
-  /** "No player" arrives as `""` as often as `null`, and only `null` casts. */
+  /** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
   private toPlayerRef(id: string | null | undefined) {
     return id || null;
   }

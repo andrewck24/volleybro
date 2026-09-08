@@ -144,13 +144,27 @@ CONTRIBUTING 明寫「a doc comment longer than the code it describes is a sign 
 
 ---
 
+## 交付前的最後一項：`""` 映射為 `null`
+
+開發者在 Blueprint Review 之前追問了一件 Overview 原本打算延後的事：邊界既然接受 `player.id: ""`，把它轉成 `null` 是不是更正確？
+
+是，而且這個 repo 已經自己說了三次——lineup 用 `nullableObjectId`、`toPlayerRef` 回傳 `null`、`deriveSetStats` 讀到的型別本來就是 `{ id?: string | null }`。只有 `RallyDetail.player.id: string` 跟其他三處不一致，是與 `Team` 同一類的型別謊言，而消滅型別謊言正是本 Change 的前提（「如果那個型別本身在說謊，加 schema 只是把謊言正式化」）。
+
+實測成本：把該欄位改成 `string | null` 之後 `tsc` 零錯誤——所有消費端都是 `Boolean(...)` 或 `if (scorerId && ...)` 這類真值判斷，`""` 與 `null` 走同一條路。實際改動三處：entity 型別、`rallyPlayerId` 加 `.transform`、schema 測試改為斷言轉換結果而非僅斷言接受。
+
+**這不是 D4 禁止的 coercion。** 它與 `z.iso.datetime().transform(...)` 同類：先拒絕既不是 `""` 也不是 ObjectId 的值，再把通過的合法輸入映射到 domain 表示；`z.coerce.*` 則會靜默吞下垃圾。Redux draft 繼續送 `""`，由邊界吸收這個 wire format 的怪癖。
+
+Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」，該句已刪除。
+
+---
+
 ## Plan vs. actual
 
 三處實作推翻了計畫時的說法，全部已回寫到 artifacts：
 
 | 計畫說                            | 實際                                                                                                                     | 處置                  |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
-| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的現行編碼，擋掉會讓對手得分的球記不了                                                               | index.mdx 與 S04 改寫 |
+| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的 wire format 佔位值；邊界接受它並映射成 `null`                                                     | index.mdx 與 S04 改寫 |
 | D4「一律不做 coercion」           | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分       |
 | `role` → `newRole` 重新命名       | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱                                         | 撤回，改由 route 映射 |
 

@@ -11,8 +11,9 @@ export const nullableObjectId = z
   .nullable()
   .refine((v) => v === null || isObjectId(v), { message });
 
-// Empty means the recorder attributed nobody to that side.
+// The recorder sends "" for the side it attributed nobody to.
 // See the request-schema-boundary Overview.
 export const rallyPlayerId = z
   .string()
-  .refine((v) => v === "" || isObjectId(v), { message });
+  .refine((v) => v === "" || isObjectId(v), { message })
+  .transform((v) => v || null);

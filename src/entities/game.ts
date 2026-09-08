@@ -165,7 +165,7 @@ export type RallyDetail = {
   type: MoveType;
   num: number;
   player?: {
-    id: string;
+    id: string | null;
     zone: number;
   };
 };

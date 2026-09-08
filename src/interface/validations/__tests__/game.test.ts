@@ -84,10 +84,14 @@ describe("CreateGameSchema", () => {
 });
 
 describe("RecordRalliesSchema", () => {
-  it("accepts an empty player id — the recorder attributed nobody", () => {
+  it.each([
+    ["turns the recorder's empty player id into null", "", null],
+    ["leaves a real player id alone", OID, OID],
+  ])("%s", (_label, sent, stored) => {
     const r = rally();
-    (r.home as Record<string, unknown>).player = { id: "", zone: 1 };
-    expect(() => RecordRalliesSchema.parse([r])).not.toThrow();
+    (r.home as Record<string, unknown>).player = { id: sent, zone: 1 };
+    const [parsed] = RecordRalliesSchema.parse([r]);
+    expect(parsed?.home.player?.id).toBe(stored);
   });
 
   it("rejects a player id that is neither empty nor an ObjectId", () => {

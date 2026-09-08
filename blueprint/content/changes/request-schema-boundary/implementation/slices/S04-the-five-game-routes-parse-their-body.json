@@ -13,7 +13,7 @@
     "`src/interface/validations/game.ts` 新增，涵蓋五條路由的 body：`POST /api/games` 的 `info` 與 `teams`、`POST/PUT /sets` 的 `lineup` 與 `options`、`PUT /sets/rallies` 的 rally 陣列、`POST /sets/substitutions` 的 substitution。",
     "全部 `.strict()`，且**不使用任何 `z.coerce.*`**。型別不符的值回 400，不做轉換——`z.coerce.number()` 會把空字串變成 `0`、把無效字串變成 `NaN`，兩者都會靜默入庫。",
     "`POST/PUT /sets` 的 lineup 重用 `src/interface/validations/team.ts` 匯出的 `LineupSchema`，不另寫一份。它是三份 lineup 定義裡唯一拒絕空字串的那一份，而空字串正是 rally 送出回 404 那個缺陷的元凶。",
-    "rally 的 `num` 上界取自 `scoringMoves.length - 1`（import `@/lib/scoring-moves`），不得抄寫字面值。`player` 子物件納入驗證，`player.id` 走 `rallyPlayerId`——它接受空字串再加上 ObjectId 格式，**不是** lineup 用的那份 `objectId`。空字串是記錄員未指派球員時的現行編碼，擋掉它會讓對手得分的球記不了；repository 的 `toPlayerRef` 已把它正規化成 `null`。lineup 的 `player.id` 則沒有這個豁免。",
+    "rally 的 `num` 上界取自 `scoringMoves.length - 1`（import `@/lib/scoring-moves`），不得抄寫字面值。`player` 子物件納入驗證，`player.id` 走 `rallyPlayerId`——它接受空字串或 ObjectId，**並把空字串映射成 `null`**，不是 lineup 用的那份 `objectId`。空字串是記錄員未指派球員時的 wire format 佔位值，擋掉它會讓對手得分的球記不了；但內層只該看到一種「沒有球員」，所以 `RallyDetail.player.id` 一併改為 `string | null`（`tsc` 零錯誤，既有消費端全部是真值判斷）。lineup 的 `player.id` 則沒有這個豁免。",
     "五個 schema 各以 `satisfies z.ZodType<...>` 綁到對應 usecase input 的 `data` 子物件。",
     "body 的 parse 發生在 `teamId` 查詢參數檢查**之後**。`POST /api/games` 缺 `teamId` 時仍回 `detail: \"teamId is required\"`。",
     "`components/game/new/index.tsx` 停止送出兩個多餘欄位：`players` 送出前去掉 `list`、`infoData` 排除 `teams`。",

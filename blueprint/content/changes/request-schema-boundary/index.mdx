@@ -41,7 +41,11 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 
 **rally 的 `player` 子物件完全沒人驗。** `rally-entry-validation` 建立的 `validateRallyEntry` 只看 `type` / `num` / `score` / `win`，沒碰 `player = { id, zone }`——`zone` 可以是任何數字，`id` 可以是任何字串。
 
-關於 `id` 有一件事需要講清楚，因為它容易被誤讀成「空字串該被擋下」。空字串是**記錄員沒有指派球員給該側時的現行編碼**：對手得分時我方沒有球員可指，Redux 的 draft 仍帶著這個欄位與它的未設定佔位值。repository 的 `toPlayerRef` 已經把它正規化成 `null`（`return id || null`，註解寫著「only `null` casts」），那才是「rally 送出回 404 SET_NOT_FOUND」那個缺陷的實際修法。**所以邊界必須接受它——拒絕它會讓對手得分的球記不了。** 把這個佔位值換成 `null` 是另一張票的事。lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，既有的 `objectId` refine 擋得住它，本 Change 讓 `POST/PUT /sets` 也用上同一份定義。
+關於 `id` 有一件事需要講清楚，因為它容易被誤讀成「空字串該被擋下」。空字串是**記錄員沒有指派球員給該側時的現行編碼**：對手得分時我方沒有球員可指，Redux 的 draft 仍帶著這個欄位與它的未設定佔位值。**拒絕它會讓對手得分的球記不了，所以邊界必須接受它——但接受不等於原樣放行。**
+
+這個 repo 已經在三個地方說「沒有球員」就是 `null`：lineup 用 `nullableObjectId`、repository 的 `toPlayerRef` 回傳 `null`、`deriveSetStats` 讀到的型別本來就是 `{ id?: string | null }`。只有 `RallyDetail.player.id` 宣告成 `string`，跟其他三處不一致——那是與 `Team` 同一類的型別謊言。所以邊界接受 `""` 之後把它映射成 `null`，`RallyDetail.player.id` 改為 `string | null`。wire format 的佔位值由邊界吸收，內層只看得到一種「沒有球員」。
+
+lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，既有的 `objectId` refine 擋得住它，本 Change 讓 `POST/PUT /sets` 也用上同一份定義。
 
 **慣例分裂成三套。** schema 住在三個地方，而且驗證發生在兩個層：
 
@@ -82,7 +86,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 
 ## Change boundaries
 
-- **一定在內**：五條 game route、`src/interface/validations/`（新增 `game.ts`，遷入 `team.ts` 與 `player.ts`）、11 個 importer、`src/entities/game.ts` 的 `Team` / `Match` 型別與 `validateRallyEntry` / `validateLineupPlayers`、`record-rallies.usecase.ts` 的呼叫點、`create-player.usecase.ts` 的 input 型別、`src/components/game/new/index.tsx` 的三處 payload 修正。
+- **一定在內**：五條 game route、`src/interface/validations/`（新增 `game.ts`，遷入 `team.ts` 與 `player.ts`）、11 個 importer、`src/entities/game.ts` 的 `Team` / `Match` / `RallyDetail` 型別與 `validateRallyEntry` / `validateLineupPlayers`、`record-rallies.usecase.ts` 的呼叫點、`create-player.usecase.ts` 的 input 型別、`src/components/game/new/index.tsx` 的三處 payload 修正。
 - **後來納入**：`game.repository.mongo.ts` 的 `toLineupRead`。讀取路徑原本展開 `...lineup`，把 lineup subdocument 的 Mongoose `_id` 一起交給前端；前端把該值原封不動送回時，新的 `.strict()` 會擋下它。這個耦合在 S04 之前不存在，是 `.strict()` 本身製造出來的，所以留在本 Change 而非另開一票。
 - **後來納入**：`jest.setup.backend.ts` 與 `src/test-utils/route-request.ts`。十三個 route test 各自帶著逐字元相同的 `next/server` / `next/headers` stub 與 request literal；本 Change 是製造出這批測試的那張票，所以收斂它們屬本 Change。
 - **不在內**：`withErrorHandler` 的錯誤映射邏輯、`assertObjectId` 的實作與位置、repository 的任何**寫入**路徑、mongoose 的 `teamSchema._id` 設定、response 端的 `.parse()`。
@@ -90,7 +94,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 ## Impact
 
 - `platform/clean-architecture`——request 驗證取得單一慣例；application 層對外的相依歸零；`src/lib/` 少掉一層混雜。
-- `game-recording/rally-recording`——rally 的形狀規則從 entity 移到邊界，並涵蓋先前無人驗的 `player` 子物件。
+- `game-recording/rally-recording`——rally 的形狀規則從 entity 移到邊界，並涵蓋先前無人驗的 `player` 子物件；「沒有球員」在內層只剩 `null` 一種表示。
 - `game-recording/persistence`——`Team` 與 `Match` 的型別改為與實際寫入一致；`Match.weather` 移除。
 
 <FileTour
@@ -105,7 +109,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
       path: "src/interface/validations/object-id.ts",
       change: "added",
       summary:
-        "邊界對「什麼是 ObjectId」的單一定義：objectId、nullableObjectId，以及接受空字串的 rallyPlayerId。三份實作在 review 時收斂成這一份。",
+        "邊界對「什麼是 ObjectId」的單一定義：objectId、nullableObjectId，以及把記錄員的空字串映射成 null 的 rallyPlayerId。三份實作在 review 時收斂成這一份。",
     },
     {
       path: "src/interface/validations/team.ts",
@@ -123,7 +127,7 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
       path: "src/entities/game.ts",
       change: "modified",
       summary:
-        "刪除 validateRallyEntry、MOVE_TYPES、LAST_SCORING_MOVE 與 validateLineupPlayers 的 shape 前置檢查；roster 比對留下。Team 的 id/players/staffs 改選填，Match.weather 移除。",
+        "刪除 validateRallyEntry、MOVE_TYPES、LAST_SCORING_MOVE 與 validateLineupPlayers 的 shape 前置檢查；roster 比對留下。Team 的 id/players/staffs 改選填，Match.weather 移除，RallyDetail.player.id 改為 string | null。",
     },
     {
       path: "src/infrastructure/db/repositories/game.repository.mongo.ts",
