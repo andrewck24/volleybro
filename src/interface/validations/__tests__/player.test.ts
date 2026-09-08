@@ -2,40 +2,12 @@ import { createPlayer } from "@/__tests__/helpers";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import {
   CreatePlayerSchema,
-  PlayerRoleSchema,
   PlayerSchema,
-  PositionSchema,
   UpdatePlayerInfoSchema,
   UpdatePlayerRoleSchema,
-  UpdatePlayerStatusSchema,
 } from "../player";
 
 describe("Player Validation Schemas", () => {
-  describe("PlayerRoleSchema", () => {
-    it("should accept valid role enums", () => {
-      expect(PlayerRoleSchema.parse(PlayerRole.MEMBER)).toBe(PlayerRole.MEMBER);
-      expect(PlayerRoleSchema.parse(PlayerRole.ADMIN)).toBe(PlayerRole.ADMIN);
-      expect(PlayerRoleSchema.parse(PlayerRole.OWNER)).toBe(PlayerRole.OWNER);
-    });
-
-    it("should reject invalid roles", () => {
-      expect(() => PlayerRoleSchema.parse("INVALID")).toThrow();
-      expect(() => PlayerRoleSchema.parse("member")).toThrow();
-    });
-  });
-
-  describe("PositionSchema", () => {
-    it("should accept valid position enums", () => {
-      expect(PositionSchema.parse(Position.OH)).toBe(Position.OH);
-      expect(PositionSchema.parse(Position.MB)).toBe(Position.MB);
-      expect(PositionSchema.parse(Position.NONE)).toBe(Position.NONE);
-    });
-
-    it("should reject invalid positions", () => {
-      expect(() => PositionSchema.parse("INVALID")).toThrow();
-    });
-  });
-
   describe("CreatePlayerSchema", () => {
     it("should accept valid player creation input", () => {
       const input = {
@@ -158,101 +130,6 @@ describe("Player Validation Schemas", () => {
       };
 
       expect(() => UpdatePlayerRoleSchema.parse(input)).toThrow();
-    });
-  });
-
-  describe("UpdatePlayerStatusSchema", () => {
-    describe("invite action", () => {
-      it("should accept valid invite request", () => {
-        const input = {
-          action: "invite" as const,
-          email: "newmember@example.com",
-        };
-
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("invite");
-        if (result.action === "invite") {
-          expect(result.email).toBe("newmember@example.com");
-        }
-      });
-
-      it("should reject invalid email", () => {
-        const input = {
-          action: "invite" as const,
-          email: "not-an-email",
-        };
-
-        expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
-      });
-
-      it("should reject invite without email", () => {
-        const input = {
-          action: "invite",
-        };
-
-        expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
-      });
-    });
-
-    describe("cancel action", () => {
-      it("should accept cancel request", () => {
-        const input = {
-          action: "cancel" as const,
-        };
-
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("cancel");
-      });
-
-      it("should reject cancel with extra properties", () => {
-        const input = {
-          action: "cancel",
-          extra: "data",
-        };
-
-        expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
-      });
-    });
-
-    describe("accept action", () => {
-      it("should accept accept request", () => {
-        const input = {
-          action: "accept" as const,
-        };
-
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("accept");
-      });
-    });
-
-    describe("reject action", () => {
-      it("should accept reject request", () => {
-        const input = {
-          action: "reject" as const,
-        };
-
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("reject");
-      });
-    });
-
-    describe("leave action", () => {
-      it("should accept leave request", () => {
-        const input = {
-          action: "leave" as const,
-        };
-
-        const result = UpdatePlayerStatusSchema.parse(input);
-        expect(result.action).toBe("leave");
-      });
-    });
-
-    it("should reject invalid action", () => {
-      const input = {
-        action: "invalid",
-      };
-
-      expect(() => UpdatePlayerStatusSchema.parse(input)).toThrow();
     });
   });
 

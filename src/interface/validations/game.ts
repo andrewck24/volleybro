@@ -10,25 +10,10 @@ import {
   MoveType,
   Side,
 } from "@/entities/game";
+import { objectId, rallyPlayerId } from "@/interface/validations/object-id";
 import { LineupSchema } from "@/interface/validations/team";
-import { OBJECT_ID_RE } from "@/lib/api/guards";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { z } from "zod";
-
-const objectId = z
-  .string()
-  .refine((v) => OBJECT_ID_RE.test(v), { message: "Invalid ObjectId format" });
-
-/**
- * A rally's `player.id` is legitimately an empty string: the recorder only
- * attributes a player to the side that acted, and the Redux draft still
- * carries the field with its unset placeholder for the other side.
- */
-const rallyPlayerId = z
-  .string()
-  .refine((v) => v === "" || OBJECT_ID_RE.test(v), {
-    message: "Invalid ObjectId format",
-  });
 
 const GamePlayerSchema = z
   .object({
@@ -47,12 +32,7 @@ const StaffSchema = z
   })
   .strict();
 
-/**
- * Home always carries a resolvable Team, so its roster is required even
- * though `Team["players"]` is optional in the type — a schema may be
- * stricter than the type it satisfies. Away is a user-typed opponent name
- * with no linked Team record yet, so its fields stay optional.
- */
+/** Home is a resolvable Team, away is a typed-in name — see `request-schema-boundary`. */
 const HomeTeamSchema = z
   .object({
     id: z.string().optional(),
@@ -108,10 +88,7 @@ const MatchInfoSchema = z
   })
   .strict();
 
-/**
- * Schema for creating a game
- * POST /api/games
- */
+/** POST /api/games */
 export const CreateGameSchema = z
   .object({
     info: MatchInfoSchema,
@@ -137,10 +114,7 @@ const SetOptionsSchema = z
   })
   .strict();
 
-/**
- * Schema for creating a set
- * POST /api/games/{gameId}/sets
- */
+/** POST /api/games/{gameId}/sets */
 export const CreateSetSchema = z
   .object({
     lineup: LineupSchema,
@@ -148,10 +122,7 @@ export const CreateSetSchema = z
   })
   .strict() satisfies z.ZodType<ICreateSetInput["data"]>;
 
-/**
- * Schema for updating a set
- * PUT /api/games/{gameId}/sets
- */
+/** PUT /api/games/{gameId}/sets */
 export const UpdateSetSchema = z
   .object({
     lineup: LineupSchema.optional(),
@@ -188,18 +159,12 @@ const RallySchema = z
   })
   .strict();
 
-/**
- * Schema for recording rallies
- * PUT /api/games/{gameId}/sets/rallies
- */
+/** PUT /api/games/{gameId}/sets/rallies */
 export const RecordRalliesSchema = z.array(RallySchema) satisfies z.ZodType<
   IRecordRalliesInput["data"]
 >;
 
-/**
- * Schema for creating a substitution
- * POST /api/games/{gameId}/sets/substitutions
- */
+/** POST /api/games/{gameId}/sets/substitutions */
 export const CreateSubstitutionSchema = z
   .object({
     id: z.string().min(1),

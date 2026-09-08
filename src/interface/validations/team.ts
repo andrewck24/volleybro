@@ -1,22 +1,15 @@
 import type { ICreateTeamInput } from "@/applications/usecases/team/create-team.usecase";
 import { Position } from "@/entities/team";
-import { OBJECT_ID_RE } from "@/lib/api/guards";
+import { nullableObjectId } from "@/interface/validations/object-id";
 import { z } from "zod";
-
-const objectId = z
-  .string()
-  .nullable()
-  .refine((v) => v === null || OBJECT_ID_RE.test(v), {
-    message: "Invalid ObjectId format",
-  });
 
 const LineupPlayerSchema = z
   .object({
-    id: objectId,
+    id: nullableObjectId,
     position: z.nativeEnum(Position).optional(),
     sub: z
       .object({
-        id: objectId,
+        id: nullableObjectId,
         entryIndex: z
           .object({
             in: z.number().int().optional(),
@@ -57,10 +50,7 @@ export const LineupSchema = z
 
 export const UpdateLineupsSchema = z.array(LineupSchema);
 
-/**
- * Schema for creating a new team
- * POST /api/teams
- */
+/** POST /api/teams */
 export const CreateTeamSchema = z
   .object({
     name: z.string().min(1),

@@ -12,21 +12,8 @@ jest.mock("@/interface/controllers/game/rally.controller", () => ({
   recordRalliesController: mockRecordRalliesController,
 }));
 
-jest.mock("next/server", () => ({
-  NextResponse: {
-    json: jest.fn((body: unknown, init?: ResponseInit) => ({
-      status: init?.status ?? 200,
-      json: async () => body,
-    })),
-  },
-}));
-
 jest.mock("@/lib/auth", () => ({
   auth: { api: { getSession: jest.fn() } },
-}));
-
-jest.mock("next/headers", () => ({
-  headers: jest.fn<() => Promise<Headers>>().mockResolvedValue(new Headers()),
 }));
 
 const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";

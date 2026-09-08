@@ -1,10 +1,7 @@
 import type { IUpdateProfileInput } from "@/applications/usecases/user/profile.usecase";
 import { z } from "zod";
 
-/**
- * Schema for updating the current user's profile
- * PATCH /api/profiles
- */
+/** PATCH /api/profiles */
 export const UpdateProfileRequestSchema = z
   .object({
     activeTeamId: z.string().optional(),

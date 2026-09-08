@@ -5,18 +5,10 @@ import type { IUpdatePlayerInfoInput } from "@/applications/usecases/player/upda
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { z } from "zod";
 
-/**
- * Zod validation schemas for Player entity
- * Provides type-safe runtime validation for API requests and data transformations
- */
+const PlayerRoleSchema = z.nativeEnum(PlayerRole);
+const PlayerStatusSchema = z.nativeEnum(PlayerStatus);
+const PositionSchema = z.nativeEnum(Position);
 
-export const PlayerRoleSchema = z.nativeEnum(PlayerRole);
-export const PlayerStatusSchema = z.nativeEnum(PlayerStatus);
-export const PositionSchema = z.nativeEnum(Position);
-
-/**
- * Complete Player schema for internal use
- */
 export const PlayerSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Name is required"),
@@ -33,9 +25,7 @@ export const PlayerSchema = z.object({
 
 export type Player = z.infer<typeof PlayerSchema>;
 
-/**
- * Schema for creating a new player (with or without email for invitation)
- */
+/** POST /api/teams/{teamId}/players */
 export const CreatePlayerSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
@@ -48,9 +38,7 @@ export const CreatePlayerSchema = z
 
 export type CreatePlayerInput = z.infer<typeof CreatePlayerSchema>;
 
-/**
- * Schema for updating player information (name, number, position)
- */
+/** PATCH /api/players/{playerId} */
 export const UpdatePlayerInfoSchema = z
   .object({
     name: z.string().min(1, "Name is required").optional(),
@@ -61,9 +49,7 @@ export const UpdatePlayerInfoSchema = z
 
 export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
 
-/**
- * Schema for updating player role (MEMBER or ADMIN only, not OWNER)
- */
+/** PATCH /api/players/{playerId}/memberships */
 const MemberAdminRoleSchema = z.enum([PlayerRole.MEMBER, PlayerRole.ADMIN]);
 
 export const UpdatePlayerRoleSchema = z
@@ -74,10 +60,7 @@ export const UpdatePlayerRoleSchema = z
 
 export type UpdatePlayerRoleInput = z.infer<typeof UpdatePlayerRoleSchema>;
 
-/**
- * Schema for creating an invitation to an existing PURE_PLAYER
- * POST /api/players/{playerId}/memberships
- */
+/** POST /api/players/{playerId}/memberships */
 export const ManagePlayerMembershipSchema = z
   .object({
     email: z.email("請輸入有效的電子郵件"),
@@ -90,26 +73,8 @@ export type ManagePlayerMembershipInput = z.infer<
 >;
 
 /**
- * Schema for invitation response (accept/reject)
- * PATCH /api/players/{playerId}/invitations
- *
- * No `satisfies` binding: `action` dispatches to a different use case per
- * branch, it is not input data for any single one of them.
- */
-export const InvitationResponseSchema = z
-  .object({
-    action: z.enum(["accept", "reject"]),
-  })
-  .strict();
-
-export type InvitationResponseInput = z.infer<typeof InvitationResponseSchema>;
-
-/**
- * Schema for accepting, rejecting, or leaving via an existing membership
- * PATCH /api/players/{playerId}/invitations
- *
- * No `satisfies` binding: `action` dispatches to a different use case per
- * branch, it is not input data for any single one of them.
+ * PATCH /api/players/{playerId}/invitations — no `satisfies` binding, because
+ * `action` dispatches to a different use case per branch (`request-schema-boundary`).
  */
 export const PatchInvitationSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("accept") }).strict(),
@@ -119,10 +84,7 @@ export const PatchInvitationSchema = z.discriminatedUnion("action", [
 
 export type PatchInvitationInput = z.infer<typeof PatchInvitationSchema>;
 
-/**
- * Schema for transferring team ownership
- * POST /api/teams/{teamId}/ownership
- */
+/** POST /api/teams/{teamId}/ownership */
 export const TransferOwnershipSchema = z
   .object({
     newOwnerId: z.string().min(1, "請選擇新的隊伍擁有者"),
@@ -130,42 +92,3 @@ export const TransferOwnershipSchema = z
   .strict() satisfies z.ZodType<Pick<ITransferOwnershipInput, "newOwnerId">>;
 
 export type TransferOwnershipInput = z.infer<typeof TransferOwnershipSchema>;
-
-/**
- * Discriminated union for status change operations
- * - invite: Create invitation with email
- * - cancel: Cancel pending invitation
- * - accept: Accept invitation (user action)
- * - reject: Reject invitation (user action)
- * - leave: Leave team (clear userId)
- */
-export const UpdatePlayerStatusSchema = z.discriminatedUnion("action", [
-  z
-    .object({
-      action: z.literal("invite"),
-      email: z.email("Please enter a valid email address"),
-    })
-    .strict(),
-  z
-    .object({
-      action: z.literal("cancel"),
-    })
-    .strict(),
-  z
-    .object({
-      action: z.literal("accept"),
-    })
-    .strict(),
-  z
-    .object({
-      action: z.literal("reject"),
-    })
-    .strict(),
-  z
-    .object({
-      action: z.literal("leave"),
-    })
-    .strict(),
-]);
-
-export type UpdatePlayerStatusInput = z.infer<typeof UpdatePlayerStatusSchema>;
