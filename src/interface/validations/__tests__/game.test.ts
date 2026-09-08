@@ -43,6 +43,12 @@ describe("CreateGameSchema", () => {
     expect(() => CreateGameSchema.parse(gameBody())).not.toThrow();
   });
 
+  it("accepts the unnamed opponent the new-game form submits by default", () => {
+    const body = gameBody();
+    body.teams.away.name = "";
+    expect(() => CreateGameSchema.parse(body)).not.toThrow();
+  });
+
   it("requires a roster on home but not on away", () => {
     const body = gameBody();
     delete (body.teams.home as { players?: unknown }).players;

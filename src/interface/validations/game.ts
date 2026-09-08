@@ -36,7 +36,7 @@ const StaffSchema = z
 const HomeTeamSchema = z
   .object({
     id: objectId.optional(),
-    name: z.string().min(1),
+    name: z.string(),
     players: z.array(GamePlayerSchema),
     staffs: z.array(StaffSchema).optional(),
     lineup: LineupSchema.optional(),
