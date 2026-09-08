@@ -39,7 +39,9 @@ team 與 player 的九個 handler 全部都有 zod schema。**game 是唯一的�
 
 **body 不是陣列時直接 500。** `record-rallies.usecase.ts` 的 `rallies.forEach(...)` 收到 `{}` 會丟 `TypeError`，被 `withErrorHandler` 包成 `UnexpectedError`。客戶端拿到的是「發生未預期的錯誤」，而它其實只是送錯了形狀。
 
-**rally 的 `player` 子物件完全沒人驗。** `rally-entry-validation` 建立的 `validateRallyEntry` 只看 `type` / `num` / `score` / `win`，沒碰 `player = { id, zone }`。`player.id: ""` 至今無人擋——而那正是「rally 送出回 404 SET_NOT_FOUND」那個缺陷的元凶。唯一擋得住空字串的 `objectId` refine 只掛在 lineups 上。
+**rally 的 `player` 子物件完全沒人驗。** `rally-entry-validation` 建立的 `validateRallyEntry` 只看 `type` / `num` / `score` / `win`，沒碰 `player = { id, zone }`——`zone` 可以是任何數字，`id` 可以是任何字串。
+
+關於 `id` 有一件事需要講清楚，因為它容易被誤讀成「空字串該被擋下」。空字串是**記錄員沒有指派球員給該側時的現行編碼**：對手得分時我方沒有球員可指，Redux 的 draft 仍帶著這個欄位與它的未設定佔位值。repository 的 `toPlayerRef` 已經把它正規化成 `null`（`return id || null`，註解寫著「only `null` casts」），那才是「rally 送出回 404 SET_NOT_FOUND」那個缺陷的實際修法。**所以邊界必須接受它——拒絕它會讓對手得分的球記不了。** 把這個佔位值換成 `null` 是另一張票的事。lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，既有的 `objectId` refine 擋得住它，本 Change 讓 `POST/PUT /sets` 也用上同一份定義。
 
 **慣例分裂成三套。** schema 住在三個地方，而且驗證發生在兩個層：
 
