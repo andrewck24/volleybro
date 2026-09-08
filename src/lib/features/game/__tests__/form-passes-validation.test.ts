@@ -5,7 +5,7 @@ import {
 import {
   newGameBody,
   newGameFormDefaults,
-} from "@/lib/features/game/new-game-body";
+} from "@/lib/features/game/new-game-form";
 import {
   MatchInfoFormSchema,
   SetOptionsFormSchema,

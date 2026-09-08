@@ -4,7 +4,7 @@ import { MatchInfoForm } from "@/components/game/new/info-form";
 import {
   newGameBody,
   newGameFormDefaults,
-} from "@/lib/features/game/new-game-body";
+} from "@/lib/features/game/new-game-form";
 import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {

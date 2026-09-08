@@ -197,7 +197,7 @@ S02 的驗收條件要求「餵入該路由的 client **實際建構的** payloa
 | 路徑                                            | producer                             | 測試                                               |
 | ----------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
 | `PUT /sets/rallies`                             | Redux entry draft                    | `draft-passes-validation`（既有）                  |
-| `POST /api/games`                               | 新增比賽表單                         | `new-game-body.ts` + `form-passes-validation`      |
+| `POST /api/games`                               | 新增比賽表單                         | `new-game-form.ts` + `form-passes-validation`      |
 | `POST`/`PUT /sets`                              | set-options 表單                     | 同上                                               |
 | `PATCH /teams/:id/lineups`                      | Redux lineup slice                   | `lineup-passes-validation`                         |
 | `POST`/`PATCH /api/teams`                       | team 表單                            | `components/team/__tests__/form-passes-validation` |
@@ -229,6 +229,7 @@ S02 的驗收條件要求「餵入該路由的 client **實際建構的** payloa
 - **`.strict()` 對向後相容的假設。** 目前前後端同時發布，所以拒絕未宣告欄位是安全的。兩者一旦拆開發布，舊 client 多送一個欄位就會拿到 400。已列為 revisit trigger。
 - **舊 game 文件缺 `teams.home.players` 時的錯誤語意不精確。** usecase 以 `?? []` 承接，所以缺席的名單會表現成一份空名單，錯誤在 lineup 比對時才以「球員不在名單上」的 400 現身。本 Change 之後建立的比賽不會有這個狀態（`HomeTeamSchema` 要求 `players`），舊資料則沒有偵測手段。
 - **`.strict()` 的往返不變式只有兩條路徑被證明。** 新的整合測試涵蓋 team 與 game 的 lineup。任何其他「讀取值會被 client 原樣送回」的欄位若也帶著 Mongoose 的 `_id`，會以同樣的方式失敗。`lineupSchema` 是目前唯一缺 `{ _id: false }` 的 sub-schema，但那是巡過一次的結論，不是工具保證的。
+- **收斂只做到 server 端。** `src/interface/validations/` 現在是一個領域一個檔、命名一致的請求契約家。client 端沒有同等待遇：`lib/features/{game,team}/types.ts` 一個檔同時裝著 20 個 `XxxResponseSchema` 與 2 個 `XxxFormSchema`，而三個字尾（`Schema` / `ResponseSchema` / `FormSchema`）代表三種不同的概念，卻沒有任何地方寫下這個慣例。本 Change 只動了那個檔 14 行，拆它不在範圍內——但「請求驗證有一套可指認的做法」這條 Goal，在 client 端並不成立。
 - **`away` 的選填欄位是暫時的。** 隊伍查詢與資料分享功能上線後，away 會承載與 home 幾乎相同的結構，D5 的選填欄位會被填滿。
 
 ## Follow-ups
