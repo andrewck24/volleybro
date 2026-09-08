@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D3",
+  "id": "D29",
   "title": "型別重建屬邊界，領域規則屬 entity——validateRallyEntry 全部是前者",
   "status": "implemented",
   "targets": [
@@ -43,5 +43,7 @@
     "`scoringMoves` 下沉至 entities：跨欄位自洽檢查取得落點，屆時 entities 第一次持有 rally 的領域規則。",
     "出現第一條真正的 rally 領域規則（例如「後排球員不得記錄前排攻擊」）：它屬 entity，本記錄關於「entities 裡目前零條」的陳述隨之失效。",
     "entities 取得 branded 或 nominal 型別，使 `Rally` 只能透過 parse 產生：型別重建的保證延伸到型別本身，第一問的答案改變。"
-  ]
+  ],
+  "originChange": "request-schema-boundary",
+  "originDecision": "D3"
 }

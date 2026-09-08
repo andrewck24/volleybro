@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D27",
   "title": "request 驗證發生在 route 邊界，schema 住 src/interface/validations/",
   "status": "implemented",
   "targets": ["platform/clean-architecture"],
@@ -36,5 +36,7 @@
     "controller 成為 interface adapter：`.parse()` 的呼叫點移入 controller，本記錄關於「發生在 route」的部分改寫，schema 位置不變。",
     "出現第二種 delivery mechanism（Server Action、批次匯入、第二個 client）：邊界不再只有 HTTP route，屆時要重新確認「唯一入口」這個前提。",
     "`src/lib/` 的層歸屬清理完成：import 邊界 lint 規則變得可表達，本記錄的「靠 review 把關」轉為工具強制。"
-  ]
+  ],
+  "originChange": "request-schema-boundary",
+  "originDecision": "D1"
 }

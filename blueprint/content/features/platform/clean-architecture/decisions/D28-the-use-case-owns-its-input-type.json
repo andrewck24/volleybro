@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D28",
   "title": "use case 擁有自己的 input 型別，schema 以 satisfies 反向證明相容",
   "status": "implemented",
   "targets": ["platform/clean-architecture"],
@@ -36,5 +36,7 @@
     "三個 team usecase 補上 input DTO：`TeamUpdateSchema` 與 `UpdateLineupsSchema` 隨即加上 `satisfies`，本記錄的例外清單清空。",
     "出現第二個 delivery mechanism 需要同一組 input：屆時 `satisfies` 的目標仍是 usecase 的 DTO，但可能需要多個 schema 指向同一個目標。",
     "zod 的型別推導行為改變，使 `satisfies z.ZodType<T>` 不再擋得住漏欄位：約束失效，需要改用執行期測試補上。"
-  ]
+  ],
+  "originChange": "request-schema-boundary",
+  "originDecision": "D2"
 }

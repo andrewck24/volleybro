@@ -18,6 +18,8 @@ import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrec
 import storageAvailabilityIsAFirstClassState from "./decisions/D20-storage-availability-is-a-first-class-state.json";
 import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
 import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
+import parsingBelongsAtTheBoundary from "./decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
+import awayKeepsTheTeamType from "./decisions/D31-away-keeps-the-team-type-with-optional-fields.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.
@@ -168,5 +170,7 @@ appends one entry; it does not rewrite the game.
     storageAvailabilityIsAFirstClassState,
     mergeMirrorsUpsert,
     entityValidatorGuardsTheWrite,
+    parsingBelongsAtTheBoundary,
+    awayKeepsTheTeamType,
   ]}
 />

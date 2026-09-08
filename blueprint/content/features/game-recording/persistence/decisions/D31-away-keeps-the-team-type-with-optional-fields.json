@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D5",
+  "id": "D31",
   "title": "對手沿用同一個 Team 型別並把欄位改為選填，不拆成獨立的窄型別",
   "status": "implemented",
   "targets": ["game-recording/persistence"],
@@ -37,5 +37,7 @@
     "`Match` 升格為獨立的 fixture 實體：fixture 天然有兩支真實隊伍，本記錄關於「away 只有名稱」的前提隨之消失。",
     "出現第一個讀 `teams.away.players` 的功能（對戰統計、對手名單顯示）：屆時 undefined 的處理從型別義務變成真實的 UX 決定。",
     "隨隊職員名單上線：`staffs` 取得資料來源，選填與否需要重新判斷。"
-  ]
+  ],
+  "originChange": "request-schema-boundary",
+  "originDecision": "D5"
 }

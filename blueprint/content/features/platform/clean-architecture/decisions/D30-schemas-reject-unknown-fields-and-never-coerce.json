@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D30",
   "title": "所有 request schema 拒絕未宣告欄位，且一律不做型別轉換",
   "status": "implemented",
   "targets": ["platform/clean-architecture"],
@@ -37,5 +37,7 @@
     "前後端變成獨立發布（不同 repo 或不同發布節奏）：`.strict()` 會讓新 client 對舊 server 直接失敗，屆時要重新評估向後相容的加欄位策略。",
     "出現真正需要轉換的欄位（例如 URL query 一律是字串）：屆時要決定轉換發生在哪一層，且必須明確處理無效輸入而非讓它變成 `0` 或 `NaN`。",
     "公開 API 或第三方 client 出現：未知欄位一律拒絕的策略對外部呼叫者的相容性影響需要重新評估。"
-  ]
+  ],
+  "originChange": "request-schema-boundary",
+  "originDecision": "D4"
 }
