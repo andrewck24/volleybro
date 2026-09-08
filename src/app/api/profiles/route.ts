@@ -5,6 +5,7 @@ import {
   getProfileController,
   updateProfileController,
 } from "@/interface/controllers/user/profile.controller";
+import { UpdateProfileRequestSchema } from "@/interface/validations/profile";
 import { NotFoundError, ProfileReason } from "@/entities/errors";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -30,10 +31,11 @@ export const GET = withAuth(async (_req, { userId }) => {
 // PATCH: 更新當前用戶的 profile
 export const PATCH = withAuth(async (request: NextRequest, { userId }) => {
   const body = await request.json();
+  const updates = UpdateProfileRequestSchema.parse(body);
 
   await connectToMongoDB();
 
-  const profile = await updateProfileController({ userId, updates: body });
+  const profile = await updateProfileController({ userId, updates });
 
   if (!profile) {
     throw new NotFoundError(

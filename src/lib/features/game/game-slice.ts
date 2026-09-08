@@ -203,13 +203,13 @@ const setEntryDraftSubstitution: CaseReducer<
   PayloadAction<string>
 > = (state, action) => {
   const { mode } = state;
-  const inPlayer = action.payload;
-  const outPlayer = state[mode].entryDraft.home.player?.id ?? "";
+  const outPlayer = state[mode].entryDraft.home.player?.id;
+  if (!outPlayer) return;
   state[mode].entryDraft = {
     ...state[mode].entryDraft,
     substitution: {
       team: Side.HOME,
-      players: { in: inPlayer, out: outPlayer },
+      players: { in: action.payload, out: outPlayer },
     },
   };
 };

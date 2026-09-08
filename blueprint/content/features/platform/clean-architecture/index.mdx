@@ -5,6 +5,10 @@ description: What each layer may depend on, and the rules that keep those depend
 
 import sharedDomainFunctions from "./decisions/D6-shared-domain-functions.json";
 import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
+import validationHappensAtTheRouteBoundary from "./decisions/D27-request-validation-happens-at-the-route-boundary.json";
+import theUseCaseOwnsItsInputType from "./decisions/D28-the-use-case-owns-its-input-type.json";
+import parsingBelongsAtTheBoundary from "./decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
+import schemasRejectUnknownFields from "./decisions/D30-schemas-reject-unknown-fields-and-never-coerce.json";
 
 Layering is only real if something fails when it is broken. These are the
 dependency rules the codebase actually enforces, and how.
@@ -39,16 +43,30 @@ dependency rules the codebase actually enforces, and how.
 - These boundaries are held by review rather than by tooling. `src/lib/`
   currently holds code from three layers, so path alone is not a reliable
   layering signal and a lint rule cannot yet express the constraint.
-- The game routes parse no request body, so the boundary layer contributes
-  nothing there and the domain layer is the first thing an unvalidated payload
-  meets. The team and player routes all parse; game is the outlier.
+- Request validation is a route-layer concern only because the controllers are
+  four-line DI shims rather than interface adapters. The boundary is the right
+  layer; the route is a transitional home for it, and `api-route-restructure`
+  moves the `.parse()` call sites into controllers without moving the schemas.
 - A rule that has to live in `src/entities/` while the table it reads sits
-  outside it gets copied instead. `validateRallyEntry` holds the last index of
-  the scoring-move table for that reason, pinned by a test rather than shared,
-  until that table moves inward.
+  outside it cannot be written at all. Rally's cross-field consistency check is
+  a volleyball rule and therefore belongs in `src/entities/`, but it needs the
+  scoring-move table, which imports `MoveType` from entities and would cycle.
+  It waits for that table to move inward.
+- The client keeps its own request-shaped schemas. `src/interface/validations/`
+  is canonical for what a valid request is, but the form schemas in
+  `src/lib/features/*/` are independent definitions held to it by tests rather
+  than derived from it, and the response schemas there have no server-side
+  counterpart at all.
 
 ## Implemented decisions
 
 <DecisionTimeline
-  decisions={[sharedDomainFunctions, outboxProjectionLivesInUseGame]}
+  decisions={[
+    sharedDomainFunctions,
+    outboxProjectionLivesInUseGame,
+    validationHappensAtTheRouteBoundary,
+    theUseCaseOwnsItsInputType,
+    parsingBelongsAtTheBoundary,
+    schemasRejectUnknownFields,
+  ]}
 />

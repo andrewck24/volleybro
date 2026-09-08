@@ -7,7 +7,7 @@ import { getTeamController } from "@/interface/controllers/team/get-team.control
 import { updateTeamController } from "@/interface/controllers/team/update-team.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
-import { TeamUpdateSchema } from "@/lib/validations/team";
+import { TeamUpdateSchema } from "@/interface/validations/team";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = (

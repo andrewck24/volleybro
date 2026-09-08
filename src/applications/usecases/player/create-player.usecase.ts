@@ -6,15 +6,20 @@ import {
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
-import type { Player } from "@/entities/player";
+import type { Player, Position } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
-import type { CreatePlayerInput } from "@/lib/validations/player";
 import { inject, injectable } from "inversify";
 
 export interface ICreatePlayerInput {
   teamId: string;
-  data: CreatePlayerInput;
+  data: {
+    name: string;
+    number?: number;
+    position?: Position;
+    role: PlayerRole;
+    email?: string;
+  };
   userId: string;
 }
 

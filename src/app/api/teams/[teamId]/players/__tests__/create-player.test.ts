@@ -1,6 +1,6 @@
 import { createPlayer } from "@/__tests__/helpers";
 import { PlayerRole, Position } from "@/entities/player";
-import type { CreatePlayerInput } from "@/lib/validations/player";
+import type { CreatePlayerInput } from "@/interface/validations/player";
 import { describe, expect, it } from "@jest/globals";
 
 describe("POST /api/teams/[teamId]/players (Create Pure Player)", () => {

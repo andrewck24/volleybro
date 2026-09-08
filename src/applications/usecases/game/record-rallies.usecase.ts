@@ -9,7 +9,6 @@ import {
   type Entry,
   type EntryIdentity,
   type Rally,
-  validateRallyEntry,
 } from "@/entities/game";
 import { PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -60,8 +59,6 @@ export class RecordRalliesUseCase implements IRecordRalliesUseCase {
       user.id.toString(),
       PlayerRole.MEMBER,
     );
-
-    rallies.forEach(validateRallyEntry);
 
     const entries = await this.gameRepository.upsertEntry(
       { gameId, setIndex },

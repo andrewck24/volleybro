@@ -1,0 +1,239 @@
+---
+title: Review
+---
+
+# Code Review: request-schema-boundary
+
+兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了四輪，每輪都是新的空白 context，且不看前一輪的結論。
+
+**第三輪的兩軸都回報「無實作缺漏」，那個結論是錯的。** 開發者接著手動操作 app，在十分鐘內撞到兩個本 Change 造成的生產缺陷——陣容存不了、比賽建不了。四輪獨立審查加上全綠的測試套件，都沒有碰到使用者一按就中的東西。這件事本身是本 Change 最重要的產出，記在下方「三輪 review 沒抓到的東西」。以下記錄實際交付、驗證、發現與處置。
+
+---
+
+## Delivered
+
+| Slice | 標題                                                       | 狀態 |
+| ----- | ---------------------------------------------------------- | ---- |
+| S01   | team 與 player 的 schema 遷入 `src/interface/validations/` | ✅   |
+| S02   | 三套慣例收斂成一套（`.strict()` + `satisfies`）            | ✅   |
+| S03   | `Team` / `Match` 型別與實際寫入對齊                        | ✅   |
+| S04   | game 五條寫入路由在邊界 parse                              | ✅   |
+| S05   | entity 卸下型別重建，只留領域規則                          | ✅   |
+
+四輪 review 加上開發者手動驗收後共 29 個 commit。
+
+## Verification
+
+| 閘門                                         | 結果                                                                              |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| `pnpm verify:all`                            | exit 0 — 1035 unit tests / 138 suites（backend 443/62 + frontend 592/76）         |
+| `pnpm test:integration`                      | exit 0 — 43 tests / 15 suites                                                     |
+| `pnpm typecheck:strict`                      | 0 errors                                                                          |
+| `test/integration/rally-validation.itest.ts` | 未出現在本 Change 的 diff 中，且維持綠燈——S04 的 schema 與 S05 刪除的檢查行為等價 |
+
+---
+
+## Findings
+
+### #1 三份 `objectId` 定義 — Standards，✅ 已修
+
+`game.ts` 與 `team.ts` 各自寫了一份 `OBJECT_ID_RE.test(...)` 的 refine，加上 `rallyPlayerId` 是第三份。這正是本 Change 要消滅的東西——「什麼構成一筆合法的請求」只有一份定義——卻在自己的實作裡複製了三次。
+
+新增 `src/interface/validations/object-id.ts`，匯出 `objectId`、`nullableObjectId`、`rallyPlayerId`，三個 refine 共用同一個 `isObjectId` 述詞。
+
+### #2 十三個 route test 的 mock 樣板 — Standards，✅ 已修
+
+`next/server` 與 `next/headers` 的 stub 在十三個檔案裡逐字元相同，且不引用任何檔案內的區域變數。已上移到 `jest.setup.backend.ts`。`@/lib/auth` 與 `connect-to-mongodb` 的 mock **留在原地**——它們綁定各檔案自己的 `jest.fn()`，斷言要看得到那個引用。
+
+### #3 註解重新論證已記錄的決定 — Standards，✅ 已修
+
+`game.ts` 的 `HomeTeamSchema` 上方有六行在重新論證 D5；`player.ts` 兩處在重新論證 D2。三處都沒有指向本 Change 的 slug，讀者無從查證。縮成一行並帶上 `request-schema-boundary`。
+
+### #4 註解複述程式碼 — Standards，✅ 已修
+
+`player.ts` 的檔頭、`game.ts` 五處、`profile.ts` 一處，形如 `Schema for creating a game`。**路由那一行留下**——`POST /api/games` 不在程式碼裡，是這個 schema 唯一無法從自身推導的事實。
+
+### #5 `src/interface/validations/game.ts` 沒有 schema 單元測試 — Spec，✅ 已修
+
+design.mdx 要求三層驗證，第一層是「schema 單元測試——證明規則本身正確」。S04 交付的是 route 接線測試與 integration 測試，跳過了這一層。
+
+補上 12 個測試，涵蓋 `.strict()` 的巢狀行為、不做 coercion、`num` 上界綁在 `scoringMoves.length - 1`、home 需要 roster 而 away 不需要、ISO 字串轉 `Date`，以及 `rallyPlayerId` 接受空字串但 lineup 的 `objectId` 不接受。
+
+**已做突變檢驗**：把 `players` 改成 `.optional()`、把 `rallyPlayerId` 的 refine 改成恆真，各有一個測試轉紅。測試會分辨。
+
+### #6 S04 的 slice 與 Overview 對 `player.id` 說法相反 — Spec，✅ 已修
+
+S04 原本寫「`player.id` 使用 `objectId` refine」。實作中查明空字串是記錄員未指派球員時的合法編碼，Overview 在實作中改成「邊界必須接受它」，slice 沒跟著改。已更新 slice 並寫明 lineup 沒有這個豁免。
+
+### #7 repository 讀取路徑是未宣告的邊界擴張 — Spec，✅ 已修
+
+`toLineupRead` 從展開 `...lineup` 改成列出具名欄位。程式碼裡有理由（lineup subdocument 的 Mongoose `_id` 會被前端原封不動送回，撞上 `.strict()`），但 Change boundaries 明列「repository 的任何寫入路徑」不在內，讀取路徑則完全沒提。
+
+已在 index.mdx 加上「後來納入」一項並說明它是 `.strict()` 自己製造出來的耦合，同時把「不在內」那條收窄為**寫入**路徑。
+
+### #8 四個沒有生產呼叫端的 export — Standards，✅ 已處理（開發者確認）
+
+四個在本 Change 之前就已無人引用，S01 只是搬了檔案。依 CLAUDE.md，判斷型刪除先送開發者確認；確認依據是它們全部可以從 `src/entities/player.ts` 的欄位一行重建。處置分兩種，因為其中兩個仍有檔案內的呼叫端：
+
+| Export                     | 處置                                                |
+| -------------------------- | --------------------------------------------------- |
+| `InvitationResponseSchema` | 刪除——`PatchInvitationSchema` 已涵蓋它的三個 action |
+| `UpdatePlayerStatusSchema` | 刪除——沒有任何 route 掛過它                         |
+| `PlayerStatusSchema`       | 降為模組私有——`PlayerSchema.status` 還在用          |
+| `PositionSchema`           | 降為模組私有——三個 schema 還在用                    |
+
+`PlayerRoleSchema` 一併降為模組私有，理由相同。
+
+---
+
+---
+
+## Round 2
+
+同樣兩軸、同樣空白 context，跑在第一輪修正之後。
+
+### #9 `HomeTeamSchema` 與 `AwayTeamSchema` 逐欄位重複 — Standards，✅ 已修
+
+兩者只差 `players` 的必填與否，其餘五個欄位逐字元相同。改為 `HomeTeamSchema.extend({ players: ... })`，並補一個測試證明 `.extend()` 之後 `.strict()` 仍然生效。
+
+### #10 team `id` 沒有走那份唯一的 ObjectId 定義 — Spec，✅ 已修
+
+`HomeTeamSchema.id` 與 `AwayTeamSchema.id` 是 `z.string().optional()`，是新邊界上唯一沒用 `objectId` 的 id 欄位——而 `home.id` 在資料庫裡是 `ref: "Team"`。本 Change 的 Goal 明寫「『什麼構成一筆合法的請求』只有一份定義」，這裡自己破了例。改為 `objectId.optional()`。
+
+### #11 五個測試檔名說的是測試手法，不是被測對象 — Standards，✅ 已修
+
+`wired-route.test.ts` ×3、`update-route.test.ts`、`create-route.test.ts`，全部與既有的 `route.test.ts` 並存。「wired」是 harness 的實作細節。統一改名為 `request-schema.test.ts`——它們測的是同一件事：這條路由的 request 契約。
+
+### #12 route test 的 request literal 與 console 靜音樣板 — Standards，✅ 已修
+
+`{ url, method, nextUrl, json }` 這個五行字面值在十個測試裡重複，把唯一會變的 body 埋在最不顯眼的位置。抽成 `src/test-utils/route-request.ts` 的 `routeRequest()` 與 `silenceConsoleError()`。
+
+### #13 測試基礎設施是第二處未宣告的邊界擴張 — Spec，✅ 已修
+
+`jest.setup.backend.ts` 與新的 test helper 都不在原本的 Change boundaries 裡。已比照 `toLineupRead` 加入「後來納入」。
+
+### #14 兩條驗收 grep 寫得太寬 — Spec，✅ 已修
+
+S03 的 `grep weather src/` 現在會打到新的 schema 測試（它刻意送一個 `weather` 欄位證明 `.strict()` 擋得住）；S04 的 `grep "\.\.\.lineup"` 打到 `toLineupWrite`，而受規範的是 `toLineupRead`。兩條都收窄成它們原本要說的意思。
+
+### 未採納的兩項
+
+**`Team` 的三個欄位改選填削弱了 entity 的保證**（Standards 判斷題）。這正是 D5 的內容，且不是疏漏：對手取得真實身分後這些欄位會被填滿，此刻拆成 home/away 兩個窄型別，之後要合併回來。維持 D5。
+
+**`teams.home.players ?? []` 把缺席的名單變成空名單**（Spec 判斷題）。屬實——舊資料若缺 `players`，錯誤會以「球員不在名單上」的 400 現身，而不是以它自己的樣子。但 `HomeTeamSchema` 已要求 `players` 必填，本 Change 之後建立的比賽不會有這個狀態，而替舊資料設計一個新的錯誤語意超出本 Change。列入下方 residual risks。
+
+---
+
+## Round 3
+
+兩軸都回報沒有實作缺漏。剩下的四項全是「註解帶著理由而不是指向理由」，加上兩處 artifact 敘述超前實作。
+
+### #15 四處註解比它描述的程式碼長 — Standards，✅ 已修
+
+CONTRIBUTING 明寫「a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file」。`object-id.ts` 的 `rallyPlayerId`（5 行註解／3 行程式碼）、`route-request.ts` 的檔頭、`game.repository.mongo.ts` 的 `toLineupRead`、`game.ts` 的 `HomeTeamSchema` 都犯了同一條，且多數只帶 slug 沒帶 decision id。全部壓成引用。
+
+### #16 S04 的 outcome 說 parse 在開資料庫連線之前 — Spec，✅ 已修
+
+五條路由都是 `connectToMongoDB()` 先、`Schema.parse()` 後。驗收條件只要求 parse 在 `teamId` 檢查之後（成立），是 outcome 的敘述超前實作。改為「觸及任何 controller 或 usecase 之前」。
+
+### #17 review 的 suite 數字錯誤 — Spec，第四輪才真正修好
+
+寫成「backend 135 suites + frontend 18 suites」，實際 135 是 backend + frontend 的合計，18 是 blueprint 那一輪。
+
+**第三輪把這一項標成「已修」，但那次編輯根本沒生效，數字原封不動留在頁面上，而這一段還宣稱修好了。** 第四輪的 Spec 軸抓到這個矛盾。本輪的每個數字都是在 HEAD 重新量過才寫上去的。
+
+### #18 兩個 id 欄位仍未走那份唯一定義 — Spec，✅ 已修
+
+`TransferOwnershipSchema.newOwnerId` 是 `z.string().min(1)`，卻直接送進 `playerRepository.findById()`——非 ObjectId 的字串會變成 Mongoose CastError，也就是 500 而非 400。`MatchInfoSchema.id` 同樣是裸字串，而 `matchSchema._id` 是 `Schema.Types.ObjectId`。兩者都改為 `objectId`，#10 的「唯一」因此成真而不是被改寫。
+
+---
+
+## 交付前的最後一項：`""` 映射為 `null`
+
+開發者在 Blueprint Review 之前追問了一件 Overview 原本打算延後的事：邊界既然接受 `player.id: ""`，把它轉成 `null` 是不是更正確？
+
+是，而且這個 repo 已經自己說了三次——lineup 用 `nullableObjectId`、`toPlayerRef` 回傳 `null`、`deriveSetStats` 讀到的型別本來就是 `{ id?: string | null }`。只有 `RallyDetail.player.id: string` 跟其他三處不一致，是與 `Team` 同一類的型別謊言，而消滅型別謊言正是本 Change 的前提（「如果那個型別本身在說謊，加 schema 只是把謊言正式化」）。
+
+實測成本：把該欄位改成 `string | null` 之後 `tsc` 零錯誤——所有消費端都是 `Boolean(...)` 或 `if (scorerId && ...)` 這類真值判斷，`""` 與 `null` 走同一條路。實際改動三處：entity 型別、`rallyPlayerId` 加 `.transform`、schema 測試改為斷言轉換結果而非僅斷言接受。
+
+**這不是 D4 禁止的 coercion。** 它與 `z.iso.datetime().transform(...)` 同類：先拒絕既不是 `""` 也不是 ObjectId 的值，再把通過的合法輸入映射到 domain 表示；`z.coerce.*` 則會靜默吞下垃圾。Redux draft 繼續送 `""`，由邊界吸收這個 wire format 的怪癖。
+
+Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」，該句已刪除。
+
+---
+
+## 三輪 review 沒抓到的東西
+
+兩個生產缺陷，都是開發者手動操作發現的。
+
+### 回歸一：陣容編輯頁存不了
+
+調整替補名單後儲存回 400。
+
+`lineupSchema` 是 team mongoose schema 裡**唯一沒有 `{ _id: false }`** 的 sub-schema，所以每份 lineup 都帶著自己的 `_id`。`team.repository.mongo.ts` 的 `toTeam` 用 `...lineup` 展開，那個 `_id` 於是進入 API 回應、進入 Redux，再被 `PATCH /api/teams/:id/lineups` 原樣送回——撞上新的 `.strict()`，400。
+
+這與 #7 是**同一個缺陷的兩個實例**。S04 期間在 `game.repository.mongo.ts` 修掉了 `toLineupRead`，卻沒有去看 team 那一份，因為當時是從 game 的 `.strict()` 失敗反推回去的，不是從「哪些讀取路徑會被原樣送回」正面盤點。
+
+修法相同：列出具名欄位。真正的問題是先前沒有任何東西表達這條不變式，所以補上 `test/integration/lineup-read-is-a-legal-request.itest.ts`——它把讀到的 lineup 直接餵回它自己的 request schema，team 與 game 兩條路徑各一個案例。**已做突變檢驗**：把任一條改回 `...lineup`，對應的案例就轉紅。
+
+這件事也修正了 Testing strategy 的一個盲點：「餵 client 實際建構的 payload」擋不住這類缺陷，因為 payload 本身是**伺服器發給 client 的**。read 與 write 的往返才是那條不變式。
+
+### 回歸二：新增比賽建不了
+
+對手名稱留白時送出，回 400 `操作失敗：資料格式不正確`。
+
+`AwayTeamSchema` 繼承的 `name: z.string().min(1)` 是本 Change 憑空加上的約束——`entities/game.ts` 的 `Team.name` 只是 `string`，沒有下限；表單的對手名稱欄位沒有預設值也沒有必填標記。移除該 `.min(1)`。
+
+而本該擋下它的測試，`game-rally-from-created-game.itest.ts` 的 `newGameBody()` 註解寫著「這是 `NewGameForm.createGame` 實際送出的 body」，卻在表單唯一會留白的那個欄位上手填了 `"Away"`。
+
+### 兩者共同的教訓
+
+S02 的驗收條件要求「餵入該路由的 client **實際建構的** payload（取自對應的表單或 hook，不是手寫的最小物件）」。實際交付的是**人工抄寫**的物件加上一句「這是實際 payload」的註解——抄寫者在抄的時候，抄的是自己以為的樣子。
+
+`draft-passes-validation.test.ts` 是唯一做對的那個：它驅動**真的 Redux store**，讓真正的 producer 產生 payload，再拿伺服器的 schema 當斷言。rally 那條路徑從頭到尾沒出過事。
+
+所以補上同形式的測試，每一條有 client producer 的寫入路徑各一個：
+
+| 路徑                                            | producer                             | 測試                                               |
+| ----------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
+| `PUT /sets/rallies`                             | Redux entry draft                    | `draft-passes-validation`（既有）                  |
+| `POST /api/games`                               | 新增比賽表單                         | `new-game-form.ts` + `form-passes-validation`      |
+| `POST`/`PUT /sets`                              | set-options 表單                     | 同上                                               |
+| `PATCH /teams/:id/lineups`                      | Redux lineup slice                   | `lineup-passes-validation`                         |
+| `POST`/`PATCH /api/teams`                       | team 表單                            | `components/team/__tests__/form-passes-validation` |
+| `POST /teams/:id/players`、`PATCH /players/:id` | 表單 resolver **就是** server schema | 不需要——不一致在型別上不可能                       |
+
+`POST /api/games` 那條在補測試時立刻抓到第二個還沒爆的不一致：`SetOptionsFormSchema` 的 `time.start`/`time.end` 是選填，而 `Set.options.time` 兩者必填。想放寬伺服器時 `satisfies` 直接編譯失敗——**entity 是仲裁者**，所以收緊 client。
+
+### 為什麼「餵真實 payload」這條驗收條件擋不住它自己
+
+它把「真實」交給撰寫者的自覺。人工抄寫必然抄成自己理解的樣子，而理解錯誤正是缺陷的來源。唯一可靠的形式是**讓產生 payload 的那段程式碼自己去產生**——它做不到的地方（component 內的 inline 物件字面值），這條驗收條件本來就不該宣稱它做得到。
+
+---
+
+## Plan vs. actual
+
+三處實作推翻了計畫時的說法，全部已回寫到 artifacts：
+
+| 計畫說                            | 實際                                                                                                                     | 處置                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| rally 的 `player.id: ""` 應被擋下 | 它是記錄員未指派球員的 wire format 佔位值；邊界接受它並映射成 `null`                                                     | index.mdx 與 S04 改寫 |
+| D4「一律不做 coercion」           | `Match.time.date` 的 `z.iso.datetime().transform(...)` 是 validate-then-transform，不是 coercion——先拒絕非法值，再轉型別 | D4 補上這個區分       |
+| `role` → `newRole` 重新命名       | `membership-section.tsx` 送的是 `role`；改名會弄壞它，也會把對外欄位彎成內部名稱                                         | 撤回，改由 route 映射 |
+
+**D3 的判準在 Propose 之後、Apply 之前被替換過。**原本的「它需要資料庫裡的狀態嗎」不是乾淨架構的分界——`away.num ∈ outcome` 是無狀態卻是排球規則，「這個 gameId 存在嗎」是有狀態卻只是 404。改成兩個有序問題：**這是在重建型別，還是在判斷領域規則？** design.mdx 保留「一個被撤回的判準」一節記錄這件事。
+
+## Residual risks
+
+- **route 層驗證是過渡狀態。** D1 承諾終局是 controller 成為 interface adapter，由 `api-route-restructure` 承接。在那之前，「邊界是唯一入口」這個前提靠 review 把關，沒有工具強制——`src/lib/` 仍混著三個層的程式碼，任何以路徑判層的 lint 規則都還無法表達。
+- **`.strict()` 對向後相容的假設。** 目前前後端同時發布，所以拒絕未宣告欄位是安全的。兩者一旦拆開發布，舊 client 多送一個欄位就會拿到 400。已列為 revisit trigger。
+- **舊 game 文件缺 `teams.home.players` 時的錯誤語意不精確。** usecase 以 `?? []` 承接，所以缺席的名單會表現成一份空名單，錯誤在 lineup 比對時才以「球員不在名單上」的 400 現身。本 Change 之後建立的比賽不會有這個狀態（`HomeTeamSchema` 要求 `players`），舊資料則沒有偵測手段。
+- **`.strict()` 的往返不變式只有兩條路徑被證明。** 新的整合測試涵蓋 team 與 game 的 lineup。任何其他「讀取值會被 client 原樣送回」的欄位若也帶著 Mongoose 的 `_id`，會以同樣的方式失敗。`lineupSchema` 是目前唯一缺 `{ _id: false }` 的 sub-schema，但那是巡過一次的結論，不是工具保證的。
+- **收斂只做到 server 端。** `src/interface/validations/` 現在是一個領域一個檔、命名一致的請求契約家。client 端沒有同等待遇：`lib/features/{game,team}/types.ts` 一個檔同時裝著 20 個 `XxxResponseSchema` 與 2 個 `XxxFormSchema`，而三個字尾（`Schema` / `ResponseSchema` / `FormSchema`）代表三種不同的概念，卻沒有任何地方寫下這個慣例。本 Change 只動了那個檔 14 行，拆它不在範圍內——但「請求驗證有一套可指認的做法」這條 Goal，在 client 端並不成立。
+- **`away` 的選填欄位是暫時的。** 隊伍查詢與資料分享功能上線後，away 會承載與 home 幾乎相同的結構，D5 的選填欄位會被填滿。
+
+## Follow-ups
+
+- 跨欄位自洽檢查（`num` 決定 `type` 與 `win`）仍以 `scoringMoves` 下沉到 entities 為前置——依 D3 第二問它是排球規則，屬 entity，而 entity 現在查那張表會成環。
+- response 端 8 處 `PlayerSchema.parse()` 方向相反（驗的是我們自己產生的資料，失敗代表資料層壞了卻回報成 400），另票處理。
+- import 邊界的 lint 規則，等 `src/lib/` 的層歸屬清理完成。

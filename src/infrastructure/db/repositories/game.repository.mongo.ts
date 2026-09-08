@@ -75,8 +75,10 @@ export class GameRepositoryImpl implements IGameRepository {
 
   private toLineupRead(lineup: RawLineup | undefined) {
     if (!lineup) return lineup;
+    // The subdocument's own `_id` has no field on `Lineup` and no place in
+    // the request the client builds from this value.
     return {
-      ...lineup,
+      options: lineup.options,
       starting: (lineup.starting ?? []).map((p) => this.mapLineupPlayerRead(p)),
       liberos: (lineup.liberos ?? []).map((p) => this.mapLineupPlayerRead(p)),
       substitutes: (lineup.substitutes ?? []).map((p) =>
@@ -165,7 +167,7 @@ export class GameRepositoryImpl implements IGameRepository {
 
   // --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
 
-  /** "No player" arrives as `""` as often as `null`, and only `null` casts. */
+  /** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
   private toPlayerRef(id: string | null | undefined) {
     return id || null;
   }

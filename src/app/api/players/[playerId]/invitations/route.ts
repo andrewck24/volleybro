@@ -1,18 +1,12 @@
 import * as invitationController from "@/interface/controllers/player/invitation.controller";
+import { PatchInvitationSchema } from "@/interface/validations/player";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 /**
  * PATCH /api/players/{playerId}/invitations - Accept, reject, or leave
  */
-
-const PatchInvitationSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("accept") }),
-  z.object({ action: z.literal("reject") }),
-  z.object({ action: z.literal("leave") }),
-]);
 
 export const PATCH = (
   _req: NextRequest,

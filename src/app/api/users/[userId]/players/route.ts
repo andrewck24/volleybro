@@ -5,7 +5,7 @@
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { withAuth } from "@/lib/api/wrappers";
-import { PlayerSchema } from "@/lib/validations/player";
+import { PlayerSchema } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = (

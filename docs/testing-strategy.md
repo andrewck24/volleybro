@@ -70,13 +70,11 @@ Per-layer reality under each tier:
 
 The integration tier is what closes the previously-uncovered **route ↔ usecase ↔ repository ↔ DB** persistence seam: it drives a real `NextRequest` through the exported route handler so route-layer request mapping (`si`/`ei` params, JSON body, forwarded fields) is exercised end to end against a real Mongoose write/read round-trip.
 
-**Where it runs:** the integration project is a **local pre-PR gate, not part of CI**. `pnpm test` (and therefore `pnpm verify`, which CI runs) covers only the `backend` and `frontend` projects. Run the integration tier locally before opening a PR:
+**Where it runs:** `.github/workflows/ci.yml` runs it as its own job, separate from `pnpm test` (which covers only the `backend` and `frontend` projects). Run it locally before opening a PR too, since it is slower and network-dependent (it downloads and boots a real `mongodb-memory-server` binary):
 
 ```bash
 pnpm test:integration
 ```
-
-It is excluded from CI because it downloads and boots a real `mongodb-memory-server` binary — slow and network-dependent — which is verified locally rather than on every CI run.
 
 ---
 

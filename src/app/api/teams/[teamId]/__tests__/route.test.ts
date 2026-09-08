@@ -1,3 +1,4 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import {
   beforeAll,
   beforeEach,
@@ -29,25 +30,12 @@ jest.mock("@/interface/controllers/team/update-team.controller", () => ({
   updateTeamController: mockUpdateTeamController,
 }));
 
-jest.mock("next/server", () => ({
-  NextResponse: {
-    json: jest.fn((body: unknown, init?: ResponseInit) => ({
-      status: init?.status ?? 200,
-      json: async () => body,
-    })),
-  },
-}));
-
 jest.mock("@/lib/auth", () => ({
   auth: {
     api: {
       getSession: mockGetSession,
     },
   },
-}));
-
-jest.mock("next/headers", () => ({
-  headers: jest.fn<() => Promise<Headers>>().mockResolvedValue(new Headers()),
 }));
 
 jest.mock("@/infrastructure/di/inversify.config", () => ({
@@ -79,10 +67,8 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for invalid teamId format", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = { url: "http://localhost/api/teams/undefined", method: "GET" };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest("http://localhost/api/teams/undefined", "GET");
     const props = { params: Promise.resolve({ teamId: "undefined" }) };
 
     const res = await GET(req as never, props);
@@ -95,10 +81,8 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 400 with VALIDATION code for arbitrary non-ObjectId string", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = { url: "http://localhost/api/teams/abc", method: "GET" };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest("http://localhost/api/teams/abc", "GET");
     const props = { params: Promise.resolve({ teamId: "abc" }) };
 
     const res = await GET(req as never, props);
@@ -110,14 +94,12 @@ describe("GET /api/teams/[teamId]", () => {
   });
 
   it("returns 404 with NOT_FOUND code when valid ObjectId but team not found", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
+    const consoleSpy = silenceConsoleError();
     mockGetTeamController.mockResolvedValue(null);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
-      method: "GET",
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "GET",
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await GET(req as never, props);
@@ -132,10 +114,10 @@ describe("GET /api/teams/[teamId]", () => {
   it("returns 200 with team data when team found", async () => {
     const team = { id: VALID_OBJECT_ID, name: "Test Team" };
     mockGetTeamController.mockResolvedValue(team);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
-      method: "GET",
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "GET",
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await GET(req as never, props);
@@ -163,11 +145,11 @@ describe("PATCH /api/teams/[teamId]", () => {
   it("returns 401 when session is missing", async () => {
     const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     mockGetSession.mockResolvedValue(null);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
-      method: "PATCH",
-      json: async () => ({ name: "New Name" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "PATCH",
+      { name: "New Name" },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -177,14 +159,10 @@ describe("PATCH /api/teams/[teamId]", () => {
   });
 
   it("returns 400 when teamId is not a valid ObjectId", async () => {
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-    const req = {
-      url: "http://localhost/api/teams/bad-id",
-      method: "PATCH",
-      json: async () => ({ name: "New Name" }),
-    };
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest("http://localhost/api/teams/bad-id", "PATCH", {
+      name: "New Name",
+    });
     const props = { params: Promise.resolve({ teamId: "bad-id" }) };
 
     const res = await PATCH(req as never, props);
@@ -198,11 +176,11 @@ describe("PATCH /api/teams/[teamId]", () => {
   it("returns 200 with updated team on valid request", async () => {
     const updated = { id: VALID_OBJECT_ID, name: "New Name" };
     mockUpdateTeamController.mockResolvedValue(updated);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}`,
-      method: "PATCH",
-      json: async () => ({ name: "New Name" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "PATCH",
+      { name: "New Name" },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -214,5 +192,45 @@ describe("PATCH /api/teams/[teamId]", () => {
       name: "New Name",
       nickname: undefined,
     });
+  });
+
+  // The exact body TeamForm's onSubmit sends (src/components/team/form.tsx):
+  it("returns 200 for the payload the edit-team form actually sends", async () => {
+    const updated = { id: VALID_OBJECT_ID, name: "RyuJin", nickname: "RYUJIN" };
+    mockUpdateTeamController.mockResolvedValue(updated);
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "PATCH",
+      { name: "RyuJin", nickname: "RYUJIN" },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual(updated);
+    expect(mockUpdateTeamController).toHaveBeenCalledWith(VALID_OBJECT_ID, {
+      name: "RyuJin",
+      nickname: "RYUJIN",
+    });
+  });
+
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "PATCH",
+      { name: "New Name", extra: true },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockUpdateTeamController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });

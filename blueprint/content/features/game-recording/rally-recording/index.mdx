@@ -14,6 +14,7 @@ import manualRetryIsADatedPatch from "./decisions/D21-manual-retry-is-a-dated-pa
 import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
 import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
 import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
+import parsingBelongsAtTheBoundary from "./decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
 
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
@@ -148,5 +149,6 @@ the rotation, whether it is at set point — follows from the entries.
     outboxProjectionLivesInUseGame,
     mergeMirrorsUpsert,
     entityValidatorGuardsTheWrite,
+    parsingBelongsAtTheBoundary,
   ]}
 />

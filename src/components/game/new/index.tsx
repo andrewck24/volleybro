@@ -1,6 +1,10 @@
 "use client";
 import { MatchInfo } from "@/components/game/match";
 import { MatchInfoForm } from "@/components/game/new/info-form";
+import {
+  newGameBody,
+  newGameFormDefaults,
+} from "@/lib/features/game/new-game-form";
 import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,21 +50,9 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     document.startViewTransition(() => setView(view));
   };
 
-  const [info, setInfo] = useState<TMatchInfoForm>({
-    name: "",
-    number: 1,
-    phase: "0",
-    division: "0",
-    category: "0",
-    teams: {
-      home: { name: team?.name },
-      away: { name: "" },
-    },
-    scoring: { setCount: "3", decidingSetPoints: 15 },
-    location: { city: "", hall: "" },
-    time: { date: new Date(), start: "", end: "" },
-    weather: { temperature: "" },
-  });
+  const [info, setInfo] = useState<TMatchInfoForm>(
+    newGameFormDefaults(team?.name),
+  );
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {
     if (!team || !teamPlayers) return [];
@@ -83,33 +75,18 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .sort((a, b) => a.number - b.number);
 
   const createGame = async () => {
-    const infoData = {
-      ...info,
-      phase: Number(info.phase),
-      division: Number(info.division),
-      category: Number(info.category),
-      scoring: {
-        ...info.scoring,
-        setCount: Number(info.scoring.setCount),
-      },
-    };
-
     try {
       const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          info: infoData,
-          teams: {
-            home: {
-              id: teamId,
-              name: info.teams.home.name,
-              players,
-              lineup: team?.lineups[lineupIndex],
-            },
-            away: { name: info.teams.away.name },
-          },
-        }),
+        body: JSON.stringify(
+          newGameBody({
+            info,
+            teamId,
+            players,
+            lineup: team?.lineups[lineupIndex],
+          }),
+        ),
       });
 
       mutate(`/api/games/${game.id}`, game, false);

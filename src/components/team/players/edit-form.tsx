@@ -36,7 +36,7 @@ import type { PlayerView } from "@/lib/features/team/types";
 import {
   UpdatePlayerInfoSchema,
   type UpdatePlayerInfoInput,
-} from "@/lib/validations/player";
+} from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
