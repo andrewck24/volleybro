@@ -4,7 +4,9 @@ title: Review
 
 # Code Review: request-schema-boundary
 
-兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了三輪，每輪都是新的空白 context，且不看前一輪的結論。第三輪的 Standards 軸回報「沒有硬性違規」，Spec 軸回報「(a) 缺漏 /(b) 越界 /(c) 實作錯誤：無」——兩軸只剩敘述性修正，達到 fixed point。以下記錄實際交付、驗證、發現與處置。
+兩軸獨立審查（standards / spec），各自空白 context，互不看對方的結論。跑了四輪，每輪都是新的空白 context，且不看前一輪的結論。
+
+**第三輪的兩軸都回報「無實作缺漏」，那個結論是錯的。** 開發者接著手動操作 app，在十分鐘內撞到兩個本 Change 造成的生產缺陷——陣容存不了、比賽建不了。四輪獨立審查加上全綠的測試套件，都沒有碰到使用者一按就中的東西。這件事本身是本 Change 最重要的產出，記在下方「三輪 review 沒抓到的東西」。以下記錄實際交付、驗證、發現與處置。
 
 ---
 
@@ -18,14 +20,14 @@ title: Review
 | S04   | game 五條寫入路由在邊界 parse                              | ✅   |
 | S05   | entity 卸下型別重建，只留領域規則                          | ✅   |
 
-兩輪 review 後共 18 個 commit。
+四輪 review 加上開發者手動驗收後共 29 個 commit。
 
 ## Verification
 
 | 閘門                                         | 結果                                                                              |
 | -------------------------------------------- | --------------------------------------------------------------------------------- |
-| `pnpm verify:all`                            | exit 0 — 1021 unit tests（backend 135 suites + frontend 18 suites）               |
-| `pnpm test:integration`                      | exit 0 — 38 tests，13 suites                                                      |
+| `pnpm verify:all`                            | exit 0 — 1035 unit tests / 138 suites（backend 443/62 + frontend 592/76）         |
+| `pnpm test:integration`                      | exit 0 — 43 tests / 15 suites                                                     |
 | `pnpm typecheck:strict`                      | 0 errors                                                                          |
 | `test/integration/rally-validation.itest.ts` | 未出現在本 Change 的 diff 中，且維持綠燈——S04 的 schema 與 S05 刪除的檢查行為等價 |
 
@@ -134,9 +136,11 @@ CONTRIBUTING 明寫「a doc comment longer than the code it describes is a sign 
 
 五條路由都是 `connectToMongoDB()` 先、`Schema.parse()` 後。驗收條件只要求 parse 在 `teamId` 檢查之後（成立），是 outcome 的敘述超前實作。改為「觸及任何 controller 或 usecase 之前」。
 
-### #17 review 的 suite 數字錯誤 — Spec，✅ 已修
+### #17 review 的 suite 數字錯誤 — Spec，第四輪才真正修好
 
-寫成「backend 135 suites + frontend 18 suites」，實際 135 是 backend+frontend 的合計（62 + 73），18 是 blueprint 那一輪。
+寫成「backend 135 suites + frontend 18 suites」，實際 135 是 backend + frontend 的合計，18 是 blueprint 那一輪。
+
+**第三輪把這一項標成「已修」，但那次編輯根本沒生效，數字原封不動留在頁面上，而這一段還宣稱修好了。** 第四輪的 Spec 軸抓到這個矛盾。本輪的每個數字都是在 HEAD 重新量過才寫上去的。
 
 ### #18 兩個 id 欄位仍未走那份唯一定義 — Spec，✅ 已修
 
@@ -158,9 +162,13 @@ Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」
 
 ---
 
-## 開發者驗收時發現的回歸
+## 三輪 review 沒抓到的東西
 
-**陣容編輯頁調整替補名單後無法儲存。** 這是本 Change 造成的回歸，由開發者實際操作發現——三輪 review 與全部自動化測試都沒抓到。
+兩個生產缺陷，都是開發者手動操作發現的。
+
+### 回歸一：陣容編輯頁存不了
+
+調整替補名單後儲存回 400。
 
 `lineupSchema` 是 team mongoose schema 裡**唯一沒有 `{ _id: false }`** 的 sub-schema，所以每份 lineup 都帶著自己的 `_id`。`team.repository.mongo.ts` 的 `toTeam` 用 `...lineup` 展開，那個 `_id` 於是進入 API 回應、進入 Redux，再被 `PATCH /api/teams/:id/lineups` 原樣送回——撞上新的 `.strict()`，400。
 
@@ -169,6 +177,37 @@ Overview 原本寫著「把這個佔位值換成 `null` 是另一張票的事」
 修法相同：列出具名欄位。真正的問題是先前沒有任何東西表達這條不變式，所以補上 `test/integration/lineup-read-is-a-legal-request.itest.ts`——它把讀到的 lineup 直接餵回它自己的 request schema，team 與 game 兩條路徑各一個案例。**已做突變檢驗**：把任一條改回 `...lineup`，對應的案例就轉紅。
 
 這件事也修正了 Testing strategy 的一個盲點：「餵 client 實際建構的 payload」擋不住這類缺陷，因為 payload 本身是**伺服器發給 client 的**。read 與 write 的往返才是那條不變式。
+
+### 回歸二：新增比賽建不了
+
+對手名稱留白時送出，回 400 `操作失敗：資料格式不正確`。
+
+`AwayTeamSchema` 繼承的 `name: z.string().min(1)` 是本 Change 憑空加上的約束——`entities/game.ts` 的 `Team.name` 只是 `string`，沒有下限；表單的對手名稱欄位沒有預設值也沒有必填標記。移除該 `.min(1)`。
+
+而本該擋下它的測試，`game-rally-from-created-game.itest.ts` 的 `newGameBody()` 註解寫著「這是 `NewGameForm.createGame` 實際送出的 body」，卻在表單唯一會留白的那個欄位上手填了 `"Away"`。
+
+### 兩者共同的教訓
+
+S02 的驗收條件要求「餵入該路由的 client **實際建構的** payload（取自對應的表單或 hook，不是手寫的最小物件）」。實際交付的是**人工抄寫**的物件加上一句「這是實際 payload」的註解——抄寫者在抄的時候，抄的是自己以為的樣子。
+
+`draft-passes-validation.test.ts` 是唯一做對的那個：它驅動**真的 Redux store**，讓真正的 producer 產生 payload，再拿伺服器的 schema 當斷言。rally 那條路徑從頭到尾沒出過事。
+
+所以補上同形式的測試，每一條有 client producer 的寫入路徑各一個：
+
+| 路徑                                            | producer                             | 測試                                               |
+| ----------------------------------------------- | ------------------------------------ | -------------------------------------------------- |
+| `PUT /sets/rallies`                             | Redux entry draft                    | `draft-passes-validation`（既有）                  |
+| `POST /api/games`                               | 新增比賽表單                         | `new-game-body.ts` + `form-passes-validation`      |
+| `POST`/`PUT /sets`                              | set-options 表單                     | 同上                                               |
+| `PATCH /teams/:id/lineups`                      | Redux lineup slice                   | `lineup-passes-validation`                         |
+| `POST`/`PATCH /api/teams`                       | team 表單                            | `components/team/__tests__/form-passes-validation` |
+| `POST /teams/:id/players`、`PATCH /players/:id` | 表單 resolver **就是** server schema | 不需要——不一致在型別上不可能                       |
+
+`POST /api/games` 那條在補測試時立刻抓到第二個還沒爆的不一致：`SetOptionsFormSchema` 的 `time.start`/`time.end` 是選填，而 `Set.options.time` 兩者必填。想放寬伺服器時 `satisfies` 直接編譯失敗——**entity 是仲裁者**，所以收緊 client。
+
+### 為什麼「餵真實 payload」這條驗收條件擋不住它自己
+
+它把「真實」交給撰寫者的自覺。人工抄寫必然抄成自己理解的樣子，而理解錯誤正是缺陷的來源。唯一可靠的形式是**讓產生 payload 的那段程式碼自己去產生**——它做不到的地方（component 內的 inline 物件字面值），這條驗收條件本來就不該宣稱它做得到。
 
 ---
 

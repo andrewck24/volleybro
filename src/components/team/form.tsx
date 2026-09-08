@@ -26,7 +26,7 @@ import { z } from "zod";
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
-const TeamSchema = z
+export const TeamSchema = z
   .object({
     name: z
       .string()

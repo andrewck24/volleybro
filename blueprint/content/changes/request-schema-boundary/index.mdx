@@ -89,6 +89,7 @@ lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，
 - **一定在內**：五條 game route、`src/interface/validations/`（新增 `game.ts`，遷入 `team.ts` 與 `player.ts`）、11 個 importer、`src/entities/game.ts` 的 `Team` / `Match` / `RallyDetail` 型別與 `validateRallyEntry` / `validateLineupPlayers`、`record-rallies.usecase.ts` 的呼叫點、`create-player.usecase.ts` 的 input 型別、`src/components/game/new/index.tsx` 的三處 payload 修正。
 - **後來納入**：`game.repository.mongo.ts` 的 `toLineupRead` 與 `team.repository.mongo.ts` 的 `toTeam`。兩條讀取路徑原本都展開 `...lineup`，把 lineup subdocument 的 Mongoose `_id` 一起交給前端（`lineupSchema` 是唯一沒有 `{ _id: false }` 的 sub-schema）；前端把該值原封不動送回時，新的 `.strict()` 會擋下它。這個耦合在 S04 之前不存在，是 `.strict()` 本身製造出來的，所以留在本 Change 而非另開一票。
 - **後來納入**：`jest.setup.backend.ts` 與 `src/test-utils/route-request.ts`。十三個 route test 各自帶著逐字元相同的 `next/server` / `next/headers` stub 與 request literal；本 Change 是製造出這批測試的那張票，所以收斂它們屬本 Change。
+- **後來納入**：`src/lib/features/game/new-game-body.ts` 與 `src/lib/features/game/types.ts` 的 `SetOptionsFormSchema`。新增比賽的 payload 原本在 component 裡當場拼出來，沒有任何東西能問「表單的產出滿足伺服器嗎」——那正是 `away.name` 缺陷藏身之處。抽成模組讓那個問題可測；測試接著抓出 `SetOptionsFormSchema` 與 `Set.options.time` 的不一致，依 D2 由 client 收緊。
 - **不在內**：`withErrorHandler` 的錯誤映射邏輯、`assertObjectId` 的實作與位置、repository 的任何**寫入**路徑、mongoose 的 `teamSchema._id` 設定、response 端的 `.parse()`。
 
 ## Impact
@@ -151,7 +152,13 @@ lineup 的 `player.id` 則相反：那裡的空字串沒有任何合法意義，
       path: "src/components/game/new/index.tsx",
       change: "modified",
       summary:
-        "停止送出三個沒有人讀的東西：weather、players[].list、infoData.teams。",
+        "停止送出三個沒有人讀的東西：weather、players[].list、infoData.teams。表單初始值與 payload 拼裝都移出，改由 new-game-body.ts 持有。",
+    },
+    {
+      path: "src/lib/features/game/new-game-body.ts",
+      change: "added",
+      summary:
+        "新增比賽的表單初始值與 payload 拼裝的單一來源。抽出來的理由是可測性：payload 留在 component 裡時，沒有東西能斷言它通過伺服器的 schema。",
     },
     {
       path: "test/integration/game-rally-from-created-game.itest.ts",
