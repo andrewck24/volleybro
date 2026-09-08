@@ -1,5 +1,5 @@
-import { validateRallyEntry } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { RecordRalliesSchema } from "@/interface/validations/game";
 import { makeStore } from "@/lib/redux/store";
 import {
   backMoves,
@@ -10,14 +10,15 @@ import {
 
 // What the recorder submits is the draft itself, cast to a rally
 // (`{ ...(draft as RallyView), id, seq }` in the moves panel), and the draft's
-// own type allows null where the validator now demands a value. Reading the
+// own type allows null where the schema now demands a value. Reading the
 // reducers says they always fill those in; nothing observed it until here.
 const submitted = (store: ReturnType<typeof makeStore>) => {
   const { entryDraft } = store.getState().game.general;
-  return { ...entryDraft, id: "e1", seq: 0 } as unknown as Parameters<
-    typeof validateRallyEntry
-  >[0];
+  return { ...entryDraft, id: "e1", seq: 0 };
 };
+
+const passesSchema = (store: ReturnType<typeof makeStore>) =>
+  RecordRalliesSchema.safeParse([submitted(store)]).success;
 
 // Everything the panel can offer for a home move: front row, back row, or --
 // with no player picked -- an opponent error.
@@ -35,7 +36,7 @@ describe("the draft a recorded rally is submitted as", () => {
         gameActions.setEntryDraftAwayMove(scoringMoves[move.outcome[0]!]!),
       );
 
-      expect(() => validateRallyEntry(submitted(store))).not.toThrow();
+      expect(passesSchema(store)).toBe(true);
     },
   );
 
@@ -46,11 +47,11 @@ describe("the draft a recorded rally is submitted as", () => {
       const store = makeStore();
       store.dispatch(gameActions.setEntryDraftHomeMove(move));
 
-      expect(() => validateRallyEntry(submitted(store))).not.toThrow();
+      expect(passesSchema(store)).toBe(true);
     },
   );
 
   it("rejects the untouched draft, which is why the panel gates submission", () => {
-    expect(() => validateRallyEntry(submitted(makeStore()))).toThrow();
+    expect(passesSchema(makeStore())).toBe(false);
   });
 });

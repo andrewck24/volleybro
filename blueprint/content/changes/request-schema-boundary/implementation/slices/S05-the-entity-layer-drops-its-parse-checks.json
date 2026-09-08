@@ -28,5 +28,5 @@
     "grep -rn \"validateRallyEntry\\|LAST_SCORING_MOVE\" src/ test/ 回傳零筆",
     "確認 test/integration/rally-validation.itest.ts 未出現在本片的 diff 中"
   ],
-  "status": "pending"
+  "status": "completed"
 }

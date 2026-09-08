@@ -87,9 +87,8 @@ describe("game write routes reject a malformed body without persisting", () => {
       body: { lineup: seeded.lineup, options },
     });
 
-    // Neither validateRallyEntry (still in place until S05) nor Mongoose
-    // casting rejects an extra field — only the schema's nested `.strict()`
-    // on `player` does.
+    // Mongoose casting does not reject an extra field — only the schema's
+    // nested `.strict()` on `player` does.
     const res = await callRoute(recordRallies, {
       gameId: seeded.gameId,
       method: "PUT",

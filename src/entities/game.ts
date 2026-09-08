@@ -87,21 +87,6 @@ export type Player = {
 };
 
 export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
-  // The lineup arrives unvalidated from the request body, so reject a
-  // malformed shape here instead of letting a spread throw a raw TypeError.
-  if (
-    lineup == null ||
-    typeof lineup !== "object" ||
-    !Array.isArray(lineup.starting) ||
-    !Array.isArray(lineup.liberos) ||
-    !Array.isArray(lineup.substitutes)
-  ) {
-    throw new ValidationError(
-      CommonReason.INVALID_INPUT,
-      "Lineup shape is malformed",
-    );
-  }
-
   const rosterIds = new Set(
     roster
       .filter((player) => player.id != null)
@@ -121,41 +106,6 @@ export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
         "Lineup references a player not on the team roster",
       );
     }
-  }
-}
-
-const MOVE_TYPES: ReadonlySet<unknown> = new Set(
-  Object.values(MoveType).filter((value) => typeof value === "number"),
-);
-
-// The scoring-move table a `num` indexes into still lives outside entities, so
-// its last index is repeated here. See rally-entry-validation D2.
-const LAST_SCORING_MOVE = 14;
-
-export function validateRallyEntry(rally: Rally & EntryIdentity): void {
-  const invalid = (detail: string) =>
-    new ValidationError(CommonReason.INVALID_INPUT, detail);
-
-  if (typeof rally?.win !== "boolean")
-    throw invalid("A rally must record which side won it");
-
-  for (const side of ["home", "away"] as const) {
-    const move: Partial<RallyDetail> | undefined = rally[side];
-    if (move == null || typeof move !== "object")
-      throw invalid(`A rally must record its ${side} side`);
-    if (!MOVE_TYPES.has(move.type))
-      throw invalid(
-        `A rally's ${side} move type must be one this codebase defines`,
-      );
-    if (
-      typeof move.num !== "number" ||
-      !Number.isInteger(move.num) ||
-      move.num < 0 ||
-      move.num > LAST_SCORING_MOVE
-    )
-      throw invalid(`A rally's ${side} move number must index a scoring move`);
-    if (typeof move.score !== "number" || !Number.isFinite(move.score))
-      throw invalid(`A rally's ${side} score must be a number`);
   }
 }
 
