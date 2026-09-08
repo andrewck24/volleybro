@@ -4,6 +4,20 @@ import type {
   TMatchInfoForm,
 } from "@/lib/features/game/types";
 
+export const newGameFormDefaults = (
+  homeTeamName: string | undefined,
+): TMatchInfoForm => ({
+  name: "",
+  number: 1,
+  phase: "0",
+  division: "0",
+  category: "0",
+  teams: { home: { name: homeTeamName }, away: { name: "" } },
+  scoring: { setCount: "3", decidingSetPoints: 15 },
+  location: { city: "", hall: "" },
+  time: { date: new Date(), start: "", end: "" },
+});
+
 export const newGameBody = ({
   info,
   teamId,

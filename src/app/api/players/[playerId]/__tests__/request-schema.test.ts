@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -33,11 +33,11 @@ describe("PATCH /api/players/[playerId]", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}`,
-      method: "PATCH",
-      json: async () => ({ name: "新名字", email: "leak@example.com" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}`,
+      "PATCH",
+      { name: "新名字", email: "leak@example.com" },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -50,8 +50,6 @@ describe("PATCH /api/players/[playerId]", () => {
   });
 
   // The exact body InfoSection's handleSubmit sends (src/components/team/players/edit-form.tsx):
-  // JSON.stringify(data) where data is produced by zodResolver(UpdatePlayerInfoSchema),
-  // so it never carries more than name/number/position.
   it("returns 200 for the payload the player-edit form actually sends", async () => {
     const updated = {
       id: VALID_OBJECT_ID,
@@ -63,15 +61,15 @@ describe("PATCH /api/players/[playerId]", () => {
       updatedAt: new Date(),
     };
     mockUpdatePlayer.mockResolvedValue(updated);
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}`,
-      method: "PATCH",
-      json: async () => ({
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}`,
+      "PATCH",
+      {
         name: "新名字",
         number: 12,
         position: Position.OH,
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);

@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -39,15 +39,15 @@ describe("POST /api/players/[playerId]/memberships", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
-      method: "POST",
-      json: async () => ({
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "POST",
+      {
         email: "test@example.com",
         role: PlayerRole.MEMBER,
         message: "please join",
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -60,7 +60,6 @@ describe("POST /api/players/[playerId]/memberships", () => {
   });
 
   // The exact body InviteSection's handleInvite sends (src/components/team/players/membership-section.tsx):
-  // JSON.stringify({ email, role }).
   it("returns 201 for the payload the invite form actually sends", async () => {
     const invited = {
       id: VALID_OBJECT_ID,
@@ -71,14 +70,14 @@ describe("POST /api/players/[playerId]/memberships", () => {
       updatedAt: new Date(),
     };
     mockCreateInvitation.mockResolvedValue(invited);
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
-      method: "POST",
-      json: async () => ({
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "POST",
+      {
         email: "test@example.com",
         role: PlayerRole.MEMBER,
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -105,11 +104,11 @@ describe("PATCH /api/players/[playerId]/memberships", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
-      method: "PATCH",
-      json: async () => ({ role: PlayerRole.ADMIN, requestedBy: "user-1" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "PATCH",
+      { role: PlayerRole.ADMIN, requestedBy: "user-1" },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -122,7 +121,6 @@ describe("PATCH /api/players/[playerId]/memberships", () => {
   });
 
   // The exact body JoinedSection's handleUpdateRole sends (src/components/team/players/membership-section.tsx):
-  // JSON.stringify({ role }).
   it("returns 200 for the payload the role-change control actually sends", async () => {
     const updated = {
       id: VALID_OBJECT_ID,
@@ -133,11 +131,11 @@ describe("PATCH /api/players/[playerId]/memberships", () => {
       updatedAt: new Date(),
     };
     mockUpdateRole.mockResolvedValue(updated);
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
-      method: "PATCH",
-      json: async () => ({ role: PlayerRole.ADMIN }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "PATCH",
+      { role: PlayerRole.ADMIN },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);

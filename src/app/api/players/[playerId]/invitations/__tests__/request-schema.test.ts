@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockAcceptInvitation = jest.fn<(input: unknown) => Promise<unknown>>();
@@ -34,11 +34,11 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
-      method: "PATCH",
-      json: async () => ({ action: "accept", note: "sounds good" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "accept", note: "sounds good" },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -51,14 +51,13 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
   });
 
   // The exact body handleInvitation sends (src/components/user/invitations/index.tsx):
-  // JSON.stringify({ action }) with action "accept" | "reject".
   it("returns 200 for the payload the invitation-response control actually sends", async () => {
     mockAcceptInvitation.mockResolvedValue(undefined);
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
-      method: "PATCH",
-      json: async () => ({ action: "accept" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "accept" },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);
@@ -73,14 +72,13 @@ describe("PATCH /api/players/[playerId]/invitations", () => {
   });
 
   // The exact body handleLeaveTeam sends (src/components/team/info/index.tsx):
-  // JSON.stringify({ action: "leave" }).
   it("returns 200 for the payload the leave-team control actually sends", async () => {
     mockLeaveTeam.mockResolvedValue(undefined);
-    const req = {
-      url: `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
-      method: "PATCH",
-      json: async () => ({ action: "leave" }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "leave" },
+    );
     const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
     const res = await PATCH(req as never, props);

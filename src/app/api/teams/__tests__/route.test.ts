@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
@@ -36,11 +36,10 @@ describe("POST /api/teams", () => {
   it("returns 401 when session is missing", async () => {
     const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     mockGetSession.mockResolvedValue(null);
-    const req = {
-      url: "http://localhost/api/teams",
-      method: "POST",
-      json: async () => ({ name: "RyuJin", nickname: "RYUJIN" }),
-    };
+    const req = routeRequest("http://localhost/api/teams", "POST", {
+      name: "RyuJin",
+      nickname: "RYUJIN",
+    });
 
     const res = await POST(req as never);
 
@@ -50,11 +49,11 @@ describe("POST /api/teams", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: "http://localhost/api/teams",
-      method: "POST",
-      json: async () => ({ name: "RyuJin", nickname: "RYUJIN", extra: true }),
-    };
+    const req = routeRequest("http://localhost/api/teams", "POST", {
+      name: "RyuJin",
+      nickname: "RYUJIN",
+      extra: true,
+    });
 
     const res = await POST(req as never);
     const body = (await res.json()) as { code: string };
@@ -66,16 +65,13 @@ describe("POST /api/teams", () => {
   });
 
   // The exact body TeamForm's onSubmit sends (src/components/team/form.tsx):
-  // JSON.stringify(formData) where formData is { name, nickname } validated
-  // by the form's own required-both zod schema.
   it("returns 201 for the payload the new-team form actually sends", async () => {
     const createdTeam = { id: "team-1", name: "RyuJin", nickname: "RYUJIN" };
     mockCreateTeamController.mockResolvedValue(createdTeam);
-    const req = {
-      url: "http://localhost/api/teams",
-      method: "POST",
-      json: async () => ({ name: "RyuJin", nickname: "RYUJIN" }),
-    };
+    const req = routeRequest("http://localhost/api/teams", "POST", {
+      name: "RyuJin",
+      nickname: "RYUJIN",
+    });
 
     const res = await POST(req as never);
     const body = await res.json();

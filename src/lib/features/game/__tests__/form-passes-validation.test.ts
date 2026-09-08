@@ -2,31 +2,20 @@ import {
   CreateGameSchema,
   CreateSetSchema,
 } from "@/interface/validations/game";
-import { newGameBody } from "@/lib/features/game/new-game-body";
+import {
+  newGameBody,
+  newGameFormDefaults,
+} from "@/lib/features/game/new-game-body";
 import {
   MatchInfoFormSchema,
   SetOptionsFormSchema,
   type LineupListPlayer,
   type SetOptionsFormValues,
-  type TMatchInfoForm,
 } from "@/lib/features/game/types";
 import { Position, type Lineup } from "@/entities/team";
 
 const TEAM_ID = "507f1f77bcf86cd799439011";
 const PLAYER_ID = "507f1f77bcf86cd799439012";
-
-// Verbatim from NewGameForm's useState initialiser; the test is void if it drifts.
-const formDefaults = (teamName: string | undefined): TMatchInfoForm => ({
-  name: "",
-  number: 1,
-  phase: "0",
-  division: "0",
-  category: "0",
-  teams: { home: { name: teamName }, away: { name: "" } },
-  scoring: { setCount: "3", decidingSetPoints: 15 },
-  location: { city: "", hall: "" },
-  time: { date: new Date(), start: "", end: "" },
-});
 
 const roster: LineupListPlayer[] = [
   { id: PLAYER_ID, name: "Player 1", number: 1, list: "starting" },
@@ -46,11 +35,11 @@ const asSent = (body: unknown) => JSON.parse(JSON.stringify(body));
 
 describe("what the new-game form submits", () => {
   it.each([
-    ["with nothing typed in", formDefaults("My Team")],
+    ["with nothing typed in", newGameFormDefaults("My Team")],
     [
       "with every optional field filled",
       {
-        ...formDefaults("My Team"),
+        ...newGameFormDefaults("My Team"),
         name: "Final",
         teams: { home: { name: "My Team" }, away: { name: "Rivals" } },
         location: { city: "Taipei", hall: "Arena" },

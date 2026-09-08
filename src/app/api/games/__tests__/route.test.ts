@@ -66,13 +66,10 @@ describe("GET /api/games", () => {
 
   it("calls controller with teamId, lastId, and limit params", async () => {
     const summaries = { gameSummaries: [], hasMore: false, lastId: "" };
-    const req = {
-      url: "http://localhost/api/games?ti=team-1&li=last-1&lm=5",
-      method: "GET",
-      nextUrl: {
-        searchParams: new URLSearchParams("ti=team-1&li=last-1&lm=5"),
-      },
-    };
+    const req = routeRequest(
+      "http://localhost/api/games?ti=team-1&li=last-1&lm=5",
+      "GET",
+    );
     mockFindGameSummariesController.mockResolvedValue(summaries);
 
     const res = await GET(req as never);

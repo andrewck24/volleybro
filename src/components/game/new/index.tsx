@@ -1,7 +1,10 @@
 "use client";
 import { MatchInfo } from "@/components/game/match";
 import { MatchInfoForm } from "@/components/game/new/info-form";
-import { newGameBody } from "@/lib/features/game/new-game-body";
+import {
+  newGameBody,
+  newGameFormDefaults,
+} from "@/lib/features/game/new-game-body";
 import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,20 +50,9 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     document.startViewTransition(() => setView(view));
   };
 
-  const [info, setInfo] = useState<TMatchInfoForm>({
-    name: "",
-    number: 1,
-    phase: "0",
-    division: "0",
-    category: "0",
-    teams: {
-      home: { name: team?.name },
-      away: { name: "" },
-    },
-    scoring: { setCount: "3", decidingSetPoints: 15 },
-    location: { city: "", hall: "" },
-    time: { date: new Date(), start: "", end: "" },
-  });
+  const [info, setInfo] = useState<TMatchInfoForm>(
+    newGameFormDefaults(team?.name),
+  );
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {
     if (!team || !teamPlayers) return [];

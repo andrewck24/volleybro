@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
@@ -37,11 +37,10 @@ describe("PATCH /api/profiles", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: "http://localhost/api/profiles",
-      method: "PATCH",
-      json: async () => ({ activeTeamId: "team-1", isAdmin: true }),
-    };
+    const req = routeRequest("http://localhost/api/profiles", "PATCH", {
+      activeTeamId: "team-1",
+      isAdmin: true,
+    });
 
     const res = await PATCH(req as never);
     const body = (await res.json()) as { code: string };
@@ -53,15 +52,12 @@ describe("PATCH /api/profiles", () => {
   });
 
   // The exact body team-switcher sends (src/components/team/team-switcher.tsx):
-  // JSON.stringify({ activeTeamId: newTeamId }).
   it("returns 200 for the payload team-switcher actually sends", async () => {
     const profile = { userId: "user-1", activeTeamId: "team-1" };
     mockUpdateProfileController.mockResolvedValue(profile);
-    const req = {
-      url: "http://localhost/api/profiles",
-      method: "PATCH",
-      json: async () => ({ activeTeamId: "team-1" }),
-    };
+    const req = routeRequest("http://localhost/api/profiles", "PATCH", {
+      activeTeamId: "team-1",
+    });
 
     const res = await PATCH(req as never);
     const body = await res.json();

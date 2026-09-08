@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -35,15 +35,15 @@ describe("POST /api/teams/[teamId]/players", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
-      method: "POST",
-      json: async () => ({
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
         name: "陳大文",
         role: PlayerRole.MEMBER,
         list: "starting",
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -56,9 +56,6 @@ describe("POST /api/teams/[teamId]/players", () => {
   });
 
   // The exact body CreateForm's handleSubmit sends (src/components/team/players/create-form.tsx):
-  // JSON.stringify(data) where data is produced by zodResolver(CreatePlayerSchema),
-  // so RHF only submits the schema's own fields and JSON.stringify drops the
-  // undefined ones (unfilled email stays out of the wire body entirely).
   it("returns 201 for the payload the create-player form actually sends", async () => {
     const created = {
       id: "player-1",
@@ -71,16 +68,16 @@ describe("POST /api/teams/[teamId]/players", () => {
       updatedAt: new Date(),
     };
     mockCreatePlayer.mockResolvedValue(created);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
-      method: "POST",
-      json: async () => ({
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
         name: "陳大文",
         number: 5,
         position: Position.MB,
         role: PlayerRole.MEMBER,
-      }),
-    };
+      },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);

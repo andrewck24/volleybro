@@ -1,4 +1,4 @@
-import { silenceConsoleError } from "@/test-utils/route-request";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
@@ -34,11 +34,11 @@ describe("POST /api/teams/[teamId]/ownership", () => {
 
   it("returns 400 for a body with an undeclared field", async () => {
     const consoleSpy = silenceConsoleError();
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
-      method: "POST",
-      json: async () => ({ newOwnerId: NEW_OWNER_ID, confirm: true }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
+      "POST",
+      { newOwnerId: NEW_OWNER_ID, confirm: true },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
@@ -51,7 +51,6 @@ describe("POST /api/teams/[teamId]/ownership", () => {
   });
 
   // The exact body handleTransferOwnership sends (src/components/team/players/membership-section.tsx):
-  // JSON.stringify({ newOwnerId: player.id }).
   it("returns 200 for the payload the transfer-ownership control actually sends", async () => {
     const updated = {
       id: NEW_OWNER_ID,
@@ -62,11 +61,11 @@ describe("POST /api/teams/[teamId]/ownership", () => {
       updatedAt: new Date(),
     };
     mockTransferOwnership.mockResolvedValue(updated);
-    const req = {
-      url: `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
-      method: "POST",
-      json: async () => ({ newOwnerId: NEW_OWNER_ID }),
-    };
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
+      "POST",
+      { newOwnerId: NEW_OWNER_ID },
+    );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
     const res = await POST(req as never, props);
