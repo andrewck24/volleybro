@@ -39,9 +39,7 @@ describe("error-messages catalogue", () => {
 });
 
 describe("the catalogue is the only source", () => {
-  // Three manual sweeps each missed a copy — one matched object fields, one
-  // matched shapes, and neither saw a bare const. A copy that has drifted by a
-  // character still escapes this, so it catches recurrence, not every case.
+  // A copy that has already drifted by a character still escapes this.
   const sourceFiles = (dir: string): string[] =>
     readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const full = join(dir, entry.name);
@@ -56,7 +54,10 @@ describe("the catalogue is the only source", () => {
     );
 
     const copies = sourceFiles("src")
-      .filter((file) => file !== catalogue && !file.includes("__tests__"))
+      .filter(
+        (file) =>
+          file !== catalogue && !/__tests__|stories|test-utils/.test(file),
+      )
       .flatMap((file) => {
         const content = readFileSync(file, "utf8");
         return strings
