@@ -40,7 +40,7 @@ import { TLDR } from "@/components/TLDR";
 ## Non-goals
 
 - 不動錯誤碼、HTTP 狀態碼，也不動 `withErrorHandler` 的映射。傳輸語意本身是對的。
-- 不在每個 throw 站點強制 `detail` / `internalMessage` 的分工。本 Change 把 `detail` 從 wire 移除，該分工對客戶端就失去意義；收緊伺服器端的紀律沒有使用者可見的效果，屬於另一件事。
+- 不決定 `detail` 與 `internalMessage` 是否還該是兩個欄位。93 個建構點裡有 82 個不傳第三格，所以本 Change 把 `detail` 從 wire 移除之後，兩者塌成同一件事、其中一個是另一個的預設值。那是建構子的人體工學，沒有使用者可見的效果，屬於另一件事——連同這個型別的命名一起。
 - 不建立翻譯層。函式庫的選擇會決定 API 形狀，那屬於 i18n 那件工作；本 Change 只保證目錄的形狀值得被遷移。
 - 不修 401 轉址門閂的釋放條件（見下方 Change boundaries）。
 - 不處理「搜尋使用者把所有失敗都報成查無此人」——那個錯誤根本沒有進入任何顯示路徑，是另一件事。
