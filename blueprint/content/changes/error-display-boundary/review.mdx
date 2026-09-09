@@ -1,0 +1,204 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  七個切片全部交付。兩個前提在過程中被自己的查證推翻——一次在提案階段（這不是識別碼洩漏），一次在執行階段（空的對手名稱從來沒有被拒絕過）——兩次都改寫了工作本身，而不是只改措辭。
+</TLDR>
+
+## 交付內容
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/api/error-messages.ts",
+      change: "added",
+      summary:
+        "使用者可見錯誤字串的唯一存放處。24 個 reason 中的 20 個各有一則，其餘四則由類別常數吸收並以 ABSORBED_REASONS 記名。key 打錯是編譯錯誤。",
+      lang: "ts",
+      code: 'export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {\n  SESSION_EXPIRED: { title: "\u767b\u5165\u903e\u671f", description: "\u8acb\u91cd\u65b0\u767b\u5165" },\n  OWNER_CANNOT_LEAVE: {\n    title: "\u968a\u9577\u7121\u6cd5\u96e2\u958b\u968a\u4f0d",\n    description: "\u8acb\u5148\u628a\u968a\u9577\u8f49\u79fb\u7d66\u5176\u4ed6\u6210\u54e1\uff0c\u518d\u96e2\u958b",\n  },\n  // \u202620 \u500b reason \u689d\u76ee\n};',
+    },
+    {
+      path: "src/lib/api/error-toast.ts",
+      change: "modified",
+      summary:
+        "兩條互相矛盾的顯示路徑收斂成一個 total function。getErrorMessage 這個名字退役。401 的提早 return 移除。",
+      lang: "ts",
+      code: 'export function resolveErrorDisplay(error: unknown): ErrorMessage {\n  if (error instanceof RefreshTimeoutError) return ERROR_MESSAGES.NETWORK_TIMEOUT;\n  if (!(error instanceof ApiClientError)) return ERROR_MESSAGES.UNKNOWN;\n  if (error.status === 401) return ERROR_MESSAGES.SESSION_EXPIRED;\n  // \u5ba2\u6236\u7aef\u81ea\u9020\u7684 reason \u5fc5\u9808\u6392\u5728 5xx \u4e4b\u524d\uff0c\u5426\u5247\u6703\u88ab 503 \u541e\u6389\n  if (error.reason === "TIMEOUT" || error.reason === "NETWORK_ERROR")\n    return ERROR_MESSAGES.NETWORK_TIMEOUT;\n  if (error.status >= 500 || error.code === "UNEXPECTED")\n    return ERROR_MESSAGES.SERVER_ERROR;\n  const entries: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;\n  return entries[error.reason] ?? ERROR_MESSAGES.UNKNOWN;\n}',
+    },
+    {
+      path: "src/lib/api/wrappers.ts",
+      change: "modified",
+      summary:
+        "serializeError 與那個 unreachable fallback 都收斂為 code + reason；驗證失敗的 details 縮成欄位路徑。",
+      lang: "ts",
+      code: "const body: Record<string, unknown> = {\n  code: error.code,\n  reason: error.reason,\n  detail: error.detail, // [!code --]\n};\nif (error instanceof ValidationError && error.details !== undefined) {\n  body.details = error.details; // [!code --]\n  body.details = error.details.map(toFieldPath); // [!code ++]\n}",
+    },
+    {
+      path: "src/proxy.ts",
+      change: "modified",
+      summary:
+        "Edge 401 是第二個回應產生點，完全不經過 serializeError。只改 Node 那條會讓契約只成立一半。",
+      lang: "ts",
+      code: 'return NextResponse.json(\n  { code: "AUTHENTICATION", reason: AuthReason.SESSION_REQUIRED },\n  { status: 401 },\n);',
+    },
+    {
+      path: "src/lib/api/api-client.ts",
+      change: "modified",
+      summary:
+        "拿掉 .detail getter，並停止把 detail 當 Error 的 message——少了後者，字串會活在 .message 上而 tsc 什麼都不會列舉。",
+      lang: "ts",
+      code: "throw new ApiClientError(info.detail, info); // [!code --]\nthrow new ApiClientError(info.reason, info); // [!code ++]",
+    },
+    {
+      path: "src/applications/usecases/user/profile.usecase.ts",
+      change: "modified",
+      summary:
+        "刪除一個三重不可達的 guard：型別已排除該欄位、route 的 .strict() 擋下、兩個呼叫端都不傳。",
+      lang: "ts",
+      code: 'if ("userId" in updates || "id" in updates) { // [!code --]\n  throw new ValidationError( // [!code --]\n    ProfileReason.INVALID_EMAIL, // [!code --]\n    "Cannot update userId or id fields", // [!code --]\n  ); // [!code --]\n} // [!code --]',
+    },
+    {
+      path: "src/lib/features/game/types.ts",
+      change: "modified",
+      summary:
+        "兩處比 request schema 寬鬆的欄位收緊到控制項已經強制的範圍。使用者能做的事沒有改變。",
+      lang: "ts",
+      code: 'teams: z.object({\n  home: z.object({ name: z.string().optional() }), // [!code --]\n  home: z.object({ name: z.string() }), // [!code ++]\n}),\nscoring: z.object({\n  setCount: z.string(), // [!code --]\n  setCount: z.enum(["1", "3", "5"]), // [!code ++]\n}),',
+    },
+    {
+      path: "jest.config.ts",
+      change: "modified",
+      summary:
+        "backend project 納入 src/__tests__/**。在此之前 proxy.test.ts 不符合任何 testMatch，從未執行過。",
+      lang: "ts",
+      code: 'testMatch: [\n  "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",\n  "<rootDir>/src/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}", // [!code ++]\n],',
+    },
+  ]}
+/>
+
+## 兩個被推翻的前提
+
+計畫階段與執行階段各一次。兩次都是查證推翻了工作自己寫下的敘述。
+
+### 一、這不是識別碼洩漏
+
+原始 issue 說 `Player 6721a not found in team abc` 已經在 response body 裡。**不是。** `AppError` 有三格，那個字串在第三格，只進 log，而且早就有一個測試釘住它不外洩。全 repo 113 個建構點裡只有兩處內插真實 id，兩處都正確地在第三格。
+
+真正成立的是**內部詞彙**上了 wire，而且它是被 `docs/specs/error-handling/spec.md` **明文規定**的行為——那份 spec 說 `detail` 是「safe for HTTP responses」，並且規定查不到對照時 `SHALL display error.detail`。所以這個 Change 推翻的是四條寫下來的 requirement，不是一個沒人執行的慣例。
+
+### 二、空的對手名稱從來沒有被拒絕過
+
+S07 原本的驗收寫著「今天它會繞一趟網路回來給一個通用失敗訊息」。用真實 payload 走真實的 JSON 序列化實測：
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    'const wire = JSON.parse(JSON.stringify(newGameBody({ info, teamId, players })));\nCreateGameSchema.safeParse(wire);\n// away.name sent: ""\n// success: true   \u2190 request schema \u7684 z.string() \u63a5\u53d7\u7a7a\u5b57\u4e32'
+  }
+/>
+
+沒有任何一層擋它，而每一個渲染隊名的地方都已經有 `對手` 的 fallback。**沒有錯置的約束——那個約束根本不存在。** 開發者確認空名稱本來就該被接受，S07 因此改寫為「form 不再接受 server 會拒絕的東西」，範圍縮到兩處控制項已經強制的收緊。
+
+第一次實測我把物件直接餵給 `safeParse`，`Date` 沒經過序列化，得到一個假的型別錯誤，差點回報一個不存在的缺陷。
+
+## Review findings
+
+兩軸各自在獨立 context 執行。
+
+<RiskTable
+  risks={[
+    {
+      name: "Spec：窮盡性測試手寫五個 enum 名稱",
+      severity: "warning",
+      mitigation:
+        "接受並已修。這正是該測試自己的驗收條件禁止的事，也正是 ProfileReason 第一次被漏掉的方式——而那個手寫指示是我下給執行者的。改為從模組匯出推導，並以新增第六個 enum 實測會紅來驗證；舊版本會通過。",
+    },
+    {
+      name: "Spec：一個 dialog 測試丟出不存在的 reason",
+      severity: "warning",
+      mitigation:
+        "接受並已修。它丟 NOT_ALLOWED（任何 enum 都沒有），因此斷言的是通用 fallback，對它命名的那條文案路徑什麼都沒證明。改成丟該 dialog 真實會產生的 reason 並斷言那則文案。",
+    },
+    {
+      name: "Standards：401 門閂註解重述 Blueprint 已擁有的推理",
+      severity: "warning",
+      mitigation:
+        "接受並已修。CONTRIBUTING 明文要求引用 Change 而非複製，且一到兩行為常態；原本是六行。壓成兩行加 slug-qualified 引用。",
+    },
+    {
+      name: "Standards：ABSORBED_REASONS 是字串字面量",
+      severity: "info",
+      mitigation:
+        "接受並已修。改成 enum 成員之後，重新命名 reason 會是編譯錯誤而不是只有執行期測試會抓。",
+    },
+    {
+      name: "Standards：changeset 未提 409 → 404",
+      severity: "info",
+      mitigation:
+        "駁回，附證據。全 repo 沒有任何 client 邏輯依 409/404 分支；取消邀請的 catch 只呼叫 showErrorToast，依 reason 解析出同一則文案。使用者觀察不到差別，屬 changeset 規則明列應省略的「無行為變更的內部重構」。",
+    },
+    {
+      name: "Spec：驗證回應未以 key 集合斷言",
+      severity: "info",
+      mitigation:
+        "接受並已修。那是最可能長出新欄位的 body，現在與另外兩個產生點一樣以 key 集合斷言。",
+    },
+  ]}
+/>
+
+### 最尖銳的一則
+
+窮盡性測試曾經是這樣：
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    'import { AuthReason, CommonReason, GameReason, PlayerReason, ProfileReason } from "@/entities/errors"; // [!code --]\nimport * as errors from "@/entities/errors"; // [!code ++]\n\nconst allReasons = [ // [!code --]\n...Object.values(AuthReason), ...Object.values(CommonReason), // [!code --]\n...Object.values(GameReason), ...Object.values(PlayerReason), // [!code --]\n...Object.values(ProfileReason), // [!code --]\n]; // [!code --]\nconst allReasons = Object.values(errors) // [!code ++]\n.filter(isReasonEnum) // [!code ++]\n.flatMap((reasonEnum) => Object.values(reasonEnum)); // [!code ++]'
+  }
+/>
+
+舊版本會漏掉第六個 enum——正是它存在的理由所描述的失敗。實測：新增一個 enum 並匯出後，新版本紅、舊版本綠。
+
+## 計畫與實際的差異
+
+- **文案盤點提前到核准之前。** 計畫原本把它放在執行階段。提前之後當場找到兩個 reason 語意錯誤，兩者都會以錯誤文案出貨。
+- **S04 從「改標籤」變成「刪除」。** 那個 guard 三重不可達，不需要新的 reason 常數。
+- **S05 沒有拆成 5a/5b。** 盤點在核准前完成之後，5a 沒有工作可做。
+- **`jest.config.ts` 不在任何切片的計畫內。** 寫 S01 的測試時才發現 `proxy.test.ts` 從未執行過。
+
+## 殘留風險與後續
+
+<RiskTable
+  risks={[
+    {
+      name: "SET_NOT_FOUND 與 PLAYER_NOT_FOUND 各自扛著不只一種失敗",
+      severity: "warning",
+      mitigation:
+        "S04 的 sweep 找到，依該切片驗收條件記錄而非修正。最尖銳的是「Substitution player not found in lineup」現在會顯示成「找不到這一局」。修它需要新的 reason 常數，會讓已核准的文案 inventory 失效，因此留給開發者裁決。",
+    },
+    {
+      name: "AlertDialog 是否渲染 title 仍未決",
+      severity: "info",
+      mitigation:
+        "計畫刻意延後到有真實文案時再看畫面決定。文案現在有了；資料兩種選擇都已備妥，dialog 目前只渲染 description。",
+    },
+    {
+      name: "game 的兩個表單仍手抄 request schema",
+      severity: "info",
+      mitigation:
+        "球員表單已經直接用 request schema 當 resolver——想要的形狀在這個 repo 已經存在。game 的兩個是僅存的複製品，由既有的漂移測試雙向守著，其消除屬於 schema 衍生那件工作。",
+    },
+    {
+      name: "Archive 需要一個尚未存在的 capability 目錄",
+      severity: "info",
+      mitigation:
+        "四則 ADR 指向 platform/error-handling。該 capability 已被 Features IA 決定存在、兩份 spec 都在、platform 首頁也已在宣傳它，但 Feature 頁從未被建出來。本 Change 是第一個需要它的工作。",
+    },
+  ]}
+/>
