@@ -252,15 +252,15 @@ export const MatchInfoFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
   teams: z.object({
-    home: z.object({ name: z.string().optional() }),
-    away: z.object({ name: z.string().optional() }),
+    home: z.object({ name: z.string() }),
+    away: z.object({ name: z.string() }),
   }),
   number: z.coerce.number().int().optional(),
   phase: z.enum(["0", "1", "2", "3", "4"]).optional(),
   division: z.enum(["0", "1", "2", "3"]).optional(),
   category: z.enum(["0", "1", "2", "3"]).optional(),
   scoring: z.object({
-    setCount: z.string(),
+    setCount: z.enum(["1", "3", "5"]),
     decidingSetPoints: z.coerce.number().int(),
   }),
   location: z
