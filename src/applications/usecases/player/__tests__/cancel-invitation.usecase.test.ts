@@ -5,10 +5,7 @@ import {
 } from "@/__tests__/helpers";
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
-import {
-  NotFoundError,
-  UnexpectedError,
-} from "@/entities/errors";
+import { NotFoundError, UnexpectedError } from "@/entities/errors";
 import { PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
