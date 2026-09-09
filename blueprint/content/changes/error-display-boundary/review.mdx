@@ -8,7 +8,7 @@ import { RiskTable } from "@/components/RiskTable";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
-  七個切片全部交付。兩個前提在過程中被自己的查證推翻——一次在提案階段（這不是識別碼洩漏），一次在執行階段（空的對手名稱從來沒有被拒絕過）——兩次都改寫了工作本身，而不是只改措辭。
+  兩個前提在過程中被自己的查證推翻——一次在提案階段（這不是識別碼洩漏），一次在執行階段（空的對手名稱從來沒有被拒絕過）——兩次都改寫了工作本身，而不是只改措辭。
 </TLDR>
 
 ## 交付內容
@@ -132,16 +132,40 @@ S07 原本的驗收寫著「今天它會繞一趟網路回來給一個通用失�
         "接受並已修。CONTRIBUTING 明文要求引用 Change 而非複製，且一到兩行為常態；原本是六行。壓成兩行加 slug-qualified 引用。",
     },
     {
-      name: "Standards：ABSORBED_REASONS 是字串字面量",
-      severity: "info",
+      name: "Standards：目錄的 key 手抄 enum 成員",
+      severity: "warning",
       mitigation:
-        "接受並已修。改成 enum 成員之後，重新命名 reason 會是編譯錯誤而不是只有執行期測試會抓。",
+        "接受，兩輪才修完。第一輪只把 ABSORBED_REASONS 改成 enum 成員，ReasonKey 仍手抄 20 個字面量——同一個檔案兩種寫法，而本頁一度把它記成已修。第二輪把 ReasonKey 改為 Exclude<所有 reason, 被吸收者>，重新命名一個 reason 現在會產生 9 個編譯錯誤。",
     },
     {
       name: "Standards：changeset 未提 409 → 404",
       severity: "info",
       mitigation:
         "駁回，附證據。全 repo 沒有任何 client 邏輯依 409/404 分支；取消邀請的 catch 只呼叫 showErrorToast，依 reason 解析出同一則文案。使用者觀察不到差別，屬 changeset 規則明列應省略的「無行為變更的內部重構」。",
+    },
+    {
+      name: "Spec round 2：reason token 被渲染給使用者",
+      severity: "warning",
+      mitigation:
+        "接受並已修，這是本 Change 自己造成的退化。S02 把 ApiClientError 的 message 從 detail 改成 reason，而 team/form.tsx 直接把 e.message 放進表單錯誤，於是使用者會讀到 DUPLICATE_RESOURCE 這種裸 token。D1 的風險表預告過這條，我卻只掃了 .detail 的讀取者，沒掃 .message——而 .message 正是 tsc 不會列舉的那一個。三個表單改走 resolver。",
+    },
+    {
+      name: "Spec round 2：目錄不是唯一存放處",
+      severity: "warning",
+      mitigation:
+        "接受並已修。第一輪的 sweep 以 title:/description: 為條件，漏掉三處不同形狀的字串：兩個表單的 root error，以及 ServerErrorState——後者由 8 個讀取失敗分支渲染，文案已經與目錄的 SERVER_ERROR 分歧，正是單一目錄要防的漂移。三處都改為由目錄取得。",
+    },
+    {
+      name: "Standards round 2：註解在縮短時被切壞",
+      severity: "warning",
+      mitigation:
+        "接受並已修。第一輪為了符合長度規則而縮短 401 門閂的註解，腳本式編輯留下前一句的殘骸接上新句，成為不成句的兩行。改寫成一句完整的話。同一輪也移除了兩個重述函式簽章的 doc comment。",
+    },
+    {
+      name: "Standards round 2：兩個 sibling 測試用不同手法證明同一件事",
+      severity: "info",
+      mitigation:
+        "接受並已修。alert-dialog-error-state 仍以 partial mock 加 spy 驗證行為，而 testing-strategy 規定 Component 層只 mock API 與 custom hooks 且採狀態驗證。收斂成 sibling 的做法：不 mock 顯示模組，斷言渲染結果。",
     },
     {
       name: "Spec：驗證回應未以 key 集合斷言",

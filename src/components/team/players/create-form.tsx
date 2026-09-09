@@ -22,7 +22,7 @@ import { PlayerRole } from "@/entities/player";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
@@ -76,7 +76,9 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
       router.push(`/team/${teamId}`);
     } catch (error) {
       showErrorToast(error, toast);
-      form.setError("root", { message: "新增失敗，請稍後再試" });
+      form.setError("root", {
+        message: resolveErrorDisplay(error).description,
+      });
     }
   });
 

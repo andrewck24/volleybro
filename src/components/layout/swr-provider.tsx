@@ -20,9 +20,8 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
   }, [router, toast]);
 
   useEffect(() => {
-    // `redirecting` is never reset and this effect's deps are [] while
-    // Released only by a full page load, which sign-in guarantees today.
-    // See error-display-boundary.
+    // Never reset: released only by the full page load that sign-in
+    // performs. See error-display-boundary D1.
     let redirecting = false;
     const handleUnauthorized = () => {
       if (redirecting) return;

@@ -31,7 +31,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
 import {
   UpdatePlayerInfoSchema,
@@ -165,7 +165,9 @@ function InfoSection({
       clearDraft();
     } catch (error) {
       showErrorToast(error, toast);
-      form.setError("root", { message: "更新失敗，請稍後再試" });
+      form.setError("root", {
+        message: resolveErrorDisplay(error).description,
+      });
     }
   });
 

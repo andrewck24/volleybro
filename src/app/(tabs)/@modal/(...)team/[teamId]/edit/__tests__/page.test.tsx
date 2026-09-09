@@ -78,7 +78,11 @@ describe("EditTeamModalPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /儲存修改/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("驗證失敗")).toBeInTheDocument();
+      // A plain Error is not an API failure: the user reads the generic
+      // message, not whatever string the thrown object happened to carry.
+      expect(
+        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
+      ).toBeInTheDocument();
     });
     expect(mockBack).not.toHaveBeenCalled();
   });

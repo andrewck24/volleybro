@@ -8,10 +8,7 @@ type ToastFn = (opts: {
   variant: "default" | "destructive";
 }) => void;
 
-/**
- * Resolve any thrown value into the message the user reads. Total — every
- * input, including a non-ApiClientError, resolves to a catalogue entry.
- */
+// Total: every input resolves to an entry, so no caller branches.
 export function resolveErrorDisplay(error: unknown): ErrorMessage {
   if (error instanceof RefreshTimeoutError)
     return ERROR_MESSAGES.NETWORK_TIMEOUT;
@@ -21,8 +18,8 @@ export function resolveErrorDisplay(error: unknown): ErrorMessage {
     return ERROR_MESSAGES.NETWORK_TIMEOUT;
   if (error.status >= 500 || error.code === "UNEXPECTED")
     return ERROR_MESSAGES.SERVER_ERROR;
-  const entries: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;
-  return entries[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
+  const byReason: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;
+  return byReason[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
 }
 
 export function handle401Redirect(
@@ -33,10 +30,6 @@ export function handle401Redirect(
   router.push("/auth/sign-in");
 }
 
-/**
- * Show an error toast appropriate for mutation failures
- * (form submissions, game recording, etc.)
- */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
   toast({ ...resolveErrorDisplay(error), variant: "destructive" });
 }

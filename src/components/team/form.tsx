@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -85,7 +86,7 @@ const TeamForm = ({
       clearDraft();
     } catch (e) {
       form.setError("root", {
-        message: e instanceof Error ? e.message : "提交失敗，請稍後再試",
+        message: resolveErrorDisplay(e).description,
       });
     }
   });

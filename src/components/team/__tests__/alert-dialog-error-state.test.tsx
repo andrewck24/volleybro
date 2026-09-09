@@ -32,13 +32,6 @@ jest.mock("@/components/ui/use-toast", () => ({
 }));
 
 // Mock showErrorToast so we can verify it's NOT called for AlertDialog flows
-const mockShowErrorToast = jest.fn();
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  resolveErrorDisplay: jest.requireActual("@/lib/api/error-toast")
-    .resolveErrorDisplay,
-}));
-
 // Mock RoleSelect
 jest.mock("@/components/team/role-select", () => ({
   RoleSelect: ({
@@ -124,7 +117,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       ).toBeInTheDocument();
 
       // showErrorToast should NOT be called — error is inline
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
 
     it("should clear error and close dialog on successful retry", async () => {
@@ -205,7 +198,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Dialog should still be visible
       expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
 
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
   });
 });

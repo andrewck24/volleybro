@@ -1,31 +1,23 @@
-import { AuthReason, CommonReason } from "@/entities/errors";
+import {
+  AuthReason,
+  CommonReason,
+  GameReason,
+  PlayerReason,
+  ProfileReason,
+} from "@/entities/errors";
 
 export type ErrorMessage = { title: string; description: string };
 
 type ClassKey =
   "SESSION_EXPIRED" | "NETWORK_TIMEOUT" | "SERVER_ERROR" | "UNKNOWN";
 
-type ReasonKey =
-  | "RESOURCE_NOT_FOUND"
-  | "INVALID_INPUT"
-  | "OWNER_CANNOT_LEAVE"
-  | "NOT_PLAYER_OWNER"
-  | "NOT_TEAM_OWNER"
-  | "TARGET_NOT_IN_TEAM"
-  | "TARGET_NOT_MEMBER"
-  | "PLAYER_NOT_FOUND"
-  | "INSUFFICIENT_ROLE"
-  | "NOT_TEAM_MEMBER"
-  | "NOT_RECIPIENT"
-  | "ALREADY_INVITED"
-  | "ALREADY_MEMBER"
-  | "EMAIL_ALREADY_INVITED"
-  | "NOT_INVITED"
-  | "DUPLICATE_RESOURCE"
-  | "GAME_NOT_FOUND"
-  | "SET_NOT_FOUND"
-  | "INVALID_EMAIL"
-  | "PROFILE_NOT_FOUND";
+// Every reason that is not absorbed by a class-level entry. Derived from the
+// enums, so renaming one is a compile error rather than a silent miss.
+type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
+type ReasonKey = Exclude<
+  AuthReason | CommonReason | GameReason | PlayerReason | ProfileReason,
+  AbsorbedReason
+>;
 
 type CatalogueKey = ClassKey | ReasonKey;
 
