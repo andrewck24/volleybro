@@ -3,7 +3,7 @@ import { type AppErrorCode } from "@/entities/errors";
 export interface ApiError {
   code: AppErrorCode;
   reason: string;
-  details?: unknown[];
+  details?: (string | number)[][];
   status: number;
 }
 

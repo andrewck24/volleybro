@@ -101,7 +101,7 @@ describe("withErrorHandler", () => {
       expect(Object.keys(body as object).sort()).toEqual(["code", "reason"]);
     });
 
-    it("includes details field for ValidationError", async () => {
+    it("reduces the details field to field paths", async () => {
       const zodIssues = [{ path: ["email"], message: "Invalid email" }];
       const handler = withErrorHandler(async () => {
         throw new ValidationError(
@@ -115,7 +115,7 @@ describe("withErrorHandler", () => {
       const { status, body } = await call(handler as never);
 
       expect(status).toBe(400);
-      expect((body as { details: unknown }).details).toEqual(zodIssues);
+      expect((body as { details: unknown }).details).toEqual([["email"]]);
     });
 
     it("does not include details field for non-ValidationError AppError", async () => {
@@ -130,6 +130,35 @@ describe("withErrorHandler", () => {
   });
 
   describe("ZodError conversion", () => {
+    it("sends field paths and nothing else, from a real schema parse", async () => {
+      const schema = z
+        .object({
+          email: z.string(),
+          age: z.number().min(18),
+          nested: z.object({ name: z.string() }),
+        })
+        .strict();
+      const handler = withErrorHandler(async () => {
+        schema.parse({
+          email: 42,
+          age: 5,
+          nested: { name: null },
+          secret: "x",
+        });
+        return undefined as never;
+      });
+
+      const { body } = await call(handler as never);
+      const { details } = body as { details: unknown[][] };
+
+      // Asserting against what zod actually emits, not a hand-built issue:
+      // the shape of a finalised issue is not the shape its type declares.
+      expect(details).toEqual([["email"], ["age"], ["nested", "name"], []]);
+      expect(JSON.stringify(details)).not.toContain("expected");
+      expect(JSON.stringify(details)).not.toContain("Invalid input");
+      expect(JSON.stringify(details)).not.toContain("secret");
+    });
+
     it("converts ZodError to ValidationError response with details", async () => {
       const schema = z.object({ email: z.string().email() });
       const handler = withErrorHandler(async () => {

@@ -9,12 +9,13 @@
     "serializeError maps ValidationError.details to field paths only. The message, expected, minimum, origin and unrecognized-key fields do not leave the server.",
     "details stays an array of paths rather than becoming a map: one field can fail more than one rule, and a map would silently drop the second.",
     "A test drives a real request through a route schema and asserts the serialized issue carries the path and no other key. Asserting against a hand-built issue object would not catch what zod actually emits, which is how the input field was misread during scoping.",
-    "The client type declares details as paths, so a consumer cannot reach for a message that is no longer sent."
+    "The client type declares details as paths, so a consumer cannot reach for a message that is no longer sent.",
+    "An empty path is a legitimate result and means there is no field to point at. zod reports an unrecognised key with path [], because the offending key names nothing the form has; that failure stays a toast rather than highlighting anything."
   ],
   "verification": [
     "pnpm test -- src/lib/api src/app/api",
     "pnpm test:integration",
     "pnpm typecheck"
   ],
-  "status": "pending"
+  "status": "completed"
 }

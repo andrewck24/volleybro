@@ -17,13 +17,28 @@ type AuthedRouteHandler = (
   ctx: { userId: string },
 ) => Promise<NextResponse>;
 
+/**
+ * A validation failure travels as the field paths that failed and nothing
+ * else. Zod's own message is developer-facing English, and its remaining
+ * fields describe the schema. An empty path is legitimate: an unrecognised
+ * key names no field the form has, so there is nothing to point at.
+ */
+function toFieldPath(issue: unknown): (string | number)[] {
+  const path = (issue as { path?: unknown })?.path;
+  if (!Array.isArray(path)) return [];
+  return path.filter(
+    (segment): segment is string | number =>
+      typeof segment === "string" || typeof segment === "number",
+  );
+}
+
 function serializeError(error: AppError): Record<string, unknown> {
   const body: Record<string, unknown> = {
     code: error.code,
     reason: error.reason,
   };
   if (error instanceof ValidationError && error.details !== undefined) {
-    body.details = error.details;
+    body.details = error.details.map(toFieldPath);
   }
   return body;
 }
