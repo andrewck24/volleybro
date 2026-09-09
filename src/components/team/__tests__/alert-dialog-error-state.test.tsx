@@ -114,7 +114,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
+          screen.getByText("轉移隊長身分需要目前的隊長操作"),
         ).toBeInTheDocument();
       });
 
@@ -198,7 +198,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
+          screen.getByText("轉移隊長身分需要目前的隊長操作"),
         ).toBeInTheDocument();
       });
 

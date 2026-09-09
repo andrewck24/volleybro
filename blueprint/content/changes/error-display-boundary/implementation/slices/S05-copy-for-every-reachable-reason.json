@@ -16,5 +16,5 @@
     "pnpm test -- src/lib/api src/components/team",
     "pnpm typecheck"
   ],
-  "status": "pending"
+  "status": "completed"
 }
