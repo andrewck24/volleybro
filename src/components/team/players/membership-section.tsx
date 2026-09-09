@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { apiClient } from "@/lib/api/api-client";
-import { getErrorMessage, showErrorToast } from "@/lib/api/error-toast";
+import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
@@ -72,7 +72,7 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
-      setRemoveError(getErrorMessage(err));
+      setRemoveError(resolveErrorDisplay(err).description);
     } finally {
       setIsRemoving(false);
     }
@@ -95,7 +95,7 @@ export function MembershipSection({
       });
       revalidate();
     } catch (err) {
-      setTransferError(getErrorMessage(err));
+      setTransferError(resolveErrorDisplay(err).description);
     } finally {
       setIsTransferring(false);
     }

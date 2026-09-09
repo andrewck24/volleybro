@@ -27,7 +27,8 @@ jest.mock("@/components/ui/use-toast", () => ({
 const mockShowErrorToast = jest.fn();
 jest.mock("@/lib/api/error-toast", () => ({
   showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  getErrorMessage: jest.requireActual("@/lib/api/error-toast").getErrorMessage,
+  resolveErrorDisplay: jest.requireActual("@/lib/api/error-toast")
+    .resolveErrorDisplay,
 }));
 
 // Mock use-data hooks
@@ -102,7 +103,7 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
     // Error message should appear inline in dialog
     await waitFor(() => {
       expect(
-        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
+        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
       ).toBeInTheDocument();
     });
 

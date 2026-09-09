@@ -64,7 +64,7 @@ describe("SWRProvider", () => {
   });
 
   describe("onError callback", () => {
-    it("calls showErrorToast for all errors (401 is silently swallowed inside showErrorToast)", () => {
+    it("calls showErrorToast for all errors, including 401", () => {
       render(
         <SWRProvider>
           <span />

@@ -35,7 +35,8 @@ jest.mock("@/components/ui/use-toast", () => ({
 const mockShowErrorToast = jest.fn();
 jest.mock("@/lib/api/error-toast", () => ({
   showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  getErrorMessage: jest.requireActual("@/lib/api/error-toast").getErrorMessage,
+  resolveErrorDisplay: jest.requireActual("@/lib/api/error-toast")
+    .resolveErrorDisplay,
 }));
 
 // Mock RoleSelect
@@ -113,7 +114,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
+          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
         ).toBeInTheDocument();
       });
 
@@ -153,7 +154,6 @@ describe("AlertDialog error state — MembershipSection", () => {
       await waitFor(() => {
         expect(screen.getByText(/伺服器暫時無法處理/)).toBeInTheDocument();
       });
-
       // Second call succeeds
       mockApiClient.mockResolvedValueOnce({});
 
@@ -198,7 +198,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
+          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
         ).toBeInTheDocument();
       });
 

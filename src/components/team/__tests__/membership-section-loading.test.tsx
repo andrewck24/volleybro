@@ -7,7 +7,10 @@ import userEvent from "@testing-library/user-event";
 jest.mock("@/lib/api/api-client", () => ({ apiClient: jest.fn() }));
 jest.mock("@/lib/api/error-toast", () => ({
   showErrorToast: jest.fn(),
-  getErrorMessage: jest.fn(() => "error"),
+  resolveErrorDisplay: jest.fn(() => ({
+    title: "error",
+    description: "error",
+  })),
 }));
 jest.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: jest.fn() }),

@@ -1,4 +1,5 @@
 import { ApiClientError } from "@/lib/api/api-client";
+import { ERROR_MESSAGES, type ErrorMessage } from "@/lib/api/error-messages";
 import { RefreshTimeoutError } from "@/hooks/use-pull-to-refresh";
 
 type ToastFn = (opts: {
@@ -7,96 +8,35 @@ type ToastFn = (opts: {
   variant: "default" | "destructive";
 }) => void;
 
+/**
+ * Resolve any thrown value into the message the user reads. Total — every
+ * input, including a non-ApiClientError, resolves to a catalogue entry.
+ */
+export function resolveErrorDisplay(error: unknown): ErrorMessage {
+  if (error instanceof RefreshTimeoutError)
+    return ERROR_MESSAGES.NETWORK_TIMEOUT;
+  if (!(error instanceof ApiClientError)) return ERROR_MESSAGES.UNKNOWN;
+  if (error.status === 401) return ERROR_MESSAGES.SESSION_EXPIRED;
+  if (error.reason === "TIMEOUT" || error.reason === "NETWORK_ERROR")
+    return ERROR_MESSAGES.NETWORK_TIMEOUT;
+  if (error.status >= 500 || error.code === "UNEXPECTED")
+    return ERROR_MESSAGES.SERVER_ERROR;
+  const catalogue: Partial<Record<string, ErrorMessage>> = ERROR_MESSAGES;
+  return catalogue[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
+}
+
 export function handle401Redirect(
   router: { push: (href: string) => void },
   toast: ToastFn,
 ): void {
-  toast({
-    title: "登入已逾期",
-    description: "請重新登入",
-    variant: "destructive",
-  });
+  toast({ ...ERROR_MESSAGES.SESSION_EXPIRED, variant: "destructive" });
   router.push("/auth/sign-in");
-}
-
-/**
- * Determines if the error is a server/unexpected error that deserves
- * branded volleyball-themed messaging (not user-actionable).
- */
-function isServerError(error: ApiClientError): boolean {
-  return error.status >= 500 || error.code === "UNEXPECTED";
-}
-
-const SERVER_ERROR_MESSAGE = "伺服器暫時無法處理你的請求，請稍後再試一次。";
-const UNKNOWN_ERROR_MESSAGE =
-  "請重新整理頁面後再試一次，若問題持續請聯繫我們。";
-
-const REASON_MESSAGES: Record<string, string> = {
-  RESOURCE_NOT_FOUND: "找不到此資源",
-  INVALID_INPUT: "資料格式不正確",
-};
-
-/**
- * Extract a user-facing error message from an unknown error.
- * Used for inline error display in AlertDialogs and invitation items.
- *
- * - Server/unexpected ApiClientError → branded zh-TW message
- * - Operational ApiClientError (4xx) → zh-TW reason mapping, or generic fallback
- * - Unknown error → generic fallback
- */
-export function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiClientError) {
-    return isServerError(error)
-      ? SERVER_ERROR_MESSAGE
-      : (REASON_MESSAGES[error.reason] ?? UNKNOWN_ERROR_MESSAGE);
-  }
-  return UNKNOWN_ERROR_MESSAGE;
 }
 
 /**
  * Show an error toast appropriate for mutation failures
  * (form submissions, game recording, etc.)
- *
- * - Server / unexpected errors → branded volleyball-themed empathetic message with retry guidance (zh-TW)
- * - Operational errors (4xx) → zh-TW reason mapping, or generic fallback
- * - Unknown errors → generic fallback
  */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
-  if (error instanceof ApiClientError && error.status === 401) return;
-
-  if (error instanceof RefreshTimeoutError) {
-    toast({
-      title: "連線逾時",
-      description: "請稍後再試，若問題持續請確認網路連線。",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  if (error instanceof ApiClientError) {
-    if (isServerError(error)) {
-      toast({
-        title: "哎呀，發球掛網了！",
-        description: SERVER_ERROR_MESSAGE,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Operational error — use zh-TW reason mapping if available, fall back to generic message
-    const description = REASON_MESSAGES[error.reason] ?? UNKNOWN_ERROR_MESSAGE;
-    toast({
-      title: "操作失敗",
-      description,
-      variant: "destructive",
-    });
-    return;
-  }
-
-  // Unknown / non-ApiClientError fallback
-  toast({
-    title: "發生未預期的錯誤",
-    description: UNKNOWN_ERROR_MESSAGE,
-    variant: "destructive",
-  });
+  toast({ ...resolveErrorDisplay(error), variant: "destructive" });
 }

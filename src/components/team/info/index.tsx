@@ -19,7 +19,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
-import { getErrorMessage } from "@/lib/api/error-toast";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiEditBoxLine, RiGroupLine, RiInformationLine } from "react-icons/ri";
@@ -68,7 +68,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       mutate();
       router.push("/user/invitations");
     } catch (err) {
-      setLeaveError(getErrorMessage(err));
+      setLeaveError(resolveErrorDisplay(err).description);
     } finally {
       setIsLeaving(false);
     }
