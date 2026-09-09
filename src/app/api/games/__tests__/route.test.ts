@@ -117,7 +117,7 @@ describe("POST /api/games", () => {
 
     expect(res.status).toBe(400);
     expect(body.reason).toBe("INVALID_INPUT");
-    expect(body.detail).toBe("teamId is required");
+    expect(body).not.toHaveProperty("detail");
     expect(mockCreateGameController).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });

@@ -16,5 +16,5 @@
     "pnpm test -- src/lib/api src/__tests__/proxy.test.ts src/app/api",
     "pnpm typecheck"
   ],
-  "status": "pending"
+  "status": "completed"
 }

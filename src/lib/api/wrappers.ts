@@ -21,7 +21,6 @@ function serializeError(error: AppError): Record<string, unknown> {
   const body: Record<string, unknown> = {
     code: error.code,
     reason: error.reason,
-    detail: error.detail,
   };
   if (error instanceof ValidationError && error.details !== undefined) {
     body.details = error.details;
@@ -109,11 +108,7 @@ export function withErrorHandler(handler: RouteHandler): RouteHandler {
 
       // Unreachable: all paths above produce an AppError, but TypeScript needs this
       return NextResponse.json(
-        {
-          code: "UNEXPECTED",
-          reason: CommonReason.UNHANDLED_ERROR,
-          detail: "An unexpected error occurred",
-        },
+        { code: "UNEXPECTED", reason: CommonReason.UNHANDLED_ERROR },
         { status: 500 },
       );
     }

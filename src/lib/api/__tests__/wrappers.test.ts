@@ -66,14 +66,10 @@ describe("withErrorHandler", () => {
       const { status, body } = await call(handler as never);
 
       expect(status).toBe(409);
-      expect(body).toEqual({
-        code: "CONFLICT",
-        reason: "ALREADY_INVITED",
-        detail: "This player already has a pending invitation",
-      });
+      expect(body).toEqual({ code: "CONFLICT", reason: "ALREADY_INVITED" });
     });
 
-    it("does not expose internalMessage in response", async () => {
+    it("keeps both the internal message and the detail out of the response", async () => {
       const handler = withErrorHandler(async () => {
         throw new NotFoundError(
           "PLAYER_NOT_FOUND",
@@ -86,6 +82,23 @@ describe("withErrorHandler", () => {
 
       expect(JSON.stringify(body)).not.toContain("6721a");
       expect(JSON.stringify(body)).not.toContain("abc");
+      expect(JSON.stringify(body)).not.toContain(
+        "The specified player does not exist",
+      );
+    });
+
+    it("serializes a closed set of keys, so free text cannot return under another name", async () => {
+      const handler = withErrorHandler(async () => {
+        throw new NotFoundError(
+          "PLAYER_NOT_FOUND",
+          "The specified player does not exist",
+          "Player 6721a not found in team abc",
+        );
+      });
+
+      const { body } = await call(handler as never);
+
+      expect(Object.keys(body as object).sort()).toEqual(["code", "reason"]);
     });
 
     it("includes details field for ValidationError", async () => {
@@ -125,17 +138,11 @@ describe("withErrorHandler", () => {
       });
 
       const { status, body } = await call(handler as never);
-      const b = body as {
-        code: string;
-        reason: string;
-        detail: string;
-        details: unknown[];
-      };
+      const b = body as { code: string; reason: string; details: unknown[] };
 
       expect(status).toBe(400);
       expect(b.code).toBe("VALIDATION");
       expect(b.reason).toBe("INVALID_INPUT");
-      expect(b.detail).toBe("Request data failed validation");
       expect(Array.isArray(b.details)).toBe(true);
     });
   });
@@ -149,11 +156,7 @@ describe("withErrorHandler", () => {
       const { status, body } = await call(handler as never);
 
       expect(status).toBe(500);
-      expect(body).toEqual({
-        code: "UNEXPECTED",
-        reason: "UNHANDLED_ERROR",
-        detail: "An unexpected error occurred",
-      });
+      expect(body).toEqual({ code: "UNEXPECTED", reason: "UNHANDLED_ERROR" });
       expect(JSON.stringify(body)).not.toContain("Cannot read property");
     });
   });
@@ -208,6 +211,23 @@ describe("withErrorHandler structured logging", () => {
     expect(log).toHaveProperty("timestamp");
   });
 
+  it("keeps the identifying message in the log while it is absent from the body", async () => {
+    const handler = withErrorHandler(async () => {
+      throw new NotFoundError(
+        "PLAYER_NOT_FOUND",
+        "The specified player does not exist",
+        "Player 6721a not found in team abc",
+      );
+    });
+
+    const res = await handler(makeRequest() as never);
+    const body = await res.json();
+
+    const log = JSON.parse(consoleSpy.mock.calls[0][0] as string);
+    expect(log.message).toBe("Player 6721a not found in team abc");
+    expect(JSON.stringify(body)).not.toContain("6721a");
+  });
+
   it("emits error-level JSON log with stack trace for unknown error", async () => {
     const handler = withErrorHandler(async () => {
       throw new TypeError("Something went wrong");
@@ -253,7 +273,6 @@ describe("withAuth", () => {
     expect(body).toEqual({
       code: "AUTHENTICATION",
       reason: AuthReason.SESSION_REQUIRED,
-      detail: "Authentication is required to access this resource",
     });
   });
 });
