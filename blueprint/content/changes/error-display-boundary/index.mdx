@@ -17,7 +17,7 @@ import { TLDR } from "@/components/TLDR";
 
 分工在「識別碼」這件事上被守住了：全 repo 113 個錯誤建構點裡，只有兩處內插真實 id（`get-user-by-id.usecase.ts` 與 `search-user.usecase.ts`），兩處都正確地放在第三格，而 `wrappers.test.ts` 已有一個測試釘住它不外洩。
 
-守不住的是**詞彙**。許多站點把開發者訊息寫進第二格、第三格留空：
+守不住的是**詞彙**。93 個建構點裡有 **82 個根本不傳第三格**，等於第二格同時扮演「上 wire 的描述」與「進 log 的訊息」，而多數人寫的是後者：
 
 - `INVITED status must have exactly one of userId or email, not both`
 - `Invalid teamId format`
