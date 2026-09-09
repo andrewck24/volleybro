@@ -33,13 +33,12 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { RiAlertLine } from "react-icons/ri";
 
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
+
 const ATTEMPTING_TITLE = "正在記錄本局結果…";
 // Screen readers only: on screen the spinner and title already say this.
 const ATTEMPTING_DESCRIPTION = "正在儲存本局結果，請稍候。";
-// Mirrors the shared error toast helper's branded server-error wording
-// (src/lib/api/error-toast.ts) so the voice is consistent everywhere the
-// recorder sees an unrecoverable write.
-const EXHAUSTED_TITLE = "哎呀，發球掛網了！";
+const EXHAUSTED_TITLE = ERROR_MESSAGES.SERVER_ERROR.title;
 const EXHAUSTED_DESCRIPTION = "本局結果還沒存好，這一局的球都在，只差這一步。";
 const LEAVE_TITLE = "本局結果還沒存好";
 const LEAVE_DESCRIPTION =

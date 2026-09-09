@@ -11,9 +11,8 @@ export type ErrorMessage = { title: string; description: string };
 type ClassKey =
   "SESSION_EXPIRED" | "NETWORK_TIMEOUT" | "SERVER_ERROR" | "UNKNOWN";
 
-// Every reason that is not absorbed by a class-level entry. Derived from the
-// enums, so renaming one is a compile error rather than a silent miss.
 type AbsorbedReason = (typeof ABSORBED_REASONS)[number];
+// Derived, so renaming a reason is a compile error rather than a silent miss.
 type ReasonKey = Exclude<
   AuthReason | CommonReason | GameReason | PlayerReason | ProfileReason,
   AbsorbedReason

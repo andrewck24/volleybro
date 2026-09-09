@@ -1,11 +1,9 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import * as errors from "@/entities/errors";
 import { ABSORBED_REASONS, ERROR_MESSAGES } from "@/lib/api/error-messages";
 
-/**
- * Derived from the module's exports, not from a list of enum names. A sixth
- * reason enum must be covered the moment it is exported, which naming the
- * five by hand would not achieve.
- */
+// Derived from the exports, so a sixth reason enum is covered on sight.
 const isReasonEnum = (value: unknown): value is Record<string, string> =>
   typeof value === "object" &&
   value !== null &&
@@ -37,5 +35,35 @@ describe("error-messages catalogue", () => {
       (reason) => reason in ERROR_MESSAGES,
     );
     expect(overlap).toEqual([]);
+  });
+});
+
+describe("the catalogue is the only source", () => {
+  // Three manual sweeps each missed a copy — one matched object fields, one
+  // matched shapes, and neither saw a bare const. A copy that has drifted by a
+  // character still escapes this, so it catches recurrence, not every case.
+  const sourceFiles = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) return sourceFiles(full);
+      return /\.tsx?$/.test(entry.name) ? [full] : [];
+    });
+
+  it("holds every catalogue string in one file", () => {
+    const catalogue = join("src", "lib", "api", "error-messages.ts");
+    const strings = Object.values(ERROR_MESSAGES).flatMap(
+      ({ title, description }) => [title, description],
+    );
+
+    const copies = sourceFiles("src")
+      .filter((file) => file !== catalogue && !file.includes("__tests__"))
+      .flatMap((file) => {
+        const content = readFileSync(file, "utf8");
+        return strings
+          .filter((string) => content.includes(`"${string}"`))
+          .map((string) => `${file}: ${string}`);
+      });
+
+    expect(copies).toEqual([]);
   });
 });

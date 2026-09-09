@@ -150,10 +150,16 @@ S07 原本的驗收寫著「今天它會繞一趟網路回來給一個通用失�
         "接受並已修，這是本 Change 自己造成的退化。S02 把 ApiClientError 的 message 從 detail 改成 reason，而 team/form.tsx 直接把 e.message 放進表單錯誤，於是使用者會讀到 DUPLICATE_RESOURCE 這種裸 token。D1 的風險表預告過這條，我卻只掃了 .detail 的讀取者，沒掃 .message——而 .message 正是 tsc 不會列舉的那一個。三個表單改走 resolver。",
     },
     {
+      name: "Spec round 3：第四份複製，一字之差",
+      severity: "warning",
+      mitigation:
+        "接受並已修，而且改變了處理方式。unconfirmed-set-dialog 以一個 const 持有 哎呀，發球掛網了！——與目錄的 哎呀，發球掛網！ 差一個字，註解還指向一個早已不含那句話的檔案。三次人工掃描各自漏掉不同形狀的複製（物件欄位、其他形狀、裸 const），所以第四次的回應不是再掃一次，而是一個測試：目錄的每一則字串在 src/ 底下只能出現在目錄自己的檔案裡。以植入一份複製實測會紅。它抓不到已經漂移的複製，這一點寫在測試自己的註解裡。",
+    },
+    {
       name: "Spec round 2：目錄不是唯一存放處",
       severity: "warning",
       mitigation:
-        "接受並已修。第一輪的 sweep 以 title:/description: 為條件，漏掉三處不同形狀的字串：兩個表單的 root error，以及 ServerErrorState——後者由 8 個讀取失敗分支渲染，文案已經與目錄的 SERVER_ERROR 分歧，正是單一目錄要防的漂移。三處都改為由目錄取得。",
+        "接受並已修。第一輪的 sweep 以 title:/description: 為條件，漏掉三處不同形狀的字串：兩個表單的 root error，以及 ServerErrorState——後者由 7 個讀取失敗分支渲染，文案已經與目錄的 SERVER_ERROR 分歧，正是單一目錄要防的漂移。三處都改為由目錄取得。",
     },
     {
       name: "Standards round 2：註解在縮短時被切壞",
@@ -217,6 +223,12 @@ S07 原本的驗收寫著「今天它會繞一趟網路回來給一個通用失�
       severity: "info",
       mitigation:
         "球員表單已經直接用 request schema 當 resolver——想要的形狀在這個 repo 已經存在。game 的兩個是僅存的複製品，由既有的漂移測試雙向守著，其消除屬於 schema 衍生那件工作。",
+    },
+    {
+      name: "目錄住在 src/lib/api/，而它沒有 API 關注點",
+      severity: "info",
+      mitigation:
+        "Standards round 3 的觀察：ServerErrorState 這類 presentational component 匯入 @/lib/api/ 讀起來像跨層，同性質的 ROLE_LABELS 住在 lib/constants/。不現在搬——lib/api/ 其餘檔案的歸屬被三張未定案的票綁住，現在決定等於猜。已記在分層稽核那張票的 revisit trigger 裡。",
     },
     {
       name: "Archive 需要一個尚未存在的 capability 目錄",
