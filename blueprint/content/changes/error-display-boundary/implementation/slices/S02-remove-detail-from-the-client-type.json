@@ -13,5 +13,5 @@
     "The two display consumers still compile, reading nothing but code, reason and status. Their behaviour is not yet corrected — that is S03 — but they must not be reading a field that no longer exists."
   ],
   "verification": ["pnpm typecheck", "pnpm test -- src/lib/api"],
-  "status": "pending"
+  "status": "completed"
 }

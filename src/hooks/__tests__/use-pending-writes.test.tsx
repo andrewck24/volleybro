@@ -34,7 +34,6 @@ const networkError = () =>
   new ApiClientError("network down", {
     code: "TRANSIENT",
     reason: "NETWORK_ERROR",
-    detail: "network down",
     status: 503,
   });
 
@@ -226,7 +225,6 @@ describe("usePendingWrites", () => {
     const authError = new ApiClientError("session expired", {
       code: "AUTHENTICATION",
       reason: "SESSION_REQUIRED",
-      detail: "session expired",
       status: 401,
     });
     apiClient.mockImplementation(async (url: string) => {

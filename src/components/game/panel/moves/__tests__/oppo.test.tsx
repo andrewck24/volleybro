@@ -64,7 +64,6 @@ const networkError = () =>
   new ApiClientError("network down", {
     code: "TRANSIENT",
     reason: "NETWORK_ERROR",
-    detail: "network down",
     status: 503,
   });
 

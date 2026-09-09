@@ -41,12 +41,14 @@ const REASON_MESSAGES: Record<string, string> = {
  * Used for inline error display in AlertDialogs and invitation items.
  *
  * - Server/unexpected ApiClientError → branded zh-TW message
- * - Operational ApiClientError (4xx) → error.detail (user-actionable)
+ * - Operational ApiClientError (4xx) → zh-TW reason mapping, or generic fallback
  * - Unknown error → generic fallback
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiClientError) {
-    return isServerError(error) ? SERVER_ERROR_MESSAGE : error.detail;
+    return isServerError(error)
+      ? SERVER_ERROR_MESSAGE
+      : (REASON_MESSAGES[error.reason] ?? UNKNOWN_ERROR_MESSAGE);
   }
   return UNKNOWN_ERROR_MESSAGE;
 }
@@ -56,7 +58,7 @@ export function getErrorMessage(error: unknown): string {
  * (form submissions, game recording, etc.)
  *
  * - Server / unexpected errors → branded volleyball-themed empathetic message with retry guidance (zh-TW)
- * - Operational errors (4xx) → user-actionable message from error.detail
+ * - Operational errors (4xx) → zh-TW reason mapping, or generic fallback
  * - Unknown errors → generic fallback
  */
 export function showErrorToast(error: unknown, toast: ToastFn): void {
@@ -81,8 +83,8 @@ export function showErrorToast(error: unknown, toast: ToastFn): void {
       return;
     }
 
-    // Operational error — use zh-TW reason mapping if available, fall back to error.detail
-    const description = REASON_MESSAGES[error.reason] ?? error.detail;
+    // Operational error — use zh-TW reason mapping if available, fall back to generic message
+    const description = REASON_MESSAGES[error.reason] ?? UNKNOWN_ERROR_MESSAGE;
     toast({
       title: "操作失敗",
       description,

@@ -41,7 +41,6 @@ function makeApiClientError(status: number): ApiClientError {
   const info: ApiError = {
     code: "UNEXPECTED",
     reason: "TEST",
-    detail: "test error",
     status,
   };
   return new ApiClientError("test error", info);

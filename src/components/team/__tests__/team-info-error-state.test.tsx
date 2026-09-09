@@ -71,7 +71,6 @@ function createApiError(
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
     reason,
-    detail,
     status,
   });
 }
@@ -103,7 +102,7 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
     // Error message should appear inline in dialog
     await waitFor(() => {
       expect(
-        screen.getByText("Cannot leave team as owner"),
+        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
       ).toBeInTheDocument();
     });
 

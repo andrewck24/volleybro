@@ -70,7 +70,6 @@ function createApiError(
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
     reason,
-    detail,
     status,
   });
 }
@@ -114,7 +113,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("Only the team owner can remove members"),
+          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
         ).toBeInTheDocument();
       });
 
@@ -199,9 +198,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText(
-            "Only the current team owner can transfer ownership",
-          ),
+          screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們。"),
         ).toBeInTheDocument();
       });
 

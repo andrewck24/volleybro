@@ -19,9 +19,6 @@ export class ApiClientError extends Error {
   get reason() {
     return this.info.reason;
   }
-  get detail() {
-    return this.info.detail;
-  }
   get details() {
     return this.info.details;
   }
@@ -36,14 +33,8 @@ function normalizeNetworkError(error: unknown): ApiClientError {
   const isTimeout =
     error instanceof DOMException && error.name === "TimeoutError";
   const reason = isTimeout ? "TIMEOUT" : "NETWORK_ERROR";
-  const detail = isTimeout ? "Request timed out" : "Network request failed";
 
-  return new ApiClientError(detail, {
-    code: "TRANSIENT",
-    reason,
-    detail,
-    status: 503,
-  });
+  return new ApiClientError(reason, { code: "TRANSIENT", reason, status: 503 });
 }
 
 export async function apiClient<T = unknown>(
@@ -66,7 +57,7 @@ export async function apiClient<T = unknown>(
     if (res.status === 401 && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
     }
-    throw new ApiClientError(info.detail, info);
+    throw new ApiClientError(info.reason, info);
   }
 
   return res.json();

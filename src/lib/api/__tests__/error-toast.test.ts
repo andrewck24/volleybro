@@ -12,7 +12,6 @@ const makeApiClientError = (
   const info: ApiError = {
     code: code as ApiError["code"],
     reason,
-    detail,
     status,
   };
   return new ApiClientError(detail, info);
@@ -89,28 +88,28 @@ describe("showErrorToast", () => {
     });
   });
 
-  describe("operational errors → user-actionable detail passthrough", () => {
-    it("passes error.detail as description for 404 NOT_FOUND", () => {
+  describe("operational errors → generic fallback description", () => {
+    it("falls back to the generic message for 404 NOT_FOUND", () => {
       const error = makeApiClientError(404, "NOT_FOUND", "找不到指定的隊伍");
 
       showErrorToast(error, mockToast);
 
       expect(mockToast.mock.calls[0][0]).toEqual(
         expect.objectContaining({
-          description: "找不到指定的隊伍",
+          description: "請重新整理頁面後再試一次，若問題持續請聯繫我們。",
           variant: "destructive",
         }),
       );
     });
 
-    it("passes error.detail as description for 409 CONFLICT", () => {
+    it("falls back to the generic message for 409 CONFLICT", () => {
       const error = makeApiClientError(409, "CONFLICT", "該名稱已被使用");
 
       showErrorToast(error, mockToast);
 
       expect(mockToast.mock.calls[0][0]).toEqual(
         expect.objectContaining({
-          description: "該名稱已被使用",
+          description: "請重新整理頁面後再試一次，若問題持續請聯繫我們。",
           variant: "destructive",
         }),
       );
@@ -141,7 +140,7 @@ describe("showErrorToast", () => {
     });
   });
 
-  describe("reason-based zh-TW mapping → overrides error.detail for known reasons", () => {
+  describe("reason-based zh-TW mapping → falls back to generic message for unknown reasons", () => {
     it("shows zh-TW message for RESOURCE_NOT_FOUND reason", () => {
       const error = makeApiClientError(
         404,
@@ -174,7 +173,7 @@ describe("showErrorToast", () => {
       );
     });
 
-    it("falls back to error.detail for unknown reason", () => {
+    it("falls back to the generic message for an unmapped reason", () => {
       const error = makeApiClientError(
         409,
         "CONFLICT",
@@ -184,7 +183,7 @@ describe("showErrorToast", () => {
       showErrorToast(error, mockToast);
       expect(mockToast.mock.calls[0][0]).toEqual(
         expect.objectContaining({
-          description: "此名稱已被使用",
+          description: "請重新整理頁面後再試一次，若問題持續請聯繫我們。",
           variant: "destructive",
         }),
       );

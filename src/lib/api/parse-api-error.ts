@@ -3,7 +3,6 @@ import { type AppErrorCode } from "@/entities/errors";
 export interface ApiError {
   code: AppErrorCode;
   reason: string;
-  detail: string;
   details?: unknown[];
   status: number;
 }
@@ -21,7 +20,6 @@ export async function parseApiError(res: Response): Promise<ApiError> {
       return {
         code: body.code,
         reason: body.reason,
-        detail: body.detail ?? "An error occurred",
         details: body.details,
         status,
       };
@@ -33,7 +31,6 @@ export async function parseApiError(res: Response): Promise<ApiError> {
   return {
     code: "UNEXPECTED",
     reason: "UNHANDLED_ERROR",
-    detail: `Request failed with status ${status}`,
     status,
   };
 }

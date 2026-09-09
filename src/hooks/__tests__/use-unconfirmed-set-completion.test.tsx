@@ -370,7 +370,6 @@ describe("useUnconfirmedSetCompletion", () => {
       new ApiClientError("invalid", {
         code: "VALIDATION",
         reason: "INVALID_INPUT",
-        detail: "invalid",
         status: 400,
       }),
     );
