@@ -6,7 +6,7 @@
   "status": "candidate",
   "targets": ["platform/clean-architecture"],
   "context": "Creating a game with a blank opponent name produced a generic failure notice after the request had gone to the server and come back. The constraint — this field is required — was knowable in the browser before anything was sent. The preceding schema work added a test that stops the form and request schemas drifting apart, but that test proves the form can submit something the server accepts; it does not make the form block what the server would reject, and nothing decides which failures belong to which stage. The result is that a whole category of failure arrives late, and because the display path was fail-open it also arrived in developer English.",
-  "decision": "A constraint that the client can evaluate is evaluated in the client, before submit, and shown beside the field. Required, format, length and range all fall here: the submit never fires. A constraint that only the server can evaluate — uniqueness, authorization, existence, conflict — is evaluated after submit and reported through the resolver, pointing at a field when D3's path allows it. The test is not who enforces the constraint but who can know the answer: the server keeps enforcing everything, because a client check is a convenience and never a guarantee.",
+  "decision": "A constraint that the client can evaluate is evaluated in the client, before submit, and shown beside the field. Required, format, length and range all fall here: the submit never fires. A constraint that only the server can evaluate — uniqueness, authorization, existence, conflict — is evaluated after submit and reported through the resolver, pointing at a field when D3's path allows it. The test is not who enforces the constraint but who can know the answer: the server keeps enforcing everything, because a client check is a convenience and never a guarantee. The same test applies to whether an action is offered at all, not only to whether a field is valid. If the client knows the user owns the team, the control that would be refused for that reason should say so where the user is looking, rather than accept a click and report the refusal afterwards. The client check remains a convenience: the server still refuses, because client state goes stale.",
   "alternatives": [
     {
       "option": "Let the server be the single validation authority and round-trip everything",
@@ -19,18 +19,25 @@
     {
       "option": "Duplicate the constraints by hand in the form schema",
       "reason": "It is what happens today, held together by a drift test rather than by derivation. Acceptable as an interim state and explicitly what this decision leaves in place, but it is not the destination and should not be recorded as one."
+    },
+    {
+      "option": "Confine the rule to field validation and let action availability be decided case by case",
+      "reason": "It is the same question with the same answer — who can know the outcome first — and splitting it would leave the larger half unwritten. Four reasons are already unreachable because a control is hidden or filtered, and none of that reasoning is recorded anywhere; the next control gets it right or wrong by accident."
     }
   ],
   "consequences": [
     "A form whose schema is looser than the request schema is a defect, not a stylistic difference. The existing drift test detects one direction of that; blocking invalid input is the direction this decision adds.",
     "The rule is a reusable interaction rule rather than capability behaviour, so it promotes to the Design System rather than being copied across feature pages.",
     "It constrains the form-schema derivation work: whatever mechanism derives a form schema must preserve client-side evaluation before submit, not merely reuse the server's shape.",
-    "It does not decide which actions get a confirmation dialog. That is a separate interaction rule about reversibility; where an error renders follows from it mechanically, because a dialog that is open when the action fails is where the user is looking."
+    "It does not decide which actions get a confirmation dialog. That is a separate interaction rule about reversibility; where an error renders follows from it mechanically, because a dialog that is open when the action fails is where the user is looking.",
+    "Hiding a control is not the same as explaining it. An owner currently sees no leave control at all, so the constraint is enforced but never stated: they cannot learn that transferring ownership first is what unblocks them. Naming the constraint beside a disabled control is the shape this decision asks for, and it is separate work.",
+    "A client-side gate makes a reason rare, not impossible. Team membership is cached for five minutes, so a control computed from stale state can still be refused. Copy for those reasons is kept for exactly that window."
   ],
   "revisitTriggers": [
     "A constraint appears that the client could evaluate only by holding data it should not have, which would mean the knowable/enforceable line has moved and the category boundary needs restating.",
     "Form schemas become derived rather than hand-written, at which point this decision's interim duplication ends and the acceptance criteria that guard it change.",
-    "A form is found that blocks input the server would in fact accept, which is the opposite failure and equally a defect."
+    "A form is found that blocks input the server would in fact accept, which is the opposite failure and equally a defect.",
+    "A control is gated on state the client cannot hold, which would mean the gate has to move back to the server and the constraint becomes one only a response can report."
   ],
   "originChange": "error-display-boundary"
 }

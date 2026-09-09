@@ -6,7 +6,7 @@ import { FileTour } from "@/components/FileTour";
 import { TLDR } from "@/components/TLDR";
 
 <TLDR>
-  開發者散文停在伺服器：錯誤回應只帶 `code`、`reason`、`status`，使用者讀到的每
+  開發者訊息停在伺服器：錯誤回應只帶 `code`、`reason`、`status`，使用者讀到的每
   一句話都從單一目錄裡挑選，查不到就退到安全的通用訊息。同時把「客戶端判斷得出
   來的約束」擋在送出之前，讓它不再繞一趟網路才回來說資料格式不正確。
 </TLDR>
@@ -17,7 +17,7 @@ import { TLDR } from "@/components/TLDR";
 
 分工在「識別碼」這件事上被守住了：全 repo 113 個錯誤建構點裡，只有兩處內插真實 id（`get-user-by-id.usecase.ts` 與 `search-user.usecase.ts`），兩處都正確地放在第三格，而 `wrappers.test.ts` 已有一個測試釘住它不外洩。
 
-守不住的是**詞彙**。許多站點把開發者散文寫進第二格、第三格留空：
+守不住的是**詞彙**。許多站點把開發者訊息寫進第二格、第三格留空：
 
 - `INVITED status must have exactly one of userId or email, not both`
 - `Invalid teamId format`
@@ -25,13 +25,13 @@ import { TLDR } from "@/components/TLDR";
 
 這些都上了 wire，而且被直接渲染給使用者看——因為顯示端是 fail-open 的：`REASON_MESSAGES` 只覆蓋 24 個 reason 裡的 2 個，查不到就回退到 `error.detail`。
 
-於是一個 zh-TW 產品對絕大多數 4xx 顯示英文開發者散文。三個 AlertDialog 的呼叫點更是連那 2 個對照都不查，**100% 顯示英文**。
+於是一個 zh-TW 產品對絕大多數 4xx 顯示英文的開發者訊息。三個 AlertDialog 的呼叫點更是連那 2 個對照都不查，**100% 顯示英文**。
 
 第二個症狀是階段錯置：建立比賽時對手名稱留空，會繞一趟網路回來說「操作失敗：資料格式不正確」。那個約束客戶端自己就判斷得出來，根本不該成為一次 request。
 
 ## Goals
 
-- 讓「開發者散文外洩」在結構上不可能發生，而不是靠審查發現。
+- 讓「開發者訊息外洩」在結構上不可能發生，而不是靠審查發現。
 - 讓使用者讀到的每一句話都來自單一目錄，查不到時退到安全的通用訊息而非伺服器欄位。
 - 消除兩條顯示路徑對同一個錯誤給出不同答案的分歧。
 - 讓「客戶端判斷得出來的約束」在送出前就擋下，並讓「只有伺服器判斷得出來的約束」能指向出錯的欄位而不是彈一則通用 toast。
@@ -58,7 +58,7 @@ import { TLDR } from "@/components/TLDR";
 
 ## Capability impact
 
-`platform/clean-architecture` 的邊界契約多一條：**錯誤回應的 body 是封閉集合。** 今天的 Known gap 記載「客戶端保有自己的 request-shaped schema」，本 Change 補上對稱的另一半——伺服器不再送出只有開發者能讀的散文，客戶端也就不再有東西可以誤用。
+`platform/clean-architecture` 的邊界契約多一條：**錯誤回應的 body 是封閉集合。** 今天的 Known gap 記載「客戶端保有自己的 request-shaped schema」，本 Change 補上對稱的另一半——伺服器不再送出只有開發者能讀的訊息，客戶端也就不再有東西可以誤用。
 
 這條契約同時是 i18n 的前置：錯誤文案從散落在元件裡的字面值，變成一份以穩定常數為 key 的扁平目錄。
 

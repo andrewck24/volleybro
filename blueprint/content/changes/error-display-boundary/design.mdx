@@ -14,7 +14,7 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 <TLDR>
   一個錯誤只被問兩次。伺服器問「這是什麼」，答案是 `reason` ——
   一個穩定的常數，沒有措辭。客戶端問「這該說什麼」，答案來自單一目錄，查不到就
-  是通用訊息。散文從來沒有機會上路，所以也沒有機會被顯示。
+  是通用訊息。`detail` 從來沒有機會上路，所以也沒有機會被顯示。
 </TLDR>
 
 ## Adopted shape
@@ -128,6 +128,75 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 
 **重複讓每個標題成為一個看得見、改得動的格子。** 抽出去會讓它變成一張表悄悄替所有 reason 決定的東西。
 
+## Copy inventory
+
+盤點在核准前完成，不在執行階段——文案是判斷，不是實作。這張表是 S05 的輸入，執行時照寫、不重新決定用字。
+
+24 個 reason 裡只有 20 個需要自己的文案，4 個 401/5xx 由類別常數吸收。
+
+### 類別常數
+
+| key               | 吸收哪些                                                          | title            | description                                    |
+| ----------------- | ----------------------------------------------------------------- | ---------------- | ---------------------------------------------- |
+| `SESSION_EXPIRED` | `SESSION_REQUIRED`、`INVALID_SESSION`、`USER_NOT_FOUND`（皆 401） | 登入逾期         | 請重新登入                                     |
+| `SERVER_ERROR`    | `UNHANDLED_ERROR`（500 / 503）                                    | 哎呀，發球掛網！ | 伺服器暫時無法處理你的請求，請稍後再試一次     |
+| `NETWORK_TIMEOUT` | 客戶端自造的 `TIMEOUT`、`NETWORK_ERROR`                           | 連線逾時         | 請稍後再試，若問題持續請確認網路連線           |
+| `UNKNOWN`         | fail-closed 預設                                                  | 發生未預期的錯誤 | 請重新整理頁面後再試一次，若問題持續請聯繫我們 |
+
+### AlertDialog：不可逆操作，使用者被擋在動作中間
+
+| reason               | 狀態 | title            | description                            |
+| -------------------- | ---- | ---------------- | -------------------------------------- |
+| `OWNER_CANNOT_LEAVE` | 403  | 隊長無法離開隊伍 | 請先把隊長轉移給其他成員，再離開       |
+| `NOT_PLAYER_OWNER`   | 403  | 無法代替他人離開 | 你只能讓自己離開隊伍                   |
+| `NOT_TEAM_OWNER`     | 403  | 只有隊長可以轉移 | 轉移隊長身分需要目前的隊長操作         |
+| `TARGET_NOT_IN_TEAM` | 404  | 對方不在這支隊伍 | 只能把隊長轉移給隊上的成員             |
+| `TARGET_NOT_MEMBER`  | 409  | 對方尚未加入     | 邀請中的成員要先接受邀請，才能成為隊長 |
+| `PLAYER_NOT_FOUND`   | 404  | 找不到這位成員   | 對方可能已離開隊伍，請重新整理後再試   |
+
+### Toast
+
+| reason                  | 狀態 | title               | description                            |
+| ----------------------- | ---- | ------------------- | -------------------------------------- |
+| `INSUFFICIENT_ROLE`     | 403  | 權限不足            | 你的身份無法執行這項操作               |
+| `NOT_TEAM_MEMBER`       | 403  | 沒有這支隊伍的權限  | 你不是這支隊伍的成員                   |
+| `NOT_RECIPIENT`         | 403  | 這封邀請不是給你的  | 只有收到邀請的人可以回覆               |
+| `ALREADY_INVITED`       | 409  | 已經邀請過了        | 對方還沒回覆這封邀請                   |
+| `ALREADY_MEMBER`        | 409  | 對方已經在隊上      | 不需要重複邀請                         |
+| `EMAIL_ALREADY_INVITED` | 409  | 這個 email 已被邀請 | 你已在其他隊員邀請此 email             |
+| `NOT_INVITED`           | 404  | 這封邀請已失效      | 它可能已被取消，或已經處理過了         |
+| `DUPLICATE_RESOURCE`    | 409  | 資料重複            | 這筆資料已經存在                       |
+| `GAME_NOT_FOUND`        | 404  | 找不到這場比賽      | 它可能已被刪除，請回到比賽列表確認     |
+| `SET_NOT_FOUND`         | 404  | 找不到這一局        | 比賽資料可能已變動，請重新整理後再試   |
+| `RESOURCE_NOT_FOUND`    | 404  | 找不到資料          | 這筆資料可能已被刪除，請重新整理後再試 |
+| `INVALID_INPUT`         | 400  | 有欄位需要修正      | 請確認標示的欄位後再送出               |
+
+`INVALID_INPUT` 刻意不再說「資料格式不正確」。D3 之後它多數時候會伴隨欄位路徑，toast 只是沒有欄位可指時的退路，所以文案指向欄位而不是描述錯誤。
+
+### 目前沒有顯示路徑
+
+| reason              | 狀態 | title            | description          | 為什麼到不了                                  |
+| ------------------- | ---- | ---------------- | -------------------- | --------------------------------------------- |
+| `INVALID_EMAIL`     | 400  | email 格式不正確 | 請確認拼字後再試一次 | 唯一呼叫端是使用者搜尋，它的 `catch` 吞掉錯誤 |
+| `PROFILE_NOT_FOUND` | 404  | 找不到個人資料   | 請重新登入後再試     | 唯一呼叫端是 team-switcher，它自寫文案        |
+
+兩則仍然要寫：S03 收掉 team-switcher 的自寫文案，搜尋那條的修法另有其票，兩者都會讓它們變成可達。
+
+### 四則由 UI 閘門擋下，但仍要寫
+
+`OWNER_CANNOT_LEAVE`、`NOT_PLAYER_OWNER`、`NOT_TEAM_OWNER`、`NOT_RECIPIENT` 今天從介面上到不了：
+
+| reason               | 閘門                                                        |
+| -------------------- | ----------------------------------------------------------- |
+| `OWNER_CANNOT_LEAVE` | 離開隊伍整段 gate 在 `isJoined && !isOwner`，隊長看不到按鈕 |
+| `NOT_PLAYER_OWNER`   | 請求固定送出當前使用者自己的 player id                      |
+| `NOT_TEAM_OWNER`     | 移轉所有權 gate 在 `isCurrentOwner`                         |
+| `NOT_RECIPIENT`      | 邀請列表只讀當前使用者自己的 player                         |
+
+**閘門讓它們罕見，不讓它們不可能。** 隊伍成員資料由 SWR 快取五分鐘，所以別人在另一台裝置把隊長轉移給你之後，你的畫面最長五分鐘仍會顯示離開按鈕——那次請求會被伺服器正確地拒絕。少了這四則文案，一個我們完全知道原因的情況會顯示成「發生未預期的錯誤」。
+
+`OWNER_CANNOT_LEAVE` 另有一個獨立的 UX 問題：今天是整段隱藏，所以隊長既不知道為什麼沒有這個選項，也不知道要先轉移隊長。改成停用並在旁說明是 D4 對「動作可用性」的直接應用，屬於另一件工作。
+
 ## Contracts
 
 - **錯誤 body 是封閉集合。** `code`、`reason`、`status`，加上驗證失敗時只含 `path` 的 `details`。兩個產生點（`withErrorHandler` 與 `proxy.ts`）都遵守。
@@ -141,7 +210,7 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 
 四層，各證明不同的事。
 
-**wire 契約測試——證明散文真的不在 body 裡。** 兩個產生點各一組：`withErrorHandler` 的 4xx 與 5xx，以及 `proxy.ts` 的 Edge 401。斷言的形式是「body 的 key 集合等於預期集合」而不是「body 沒有 detail」——前者會擋下未來以別的名字加回來的自由文字，後者不會。
+**wire 契約測試——證明開發者訊息真的不在 body 裡。** 兩個產生點各一組：`withErrorHandler` 的 4xx 與 5xx，以及 `proxy.ts` 的 Edge 401。斷言的形式是「body 的 key 集合等於預期集合」而不是「body 沒有 detail」——前者會擋下未來以別的名字加回來的自由文字，後者不會。
 
 **窮盡性測試——證明每個 reason 都有文案。** 從 `src/entities/errors/index.ts` 的匯出推導，不得手寫清單。原始 issue 手寫了四個 enum、漏掉第五個，正是這種清單會漂移的證明。
 
@@ -159,7 +228,7 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
       name: "proxy.ts 是第二個回應產生點，很容易漏",
       severity: "warning",
       mitigation:
-        "它不經過 serializeError，所以任何以「改 serializeError」為心智模型的實作都會漏掉它，而漏掉的後果是 Edge 401 繼續送出散文、契約只成立一半。緩解是把它與 serializeError 綁在同一個切片，且 wire 契約測試對兩個產生點各有一組。",
+        "它不經過 serializeError，所以任何以「改 serializeError」為心智模型的實作都會漏掉它，而漏掉的後果是 Edge 401 繼續送出 `detail`、契約只成立一半。緩解是把它與 serializeError 綁在同一個切片，且 wire 契約測試對兩個產生點各有一組。",
     },
     {
       name: "拿掉 getter 但沒改建構子，detail 會活在 error.message 上",
