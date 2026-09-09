@@ -6,7 +6,6 @@ import {
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import {
-  ConflictError,
   NotFoundError,
   UnexpectedError,
 } from "@/entities/errors";
@@ -93,7 +92,7 @@ describe("CancelInvitationUseCase", () => {
 
       await expect(
         useCase.execute({ playerId: "player_123", userId: "user_456" }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if update fails", async () => {

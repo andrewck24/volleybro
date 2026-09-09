@@ -15,5 +15,5 @@
     "pnpm test -- src/applications/usecases src/app/api/profiles src/interface",
     "pnpm typecheck"
   ],
-  "status": "pending"
+  "status": "completed"
 }
