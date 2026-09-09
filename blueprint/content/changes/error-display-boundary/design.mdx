@@ -280,6 +280,21 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
   ]}
 />
 
+## Superseded specification
+
+`docs/specs/error-handling/spec.md` is the closest thing this repository has to a written contract for `AppError`, and it specifies the behaviour this Change removes. Four clauses go:
+
+| Requirement                               | 條文                                                        | 由誰取代 |
+| ----------------------------------------- | ----------------------------------------------------------- | -------- |
+| AppError class hierarchy                  | `detail` 是「safe for HTTP responses」                      | D1       |
+| withErrorHandler…response format          | 「Only `error.detail` (de-identified) SHALL be serialized」 | D1       |
+| API client and frontend error consumption | 元件以 **component-local** zh-TW 字串對照 reason            | D2       |
+| 同上的 Scenario                           | 查不到對照時「SHALL display `error.detail`」                | D2       |
+
+規格的推理值得完整記下，因為它有一半是對的：`detail` 確實**不含識別碼**，全 repo 的識別碼內插都正確地落在第三格。它錯的是下一步——**de-identified 不等於使用者看得懂**。而「stable、適合 monitoring grouping」這個目標，`reason` 服務得比 `detail` 好：它是 enum，本來就在 wire 上，而且不會因為內插 id 而把同一個故障打散成無數個 fingerprint。
+
+Spectra 的 spec 是不可變的歷史快照，所以不修改它們。取代它們的紀錄是本頁的四則 ADR，在 Archive 時晉升到 `platform/error-handling`。
+
 ## References
 
 - `request-schema-boundary`——本 Change 的來源。它建立了「邊界回答形狀、entity 回答意義」的分工，並在驗證過程中發現這裡的問題

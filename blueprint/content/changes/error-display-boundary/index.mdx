@@ -17,7 +17,11 @@ import { TLDR } from "@/components/TLDR";
 
 分工在「識別碼」這件事上被守住了：全 repo 113 個錯誤建構點裡，只有兩處內插真實 id（`get-user-by-id.usecase.ts` 與 `search-user.usecase.ts`），兩處都正確地放在第三格，而 `wrappers.test.ts` 已有一個測試釘住它不外洩。
 
-守不住的是**詞彙**。93 個建構點裡有 **82 個根本不傳第三格**，等於第二格同時扮演「上 wire 的描述」與「進 log 的訊息」，而多數人寫的是後者：
+守不住的是**詞彙**——而這一半也不是疏忽，是被寫進規格的。`docs/specs/error-handling/spec.md` 把 `detail` 描述為「de-identified, stable, human-readable —— **safe for HTTP responses** and monitoring grouping」，序列化那條更直接寫著「**Only `error.detail` (de-identified) SHALL be serialized**」。
+
+規格在「不含識別碼」這件事上是對的，在「因此可以送」這一步是錯的：**de-identified 不等於使用者看得懂**。`INVITED status must have exactly one of userId or email` 一個 id 都沒有，卻把內部狀態模型攤開來。
+
+而 93 個建構點裡有 **82 個根本不傳第三格**，等於第二格同時扮演「上 wire 的描述」與「進 log 的訊息」，多數人寫的是後者：
 
 - `INVITED status must have exactly one of userId or email, not both`
 - `Invalid teamId format`
@@ -58,7 +62,11 @@ import { TLDR } from "@/components/TLDR";
 
 ## Capability impact
 
-`platform/clean-architecture` 的邊界契約多一條：**錯誤回應的 body 是封閉集合。** 今天的 Known gap 記載「客戶端保有自己的 request-shaped schema」，本 Change 補上對稱的另一半——伺服器不再送出只有開發者能讀的訊息，客戶端也就不再有東西可以誤用。
+本 Change 的知識歸屬是 **`platform/error-handling`**。那個 capability 已經被決定存在——`docs/specs/` 底下有 `error-handling` 與 `api-objectid-validation` 兩份 spec，`platform/index.mdx` 也已經在宣傳「a single error-handling contract used consistently across the stack」——但 Feature 頁從來沒有被建出來。本 Change 是第一個要求它存在的工作。
+
+它推翻的不是一個沒人執行的慣例，而是四條寫下來的 requirement：`detail` 可以上 HTTP 回應、只有 `detail` 該被序列化、元件各自持有 zh-TW 字串、以及查不到對照時顯示 `error.detail`。Spectra 的 spec 是不可變的歷史快照，因此不修改它們；取代它們的是本 Change 的四則 ADR，在 Archive 時晉升。
+
+`platform/clean-architecture` 也受影響一條：**錯誤回應的 body 是封閉集合。** 今天的 Known gap 記載「客戶端保有自己的 request-shaped schema」，本 Change 補上對稱的另一半——伺服器不再送出只有開發者能讀的訊息，客戶端也就不再有東西可以誤用。
 
 這條契約同時是 i18n 的前置：錯誤文案從散落在元件裡的字面值，變成一份以穩定常數為 key 的扁平目錄。
 
