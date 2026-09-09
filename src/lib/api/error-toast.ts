@@ -21,8 +21,8 @@ export function resolveErrorDisplay(error: unknown): ErrorMessage {
     return ERROR_MESSAGES.NETWORK_TIMEOUT;
   if (error.status >= 500 || error.code === "UNEXPECTED")
     return ERROR_MESSAGES.SERVER_ERROR;
-  const catalogue: Partial<Record<string, ErrorMessage>> = ERROR_MESSAGES;
-  return catalogue[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
+  const entries: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;
+  return entries[error.reason] ?? ERROR_MESSAGES.UNKNOWN;
 }
 
 export function handle401Redirect(

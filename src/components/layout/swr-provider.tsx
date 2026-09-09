@@ -21,11 +21,8 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // `redirecting` is never reset and this effect's deps are [] while
-    // SWRProvider lives in the root layout, so it survives every
-    // client-side navigation. Safe only because sign-in is Google OAuth
-    // exclusively (src/components/auth/sign-in/form.tsx) — a full page
-    // load that re-initialises it. An email/password or in-page session
-    // refresh would need this flag reset on success.
+    // Released only by a full page load, which sign-in guarantees today.
+    // See error-display-boundary.
     let redirecting = false;
     const handleUnauthorized = () => {
       if (redirecting) return;

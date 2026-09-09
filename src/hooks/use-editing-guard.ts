@@ -33,9 +33,7 @@ export function useEditingGuard() {
   const leaveEditing = () => {
     if (writing) return;
     if (failed) {
-      // Not in the error catalogue: that's keyed by a reason the server
-      // supplies, and this notice has no key — it's the app reporting its
-      // own state, with no request behind it.
+      // No reason key: the app's own state, not a failed request.
       toast({
         title: "編輯未儲存",
         description: "這筆逐球紀錄的修改沒有送出成功，之後可以在紀錄列表重試。",

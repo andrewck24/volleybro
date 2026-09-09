@@ -1,3 +1,5 @@
+import { AuthReason, CommonReason } from "@/entities/errors";
+
 export type ErrorMessage = { title: string; description: string };
 
 type ClassKey =
@@ -30,10 +32,10 @@ type CatalogueKey = ClassKey | ReasonKey;
 // 401 reasons resolved to SESSION_EXPIRED and the 5xx reason resolved to
 // SERVER_ERROR before the reason lookup ever runs — no catalogue entry needed.
 export const ABSORBED_REASONS = [
-  "SESSION_REQUIRED",
-  "INVALID_SESSION",
-  "USER_NOT_FOUND",
-  "UNHANDLED_ERROR",
+  AuthReason.SESSION_REQUIRED,
+  AuthReason.INVALID_SESSION,
+  AuthReason.USER_NOT_FOUND,
+  CommonReason.UNHANDLED_ERROR,
 ] as const;
 
 export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {

@@ -153,6 +153,11 @@ describe("withErrorHandler", () => {
 
       // Asserting against what zod actually emits, not a hand-built issue:
       // the shape of a finalised issue is not the shape its type declares.
+      expect(Object.keys(body as object).sort()).toEqual([
+        "code",
+        "details",
+        "reason",
+      ]);
       expect(details).toEqual([["email"], ["age"], ["nested", "name"], []]);
       expect(JSON.stringify(details)).not.toContain("expected");
       expect(JSON.stringify(details)).not.toContain("Invalid input");
