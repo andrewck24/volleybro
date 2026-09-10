@@ -15,6 +15,20 @@ jest.mock("@shikijs/transformers", () => ({
 }));
 
 describe("AnnotatedDiff", () => {
+  it("strips the unified marker column so the body highlights as its own language", () => {
+    const code = `   <DialogFooter>\n-    <Button onClick={submit}>\n+    <Button type="submit">`;
+    const { container } = render(<AnnotatedDiff unified code={code} />);
+    const lines = container.textContent?.split("\n") ?? [];
+
+    // The marker is replaced by a space; fumadocs' ::before puts it back in the
+    // gutter, so a literal "+" or "-" in the body would render it twice.
+    expect(lines).toEqual([
+      "   <DialogFooter>",
+      "     <Button onClick={submit}>",
+      '     <Button type="submit">',
+    ]);
+  });
+
   it("passes the diff-notated code through to the highlighter", () => {
     const code = `const a = 1;\nconst b = 2; // [!code ++]`;
     render(<AnnotatedDiff code={code} />);

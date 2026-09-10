@@ -6,12 +6,22 @@ import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 interface AnnotatedDiffProps {
   /**
    * Code using Shiki diff notation (`// [!code ++]` / `// [!code --]` on a line)
-   * plus ordinary language comments for any per-line notes.
+   * plus ordinary language comments for any per-line notes. With `unified`, use
+   * a leading `+` / `-` / space column instead.
    */
   code: string;
   /** Shiki language for `code` (default "tsx"). */
   lang?: string;
+  /**
+   * Read `code` as a unified diff: a leading `+`, `-` or space column marks each
+   * line. Use this for JSX, where Shiki's notation cannot reach — `//` inside a
+   * tag or a child is text, not a comment, so the marker would render verbatim
+   * and the line would never be tinted.
+   */
+  unified?: boolean;
 }
+
+const MARKS = { "+": "add", "-": "remove" } as const;
 
 /**
  * Thin preset over fumadocs' DynamicCodeBlock: adds Shiki's official
@@ -19,15 +29,45 @@ interface AnnotatedDiffProps {
  * receive the `.diff.add` / `.diff.remove` classes that fumadocs' shiki.css
  * already styles (full-width tint + gutter symbol). Line notes are written as
  * normal code comments, so there is no separate annotations layer to maintain.
+ *
+ * `unified` reaches the same classes from a leading marker column. The marker
+ * is stripped before highlighting — so the body still highlights as its real
+ * language rather than as the `diff` grammar, which only recolours text and
+ * leaves the tint and gutter symbol behind — and fumadocs' `::before` puts the
+ * `+` / `-` back in the gutter.
  */
-export function AnnotatedDiff({ code, lang }: AnnotatedDiffProps) {
+export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
+  const marks = new Map<number, "add" | "remove">();
+  let body = code;
+
+  if (unified) {
+    body = code
+      .split("\n")
+      .map((line, index) => {
+        const mark = MARKS[line[0] as keyof typeof MARKS];
+        if (!mark) return line;
+        marks.set(index + 1, mark);
+        return ` ${line.slice(1)}`;
+      })
+      .join("\n");
+  }
+
   return (
     <DynamicCodeBlock
       lang={lang ?? "tsx"}
-      code={code}
+      code={body}
       options={{
         themes: { light: "github-light", dark: "github-dark" },
-        transformers: [transformerNotationDiff()],
+        transformers: [
+          transformerNotationDiff(),
+          {
+            name: "unified-diff",
+            line(node, line) {
+              const mark = marks.get(line);
+              if (mark) this.addClassToHast(node, `diff ${mark}`);
+            },
+          },
+        ],
       }}
     />
   );

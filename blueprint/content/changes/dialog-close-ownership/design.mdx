@@ -94,7 +94,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 控制鍵回到 `DialogHeader` 之內，在 normal flow 中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
 
 <AnnotatedDiff
-  lang="diff"
+  unified
   code={`  // ui/dialog.tsx — DialogContent
    <DialogPrimitive.Content {...props}>
      {children}
@@ -108,7 +108,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 />
 
 <AnnotatedDiff
-  lang="diff"
+  unified
   code={`  // ui/dialog.tsx — DialogHeader
 -  const DialogHeader = ({ children, className, ...props }) => (
 +  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (
@@ -143,7 +143,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
 
 <AnnotatedDiff
-  lang="diff"
+  unified
   code={`  // team/lineup/panel/options/libero-replace.tsx
    <DialogContent>
 -    <DialogHeader>…</DialogHeader>
@@ -288,7 +288,7 @@ const Button = ({ loading = false, loadingText, children, ...props }) => {
 />
 
 <AnnotatedDiff
-  lang="diff"
+  unified
   code={`  // game/new/index.tsx — 改的是這裡
    <DialogFooter>
 -    <Button size="lg" onClick={createGame}>
@@ -306,7 +306,7 @@ const Button = ({ loading = false, loadingText, children, ...props }) => {
 
 考慮過 `loadingContent`（呼叫端自己把 spinner 寫在圖示原本的位置）。它買到的唯一額外能力是「每顆按鈕各自決定 loading 圖示」——而這個 repo 確實有第二種進行中表示：`pull-refresh-indicator` 的 `animate-volleyball-bounce`，一個品牌化的動畫。但正因為如此：若哪天要用它取代 spinner，那是一次**全域的設計系統決定**，改在 `Button` 內部一次涵蓋所有按鈕。per-call-site 的 prop 提供的是錯誤軸向上的彈性。
 
-代價說清楚：`loadingText` 表達不了位置，所以 **spinner 一律置前**。圖示在左的按鈕位置不變；圖示在右的兩顆（創建賽事紀錄、開始新一局）在 loading 時內容會左移一格。這與多數設計系統的慣例一致，接受。
+`loadingText` 表達不了位置，所以 **spinner 一律置前**。這不構成視覺代價：loading 時文字與圖示是一起被換掉的，使用者看到的是一組全新的內容，不會把 spinner 讀成「原本的箭頭移動了」。真正會變的是按鈕寬度，因為標籤長度不同——那是替換文字本身的後果，與 spinner 的位置無關。
 
 而位置本身帶語意，本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
 
