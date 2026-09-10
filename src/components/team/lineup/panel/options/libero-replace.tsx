@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DialogBody,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -101,7 +100,11 @@ export const LiberoReplaceTrigger = () => {
   );
 };
 
-export const LiberoReplaceDialog = () => {
+export const LiberoReplaceDialog = ({
+  onSuccess,
+}: {
+  onSuccess: () => void;
+}) => {
   const dispatch = useAppDispatch();
   const { liberoReplaceMode, liberoReplacePosition } = useReplacePosition();
 
@@ -128,16 +131,23 @@ export const LiberoReplaceDialog = () => {
         liberoReplacePosition: data.position,
       }),
     );
+    onSuccess();
   };
 
   return (
     <DialogContent>
-      <DialogHeader>
-        <DialogTitle>自由球員替換模式</DialogTitle>
-        <DialogDescription>選擇自由球員替換模式與替換對象。</DialogDescription>
-      </DialogHeader>
-      <DialogBody>
-        <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+      <Form
+        form={form}
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="min-h-0 flex-1 gap-0"
+      >
+        <DialogHeader>
+          <DialogTitle>自由球員替換模式</DialogTitle>
+          <DialogDescription>
+            選擇自由球員替換模式與替換對象。
+          </DialogDescription>
+        </DialogHeader>
+        <DialogBody>
           <FormField
             control={form.control}
             name="mode"
@@ -185,16 +195,14 @@ export const LiberoReplaceDialog = () => {
               </FormItem>
             )}
           />
-        </Form>
-      </DialogBody>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+        </DialogBody>
+        <DialogFooter>
+          <Button type="submit">
             <RiCheckLine />
             確定
           </Button>
-        </DialogClose>
-      </DialogFooter>
+        </DialogFooter>
+      </Form>
     </DialogContent>
   );
 };

@@ -123,7 +123,7 @@ export const Options = ({ gameId }: { gameId: string }) => {
               />
             </DialogFooter>
           </Form>
-          <LiberoReplaceDialog />
+          <LiberoReplaceDialog onSuccess={() => setLiberoDialogOpen(false)} />
         </Dialog>
       </Card>
     </PanelContent>

@@ -7,6 +7,7 @@ import {
 import { LineupError } from "@/components/team/lineup/panel/options/lineup-error";
 import { Button } from "@/components/ui/button";
 import { CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog } from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -18,7 +19,6 @@ import {
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { LineupOptionMode, type PlayerView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { Dialog } from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { RiUserLine } from "react-icons/ri";
 
@@ -35,6 +35,7 @@ export const LineupOptions = ({
 }: LineupOptionsProps) => {
   const dispatch = useAppDispatch();
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [liberoDialogOpen, setLiberoDialogOpen] = useState(false);
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const liberoCount = lineups[status.lineupIndex]?.liberos.length ?? 0;
   const substituteCount = lineups[status.lineupIndex]?.substitutes.length ?? 0;
@@ -69,9 +70,9 @@ export const LineupOptions = ({
         </div>
       </CardHeader>
       <LineupError open={dialogOpen} setOpen={setDialogOpen} />
-      <Dialog>
+      <Dialog open={liberoDialogOpen} onOpenChange={setLiberoDialogOpen}>
         <LiberoReplaceTrigger />
-        <LiberoReplaceDialog />
+        <LiberoReplaceDialog onSuccess={() => setLiberoDialogOpen(false)} />
       </Dialog>
       <Table>
         <TableHeader className="text-lg">
