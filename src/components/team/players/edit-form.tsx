@@ -41,6 +41,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiSaveLine } from "react-icons/ri";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useSWRConfig } from "swr";
@@ -246,9 +247,11 @@ function InfoSection({
       <Button
         type="submit"
         className="w-full"
-        disabled={form.formState.isSubmitting}
+        loading={form.formState.isSubmitting}
+        loadingText="儲存中"
       >
-        {form.formState.isSubmitting ? "儲存中..." : "儲存變更"}
+        <RiSaveLine />
+        儲存變更
       </Button>
     </Form>
   );

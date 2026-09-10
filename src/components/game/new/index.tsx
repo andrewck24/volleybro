@@ -74,7 +74,10 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .filter((player) => player.id)
     .sort((a, b) => a.number - b.number);
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const createGame = async () => {
+    setIsCreating(true);
     try {
       const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, {
         method: "POST",
@@ -93,6 +96,8 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
       return router.push(`/game/${game.id}`);
     } catch (err) {
       showErrorToast(err, toast);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -151,7 +156,12 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
           </DialogBody>
           <DialogFooter>
             <DialogClose asChild>
-              <Button size="lg" onClick={createGame}>
+              <Button
+                size="lg"
+                onClick={createGame}
+                loading={isCreating}
+                loadingText="建立中"
+              >
                 創建賽事紀錄
                 <RiArrowRightLine />
               </Button>

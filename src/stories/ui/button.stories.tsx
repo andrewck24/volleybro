@@ -93,3 +93,9 @@ export const Loading: Story = {
 export const LoadingDestructive: Story = {
   args: { variant: "destructive", loading: true, loadingText: "Deleting..." },
 };
+
+// loadingText omitted on purpose: children (icon + label) fall back into the
+// loading state, producing a spinner next to the original icon.
+export const LoadingWithoutLoadingText: Story = {
+  args: { loading: true },
+};

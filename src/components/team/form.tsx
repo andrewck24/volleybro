@@ -21,6 +21,7 @@ import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiSaveLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
@@ -128,7 +129,12 @@ const TeamForm = ({
             {form.formState.errors.root.message}
           </p>
         )}
-        <Button size="lg">
+        <Button
+          size="lg"
+          loading={form.formState.isSubmitting}
+          loadingText={defaultValues?.name ? "儲存中" : "建立中"}
+        >
+          <RiSaveLine />
           {defaultValues?.name ? "儲存修改" : "建立隊伍"}
         </Button>
       </Form>

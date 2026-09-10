@@ -209,7 +209,13 @@ const ActionButton = ({
   loading: boolean;
 }) => {
   return (
-    <Button type="submit" size="lg" disabled={disabled} loading={loading}>
+    <Button
+      type="submit"
+      size="lg"
+      disabled={disabled}
+      loading={loading}
+      loadingText={isNewSet ? "開始中" : "儲存中"}
+    >
       {isNewSet ? (
         <>
           開始新一局

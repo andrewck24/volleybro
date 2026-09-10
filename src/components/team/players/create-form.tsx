@@ -31,6 +31,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiAddLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
 interface CreateFormProps {
@@ -194,10 +195,12 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
         )}
         <Button
           type="submit"
-          disabled={form.formState.isSubmitting}
+          loading={form.formState.isSubmitting}
+          loadingText="提交中"
           className="w-full"
         >
-          {form.formState.isSubmitting ? "提交中..." : "新增球員"}
+          <RiAddLine />
+          新增球員
         </Button>
       </Form>
     </Card>

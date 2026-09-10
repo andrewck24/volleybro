@@ -39,6 +39,7 @@ import { useForm } from "react-hook-form";
 import {
   RiAlertLine,
   RiArrowRightWideLine,
+  RiCheckLine,
   RiQuestionLine,
 } from "react-icons/ri";
 
@@ -189,6 +190,7 @@ export const LiberoReplaceDialog = () => {
       <DialogFooter>
         <DialogClose asChild>
           <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+            <RiCheckLine />
             確定
           </Button>
         </DialogClose>
