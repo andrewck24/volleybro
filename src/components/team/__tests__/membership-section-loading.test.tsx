@@ -8,8 +8,8 @@ jest.mock("@/lib/api/api-client", () => ({ apiClient: jest.fn() }));
 jest.mock("@/lib/api/error-toast", () => ({
   showErrorToast: jest.fn(),
   resolveErrorDisplay: jest.fn(() => ({
-    title: "error",
-    description: "error",
+    title: "error title",
+    description: "error description",
   })),
 }));
 jest.mock("@/components/ui/use-toast", () => ({
@@ -92,6 +92,8 @@ describe("MembershipSection — remove loading state", () => {
     await user.click(confirmBtn);
 
     await waitFor(() => expect(confirmBtn).toBeEnabled());
+    expect(screen.getByText("error title")).toBeInTheDocument();
+    expect(screen.getByText("error description")).toBeInTheDocument();
   });
 });
 

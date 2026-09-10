@@ -1,7 +1,6 @@
 "use client";
 import {
   AlertDialog,
-  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,7 +17,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
+import { ErrorNotice } from "@/components/layout/error-notice";
 import { apiClient } from "@/lib/api/api-client";
+import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,7 +37,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const router = useRouter();
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<ErrorMessage | null>(null);
 
   if (isTeamLoading || isPlayersLoading || isUserLoading)
     return <TeamInfoSkeleton />;
@@ -68,7 +69,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       mutate();
       router.push("/user/invitations");
     } catch (err) {
-      setLeaveError(resolveErrorDisplay(err).description);
+      setLeaveError(resolveErrorDisplay(err));
     } finally {
       setIsLeaving(false);
     }
@@ -123,11 +124,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                     離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {leaveError && (
-                  <AlertDialogBody>
-                    <p className="text-sm text-destructive">{leaveError}</p>
-                  </AlertDialogBody>
-                )}
+                {leaveError && <ErrorNotice message={leaveError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button

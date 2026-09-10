@@ -3,7 +3,6 @@
 import { RoleSelect } from "@/components/team/role-select";
 import {
   AlertDialog,
-  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,7 +17,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
+import { ErrorNotice } from "@/components/layout/error-notice";
 import { apiClient } from "@/lib/api/api-client";
+import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import { ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
@@ -45,10 +46,10 @@ export function MembershipSection({
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
 
   const [removeOpen, setRemoveOpen] = useState(false);
-  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<ErrorMessage | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [transferError, setTransferError] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<ErrorMessage | null>(null);
   const [isTransferring, setIsTransferring] = useState(false);
 
   const revalidate = () => {
@@ -72,7 +73,7 @@ export function MembershipSection({
       mutate(`/api/teams/${teamId}/players`);
       router.push(`/team/${teamId}`);
     } catch (err) {
-      setRemoveError(resolveErrorDisplay(err).description);
+      setRemoveError(resolveErrorDisplay(err));
     } finally {
       setIsRemoving(false);
     }
@@ -95,7 +96,7 @@ export function MembershipSection({
       });
       revalidate();
     } catch (err) {
-      setTransferError(resolveErrorDisplay(err).description);
+      setTransferError(resolveErrorDisplay(err));
     } finally {
       setIsTransferring(false);
     }
@@ -145,11 +146,7 @@ export function MembershipSection({
                     移除後該成員將無法繼續使用隊伍相關功能。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {removeError && (
-                  <AlertDialogBody>
-                    <p className="text-sm text-destructive">{removeError}</p>
-                  </AlertDialogBody>
-                )}
+                {removeError && <ErrorNotice message={removeError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
@@ -196,11 +193,7 @@ export function MembershipSection({
                     移轉後你將被降級為管理員，{player.name} 將成為新隊長。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {transferError && (
-                  <AlertDialogBody>
-                    <p className="text-sm text-destructive">{transferError}</p>
-                  </AlertDialogBody>
-                )}
+                {transferError && <ErrorNotice message={transferError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button
