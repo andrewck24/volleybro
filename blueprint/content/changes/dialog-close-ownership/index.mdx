@@ -66,7 +66,7 @@ repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全�
 - **在內**：`libero-replace.tsx` 的 form 邊界重畫。`<Form>` 必須包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出鍵才能是 `type="submit"` 又留在 footer。這不是順手清理，而是修法本身——死掉的 form 送出路徑因此一併復活。
 - **在內**：`EditDialogContainer` 補上 `DialogFooter`，三個 team 表單把送出鍵移進去。這三處目前沒有壞，改的是位置；代價是六個畫面（三個 dialog、三個全頁）的版面跟著變，必須逐一目視確認。
 - **在內**：player 編輯表單成功後只 toast、不關閉 modal。與本 Change 寫下的契約直接牴觸，一併對齊。
-- **在內**：`Button` 的 `icon` 與 `iconPosition`，以及六顆送出鍵的採用。
+- **在內**：`Button` 的 loading 介面。`loadingContent` 取代 `loadingText`，六顆送出鍵跟著採用，`RiLoader4Line` 退役給既有的 `Spinner`。
 - **在內**：`DialogContent` 那組 `absolute top-3 right-3` 的 expand 與 close。它們是 `{children}` 的兄弟，不屬於任何區塊，`DialogHeader` 因此帶著 `pr-20` 替它們讓位，而 ✕ 是整個 dialog 的最後一個 tabbable。form 邊界上移到含 header 之後，它們還會落在邊界之外。控制鍵移入 `DialogHeader`，`pr-20` 移除。
 - **在內**：`set-options/panel/options.tsx` 中 `onSubmit` 內的 `setLiberoDialogOpen(false)`。libero dialog 是 modal 且渲染 overlay（全 repo 沒有任何地方傳 `modal` prop，Radix 預設為 `true`），開著時底下的送出鍵既點不到也 tab 不到。該行到不了，隨本 Change 移除。
 - **在內**：`lineup/panel/options/index.tsx` 直接從 `@radix-ui/react-dialog` import `Dialog`，繞過 `@/components/ui/dialog`。改 controlled 時一併改回。

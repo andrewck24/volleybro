@@ -1,21 +1,22 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S01",
-  "title": "Button 取得 icon 插槽，loading 佔用那一格",
+  "title": "Button 的 loading 收斂成一次內容替換",
   "capabilities": ["platform/design-system/overlays"],
   "dependsOn": [],
-  "outcome": "Button 有一個明確的 icon 插槽與位置，loading 時該格改放旋轉中的 spinner 而非與原圖示並存，loadingText 同時替換文字。後續切片得以在各自的送出鍵上採用。",
+  "outcome": "Button 的 loading 介面只剩一組對照：children 是平常的內容，loadingContent 是進行中的內容。有圖示的按鈕在 loading 時不再出現兩個圖示，repo 內也只剩一個 spinner。",
   "acceptanceCriteria": [
-    "Button 取得 icon 與 iconPosition（預設 leading）；loading 時該格渲染 RiLoader4Line animate-spin，不 loading 時渲染 icon。",
-    "loadingText 仍替換文字；未傳時沿用 children。",
-    "不在 children 外包任何元素：buttonVariants 使用 [&>svg]:size-* 直接子元素選擇器，多一層會讓全 app 的按鈕圖示失去尺寸。以 keyed span 只包文字那一格，套用 animate-in fade-in duration-150。",
-    "spinner 不套用 fade：animate-spin 與 animate-in 都寫 animation 簡寫，同一元素上會互相覆蓋。此限制記錄在 D4，不以其他方式繞過。",
-    "既有 12 個 loading 呼叫點不傳 icon，行為維持可用；其 spinner 位置改為尾端。逐一確認沒有出現雙圖示或版面跳動。",
-    "一個測試斷言 loading 時 icon 那一格是 spinner，且原 icon 不同時存在。",
-    "Storybook 故事涵蓋 leading 與 trailing 兩種位置的 loading 切換。"
+    "Button 取得 loadingContent，loading 時完整取代 children；省略時退回預設 Spinner 加 children，使不傳的呼叫端不致空白。",
+    "移除 loadingText。不引入 icon 或 iconPosition——圖示位置由呼叫端寫在 children 與 loadingContent 裡。",
+    "loading 時仍 disabled 並帶 aria-busy，此行為不變。",
+    "Button 內部的 RiLoader4Line 退役，改用既有的 Spinner 元件，repo 內兩個 spinner 縮成一個。逐一確認 12 顆既有 loading 按鈕的新樣式在各 size variant 下尺寸正確。",
+    "loadingText 的五個呼叫端改寫成 loadingContent：membership-section 四處與 team/info 一處。",
+    "ui/__tests__/button.test.tsx 中四個 loadingText 測試改為 loadingContent；補一個測試斷言傳入 loadingContent 時原 children 完全不在畫面上。",
+    "src/stories/ui/button.stories.tsx 兩個 loadingText 故事跟著改，並新增一個圖示在左、一個圖示在右的 loading 故事。",
+    "不在內容外包任何元素：buttonVariants 使用 [&>svg]:size-* 直接子元素選擇器。內容切換不做淡入淡出，理由記錄在 D4。"
   ],
   "verification": [
-    "pnpm test -- src/components/ui",
+    "pnpm test -- src/components/ui src/components/team",
     "pnpm typecheck",
     "pnpm lint"
   ],

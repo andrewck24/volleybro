@@ -23,7 +23,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 <svg
   viewBox="0 0 1160 400"
   role="img"
-  aria-label="兩個 dialog 的線框對照。左邊是之前：expand 與 close 兩顆控制鍵是一組絕對定位的元素，掛在 DialogContent 上、是 children 的兄弟，浮在右上角之外；DialogHeader 因此帶著 pr-20 替它讓位；form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住。右邊是之後：那兩顆控制鍵回到 DialogHeader 內，在正常流程中靠右對齊，pr-20 移除；form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡。"
+  aria-label="兩個 dialog 的線框對照。左邊是之前：expand 與 close 兩顆控制鍵是一組絕對定位的元素，掛在 DialogContent 上、是 children 的兄弟，浮在右上角之外；DialogHeader 因此帶著 pr-20 替它讓位；form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住。右邊是之後：那兩顆控制鍵回到 DialogHeader 內，在 normal flow 中靠右對齊，pr-20 移除；form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "1160 / 400", width: "100%", height: "auto" }}
 >
@@ -90,7 +90,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 
 `DialogContent` 目前把 expand 與 close 這一組控制鍵渲染成 `{children}` 的**兄弟**，`absolute top-3 right-3`。它們因此不屬於任何區塊——而 `DialogHeader` 帶著 `pr-20`，5rem 的右內距，唯一用途就是替那組浮起來的按鈕讓位。這個 magic number 就是絕對定位的帳單。
 
-控制鍵回到 `DialogHeader` 之內、在正常流程中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
+控制鍵回到 `DialogHeader` 之內，在 normal flow 中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
 
 包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
 
@@ -182,24 +182,27 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 
 ## Adopted shape：送出鍵自己說出進行中
 
-`Button` 已有 `loading`，但 spinner 是**前置**且不取代原有的 icon，按下去會同時看到 spinner 與圖示。改為一格：**spinner 佔用 icon 的位置**。
+`Button` 已有 `loading`，但它把 spinner 前置並保留 `children`，所以一顆有圖示的按鈕在 loading 時會同時顯示 spinner 與原圖示。修法不是替圖示留一格，而是**把 loading 當成一次完整的內容替換**：
 
 ```
-icon + iconPosition   →  不 loading 時那一格的內容與位置
-loading               →  該格改放 RiLoader4Line animate-spin
-loadingText           →  同時替換文字
+children         →  平常的內容，圖示寫在它該在的位置
+loadingContent   →  進行中的內容，spinner 寫在同一個位置
 ```
 
-icon 的位置不統一，因為位置本身帶語意：**icon 在左說明這顆鍵做什麼**（save、add、check），**icon 在右說明它把你帶去哪**（`→`）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上。
+一組對照，沒有第三個概念。位置因此不是元件需要知道的事——兩個狀態各自把自己的排列寫出來，`iconPosition` 這種 prop 整個消失。省略 `loadingContent` 時退回一個通用預設：`Spinner` 加原本的 `children`，讓沒有圖示的呼叫端不必多寫。
 
-淡入淡出只套用在文字與 icon 的切換：`animate-spin` 與 `animate-in` 都寫 `animation` 簡寫，同一個元素上會互相覆蓋，所以 spinner 靠轉動本身表達抵達。內容也不能包一層 `span`——`buttonVariants` 用的是 `[&>svg]` 直接子元素選擇器，多一層會讓全 app 的按鈕圖示失去尺寸。
+而位置本身帶語意，所以本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
+
+兩件順帶被收斂的事：`loadingText` 由 `loadingContent` 取代並移除，它現有的五個呼叫端改寫；`Button` 內部的 `RiLoader4Line` 退役，改用既有的 `Spinner` 元件，repo 內兩個 spinner 縮成一個。
+
+內容切換**不做**淡入淡出。它需要在內容外包一層元素，而 `buttonVariants` 用的是 `[&>svg]:size-*` 直接子元素選擇器，多一層會讓全 app 的按鈕圖示失去尺寸。掃描確認沒有 `asChild` 按鈕依賴巢狀圖示，所以改成 `[&_svg]` 沒有其他好處可以分攤這個風險。spinner 的轉動本身已經表達了狀態改變。
 
 ## Behavior contract
 
 - 送出成功：子元件回報，持有者關閉（`setOpen(false)` 或 `router.back()`）。
 - 驗證失敗：不呼叫 `onSubmit`，不回報，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
 - 請求失敗：顯示 toast 或 root error 後**不**回報，dialog 保持開啟，已填內容完整保留。
-- 進行中：送出鍵 `disabled`、`aria-busy`，icon 那一格轉為 spinner，文字可換成 `loadingText`。
+- 進行中：送出鍵 `disabled`、`aria-busy`，整段內容換成 `loadingContent`，spinner 寫在原本圖示的位置。
 - 使用者主動取消：照常關閉；`EditDialogContainer` 既有的 dirty 攔截不變。
 
 ## Failure modes

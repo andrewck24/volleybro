@@ -1,12 +1,12 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S06",
-  "title": "expand 與 close 回到 DialogHeader 的正常流程中",
+  "title": "expand 與 close 回到 DialogHeader 的 normal flow",
   "capabilities": ["platform/design-system/overlays"],
   "dependsOn": [],
   "outcome": "每一顆 dialog 按鈕都屬於某個區塊。expand 與 close 在 DialogHeader 內靠右對齊、進入正常的 tab 順序，pr-20 這個為絕對定位讓位的內距消失，標題取得真實可用寬度。",
   "acceptanceCriteria": [
-    "expand 與 close 移入 DialogHeader，在正常流程中靠右對齊；DialogHeader 成為一列兩格，內容欄承載標題與描述並帶 min-w-0 flex-1。",
+    "expand 與 close 移入 DialogHeader，在 normal flow 中靠右對齊；DialogHeader 成為一列兩格，內容欄承載標題與描述並帶 min-w-0 flex-1。",
     "DialogHeader 的 pr-20 移除。該內距的唯一用途是替絕對定位的按鈕讓位。",
     "closeButton、onExpand、expandLabel 三個 prop 從 DialogContent 移到 DialogHeader；五個呼叫端跟著移動，其中 game/options/index.tsx 與 game/sets/edit.tsx 傳的是條件值 mode === \"general\"，條件本身不變。",
     "兩顆按鈕明確標註 type=\"button\"。form 邊界上移到含 header 之後它們會落入 form，沒有這一步會變成隱含的 submit button。",

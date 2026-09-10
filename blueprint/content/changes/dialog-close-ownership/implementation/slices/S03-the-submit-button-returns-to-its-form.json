@@ -8,7 +8,7 @@
   "acceptanceCriteria": [
     "Form 元素包住 DialogHeader、DialogBody、DialogFooter 三者，並帶 min-h-0 flex-1，使 DialogBody 保有可捲動高度。",
     "送出鍵為 DialogFooter 內的 type=\"submit\" 且不再被 DialogClose 包住；DialogClose 的 import 一併移除。",
-    "送出鍵 icon 為 RiCheckLine 且位置在左——這顆鍵確認設定後關閉，不把使用者帶去別處。",
+    "送出鍵圖示 RiCheckLine 在文字左側——這顆鍵確認設定後關閉，不把使用者帶去別處。此處為同步 dispatch，不需要 loading。",
     "LiberoReplaceDialog 收一個 onSuccess prop，在 onSubmit dispatch 之後呼叫。",
     "set-options panel 傳入 onSuccess 關閉自己既有的 liberoDialogOpen state，不新增 state。",
     "lineup panel 改為 controlled Dialog 並傳入 onSuccess，同時把 Dialog 的 import 從 @radix-ui/react-dialog 改回 @/components/ui/dialog。",

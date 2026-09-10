@@ -9,7 +9,7 @@
     "ActionButton 持有 open state 並以 controlled 方式 render Dialog。",
     "NewGameForm 收一個 onSuccess prop，createGame 僅在寫入成功後呼叫它；catch 路徑顯示 toast 但不呼叫。",
     "送出鍵不再被 DialogClose 包住，改為 form 邊界內的送出鍵，位置留在 DialogFooter。",
-    "送出鍵接上 loading，icon 為 RiArrowRightLine 且位置在右——這顆鍵會把使用者帶去 /game/[id]。",
+    "送出鍵接上 loading 與 loadingContent，圖示 RiArrowRightLine 在文字右側——這顆鍵會把使用者帶去 /game/[id]；loadingContent 把 spinner 寫在同一個位置。",
     "DialogTitle 內的返回鍵明確標註 type=\"button\"，否則它落入 form 邊界後會送出表單。",
     "一個 component test：mock apiClient 使其 reject，斷言 dialog 仍在畫面上、且先前填入的賽事資訊仍在。此測試在修復前必然失敗。該測試斷言的是 dialog 與資料，不是 toast——toast 今天就會出現。",
     "成功路徑仍導向 /game/[id]；關閉發生在導頁之前，避免 dialog 短暫覆蓋新頁面。"

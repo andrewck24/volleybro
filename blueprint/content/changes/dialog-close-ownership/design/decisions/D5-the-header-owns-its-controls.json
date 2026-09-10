@@ -2,11 +2,11 @@
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D5",
-  "title": "Header 擁有自己的控制鍵，在正常流程中",
+  "title": "Header 擁有自己的控制鍵，位於 normal flow",
   "status": "candidate",
   "targets": ["platform/design-system/overlays"],
   "context": "DialogContent 把 expand 與 close 渲染成 {children} 的兄弟，包在一個 absolute top-3 right-3 的容器裡。三個後果：這組按鈕不屬於任何區塊；DialogHeader 必須帶 pr-20，一個 5rem 的右內距純粹用來替浮起來的按鈕讓位；它們渲染在 children 之後，所以 ✕ 是整個 dialog 的最後一個 tabbable，排在每一個欄位與送出鍵後面。form 邊界上移到含 header 之後，這組按鈕還會落在 form 之外，與 D2 畫下的邊界矛盾。",
-  "decision": "expand 與 close 移入 DialogHeader，在正常流程中靠右對齊；pr-20 移除。closeButton、onExpand、expandLabel 三個 prop 從 DialogContent 移到 DialogHeader，也就是它們實際渲染的地方。兩顆按鈕明確標註 type=\"button\"，讓 D2 的配套規則在共用元件內一次生效。",
+  "decision": "expand 與 close 移入 DialogHeader，在 normal flow 中靠右對齊；pr-20 移除。closeButton、onExpand、expandLabel 三個 prop 從 DialogContent 移到 DialogHeader，也就是它們實際渲染的地方。兩顆按鈕明確標註 type=\"button\"，讓 D2 的配套規則在共用元件內一次生效。",
   "alternatives": [
     {
       "option": "維持絕對定位，只把 form 邊界畫成不含 header",
