@@ -13,7 +13,6 @@ jest.mock("next/navigation", () => ({
 // covered by unconfirmed-set-dialog.test.tsx against the real dialog; this
 // only checks the three exits are wired to reject dismissal.
 let capturedProps: {
-  closeButton?: boolean;
   onEscapeKeyDown?: (e: { preventDefault: () => void }) => void;
   onInteractOutside?: (e: { preventDefault: () => void }) => void;
 } = {};
@@ -44,7 +43,9 @@ describe("UnconfirmedSetDialog dismissal", () => {
   it("blocks escape, outside click, and hides the close button", () => {
     render(<UnconfirmedSetDialog gameId="game-1" setIndex={0} />);
 
-    expect(capturedProps.closeButton).toBe(false);
+    expect(
+      screen.queryByRole("button", { name: "關閉" }),
+    ).not.toBeInTheDocument();
 
     const event = { preventDefault: jest.fn() };
     capturedProps.onEscapeKeyDown?.(event);

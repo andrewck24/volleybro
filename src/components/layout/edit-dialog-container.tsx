@@ -61,15 +61,14 @@ export function EditDialogContainer({
           if (!open) handleClose();
         }}
       >
-        <DialogContent
-          size="lg"
-          expandLabel="全頁模式"
-          onExpand={() => {
-            suppressLeaveWarning();
-            window.location.assign(fullPageHref);
-          }}
-        >
-          <DialogHeader>
+        <DialogContent size="lg">
+          <DialogHeader
+            expandLabel="全頁模式"
+            onExpand={() => {
+              suppressLeaveWarning();
+              window.location.assign(fullPageHref);
+            }}
+          >
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription srOnly>{title}表單</DialogDescription>
           </DialogHeader>

@@ -53,28 +53,10 @@ export interface DialogContentProps extends VariantProps<
    * @defaultValue "default"
    */
   size?: "default" | "lg";
-  /**
-   * When `true`, a close button will be rendered in the top-right corner.
-   * @type boolean
-   * @defaultValue true
-   */
-  closeButton?: boolean;
-  /**
-   * When provided, an expand button is rendered in the control group and
-   * this handler is called on click.
-   */
-  onExpand?: () => void;
-  /**
-   * Accessible label for the expand button.
-   */
-  expandLabel?: string;
 }
 
 const DialogContent = ({
   size,
-  closeButton = true,
-  onExpand,
-  expandLabel,
   className,
   children,
   ...props
@@ -88,29 +70,6 @@ const DialogContent = ({
       {...props}
     >
       {children}
-      {(onExpand || closeButton) && (
-        <div className="absolute top-3 right-3 flex flex-row items-center gap-1">
-          {onExpand && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={onExpand}
-              aria-label={expandLabel}
-            >
-              <RiExpandDiagonalLine className="size-4" />
-            </Button>
-          )}
-          {closeButton && (
-            <DialogPrimitive.Close asChild>
-              <Button variant="ghost" size="icon" className="size-8">
-                <RiCloseLine className="size-4" />
-                <span className="sr-only">關閉</span>
-              </Button>
-            </DialogPrimitive.Close>
-          )}
-        </div>
-      )}
     </DialogPrimitive.Content>
   </DialogPortal>
 );
@@ -129,18 +88,73 @@ const DialogBody = ({
   />
 );
 
+export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+  /**
+   * When `true`, a close button will be rendered in the control group.
+   * @type boolean
+   * @defaultValue true
+   */
+  closeButton?: boolean;
+  /**
+   * When provided, an expand button is rendered in the control group and
+   * this handler is called on click.
+   */
+  onExpand?: () => void;
+  /**
+   * Accessible label for the expand button.
+   */
+  expandLabel?: string;
+}
+
 const DialogHeader = ({
+  closeButton = true,
+  onExpand,
+  expandLabel,
   className,
+  children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: DialogHeaderProps) => (
   <div
     data-slot="DialogHeader"
     className={cn(
-      "flex flex-none flex-col items-start justify-start gap-1 px-4 pt-4 pr-20 pb-2",
+      "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",
       className,
     )}
     {...props}
-  />
+  >
+    <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+      {children}
+    </div>
+    {(onExpand || closeButton) && (
+      <div className="flex flex-none flex-row items-center gap-1">
+        {onExpand && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={onExpand}
+            aria-label={expandLabel}
+          >
+            <RiExpandDiagonalLine className="size-4" />
+          </Button>
+        )}
+        {closeButton && (
+          <DialogPrimitive.Close asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8"
+            >
+              <RiCloseLine className="size-4" />
+              <span className="sr-only">關閉</span>
+            </Button>
+          </DialogPrimitive.Close>
+        )}
+      </div>
+    )}
+  </div>
 );
 
 const DialogTitle = ({

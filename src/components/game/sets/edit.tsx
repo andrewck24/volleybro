@@ -24,14 +24,13 @@ export const SetEdit = ({
   return (
     <DialogContent
       size="lg"
-      closeButton={mode === "general"}
       onEscapeKeyDown={guardDismiss}
       onInteractOutside={guardDismiss}
       onCloseAutoFocus={leaveEditing}
     >
       {mode === "general" ? (
         <>
-          <DialogHeader>
+          <DialogHeader closeButton={mode === "general"}>
             <DialogTitle>第 {setIndex + 1} 局逐球記錄</DialogTitle>
             <DialogDescription srOnly>逐球紀錄頁面</DialogDescription>
           </DialogHeader>

@@ -27,7 +27,6 @@ export const GameOptions = ({
   return (
     <DialogContent
       size="lg"
-      closeButton={mode === "general"}
       onEscapeKeyDown={guardDismiss}
       onInteractOutside={guardDismiss}
       onCloseAutoFocus={leaveEditing}
@@ -36,7 +35,7 @@ export const GameOptions = ({
         <EntriesEdit gameId={gameId} />
       ) : (
         <>
-          <DialogHeader>
+          <DialogHeader closeButton={mode === "general"}>
             <DialogTitle>
               {tabValue === "overview" && "數據總覽"}
               {tabValue === "settings" && "賽事資訊與設定"}
