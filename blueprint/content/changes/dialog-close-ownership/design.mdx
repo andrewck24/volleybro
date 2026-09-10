@@ -2,6 +2,7 @@
 title: Design
 ---
 
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { TLDR } from "@/components/TLDR";
 import ownershipLivesWithTheDialogRoot from "./design/decisions/D1-ownership-lives-with-the-dialog-root.json";
@@ -92,7 +93,90 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 
 控制鍵回到 `DialogHeader` 之內，在 normal flow 中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
 
+<AnnotatedDiff
+  lang="diff"
+  code={`  // ui/dialog.tsx — DialogContent
+   <DialogPrimitive.Content {...props}>
+     {children}
+-    {(onExpand || closeButton) && (
+-      <div className="absolute top-3 right-3 flex flex-row items-center gap-1">
+-        {onExpand && <Button onClick={onExpand}>…</Button>}
+-        {closeButton && <DialogPrimitive.Close asChild>…</DialogPrimitive.Close>}
+-      </div>
+-    )}
+   </DialogPrimitive.Content>`}
+/>
+
+<AnnotatedDiff
+  lang="diff"
+  code={`  // ui/dialog.tsx — DialogHeader
+-  const DialogHeader = ({ children, className, ...props }) => (
++  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (
+     <div
+       className={cn(
+-        "flex flex-none flex-col items-start gap-1 px-4 pt-4 pr-20 pb-2",
++        "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",
+         className,
+       )}
+       {...props}
+     >
+-      {children}
++      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
++        {children}
++      </div>
++      {(onExpand || closeButton) && (
++        <div className="flex flex-none flex-row items-center gap-1">
++          {onExpand && (
++            <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>
++          )}
++          {closeButton && (
++            <DialogPrimitive.Close asChild>
++              <Button type="button">…</Button>
++            </DialogPrimitive.Close>
++          )}
++        </div>
++      )}
+     </div>
+   );`}
+/>
+
 包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
+
+<AnnotatedDiff
+  lang="diff"
+  code={`  // team/lineup/panel/options/libero-replace.tsx
+   <DialogContent>
+-    <DialogHeader>…</DialogHeader>
+-    <DialogBody>
+-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
+-        …兩個 FormField…
+-      </Form>
+-    </DialogBody>
+-    <DialogFooter>
+-      <DialogClose asChild>
+-        <Button type="button" onClick={form.handleSubmit(onSubmit)}>
+-          確定
+-        </Button>
+-      </DialogClose>
+-    </DialogFooter>
++    <Form
++      form={form}
++      onSubmit={form.handleSubmit(onSubmit)}
++      className="min-h-0 flex-1 gap-0"
++    >
++      <DialogHeader>…</DialogHeader>
++      <DialogBody>
++        …兩個 FormField…
++      </DialogBody>
++      <DialogFooter>
++        <Button type="submit">
++          <RiCheckLine />
++          確定
++        </Button>
++      </DialogFooter>
++    </Form>
+   </DialogContent>`}
+/>
 
 代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵，`game/options/edit/index.tsx` 的 header 裡也有一顆。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
 
@@ -182,27 +266,56 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 
 ## Adopted shape：送出鍵自己說出進行中
 
-`Button` 已有 `loading`，但它把 spinner 前置並保留 `children`，所以一顆有圖示的按鈕在 loading 時會同時顯示 spinner 與原圖示。修法不是替圖示留一格，而是**把 loading 當成一次完整的內容替換**：
+`Button` 的 `loading` **今天就已經是完整替換**——傳了 `loadingText`，`children` 連同它的圖示一起被換掉。缺陷只發生在省略它的時候：spinner 與原圖示同時出現。所以本 Change **不新增也不移除任何 prop**，改的只有呼叫端。
 
-```
-children         →  平常的內容，圖示寫在它該在的位置
-loadingContent   →  進行中的內容，spinner 寫在同一個位置
-```
+<AnnotatedDiff
+  code={`// ui/button.tsx — 這一段不動，它本來就對
+const Button = ({ loading = false, loadingText, children, ...props }) => {
+  const isLoading = !asChild && loading;
+  return (
+    <Comp disabled={disabled || isLoading} {...props}>
+      {isLoading ? (
+        <>
+          <RiLoader4Line className="animate-spin" />
+          {loadingText ?? children}
+        </>
+      ) : (
+        children
+      )}
+    </Comp>
+  );
+};`}
+/>
 
-一組對照，沒有第三個概念。位置因此不是元件需要知道的事——兩個狀態各自把自己的排列寫出來，`iconPosition` 這種 prop 整個消失。省略 `loadingContent` 時退回一個通用預設：`Spinner` 加原本的 `children`，讓沒有圖示的呼叫端不必多寫。
+<AnnotatedDiff
+  lang="diff"
+  code={`  // game/new/index.tsx — 改的是這裡
+   <DialogFooter>
+-    <Button size="lg" onClick={createGame}>
++    <Button
++      size="lg"
++      onClick={createGame}
++      loading={isCreating}
++      loadingText="建立中"
++    >
+       創建賽事紀錄
+       <RiArrowRightLine />
+     </Button>
+   </DialogFooter>`}
+/>
 
-而位置本身帶語意，所以本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
+考慮過 `loadingContent`（呼叫端自己把 spinner 寫在圖示原本的位置）。它買到的唯一額外能力是「每顆按鈕各自決定 loading 圖示」——而這個 repo 確實有第二種進行中表示：`pull-refresh-indicator` 的 `animate-volleyball-bounce`，一個品牌化的動畫。但正因為如此：若哪天要用它取代 spinner，那是一次**全域的設計系統決定**，改在 `Button` 內部一次涵蓋所有按鈕。per-call-site 的 prop 提供的是錯誤軸向上的彈性。
 
-兩件順帶被收斂的事：`loadingText` 由 `loadingContent` 取代並移除，它現有的五個呼叫端改寫；`Button` 內部的 `RiLoader4Line` 退役，改用既有的 `Spinner` 元件，repo 內兩個 spinner 縮成一個。
+代價說清楚：`loadingText` 表達不了位置，所以 **spinner 一律置前**。圖示在左的按鈕位置不變；圖示在右的兩顆（創建賽事紀錄、開始新一局）在 loading 時內容會左移一格。這與多數設計系統的慣例一致，接受。
 
-內容切換**不做**淡入淡出。它需要在內容外包一層元素，而 `buttonVariants` 用的是 `[&>svg]:size-*` 直接子元素選擇器，多一層會讓全 app 的按鈕圖示失去尺寸。掃描確認沒有 `asChild` 按鈕依賴巢狀圖示，所以改成 `[&_svg]` 沒有其他好處可以分攤這個風險。spinner 的轉動本身已經表達了狀態改變。
+而位置本身帶語意，本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
 
 ## Behavior contract
 
 - 送出成功：子元件回報，持有者關閉（`setOpen(false)` 或 `router.back()`）。
 - 驗證失敗：不呼叫 `onSubmit`，不回報，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
 - 請求失敗：顯示 toast 或 root error 後**不**回報，dialog 保持開啟，已填內容完整保留。
-- 進行中：送出鍵 `disabled`、`aria-busy`，整段內容換成 `loadingContent`，spinner 寫在原本圖示的位置。
+- 進行中：送出鍵 `disabled`、`aria-busy`，內容換成 spinner 加 `loadingText`。
 - 使用者主動取消：照常關閉；`EditDialogContainer` 既有的 dirty 攔截不變。
 
 ## Failure modes
@@ -210,7 +323,7 @@ loadingContent   →  進行中的內容，spinner 寫在同一個位置
 - **form 邊界提上來但忘記 `min-h-0 flex-1`**：`DialogBody` 失去可捲動高度，長內容溢出而非捲動。
 - **header 內的 Button 沒寫 `type="button"`**：按下它會送出表單。`game/new/index.tsx` 的返回鍵是現成的例子。
 - **`EditDialogContainer` 補上 `DialogFooter` 後，全頁模式跟著改版**：三個 team 表單同時服務 `@modal` 與 `(workspace)` 兩種 route，footer 一旦由表單自己 render，全頁模式也會看到它。六個畫面都要目視確認。
-- **`icon` 與 children 內的圖示並存**：若呼叫端同時把圖示留在 children 又傳 `icon`，會出現兩個。改造時逐一移除 children 內的圖示。
+- **帶圖示的按鈕忘記傳 `loadingText`**：會退回 spinner 加 `children`，出現兩個圖示。型別擋不住，只能逐一檢查。
 
 ## Testing strategy
 
