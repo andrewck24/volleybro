@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Open state 由 render Dialog 的那一層持有",
+  "status": "candidate",
+  "targets": ["platform/design-system/overlays"],
+  "context": "三個 dialog 的 open state 歸屬各不相同：set-options panel 已 controlled，lineup panel 與 ActionButton 都是 uncontrolled，open 住在 Radix 內部。uncontrolled 的元件沒有任何縫可以插手關閉時機——DialogClose 一被點就關，呼叫端既讀不到也否決不了。",
+  "decision": "所有承載動作的 dialog 一律 controlled：open state 住在 render Dialog 的那一層，overlay 內的元件不自行關閉，只在成功時呼叫父層傳入的 onSuccess。LiberoReplaceDialog 有兩個父層，兩個父層各自持有自己的 open state，套用同一條規則。",
+  "alternatives": [
+    {
+      "option": "維持 uncontrolled，子元件用 ref 點擊一顆隱藏的 DialogClose 自行關閉",
+      "reason": "三個父層一行都不用改，但 set-options panel 本來就需要那個 state（它另有邏輯讀取），所以省不掉它；代價是另外兩處多一個 ref hack，且三處都繞過 Radix 的正規介面。controlled 是 Radix 對這個問題的既有答案。"
+    },
+    {
+      "option": "把 setOpen 直接傳進子元件",
+      "reason": "少一層轉譯，但子元件從此綁死在 dialog 上。LiberoReplaceTrigger 已經被用在非 dialog 的 panel 上下文，子元件應該保持對「自己在不在 overlay 裡」的無知。"
+    }
+  ],
+  "consequences": [
+    "controlled 的價值是否決權而非關閉能力：Radix 不再儲存 open，Esc、點 overlay、DialogClose 都只是 onOpenChange(false) 的一次詢問，父層可以不理它。",
+    "子元件的介面收斂成同一個形狀 onSuccess，兩處用同一個 prop 名。",
+    "lineup panel 直接從 @radix-ui/react-dialog import Dialog 的繞道一併改回 @/components/ui/dialog。",
+    "每個父層多一個 useState。這是明確的成本，換得的是關閉時機可被程式碼決定。"
+  ],
+  "revisitTriggers": [
+    "Radix 為 DialogClose 提供等待 async handler 的官方機制。",
+    "出現一個 dialog，其關閉條件需要跨越父層邊界協商，使單一父層持有 open state 不再成立。"
+  ]
+}

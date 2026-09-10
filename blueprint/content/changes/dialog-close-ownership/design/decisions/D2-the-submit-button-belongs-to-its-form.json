@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "送出鍵位於它所提交的 form 邊界之內",
+  "status": "candidate",
+  "targets": ["platform/forms"],
+  "context": "libero-replace.tsx 的 Form 只包住 DialogBody，footer 的送出鍵是 form 之外的 type=\"button\"，靠 onClick 呼叫 form.handleSubmit。結果有二：form 自己的 onSubmit 從未被觸發過，是一條死掉的路徑；而驗證只能在 onClick return 之後才完成，此時 DialogClose 已經關閉了 dialog。set-options panel 的 ActionButton 則已經是 form 內的 type=\"submit\"，形狀本來就正確。",
+  "decision": "Form 元素同時包住 DialogBody 與 DialogFooter，送出鍵改為 type=\"submit\"，DialogClose 移除。DialogBody 與 DialogFooter 都只是帶樣式的 div、不消費 Radix context，因此 form 邊界可以自由畫在它們外面。",
+  "alternatives": [
+    {
+      "option": "承認 libero-replace 的驗證不可觸發，把 onClick 改成同步的 onSubmit(form.getValues())，讓 DialogClose 重新成為正確用法",
+      "reason": "一行就好，但兩處的處理方式從此不一致，而且日後有人把某個欄位換成自由輸入時，這個保護會默默消失。這張票的價值在形狀收斂，不在修一個修不到的 bug。"
+    },
+    {
+      "option": "用 form 屬性把 footer 的按鈕關聯到 body 內的 form id",
+      "reason": "不必移動 form 邊界，但要維護一組 id，而且 DialogFooter 沒有任何理由待在 form 之外——移動邊界比引入識別碼便宜。"
+    }
+  ],
+  "consequences": [
+    "驗證失敗時瀏覽器與 RHF 根本不會呼叫成功路徑，因此「不該關閉」成為結構的結果，沒有任何一段程式碼需要記得檢查。",
+    "libero-replace.tsx 那條死掉的 form 送出路徑成為實際執行的路徑，不再是形同虛設的宣告。",
+    "插入的 form 元素必須帶 min-h-0 flex-1，否則 DialogContent 的 flex 鏈斷裂、DialogBody 失去可捲動高度。",
+    "set-options panel 的 ActionButton 不需要移動：它已經符合這條規則，成為第二個一致的樣本。"
+  ],
+  "revisitTriggers": [
+    "出現一個送出鍵，其提交目標無法用單一 form 邊界表達（例如同一個 footer 同時提交兩份獨立的 form）。"
+  ]
+}

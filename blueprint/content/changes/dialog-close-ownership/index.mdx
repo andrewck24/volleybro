@@ -1,0 +1,57 @@
+---
+title: Overview
+---
+
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  關門的時機錯了。`DialogClose` 在 handler 一 return 就關閉
+  dialog，而每一個送出都是非同步的——所以驗證與網路請求的結果，永遠在承載它的畫面被卸載之後才抵達。本
+  Change 把 open state 交給 render `Dialog` 的那一層，子元件只在成功時回報
+  `onSuccess`。
+</TLDR>
+
+## Context
+
+Radix 的 `DialogClose` 用 `composeEventHandlers` 把子元素的 `onClick` 與自己的關閉串成同一個同步 handler：**你的 handler 一 return，它就關**。它不 await。
+
+而送出幾乎都是非同步的。`form.handleSubmit(onSubmit)` 即使搭配同步的 zod resolver 也一定經過一個 microtask；API 呼叫更不用說。於是真實順序是：
+
+> 按下送出 → dialog 關閉 → 才開始驗證／送出 → 失敗
+
+失敗訊息沒有地方可去。`DialogContent` 沒有 `forceMount`，關閉即卸載，承載錯誤的 UI 已經不在了。
+
+repo 內掃過全部 `DialogClose` / `AlertDialogAction` / `AlertDialogCancel` 的非-ui 用法後，受影響的恰好是兩處，其餘都是純 UI 或同步 handler：
+
+- **`libero-replace.tsx` 的「確定」**：dialog 先關，之後才驗證。目前兩個欄位都是綁閉合 enum 的 `Select`、有合法 default、沒有自由輸入，`onSubmit` 是不會 throw 的同步 Redux dispatch——所以驗證失敗這條路**現況走不到**。這裡壞掉的是形狀，不是行為。
+- **`game/new/index.tsx` 的「創建賽事紀錄」**：這裡有真實痛感。`createGame` 自己 `try/catch` 並顯示 toast，但 `DialogContent` 已經卸載，`info`（賽事名稱、日期、對手）、`lineupIndex`、`view` 三個 `useState` 全部歸零。使用者拿到一則「失敗了」的 toast 和一個空白的流程，得從頭重填。
+
+還有一個同源的形狀問題：`libero-replace.tsx` 的 `<Form onSubmit>` **從來沒有被觸發過**。footer 那顆按鈕是 `type="button"` 且在 `<form>` 元素之外，提交完全靠 `onClick`。form 的送出路徑是死的，而那正是驗證本來應該擋在關閉之前的地方。
+
+## Goals
+
+- 讓「驗證或請求失敗」時，dialog 保持開啟、已填內容保持完整、錯誤在使用者看得到的地方。
+- 讓 open state 的持有者在每一個 dialog 都是同一個答案，而不是逐處判斷。
+- 讓送出鍵回到它所屬的 form 邊界之內，使「驗證失敗就不會關閉」成為結構的結果，而不是某段程式碼記得要檢查。
+- 讓 `libero-replace.tsx` 那條死掉的 form 送出路徑變成實際執行的路徑。
+
+## Non-goals
+
+- 不抽 `AsyncDialogAction` 之類的共用元件。理由在 Design 的 D2：泛用的 await-then-close 修不好這個 bug，因為兩處的 handler 在失敗時都不 reject。
+- 不寫 Design System 規則。那是獨立決定，等本 Change 的形狀落地後再談。
+- 不修 `useReplacePosition` 讀 `lineups[0]` 而 `setLiberoReplace` 寫 `lineups[status.lineupIndex]` 的不對齊。那是另一張票，只在此標記。
+- 不改變 liberoReplace 用獨立 dialog 呈現這件事本身。那個提案（就地 inline 進 panel）需要 UX 決定並以上述不對齊為前置，屬於另一件工作。
+
+## Change boundaries
+
+- **在內**：兩個送出鍵、它們所在的子元件，以及三個 render `Dialog` 的父層。三個父層都必須 controlled，否則子元件沒有東西可以回報。
+- **在內**：`libero-replace.tsx` 的 form 邊界重畫。`<Form>` 必須同時包住 `DialogBody` 與 `DialogFooter`，送出鍵才能是 `type="submit"`。這不是順手清理，而是修法本身——死掉的 form 送出路徑因此一併復活。
+- **在內**：`set-options/panel/options.tsx` 中 `onSubmit` 內的 `setLiberoDialogOpen(false)`。它寫在 panel 自己的送出流程裡，但 libero dialog 是 modal 且渲染 overlay（全 repo 沒有任何地方傳 `modal` prop，Radix 預設為 `true`），開著時底下的送出鍵既點不到也 tab 不到。該行到不了，隨本 Change 移除。
+- **在內**：`lineup/panel/options/index.tsx` 直接從 `@radix-ui/react-dialog` import `Dialog`，繞過 `@/components/ui/dialog`。改 controlled 時一併改回。
+- **不在內**：`cta-button.tsx`、`dark-mode.tsx` 的 `DialogClose`（純 UI，無 handler）；`unconfirmed-set-dialog.tsx`、`edit-dialog-container.tsx` 的 `AlertDialogAction`（handler 同步）。掃描確認它們不受影響。
+
+## Capability impact
+
+`platform/forms` 取得一條新的約束：**送出鍵位於它所提交的 form 邊界之內**。這條規則讓驗證閘門成為結構性的——瀏覽器與 RHF 在驗證失敗時根本不會呼叫成功路徑，所以「不該關閉」不需要任何一段程式碼記得。
+
+`platform/design-system/overlays` 取得一條新的約束：**open state 由 render `Dialog` 的那一層持有；overlay 內的元件不自行關閉，只回報結果。** controlled 模式的價值不在「能關」，而在否決權：Esc、點 overlay、`DialogClose` 都只是 `onOpenChange(false)` 的一次詢問，關不關由父層決定。

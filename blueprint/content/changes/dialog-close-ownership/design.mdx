@@ -1,0 +1,181 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { TLDR } from "@/components/TLDR";
+import ownershipLivesWithTheDialogRoot from "./design/decisions/D1-ownership-lives-with-the-dialog-root.json";
+import theSubmitButtonBelongsToItsForm from "./design/decisions/D2-the-submit-button-belongs-to-its-form.json";
+import noGenericAsyncDialogAction from "./design/decisions/D3-no-generic-async-dialog-action.json";
+
+<TLDR>
+  正確性來自結構，不是來自一層包裝。送出鍵回到 form
+  邊界之內，驗證失敗就走不到成功路徑；open state 回到 render `Dialog`
+  的那一層，關不關由它決定。兩者都不需要任何一段程式碼「記得」要檢查。
+</TLDR>
+
+## Adopted shape：form 邊界
+
+差別只有一條虛線的位置。左邊的 form 只包住 body，送出鍵在它之外、被 `DialogClose` 包住；右邊的 form 同時包住 body 與 footer，送出鍵成為它的 `type="submit"`。
+
+`DialogBody` 與 `DialogFooter` 都只是帶樣式的 `div`，不消費任何 Radix context，所以把 form 邊界畫在它們外面沒有任何限制。
+
+<svg
+  viewBox="0 0 1160 400"
+  role="img"
+  aria-label="兩個 dialog 的線框對照。左邊是之前：DialogContent 內由上而下是 DialogHeader、一個只包住 DialogBody 的 form 虛線框、以及 DialogFooter；送出鍵位於 form 之外，被一個 DialogClose 虛線框包住，因此關閉發生在驗證之前。右邊是之後：同樣的 DialogHeader，但 form 虛線框同時包住 DialogBody 與 DialogFooter，送出鍵成為 form 的 type=submit 按鈕，DialogClose 消失，驗證失敗不會呼叫成功路徑因此不會關閉。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 400", width: "100%", height: "auto" }}
+>
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="36" fontSize="15.5" fill="var(--destructive)">之前 · 送出鍵在 form 之外</text>
+
+    <rect x="40" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+    <circle cx="496" cy="76" r="11" fill="var(--background)" stroke="var(--border)" />
+    <text x="496" y="81" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">✕</text>
+    <text x="64" y="82" fontSize="15.5" fill="var(--foreground)">DialogHeader</text>
+
+    <rect x="56" y="100" width="448" height="150" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <text x="68" y="120" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">Form</text>
+    <rect x="68" y="128" width="424" height="110" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="82" y="148" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="82" y="158" width="396" height="32" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="82" y="196" width="396" height="32" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="56" y="272" width="448" height="72" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="294" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <rect x="338" y="282" width="152" height="52" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <rect x="350" y="292" width="128" height="32" rx="6" fill="var(--primary)" />
+    <text x="414" y="313" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+    <text x="414" y="356" textAnchor="middle" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">DialogClose</text>
+
+    <text x="40" y="386" fontSize="13.5" fill="var(--destructive)">關閉發生在驗證之前，錯誤沒有地方可去</text>
+
+    <text x="640" y="36" fontSize="15.5" fill="var(--primary)">之後 · 送出鍵在 form 之內</text>
+
+    <rect x="640" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+    <circle cx="1096" cy="76" r="11" fill="var(--background)" stroke="var(--border)" />
+    <text x="1096" y="81" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">✕</text>
+    <text x="664" y="82" fontSize="15.5" fill="var(--foreground)">DialogHeader</text>
+
+    <rect x="656" y="100" width="448" height="244" rx="8" fill="none" stroke="var(--primary)" strokeDasharray="5 4" strokeWidth="1.5" />
+    <text x="668" y="120" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">Form</text>
+    <rect x="668" y="128" width="424" height="110" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="148" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="682" y="158" width="396" height="32" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="682" y="196" width="396" height="32" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="668" y="252" width="424" height="76" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="274" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <text x="682" y="306" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">type="submit"</text>
+    <rect x="950" y="282" width="128" height="32" rx="6" fill="var(--primary)" />
+    <text x="1014" y="303" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+
+    <text x="640" y="386" fontSize="13.5" fill="var(--primary)">驗證失敗不會呼叫成功路徑，因此不會關閉</text>
+
+  </g>
+</svg>
+
+插入的 form 元素必須帶 `min-h-0 flex-1`：`DialogContent` 是 `flex flex-col overflow-hidden`，`DialogBody` 靠 `flex-1` 取得可捲動高度，中間多一層就會把那條鏈打斷。`Form` 的預設 class 已有 `flex flex-col`，所以傳 `className="min-h-0 flex-1 gap-0"` 即可。
+
+## Adopted shape：open state 的歸屬
+
+同一條規則套用在三個父層。`LiberoReplaceDialog` 有兩個父層這件事不是第二種規則，是同一條規則被套用兩次。
+
+<svg
+  viewBox="0 0 1160 470"
+  role="img"
+  aria-label="open state 歸屬圖。上排三個父層由左至右是 ActionButton、set-options panel 的 Options、lineup panel 的 LineupOptions，每一個都持有自己的 open state 並 render Dialog。下排兩個子元件：ActionButton 對應 NewGameForm，set-options panel 與 lineup panel 共用同一個 LiberoReplaceDialog。子元件只在成功後呼叫 onSuccess，不自行關閉。底部說明回報方向，以及 Esc、點 overlay、右上角關閉鍵在 controlled 模式下都只是 onOpenChange 的一次詢問。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 470", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker id="dco-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="36" fontSize="15.5" fill="var(--muted-foreground)">持有 open state 的一層</text>
+
+    <rect x="40" y="64" width="330" height="104" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="205" y="96" textAnchor="middle" fontSize="16.5" fill="var(--foreground)">ActionButton</text>
+    <text x="205" y="116" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">layout/nav</text>
+    <rect x="80" y="130" width="250" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="205" y="148" textAnchor="middle" fontSize="13.5" fill="var(--primary)">持有 open state</text>
+
+    <rect x="415" y="64" width="330" height="104" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="580" y="96" textAnchor="middle" fontSize="16.5" fill="var(--foreground)">Options · set-options panel</text>
+    <text x="580" y="116" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/set-options/panel</text>
+    <rect x="455" y="130" width="250" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="580" y="148" textAnchor="middle" fontSize="13.5" fill="var(--primary)">已 controlled · 不需改動</text>
+
+    <rect x="790" y="64" width="330" height="104" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="955" y="96" textAnchor="middle" fontSize="16.5" fill="var(--foreground)">LineupOptions · lineup panel</text>
+    <text x="955" y="116" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team/lineup/panel/options</text>
+    <rect x="830" y="130" width="250" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="955" y="148" textAnchor="middle" fontSize="13.5" fill="var(--primary)">uncontrolled → controlled</text>
+
+    <line x1="205" y1="172" x2="205" y2="244" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="580" y1="172" x2="706" y2="244" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="955" y1="172" x2="828" y2="244" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <text x="217" y="212" fontSize="13" fill="var(--muted-foreground)">render</text>
+    <text x="612" y="212" fontSize="13" fill="var(--muted-foreground)">render</text>
+    <text x="892" y="212" fontSize="13" fill="var(--muted-foreground)">render</text>
+
+    <rect x="40" y="250" width="330" height="110" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="205" y="284" textAnchor="middle" fontSize="16.5" fill="var(--foreground)">NewGameForm</text>
+    <text x="205" y="304" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/new/index.tsx</text>
+    <rect x="70" y="322" width="270" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="205" y="340" textAnchor="middle" fontSize="13.5" fill="var(--foreground)">成功後才呼叫 onSuccess</text>
+
+    <rect x="602" y="250" width="330" height="110" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="767" y="284" textAnchor="middle" fontSize="16.5" fill="var(--foreground)">LiberoReplaceDialog</text>
+    <text x="767" y="304" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">lineup/panel/options/libero-replace.tsx</text>
+    <rect x="632" y="322" width="270" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="767" y="340" textAnchor="middle" fontSize="13.5" fill="var(--foreground)">成功後才呼叫 onSuccess</text>
+    <text x="767" y="378" textAnchor="middle" fontSize="13.5" fill="var(--muted-foreground)">同一個子元件，兩個父層，同一條規則</text>
+
+    <rect x="40" y="396" width="1080" height="56" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="64" y="420" fontSize="14.5" fill="var(--foreground)">回報方向：子元件不自行關閉，只在成功後呼叫 onSuccess，由父層 setOpen(false)。</text>
+    <text x="64" y="440" fontSize="13.5" fill="var(--muted-foreground)">Esc、點 overlay、右上角 ✕ 在 controlled 模式下都只是 onOpenChange(false) 的一次詢問 — 關不關由父層決定。</text>
+
+  </g>
+</svg>
+
+controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled 模式下完全不儲存 `open`，每一個關閉意圖都變成一次 `onOpenChange(false)` 呼叫，然後什麼都不做；真正關閉是父層更新 state 後重新 render 的結果。uncontrolled 沒有這個縫可以插手，這就是為什麼三個父層都必須改。
+
+## Behavior contract
+
+- 送出成功：子元件呼叫 `onSuccess()`，父層 `setOpen(false)`，dialog 關閉。
+- 驗證失敗：不呼叫 `onSubmit`，不呼叫 `onSuccess`，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
+- 請求失敗：`createGame` 的 `catch` 顯示 toast 後**不**呼叫 `onSuccess`，dialog 保持開啟，`info`、`lineupIndex`、`view` 三個 state 完整保留，使用者可直接重試。
+- 使用者主動取消（Esc、點 overlay、右上角 ✕）：照常關閉。本 Change 不引入「未儲存變更」的攔截，那是 `edit-dialog-container` 已經在處理的另一件事。
+
+## Failure modes
+
+- **form 邊界提上來但忘記 `min-h-0 flex-1`**：`DialogBody` 失去可捲動高度，長內容溢出而非捲動。S02 的驗收含視覺確認。
+- **父層改 controlled 但 `DialogTrigger` 仍在子樹外**：`LiberoReplaceTrigger` 與 `LiberoReplaceDialog` 必須留在同一個 `Dialog` 之下，否則 trigger 打不開。
+- **`onSuccess` 在 `router.push` 之前呼叫**：`ActionButton` 位於 nav layout，導頁不會卸載它，所以順序不影響正確性；但先關閉再導頁可避免 dialog 短暫覆蓋新頁面。
+
+## Testing strategy
+
+一個 component test 即可釘住這條路：mock `apiClient` 讓它 reject，斷言 dialog 仍在畫面上、且已填的賽事資訊還在。這正是目前沒有任何東西擋住的路徑，也是修復前必然失敗、修復後必然通過的最小檢查。
+
+`libero-replace` 的驗證失敗路徑在現行 UI 下不可觸發（兩個欄位都是綁閉合 enum 的 `Select`），因此不為它寫一個只能靠強制注入非法值才會走到的測試。它的保護來自結構：送出鍵在 form 之內。
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    ownershipLivesWithTheDialogRoot,
+    theSubmitButtonBelongsToItsForm,
+    noGenericAsyncDialogAction,
+  ]}
+/>
+
+## Revisit triggers
+
+- 出現第三個需要「成功才關閉」的 dialog，且它的關閉條件無法用 form 邊界表達（例如多步驟流程中途才決定關閉）。屆時再評估共用抽象。
+- `liberoReplace` 改為就地 inline 進 panel。屆時本 Change 對 `libero-replace.tsx` 的修改會整段移除，`LiberoReplaceDialog` 連同它的兩個父層 open state 一併消失。
+- Radix 之後為 `DialogClose` 提供等待 async handler 的官方機制。
