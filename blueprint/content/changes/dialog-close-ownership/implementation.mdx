@@ -2,17 +2,24 @@
 title: Implementation
 ---
 
-五個切片。S01 是地基，其餘三條鏈從它分出去並行，S04 等 S03。
+六個切片。S01 與 S06 是兩塊地基，可並行；其餘三條鏈從它們分出去，S04 等 S03。
 
 - **S01** 先把 `Button` 的 icon 插槽做出來。後面每一顆送出鍵都要用它，先做才不會有人先用文字切換頂著、之後再回頭改一次。
-- **S02**（依賴 S01）修唯一有真實痛感的那處：建立賽事失敗時整個流程被清空。它自帶本 Change 的測試。
-- **S03**（依賴 S01）修形狀：libero-replace 的驗證失敗在現行 UI 下走不到，但送出鍵在 form 之外這件事本身是錯的，而且順帶讓一條死掉的 form 送出路徑復活。
+- **S06** 把 expand 與 close 從絕對定位搬回 `DialogHeader` 的正常流程。S02、S03、S05 都要把 form 邊界畫到含 header，邊界內的結構必須先是對的。
+- **S02**（依賴 S01、S06）修唯一有真實痛感的那處：建立賽事失敗時整個流程被清空。它自帶本 Change 的測試。
+- **S03**（依賴 S01、S06）修形狀：libero-replace 的驗證失敗在現行 UI 下走不到，但送出鍵在 form 之外這件事本身是錯的，而且順帶讓一條死掉的 form 送出路徑復活。
 - **S04**（依賴 S03）刪掉一行到不了的程式碼。
-- **S05**（依賴 S01）把 `DialogFooter` 補進 `EditDialogContainer`，三個 team 表單的送出鍵移進去。
+- **S05**（依賴 S01、S06）把 `DialogFooter` 補進 `EditDialogContainer`，三個 team 表單的送出鍵移進去。
 
 ## 為什麼 S01 必須最先
 
 它是唯一被其他四個切片共用的東西。反過來做的話，S02 與 S05 會各自先湊出一個進行中的表示——很可能就是現在 create-form 那種文字切換——然後在 S01 落地時全部改一次。地基先做，採用就只是一行。
+
+## 為什麼 S06 必須早於三條 form 邊界
+
+S02、S03、S05 做的都是同一件事：把 form 邊界畫到含 `DialogHeader`。如果那時 expand 與 close 還是 `{children}` 的絕對定位兄弟，邊界內會少掉兩顆本來就屬於 header 的按鈕——而它們一旦搬進來又會變成隱含的 submit button。先把 header 的結構修對，三條邊界才畫得出正確的形狀，`type="button"` 也只需要在 `ui/dialog.tsx` 修一次。
+
+順帶被這一步刪掉的是 `DialogHeader` 的 `pr-20`。那 5rem 的右內距唯一的用途就是替浮起來的按鈕讓位，是絕對定位的帳單。
 
 ## 為什麼 S03 是一個切片而不是三個
 
@@ -36,7 +43,7 @@ S05 同理：容器停止提供 `DialogBody` 而表單還沒開始提供，中�
 
 第一項的陷阱是 `tsc` 與 lint 都會全綠，只有畫面知道。`DialogContent` 是 `flex flex-col overflow-hidden`，`DialogBody` 靠 `flex-1` 取得可捲動高度；中間插一層不帶 flex 的 form 就會把那條鏈打斷。
 
-第二項是新引入的風險：`Button` 沒有預設 `type`，`game/new/index.tsx` 的 `DialogTitle` 裡有一顆返回鍵，form 邊界一旦上移到含 header，按返回就會送出表單。
+第二項是新引入的風險：`Button` 沒有預設 `type`，`game/new/index.tsx` 的 `DialogTitle` 與 `game/options/edit/index.tsx` 的 header 各有一顆返回鍵，form 邊界一旦上移到含 header，按下去就會送出表單。搬進 header 的 ✕ 與 expand 同理，但那兩顆在 `ui/dialog.tsx` 內修一次即可涵蓋所有 dialog。
 
 ## 一件必須以斷言形式釘住的事
 

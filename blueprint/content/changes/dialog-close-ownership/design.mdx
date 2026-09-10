@@ -8,6 +8,7 @@ import ownershipLivesWithTheDialogRoot from "./design/decisions/D1-ownership-liv
 import theSubmitButtonBelongsToItsForm from "./design/decisions/D2-the-submit-button-belongs-to-its-form.json";
 import noGenericAsyncDialogAction from "./design/decisions/D3-no-generic-async-dialog-action.json";
 import theButtonStatesItsOwnProgress from "./design/decisions/D4-the-button-states-its-own-progress.json";
+import theHeaderOwnsItsControls from "./design/decisions/D5-the-header-owns-its-controls.json";
 
 <TLDR>
   正確性來自結構，不是來自一層包裝。送出鍵回到 form 邊界之內、並且落在
@@ -22,24 +23,31 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 <svg
   viewBox="0 0 1160 400"
   role="img"
-  aria-label="兩個 dialog 的線框對照。左邊是之前：DialogHeader 在 form 之外，form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住，因此關閉發生在驗證之前。右邊是之後：form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，三者維持兄弟關係，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡，DialogClose 消失。"
+  aria-label="兩個 dialog 的線框對照。左邊是之前：expand 與 close 兩顆控制鍵是一組絕對定位的元素，掛在 DialogContent 上、是 children 的兄弟，浮在右上角之外；DialogHeader 因此帶著 pr-20 替它讓位；form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住。右邊是之後：那兩顆控制鍵回到 DialogHeader 內，在正常流程中靠右對齊，pr-20 移除；form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "1160 / 400", width: "100%", height: "auto" }}
 >
   <g fontFamily="ui-sans-serif, system-ui, sans-serif">
-    <text x="40" y="36" fontSize="15.5" fill="var(--destructive)">之前 · Header 在外，送出鍵在 form 之外</text>
+    <text x="40" y="36" fontSize="15.5" fill="var(--destructive)">之前 · 控制鍵絕對定位，浮在所有結構之外</text>
 
     <rect x="40" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
-    <circle cx="496" cy="76" r="11" fill="var(--background)" stroke="var(--border)" />
-    <text x="496" y="81" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">✕</text>
-    <text x="64" y="88" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
 
-    <rect x="56" y="104" width="448" height="146" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
-    <text x="68" y="122" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">Form</text>
-    <rect x="68" y="130" width="424" height="112" rx="6" fill="var(--background)" stroke="var(--border)" />
-    <text x="82" y="150" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
-    <rect x="82" y="162" width="396" height="28" rx="5" fill="var(--card)" stroke="var(--border)" />
-    <rect x="82" y="200" width="396" height="28" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="56" y="72" width="448" height="36" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="95" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <text x="330" y="95" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">pr-20 替它讓位</text>
+
+    <rect x="432" y="58" width="76" height="36" rx="18" fill="none" stroke="var(--destructive)" strokeDasharray="4 3" />
+    <circle cx="452" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <circle cx="488" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <text x="488" y="81" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="470" y="46" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">absolute</text>
+
+    <rect x="56" y="124" width="448" height="126" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <text x="68" y="142" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">Form</text>
+    <rect x="68" y="150" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="82" y="169" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="82" y="178" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="82" y="210" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
 
     <rect x="56" y="272" width="448" height="60" rx="8" fill="var(--background)" stroke="var(--border)" />
     <text x="70" y="292" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
@@ -48,19 +56,21 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
     <text x="410" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
     <text x="410" y="350" textAnchor="middle" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">DialogClose</text>
 
-    <text x="40" y="386" fontSize="13.5" fill="var(--destructive)">關閉發生在驗證之前，錯誤沒有地方可去</text>
+    <text x="40" y="386" fontSize="13.5" fill="var(--destructive)">控制鍵不屬於任何區塊，送出鍵不屬於 form</text>
 
-    <text x="640" y="36" fontSize="15.5" fill="var(--primary)">之後 · 三者同在 form 之內，仍是兄弟</text>
+    <text x="640" y="36" fontSize="15.5" fill="var(--primary)">之後 · 三者同在 form 之內，控制鍵回到 header</text>
 
     <rect x="640" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
-    <circle cx="1096" cy="76" r="11" fill="var(--background)" stroke="var(--border)" />
-    <text x="1096" y="81" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">✕</text>
 
-    <rect x="656" y="94" width="448" height="250" rx="8" fill="none" stroke="var(--primary)" strokeDasharray="5 4" strokeWidth="1.5" />
-    <text x="668" y="112" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">Form</text>
+    <rect x="656" y="72" width="448" height="272" rx="8" fill="none" stroke="var(--primary)" strokeDasharray="5 4" strokeWidth="1.5" />
+    <text x="668" y="92" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">Form</text>
 
-    <rect x="668" y="120" width="424" height="40" rx="6" fill="var(--background)" stroke="var(--border)" />
-    <text x="682" y="145" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <rect x="668" y="100" width="424" height="52" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="131" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <circle cx="1030" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <circle cx="1064" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <text x="1064" y="131" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="1047" y="146" textAnchor="middle" fontSize="11.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">in flow</text>
 
     <rect x="668" y="168" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
     <text x="682" y="187" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
@@ -73,14 +83,20 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
     <rect x="940" y="286" width="140" height="32" rx="6" fill="var(--primary)" />
     <text x="1010" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
 
-    <text x="640" y="386" fontSize="13.5" fill="var(--primary)">驗證失敗不會呼叫成功路徑，因此不會關閉</text>
+    <text x="640" y="386" fontSize="13.5" fill="var(--primary)">每一顆按鈕都屬於某個區塊，每個區塊都屬於 form</text>
 
   </g>
 </svg>
 
+`DialogContent` 目前把 expand 與 close 這一組控制鍵渲染成 `{children}` 的**兄弟**，`absolute top-3 right-3`。它們因此不屬於任何區塊——而 `DialogHeader` 帶著 `pr-20`，5rem 的右內距，唯一用途就是替那組浮起來的按鈕讓位。這個 magic number 就是絕對定位的帳單。
+
+控制鍵回到 `DialogHeader` 之內、在正常流程中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
+
 包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
 
-代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
+代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵，`game/options/edit/index.tsx` 的 header 裡也有一顆。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
+
+控制鍵搬進 header 之後，✕ 與 expand 同樣落入 form 邊界，所以它們也是隱含的 submit button——但這一次修正發生在 `ui/dialog.tsx` 內，一次涵蓋所有 dialog，不必倚賴每個呼叫端記得。
 
 ## Adopted shape：open state 的歸屬
 
@@ -211,6 +227,7 @@ icon 的位置不統一，因為位置本身帶語意：**icon 在左說明這�
     theSubmitButtonBelongsToItsForm,
     noGenericAsyncDialogAction,
     theButtonStatesItsOwnProgress,
+    theHeaderOwnsItsControls,
   ]}
 />
 

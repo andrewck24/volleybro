@@ -3,7 +3,7 @@
   "id": "S05",
   "title": "EditDialogContainer 取得 DialogFooter，三個 team 表單的送出鍵移進去",
   "capabilities": ["platform/forms", "platform/design-system/overlays"],
-  "dependsOn": ["S01"],
+  "dependsOn": ["S01", "S06"],
   "outcome": "TeamForm、CreateForm、EditForm 的送出鍵落在 DialogFooter 內、在自己的 form 邊界之內、並在動作進行中自己說出來；同一個結構在 @modal 與 (workspace) 兩種 route 下都成立。",
   "acceptanceCriteria": [
     "EditDialogContainer 停止把 children 包進 DialogBody；改由表單自己 render DialogBody 與 DialogFooter，因為兩者都只是帶樣式的 div，全頁 route 下同樣可用，不需要依 route 分支。",

@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "expand 與 close 回到 DialogHeader 的正常流程中",
+  "capabilities": ["platform/design-system/overlays"],
+  "dependsOn": [],
+  "outcome": "每一顆 dialog 按鈕都屬於某個區塊。expand 與 close 在 DialogHeader 內靠右對齊、進入正常的 tab 順序，pr-20 這個為絕對定位讓位的內距消失，標題取得真實可用寬度。",
+  "acceptanceCriteria": [
+    "expand 與 close 移入 DialogHeader，在正常流程中靠右對齊；DialogHeader 成為一列兩格，內容欄承載標題與描述並帶 min-w-0 flex-1。",
+    "DialogHeader 的 pr-20 移除。該內距的唯一用途是替絕對定位的按鈕讓位。",
+    "closeButton、onExpand、expandLabel 三個 prop 從 DialogContent 移到 DialogHeader；五個呼叫端跟著移動，其中 game/options/index.tsx 與 game/sets/edit.tsx 傳的是條件值 mode === \"general\"，條件本身不變。",
+    "兩顆按鈕明確標註 type=\"button\"。form 邊界上移到含 header 之後它們會落入 form，沒有這一步會變成隱含的 submit button。",
+    "unconfirmed-set-dialog.tsx 沒有 DialogHeader，其 closeButton={false} 成為多餘並移除；確認它仍然沒有關閉鍵、Esc 與點擊外部仍被攔截。",
+    "game/options/edit/index.tsx 移除 DialogHeader 的 flex-row items-center 覆寫，返回鍵改放進 DialogTitle，與 game/new/index.tsx 既有做法一致。",
+    "ui/__tests__/dialog.test.tsx 中三個控制鍵測試改為針對 DialogHeader；補一個測試斷言 close 與 expand 的 type 是 button。",
+    "補一個測試斷言 tab 順序：header 的控制鍵早於 body 內的欄位。",
+    "逐一目視確認每個有 DialogHeader 的 dialog：標題不再被按鈕壓住，長標題換行正常，控制鍵靠右對齊。"
+  ],
+  "verification": [
+    "pnpm test -- src/components/ui src/components/game src/components/team",
+    "pnpm typecheck",
+    "pnpm lint"
+  ],
+  "status": "pending"
+}

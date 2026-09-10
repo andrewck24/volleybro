@@ -3,7 +3,7 @@
   "id": "S02",
   "title": "建立賽事失敗時 dialog 與已填內容都留著",
   "capabilities": ["platform/design-system/overlays"],
-  "dependsOn": ["S01"],
+  "dependsOn": ["S01", "S06"],
   "outcome": "建立賽事的請求失敗時，dialog 保持開啟、賽事資訊與陣容選擇完整保留，使用者可以直接重試；成功時才關閉並導頁。動作進行中，送出鍵自己說出來。",
   "acceptanceCriteria": [
     "ActionButton 持有 open state 並以 controlled 方式 render Dialog。",
