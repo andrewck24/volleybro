@@ -85,7 +85,7 @@ export class CreateSubstitutionUseCase implements ICreateSubstitutionUseCase {
     const subPlayer = lineup.substitutes[subIndex];
     if (!startingPlayer || !subPlayer)
       throw new NotFoundError(
-        GameReason.SET_NOT_FOUND,
+        GameReason.STALE_LINEUP,
         "Substitution player not found in lineup",
       );
 

@@ -32,12 +32,6 @@ jest.mock("@/components/ui/use-toast", () => ({
 }));
 
 // Mock showErrorToast so we can verify it's NOT called for AlertDialog flows
-const mockShowErrorToast = jest.fn();
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  getErrorMessage: jest.requireActual("@/lib/api/error-toast").getErrorMessage,
-}));
-
 // Mock RoleSelect
 jest.mock("@/components/team/role-select", () => ({
   RoleSelect: ({
@@ -70,7 +64,6 @@ function createApiError(
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
     reason,
-    detail,
     status,
   });
 }
@@ -114,7 +107,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("Only the team owner can remove members"),
+          screen.getByText("轉移隊長身分需要目前的隊長操作"),
         ).toBeInTheDocument();
       });
 
@@ -124,7 +117,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       ).toBeInTheDocument();
 
       // showErrorToast should NOT be called — error is inline
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
 
     it("should clear error and close dialog on successful retry", async () => {
@@ -154,7 +147,6 @@ describe("AlertDialog error state — MembershipSection", () => {
       await waitFor(() => {
         expect(screen.getByText(/伺服器暫時無法處理/)).toBeInTheDocument();
       });
-
       // Second call succeeds
       mockApiClient.mockResolvedValueOnce({});
 
@@ -199,16 +191,14 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText(
-            "Only the current team owner can transfer ownership",
-          ),
+          screen.getByText("轉移隊長身分需要目前的隊長操作"),
         ).toBeInTheDocument();
       });
 
       // Dialog should still be visible
       expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
 
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
   });
 });

@@ -79,3 +79,32 @@ describe("what the set-options form submits", () => {
     expect(SetOptionsFormSchema.safeParse(options).success).toBe(false);
   });
 });
+
+describe("the form does not accept what the request schema rejects", () => {
+  it("requires both team names as strings, as the request schema does", () => {
+    const missing = MatchInfoFormSchema.safeParse({
+      ...newGameFormDefaults("Home"),
+      teams: { home: { name: "Home" }, away: {} },
+    });
+
+    expect(missing.success).toBe(false);
+  });
+
+  it("accepts a blank opponent name, as the request schema does", () => {
+    const blank = MatchInfoFormSchema.safeParse({
+      ...newGameFormDefaults("Home"),
+      teams: { home: { name: "Home" }, away: { name: "" } },
+    });
+
+    expect(blank.success).toBe(true);
+  });
+
+  it("rejects a set count the server could not parse as a number", () => {
+    const nonsense = MatchInfoFormSchema.safeParse({
+      ...newGameFormDefaults("Home"),
+      scoring: { setCount: "many", decidingSetPoints: 15 },
+    });
+
+    expect(nonsense.success).toBe(false);
+  });
+});

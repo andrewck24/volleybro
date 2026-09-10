@@ -7,7 +7,10 @@ import userEvent from "@testing-library/user-event";
 jest.mock("@/lib/api/api-client", () => ({ apiClient: jest.fn() }));
 jest.mock("@/lib/api/error-toast", () => ({
   showErrorToast: jest.fn(),
-  getErrorMessage: jest.fn(() => "error"),
+  resolveErrorDisplay: jest.fn(() => ({
+    title: "error title",
+    description: "error description",
+  })),
 }));
 jest.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: jest.fn() }),
@@ -89,6 +92,8 @@ describe("MembershipSection — remove loading state", () => {
     await user.click(confirmBtn);
 
     await waitFor(() => expect(confirmBtn).toBeEnabled());
+    expect(screen.getByText("error title")).toBeInTheDocument();
+    expect(screen.getByText("error description")).toBeInTheDocument();
   });
 });
 

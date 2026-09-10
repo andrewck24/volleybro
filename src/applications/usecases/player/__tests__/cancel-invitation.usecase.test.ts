@@ -5,11 +5,7 @@ import {
 } from "@/__tests__/helpers";
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
-import {
-  ConflictError,
-  NotFoundError,
-  UnexpectedError,
-} from "@/entities/errors";
+import { NotFoundError, UnexpectedError } from "@/entities/errors";
 import { PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -93,7 +89,7 @@ describe("CancelInvitationUseCase", () => {
 
       await expect(
         useCase.execute({ playerId: "player_123", userId: "user_456" }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("should reject if update fails", async () => {

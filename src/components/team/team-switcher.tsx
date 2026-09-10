@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
 import { useProfile, useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiArrowDownWideLine, RiGroupLine } from "react-icons/ri";
@@ -85,12 +86,8 @@ function TeamList({
       await mutateProfile();
       onSelect();
       router.replace(`/team/${newTeamId}`);
-    } catch {
-      toast({
-        title: "切換失敗",
-        description: "球隊切換未儲存，請稍後再試。",
-        variant: "destructive",
-      });
+    } catch (err) {
+      showErrorToast(err, toast);
     }
   };
 

@@ -1,7 +1,6 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import {
-  ConflictError,
   NotFoundError,
   UnexpectedError,
   CommonReason,
@@ -47,7 +46,7 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     if (player.status !== PlayerStatus.INVITED) {
-      throw new ConflictError(
+      throw new NotFoundError(
         PlayerReason.NOT_INVITED,
         "Player does not have a pending invitation",
       );

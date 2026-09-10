@@ -58,7 +58,9 @@ describe("NewTeamModalPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /建立隊伍/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("伺服器錯誤")).toBeInTheDocument();
+      expect(
+        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
+      ).toBeInTheDocument();
     });
     expect(mockPush).not.toHaveBeenCalled();
   });

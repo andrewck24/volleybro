@@ -24,12 +24,6 @@ jest.mock("@/components/ui/use-toast", () => ({
   useToast: () => ({ toast: mockToast }),
 }));
 
-const mockShowErrorToast = jest.fn();
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  getErrorMessage: jest.requireActual("@/lib/api/error-toast").getErrorMessage,
-}));
-
 // Mock use-data hooks
 const currentUser = { id: "user-1", name: "Current User" };
 const currentPlayer = createPlayer({
@@ -71,7 +65,6 @@ function createApiError(
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
     reason,
-    detail,
     status,
   });
 }
@@ -87,8 +80,8 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
       createApiError(
         403,
         "AUTHORIZATION",
-        "NOT_ALLOWED",
-        "Cannot leave team as owner",
+        "OWNER_CANNOT_LEAVE",
+        "Team owner cannot leave the team",
       ),
     );
 
@@ -103,14 +96,14 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
     // Error message should appear inline in dialog
     await waitFor(() => {
       expect(
-        screen.getByText("Cannot leave team as owner"),
+        screen.getByText("請先把隊長轉移給其他成員，再離開"),
       ).toBeInTheDocument();
     });
 
     // Dialog should still be visible
     expect(screen.getByText("確定要離開這個隊伍嗎？")).toBeInTheDocument();
 
-    expect(mockShowErrorToast).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
   });
 
   it("should show branded message for server errors", async () => {

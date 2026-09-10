@@ -19,7 +19,6 @@ const transientError = () =>
   new ApiClientError("boom", {
     code: "TRANSIENT",
     reason: "NETWORK_ERROR",
-    detail: "boom",
     status: 503,
   });
 
@@ -93,7 +92,6 @@ describe("flushPendingWrites", () => {
     const error = new ApiClientError("bad", {
       code: "VALIDATION",
       reason: "INVALID_INPUT",
-      detail: "bad",
       status: 400,
     });
     apiClient.mockRejectedValue(error);

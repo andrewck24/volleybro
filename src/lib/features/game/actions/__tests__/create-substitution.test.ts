@@ -47,7 +47,6 @@ describe("createSubstitution", () => {
     const error = new ApiClientError("boom", {
       code: "VALIDATION",
       reason: "INVALID_INPUT",
-      detail: "boom",
       status: 400,
     });
     apiClient.mockRejectedValue(error);

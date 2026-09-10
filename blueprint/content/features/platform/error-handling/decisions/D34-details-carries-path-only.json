@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D34",
+  "title": "A validation failure sends field paths and nothing else",
+  "status": "implemented",
+  "targets": ["platform/error-handling"],
+  "context": "When a request fails schema validation, withErrorHandler forwards the entire ZodError issue array as a details field. Nothing on the client reads it — the getter has no non-test callers — so today it is sent and ignored. Each issue carries a path such as ['teams','away','name'], an auto-generated English message, and issue-specific fields: expected, minimum, origin, regex sources, and for unrecognized_keys the offending key names. It does not carry the submitted value: the base type declares an input field, but zod strips it when finalising, so a real serialized issue has no input property. The exposure is therefore schema shape rather than user data. Separately, deriving form schemas from request schemas is blocked on exactly this array, because piping makes the server's English message the form field's message.",
+  "decision": "details carries path and nothing else. The path names the wire contract the client already knows, and it is what allows a failure only the server can detect to point at the field that caused it instead of raising a generic toast. Everything else is dropped: the message is auto-generated developer English, and expected, minimum and their siblings describe the schema rather than the failure. What each field should say to the user comes from the client's own form schema.",
+  "alternatives": [
+    {
+      "option": "Forward the whole issue array unchanged",
+      "reason": "It does not echo the submitted value, so the disclosure is smaller than it first appears, but it still puts schema shape on the wire and — more importantly — it keeps the English messages that block deriving form schemas from request schemas. Sending data no client reads, at the cost of blocking the work that would read it, is the worst of both."
+    },
+    {
+      "option": "Send nothing at all",
+      "reason": "The cleanest body, but it gives up the ability for a server-only constraint to point at a field. That capability is what D4's second category needs; without it every server-side validation failure is a toast that leaves the user to guess which input was wrong."
+    },
+    {
+      "option": "Send path plus a translated message chosen server-side",
+      "reason": "Puts copy back on the wire under a different name, which is what D1 removes, and makes the server responsible for language selection that the client is better placed to make."
+    }
+  ],
+  "consequences": [
+    "A server-side validation failure can highlight the offending field, which is the mechanism D4's second category depends on.",
+    "Deriving form schemas from request schemas stops inheriting English messages, which unblocks that work.",
+    "The client must supply its own per-field copy. That is correct — it is the side that knows the language and the label — but it means a path with no matching form field degrades to a generic message rather than silence.",
+    "The details field remains an array of paths rather than becoming a map, because one field can fail more than one rule.",
+    "The \"ValidationError with details field\" requirement is unaffected at the domain layer: ValidationError still carries the whole issue array. What changes is what serialization forwards, which that requirement does not constrain."
+  ],
+  "revisitTriggers": [
+    "A client surface needs to distinguish why a field failed, not only that it failed, which would mean the issue code — not the message — belongs on the wire after all.",
+    "zod changes what a finalised issue carries, in either direction: if input reappears the exposure analysis changes, and if path changes shape the client mapping breaks.",
+    "A validation failure arises whose path does not correspond to any form field, which would mean the boundary between what the form knows and what the server knows has moved."
+  ],
+  "originChange": "error-display-boundary",
+  "originDecision": "D3"
+}

@@ -1,3 +1,4 @@
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { UnconfirmedSetDialog } from "@/components/game/unconfirmed-set-dialog";
 import * as apiClientModule from "@/lib/api/api-client";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
@@ -102,7 +103,9 @@ describe("UnconfirmedSetDialog", () => {
 
     renderDialog();
 
-    expect(screen.getAllByText("哎呀，發球掛網了！").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(ERROR_MESSAGES.SERVER_ERROR.title).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "重試" })).toBeInTheDocument();
   });
 

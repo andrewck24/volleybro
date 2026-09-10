@@ -6,6 +6,7 @@
     "blueprint",
     "agent-orchestration",
     "clean-architecture",
+    "error-handling",
     "pwa"
   ]
 }

@@ -12,7 +12,7 @@ export const newGameFormDefaults = (
   phase: "0",
   division: "0",
   category: "0",
-  teams: { home: { name: homeTeamName }, away: { name: "" } },
+  teams: { home: { name: homeTeamName ?? "" }, away: { name: "" } },
   scoring: { setCount: "3", decidingSetPoints: 15 },
   location: { city: "", hall: "" },
   time: { date: new Date(), start: "", end: "" },

@@ -46,7 +46,10 @@ export const Substitutes = ({
         id: draft.id || crypto.randomUUID(),
         seq: entryIndex,
       };
-      mutate(
+      // Advances the draft the instant the write starts, without waiting for
+      // the server; awaiting afterwards is what routes a rejection into the
+      // catch below rather than leaving it unhandled.
+      const write = mutate(
         createSubstitution({ gameId, setIndex, entryIndex }, entry, game!),
         {
           revalidate: false,
@@ -58,6 +61,7 @@ export const Substitutes = ({
         },
       );
       dispatch(gameActions.confirmEntryDraftSubstitution());
+      await write;
     } catch (error) {
       showErrorToast(error, toast);
     }
