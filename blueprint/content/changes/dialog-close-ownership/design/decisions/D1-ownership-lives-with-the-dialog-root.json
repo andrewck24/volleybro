@@ -2,29 +2,34 @@
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
   "id": "D1",
-  "title": "Open state 由 render Dialog 的那一層持有",
+  "title": "Open state 由承載 Dialog 的那一層持有",
   "status": "candidate",
   "targets": ["platform/design-system/overlays"],
-  "context": "三個 dialog 的 open state 歸屬各不相同：set-options panel 已 controlled，lineup panel 與 ActionButton 都是 uncontrolled，open 住在 Radix 內部。uncontrolled 的元件沒有任何縫可以插手關閉時機——DialogClose 一被點就關，呼叫端既讀不到也否決不了。",
-  "decision": "所有承載動作的 dialog 一律 controlled：open state 住在 render Dialog 的那一層，overlay 內的元件不自行關閉，只在成功時呼叫父層傳入的 onSuccess。LiberoReplaceDialog 有兩個父層，兩個父層各自持有自己的 open state，套用同一條規則。",
+  "context": "四個父層的 open state 歸屬各不相同：set-options panel 已 controlled，lineup panel 與 ActionButton 都是 uncontrolled、open 住在 Radix 內部，而 EditDialogContainer 走第三條路——<Dialog open> 寫死為 true，關閉等於 router.back() 離開 route。uncontrolled 的元件沒有任何縫可以插手關閉時機：DialogClose 一被點就關，呼叫端既讀不到也否決不了。",
+  "decision": "所有承載動作的 dialog 一律 controlled：open state 住在承載 Dialog 的那一層，overlay 內的元件不自行關閉，只在成功時回報。持有者有兩種合法形態——元件以 useState 持有（ActionButton、set-options panel、lineup panel），或路由持有（EditDialogContainer，關閉動作是 router.back()）。兩種形態的契約相同：子元件回報，持有者決定。LiberoReplaceDialog 有兩個父層，兩者各自持有自己的 open state，套用同一條規則。",
   "alternatives": [
     {
       "option": "維持 uncontrolled，子元件用 ref 點擊一顆隱藏的 DialogClose 自行關閉",
-      "reason": "三個父層一行都不用改，但 set-options panel 本來就需要那個 state（它另有邏輯讀取），所以省不掉它；代價是另外兩處多一個 ref hack，且三處都繞過 Radix 的正規介面。controlled 是 Radix 對這個問題的既有答案。"
+      "reason": "父層一行都不用改，但 set-options panel 本來就需要那個 state，所以省不掉它；代價是另外兩處多一個 ref hack，且都繞過 Radix 的正規介面。controlled 是 Radix 對這個問題的既有答案。"
     },
     {
       "option": "把 setOpen 直接傳進子元件",
-      "reason": "少一層轉譯，但子元件從此綁死在 dialog 上。LiberoReplaceTrigger 已經被用在非 dialog 的 panel 上下文，子元件應該保持對「自己在不在 overlay 裡」的無知。"
+      "reason": "少一層轉譯，但子元件從此綁死在 dialog 上，而且路由持有者根本沒有 setOpen 可以傳。回報式的介面同時服務兩種持有者。"
+    },
+    {
+      "option": "讓 EditDialogContainer 也改成 useState 持有",
+      "reason": "它的關閉語意本來就是離開 route——@modal 攔截路由的 dialog 消失等於返回上一頁。把它改成元件 state 會讓瀏覽器返回鍵與 dialog 關閉脫鉤。路由持有在那裡是正確的，不是遺漏。"
     }
   ],
   "consequences": [
-    "controlled 的價值是否決權而非關閉能力：Radix 不再儲存 open，Esc、點 overlay、DialogClose 都只是 onOpenChange(false) 的一次詢問，父層可以不理它。",
-    "子元件的介面收斂成同一個形狀 onSuccess，兩處用同一個 prop 名。",
+    "controlled 的價值是否決權而非關閉能力：Radix 不再儲存 open，Esc、點 overlay、DialogClose 都只是 onOpenChange(false) 的一次詢問，持有者可以不理它。",
+    "EditDialogContainer 已經符合否決權的形狀——onOpenChange 進到 handleClose，dirty 時彈出放棄確認而不關閉。本 Change 不改它的關閉語意。",
+    "子元件的介面收斂成同一個形狀：成功才回報。useState 持有者收到後 setOpen(false)，路由持有者 router.back()。",
     "lineup panel 直接從 @radix-ui/react-dialog import Dialog 的繞道一併改回 @/components/ui/dialog。",
-    "每個父層多一個 useState。這是明確的成本，換得的是關閉時機可被程式碼決定。"
+    "player 編輯表單目前成功後只 toast、不關閉 modal，與此契約相牴觸，隨本 Change 一併對齊。"
   ],
   "revisitTriggers": [
     "Radix 為 DialogClose 提供等待 async handler 的官方機制。",
-    "出現一個 dialog，其關閉條件需要跨越父層邊界協商，使單一父層持有 open state 不再成立。"
+    "出現第三種 open state 持有者，既不是元件 state 也不是路由。"
   ]
 }

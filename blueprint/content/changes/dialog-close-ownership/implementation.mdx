@@ -2,26 +2,41 @@
 title: Implementation
 ---
 
-三個切片。S01 與 S02 彼此獨立，S03 等 S02。
+五個切片。S01 是地基，其餘三條鏈從它分出去並行，S04 等 S03。
 
-- **S01** 修的是唯一有真實痛感的那處：建立賽事失敗時整個流程被清空。它自帶本 Change 的測試——修復前必然失敗、修復後必然通過的那一個。
-- **S02** 修的是形狀：libero-replace 的驗證失敗在現行 UI 下走不到，但送出鍵在 form 之外這件事本身是錯的，而且順帶讓一條死掉的 form 送出路徑復活。
-- **S03** 刪掉一行到不了的程式碼，前提是 S02 已經把 `liberoDialogOpen` 的寫入來源整理乾淨。
+- **S01** 先把 `Button` 的 icon 插槽做出來。後面每一顆送出鍵都要用它，先做才不會有人先用文字切換頂著、之後再回頭改一次。
+- **S02**（依賴 S01）修唯一有真實痛感的那處：建立賽事失敗時整個流程被清空。它自帶本 Change 的測試。
+- **S03**（依賴 S01）修形狀：libero-replace 的驗證失敗在現行 UI 下走不到，但送出鍵在 form 之外這件事本身是錯的，而且順帶讓一條死掉的 form 送出路徑復活。
+- **S04**（依賴 S03）刪掉一行到不了的程式碼。
+- **S05**（依賴 S01）把 `DialogFooter` 補進 `EditDialogContainer`，三個 team 表單的送出鍵移進去。
 
-## 為什麼 S02 是一個切片而不是三個
+## 為什麼 S01 必須最先
+
+它是唯一被其他四個切片共用的東西。反過來做的話，S02 與 S05 會各自先湊出一個進行中的表示——很可能就是現在 create-form 那種文字切換——然後在 S01 落地時全部改一次。地基先做，採用就只是一行。
+
+## 為什麼 S03 是一個切片而不是三個
 
 `libero-replace.tsx` 收 `onSuccess`、set-options panel 傳入、lineup panel 改 controlled——這三件事看起來可以拆開，但拆開之後中間狀態是壞的：子元件宣告了一個沒人傳的 prop，或父層傳了一個沒人收的 callback，dialog 在那個中間 commit 上關不起來。切片要留下可運作的系統，所以它們是同一個。
 
-反過來，S01 與 S02 之間沒有這種耦合。它們共用同一條規則，但沒有共用任何一個檔案。
+S05 同理：容器停止提供 `DialogBody` 而表單還沒開始提供，中間就是一個沒有內距的畫面。
 
-## 兩個容易漏掉的動作
+## 為什麼 S05 在這張 Change 裡
 
-| 容易漏的                                                                 | 切片 | 驗收條件的形式                                                                |
-| ------------------------------------------------------------------------ | ---- | ----------------------------------------------------------------------------- |
-| form 邊界提上來後沒帶 `min-h-0 flex-1`                                   | S02  | 驗收條件直接寫明該 class，並要求在兩個 surface 各自目視確認捲動與 footer 位置 |
-| `LiberoReplaceTrigger` 與 `LiberoReplaceDialog` 被拆到不同 `Dialog` 之下 | S02  | 驗收條件要求 trigger 在兩個 surface 都能打開 dialog                           |
+那三顆送出鍵目前**沒有壞**——它們是 form 內的 `type="submit"`、有 await、不會提前關閉。它們違反的只有位置。把它們留到別張票，代價是這張 Change 寫下一條「dialog 的送出鍵位於 `DialogFooter`」的規則，而 repo 裡同時有三個違反它的實例，規則從第一天就不成立。
 
-第一項的陷阱是 `tsc` 與 lint 都會全綠，只有畫面知道。`DialogContent` 是 `flex flex-col overflow-hidden`，`DialogBody` 靠 `flex-1` 取得可捲動高度；中間插一層不帶 flex 的 form 就會把那條鏈打斷，長內容於是溢出而非捲動。
+代價要說清楚：`EditDialogContainer` 的 children 契約改變，六個畫面的版面跟著變，其中三個是 `(workspace)` 全頁 route——它們不在 dialog 裡，卻共用同一個表單元件。這是本 Change 唯一需要人眼判斷的部分。
+
+## 三個容易漏掉的動作
+
+| 容易漏的                               | 切片      | 驗收條件的形式                                                 |
+| -------------------------------------- | --------- | -------------------------------------------------------------- |
+| form 邊界提上來後沒帶 `min-h-0 flex-1` | S03 · S05 | 驗收條件直接寫明該 class，並要求逐一目視確認捲動與 footer 位置 |
+| header 內的返回鍵沒寫 `type="button"`  | S02       | 驗收條件單獨列出那顆按鈕                                       |
+| player 編輯成功後不關閉 modal          | S05       | 驗收條件把它當成契約牴觸處理，而非順手清理                     |
+
+第一項的陷阱是 `tsc` 與 lint 都會全綠，只有畫面知道。`DialogContent` 是 `flex flex-col overflow-hidden`，`DialogBody` 靠 `flex-1` 取得可捲動高度；中間插一層不帶 flex 的 form 就會把那條鏈打斷。
+
+第二項是新引入的風險：`Button` 沒有預設 `type`，`game/new/index.tsx` 的 `DialogTitle` 裡有一顆返回鍵，form 邊界一旦上移到含 header，按返回就會送出表單。
 
 ## 一件必須以斷言形式釘住的事
 
@@ -29,4 +44,5 @@ title: Implementation
 
 ## 不在本 Change 內，但已標記
 
-`useReplacePosition` 讀 `lineups[0]`，而 `setLiberoReplace` reducer 寫 `lineups[status.lineupIndex]`。team lineup panel 可以切換 `lineupIndex`，所以 `lineupIndex > 0` 時改這個設定看起來毫無反應。本 Change 只搬動 form 邊界與 open state，不碰這條讀寫路徑；它已另立追蹤。
+- `useReplacePosition` 讀 `lineups[0]`，而 `setLiberoReplace` reducer 寫 `lineups[status.lineupIndex]`。team lineup panel 可以切換 `lineupIndex`，所以 `lineupIndex > 0` 時改這個設定看起來毫無反應。已另立追蹤。
+- 讓 `Button` 預設 `type="button"`。那會使 D2 的配套規則不再需要靠人記得，但它改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收。

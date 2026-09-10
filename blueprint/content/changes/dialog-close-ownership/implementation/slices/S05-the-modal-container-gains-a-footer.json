@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "EditDialogContainer 取得 DialogFooter，三個 team 表單的送出鍵移進去",
+  "capabilities": ["platform/forms", "platform/design-system/overlays"],
+  "dependsOn": ["S01"],
+  "outcome": "TeamForm、CreateForm、EditForm 的送出鍵落在 DialogFooter 內、在自己的 form 邊界之內、並在動作進行中自己說出來；同一個結構在 @modal 與 (workspace) 兩種 route 下都成立。",
+  "acceptanceCriteria": [
+    "EditDialogContainer 停止把 children 包進 DialogBody；改由表單自己 render DialogBody 與 DialogFooter，因為兩者都只是帶樣式的 div，全頁 route 下同樣可用，不需要依 route 分支。",
+    "三個表單的 Form 元素包住其 DialogBody 與 DialogFooter，送出鍵為 footer 內的 type=\"submit\"。TeamForm 目前依賴 Button 的隱含 submit，改為明確標註。",
+    "三顆送出鍵接上 loading 與 icon，位置皆在左：TeamForm 與 EditForm 用 RiSaveLine，CreateForm 用 RiAddLine。三者都留在原地或返回來源，不把使用者帶去新的地方。",
+    "create-form 與 edit-form 的「提交中...」「儲存中...」文字切換改用 loadingText，同一件事只剩一種做法，children 內不再保留條件文字。",
+    "player 編輯表單成功後補上關閉：目前它只 toast 與 mutate，dialog 留在原地，與本 Change 的契約牴觸。關閉動作由路由持有者執行。",
+    "EditDialogContainer 既有的 dirty 攔截與 onExpand 全頁按鈕行為不變。",
+    "六個畫面逐一目視確認：三個 @modal dialog 與三個 (workspace) 全頁 route，檢查 footer 位置、捲動範圍與安全區內距。"
+  ],
+  "verification": [
+    "pnpm test -- src/components/team src/components/layout",
+    "pnpm typecheck",
+    "pnpm lint"
+  ],
+  "status": "pending"
+}

@@ -1,5 +1,5 @@
 {
   "schemaVersion": 1,
   "change": "dialog-close-ownership",
-  "slices": ["S01", "S02", "S03"]
+  "slices": ["S01", "S02", "S03", "S04", "S05"]
 }

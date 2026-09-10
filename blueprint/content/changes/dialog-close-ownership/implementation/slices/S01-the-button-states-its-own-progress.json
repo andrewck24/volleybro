@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "Button 取得 icon 插槽，loading 佔用那一格",
+  "capabilities": ["platform/design-system/overlays"],
+  "dependsOn": [],
+  "outcome": "Button 有一個明確的 icon 插槽與位置，loading 時該格改放旋轉中的 spinner 而非與原圖示並存，loadingText 同時替換文字。後續切片得以在各自的送出鍵上採用。",
+  "acceptanceCriteria": [
+    "Button 取得 icon 與 iconPosition（預設 leading）；loading 時該格渲染 RiLoader4Line animate-spin，不 loading 時渲染 icon。",
+    "loadingText 仍替換文字；未傳時沿用 children。",
+    "不在 children 外包任何元素：buttonVariants 使用 [&>svg]:size-* 直接子元素選擇器，多一層會讓全 app 的按鈕圖示失去尺寸。以 keyed span 只包文字那一格，套用 animate-in fade-in duration-150。",
+    "spinner 不套用 fade：animate-spin 與 animate-in 都寫 animation 簡寫，同一元素上會互相覆蓋。此限制記錄在 D4，不以其他方式繞過。",
+    "既有 12 個 loading 呼叫點不傳 icon，行為維持可用；其 spinner 位置改為尾端。逐一確認沒有出現雙圖示或版面跳動。",
+    "一個測試斷言 loading 時 icon 那一格是 spinner，且原 icon 不同時存在。",
+    "Storybook 故事涵蓋 leading 與 trailing 兩種位置的 loading 切換。"
+  ],
+  "verification": [
+    "pnpm test -- src/components/ui",
+    "pnpm typecheck",
+    "pnpm lint"
+  ],
+  "status": "pending"
+}

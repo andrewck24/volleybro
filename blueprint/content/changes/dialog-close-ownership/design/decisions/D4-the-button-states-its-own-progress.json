@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D4",
+  "title": "送出鍵自己說出進行中，spinner 佔用 icon 的位置",
+  "status": "candidate",
+  "targets": ["platform/design-system/overlays", "platform/forms"],
+  "context": "Button 已有 loading prop，但它把 spinner 前置並保留 children，所以按下去會同時看到 spinner 與原本的圖示。四個 async 送出鍵當中只有 set-options panel 用了它；建立賽事、建立隊伍、新增球員、儲存變更都沒有進行中的表示，其中兩處改用「提交中...」「儲存中...」的文字切換，同一件事因此有兩種做法。",
+  "decision": "Button 取得 icon 與 iconPosition，語意是「不 loading 時那一格的內容與位置」；loading 時該格改放旋轉中的 RiLoader4Line，loadingText 同時替換文字。所有 async 送出鍵接上 loading，所有送出鍵都有 icon。icon 的位置不統一：在左說明這顆鍵做什麼（save、add、check），在右說明它把你帶去哪（箭頭）。",
+  "alternatives": [
+    {
+      "option": "維持 spinner 前置、與原 icon 並存",
+      "reason": "按鈕在 loading 時同時出現兩個圖示，而且寬度會跳動。既有的 12 個呼叫點多半沒有圖示所以看不出來，但一旦要求每顆送出鍵都有 icon，這個缺陷就變成常態。"
+    },
+    {
+      "option": "統一所有送出鍵的 icon 位置到右側",
+      "reason": "位置本身帶語意。set-options 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——一個會導向 entry 頁，一個留在原地。統一位置會抹掉這個訊息。"
+    },
+    {
+      "option": "用 CSS 在 loading 時隱藏 children 內的圖示",
+      "reason": "需要 [&>svg:not(.animate-spin)]:hidden 這類選擇器，是那種凌晨三點要花時間解讀的寫法。把那一格宣告成 prop 便宜且看得懂。"
+    },
+    {
+      "option": "把內容包一層 span 做真正的 cross-fade",
+      "reason": "buttonVariants 用的是 [&>svg]:size-* 直接子元素選擇器，多包一層會讓全 app 的按鈕圖示失去尺寸。"
+    }
+  ],
+  "consequences": [
+    "既有 12 個 loading 呼叫點的圖示寫在 children 裡，不受影響；它們的 spinner 從前置改為尾端。",
+    "spinner 不淡入：animate-spin 與 animate-in 都寫 animation 簡寫，同一個元素上會互相覆蓋。淡入淡出只套用在文字與 icon 的切換，spinner 靠轉動本身表達抵達。",
+    "create-form 與 edit-form 的文字切換改用 loadingText，同一件事只剩一種做法。",
+    "呼叫端若同時把圖示留在 children 又傳 icon 會出現兩個圖示，改造時必須逐一移除 children 內的圖示。"
+  ],
+  "revisitTriggers": [
+    "出現需要真正 cross-fade 的按鈕狀態切換，屆時要先把 [&>svg] 選擇器改成 [&_svg] 並評估影響。",
+    "出現一顆送出鍵需要兩個 icon（左右各一），使單一 icon 插槽不再成立。"
+  ]
+}
