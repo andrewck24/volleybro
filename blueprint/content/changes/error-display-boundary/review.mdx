@@ -19,7 +19,7 @@ import { TLDR } from "@/components/TLDR";
       path: "src/lib/api/error-messages.ts",
       change: "added",
       summary:
-        "使用者可見錯誤字串的唯一存放處。24 個 reason 中的 20 個各有一則，其餘四則由類別常數吸收並以 ABSORBED_REASONS 記名。key 打錯是編譯錯誤。",
+        "使用者可見錯誤字串的唯一存放處。25 個 reason 中的 21 個各有一則，其餘四則由類別常數吸收並以 ABSORBED_REASONS 記名。key 打錯是編譯錯誤。",
       lang: "ts",
       code: 'export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {\n  SESSION_EXPIRED: { title: "\u767b\u5165\u903e\u671f", description: "\u8acb\u91cd\u65b0\u767b\u5165" },\n  OWNER_CANNOT_LEAVE: {\n    title: "\u968a\u9577\u7121\u6cd5\u96e2\u958b\u968a\u4f0d",\n    description: "\u8acb\u5148\u628a\u968a\u9577\u8f49\u79fb\u7d66\u5176\u4ed6\u6210\u54e1\uff0c\u518d\u96e2\u958b",\n  },\n  // \u202620 \u500b reason \u689d\u76ee\n};',
     },
@@ -30,6 +30,14 @@ import { TLDR } from "@/components/TLDR";
         "兩條互相矛盾的顯示路徑收斂成一個 total function。getErrorMessage 這個名字退役。401 的提早 return 移除。",
       lang: "ts",
       code: 'export function resolveErrorDisplay(error: unknown): ErrorMessage {\n  if (error instanceof RefreshTimeoutError) return ERROR_MESSAGES.NETWORK_TIMEOUT;\n  if (!(error instanceof ApiClientError)) return ERROR_MESSAGES.UNKNOWN;\n  if (error.status === 401) return ERROR_MESSAGES.SESSION_EXPIRED;\n  // \u5ba2\u6236\u7aef\u81ea\u9020\u7684 reason \u5fc5\u9808\u6392\u5728 5xx \u4e4b\u524d\uff0c\u5426\u5247\u6703\u88ab 503 \u541e\u6389\n  if (error.reason === "TIMEOUT" || error.reason === "NETWORK_ERROR")\n    return ERROR_MESSAGES.NETWORK_TIMEOUT;\n  if (error.status >= 500 || error.code === "UNEXPECTED")\n    return ERROR_MESSAGES.SERVER_ERROR;\n  const entries: Record<string, ErrorMessage | undefined> = ERROR_MESSAGES;\n  return entries[error.reason] ?? ERROR_MESSAGES.UNKNOWN;\n}',
+    },
+    {
+      path: "src/components/custom/error/error-notice.tsx",
+      change: "added",
+      summary:
+        "dialog 的錯誤欄位改存整個 ErrorMessage 而不是它的 description，三個站點共用這一個 notice 把兩半都渲染出來。",
+      lang: "tsx",
+      code: 'export const ErrorNotice = ({ message }: { message: ErrorMessage }) => (\n  <AlertDialogBody className="gap-1 text-sm text-destructive">\n    <p className="font-medium">{message.title}</p>\n    <p>{message.description}</p>\n  </AlertDialogBody>\n);',
     },
     {
       path: "src/lib/api/wrappers.ts",
