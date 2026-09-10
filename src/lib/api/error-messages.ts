@@ -111,6 +111,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "找不到這場比賽",
     description: "它可能已被刪除，請回到比賽列表確認",
   },
+  STALE_LINEUP: {
+    title: "名單已變動",
+    description: "這位球員已不在出賽名單中，請重新整理後再試",
+  },
   SET_NOT_FOUND: {
     title: "找不到這一局",
     description: "比賽資料可能已變動，請重新整理後再試",

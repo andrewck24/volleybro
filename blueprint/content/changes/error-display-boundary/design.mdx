@@ -132,7 +132,9 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 
 盤點在核准前完成，不在執行階段——文案是判斷，不是實作。這張表是 S05 的輸入，執行時照寫、不重新決定用字。
 
-24 個 reason 裡只有 20 個需要自己的文案，4 個 401/5xx 由類別常數吸收。
+25 個 reason 裡只有 21 個需要自己的文案，4 個 401/5xx 由類別常數吸收。
+
+`STALE_LINEUP` 是在開發者驗收時才加進來的——盤點階段還不存在這個 reason。詳見下方〈盤點找到的 reason 語意缺陷〉。
 
 ### 類別常數
 
@@ -156,22 +158,37 @@ import constraintsPromptWhereKnowable from "./design/decisions/D4-constraints-pr
 
 ### Toast
 
-| reason                  | 狀態 | title               | description                            |
-| ----------------------- | ---- | ------------------- | -------------------------------------- |
-| `INSUFFICIENT_ROLE`     | 403  | 權限不足            | 你的身份無法執行這項操作               |
-| `NOT_TEAM_MEMBER`       | 403  | 沒有這支隊伍的權限  | 你不是這支隊伍的成員                   |
-| `NOT_RECIPIENT`         | 403  | 這封邀請不是給你的  | 只有收到邀請的人可以回覆               |
-| `ALREADY_INVITED`       | 409  | 已經邀請過了        | 對方還沒回覆這封邀請                   |
-| `ALREADY_MEMBER`        | 409  | 對方已經在隊上      | 不需要重複邀請                         |
-| `EMAIL_ALREADY_INVITED` | 409  | 這個 email 已被邀請 | 你已在其他隊員邀請此 email             |
-| `NOT_INVITED`           | 404  | 這封邀請已失效      | 它可能已被取消，或已經處理過了         |
-| `DUPLICATE_RESOURCE`    | 409  | 資料重複            | 這筆資料已經存在                       |
-| `GAME_NOT_FOUND`        | 404  | 找不到這場比賽      | 它可能已被刪除，請回到比賽列表確認     |
-| `SET_NOT_FOUND`         | 404  | 找不到這一局        | 比賽資料可能已變動，請重新整理後再試   |
-| `RESOURCE_NOT_FOUND`    | 404  | 找不到資料          | 這筆資料可能已被刪除，請重新整理後再試 |
-| `INVALID_INPUT`         | 400  | 有欄位需要修正      | 請確認標示的欄位後再送出               |
+| reason                  | 狀態      | title               | description                                |
+| ----------------------- | --------- | ------------------- | ------------------------------------------ |
+| `INSUFFICIENT_ROLE`     | 403       | 權限不足            | 你的身份無法執行這項操作                   |
+| `NOT_TEAM_MEMBER`       | 403       | 沒有這支隊伍的權限  | 你不是這支隊伍的成員                       |
+| `NOT_RECIPIENT`         | 403       | 這封邀請不是給你的  | 只有收到邀請的人可以回覆                   |
+| `ALREADY_INVITED`       | 409       | 已經邀請過了        | 對方還沒回覆這封邀請                       |
+| `ALREADY_MEMBER`        | 409       | 對方已經在隊上      | 不需要重複邀請                             |
+| `EMAIL_ALREADY_INVITED` | 409       | 這個 email 已被邀請 | 你已在其他隊員邀請此 email                 |
+| `NOT_INVITED`           | 404       | 這封邀請已失效      | 它可能已被取消，或已經處理過了             |
+| `DUPLICATE_RESOURCE`    | 409       | 資料重複            | 這筆資料已經存在                           |
+| `GAME_NOT_FOUND`        | 404       | 找不到這場比賽      | 它可能已被刪除，請回到比賽列表確認         |
+| `SET_NOT_FOUND`         | 404       | 找不到這一局        | 比賽資料可能已變動，請重新整理後再試       |
+| `STALE_LINEUP`          | 400 / 404 | 名單已變動          | 這位球員已不在出賽名單中，請重新整理後再試 |
+| `RESOURCE_NOT_FOUND`    | 404       | 找不到資料          | 這筆資料可能已被刪除，請重新整理後再試     |
+| `INVALID_INPUT`         | 400       | 有欄位需要修正      | 請確認標示的欄位後再送出                   |
 
 `INVALID_INPUT` 刻意不再說「資料格式不正確」。D3 之後它多數時候會伴隨欄位路徑，toast 只是沒有欄位可指時的退路，所以文案指向欄位而不是描述錯誤。
+
+### 盤點找到的 reason 語意缺陷
+
+盤點時掃過每個 reason 底下所有的 `detail` 字串，找出「一個 reason 扛著多種失敗」的情形共 8 個。其中 5 個是刻意的類別層級歸併（`RESOURCE_NOT_FOUND`、`INSUFFICIENT_ROLE`、`NOT_INVITED`、`SESSION_REQUIRED`、`UNHANDLED_ERROR`），文案本來就寫得夠泛用。剩下三個是真的錯：
+
+| 拋出點                                                                     | 原本的 reason      | 使用者會讀到   | 為什麼錯                                                                              |
+| -------------------------------------------------------------------------- | ------------------ | -------------- | ------------------------------------------------------------------------------------- |
+| `create-substitution.usecase.ts` — Substitution player not found in lineup | `SET_NOT_FOUND`    | 找不到這一局   | 局在，是換上／換下的球員已不在出賽名單                                                |
+| `entities/game.ts` — Lineup references a player not on the team roster     | `INVALID_INPUT`    | 有欄位需要修正 | 這個 `ValidationError` 不帶欄位路徑，**沒有任何欄位會被標示**，使用者照著文案做會撞牆 |
+| 七處 player usecase — Player has no team                                   | `PLAYER_NOT_FOUND` | 找不到這位成員 | 是 player 記錄沒有 `teamId` 的資料不變式破損                                          |
+
+前兩個是同一種使用者情境：SWR 的五分鐘 dedup 窗內，另一台裝置動了名單或隊員，這台送出過期的視圖。兩者的補救動作相同，因此共用一個新的 `GameReason.STALE_LINEUP`。
+
+第三個不動。它的補救動作是找我們，不是使用者能做的事；給它專屬文案等於把系統的問題寫成使用者的問題，現有的泛用 404 文案反而更誠實。
 
 ### 目前沒有顯示路徑
 

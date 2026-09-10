@@ -6,7 +6,7 @@ import {
   createUser,
 } from "@/__tests__/helpers";
 import { CreateSubstitutionUseCase } from "@/applications/usecases/game/create-substitution.usecase";
-import { NotFoundError } from "@/entities/errors";
+import { GameReason, NotFoundError } from "@/entities/errors";
 import { Side, type EntryIdentity, type Substitution } from "@/entities/game";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -76,6 +76,8 @@ describe("CreateSubstitutionUseCase", () => {
           seq: 1,
         },
       }),
-    ).rejects.toBeInstanceOf(NotFoundError);
+    ).rejects.toThrow(
+      expect.objectContaining({ reason: GameReason.STALE_LINEUP }),
+    );
   });
 });

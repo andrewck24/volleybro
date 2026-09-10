@@ -1,4 +1,4 @@
-import { ValidationError } from "@/entities/errors";
+import { GameReason, ValidationError } from "@/entities/errors";
 import {
   EntryType,
   MoveType,
@@ -115,6 +115,13 @@ describe("validateLineupPlayers", () => {
         roster,
       ),
     ).toThrow(ValidationError);
+  });
+
+  // The reason picks the message the user reads; no field is ever marked here.
+  it("reports a stale lineup rather than a correctable field", () => {
+    expect(() =>
+      validateLineupPlayers(lineup({ starting: [{ id: "ghost" }] }), roster),
+    ).toThrow(expect.objectContaining({ reason: GameReason.STALE_LINEUP }));
   });
 
   it("validates nested sub ids", () => {

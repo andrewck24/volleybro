@@ -1,4 +1,4 @@
-import { ValidationError, CommonReason } from "@/entities/errors";
+import { ValidationError, GameReason } from "@/entities/errors";
 import { Lineup } from "@/entities/team";
 
 export enum MatchPhase {
@@ -102,7 +102,7 @@ export function validateLineupPlayers(lineup: Lineup, roster: Player[]): void {
   for (const id of referencedIds) {
     if (id != null && !rosterIds.has(String(id))) {
       throw new ValidationError(
-        CommonReason.INVALID_INPUT,
+        GameReason.STALE_LINEUP,
         "Lineup references a player not on the team roster",
       );
     }

@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { ErrorNotice } from "@/components/layout/error-notice";
+import { ErrorNotice } from "@/components/custom/error/error-notice";
 import { apiClient } from "@/lib/api/api-client";
 import type { ErrorMessage } from "@/lib/api/error-messages";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
