@@ -5,7 +5,9 @@ import { AnnotatedDiff } from "./AnnotatedDiff";
 // DynamicCodeBlock lazy-loads a Shiki highlighter (async, WASM) which jsdom
 // can't drive; stub it with a plain <pre> so the code stays assertable.
 jest.mock("fumadocs-ui/components/dynamic-codeblock", () => ({
-  DynamicCodeBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
+  DynamicCodeBlock: ({ code }: { code: string }) => (
+    <pre data-testid="code">{code}</pre>
+  ),
 }));
 
 // @shikijs/transformers ships ESM-only; jest doesn't transform node_modules and
@@ -17,8 +19,8 @@ jest.mock("@shikijs/transformers", () => ({
 describe("AnnotatedDiff", () => {
   it("strips the unified marker column so the body highlights as its own language", () => {
     const code = `   <DialogFooter>\n-    <Button onClick={submit}>\n+    <Button type="submit">`;
-    const { container } = render(<AnnotatedDiff unified code={code} />);
-    const lines = container.textContent?.split("\n") ?? [];
+    render(<AnnotatedDiff unified code={code} />);
+    const lines = screen.getByTestId("code").textContent?.split("\n") ?? [];
 
     // The marker is replaced by a space; fumadocs' ::before puts it back in the
     // gutter, so a literal "+" or "-" in the body would render it twice.
