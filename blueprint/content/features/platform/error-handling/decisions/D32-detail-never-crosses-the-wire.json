@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D1",
+  "id": "D32",
   "title": "Developer-facing error text never crosses the wire; the error body is code, reason and status",
   "status": "implemented",
   "targets": ["platform/error-handling"],
@@ -39,5 +39,6 @@
     "An error-tracking platform is adopted and needs to drill from an aggregate back to a single request, which is when the correlation id becomes necessary rather than speculative.",
     "A delivery mechanism appears that does not route through withErrorHandler or proxy.ts, such as a Server Action, which would become a third producer of error responses."
   ],
-  "originChange": "error-display-boundary"
+  "originChange": "error-display-boundary",
+  "originDecision": "D1"
 }

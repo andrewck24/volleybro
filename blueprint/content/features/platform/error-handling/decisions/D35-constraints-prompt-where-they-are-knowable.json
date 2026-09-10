@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D4",
+  "id": "D35",
   "title": "A constraint prompts where it is knowable, not where it is enforced",
   "status": "implemented",
   "targets": ["platform/error-handling"],
@@ -39,5 +39,6 @@
     "A form is found that blocks input the server would in fact accept, which is the opposite failure and equally a defect.",
     "A control is gated on state the client cannot hold, which would mean the gate has to move back to the server and the constraint becomes one only a response can report."
   ],
-  "originChange": "error-display-boundary"
+  "originChange": "error-display-boundary",
+  "originDecision": "D4"
 }

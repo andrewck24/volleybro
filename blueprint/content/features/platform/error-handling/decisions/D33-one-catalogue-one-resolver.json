@@ -1,7 +1,7 @@
 {
   "$schema": "../../../../../schemas/decision-record.schema.json",
   "schemaVersion": 1,
-  "id": "D2",
+  "id": "D33",
   "title": "One catalogue of user-facing strings, one total resolver",
   "status": "implemented",
   "targets": ["platform/error-handling"],
@@ -34,5 +34,6 @@
     "An i18n library is chosen whose API cannot be reached by replacing the catalogue's values, which would mean the shape needs to change rather than its contents.",
     "A reason genuinely needs to display differently on two surfaces, which would mean the surface/reason split drawn here is in the wrong place."
   ],
-  "originChange": "error-display-boundary"
+  "originChange": "error-display-boundary",
+  "originDecision": "D2"
 }
