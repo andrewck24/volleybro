@@ -71,7 +71,7 @@ export function MembershipSection({
         description: `${player.name} 已從隊伍中移除`,
       });
       mutate(`/api/teams/${teamId}/players`);
-      router.push(`/team/${teamId}`);
+      router.replace(`/team/${teamId}`);
     } catch (err) {
       setRemoveError(resolveErrorDisplay(err));
     } finally {

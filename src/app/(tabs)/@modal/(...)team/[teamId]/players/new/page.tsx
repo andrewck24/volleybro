@@ -1,14 +1,12 @@
 "use client";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
 import { CreateForm } from "@/components/team/players/create-form";
-import { useRouter } from "next/navigation";
 import { use, useCallback, useState } from "react";
 
 const PlayerCreateModalPage = (props: {
   params: Promise<{ teamId: string }>;
 }) => {
   const { teamId } = use(props.params);
-  const router = useRouter();
   const [isDirty, setIsDirty] = useState(false);
 
   const clearDraft = useCallback(() => {
@@ -24,11 +22,7 @@ const PlayerCreateModalPage = (props: {
       isDirty={isDirty}
       clearDraft={clearDraft}
     >
-      <CreateForm
-        teamId={teamId}
-        onStateChange={setIsDirty}
-        onSuccess={() => router.back()}
-      />
+      <CreateForm teamId={teamId} onStateChange={setIsDirty} />
     </EditDialogContainer>
   );
 };

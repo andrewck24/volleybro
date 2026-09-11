@@ -20,5 +20,5 @@
     "pnpm lint",
     "pnpm build"
   ],
-  "status": "pending"
+  "status": "completed"
 }

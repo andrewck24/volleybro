@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockGlobalMutate = jest.fn();
 const mockApiClient = jest.fn();
 
@@ -12,7 +13,7 @@ jest.mock("@/lib/api/api-client", () => ({
 }));
 
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
 jest.mock("swr", () => ({
@@ -31,31 +32,24 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
-async function setup(onSuccess?: () => void) {
-  render(<CreateForm teamId={TEAM_ID} onSuccess={onSuccess} />);
+async function setup() {
+  render(<CreateForm teamId={TEAM_ID} />);
   const nameField = await screen.findByPlaceholderText("輸入姓名");
   await userEvent.type(nameField, "New Player");
   await userEvent.click(screen.getByRole("button", { name: /新增球員/ }));
 }
 
 describe("CreateForm", () => {
-  it("calls onSuccess and does not push when onSuccess is provided", async () => {
-    mockApiClient.mockResolvedValue({ id: "player-1" });
-    const onSuccess = jest.fn();
-
-    await setup(onSuccess);
-
-    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-    expect(mockPush).not.toHaveBeenCalled();
-  });
-
-  it("pushes to the team page when onSuccess is not provided", async () => {
+  it("replaces with the new player's page on success", async () => {
     mockApiClient.mockResolvedValue({ id: "player-1" });
 
     await setup();
 
     await waitFor(() =>
-      expect(mockPush).toHaveBeenCalledWith(`/team/${TEAM_ID}`),
+      expect(mockReplace).toHaveBeenCalledWith(
+        `/team/${TEAM_ID}/players/player-1`,
+      ),
     );
+    expect(mockPush).not.toHaveBeenCalled();
   });
 });

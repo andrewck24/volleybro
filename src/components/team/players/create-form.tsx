@@ -24,6 +24,7 @@ import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
+import type { PlayerView } from "@/lib/features/team/types";
 import {
   CreatePlayerSchema,
   type CreatePlayerInput,
@@ -38,14 +39,9 @@ import { useSWRConfig } from "swr";
 interface CreateFormProps {
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
-  onSuccess?: () => void;
 }
 
-export function CreateForm({
-  teamId,
-  onStateChange,
-  onSuccess,
-}: CreateFormProps) {
+export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -72,19 +68,18 @@ export function CreateForm({
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {
-      await apiClient(`/api/teams/${teamId}/players`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      const player = await apiClient<PlayerView>(
+        `/api/teams/${teamId}/players`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        },
+      );
       toast({ title: "成功", description: "球員已新增" });
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.push(`/team/${teamId}`);
-      }
+      router.replace(`/team/${teamId}/players/${player.id}`);
     } catch (error) {
       showErrorToast(error, toast);
       form.setError("root", {

@@ -185,7 +185,7 @@ function InfoSection({
       if (onSuccess) {
         onSuccess();
       } else {
-        router.push(`/team/${teamId}`);
+        router.replace(`/team/${teamId}/players/${player.id}`);
       }
     } catch (error) {
       showErrorToast(error, toast);

@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockGlobalMutate = jest.fn();
 const mockApiClient = jest.fn();
 const mockPlayerMutate = jest.fn();
@@ -14,7 +15,7 @@ jest.mock("@/lib/api/api-client", () => ({
 }));
 
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
 jest.mock("swr", () => ({
@@ -74,15 +75,18 @@ describe("EditForm", () => {
 
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(mockPush).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it("pushes to the team page when onSuccess is not provided", async () => {
+  it("replaces with the player's page when onSuccess is not provided", async () => {
     mockApiClient.mockResolvedValue({ ...player, name: "Alicia" });
 
     await setup();
 
     await waitFor(() =>
-      expect(mockPush).toHaveBeenCalledWith(`/team/${TEAM_ID}`),
+      expect(mockReplace).toHaveBeenCalledWith(
+        `/team/${TEAM_ID}/players/${PLAYER_ID}`,
+      ),
     );
   });
 });
