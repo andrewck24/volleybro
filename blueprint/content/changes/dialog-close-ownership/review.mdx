@@ -1,0 +1,235 @@
+---
+title: Review
+---
+
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  現在 dialog 只在動作成功之後才關閉，而且由持有 open state
+  的那一層關閉。六個切片全數交付，兩軸 review
+  經過三輪後收斂。唯一已知的例外是球員編輯頁，已記錄並另立追蹤。受影響的畫面全部在登入之後，還沒有人眼確認過，留給這次驗收。
+</TLDR>
+
+## 交付內容
+
+<FileTour
+  files={[
+    {
+      path: "src/components/ui/dialog.tsx",
+      change: "modified",
+      summary:
+        'expand 與 close 從 DialogContent 的絕對定位群組移入 DialogHeader 的 normal flow，pr-20 隨之刪除。兩顆按鈕明確 type="button"，所以 form 邊界上移到含 header 之後，它們不會變成隱含的 submit button。closeButton、onExpand、expandLabel 移到實際渲染它們的元件。',
+      lang: "tsx",
+      code: 'const DialogHeader = ({ closeButton = true, onExpand, expandLabel, className, children, ...props }) => (\n  <div className={cn("flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2", className)} {...props}>\n    <div className="flex min-w-0 flex-1 flex-col items-start gap-1">{children}</div>\n    {(onExpand || closeButton) && (\n      <div className="flex flex-none flex-row items-center gap-1">\n        {onExpand && <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>}\n        {closeButton && (\n          <DialogPrimitive.Close asChild>\n            <Button type="button">…</Button>\n          </DialogPrimitive.Close>\n        )}\n      </div>\n    )}\n  </div>\n);',
+    },
+    {
+      path: "src/components/layout/nav/action-button.tsx",
+      change: "modified",
+      summary:
+        "ActionButton 從 uncontrolled 改為持有 open state。NewGameForm 只在寫入成功後回報，所以失敗時 dialog 留著、已填內容也留著。",
+      lang: "tsx",
+      code: 'const [open, setOpen] = useState(false);\n\nreturn (\n  <Dialog open={open} onOpenChange={setOpen}>\n    <DialogTrigger asChild>\n      <AddButton className={className} disabled={!teamId} />\n    </DialogTrigger>\n    <DialogContent size="lg">\n      {teamId && <NewGameForm teamId={teamId} onSuccess={() => setOpen(false)} />}\n    </DialogContent>\n  </Dialog>\n);',
+    },
+    {
+      path: "src/components/game/new/index.tsx",
+      change: "modified",
+      summary:
+        '送出鍵脫離 DialogClose，成為 form 邊界內的 type="submit"，並帶 loading 與 loadingText。onSuccess 在導頁之前呼叫，catch 路徑只顯示 toast、不回報。form 邊界上移後，DialogTitle 的返回鍵與陣容配置切換鍵都補上 type="button"。',
+      lang: "tsx",
+      code: 'const createGame = async () => {\n  setIsCreating(true);\n  try {\n    const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, { method: "POST", … });\n    mutate(`/api/games/${game.id}`, game, false);\n    onSuccess();\n    return router.push(`/game/${game.id}`);\n  } catch (err) {\n    showErrorToast(err, toast);\n  } finally {\n    setIsCreating(false);\n  }\n};\n\n<Button type="submit" size="lg" loading={isCreating} loadingText="建立中">\n  創建賽事紀錄\n  <RiArrowRightLine />\n</Button>',
+    },
+    {
+      path: "src/components/team/lineup/panel/options/libero-replace.tsx",
+      change: "modified",
+      summary:
+        'Form 從只包 DialogBody 改為包住 DialogHeader、DialogBody、DialogFooter 三者。送出鍵成為 footer 內的 type="submit"，DialogClose 移除。原本宣告了卻從未被觸發的 form 送出路徑，現在就是實際執行的那一條。',
+      lang: "tsx",
+      code: '<DialogContent>\n  <Form form={form} onSubmit={form.handleSubmit(onSubmit)} className="min-h-0 flex-1 gap-0">\n    <DialogHeader>\n      <DialogTitle>自由球員替換模式</DialogTitle>\n      <DialogDescription>…</DialogDescription>\n    </DialogHeader>\n    <DialogBody>…兩個 FormField…</DialogBody>\n    <DialogFooter>\n      <Button type="submit">\n        <RiCheckLine />\n        確定\n      </Button>\n    </DialogFooter>\n  </Form>\n</DialogContent>',
+    },
+    {
+      path: "src/components/layout/edit-dialog-container.tsx",
+      change: "modified",
+      summary:
+        "容器停止把 children 包進 DialogBody，改由表單自己 render DialogBody 與 DialogFooter；兩者都只是帶樣式的 div，所以同一個結構在 @modal 與 (workspace) 全頁兩種 route 下都成立。關閉語意不變：<Dialog open> 加 router.back()，dirty 攔截原樣保留。",
+      lang: "tsx",
+      code: '<DialogContent size="lg">\n  <DialogHeader\n    expandLabel="全頁模式"\n    onExpand={() => {\n      suppressLeaveWarning();\n      window.location.assign(fullPageHref);\n    }}\n  >\n    <DialogTitle>{title}</DialogTitle>\n    <DialogDescription srOnly>{title}表單</DialogDescription>\n  </DialogHeader>\n  {children}\n</DialogContent>',
+    },
+    {
+      path: "src/components/team/players/create-form.tsx",
+      change: "modified",
+      summary:
+        "送出鍵移入 DialogFooter 並接上 loading。成功後由持有者關閉：modal 頁傳入 router.back()；全頁 route 是 async server component、傳不了 function，所以退回 router.push。edit-form 採同一個形狀，是 D2 記載的唯一例外：它的送出鍵留在基本資訊區段內。",
+      lang: "tsx",
+      code: '// src/app/(tabs)/@modal/(...)team/[teamId]/players/new/page.tsx\n<CreateForm teamId={teamId} onStateChange={setIsDirty} onSuccess={() => router.back()} />\n\n// create-form.tsx 的成功路徑\ntoast({ title: "成功", description: "球員已新增" });\nmutate(`/api/teams/${teamId}/players`);\nclearDraft();\nif (onSuccess) {\n  onSuccess();\n} else {\n  router.push(`/team/${teamId}`);\n}',
+    },
+    {
+      path: "src/components/game/__tests__/new-game-form.test.tsx",
+      change: "added",
+      summary:
+        '本 Change 的核心測試。它先改變一個 dialog 重新 mount 就會被重設的狀態，也就是切到陣容配置 2，再讓送出失敗，然後斷言 dialog 還在、而且仍是陣容配置 2。它刻意不斷言 toast，因為修復前 toast 就會出現。以 dev 版本的兩個原始檔實測，會失敗於找不到 role="dialog"。',
+      lang: "tsx",
+      code: 'await user.click(within(dialog).getByRole("button", { name: "2" }));\nexpect(within(dialog).getByText("陣容配置 2")).toBeInTheDocument();\n\nawait user.click(within(dialog).getByRole("button", { name: /創建賽事紀錄/ }));\nawait waitFor(() => expect(mockApiClient).toHaveBeenCalled());\n\nexpect(screen.getByRole("dialog")).toBeInTheDocument();\nexpect(within(screen.getByRole("dialog")).getByText("陣容配置 2")).toBeInTheDocument();\nexpect(mockRouterPush).not.toHaveBeenCalled();',
+    },
+  ]}
+/>
+
+## 驗證
+
+- **`pnpm verify:all`**，最後一次在所有修正提交之後執行：144 個 suite、1059 個測試、blueprint 49 個測試、app build、`assert-sw`、blueprint build 與 workflow conformance 全數通過。
+- **整合測試沒有執行**，也不需要。diff 沒有碰到 API route、use case、repository、entity 或 validation schema，`src/app` 底下只改了一個 `@modal` 頁面。
+- **S02 的測試確實會在修復前失敗。** 用 `dev` 版本的 `game/new/index.tsx` 與 `action-button.tsx` 實測，失敗在找不到 `role="dialog"`。
+- **視覺確認沒有執行**，理由見〈殘留風險與後續〉。
+
+## Review findings
+
+兩軸各自在獨立的 context 裡執行，共三輪。第三輪兩軸都沒有新的 must-fix；Spec 最後一條 finding 由 reviewer 逐字指定內容，套用後即收斂。
+
+<RiskTable
+  risks={[
+    {
+      name: "Spec R1：球員表單由子元件自己 router.push 關閉",
+      severity: "warning",
+      mitigation:
+        "接受並已修。在 @modal 攔截路由裡，這會多一筆 history，按瀏覽器返回就重新打開剛存好的表單，也違反 D1「持有者關閉、子元件只回報」。這是我在 S05 接受過的偏離，當時照抄了新增球員表單既有的寫法。兩個表單改收 onSuccess，兩個 modal 頁傳入 router.back()。",
+    },
+    {
+      name: "Spec R1：S02 測試的「資料還在」斷言是空的",
+      severity: "warning",
+      mitigation:
+        "接受並已修。原本斷言的隊名是 useTeam mock 帶出的預設值，dialog 重新 mount 也會出現，所以那半邊在修復前後都會過。改為先切到陣容配置 2 再送出。",
+    },
+    {
+      name: "Standards R1：一個 feat commit 誤帶 blueprint/AGENTS.md 與 CLAUDE.md",
+      severity: "warning",
+      mitigation:
+        "接受並已修。這是 next dev 自動產生的檔案，被 git add -A 一併帶進去。分支未推送，以 fixup 加 autosquash 改寫歷史移除，檔案保留在磁碟上。",
+    },
+    {
+      name: "Standards R1：edit-dialog-container 有一個永遠不會失敗的測試",
+      severity: "warning",
+      mitigation:
+        "接受並已修。它斷言一個已經沒有任何檔案 render 的 testid 不存在。scroll 行為的守衛留在 ui/__tests__/dialog.test.tsx。",
+    },
+    {
+      name: "Standards R2：分支上所有 commit body 都是 zh-tw",
+      severity: "warning",
+      mitigation:
+        "接受並已修。全域規則要求 commit message 使用 en-us，dev 上的 body 也全是英文。以 filter-branch 改寫 18 則訊息；改寫前後 tree 逐位元相同，slice 對應以 git log --grep 驗證。",
+    },
+    {
+      name: "Standards R1–R2：重述名稱或型別的註解",
+      severity: "info",
+      mitigation:
+        "接受並已修。包括 tab 順序測試的註解、DialogHeader 控制鍵 props 的 JSDoc、AnnotatedDiff 過長而且重複的說明。",
+    },
+    {
+      name: "Standards R1：game/sets/edit 的 closeButton 恆為 true",
+      severity: "info",
+      mitigation:
+        '接受並已修。它位於 mode === "general" 的分支內，就等於預設值。',
+    },
+    {
+      name: "Standards R1：EditForm 的四個 return 各包一層 DialogBody",
+      severity: "info",
+      mitigation: "接受並已修，改為只包一次。",
+    },
+    {
+      name: "Standards R2：新測試重複宣告用不到的 ApiClientError",
+      severity: "info",
+      mitigation: "接受並已修。改為 jest.requireActual，只覆寫 apiClient。",
+    },
+    {
+      name: "Spec R2–R3：changeset 在全頁模式說過頭，又漏寫全頁的改變",
+      severity: "info",
+      mitigation:
+        "接受並已修。返回行為限定在 dialog 模式，並逐字採用 R3 reviewer 給的句子補上全頁的改變。",
+    },
+    {
+      name: "Spec R1：AnnotatedDiff 與 globals.css 不屬於任何切片",
+      severity: "info",
+      mitigation: "接受為偏離，見〈計畫與實際的差異〉。",
+    },
+    {
+      name: "Spec R1：info-form 的日期 PopoverTrigger 沒有 type",
+      severity: "info",
+      mitigation:
+        '不採納。Radix 的 PopoverTrigger 本身就帶 type="button"，asChild 會透過 Slot 傳到 Button 上，所以它不是隱含的 submit button。',
+    },
+    {
+      name: "Standards R1：返回鍵的 className 在兩個檔案重複",
+      severity: "info",
+      mitigation: "不採納。只有兩處，還沒到 rule of three。",
+    },
+    {
+      name: "Standards R1：min-h-0 flex-1 在四個表單重複",
+      severity: "info",
+      mitigation:
+        "不採納。這是 D2 記載的版面要求；game/new 用的是一般 form 元素而不是 Form 元件，一個常數會橫跨兩種元素；抽成共用 helper 就是 D3 已經否決的泛用 dialog-form 抽象。列入殘留風險。",
+    },
+    {
+      name: "Standards R1：一則非 slice commit 用裸 D4，另一則混合兩件事",
+      severity: "info",
+      mitigation:
+        "不採納。trailer 只要求在 slice commit 上；拆開混合的 commit 需要再改一次歷史，只換到外觀上的整齊。",
+    },
+  ]}
+/>
+
+### 最尖銳的一則
+
+Spec 第一輪抓到的 `router.push` 是我自己放進去的。S05 執行時，executor 為了跟新增球員表單一致，用了 `push` 而不是 brief 寫的 `router.back()`，我當時判斷 `push` 同時適用 modal 與全頁兩種 route，就接受了。這個判斷漏掉了一件事：在 modal 路由裡，`push` 會多留一筆 history。等於把新增球員表單既有的缺陷又複製了一份，而且違反了本 Change 自己寫下的 D1。
+
+## 計畫與實際的差異
+
+- **範圍在核准前擴大了兩次。** 清點六個表單之後發現 `EditDialogContainer` 沒有 `DialogFooter`，於是加入 S05；控制鍵的絕對定位與 `pr-20` 則促成 S06。兩次都在實作開始前完成。
+- **D4 的介面改了三次，最後回到原點。** 依序是 `icon` 加 `iconPosition`、`loadingContent`，最後回到既有的 `loadingText`。`Button` 的 API 最終完全沒有變。
+- **S05 經過一次 Ingest。** 原本要三個表單都把送出鍵放進 footer，結果是兩個加一個例外，由開發者選定。D2 的決定不變，只加上一條 consequence 與退場條件。
+- **S05 執行時被 rate limit 中斷。** 由新的 executor 從中間狀態接手完成。
+- **新增球員表單的關閉方式在 review 時一併修正。** 它不在原計畫的修改清單上，但它屬於 S05 的清點範圍，也受同一條行為契約約束。
+- **Blueprint 的呈現基礎設施不屬於任何切片。** `AnnotatedDiff` 新增的 `unified` 模式，以及 `.prose figure + figure` 的間距規則，都是為了讓 Design 頁能以正確的縮排與底色呈現 JSX diff。
+- **提交紀律出了兩次錯，都在 pre-PR 修正。** 一次 `git add -A` 帶進了生成檔；commit body 全部寫成 zh-tw。分支沒有推送，兩者都以改寫歷史修正。
+
+## 殘留風險與後續
+
+<RiskTable
+  risks={[
+    {
+      name: "登入後的畫面沒有人眼確認過",
+      severity: "warning",
+      mitigation:
+        "S03 的兩個 libero surface（set-options panel、lineup panel）、S05 的六個畫面（新增與編輯隊伍、新增與編輯球員，各有 @modal 與全頁兩種），以及 S06 影響的每一個 dialog header，全部在需要登入的路由後面，瀏覽器沒有繞過 auth 的途徑。要確認的是捲動範圍、footer 位置、長標題換行，以及 loading 時按鈕寬度的變化。這是本次驗收唯一需要人眼的部分。",
+    },
+    {
+      name: "球員編輯頁是 D2 的唯一例外",
+      severity: "info",
+      mitigation:
+        "成員資格區塊的邀請流程自帶一個 form，基本資訊的 form 邊界若包住 footer 就會巢狀，所以「儲存變更」暫時留在區段內。退場條件是把成員資格移到獨立的 dialog，已另立追蹤。",
+    },
+    {
+      name: "全頁 route 的新增與編輯球員仍用 router.push",
+      severity: "info",
+      mitigation:
+        "存檔後導回隊伍頁，按返回會回到剛存好的全頁表單。新增球員原本就是這樣；changeset 沒有對全頁宣稱返回行為。",
+    },
+    {
+      name: "min-h-0 flex-1 分散在四個表單",
+      severity: "info",
+      mitigation:
+        "DialogContent 的版面若改變，要同步修改四處。刻意不抽象，理由見 D3。",
+    },
+    {
+      name: "Button 沒有預設 type",
+      severity: "info",
+      mitigation:
+        'D2 的配套規則（form 邊界內的非送出鍵必須明確 type="button"）目前靠人記得。讓 Button 預設 type="button" 會改變 team/form.tsx 的舊行為，列在 D2 的 revisit trigger。',
+    },
+    {
+      name: "useReplacePosition 讀 lineups[0]，reducer 寫 lineups[lineupIndex]",
+      severity: "info",
+      mitigation:
+        "在 lineupIndex 大於 0 時，自由球員替換的設定看起來沒有作用。這是本 Change 發現的既有缺陷，已另立追蹤，不在範圍內。",
+    },
+  ]}
+/>
