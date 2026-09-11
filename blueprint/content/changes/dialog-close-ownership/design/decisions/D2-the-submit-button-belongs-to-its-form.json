@@ -31,10 +31,12 @@
     "EditDialogContainer 停止把 children 包進 DialogBody，改由表單自己 render DialogBody 與 DialogFooter；六個畫面（三個 dialog、三個全頁）的版面因此改變，需要逐一目視確認。",
     "插入的 form 元素必須帶 min-h-0 flex-1，否則 DialogContent 的 flex 鏈斷裂、DialogBody 失去可捲動高度。",
     "Button 沒有預設 type，因此 form 邊界內的 <Button onClick> 是隱含的 submit button。game/new/index.tsx 的 DialogTitle 返回鍵是現成的例子，必須明確標註 type=\"button\"。",
-    "set-options panel 的 ActionButton 不需要移動：它已經符合這條規則，成為既有的正確樣本。"
+    "set-options panel 的 ActionButton 不需要移動：它已經符合這條規則，成為既有的正確樣本。",
+    "球員編輯頁是目前唯一不符合的實例：成員資格區塊的邀請流程自帶 <form>，基本資訊的 form 邊界若包住 footer 就會巢狀，因此「儲存變更」暫留在區段內。成員資格移成獨立 dialog 後即符合。"
   ],
   "revisitTriggers": [
     "出現一個送出鍵，其提交目標無法用單一 form 邊界表達（例如同一個 footer 同時提交兩份獨立的 form）。",
-    "決定讓 Button 預設 type=\"button\"，使配套規則不再需要靠人記得。"
+    "決定讓 Button 預設 type=\"button\"，使配套規則不再需要靠人記得。",
+    "成員資格移成獨立 dialog：屆時球員編輯頁的送出鍵移入 DialogFooter。"
   ]
 }

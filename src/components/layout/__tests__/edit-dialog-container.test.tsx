@@ -129,7 +129,9 @@ describe("EditDialogContainer", () => {
     expect(dialog).toHaveAccessibleDescription("編輯球隊表單");
   });
 
-  it("wraps children in overflow-y-auto scroll container", () => {
+  it("renders children directly without wrapping them in a scroll container", () => {
+    // The scroll container is DialogBody, now supplied by the child form itself
+    // (see ui/dialog.test.tsx), not by EditDialogContainer.
     render(
       <EditDialogContainer
         title="編輯球隊"
@@ -140,9 +142,9 @@ describe("EditDialogContainer", () => {
         <div data-testid="child-content">form</div>
       </EditDialogContainer>,
     );
-    const scrollContainer = screen.getByTestId("dialog-scroll-container");
-    expect(scrollContainer).toBeInTheDocument();
-    expect(scrollContainer).toHaveClass("overflow-y-auto");
     expect(screen.getByTestId("child-content")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("dialog-scroll-container"),
+    ).not.toBeInTheDocument();
   });
 });

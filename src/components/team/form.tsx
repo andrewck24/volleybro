@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -93,43 +94,48 @@ const TeamForm = ({
   });
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>編輯隊伍資訊</CardTitle>
-      </CardHeader>
-      <Form form={form} onSubmit={handleSubmit}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>隊伍名稱</FormLabel>
-              <FormControl>
-                <Input placeholder="日本國家男子排球隊" {...field} />
-              </FormControl>
-              <FormDescription>請輸入 20 字以內的隊伍全名</FormDescription>
-            </FormItem>
+    <Form form={form} onSubmit={handleSubmit} className="min-h-0 flex-1 gap-0">
+      <DialogBody>
+        <Card className={className}>
+          <CardHeader>
+            <CardTitle>編輯隊伍資訊</CardTitle>
+          </CardHeader>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>隊伍名稱</FormLabel>
+                <FormControl>
+                  <Input placeholder="日本國家男子排球隊" {...field} />
+                </FormControl>
+                <FormDescription>請輸入 20 字以內的隊伍全名</FormDescription>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="nickname"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>隊伍簡稱</FormLabel>
+                <FormControl>
+                  <Input placeholder="RYUJIN" {...field} />
+                </FormControl>
+                <FormDescription>請輸入 8 字以內隊伍簡稱</FormDescription>
+              </FormItem>
+            )}
+          />
+          {form.formState.errors.root && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.root.message}
+            </p>
           )}
-        />
-        <FormField
-          control={form.control}
-          name="nickname"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>隊伍簡稱</FormLabel>
-              <FormControl>
-                <Input placeholder="RYUJIN" {...field} />
-              </FormControl>
-              <FormDescription>請輸入 8 字以內隊伍簡稱</FormDescription>
-            </FormItem>
-          )}
-        />
-        {form.formState.errors.root && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
+        </Card>
+      </DialogBody>
+      <DialogFooter>
         <Button
+          type="submit"
           size="lg"
           loading={form.formState.isSubmitting}
           loadingText={defaultValues?.name ? "儲存中" : "建立中"}
@@ -137,8 +143,8 @@ const TeamForm = ({
           <RiSaveLine />
           {defaultValues?.name ? "儲存修改" : "建立隊伍"}
         </Button>
-      </Form>
-    </Card>
+      </DialogFooter>
+    </Form>
   );
 };
 

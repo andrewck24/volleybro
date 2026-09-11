@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Dialog,
-  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -72,9 +71,7 @@ export function EditDialogContainer({
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription srOnly>{title}表單</DialogDescription>
           </DialogHeader>
-          <DialogBody data-testid="dialog-scroll-container">
-            {children}
-          </DialogBody>
+          {children}
         </DialogContent>
       </Dialog>
 

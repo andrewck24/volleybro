@@ -4,6 +4,7 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DialogBody } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyHeader,
@@ -38,6 +39,7 @@ import {
   type UpdatePlayerInfoInput,
 } from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
@@ -57,18 +59,30 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading) return <PlayerEditFormSkeleton />;
-  if (error) return <ServerErrorState onRetry={() => mutate()} />;
+  if (isLoading)
+    return (
+      <DialogBody>
+        <PlayerEditFormSkeleton />
+      </DialogBody>
+    );
+  if (error)
+    return (
+      <DialogBody>
+        <ServerErrorState onRetry={() => mutate()} />
+      </DialogBody>
+    );
   if (!player)
     return (
-      <Empty>
-        <EmptyMedia variant="icon">
-          <FiUser />
-        </EmptyMedia>
-        <EmptyHeader>
-          <EmptyTitle>找不到球員</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <DialogBody>
+        <Empty>
+          <EmptyMedia variant="icon">
+            <FiUser />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle>找不到球員</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      </DialogBody>
     );
 
   const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
@@ -79,23 +93,25 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
       currentUserPlayer.role === PlayerRole.ADMIN);
 
   return (
-    <Card className="py-8">
-      <InfoSection
-        player={player}
-        teamId={teamId}
-        onStateChange={onStateChange}
-      />
-      {showMembership && (
-        <>
-          <Separator />
-          <MembershipSection
-            player={player}
-            teamId={teamId}
-            isCurrentOwner={isCurrentOwner}
-          />
-        </>
-      )}
-    </Card>
+    <DialogBody>
+      <Card className="py-8">
+        <InfoSection
+          player={player}
+          teamId={teamId}
+          onStateChange={onStateChange}
+        />
+        {showMembership && (
+          <>
+            <Separator />
+            <MembershipSection
+              player={player}
+              teamId={teamId}
+              isCurrentOwner={isCurrentOwner}
+            />
+          </>
+        )}
+      </Card>
+    </DialogBody>
   );
 }
 
@@ -130,6 +146,7 @@ function InfoSection({
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
 }) {
+  const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
@@ -164,6 +181,7 @@ function InfoSection({
       mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
+      router.push(`/team/${teamId}`);
     } catch (error) {
       showErrorToast(error, toast);
       form.setError("root", {

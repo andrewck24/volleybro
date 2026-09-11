@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -84,115 +85,121 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
   });
 
   return (
-    <Card className="py-8">
-      <Form form={form} onSubmit={handleSubmit} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>姓名</FormLabel>
-              <FormControl>
-                <Input placeholder="輸入姓名" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="number"
-          render={({ field: { onChange, value, ...rest } }) => (
-            <FormItem>
-              <FormLabel>背號</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  min={0}
-                  max={99}
-                  placeholder="例: 10"
-                  value={value ?? ""}
-                  onChange={(e) =>
-                    onChange(
-                      e.target.value ? parseInt(e.target.value, 10) : undefined,
-                    )
+    <Form form={form} onSubmit={handleSubmit} className="min-h-0 flex-1 gap-0">
+      <DialogBody>
+        <Card className="gap-4 py-8">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>姓名</FormLabel>
+                <FormControl>
+                  <Input placeholder="輸入姓名" {...field} />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="number"
+            render={({ field: { onChange, value, ...rest } }) => (
+              <FormItem>
+                <FormLabel>背號</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    placeholder="例: 10"
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      onChange(
+                        e.target.value
+                          ? parseInt(e.target.value, 10)
+                          : undefined,
+                      )
+                    }
+                    {...rest}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="position"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>位置</FormLabel>
+                <Select
+                  onValueChange={(v) =>
+                    field.onChange(v === "NONE" ? undefined : v)
                   }
-                  {...rest}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="position"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>位置</FormLabel>
-              <Select
-                onValueChange={(v) =>
-                  field.onChange(v === "NONE" ? undefined : v)
-                }
-                value={field.value ?? "NONE"}
-              >
+                  value={field.value ?? "NONE"}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇位置" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="NONE">無</SelectItem>
+                    <SelectItem value="OH">攻擊手 (OH)</SelectItem>
+                    <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
+                    <SelectItem value="OP">對角 (OP)</SelectItem>
+                    <SelectItem value="S">舉球員 (S)</SelectItem>
+                    <SelectItem value="L">自由人 (L)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email（填寫後即為邀請）</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇位置" />
-                  </SelectTrigger>
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="NONE">無</SelectItem>
-                  <SelectItem value="OH">攻擊手 (OH)</SelectItem>
-                  <SelectItem value="MB">中間攔網手 (MB)</SelectItem>
-                  <SelectItem value="OP">對角 (OP)</SelectItem>
-                  <SelectItem value="S">舉球員 (S)</SelectItem>
-                  <SelectItem value="L">自由人 (L)</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>角色</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇角色" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
+                    <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          {form.formState.errors.root && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.root.message}
+            </p>
           )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email（填寫後即為邀請）</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="user@example.com"
-                  {...field}
-                  value={field.value ?? ""}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>角色</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇角色" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
-                  <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-          )}
-        />
-        {form.formState.errors.root && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
+        </Card>
+      </DialogBody>
+      <DialogFooter>
         <Button
           type="submit"
           loading={form.formState.isSubmitting}
@@ -202,7 +209,7 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
           <RiAddLine />
           新增球員
         </Button>
-      </Form>
-    </Card>
+      </DialogFooter>
+    </Form>
   );
 }
