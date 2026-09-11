@@ -47,7 +47,7 @@ acceptance. Provider instruction files are bridges only.
 | Canonical current capability knowledge | `blueprint/content/features/`                                          |
 | Execution plan                         | Change-local implementation-slice JSON                                 |
 | Version and changelog evidence         | `.changeset/` through Changesets                                       |
-| Provider-neutral workpad               | One persistent Linear comment for the active Change                    |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs            |
 | Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                 |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the
@@ -165,7 +165,7 @@ This stage follows Propose automatically.
 Apply is the same repository procedure in both execution modes:
 
 1. set the Change lifecycle to `applying`, then read Overview, Design, implementation plan, current
-   capability references, workpad, and git state;
+   capability references and git state, plus the workpad when an unattended run keeps one;
 2. select the next `pending` slice whose dependencies are `completed`;
 3. implement through the agreed TDD seam where applicable;
 4. run the slice's targeted verification;
@@ -372,8 +372,8 @@ history — a single-commit fix or a tooling change — and say so in the pull r
 ### Manual workflow
 
 The developer invokes Apply directly after approving the Blueprint plan. Resume from repository
-artifacts, the persistent workpad, git state, and verification evidence. No Symphony process,
-claim, dashboard, or workspace manager is required.
+artifacts, git state, and verification evidence. No Symphony process, claim, dashboard, or
+workspace manager is required.
 
 Before Manual Apply starts for an issue that may be visible to Symphony:
 
@@ -403,13 +403,13 @@ human approval gates.
 
 ## Workpad and handoff
 
-Maintain one persistent workpad for the active Change with:
+An unattended (Symphony) run maintains one persistent workpad for the active Change, so a stopped
+run can be resumed by another and an unblock action has somewhere to wait for the developer:
 
 ```yaml
 change: stable-change-slug
 branch: feat/stable-change-slug
-phase: discuss | propose | prepare-execution | apply | ingest | pre-pr | review | archive
-execution_mode: manual | symphony
+phase: prepare-execution | apply | ingest | pre-pr | review | archive
 current_slice: S01 | null
 completed: []
 validation: []
@@ -419,6 +419,11 @@ next_action: "smallest concrete continuation step"
 
 The workpad may include tracker, run, workspace, commit, and pull-request references while they are
 active. Blueprint must not copy those tracker-specific references into its durable content.
+
+A manual run keeps no workpad. Every field above except `blockers` and `next_action` is already
+recorded in the repository — the lifecycle in `change.json`, slice status in the slice JSON,
+validation in commit trailers and the Review page — and a copy kept by hand drifts from them. A
+manual run states its blockers and next action to the developer directly.
 
 ## Blueprint knowledge contract
 
