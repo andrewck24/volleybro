@@ -127,7 +127,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 <svg
   viewBox="0 0 1160 520"
   role="img"
-  aria-label="open state 歸屬圖。上排四個父層：ActionButton、set-options panel、lineup panel 三者以 useState 持有 open state；EditDialogContainer 則由路由持有，它寫死 open 為 true 並以 router.back 關閉。下排三組子元件：NewGameForm 對應 ActionButton，LiberoReplaceDialog 由 set-options panel 與 lineup panel 共用，三個 team 表單由 EditDialogContainer 承載。子元件只在成功後回報，不自行關閉。底部說明回報方向，以及 Esc、點 overlay、右上角關閉鍵在 controlled 模式下都只是 onOpenChange 的一次詢問。"
+  aria-label="open state 歸屬圖。上排四個父層：ActionButton、set-options panel、lineup panel 三者以 useState 持有 open state；EditDialogContainer 則由路由持有，它寫死 open 為 true 並以離開 route 關閉。下排三組子元件：NewGameForm 對應 ActionButton，LiberoReplaceDialog 由 set-options panel 與 lineup panel 共用，三個 team 表單由 EditDialogContainer 承載。子元件只在成功後回報，不自行關閉。底部說明回報方向，以及 Esc、點 overlay、右上角關閉鍵在 controlled 模式下都只是 onOpenChange 的一次詢問。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "1160 / 520", width: "100%", height: "auto" }}
 >
@@ -163,7 +163,7 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
     <text x="1000" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">EditDialogContainer</text>
     <text x="1000" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">@modal 攔截路由</text>
     <rect x="906" y="122" width="188" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
-    <text x="1000" y="140" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">router.back 關閉</text>
+    <text x="1000" y="140" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">離開 route 即關閉</text>
 
     <line x1="170" y1="170" x2="170" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
     <line x1="450" y1="170" x2="560" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
@@ -186,21 +186,56 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
     <text x="1000" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">三個 team 表單</text>
     <text x="1000" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team form · player 新增與編輯</text>
     <rect x="900" y="334" width="200" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
-    <text x="1000" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才 router.back</text>
+    <text x="1000" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才離開 route</text>
 
     <text x="590" y="396" textAnchor="middle" fontSize="13.5" fill="var(--muted-foreground)">同一個子元件，兩個父層，同一條規則</text>
 
     <rect x="40" y="414" width="1080" height="80" rx="8" fill="var(--card)" stroke="var(--border)" />
     <text x="64" y="440" fontSize="14.5" fill="var(--foreground)">回報方向：子元件不自行關閉，只在成功後回報，由持有者決定關閉。</text>
     <text x="64" y="462" fontSize="13.5" fill="var(--muted-foreground)">Esc、點 overlay、右上角 ✕ 在 controlled 模式下都只是 onOpenChange(false) 的一次詢問 — 關不關由持有者決定。</text>
-    <text x="64" y="482" fontSize="13.5" fill="var(--muted-foreground)">路由持有者的關閉動作是 router.back()；它同樣不由子元件自己執行。</text>
+    <text x="64" y="482" fontSize="13.5" fill="var(--muted-foreground)">路由持有者的關閉動作是離開 route：返回來源用 router.back()，前往結果頁用 router.replace()。</text>
 
   </g>
 </svg>
 
 controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled 模式下完全不儲存 `open`，每一個關閉意圖都變成一次 `onOpenChange(false)` 呼叫，然後什麼都不做；真正關閉是持有者更新狀態後重新 render 的結果。
 
-`EditDialogContainer` 是第二種持有者：`<Dialog open>` 寫死為 `true`，關閉等於離開這個 route。它已經符合否決權的形狀——`onOpenChange` 進到 `handleClose`，dirty 時彈出放棄確認而不關閉——所以本 Change 不改它的關閉語意，只補它缺少的 `DialogFooter`。
+`EditDialogContainer` 是第二種持有者：`<Dialog open>` 寫死為 `true`，關閉等於離開這個 route。它已經符合否決權的形狀——`onOpenChange` 進到 `handleClose`，dirty 時彈出放棄確認而不關閉——所以本 Change 不改它對使用者主動關閉的處理，只補它缺少的 `DialogFooter`，以及下一節「往前離開」這個方向。
+
+## Adopted shape：往前離開 route
+
+離開 route 有兩個方向。返回來源用 `router.back()`，這是本 Change 原本唯一採用的方向。往前前往結果頁時，parallel routes 有一個既定行為會擋路：soft navigation 到一個 `@modal` 沒有對應 route 的網址時，**slot 保留原本的內容**。Next.js 的文件直接點名這一點，並以一個回傳 `null` 的 catch-all 作為關閉 modal 的方式。
+
+這正是移除成員時看到的畫面：`router.push` 回球隊頁之後，`@team` 換成了球隊頁，`@modal` 卻仍停在那位已被移除的球員的編輯畫面上。
+
+<AnnotatedDiff
+  unified
+  code={
+    "  // src/app/(tabs)/@modal/team/[...catchAll]/page.tsx（新檔案）\n+ export default function TeamModalCatchAll() {\n+   return null;\n+ }"
+  }
+/>
+
+catch-all 放在 `team/` 之下而不是 slot 根目錄。每一條 `@modal` 攔截路由都在 `(...)team` 之下，所以 `/team/*` 已涵蓋所有需要關閉的導頁；放在根目錄則會讓 `(tabs)` layout 開始匹配 `/game`、`/auth` 與不存在的網址。更具體的路由仍然優先：攔截路由照常開啟 dialog，`(workspace)` 的全頁 route 照常承接 hard navigation。
+
+有了它，完成的動作可以把使用者帶到結果，而不只是退回來源：
+
+| 動作                      | 落點                              | 方式             |
+| ------------------------- | --------------------------------- | ---------------- |
+| 新增球員（dialog 與全頁） | 新球員的資訊頁                    | `router.replace` |
+| 編輯球員（dialog）        | 球員資訊頁，也就是唯一的入口      | `router.back()`  |
+| 編輯球員（全頁）          | 球員資訊頁；header 的返回箭頭相同 | `router.replace` |
+| 移除成員                  | 球隊頁                            | `router.replace` |
+
+往前一律用 `replace` 而不是 `push`：剛完成的表單不該留在 history 裡，否則返回鍵會把它重新打開。新增球員在兩種模式的落點相同，所以 `CreateForm` 不再收 `onSuccess`，自己導向；`EditForm` 保留它，因為兩種模式的最佳動作不同——在 dialog 裡 `back()` 回到入口而不多一筆 history。
+
+這不違反「子元件不自行關閉」。子元件做的是導頁，dialog 的消失是 URL 改變後 slot 落空的結構性結果；使用者主動關閉時的否決權仍在 `EditDialogContainer` 手上。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // team/players/create-form.tsx 的成功路徑\n-  await apiClient(`/api/teams/${teamId}/players`, { method: "POST", … });\n+  const player = await apiClient<PlayerView>(`/api/teams/${teamId}/players`, { method: "POST", … });\n   toast({ title: "成功", description: "球員已新增" });\n   mutate(`/api/teams/${teamId}/players`);\n   clearDraft();\n-  if (onSuccess) {\n-    onSuccess();\n-  } else {\n-    router.push(`/team/${teamId}`);\n-  }\n+  router.replace(`/team/${teamId}/players/${player.id}`);'
+  }
+/>
 
 ## Adopted shape：送出鍵自己說出進行中
 
@@ -227,7 +262,7 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 
 ## Behavior contract
 
-- 送出成功：子元件回報，持有者關閉（`setOpen(false)` 或 `router.back()`）。
+- 送出成功：子元件回報，持有者關閉——`setOpen(false)`，或由路由持有者離開 route：`router.back()` 返回來源，`router.replace()` 前往結果頁。
 - 驗證失敗：不呼叫 `onSubmit`，不回報，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
 - 請求失敗：顯示 toast 或 root error 後**不**回報，dialog 保持開啟，已填內容完整保留。
 - 進行中：送出鍵 `disabled`、`aria-busy`，內容換成 spinner 加 `loadingText`。
@@ -239,6 +274,8 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 - **header 內的 Button 沒寫 `type="button"`**：按下它會送出表單。`game/new/index.tsx` 的返回鍵是現成的例子。
 - **`EditDialogContainer` 補上 `DialogFooter` 後，全頁模式跟著改版**：三個 team 表單同時服務 `@modal` 與 `(workspace)` 兩種 route，footer 一旦由表單自己 render，全頁模式也會看到它。六個畫面都要目視確認。
 - **帶圖示的按鈕忘記傳 `loadingText`**：會退回 spinner 加 `children`，出現兩個圖示。型別擋不住，只能逐一檢查。
+- **從 modal 往前導頁卻沒有 catch-all 承接**：slot 保留原本的 modal，畫面停在已經完成的表單上。新增的 `@modal` 攔截路由若不在 `/team` 之下，catch-all 要跟著擴大。
+- **往前導頁用 `push`**：返回鍵回到剛存好的表單，而那份表單的草稿已被清除。
 
 ## Testing strategy
 
@@ -268,3 +305,4 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 - 決定讓 `Button` 預設 `type="button"`。那會改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收，因此不在本 Change 內。
 - `liberoReplace` 改為就地 inline 進 panel。屆時本 Change 對 `libero-replace.tsx` 的修改會整段移除。
 - Radix 之後為 `DialogClose` 提供等待 async handler 的官方機制。
+- 出現不在 `/team` 之下的 `@modal` 攔截路由。catch-all 的範圍要跟著擴大，否則從那裡往前導頁時 modal 不會關閉。

@@ -50,12 +50,13 @@ repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全�
 - 讓每一顆 dialog 送出鍵都落在 `DialogFooter`，且在它所提交的 form 邊界之內，使「驗證失敗就不會關閉」成為結構的結果。
 - 讓每一顆 async 送出鍵在動作進行中自己說出來，且同一件事只剩一種做法。
 - 讓 `libero-replace.tsx` 那條死掉的 form 送出路徑變成實際執行的路徑。
+- 讓完成的動作把使用者帶到它的結果，且 modal 跟著關閉：新增球員後看到那位球員，移除成員後回到球隊頁，返回鍵不會重新打開已完成的表單。
 
 ## Non-goals
 
 - 不抽 `AsyncDialogAction` 之類的共用元件。理由在 D3：泛用的 await-then-close 修不好這個 bug，因為兩處的 handler 在失敗時都不 reject。
 - 不讓 `Button` 預設 `type="button"`。那會改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收。
-- 不改 `EditDialogContainer` 的關閉語意。路由持有在 `@modal` 攔截路由是正確的，不是遺漏。既有的 dirty 攔截原樣保留。
+- 不改 `EditDialogContainer` 由路由持有這件事。路由持有在 `@modal` 攔截路由是正確的，不是遺漏：關閉仍然等於離開 route，既有的 dirty 攔截原樣保留。本 Change 只補上「往前離開」這個方向。
 - 不寫 Design System 規則頁。那是獨立決定，等本 Change 的形狀落地後再談。
 - 不修 `useReplacePosition` 讀 `lineups[0]` 而 `setLiberoReplace` 寫 `lineups[status.lineupIndex]` 的不對齊。那是另一張票，只在此標記。
 - 不改變 liberoReplace 用獨立 dialog 呈現這件事本身。那個提案需要 UX 決定並以上述不對齊為前置。
@@ -66,6 +67,7 @@ repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全�
 - **在內**：`libero-replace.tsx` 的 form 邊界重畫。`<Form>` 必須包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出鍵才能是 `type="submit"` 又留在 footer。這不是順手清理，而是修法本身——死掉的 form 送出路徑因此一併復活。
 - **在內**：`EditDialogContainer` 補上 `DialogFooter`，三個 team 表單把送出鍵移進去。這三處目前沒有壞，改的是位置；代價是六個畫面（三個 dialog、三個全頁）的版面跟著變，必須逐一目視確認。
 - **在內**：player 編輯表單成功後只 toast、不關閉 modal。與本 Change 寫下的契約直接牴觸，一併對齊。
+- **在內**：從 `@modal` 往前導頁時 modal 不會關閉。parallel routes 在 soft navigation 到沒有對應 route 的網址時保留 slot 原內容，所以移除成員後導回球隊頁，dialog 仍停在已被移除的球員的編輯畫面上。`@modal/team/[...catchAll]` 回傳 `null`，修正所有這類導頁；新增球員因此能直接前往新球員的資訊頁，全頁編輯球員的存檔落點與返回箭頭也改到球員資訊頁。這一項由 delivery review 在測試部署上發現。
 - **在內**：六顆送出鍵的圖示，以及四顆 async 送出鍵的 `loading` 與 `loadingText`。`Button` 的 API 不變——`loadingText` 今天就是完整替換，缺的是呼叫端沒有用它。
 - **在內**：`DialogContent` 那組 `absolute top-3 right-3` 的 expand 與 close。它們是 `{children}` 的兄弟，不屬於任何區塊，`DialogHeader` 因此帶著 `pr-20` 替它們讓位，而 ✕ 是整個 dialog 的最後一個 tabbable。form 邊界上移到含 header 之後，它們還會落在邊界之外。控制鍵移入 `DialogHeader`，`pr-20` 移除。
 - **在內**：`set-options/panel/options.tsx` 中 `onSubmit` 內的 `setLiberoDialogOpen(false)`。libero dialog 是 modal 且渲染 overlay（全 repo 沒有任何地方傳 `modal` prop，Radix 預設為 `true`），開著時底下的送出鍵既點不到也 tab 不到。該行到不了，隨本 Change 移除。
@@ -76,4 +78,4 @@ repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全�
 
 `platform/forms` 取得一條新的約束：**送出鍵位於它所提交的 form 邊界之內，而在 dialog 中，那個位置是 `DialogFooter`。** 這條規則讓驗證閘門成為結構性的——瀏覽器與 RHF 在驗證失敗時根本不會呼叫成功路徑，所以「不該關閉」不需要任何一段程式碼記得。配套的一半是：邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。
 
-`platform/design-system/overlays` 取得兩條：**open state 由承載 `Dialog` 的那一層持有；overlay 內的元件不自行關閉，只回報結果。** 持有者有兩種合法形態，元件 state 與路由，契約相同。以及：**送出鍵在 async 動作進行中自己說出來，spinner 佔用 icon 的那一格**，而 icon 的左右位置帶語意——在左說明做什麼，在右說明帶你去哪。
+`platform/design-system/overlays` 取得兩條：**open state 由承載 `Dialog` 的那一層持有；overlay 內的元件不自行關閉，只回報結果。** 持有者有兩種合法形態，元件 state 與路由，契約相同；路由持有者以離開 route 關閉，返回來源或前往結果頁皆可，往前的方向由 `@modal` 的 catch-all 保證 slot 落空。以及：**送出鍵在 async 動作進行中自己說出來，spinner 佔用 icon 的那一格**，而 icon 的左右位置帶語意——在左說明做什麼，在右說明帶你去哪。

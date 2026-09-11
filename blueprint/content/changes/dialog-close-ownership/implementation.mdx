@@ -2,7 +2,7 @@
 title: Implementation
 ---
 
-六個切片。S01 與 S06 是兩塊地基，可並行；其餘三條鏈從它們分出去，S04 等 S03。
+七個切片。S01 與 S06 是兩塊地基，可並行；其餘三條鏈從它們分出去，S04 等 S03，S07 等 S05。
 
 - **S01** 先把六顆送出鍵的圖示與進行中表示補齊。`Button` 的 API 不動——`loadingText` 本來就是完整替換，缺的是呼叫端沒有用它。
 - **S06** 把 expand 與 close 從絕對定位搬回 `DialogHeader` 的 normal flow。S02、S03、S05 都要把 form 邊界畫到含 header，邊界內的結構必須先是對的。
@@ -10,6 +10,7 @@ title: Implementation
 - **S03**（依賴 S01、S06）修形狀：libero-replace 的驗證失敗在現行 UI 下走不到，但送出鍵在 form 之外這件事本身是錯的，而且順帶讓一條死掉的 form 送出路徑復活。
 - **S04**（依賴 S03）刪掉一行到不了的程式碼。
 - **S05**（依賴 S01、S06）把 `DialogFooter` 補進 `EditDialogContainer`，三個 team 表單的送出鍵移進去。
+- **S07**（依賴 S05）讓從 `@modal` 往前導頁時 modal 跟著關閉，並把新增與編輯球員的落點改到球員資訊頁。
 
 ## 為什麼 S01 必須最先
 
@@ -32,6 +33,12 @@ S05 同理：容器停止提供 `DialogBody` 而表單還沒開始提供，中�
 那三顆送出鍵目前**沒有壞**——它們是 form 內的 `type="submit"`、有 await、不會提前關閉。它們違反的只有位置。把它們留到別張票，代價是這張 Change 寫下一條「dialog 的送出鍵位於 `DialogFooter`」的規則，而 repo 裡同時有三個違反它的實例，規則從第一天就不成立。
 
 代價要說清楚：`EditDialogContainer` 的 children 契約改變，六個畫面的版面跟著變，其中三個是 `(workspace)` 全頁 route——它們不在 dialog 裡，卻共用同一個表單元件。這是本 Change 唯一需要人眼判斷的部分。
+
+## 為什麼 S07 在這張 Change 裡
+
+S07 是 delivery review 在測試部署上找到的，不在原本的計畫裡。移除成員後，dialog 停在那位已被移除的球員的編輯畫面上。問題不在 `membership-section.tsx`，而在 D1 對路由持有者的描述少了一個方向：它只寫了 `router.back()`，而往前離開 route 時，parallel routes 不會讓 `@modal` 自己落空。
+
+同一個缺口也決定了新增球員能不能前往結果頁，所以兩件事是同一個切片：catch-all 與它的第一批使用者一起落地，中間不會有「modal 會關了但沒有人往前導」或「往前導了但 modal 不關」的 commit。S05 的驗收條件「不把使用者帶去新的地方」因此由 S07 取代；S05 本身保持原樣，作為它當時交付的紀錄。
 
 ## 三個容易漏掉的動作
 
