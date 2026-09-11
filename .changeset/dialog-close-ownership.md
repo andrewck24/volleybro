@@ -10,11 +10,20 @@
 
 #### Team
 
-- Adding a player now takes you to the new player's page, and the browser's back button returns to the team page instead of reopening the form
-- Saving the edit-player form now returns to the player's page, as does the back arrow on its full page, and the browser's back button no longer reopens a form that was just saved. In a dialog, the form used to stay open after a successful save, which read as if the save had not happened
-- Removing a member now closes the edit-player dialog and returns to the team page. The dialog used to stay open over the team page, still showing the removed player
+- Close the edit-player dialog after a successful save. It used to stay open, which read as if the save had not happened
+- Close the edit-player dialog after removing a member, and return to the team page. The dialog used to stay open over the team page, still showing the removed player
+- In a dialog, the browser's back button no longer reopens the add-player or edit-player form after it has been saved
+
+#### UI
+
+- On a full-page form opened with a dialog's expand button, the back arrow now leaves the form instead of reloading it
 
 ### Changed
+
+#### Team
+
+- Adding a player now takes you to the new player's page instead of the team page
+- Saving the edit-player form now returns to the player's page, and on its full page the back arrow leads there too, instead of to the team page
 
 #### UI
 

@@ -225,8 +225,12 @@ catch-all 放在 `team/` 之下而不是 slot 根目錄。每一條 `@modal` 攔
 | 編輯球員（dialog）        | 球員資訊頁，也就是唯一的入口      | `router.back()`  |
 | 編輯球員（全頁）          | 球員資訊頁；header 的返回箭頭相同 | `router.replace` |
 | 移除成員                  | 球隊頁                            | `router.replace` |
+| 建立球隊（dialog 與全頁） | 新球隊頁                          | `router.replace` |
+| 編輯球隊（全頁）          | 球隊頁                            | `router.replace` |
 
 往前一律用 `replace` 而不是 `push`：剛完成的表單不該留在 history 裡，否則返回鍵會把它重新打開。新增球員在兩種模式的落點相同，所以 `CreateForm` 不再收 `onSuccess`，自己導向；`EditForm` 保留它，因為兩種模式的最佳動作不同——在 dialog 裡 `back()` 回到入口而不多一筆 history。
+
+全頁的返回箭頭另有一個坑。`Header` 在 referrer 同源時一律 `router.back()`，只有沒有 referrer 才用 `backHref`；而 dialog 的展開鍵是以 `window.location.assign` 重新載入**同一個網址**，所以從展開鍵進入全頁後，referrer 就是目前的網址，返回只會把同一份表單再載入一次。`Header` 因此把「referrer 的路徑等於目前路徑」視同沒有站內 history，改走 `backHref`；這一處修正涵蓋每一個展開流程。
 
 這不違反「子元件不自行關閉」。子元件做的是導頁，dialog 的消失是 URL 改變後 slot 落空的結構性結果；使用者主動關閉時的否決權仍在 `EditDialogContainer` 手上。
 
