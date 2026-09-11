@@ -18,6 +18,7 @@ import {
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
+import { getSetOptions } from "@/lib/features/game/helpers";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import {
@@ -47,20 +48,16 @@ export const Options = ({ gameId }: { gameId: string }) => {
   const members = game?.teams.home.players ?? [];
 
   const defaultValues = useMemo<SetOptionsFormValues>(
-    () => ({
-      serve:
-        setIndex === 0 || game?.sets[setIndex - 1]?.options?.serve === "home"
-          ? "away"
-          : "home",
-      time: {
-        start: new Date().toLocaleTimeString([], {
+    () =>
+      getSetOptions(
+        game,
+        setIndex,
+        new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false,
         }),
-        end: "",
-      },
-    }),
+      ),
     [game, setIndex],
   );
 
