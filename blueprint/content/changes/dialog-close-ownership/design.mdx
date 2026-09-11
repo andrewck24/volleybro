@@ -95,87 +95,25 @@ form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出
 
 <AnnotatedDiff
   unified
-  code={`  // ui/dialog.tsx — DialogContent
-   <DialogPrimitive.Content {...props}>
-     {children}
--    {(onExpand || closeButton) && (
--      <div className="absolute top-3 right-3 flex flex-row items-center gap-1">
--        {onExpand && <Button onClick={onExpand}>…</Button>}
--        {closeButton && <DialogPrimitive.Close asChild>…</DialogPrimitive.Close>}
--      </div>
--    )}
-   </DialogPrimitive.Content>`}
+  code={
+    '  // ui/dialog.tsx — DialogContent\n   <DialogPrimitive.Content {...props}>\n     {children}\n-    {(onExpand || closeButton) && (\n-      <div className="absolute top-3 right-3 flex flex-row items-center gap-1">\n-        {onExpand && <Button onClick={onExpand}>…</Button>}\n-        {closeButton && <DialogPrimitive.Close asChild>…</DialogPrimitive.Close>}\n-      </div>\n-    )}\n   </DialogPrimitive.Content>'
+  }
 />
 
 <AnnotatedDiff
   unified
-  code={`  // ui/dialog.tsx — DialogHeader
--  const DialogHeader = ({ children, className, ...props }) => (
-+  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (
-     <div
-       className={cn(
--        "flex flex-none flex-col items-start gap-1 px-4 pt-4 pr-20 pb-2",
-+        "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",
-         className,
-       )}
-       {...props}
-     >
--      {children}
-+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-+        {children}
-+      </div>
-+      {(onExpand || closeButton) && (
-+        <div className="flex flex-none flex-row items-center gap-1">
-+          {onExpand && (
-+            <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>
-+          )}
-+          {closeButton && (
-+            <DialogPrimitive.Close asChild>
-+              <Button type="button">…</Button>
-+            </DialogPrimitive.Close>
-+          )}
-+        </div>
-+      )}
-     </div>
-   );`}
+  code={
+    '  // ui/dialog.tsx — DialogHeader\n-  const DialogHeader = ({ children, className, ...props }) => (\n+  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (\n     <div\n       className={cn(\n-        "flex flex-none flex-col items-start gap-1 px-4 pt-4 pr-20 pb-2",\n+        "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",\n         className,\n       )}\n       {...props}\n     >\n-      {children}\n+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">\n+        {children}\n+      </div>\n+      {(onExpand || closeButton) && (\n+        <div className="flex flex-none flex-row items-center gap-1">\n+          {onExpand && (\n+            <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>\n+          )}\n+          {closeButton && (\n+            <DialogPrimitive.Close asChild>\n+              <Button type="button">…</Button>\n+            </DialogPrimitive.Close>\n+          )}\n+        </div>\n+      )}\n     </div>\n   );'
+  }
 />
 
 包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
 
 <AnnotatedDiff
   unified
-  code={`  // team/lineup/panel/options/libero-replace.tsx
-   <DialogContent>
--    <DialogHeader>…</DialogHeader>
--    <DialogBody>
--      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>
--        …兩個 FormField…
--      </Form>
--    </DialogBody>
--    <DialogFooter>
--      <DialogClose asChild>
--        <Button type="button" onClick={form.handleSubmit(onSubmit)}>
--          確定
--        </Button>
--      </DialogClose>
--    </DialogFooter>
-+    <Form
-+      form={form}
-+      onSubmit={form.handleSubmit(onSubmit)}
-+      className="min-h-0 flex-1 gap-0"
-+    >
-+      <DialogHeader>…</DialogHeader>
-+      <DialogBody>
-+        …兩個 FormField…
-+      </DialogBody>
-+      <DialogFooter>
-+        <Button type="submit">
-+          <RiCheckLine />
-+          確定
-+        </Button>
-+      </DialogFooter>
-+    </Form>
-   </DialogContent>`}
+  code={
+    '  // team/lineup/panel/options/libero-replace.tsx\n   <DialogContent>\n-    <DialogHeader>…</DialogHeader>\n-    <DialogBody>\n-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>\n-        …兩個 FormField…\n-      </Form>\n-    </DialogBody>\n-    <DialogFooter>\n-      <DialogClose asChild>\n-        <Button type="button" onClick={form.handleSubmit(onSubmit)}>\n-          確定\n-        </Button>\n-      </DialogClose>\n-    </DialogFooter>\n+    <Form\n+      form={form}\n+      onSubmit={form.handleSubmit(onSubmit)}\n+      className="min-h-0 flex-1 gap-0"\n+    >\n+      <DialogHeader>…</DialogHeader>\n+      <DialogBody>\n+        …兩個 FormField…\n+      </DialogBody>\n+      <DialogFooter>\n+        <Button type="submit">\n+          <RiCheckLine />\n+          確定\n+        </Button>\n+      </DialogFooter>\n+    </Form>\n   </DialogContent>'
+  }
 />
 
 代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵，`game/options/edit/index.tsx` 的 header 裡也有一顆。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
@@ -269,39 +207,16 @@ controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled
 `Button` 的 `loading` **今天就已經是完整替換**——傳了 `loadingText`，`children` 連同它的圖示一起被換掉。缺陷只發生在省略它的時候：spinner 與原圖示同時出現。所以本 Change **不新增也不移除任何 prop**，改的只有呼叫端。
 
 <AnnotatedDiff
-  code={`// ui/button.tsx — 這一段不動，它本來就對
-const Button = ({ loading = false, loadingText, children, ...props }) => {
-  const isLoading = !asChild && loading;
-  return (
-    <Comp disabled={disabled || isLoading} {...props}>
-      {isLoading ? (
-        <>
-          <RiLoader4Line className="animate-spin" />
-          {loadingText ?? children}
-        </>
-      ) : (
-        children
-      )}
-    </Comp>
-  );
-};`}
+  code={
+    '// ui/button.tsx — 這一段不動，它本來就對\nconst Button = ({ loading = false, loadingText, children, ...props }) => {\n  const isLoading = !asChild && loading;\n  return (\n    <Comp disabled={disabled || isLoading} {...props}>\n      {isLoading ? (\n        <>\n          <RiLoader4Line className="animate-spin" />\n          {loadingText ?? children}\n        </>\n      ) : (\n        children\n      )}\n    </Comp>\n  );\n};'
+  }
 />
 
 <AnnotatedDiff
   unified
-  code={`  // game/new/index.tsx — 改的是這裡
-   <DialogFooter>
--    <Button size="lg" onClick={createGame}>
-+    <Button
-+      size="lg"
-+      onClick={createGame}
-+      loading={isCreating}
-+      loadingText="建立中"
-+    >
-       創建賽事紀錄
-       <RiArrowRightLine />
-     </Button>
-   </DialogFooter>`}
+  code={
+    '  // game/new/index.tsx — 改的是這裡\n   <DialogFooter>\n-    <Button size="lg" onClick={createGame}>\n+    <Button\n+      size="lg"\n+      onClick={createGame}\n+      loading={isCreating}\n+      loadingText="建立中"\n+    >\n       創建賽事紀錄\n       <RiArrowRightLine />\n     </Button>\n   </DialogFooter>'
+  }
 />
 
 考慮過 `loadingContent`（呼叫端自己把 spinner 寫在圖示原本的位置）。它買到的唯一額外能力是「每顆按鈕各自決定 loading 圖示」——而這個 repo 確實有第二種進行中表示：`pull-refresh-indicator` 的 `animate-volleyball-bounce`，一個品牌化的動畫。但正因為如此：若哪天要用它取代 spinner，那是一次**全域的設計系統決定**，改在 `Button` 內部一次涵蓋所有按鈕。per-call-site 的 prop 提供的是錯誤軸向上的彈性。
