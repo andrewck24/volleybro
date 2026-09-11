@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "slug": "dialog-close-ownership",
+  "title": "Dialog Close Ownership",
+  "lifecycle": "archived",
+  "startedAt": "2026-09-10",
+  "summary": "關門的時機從「按下送出的那一刻」移到「動作成功之後」。持有 open state 的一律是 render Dialog 的那一層，dialog 內的元件只回報 onSuccess；送出鍵回到它所屬的 form 邊界之內，驗證失敗因此連成功路徑都走不到。",
+  "capabilities": ["platform/forms", "platform/design-system/overlays"],
+  "tags": ["dialog", "forms", "error-visibility"],
+  "archivedAt": "2026-09-11"
+}

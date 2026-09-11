@@ -4,6 +4,7 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DialogBody } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyHeader,
@@ -38,9 +39,11 @@ import {
   type UpdatePlayerInfoInput,
 } from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiSaveLine } from "react-icons/ri";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useSWRConfig } from "swr";
@@ -49,17 +52,26 @@ interface EditFormProps {
   teamId: string;
   playerId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
+export function EditForm({
+  teamId,
+  playerId,
+  onStateChange,
+  onSuccess,
+}: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading) return <PlayerEditFormSkeleton />;
-  if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (!player)
-    return (
+  let content;
+  if (isLoading) {
+    content = <PlayerEditFormSkeleton />;
+  } else if (error) {
+    content = <ServerErrorState onRetry={() => mutate()} />;
+  } else if (!player) {
+    content = (
       <Empty>
         <EmptyMedia variant="icon">
           <FiUser />
@@ -69,33 +81,37 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
         </EmptyHeader>
       </Empty>
     );
+  } else {
+    const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
+    const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
+    const showMembership =
+      currentUserPlayer &&
+      (currentUserPlayer.role === PlayerRole.OWNER ||
+        currentUserPlayer.role === PlayerRole.ADMIN);
 
-  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
-  const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
-  const showMembership =
-    currentUserPlayer &&
-    (currentUserPlayer.role === PlayerRole.OWNER ||
-      currentUserPlayer.role === PlayerRole.ADMIN);
+    content = (
+      <Card className="py-8">
+        <InfoSection
+          player={player}
+          teamId={teamId}
+          onStateChange={onStateChange}
+          onSuccess={onSuccess}
+        />
+        {showMembership && (
+          <>
+            <Separator />
+            <MembershipSection
+              player={player}
+              teamId={teamId}
+              isCurrentOwner={isCurrentOwner}
+            />
+          </>
+        )}
+      </Card>
+    );
+  }
 
-  return (
-    <Card className="py-8">
-      <InfoSection
-        player={player}
-        teamId={teamId}
-        onStateChange={onStateChange}
-      />
-      {showMembership && (
-        <>
-          <Separator />
-          <MembershipSection
-            player={player}
-            teamId={teamId}
-            isCurrentOwner={isCurrentOwner}
-          />
-        </>
-      )}
-    </Card>
-  );
+  return <DialogBody>{content}</DialogBody>;
 }
 
 function PlayerEditFormSkeleton() {
@@ -124,11 +140,14 @@ function InfoSection({
   player,
   teamId,
   onStateChange,
+  onSuccess,
 }: {
   player: PlayerView;
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }) {
+  const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
@@ -163,6 +182,11 @@ function InfoSection({
       mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.replace(`/team/${teamId}/players/${player.id}`);
+      }
     } catch (error) {
       showErrorToast(error, toast);
       form.setError("root", {
@@ -246,9 +270,11 @@ function InfoSection({
       <Button
         type="submit"
         className="w-full"
-        disabled={form.formState.isSubmitting}
+        loading={form.formState.isSubmitting}
+        loadingText="儲存中"
       >
-        {form.formState.isSubmitting ? "儲存中..." : "儲存變更"}
+        <RiSaveLine />
+        儲存變更
       </Button>
     </Form>
   );

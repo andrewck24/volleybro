@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import {
   DialogBody,
-  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -35,7 +34,13 @@ import { useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
-export const NewGameForm = ({ teamId }: { teamId: string }) => {
+export const NewGameForm = ({
+  teamId,
+  onSuccess,
+}: {
+  teamId: string;
+  onSuccess: () => void;
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const [view, setView] = useState("");
@@ -74,7 +79,10 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .filter((player) => player.id)
     .sort((a, b) => a.number - b.number);
 
+  const [isCreating, setIsCreating] = useState(false);
+
   const createGame = async () => {
+    setIsCreating(true);
     try {
       const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, {
         method: "POST",
@@ -90,9 +98,12 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
       });
 
       mutate(`/api/games/${game.id}`, game, false);
+      onSuccess();
       return router.push(`/game/${game.id}`);
     } catch (err) {
       showErrorToast(err, toast);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -108,7 +119,13 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <>
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createGame();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
@@ -135,6 +152,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
                     {team?.lineups.map((_, index) => (
                       <Button
                         key={index}
+                        type="button"
                         variant={lineupIndex === index ? "default" : "outline"}
                         size="icon"
                         onClick={() => setLineupIndex(index)}
@@ -150,19 +168,23 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
             </Card>
           </DialogBody>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button size="lg" onClick={createGame}>
-                創建賽事紀錄
-                <RiArrowRightLine />
-              </Button>
-            </DialogClose>
+            <Button
+              type="submit"
+              size="lg"
+              loading={isCreating}
+              loadingText="建立中"
+            >
+              創建賽事紀錄
+              <RiArrowRightLine />
+            </Button>
           </DialogFooter>
-        </>
+        </form>
       ) : (
         <>
           <DialogHeader>
             <DialogTitle>
               <Button
+                type="button"
                 variant="ghost"
                 className="size-5 p-0 [&>svg]:size-5"
                 onClick={() => handleViewChange("")}

@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D38",
+  "title": "No generic AsyncDialogAction component",
+  "status": "implemented",
+  "targets": ["platform/design-system/overlays", "platform/forms"],
+  "context": "The original proposal suggested an AsyncDialogAction helper to absorb the pattern of waiting for an async handler before closing. Its natural implementation is await onClick() followed by close().",
+  "decision": "Do not build it. Ownership of open state (D36) and the form boundary (D37) make correctness come from structure rather than from a wrapper.",
+  "alternatives": [
+    {
+      "option": "AsyncDialogAction implemented as await onClick() then close()",
+      "reason": "It does not fix the bug. Neither handler rejects on failure: form.handleSubmit(onSubmit)() calls onInvalid and resolves normally when validation fails, and createGame catches its own error and resolves with undefined. A generic await-then-close closes the dialog anyway, one tick later, while suggesting the problem is solved."
+    },
+    {
+      "option": "Have AsyncDialogAction read RHF's formState.isValid, or require every handler to throw",
+      "reason": "The first binds a form library into a dialog component; the second rewrites every caller's error handling, after which the helper has nothing left to do."
+    }
+  ],
+  "consequences": [
+    "There is no shared component, so no layer of indirection to decode.",
+    "The correct shape is structural and visible: the form boundary wraps the footer, and a DialogClose around a submit button looks out of place.",
+    "Nothing enforces it. Whether a Design System rule or a lint rule should is a separate decision."
+  ],
+  "revisitTriggers": [
+    "A third dialog needs to close only on success under a condition a form boundary cannot express.",
+    "A lint rule is adopted that forbids an onClick on a Button under DialogClose asChild."
+  ],
+  "originChange": "dialog-close-ownership",
+  "originDecision": "D3"
+}

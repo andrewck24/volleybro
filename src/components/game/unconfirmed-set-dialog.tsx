@@ -84,7 +84,6 @@ export const UnconfirmedSetDialog = ({
     <Dialog open={unconfirmed} onOpenChange={() => {}}>
       <DialogContent
         size="lg"
-        closeButton={false}
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >

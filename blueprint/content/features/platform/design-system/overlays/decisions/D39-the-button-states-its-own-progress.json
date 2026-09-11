@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D39",
+  "title": "A submit button shows its progress through the existing loadingText",
+  "status": "implemented",
+  "targets": ["platform/design-system/overlays", "platform/forms"],
+  "context": "Of the four asynchronous submit buttons, only the set-options panel's showed loading. Creating a game, creating a team, adding a player and saving a player showed nothing, and two of them switched their label between texts instead, so the same thing was done two ways. Button's loading keeps its children when loadingText is omitted, so a button with an icon showed the spinner and the icon together.",
+  "decision": "Reuse the existing loadingText and add no prop. It already replaces everything, since the content is loadingText ?? children, so passing it swaps the icon out with the text. The defect occurs only when it is omitted, so every loading button with an icon passes loadingText. The spinner always leads.",
+  "alternatives": [
+    {
+      "option": "A loadingContent prop that replaces children, with the caller placing the spinner where the icon was",
+      "reason": "Its only extra power is a per-button loading icon, which is flexibility on the wrong axis. Replacing the spinner, for example with the brand's animate-volleyball-bounce, would be one global design decision made inside Button."
+    },
+    {
+      "option": "icon and iconPosition props, with the spinner taking the icon's slot",
+      "reason": "Incomplete: text and icon change together while loading, yet two mechanisms would describe them, and loadingText already replaces both at once."
+    },
+    {
+      "option": "Move every submit button's icon to the right",
+      "reason": "Position carries meaning. An icon on the left says what a button does; an icon on the right says where it takes you. Unifying the position erases that."
+    }
+  ],
+  "consequences": [
+    "Button's API is unchanged; callers changed. The dialog submit buttons gained icons, and the asynchronous ones gained loading and loadingText.",
+    "The spinner always leads. Text and icon are replaced together, so the spinner does not read as the original arrow moving; only the button's width changes, with the label.",
+    "Omitting loadingText on a button with an icon still shows two icons. Types cannot catch it, so it is checked by review.",
+    "The label switches in the player forms became loadingText, leaving one way to do it.",
+    "Content does not fade between states: that needs a wrapper, and buttonVariants sizes icons with the direct-child selector [&>svg]:size-*, which a wrapper would break across the app."
+  ],
+  "revisitTriggers": [
+    "A branded loading animation replaces the spinner; the change is made inside Button, still with no per-call-site prop.",
+    "One button's loading icon must differ from the rest, so a single global loading indicator no longer holds.",
+    "Button's RiLoader4Line and ui/spinner.tsx's Spinner are two spinners in use; unifying them is a visual change with no defect behind it."
+  ],
+  "originChange": "dialog-close-ownership",
+  "originDecision": "D4"
+}

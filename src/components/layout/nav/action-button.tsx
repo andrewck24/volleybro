@@ -4,6 +4,7 @@ import { NewGameForm } from "@/components/game/new";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 import { RiAddBoxLine } from "react-icons/ri";
 
 export const ActionButton = ({
@@ -13,13 +14,17 @@ export const ActionButton = ({
   teamId?: string;
   className?: string;
 }) => {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <AddButton className={className} disabled={!teamId} />
       </DialogTrigger>
       <DialogContent size="lg">
-        {teamId && <NewGameForm teamId={teamId} />}
+        {teamId && (
+          <NewGameForm teamId={teamId} onSuccess={() => setOpen(false)} />
+        )}
       </DialogContent>
     </Dialog>
   );

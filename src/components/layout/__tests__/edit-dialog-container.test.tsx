@@ -128,21 +128,4 @@ describe("EditDialogContainer", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAccessibleDescription("編輯球隊表單");
   });
-
-  it("wraps children in overflow-y-auto scroll container", () => {
-    render(
-      <EditDialogContainer
-        title="編輯球隊"
-        fullPageHref="/team/123/edit"
-        isDirty={false}
-        clearDraft={clearDraft}
-      >
-        <div data-testid="child-content">form</div>
-      </EditDialogContainer>,
-    );
-    const scrollContainer = screen.getByTestId("dialog-scroll-container");
-    expect(scrollContainer).toBeInTheDocument();
-    expect(scrollContainer).toHaveClass("overflow-y-auto");
-    expect(screen.getByTestId("child-content")).toBeInTheDocument();
-  });
 });

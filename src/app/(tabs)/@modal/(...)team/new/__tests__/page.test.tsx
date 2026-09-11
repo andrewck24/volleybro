@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import NewTeamModalPage from "../page";
 
-const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockMutate = jest.fn();
 const mockApiClient = jest.fn();
 
@@ -19,7 +19,7 @@ jest.mock("@/lib/api/api-client", () => ({
 }));
 
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ replace: mockReplace }),
 }));
 
 jest.mock("swr", () => ({
@@ -62,7 +62,7 @@ describe("NewTeamModalPage", () => {
         screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
       ).toBeInTheDocument();
     });
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("navigates to team page and updates SWR cache on success", async () => {
@@ -79,7 +79,7 @@ describe("NewTeamModalPage", () => {
         newTeam,
         false,
       );
-      expect(mockPush).toHaveBeenCalledWith(
+      expect(mockReplace).toHaveBeenCalledWith(
         `/team/${VALID_OBJECT_ID}?tab=about`,
       );
     });

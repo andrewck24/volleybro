@@ -3,6 +3,7 @@ import {
   DialogBody,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogOverlay,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -113,7 +114,9 @@ describe("close button", () => {
     render(
       <Dialog open>
         <DialogContent>
-          <DialogTitle srOnly>Title</DialogTitle>
+          <DialogHeader>
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
         </DialogContent>
       </Dialog>,
     );
@@ -123,8 +126,10 @@ describe("close button", () => {
   it("is absent when closeButton is false", () => {
     render(
       <Dialog open>
-        <DialogContent closeButton={false}>
-          <DialogTitle srOnly>Title</DialogTitle>
+        <DialogContent>
+          <DialogHeader closeButton={false}>
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
         </DialogContent>
       </Dialog>,
     );
@@ -138,8 +143,10 @@ describe("expand button", () => {
   it("is absent without onExpand", () => {
     render(
       <Dialog open>
-        <DialogContent expandLabel="Expand">
-          <DialogTitle srOnly>Title</DialogTitle>
+        <DialogContent>
+          <DialogHeader expandLabel="Expand">
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
         </DialogContent>
       </Dialog>,
     );
@@ -153,8 +160,10 @@ describe("expand button", () => {
     const onExpand = jest.fn();
     render(
       <Dialog open>
-        <DialogContent onExpand={onExpand} expandLabel="Expand">
-          <DialogTitle srOnly>Title</DialogTitle>
+        <DialogContent>
+          <DialogHeader onExpand={onExpand} expandLabel="Expand">
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
         </DialogContent>
       </Dialog>,
     );
@@ -162,5 +171,50 @@ describe("expand button", () => {
     expect(btn).toBeInTheDocument();
     await user.click(btn);
     expect(onExpand).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks both control buttons type=button", () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogHeader onExpand={() => {}} expandLabel="Expand">
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>,
+    );
+    expect(screen.getByRole("button", { name: "Expand" })).toHaveAttribute(
+      "type",
+      "button",
+    );
+    expect(screen.getByRole("button", { name: "關閉" })).toHaveAttribute(
+      "type",
+      "button",
+    );
+  });
+});
+
+describe("tab order", () => {
+  it("puts the header's controls before the body's fields", () => {
+    render(
+      <Dialog open>
+        <DialogContent>
+          <DialogHeader onExpand={() => {}} expandLabel="Expand">
+            <DialogTitle srOnly>Title</DialogTitle>
+          </DialogHeader>
+          <DialogBody>
+            <input aria-label="field" />
+          </DialogBody>
+        </DialogContent>
+      </Dialog>,
+    );
+    const buttons = screen.getAllByRole("button");
+    const field = screen.getByLabelText("field");
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach((btn) => {
+      expect(
+        btn.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
   });
 });

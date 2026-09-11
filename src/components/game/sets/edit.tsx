@@ -24,7 +24,6 @@ export const SetEdit = ({
   return (
     <DialogContent
       size="lg"
-      closeButton={mode === "general"}
       onEscapeKeyDown={guardDismiss}
       onInteractOutside={guardDismiss}
       onCloseAutoFocus={leaveEditing}
