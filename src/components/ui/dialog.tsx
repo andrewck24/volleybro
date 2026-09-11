@@ -91,7 +91,6 @@ const DialogBody = ({
 export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * When `true`, a close button will be rendered in the control group.
-   * @type boolean
    * @defaultValue true
    */
   closeButton?: boolean;
@@ -100,9 +99,6 @@ export interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> 
    * this handler is called on click.
    */
   onExpand?: () => void;
-  /**
-   * Accessible label for the expand button.
-   */
   expandLabel?: string;
 }
 

@@ -38,9 +38,14 @@ import { useSWRConfig } from "swr";
 interface CreateFormProps {
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
+export function CreateForm({
+  teamId,
+  onStateChange,
+  onSuccess,
+}: CreateFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -75,7 +80,11 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
       toast({ title: "成功", description: "球員已新增" });
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
-      router.push(`/team/${teamId}`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/team/${teamId}`);
+      }
     } catch (error) {
       showErrorToast(error, toast);
       form.setError("root", {

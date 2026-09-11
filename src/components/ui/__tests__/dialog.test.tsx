@@ -211,7 +211,6 @@ describe("tab order", () => {
     const buttons = screen.getAllByRole("button");
     const field = screen.getByLabelText("field");
     expect(buttons.length).toBeGreaterThan(0);
-    // every header control button must precede the field in DOM/tab order
     buttons.forEach((btn) => {
       expect(
         btn.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING,

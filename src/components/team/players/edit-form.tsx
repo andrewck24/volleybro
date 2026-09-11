@@ -52,53 +52,50 @@ interface EditFormProps {
   teamId: string;
   playerId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
+export function EditForm({
+  teamId,
+  playerId,
+  onStateChange,
+  onSuccess,
+}: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading)
-    return (
-      <DialogBody>
-        <PlayerEditFormSkeleton />
-      </DialogBody>
+  let content;
+  if (isLoading) {
+    content = <PlayerEditFormSkeleton />;
+  } else if (error) {
+    content = <ServerErrorState onRetry={() => mutate()} />;
+  } else if (!player) {
+    content = (
+      <Empty>
+        <EmptyMedia variant="icon">
+          <FiUser />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>找不到球員</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
-  if (error)
-    return (
-      <DialogBody>
-        <ServerErrorState onRetry={() => mutate()} />
-      </DialogBody>
-    );
-  if (!player)
-    return (
-      <DialogBody>
-        <Empty>
-          <EmptyMedia variant="icon">
-            <FiUser />
-          </EmptyMedia>
-          <EmptyHeader>
-            <EmptyTitle>找不到球員</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      </DialogBody>
-    );
+  } else {
+    const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
+    const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
+    const showMembership =
+      currentUserPlayer &&
+      (currentUserPlayer.role === PlayerRole.OWNER ||
+        currentUserPlayer.role === PlayerRole.ADMIN);
 
-  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
-  const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
-  const showMembership =
-    currentUserPlayer &&
-    (currentUserPlayer.role === PlayerRole.OWNER ||
-      currentUserPlayer.role === PlayerRole.ADMIN);
-
-  return (
-    <DialogBody>
+    content = (
       <Card className="py-8">
         <InfoSection
           player={player}
           teamId={teamId}
           onStateChange={onStateChange}
+          onSuccess={onSuccess}
         />
         {showMembership && (
           <>
@@ -111,8 +108,10 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
           </>
         )}
       </Card>
-    </DialogBody>
-  );
+    );
+  }
+
+  return <DialogBody>{content}</DialogBody>;
 }
 
 function PlayerEditFormSkeleton() {
@@ -141,10 +140,12 @@ function InfoSection({
   player,
   teamId,
   onStateChange,
+  onSuccess,
 }: {
   player: PlayerView;
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -181,7 +182,11 @@ function InfoSection({
       mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
-      router.push(`/team/${teamId}`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push(`/team/${teamId}`);
+      }
     } catch (error) {
       showErrorToast(error, toast);
       form.setError("root", {

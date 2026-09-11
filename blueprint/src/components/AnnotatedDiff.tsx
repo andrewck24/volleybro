@@ -6,17 +6,15 @@ import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 interface AnnotatedDiffProps {
   /**
    * Code using Shiki diff notation (`// [!code ++]` / `// [!code --]` on a line)
-   * plus ordinary language comments for any per-line notes. With `unified`, use
-   * a leading `+` / `-` / space column instead.
+   * plus ordinary language comments for any per-line notes.
    */
   code: string;
   /** Shiki language for `code` (default "tsx"). */
   lang?: string;
   /**
-   * Read `code` as a unified diff: a leading `+`, `-` or space column marks each
-   * line. Use this for JSX, where Shiki's notation cannot reach — `//` inside a
-   * tag or a child is text, not a comment, so the marker would render verbatim
-   * and the line would never be tinted.
+   * Read `code` as a unified diff (leading `+`/`-`/space column) instead of
+   * Shiki notation. Use for JSX, where `//` inside a tag or child is text, not
+   * a comment.
    */
   unified?: boolean;
 }
@@ -30,11 +28,10 @@ const MARKS = { "+": "add", "-": "remove" } as const;
  * already styles (full-width tint + gutter symbol). Line notes are written as
  * normal code comments, so there is no separate annotations layer to maintain.
  *
- * `unified` reaches the same classes from a leading marker column. The marker
- * is stripped before highlighting — so the body still highlights as its real
- * language rather than as the `diff` grammar, which only recolours text and
- * leaves the tint and gutter symbol behind — and fumadocs' `::before` puts the
- * `+` / `-` back in the gutter.
+ * `unified` marks lines by leading column instead, for JSX where Shiki's
+ * notation cannot reach. The marker is stripped before highlighting so the
+ * body still highlights in its own language, and fumadocs' `::before` restores
+ * the gutter symbol.
  */
 export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
   const marks = new Map<number, "add" | "remove">();

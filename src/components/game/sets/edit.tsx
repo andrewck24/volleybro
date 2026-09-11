@@ -30,7 +30,7 @@ export const SetEdit = ({
     >
       {mode === "general" ? (
         <>
-          <DialogHeader closeButton={mode === "general"}>
+          <DialogHeader>
             <DialogTitle>第 {setIndex + 1} 局逐球記錄</DialogTitle>
             <DialogDescription srOnly>逐球紀錄頁面</DialogDescription>
           </DialogHeader>

@@ -17,7 +17,10 @@ jest.mock("swr", () => ({
 
 const mockTeam = {
   name: "測試隊伍",
-  lineups: [{ starting: [], liberos: [], substitutes: [] }],
+  lineups: [
+    { starting: [], liberos: [], substitutes: [] },
+    { starting: [], liberos: [], substitutes: [] },
+  ],
 };
 
 jest.mock("@/hooks/use-data", () => ({
@@ -55,6 +58,9 @@ describe("ActionButton / NewGameForm creation failure", () => {
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("測試隊伍")).toBeInTheDocument();
 
+    await user.click(within(dialog).getByRole("button", { name: "2" }));
+    expect(within(dialog).getByText("陣容配置 2")).toBeInTheDocument();
+
     await user.click(
       within(dialog).getByRole("button", { name: /創建賽事紀錄/ }),
     );
@@ -63,7 +69,7 @@ describe("ActionButton / NewGameForm creation failure", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("dialog")).getByText("測試隊伍"),
+      within(screen.getByRole("dialog")).getByText("陣容配置 2"),
     ).toBeInTheDocument();
     expect(mockRouterPush).not.toHaveBeenCalled();
   });

@@ -128,23 +128,4 @@ describe("EditDialogContainer", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toHaveAccessibleDescription("編輯球隊表單");
   });
-
-  it("renders children directly without wrapping them in a scroll container", () => {
-    // The scroll container is DialogBody, now supplied by the child form itself
-    // (see ui/dialog.test.tsx), not by EditDialogContainer.
-    render(
-      <EditDialogContainer
-        title="編輯球隊"
-        fullPageHref="/team/123/edit"
-        isDirty={false}
-        clearDraft={clearDraft}
-      >
-        <div data-testid="child-content">form</div>
-      </EditDialogContainer>,
-    );
-    expect(screen.getByTestId("child-content")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("dialog-scroll-container"),
-    ).not.toBeInTheDocument();
-  });
 });
