@@ -1,5 +1,6 @@
 import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-scores.helper";
 import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.helper";
+import { getSetOptions } from "@/lib/features/game/helpers/queries/set-options.helper";
 import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.helper";
 
 import {
@@ -16,5 +17,6 @@ export {
   deriveEntryPhase,
   getPreviousScores,
   getSetLineup,
+  getSetOptions,
   getTeamsStats,
 };
