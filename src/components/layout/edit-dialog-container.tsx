@@ -65,7 +65,7 @@ export function EditDialogContainer({
             expandLabel="全頁模式"
             onExpand={() => {
               suppressLeaveWarning();
-              window.location.assign(fullPageHref);
+              window.location.replace(fullPageHref);
             }}
           >
             <DialogTitle>{title}</DialogTitle>
