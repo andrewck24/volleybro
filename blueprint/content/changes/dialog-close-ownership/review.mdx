@@ -87,7 +87,7 @@ import { TLDR } from "@/components/TLDR";
 
 ## 驗證
 
-- **`pnpm verify:all`**，最後一次在所有修正提交之後執行：144 個 suite、1058 個測試、blueprint 49 個測試、app build、`assert-sw`、blueprint build 與 workflow conformance 全數通過。app build 的 route 表把 `/team/[...catchAll]` 與各條具體的 `/team` route 並列，沒有衝突。
+- **`pnpm verify:all`**，最後一次在最後一個程式碼修正提交之後執行，其後的 commit 只改 changeset 文字、Review 頁與 commit message：144 個 suite、1058 個測試、blueprint 49 個測試、app build、`assert-sw`、blueprint build 與 workflow conformance 全數通過。app build 的 route 表把 `/team/[...catchAll]` 與各條具體的 `/team` route 並列，沒有衝突。
 - **整合測試沒有執行**，也不需要。diff 沒有碰到 API route、use case、repository、entity 或 validation schema；`src/app` 底下改的是頁面與 route 檔：新增的 catch-all、三個 `@modal` 頁（陣容、編輯球員、建立球隊）與一個 `(workspace)` 頁（編輯球員）。
 - **S02 的測試確實會在修復前失敗。** 用 `dev` 版本的 `game/new/index.tsx` 與 `action-button.tsx` 實測，失敗在找不到 `role="dialog"`。
 - **第一次驗收在測試部署上執行。** 建立賽事失敗、兩個自由球員替換入口、隊伍與球員表單的 dialog 與全頁都已由開發者確認；找到的三件事即 S07 與 header 對齊的來源。修正後的畫面還沒有人眼確認，見〈殘留風險與後續〉。
@@ -193,7 +193,7 @@ import { TLDR } from "@/components/TLDR";
       name: "Spec R4 · Standards R4：changeset 對全頁說過頭，且把行為改變放在 Fixed",
       severity: "info",
       mitigation:
-        "接受並已修。返回鍵的說法限定在 dialog；落點的改變移到 Changed，dialog 不關閉與返回鍵重新打開表單留在 Fixed。",
+        "接受並已修。落點的改變移到 Changed，dialog 不關閉與返回鍵重新打開表單留在 Fixed。返回鍵的說法當時先限定在 dialog；第五輪之後展開鍵改用 replace，全頁也成立，限定隨之拿掉。",
     },
     {
       name: "Spec R4 · Standards R4：Review 頁與 lifecycle 落後於分支",
