@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D3",
   "title": "不抽 AsyncDialogAction 共用元件",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["platform/design-system/overlays", "platform/forms"],
   "context": "原始提案建議抽一個 AsyncDialogAction helper 來吸收「等待 async handler 後才關閉」這個 pattern。它的自然實作是 await onClick() 之後 close()。",
   "decision": "不抽這個元件。以 D1 的 open state 歸屬與 D2 的 form 邊界處理，兩者都讓正確性來自結構而非包裝。",

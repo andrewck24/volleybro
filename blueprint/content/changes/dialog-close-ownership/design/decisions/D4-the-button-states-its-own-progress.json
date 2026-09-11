@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D4",
   "title": "Loading 沿用既有的 loadingText，不新增介面",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["platform/design-system/overlays", "platform/forms"],
   "context": "四個 async 送出鍵當中只有 set-options panel 接上了 loading；建立賽事、建立隊伍、新增球員、儲存變更都沒有進行中的表示，其中兩處改用「提交中...」「儲存中...」的文字切換，同一件事因此有兩種做法。而 Button 的 loading 在省略 loadingText 時會保留 children，所以一顆有圖示的按鈕會同時顯示 spinner 與原圖示。",
   "decision": "沿用既有的 loadingText，不新增任何 prop。它今天就已經是完整替換——loadingText ?? children，傳了它，children 連同圖示一起被換掉。真正的缺陷只發生在省略它的時候，所以修法是讓每一顆帶圖示的 loading 按鈕都傳 loadingText，而不是發明新介面。spinner 一律置前。",

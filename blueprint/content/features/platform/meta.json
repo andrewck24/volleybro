@@ -6,6 +6,8 @@
     "blueprint",
     "agent-orchestration",
     "clean-architecture",
+    "design-system",
+    "forms",
     "error-handling",
     "pwa"
   ]

@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D2",
   "title": "送出鍵位於 DialogFooter，且在它所提交的 form 邊界之內",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["platform/forms", "platform/design-system/overlays"],
   "context": "libero-replace.tsx 的 Form 只包住 DialogBody，footer 的送出鍵是 form 之外的 type=\"button\"，靠 onClick 呼叫 form.handleSubmit。結果有二：form 自己的 onSubmit 從未被觸發過，是一條死掉的路徑；而驗證只能在 onClick return 之後才完成，此時 DialogClose 已經關閉了 dialog。另一端，EditDialogContainer 完全沒有 DialogFooter——三個 team 表單把送出鍵放在自己的 Card 尾端，整個落在 DialogBody 裡。只有 set-options panel 的 ActionButton 兩件事都做對了。",
   "decision": "dialog 的送出鍵一律位於 DialogFooter，且 form 元素同時包住 DialogHeader、DialogBody、DialogFooter 三者，送出鍵為 type=\"submit\"，DialogClose 移除。三個 Dialog* 都只是帶樣式的 div、不消費 Radix context，因此 form 邊界可以自由畫在它們外面，而 EditDialogContainer 可以把 footer 的位置交給表單自己 render。配套規則：form 邊界內任何非送出用途的 Button 必須明確寫 type=\"button\"。",

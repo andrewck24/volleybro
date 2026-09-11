@@ -11,7 +11,7 @@ import { TLDR } from "@/components/TLDR";
   dialog 無論返回來源或前往結果頁都會關閉。七個切片全數交付，其中 S07
   來自第一次驗收：在測試部署上找到標題沒有對齊、移除成員後 dialog
   不關，並依開發者的要求讓球員表單落在球員頁。修正後再跑三輪兩軸
-  review。第一次驗收已確認的畫面不再列為風險，這次需要重測的項目列在〈殘留風險與後續〉。
+  review。修正後的畫面在第二次驗收時全數通過，本 Change 已由開發者驗收。
 </TLDR>
 
 ## 交付內容
@@ -90,7 +90,7 @@ import { TLDR } from "@/components/TLDR";
 - **`pnpm verify:all`**，最後一次在最後一個程式碼修正提交之後執行，其後的 commit 只改 changeset 文字、Review 頁與 commit message：144 個 suite、1058 個測試、blueprint 49 個測試、app build、`assert-sw`、blueprint build 與 workflow conformance 全數通過。app build 的 route 表把 `/team/[...catchAll]` 與各條具體的 `/team` route 並列，沒有衝突。
 - **整合測試沒有執行**，也不需要。diff 沒有碰到 API route、use case、repository、entity 或 validation schema；`src/app` 底下改的是頁面與 route 檔：新增的 catch-all、三個 `@modal` 頁（陣容、編輯球員、建立球隊）與一個 `(workspace)` 頁（編輯球員）。
 - **S02 的測試確實會在修復前失敗。** 用 `dev` 版本的 `game/new/index.tsx` 與 `action-button.tsx` 實測，失敗在找不到 `role="dialog"`。
-- **第一次驗收在測試部署上執行。** 建立賽事失敗、兩個自由球員替換入口、隊伍與球員表單的 dialog 與全頁都已由開發者確認；找到的三件事即 S07 與 header 對齊的來源。修正後的畫面還沒有人眼確認，見〈殘留風險與後續〉。
+- **第一次驗收在測試部署上執行。** 建立賽事失敗、兩個自由球員替換入口、隊伍與球員表單的 dialog 與全頁都已由開發者確認；找到的三件事即 S07 與 header 對齊的來源。修正後的第二次驗收同樣在測試部署上執行，header 對齊、移除成員、新增與編輯球員、建立球隊、每個展開流程的返回，以及既有 dialog 的開啟，全數由開發者確認通過。
 
 ## Review findings
 
@@ -323,18 +323,13 @@ Spec 第一輪抓到的 `router.push` 是我自己放進去的。S05 執行時�
 - **第一次驗收之後經過第二次 Ingest，加入 S07。** D1 補上「往前離開 route」的方向，Design、Overview 與 Implementation 隨之更新；S05 保持原樣，它的「不把使用者帶去新的地方」由 S07 取代。header 對齊則是 S06 的實作缺陷，直接修正。
 - **為了讓已核准的文字成立，另改了兩處。** 展開鍵改用 `window.location.replace`，是 S07「返回箭頭到球員頁」得以成立的前提，歸在 S07，並順帶修好其他展開流程；建立與編輯球隊改用 `replace`，是 D1「往前導頁一律 replace」的要求，不屬於任何切片。
 - **Blueprint 的呈現基礎設施不屬於任何切片。** `AnnotatedDiff` 新增的 `unified` 模式，以及 `.prose figure + figure` 的間距規則，都是為了讓 Design 頁能以正確的縮排與底色呈現 JSX diff。
+- **D1–D5 在計畫核准後沒有改成 `accepted`。** 它們從 Propose 起一直是 `candidate`，直到 Archive 才直接改為 `implemented`；升級到 Features 的副本編為 D36–D40。
 - **提交紀律出了兩次錯，都在 pre-PR 修正。** 一次 `git add -A` 帶進了生成檔；commit body 全部寫成 zh-tw。分支沒有推送，兩者都以改寫歷史修正。
 
 ## 殘留風險與後續
 
 <RiskTable
   risks={[
-    {
-      name: "第一次驗收之後的修正還沒有人眼確認",
-      severity: "warning",
-      mitigation:
-        "要在測試部署上重測：header 標題與控制鍵對齊；移除成員後 dialog 關閉並回到球隊頁；新增球員後停在新球員頁、按返回回到球隊頁；編輯球員存檔後回到球員頁；從 dialog 建立球隊後 dialog 關閉；每個展開後的全頁表單，返回箭頭與瀏覽器返回鍵都回到開啟 dialog 的那一頁；既有的 dialog（建立與編輯球隊、陣容、新增與編輯球員）仍以 dialog 開啟。",
-    },
     {
       name: "/team 之下不存在的網址不再回應 404",
       severity: "info",
@@ -355,9 +350,15 @@ Spec 第一輪抓到的 `router.push` 是我自己放進去的。S05 執行時�
     },
     {
       name: "驗收時發現的既有缺陷：單局設定的發球權在存檔後跳回推算值",
-      severity: "warning",
+      severity: "info",
       mitigation:
-        "set-options panel 的 defaultValues 依上一局推算發球權，沒有讀這一局已存的值；存檔後 mutate 觸發 form.reset，畫面跳回推算值。伺服器存下的是正確的值，但使用者若再存一次，推算值與當下時間會被寫回。dev 上既有，與本 Change 無關，待開發者決定是否另立追蹤。",
+        "set-options panel 的 defaultValues 依上一局推算發球權，沒有讀這一局已存的值；存檔後 mutate 觸發 form.reset，畫面跳回推算值。伺服器存下的是正確的值，但使用者若再存一次，推算值與當下時間會被寫回。dev 上既有，與本 Change 無關，已另以獨立的修正處理：編輯既有的局改讀它已存的設定。",
+    },
+    {
+      name: "展開到全頁後，球員編輯頁的成員區塊晚一兩秒才出現",
+      severity: "info",
+      mitigation:
+        "是否顯示要等目前使用者與球隊成員名單載入後才能決定。在 app 內導頁時兩者已在快取裡，展開是 hard navigation，要重新抓取，區塊因此延遲出現並推動版面。這是既有行為，併入成員資格移出球員編輯頁的後續工作，改以 skeleton 佔位。",
     },
     {
       name: "移除成員後按返回會落到被移除球員的資訊頁",
@@ -369,7 +370,7 @@ Spec 第一輪抓到的 `router.push` 是我自己放進去的。S05 執行時�
       name: "球員編輯頁是 D2 的唯一例外",
       severity: "info",
       mitigation:
-        "成員資格區塊的邀請流程自帶一個 form，基本資訊的 form 邊界若包住 footer 就會巢狀，所以「儲存變更」暫時留在區段內。退場條件是把成員資格移到獨立的 dialog，已另立追蹤。",
+        "成員資格區塊的邀請流程自帶一個 form，基本資訊的 form 邊界若包住 footer 就會巢狀，所以「儲存變更」暫時留在區段內。退場條件是把成員資格移到獨立的 dialog，已另立追蹤；驗收時方向調整為在球員資訊頁新增會籍區塊，由它開啟獨立的 dialog。",
     },
     {
       name: "min-h-0 flex-1 分散在四個表單",

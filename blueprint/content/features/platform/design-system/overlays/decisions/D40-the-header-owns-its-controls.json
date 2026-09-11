@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D40",
+  "title": "DialogHeader owns its controls, in normal flow",
+  "status": "implemented",
+  "targets": ["platform/design-system/overlays"],
+  "context": "DialogContent rendered the expand and close buttons as a sibling of its children, inside an absolute top-3 right-3 container. The buttons belonged to no section; DialogHeader carried pr-20, a 5rem right padding that existed only to make room for them; and they came after the children, so close was the dialog's last tabbable element, after every field and the submit button. Once a form boundary wrapped the header, they would also fall outside the form that D37 draws.",
+  "decision": "The expand and close buttons move into DialogHeader, in normal flow to the right of the title, and pr-20 goes. closeButton, onExpand and expandLabel move from DialogContent to DialogHeader, where they render. Both buttons declare type=\"button\", so D37's paired rule holds inside the shared component once.",
+  "alternatives": [
+    {
+      "option": "Keep the absolute positioning and draw the form boundary without the header",
+      "reason": "The header would sit on a different level from body and footer, and pr-20 and the tab order would stay as they were. The absolute positioning is what needed fixing."
+    },
+    {
+      "option": "Keep the props on DialogContent and pass them to DialogHeader through context",
+      "reason": "Callers would not change, but a prop declared on a component that does not render it is hidden coupling. Only five callers passed these props; moving them explicitly is cheaper."
+    },
+    {
+      "option": "Keep DialogHeader as a column and put the controls above the title with self-end",
+      "reason": "The controls would take a whole row above the title and make the header taller. Beside the title, on the same row, is where they belong."
+    }
+  ],
+  "consequences": [
+    "DialogHeader is one row with two cells, content and controls. The title has real width and no longer avoids something invisible.",
+    "Close and expand are in the natural tab order, inside the header, before the body's fields.",
+    "The control group is vertically centered on the title's first line with -my-1.5, since the 32px buttons are taller than the 20px title line.",
+    "unconfirmed-set-dialog, the one dialog without a DialogHeader, no longer needs closeButton={false}.",
+    "game/options/edit's flex-row items-center override on DialogHeader stopped applying; its back button moved into DialogTitle, as in game/new."
+  ],
+  "revisitTriggers": [
+    "A dialog needs controls but has no DialogHeader.",
+    "An overlay style needs its controls somewhere other than the header."
+  ],
+  "originChange": "dialog-close-ownership",
+  "originDecision": "D5"
+}
