@@ -12,11 +12,11 @@
 
 - Close the edit-player dialog after a successful save. It used to stay open, which read as if the save had not happened
 - Close the edit-player dialog after removing a member, and return to the team page. The dialog used to stay open over the team page, still showing the removed player
-- In a dialog, the browser's back button no longer reopens the add-player or edit-player form after it has been saved
+- The browser's back button no longer reopens the add-player or edit-player form after it has been saved
 
 #### UI
 
-- On a full-page form opened with a dialog's expand button, the back arrow now leaves the form instead of reloading it
+- On a full-page form opened with a dialog's expand button, the back arrow and the browser's back button now return to where the dialog was opened, instead of reloading the form
 
 ### Changed
 
