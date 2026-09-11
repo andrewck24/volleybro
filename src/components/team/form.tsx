@@ -161,7 +161,7 @@ export function EditTeamWorkspace({ teamId }: { teamId: string }) {
       body: JSON.stringify(formData),
     });
     mutate({ ...team, ...teamData }, { revalidate: true });
-    router.push(`/team/${teamId}?tab=about`);
+    router.replace(`/team/${teamId}?tab=about`);
   };
 
   if (isLoading) return <EditTeamWorkspaceSkeleton />;
@@ -218,7 +218,7 @@ export function NewTeamWorkspace() {
       body: JSON.stringify(formData),
     });
     mutate(`/api/teams/${team.id}`, team, false);
-    router.push(`/team/${team.id}?tab=about`);
+    router.replace(`/team/${team.id}?tab=about`);
   };
 
   return (
