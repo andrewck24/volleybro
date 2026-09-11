@@ -28,10 +28,9 @@ const MARKS = { "+": "add", "-": "remove" } as const;
  * already styles (full-width tint + gutter symbol). Line notes are written as
  * normal code comments, so there is no separate annotations layer to maintain.
  *
- * `unified` marks lines by leading column instead, for JSX where Shiki's
- * notation cannot reach. The marker is stripped before highlighting so the
- * body still highlights in its own language, and fumadocs' `::before` restores
- * the gutter symbol.
+ * `unified` marks lines by a leading column instead. The marker is stripped
+ * before highlighting so the body keeps its own language, and fumadocs'
+ * `::before` restores the gutter symbol.
  */
 export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
   const marks = new Map<number, "add" | "remove">();

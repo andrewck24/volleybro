@@ -10,7 +10,7 @@
 
 #### Team
 
-- After saving, the add-player and edit-player forms now return to where they were opened from, and the browser's back button no longer reopens a form that was just saved. The edit-player form used to stay open after a successful save, which read as if the save had not happened
+- When the add-player and edit-player forms are opened as a dialog, saving now returns to where they were opened from, and the browser's back button no longer reopens a form that was just saved. The edit-player form used to stay open after a successful save, which read as if the save had not happened
 
 ### Changed
 

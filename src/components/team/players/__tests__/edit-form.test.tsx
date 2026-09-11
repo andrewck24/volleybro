@@ -9,15 +9,8 @@ const mockApiClient = jest.fn();
 const mockPlayerMutate = jest.fn();
 
 jest.mock("@/lib/api/api-client", () => ({
+  ...jest.requireActual("@/lib/api/api-client"),
   apiClient: (...args: unknown[]) => mockApiClient(...args),
-  ApiClientError: class ApiClientError extends Error {
-    info: unknown;
-    constructor(message: string, info: unknown) {
-      super(message);
-      this.name = "ApiClientError";
-      this.info = info;
-    }
-  },
 }));
 
 jest.mock("next/navigation", () => ({
