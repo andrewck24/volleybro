@@ -2,13 +2,14 @@
 title: Implementation
 ---
 
-五個切片。S01 與 S02 是兩塊地基，彼此獨立；三個端點各自是一個切片，從地基分出去。
+六個切片。S01 與 S02 是兩塊地基，彼此獨立；三個端點各自是一個切片，從地基分出去；S06 收拾讀取收緊後前端的後果。S01 有一個資料前置條件，見 Overview。
 
 - **S01** 定義成員。它單獨就修掉最嚴重的一項：受邀者不再通過任何成員或管理員檢查，包含寫入路徑。
 - **S02** 讓受邀者從自己的球員清單看到隊名。它本身不收緊任何東西，存在的理由是讓 S03 收緊時邀請頁不壞。
-- **S05**（依賴 S01）名單只給成員。
+- **S05**（依賴 S01、S02）名單只給成員。
 - **S04**（依賴 S01）單一球員只給同隊成員，並讓接受邀請不經過它。
 - **S03**（依賴 S01、S02）隊伍資訊只給成員。
+- **S06**（依賴 S03、S05）非成員開啟隊伍頁面時看到錯誤狀態，被移除的成員不再指向原隊伍。
 
 ## 為什麼 S01 必須最先
 
@@ -17,6 +18,8 @@ title: Implementation
 ## 為什麼 S02 必須早於 S03
 
 邀請頁今天用 `useTeam` 讀 `GET /api/teams/{teamId}` 顯示隊名。S03 收緊之後，受邀者讀這個端點會得到 403，邀請項目的標題會變成空白。反過來先做 S02，S03 落地的那一刻邀請頁已經不再讀它。
+
+S05 也依賴 S02：邀請項目目前連到隊伍頁，受邀者點進去時名單回 403，`team/info` 的 `players!.length` 會拋錯。先移除那個連結，名單收緊的那一刻受邀者就不會走到那裡。
 
 S04 沒有這個前置，因為它自己的切片裡就包含了讓接受邀請離開 `GetPlayerUseCase` 的改動——那兩件事拆開，中間的 commit 上受邀者會被自己的邀請擋下。
 
@@ -28,8 +31,16 @@ S05 的實作在本 Change 提案前就已完成並通過 `pnpm verify` 與 `pnp
 
 **拒絕時斷言 repository 沒有被讀取，而不只是斷言丟出錯誤。** 先讀資料再檢查、檢查失敗才丟錯的實作，同樣會讓「丟出錯誤」的測試通過，但資料已經在記憶體裡、離洩漏只差一個 log 或一次錯誤處理。S03 與 S05 的測試都包含這個斷言。S04 例外：球員必須先讀出來才知道隊伍，所以它斷言的是回傳值。
 
+## 為什麼 S06 在這張 Change 裡
+
+S03 與 S05 之前，任何登入者都讀得到隊伍與名單，所以隊伍頁面從來不需要處理「讀不到」。收緊之後，被移除的成員若 `activeTeamId` 仍指向原隊伍，打開 app 就會落在一個以 `team!` 假設資料存在的頁面上而崩潰。這是本 Change 直接造成的後果，所以它的修復也在這裡，而不是交給使用者自己換隊伍。
+
 ## 不在本 Change 內，但已標記
 
 - `verifyPlayerRole` 與 `getPlayerRole` 在 production 程式碼中沒有呼叫者。刪除需要另外確認。
 - `GET /api/users?email=` 讓任何登入者以 email 反查使用者，歸在隱私設定主題。
 - `test/integration/support/auth.ts` 的 authorization double 一律放行，整合層無法證明任何拒絕路徑。
+- ADMIN 可以降級或移除 OWNER：`update-role` 與 `remove-player` 只檢查呼叫者是管理員，沒有檢查目標是不是隊長。
+- 邀請一位已經註冊的使用者，他永遠看不到也接受不了這個邀請：`create-invitation` 只寫入 email，綁定 userId 只在註冊時發生。
+- `find-game`、`create-invitation`、`cancel-invitation`、`update-role`、`remove-player`、`update-player-info` 先讀取再授權，已登入者可以用 404 與 403 的差別判斷資源是否存在。
+- `verifyIsTeamOwner` 與 `verifyPlayerRole`、`getPlayerRole` 一樣沒有 production 呼叫者。

@@ -14,7 +14,7 @@
     },
     {
       "option": "授權放在 route，use case 保持不檢查",
-      "reason": "既有模式是在 use case 內授權；放在 route 會讓任何繞過該 route 的呼叫者（controller 間互相呼叫）不受保護。"
+      "reason": "route 層授權讓繞過該 route 的呼叫者（controller 間互相呼叫）不受保護。repo 內仍有兩個在 route 授權的例外（PATCH /api/teams/{teamId} 與 PATCH /api/teams/{teamId}/lineups），它們不在本 Change 內，但新的讀取授權不再增加例外。"
     },
     {
       "option": "GetPlayerUseCase 的 userId 設為選填，未提供就不檢查",
@@ -24,7 +24,8 @@
   "consequences": [
     "非成員（含未登入）讀不到隊伍資訊、名單與單一球員資料。",
     "受邀者的邀請頁不再依賴任何成員限定的端點。",
-    "GET /api/users/{userId}/players 的回應多一個欄位，team-switcher 等既有使用者不受影響。"
+    "GET /api/users/{userId}/players 的回應多一個欄位，team-switcher 等既有使用者不受影響。",
+    "非成員進入隊伍頁面時看到明確的錯誤狀態，而不是因假設資料存在而崩潰；被移除的成員不再保留指向原隊伍的 activeTeamId。"
   ],
   "revisitTriggers": [
     "隱私設定上線，隊伍管理者可以把隊伍資訊或名單開放給非成員。",

@@ -35,7 +35,7 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
     <text x="860" y="62" textAnchor="end" fontSize="20" fill="var(--muted-foreground)">Application</text>
     <text x="48" y="104" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamUseCase · GetPlayerUseCase</text>
     <text x="48" y="136" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamPlayersUseCase</text>
-    <text x="48" y="166" fontSize="20" fill="var(--muted-foreground)">＋ 既有 16 個呼叫點，程式碼不變</text>
+    <text x="48" y="166" fontSize="20" fill="var(--muted-foreground)">＋ 既有 15 個呼叫點，程式碼不變</text>
 
     <line x1="450" y1="180" x2="450" y2="226" stroke="var(--muted-foreground)" strokeWidth="2" markerEnd="url(#tma-arrow)" />
     <text x="470" y="210" fontSize="20" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">verifyTeamRole(teamId, userId, role)</text>
@@ -75,7 +75,8 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
 | 未登入                        | 401               | 401                 | 不可讀                   | —                |
 
 - 受邀者接受邀請：`AcceptInvitationUseCase` 自己驗證受邀者身分，不經過成員檢查；接受後 `status` 變為 `JOINED`，立即成為成員。
-- 移轉隊長：目標必須是成員；受邀者得到 `TARGET_NOT_MEMBER`。
+- 移轉隊長：現任隊長必須是具 `OWNER` 角色的成員，目標必須是成員；受邀者作為目標得到 `TARGET_NOT_MEMBER`。
+- 被移除的成員：`activeTeamId` 若指向該隊即清除；非成員直接開啟隊伍頁面時看到錯誤狀態，而不是崩潰。
 - 不存在的隊伍或球員：先授權再讀取的端點回傳 `NOT_TEAM_MEMBER`，不透露資源是否存在；`GetPlayerUseCase` 必須先讀出球員才知道隊伍，它回傳 404 的行為維持不變。
 
 ## Failure modes
@@ -83,6 +84,8 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
 - **邀請頁在 S03 之後失去隊名**：若隊伍端點先收緊、受邀者清單還沒帶 `teamName`，邀請項目會顯示空白標題。以切片順序保證：S02 必須先於 S03。
 - **接受邀請在 S04 之後失敗**：`acceptInvitation` 的 controller 若仍經過 `GetPlayerUseCase`，受邀者會被自己的邀請擋下。S04 在同一個切片內改掉這條路徑。
 - **既有測試以受邀者身分通過檢查**：mock 的 `AuthorizationService` 不受影響；但以 fixture 建立 `INVITED` 球員並期待通過的 use case 測試會轉紅。它們代表的正是被修掉的行為，應改寫而不是放寬判斷。
+- **舊資料沒有 `status`**：unify-player 遷移曾對所有 player `$unset` status，schema 預設為 `NONE`。若 production 仍有這種文件，S01 會讓它們的隊長與成員被判定為非成員。S01 開工前以 Overview 的查詢確認；不為 0 就先回填。
+- **非成員開啟隊伍頁面時崩潰**：`team/info/index.tsx` 以 `team!.nickname`、`players!.length` 假設資料存在；S03、S05 之後讀取失敗會拋 TypeError。觸發路徑包括被移除成員殘留的 `activeTeamId`。S06 處理。
 - **整合測試看不到授權**：`test/integration/support/auth.ts` 的 double 一律放行，整合層無法證明拒絕路徑。拒絕的證據來自 entity 與 use case 的單元測試。
 
 <RiskTable
@@ -104,6 +107,18 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
       severity: "warning",
       mitigation:
         "S04 同時讓 AcceptInvitationUseCase 回傳 Player、controller 不再呼叫 GetPlayerUseCase，並以測試釘住受邀者可以接受邀請。",
+    },
+    {
+      name: "舊資料缺少 status，S01 把既有成員鎖在外面",
+      severity: "critical",
+      mitigation:
+        "S01 開工前在 production 執行 Overview 的查詢。結果不為 0 時，於 S01 之前新增回填切片並經開發者核准。",
+    },
+    {
+      name: "讀取收緊後非成員開啟隊伍頁面崩潰",
+      severity: "warning",
+      mitigation:
+        "S06：隊伍頁面處理讀取失敗，remove-player 清除被移除者的 activeTeamId。",
     },
     {
       name: "GET /api/users/{userId}/players 為了隊名逐筆查詢隊伍",
