@@ -1,0 +1,144 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+import aMemberHasJoined from "./design/decisions/D1-a-member-has-joined.json";
+import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-members-only.json";
+
+<TLDR>
+  判斷與查詢分開。「誰是成員、角色夠不夠」是沒有 I/O 的業務規則，放在
+  entity；「這個使用者在這隊是哪一筆球員」要查資料庫，留在
+  infrastructure；「查、判斷、不通過就丟錯」的編排，由 use case 呼叫 service
+  完成。
+</TLDR>
+
+## Adopted shape：一次判斷，三層分工
+
+<svg
+  viewBox="0 0 1160 330"
+  role="img"
+  aria-label="授權的三層分工。左邊是 use case，呼叫 AuthorizationService 的 verifyTeamRole，傳入 teamId、userId 與所需角色。中間是 AuthorizationService，以 findByTeamIdAndUserId 查出球員，交給右邊 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED 且 role 存在，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色。不是成員時丟出 NOT_TEAM_MEMBER，角色不足時丟出 INSUFFICIENT_ROLE。下方標示 entity 層沒有 I/O，可以不經 mock 測試。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 330", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker id="tma-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="36" fontSize="17" fill="var(--muted-foreground)">Application</text>
+    <rect x="40" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--border)" />
+    <text x="62" y="88" fontSize="18" fill="var(--foreground)">Use case</text>
+    <text x="62" y="124" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamUseCase</text>
+    <text x="62" y="150" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetPlayerUseCase</text>
+    <text x="62" y="176" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamPlayersUseCase</text>
+    <text x="62" y="214" fontSize="16" fill="var(--muted-foreground)">＋ 既有 16 個呼叫點不變</text>
+
+    <line x1="340" y1="150" x2="426" y2="150" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#tma-arrow)" />
+    <text x="383" y="138" textAnchor="middle" fontSize="15" fill="var(--muted-foreground)">verify</text>
+
+    <text x="430" y="36" fontSize="17" fill="var(--muted-foreground)">Infrastructure</text>
+    <rect x="430" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--border)" />
+    <text x="452" y="88" fontSize="18" fill="var(--foreground)">AuthorizationService</text>
+    <text x="452" y="124" fontSize="16" fill="var(--muted-foreground)">1. 查出球員</text>
+    <text x="452" y="150" fontSize="16" fill="var(--muted-foreground)">2. 交給 entity 判斷</text>
+    <text x="452" y="176" fontSize="16" fill="var(--muted-foreground)">3. 不通過就丟錯</text>
+    <text x="452" y="214" fontSize="15" fontFamily="ui-monospace, monospace" fill="var(--destructive)">NOT_TEAM_MEMBER</text>
+    <text x="452" y="236" fontSize="15" fontFamily="ui-monospace, monospace" fill="var(--destructive)">INSUFFICIENT_ROLE</text>
+
+    <line x1="730" y1="150" x2="816" y2="150" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#tma-arrow)" />
+    <text x="773" y="138" textAnchor="middle" fontSize="15" fill="var(--muted-foreground)">Player</text>
+
+    <text x="820" y="36" fontSize="17" fill="var(--primary)">Entity</text>
+    <rect x="820" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="842" y="92" fontSize="17" fontFamily="ui-monospace, monospace" fill="var(--foreground)">isTeamMember</text>
+    <text x="842" y="118" fontSize="15" fill="var(--muted-foreground)">JOINED 且 role 存在</text>
+    <text x="842" y="164" fontSize="17" fontFamily="ui-monospace, monospace" fill="var(--foreground)">hasTeamRole</text>
+    <text x="842" y="190" fontSize="15" fill="var(--muted-foreground)">OWNER ⊇ ADMIN ⊇ MEMBER</text>
+
+    <text x="820" y="300" fontSize="16" fill="var(--primary)">沒有 I/O，不經 mock 就能測試</text>
+    <text x="40" y="300" fontSize="16" fill="var(--muted-foreground)">隱私設定的 relation 推導，之後建立在同一組函式上</text>
+
+  </g>
+</svg>
+
+`isTeamMember` 是 type guard：通過之後 `role` 的型別就不再是可選，`hasTeamRole` 不需要 `player.role!` 或額外的防禦檢查。
+
+## Behavior contract
+
+| 呼叫者與該隊的關係            | 成員檢查          | 管理員檢查          | 隊伍資訊、名單、單一球員 | 邀請清單中的隊名 |
+| ----------------------------- | ----------------- | ------------------- | ------------------------ | ---------------- |
+| 隊長（`JOINED`，`OWNER`）     | 通過              | 通過                | 可讀                     | —                |
+| 管理員（`JOINED`，`ADMIN`）   | 通過              | 通過                | 可讀                     | —                |
+| 成員（`JOINED`，`MEMBER`）    | 通過              | `INSUFFICIENT_ROLE` | 可讀                     | —                |
+| 受邀者（`INVITED`，任何角色） | `NOT_TEAM_MEMBER` | `NOT_TEAM_MEMBER`   | 不可讀                   | 可讀             |
+| 登入但與該隊無關              | `NOT_TEAM_MEMBER` | `NOT_TEAM_MEMBER`   | 不可讀                   | —                |
+| 未登入                        | 401               | 401                 | 不可讀                   | —                |
+
+- 受邀者接受邀請：`AcceptInvitationUseCase` 自己驗證受邀者身分，不經過成員檢查；接受後 `status` 變為 `JOINED`，立即成為成員。
+- 移轉隊長：目標必須是成員；受邀者得到 `TARGET_NOT_MEMBER`。
+- 不存在的隊伍或球員：先授權再讀取的端點回傳 `NOT_TEAM_MEMBER`，不透露資源是否存在；`GetPlayerUseCase` 必須先讀出球員才知道隊伍，它回傳 404 的行為維持不變。
+
+## Failure modes
+
+- **邀請頁在 S03 之後失去隊名**：若隊伍端點先收緊、受邀者清單還沒帶 `teamName`，邀請項目會顯示空白標題。以切片順序保證：S02 必須先於 S03。
+- **接受邀請在 S04 之後失敗**：`acceptInvitation` 的 controller 若仍經過 `GetPlayerUseCase`，受邀者會被自己的邀請擋下。S04 在同一個切片內改掉這條路徑。
+- **既有測試以受邀者身分通過檢查**：mock 的 `AuthorizationService` 不受影響；但以 fixture 建立 `INVITED` 球員並期待通過的 use case 測試會轉紅。它們代表的正是被修掉的行為，應改寫而不是放寬判斷。
+- **整合測試看不到授權**：`test/integration/support/auth.ts` 的 double 一律放行，整合層無法證明拒絕路徑。拒絕的證據來自 entity 與 use case 的單元測試。
+
+<RiskTable
+  risks={[
+    {
+      name: "受邀者失去原本（錯誤地）擁有的寫入權限",
+      severity: "warning",
+      mitigation:
+        "這是本 Change 的目的。受影響的只有尚未接受邀請的使用者；接受後權限立即恢復。Changeset 以 Security 標示。",
+    },
+    {
+      name: "隊伍端點收緊後邀請頁壞掉",
+      severity: "warning",
+      mitigation:
+        "S02 先讓受邀者清單帶上 teamName 並移除接受前的隊伍連結，S03 才收緊端點。",
+    },
+    {
+      name: "接受邀請被新的成員檢查擋下",
+      severity: "warning",
+      mitigation:
+        "S04 同時讓 AcceptInvitationUseCase 回傳 Player、controller 不再呼叫 GetPlayerUseCase，並以測試釘住受邀者可以接受邀請。",
+    },
+    {
+      name: "GET /api/users/{userId}/players 為了隊名逐筆查詢隊伍",
+      severity: "info",
+      mitigation:
+        "查詢數等於該使用者的隊伍與邀請數，量級很小。隊伍數成長到有感時再加批次查詢。",
+    },
+    {
+      name: "整合測試的 auth double 無法證明拒絕",
+      severity: "info",
+      mitigation:
+        "拒絕路徑由 entity 純函式與 use case 單元測試證明；整合測試只證明接線未壞。",
+    },
+  ]}
+/>
+
+## Testing strategy
+
+- **Entity**：`isTeamMember` 與 `hasTeamRole` 以狀態與角色的完整組合測試，不需要 mock。這是受邀者規則唯一的權威。
+- **Use case**：三個讀取 use case 各一組測試，`AuthorizationService` 以 mock 注入，斷言以正確參數呼叫檢查，且拒絕時不讀取 repository。`transfer-ownership` 以受邀者為目標斷言 `TARGET_NOT_MEMBER`。`AcceptInvitationUseCase` 斷言回傳 Player。
+- **Infrastructure**：`AuthorizationService` 以 mock repository 回傳受邀者、各角色成員，斷言對應的錯誤原因。
+- **Component**：邀請清單以 `teamName` 顯示隊名，且不呼叫 `useTeam`。
+- **Integration**：`pnpm test:integration` 作為接線未壞的證據。
+
+## Decisions
+
+<DecisionTimeline decisions={[aMemberHasJoined, teamReadsAreMembersOnly]} />
+
+## Revisit triggers
+
+- 隱私設定上線，隊伍管理者可以把隊伍資訊或名單開放給非成員；屆時 D2 的端點授權改由可見性判斷決定。
+- 會籍區塊要求 email 只給隊長與管理員；屆時名單與單一球員的回應依角色裁切欄位。
+- 出現第四種球員狀態，或角色不再是線性階層。

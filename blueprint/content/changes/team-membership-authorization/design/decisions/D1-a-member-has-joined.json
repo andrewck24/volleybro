@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "成員是已接受邀請的球員，判斷住在 entity",
+  "status": "candidate",
+  "targets": ["team-management/membership", "team-management/roles"],
+  "context": "Player 同時表達三種人：純球員（NONE）、受邀者（INVITED）、成員（JOINED）。邀請建立時就寫入 role，註冊使用者被邀請時就綁上 userId。AuthorizationService 的 verifyTeamRole 與 verifyIsTeamAdmin 只看 role 是否存在與階層，repository 的 findByTeamIdAndUserId 也不過濾 status，所以已註冊的受邀者通過全部成員檢查，被邀請為 ADMIN 者在接受前就通過管理員檢查。transfer-ownership 以「有 userId」代表「已加入」，同樣接受受邀者。角色階層的比較在 service 的四個方法中各寫一次。",
+  "decision": "成員的定義是 status 為 JOINED 且 role 存在。以 entity 層的純函式表達：isTeamMember 是 type guard，縮窄出 role 必定存在的 TeamMember；hasTeamRole 以角色階層比較 TeamMember 與所需角色。AuthorizationService 只負責查詢球員、呼叫這兩個函式、在不通過時丟出 AuthorizationError；verifyIsTeamAdmin 委派給 verifyTeamRole。transfer-ownership 的目標檢查改用 isTeamMember。",
+  "alternatives": [
+    {
+      "option": "在 repository 查詢加上 status: JOINED 過濾",
+      "reason": "規則會藏在查詢條件裡，transfer-ownership 這類拿到 Player 後自行判斷的地方仍會各寫一次；也無法在不碰資料庫的情況下測試。"
+    },
+    {
+      "option": "受邀者視為成員，只限制部分資源",
+      "reason": "等於提前設計隱私設定的關係模型，而那是隱私設定主題的範圍。開發者決定受邀者先不是成員，之後需要再調整。"
+    },
+    {
+      "option": "改用 better-auth organization plugin 的 member 與 access control",
+      "reason": "它的 member 必須綁 user，無法表達沒有帳號的純球員，也沒有對非成員的資源可見性；遷移成本遠大於本 Change 要解決的問題。"
+    }
+  ],
+  "consequences": [
+    "受邀者在接受邀請前通不過任何成員或管理員檢查，包含寫入路徑。",
+    "16 個 verify 呼叫點的程式碼不變，行為隨定義一起修正。",
+    "成員判斷可以不經 mock 直接測試，隱私設定的 relation 推導會建立在同一組函式上。",
+    "既有資料不需要 migration，規則只讀 status 與 role。"
+  ],
+  "revisitTriggers": [
+    "隱私設定需要為受邀者開放部分資源。",
+    "出現第四種球員狀態，或角色不再是線性階層。"
+  ]
+}

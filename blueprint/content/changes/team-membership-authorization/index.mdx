@@ -1,0 +1,111 @@
+---
+title: Overview
+---
+
+import { FileTour } from "@/components/FileTour";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  程式裡的「成員」包含了還沒接受邀請的人，而且有三個讀取端點根本不問呼叫者是誰。本
+  Change
+  把成員定義為已接受邀請（`JOINED`）且有角色的球員，並讓隊伍資訊、隊伍名單與單一球員資料在隱私設定上線前只給成員讀取。
+</TLDR>
+
+## Context
+
+規則是：在隱私設定上線前，隊伍資訊、隊伍名單與成員資訊只給隊伍成員查看，受邀者不是成員。目前的程式碼在四個地方不符合：
+
+| #   | 位置                                                         | 誰讀得到                                                                            | 讀到什麼                                   |
+| --- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1   | `GET /api/teams/{teamId}`                                    | 任何人，不需登入：route 沒有 `withAuth`，`GetTeamUseCase` 沒有授權                  | 隊名、`lineups`（含 player id）、stats     |
+| 2   | `GET /api/players/{playerId}`                                | 任何登入者：route 忽略 `userId`，`GetPlayerUseCase` 沒有授權                        | 單一球員的完整資料，含 `email`             |
+| 3   | `GET /api/teams/{teamId}/players`                            | 任何登入者：route 忽略 `userId`，`GetTeamPlayersUseCase` 沒有授權                   | 整隊名單，每筆含 `email`、`userId`、`role` |
+| 4   | `AuthorizationService.verifyTeamRole` 與 `verifyIsTeamAdmin` | 已註冊的受邀者：只看 `role`、不看 `status`，`findByTeamIdAndUserId` 也不過濾 status | 通過全部成員與管理員檢查，包含寫入路徑     |
+
+第 4 項最嚴重，因為它是「成員」這個詞本身的定義。邀請建立時就寫入 `role`，註冊使用者被邀請時就綁上 `userId`，所以一個 `INVITED` 的球員在 service 眼中和 `JOINED` 沒有差別：他可以開賽、記錄 rally、改 lineup；若被邀請為 ADMIN，接受邀請之前就能新增或移除球員、發出邀請。`transfer-ownership` 以「有 `userId`」代表「已加入」，隊長因此可以移轉給尚未接受的人。
+
+`GET /api/games` 與 `GET /api/games/{gameId}` 的 route 同樣沒有 `withAuth`，但它們的 use case 內有 `verifySession` 與 `verifyTeamRole`，只受第 4 項影響。
+
+## Goals
+
+- 「成員」在整個 repo 只有一個定義，且可以不經 mock 直接測試。
+- 受邀者在接受邀請前通不過任何成員或管理員檢查。
+- 非成員（含未登入）讀不到上表任何端點的資料。
+- 受邀者在邀請頁仍看得到隊名，可以接受或拒絕邀請。
+
+## Non-goals
+
+- 不改變回應欄位的可見範圍。「email 只回傳給隊長與管理員」屬於球員資訊頁會籍區塊的工作，建立在本 Change 的成員定義之上。
+- 不實作隱私設定。隊伍與使用者的隱私設定是另一個主題；本 Change 是它上線前的預設規則。
+- 不採用 better-auth organization plugin。理由在 Design 的 D1。
+- 不刪除 `verifyPlayerRole` 與 `getPlayerRole`。兩者在 production 程式碼中沒有呼叫者，但刪除屬於需要另外確認的判斷。
+
+## Change boundaries
+
+- **在內**：entity 層的成員判斷、`AuthorizationService` 改為委派、`transfer-ownership` 的目標檢查。
+- **在內**：三個讀取端點的 use case 授權，以及它們的 route 傳入 `userId`。
+- **在內**：受邀者球員清單帶上 `teamName`、邀請項目在接受前不連到隊伍頁、`AcceptInvitationUseCase` 回傳 Player 讓 controller 不再經過 `GetPlayerUseCase`。這三件事是讓第 1、2 項收緊時邀請流程不壞的必要條件。
+- **不在內**：`GET /api/users?email=` 以 email 反查使用者。它屬於使用者隱私，歸在隱私設定主題。
+
+## Capability impact
+
+`team-management/membership` 取得一條約束：**成員是 `status` 為 `JOINED` 且有 `role` 的球員；受邀者與純球員都不是成員。** 所有以成員身分為前提的授權都經過同一個判斷。
+
+`team-management/roles` 取得一條約束：**角色階層只在一處比較**。`OWNER` 涵蓋 `ADMIN`，`ADMIN` 涵蓋 `MEMBER`，且只對成員成立。
+
+## Impact
+
+<FileTour
+  files={[
+    {
+      path: "src/entities/player.ts",
+      change: "modified",
+      summary:
+        "新增 isTeamMember（type guard，縮窄出 role 必定存在的 TeamMember）與 hasTeamRole（角色階層比較）。成員的定義只存在這裡。",
+    },
+    {
+      path: "src/infrastructure/services/auth/authorization.service.ts",
+      change: "modified",
+      summary:
+        "verifyTeamRole 改為查詢後委派給 entity 函式；verifyIsTeamAdmin 委派給 verifyTeamRole。四段重複的階層比較消失，受邀者的判斷變成明確的條件。",
+    },
+    {
+      path: "src/applications/usecases/player/transfer-ownership.usecase.ts",
+      change: "modified",
+      summary:
+        "新隊長必須是成員。原本以 userId 是否存在代表已加入，受邀者因此可以被移轉為隊長。",
+    },
+    {
+      path: "src/applications/usecases/team/get-team.usecase.ts",
+      change: "modified",
+      summary: "要求呼叫者是該隊成員。route 補上 withAuth 並傳入 userId。",
+    },
+    {
+      path: "src/applications/usecases/player/get-player.usecase.ts",
+      change: "modified",
+      summary: "要求呼叫者是該球員所屬隊伍的成員。route 傳入 userId。",
+    },
+    {
+      path: "src/applications/usecases/player/get-team-players.usecase.ts",
+      change: "modified",
+      summary: "要求呼叫者是該隊成員。route 傳入 userId。",
+    },
+    {
+      path: "src/applications/usecases/player/accept-invitation.usecase.ts",
+      change: "modified",
+      summary:
+        "回傳已讀到的 Player。invitation.controller 用它取得 teamId，不再經過成員限定的 GetPlayerUseCase。",
+    },
+    {
+      path: "src/applications/usecases/player/get-user-players.usecase.ts",
+      change: "modified",
+      summary: "每一筆帶上 teamName，讓受邀者不必讀取隊伍端點就能看到隊名。",
+    },
+    {
+      path: "src/components/user/invitations/index.tsx",
+      change: "modified",
+      summary:
+        "隊名改讀 teamName，不再呼叫 useTeam；邀請項目在接受前不連到隊伍頁。",
+    },
+  ]}
+/>

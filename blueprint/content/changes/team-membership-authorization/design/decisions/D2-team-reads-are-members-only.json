@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "隱私設定上線前，隊伍讀取一律只給成員",
+  "status": "candidate",
+  "targets": ["team-management/membership"],
+  "context": "GET /api/teams/{teamId} 沒有 withAuth，未登入即可讀取隊名、lineups 與 stats；GET /api/players/{playerId} 與 GET /api/teams/{teamId}/players 對任何登入者回傳球員資料含 email。邀請頁以 GET /api/teams/{teamId} 顯示受邀隊伍的隊名並連到隊伍頁；AcceptInvitation 的 controller 透過 GetPlayerUseCase 取得 teamId。",
+  "decision": "三個讀取端點在 use case 內要求呼叫者是該隊成員（D1）。受邀者需要的隊名由受邀者自己的球員清單（GET /api/users/{userId}/players）每一筆帶上 teamName 提供，邀請項目在接受前不連到隊伍頁。AcceptInvitationUseCase 回傳它已經讀到的 Player，controller 不再經過 GetPlayerUseCase。回應欄位的可見範圍（email 只給隊長與管理員）不在本決定內。",
+  "alternatives": [
+    {
+      "option": "GET /api/teams/{teamId} 對受邀者回傳只含隊名的精簡 view",
+      "reason": "同一端點依關係回傳不同形狀，就是隱私設定的 canView 模型；在這裡先做一個特例，會替之後的設計預設答案。"
+    },
+    {
+      "option": "授權放在 route，use case 保持不檢查",
+      "reason": "既有模式是在 use case 內授權；放在 route 會讓任何繞過該 route 的呼叫者（controller 間互相呼叫）不受保護。"
+    },
+    {
+      "option": "GetPlayerUseCase 的 userId 設為選填，未提供就不檢查",
+      "reason": "選填的授權參數是預設不安全的介面，下一個呼叫者忘了傳就重新打開漏洞。"
+    }
+  ],
+  "consequences": [
+    "非成員（含未登入）讀不到隊伍資訊、名單與單一球員資料。",
+    "受邀者的邀請頁不再依賴任何成員限定的端點。",
+    "GET /api/users/{userId}/players 的回應多一個欄位，team-switcher 等既有使用者不受影響。"
+  ],
+  "revisitTriggers": [
+    "隱私設定上線，隊伍管理者可以把隊伍資訊或名單開放給非成員。",
+    "隊伍公開查詢需要讓非成員看到隊伍資訊。"
+  ]
+}
