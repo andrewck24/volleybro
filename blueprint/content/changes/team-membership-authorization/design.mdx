@@ -20,7 +20,7 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
 <svg
   viewBox="0 0 900 640"
   role="img"
-  aria-label="授權的三層分工，由上而下。最上層是 application 層的 use case，GetTeamUseCase、GetPlayerUseCase、GetTeamPlayersUseCase 與既有 16 個呼叫點，呼叫 AuthorizationService 的 verifyTeamRole。中間是 infrastructure 層的 AuthorizationService：查出球員、交給 entity 判斷、不通過就丟出 NOT_TEAM_MEMBER 或 INSUFFICIENT_ROLE。最下層是 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED 且 role 存在，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色；沒有 I/O，不經 mock 就能測試。"
+  aria-label="授權的三層分工，由上而下。最上層是 application 層的 use case，GetTeamUseCase、GetPlayerUseCase、GetTeamPlayersUseCase 與既有 15 個呼叫點，呼叫 AuthorizationService 的 verifyTeamRole。中間是 infrastructure 層的 AuthorizationService：查出球員、交給 entity 判斷、不通過就丟出 NOT_TEAM_MEMBER 或 INSUFFICIENT_ROLE。最下層是 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED 且 role 存在，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色；沒有 I/O，不經 mock 就能測試。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "900 / 640", width: "100%", height: "auto" }}
 >
