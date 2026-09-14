@@ -18,50 +18,45 @@ import teamReadsAreMembersOnly from "./design/decisions/D2-team-reads-are-member
 ## Adopted shape：一次判斷，三層分工
 
 <svg
-  viewBox="0 0 1160 330"
+  viewBox="0 0 900 640"
   role="img"
-  aria-label="授權的三層分工。左邊是 use case，呼叫 AuthorizationService 的 verifyTeamRole，傳入 teamId、userId 與所需角色。中間是 AuthorizationService，以 findByTeamIdAndUserId 查出球員，交給右邊 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED 且 role 存在，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色。不是成員時丟出 NOT_TEAM_MEMBER，角色不足時丟出 INSUFFICIENT_ROLE。下方標示 entity 層沒有 I/O，可以不經 mock 測試。"
+  aria-label="授權的三層分工，由上而下。最上層是 application 層的 use case，GetTeamUseCase、GetPlayerUseCase、GetTeamPlayersUseCase 與既有 16 個呼叫點，呼叫 AuthorizationService 的 verifyTeamRole。中間是 infrastructure 層的 AuthorizationService：查出球員、交給 entity 判斷、不通過就丟出 NOT_TEAM_MEMBER 或 INSUFFICIENT_ROLE。最下層是 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED 且 role 存在，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色；沒有 I/O，不經 mock 就能測試。"
   preserveAspectRatio="xMidYMid meet"
-  style={{ aspectRatio: "1160 / 330", width: "100%", height: "auto" }}
+  style={{ aspectRatio: "900 / 640", width: "100%", height: "auto" }}
 >
   <defs>
-    <marker id="tma-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <marker id="tma-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
     </marker>
   </defs>
   <g fontFamily="ui-sans-serif, system-ui, sans-serif">
-    <text x="40" y="36" fontSize="17" fill="var(--muted-foreground)">Application</text>
-    <rect x="40" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--border)" />
-    <text x="62" y="88" fontSize="18" fill="var(--foreground)">Use case</text>
-    <text x="62" y="124" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamUseCase</text>
-    <text x="62" y="150" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetPlayerUseCase</text>
-    <text x="62" y="176" fontSize="16" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamPlayersUseCase</text>
-    <text x="62" y="214" fontSize="16" fill="var(--muted-foreground)">＋ 既有 16 個呼叫點不變</text>
+    <rect x="20" y="20" width="860" height="160" rx="12" fill="var(--card)" stroke="var(--border)" />
+    <text x="48" y="62" fontSize="24" fill="var(--foreground)">Use case</text>
+    <text x="860" y="62" textAnchor="end" fontSize="20" fill="var(--muted-foreground)">Application</text>
+    <text x="48" y="104" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamUseCase · GetPlayerUseCase</text>
+    <text x="48" y="136" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamPlayersUseCase</text>
+    <text x="48" y="166" fontSize="20" fill="var(--muted-foreground)">＋ 既有 16 個呼叫點，程式碼不變</text>
 
-    <line x1="340" y1="150" x2="426" y2="150" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#tma-arrow)" />
-    <text x="383" y="138" textAnchor="middle" fontSize="15" fill="var(--muted-foreground)">verify</text>
+    <line x1="450" y1="180" x2="450" y2="226" stroke="var(--muted-foreground)" strokeWidth="2" markerEnd="url(#tma-arrow)" />
+    <text x="470" y="210" fontSize="20" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">verifyTeamRole(teamId, userId, role)</text>
 
-    <text x="430" y="36" fontSize="17" fill="var(--muted-foreground)">Infrastructure</text>
-    <rect x="430" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--border)" />
-    <text x="452" y="88" fontSize="18" fill="var(--foreground)">AuthorizationService</text>
-    <text x="452" y="124" fontSize="16" fill="var(--muted-foreground)">1. 查出球員</text>
-    <text x="452" y="150" fontSize="16" fill="var(--muted-foreground)">2. 交給 entity 判斷</text>
-    <text x="452" y="176" fontSize="16" fill="var(--muted-foreground)">3. 不通過就丟錯</text>
-    <text x="452" y="214" fontSize="15" fontFamily="ui-monospace, monospace" fill="var(--destructive)">NOT_TEAM_MEMBER</text>
-    <text x="452" y="236" fontSize="15" fontFamily="ui-monospace, monospace" fill="var(--destructive)">INSUFFICIENT_ROLE</text>
+    <rect x="20" y="230" width="860" height="160" rx="12" fill="var(--card)" stroke="var(--border)" />
+    <text x="48" y="272" fontSize="24" fill="var(--foreground)">AuthorizationService</text>
+    <text x="860" y="272" textAnchor="end" fontSize="20" fill="var(--muted-foreground)">Infrastructure</text>
+    <text x="48" y="314" fontSize="21" fill="var(--muted-foreground)">1. 查出球員　2. 交給 entity 判斷　3. 不通過就丟錯</text>
+    <text x="48" y="356" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--destructive)">NOT_TEAM_MEMBER · INSUFFICIENT_ROLE</text>
 
-    <line x1="730" y1="150" x2="816" y2="150" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#tma-arrow)" />
-    <text x="773" y="138" textAnchor="middle" fontSize="15" fill="var(--muted-foreground)">Player</text>
+    <line x1="450" y1="390" x2="450" y2="436" stroke="var(--muted-foreground)" strokeWidth="2" markerEnd="url(#tma-arrow)" />
+    <text x="470" y="420" fontSize="20" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">Player | null</text>
 
-    <text x="820" y="36" fontSize="17" fill="var(--primary)">Entity</text>
-    <rect x="820" y="52" width="300" height="200" rx="10" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
-    <text x="842" y="92" fontSize="17" fontFamily="ui-monospace, monospace" fill="var(--foreground)">isTeamMember</text>
-    <text x="842" y="118" fontSize="15" fill="var(--muted-foreground)">JOINED 且 role 存在</text>
-    <text x="842" y="164" fontSize="17" fontFamily="ui-monospace, monospace" fill="var(--foreground)">hasTeamRole</text>
-    <text x="842" y="190" fontSize="15" fill="var(--muted-foreground)">OWNER ⊇ ADMIN ⊇ MEMBER</text>
-
-    <text x="820" y="300" fontSize="16" fill="var(--primary)">沒有 I/O，不經 mock 就能測試</text>
-    <text x="40" y="300" fontSize="16" fill="var(--muted-foreground)">隱私設定的 relation 推導，之後建立在同一組函式上</text>
+    <rect x="20" y="440" width="860" height="180" rx="12" fill="var(--card)" stroke="var(--primary)" strokeWidth="2" />
+    <text x="48" y="482" fontSize="24" fill="var(--foreground)">成員判斷</text>
+    <text x="860" y="482" textAnchor="end" fontSize="20" fill="var(--primary)">Entity</text>
+    <text x="48" y="524" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--foreground)">isTeamMember</text>
+    <text x="260" y="524" fontSize="21" fill="var(--muted-foreground)">status 為 JOINED 且 role 存在</text>
+    <text x="48" y="562" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--foreground)">hasTeamRole</text>
+    <text x="260" y="562" fontSize="21" fill="var(--muted-foreground)">OWNER ⊇ ADMIN ⊇ MEMBER</text>
+    <text x="48" y="602" fontSize="20" fill="var(--primary)">沒有 I/O，不經 mock 就能測試；隱私設定的 relation 推導建立在同一組函式上</text>
 
   </g>
 </svg>
