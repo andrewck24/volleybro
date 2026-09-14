@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "成員定義下沉到 entity，受邀者通不過任何成員或管理員檢查",
+  "capabilities": ["team-management/membership", "team-management/roles"],
+  "dependsOn": [],
+  "outcome": "「成員」在 repo 只有一個定義：status 為 JOINED 且 role 存在。AuthorizationService 的成員與管理員檢查、transfer-ownership 的目標檢查都經過它；受邀者在接受邀請前一律被拒。",
+  "acceptanceCriteria": [
+    "src/entities/player.ts 新增 isTeamMember（type guard，縮窄為 role 必定存在的 TeamMember）與 hasTeamRole（OWNER ⊇ ADMIN ⊇ MEMBER）。兩者沒有 I/O。",
+    "hasTeamRole 以 satisfies Record<PlayerRole, number> 的階層表比較，新增角色時未排序會編譯失敗。",
+    "verifyTeamRole 查詢後：不是成員丟 NOT_TEAM_MEMBER，角色不足丟 INSUFFICIENT_ROLE。verifyIsTeamAdmin 委派給 verifyTeamRole(teamId, userId, PlayerRole.ADMIN)。",
+    "verifyIsTeamOwner、verifyPlayerRole、getPlayerRole 的介面與行為不變，不刪除。",
+    "transfer-ownership 的新隊長檢查由 !newOwner.userId 改為 !isTeamMember(newOwner)，錯誤原因維持 TARGET_NOT_MEMBER，並移除已不成立的註解。",
+    "既有 16 個 verify 呼叫點的程式碼不變。",
+    "以 fixture 建立 INVITED 球員並期待通過檢查的既有測試改寫為期待被拒，不放寬判斷。"
+  ],
+  "verification": [
+    "entity 測試涵蓋 NONE / INVITED / JOINED × 無角色 / MEMBER / ADMIN / OWNER 的組合",
+    "authorization.service 測試：受邀者（任何角色）得到 NOT_TEAM_MEMBER；MEMBER 要求 ADMIN 得到 INSUFFICIENT_ROLE",
+    "transfer-ownership 測試：以受邀者為目標得到 TARGET_NOT_MEMBER",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}

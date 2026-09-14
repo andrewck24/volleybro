@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "受邀者從自己的球員清單看到隊名，邀請頁不再讀取隊伍端點",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": [],
+  "outcome": "GET /api/users/{userId}/players 的每一筆帶上 teamName；邀請清單以它顯示隊名，不再呼叫 useTeam，接受邀請前不連到隊伍頁。邀請頁從此不依賴任何成員限定的端點。",
+  "acceptanceCriteria": [
+    "GetUserPlayersUseCase 注入 TeamRepository，輸出每筆為 Player 加上 teamName。查不到隊伍的球員不從清單中移除，teamName 省略。",
+    "route 的回應 schema 以 PlayerSchema 擴充 teamName，不修改 PlayerSchema 本身，其他球員端點的回應形狀不變。",
+    "前端的回應型別對應擴充；team-switcher 等既有使用者的行為不變。",
+    "InvitationItem 以 player.teamName 顯示隊名，移除 useTeam 與其載入中的 skeleton 分支。",
+    "InvitationItem 移除覆蓋整列、連到 /team/{teamId} 的連結；接受與拒絕按鈕的行為不變。"
+  ],
+  "verification": [
+    "get-user-players use case 測試：每筆帶上對應 teamName",
+    "users/[userId]/players route 測試：回應含 teamName",
+    "invitations component 測試：以 teamName 顯示隊名，且不呼叫 useTeam、不渲染隊伍連結",
+    "pnpm verify"
+  ],
+  "status": "pending"
+}

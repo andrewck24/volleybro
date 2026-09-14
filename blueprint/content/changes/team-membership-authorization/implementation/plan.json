@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "change": "team-membership-authorization",
+  "slices": ["S01", "S02", "S05", "S04", "S03"]
+}

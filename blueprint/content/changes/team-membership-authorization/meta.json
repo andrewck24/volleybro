@@ -1,4 +1,4 @@
 {
   "title": "team-membership-authorization",
-  "pages": ["index", "design"]
+  "pages": ["index", "design", "implementation"]
 }

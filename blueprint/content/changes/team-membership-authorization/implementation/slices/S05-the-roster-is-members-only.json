@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S05",
+  "title": "隊伍名單只給成員讀取",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": ["S01"],
+  "outcome": "GET /api/teams/{teamId}/players 只回應給該隊成員；回應欄位不變。",
+  "acceptanceCriteria": [
+    "GetTeamPlayersUseCase 的 input 改為 { teamId, userId }，注入 AuthorizationService，讀取前呼叫 verifyTeamRole(teamId, userId, PlayerRole.MEMBER)。",
+    "GET route 傳入 withAuth 取得的 userId。",
+    "回應仍含 email、userId、role；依角色裁切欄位不在本切片內。"
+  ],
+  "verification": [
+    "get-team-players use case 測試：以正確參數呼叫 verifyTeamRole；拒絕時不讀取 repository",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}
