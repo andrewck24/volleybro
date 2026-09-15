@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
-  "id": "S02",
+  "id": "S05",
   "title": "受邀者從自己的球員清單看到隊名，邀請頁不再讀取隊伍端點",
   "capabilities": ["team-management/membership"],
   "dependsOn": [],

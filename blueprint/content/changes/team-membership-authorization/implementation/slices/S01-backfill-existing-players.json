@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S01",
+  "title": "既有球員資料回填，並以部分唯一索引保證一位使用者在同一隊至多一位球員",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": [],
+  "outcome": "production 的球員文件全部符合三種球員的模型，(teamId, userId) 由部分唯一索引保證不重複。回填在任何收緊模型的程式碼部署之前完成。",
+  "acceptanceCriteria": [
+    "新增 scripts/migrations/team-membership.audit.ts：只讀取，回報缺 status 的文件依「有 userId／只有 email／兩者皆無」分類的數量、帶 role 或 email 的未連結球員數量、其他不符合模型的文件，以及 (teamId, userId) 的重複組合與其文件 id。",
+    "新增 scripts/migrations/team-membership.migrate.ts：先執行與 audit 相同的檢查，有重複或其他不符合模型的文件時停止且不寫入任何資料；否則依 Design「回填與部署順序」的表格回填，最後建立只對有 userId 的文件生效的 (teamId, userId) 唯一索引。",
+    "只有 email 的舊邀請，email 對應 users collection 中的帳號時寫入 userId 並清除 email；比對規則與 linkUserToInvitations 相同。",
+    "migrate 可以重跑：第二次執行不改變任何文件，索引已存在時不報錯。",
+    "Mongoose schema 的 (teamId, userId) 索引宣告同步改為部分唯一索引。",
+    "腳本以環境變數讀取連線字串，不寫入任何連線資訊；輸出只含數量與文件 id，不輸出 email。",
+    "開發者已在 volleybro-test 與 production 依序執行 audit 與 migrate，執行輸出記錄於本 Change 的 Review。"
+  ],
+  "verification": [
+    "以記憶體 MongoDB 的整合測試覆蓋每一類回填、重複時停止、其他不符合模型時停止、重跑不改變結果",
+    "volleybro-test 執行 audit → migrate → audit，第二次 audit 各類歸零",
+    "production 執行 audit → migrate → audit，由開發者執行並確認",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}

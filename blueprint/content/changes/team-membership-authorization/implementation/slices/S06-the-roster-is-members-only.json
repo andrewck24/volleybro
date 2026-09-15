@@ -1,9 +1,9 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
-  "id": "S05",
+  "id": "S06",
   "title": "隊伍名單只給成員讀取",
   "capabilities": ["team-management/membership"],
-  "dependsOn": ["S01", "S02"],
+  "dependsOn": ["S02", "S05"],
   "outcome": "GET /api/teams/{teamId}/players 只回應給該隊成員；回應欄位不變。",
   "acceptanceCriteria": [
     "GetTeamPlayersUseCase 的 input 改為 { teamId, userId }，注入 AuthorizationService，讀取前呼叫 verifyTeamRole(teamId, userId, PlayerRole.MEMBER)。",

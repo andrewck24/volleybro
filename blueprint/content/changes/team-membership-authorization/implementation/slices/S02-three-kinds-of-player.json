@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S02",
+  "title": "Player 依狀態分為三種，成員判斷與角色階層下沉到 entity",
+  "capabilities": ["team-management/membership", "team-management/roles"],
+  "dependsOn": ["S01"],
+  "outcome": "Player entity 是 UnlinkedPlayer、InvitedPlayer、TeamMember 的 union；成員判斷只看 status。AuthorizationService、transfer-ownership 都經過同一組 entity 函式，受邀者通不過任何成員或管理員檢查。未連結球員不再帶有角色。",
+  "acceptanceCriteria": [
+    "src/entities/player.ts 依 Design 定義三種型別與 union；isTeamMember 是只看 status 的 type guard，hasTeamRole 以 satisfies Record<PlayerRole, number> 的階層表比較。",
+    "validatePlayerStatus 中已由型別表達的組合檢查移除；仍需在執行期檢查的部分（例如輸入邊界）保留並說明原因。",
+    "repository 的 toPlayer 把文件縮窄成三者之一，不符合模型時拋出錯誤；不以 Mongoose 預設值補齊缺少的 status。",
+    "verifyTeamRole 查詢後：不是成員丟 NOT_TEAM_MEMBER，角色不足丟 INSUFFICIENT_ROLE。verifyIsTeamAdmin 委派給 verifyTeamRole(teamId, userId, PlayerRole.ADMIN)。verifyIsTeamOwner、verifyPlayerRole、getPlayerRole 的介面不變，不刪除。",
+    "create-player 不帶 email 時建立未連結球員且不寫入 role；leave-team、reject-invitation、cancel-invitation 轉為未連結球員時清除 role。",
+    "transfer-ownership 的現任擁有者檢查改為 isTeamMember 且 hasTeamRole(…, OWNER)，新擁有者檢查改為 isTeamMember；錯誤原因維持 NOT_TEAM_OWNER 與 TARGET_NOT_MEMBER，並移除已不成立的註解。",
+    "players/info.tsx 只為受邀者與成員顯示角色。",
+    "既有 15 個 verify 呼叫點的程式碼不變。以受邀者身分期待通過檢查、或期待未連結球員帶角色的既有測試改寫為新行為，不放寬判斷。"
+  ],
+  "verification": [
+    "entity 測試涵蓋 NONE / INVITED / JOINED × 各角色 的組合",
+    "repository 測試：三種合法文件縮窄成功，缺 status、帶角色的未連結球員、同時有 userId 與 email 的受邀者拋錯",
+    "authorization.service 測試：受邀者得到 NOT_TEAM_MEMBER；一般成員要求管理員得到 INSUFFICIENT_ROLE",
+    "transfer-ownership 測試：以受邀者為目標得到 TARGET_NOT_MEMBER",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}

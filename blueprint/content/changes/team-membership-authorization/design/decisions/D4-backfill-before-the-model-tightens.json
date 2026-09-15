@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D4",
+  "title": "先回填既有資料，並以部分唯一索引保證一位使用者在同一隊至多一位球員",
+  "status": "candidate",
+  "targets": ["team-management/membership"],
+  "context": "2026-02 的 unify-player 遷移建立 player 時沒有寫入 status，並對所有 player 執行 $unset status；2026-03 的 player-invitations 只在 schema 加上 default NONE，沒有回填。production 有 32 份文件沒有 status，Mongoose 讀取時把它們補成 NONE。D1 之後 repository 會拒絕不符合模型的文件，而既有資料還有另外兩類不符合：帶著 role 的未連結球員（create-player 預設寫入、離隊與取消邀請不清除），以及帶著 email 的未連結球員（create-player 帶 email 時產生）。另外，(teamId, userId) 只有一般索引；邀請時連結帳號之後，同一位使用者可能在同一隊出現兩位球員，而 findByTeamIdAndUserId 以 findOne 會隨機取得其中一位。",
+  "decision": "部署新模型之前先回填資料。缺 status 的文件：有 userId 者為成員；只有 email 者保留為受邀者，email 已對應帳號者改為連結 userId；兩者皆無者為未連結球員並清除 role。所有未連結球員清除 role 與 email。回填前先檢查 (teamId, userId) 的重複組合，有重複即停止、不寫入，交由開發者處理；沒有重複才建立只對有 userId 的文件生效的 (teamId, userId) 部分唯一索引。邀請時若 email 對應的使用者在該隊已有球員，回傳衝突錯誤。回填以只讀的 audit 腳本與可重跑的 migrate 腳本執行，先於測試環境、後於 production，由開發者手動執行，不在 app 啟動時自動執行。",
+  "alternatives": [
+    {
+      "option": "讀取時把缺 status 的文件推導成三種之一",
+      "reason": "只有舊文件能無歧義地推導；對一般文件，先被邀請後註冊的受邀者與成員欄位完全相同，status 正是因為推導出錯才成為明確欄位。讀取時的推導會變成永久存在、之後每個人都要記得的例外。"
+    },
+    {
+      "option": "舊邀請一律轉為未連結球員",
+      "reason": "等於替管理員撤回邀請且沒有人知道；保留為受邀者並沿用新邀請的連結規則，不需要為舊資料另立例外。"
+    },
+    {
+      "option": "只在程式碼檢查一位使用者在同一隊至多一位球員",
+      "reason": "檢查與寫入之間有競爭條件，也擋不住其他寫入路徑；程式檢查負責給使用者看得懂的錯誤，唯一索引才是保證。"
+    },
+    {
+      "option": "遇到重複時自動保留其中一筆",
+      "reason": "哪一筆是正確的需要看隊伍的實際情況，自動決定可能刪掉成員的紀錄。"
+    }
+  ],
+  "consequences": [
+    "production 必須在部署本 Change 之前完成回填；回填後的資料在舊程式碼下同樣可以運作，兩者之間的空窗不會造成錯誤。",
+    "長期未處理的舊邀請會出現在已註冊使用者的邀請清單上，由管理員取消或由對方拒絕。",
+    "資料庫層保證一位使用者在同一隊至多一位球員。",
+    "遷移腳本在 Archive 時移至 docs/changes/archive 下本 Change 的封存目錄，封存腳本的長期處置另行討論。"
+  ],
+  "revisitTriggers": [
+    "出現需要同一使用者在同一隊擁有多位球員的需求。",
+    "決定封存遷移腳本的長期處置方式。"
+  ]
+}

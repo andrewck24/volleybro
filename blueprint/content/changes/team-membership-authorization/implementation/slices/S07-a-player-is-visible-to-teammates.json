@@ -1,15 +1,15 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
-  "id": "S04",
+  "id": "S07",
   "title": "單一球員資料只給同隊成員，接受邀請不經過成員限定的讀取",
   "capabilities": ["team-management/membership"],
-  "dependsOn": ["S01"],
+  "dependsOn": ["S02"],
   "outcome": "GET /api/players/{playerId} 只回應給該球員所屬隊伍的成員。acceptInvitation 改用 AcceptInvitationUseCase 回傳的 Player 取得 teamId，受邀者接受邀請不受新檢查影響。",
   "acceptanceCriteria": [
-    "AcceptInvitationUseCase.execute 回傳它已讀出並更新前的 Player（至少含 teamId），介面型別同步更新。",
+    "AcceptInvitationUseCase.execute 回傳它讀出的 Player（至少含 teamId），介面型別同步更新。",
     "invitation.controller 的 acceptInvitation 移除 GetPlayerUseCase 呼叫，改用上述回傳值設定 activeTeamId；順序維持先接受、後更新 profile。",
     "GetPlayerUseCase 的 input 改為 { playerId, userId }（userId 為必填），注入 AuthorizationService；讀出球員後以 verifyTeamRole(player.teamId, userId, PlayerRole.MEMBER) 授權。球員不存在時維持回傳 null。",
-    "沒有隊伍的球員（teamId 不存在）一律拒絕，不以選填參數或跳過檢查處理。",
+    "沒有隊伍的球員（teamId 不存在）在呼叫 service 之前一律拒絕，不以選填參數或跳過檢查處理。",
     "GET route 傳入 userId；PATCH 與 DELETE 不變。"
   ],
   "verification": [

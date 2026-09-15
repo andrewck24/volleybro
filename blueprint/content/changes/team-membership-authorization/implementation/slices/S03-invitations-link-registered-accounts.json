@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "邀請已註冊的使用者時直接連結帳號，同一使用者不能在同一隊出現兩次",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": ["S02"],
+  "outcome": "發出邀請或建立球員時帶 email：email 已註冊則連結帳號，對方立即在自己的邀請清單看到邀請；該使用者已在隊上時回傳衝突錯誤。建立球員帶 email 時產生受邀者，不再產生帶 email 的未連結球員。",
+  "acceptanceCriteria": [
+    "create-invitation 注入 UserRepository，以 findByEmail 查詢；找到時寫入 userId 且不寫 email，找不到時寫入 email。",
+    "找到的使用者在該隊已有球員（受邀者或成員）時回傳新的衝突錯誤原因，錯誤文案指出他已在名單上；error-messages.ts 補上對應文案。",
+    "create-player 帶 email 時建立受邀者，套用與 create-invitation 相同的連結與衝突規則，兩者共用同一段邏輯而非各寫一次。",
+    "CreatePlayerSchema 的 role 限定為管理員與一般成員；不帶 email 時不接受 role。",
+    "建立球員表單只在填寫 email 時顯示角色欄位，選項標籤為管理員與一般成員。",
+    "資料庫層的唯一索引違反（競爭條件下）轉譯為同一個衝突錯誤，而非 500。"
+  ],
+  "verification": [
+    "create-invitation 測試：已註冊 email 寫入 userId；未註冊 email 寫入 email；使用者已在隊上時回傳衝突",
+    "create-player 測試：帶 email 產生受邀者；不帶 email 產生沒有角色的未連結球員",
+    "create-form component 測試：只在填寫 email 時顯示角色欄位",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "pending"
+}
