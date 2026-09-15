@@ -128,7 +128,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 ## 邀請與唯一性
 
 - **先授權，再查詢**：發出邀請或建立帶 email 的球員時，先確認呼叫者是該隊管理員以上，之後才查詢 email 與做衝突檢查。反過來做，任何登入者都能問出某個 email 是否在某一隊的名單上。
-- **連結帳號**：email 去除空白後以不分大小寫的方式查詢使用者。找到時寫入 `userId`、不寫 email；找不到時寫入轉為小寫的 email，對方註冊時由既有的 `linkUserToInvitations` 連結。
+- **連結帳號**：email 去除空白後，以 collation `strength: 2` 做不分大小寫的**精確**比對查詢使用者，不使用 `$regex`，否則 `.` 會匹配任意字元而連到別人的帳號。恰好找到一位時寫入 `userId`、不寫 email；找不到時寫入轉為小寫的 email，對方註冊時由既有的 `linkUserToInvitations` 連結；找到多位（大小寫不同的重複帳號）時回傳衝突，不猜測是哪一位。
 - **衝突**：找到的使用者在該隊已有球員（受邀者或成員），或未註冊的 email 在該隊已有邀請時，回傳新的衝突錯誤原因；文案指出他已在名單上。
 - **唯一性由索引保證**：`(teamId, userId)` 改為只對 ObjectId 型別 `userId` 生效的部分唯一索引；`(teamId, email)` 的無效宣告修正為只對字串型別 email 生效的部分唯一索引。資料庫的唯一性違反目前已轉譯為 409，改為對應到上述衝突錯誤原因。
 - **註冊時的連結不會產生重複**：`(teamId, email)` 唯一，所以同一個 email 在一隊至多一筆邀請；一個帳號只註冊一次，也不會與自己已有的球員同隊。
@@ -139,39 +139,49 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 ### 第一階段：部署前正規化
 
-| 既有文件                       | 正規化結果                         |
-| ------------------------------ | ---------------------------------- |
-| 缺 `status`，有 `userId`       | 成員（`JOINED`），清除 `email`     |
-| 缺 `status`，只有 `email`      | 未連結球員，清除 `role` 與 `email` |
-| 缺 `status`，兩者皆無          | 未連結球員，清除 `role`            |
-| 未連結球員帶 `role` 或 `email` | 清除 `role` 與 `email`             |
-| 成員帶 `email`                 | 清除 `email`                       |
+| 既有文件                       | 正規化結果                           |
+| ------------------------------ | ------------------------------------ |
+| 缺 `status`，有 `userId`       | 成員（`JOINED`），清除 `email`       |
+| 缺 `status`，只有 `email`      | 未連結球員，清除 `role` 與 `email`   |
+| 缺 `status`，兩者皆無          | 未連結球員，清除 `role`              |
+| 未連結球員帶 `role` 或 `email` | 清除 `role` 與 `email`               |
+| 成員帶 `email`                 | 清除 `email`                         |
+| 任何欄位為 `null` 或空字串     | 視為缺少；`email` 與 `role` 一併清除 |
 
 寫入任何文件之前先檢查下列情況；出現任一即停止、不寫入，列出文件交由開發者處理：
 
 1. `(teamId, userId)` 重複。
 2. 同隊受邀者的 email 在轉小寫並去除空白後重複。
 3. 非成員帶擁有者角色，或某隊的擁有者成員數量不為 1。
-4. 受邀者或成員缺角色；受邀者同時有、或同時缺 `userId` 與 `email`。
-5. `userId` 或 `teamId` 不是 ObjectId，或缺 `teamId`。
+4. 受邀者或成員缺角色；受邀者同時有、或同時缺 `userId` 與 `email`；成員缺 `userId`；未連結球員帶 `userId`。
+5. `userId` 或 `teamId` 不是 ObjectId，缺 `teamId`，或 `teamId` 指向不存在的隊伍。
+6. `status` 的值不在 `NONE`、`INVITED`、`JOINED` 之內。
 
-以上檢查以**正規化後的結果**計算，而不是只看現況。檢查通過且寫入完成後，修正 `(teamId, email)` 索引、移除一般的 `(teamId, userId)` 索引、建立部分唯一索引，並以 `listIndexes` 驗證 `unique` 與 filter 確實存在。
+以上檢查以**正規化後的結果**計算，而不是只看現況。擁有者數量以 `teams` collection 逐隊計算，沒有球員、或只有未連結球員的隊伍同樣會被檢查。檢查通過且寫入完成後，修正 `(teamId, email)` 索引、移除一般的 `(teamId, userId)` 索引、建立部分唯一索引，並以 `listIndexes` 驗證 `unique` 與 filter 確實存在。
 
-audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間，讓開發者在執行前檢視。
+audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，以及正規化前帶擁有者角色的非成員，附角色與最後更新時間，讓開發者在執行前檢視。部分唯一索引沿用 MongoDB 的預設索引名稱，並在部署後的 audit 再以 `listIndexes` 確認一次，因為舊程式碼的 instance 可能依舊宣告重建索引。
 
 ### 第二階段：部署後連結
 
-狀態為 `INVITED` 且只有 email 的邀請，email 不分大小寫對應已註冊的使用者時，寫入 `userId` 並清除 `email`。該使用者在同隊已有球員時不寫入這一筆，列出交由開發者處理。這一階段同時送達「已註冊卻收不到」的既有邀請。
+前提：本 Change 已部署到該環境，且在部署後**重跑正規化**、audit 各類歸零。正規化完成到部署生效之間，舊程式碼的日常操作（建立球員、離開隊伍、拒絕或取消邀請、變更角色）仍會寫出帶角色的未連結球員，這些文件在新程式碼下讀取失敗；部署切換期間舊的 instance 也還在寫入。部署後重跑正規化是連結的 gate。
+
+連結的對象是狀態為 `INVITED` 且只有 email 的邀請：email 以與邀請時相同的方式（collation `strength: 2` 精確比對）恰好對應一位已註冊的使用者時，寫入 `userId` 並清除 `email`。
+
+- **每一筆以條件更新寫入**：filter 同時比對 `_id`、`status: INVITED`、讀取時的 `email` 原值與「`userId` 不存在」。讀取之後管理員若取消邀請或改邀他人，這一筆不會被寫入，`matchedCount` 為 0 時跳過並列出。
+- **逐筆處理錯誤**：唯一索引違反逐筆捕捉並列出，一筆失敗不中斷其餘寫入。
+- **不寫入並列出**：該使用者在同隊已有球員、或 email 對應到多位使用者。
+
+這一階段同時送達「已註冊卻收不到」的既有邀請。
 
 ### 執行順序
 
 1. volleybro-test：執行正規化的 audit 與腳本，再跑一次 audit 確認歸零。
 2. production：開發者執行正規化的 audit 與腳本，再跑一次 audit 確認歸零。
-3. 部署本 Change：先部署到 volleybro-test 驗證，再部署到 production。
-4. volleybro-test：部署後執行連結的 audit 與腳本。
-5. production：部署後，開發者執行連結的 audit 與腳本。
+3. 部署本 Change 到 volleybro-test；重跑正規化直到 audit 歸零；執行連結的 audit 與腳本。
+4. 部署本 Change 到 production。
+5. production：開發者重跑正規化直到 audit 歸零，再執行連結的 audit 與腳本。
 
-步驟 2 可以提前完成，因為正規化只清除欄位與補上已成立的成員狀態，不增加任何人的權限。步驟 5 不能提前到部署之前。
+步驟 1、2 提前做，對權限是安全的：正規化只清除欄位、補上已成立的成員狀態，不增加任何人的權限。但它不能取代部署後的重跑（步驟 3、5），因為空窗期的舊寫入會再產生不符合模型的文件。在步驟 5 的重跑完成之前，這些文件所在的隊伍名單會讀取失敗，所以步驟 4 之後應立即執行步驟 5。連結不能提前到部署之前。
 
 ## Behavior contract
 
@@ -192,6 +202,9 @@ audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，附角�
 ## Failure modes
 
 - **部署早於正規化**：缺 `status` 的文件在 `toPlayer` 縮窄時拋錯，而一筆壞文件就讓整隊名單讀不出來。以執行順序保證；S01 的驗收包含 production 正規化完成。
+- **空窗期的舊寫入**：正規化完成到部署生效之間，舊程式碼仍會寫出帶角色的未連結球員。部署後立即重跑正規化，audit 歸零才執行連結。
+- **連結時邀請已被取消或改邀他人**：讀取與寫入之間狀態改變，若無條件寫入，會把舊 email 對應的使用者寫進已取消或改邀的球員。以條件更新保證，未比對到的一筆跳過並列出。
+- **email 比對連到別人的帳號**：以 `$regex` 做不分大小寫比對時 `.` 匹配任意字元。以 collation 精確比對保證，對應多位使用者時不寫入。
 - **連結早於部署**：舊的權限檢查只看 `role`，被連結帳號的受邀者會在空窗取得成員與管理員權限。連結腳本屬於部署後的步驟，S03 的驗收寫明執行時機。
 - **正規化時發現重複或不變量不成立**：腳本在寫入前停止。由開發者判斷保留哪一位球員、誰是擁有者，處理後重跑。
 - **索引看似存在其實無效**：同名的一般索引或無效宣告會讓「索引已存在」的判斷誤以為完成。以 `listIndexes` 驗證 `unique` 與 filter。
@@ -213,6 +226,18 @@ audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，附角�
       name: "連結帳號早於部署，受邀者在空窗取得權限",
       severity: "critical",
       mitigation: "連結是部署後的獨立階段，腳本與驗收都寫明執行時機。",
+    },
+    {
+      name: "空窗期的舊寫入讓部署後的隊伍名單讀取失敗",
+      severity: "critical",
+      mitigation:
+        "部署後立即重跑正規化並確認 audit 歸零，作為連結的 gate；執行順序寫入 Design 與 S03 的驗收。",
+    },
+    {
+      name: "連結腳本把邀請寫給已取消或改邀的球員，或連到別人的帳號",
+      severity: "critical",
+      mitigation:
+        "條件更新比對讀取時的 status 與 email 原值；email 以 collation 精確比對，對應多位使用者時不寫入。",
     },
     {
       name: "正規化時發現重複或擁有者數量不為 1",
@@ -256,8 +281,8 @@ audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，附角�
 
 - **Entity**：`isTeamMember`、`hasTeamRole` 與角色管理判斷以狀態、呼叫者角色、目標角色、是否為自己的完整組合測試，不需要 mock。這是成員與管理規則唯一的權威。
 - **Repository**：`toPlayer` 對三種合法文件縮窄成功，對缺 `status`、帶角色的未連結球員、同時有 `userId` 與 `email` 的受邀者拋錯。
-- **Use case**：三個讀取 use case 斷言以正確參數呼叫檢查，且拒絕時不讀取 repository。`update-role` 與 `remove-player` 覆蓋 D3 的表格與自己為目標。`create-invitation` 覆蓋已註冊、未註冊、大小寫不同、已在名單上、未註冊 email 重複邀請，並斷言非管理員時不查詢 email。`transfer-ownership` 以受邀者為目標斷言 `TARGET_NOT_MEMBER`。
-- **Migration**：兩個階段的 audit 與腳本以記憶體 MongoDB 的整合測試覆蓋：每一類正規化、以正規化後結果計算的重複、每一項停止條件、既有同名一般索引與無效宣告下仍建立真正的唯一索引、重跑不改變結果、連結時遇到已在隊上的使用者不寫入。
+- **Use case**：三個讀取 use case 斷言以正確參數呼叫檢查，且拒絕時不讀取 repository。`update-role` 與 `remove-player` 覆蓋 D3 的表格與自己為目標。`create-invitation` 覆蓋已註冊、未註冊、大小寫不同、`a.b@x.com` 不連到 `axb@x.com`、大小寫不同的兩位使用者回傳衝突、已在名單上、未註冊 email 重複邀請，並斷言非管理員時不查詢 email 也不揭露邀請狀態。`transfer-ownership` 以受邀者為目標斷言 `TARGET_NOT_MEMBER`。
+- **Migration**：兩個階段的 audit 與腳本以記憶體 MongoDB 的整合測試覆蓋：每一類正規化、以正規化後結果計算的重複、每一項停止條件、既有同名一般索引與無效宣告下仍建立真正的唯一索引、重跑不改變結果、連結時遇到已在隊上的使用者不寫入；讀取後邀請被取消或改邀他人時不寫入；正規化後以舊寫入路徑產生的文件讓讀取失敗、重跑正規化後恢復；`null` email、成員缺 `userId`、未連結球員帶 `userId` 各自命中對應的規則或停止條件。
 - **Component**：邀請清單以 `teamName` 顯示隊名且不呼叫 `useTeam`；隊伍資訊頁在讀取 403 時顯示錯誤狀態；建立球員表單只在填寫 email 時顯示角色；角色標籤顯示擁有者、管理員、一般成員。
 - **Integration**：`pnpm test:integration` 作為接線未壞的證據。
 

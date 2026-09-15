@@ -43,7 +43,7 @@ S07 的實作在本 Change 提案前就已完成，暫放在 `wip/team-players-l
 
 ## 執行與部署
 
-依 Design「資料的兩個階段」的執行順序：S01 的正規化在 volleybro-test 與 production 完成後才部署；部署到各環境之後，才在該環境執行 S03 的連結腳本。兩個階段的輸出都記錄在 Review。
+依 Design「資料的兩個階段」的執行順序：S01 的正規化在 volleybro-test 與 production 完成後才部署；部署到各環境之後，先在該環境重跑正規化直到 audit 歸零，才執行 S03 的連結腳本。部署前的正規化對權限安全，但空窗期舊程式碼的日常寫入會再產生不符合模型的文件，所以部署後的重跑不能省略。兩個階段的輸出都記錄在 Review。
 
 ## Archive 時要一併處理
 
@@ -63,3 +63,5 @@ S07 的實作在本 Change 提案前就已完成，暫放在 `wip/team-players-l
 - `find-game`、`cancel-invitation`、`update-role`、`remove-player`、`update-player-info` 先讀取再授權，已登入者可以用 404 與 403 的差別判斷資源是否存在。
 - `PATCH /api/teams/{teamId}` 與 `PATCH /api/teams/{teamId}/lineups` 在 route 而非 use case 授權，與 D2 的原則不一致。
 - `test/integration/support/auth.ts` 的 authorization double 一律放行，整合層無法證明任何拒絕路徑。
+- 邀請時查不到使用者，而對方恰好在寫入前完成註冊與註冊時的連結，這筆邀請會停在只有 email。發生機率低，重新邀請即可解決。
+- 註冊時的連結（`linkUserToInvitations`）以精確比對 email，大小寫不同的受邀 email 不會在註冊時被連結。
