@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S06",
+  "title": "隊伍頁面在讀取失敗時顯示錯誤狀態，而不是假設資料存在",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": [],
+  "outcome": "隊伍頁面不再以非空斷言假設隊伍與名單讀得到。讀取收緊之後，非成員（被刪除的成員、改過 activeTeamId 的使用者）開啟隊伍頁面時看到可理解的錯誤狀態而非崩潰。這個切片先於任何讀取收緊。",
+  "acceptanceCriteria": [
+    "team/info/index.tsx 不再使用 team! 與 players!；隊伍或名單的讀取錯誤時顯示錯誤狀態。",
+    "逐一檢查以 useTeam 或 useTeamPlayers 讀取、並以非空斷言假設資料存在的隊伍頁面元件，同樣處理讀取錯誤。",
+    "錯誤狀態沿用 repo 既有的錯誤顯示元件與文案，不新增新的錯誤呈現方式。"
+  ],
+  "verification": [
+    "team info component 測試：隊伍讀取回傳 403 時顯示錯誤狀態、不拋錯",
+    "pnpm verify"
+  ],
+  "status": "pending"
+}

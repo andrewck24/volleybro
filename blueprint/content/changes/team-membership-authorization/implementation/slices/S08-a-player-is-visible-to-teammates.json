@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
-  "id": "S07",
+  "id": "S08",
   "title": "單一球員資料只給同隊成員，接受邀請不經過成員限定的讀取",
   "capabilities": ["team-management/membership"],
   "dependsOn": ["S02"],

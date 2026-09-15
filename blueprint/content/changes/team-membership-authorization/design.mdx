@@ -14,7 +14,7 @@ import backfillBeforeTheModelTightens from "./design/decisions/D4-backfill-befor
   型別說出每種球員有什麼，判斷與查詢分開。「誰是成員、角色夠不夠、能不能管這個人」是沒有
   I/O 的業務規則，放在 entity；「這個使用者在這隊是哪一位球員」要查資料庫，留在
   infrastructure；「查、判斷、不通過就丟錯」由 use case 呼叫 service
-  完成。資料先回填，模型才收緊。
+  完成。資料在部署前正規化、部署後才連結帳號，任何時刻都不會有人多出權限。
 </TLDR>
 
 ## Adopted shape：三種球員
@@ -50,15 +50,18 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 `isTeamMember` 是 type guard，只看 `status`；通過之後 `userId` 與 `role` 由型別保證存在，`hasTeamRole` 不需要 `player.role!`。repository 的 `toPlayer` 負責把資料庫文件縮窄成三者之一，不符合的文件拋出錯誤，而不是被 Mongoose 的預設值悄悄當成未連結球員。
 
-| 動作                   | 之前                                  | 之後                                        |
-| ---------------------- | ------------------------------------- | ------------------------------------------- |
-| 建立球員（不帶 email） | 未連結球員，`role` 預設 `MEMBER`      | 未連結球員，沒有角色                        |
-| 建立球員（帶 email）   | 帶 `email` 的未連結球員，永遠不會連結 | 受邀者，套用邀請的連結與衝突規則            |
-| 發出邀請               | 只寫入 `email`                        | email 已註冊則寫入 `userId`，否則寫入 email |
-| 接受邀請               | 受邀者 → 成員                         | 不變                                        |
-| 拒絕、取消邀請         | 轉為未連結球員，`role` 保留           | 轉為未連結球員，清除 `role`                 |
-| 離開隊伍               | 轉為未連結球員，`role` 保留           | 轉為未連結球員，清除 `role`                 |
-| 刪除球員               | 刪除文件                              | 不變，套用 D3 的管理規則                    |
+一筆不符合模型的文件會讓整隊的 `findByTeamId` 與相關使用者的 `findByUserId` 讀取失敗，因為 repository 對整批文件逐一縮窄。所以模型收緊的那一刻，所有寫入路徑必須已經只寫出合法的文件，既有資料也必須已經正規化：寫入端的限縮與模型在同一個切片，正規化在部署之前完成。
+
+| 動作                   | 之前                                  | 之後                                                     |
+| ---------------------- | ------------------------------------- | -------------------------------------------------------- |
+| 建立球員（不帶 email） | 未連結球員，`role` 預設 `MEMBER`      | 未連結球員，沒有角色                                     |
+| 建立球員（帶 email）   | 帶 `email` 的未連結球員，永遠不會連結 | 受邀者，套用邀請的連結與衝突規則                         |
+| 發出邀請               | 只寫入 `email`                        | email 已註冊則寫入 `userId`，否則寫入 email              |
+| 接受邀請               | 受邀者 → 成員                         | 不變                                                     |
+| 拒絕、取消邀請         | 轉為未連結球員，`role` 保留           | 轉為未連結球員，清除 `role`                              |
+| 離開隊伍               | 轉為未連結球員，`role` 保留           | 轉為未連結球員，清除 `role`                              |
+| 變更角色               | 任何球員皆可                          | 只限受邀者與成員，套用 D3 的管理規則                     |
+| 刪除球員               | 刪除文件                              | 套用 D3 的管理規則；被刪除的成員若以該隊為預設隊伍則清除 |
 
 ## Adopted shape：一次判斷，三層分工
 
@@ -108,7 +111,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 ## 角色管理
 
-依 D3，呼叫者與目標的關係決定能否變更角色或刪除球員。規則以角色階層加上「擁有者受保護」表達，與成員判斷放在同一組 entity 函式。
+依 D3，呼叫者與目標的關係決定能否變更角色或刪除球員。規則以角色階層、「擁有者受保護」與「不能以自己為目標」表達，與成員判斷放在同一組 entity 函式。
 
 | 呼叫者   | 可以變更角色的目標           | 可以刪除的目標                           |
 | -------- | ---------------------------- | ---------------------------------------- |
@@ -116,37 +119,59 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 | 管理員   | 其他管理員、一般成員、受邀者 | 其他管理員、一般成員、受邀者、未連結球員 |
 | 一般成員 | 無                           | 無                                       |
 
-- 擁有者不是任何人變更角色或刪除的目標，包含擁有者自己；擁有權只能透過移轉離開。
+- 擁有者是「角色為擁有者的成員」，不是任何人變更角色或刪除的目標；擁有權只能透過移轉離開。
+- 任何人都不能以自己的球員為目標。要離開隊伍走「離開隊伍」，名單上的那一格保留為未連結球員。
 - 未連結球員沒有角色，不是變更角色的目標。
 - 可以指定的角色仍只有管理員與一般成員，擁有者只能透過移轉產生。
-- 目標是擁有者時回傳新的錯誤原因，文案說明必須先移轉擁有權；目標超出呼叫者的管理範圍時回傳 `INSUFFICIENT_ROLE`。
+- 目標是擁有者時回傳新的錯誤原因，文案說明必須由擁有者移轉；目標是自己時回傳另一個錯誤原因，文案指向離開隊伍；目標超出呼叫者的管理範圍時回傳 `INSUFFICIENT_ROLE`。
 
 ## 邀請與唯一性
 
-- 發出邀請、或建立球員時帶 email：以 `UserRepository.findByEmail` 查詢。找到使用者時寫入 `userId`、不寫 email；找不到時寫入 email，對方註冊時由既有的 `linkUserToInvitations` 連結。
-- 找到的使用者在該隊已有球員（受邀者或成員）時回傳衝突錯誤，文案指出他已在名單上的哪一位。
-- `(teamId, userId)` 改為只對有 `userId` 的文件生效的部分唯一索引。程式檢查負責可理解的錯誤，索引負責保證。
-- 註冊時的連結不會產生重複：一個帳號只註冊一次，它以 email 找到的邀請不可能與自己已有的球員同隊。
+- **先授權，再查詢**：發出邀請或建立帶 email 的球員時，先確認呼叫者是該隊管理員以上，之後才查詢 email 與做衝突檢查。反過來做，任何登入者都能問出某個 email 是否在某一隊的名單上。
+- **連結帳號**：email 去除空白後以不分大小寫的方式查詢使用者。找到時寫入 `userId`、不寫 email；找不到時寫入轉為小寫的 email，對方註冊時由既有的 `linkUserToInvitations` 連結。
+- **衝突**：找到的使用者在該隊已有球員（受邀者或成員），或未註冊的 email 在該隊已有邀請時，回傳新的衝突錯誤原因；文案指出他已在名單上。
+- **唯一性由索引保證**：`(teamId, userId)` 改為只對 ObjectId 型別 `userId` 生效的部分唯一索引；`(teamId, email)` 的無效宣告修正為只對字串型別 email 生效的部分唯一索引。資料庫的唯一性違反目前已轉譯為 409，改為對應到上述衝突錯誤原因。
+- **註冊時的連結不會產生重複**：`(teamId, email)` 唯一，所以同一個 email 在一隊至多一筆邀請；一個帳號只註冊一次，也不會與自己已有的球員同隊。
 
-## 回填與部署順序
+## 資料的兩個階段
 
-依 D4，資料在部署新模型之前回填。
+依 D4，既有資料分兩個階段處理。第一階段在部署之前，**不為任何文件新增 `userId`**，因此舊的權限檢查下沒有人多出權限；第二階段在部署之後，新的成員判斷已經上線，連結帳號才不會讓受邀者取得權限。
 
-| 既有文件                       | 回填結果                                                  |
-| ------------------------------ | --------------------------------------------------------- |
-| 缺 `status`，有 `userId`       | 成員（`JOINED`），清除 `email`                            |
-| 缺 `status`，只有 `email`      | 受邀者；email 已對應帳號者改為寫入 `userId`、清除 `email` |
-| 缺 `status`，兩者皆無          | 未連結球員，清除 `role`                                   |
-| 未連結球員帶 `role` 或 `email` | 清除 `role` 與 `email`                                    |
-| `(teamId, userId)` 有重複      | 停止，不寫入任何資料，列出重複組合交由開發者處理          |
-| 其他不符合模型的組合           | 停止，不寫入任何資料，列出文件交由開發者處理              |
+### 第一階段：部署前正規化
 
-1. 在 volleybro-test 的資料庫執行 `team-membership.audit.ts`，確認各類數量與重複組合。
-2. 在 volleybro-test 執行 `team-membership.migrate.ts`，再跑一次 audit 確認歸零，並驗證測試部署。
-3. 開發者在 production 依序執行 audit 與 migrate。
-4. 部署本 Change。
+| 既有文件                       | 正規化結果                         |
+| ------------------------------ | ---------------------------------- |
+| 缺 `status`，有 `userId`       | 成員（`JOINED`），清除 `email`     |
+| 缺 `status`，只有 `email`      | 未連結球員，清除 `role` 與 `email` |
+| 缺 `status`，兩者皆無          | 未連結球員，清除 `role`            |
+| 未連結球員帶 `role` 或 `email` | 清除 `role` 與 `email`             |
+| 成員帶 `email`                 | 清除 `email`                       |
 
-回填後的資料在舊程式碼下同樣可以運作：舊程式碼不讀取未連結球員的角色，也不會自己產生重複，所以步驟 3 與 4 之間的空窗不會造成錯誤。反過來先部署，缺 `status` 的 32 位球員會讀取失敗。
+寫入任何文件之前先檢查下列情況；出現任一即停止、不寫入，列出文件交由開發者處理：
+
+1. `(teamId, userId)` 重複。
+2. 同隊受邀者的 email 在轉小寫並去除空白後重複。
+3. 非成員帶擁有者角色，或某隊的擁有者成員數量不為 1。
+4. 受邀者或成員缺角色；受邀者同時有、或同時缺 `userId` 與 `email`。
+5. `userId` 或 `teamId` 不是 ObjectId，或缺 `teamId`。
+
+以上檢查以**正規化後的結果**計算，而不是只看現況。檢查通過且寫入完成後，修正 `(teamId, email)` 索引、移除一般的 `(teamId, userId)` 索引、建立部分唯一索引，並以 `listIndexes` 驗證 `unique` 與 filter 確實存在。
+
+audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間，讓開發者在執行前檢視。
+
+### 第二階段：部署後連結
+
+狀態為 `INVITED` 且只有 email 的邀請，email 不分大小寫對應已註冊的使用者時，寫入 `userId` 並清除 `email`。該使用者在同隊已有球員時不寫入這一筆，列出交由開發者處理。這一階段同時送達「已註冊卻收不到」的既有邀請。
+
+### 執行順序
+
+1. volleybro-test：執行正規化的 audit 與腳本，再跑一次 audit 確認歸零。
+2. production：開發者執行正規化的 audit 與腳本，再跑一次 audit 確認歸零。
+3. 部署本 Change：先部署到 volleybro-test 驗證，再部署到 production。
+4. volleybro-test：部署後執行連結的 audit 與腳本。
+5. production：部署後，開發者執行連結的 audit 與腳本。
+
+步驟 2 可以提前完成，因為正規化只清除欄位與補上已成立的成員狀態，不增加任何人的權限。步驟 5 不能提前到部署之前。
 
 ## Behavior contract
 
@@ -166,27 +191,40 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 ## Failure modes
 
-- **部署早於回填**：缺 `status` 的文件在 `toPlayer` 縮窄時拋錯，這些隊伍的名單讀不出來。以部署順序保證，S01 的驗收包含 production 回填完成。
-- **回填時發現重複**：migrate 在寫入任何資料前停止。由開發者判斷保留哪一位球員，處理後重跑。
+- **部署早於正規化**：缺 `status` 的文件在 `toPlayer` 縮窄時拋錯，而一筆壞文件就讓整隊名單讀不出來。以執行順序保證；S01 的驗收包含 production 正規化完成。
+- **連結早於部署**：舊的權限檢查只看 `role`，被連結帳號的受邀者會在空窗取得成員與管理員權限。連結腳本屬於部署後的步驟，S03 的驗收寫明執行時機。
+- **正規化時發現重複或不變量不成立**：腳本在寫入前停止。由開發者判斷保留哪一位球員、誰是擁有者，處理後重跑。
+- **索引看似存在其實無效**：同名的一般索引或無效宣告會讓「索引已存在」的判斷誤以為完成。以 `listIndexes` 驗證 `unique` 與 filter。
 - **邀請頁在隊伍端點收緊後失去隊名**：以切片順序保證，受邀者清單先帶上 `teamName`。
+- **非成員開啟隊伍頁面時崩潰**：`team/info/index.tsx` 以 `team!.nickname`、`players!.length` 假設資料存在；讀取收緊後拋 TypeError。以切片順序保證，前端錯誤狀態先於讀取收緊。
 - **接受邀請被新的成員檢查擋下**：`acceptInvitation` 的 controller 若仍經過 `GetPlayerUseCase`，受邀者會被自己的邀請擋下。同一個切片內改掉這條路徑。
-- **非成員開啟隊伍頁面時崩潰**：`team/info/index.tsx` 以 `team!.nickname`、`players!.length` 假設資料存在；讀取收緊後拋 TypeError。觸發路徑包括被刪除成員殘留的 `activeTeamId`。
 - **既有測試以受邀者身分通過檢查、或期待未連結球員帶角色**：它們代表的正是被修掉的行為，應改寫而不是放寬判斷。
 - **整合測試看不到授權**：`test/integration/support/auth.ts` 的 double 一律放行，拒絕的證據來自 entity 與 use case 的單元測試。
 
 <RiskTable
   risks={[
     {
-      name: "部署早於 production 回填，32 位球員讀取失敗",
+      name: "部署早於 production 正規化，隊伍名單讀取失敗",
       severity: "critical",
       mitigation:
-        "部署順序寫入 Design 與 S01 的驗收；回填後的資料與舊程式碼相容，回填可以提前完成。",
+        "執行順序寫入 Design 與 S01 的驗收；正規化不增加權限，可以提前完成。",
     },
     {
-      name: "回填時發現同一使用者在同一隊有兩位球員",
+      name: "連結帳號早於部署，受邀者在空窗取得權限",
+      severity: "critical",
+      mitigation: "連結是部署後的獨立階段，腳本與驗收都寫明執行時機。",
+    },
+    {
+      name: "正規化時發現重複或擁有者數量不為 1",
       severity: "warning",
       mitigation:
-        "migrate 在寫入前停止並列出組合，由開發者處理；不自動決定保留哪一位。",
+        "腳本在寫入前停止並列出文件，由開發者處理；不自動決定保留哪一位或誰是擁有者。",
+    },
+    {
+      name: "邀請真的送達後，可以被用來把自訂隊名推到任意已註冊使用者面前",
+      severity: "warning",
+      mitigation:
+        "本 Change 接受此風險：受邀者可以拒絕。使用者搜尋與邀請的 rate limit、封鎖與檢舉邀請另案處理。",
     },
     {
       name: "受邀者失去原本（錯誤地）擁有的權限",
@@ -195,20 +233,15 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
         "這是本 Change 的目的。受影響的只有尚未接受邀請的使用者，接受後權限立即恢復。Changeset 以 Security 標示。",
     },
     {
-      name: "管理員失去降級或刪除擁有者的能力",
+      name: "缺 status 的舊邀請與帶 email 的未連結球員被撤回",
       severity: "info",
-      mitigation: "D3 的刻意結果；擁有權只能由擁有者移轉。",
-    },
-    {
-      name: "長期未處理的舊邀請出現在已註冊使用者的邀請清單",
-      severity: "info",
-      mitigation: "D4 的刻意結果；管理員可以取消，對方可以拒絕。",
-    },
-    {
-      name: "讀取收緊後非成員開啟隊伍頁面崩潰",
-      severity: "warning",
       mitigation:
-        "隊伍頁面處理讀取失敗，刪除成員時清除被刪除者的 activeTeamId。",
+        "D4 的刻意結果；audit 在執行前列出這些文件，需要時由管理員重新邀請。",
+    },
+    {
+      name: "管理員失去降級或刪除擁有者、以及刪除自己的能力",
+      severity: "info",
+      mitigation: "D3 的刻意結果；擁有權只能由擁有者移轉，離隊走離開隊伍。",
     },
     {
       name: "GET /api/users/{userId}/players 為了隊名逐筆查詢隊伍",
@@ -221,11 +254,11 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 ## Testing strategy
 
-- **Entity**：`isTeamMember`、`hasTeamRole` 與角色管理判斷以狀態、呼叫者角色、目標角色的完整組合測試，不需要 mock。這是成員與管理規則唯一的權威。
+- **Entity**：`isTeamMember`、`hasTeamRole` 與角色管理判斷以狀態、呼叫者角色、目標角色、是否為自己的完整組合測試，不需要 mock。這是成員與管理規則唯一的權威。
 - **Repository**：`toPlayer` 對三種合法文件縮窄成功，對缺 `status`、帶角色的未連結球員、同時有 `userId` 與 `email` 的受邀者拋錯。
-- **Use case**：三個讀取 use case 斷言以正確參數呼叫檢查，且拒絕時不讀取 repository。`update-role` 與 `remove-player` 以擁有者、同級管理員、一般成員為目標覆蓋 D3 的表格。`create-invitation` 覆蓋已註冊、未註冊、已在名單上三種 email。`transfer-ownership` 以受邀者為目標斷言 `TARGET_NOT_MEMBER`。
-- **Migration**：audit 與 migrate 以記憶體 MongoDB 的整合測試覆蓋每一類回填與重複時停止；migrate 重跑不改變結果。
-- **Component**：邀請清單以 `teamName` 顯示隊名且不呼叫 `useTeam`；隊伍資訊頁在讀取 403 時顯示錯誤狀態；角色標籤顯示擁有者、管理員、一般成員。
+- **Use case**：三個讀取 use case 斷言以正確參數呼叫檢查，且拒絕時不讀取 repository。`update-role` 與 `remove-player` 覆蓋 D3 的表格與自己為目標。`create-invitation` 覆蓋已註冊、未註冊、大小寫不同、已在名單上、未註冊 email 重複邀請，並斷言非管理員時不查詢 email。`transfer-ownership` 以受邀者為目標斷言 `TARGET_NOT_MEMBER`。
+- **Migration**：兩個階段的 audit 與腳本以記憶體 MongoDB 的整合測試覆蓋：每一類正規化、以正規化後結果計算的重複、每一項停止條件、既有同名一般索引與無效宣告下仍建立真正的唯一索引、重跑不改變結果、連結時遇到已在隊上的使用者不寫入。
+- **Component**：邀請清單以 `teamName` 顯示隊名且不呼叫 `useTeam`；隊伍資訊頁在讀取 403 時顯示錯誤狀態；建立球員表單只在填寫 email 時顯示角色；角色標籤顯示擁有者、管理員、一般成員。
 - **Integration**：`pnpm test:integration` 作為接線未壞的證據。
 
 ## Decisions

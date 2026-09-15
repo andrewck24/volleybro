@@ -1,9 +1,9 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
-  "id": "S08",
+  "id": "S09",
   "title": "隊伍資訊只給成員讀取",
   "capabilities": ["team-management/membership"],
-  "dependsOn": ["S02", "S05"],
+  "dependsOn": ["S02", "S05", "S06"],
   "outcome": "GET /api/teams/{teamId} 要求登入且呼叫者是該隊成員；未登入回 401，非成員與受邀者回 403。",
   "acceptanceCriteria": [
     "GET handler 由 withErrorHandler 改為 withAuth，傳入 userId。",

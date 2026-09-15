@@ -1,20 +1,21 @@
 {
   "$schema": "../../../../../schemas/implementation-slice.schema.json",
   "id": "S04",
-  "title": "角色管理套用 D3：管理員可以互相管理，擁有者不能被他人降級或刪除",
+  "title": "角色管理套用 D3：管理員可以互相管理，擁有者受保護，不能以自己為目標",
   "capabilities": ["team-management/roles"],
   "dependsOn": ["S02"],
-  "outcome": "update-role 與刪除球員依呼叫者與目標的角色決定能否執行；擁有者不是任何人的目標，隊伍不會因此失去擁有者。",
+  "outcome": "update-role 與刪除球員依呼叫者與目標的關係決定能否執行；擁有者不是任何人的目標，任何人都不能以自己為目標，隊伍不會因此失去擁有者。被刪除的成員若以該隊為預設隊伍，預設隊伍被清除。",
   "acceptanceCriteria": [
-    "src/entities/player.ts 新增比較呼叫者與目標的判斷：呼叫者必須是管理員以上的成員；目標是擁有者時一律拒絕；其餘目標（管理員、一般成員、受邀者、未連結球員）允許。",
-    "update-role：目標必須是受邀者或成員；目標是未連結球員時回傳錯誤；目標是擁有者時回傳新的錯誤原因。",
-    "remove-player：目標是擁有者時回傳同一個錯誤原因；其餘依 D3 允許。",
-    "error-messages.ts 補上「目標是擁有者」的文案，說明擁有權只能由擁有者移轉。",
-    "membership-section.tsx 的刪除入口只對呼叫者可以管理的球員顯示；擁有者球員不顯示。"
+    "src/entities/player.ts 新增比較呼叫者與目標的判斷：呼叫者必須是管理員以上的成員；目標是角色為擁有者的成員時拒絕；目標是呼叫者自己的球員時拒絕；其餘目標（管理員、一般成員、受邀者、未連結球員）允許。",
+    "update-role 與 remove-player 經過這個判斷；目標是擁有者、目標是自己分別回傳新的錯誤原因。",
+    "error-messages.ts 補上兩個文案：目標是擁有者時說明擁有權只能由擁有者移轉；目標是自己時指向離開隊伍。",
+    "RemovePlayerUseCase 刪除成員後，若被刪除者的 profile.activeTeamId 等於該隊則清除，行為與 leave-team 相同。",
+    "membership-section.tsx 的刪除入口只對呼叫者可以管理的球員顯示；擁有者與自己的球員不顯示。"
   ],
   "verification": [
-    "entity 測試涵蓋 D3 表格的每一格",
-    "update-role 與 remove-player use case 測試：以擁有者、同級管理員、一般成員、受邀者、未連結球員為目標",
+    "entity 測試涵蓋 D3 表格的每一格與以自己為目標",
+    "update-role 與 remove-player use case 測試：以擁有者、自己、同級管理員、一般成員、受邀者、未連結球員為目標",
+    "remove-player use case 測試：被刪除者的 activeTeamId 指向該隊時被清除，指向他隊時不變",
     "pnpm verify"
   ],
   "status": "pending"
