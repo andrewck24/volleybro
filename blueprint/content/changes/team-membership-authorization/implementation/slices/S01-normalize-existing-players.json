@@ -6,9 +6,9 @@
   "dependsOn": [],
   "outcome": "production 的球員文件全部符合三種球員的模型，(teamId, userId) 與 (teamId, email) 由部分唯一索引保證不重複。正規化不為任何文件新增 userId，所以在舊程式碼下沒有人多出權限；它在收緊模型的程式碼部署之前完成。",
   "acceptanceCriteria": [
-    "新增 scripts/migrations/team-membership-normalize.audit.ts：只讀取，依 Design「第一階段：部署前正規化」回報每一類文件的數量；逐項回報停止條件命中的文件 id；列出將被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間；列出 players collection 現有的索引；並以 listIndexes 檢查 (teamId, email) 與 (teamId, userId) 是否為預期的部分唯一索引，回報結果。",
+    "新增 scripts/migrations/team-membership-normalize.audit.ts：只讀取，依 Design「第一階段：部署前正規化」回報每一類文件的數量；逐項回報停止條件命中的文件 id；列出將被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間；列出 players collection 現有的索引；並以 listIndexes 檢查 (teamId, email) 與 (teamId, userId) 是否為預期的部分唯一索引，回報結果；並列出沒有任何球員的隊伍（id 與隊名），讓開發者決定是否刪除。",
     "新增 scripts/migrations/team-membership-normalize.migrate.ts：以正規化後的結果計算停止條件，命中任一即停止且不寫入任何文件；否則依表格正規化，不為任何文件新增 userId。",
-    "停止條件至少包含：(teamId, userId) 重複；同隊受邀者 email 轉小寫並去除空白後重複；非成員帶擁有者角色；以 teams collection 逐隊計算的擁有者成員數量不為 1；受邀者或成員缺角色；受邀者同時有或同時缺 userId 與 email；成員缺 userId；未連結球員帶 userId；userId 或 teamId 不是 ObjectId；缺 teamId 或 teamId 指向不存在的隊伍；status 不在列舉內。",
+    "停止條件至少包含：(teamId, userId) 重複；同隊受邀者 email 轉小寫並去除空白後重複；非成員帶擁有者角色；有球員的隊伍其擁有者成員數量不為 1（沒有球員的隊伍不算違反）；受邀者或成員缺角色；受邀者同時有或同時缺 userId 與 email；成員缺 userId；未連結球員帶 userId；userId 或 teamId 不是 ObjectId；缺 teamId 或 teamId 指向不存在的隊伍；status 不在列舉內。",
     "受邀者保留下來的 email 一律去除前後空白並轉為小寫。schema 的 lowercase 只作用於經過 Mongoose 的寫入，2026-02 以原生 driver 寫入的舊文件可能帶大寫。",
     "「有 email」「有 userId」「有 role」一律指非空值；null 或空字串視為缺少，email 與 role 的空值一併清除。",
     "audit 以正規化前的狀態列出帶擁有者角色的非成員，停止條件則以正規化後的結果計算。",
@@ -21,6 +21,7 @@
   "verification": [
     "以記憶體 MongoDB 的整合測試覆蓋：每一類正規化；null 與空字串；以正規化後結果計算的重複；每一項停止條件；既有同名一般索引與無效宣告下仍建立真正的唯一索引；重跑不改變結果；腳本不寫入任何 userId；正規化後以舊寫入路徑產生的文件讓 findByTeamId 拋錯、重跑後恢復",
     "整合測試：帶大寫或前後空白的舊邀請在正規化後變成去空白的小寫，且重跑不再改變",
+    "整合測試：沒有球員的隊伍不觸發停止條件但出現在清單中；有球員卻沒有擁有者的隊伍仍然停止",
     "volleybro-test 執行 audit → migrate → audit",
     "production 執行 audit → migrate → audit，由開發者執行並確認",
     "pnpm verify",

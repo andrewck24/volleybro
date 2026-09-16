@@ -153,7 +153,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 
 1. `(teamId, userId)` 重複。
 2. 同隊受邀者的 email 在轉小寫並去除空白後重複。
-3. 非成員帶擁有者角色，或某隊的擁有者成員數量不為 1。
+3. 非成員帶擁有者角色，或某個**有球員的**隊伍其擁有者成員數量不為 1。完全沒有球員的隊伍不算違反：沒有人在裡面，就沒有需要保護的成員關係；它們列在 audit 的清單裡，由開發者決定是否刪除，而不是擋住遷移。
 4. 受邀者或成員缺角色；受邀者同時有、或同時缺 `userId` 與 `email`；成員缺 `userId`；未連結球員帶 `userId`。
 5. `userId` 或 `teamId` 不是 ObjectId，缺 `teamId`，或 `teamId` 指向不存在的隊伍。
 6. `status` 的值不在 `NONE`、`INVITED`、`JOINED` 之內。
