@@ -18,5 +18,5 @@
     "remove-player use case 測試：被刪除者的 activeTeamId 指向該隊時被清除，指向他隊時不變",
     "pnpm verify"
   ],
-  "status": "pending"
+  "status": "completed"
 }

@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import { clearActiveTeam } from "@/applications/usecases/player/membership";
 import {
   AuthorizationError,
   NotFoundError,
@@ -83,11 +84,7 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
-    // Clear activeTeamId if it points to the team the user just left
-    const profile = await this.profileRepository.findByUserId(userId);
-    if (profile?.activeTeamId === player.teamId) {
-      await this.profileRepository.updateActiveTeamId(userId, null);
-    }
+    await clearActiveTeam(this.profileRepository, userId, player.teamId);
 
     return { success: true };
   }

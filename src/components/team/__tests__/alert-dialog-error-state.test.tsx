@@ -92,6 +92,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
@@ -135,6 +136,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
@@ -174,6 +176,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 

@@ -31,12 +31,15 @@ interface MembershipSectionProps {
   player: PlayerView;
   teamId: string;
   isCurrentOwner: boolean;
+  /** The caller is looking at their own player. */
+  isSelf: boolean;
 }
 
 export function MembershipSection({
   player,
   teamId,
   isCurrentOwner,
+  isSelf,
 }: MembershipSectionProps) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -44,6 +47,7 @@ export function MembershipSection({
   const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
+  const canManage = !isOwnerPlayer && !isSelf;
 
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removeError, setRemoveError] = useState<ErrorMessage | null>(null);
@@ -116,7 +120,7 @@ export function MembershipSection({
         <JoinedSection player={player} onSuccess={revalidate} toast={toast} />
       )}
 
-      {!isOwnerPlayer && (
+      {canManage && (
         <>
           <Separator />
           <div className="space-y-2">

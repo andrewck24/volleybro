@@ -104,6 +104,7 @@ export function EditForm({
               player={player}
               teamId={teamId}
               isCurrentOwner={isCurrentOwner}
+              isSelf={currentUserPlayer.id === player.id}
             />
           </>
         )}

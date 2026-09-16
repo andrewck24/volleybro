@@ -57,6 +57,7 @@ describe("MembershipSection — remove loading state", () => {
         player={basePlayer}
         teamId="team-1"
         isCurrentOwner={false}
+        isSelf={false}
       />,
     );
 
@@ -84,6 +85,7 @@ describe("MembershipSection — remove loading state", () => {
         player={basePlayer}
         teamId="team-1"
         isCurrentOwner={false}
+        isSelf={false}
       />,
     );
 
@@ -114,6 +116,7 @@ describe("MembershipSection — transfer loading state", () => {
         player={basePlayer}
         teamId="team-1"
         isCurrentOwner={true}
+        isSelf={false}
       />,
     );
 
@@ -143,6 +146,7 @@ describe("MembershipSection — transfer loading state", () => {
         player={basePlayer}
         teamId="team-1"
         isCurrentOwner={true}
+        isSelf={false}
       />,
     );
 
@@ -153,5 +157,48 @@ describe("MembershipSection — transfer loading state", () => {
     await user.click(confirmBtn);
 
     await waitFor(() => expect(confirmBtn).toBeEnabled());
+  });
+});
+
+describe("MembershipSection — who the delete entry appears for", () => {
+  const deleteEntry = () => screen.queryByRole("button", { name: /移除成員/ });
+
+  it("appears for a player the caller may manage", () => {
+    render(
+      <MembershipSection
+        player={basePlayer}
+        teamId="team-1"
+        isCurrentOwner={true}
+        isSelf={false}
+      />,
+    );
+
+    expect(deleteEntry()).toBeInTheDocument();
+  });
+
+  it("does not appear for the owner's player", () => {
+    render(
+      <MembershipSection
+        player={{ ...basePlayer, role: PlayerRole.OWNER }}
+        teamId="team-1"
+        isCurrentOwner={false}
+        isSelf={false}
+      />,
+    );
+
+    expect(deleteEntry()).not.toBeInTheDocument();
+  });
+
+  it("does not appear for the caller's own player", () => {
+    render(
+      <MembershipSection
+        player={basePlayer}
+        teamId="team-1"
+        isCurrentOwner={false}
+        isSelf={true}
+      />,
+    );
+
+    expect(deleteEntry()).not.toBeInTheDocument();
   });
 });

@@ -6,10 +6,16 @@
  *   by exactly one of userId (registered) or email (not yet registered).
  * - TeamMember: joined with an account; only members hold team permissions.
  *
- * Membership and the role hierarchy are decided here, without any I/O.
+ * Membership, the role hierarchy and who may manage whom are decided here,
+ * without any I/O.
  */
 
-import { ValidationError, CommonReason } from "@/entities/errors";
+import {
+  AuthReason,
+  CommonReason,
+  PlayerReason,
+  ValidationError,
+} from "@/entities/errors";
 
 export enum PlayerRole {
   MEMBER = "MEMBER",
@@ -158,4 +164,31 @@ export function canManageTeam(member: TeamMember): boolean {
 
 export function isOwner(member: TeamMember): boolean {
   return hasTeamRole(member, PlayerRole.OWNER);
+}
+
+export type ManageRefusal =
+  | AuthReason.NOT_TEAM_MEMBER
+  | AuthReason.INSUFFICIENT_ROLE
+  | PlayerReason.TARGET_IS_OWNER
+  | PlayerReason.TARGET_IS_SELF;
+
+/**
+ * Why `actor` may not change `target`'s role or delete them, or null when the
+ * two stand in a relation that allows it. Admins may manage their peers; the
+ * owner is nobody's target and ownership leaves only by transfer; nobody
+ * targets their own player, because leaving the team is that path.
+ *
+ * The refusal is returned rather than thrown so each caller phrases it.
+ */
+export function refuseToManagePlayer(
+  actor: Player | null,
+  target: Player,
+): ManageRefusal | null {
+  if (!actor || !isTeamMember(actor) || actor.teamId !== target.teamId)
+    return AuthReason.NOT_TEAM_MEMBER;
+  if (!canManageTeam(actor)) return AuthReason.INSUFFICIENT_ROLE;
+  if (isTeamMember(target) && isOwner(target))
+    return PlayerReason.TARGET_IS_OWNER;
+  if (actor.id === target.id) return PlayerReason.TARGET_IS_SELF;
+  return null;
 }

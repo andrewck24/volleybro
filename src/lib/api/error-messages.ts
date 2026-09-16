@@ -71,6 +71,14 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方尚未加入",
     description: "邀請中的成員要先接受邀請，才能成為隊長",
   },
+  TARGET_IS_OWNER: {
+    title: "擁有者無法被變更或刪除",
+    description: "擁有權只能由擁有者本人移轉給其他成員",
+  },
+  TARGET_IS_SELF: {
+    title: "無法對自己的球員操作",
+    description: "要離開這支隊伍，請使用離開隊伍",
+  },
   TARGET_NOT_LINKED: {
     title: "這位球員沒有帳號",
     description: "先邀請對方加入，才能設定角色",
