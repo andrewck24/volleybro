@@ -10,7 +10,7 @@ import {
 
 const mockConnectToMongoDB = jest.fn<() => Promise<void>>();
 const mockGetTeamController =
-  jest.fn<(teamId: string) => Promise<Record<string, unknown> | null>>();
+  jest.fn<(input: unknown) => Promise<Record<string, unknown> | null>>();
 const mockUpdateTeamController =
   jest.fn<
     (teamId: string, data: unknown) => Promise<Record<string, unknown>>
@@ -57,6 +57,8 @@ let PATCH: (
 ) => Promise<RouteResponse>;
 
 describe("GET /api/teams/[teamId]", () => {
+  const SESSION = { user: { id: "user-1" } };
+
   beforeAll(async () => {
     ({ GET, PATCH } = await import("../route"));
   });
@@ -64,6 +66,23 @@ describe("GET /api/teams/[teamId]", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockConnectToMongoDB.mockResolvedValue(undefined);
+    mockGetSession.mockResolvedValue(SESSION);
+  });
+
+  it("returns 401 when session is missing", async () => {
+    const consoleSpy = silenceConsoleError();
+    mockGetSession.mockResolvedValue(null);
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}`,
+      "GET",
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await GET(req as never, props);
+
+    expect(res.status).toBe(401);
+    expect(mockGetTeamController).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
   it("returns 400 with VALIDATION code for invalid teamId format", async () => {
@@ -107,7 +126,10 @@ describe("GET /api/teams/[teamId]", () => {
 
     expect(res.status).toBe(404);
     expect(body.code).toBe("NOT_FOUND");
-    expect(mockGetTeamController).toHaveBeenCalledWith(VALID_OBJECT_ID);
+    expect(mockGetTeamController).toHaveBeenCalledWith({
+      teamId: VALID_OBJECT_ID,
+      userId: "user-1",
+    });
     consoleSpy.mockRestore();
   });
 
