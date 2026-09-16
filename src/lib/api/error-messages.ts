@@ -99,6 +99,14 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方已經在隊上",
     description: "不需要重複邀請",
   },
+  ALREADY_ON_ROSTER: {
+    title: "對方已在名單上",
+    description: "這個 email 的擁有者已經是隊上的球員或受邀者",
+  },
+  AMBIGUOUS_EMAIL: {
+    title: "這個 email 對應到多個帳號",
+    description: "無法確定要邀請哪一位，請改用對方帳號的 email 再試一次",
+  },
   EMAIL_ALREADY_INVITED: {
     title: "這個 email 已被邀請",
     description: "你已在其他隊員邀請此 email",

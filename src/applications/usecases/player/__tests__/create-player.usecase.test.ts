@@ -2,17 +2,21 @@ import {
   createInvitedPlayer,
   createMockAuthorizationService,
   createMockPlayerRepository,
+  createMockUserRepository,
+  createPlayer,
   createUnlinkedPlayer,
+  createUser,
 } from "@/__tests__/helpers";
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
 import { CreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
-import { ConflictError } from "@/entities/errors";
+import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("CreatePlayerUseCase", () => {
   let useCase: ICreatePlayerUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockUserRepository: ReturnType<typeof createMockUserRepository>;
   let mockAuthService: ReturnType<typeof createMockAuthorizationService>;
 
   const teamId = "team_123";
@@ -20,9 +24,20 @@ describe("CreatePlayerUseCase", () => {
 
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
+    mockUserRepository = createMockUserRepository();
     mockAuthService = createMockAuthorizationService();
-    useCase = new CreatePlayerUseCase(mockPlayerRepository, mockAuthService);
+    useCase = new CreatePlayerUseCase(
+      mockPlayerRepository,
+      mockUserRepository,
+      mockAuthService,
+    );
   });
+
+  /** No account holds the address, and nobody on the team was invited to it. */
+  const unregistered = () => {
+    mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([]);
+    mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+  };
 
   describe("execute", () => {
     it("creates an unlinked player without a role when no email is given", async () => {
@@ -42,6 +57,9 @@ describe("CreatePlayerUseCase", () => {
         position: Position.MB,
         teamId,
       });
+      expect(
+        mockUserRepository.findAllByEmailInsensitive,
+      ).not.toHaveBeenCalled();
     });
 
     it("creates an invitee holding only a lowercased, trimmed email", async () => {
@@ -53,7 +71,7 @@ describe("CreatePlayerUseCase", () => {
       });
 
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+      unregistered();
       mockPlayerRepository.create.mockResolvedValue(created);
 
       const result = await useCase.execute({
@@ -67,9 +85,9 @@ describe("CreatePlayerUseCase", () => {
       });
 
       expect(result).toEqual(created);
-      expect(
-        mockPlayerRepository.findInvitedByTeamIdAndEmail,
-      ).toHaveBeenCalledWith(teamId, "wang@example.com");
+      expect(mockUserRepository.findAllByEmailInsensitive).toHaveBeenCalledWith(
+        "Wang@Example.COM",
+      );
       expect(mockPlayerRepository.create).toHaveBeenCalledWith({
         name: "王小明",
         status: PlayerStatus.INVITED,
@@ -81,25 +99,39 @@ describe("CreatePlayerUseCase", () => {
       });
     });
 
-    it("does not link the invitation to an account", async () => {
+    it("links the account when the email is already registered", async () => {
+      const invitee = createUser({
+        id: "user_invitee",
+        email: "wang@example.com",
+      });
+
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
-      mockPlayerRepository.create.mockResolvedValue(createInvitedPlayer());
+      mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([invitee]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+      mockPlayerRepository.create.mockResolvedValue(
+        createInvitedPlayer({ teamId, userId: invitee.id }),
+      );
 
       await useCase.execute({
         teamId,
-        data: { name: "王小明", email: "wang@example.com" },
+        data: { name: "王小明", email: "Wang@example.com" },
         userId,
       });
 
       expect(mockPlayerRepository.create).toHaveBeenCalledWith(
-        expect.not.objectContaining({ userId: expect.anything() }),
+        expect.objectContaining({
+          status: PlayerStatus.INVITED,
+          userId: invitee.id,
+        }),
+      );
+      expect(mockPlayerRepository.create).toHaveBeenCalledWith(
+        expect.not.objectContaining({ email: expect.anything() }),
       );
     });
 
     it("defaults an invitee's role to MEMBER", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(null);
+      unregistered();
       mockPlayerRepository.create.mockResolvedValue(createInvitedPlayer());
 
       await useCase.execute({
@@ -119,13 +151,40 @@ describe("CreatePlayerUseCase", () => {
       );
 
       await expect(
-        useCase.execute({ teamId, data: { name: "Test Player" }, userId }),
+        useCase.execute({
+          teamId,
+          data: { name: "Test Player", email: "test@example.com" },
+          userId,
+        }),
       ).rejects.toThrow("User not authorized");
+      expect(
+        mockUserRepository.findAllByEmailInsensitive,
+      ).not.toHaveBeenCalled();
+      expect(mockPlayerRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("rejects an account that already has a player on this team", async () => {
+      const invitee = createUser({ id: "user_invitee" });
+
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([invitee]);
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createPlayer({ teamId, userId: invitee.id }),
+      );
+
+      await expect(
+        useCase.execute({
+          teamId,
+          data: { name: "Test Player", email: "test@example.com" },
+          userId,
+        }),
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
       expect(mockPlayerRepository.create).not.toHaveBeenCalled();
     });
 
     it("should reject if email already invited in team", async () => {
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockUserRepository.findAllByEmailInsensitive.mockResolvedValue([]);
       mockPlayerRepository.findInvitedByTeamIdAndEmail.mockResolvedValue(
         createInvitedPlayer({
           id: "player_123",
@@ -140,7 +199,7 @@ describe("CreatePlayerUseCase", () => {
           data: { name: "Test Player", email: "test@example.com" },
           userId,
         }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).rejects.toMatchObject({ reason: PlayerReason.ALREADY_ON_ROSTER });
       expect(mockPlayerRepository.create).not.toHaveBeenCalled();
     });
   });

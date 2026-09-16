@@ -50,6 +50,7 @@ export function createMockUserRepository(): jest.Mocked<IUserRepository> {
   return {
     findById: jest.fn(),
     findByEmail: jest.fn(),
+    findAllByEmailInsensitive: jest.fn(),
   };
 }
 

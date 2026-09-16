@@ -1,11 +1,11 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import {
-  ConflictError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+  asRosterConflict,
+  resolveInviteeLink,
+} from "@/applications/usecases/player/invitee-link";
+import { UnexpectedError, CommonReason } from "@/entities/errors";
 import type { Player, Position } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -33,6 +33,8 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.UserRepository)
+    private userRepository: IUserRepository,
     @inject(TYPES.AuthorizationService)
     private authService: IAuthorizationService,
   ) {}
@@ -41,34 +43,32 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
     await this.authService.verifyIsTeamAdmin(teamId, userId);
 
     const { name, number, position } = data;
-    const email = data.email?.trim().toLowerCase();
+    const address = data.email?.trim();
+    const link = address
+      ? await resolveInviteeLink(
+          { players: this.playerRepository, users: this.userRepository },
+          teamId,
+          address,
+        )
+      : null;
 
-    if (email) {
-      const existingInvitation =
-        await this.playerRepository.findInvitedByTeamIdAndEmail(teamId, email);
-      if (existingInvitation) {
-        throw new ConflictError(
-          PlayerReason.EMAIL_ALREADY_INVITED,
-          "This email already has a pending invitation for this team",
-        );
-      }
-    }
-
-    // An invitation carries only the email until the invitee accepts: writing a
-    // userId here would hand them a member's permissions before they do.
-    const player = await this.playerRepository.create(
-      email
-        ? {
-            name,
-            status: PlayerStatus.INVITED,
-            number,
-            position,
-            teamId,
-            email,
-            role: data.role ?? PlayerRole.MEMBER,
-          }
-        : { name, status: PlayerStatus.NONE, number, position, teamId },
-    );
+    const player = await this.playerRepository
+      .create(
+        link
+          ? {
+              name,
+              status: PlayerStatus.INVITED,
+              number,
+              position,
+              teamId,
+              role: data.role ?? PlayerRole.MEMBER,
+              ...link,
+            }
+          : { name, status: PlayerStatus.NONE, number, position, teamId },
+      )
+      .catch((error: unknown) => {
+        throw asRosterConflict(error);
+      });
 
     if (!player) {
       throw new UnexpectedError(
