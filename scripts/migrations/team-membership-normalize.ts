@@ -97,12 +97,13 @@ const project = (raw: Raw, counts: NormalizeReport["counts"]): Projection => {
   const hasUserId = isObjectId(raw.userId);
   const email = text(raw.email);
   const role = text(raw.role);
+  const hasStatus = raw.status !== null && raw.status !== undefined;
   const rawStatus = typeof raw.status === "string" ? raw.status : null;
   const set: Record<string, unknown> = {};
   const unset: string[] = [];
 
   let status: Status | null = null;
-  if (rawStatus === null) {
+  if (!hasStatus) {
     if (hasUserId) {
       status = "JOINED";
       set.status = status;
@@ -113,7 +114,10 @@ const project = (raw: Raw, counts: NormalizeReport["counts"]): Projection => {
       if (email) counts.missingStatusEmailOnly += 1;
       else counts.missingStatusBare += 1;
     }
-  } else if ((STATUSES as readonly string[]).includes(rawStatus)) {
+  } else if (
+    rawStatus !== null &&
+    (STATUSES as readonly string[]).includes(rawStatus)
+  ) {
     status = rawStatus as Status;
   }
 
@@ -203,7 +207,11 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   const ownersByTeam = new Map<string, string[]>();
 
   for (const p of projections) {
-    if (typeof p.raw.status === "string" && p.status === null)
+    if (
+      p.raw.status !== undefined &&
+      p.raw.status !== null &&
+      p.status === null
+    )
       collect(stops, "unknownStatus", p.id);
     if (!isObjectId(p.teamId)) collect(stops, "missingOrInvalidTeamId", p.id);
     else if (!teamIds.has(id(p.teamId))) collect(stops, "teamIdNotFound", p.id);

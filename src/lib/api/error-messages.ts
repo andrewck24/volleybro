@@ -69,7 +69,7 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
   },
   TARGET_NOT_MEMBER: {
     title: "對方尚未加入",
-    description: "邀請中的成員要先接受邀請，才能成為擁有者",
+    description: "受邀者要先接受邀請，才能成為擁有者",
   },
   TARGET_IS_OWNER: {
     title: "擁有者無法被變更或刪除",
@@ -84,7 +84,7 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     description: "先邀請對方加入，才能設定角色",
   },
   PLAYER_NOT_FOUND: {
-    title: "找不到這位成員",
+    title: "找不到這位球員",
     description: "對方可能已離開隊伍，請重新整理後再試",
   },
   INSUFFICIENT_ROLE: {

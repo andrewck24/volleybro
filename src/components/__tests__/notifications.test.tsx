@@ -23,4 +23,12 @@ describe("Notifications", () => {
 
     expect(screen.queryByText("歡迎使用 VolleyBro !")).not.toBeInTheDocument();
   });
+
+  it("does not show the new-user guide while the active team is still loading", () => {
+    mockUseActiveTeamId.mockReturnValue({ teamId: undefined, isLoading: true });
+
+    render(<Notifications />);
+
+    expect(screen.queryByText("歡迎使用 VolleyBro !")).not.toBeInTheDocument();
+  });
 });

@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import { container } from "@/infrastructure/di/inversify.config";
+import { TYPES } from "@/infrastructure/di/types";
+
 import {
   auditNormalize,
   PLAYERS,
@@ -266,6 +270,7 @@ describe("membership normalization", () => {
   it("reports documents written by the old code after a normalize, so the rerun is visible", async () => {
     const teamId = await seedTeam();
     await runNormalize(db());
+    const repository = container.get<IPlayerRepository>(TYPES.PlayerRepository);
 
     // What the old create-player writes: an unlinked player carrying a role.
     await db().collection(PLAYERS).insertOne({
@@ -278,9 +283,181 @@ describe("membership normalization", () => {
     const audit = await auditNormalize(db());
     expect(audit.counts.unlinkedCarryingRoleOrEmail).toBe(1);
 
+    // The critical risk: the roster read fails while the bad document sits there.
+    await expect(repository.findByTeamId(teamId.toString())).rejects.toThrow();
+
     await runNormalize(db());
 
     const [player] = await players({ name: "Written during the gap" });
     expect(player!.role).toBeUndefined();
+    await expect(
+      repository.findByTeamId(teamId.toString()),
+    ).resolves.not.toThrow();
+  });
+
+  describe("stop conditions", () => {
+    it("stops on a duplicate email, comparing the normalized projection", async () => {
+      const teamId = await seedTeam();
+      await db()
+        .collection(PLAYERS)
+        .insertMany([
+          {
+            teamId,
+            name: "A",
+            status: "INVITED",
+            email: "Dup@x.com",
+            role: "MEMBER",
+          },
+          {
+            teamId,
+            name: "B",
+            status: "INVITED",
+            email: "dup@x.com",
+            role: "MEMBER",
+          },
+        ]);
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("duplicateEmail");
+    });
+
+    it("stops when an invitation has no role", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Invited",
+        status: "INVITED",
+        email: "invited@x.com",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("invitedWithoutRole");
+    });
+
+    it("stops when an invitation has both a userId and an email", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Invited",
+        status: "INVITED",
+        userId: oid(),
+        email: "invited@x.com",
+        role: "MEMBER",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("invitedWithBothIds");
+    });
+
+    it("stops when an invitation has no recipient", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Invited",
+        status: "INVITED",
+        role: "MEMBER",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("invitedWithoutRecipient");
+    });
+
+    it("stops when a member has no role", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Member",
+        status: "JOINED",
+        userId: oid(),
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("memberWithoutRole");
+    });
+
+    it("stops on an unknown status", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Weird",
+        status: "LEFT",
+        userId: oid(),
+        role: "MEMBER",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("unknownStatus");
+    });
+
+    it("stops on a non-string status", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Weird",
+        status: 5,
+        userId: oid(),
+        role: "MEMBER",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("unknownStatus");
+    });
+
+    it("stops when teamId is missing or invalid", async () => {
+      await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        name: "No team",
+        status: "NONE",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("missingOrInvalidTeamId");
+    });
+
+    it("stops when teamId does not match an existing team", async () => {
+      await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId: oid(),
+        name: "Ghost team",
+        status: "NONE",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("teamIdNotFound");
+    });
+
+    it("stops when userId is present but not an ObjectId", async () => {
+      const teamId = await seedTeam();
+      await db().collection(PLAYERS).insertOne({
+        teamId,
+        name: "Bad id",
+        status: "JOINED",
+        userId: "not-an-object-id",
+        role: "MEMBER",
+      });
+
+      const { applied, report } = await runNormalize(db());
+
+      expect(applied).toBe(false);
+      expect(codes(report)).toContain("userIdNotObjectId");
+    });
   });
 });

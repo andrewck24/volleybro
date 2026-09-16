@@ -3,9 +3,9 @@ import { GuidesForNewUser } from "@/components/custom/guides/new-user";
 import { useActiveTeamId } from "@/hooks/use-data";
 
 const Notifications = () => {
-  const { teamId } = useActiveTeamId();
+  const { teamId, isLoading } = useActiveTeamId();
 
-  return <>{!teamId && <GuidesForNewUser />}</>;
+  return <>{!teamId && !isLoading && <GuidesForNewUser />}</>;
 };
 
 export default Notifications;

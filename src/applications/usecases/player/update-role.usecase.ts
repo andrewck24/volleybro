@@ -54,7 +54,6 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
       userId,
     );
 
-    // 只有受邀者與成員有角色
     if (player.status === PlayerStatus.NONE) {
       throw new ConflictError(
         PlayerReason.TARGET_NOT_LINKED,

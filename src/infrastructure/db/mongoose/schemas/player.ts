@@ -99,7 +99,7 @@ PlayerSchema.index(
   { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
 );
 
-// T060: Composite index for querying members by role within a team
+// Composite index for querying members by role within a team
 PlayerSchema.index({ teamId: 1, role: 1 });
 
 // Prevent model overwrite error in development (hot reload)
