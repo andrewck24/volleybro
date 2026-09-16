@@ -43,6 +43,21 @@ describe("AcceptInvitationUseCase", () => {
     });
   });
 
+  it("should return the invitation it read, so callers know the team", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
+    mockPlayerRepository.update.mockResolvedValue(
+      createPlayer({ name: "test", number: undefined, position: undefined }),
+    );
+
+    const result = await usecase.execute({
+      playerId: "player-1",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual(invitedPlayer);
+    expect(result.teamId).toBe("team-1");
+  });
+
   it("should throw error if userId does not match invited recipient", async () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
 
