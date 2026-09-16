@@ -1,11 +1,13 @@
 import {
+  createInvitedPlayer,
   createMockAuthorizationService,
   createMockPlayerRepository,
   createPlayer,
+  createUnlinkedPlayer,
 } from "@/__tests__/helpers";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
-import { NotFoundError } from "@/entities/errors";
+import { ConflictError, NotFoundError, PlayerReason } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -42,7 +44,58 @@ describe("UpdateRoleUseCase", () => {
 
       const result = await useCase.execute({ playerId, newRole, userId });
 
-      expect(result.role).toBe(newRole);
+      expect(result).toMatchObject({ role: newRole });
+    });
+
+    it("should update an invitee's offered role", async () => {
+      const playerId = "player_123";
+      const newRole = PlayerRole.ADMIN;
+
+      const invitee = createInvitedPlayer({
+        id: playerId,
+        teamId: "team_123",
+        email: "invited@example.com",
+      });
+
+      mockPlayerRepository.findById.mockResolvedValue(invitee);
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+      mockPlayerRepository.update.mockResolvedValue(
+        createInvitedPlayer({
+          id: playerId,
+          teamId: "team_123",
+          email: "invited@example.com",
+          role: newRole,
+        }),
+      );
+
+      const result = await useCase.execute({
+        playerId,
+        newRole,
+        userId: "user_456",
+      });
+
+      expect(result).toMatchObject({ role: newRole });
+    });
+
+    it("should reject an unlinked player as the target", async () => {
+      const playerId = "player_123";
+
+      mockPlayerRepository.findById.mockResolvedValue(
+        createUnlinkedPlayer({ id: playerId, teamId: "team_123" }),
+      );
+      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
+
+      const attempt = useCase.execute({
+        playerId,
+        newRole: PlayerRole.ADMIN,
+        userId: "user_456",
+      });
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.TARGET_NOT_LINKED,
+      });
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
     });
 
     it("should allow ADMIN to downgrade own role to MEMBER", async () => {
@@ -68,7 +121,7 @@ describe("UpdateRoleUseCase", () => {
 
       const result = await useCase.execute({ playerId, newRole, userId });
 
-      expect(result.role).toBe(newRole);
+      expect(result).toMatchObject({ role: newRole });
     });
 
     it("should prevent non-admin from updating roles", async () => {

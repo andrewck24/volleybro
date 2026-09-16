@@ -1,12 +1,14 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import {
+  ConflictError,
   NotFoundError,
   UnexpectedError,
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
 import type { Player, PlayerRole } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -51,7 +53,15 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
       );
     await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
-    // 3. 更新角色
+    // 3. 只有受邀者與成員有角色
+    if (player.status === PlayerStatus.NONE) {
+      throw new ConflictError(
+        PlayerReason.TARGET_NOT_LINKED,
+        "An unlinked player has no role to change",
+      );
+    }
+
+    // 4. 更新角色
     const updatedPlayer = await this.playerRepository.update(playerId, {
       role: newRole,
     });

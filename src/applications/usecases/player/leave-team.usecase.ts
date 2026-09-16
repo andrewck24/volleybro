@@ -8,7 +8,12 @@ import {
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import {
+  hasTeamRole,
+  isTeamMember,
+  PlayerRole,
+  PlayerStatus,
+} from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -44,14 +49,14 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     }
 
-    if (player.userId !== userId) {
+    if (!isTeamMember(player) || player.userId !== userId) {
       throw new AuthorizationError(
         PlayerReason.NOT_PLAYER_OWNER,
         "You cannot leave a player that does not belong to you",
       );
     }
 
-    if (player.role === PlayerRole.OWNER) {
+    if (hasTeamRole(player, PlayerRole.OWNER)) {
       throw new AuthorizationError(
         PlayerReason.OWNER_CANNOT_LEAVE,
         "Team owner cannot leave the team",
@@ -61,6 +66,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     const updated = await this.playerRepository.update(playerId, {
       status: PlayerStatus.NONE,
       userId: undefined,
+      email: undefined,
+      role: undefined,
     });
     if (!updated) {
       throw new UnexpectedError(

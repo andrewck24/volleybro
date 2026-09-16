@@ -1,14 +1,17 @@
-import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
+import {
+  createInvitedPlayer,
+  createMockPlayerRepository,
+  createPlayer,
+  createUnlinkedPlayer,
+} from "@/__tests__/helpers";
 import { GetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
-import { PlayerRole } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("GetPlayerUseCase", () => {
   let usecase: GetPlayerUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const mockPlayer = createPlayer({
-    email: "test@example.com",
-  });
+  const mockPlayer = createPlayer();
 
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
@@ -31,42 +34,45 @@ describe("GetPlayerUseCase", () => {
     expect(result).toBeNull();
   });
 
-  it("should return complete player information", async () => {
+  it("should return complete member information", async () => {
     mockPlayerRepository.findById.mockResolvedValue(mockPlayer);
 
     const result = await usecase.execute({ playerId: "player-1" });
 
-    expect(result?.id).toBe("player-1");
-    expect(result?.name).toBe("Test Player");
-    expect(result?.teamId).toBe("team-1");
-    expect(result?.userId).toBe("user-1");
-    expect(result?.email).toBe("test@example.com");
-    expect(result?.role).toBe(PlayerRole.MEMBER);
+    expect(result).toMatchObject({
+      id: "player-1",
+      name: "Test Player",
+      teamId: "team-1",
+      status: PlayerStatus.JOINED,
+      userId: "user-1",
+      role: PlayerRole.MEMBER,
+    });
+    expect(result).not.toHaveProperty("email");
   });
 
-  it("should return invited player without userId", async () => {
-    const invitedPlayer = createPlayer({
-      userId: undefined,
+  it("should return an invitee reachable by email, without a userId", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(
+      createInvitedPlayer({ email: "test@example.com" }),
+    );
+
+    const result = await usecase.execute({ playerId: "player-1" });
+
+    expect(result).toMatchObject({
+      status: PlayerStatus.INVITED,
       email: "test@example.com",
+      role: PlayerRole.MEMBER,
     });
-    mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
-
-    const result = await usecase.execute({ playerId: "player-1" });
-
-    expect(result?.userId).toBeUndefined();
-    expect(result?.email).toBeDefined();
+    expect(result).not.toHaveProperty("userId");
   });
 
-  it("should return pure player without email", async () => {
-    const purePlayer = createPlayer({
-      email: undefined,
-      userId: undefined,
-    });
-    mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+  it("should return an unlinked player without userId, email or role", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(createUnlinkedPlayer());
 
     const result = await usecase.execute({ playerId: "player-1" });
 
-    expect(result?.email).toBeUndefined();
-    expect(result?.userId).toBeUndefined();
+    expect(result).toMatchObject({ status: PlayerStatus.NONE });
+    expect(result).not.toHaveProperty("userId");
+    expect(result).not.toHaveProperty("email");
+    expect(result).not.toHaveProperty("role");
   });
 });

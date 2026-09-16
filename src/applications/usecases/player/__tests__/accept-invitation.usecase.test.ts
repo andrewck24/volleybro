@@ -1,4 +1,9 @@
-import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
+import {
+  createInvitedPlayer,
+  createMockPlayerRepository,
+  createPlayer,
+  createUnlinkedPlayer,
+} from "@/__tests__/helpers";
 import { AcceptInvitationUseCase } from "@/applications/usecases/player/accept-invitation.usecase";
 import {
   AuthorizationError,
@@ -11,11 +16,11 @@ describe("AcceptInvitationUseCase", () => {
   let usecase: AcceptInvitationUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
 
-  const invitedPlayer = createPlayer({
+  const invitedPlayer = createInvitedPlayer({
     name: "test",
     number: undefined,
     position: undefined,
-    status: PlayerStatus.INVITED,
+    userId: "user-1",
   });
 
   beforeEach(() => {
@@ -25,16 +30,17 @@ describe("AcceptInvitationUseCase", () => {
 
   it("should transition status from INVITED to JOINED and set userId, clear email", async () => {
     mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
-    mockPlayerRepository.update.mockResolvedValue({
-      ...invitedPlayer,
+    mockPlayerRepository.update.mockResolvedValue(
+      createPlayer({ name: "test", number: undefined, position: undefined }),
+    );
+
+    await usecase.execute({ playerId: "player-1", userId: "user-1" });
+
+    expect(mockPlayerRepository.update).toHaveBeenCalledWith("player-1", {
       status: PlayerStatus.JOINED,
       userId: "user-1",
       email: undefined,
     });
-
-    await usecase.execute({ playerId: "player-1", userId: "user-1" });
-
-    // No error thrown means success
   });
 
   it("should throw error if userId does not match invited recipient", async () => {
@@ -54,11 +60,7 @@ describe("AcceptInvitationUseCase", () => {
   });
 
   it("should throw error if player is already JOINED", async () => {
-    const joinedPlayer = createPlayer({
-      status: PlayerStatus.JOINED,
-      userId: "existing-user",
-      email: undefined,
-    });
+    const joinedPlayer = createPlayer({ userId: "existing-user" });
     mockPlayerRepository.findById.mockResolvedValue(joinedPlayer);
 
     await expect(
@@ -67,10 +69,7 @@ describe("AcceptInvitationUseCase", () => {
   });
 
   it("should throw error if player status is NONE (no invitation)", async () => {
-    const nonePlayer = createPlayer({
-      status: PlayerStatus.NONE,
-      email: undefined,
-    });
+    const nonePlayer = createUnlinkedPlayer();
     mockPlayerRepository.findById.mockResolvedValue(nonePlayer);
 
     await expect(
@@ -79,20 +78,20 @@ describe("AcceptInvitationUseCase", () => {
   });
 
   it("should preserve role when accepting invitation", async () => {
-    const adminInvite = createPlayer({
-      status: PlayerStatus.INVITED,
+    const adminInvite = createInvitedPlayer({
+      userId: "user-1",
       role: PlayerRole.ADMIN,
     });
     mockPlayerRepository.findById.mockResolvedValue(adminInvite);
-    mockPlayerRepository.update.mockResolvedValue({
-      ...adminInvite,
-      status: PlayerStatus.JOINED,
-      userId: "user-1",
-      email: undefined,
-    });
+    mockPlayerRepository.update.mockResolvedValue(
+      createPlayer({ role: PlayerRole.ADMIN }),
+    );
 
     await usecase.execute({ playerId: "player-1", userId: "user-1" });
 
-    // No error thrown means success
+    expect(mockPlayerRepository.update).toHaveBeenCalledWith(
+      "player-1",
+      expect.not.objectContaining({ role: expect.anything() }),
+    );
   });
 });

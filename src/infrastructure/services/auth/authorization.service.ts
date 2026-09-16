@@ -1,9 +1,21 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
-import { PlayerRole } from "@/entities/player";
+import { hasTeamRole, isTeamMember, PlayerRole } from "@/entities/player";
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
+
+const notTeamMember = () =>
+  new AuthorizationError(
+    AuthReason.NOT_TEAM_MEMBER,
+    "User is not a member of this team",
+  );
+
+const insufficientRole = () =>
+  new AuthorizationError(
+    AuthReason.INSUFFICIENT_ROLE,
+    "Insufficient permissions for this action",
+  );
 
 @injectable()
 export class AuthorizationService implements IAuthorizationService {
@@ -20,50 +32,16 @@ export class AuthorizationService implements IAuthorizationService {
       teamId,
       userId,
     );
-    if (!player)
-      throw new AuthorizationError(
-        AuthReason.NOT_TEAM_MEMBER,
-        "User is not a member of this team",
-      );
 
-    if (role === PlayerRole.MEMBER && player.role) return;
-    if (
-      role === PlayerRole.ADMIN &&
-      (player.role === PlayerRole.ADMIN || player.role === PlayerRole.OWNER)
-    )
-      return;
-    if (role === PlayerRole.OWNER && player.role === PlayerRole.OWNER) return;
-
-    throw new AuthorizationError(
-      AuthReason.INSUFFICIENT_ROLE,
-      "Insufficient permissions for this action",
-    );
+    if (!player || !isTeamMember(player)) throw notTeamMember();
+    if (!hasTeamRole(player, role)) throw insufficientRole();
   }
 
   /**
    * Verify user is admin or owner of the team
    */
   async verifyIsTeamAdmin(teamId: string, userId: string): Promise<void> {
-    const player = await this.playerRepository.findByTeamIdAndUserId(
-      teamId,
-      userId,
-    );
-
-    if (!player) {
-      throw new AuthorizationError(
-        AuthReason.NOT_TEAM_MEMBER,
-        "User is not a member of this team",
-      );
-    }
-
-    const isAdmin =
-      player.role === PlayerRole.ADMIN || player.role === PlayerRole.OWNER;
-    if (!isAdmin) {
-      throw new AuthorizationError(
-        AuthReason.INSUFFICIENT_ROLE,
-        "Insufficient permissions for this action",
-      );
-    }
+    await this.verifyTeamRole(teamId, userId, PlayerRole.ADMIN);
   }
 
   /**
@@ -72,18 +50,8 @@ export class AuthorizationService implements IAuthorizationService {
   async verifyIsTeamOwner(teamId: string, userId: string): Promise<void> {
     const owner = await this.playerRepository.findTeamOwner(teamId);
 
-    if (!owner) {
-      throw new AuthorizationError(
-        AuthReason.NOT_TEAM_MEMBER,
-        "User is not a member of this team",
-      );
-    }
-    if (owner.userId !== userId) {
-      throw new AuthorizationError(
-        AuthReason.INSUFFICIENT_ROLE,
-        "Insufficient permissions for this action",
-      );
-    }
+    if (!owner || !isTeamMember(owner)) throw notTeamMember();
+    if (owner.userId !== userId) throw insufficientRole();
   }
 
   /**
@@ -99,11 +67,8 @@ export class AuthorizationService implements IAuthorizationService {
       userId,
     );
 
-    if (!player || player.role !== requiredRole) {
-      throw new AuthorizationError(
-        AuthReason.INSUFFICIENT_ROLE,
-        "Insufficient permissions for this action",
-      );
+    if (!player || !isTeamMember(player) || player.role !== requiredRole) {
+      throw insufficientRole();
     }
   }
 
@@ -119,6 +84,6 @@ export class AuthorizationService implements IAuthorizationService {
       userId,
     );
 
-    return player?.role || null;
+    return player && isTeamMember(player) ? player.role : null;
   }
 }

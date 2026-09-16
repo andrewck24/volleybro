@@ -12,10 +12,10 @@ import {
  * Unified schema for team members, invited users, and pure players
  *
  * Status Model (explicit field):
- * - NONE: Pure player, no system account linked (userId ✗, email ✗)
- * - INVITED + userId: Registered user invited (userId ✓, email ✗)
- * - INVITED + email: Unregistered user invited (userId ✗, email ✓)
- * - JOINED: User has accepted invitation (userId ✓, email ✗)
+ * - NONE: Unlinked player, no account linked (userId ✗, email ✗, role ✗)
+ * - INVITED + userId: Registered user invited (userId ✓, email ✗, role ✓)
+ * - INVITED + email: Unregistered user invited (userId ✗, email ✓, role ✓)
+ * - JOINED: User has accepted invitation (userId ✓, email ✗, role ✓)
  */
 
 export interface PlayerDocument extends Document {
@@ -49,11 +49,12 @@ const PlayerSchema = new Schema<PlayerDocument>(
       enum: ["", "OH", "MB", "OP", "S", "L"],
       default: "",
     },
+    // No default: a document that predates the field must fail to narrow on
+    // read rather than be silently taken for an unlinked player.
     status: {
       type: String,
       enum: ["NONE", "INVITED", "JOINED"],
       required: true,
-      default: "NONE",
     },
     teamId: {
       type: Schema.Types.ObjectId,

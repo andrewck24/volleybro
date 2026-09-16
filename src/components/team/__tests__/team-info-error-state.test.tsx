@@ -26,10 +26,7 @@ jest.mock("@/components/ui/use-toast", () => ({
 
 // Mock use-data hooks
 const currentUser = { id: "user-1", name: "Current User" };
-const currentPlayer = createPlayer({
-  name: "Current User",
-  email: "user@example.com",
-});
+const currentPlayer = createPlayer({ name: "Current User" });
 
 const mockMutate = jest.fn();
 jest.mock("@/hooks/use-data", () => ({

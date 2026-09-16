@@ -10,29 +10,63 @@ import {
   type Set,
 } from "@/entities/game";
 import {
-  type Player,
+  type InvitedPlayer,
   PlayerRole,
   PlayerStatus,
   Position,
+  type TeamMember,
+  type UnlinkedPlayer,
 } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
 import type { Team } from "@/entities/team";
 import type { User } from "@/entities/user";
 
-export function createPlayer(overrides?: Partial<Player>): Player {
+const playerBase = {
+  id: "player-1",
+  name: "Test Player",
+  number: 1,
+  position: Position.OH,
+  teamId: "team-1",
+  createdAt: new Date("2025-01-01"),
+  updatedAt: new Date("2025-01-01"),
+};
+
+export function createPlayer(overrides?: Partial<TeamMember>): TeamMember {
   return {
-    id: "player-1",
-    name: "Test Player",
-    number: 1,
-    position: Position.OH,
+    ...playerBase,
     status: PlayerStatus.JOINED,
-    teamId: "team-1",
     userId: "user-1",
     role: PlayerRole.MEMBER,
-    createdAt: new Date("2025-01-01"),
-    updatedAt: new Date("2025-01-01"),
     ...overrides,
   };
+}
+
+export function createUnlinkedPlayer(
+  overrides?: Partial<UnlinkedPlayer>,
+): UnlinkedPlayer {
+  return { ...playerBase, status: PlayerStatus.NONE, ...overrides };
+}
+
+type InvitedOverrides = Partial<
+  Omit<InvitedPlayer, "status" | "userId" | "email">
+> & { userId?: string; email?: string };
+
+/**
+ * An invitee. Exactly one link is written: the userId when the invitee's
+ * account is known, the email otherwise — the cast is what expresses that to
+ * the compiler, which cannot follow the choice through the spread.
+ */
+export function createInvitedPlayer(
+  overrides: InvitedOverrides = {},
+): InvitedPlayer {
+  const { userId, email, ...rest } = overrides;
+  return {
+    ...playerBase,
+    status: PlayerStatus.INVITED,
+    role: PlayerRole.MEMBER,
+    ...rest,
+    ...(userId ? { userId } : { email: email ?? "invited@example.com" }),
+  } as InvitedPlayer;
 }
 
 export function createTeam(overrides?: Partial<Team>): Team {

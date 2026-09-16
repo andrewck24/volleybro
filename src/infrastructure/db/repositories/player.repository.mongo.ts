@@ -1,6 +1,13 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { NotFoundError, CommonReason } from "@/entities/errors";
-import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
+import {
+  narrowPlayer,
+  NewPlayer,
+  Player,
+  PlayerFields,
+  PlayerRole,
+  PlayerStatus,
+} from "@/entities/player";
 import {
   PlayerModel,
   type PlayerDocument,
@@ -9,13 +16,15 @@ import { translateRepositoryError } from "@/infrastructure/db/repositories/error
 
 export class PlayerRepositoryImpl implements IPlayerRepository {
   private toPlayer(doc: PlayerDocument): Player {
-    const obj = doc.toObject();
-    return {
-      ...obj,
-      id: obj._id.toString(),
-      teamId: obj.teamId?.toString(),
-      userId: obj.userId?.toString(),
-    };
+    const { _id, teamId, userId, ...rest } = doc.toObject();
+    // Absent links are left out rather than set to undefined, so the narrowed
+    // player carries exactly the fields its shape declares.
+    return narrowPlayer({
+      ...rest,
+      id: _id.toString(),
+      ...(teamId ? { teamId: teamId.toString() } : {}),
+      ...(userId ? { userId: userId.toString() } : {}),
+    });
   }
 
   async findById(id: string): Promise<Player | null> {
@@ -66,9 +75,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async create(
-    player: Omit<Player, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Player> {
+  async create(player: NewPlayer): Promise<Player> {
     try {
       const newPlayer = await PlayerModel.create(player);
       return this.toPlayer(newPlayer);
@@ -77,7 +84,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async update(id: string, updates: Partial<Player>): Promise<Player> {
+  async update(id: string, updates: Partial<PlayerFields>): Promise<Player> {
     const $set: Record<string, unknown> = {};
     const $unset: Record<string, string> = {};
 

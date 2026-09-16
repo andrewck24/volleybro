@@ -71,6 +71,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方尚未加入",
     description: "邀請中的成員要先接受邀請，才能成為隊長",
   },
+  TARGET_NOT_LINKED: {
+    title: "這位球員沒有帳號",
+    description: "先邀請對方加入，才能設定角色",
+  },
   PLAYER_NOT_FOUND: {
     title: "找不到這位成員",
     description: "對方可能已離開隊伍，請重新整理後再試",

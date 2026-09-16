@@ -1,10 +1,16 @@
-import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
+import {
+  createInvitedPlayer,
+  createMockPlayerRepository,
+  createPlayer,
+  createUnlinkedPlayer,
+} from "@/__tests__/helpers";
 import type { ITransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
+  PlayerReason,
   UnexpectedError,
 } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
@@ -51,7 +57,7 @@ describe("TransferOwnershipUseCase", () => {
 
       const result = await useCase.execute({ teamId, newOwnerId, userId });
 
-      expect(result.role).toBe(PlayerRole.OWNER);
+      expect(result).toMatchObject({ role: PlayerRole.OWNER });
     });
 
     it("should reject if current owner not found in team", async () => {
@@ -97,16 +103,56 @@ describe("TransferOwnershipUseCase", () => {
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
-    it("should reject if new owner is not a joined member", async () => {
-      const purePlayer = createPlayer({ ...newOwner, userId: undefined });
+    it("should reject an unlinked player as the target", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
         currentOwner,
       );
-      mockPlayerRepository.findById.mockResolvedValue(purePlayer);
+      mockPlayerRepository.findById.mockResolvedValue(
+        createUnlinkedPlayer({ id: newOwnerId, teamId }),
+      );
 
       await expect(
         useCase.execute({ teamId, newOwnerId, userId }),
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).rejects.toMatchObject({ reason: PlayerReason.TARGET_NOT_MEMBER });
+    });
+
+    it("should reject an invitee as the target", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(
+        createInvitedPlayer({
+          id: newOwnerId,
+          teamId,
+          userId: "user_789",
+          role: PlayerRole.ADMIN,
+        }),
+      );
+
+      const attempt = useCase.execute({ teamId, newOwnerId, userId });
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.TARGET_NOT_MEMBER,
+      });
+    });
+
+    it("should reject an invitee as the current owner", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({
+          id: "player_001",
+          teamId,
+          userId,
+          role: PlayerRole.OWNER,
+        }),
+      );
+
+      const attempt = useCase.execute({ teamId, newOwnerId, userId });
+
+      await expect(attempt).rejects.toBeInstanceOf(AuthorizationError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.NOT_TEAM_OWNER,
+      });
     });
 
     it("should reject if update fails", async () => {

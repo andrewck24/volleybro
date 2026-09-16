@@ -55,11 +55,12 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
         number: undefined,
         position: undefined,
         email: undefined,
-        role: PlayerRole.MEMBER,
+        role: undefined,
       },
     },
   );
   const { isDirty } = form.formState;
+  const email = form.watch("email");
   useLeavePageWarning(isDirty);
 
   useEffect(() => {
@@ -170,32 +171,44 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
                     type="email"
                     placeholder="user@example.com"
                     {...field}
+                    // An emptied field is no invitation, not an invalid email.
+                    onChange={(e) =>
+                      field.onChange(e.target.value || undefined)
+                    }
                     value={field.value ?? ""}
                   />
                 </FormControl>
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>角色</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇角色" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
-                    <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
+          {/* A role only means something as part of an invitation, and the
+              field unregisters with it so a cleared email clears the role. */}
+          {email && (
+            <FormField
+              control={form.control}
+              name="role"
+              shouldUnregister
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>角色</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value ?? PlayerRole.MEMBER}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="選擇角色" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
+                      <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          )}
           {form.formState.errors.root && (
             <p className="text-sm text-destructive">
               {form.formState.errors.root.message}

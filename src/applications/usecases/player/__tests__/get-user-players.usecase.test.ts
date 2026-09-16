@@ -57,8 +57,8 @@ describe("GetUserPlayersUseCase", () => {
 
     const result = await usecase.execute({ userId: "user-1" });
 
-    expect(result[0]!.role).toBe(PlayerRole.MEMBER);
-    expect(result[1]!.role).toBe(PlayerRole.ADMIN);
+    expect(result[0]).toMatchObject({ role: PlayerRole.MEMBER });
+    expect(result[1]).toMatchObject({ role: PlayerRole.ADMIN });
   });
 
   it("should include status field in results", async () => {
@@ -74,6 +74,10 @@ describe("GetUserPlayersUseCase", () => {
 
     const result = await usecase.execute({ userId: "user-1" });
 
-    expect(result.every((p) => p.userId === "user-1")).toBe(true);
+    expect(
+      result.every(
+        (p) => p.status === PlayerStatus.JOINED && p.userId === "user-1",
+      ),
+    ).toBe(true);
   });
 });

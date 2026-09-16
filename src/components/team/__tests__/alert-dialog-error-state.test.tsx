@@ -68,10 +68,7 @@ function createApiError(
   });
 }
 
-const joinedPlayer = createPlayer({
-  number: 7,
-  email: "test@example.com",
-});
+const joinedPlayer = createPlayer({ number: 7 });
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {

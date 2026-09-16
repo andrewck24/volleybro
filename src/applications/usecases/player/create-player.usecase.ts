@@ -17,7 +17,8 @@ export interface ICreatePlayerInput {
     name: string;
     number?: number;
     position?: Position;
-    role: PlayerRole;
+    /** Only meaningful with an email: the role the invitation offers. */
+    role?: PlayerRole.MEMBER | PlayerRole.ADMIN;
     email?: string;
   };
   userId: string;
@@ -37,16 +38,14 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
   ) {}
 
   async execute({ teamId, data, userId }: ICreatePlayerInput): Promise<Player> {
-    // 1. 驗證權限 - 必須是 ADMIN 或 OWNER
     await this.authService.verifyIsTeamAdmin(teamId, userId);
 
-    // 2. 如果有 email，檢查是否已經邀請過
-    if (data.email) {
+    const { name, number, position } = data;
+    const email = data.email?.trim().toLowerCase();
+
+    if (email) {
       const existingInvitation =
-        await this.playerRepository.findInvitedByTeamIdAndEmail(
-          teamId,
-          data.email,
-        );
+        await this.playerRepository.findInvitedByTeamIdAndEmail(teamId, email);
       if (existingInvitation) {
         throw new ConflictError(
           PlayerReason.EMAIL_ALREADY_INVITED,
@@ -55,16 +54,21 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
       }
     }
 
-    // 3. 建立球員（純球員，status: NONE）
-    const player = await this.playerRepository.create({
-      name: data.name,
-      status: PlayerStatus.NONE,
-      number: data.number,
-      position: data.position,
-      teamId,
-      email: data.email,
-      role: data.role || PlayerRole.MEMBER,
-    });
+    // An invitation carries only the email until the invitee accepts: writing a
+    // userId here would hand them a member's permissions before they do.
+    const player = await this.playerRepository.create(
+      email
+        ? {
+            name,
+            status: PlayerStatus.INVITED,
+            number,
+            position,
+            teamId,
+            email,
+            role: data.role ?? PlayerRole.MEMBER,
+          }
+        : { name, status: PlayerStatus.NONE, number, position, teamId },
+    );
 
     if (!player) {
       throw new UnexpectedError(

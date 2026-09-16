@@ -1,7 +1,17 @@
-import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
-import { AuthorizationError } from "@/entities/errors";
+import {
+  createInvitedPlayer,
+  createMockPlayerRepository,
+  createPlayer,
+  createUnlinkedPlayer,
+} from "@/__tests__/helpers";
+import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { AuthorizationService } from "@/infrastructure/services/auth/authorization.service";
+
+const expectReason = async (promise: Promise<unknown>, reason: AuthReason) => {
+  await expect(promise).rejects.toBeInstanceOf(AuthorizationError);
+  await expect(promise).rejects.toMatchObject({ reason });
+};
 
 describe("AuthorizationService", () => {
   let service: AuthorizationService;
@@ -22,7 +32,7 @@ describe("AuthorizationService", () => {
   });
 
   describe("verifyTeamRole", () => {
-    it("should allow MEMBER role when player has any role", async () => {
+    it("should allow MEMBER role for a member", async () => {
       const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
@@ -46,21 +56,49 @@ describe("AuthorizationService", () => {
       await service.verifyTeamRole("team-1", "owner-user", PlayerRole.MEMBER);
     });
 
-    it("should reject MEMBER role when player has no role (pure player)", async () => {
-      const purePlayer = createPlayer({ role: undefined });
-      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
+    it("should reject an unlinked player as NOT_TEAM_MEMBER", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createUnlinkedPlayer(),
+      );
 
-      await expect(
+      await expectReason(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.NOT_TEAM_MEMBER,
+      );
     });
 
-    it("should throw AuthorizationError if user not found in team", async () => {
+    it.each([PlayerRole.MEMBER, PlayerRole.ADMIN, PlayerRole.OWNER])(
+      "should reject an invitee offered %s as NOT_TEAM_MEMBER",
+      async (role) => {
+        mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+          createInvitedPlayer({ userId: "user-1", role }),
+        );
+
+        await expectReason(
+          service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
+          AuthReason.NOT_TEAM_MEMBER,
+        );
+      },
+    );
+
+    it("should reject an invitee offered ADMIN on the admin check", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({ userId: "user-1", role: PlayerRole.ADMIN }),
+      );
+
+      await expectReason(
+        service.verifyTeamRole("team-1", "user-1", PlayerRole.ADMIN),
+        AuthReason.NOT_TEAM_MEMBER,
+      );
+    });
+
+    it("should throw NOT_TEAM_MEMBER if user not found in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
-      await expect(
+      await expectReason(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.MEMBER),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.NOT_TEAM_MEMBER,
+      );
     });
 
     it("should allow ADMIN role for ADMIN", async () => {
@@ -75,13 +113,14 @@ describe("AuthorizationService", () => {
       await service.verifyTeamRole("team-1", "owner-user", PlayerRole.ADMIN);
     });
 
-    it("should reject ADMIN role for MEMBER", async () => {
+    it("should reject ADMIN role for MEMBER as INSUFFICIENT_ROLE", async () => {
       const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
-      await expect(
+      await expectReason(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.ADMIN),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.INSUFFICIENT_ROLE,
+      );
     });
 
     it("should allow OWNER role for OWNER", async () => {
@@ -93,9 +132,10 @@ describe("AuthorizationService", () => {
     it("should reject OWNER role for ADMIN", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(mockPlayer);
 
-      await expect(
+      await expectReason(
         service.verifyTeamRole("team-1", "user-1", PlayerRole.OWNER),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.INSUFFICIENT_ROLE,
+      );
     });
   });
 
@@ -122,21 +162,34 @@ describe("AuthorizationService", () => {
       );
     });
 
-    it("should throw AuthorizationError if user is not admin", async () => {
+    it("should throw INSUFFICIENT_ROLE if user is only a member", async () => {
       const member = createPlayer({ role: PlayerRole.MEMBER });
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(member);
 
-      await expect(
+      await expectReason(
         service.verifyIsTeamAdmin("team-1", "user-1"),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.INSUFFICIENT_ROLE,
+      );
     });
 
-    it("should throw AuthorizationError if user has no player in team", async () => {
+    it("should throw NOT_TEAM_MEMBER for an invitee offered ADMIN", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({ userId: "user-1", role: PlayerRole.ADMIN }),
+      );
+
+      await expectReason(
+        service.verifyIsTeamAdmin("team-1", "user-1"),
+        AuthReason.NOT_TEAM_MEMBER,
+      );
+    });
+
+    it("should throw NOT_TEAM_MEMBER if user has no player in team", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
 
-      await expect(
+      await expectReason(
         service.verifyIsTeamAdmin("team-1", "user-1"),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.NOT_TEAM_MEMBER,
+      );
     });
   });
 
@@ -152,17 +205,30 @@ describe("AuthorizationService", () => {
     it("should throw AuthorizationError if user is not owner", async () => {
       mockPlayerRepository.findTeamOwner.mockResolvedValue(mockOwner);
 
-      await expect(
+      await expectReason(
         service.verifyIsTeamOwner("team-1", "user-1"),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.INSUFFICIENT_ROLE,
+      );
     });
 
     it("should throw AuthorizationError if team has no owner", async () => {
       mockPlayerRepository.findTeamOwner.mockResolvedValue(null);
 
-      await expect(
+      await expectReason(
         service.verifyIsTeamOwner("team-1", "user-1"),
-      ).rejects.toBeInstanceOf(AuthorizationError);
+        AuthReason.NOT_TEAM_MEMBER,
+      );
+    });
+
+    it("should throw NOT_TEAM_MEMBER if the owner row is only an invitee", async () => {
+      mockPlayerRepository.findTeamOwner.mockResolvedValue(
+        createInvitedPlayer({ userId: "owner-user", role: PlayerRole.OWNER }),
+      );
+
+      await expectReason(
+        service.verifyIsTeamOwner("team-1", "owner-user"),
+        AuthReason.NOT_TEAM_MEMBER,
+      );
     });
   });
 
@@ -183,6 +249,16 @@ describe("AuthorizationService", () => {
 
       await expect(
         service.verifyPlayerRole("team-1", "user-1", PlayerRole.OWNER),
+      ).rejects.toBeInstanceOf(AuthorizationError);
+    });
+
+    it("should throw AuthorizationError for an invitee holding the role", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({ userId: "user-1", role: PlayerRole.ADMIN }),
+      );
+
+      await expect(
+        service.verifyPlayerRole("team-1", "user-1", PlayerRole.ADMIN),
       ).rejects.toBeInstanceOf(AuthorizationError);
     });
 
@@ -212,9 +288,20 @@ describe("AuthorizationService", () => {
       expect(role).toBeNull();
     });
 
-    it("should return null if player has no role", async () => {
-      const purePlayer = createPlayer({ role: undefined });
-      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(purePlayer);
+    it("should return null for an unlinked player", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createUnlinkedPlayer(),
+      );
+
+      const role = await service.getPlayerRole("team-1", "user-1");
+
+      expect(role).toBeNull();
+    });
+
+    it("should return null for an invitee, whose role is not yet in force", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        createInvitedPlayer({ userId: "user-1", role: PlayerRole.ADMIN }),
+      );
 
       const role = await service.getPlayerRole("team-1", "user-1");
 

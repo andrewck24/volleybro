@@ -1,4 +1,4 @@
-import { Player } from "@/entities/player";
+import { NewPlayer, Player, PlayerFields } from "@/entities/player";
 
 /**
  * IPlayerRepository Interface
@@ -37,14 +37,14 @@ export interface IPlayerRepository {
   /**
    * Create new player
    */
-  create(
-    player: Omit<Player, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Player>;
+  create(player: NewPlayer): Promise<Player>;
 
   /**
-   * Update player
+   * Update player. A patch touches single fields, so it is typed against the
+   * document's fields rather than the three player shapes; the caller is
+   * responsible for leaving the document in one of them.
    */
-  update(id: string, updates: Partial<Player>): Promise<Player | null>;
+  update(id: string, updates: Partial<PlayerFields>): Promise<Player | null>;
 
   /**
    * Delete player by ID
