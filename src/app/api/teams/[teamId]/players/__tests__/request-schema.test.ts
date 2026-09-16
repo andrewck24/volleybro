@@ -40,7 +40,6 @@ describe("POST /api/teams/[teamId]/players", () => {
       "POST",
       {
         name: "陳大文",
-        role: PlayerRole.MEMBER,
         list: "starting",
       },
     );
@@ -55,6 +54,40 @@ describe("POST /api/teams/[teamId]/players", () => {
     consoleSpy.mockRestore();
   });
 
+  it("returns 400 for a role without an email to invite", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", role: PlayerRole.ADMIN },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("returns 400 for OWNER, which only a transfer can grant", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", email: "chen@example.com", role: PlayerRole.OWNER },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+
+    expect(res.status).toBe(400);
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
   // The exact body CreateForm's handleSubmit sends (src/components/team/players/create-form.tsx):
   it("returns 201 for the payload the create-player form actually sends", async () => {
     const created = {
@@ -63,7 +96,6 @@ describe("POST /api/teams/[teamId]/players", () => {
       number: 5,
       position: Position.MB,
       status: PlayerStatus.NONE,
-      role: PlayerRole.MEMBER,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -75,7 +107,6 @@ describe("POST /api/teams/[teamId]/players", () => {
         name: "陳大文",
         number: 5,
         position: Position.MB,
-        role: PlayerRole.MEMBER,
       },
     );
     const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
@@ -91,7 +122,6 @@ describe("POST /api/teams/[teamId]/players", () => {
         name: "陳大文",
         number: 5,
         position: Position.MB,
-        role: PlayerRole.MEMBER,
       },
       userId: SESSION.user.id,
     });

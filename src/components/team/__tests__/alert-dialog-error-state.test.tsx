@@ -68,10 +68,7 @@ function createApiError(
   });
 }
 
-const joinedPlayer = createPlayer({
-  number: 7,
-  email: "test@example.com",
-});
+const joinedPlayer = createPlayer({ number: 7 });
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {
@@ -95,25 +92,26 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
       // Open the remove dialog
-      await user.click(screen.getByRole("button", { name: "移除成員" }));
+      await user.click(screen.getByRole("button", { name: "刪除球員" }));
 
       // Confirm remove
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("轉移隊長身分需要目前的隊長操作"),
+          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
         ).toBeInTheDocument();
       });
 
       // Dialog should still be visible (title still present)
       expect(
-        screen.getByText(/確定要將.*從隊伍中移除嗎？/),
+        screen.getByText(/確定要將.*從名單中刪除嗎？/),
       ).toBeInTheDocument();
 
       // showErrorToast should NOT be called — error is inline
@@ -138,11 +136,12 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: "移除成員" }));
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "刪除球員" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       await waitFor(() => {
         expect(screen.getByText(/伺服器暫時無法處理/)).toBeInTheDocument();
@@ -150,11 +149,11 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Second call succeeds
       mockApiClient.mockResolvedValueOnce({});
 
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "成員已移除" }),
+          expect.objectContaining({ title: "球員已刪除" }),
         );
       });
     });
@@ -177,6 +176,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
@@ -191,7 +191,7 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("轉移隊長身分需要目前的隊長操作"),
+          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
         ).toBeInTheDocument();
       });
 

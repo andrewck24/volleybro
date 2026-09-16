@@ -1,5 +1,5 @@
-import { createPlayer } from "@/__tests__/helpers";
-import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
+import { createPlayer, createUnlinkedPlayer } from "@/__tests__/helpers";
+import { PlayerRole, Position } from "@/entities/player";
 import {
   CreatePlayerSchema,
   PlayerSchema,
@@ -22,7 +22,7 @@ describe("Player Validation Schemas", () => {
       expect(result).toEqual(input);
     });
 
-    it("should accept player creation without email (pure player)", () => {
+    it("should accept player creation without email (unlinked player)", () => {
       const input = {
         name: "Opponent Player",
         number: 7,
@@ -32,16 +32,23 @@ describe("Player Validation Schemas", () => {
       const result = CreatePlayerSchema.parse(input);
       expect(result.name).toBe("Opponent Player");
       expect(result.email).toBeUndefined();
-      expect(result.role).toBe(PlayerRole.MEMBER);
+      expect(result.role).toBeUndefined();
     });
 
-    it("should use default role MEMBER if not provided", () => {
-      const input = {
-        name: "Member",
-      };
+    it("should reject a role without an email to invite", () => {
+      expect(() =>
+        CreatePlayerSchema.parse({ name: "Member", role: PlayerRole.MEMBER }),
+      ).toThrow();
+    });
 
-      const result = CreatePlayerSchema.parse(input);
-      expect(result.role).toBe(PlayerRole.MEMBER);
+    it("should reject OWNER, which only a transfer can grant", () => {
+      expect(() =>
+        CreatePlayerSchema.parse({
+          name: "Member",
+          email: "member@example.com",
+          role: PlayerRole.OWNER,
+        }),
+      ).toThrow();
     });
 
     it("should reject empty name", () => {
@@ -135,11 +142,7 @@ describe("Player Validation Schemas", () => {
 
   describe("PlayerSchema", () => {
     it("should validate complete player object", () => {
-      const player = createPlayer({
-        name: "John Doe",
-        number: 10,
-        email: "john@example.com",
-      });
+      const player = createPlayer({ name: "John Doe", number: 10 });
 
       const result = PlayerSchema.parse(player);
       expect(result.id).toBe("player-1");
@@ -147,12 +150,10 @@ describe("Player Validation Schemas", () => {
     });
 
     it("should accept player with minimal fields", () => {
-      const player = createPlayer({
+      const player = createUnlinkedPlayer({
         id: "player-2",
-        name: "Pure Player",
-        status: PlayerStatus.NONE,
+        name: "Unlinked Player",
         teamId: undefined,
-        userId: undefined,
       });
 
       const result = PlayerSchema.parse(player);

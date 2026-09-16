@@ -13,6 +13,7 @@ import type {
 import type {
   IGetUserPlayersInput,
   IGetUserPlayersUseCase,
+  PlayerWithTeamName,
 } from "@/applications/usecases/player/get-user-players.usecase";
 import type {
   IRemovePlayerInput,
@@ -52,7 +53,7 @@ export const getTeamPlayers = async (
 
 export const getUserPlayers = async (
   input: IGetUserPlayersInput,
-): Promise<Player[]> => {
+): Promise<PlayerWithTeamName[]> => {
   const useCase = container.get<IGetUserPlayersUseCase>(
     TYPES.GetUserPlayersUseCase,
   );

@@ -2,7 +2,6 @@ import type {
   IAcceptInvitationInput,
   IAcceptInvitationUseCase,
 } from "@/applications/usecases/player/accept-invitation.usecase";
-import type { IGetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
 import type {
   ILeaveTeamInput,
   ILeaveTeamUseCase,
@@ -22,18 +21,13 @@ import { TYPES } from "@/infrastructure/di/types";
 export const acceptInvitation = async (
   input: IAcceptInvitationInput,
 ): Promise<void> => {
-  const { playerId, userId } = input;
-  const getPlayerUseCase = container.get<IGetPlayerUseCase>(
-    TYPES.GetPlayerUseCase,
-  );
-  const player = await getPlayerUseCase.execute({ playerId });
-
+  const { userId } = input;
   const useCase = container.get<IAcceptInvitationUseCase>(
     TYPES.AcceptInvitationUseCase,
   );
-  await useCase.execute(input);
+  const player = await useCase.execute(input);
 
-  if (player?.teamId) {
+  if (player.teamId) {
     const updateProfileUseCase = container.get<UpdateProfileUseCase>(
       TYPES.UpdateProfileUseCase,
     );

@@ -5,7 +5,7 @@ import {
   NotFoundError,
   PlayerReason,
 } from "@/entities/errors";
-import { PlayerStatus } from "@/entities/player";
+import { Player, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -15,12 +15,13 @@ export interface IAcceptInvitationInput {
 }
 
 export interface IAcceptInvitationUseCase {
-  execute(input: IAcceptInvitationInput): Promise<void>;
+  execute(input: IAcceptInvitationInput): Promise<Player>;
 }
 
 /**
  * AcceptInvitationUseCase Implementation
  * User accepts invitation: status INVITED → JOINED, sets userId, clears email
+ * Returns the invitation it read, so callers reach the team without a second read
  */
 @injectable()
 export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
@@ -29,7 +30,7 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
     private playerRepository: IPlayerRepository,
   ) {}
 
-  async execute({ playerId, userId }: IAcceptInvitationInput): Promise<void> {
+  async execute({ playerId, userId }: IAcceptInvitationInput): Promise<Player> {
     const player = await this.playerRepository.findById(playerId);
 
     if (!player) {
@@ -65,5 +66,7 @@ export class AcceptInvitationUseCase implements IAcceptInvitationUseCase {
       userId,
       email: undefined,
     });
+
+    return player;
   }
 }

@@ -8,7 +8,7 @@ import {
   PlayerReason,
 } from "@/entities/errors";
 import type { Player } from "@/entities/player";
-import { PlayerRole } from "@/entities/player";
+import { hasTeamRole, isTeamMember, PlayerRole } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -46,8 +46,11 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 2. Verify current user has OWNER role
-    if (currentOwner.role !== PlayerRole.OWNER) {
+    // 2. Verify current user is a member holding the OWNER role
+    if (
+      !isTeamMember(currentOwner) ||
+      !hasTeamRole(currentOwner, PlayerRole.OWNER)
+    ) {
       throw new AuthorizationError(
         PlayerReason.NOT_TEAM_OWNER,
         "Only the current team owner can transfer ownership",
@@ -70,8 +73,17 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
-    // 4. Verify new owner is a JOINED member (has userId)
-    if (!newOwner.userId) {
+    // Both writes below would land on this one document, which would end as
+    // ADMIN and leave the team without an owner.
+    if (newOwner.id === currentOwner.id) {
+      throw new ConflictError(
+        PlayerReason.TARGET_ALREADY_OWNER,
+        "Ownership cannot be transferred to the current owner",
+      );
+    }
+
+    // 4. Verify new owner has joined the team
+    if (!isTeamMember(newOwner)) {
       throw new ConflictError(
         PlayerReason.TARGET_NOT_MEMBER,
         "Target player must be an active member of the team",

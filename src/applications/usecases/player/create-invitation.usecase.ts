@@ -1,5 +1,10 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import {
+  asRosterConflict,
+  resolveInviteeLink,
+} from "@/applications/usecases/player/invitee-link";
 import {
   ConflictError,
   NotFoundError,
@@ -31,6 +36,8 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.UserRepository)
+    private userRepository: IUserRepository,
     @inject(TYPES.AuthorizationService)
     private authService: IAuthorizationService,
   ) {}
@@ -48,6 +55,15 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
         "Player not found",
       );
     }
+    if (!player.teamId)
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
+
+    // Whether this player is already invited or already a member is part of the
+    // team's roster, so it is answered only to someone who may manage it.
+    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
 
     if (player.status === PlayerStatus.INVITED) {
       throw new ConflictError(
@@ -62,18 +78,23 @@ export class CreateInvitationUseCase implements ICreateInvitationUseCase {
       );
     }
 
-    if (!player.teamId)
-      throw new NotFoundError(
-        PlayerReason.PLAYER_NOT_FOUND,
-        "Player has no team",
-      );
-    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
-
-    const updated = await this.playerRepository.update(playerId, {
-      status: PlayerStatus.INVITED,
+    const link = await resolveInviteeLink(
+      { players: this.playerRepository, users: this.userRepository },
+      player.teamId,
       email,
-      role,
-    });
+    );
+
+    const updated = await this.playerRepository
+      .update(playerId, {
+        status: PlayerStatus.INVITED,
+        role,
+        userId: undefined,
+        email: undefined,
+        ...link,
+      })
+      .catch((error: unknown) => {
+        throw asRosterConflict(error);
+      });
 
     if (!updated) {
       throw new UnexpectedError(

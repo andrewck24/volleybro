@@ -1,12 +1,11 @@
 "use client";
 import { GuidesForNewUser } from "@/components/custom/guides/new-user";
-import { useProfile } from "@/hooks/use-data";
+import { useActiveTeamId } from "@/hooks/use-data";
 
 const Notifications = () => {
-  const { profile } = useProfile();
-  const defaultTeamId = profile?.activeTeamId;
+  const { teamId, isLoading } = useActiveTeamId();
 
-  return <>{!defaultTeamId && <GuidesForNewUser />}</>;
+  return <>{!teamId && !isLoading && <GuidesForNewUser />}</>;
 };
 
 export default Notifications;

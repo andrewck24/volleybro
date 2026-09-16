@@ -4,7 +4,11 @@ import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameSummaryView, GameView } from "@/lib/features/game/types";
-import type { PlayerView, TeamView } from "@/lib/features/team/types";
+import type {
+  PlayerView,
+  TeamView,
+  UserPlayerView,
+} from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -63,13 +67,20 @@ export const useUserPlayers = (
 ) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    PlayerView[],
+    UserPlayerView[],
     ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
 
+/**
+ * The active team: `profile.activeTeamId` when the user is still a member of
+ * that team, otherwise the first team they have joined, otherwise none. The
+ * server never picks a replacement, so a stale `activeTeamId` (a membership
+ * that ended after it was set) is resolved here, from data already being
+ * fetched for other reasons.
+ */
 export const useActiveTeamId = () => {
   const {
     user,
@@ -85,21 +96,24 @@ export const useActiveTeamId = () => {
   } = useProfile();
   const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
 
-  const isLoading =
-    userLoading || profileLoading || (!profile?.activeTeamId && playersLoading);
+  const isLoading = userLoading || profileLoading || playersLoading;
   const error = userError ?? profileError;
   const mutate = useCallback(
     () => Promise.all([mutateUser(), mutateProfile()]),
     [mutateUser, mutateProfile],
   );
 
-  if (profile?.activeTeamId)
-    return { teamId: profile.activeTeamId, isLoading, error, mutate };
-
-  const firstJoined = players.find(
+  const joinedPlayers = players.filter(
     (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
-  return { teamId: firstJoined?.teamId, isLoading, error, mutate };
+  const isStillJoined = joinedPlayers.some(
+    (p) => p.teamId === profile?.activeTeamId,
+  );
+  const teamId = isStillJoined
+    ? profile?.activeTeamId
+    : joinedPlayers[0]?.teamId;
+
+  return { teamId, isLoading, error, mutate };
 };
 
 export const useTeam = (

@@ -236,8 +236,11 @@ necessity and density above all, since lint, types and formatting all pass regar
 prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
 unwritten standard is one the reviewer cannot apply: state it in `CONTRIBUTING.md` first.
 
-Do not open the pull request before developer acceptance and branch-local Archive. The repository
-does not run an automated Claude review after the pull request opens. Human PR review and comment
+Do not open the pull request before developer acceptance and branch-local Archive. Acceptance of
+Blueprint Review is the last human gate before the pull request: it authorizes Archive and opening
+the pull request once Archive's checks pass, without asking again. Merging still waits for green CI
+and for whatever the developer said about merging. The repository does not run an automated Claude
+review after the pull request opens. Human PR review and comment
 fix rounds remain available, but they are optional and the default delivery path does not wait for
 comments before merge.
 

@@ -11,8 +11,5 @@ export function createMockAuthorizationService(): jest.Mocked<IAuthorizationServ
   return {
     verifyTeamRole: jest.fn(),
     verifyIsTeamAdmin: jest.fn(),
-    verifyIsTeamOwner: jest.fn(),
-    verifyPlayerRole: jest.fn(),
-    getPlayerRole: jest.fn(),
   };
 }

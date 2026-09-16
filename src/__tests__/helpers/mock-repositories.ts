@@ -15,8 +15,6 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
     update: jest.fn(),
     delete: jest.fn(),
     countByTeamId: jest.fn(),
-    findTeamOwner: jest.fn(),
-    findAdminsByTeamId: jest.fn(),
     existsInvitation: jest.fn(),
     findByTeamIdAndUserId: jest.fn(),
     linkUserToInvitations: jest.fn(),
@@ -50,6 +48,7 @@ export function createMockUserRepository(): jest.Mocked<IUserRepository> {
   return {
     findById: jest.fn(),
     findByEmail: jest.fn(),
+    findAllByEmailInsensitive: jest.fn(),
   };
 }
 

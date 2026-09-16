@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S09",
+  "title": "隊伍資訊只給成員讀取",
+  "capabilities": ["team-management/membership"],
+  "dependsOn": ["S02", "S05", "S06"],
+  "outcome": "GET /api/teams/{teamId} 要求登入且呼叫者是該隊成員；未登入回 401，非成員與受邀者回 403。",
+  "acceptanceCriteria": [
+    "GET handler 由 withErrorHandler 改為 withAuth，傳入 userId。",
+    "GetTeamUseCase 的 input 改為 { teamId, userId }，注入 AuthorizationService，讀取前呼叫 verifyTeamRole(teamId, userId, PlayerRole.MEMBER)。",
+    "controller 與 route 依新 input 更新；隊伍不存在時的 404 仍由 route 處理。",
+    "PATCH handler 不變。"
+  ],
+  "verification": [
+    "get-team use case 測試：以正確參數呼叫 verifyTeamRole；拒絕時不讀取 repository",
+    "teams/[teamId] route 測試：無 session 回 401",
+    "pnpm verify",
+    "pnpm test:integration"
+  ],
+  "status": "completed"
+}

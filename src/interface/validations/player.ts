@@ -26,16 +26,23 @@ export const PlayerSchema = z.object({
 
 export type Player = z.infer<typeof PlayerSchema>;
 
+/** Owner is reached by transfer only, never by naming it. */
+const MemberAdminRoleSchema = z.enum([PlayerRole.MEMBER, PlayerRole.ADMIN]);
+
 /** POST /api/teams/{teamId}/players */
 export const CreatePlayerSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     number: z.number().int().min(0).max(99).optional(),
     position: PositionSchema.optional(),
-    role: PlayerRoleSchema.default(PlayerRole.MEMBER),
-    email: z.email("Invalid email format").optional(), // Has email = invitation, no email = pure player
+    role: MemberAdminRoleSchema.optional(),
+    email: z.email("Invalid email format").optional(), // Has email = invitation, no email = unlinked player
   })
-  .strict() satisfies z.ZodType<ICreatePlayerInput["data"]>;
+  .strict()
+  .refine((data) => data.email !== undefined || data.role === undefined, {
+    message: "A role needs an email to invite",
+    path: ["role"],
+  }) satisfies z.ZodType<ICreatePlayerInput["data"]>;
 
 export type CreatePlayerInput = z.infer<typeof CreatePlayerSchema>;
 
@@ -51,8 +58,6 @@ export const UpdatePlayerInfoSchema = z
 export type UpdatePlayerInfoInput = z.infer<typeof UpdatePlayerInfoSchema>;
 
 /** PATCH /api/players/{playerId}/memberships */
-const MemberAdminRoleSchema = z.enum([PlayerRole.MEMBER, PlayerRole.ADMIN]);
-
 export const UpdatePlayerRoleSchema = z
   .object({
     role: MemberAdminRoleSchema,

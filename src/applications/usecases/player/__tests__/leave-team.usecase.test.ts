@@ -4,6 +4,7 @@ import {
   createMockTeamRepository,
   createPlayer,
   createProfile,
+  createUnlinkedPlayer,
 } from "@/__tests__/helpers";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
@@ -42,11 +43,9 @@ describe("LeaveTeamUseCase", () => {
       });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
-      mockPlayerRepository.update.mockResolvedValue({
-        ...player,
-        status: PlayerStatus.NONE,
-        userId: undefined,
-      });
+      mockPlayerRepository.update.mockResolvedValue(
+        createUnlinkedPlayer({ id: "player_123", teamId: "team_789" }),
+      );
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
       mockProfileRepository.findByUserId.mockResolvedValue(
         createProfile({ userId: "user_456", activeTeamId: "team_789" }),
@@ -59,6 +58,12 @@ describe("LeaveTeamUseCase", () => {
       });
 
       expect(result).toEqual({ success: true });
+      expect(mockPlayerRepository.update).toHaveBeenCalledWith("player_123", {
+        status: PlayerStatus.NONE,
+        userId: undefined,
+        email: undefined,
+        role: undefined,
+      });
     });
 
     it("should not clear activeTeamId if it points to a different team", async () => {
@@ -70,11 +75,9 @@ describe("LeaveTeamUseCase", () => {
       });
 
       mockPlayerRepository.findById.mockResolvedValue(player);
-      mockPlayerRepository.update.mockResolvedValue({
-        ...player,
-        status: PlayerStatus.NONE,
-        userId: undefined,
-      });
+      mockPlayerRepository.update.mockResolvedValue(
+        createUnlinkedPlayer({ id: "player_123", teamId: "team_789" }),
+      );
       mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
       mockProfileRepository.findByUserId.mockResolvedValue(
         createProfile({ userId: "user_456", activeTeamId: "other_team" }),

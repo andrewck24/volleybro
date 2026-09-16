@@ -56,6 +56,7 @@ export class CancelInvitationUseCase implements ICancelInvitationUseCase {
       status: PlayerStatus.NONE,
       email: undefined,
       userId: undefined,
+      role: undefined,
     });
 
     if (!updated) {

@@ -31,12 +31,15 @@ interface MembershipSectionProps {
   player: PlayerView;
   teamId: string;
   isCurrentOwner: boolean;
+  /** The caller is looking at their own player. */
+  isSelf: boolean;
 }
 
 export function MembershipSection({
   player,
   teamId,
   isCurrentOwner,
+  isSelf,
 }: MembershipSectionProps) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
@@ -44,6 +47,7 @@ export function MembershipSection({
   const status = player.status;
   const isJoined = status === PlayerStatus.JOINED;
   const isOwnerPlayer = player.role === PlayerRole.OWNER;
+  const canManage = !isOwnerPlayer && !isSelf;
 
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removeError, setRemoveError] = useState<ErrorMessage | null>(null);
@@ -67,8 +71,8 @@ export function MembershipSection({
 
       setRemoveOpen(false);
       toast({
-        title: "成員已移除",
-        description: `${player.name} 已從隊伍中移除`,
+        title: "球員已刪除",
+        description: `${player.name} 已從名單中刪除`,
       });
       mutate(`/api/teams/${teamId}/players`);
       router.replace(`/team/${teamId}`);
@@ -92,7 +96,7 @@ export function MembershipSection({
       setTransferOpen(false);
       toast({
         title: "所有權已移轉",
-        description: `${player.name} 已成為新隊長`,
+        description: `${player.name} 已成為新擁有者`,
       });
       revalidate();
     } catch (err) {
@@ -116,11 +120,11 @@ export function MembershipSection({
         <JoinedSection player={player} onSuccess={revalidate} toast={toast} />
       )}
 
-      {!isOwnerPlayer && (
+      {canManage && (
         <>
           <Separator />
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-destructive">移除成員</h3>
+            <h3 className="text-sm font-medium text-destructive">刪除球員</h3>
             <AlertDialog
               open={removeOpen}
               onOpenChange={(open) => {
@@ -134,16 +138,16 @@ export function MembershipSection({
                   className="w-full"
                   disabled={isRemoving}
                 >
-                  移除成員
+                  刪除球員
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    確定要將 {player.name} 從隊伍中移除嗎？
+                    確定要將 {player.name} 從名單中刪除嗎？
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    移除後該成員將無法繼續使用隊伍相關功能。
+                    刪除後這名球員將從名單上移除，無法繼續使用隊伍相關功能。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 {removeError && <ErrorNotice message={removeError} />}
@@ -154,7 +158,7 @@ export function MembershipSection({
                     onClick={handleRemove}
                     loading={isRemoving}
                   >
-                    確認移除
+                    確認刪除
                   </Button>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -190,7 +194,7 @@ export function MembershipSection({
                     確定要將隊伍所有權移轉給 {player.name} 嗎？
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    移轉後你將被降級為管理員，{player.name} 將成為新隊長。
+                    移轉後你將被降級為管理員，{player.name} 將成為新擁有者。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 {transferError && <ErrorNotice message={transferError} />}

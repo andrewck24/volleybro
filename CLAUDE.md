@@ -18,7 +18,7 @@ Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, 
 
 ## Pull requests
 
-[`WORKFLOW.md`](WORKFLOW.md) §5 owns the pre-PR gate. Work through it rather than a summary of it: review runs on the branch and repeats until both axes reach a fixed point, and developer acceptance plus the Archive commit both precede `gh pr create`.
+[`WORKFLOW.md`](WORKFLOW.md) §5 owns the pre-PR gate. Work through it rather than a summary of it: review runs on the branch and repeats until both axes reach a fixed point, and developer acceptance plus the Archive commit both precede `gh pr create`. Acceptance is itself the permission to open the PR once Archive passes; do not ask a second time.
 
 Once the PR is open, CI is the only check to wait for. The automated review workflow was deleted in `6563e077`; the surviving `claude.yml` fires only on an explicit `@claude` mention, so no review arrives unprompted. Human comments are optional and the default merge path does not wait for them; if feedback does change durable knowledge, update the archived Blueprint Change and promoted authorities before merge.
 

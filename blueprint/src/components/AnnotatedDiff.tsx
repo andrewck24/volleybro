@@ -13,13 +13,23 @@ interface AnnotatedDiffProps {
   lang?: string;
   /**
    * Read `code` as a unified diff (leading `+`/`-`/space column) instead of
-   * Shiki notation. Use for JSX, where `//` inside a tag or child is text, not
-   * a comment.
+   * Shiki notation. Inferred when omitted, so this only needs setting to force
+   * a mode.
    */
   unified?: boolean;
 }
 
 const MARKS = { "+": "add", "-": "remove" } as const;
+
+// Plain code never qualifies, so a snippet shown without marks stays untouched.
+const looksUnified = (code: string) => {
+  if (code.includes("[!code")) return false;
+  const lines = code.split("\n").filter((line) => line !== "");
+  return (
+    lines.every((line) => /^[-+ ]/.test(line)) &&
+    lines.some((line) => /^[-+]/.test(line))
+  );
+};
 
 /**
  * Thin preset over fumadocs' DynamicCodeBlock: adds Shiki's official
@@ -28,15 +38,15 @@ const MARKS = { "+": "add", "-": "remove" } as const;
  * already styles (full-width tint + gutter symbol). Line notes are written as
  * normal code comments, so there is no separate annotations layer to maintain.
  *
- * `unified` marks lines by a leading column instead. The marker is stripped
- * before highlighting so the body keeps its own language, and fumadocs'
- * `::before` restores the gutter symbol.
+ * A unified diff marks lines by a leading column instead, and is detected when
+ * `unified` is omitted. The marker is stripped before highlighting so the body
+ * keeps its own language, and fumadocs' `::before` restores the gutter symbol.
  */
 export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
   const marks = new Map<number, "add" | "remove">();
   let body = code;
 
-  if (unified) {
+  if (unified ?? looksUnified(code)) {
     body = code
       .split("\n")
       .map((line, index) => {

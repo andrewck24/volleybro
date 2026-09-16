@@ -1,7 +1,8 @@
 import {
+  createInvitedPlayer,
   createMockAuthorizationService,
   createMockPlayerRepository,
-  createPlayer,
+  createUnlinkedPlayer,
 } from "@/__tests__/helpers";
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
@@ -25,30 +26,31 @@ describe("CancelInvitationUseCase", () => {
 
   describe("execute", () => {
     it("should cancel invitation by setting status to NONE and clearing email/userId", async () => {
-      const invitedPlayer = createPlayer({
+      const invitedPlayer = createInvitedPlayer({
         id: "player_123",
-        status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
       });
 
-      const cancelledPlayer = {
-        ...invitedPlayer,
-        status: PlayerStatus.NONE,
-        email: undefined,
-        userId: undefined,
-      };
-
       mockPlayerRepository.findById.mockResolvedValue(invitedPlayer);
       mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(cancelledPlayer);
+      mockPlayerRepository.update.mockResolvedValue(
+        createUnlinkedPlayer({ id: "player_123", teamId: "team_789" }),
+      );
 
       const result = await useCase.execute({
         playerId: "player_123",
         userId: "user_456",
       });
 
-      expect(result.email).toBeUndefined();
+      expect(result).toMatchObject({ status: PlayerStatus.NONE });
+      expect(result).not.toHaveProperty("email");
+      expect(mockPlayerRepository.update).toHaveBeenCalledWith("player_123", {
+        status: PlayerStatus.NONE,
+        email: undefined,
+        userId: undefined,
+        role: undefined,
+      });
     });
 
     it("should reject if player not found", async () => {
@@ -60,9 +62,8 @@ describe("CancelInvitationUseCase", () => {
     });
 
     it("should reject if user is not team admin", async () => {
-      const invitedPlayer = createPlayer({
+      const invitedPlayer = createInvitedPlayer({
         id: "player_123",
-        status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
       });
@@ -78,9 +79,8 @@ describe("CancelInvitationUseCase", () => {
     });
 
     it("should reject if player status is not INVITED", async () => {
-      const nonePlayer = createPlayer({
+      const nonePlayer = createUnlinkedPlayer({
         id: "player_123",
-        status: PlayerStatus.NONE,
         teamId: "team_789",
       });
 
@@ -93,9 +93,8 @@ describe("CancelInvitationUseCase", () => {
     });
 
     it("should reject if update fails", async () => {
-      const invitedPlayer = createPlayer({
+      const invitedPlayer = createInvitedPlayer({
         id: "player_123",
-        status: PlayerStatus.INVITED,
         email: "invited@example.com",
         teamId: "team_789",
       });

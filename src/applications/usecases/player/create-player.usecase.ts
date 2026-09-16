@@ -1,11 +1,11 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IUserRepository } from "@/applications/repositories/user.repository.interface";
 import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
 import {
-  ConflictError,
-  UnexpectedError,
-  CommonReason,
-  PlayerReason,
-} from "@/entities/errors";
+  asRosterConflict,
+  resolveInviteeLink,
+} from "@/applications/usecases/player/invitee-link";
+import { UnexpectedError, CommonReason } from "@/entities/errors";
 import type { Player, Position } from "@/entities/player";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
@@ -17,7 +17,8 @@ export interface ICreatePlayerInput {
     name: string;
     number?: number;
     position?: Position;
-    role: PlayerRole;
+    /** Only meaningful with an email: the role the invitation offers. */
+    role?: PlayerRole.MEMBER | PlayerRole.ADMIN;
     email?: string;
   };
   userId: string;
@@ -32,39 +33,42 @@ export class CreatePlayerUseCase implements ICreatePlayerUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.UserRepository)
+    private userRepository: IUserRepository,
     @inject(TYPES.AuthorizationService)
     private authService: IAuthorizationService,
   ) {}
 
   async execute({ teamId, data, userId }: ICreatePlayerInput): Promise<Player> {
-    // 1. 驗證權限 - 必須是 ADMIN 或 OWNER
     await this.authService.verifyIsTeamAdmin(teamId, userId);
 
-    // 2. 如果有 email，檢查是否已經邀請過
-    if (data.email) {
-      const existingInvitation =
-        await this.playerRepository.findInvitedByTeamIdAndEmail(
+    const { name, number, position } = data;
+    const address = data.email?.trim();
+    const link = address
+      ? await resolveInviteeLink(
+          { players: this.playerRepository, users: this.userRepository },
           teamId,
-          data.email,
-        );
-      if (existingInvitation) {
-        throw new ConflictError(
-          PlayerReason.EMAIL_ALREADY_INVITED,
-          "This email already has a pending invitation for this team",
-        );
-      }
-    }
+          address,
+        )
+      : null;
 
-    // 3. 建立球員（純球員，status: NONE）
-    const player = await this.playerRepository.create({
-      name: data.name,
-      status: PlayerStatus.NONE,
-      number: data.number,
-      position: data.position,
-      teamId,
-      email: data.email,
-      role: data.role || PlayerRole.MEMBER,
-    });
+    const player = await this.playerRepository
+      .create(
+        link
+          ? {
+              name,
+              status: PlayerStatus.INVITED,
+              number,
+              position,
+              teamId,
+              role: data.role ?? PlayerRole.MEMBER,
+              ...link,
+            }
+          : { name, status: PlayerStatus.NONE, number, position, teamId },
+      )
+      .catch((error: unknown) => {
+        throw asRosterConflict(error);
+      });
 
     if (!player) {
       throw new UnexpectedError(

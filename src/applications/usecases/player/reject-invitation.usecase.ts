@@ -19,7 +19,7 @@ export interface IRejectInvitationUseCase {
 
 /**
  * RejectInvitationUseCase Implementation
- * User rejects invitation: status INVITED → NONE, clears email and userId
+ * User rejects invitation: status INVITED → NONE, clears userId, email and role
  */
 @injectable()
 export class RejectInvitationUseCase implements IRejectInvitationUseCase {
@@ -56,6 +56,7 @@ export class RejectInvitationUseCase implements IRejectInvitationUseCase {
       status: PlayerStatus.NONE,
       email: undefined,
       userId: undefined,
+      role: undefined,
     });
   }
 }

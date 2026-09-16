@@ -52,27 +52,43 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     description: "請確認標示的欄位後再送出",
   },
   OWNER_CANNOT_LEAVE: {
-    title: "隊長無法離開隊伍",
-    description: "請先把隊長轉移給其他成員，再離開",
+    title: "擁有者無法離開隊伍",
+    description: "請先把擁有權移轉給其他成員，再離開",
   },
   NOT_PLAYER_OWNER: {
     title: "無法代替他人離開",
     description: "你只能讓自己離開隊伍",
   },
   NOT_TEAM_OWNER: {
-    title: "只有隊長可以轉移",
-    description: "轉移隊長身分需要目前的隊長操作",
+    title: "只有擁有者可以移轉",
+    description: "移轉擁有者身分需要目前的擁有者操作",
   },
   TARGET_NOT_IN_TEAM: {
     title: "對方不在這支隊伍",
-    description: "只能把隊長轉移給隊上的成員",
+    description: "只能把擁有權移轉給隊上的成員",
   },
   TARGET_NOT_MEMBER: {
     title: "對方尚未加入",
-    description: "邀請中的成員要先接受邀請，才能成為隊長",
+    description: "受邀者要先接受邀請，才能成為擁有者",
+  },
+  TARGET_ALREADY_OWNER: {
+    title: "你已經是擁有者",
+    description: "移轉擁有權請指定其他成員",
+  },
+  TARGET_IS_OWNER: {
+    title: "擁有者無法被變更或刪除",
+    description: "擁有權只能由擁有者本人移轉給其他成員",
+  },
+  TARGET_IS_SELF: {
+    title: "無法對自己的球員操作",
+    description: "要離開這支隊伍，請使用離開隊伍",
+  },
+  TARGET_NOT_LINKED: {
+    title: "這位球員沒有帳號",
+    description: "先邀請對方加入，才能設定角色",
   },
   PLAYER_NOT_FOUND: {
-    title: "找不到這位成員",
+    title: "找不到這位球員",
     description: "對方可能已離開隊伍，請重新整理後再試",
   },
   INSUFFICIENT_ROLE: {
@@ -95,9 +111,13 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方已經在隊上",
     description: "不需要重複邀請",
   },
-  EMAIL_ALREADY_INVITED: {
-    title: "這個 email 已被邀請",
-    description: "你已在其他隊員邀請此 email",
+  ALREADY_ON_ROSTER: {
+    title: "對方已在名單上",
+    description: "這個 email 的擁有者已經是隊上的球員或受邀者",
+  },
+  AMBIGUOUS_EMAIL: {
+    title: "這個 email 對應到多個帳號",
+    description: "無法確定要邀請哪一位，請改用對方帳號的 email 再試一次",
   },
   NOT_INVITED: {
     title: "這封邀請已失效",

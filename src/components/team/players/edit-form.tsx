@@ -29,7 +29,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { PlayerRole } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
@@ -82,7 +82,9 @@ export function EditForm({
       </Empty>
     );
   } else {
-    const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
+    const currentUserPlayer = teamPlayers?.find(
+      (p) => p.userId === user?.id && p.status === PlayerStatus.JOINED,
+    );
     const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
     const showMembership =
       currentUserPlayer &&
@@ -104,6 +106,7 @@ export function EditForm({
               player={player}
               teamId={teamId}
               isCurrentOwner={isCurrentOwner}
+              isSelf={currentUserPlayer.id === player.id}
             />
           </>
         )}

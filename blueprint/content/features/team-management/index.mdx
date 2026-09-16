@@ -29,7 +29,7 @@ export const details = {
   },
   roles: {
     title: "Roles & Permissions",
-    body: "Three roles gate what a member can do: OWNER, ADMIN, MEMBER. Owners manage the team; members participate.",
+    body: "Three roles gate what a member can do, ranked OWNER above ADMIN above MEMBER. The owner and admins manage the roster — inviting, changing roles and removing players; a regular member only participates. See Roles for who may manage whom.",
   },
   lineup: {
     title: "Lineup Configuration",
@@ -42,18 +42,22 @@ export const details = {
 };
 
 Team management covers the full lifecycle from creating a team to fielding a
-lineup. Click a node for detail.
+lineup. Click a node for detail. See [Membership](/features/team-management/membership)
+for the three kinds of player and how invitations reach an account, and
+[Roles](/features/team-management/roles) for the OWNER / ADMIN / MEMBER
+hierarchy and who may manage whom.
 
 <InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
 
 ## Status
 
-| Capability                                                         | Status                           |
-| ------------------------------------------------------------------ | -------------------------------- |
-| Create team, edit info                                             | <StatusBadge status="shipped" /> |
-| Member add / edit / remove, user search, invite / accept / decline | <StatusBadge status="shipped" /> |
-| Roles (OWNER / ADMIN / MEMBER), lineups, team switching            | <StatusBadge status="shipped" /> |
-| Team entry-point UX                                                | <StatusBadge status="planned" /> |
-| Lineup: officials roster & captain attribute                       | <StatusBadge status="planned" /> |
-| Delete / disband team                                              | <StatusBadge status="planned" /> |
-| Public team search & join requests                                 | <StatusBadge status="planned" /> |
+| Capability                                                                                                | Status                           |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Create team, edit info                                                                                    | <StatusBadge status="shipped" /> |
+| Member add / edit / remove, user search, invite / accept / decline                                        | <StatusBadge status="shipped" /> |
+| Roles (OWNER / ADMIN / MEMBER), lineups, team switching                                                   | <StatusBadge status="shipped" /> |
+| Team entry-point UX                                                                                       | <StatusBadge status="planned" /> |
+| Lineup: officials roster & captain attribute                                                              | <StatusBadge status="planned" /> |
+| Delete / disband team                                                                                     | <StatusBadge status="planned" /> |
+| Public team search & join requests                                                                        | <StatusBadge status="planned" /> |
+| Team privacy settings: the owner decides who beyond members may see team info, the roster and member info | <StatusBadge status="planned" /> |

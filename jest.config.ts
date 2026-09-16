@@ -33,6 +33,9 @@ export default async function jestConfig() {
     moduleNameMapper: {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
+      // The migration scripts run under ts-node/esm, which requires the `.js`
+      // specifier the TypeScript source does not have on disk.
+      "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
       "/node_modules/(?!.*(inversify|@inversifyjs)/)",

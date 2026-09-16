@@ -36,11 +36,11 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
-  withAuth(async (_req, { userId: _userId }) => {
+  withAuth(async (_req, { userId }) => {
     const { teamId } = await props.params;
     assertObjectId(teamId, "teamId");
 
-    const players = await playerController.getTeamPlayers({ teamId });
+    const players = await playerController.getTeamPlayers({ teamId, userId });
 
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 
