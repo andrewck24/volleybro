@@ -61,8 +61,8 @@ describe("MembershipSection — remove loading state", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /移除成員/ }));
-    const confirmBtn = screen.getByRole("button", { name: /確認移除/ });
+    await user.click(screen.getByRole("button", { name: /刪除球員/ }));
+    const confirmBtn = screen.getByRole("button", { name: /確認刪除/ });
     expect(confirmBtn).toBeEnabled();
 
     await user.click(confirmBtn);
@@ -89,8 +89,8 @@ describe("MembershipSection — remove loading state", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /移除成員/ }));
-    const confirmBtn = screen.getByRole("button", { name: /確認移除/ });
+    await user.click(screen.getByRole("button", { name: /刪除球員/ }));
+    const confirmBtn = screen.getByRole("button", { name: /確認刪除/ });
     await user.click(confirmBtn);
 
     await waitFor(() => expect(confirmBtn).toBeEnabled());
@@ -161,7 +161,7 @@ describe("MembershipSection — transfer loading state", () => {
 });
 
 describe("MembershipSection — who the delete entry appears for", () => {
-  const deleteEntry = () => screen.queryByRole("button", { name: /移除成員/ });
+  const deleteEntry = () => screen.queryByRole("button", { name: /刪除球員/ });
 
   it("appears for a player the caller may manage", () => {
     render(

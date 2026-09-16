@@ -93,7 +93,7 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
     // Error message should appear inline in dialog
     await waitFor(() => {
       expect(
-        screen.getByText("請先把隊長轉移給其他成員，再離開"),
+        screen.getByText("請先把擁有權移轉給其他成員，再離開"),
       ).toBeInTheDocument();
     });
 

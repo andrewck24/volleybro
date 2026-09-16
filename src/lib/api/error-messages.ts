@@ -52,24 +52,24 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     description: "請確認標示的欄位後再送出",
   },
   OWNER_CANNOT_LEAVE: {
-    title: "隊長無法離開隊伍",
-    description: "請先把隊長轉移給其他成員，再離開",
+    title: "擁有者無法離開隊伍",
+    description: "請先把擁有權移轉給其他成員，再離開",
   },
   NOT_PLAYER_OWNER: {
     title: "無法代替他人離開",
     description: "你只能讓自己離開隊伍",
   },
   NOT_TEAM_OWNER: {
-    title: "只有隊長可以轉移",
-    description: "轉移隊長身分需要目前的隊長操作",
+    title: "只有擁有者可以移轉",
+    description: "移轉擁有者身分需要目前的擁有者操作",
   },
   TARGET_NOT_IN_TEAM: {
     title: "對方不在這支隊伍",
-    description: "只能把隊長轉移給隊上的成員",
+    description: "只能把擁有權移轉給隊上的成員",
   },
   TARGET_NOT_MEMBER: {
     title: "對方尚未加入",
-    description: "邀請中的成員要先接受邀請，才能成為隊長",
+    description: "邀請中的成員要先接受邀請，才能成為擁有者",
   },
   TARGET_IS_OWNER: {
     title: "擁有者無法被變更或刪除",

@@ -24,6 +24,7 @@ import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { apiClient } from "@/lib/api/api-client";
 import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
+import { ROLE_LABELS } from "@/lib/constants/labels";
 import type { PlayerView } from "@/lib/features/team/types";
 import {
   CreatePlayerSchema,
@@ -201,8 +202,12 @@ export function CreateForm({ teamId, onStateChange }: CreateFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value={PlayerRole.MEMBER}>成員</SelectItem>
-                      <SelectItem value={PlayerRole.ADMIN}>管理員</SelectItem>
+                      <SelectItem value={PlayerRole.MEMBER}>
+                        {ROLE_LABELS[PlayerRole.MEMBER]}
+                      </SelectItem>
+                      <SelectItem value={PlayerRole.ADMIN}>
+                        {ROLE_LABELS[PlayerRole.ADMIN]}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FormItem>

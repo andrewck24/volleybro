@@ -17,5 +17,5 @@
     "受影響 component 測試更新後通過",
     "pnpm verify"
   ],
-  "status": "pending"
+  "status": "completed"
 }
