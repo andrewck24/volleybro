@@ -68,7 +68,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 <svg
   viewBox="0 0 900 640"
   role="img"
-  aria-label="授權的三層分工，由上而下。最上層是 application 層的 use case，GetTeamUseCase、GetPlayerUseCase、GetTeamPlayersUseCase 與既有 15 個呼叫點，呼叫 AuthorizationService 的 verifyTeamRole。中間是 infrastructure 層的 AuthorizationService：查出球員、交給 entity 判斷、不通過就丟出 NOT_TEAM_MEMBER 或 INSUFFICIENT_ROLE。最下層是 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色；沒有 I/O，不經 mock 就能測試。"
+  aria-label="授權的三層分工，由上而下。最上層是 application 層的 use case，GetTeamUseCase、GetPlayerUseCase、GetTeamPlayersUseCase 與其餘既有呼叫點，呼叫 AuthorizationService 的 verifyTeamRole。中間是 infrastructure 層的 AuthorizationService：查出球員、交給 entity 判斷、不通過就丟出 NOT_TEAM_MEMBER 或 INSUFFICIENT_ROLE。最下層是 entity 層的兩個純函式：isTeamMember 判斷 status 為 JOINED，hasTeamRole 以 OWNER、ADMIN、MEMBER 的階層比較角色；沒有 I/O，不經 mock 就能測試。"
   preserveAspectRatio="xMidYMid meet"
   style={{ aspectRatio: "900 / 640", width: "100%", height: "auto" }}
 >
@@ -83,7 +83,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
     <text x="860" y="62" textAnchor="end" fontSize="20" fill="var(--muted-foreground)">Application</text>
     <text x="48" y="104" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamUseCase · GetPlayerUseCase</text>
     <text x="48" y="136" fontSize="21" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">GetTeamPlayersUseCase</text>
-    <text x="48" y="166" fontSize="20" fill="var(--muted-foreground)">＋ 既有 15 個呼叫點，程式碼不變</text>
+    <text x="48" y="166" fontSize="20" fill="var(--muted-foreground)">＋ 其餘既有呼叫點，程式碼不變</text>
 
     <line x1="450" y1="180" x2="450" y2="226" stroke="var(--muted-foreground)" strokeWidth="2" markerEnd="url(#tma-arrow)" />
     <text x="470" y="210" fontSize="20" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">verifyTeamRole(teamId, userId, role)</text>
@@ -197,7 +197,7 @@ audit 另外列出被撤回的舊邀請與帶 email 的未連結球員，以及�
 - 受邀者接受邀請：`AcceptInvitationUseCase` 自己驗證受邀者身分，不經過成員檢查；接受後立即成為成員。
 - 移轉擁有權：現任擁有者必須是角色為擁有者的成員，目標必須是成員；受邀者作為目標得到 `TARGET_NOT_MEMBER`。
 - 被刪除的成員：`activeTeamId` 若指向該隊即清除；非成員直接開啟隊伍頁面時看到錯誤狀態。
-- 不存在的隊伍：先授權再讀取，回傳 `NOT_TEAM_MEMBER`，不透露隊伍是否存在。`GetPlayerUseCase` 必須先讀出球員才知道隊伍，球員不存在時的 404 維持不變。
+- 不存在的隊伍：先授權再讀取，回傳 `NOT_TEAM_MEMBER`，不透露隊伍是否存在。`GetPlayerUseCase` 必須先讀出球員才知道隊伍，球員不存在時的行為維持不變：use case 回傳 null，route 交給回應 schema，呼叫者得到 400 VALIDATION。那個回應形狀是既有行為，本 Change 不動它。
 
 ## Failure modes
 

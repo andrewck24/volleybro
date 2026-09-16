@@ -16,7 +16,7 @@
     "update-role 的目標必須是受邀者或成員；目標是未連結球員時回傳錯誤。",
     "transfer-ownership 的現任擁有者檢查改為 isTeamMember 且 hasTeamRole(…, OWNER)，新擁有者檢查改為 isTeamMember；錯誤原因維持 NOT_TEAM_OWNER 與 TARGET_NOT_MEMBER，並移除已不成立的註解。",
     "players/info.tsx 只為受邀者與成員顯示角色。",
-    "既有 15 個 verify 呼叫點的程式碼不變。以受邀者身分期待通過檢查、或期待未連結球員帶角色的既有測試改寫為新行為，不放寬判斷。"
+    "既有的 verify 呼叫點程式碼不變（S04 之後 update-role 與 remove-player 改走 entity 的角色管理判斷，不再呼叫 verify）。以受邀者身分期待通過檢查、或期待未連結球員帶角色的既有測試改寫為新行為，不放寬判斷。"
   ],
   "verification": [
     "entity 測試涵蓋 NONE / INVITED / JOINED × 各角色 的組合",
