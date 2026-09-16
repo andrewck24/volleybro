@@ -31,6 +31,22 @@ describe("AnnotatedDiff", () => {
     ]);
   });
 
+  it("reads a unified diff without the prop", () => {
+    render(<AnnotatedDiff code={"-const a = 1;\n+const a = 2;"} />);
+    expect(screen.getByTestId("code")).toHaveTextContent(
+      " const a = 1;\n const a = 2;",
+      { normalizeWhitespace: false },
+    );
+  });
+
+  it("leaves unmarked code alone", () => {
+    const code = "const a = 1;\n-1";
+    render(<AnnotatedDiff code={code} />);
+    expect(screen.getByTestId("code")).toHaveTextContent(code, {
+      normalizeWhitespace: false,
+    });
+  });
+
   it("passes the diff-notated code through to the highlighter", () => {
     const code = `const a = 1;\nconst b = 2; // [!code ++]`;
     render(<AnnotatedDiff code={code} />);

@@ -152,7 +152,7 @@ import { TLDR } from "@/components/TLDR";
 <AnnotatedDiff
   lang="tsx"
   code={
-    "-  const { teamId } = useActiveTeamId();\n+  const { teamId, isLoading } = useActiveTeamId();\n\n- return <>{!teamId && <GuidesForNewUser />}</>;\n\n* return <>{!teamId && !isLoading && <GuidesForNewUser />}</>;"
+    " const Notifications = () => {\n-  const { teamId } = useActiveTeamId();\n+  const { teamId, isLoading } = useActiveTeamId();\n \n-  return <>{!teamId && <GuidesForNewUser />}</>;\n+  return <>{!teamId && !isLoading && <GuidesForNewUser />}</>;\n };"
   }
 />
 
