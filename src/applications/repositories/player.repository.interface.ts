@@ -57,11 +57,6 @@ export interface IPlayerRepository {
   countByTeamId(teamId: string): Promise<number>;
 
   /**
-   * Find all admins in a team
-   */
-  findAdminsByTeamId(teamId: string): Promise<Player[]>;
-
-  /**
    * Check if email invitation already exists in team
    */
   existsInvitation(teamId: string, email: string): Promise<boolean>;

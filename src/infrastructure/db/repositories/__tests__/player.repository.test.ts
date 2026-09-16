@@ -293,23 +293,6 @@ describe("PlayerRepository", () => {
     });
   });
 
-  describe("findAdminsByTeamId", () => {
-    it("should return all admins and owner in team", async () => {
-      const mockExec = jest
-        .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
-      (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
-
-      const result = await repository.findAdminsByTeamId("team-1");
-
-      expect(PlayerModel.find).toHaveBeenCalledWith({
-        teamId: "team-1",
-        role: { $in: ["ADMIN", "OWNER"] },
-      });
-      expect(result).toHaveLength(1);
-    });
-  });
-
   describe("existsInvitation", () => {
     it("should return true if invitation exists", async () => {
       const mockExec = jest.fn().mockResolvedValue(1);

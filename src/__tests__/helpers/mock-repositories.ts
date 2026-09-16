@@ -15,7 +15,6 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
     update: jest.fn(),
     delete: jest.fn(),
     countByTeamId: jest.fn(),
-    findAdminsByTeamId: jest.fn(),
     existsInvitation: jest.fn(),
     findByTeamIdAndUserId: jest.fn(),
     linkUserToInvitations: jest.fn(),

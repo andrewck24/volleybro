@@ -5,7 +5,6 @@ import {
   NewPlayer,
   Player,
   PlayerFields,
-  PlayerRole,
   PlayerStatus,
 } from "@/entities/player";
 import {
@@ -128,18 +127,6 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
   async countByTeamId(teamId: string): Promise<number> {
     try {
       return await PlayerModel.countDocuments({ teamId }).exec();
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async findAdminsByTeamId(teamId: string): Promise<Player[]> {
-    try {
-      const docs = await PlayerModel.find({
-        teamId,
-        role: { $in: [PlayerRole.ADMIN, PlayerRole.OWNER] },
-      }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
     } catch (error) {
       throw translateRepositoryError(error);
     }
