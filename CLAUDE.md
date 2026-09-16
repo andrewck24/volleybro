@@ -9,6 +9,7 @@ Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, 
 - Installed Matt Pocock skills and their `skills-lock.json` entries are vendor-managed. Never edit them to encode VolleyBro policy — that belongs in `docs/agents/`.
 - A tool-specific artifact system is never a second lifecycle authority.
 - **Judgment-type deletions need confirmation first.** When knip, a dead-code audit, or your own analysis flags files for deletion beyond the requested scope, list the candidates with per-file rationale and wait. "Unreferenced in the import graph" is not evidence on its own — a file may be a documented API contract (see `design-tokens.ts`), an alias of a live database collection, or reserved for planned work.
+- **Questions wait for the gate.** Collect judgment questions and ask them at the phase's human gate alongside the finished work; stop early only if a different answer would make the remaining work useless.
 
 ## Writing
 

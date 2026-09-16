@@ -31,6 +31,8 @@ Each layer has a designated testing school and defined mock boundaries.
 
 The unit tiers above each isolate a single layer. The **integration tier** wires the whole request stack together against a real database — the seam the mongoose-stubbed backend project cannot reach. Deferred tiers (staging smoke via Bruno, end-to-end via Playwright) are planned but not yet implemented.
 
+**What needs a real sign-in.** Only rendered auth-gated pages do. Server behaviour runs through `test/integration/` with `useFakeAuth`, which rebinds the auth services in the container; client logic runs in the jsdom `frontend` project. For real-device acceptance, deploy the working tree to the unprotected `volleybro-test` project with `git status --short && pnpm dlx vercel --prod --yes`; the CLI is already authenticated and needs no global install. Hand out `https://volleybro-test.vercel.app`, never the org-suffixed alias, which redirects to SSO.
+
 ```mermaid
 flowchart TB
     subgraph stack["Request stack"]

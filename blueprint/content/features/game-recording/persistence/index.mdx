@@ -94,6 +94,10 @@ appends one entry; it does not rewrite the game.
   that looks like it does and does not, which is how a rally missing the move
   it recorded reached the database in the first place.
 
+- A disagreement between what the recorder sees and what the server holds is
+  the app's to resolve. It never becomes a user action — a confirm dialog, a
+  manual refresh, a choice of which copy is right — unless the app genuinely
+  cannot decide; one interruption during recording loses a rally.
 - The queue is laid over the server's answer by the same identity-and-sequence
   rule the repository writes by, so what the recorder sees now is what the
   server will hold once the queue drains.
