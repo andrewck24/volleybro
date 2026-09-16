@@ -4,7 +4,11 @@ import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
 import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameSummaryView, GameView } from "@/lib/features/game/types";
-import type { PlayerView, TeamView } from "@/lib/features/team/types";
+import type {
+  PlayerView,
+  TeamView,
+  UserPlayerView,
+} from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -63,7 +67,7 @@ export const useUserPlayers = (
 ) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    PlayerView[],
+    UserPlayerView[],
     ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 

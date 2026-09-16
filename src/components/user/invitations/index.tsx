@@ -19,11 +19,10 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
-import { useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
+import { useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
-import type { PlayerView } from "@/lib/features/team/types";
-import NextLink from "next/link";
+import type { UserPlayerView } from "@/lib/features/team/types";
 import { useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import { RiCheckLine, RiCloseLine, RiGroupLine } from "react-icons/ri";
@@ -112,25 +111,17 @@ function InvitationItem({
   processingId,
   handleInvitation,
 }: {
-  player: PlayerView;
+  player: UserPlayerView;
   processingId: string | null;
   handleInvitation: (id: string, action: "accept" | "reject") => void;
 }) {
-  const { team, isLoading } = useTeam(player.teamId!);
-  if (isLoading) return <InvitationItemSkeleton />;
-
   return (
-    <Item className="relative items-start hover:bg-muted/50">
-      <NextLink
-        href={`/team/${player.teamId}`}
-        className="absolute inset-0 z-0"
-        aria-label="前往隊伍"
-      />
+    <Item className="items-start hover:bg-muted/50">
       <ItemMedia variant="icon">
         <RiGroupLine className="h-4 w-4" />
       </ItemMedia>
       <ItemContent>
-        <ItemTitle className="h-8">{team?.name}</ItemTitle>
+        <ItemTitle className="h-8">{player.teamName}</ItemTitle>
         <ItemFooter className="relative z-10 flex w-fit items-center gap-2">
           <Button
             size="sm"

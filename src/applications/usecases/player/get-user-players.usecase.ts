@@ -1,4 +1,5 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { Player } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
@@ -7,8 +8,10 @@ export interface IGetUserPlayersInput {
   userId: string;
 }
 
+export type PlayerWithTeamName = Player & { teamName?: string };
+
 export interface IGetUserPlayersUseCase {
-  execute(input: IGetUserPlayersInput): Promise<Player[]>;
+  execute(input: IGetUserPlayersInput): Promise<PlayerWithTeamName[]>;
 }
 
 /**
@@ -24,12 +27,22 @@ export class GetUserPlayersUseCase implements IGetUserPlayersUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
+    @inject(TYPES.TeamRepository)
+    private teamRepository: ITeamRepository,
   ) {}
 
-  async execute({ userId }: IGetUserPlayersInput): Promise<Player[]> {
-    // Get all teams user has joined
+  async execute({
+    userId,
+  }: IGetUserPlayersInput): Promise<PlayerWithTeamName[]> {
     const joinedPlayers = await this.playerRepository.findByUserId(userId);
 
-    return joinedPlayers;
+    return Promise.all(
+      joinedPlayers.map(async (player) => {
+        const team = player.teamId
+          ? await this.teamRepository.findById(player.teamId)
+          : null;
+        return { ...player, teamName: team?.name };
+      }),
+    );
   }
 }

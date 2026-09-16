@@ -1,10 +1,16 @@
-import { createMockPlayerRepository, createPlayer } from "@/__tests__/helpers";
+import {
+  createMockPlayerRepository,
+  createMockTeamRepository,
+  createPlayer,
+  createTeam,
+} from "@/__tests__/helpers";
 import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("GetUserPlayersUseCase", () => {
   let usecase: GetUserPlayersUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockTeamRepository: ReturnType<typeof createMockTeamRepository>;
 
   const mockPlayers = [
     createPlayer({
@@ -23,15 +29,35 @@ describe("GetUserPlayersUseCase", () => {
 
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
-    usecase = new GetUserPlayersUseCase(mockPlayerRepository);
+    mockTeamRepository = createMockTeamRepository();
+    mockTeamRepository.findById.mockImplementation(async (id: string) =>
+      createTeam({ id, name: `Team ${id}` }),
+    );
+    usecase = new GetUserPlayersUseCase(
+      mockPlayerRepository,
+      mockTeamRepository,
+    );
   });
 
-  it("should return all players for a user", async () => {
+  it("should return all players for a user with their teamName", async () => {
     mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
 
     const result = await usecase.execute({ userId: "user-1" });
 
-    expect(result).toEqual(mockPlayers);
+    expect(result).toEqual([
+      { ...mockPlayers[0], teamName: "Team team-1" },
+      { ...mockPlayers[1], teamName: "Team team-2" },
+    ]);
+  });
+
+  it("should keep the entry with no teamName when its team cannot be found", async () => {
+    mockPlayerRepository.findByUserId.mockResolvedValue(mockPlayers);
+    mockTeamRepository.findById.mockResolvedValue(null);
+
+    const result = await usecase.execute({ userId: "user-1" });
+
+    expect(result).toHaveLength(2);
+    expect(result.every((p) => p.teamName === undefined)).toBe(true);
   });
 
   it("should return empty array if user has no players", async () => {

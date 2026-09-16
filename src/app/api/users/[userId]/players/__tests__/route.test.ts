@@ -156,5 +156,22 @@ describe("Users Players API Route", () => {
       expect(player).toHaveProperty("role");
       expect(typeof player.userId).toBe("string");
     });
+
+    it("should include teamName on each entry", () => {
+      const players = [
+        {
+          ...createPlayer({ id: "player-1", teamId: "team-1" }),
+          teamName: "Team One",
+        },
+        {
+          ...createPlayer({ id: "player-2", teamId: "team-2" }),
+          teamName: undefined,
+        },
+      ];
+
+      expect(players[0]!.teamName).toBe("Team One");
+      expect(players[1]!.teamName).toBeUndefined();
+      expect(players.every((p) => "teamName" in p)).toBe(true);
+    });
   });
 });

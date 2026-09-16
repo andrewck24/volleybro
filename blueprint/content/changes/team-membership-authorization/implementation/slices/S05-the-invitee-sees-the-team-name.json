@@ -18,5 +18,5 @@
     "invitations component 測試：以 teamName 顯示隊名，且不呼叫 useTeam、不渲染隊伍連結",
     "pnpm verify"
   ],
-  "status": "pending"
+  "status": "completed"
 }
