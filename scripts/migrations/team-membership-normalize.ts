@@ -50,17 +50,22 @@ export interface NormalizeReport {
     emptyValuesCleared: number;
     alreadyConforming: number;
   };
-  /** Invitations and unlinked players whose email is withdrawn by this step. */
+  /** Documents left as unlinked players while still carrying an email address. */
   withdrawn: Listing[];
   /** Documents that carry an owner role without being a member, before normalization. */
   nonMemberOwners: Listing[];
   stops: Stop[];
   /** Teams with zero players, for the developer to decide whether to delete. */
-  teamsWithNoPlayers: { id: string; name: string }[];
+  teamsWithNoPlayers: TeamListing[];
   /** Every index name the players collection currently holds. */
   indexes: string[];
   /** Expected partial unique indexes that are missing or not as declared. */
   indexIssues: string[];
+}
+
+interface TeamListing {
+  id: string;
+  name: string;
 }
 
 interface Projection {
@@ -265,19 +270,19 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
     if (text(raw.role) === OWNER && raw.status !== "JOINED")
       nonMemberOwners.push(listing(raw));
     const projection = project(raw, counts);
-    if (projection.unset.includes("email")) withdrawn.push(listing(raw));
+    if (projection.status === "NONE" && text(raw.email))
+      withdrawn.push(listing(raw));
     return projection;
   });
 
   const byTeamUser = new Map<string, string[]>();
   const byTeamEmail = new Map<string, string[]>();
   const ownersByTeam = new Map<string, string[]>();
-  const playerCountByTeam = new Map<string, number>();
+  const teamsWithPlayers = new Set<string>();
 
   for (const p of projections) {
     const team = isObjectId(p.teamId) ? id(p.teamId) : null;
-    if (team)
-      playerCountByTeam.set(team, (playerCountByTeam.get(team) ?? 0) + 1);
+    if (team) teamsWithPlayers.add(team);
 
     if (
       p.raw.status !== undefined &&
@@ -321,11 +326,9 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   for (const ids of byTeamEmail.values())
     if (ids.length > 1) ids.forEach((d) => collect(stops, "duplicateEmail", d));
 
-  // A team with no players has no membership to protect, so it never stops
-  // the migration; it is listed for the developer to decide instead.
-  const teamsWithNoPlayers: { id: string; name: string }[] = [];
+  const teamsWithNoPlayers: TeamListing[] = [];
   for (const team of teamIds) {
-    if ((playerCountByTeam.get(team) ?? 0) === 0) {
+    if (!teamsWithPlayers.has(team)) {
       teamsWithNoPlayers.push({ id: team, name: teamNames.get(team) ?? "" });
       continue;
     }
