@@ -2,9 +2,10 @@
   "schemaVersion": 1,
   "slug": "team-membership-authorization",
   "title": "Team Membership Authorization",
-  "lifecycle": "awaiting-delivery-review",
+  "lifecycle": "archived",
   "startedAt": "2026-09-15",
   "summary": "「成員」只有一個定義：已加入的球員。Player 的型別依狀態分為未連結球員、受邀者與成員，角色只屬於後兩者；受邀者不再通過任何成員或管理員檢查，擁有者不能被他人降級或移除。隊伍資訊、名單與單一球員資料在隱私設定上線前只給成員讀取，既有資料先回填再部署。",
   "capabilities": ["team-management/membership", "team-management/roles"],
-  "tags": ["authorization", "privacy", "security", "data-migration"]
+  "tags": ["authorization", "privacy", "security", "data-migration"],
+  "archivedAt": "2026-09-16"
 }

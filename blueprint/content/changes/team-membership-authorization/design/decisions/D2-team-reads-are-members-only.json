@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D2",
   "title": "隱私設定上線前，隊伍讀取一律只給成員",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["team-management/membership"],
   "context": "GET /api/teams/{teamId} 沒有 withAuth，未登入即可讀取隊名、lineups 與 stats；GET /api/players/{playerId} 與 GET /api/teams/{teamId}/players 對任何登入者回傳球員資料含 email。邀請頁以 GET /api/teams/{teamId} 顯示受邀隊伍的隊名並連到隊伍頁；AcceptInvitation 的 controller 透過 GetPlayerUseCase 取得 teamId。",
   "decision": "三個讀取端點在 use case 內要求呼叫者是該隊成員（D1）。受邀者需要的隊名由受邀者自己的球員清單（GET /api/users/{userId}/players）每一筆帶上 teamName 提供，邀請項目在接受前不連到隊伍頁。AcceptInvitationUseCase 回傳它已經讀到的 Player，controller 不再經過 GetPlayerUseCase。回應欄位的可見範圍（email 只給擁有者與管理員）不在本決定內。",

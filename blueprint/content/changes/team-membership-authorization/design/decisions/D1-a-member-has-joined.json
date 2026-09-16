@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "id": "D1",
   "title": "成員是已加入的球員，Player 的型別依狀態區分",
-  "status": "candidate",
+  "status": "implemented",
   "targets": ["team-management/membership", "team-management/roles"],
   "context": "Player 同時表達未連結球員（NONE）、受邀者（INVITED）與成員（JOINED）三種人，但 role 不能用來分辨他們：create-player 建立未連結球員時一律寫入 MEMBER，離開隊伍、拒絕與取消邀請都不清除 role，邀請時又會重新指定 role。AuthorizationService 的 verifyTeamRole 與 verifyIsTeamAdmin 只看 role，findByTeamIdAndUserId 也不過濾 status，所以先被邀請、之後才註冊而被連結帳號的受邀者，通過全部成員檢查；被邀請為管理員者在接受前就通過管理員檢查。transfer-ownership 以 userId 是否存在判斷新擁有者已加入，同樣接受受邀者。角色階層的比較在 service 的四個方法中各寫一次。",
   "decision": "Player 仍是一份文件，entity 型別改為依 status 區分的 union：UnlinkedPlayer（NONE，沒有 userId、email 與 role）、InvitedPlayer（INVITED，恰有 userId 或 email 其中之一，role 是邀請時提出的角色）、TeamMember（JOINED，有 userId 與 role）。成員的判斷是 isTeamMember，只看 status 是否為 JOINED；角色階層由 hasTeamRole 比較。兩者都是 entity 層的純函式。repository 讀取時把文件縮窄成三者之一，不符合的文件讀取失敗。AuthorizationService 只負責查詢、呼叫這兩個函式、在不通過時丟出 AuthorizationError。",

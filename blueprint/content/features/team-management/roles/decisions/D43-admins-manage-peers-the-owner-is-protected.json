@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D43",
+  "title": "Admins manage their peers; the owner is protected",
+  "status": "implemented",
+  "targets": ["team-management/roles"],
+  "context": "update-role and remove-player checked only that the caller was an admin, never the target: an admin could demote the owner to admin, or delete the owner's player, leaving the team without an owner. The rule was set after looking at three widely used permission models. Facebook Groups: an admin can remove other admins, a moderator cannot act on an admin, and the group's creator cannot be removed by anyone else, only step down themselves (https://www.facebook.com/help/1718782575010160). Google Drive files: both the owner and editors can change sharing permissions, and the owner can turn off \"editors can change permissions\"; the owner cannot be removed, transfer requires the recipient's acceptance, and afterwards the original owner becomes an editor (https://support.google.com/drive/answer/2494892, https://support.google.com/drive/answer/2494893). Google Shared Drives: a manager can add or remove members and change other members' access level, and there is no owner role (https://support.google.com/a/users/answer/12380484). What the three share: the highest role is protected, peers at the same management level can manage each other, and a lower role cannot act on a higher one.",
+  "decision": "The owner may change or delete an admin, a regular member, an invitee or an unlinked player; an admin may change or delete another admin, a regular member, an invitee or an unlinked player; a regular member may manage no one. The owner (the member holding the OWNER role) is nobody's target for a role change or deletion, and leaves that role only by transferring it. Nobody may target their own player for a role change or deletion; leaving the team is that path instead, and the roster row is kept as an unlinked player.",
+  "alternatives": [
+    {
+      "option": "Require the target's role to be strictly lower than the actor's, so an admin cannot manage another admin",
+      "reason": "All three reference products let peer-level managers manage each other. Requiring strictly lower would push every adjustment between admins to the owner, who may be an infrequently active founder."
+    },
+    {
+      "option": "Let only the owner appoint or manage admins",
+      "reason": "Same reasoning, and it would leave \"admin\" almost unable to help expand the management team in day-to-day operation."
+    },
+    {
+      "option": "Add a team setting letting the owner turn off admins managing each other",
+      "reason": "This mirrors Google Drive's \"editors can change permissions\" toggle. It belongs to team settings, under the privacy-settings topic, and is out of scope for this Change."
+    },
+    {
+      "option": "Let an admin delete or demote their own player",
+      "reason": "Deleting yourself is a way around \"leave team\" that also removes the roster row entirely; leaving the team already serves the same purpose while keeping the roster row."
+    }
+  ],
+  "consequences": [
+    "A team always has exactly one owner; it is never lost to a demotion or removal.",
+    "Admins can demote or remove each other; the owner is the final arbiter of any conflict between them.",
+    "Leaving the team is the only way to leave it, and the roster row is always kept as an unlinked player.",
+    "The rule is expressed as the role hierarchy plus \"the owner is protected,\" sharing the same entity functions as the membership check."
+  ],
+  "revisitTriggers": [
+    "Team settings ship and the owner needs to restrict admins from managing each other.",
+    "Ownership transfer changes to require the recipient's acceptance.",
+    "A real dispute arises from admins removing each other."
+  ],
+  "originChange": "team-membership-authorization",
+  "originDecision": "D3"
+}

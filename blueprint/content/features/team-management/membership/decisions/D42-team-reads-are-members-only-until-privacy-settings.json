@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D42",
+  "title": "Until privacy settings exist, team reads are members-only",
+  "status": "implemented",
+  "targets": ["team-management/membership"],
+  "context": "GET /api/teams/{teamId} had no withAuth, so it was readable without signing in, returning the team name, lineups (including player ids) and stats; GET /api/players/{playerId} and GET /api/teams/{teamId}/players returned player data, including email, to any signed-in caller. The invitation page used GET /api/teams/{teamId} to show the invited team's name and linked to the team page; AcceptInvitation's controller obtained the teamId through GetPlayerUseCase.",
+  "decision": "All three read endpoints require, inside their use case, that the caller is a member of that team (D41). The team name an invitee needs is supplied by their own player list (GET /api/users/{userId}/players), each entry carrying a teamName, and an invitation item does not link to the team page before it is accepted. AcceptInvitationUseCase returns the Player it already read, so the controller no longer goes through GetPlayerUseCase. The visibility of individual response fields (email limited to the owner and admins) is out of scope for this decision.",
+  "alternatives": [
+    {
+      "option": "Have GET /api/teams/{teamId} return a name-only slim view for an invitee",
+      "reason": "The same endpoint returning a different shape depending on the relation is exactly the canView model privacy settings will need; making one special case here would pre-decide that design."
+    },
+    {
+      "option": "Authorize in the route and leave the use case unchecked",
+      "reason": "Route-level authorization leaves a caller that bypasses that route (a controller calling another controller directly) unprotected. Two existing exceptions that authorize in the route (PATCH /api/teams/{teamId} and PATCH /api/teams/{teamId}/lineups) remain outside this Change, but the new read authorization adds no further exception."
+    },
+    {
+      "option": "Make GetPlayerUseCase's userId optional, skipping the check when it is absent",
+      "reason": "An optional authorization parameter is an interface that is unsafe by default; the next caller who forgets to pass it reopens the hole."
+    }
+  ],
+  "consequences": [
+    "A non-member, including a signed-out caller, cannot read team info, the roster or a single player's data.",
+    "The invitation page no longer depends on any member-only endpoint.",
+    "GET /api/users/{userId}/players's response gains one field; existing consumers such as the team switcher are unaffected.",
+    "A non-member who reaches the team page now sees an explicit error state rather than a crash caused by assuming the data exists; a removed member no longer keeps an activeTeamId pointing at their old team."
+  ],
+  "revisitTriggers": [
+    "Privacy settings ship and a team owner can open team info or the roster to non-members.",
+    "Public team lookup needs to let a non-member see team info."
+  ],
+  "originChange": "team-membership-authorization",
+  "originDecision": "D2"
+}
