@@ -64,4 +64,3 @@ S07 的實作在本 Change 提案前就已完成，暫放在 `wip/team-players-l
 - `PATCH /api/teams/{teamId}` 與 `PATCH /api/teams/{teamId}/lineups` 在 route 而非 use case 授權，與 D2 的原則不一致。
 - `test/integration/support/auth.ts` 的 authorization double 一律放行，整合層無法證明任何拒絕路徑。
 - 邀請時查不到使用者，而對方恰好在寫入前完成註冊與註冊時的連結，這筆邀請會停在只有 email。發生機率低，重新邀請即可解決。
-- 註冊時的連結（`linkUserToInvitations`）以精確比對 email，大小寫不同的受邀 email 不會在註冊時被連結。
