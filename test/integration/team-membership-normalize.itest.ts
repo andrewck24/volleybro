@@ -82,6 +82,20 @@ describe("membership normalization", () => {
     expect(player!.email).toBeUndefined();
   });
 
+  it("keeps a genuine pending invitation out of the withdrawn listing", async () => {
+    const teamId = await seedTeam();
+    await db().collection(PLAYERS).insertOne({
+      teamId,
+      name: "Pending invite",
+      status: "INVITED",
+      email: "invited@x.com",
+      role: "MEMBER",
+    });
+
+    const audit = await auditNormalize(db());
+    expect(audit.withdrawn).toHaveLength(0);
+  });
+
   it("clears a role, an email and empty values from an unlinked player", async () => {
     const teamId = await seedTeam();
     await db().collection(PLAYERS).insertOne({

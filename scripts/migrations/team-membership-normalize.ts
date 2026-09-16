@@ -262,11 +262,11 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   const stops = new Map<string, string[]>();
 
   const projections = raws.map((raw) => {
-    if (text(raw.email) && !isObjectId(raw.userId))
-      withdrawn.push(listing(raw));
     if (text(raw.role) === OWNER && raw.status !== "JOINED")
       nonMemberOwners.push(listing(raw));
-    return project(raw, counts);
+    const projection = project(raw, counts);
+    if (projection.unset.includes("email")) withdrawn.push(listing(raw));
+    return projection;
   });
 
   const byTeamUser = new Map<string, string[]>();
