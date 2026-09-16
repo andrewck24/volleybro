@@ -15,5 +15,5 @@
     "pnpm verify",
     "pnpm test:integration"
   ],
-  "status": "pending"
+  "status": "completed"
 }

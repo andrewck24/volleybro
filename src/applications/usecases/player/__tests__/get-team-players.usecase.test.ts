@@ -1,15 +1,18 @@
 import {
   createInvitedPlayer,
+  createMockAuthorizationService,
   createMockPlayerRepository,
   createPlayer,
   createUnlinkedPlayer,
 } from "@/__tests__/helpers";
 import { GetTeamPlayersUseCase } from "@/applications/usecases/player/get-team-players.usecase";
-import { PlayerStatus } from "@/entities/player";
+import { AuthReason, AuthorizationError } from "@/entities/errors";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 
 describe("GetTeamPlayersUseCase", () => {
   let usecase: GetTeamPlayersUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
+  let mockAuthService: ReturnType<typeof createMockAuthorizationService>;
 
   const teamPlayers = [
     createPlayer({ id: "player-1", name: "Member User" }),
@@ -23,13 +26,44 @@ describe("GetTeamPlayersUseCase", () => {
 
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
-    usecase = new GetTeamPlayersUseCase(mockPlayerRepository);
+    mockAuthService = createMockAuthorizationService();
+    mockAuthService.verifyTeamRole.mockResolvedValue();
+    usecase = new GetTeamPlayersUseCase(mockPlayerRepository, mockAuthService);
+  });
+
+  it("should require the caller to be a member of the team", async () => {
+    mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
+
+    await usecase.execute({ teamId: "team-1", userId: "user-1" });
+
+    expect(mockAuthService.verifyTeamRole).toHaveBeenCalledWith(
+      "team-1",
+      "user-1",
+      PlayerRole.MEMBER,
+    );
+  });
+
+  it("should reject a non-member without reading the roster", async () => {
+    mockAuthService.verifyTeamRole.mockRejectedValue(
+      new AuthorizationError(
+        AuthReason.NOT_TEAM_MEMBER,
+        "User is not a member of this team",
+      ),
+    );
+
+    await expect(
+      usecase.execute({ teamId: "team-1", userId: "outsider" }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+    expect(mockPlayerRepository.findByTeamId).not.toHaveBeenCalled();
   });
 
   it("should return all players in team", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute({ teamId: "team-1" });
+    const result = await usecase.execute({
+      teamId: "team-1",
+      userId: "user-1",
+    });
 
     expect(result).toEqual(teamPlayers);
   });
@@ -37,7 +71,10 @@ describe("GetTeamPlayersUseCase", () => {
   it("should return empty array if team has no players", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue([]);
 
-    const result = await usecase.execute({ teamId: "team-1" });
+    const result = await usecase.execute({
+      teamId: "team-1",
+      userId: "user-1",
+    });
 
     expect(result).toEqual([]);
   });
@@ -45,7 +82,10 @@ describe("GetTeamPlayersUseCase", () => {
   it("should include members, invitees, and unlinked players", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute({ teamId: "team-1" });
+    const result = await usecase.execute({
+      teamId: "team-1",
+      userId: "user-1",
+    });
 
     expect(result).toHaveLength(3);
     expect(result[0]).toMatchObject({
@@ -65,7 +105,10 @@ describe("GetTeamPlayersUseCase", () => {
   it("should include all player information", async () => {
     mockPlayerRepository.findByTeamId.mockResolvedValue(teamPlayers);
 
-    const result = await usecase.execute({ teamId: "team-1" });
+    const result = await usecase.execute({
+      teamId: "team-1",
+      userId: "user-1",
+    });
 
     result.forEach((player) => {
       expect(player.id).toBeDefined();
