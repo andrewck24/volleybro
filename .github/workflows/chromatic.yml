@@ -6,7 +6,7 @@ permissions:
 on:
   push:
     paths:
-      - "package.json"
+      - "pnpm-lock.yaml"
       - ".storybook/**"
       - "src/components/ui/**"
       - "src/components/custom/**"
