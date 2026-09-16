@@ -20,7 +20,7 @@
   ],
   "verification": [
     "以記憶體 MongoDB 的整合測試覆蓋：每一類正規化；null 與空字串；以正規化後結果計算的重複；每一項停止條件；既有同名一般索引與無效宣告下仍建立真正的唯一索引；重跑不改變結果；腳本不寫入任何 userId；正規化後以舊寫入路徑產生的文件讓 findByTeamId 拋錯、重跑後恢復",
-    "整合測試：帶大寫的舊邀請在正規化後變成小寫，且重跑不再改變",
+    "整合測試：帶大寫或前後空白的舊邀請在正規化後變成去空白的小寫，且重跑不再改變",
     "volleybro-test 執行 audit → migrate → audit",
     "production 執行 audit → migrate → audit，由開發者執行並確認",
     "pnpm verify",
