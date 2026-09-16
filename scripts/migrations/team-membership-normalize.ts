@@ -131,6 +131,10 @@ const project = (raw: Raw, counts: NormalizeReport["counts"]): Projection => {
     unset.push("email");
     if (rawStatus === "JOINED") counts.memberCarryingEmail += 1;
   }
+  if (status === "INVITED" && email) {
+    const lowered = normalizedEmail(email);
+    if (lowered !== email) set.email = lowered;
+  }
 
   for (const key of ["email", "role", "userId"]) {
     if (isEmptyValue(raw, key) && !unset.includes(key)) {

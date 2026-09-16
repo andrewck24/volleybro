@@ -202,6 +202,27 @@ describe("membership normalization", () => {
     expect(invitee!.email).toBe("invitee@x.com");
   });
 
+  it("lowercases a mixed-case invitation email and leaves it untouched on a second run", async () => {
+    const teamId = await seedTeam();
+    await db().collection(PLAYERS).insertOne({
+      teamId,
+      name: "Invitee",
+      status: "INVITED",
+      email: "Invitee@X.com",
+      role: "MEMBER",
+    });
+
+    await runNormalize(db());
+
+    const [afterFirst] = await players({ name: "Invitee" });
+    expect(afterFirst!.email).toBe("invitee@x.com");
+
+    await runNormalize(db());
+
+    const [afterSecond] = await players({ name: "Invitee" });
+    expect(afterSecond!.email).toBe("invitee@x.com");
+  });
+
   it("is idempotent and leaves partial unique indexes behind", async () => {
     const teamId = await seedTeam();
     await db()
