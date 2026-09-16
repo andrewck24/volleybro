@@ -1,7 +1,10 @@
+import mongoose from "mongoose";
+
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import type { ICreatePlayerUseCase } from "@/applications/usecases/player/create-player.usecase";
+import type { IGetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { PlayerReason } from "@/entities/errors";
@@ -9,6 +12,7 @@ import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
+import { handleUserCreated } from "@/lib/auth-hook";
 import { useFakeAuth } from "./support/auth";
 import { oid } from "./support/seed";
 
@@ -252,5 +256,104 @@ describe("invitations reach the account behind the address", () => {
     const created = (await roster(teamId)).find((p) => p.name === "Erin");
     expect(created).toMatchObject({ status: PlayerStatus.INVITED, userId });
     expect(created).not.toHaveProperty("email");
+  });
+});
+
+/**
+ * An invitation to an unregistered address is stored lowercased, while the
+ * identity provider hands the sign-up hook whatever case the person typed.
+ * Only a real database decides whether the two meet.
+ */
+describe("signing up reaches the invitations waiting for that address", () => {
+  let teamId: string;
+  const ownerUserId = "0".repeat(24);
+
+  const inviteUnregistered = async (name: string, email: string) => {
+    const seat = await container
+      .get<ICreatePlayerUseCase>(TYPES.CreatePlayerUseCase)
+      .execute({ teamId, data: { name }, userId: ownerUserId });
+    await container
+      .get<ICreateInvitationUseCase>(TYPES.CreateInvitationUseCase)
+      .execute({
+        playerId: seat.id,
+        email,
+        role: PlayerRole.MEMBER,
+        userId: ownerUserId,
+      });
+  };
+
+  const invitationsOf = (userId: string) =>
+    container
+      .get<IGetUserPlayersUseCase>(TYPES.GetUserPlayersUseCase)
+      .execute({ userId });
+
+  beforeEach(async () => {
+    useFakeAuth();
+    const team = await container
+      .get<ITeamRepository>(TYPES.TeamRepository)
+      .create({ name: "Signup Team", lineups: [] } as Parameters<
+        ITeamRepository["create"]
+      >[0]);
+    teamId = team.id;
+    await players().create({
+      name: "Owner",
+      status: PlayerStatus.JOINED,
+      teamId,
+      userId: ownerUserId,
+      role: PlayerRole.OWNER,
+    });
+  });
+
+  it("links an invitation stored lowercased to an account created in mixed case", async () => {
+    await inviteUnregistered("Bob", "bob@example.com");
+    const userId = oid();
+
+    await handleUserCreated({ id: userId, email: "Bob@Example.com" });
+
+    const mine = await invitationsOf(userId);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({
+      name: "Bob",
+      status: PlayerStatus.INVITED,
+      role: PlayerRole.MEMBER,
+      teamName: "Signup Team",
+    });
+    expect(mine[0]).not.toHaveProperty("email");
+  });
+
+  it("links an invitation an older release stored in its typed case", async () => {
+    // Written through the driver: before this Change both sides stored the
+    // address as typed, and normalization left those invitations untouched.
+    await mongoose.connection.db!.collection("players").insertOne({
+      teamId: new mongoose.Types.ObjectId(teamId),
+      name: "Legacy",
+      status: PlayerStatus.INVITED,
+      email: "Carol@Example.com",
+      role: PlayerRole.MEMBER,
+    });
+    const userId = oid();
+
+    await handleUserCreated({ id: userId, email: "carol@example.com" });
+
+    const mine = await invitationsOf(userId);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({
+      name: "Legacy",
+      status: PlayerStatus.INVITED,
+      role: PlayerRole.MEMBER,
+    });
+    expect(mine[0]).not.toHaveProperty("email");
+  });
+
+  it("leaves an invitation to a different address alone", async () => {
+    await inviteUnregistered("Bob", "bob@example.com");
+    const userId = oid();
+
+    await handleUserCreated({ id: userId, email: "bobby@example.com" });
+
+    expect(await invitationsOf(userId)).toEqual([]);
+    expect((await roster(teamId)).find((p) => p.name === "Bob")).toMatchObject({
+      email: "bob@example.com",
+    });
   });
 });

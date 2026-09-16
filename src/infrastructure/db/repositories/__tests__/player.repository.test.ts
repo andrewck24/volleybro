@@ -156,10 +156,14 @@ describe("PlayerRepository", () => {
   });
 
   describe("linkUserToInvitations", () => {
+    const mockCollation = (modifiedCount: number) => {
+      const collation = jest.fn().mockResolvedValue({ modifiedCount });
+      (PlayerModel.updateMany as jest.Mock).mockReturnValue({ collation });
+      return collation;
+    };
+
     it("links pending invited players by email to userId using updateMany", async () => {
-      (PlayerModel.updateMany as jest.Mock).mockResolvedValue({
-        modifiedCount: 2,
-      });
+      const collation = mockCollation(2);
 
       const count = await repository.linkUserToInvitations(
         "alice@example.com",
@@ -173,13 +177,12 @@ describe("PlayerRepository", () => {
           $unset: { email: "" },
         },
       );
+      expect(collation).toHaveBeenCalledWith({ locale: "en", strength: 2 });
       expect(count).toBe(2);
     });
 
     it("returns 0 when no matching invitations exist", async () => {
-      (PlayerModel.updateMany as jest.Mock).mockResolvedValue({
-        modifiedCount: 0,
-      });
+      mockCollation(0);
 
       const count = await repository.linkUserToInvitations(
         "nobody@example.com",
