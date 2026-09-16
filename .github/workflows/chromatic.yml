@@ -4,7 +4,22 @@ permissions:
   contents: read
 
 on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - "pnpm-lock.yaml"
+      - ".storybook/**"
+      - "src/components/ui/**"
+      - "src/components/custom/**"
+      - "src/components/game/**"
+      - "src/components/layout/**"
+      - "src/stories/**"
   push:
+    branches:
+      - dev
+      - main
     paths:
       - "pnpm-lock.yaml"
       - ".storybook/**"
@@ -24,11 +39,14 @@ jobs:
     name: Chromatic
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: ${{ !contains(github.event.head_commit.message, '[skip chromatic]') }}
+    if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.title, '[skip chromatic]') }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Chromatic diffs against history to find a baseline
+          # pull_request checks out an ephemeral merge commit; TurboSnap would
+          # then diff every commit on dev since the branch point.
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -37,6 +55,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - uses: chromaui/action@latest
+        env:
+          CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CHROMATIC_SLUG: ${{ github.repository }}
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
