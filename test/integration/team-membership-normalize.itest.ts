@@ -169,6 +169,22 @@ describe("membership normalization", () => {
     ).toBe(true);
   });
 
+  it("does not stop on a team with no players, and lists it", async () => {
+    const teamId = oid();
+    await db().collection(TEAMS).insertOne({ _id: teamId, name: "Empty team" });
+
+    const { applied, report } = await runNormalize(db());
+
+    expect(applied).toBe(true);
+    expect(
+      codes(report).some((code) => code.startsWith("ownerCountNotOne")),
+    ).toBe(false);
+    expect(report.teamsWithNoPlayers).toContainEqual({
+      id: teamId.toString(),
+      name: "Empty team",
+    });
+  });
+
   it("stops when an invitation holds an owner role", async () => {
     const teamId = await seedTeam();
     await db().collection(PLAYERS).insertOne({

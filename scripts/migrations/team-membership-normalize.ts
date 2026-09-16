@@ -55,6 +55,8 @@ export interface NormalizeReport {
   /** Documents that carry an owner role without being a member, before normalization. */
   nonMemberOwners: Listing[];
   stops: Stop[];
+  /** Teams with zero players, for the developer to decide whether to delete. */
+  teamsWithNoPlayers: { id: string; name: string }[];
   /** Every index name the players collection currently holds. */
   indexes: string[];
   /** Expected partial unique indexes that are missing or not as declared. */
@@ -236,13 +238,13 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
     .collection(PLAYERS)
     .find({})
     .toArray()) as unknown as Raw[];
-  const teamIds = new Set(
-    (
-      await db
-        .collection(TEAMS)
-        .find({}, { projection: { _id: 1 } })
-        .toArray()
-    ).map((team) => id(team._id)),
+  const teams = await db
+    .collection(TEAMS)
+    .find({}, { projection: { _id: 1, name: 1 } })
+    .toArray();
+  const teamIds = new Set(teams.map((team) => id(team._id)));
+  const teamNames = new Map(
+    teams.map((team) => [id(team._id), text(team.name)]),
   );
 
   const counts: NormalizeReport["counts"] = {
@@ -270,8 +272,13 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   const byTeamUser = new Map<string, string[]>();
   const byTeamEmail = new Map<string, string[]>();
   const ownersByTeam = new Map<string, string[]>();
+  const playerCountByTeam = new Map<string, number>();
 
   for (const p of projections) {
+    const team = isObjectId(p.teamId) ? id(p.teamId) : null;
+    if (team)
+      playerCountByTeam.set(team, (playerCountByTeam.get(team) ?? 0) + 1);
+
     if (
       p.raw.status !== undefined &&
       p.raw.status !== null &&
@@ -297,7 +304,6 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
       if (!p.role) collect(stops, "memberWithoutRole", p.id);
     }
 
-    const team = isObjectId(p.teamId) ? id(p.teamId) : null;
     if (team && p.hasUserId) {
       const key = `${team}:${id(p.raw.userId)}`;
       byTeamUser.set(key, [...(byTeamUser.get(key) ?? []), p.id]);
@@ -315,8 +321,14 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   for (const ids of byTeamEmail.values())
     if (ids.length > 1) ids.forEach((d) => collect(stops, "duplicateEmail", d));
 
-  // Owner count is checked per team, so a team with no players is covered too.
+  // A team with no players has no membership to protect, so it never stops
+  // the migration; it is listed for the developer to decide instead.
+  const teamsWithNoPlayers: { id: string; name: string }[] = [];
   for (const team of teamIds) {
+    if ((playerCountByTeam.get(team) ?? 0) === 0) {
+      teamsWithNoPlayers.push({ id: team, name: teamNames.get(team) ?? "" });
+      continue;
+    }
     const owners = ownersByTeam.get(team) ?? [];
     if (owners.length !== 1)
       for (const docId of owners.length > 0 ? owners : [team])
@@ -328,6 +340,7 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
     withdrawn,
     nonMemberOwners,
     stops: [...stops.entries()].map(([code, docIds]) => ({ code, docIds })),
+    teamsWithNoPlayers,
     ...(await checkIndexes(db)),
   };
 };
