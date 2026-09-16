@@ -35,20 +35,20 @@ acceptance. Provider instruction files are bridges only.
 
 ## Repository profile
 
-| Responsibility                         | VolleyBro binding                                                      |
-| -------------------------------------- | ---------------------------------------------------------------------- |
-| Integration branch and default PR base | `dev`                                                                  |
-| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                      |
-| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                      |
-| Section gate                           | `pnpm verify`                                                          |
-| Final gate                             | `pnpm verify:all`                                                      |
-| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones |
-| Change-scoped durable knowledge        | `blueprint/content/changes/<slug>/`                                    |
-| Canonical current capability knowledge | `blueprint/content/features/`                                          |
-| Execution plan                         | Change-local implementation-slice JSON                                 |
-| Version and changelog evidence         | `.changeset/` through Changesets                                       |
-| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs            |
-| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                 |
+| Responsibility                         | VolleyBro binding                                                             |
+| -------------------------------------- | ----------------------------------------------------------------------------- |
+| Integration branch and default PR base | `dev`                                                                         |
+| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                             |
+| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                             |
+| Section gate                           | `pnpm verify`                                                                 |
+| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all |
+| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones        |
+| Change-scoped durable knowledge        | `blueprint/content/changes/<slug>/`                                           |
+| Canonical current capability knowledge | `blueprint/content/features/`                                                 |
+| Execution plan                         | Change-local implementation-slice JSON                                        |
+| Version and changelog evidence         | `.changeset/` through Changesets                                              |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                   |
+| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                        |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the
 current engineering playbooks; a future compatible skill may replace them without changing the

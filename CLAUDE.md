@@ -13,7 +13,7 @@ Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, 
 
 ## Writing
 
-- `CONTRIBUTING.md` owns the commit format. Two rules it does not state: the body explains **why** ("what" is supporting context), and a tooling name (`spectra`, `openspec`) is never the type or scope.
+- `CONTRIBUTING.md` owns the commit format, including the body and trailer rules.
 - Reference other changes by kebab-case slug (`` `type-decoupling` change ``), never by letter label.
 - Never hard-wrap prose you write or edit, in Markdown or in PR bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Docs predating this rule are still wrapped: match the file's existing width when editing one, and never reflow it wholesale as a side effect.
 
