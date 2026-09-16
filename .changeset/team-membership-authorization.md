@@ -15,6 +15,8 @@
 #### Team
 
 - Inviting someone who already has an account now reaches them: the invitation appears in their invitation list instead of waiting for an account that already exists
+- Signing up with an email that differs only in letter case from the invited address now still picks up the invitation
+- Transferring ownership to the current owner is refused instead of leaving the team without an owner
 - Inviting a person who is already on the roster, or an address that already has a pending invitation, now explains that instead of creating a second entry for the same person
 - A player on the roster without an account no longer shows a role, and a role is only offered when an invitation is actually being sent
 - Being removed from a team no longer leaves that team selected: the app falls back to another team you have joined, and team pages that cannot be read now show an error instead of a blank or broken screen
