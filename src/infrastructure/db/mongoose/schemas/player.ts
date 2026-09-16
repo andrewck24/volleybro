@@ -84,22 +84,19 @@ PlayerSchema.index({ teamId: 1 });
 PlayerSchema.index({ userId: 1 });
 PlayerSchema.index({ email: 1 });
 
-// T060: Composite unique index to prevent duplicate invitations to same email in same team
-// Sparse: only applies to documents where email field exists
-// PartialFilterExpression: only applies to non-null, non-empty email values
+// Partial unique indexes: MongoDB rejects `sparse` together with a
+// partialFilterExpression, and does not support `$nin` inside one, so the
+// previous declarations never created an index. Filtering on the stored type
+// covers exactly the documents the uniqueness applies to.
 PlayerSchema.index(
   { teamId: 1, email: 1 },
-  {
-    unique: true,
-    sparse: true,
-    partialFilterExpression: {
-      email: { $exists: true, $nin: [null, ""] },
-    },
-  },
+  { unique: true, partialFilterExpression: { email: { $type: "string" } } },
 );
 
-// T060: Composite index for querying members who have joined a team
-PlayerSchema.index({ teamId: 1, userId: 1 });
+PlayerSchema.index(
+  { teamId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
+);
 
 // T060: Composite index for querying members by role within a team
 PlayerSchema.index({ teamId: 1, role: 1 });
