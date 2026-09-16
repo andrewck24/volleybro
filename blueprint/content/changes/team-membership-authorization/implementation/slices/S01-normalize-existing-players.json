@@ -6,10 +6,10 @@
   "dependsOn": [],
   "outcome": "production 的球員文件全部符合三種球員的模型，(teamId, userId) 與 (teamId, email) 由部分唯一索引保證不重複。正規化不為任何文件新增 userId，所以在舊程式碼下沒有人多出權限；它在收緊模型的程式碼部署之前完成。",
   "acceptanceCriteria": [
-    "新增 scripts/migrations/team-membership-normalize.audit.ts：只讀取，依 Design「第一階段：部署前正規化」回報每一類文件的數量；逐項回報停止條件命中的文件 id；列出將被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間；列出 players collection 現有的索引。",
+    "新增 scripts/migrations/team-membership-normalize.audit.ts：只讀取，依 Design「第一階段：部署前正規化」回報每一類文件的數量；逐項回報停止條件命中的文件 id；列出將被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間；列出 players collection 現有的索引；並以 listIndexes 檢查 (teamId, email) 與 (teamId, userId) 是否為預期的部分唯一索引，回報結果。",
     "新增 scripts/migrations/team-membership-normalize.migrate.ts：以正規化後的結果計算停止條件，命中任一即停止且不寫入任何文件；否則依表格正規化，不為任何文件新增 userId。",
     "停止條件至少包含：(teamId, userId) 重複；同隊受邀者 email 轉小寫並去除空白後重複；非成員帶擁有者角色；以 teams collection 逐隊計算的擁有者成員數量不為 1；受邀者或成員缺角色；受邀者同時有或同時缺 userId 與 email；成員缺 userId；未連結球員帶 userId；userId 或 teamId 不是 ObjectId；缺 teamId 或 teamId 指向不存在的隊伍；status 不在列舉內。",
-    "受邀者保留下來的 email 一律轉為小寫。schema 的 lowercase 只作用於經過 Mongoose 的寫入，2026-02 以原生 driver 寫入的舊文件可能帶大寫。",
+    "受邀者保留下來的 email 一律去除前後空白並轉為小寫。schema 的 lowercase 只作用於經過 Mongoose 的寫入，2026-02 以原生 driver 寫入的舊文件可能帶大寫。",
     "「有 email」「有 userId」「有 role」一律指非空值；null 或空字串視為缺少，email 與 role 的空值一併清除。",
     "audit 以正規化前的狀態列出帶擁有者角色的非成員，停止條件則以正規化後的結果計算。",
     "寫入完成後：移除無效或一般的 (teamId, email) 與 (teamId, userId) 索引，建立 (teamId, email) 只對字串型別 email 生效、(teamId, userId) 只對 ObjectId 型別 userId 生效的部分唯一索引，並以 listIndexes 驗證兩者的 unique 與 partialFilterExpression 確實存在。部分唯一索引沿用 MongoDB 的預設索引名稱。",

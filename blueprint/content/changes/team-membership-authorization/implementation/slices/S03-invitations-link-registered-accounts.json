@@ -11,7 +11,7 @@
     "找到的使用者在該隊已有球員（受邀者或成員），或未註冊的 email 在該隊已有邀請時，回傳新的衝突錯誤原因；error-messages.ts 補上文案，指出對方已在名單上。",
     "資料庫唯一性違反目前轉譯為 409 DUPLICATE_RESOURCE；這兩條寫入路徑改為對應到上述衝突錯誤原因。",
     "新增 scripts/migrations/team-membership-link.audit.ts 與 team-membership-link.migrate.ts：對狀態為 INVITED 且只有 email 的邀請，email 以相同方式恰好對應一位已註冊使用者時寫入 userId（ObjectId）並清除 email。每一筆以條件更新寫入，filter 同時比對 _id、status INVITED、讀取時的 email 原值與 userId 不存在；matchedCount 為 0、使用者在同隊已有球員、對應到多位使用者、或唯一索引違反時不寫入並列出，逐筆處理，一筆失敗不中斷其餘。可以重跑。",
-    "連結腳本只在本 Change 部署到該環境、且部署後重跑正規化使 audit 歸零之後執行；腳本開頭註明這個前提，並在正規化 audit 未歸零時拒絕執行。",
+    "連結腳本只在本 Change 部署到該環境、且部署後重跑正規化使 audit 歸零之後執行；腳本開頭註明這個前提，並在正規化 audit 未歸零時拒絕執行，並在正規化 audit 回報索引不是預期的部分唯一索引時同樣拒絕執行。",
     "開發者已在本 Change 部署後，於 volleybro-test 與 production 依序重跑正規化、執行連結的 audit、migrate、audit；執行輸出記錄於本 Change 的 Review。",
     "註冊時的連結（linkUserToInvitations）以同一種不分大小寫的方式比對 email。邀請存的是小寫，而註冊用的 email 可能帶大寫，精確比對會讓「先被邀請、後註冊」這條路永遠連不上。"
   ],
