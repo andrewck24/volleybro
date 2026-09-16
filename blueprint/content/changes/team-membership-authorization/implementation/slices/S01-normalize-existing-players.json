@@ -4,7 +4,7 @@
   "title": "部署前正規化既有球員資料，並建立真正生效的唯一索引",
   "capabilities": ["team-management/membership"],
   "dependsOn": [],
-  "outcome": "production 的球員文件全部符合三種球員的模型，(teamId, userId) 與 (teamId, email) 由部分唯一索引保證不重複。正規化不為任何文件新增 userId，所以在舊程式碼下沒有人多出權限；它在收緊模型的程式碼部署之前完成。",
+  "outcome": "資料庫中的球員文件全部符合三種球員的模型，(teamId, userId) 與 (teamId, email) 由部分唯一索引保證不重複。正規化不為任何文件新增 userId，所以在舊程式碼下沒有人多出權限；它在收緊模型的程式碼部署之前完成。",
   "acceptanceCriteria": [
     "新增 scripts/migrations/team-membership-normalize.audit.ts：只讀取，依 Design「第一階段：部署前正規化」回報每一類文件的數量；逐項回報停止條件命中的文件 id；列出將被撤回的舊邀請與帶 email 的未連結球員，附角色與最後更新時間；列出 players collection 現有的索引；並以 listIndexes 檢查 (teamId, email) 與 (teamId, userId) 是否為預期的部分唯一索引，回報結果；並列出沒有任何球員的隊伍（id 與隊名），讓開發者決定是否刪除。",
     "新增 scripts/migrations/team-membership-normalize.migrate.ts：以正規化後的結果計算停止條件，命中任一即停止且不寫入任何文件；否則依表格正規化，不為任何文件新增 userId。",
@@ -16,16 +16,15 @@
     "Mongoose schema 的兩個索引宣告同步修正為相同定義；移除同時使用 sparse 與 partialFilterExpression、以及 filter 內使用 $nin 的無效宣告。",
     "腳本可以重跑：第二次執行不改變任何文件，索引已正確存在時不報錯。",
     "腳本以環境變數讀取連線字串，不寫入任何連線資訊；輸出只含數量、文件 id、角色與時間，不輸出 email。",
-    "開發者已在 volleybro-test 與 production 依序執行 audit、migrate、audit，第二次 audit 各類歸零；執行輸出記錄於本 Change 的 Review。"
+    "開發者已在唯一的 test 資料庫（正式上線前所有環境共用）依序執行 audit、migrate、audit，第二次 audit 各類歸零；執行輸出記錄於本 Change 的 Review。"
   ],
   "verification": [
     "以記憶體 MongoDB 的整合測試覆蓋：每一類正規化；null 與空字串；以正規化後結果計算的重複；每一項停止條件；既有同名一般索引與無效宣告下仍建立真正的唯一索引；重跑不改變結果；腳本不寫入任何 userId；正規化後以舊寫入路徑產生的文件讓 findByTeamId 拋錯、重跑後恢復",
     "整合測試：帶大寫或前後空白的舊邀請在正規化後變成去空白的小寫，且重跑不再改變",
     "整合測試：沒有球員的隊伍不觸發停止條件但出現在清單中；有球員卻沒有擁有者的隊伍仍然停止",
-    "volleybro-test 執行 audit → migrate → audit",
-    "production 執行 audit → migrate → audit，由開發者執行並確認",
+    "test 資料庫執行 audit → migrate → audit，第二次 audit 歸零",
     "pnpm verify",
     "pnpm test:integration"
   ],
-  "status": "pending"
+  "status": "completed"
 }
