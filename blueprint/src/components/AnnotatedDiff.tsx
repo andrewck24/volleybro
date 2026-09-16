@@ -21,8 +21,7 @@ interface AnnotatedDiffProps {
 
 const MARKS = { "+": "add", "-": "remove" } as const;
 
-// Every line carries a marker column and at least one is a change. Plain code
-// never qualifies, so a snippet shown without marks stays untouched.
+// Plain code never qualifies, so a snippet shown without marks stays untouched.
 const looksUnified = (code: string) => {
   if (code.includes("[!code")) return false;
   const lines = code.split("\n").filter((line) => line !== "");
@@ -39,10 +38,9 @@ const looksUnified = (code: string) => {
  * already styles (full-width tint + gutter symbol). Line notes are written as
  * normal code comments, so there is no separate annotations layer to maintain.
  *
- * A unified diff marks lines by a leading column instead, and is detected on
- * its own: a unified snippet read as notation renders with no marks at all. The marker is stripped
- * before highlighting so the body keeps its own language, and fumadocs'
- * `::before` restores the gutter symbol.
+ * A unified diff marks lines by a leading column instead, and is detected when
+ * `unified` is omitted. The marker is stripped before highlighting so the body
+ * keeps its own language, and fumadocs' `::before` restores the gutter symbol.
  */
 export function AnnotatedDiff({ code, lang, unified }: AnnotatedDiffProps) {
   const marks = new Map<number, "add" | "remove">();

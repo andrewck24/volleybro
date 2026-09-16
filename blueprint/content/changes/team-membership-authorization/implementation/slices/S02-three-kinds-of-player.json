@@ -9,7 +9,7 @@
     "src/entities/player.ts 依 Design 定義三種型別與 union；isTeamMember 是只看 status 的 type guard，hasTeamRole 以 satisfies Record<PlayerRole, number> 的階層表比較。",
     "validatePlayerStatus 中已由型別表達的組合檢查移除；仍需在執行期檢查的部分（例如輸入邊界）保留並說明原因。",
     "repository 的 toPlayer 把文件縮窄成三者之一，不符合模型時拋出錯誤；不以 Mongoose 預設值補齊缺少的 status。",
-    "verifyTeamRole 查詢後：不是成員丟 NOT_TEAM_MEMBER，角色不足丟 INSUFFICIENT_ROLE。verifyIsTeamAdmin 委派給 verifyTeamRole(teamId, userId, PlayerRole.ADMIN)。verifyIsTeamOwner、verifyPlayerRole、getPlayerRole 的介面不變，不刪除。",
+    "verifyTeamRole 查詢後：不是成員丟 NOT_TEAM_MEMBER，角色不足丟 INSUFFICIENT_ROLE。verifyIsTeamAdmin 委派給 verifyTeamRole(teamId, userId, PlayerRole.ADMIN)。verifyIsTeamOwner、verifyPlayerRole、getPlayerRole 沒有呼叫者，經開發者確認後刪除。",
     "create-player 不帶 email 時建立未連結球員且不寫入 role；帶 email 時建立只有 email 的受邀者（email 轉為小寫並去除空白），角色限定為管理員或一般成員。連結已註冊帳號留給 S03。",
     "CreatePlayerSchema 的 role 限定為管理員與一般成員，且不帶 email 時不接受 role；建立球員表單只在填寫 email 時顯示角色欄位。",
     "leave-team、reject-invitation、cancel-invitation 轉為未連結球員時清除 role 與 email。",

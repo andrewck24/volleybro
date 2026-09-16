@@ -9,7 +9,7 @@ import { TLDR } from "@/components/TLDR";
 
 <TLDR>
   十個切片全部交付：成員只指已加入的球員，受邀者通不過任何檢查，擁有者不能被他人降級或刪除，隊伍資訊、名單與單一球員只給成員讀。正規化已在目前唯一的資料庫上跑完（39/39
-  符合模型，兩個部分唯一索引建立）。三輪 review 找到十三項問題，全部修掉。
+  符合模型，兩個部分唯一索引建立）。四輪 review 接受的發現全部修掉。
 </TLDR>
 
 ## 交付內容
@@ -52,7 +52,7 @@ import { TLDR } from "@/components/TLDR";
       path: "src/infrastructure/services/auth/authorization.service.ts",
       change: "modified",
       summary:
-        "五個方法退化成「查出球員 → 交給 entity 判斷 → 丟錯」。四段各自寫過一次的角色階層比較消失。",
+        "只剩 verifyTeamRole 與 verifyIsTeamAdmin，都是「查出球員 → 交給 entity 判斷 → 丟錯」。三個沒有呼叫者、各自組規則的方法刪除。",
       lang: "ts",
       code: "async verifyTeamRole(teamId, userId, role = PlayerRole.MEMBER): Promise<void> {\n  const player = await this.playerRepository.findByTeamIdAndUserId(teamId, userId);\n  if (!player || !isTeamMember(player)) throw notTeamMember();\n  if (!hasTeamRole(player, role)) throw insufficientRole();\n}",
     },
@@ -102,7 +102,7 @@ import { TLDR } from "@/components/TLDR";
 
 ## Review 輪次與發現
 
-三輪獨立 review，兩個軸：規格軸比對切片驗收與 D1–D4，標準軸拿 `CONTRIBUTING.md` 逐字檢查工具檢查不到的部分。十三項發現全部修掉。
+四輪獨立 review，兩個軸：規格軸比對切片驗收與 D1–D4，標準軸拿 `CONTRIBUTING.md` 逐字檢查工具檢查不到的部分。接受的發現全部修掉；第四輪審的是開發者驗收前的收尾 commit。
 
 <RiskTable
   risks={[
@@ -137,6 +137,12 @@ import { TLDR } from "@/components/TLDR";
         "補上斷言：那個狀態下 findByTeamId 拋錯，重跑正規化後恢復。這是 Design 列為 critical 的風險。",
     },
     {
+      name: "第四輪：audit 的 withdrawn 清單多列了帶 email 的成員",
+      severity: "info",
+      mitigation:
+        "成員的 email 被清掉不是撤回邀請；改為只列正規化後仍是未連結球員、且帶非空 email 的文件，並以整合測試固定。只影響 audit 輸出，不影響寫入。",
+    },
+    {
       name: "其餘六項 info：文件與程式碼不一致、非字串 status、多餘入口",
       severity: "info",
       mitigation:
@@ -145,7 +151,7 @@ import { TLDR } from "@/components/TLDR";
   ]}
 />
 
-### 三個值得看到修法的缺陷
+### 值得看到修法的缺陷
 
 **通知頁的閃現。** 規則算對了，但畫面沒有等它算完。
 
@@ -161,7 +167,7 @@ import { TLDR } from "@/components/TLDR";
 <AnnotatedDiff
   lang="ts"
   code={
-    '+    // Both writes would land on this one document, leaving it as an\n+    // ADMIN and leave the team without an owner.\n+    if (newOwner.id === currentOwner.id) {\n+      throw new ConflictError(\n+        PlayerReason.TARGET_ALREADY_OWNER,\n+        "Ownership cannot be transferred to the current owner",\n+      );\n+    }'
+    '+    // Both writes below would land on this one document, which would end as\n+    // ADMIN and leave the team without an owner.\n+    if (newOwner.id === currentOwner.id) {\n+      throw new ConflictError(\n+        PlayerReason.TARGET_ALREADY_OWNER,\n+        "Ownership cannot be transferred to the current owner",\n+      );\n+    }'
   }
 />
 
@@ -174,12 +180,21 @@ import { TLDR } from "@/components/TLDR";
   }
 />
 
+**withdrawn 清單的範圍。** 它是操作者決定要不要往下跑的依據，只該列真的會變成未連結球員的文件。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    '-    if (projection.unset.includes("email")) withdrawn.push(listing(raw));\n+    if (projection.status === "NONE" && text(raw.email))\n+      withdrawn.push(listing(raw));'
+  }
+/>
+
 ## 驗證
 
 | 閘門                    | 結果                                                        |
 | ----------------------- | ----------------------------------------------------------- |
-| `pnpm verify:all`       | 1174 unit tests、blueprint 49 tests、app 與 blueprint build |
-| `pnpm test:integration` | 18 suites / 97 tests，含正規化 25 例與連結 11 例            |
+| `pnpm verify:all`       | 1159 unit tests、blueprint 51 tests、app 與 blueprint build |
+| `pnpm test:integration` | 18 suites / 97 tests，含正規化 28 例與連結 11 例            |
 
 拒絕路徑的證據來自 entity 與 use case 的單元測試：整合測試的 authorization double 一律放行，所以三個讀取端點的 403 在整合層沒有覆蓋。索引的行為則是實際驅動記憶體 MongoDB 驗的——重建成一般索引、整個刪掉、再修回來，三種情況連結腳本都符合預期。
 
@@ -198,7 +213,7 @@ import { TLDR } from "@/components/TLDR";
 
 六個停止條件全部來自空隊伍，沒有任何一隊真的失去擁有者；三筆帶擁有者角色卻不是成員的文件正規化後成為成員，補回了各自隊伍的擁有者。兩個部分唯一索引已建立並通過驗證。六個空隊伍暫時保留為建立隊伍缺陷的證據。
 
-**部署後仍須**：重跑正規化直到 audit 歸零（收掉部署空窗期舊程式碼寫出的文件），再執行 `team-membership-link.audit.ts` → `.migrate.ts` 把受邀者連上已註冊的帳號。production 資料庫日後啟用時，同一組腳本要在那裡重跑一次。
+**部署後仍須**：重跑正規化直到 audit 歸零（收掉部署空窗期舊程式碼寫出的文件），再執行 `team-membership-link.audit.ts` → `.migrate.ts` 把受邀者連上已註冊的帳號。
 
 ## 殘留風險與後續
 
