@@ -7,6 +7,7 @@ import {
   USERS,
 } from "../../scripts/migrations/team-membership-link";
 import {
+  ensureIndexes,
   PLAYERS,
   TEAMS,
 } from "../../scripts/migrations/team-membership-normalize";
@@ -78,6 +79,11 @@ const raceDb = (mutate: () => Promise<void>): mongo.Db =>
   });
 
 describe("linking invitations to registered accounts", () => {
+  // Linking runs after the normalization migrate, which leaves these behind.
+  beforeEach(async () => {
+    await ensureIndexes(db());
+  });
+
   // The shared setup only clears collections Mongoose models registered; these
   // are written through the driver, so they are cleared here.
   afterEach(async () => {
@@ -219,6 +225,24 @@ describe("linking invitations to registered accounts", () => {
     const { applied, report } = await runLink(db());
 
     expect(audit.normalizeStops).toContain("unlinkedPlayerWithUserId");
+    expect(applied).toBe(false);
+    expect(report.counts.candidates).toBe(0);
+    expect("userId" in (await invitee())!).toBe(false);
+  });
+
+  it("refuses while the unique index is not the expected one", async () => {
+    const teamId = await seedTeam();
+    await seedUser("ivan@example.com");
+    await seedInvitation(teamId, "ivan@example.com");
+    await db().collection(PLAYERS).dropIndex("teamId_1_userId_1");
+    await db()
+      .collection(PLAYERS)
+      .createIndex({ teamId: 1, userId: 1 }, { name: "teamId_1_userId_1" });
+
+    const audit = await auditLink(db());
+    const { applied, report } = await runLink(db());
+
+    expect(audit.indexIssues).toEqual(["indexNotUnique:teamId_1_userId_1"]);
     expect(applied).toBe(false);
     expect(report.counts.candidates).toBe(0);
     expect("userId" in (await invitee())!).toBe(false);

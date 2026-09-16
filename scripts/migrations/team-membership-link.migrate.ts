@@ -3,7 +3,8 @@
  *
  * Runs only after this Change is deployed to this environment and the
  * normalization audit is clean — linking grants membership under the old
- * permission checks — and it refuses while that audit reports stops.
+ * permission checks — and it refuses while that audit reports stops or an index
+ * that is not the expected partial unique one.
  *
  * Each invitation is written on its own, under a filter that repeats what was
  * read, so one that changed in the meantime is skipped and listed rather than
@@ -25,7 +26,7 @@ const main = async () => {
     console.log(JSON.stringify(report, null, 2));
     if (!applied) {
       console.error(
-        `\nStopped: normalization reports ${report.normalizeStops.length} stop condition(s). Nothing was written.`,
+        `\nStopped: normalization reports ${report.normalizeStops.length} stop condition(s) and ${report.indexIssues.length} index issue(s). Nothing was written.`,
       );
       process.exitCode = 1;
       return;

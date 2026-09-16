@@ -8,7 +8,8 @@
  * only once the post-deploy normalization audit is clean: linking an invitation
  * grants membership under the old permission checks, and a document the old
  * code wrote during the deploy gap does not fit the model. The normalization
- * audit is therefore the gate, re-run here on every invocation.
+ * audit is therefore the gate, re-run here on every invocation — including its
+ * index check, because the skip below relies on the unique index existing.
  *
  * Reports never contain email addresses.
  */
@@ -35,6 +36,11 @@ export interface LinkReport {
    * examined and nothing was written: normalize first, then link.
    */
   normalizeStops: string[];
+  /**
+   * Index findings from the normalization audit, blocking for the same reason:
+   * without the unique index the duplicate-key skip below never fires.
+   */
+  indexIssues: string[];
   counts: {
     candidates: number;
     /** Linked, or in an audit the number that would be linked. */
@@ -90,9 +96,10 @@ const resolve = async (db: Db, raw: Raw): Promise<Resolution> => {
 const link = async (db: Db, write: boolean): Promise<LinkReport> => {
   const normalize = await auditNormalize(db);
   const counts = { candidates: 0, linked: 0, unregistered: 0, skipped: 0 };
-  if (normalize.stops.length > 0)
+  if (normalize.stops.length > 0 || normalize.indexIssues.length > 0)
     return {
       normalizeStops: normalize.stops.map((stop) => stop.code),
+      indexIssues: normalize.indexIssues,
       counts,
       skipped: [],
     };
@@ -151,7 +158,7 @@ const link = async (db: Db, write: boolean): Promise<LinkReport> => {
     }
   }
 
-  return { normalizeStops: [], counts, skipped };
+  return { normalizeStops: [], indexIssues: [], counts, skipped };
 };
 
 /** Read-only classification: reports what a run would link and what it would skip. */
@@ -165,5 +172,9 @@ export const runLink = async (
   db: Db,
 ): Promise<{ applied: boolean; report: LinkReport }> => {
   const report = await link(db, true);
-  return { applied: report.normalizeStops.length === 0, report };
+  return {
+    applied:
+      report.normalizeStops.length === 0 && report.indexIssues.length === 0,
+    report,
+  };
 };

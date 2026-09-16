@@ -55,7 +55,10 @@ export interface NormalizeReport {
   /** Documents that carry an owner role without being a member, before normalization. */
   nonMemberOwners: Listing[];
   stops: Stop[];
-  indexes?: string[];
+  /** Every index name the players collection currently holds. */
+  indexes: string[];
+  /** Expected partial unique indexes that are missing or not as declared. */
+  indexIssues: string[];
 }
 
 interface Projection {
@@ -132,8 +135,8 @@ const project = (raw: Raw, counts: NormalizeReport["counts"]): Projection => {
     if (rawStatus === "JOINED") counts.memberCarryingEmail += 1;
   }
   if (status === "INVITED" && email) {
-    const lowered = normalizedEmail(email);
-    if (lowered !== email) set.email = lowered;
+    const normalized = normalizedEmail(email);
+    if (normalized !== raw.email) set.email = normalized;
   }
 
   for (const key of ["email", "role", "userId"]) {
@@ -165,10 +168,68 @@ const collect = (stops: Map<string, string[]>, code: string, docId: string) => {
   stops.set(code, ids);
 };
 
+const INDEXES = [
+  {
+    name: "teamId_1_email_1",
+    key: { teamId: 1, email: 1 } as mongo.IndexSpecification,
+    partialFilterExpression: { email: { $type: "string" } },
+  },
+  {
+    name: "teamId_1_userId_1",
+    key: { teamId: 1, userId: 1 } as mongo.IndexSpecification,
+    partialFilterExpression: { userId: { $type: "objectId" } },
+  },
+];
+
+type WantedIndex = (typeof INDEXES)[number];
+
+const indexIssue = (
+  existing: { unique?: unknown; partialFilterExpression?: unknown } | undefined,
+  wanted: WantedIndex,
+): string | null => {
+  if (!existing) return `indexMissing:${wanted.name}`;
+  if (existing.unique !== true) return `indexNotUnique:${wanted.name}`;
+  if (
+    JSON.stringify(existing.partialFilterExpression) !==
+    JSON.stringify(wanted.partialFilterExpression)
+  )
+    return `indexFilterUnexpected:${wanted.name}`;
+  return null;
+};
+
+/** listIndexes rejects when the collection does not exist yet; that is no index. */
+const listIndexes = async (db: Db): Promise<mongo.Document[]> => {
+  try {
+    return await db.collection(PLAYERS).listIndexes().toArray();
+  } catch (error) {
+    if ((error as { code?: unknown } | null)?.code === 26) return [];
+    throw error;
+  }
+};
+
+const checkIndexes = async (
+  db: Db,
+): Promise<Pick<NormalizeReport, "indexes" | "indexIssues">> => {
+  const existing = await listIndexes(db);
+  return {
+    indexes: existing.map((index) => index.name ?? ""),
+    indexIssues: INDEXES.map((wanted) =>
+      indexIssue(
+        existing.find((index) => index.name === wanted.name),
+        wanted,
+      ),
+    ).filter((issue): issue is string => issue !== null),
+  };
+};
+
 /**
  * Read-only classification. Stop conditions are evaluated against the projected
  * result rather than the current documents, because some duplicates only appear
  * once the projection is applied.
+ *
+ * The indexes are checked here rather than only where they are created, because
+ * this audit is what gates the link step, whose per-document duplicate-key skip
+ * cannot fire while the uniqueness it relies on is absent.
  */
 export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
   const raws = (await db
@@ -267,21 +328,9 @@ export const auditNormalize = async (db: Db): Promise<NormalizeReport> => {
     withdrawn,
     nonMemberOwners,
     stops: [...stops.entries()].map(([code, docIds]) => ({ code, docIds })),
+    ...(await checkIndexes(db)),
   };
 };
-
-const INDEXES = [
-  {
-    name: "teamId_1_email_1",
-    key: { teamId: 1, email: 1 } as mongo.IndexSpecification,
-    partialFilterExpression: { email: { $type: "string" } },
-  },
-  {
-    name: "teamId_1_userId_1",
-    key: { teamId: 1, userId: 1 } as mongo.IndexSpecification,
-    partialFilterExpression: { userId: { $type: "objectId" } },
-  },
-];
 
 /**
  * Replace the index declarations MongoDB never accepted (sparse together with a
@@ -292,15 +341,12 @@ const INDEXES = [
 export const ensureIndexes = async (db: Db): Promise<string[]> => {
   const players = db.collection(PLAYERS);
   for (const wanted of INDEXES) {
-    const existing = (await players.indexes()).find(
+    const existing = (await listIndexes(db)).find(
       (index) => index.name === wanted.name,
     );
-    const matches =
-      existing?.unique === true &&
-      JSON.stringify(existing.partialFilterExpression) ===
-        JSON.stringify(wanted.partialFilterExpression);
-    if (existing && !matches) await players.dropIndex(wanted.name);
-    if (!matches)
+    const issue = indexIssue(existing, wanted);
+    if (existing && issue) await players.dropIndex(wanted.name);
+    if (issue)
       await players.createIndex(wanted.key, {
         name: wanted.name,
         unique: true,
@@ -308,19 +354,12 @@ export const ensureIndexes = async (db: Db): Promise<string[]> => {
       });
   }
 
-  const after = await players.indexes();
-  for (const wanted of INDEXES) {
-    const index = after.find((candidate) => candidate.name === wanted.name);
-    if (
-      !index?.unique ||
-      JSON.stringify(index.partialFilterExpression) !==
-        JSON.stringify(wanted.partialFilterExpression)
-    )
-      throw new Error(
-        `Index ${wanted.name} is not the expected partial unique index`,
-      );
-  }
-  return after.map((index) => index.name ?? "");
+  const { indexes, indexIssues } = await checkIndexes(db);
+  if (indexIssues.length > 0)
+    throw new Error(
+      `Indexes are not the expected partial unique ones: ${indexIssues.join(", ")}`,
+    );
+  return indexes;
 };
 
 /**
@@ -360,6 +399,7 @@ export const runNormalize = async (
 
   return {
     applied: true,
-    report: { ...report, indexes: await ensureIndexes(db) },
+    // ensureIndexes threw unless both indexes are now as declared.
+    report: { ...report, indexes: await ensureIndexes(db), indexIssues: [] },
   };
 };

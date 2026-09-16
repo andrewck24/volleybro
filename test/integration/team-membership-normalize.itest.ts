@@ -223,6 +223,27 @@ describe("membership normalization", () => {
     expect(afterSecond!.email).toBe("invitee@x.com");
   });
 
+  it("trims an invitation email that is already lowercase", async () => {
+    const teamId = await seedTeam();
+    await db().collection(PLAYERS).insertOne({
+      teamId,
+      name: "Invitee",
+      status: "INVITED",
+      email: " invitee@x.com ",
+      role: "MEMBER",
+    });
+
+    await runNormalize(db());
+
+    const [afterFirst] = await players({ name: "Invitee" });
+    expect(afterFirst!.email).toBe("invitee@x.com");
+
+    await runNormalize(db());
+
+    const [afterSecond] = await players({ name: "Invitee" });
+    expect(afterSecond!.email).toBe("invitee@x.com");
+  });
+
   it("is idempotent and leaves partial unique indexes behind", async () => {
     const teamId = await seedTeam();
     await db()
@@ -262,6 +283,24 @@ describe("membership normalization", () => {
       unique: true,
       partialFilterExpression: { userId: { $type: "objectId" } },
     });
+  });
+
+  it("reports an index recreated without unique, and fixes nothing", async () => {
+    await seedTeam();
+    await runNormalize(db());
+    await db().collection(PLAYERS).dropIndex("teamId_1_userId_1");
+    await db()
+      .collection(PLAYERS)
+      .createIndex({ teamId: 1, userId: 1 }, { name: "teamId_1_userId_1" });
+
+    const report = await auditNormalize(db());
+
+    expect(report.indexIssues).toEqual(["indexNotUnique:teamId_1_userId_1"]);
+    expect(report.indexes).toContain("teamId_1_email_1");
+    const index = (await db().collection(PLAYERS).indexes()).find(
+      (candidate) => candidate.name === "teamId_1_userId_1",
+    );
+    expect(index!.unique).toBeUndefined();
   });
 
   it("enforces one player per user per team once the index exists", async () => {

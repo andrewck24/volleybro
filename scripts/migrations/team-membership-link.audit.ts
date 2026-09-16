@@ -5,7 +5,8 @@
  * account has yet, and which ones are skipped and why. Emails are never printed.
  *
  * Runs only after this Change is deployed to this environment and the
- * normalization audit is clean; it refuses while that audit reports stops.
+ * normalization audit is clean; it refuses while that audit reports stops or an
+ * index that is not the expected partial unique one.
  *
  * Usage: `node --env-file=.env.local --loader ts-node/esm scripts/migrations/team-membership-link.audit.ts`
  */
@@ -21,9 +22,9 @@ const main = async () => {
   try {
     const report = await auditLink(mongoose.connection.db!);
     console.log(JSON.stringify(report, null, 2));
-    if (report.normalizeStops.length > 0) {
+    if (report.normalizeStops.length > 0 || report.indexIssues.length > 0) {
       console.error(
-        `\nNormalization is not clean (${report.normalizeStops.length} stop condition(s)); re-run the normalize audit and migrate first.`,
+        `\nNormalization is not clean (${report.normalizeStops.length} stop condition(s), ${report.indexIssues.length} index issue(s)); re-run the normalize audit and migrate first.`,
       );
       process.exitCode = 1;
     }
