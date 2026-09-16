@@ -20,5 +20,5 @@
     "team info component 測試：隊伍讀取回傳 403 時顯示錯誤狀態、不拋錯",
     "pnpm verify"
   ],
-  "status": "pending"
+  "status": "completed"
 }

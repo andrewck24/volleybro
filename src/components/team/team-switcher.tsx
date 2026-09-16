@@ -19,7 +19,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
-import { useProfile, useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
+import {
+  useActiveTeamId,
+  useTeam,
+  useUser,
+  useUserPlayers,
+} from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
@@ -64,7 +69,8 @@ function TeamList({
 }) {
   const router = useRouter();
   const { user } = useUser();
-  const { profile, mutate: mutateProfile } = useProfile();
+  const { teamId: currentActiveTeamId, mutate: mutateActiveTeamId } =
+    useActiveTeamId();
   const { players } = useUserPlayers(user?.id);
   const { toast } = useToast();
 
@@ -83,7 +89,7 @@ function TeamList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTeamId: newTeamId }),
       });
-      await mutateProfile();
+      await mutateActiveTeamId();
       onSelect();
       router.replace(`/team/${newTeamId}`);
     } catch (err) {
@@ -97,7 +103,7 @@ function TeamList({
         <TeamItem
           key={p.id}
           teamId={p.teamId!}
-          isActive={profile?.activeTeamId === p.teamId}
+          isActive={currentActiveTeamId === p.teamId}
           onClick={handleSwitch}
         />
       ))}
