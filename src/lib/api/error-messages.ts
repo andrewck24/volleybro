@@ -71,6 +71,10 @@ export const ERROR_MESSAGES: Record<CatalogueKey, ErrorMessage> = {
     title: "對方尚未加入",
     description: "受邀者要先接受邀請，才能成為擁有者",
   },
+  TARGET_ALREADY_OWNER: {
+    title: "你已經是擁有者",
+    description: "移轉擁有權請指定其他成員",
+  },
   TARGET_IS_OWNER: {
     title: "擁有者無法被變更或刪除",
     description: "擁有權只能由擁有者本人移轉給其他成員",

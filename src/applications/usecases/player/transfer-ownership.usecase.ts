@@ -73,6 +73,15 @@ export class TransferOwnershipUseCase implements ITransferOwnershipUseCase {
       );
     }
 
+    // Both writes below would land on this one document, which would end as
+    // ADMIN and leave the team without an owner.
+    if (newOwner.id === currentOwner.id) {
+      throw new ConflictError(
+        PlayerReason.TARGET_ALREADY_OWNER,
+        "Ownership cannot be transferred to the current owner",
+      );
+    }
+
     // 4. Verify new owner has joined the team
     if (!isTeamMember(newOwner)) {
       throw new ConflictError(

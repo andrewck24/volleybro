@@ -155,6 +155,26 @@ describe("TransferOwnershipUseCase", () => {
       });
     });
 
+    it("should reject a transfer to the current owner's own player", async () => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        currentOwner,
+      );
+      mockPlayerRepository.findById.mockResolvedValue(currentOwner);
+
+      const attempt = useCase.execute({
+        teamId,
+        newOwnerId: currentOwner.id,
+        userId,
+      });
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.TARGET_ALREADY_OWNER,
+      });
+      // No write at all, so the team keeps the one owner it had.
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+    });
+
     it("should reject if update fails", async () => {
       mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
         currentOwner,
