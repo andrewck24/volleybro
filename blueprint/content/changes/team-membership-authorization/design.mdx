@@ -146,6 +146,7 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 | 缺 `status`，兩者皆無          | 未連結球員，清除 `role`              |
 | 未連結球員帶 `role` 或 `email` | 清除 `role` 與 `email`               |
 | 成員帶 `email`                 | 清除 `email`                         |
+| 受邀者的 `email` 帶大寫        | 轉為小寫                             |
 | 任何欄位為 `null` 或空字串     | 視為缺少；`email` 與 `role` 一併清除 |
 
 寫入任何文件之前先檢查下列情況；出現任一即停止、不寫入，列出文件交由開發者處理：
@@ -156,6 +157,8 @@ export type Player = UnlinkedPlayer | InvitedPlayer | TeamMember;
 4. 受邀者或成員缺角色；受邀者同時有、或同時缺 `userId` 與 `email`；成員缺 `userId`；未連結球員帶 `userId`。
 5. `userId` 或 `teamId` 不是 ObjectId，缺 `teamId`，或 `teamId` 指向不存在的隊伍。
 6. `status` 的值不在 `NONE`、`INVITED`、`JOINED` 之內。
+
+受邀者的 email 一律轉為小寫，因為註冊時的連結與邀請時的查詢都以不分大小寫的方式比對，而唯一索引是逐位元組比對：留著大小寫不一致的舊資料，同一隊就可能存在兩筆只差大小寫的邀請，註冊時同時命中而寫入衝突。
 
 以上檢查以**正規化後的結果**計算，而不是只看現況。擁有者數量以 `teams` collection 逐隊計算，沒有球員、或只有未連結球員的隊伍同樣會被檢查。檢查通過且寫入完成後，修正 `(teamId, email)` 索引、移除一般的 `(teamId, userId)` 索引、建立部分唯一索引，並以 `listIndexes` 驗證 `unique` 與 filter 確實存在。
 
