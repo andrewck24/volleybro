@@ -9,10 +9,11 @@ Read root [`WORKFLOW.md`](WORKFLOW.md) before intake, planning, implementation, 
 - Installed Matt Pocock skills and their `skills-lock.json` entries are vendor-managed. Never edit them to encode VolleyBro policy — that belongs in `docs/agents/`.
 - A tool-specific artifact system is never a second lifecycle authority.
 - **Judgment-type deletions need confirmation first.** When knip, a dead-code audit, or your own analysis flags files for deletion beyond the requested scope, list the candidates with per-file rationale and wait. "Unreferenced in the import graph" is not evidence on its own — a file may be a documented API contract (see `design-tokens.ts`), an alias of a live database collection, or reserved for planned work.
+- **Questions wait for the gate.** Collect judgment questions and ask them at the phase's human gate alongside the finished work; stop early only if a different answer would make the remaining work useless.
 
 ## Writing
 
-- `CONTRIBUTING.md` owns the commit format. Two rules it does not state: the body explains **why** ("what" is supporting context), and a tooling name (`spectra`, `openspec`) is never the type or scope.
+- `CONTRIBUTING.md` owns the commit format, including the body and trailer rules.
 - Reference other changes by kebab-case slug (`` `type-decoupling` change ``), never by letter label.
 - Never hard-wrap prose you write or edit, in Markdown or in PR bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Docs predating this rule are still wrapped: match the file's existing width when editing one, and never reflow it wholesale as a side effect.
 

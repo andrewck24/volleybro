@@ -97,7 +97,6 @@ This project uses a clean architecture and implements dependency injection with 
 
 - **Jest** for unit and integration testing
 - **React Testing Library** for component testing
-- **586 tests passing** with comprehensive coverage
 - **ESLint** for code quality
 - **TypeScript strict mode** enabled
 - **Storybook** for component development and documentation
@@ -107,16 +106,7 @@ This project uses a clean architecture and implements dependency injection with 
 
 ### Running Tests
 
-```bash
-# Run all tests
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-
-# Generate coverage report
-pnpm test:coverage
-```
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the test commands and the gates that run before a pull request.
 
 ### Storybook 元件庫 / Storybook Component Library
 
