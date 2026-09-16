@@ -58,7 +58,6 @@ S07 的實作在本 Change 提案前就已完成，暫放在 `wip/team-players-l
 - **使用者搜尋與邀請的 rate limit、封鎖與檢舉邀請**：邀請真的送達之後的濫用風險，另案處理。
 - **比賽紀錄的詞彙**：「替補」按鈕改名為「換人」、`game.ts` 的 `Player`／`Team` 型別改名為 `GamePlayer`／`GameTeam`、Match 與 Game 的定義，歸在比賽紀錄詞彙的後續工作。
 - `transfer-ownership` 以兩次不具原子性的更新交換角色，中途失敗會留下兩位擁有者。
-- `verifyIsTeamOwner`、`verifyPlayerRole` 與 `getPlayerRole` 在 production 程式碼中沒有呼叫者，刪除需要另外確認。
 - `GET /api/users?email=` 讓任何登入者以 email 反查使用者，歸在隱私設定主題。
 - `find-game`、`cancel-invitation`、`update-role`、`remove-player`、`update-player-info` 先讀取再授權，已登入者可以用 404 與 403 的差別判斷資源是否存在。
 - `PATCH /api/teams/{teamId}` 與 `PATCH /api/teams/{teamId}/lineups` 在 route 而非 use case 授權，與 D2 的原則不一致。

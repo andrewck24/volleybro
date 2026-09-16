@@ -2,7 +2,7 @@ import { AuthReason, PlayerReason, ValidationError } from "@/entities/errors";
 import {
   canManageTeam,
   hasTeamRole,
-  isOwner,
+  isTeamOwner,
   isTeamMember,
   type ManageRefusal,
   narrowPlayer,
@@ -213,13 +213,13 @@ describe("Player Entity", () => {
     });
   });
 
-  describe("isOwner", () => {
+  describe("isTeamOwner", () => {
     it.each([
       [PlayerRole.OWNER, true],
       [PlayerRole.ADMIN, false],
       [PlayerRole.MEMBER, false],
     ] as const)("%s is owner: %s", (role, expected) => {
-      expect(isOwner(member(role))).toBe(expected);
+      expect(isTeamOwner(member(role))).toBe(expected);
     });
   });
 

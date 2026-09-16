@@ -162,7 +162,7 @@ export function canManageTeam(member: TeamMember): boolean {
   return hasTeamRole(member, PlayerRole.ADMIN);
 }
 
-export function isOwner(member: TeamMember): boolean {
+export function isTeamOwner(member: TeamMember): boolean {
   return hasTeamRole(member, PlayerRole.OWNER);
 }
 
@@ -187,7 +187,7 @@ export function refuseToManagePlayer(
   if (!actor || !isTeamMember(actor) || actor.teamId !== target.teamId)
     return AuthReason.NOT_TEAM_MEMBER;
   if (!canManageTeam(actor)) return AuthReason.INSUFFICIENT_ROLE;
-  if (isTeamMember(target) && isOwner(target))
+  if (isTeamMember(target) && isTeamOwner(target))
     return PlayerReason.TARGET_IS_OWNER;
   if (actor.id === target.id) return PlayerReason.TARGET_IS_SELF;
   return null;

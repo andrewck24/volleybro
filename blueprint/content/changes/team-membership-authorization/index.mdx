@@ -55,7 +55,6 @@ import { TLDR } from "@/components/TLDR";
 - 不改變擁有者移轉的生效方式。移轉是否需要對方接受另案處理。
 - 不實作隱私設定，也不提供「擁有者可以關閉管理員互相管理」的隊伍設定。本 Change 是隱私設定上線前的預設規則；隱私設定的 roadmap 列在 Archive 時加入 Features。
 - 不拆出 Membership entity，不採用 better-auth organization plugin。理由在 D1。
-- 不刪除 `verifyIsTeamOwner`、`verifyPlayerRole` 與 `getPlayerRole`。三者在 production 程式碼中沒有呼叫者，但刪除需要另外確認。
 - 不改名比賽紀錄中的「替補」按鈕與 `game.ts` 的 `Player`／`Team` 型別。它們屬於比賽紀錄詞彙的後續工作。
 
 ## Change boundaries

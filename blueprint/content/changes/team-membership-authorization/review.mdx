@@ -96,6 +96,7 @@ import { TLDR } from "@/components/TLDR";
 - **S01 的驗收只在 `test` 資料庫上完成。** 原本寫的是 volleybro-test 與 production 依序執行，但 production 資料庫尚未啟用，所有環境共用同一個 `test` 資料庫，所以那裡跑完就是跑完（見執行紀錄）。
 - **S04 讓兩個 use case 不再注入 `AuthorizationService`。** entity 的管理判斷已含「呼叫者必須是管理員以上的成員」，保留舊檢查等於同一份資料查兩次、兩套規則各自漂移。錯誤語意不變。
 - **Apply 期間加做三件計畫外的工作**：註冊時的帳號連結改為不分大小寫、正規化把保留的邀請位址去空白轉小寫、移轉擁有權不能指向自己。前兩件是同一條 email 大小寫的線，第三件牴觸 D3 的「隊伍永遠有一位擁有者」。
+- **`AuthorizationService` 只剩 `verifyTeamRole` 與 `verifyIsTeamAdmin`。** S02 原本保留三個沒有呼叫者的方法（`verifyIsTeamOwner`、`verifyPlayerRole`、`getPlayerRole`），它們各自組規則，會成為第二套授權規範；經開發者確認後刪除。entity 的 `isOwner` 改名為 `isTeamOwner`，與 `isTeamMember` 同句型。
 - **空隊伍不再擋住遷移。** 實際執行時六個一位球員都沒有的隊伍停下來；沒有人的隊伍沒有需要保護的成員關係，規則改成「有球員的隊伍才要求剛好一位擁有者」。
 - **`(teamId, email)` 的唯一索引在此之前從未存在**，所以「同一隊不會重複邀請同一個 email」在這個 Change 之前只是宣告，不是保證。
 
