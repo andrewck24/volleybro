@@ -1,0 +1,301 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  十個切片中的九個已交付：成員只指已加入的球員，受邀者通不過任何檢查，擁有者不能被他人降級或刪除，隊伍資訊、名單與單一球員只給成員讀。S01
+  的正規化腳本已完成並通過整合測試，但它的驗收包含在真實資料庫上執行，所以仍是
+  `pending`——**這個 Change 在正規化於 production 執行之前不能部署**。三輪 review
+  找到十三項問題，全部修掉。
+</TLDR>
+
+## 交付內容
+
+<FileTour
+  files={[
+    {
+      path: "src/entities/player.ts",
+      change: "modified",
+      summary:
+        "Player 成為 UnlinkedPlayer / InvitedPlayer / TeamMember 的 union，角色只屬於後兩者。isTeamMember 只看 status；hasTeamRole 只接受 TeamMember，所以「這位受邀者是不是管理員」在型別上問不出來。refuseToManagePlayer 決定誰能管理誰。原本的 validatePlayerStatus 變成 narrowPlayer，回傳縮窄後的值而不是 void。",
+      lang: "ts",
+      code: "export type UnlinkedPlayer = PlayerBase & { status: PlayerStatus.NONE };\nexport type InvitedPlayer = PlayerBase & {\n  status: PlayerStatus.INVITED;\n  role: PlayerRole;\n} & ({ userId: string; email?: never } | { email: string; userId?: never });\nexport type TeamMember = PlayerBase & {\n  status: PlayerStatus.JOINED;\n  userId: string;\n  role: PlayerRole;\n};\n\nexport function isTeamMember(player: Player): player is TeamMember {\n  return player.status === PlayerStatus.JOINED;\n}\n\nexport function hasTeamRole(member: TeamMember, required: PlayerRole): boolean {\n  return ROLE_RANK[member.role] >= ROLE_RANK[required];\n}",
+    },
+    {
+      path: "src/infrastructure/db/repositories/player.repository.mongo.ts",
+      change: "modified",
+      summary:
+        "toPlayer 讓每份文件通過 narrowPlayer，不符合模型就拋錯。linkUserToInvitations 以 collation 比對 email，否則邀請存的是小寫、註冊用的位址可能帶大寫。",
+      lang: "ts",
+      code: "private toPlayer(doc: PlayerDocument): Player {\n  const { _id, teamId, userId, ...rest } = doc.toObject();\n  return narrowPlayer({\n    ...rest,\n    id: _id.toString(),\n    ...(teamId ? { teamId: teamId.toString() } : {}),\n    ...(userId ? { userId: userId.toString() } : {}),\n  });\n}",
+    },
+    {
+      path: "src/infrastructure/db/mongoose/schemas/player.ts",
+      change: "modified",
+      summary:
+        "status 拿掉 default：Mongoose 會在讀取時套用預設值，留著它就等於把沒有 status 的舊文件靜默當成未連結球員。兩個複合唯一索引改寫為部分唯一索引——原本的宣告同時用了 sparse 與 partialFilterExpression，filter 裡還有 $nin，MongoDB 不接受，所以它們從未建立。",
+      lang: "ts",
+      code: 'status: { type: String, enum: ["NONE", "INVITED", "JOINED"], required: true },\n\nPlayerSchema.index(\n  { teamId: 1, email: 1 },\n  { unique: true, partialFilterExpression: { email: { $type: "string" } } },\n);\nPlayerSchema.index(\n  { teamId: 1, userId: 1 },\n  { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },\n);',
+    },
+    {
+      path: "scripts/migrations/team-membership-normalize.*.ts",
+      change: "added",
+      summary:
+        "部署前後各執行一次。audit 只讀取，回報每一類文件、十三種停止條件與索引狀態；migrate 在任一停止條件成立時不寫入任何文件，否則補上 status、清除未連結球員的角色與 email、把保留的邀請位址去空白轉小寫，最後建立並驗證索引。任何分支都不寫入 userId。",
+      lang: "ts",
+      code: "const report = await auditNormalize(db);\nif (report.stops.length > 0) return { applied: false, report };\n// ... project every document, then:\nreturn { applied: true, report: { ...report, indexes: await ensureIndexes(db) } };",
+    },
+    {
+      path: "scripts/migrations/team-membership-link.*.ts",
+      change: "added",
+      summary:
+        "部署後執行。把已註冊卻只存 email 的邀請連結到帳號。每筆以條件更新比對讀取時的 status 與 email 原值；正規化 audit 回報停止條件或索引不符時，兩支腳本都拒絕執行。",
+      lang: "ts",
+      code: 'await players.updateOne(\n  { _id: raw._id, status: "INVITED", email: raw.email, userId: { $exists: false } },\n  { $set: { userId }, $unset: { email: "" } },\n);',
+    },
+    {
+      path: "src/infrastructure/services/auth/authorization.service.ts",
+      change: "modified",
+      summary:
+        "五個方法退化成「查出球員 → 交給 entity 判斷 → 丟錯」。四段各自寫過一次的角色階層比較消失。",
+      lang: "ts",
+      code: "async verifyTeamRole(teamId, userId, role = PlayerRole.MEMBER): Promise<void> {\n  const player = await this.playerRepository.findByTeamIdAndUserId(teamId, userId);\n  if (!player || !isTeamMember(player)) throw notTeamMember();\n  if (!hasTeamRole(player, role)) throw insufficientRole();\n}",
+    },
+    {
+      path: "src/applications/usecases/player/invitee-link.ts",
+      change: "added",
+      summary:
+        "create-invitation 與帶 email 的 create-player 共用的比對與衝突判斷。email 以 collation 精確比對，不用 $regex——後者的 . 會匹配任意字元，可能把邀請連到別人的帳號。",
+      lang: "ts",
+      code: "const users = await userRepository.findAllByEmailInsensitive(address);\nif (users.length > 1) throw ambiguousEmail();\nreturn users[0] ? { userId: users[0].id } : { email: address.toLowerCase() };",
+    },
+    {
+      path: "src/applications/usecases/player/membership.ts",
+      change: "added",
+      summary:
+        "把 entity 的管理判斷接到 use case，以及從 leave-team 抽出的預設隊伍清除，讓刪除成員與離開隊伍走同一段。",
+      lang: "ts",
+      code: "const refusal = refuseToManagePlayer(actor, target);\nif (refusal) throw new AuthorizationError(refusal, MANAGE_REFUSAL_MESSAGES[refusal]);",
+    },
+    {
+      path: "src/applications/usecases/team/get-team.usecase.ts",
+      change: "modified",
+      summary:
+        "與 get-player、get-team-players 一樣：授權在讀取之前。三者的測試都斷言拒絕時 repository 沒有被呼叫——「有丟錯」不夠，先讀再檢查的實作同樣會丟錯，只是資料已經在記憶體裡。",
+      lang: "ts",
+      code: "async execute({ teamId, userId }: IGetTeamInput): Promise<Team | null> {\n  await this.authorizationService.verifyTeamRole(teamId, userId, PlayerRole.MEMBER);\n  return this.teamRepository.findById(teamId);\n}",
+    },
+    {
+      path: "src/app/api/teams/[teamId]/route.ts",
+      change: "modified",
+      summary:
+        "GET 補上 withAuth。這個端點原本連登入都不需要，任何人都讀得到隊名、陣容與統計。",
+      lang: "ts",
+      code: "export const GET = (_req: NextRequest, props: { params: Promise<{ teamId: string }> }) =>\n  withAuth(async (_req, { userId }) => {\n    const { teamId } = await props.params;\n    const team = await getTeamController({ teamId, userId });\n    ...\n  })(_req);",
+    },
+    {
+      path: "src/hooks/use-data.ts",
+      change: "modified",
+      summary:
+        "useActiveTeamId 成為「目前隊伍」的唯一規則：activeTeamId 指向的隊伍若仍是自己已加入的就用它，否則用第一個已加入的隊伍。通知頁與隊伍切換器改用它，不再各自解讀 profile。",
+      lang: "ts",
+      code: "const joinedPlayers = players.filter((p) => p.status === PlayerStatus.JOINED && p.teamId);\nconst isStillJoined = joinedPlayers.some((p) => p.teamId === profile?.activeTeamId);\nconst teamId = isStillJoined ? profile?.activeTeamId : joinedPlayers[0]?.teamId;",
+    },
+    {
+      path: "src/components/user/invitations/index.tsx",
+      change: "modified",
+      summary:
+        "隊名改讀邀請清單自己帶的 teamName，不再呼叫隊伍端點——那個端點在 S09 之後只給成員。接受邀請前也不再連到隊伍頁。",
+      lang: "tsx",
+      code: '<ItemTitle className="h-8">{player.teamName}</ItemTitle>',
+    },
+    {
+      path: "src/lib/api/error-messages.ts",
+      change: "modified",
+      summary:
+        "新增五個錯誤原因的文案（已在名單上、email 對應多個帳號、目標是擁有者、目標是自己、已經是擁有者），並依 CONTEXT.md 把擁有者相關文案的「隊長」改掉。",
+      lang: "ts",
+      code: '[PlayerReason.ALREADY_ON_ROSTER]: { title: "對方已在名單上", ... },\n[PlayerReason.TARGET_IS_OWNER]: { title: "擁有者無法被變更或刪除", ... },\n[PlayerReason.TARGET_ALREADY_OWNER]: { title: "你已經是擁有者", ... },',
+    },
+  ]}
+/>
+
+## 計畫與實際的差異
+
+- **S01 仍是 `pending`。** 程式碼與整合測試已交付，但它的驗收包含開發者在 volleybro-test 與 production 執行。這是刻意的：腳本會改 production 資料，而執行結果（尤其是停止條件是否成立）要記錄在這一頁。
+- **S04 讓兩個 use case 不再注入 `AuthorizationService`。** entity 的管理判斷本身已含「呼叫者必須是管理員以上的成員」，保留舊檢查等於同一份資料查兩次、兩套會各自漂移的規則。錯誤語意不變。
+- **`verifyIsTeamOwner` 與 `getPlayerRole` 的行為有細微改變**，儘管 S02 的驗收寫的是「介面不變」：帶擁有者角色的受邀者現在得到 `NOT_TEAM_MEMBER` 而非 `INSUFFICIENT_ROLE`，`getPlayerRole` 對受邀者回傳 `null`。兩者在 production 都沒有呼叫者。
+- **Apply 期間新增了三件不在原計畫內的工作**：註冊時的連結改為不分大小寫、正規化把保留的邀請位址去空白轉小寫、移轉擁有權不能指向自己。前兩件是同一條 email 大小寫的線；第三件是既有缺陷，但它牴觸 D3 宣稱的「隊伍永遠有一位擁有者」。三件都經開發者確認後才做。
+- **`(teamId, email)` 的唯一索引在此之前從未存在**，所以「同一隊不會對同一個 email 重複邀請」在這個 Change 之前只是宣告，不是保證。
+
+## Review 輪次與發現
+
+三輪獨立 review，兩個軸：規格軸比對切片驗收與 D1–D4，標準軸拿 `CONTRIBUTING.md` 的規則逐字檢查工具檢查不到的部分。
+
+<RiskTable
+  risks={[
+    {
+      name: "規格 R1：通知頁在資料載入中顯示新手引導",
+      severity: "warning",
+      mitigation:
+        "接受並已修。hook 的 isLoading 改對了，消費端沒讀它；已加入隊伍的使用者冷載入時會先看到「加入或建立隊伍」再消失。而且是退化——舊版只等 profile，新規則還要等球員清單。",
+    },
+    {
+      name: "規格 R2：audit 不檢查索引，而部署後的 gate 正是 audit",
+      severity: "critical",
+      mitigation:
+        "接受並已修。唯一索引若因任何原因失效，連結腳本自己的「重複鍵就跳過」保護永遠不會觸發。現在 audit 也檢查索引，兩支連結腳本在索引不符時拒絕執行。",
+    },
+    {
+      name: "規格 R2：移轉擁有權給自己會讓隊伍沒有擁有者",
+      severity: "warning",
+      mitigation:
+        "接受並已修。既有缺陷，但牴觸 D3 宣稱的不變量：移轉是兩次更新，指向自己會讓同一筆先升為擁有者再降為管理員。",
+    },
+    {
+      name: "規格 R1：S01 的十三種停止條件只測了五種",
+      severity: "warning",
+      mitigation:
+        "接受並已修，十三種全部覆蓋。其中 duplicateEmail 最關鍵——它是唯一必須以正規化後的結果計算的條件。",
+    },
+    {
+      name: "規格 R1：「空窗期舊寫入」的測試沒有證明讀取真的會失敗",
+      severity: "warning",
+      mitigation:
+        "接受並已修。補上斷言：那個狀態下 findByTeamId 拋錯，重跑正規化後恢復。這是 Design 列為 critical 的風險，原本只驗了 audit 數得到。",
+    },
+    {
+      name: "規格 R1：status 是非字串時被當成缺少而靜默正規化",
+      severity: "info",
+      mitigation: "接受並已修，改為停止條件。只有外部工具直寫才可能產生。",
+    },
+    {
+      name: "規格 R3：Design 的正規化表格只承諾轉小寫，程式也會去空白",
+      severity: "info",
+      mitigation:
+        "接受並已修。切片的驗收條件當時改了，Design 的表格與段落沒跟著改。",
+    },
+    {
+      name: "標準 R1：新寫回的 T060 註解與一句重述程式碼的註解",
+      severity: "info",
+      mitigation:
+        "接受並已修。其餘四處同類註解是既有的，依規矩不在這個 Change 順手改。",
+    },
+    {
+      name: "標準 R1：兩則錯誤文案與詞彙表不一致",
+      severity: "info",
+      mitigation: "接受並已修（球員被稱為成員、受邀者被稱為邀請中的成員）。",
+    },
+    {
+      name: "規格 R1：球員編輯頁把已連結帳號的受邀者當成管理者",
+      severity: "info",
+      mitigation:
+        "接受並已修。伺服器本來就會擋，屬於多餘入口而非漏洞；現在要求 JOINED。",
+    },
+    {
+      name: "規格 R1：Design 的呼叫點數與「球員不存在回 404」不符現況",
+      severity: "info",
+      mitigation:
+        "接受並已修。S04 之後角色管理不再呼叫 verify；null 是由回應 schema 轉成 400，不是 404。",
+    },
+  ]}
+/>
+
+### 三個值得看到修法的缺陷
+
+**通知頁的閃現。** 規則算對了，但畫面沒有等它算完。
+
+<AnnotatedDiff
+  lang="tsx"
+  code={
+    "-  const { teamId } = useActiveTeamId();\n+  const { teamId, isLoading } = useActiveTeamId();\n\n- return <>{!teamId && <GuidesForNewUser />}</>;\n\n* return <>{!teamId && !isLoading && <GuidesForNewUser />}</>;"
+  }
+/>
+
+**移轉擁有權給自己。** 兩次更新落在同一筆文件上，第二次把它降成管理員。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    '+    // Both writes would land on this one document, leaving it as an\n+    // ADMIN and leave the team without an owner.\n+    if (newOwner.id === currentOwner.id) {\n+      throw new ConflictError(\n+        PlayerReason.TARGET_ALREADY_OWNER,\n+        "Ownership cannot be transferred to the current owner",\n+      );\n+    }'
+  }
+/>
+
+**連結腳本的 gate。** 它原本只看停止條件，而唯一索引正是它「重複鍵就跳過」那條保護的前提。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    "-  if (normalize.stops.length > 0)\n+  if (normalize.stops.length > 0 || normalize.indexIssues.length > 0)\n     return {\n       normalizeStops: normalize.stops.map((stop) => stop.code),\n+      indexIssues: normalize.indexIssues,\n       counts,\n       skipped: [],\n     };"
+  }
+/>
+
+## 驗證
+
+| 閘門                    | 結果                                                        |
+| ----------------------- | ----------------------------------------------------------- |
+| `pnpm verify:all`       | 1174 unit tests、blueprint 49 tests、app 與 blueprint build |
+| `pnpm test:integration` | 18 suites / 95 tests，含正規化 25 例與連結 11 例            |
+
+拒絕路徑的證據來自 entity 與 use case 的單元測試：整合測試的 authorization double 一律放行，所以三個讀取端點的 403 在整合層沒有覆蓋。
+
+最後一輪驗證是實際驅動記憶體 MongoDB 完成的，不只是讀程式碼：把 `teamId_1_userId_1` 重建成一般索引、把它整個刪掉、再修回來，三種情況下連結腳本的行為都符合預期（前兩種拒絕且不寫入，第三種正常連結）。
+
+## 殘留風險與後續
+
+<RiskTable
+  risks={[
+    {
+      name: "正規化尚未在任何資料庫上執行",
+      severity: "critical",
+      mitigation:
+        "部署前置。依序在 volleybro-test 與 production 執行 audit → migrate → audit；production 預期可能出現擁有者數量不為 1 的隊伍（舊程式碼允許管理員降級或刪除擁有者），屆時腳本會在寫入前停止，交由開發者決定。",
+    },
+    {
+      name: "索引檢查不比對 key pattern",
+      severity: "info",
+      mitigation:
+        "一個同名、同樣 unique、filter 也相同、但建在別的欄位上的索引會通過檢查。需要有人刻意以預設之外的 key 取這個名字才會發生。",
+    },
+    {
+      name: "三個讀取端點的拒絕路徑沒有整合測試",
+      severity: "info",
+      mitigation:
+        "整合測試的 authorization double 一律放行。要覆蓋需要讓 harness 支援會拒絕的 double，屬於測試基礎建設。",
+    },
+    {
+      name: "沒有 teamId 的球員回 403，不存在回 404",
+      severity: "info",
+      mitigation:
+        "兩者可區分，仍能判斷某個 playerId 是否存在。切片明文保留「不存在回傳 null」的既有行為，所以沒有統一。",
+    },
+    {
+      name: "移轉擁有權的兩次更新不具原子性",
+      severity: "info",
+      mitigation: "既有缺陷。中途失敗會留下兩位擁有者。未在本 Change 處理。",
+    },
+    {
+      name: "三個沒有 production 呼叫者的匯出",
+      severity: "info",
+      mitigation:
+        "canManageTeam、isOwner、EMAIL_ALREADY_INVITED。判斷型刪除需要先確認，未自行刪除。",
+    },
+  ]}
+/>
+
+後續工作：解除帳號連結（會籍區塊重做時一併處理）、擁有者移轉改為需要對方接受、使用者搜尋與邀請的 rate limit 與封鎖檢舉、隱私設定本身。既有檔案裡的 task id 註解與上述三個匯出，值得一張清理票。
+
+## 部署前置
+
+1. volleybro-test：`team-membership-normalize.audit.ts` → `.migrate.ts` → audit 確認歸零。
+2. production：同上，由開發者執行。
+3. 部署本 Change（先 volleybro-test 驗證，再 production）。
+4. 各環境部署後重跑正規化直到 audit 歸零——空窗期舊程式碼的日常寫入會再產生不符合模型的文件。
+5. 各環境執行 `team-membership-link.audit.ts` → `.migrate.ts`。
+
+執行輸出在完成後補記於本頁。
