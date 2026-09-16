@@ -293,28 +293,6 @@ describe("PlayerRepository", () => {
     });
   });
 
-  describe("findTeamOwner", () => {
-    it("should return team owner", async () => {
-      const owner = {
-        _id: mockPlayer.id,
-        ...mockPlayer,
-        role: PlayerRole.OWNER,
-      };
-      const mockExec = jest.fn().mockResolvedValue({
-        toObject: () => owner,
-      });
-      (PlayerModel.findOne as jest.Mock).mockReturnValue({ exec: mockExec });
-
-      const result = await repository.findTeamOwner("team-1");
-
-      expect(PlayerModel.findOne).toHaveBeenCalledWith({
-        teamId: "team-1",
-        role: "OWNER",
-      });
-      expect(result).toMatchObject({ role: PlayerRole.OWNER });
-    });
-  });
-
   describe("findAdminsByTeamId", () => {
     it("should return all admins and owner in team", async () => {
       const mockExec = jest

@@ -57,11 +57,6 @@ export interface IPlayerRepository {
   countByTeamId(teamId: string): Promise<number>;
 
   /**
-   * Find owner of a team
-   */
-  findTeamOwner(teamId: string): Promise<Player | null>;
-
-  /**
    * Find all admins in a team
    */
   findAdminsByTeamId(teamId: string): Promise<Player[]>;

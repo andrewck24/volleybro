@@ -133,18 +133,6 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async findTeamOwner(teamId: string): Promise<Player | null> {
-    try {
-      const doc = await PlayerModel.findOne({
-        teamId,
-        role: PlayerRole.OWNER,
-      }).exec();
-      return doc ? this.toPlayer(doc) : null;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async findAdminsByTeamId(teamId: string): Promise<Player[]> {
     try {
       const docs = await PlayerModel.find({
