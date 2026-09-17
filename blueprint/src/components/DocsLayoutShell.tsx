@@ -35,10 +35,13 @@ export function DocsLayoutShell({
       nav={{ title: "Blueprint" }}
       sidebar={{
         // The deployed site builds without Change pages, so the tab is
-        // dropped rather than left pointing at an empty list. The /changes
-        // route itself keeps working for a direct visit or a local `dev`.
+        // unlisted rather than dropped: fumadocs' tab switcher hides itself
+        // entirely when the current path matches no tab, so a direct /changes
+        // visit still needs this tab present to reach Features or Design
+        // System from there. `unlisted` just keeps it out of the switcher's
+        // listing when it isn't the active tab.
         tabs: [
-          ...(hasChanges ? [{ title: "Changes", url: "/changes" }] : []),
+          { title: "Changes", url: "/changes", unlisted: !hasChanges },
           { title: "Features", url: "/features" },
           { title: "Design System", url: "/design-system" },
         ],

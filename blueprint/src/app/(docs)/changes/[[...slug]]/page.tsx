@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { listChanges } from "@/lib/changes-index";
 import { proposalMockups } from "@/lib/proposal-mockups";
+import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
+import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { TLDR } from "@/components/TLDR";
 import { Scenario } from "@/components/Scenario";
@@ -23,6 +25,8 @@ const mdxComponents = {
   DecisionTimeline,
   InteractiveFlowchart,
 };
+
+const changesBreadcrumbTree = createChangesBreadcrumbTree(source.pageTree);
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
@@ -68,13 +72,18 @@ export default async function Page({ params }: PageProps) {
   const Mdx = page?.data.body;
 
   return (
-    <DocsPage toc={page?.data.toc}>
-      <DocsBody>
-        <h1>{page?.data.title ?? slug[0]}</h1>
-        {Mdx && <Mdx components={mdxComponents} />}
-        {Mockup && <Mockup />}
-      </DocsBody>
-    </DocsPage>
+    <TreeContextProvider tree={changesBreadcrumbTree}>
+      <DocsPage
+        toc={page?.data.toc}
+        breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
+      >
+        <DocsBody>
+          <h1>{page?.data.title ?? slug[0]}</h1>
+          {Mdx && <Mdx components={mdxComponents} />}
+          {Mockup && <Mockup />}
+        </DocsBody>
+      </DocsPage>
+    </TreeContextProvider>
   );
 }
 
