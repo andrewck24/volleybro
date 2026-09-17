@@ -41,5 +41,6 @@
     "A gate is reviewed by someone who cannot run the Blueprint locally.",
     "The size warnings are routinely ignored without a Migration trailer."
   ],
-  "originChange": "two-gate-workflow"
+  "originChange": "two-gate-workflow",
+  "originDecision": "D1"
 }
