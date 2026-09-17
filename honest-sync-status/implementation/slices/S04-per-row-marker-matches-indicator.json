@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S04",
+  "title": "The per-row failure marker reads the same judgement as the indicator",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/persistence"
+  ],
+  "dependsOn": ["S01"],
+  "outcome": "`hasFailedWrite` marks an Entry List row only when its write can never succeed, matching the standard the indicator's 送不出去 condition already uses. A row whose write has merely exhausted its backoff heals itself and is no longer marked as failed.",
+  "acceptanceCriteria": [
+    "`hasFailedWrite` changes from `nextAttemptAt === null` to `!mayBeAttemptedAgain(lastError)`.",
+    "This narrows the criterion S08 of `retryable-entry-writes` established ('exhausted its attempts') to 'the last error is not retryable' -- the two used to coincide because a spent backoff and a hopeless error both set `nextAttemptAt: null`, and S01 of `retryable-queue-persistence` already separated them for the queue-level status; this slice brings the per-row marker in line with the same distinction.",
+    "The reason for narrowing: an entry that only ran out of backoff heals itself on the next flush or `online` event, so marking its row with a destructive ring the whole time it waits is the per-row version of the over-warning this Change removes at the indicator level.",
+    "A row whose entry has `attempts >= 2` but a retryable (or absent) `lastError` shows no failure marker, matching the indicator's 待送 (not 送不出去) treatment of the same entry.",
+    "A row whose entry's `lastError` is not retryable still shows the marker and its retry control, unchanged from S08's behaviour."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

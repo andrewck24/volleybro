@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "use case 擁有自己的 input 型別，schema 以 satisfies 反向證明相容",
+  "status": "implemented",
+  "targets": ["platform/clean-architecture"],
+  "context": "`create-player.usecase.ts` 以 `import type { CreatePlayerInput } from \"@/lib/validations/player\"` 定義自己的輸入契約，而 `CreatePlayerInput` 是 `z.infer` 出來的請求形狀。這是 application 層唯一的對外相依，Blueprint 的 clean-architecture 頁面明白記著它。它今天之所以看起來無害，是因為 `src/lib/` 沒有層——沒有層就沒有方向，也就沒有東西會指出這是倒置。D1 把 schema 搬到 `src/interface/validations/` 之後，這條相依會從「相依一個雜物袋」變成「application 明確 import interface」，也就是把一個隱形的問題變成可見的問題。單純讓 usecase 自己宣告那五個欄位可以消掉倒置，但會產生第二份宣告，而 schema 與它可能往「schema 改了、usecase 沒跟上」的方向靜默漂移——那正是本 Change 要消滅的東西。",
+  "decision": "usecase 自行宣告它實際讀取的欄位（`name` / `number` / `position` / `role` / `email`），刪除那行 import；schema 端加上 `satisfies z.ZodType<ICreatePlayerInput[\"data\"]>`，由型別系統證明 schema 產出的東西餵得進 usecase。相依方向因此是 `interface → application`，往內，合規；且是 `import type`，執行期完全抹除。此模式套用到 11 個 schema：對應具名子物件的 8 個直接綁（五條 game schema、`CreatePlayerSchema`、`UpdatePlayerInfoSchema`、`UpdateProfileRequestSchema`），對應扁平 input 一部分的 3 個以 `Pick<>` 綁（`CreateTeamSchema`、`TransferOwnershipSchema`、`ManagePlayerMembershipSchema`）。不適用者分成兩類，是**種類差異而非例外**：`PatchInvitationSchema` 的 `action` 是 route 用來分派到不同 usecase 的依據，不是任何 usecase 的輸入資料（dispatch schema，本來就不該綁）；三個 team usecase 使用位置參數而沒有 input DTO，補齊屬 `api-route-restructure` 的範圍。D1 的檔案搬移與本決策必須同批落地——先搬後補會讓 `create-player.usecase.ts` 短暫持有一條明確的向外相依。",
+  "alternatives": [
+    {
+      "option": "usecase 自行宣告形狀，schema 不做任何綁定",
+      "reason": "消掉倒置，但留下兩份同形狀的宣告，往「schema 新增欄位、usecase 不知情」的方向會靜默漂移。以一行 `satisfies` 換掉這個唯一的缺點，划算。"
+    },
+    {
+      "option": "維持 usecase import schema 的型別，只更新 import 路徑",
+      "reason": "把唯一一條 application 對外相依，從隱形（相依無層的 `src/lib/`）升級為明確（相依 `src/interface/`）。D1 的整個價值是讓層變得可讀，可讀之後第一件被讀出來的事就是一條違規，那不是收穫。"
+    },
+    {
+      "option": "讓 usecase 反向 import schema 並以 `z.infer` 推導，但把 schema 移進 application 層",
+      "reason": "schema 描述的是 HTTP 與 JSON 的形狀，是 delivery 機制的知識。把它移進 application 層等於讓內層知道外層的傳輸格式。"
+    },
+    {
+      "option": "為每個 schema 都寫 `satisfies`，包含 dispatch schema 與三個 team usecase",
+      "reason": "dispatch schema 沒有對應的 usecase 輸入可綁，硬綁需要發明一個假的目標型別；三個 team usecase 補 DTO 是改公開簽章，會動到三個 controller 與各自的 route，屬另一張票的形狀。"
+    }
+  ],
+  "consequences": [
+    "application 層對外的相依歸零。",
+    "schema 與 usecase 的輸入契約由編譯器保證相容——實測（zod `^4.4.3`、TypeScript `^6.0.3`）確認 schema 漏欄位或型別不符時 `tsc` 以 TS1360 擋下，約束是活的而非裝飾。",
+    "`satisfies` 檢查的是「schema 的輸出可指派給目標型別」，所以 schema **多**宣告欄位不會被抓。在 D4 的 `.strict()` 之下多出來的欄位會在執行期被拒，usecase 也讀不到，無害。",
+    "三個 team schema 會是唯一沒有 `satisfies` 的 input schema，直到它們的 usecase 補上 DTO。",
+    "`UpdatePlayerRoleSchema` 的 wire 欄位維持 `role`，由 route 映射到 usecase 的 `newRole`——把對外欄位遷就內部參數名是本決策主張的反方向。"
+  ],
+  "revisitTriggers": [
+    "三個 team usecase 補上 input DTO：`TeamUpdateSchema` 與 `UpdateLineupsSchema` 隨即加上 `satisfies`，本記錄的例外清單清空。",
+    "出現第二個 delivery mechanism 需要同一組 input：屆時 `satisfies` 的目標仍是 usecase 的 DTO，但可能需要多個 schema 指向同一個目標。",
+    "zod 的型別推導行為改變，使 `satisfies z.ZodType<T>` 不再擋得住漏欄位：約束失效，需要改用執行期測試補上。"
+  ]
+}

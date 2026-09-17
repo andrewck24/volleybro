@@ -1,0 +1,8 @@
+{
+  "title": "Specs",
+  "pages": [
+    "contextual-edit-pages/index",
+    "form-draft-persistence/index",
+    "tab-navigation/index"
+  ]
+}

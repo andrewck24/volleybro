@@ -1,0 +1,568 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import entryIdentityUpsert from "./design/decisions/D1-entry-identity-upsert.json";
+import retryResponsibilitySplit from "./design/decisions/D2-retry-responsibility-split.json";
+import entryWriteResponseContract from "./design/decisions/D3-entry-write-response-contract.json";
+import pendingQueueSourceOfTruth from "./design/decisions/D4-pending-queue-source-of-truth.json";
+
+## Adopted shape
+
+一筆 entry 在離開 client 之前就帶著自己的身分與順序。伺服器以身分決定要不要寫，以順序決定它落在哪裡——兩者都不再依賴它在陣列中的位置。
+
+<svg
+  viewBox="0 0 800 620"
+  role="img"
+  aria-label="entry 寫入時序圖：client 在送出前產生 id 與 seq；首次送達寫入並可能觸發 completeSet；重送同一個 id 不寫入；晚到的 entry 由 seq 排序歸位。"
+  style={{ aspectRatio: "800 / 620", width: "100%", height: "auto" }}
+  preserveAspectRatio="xMidYMid meet"
+>
+  <defs>
+    <marker
+      id="rew-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-monospace, monospace">
+    <rect x="96" y="20" width="190" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="191" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">CLIENT</text>
+    <text x="191" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">待送佇列</text>
+
+    <rect x="330" y="20" width="180" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="420" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">upsertEntry</text>
+    <text x="420" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">id 定身分／seq 定順序</text>
+
+    <rect x="560" y="20" width="180" height="46" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="650" y="38" textAnchor="middle" fontSize="12" fill="var(--foreground)">completeSet</text>
+    <text x="650" y="55" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">idempotent</text>
+
+    <line x1="191" y1="66" x2="191" y2="600" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="420" y1="66" x2="420" y2="600" stroke="var(--border)" strokeDasharray="4 5" />
+    <line x1="650" y1="66" x2="650" y2="600" stroke="var(--border)" strokeDasharray="4 5" />
+
+    <rect x="16" y="96" width="22" height="180" rx="6" fill="var(--muted)" />
+    <text x="27" y="186" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 186)">首次送達</text>
+
+    <text x="191" y="112" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">draft 產生 id 與 seq（樂觀推進之前）</text>
+
+    <line x1="191" y1="140" x2="406" y2="140" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="298" y="132" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT { "{ id, seq, …entry }" }</text>
+
+    <rect x="380" y="152" width="80" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="420" y="167" textAnchor="middle" fontSize="10" fill="var(--success)">WRITE</text>
+    <text x="420" y="192" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">id 不存在 → $push ＋ $sort</text>
+
+    <line x1="420" y1="216" x2="636" y2="216" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="528" y="208" textAnchor="middle" fontSize="10" fill="var(--foreground)">該球結束一局</text>
+
+    <rect x="606" y="228" width="88" height="22" rx="5" fill="var(--background)" stroke="var(--warning)" />
+    <text x="650" y="243" textAnchor="middle" fontSize="10" fill="var(--warning)">RETRY ×3</text>
+
+    <line x1="420" y1="266" x2="205" y2="266" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="312" y="258" textAnchor="middle" fontSize="10" fill="var(--foreground)">200 { "{ entries, setCompletionConfirmed? }" }</text>
+
+    <line x1="16" y1="300" x2="784" y2="300" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <rect x="16" y="320" width="22" height="130" rx="6" fill="var(--muted)" />
+    <text x="27" y="385" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 385)">重送</text>
+
+    <text x="191" y="336" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">回應遺失，佇列重送同一個 id</text>
+
+    <line x1="191" y1="364" x2="406" y2="364" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="298" y="356" textAnchor="middle" fontSize="10" fill="var(--foreground)">PUT { "{ id, seq, …entry }" }</text>
+
+    <rect x="380" y="376" width="80" height="22" rx="5" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="420" y="391" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">NO-OP</text>
+    <text x="420" y="416" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">id 已存在 → 守衛不成立，零筆命中</text>
+
+    <line x1="420" y1="440" x2="205" y2="440" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="312" y="432" textAnchor="middle" fontSize="10" fill="var(--foreground)">200 — 狀態與送一次相同</text>
+
+    <line x1="16" y1="474" x2="784" y2="474" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <rect x="16" y="494" width="22" height="106" rx="6" fill="var(--muted)" />
+    <text x="27" y="547" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 27 547)">亂序抵達</text>
+
+    <text x="191" y="510" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">seq 7 重試中，seq 8 先送達</text>
+
+    <line x1="191" y1="532" x2="406" y2="532" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="298" y="524" textAnchor="middle" fontSize="10" fill="var(--foreground)">seq 8（6:3）</text>
+
+    <line x1="191" y1="558" x2="406" y2="558" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#rew-arrow)" />
+    <text x="298" y="550" textAnchor="middle" fontSize="10" fill="var(--foreground)">seq 7（5:3）遲到</text>
+
+    <rect x="380" y="572" width="80" height="22" rx="5" fill="var(--background)" stroke="var(--success)" />
+    <text x="420" y="587" textAnchor="middle" fontSize="10" fill="var(--success)">$sort 歸位</text>
+
+    <text x="570" y="587" textAnchor="middle" fontSize="9" fill="var(--muted-foreground)">陣列中 7 仍排在 8 之前</text>
+
+  </g>
+</svg>
+
+`id` 與 `seq` 各司其職。同一個 `id` 送兩次，第二次守衛不成立、零筆命中，狀態與只送一次相同；晚到的 `seq 7` 靠 `$push` 的 `$sort` 修飾符插回 `seq 8` 之前，抵達順序不再決定陣列順序。
+
+## Contracts
+
+**Repository。** `appendEntry` 與 `replaceEntry` 合併為 `upsertEntry`，收一個或多個 entry。參照參數收斂為 game 與 set 的定位。以 `bulkWrite`（`ordered: true`）逐筆送出，每筆兩個操作恰好命中一個：以 `arrayFilters` 依 `id` 覆寫（存在時），或以 `$ne` 守衛的 `$push` ＋ `$each`／`$sort: { seq: 1 }` 新增（不存在時）。兩者都是一般 update 而非 aggregation pipeline update，Mongoose casting 因此保留。陣容參數保留：換人會同時改變場上陣容，與身分無關。
+
+**Use case。** `CreateRallyUseCase` 與 `UpdateRallyUseCase` 目前逐行相同，唯一差別是呼叫 `appendEntry` 還是 `replaceEntry`；repository 合併後兩者變成完全一樣的程式碼，因此**一併合併**為單一的 `RecordRalliesUseCase`。它驗證一次授權、寫入全部 entry、推導一次 set completion。controller 同步收斂為 `recordRalliesController`。
+
+**API。** route 只保留 `PUT`——HTTP 語意中 PUT 本就是 idempotent 的動詞，正好對應 upsert；`POST` 留著會誤導。request body 收一個或多個 entry。response body 由裸 `Entry[]` 改為 `{ entries, setCompletionConfirmed? }`，status 維持 200。entry 索引 query param 移除，set 索引保留。換人端點維持裸陣列——它永不觸發 set 結果寫入。
+
+**HTTP client。** 三個仍在用 raw `fetch` 的 action 遷移到共用 client，失敗因此攜帶 status 與 code。client 本身補上 timeout（原生 `AbortSignal.timeout`）與網路層錯誤正規化，否則重試邏輯無法分辨「很慢」與「已死」。
+
+**送出資料的來源。** 兩條路徑都不直接發請求：`useSubmitEntryDraft` 只 dispatch `enqueued`，由佇列的 flush 讀取 `state.pendingWrites.pending` 組成請求。這是搭便車與順序保證的前提——請求永遠帶著佇列當下的全部內容。
+
+連帶要改的是樂觀更新的寫法：現行 `mutate(promise, { optimisticData })` 把樂觀更新與網路請求綁在同一次呼叫，而佇列模型下網路請求屬於 flush。送出當下改為 `mutate(optimisticData, { revalidate: false })`（不帶 promise），flush 取得回應後再更新一次 cache。
+
+**重試。** 伺服器端 `completeSet` inline 重試 3 次（50ms／200ms／500ms），回應前完成。client 端由待送佇列負責：in-action 2 次（300ms／800ms），耗盡後轉入較長的背景退避（2s／5s／15s），期間新 entry 入列會順帶 flush 整個佇列。4xx 這類重試無用的錯誤直接判定為失敗，不進入退避。
+
+## 待送佇列：indicator 與失敗標記的單一真相來源
+
+`SyncIndicator` 沒有自己的狀態欄位。它與 entry row 的失敗標記都是**同一個佇列的投影**，沿用 `game-positional-writes` D1 已確立的原則：會漂移的狀態不儲存，改為推導。
+
+```ts
+type PendingEntry = {
+  entry: Entry; // 已含 id 與 seq
+  gameId: string;
+  setIndex: number;
+  attempts: number;
+  nextAttemptAt: number | null; // null 代表退避預算已用盡，或錯誤本身不可重試
+};
+
+type PendingWritesState = {
+  pending: PendingEntry[];
+  flushingGameIds: string[]; // 目前有請求在途中的 game id；一場比賽同時只會出現一次
+};
+
+type SyncStatus = "synced" | "syncing" | "unsynced";
+
+export const deriveSyncStatus = (
+  state: PendingWritesState,
+  gameId: string,
+): SyncStatus => {
+  const pending = state.pending.filter((p) => p.gameId === gameId);
+  return pending.length === 0
+    ? "synced"
+    : isFlushingGame(state, gameId) ||
+        pending.some((p) => p.nextAttemptAt !== null)
+      ? "syncing"
+      : "unsynced";
+};
+
+export const isFlushingGame = (state: PendingWritesState, gameId: string) =>
+  state.flushingGameIds.includes(gameId);
+
+export const hasFailedWrite = (state: PendingWritesState, entryId: string) =>
+  state.pending.some((p) => p.entry.id === entryId && p.nextAttemptAt === null);
+```
+
+`flushingGameIds` 與 `nextAttemptAt` 分開表達兩件不同的事：前者是「這場比賽正有一個請求在途中」，後者是「已排定下次嘗試」。兩者任一成立都算同步中。
+
+`flushingGameIds` 掛的是 game id 而非單一布林值，因為 flush 以整場比賽為範圍（見下方「單一擁有者」）——切換比賽或背景重試與手動重試重疊時，可能同時有不只一場比賽的 flush 在途中，各自的完成不該互相影響對方的狀態。
+
+避免對同一批 entry 重複送出，靠的不是這個欄位，而是 `usePendingWrites`（擁有 `inFlight` ref 與背景重試 timer 的那個 hook）在一場比賽的畫面上只掛載一次——見下方「單一擁有者」一節。`flushingGameIds` 只負責讓 indicator 與失敗標記知道「這場比賽現在是不是正有請求在飛」，兩者是不同層次的問題。
+
+一個實際的 state 快照——第 7 顆球正在重試（已試 2 次，排定下次），第 8 顆球剛入列尚未嘗試：
+
+```json
+{
+  "pending": [
+    {
+      "entry": {
+        "id": "9f2a1c40-3b7e-4d55-b1a8-6e0c7f2d9a13",
+        "seq": 6,
+        "type": "Rally",
+        "win": true,
+        "home": { "score": 5, "type": 2, "num": 3 },
+        "away": { "score": 3, "type": 0, "num": 0 }
+      },
+      "gameId": "66f1c0a2e4b0a1d2c3e4f5a6",
+      "setIndex": 0,
+      "attempts": 2,
+      "nextAttemptAt": 1755950412000
+    },
+    {
+      "entry": {
+        "id": "c81b7d92-0f4a-4e21-9c33-5a7e8b1f0d64",
+        "seq": 7,
+        "type": "Rally",
+        "win": true,
+        "home": { "score": 6, "type": 1, "num": 5 },
+        "away": { "score": 3, "type": 0, "num": 0 }
+      },
+      "gameId": "66f1c0a2e4b0a1d2c3e4f5a6",
+      "setIndex": 0,
+      "attempts": 0,
+      "nextAttemptAt": 1755950409000
+    }
+  ],
+  "flushingGameIds": []
+}
+```
+
+此時 `deriveSyncStatus(state, "66f1c0a2e4b0a1d2c3e4f5a6")` 回 `"syncing"`（兩筆都有排定嘗試），`SyncIndicator` 顯示「2 筆未同步」的計數但維持同步中的樣式；兩筆的 entry row 都**不會**出現失敗標記，因為 `hasFailedWrite` 要求 `nextAttemptAt === null`。
+
+slice 的 action 面：
+
+| Action           | 作用                                                                                                                   |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `enqueued`       | 推入一筆 `PendingEntry`（`attempts: 0`），並觸發一次 flush                                                             |
+| `flushStarted`   | 把這場比賽的 game id 加進 `flushingGameIds`（已存在則不重複加）                                                        |
+| `flushSucceeded` | 依 `id` 移除已確認的項目，把這場比賽的 game id 從 `flushingGameIds` 移除                                               |
+| `flushFailed`    | 每筆 `attempts + 1`，依退避表寫入 `nextAttemptAt`；預算用盡或錯誤不可重試（4xx）則寫 `null`；把這場比賽的 game id 移除 |
+| `retryRequested` | 手動重試：把所有 `nextAttemptAt === null` 的項目重設為立即，並觸發 flush                                               |
+
+`gameId` 讓佇列在使用者切換比賽時仍能分辨項目歸屬，flush 時也以它決定要打哪一場的端點。
+
+因為兩個視圖讀同一份資料，`SyncIndicator` 的計數與 row 的紅色標記不可能互相矛盾。
+
+佇列放進**獨立的 slice**，而非併入 `game-slice`：它的生命週期與 per-set 的 draft 狀態不同，且之後要被獨立持久化。
+
+與 SWR cache 不構成重複真相——兩者回答不同問題：SWR 的樂觀 cache 是「使用者看到什麼」，佇列是「伺服器還沒確認什麼」。
+
+### 單一擁有者：`usePendingWrites` 只掛載一次
+
+`usePendingWrites(gameId, setIndex)` 內部握有兩樣每場比賽只能存在一份的東西：判斷「目前有沒有 flush 在途中」的 `inFlight` ref，以及依最早到期時間排程下一次背景重試的 `useEffect` timer。四個地方需要用到佇列——`Game`（記錄畫面與局間畫面共同的上層）、`useSubmitEntryDraft`（送出 entry）、`GamePreview`（editing 卡片的送出中／失敗態與重試）、`SyncIndicator`——如果各自呼叫這個 hook，等於各自握有一份 `inFlight` 與一個 timer，同一筆到期的 entry 會被四邊各自的 timer 同時判定為到期，各自送出一個請求。
+
+所以 `Game`（`src/components/game/index.tsx`）是這個 hook**唯一**掛載的地方——它本來就在記錄畫面與局間畫面的分支之上，一個 instance 能同時橫跨兩者。往下需要 `enqueue`／`flush`／`retry` 的元件，改由 `PendingWritesContext`（`usePendingWritesContext()`）讀取同一份結果，而不是各自呼叫 `usePendingWrites`；`useSubmitEntryDraft` 因為呼叫點本來就在 `Game` 內，直接把 `enqueue`／`flush` 當參數傳入即可，不需要走 context。
+
+## 兩種失敗，兩個介面
+
+這是本 Change 最容易被合併處理、但實際上必須分開的地方。
+
+**entry 寫入失敗。** create 路徑樂觀推進，草稿預覽卡已換成下一筆 draft，因此**失敗標記在 summary 的 entry row 上**，由上面的 `hasFailedWrite` 推導。update 路徑不樂觀推進——使用者本來就在編輯視窗裡等結果——所以它保留卡片上的 loading 態與失敗態。
+
+<div className="not-prose my-6 flex flex-col gap-5">
+  <div className="flex flex-col gap-1.5">
+    <div className="text-xs text-muted-foreground">可送出 — 現況，未改動</div>
+    <div className="relative grid w-full max-w-md">
+      <div className="flex w-full flex-row items-center gap-1 rounded-md bg-primary p-1 text-primary-foreground">
+        <span className="flex size-6 items-center justify-center text-lg font-semibold">14</span>
+        <span className="flex h-6 flex-1 items-center border-l-2 border-current/40 px-2 text-sm">對方攻擊得分</span>
+      </div>
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 text-primary-foreground">
+        <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
+      </span>
+    </div>
+  </div>
+
+<div className="flex flex-col gap-1.5">
+  <div className="text-xs text-muted-foreground">
+    update 送出中 — 僅編輯路徑。create 不會有這一態，它樂觀推進
+  </div>
+  <div className="relative grid w-full max-w-md">
+    <div className="flex w-full flex-row items-center gap-1 rounded-md bg-card p-1 text-foreground">
+      <span className="flex size-6 items-center justify-center text-lg font-semibold">
+        14
+      </span>
+      <span className="flex h-6 flex-1 items-center border-l-2 border-border px-2 text-sm">
+        對方攻擊得分
+      </span>
+    </div>
+    <span className="pointer-events-none absolute inset-0 flex items-center justify-end pr-2 text-muted-foreground">
+      <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+    </span>
+  </div>
+</div>
+
+  <div className="flex flex-col gap-1.5">
+    <div className="text-xs text-muted-foreground">失敗 — destructive 實線 ring ＋ 浮動重試按鈕。update 顯示於卡片，create 顯示於 summary 的 entry row</div>
+    <div className="relative grid w-full max-w-md">
+      <div className="flex w-full flex-row items-center gap-1 rounded-md bg-card p-1 text-foreground ring-1 ring-destructive">
+        <span className="flex size-6 items-center justify-center text-lg font-semibold">14</span>
+        <span className="flex h-6 flex-1 items-center border-l-2 border-destructive/50 px-2 text-sm">對方攻擊得分</span>
+      </div>
+      <span className="absolute inset-0 flex items-center justify-end pr-1.5">
+        <span className="rounded px-2 py-0.5 text-xs text-destructive ring-1 ring-destructive/50">重試</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+不使用 toast：toast 是事件驅動、會自動消失的一次性通知，與「持續到解決為止的狀態」語意相反。也不使用虛線 ring——`ring` 由 `box-shadow` 實作，虛線屬 border box model，兩者不相容。
+
+**`completeSet` 未確認。** 前提是 entry 已確認，因此轉場已經完成，使用者已經在局間畫面上。提示是疊加其上的不可關閉 dialog，內容用既有的 empty-state 元件組合。
+
+<div className="not-prose my-6 grid gap-5 sm:grid-cols-2">
+  <div className="flex flex-col gap-1.5">
+    <div className="text-xs text-muted-foreground">處理中 — 中性語氣，無關閉出口</div>
+    <div className="relative overflow-hidden rounded-lg border border-border bg-background">
+      <div className="flex flex-col gap-2 p-3 opacity-40" aria-hidden="true">
+        <div className="h-5 w-24 rounded bg-muted" />
+        <div className="h-8 w-full rounded bg-muted" />
+        <div className="h-8 w-full rounded bg-muted" />
+        <div className="mt-6 h-8 w-full rounded bg-muted" />
+      </div>
+      <div className="absolute inset-0 bg-foreground/40" />
+      <div className="absolute inset-x-2 top-9 bottom-2 flex items-center justify-center rounded-lg bg-card shadow-lg">
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          </span>
+          <div className="text-sm font-medium text-foreground">正在記錄本局結果…</div>
+          <div className="text-xs text-muted-foreground">完成前請先不要開始下一局。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div className="flex flex-col gap-1.5">
+    <div className="text-xs text-muted-foreground">重試耗盡 — 品牌語氣 ＋ 重試動作，仍無關閉出口</div>
+    <div className="relative overflow-hidden rounded-lg border border-border bg-background">
+      <div className="flex flex-col gap-2 p-3 opacity-40" aria-hidden="true">
+        <div className="h-5 w-24 rounded bg-muted" />
+        <div className="h-8 w-full rounded bg-muted" />
+        <div className="h-8 w-full rounded bg-muted" />
+        <div className="mt-6 h-8 w-full rounded bg-muted" />
+      </div>
+      <div className="absolute inset-0 bg-foreground/40" />
+      <div className="absolute inset-x-2 top-9 bottom-2 flex items-center justify-center rounded-lg bg-card shadow-lg">
+        <div className="flex flex-col items-center gap-2 p-4 text-center">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+            <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+          </span>
+          <div className="text-sm font-medium text-foreground">哎呀，發球掛網了！</div>
+          <div className="text-xs text-muted-foreground">本局結果還沒存好，這一局的球都在，只差這一步。</div>
+          <span className="mt-1 rounded px-3 py-1 text-xs text-foreground ring-1 ring-border">重試</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+採用 `size="lg"` 的固定尺寸，不隨內容高度變化——兩態的內容量差一截，內容尺寸的 dialog 會在切換時跳動。dialog 沒有 X、overlay 點擊與 Escape 都不關閉，唯一的出口是重試成功。局間畫面本身不動；它既有的 Accordion 與「新的一局」流程就是後續步驟，不重複實作。示意圖省略了局間畫面的實際內容，只表達遮蔽關係。
+
+## SyncIndicator
+
+`SyncIndicator` 使用 `RiErrorWarningLine` 搭配數字未讀點，點擊以既有的 `Popover` 展開單行狀態。展開動畫起點為與 icon 同寬的方形，內層 `overflow-hidden` 避免文字回流抖動。重試按鈕帶 icon，點按後關閉 popover、立即 flush 佇列、狀態切到同步中。
+
+`SyncIndicator` 位於 header 正中央，因此 popover **向兩側展開**（`origin-center`，Radix 的 `align="center"`）——從畫面正中央往單一方向展開會顯得偏移。
+
+### 何時現身
+
+**佇列空的時候完全不渲染。** 恆亮的綠勾資訊量為零——空佇列是記錄者整場比賽 99% 的狀態，而且那個勾連自己宣稱的事都沒在做：斷線但沒有待送項目時一樣是綠勾，它代表的是佇列空，不是連線好。
+
+版位不隨之伸縮。中欄用 `justify-center` 排列子元素，指示器若整個消失，排球 icon 會跟著上下位移；因此空佇列時渲染的是同尺寸的 `size-6` 佔位 div，只是裡面沒有東西、也沒有熱區。這同時讓 44×44 熱區與總覽入口的那筆交換**只在真的有東西要重試時才付**。
+
+**從 unsynced 復原時，綠勾停留 `SYNCED_ACK_MS`（1.5 秒）才收起。** 重試成功後若直接消失，讀起來像 app 把請求丟掉而不是完成了它。這個確認只給「本來壞掉、現在好了」的轉換；例行送出（`syncing` → `synced`）不給，否則每記一球都會留下一個比送出本身還久的綠勾。
+
+局間畫面（`Interval`）不渲染 `SyncIndicator`——`GameHeader` 在那裡不帶 `handleOptionOpen`，整塊 `Scores` 都不出現。這是正確的：轉場的前提就是 entry 已確認，局間沒有任何 entry 狀態需要提示，該階段唯一可能未完成的寫入是本局結果，而那件事由不可關閉的 dialog 獨佔呈現。
+
+<div className="not-prose my-6 flex flex-col gap-4">
+  <div className="flex flex-col items-start gap-2">
+    <div className="text-xs text-muted-foreground">展開動畫的兩端</div>
+    <div className="flex items-center gap-2">
+      <span className="flex size-8 items-center justify-center rounded-md bg-card text-warning shadow-lg ring-1 ring-border">
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5m0 3h.01" /></svg>
+      </span>
+      <span className="text-muted-foreground">→</span>
+      <span className="inline-flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-xs whitespace-nowrap text-warning shadow-lg ring-1 ring-border">
+        <svg viewBox="0 0 24 24" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5m0 3h.01" /></svg>
+        2 筆未同步
+        <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-foreground ring-1 ring-border">
+          <svg viewBox="0 0 24 24" className="size-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" /></svg>
+          重試
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <div className="flex flex-col items-start gap-2">
+    <div className="text-xs text-muted-foreground">三態</div>
+    <span className="inline-flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-xs whitespace-nowrap text-muted-foreground shadow-lg ring-1 ring-border">
+      <svg viewBox="0 0 24 24" className="size-4 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+      已同步
+    </span>
+    <span className="inline-flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-xs whitespace-nowrap text-muted-foreground shadow-lg ring-1 ring-border">
+      <span className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      同步中
+    </span>
+    <span className="inline-flex h-8 items-center gap-2 rounded-md bg-card px-2.5 text-xs whitespace-nowrap text-warning shadow-lg ring-1 ring-border">
+      <svg viewBox="0 0 24 24" className="size-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v5m0 3h.01" /></svg>
+      2 筆未同步
+      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-foreground ring-1 ring-border">
+        <svg viewBox="0 0 24 24" className="size-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5" /></svg>
+        重試
+      </span>
+    </span>
+  </div>
+</div>
+
+### 版位：`SetTally` 取代數字局數比，`SyncIndicator` 進入 flow
+
+header 是 `返回 | Scores(flex-1) | 設定`。以 `Button` 的 `default` 尺寸（`h-9 px-3.5`）加上 header 覆寫的 `[&>svg]:size-8` 計算，兩顆按鈕各約 60px：
+
+```text
+375px 螢幕：16(px-2) + 60 + 8 + Scores + 8 + 60 = 375  →  Scores 可用 223px
+Scores 最小內容：72(w-18) + 16 + 64(w-16) + 16 + 72(w-18) = 224px
+```
+
+**現況已卡在臨界（差 1px）。** 把 `SyncIndicator` 當作 header 頂層的第四個 flex child 插進去，實測溢出 37px，設定鍵被裁掉。
+
+解法是把數字局數比（`0-0`）換成 **`SetTally`**：兩側各一排格子，依 `game.info.scoring.setCount` 決定格數（五戰三勝各三格、三戰兩勝各兩格），預設空心、贏幾局**由下往上**填滿幾格，我方 `primary`、對方 `destructive`，放在比分與中欄之間的內側。
+
+關鍵不在格子比數字省寬度——省的其實不多——而在於 **`SyncIndicator` 不再是頂層的第四個 flex child**：它接手中欄裡原本屬於 `0-0` 的位置，水平方向根本沒有新增元素。
+
+<div className="not-prose my-6 flex flex-col gap-1.5">
+  <div className="text-xs text-muted-foreground">
+    375px 實寬；圖示 2-1 領先，`SyncIndicator` 顯示 2
+    筆未同步（細框為觸控熱區，實際不可見）
+  </div>
+  <div className="w-[375px] max-w-full overflow-hidden rounded-b-lg bg-card ring-1 ring-border">
+    <div className="flex h-[84px] items-center justify-between gap-2 px-2">
+      <span className="flex h-9 w-[60px] shrink-0 items-center justify-center text-2xl text-foreground">
+        ←
+      </span>
+      <div className="flex h-[84px] flex-1 items-center justify-center gap-1">
+        <div className="flex h-[84px] w-16 shrink-0 flex-col items-center justify-center gap-1 border-b-4 border-primary">
+          <span className="text-[2.5rem] leading-none font-bold text-foreground">
+            6
+          </span>
+          <span className="text-xs text-foreground">我方</span>
+        </div>
+        <div className="flex h-[84px] w-1.5 shrink-0 flex-col items-center justify-center gap-1">
+          <span className="h-3.5 w-1.5 rounded-[2px] ring-1 ring-primary/50" />
+          <span className="h-3.5 w-1.5 rounded-[2px] bg-primary" />
+          <span className="h-3.5 w-1.5 rounded-[2px] bg-primary" />
+        </div>
+        <div className="flex h-[84px] w-16 shrink-0 flex-col items-center justify-center gap-1 text-foreground">
+          <span className="text-[3rem] leading-none">🏐</span>
+          <span className="relative flex size-6 items-center justify-center rounded-md text-warning ring-1 ring-warning/30">
+            <svg
+              viewBox="0 0 24 24"
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5m0 3h.01" />
+            </svg>
+            <span className="absolute top-0 right-0 flex size-3 items-center justify-center rounded-full bg-warning text-[7px] font-bold text-warning-foreground">
+              2
+            </span>
+          </span>
+        </div>
+        <div className="flex h-[84px] w-1.5 shrink-0 flex-col items-center justify-center gap-1">
+          <span className="h-3.5 w-1.5 rounded-[2px] ring-1 ring-destructive/50" />
+          <span className="h-3.5 w-1.5 rounded-[2px] ring-1 ring-destructive/50" />
+          <span className="h-3.5 w-1.5 rounded-[2px] bg-destructive" />
+        </div>
+        <div className="flex h-[84px] w-16 shrink-0 flex-col items-center justify-center gap-1 border-b-4 border-destructive">
+          <span className="text-[2.5rem] leading-none font-bold text-foreground">
+            3
+          </span>
+          <span className="text-xs text-foreground">對手</span>
+        </div>
+      </div>
+      <span className="flex h-9 w-[60px] shrink-0 items-center justify-center text-2xl text-foreground">
+        ⚙
+      </span>
+    </div>
+  </div>
+</div>
+
+```text
+16(px-2) + 60 + 8 + [64 + 4 + 6 + 4 + 64 + 4 + 6 + 4 + 64] + 8 + 60 = 372px
+                     我方   格   中欄   格   對方
+```
+
+三欄同寬（`w-18` → `w-16`，64px）。比分欄本來就有餘裕——`text-[3rem]` 的兩位數約 58px 寬，72px 是多出來的。375px 下還餘 3px，而現況本來只剩 1px。中欄垂直是排球 icon（維持 `size-12`）48px ＋ gap ＋ `SyncIndicator` 24px，共約 76px 落在 84px 內，上下各餘 4px——不需要 `absolute`，也不必壓縮任何既有元素。
+
+**觸控熱區 44×44，視覺維持 24×24。** 兩者以透明的 `::after`（`after:size-11`）解耦：pseudo-element 不佔版面、不改 border box，所以 popover 的錨點仍是看得見的那 24px，header 寬度一個 px 都不動。
+
+Design 初稿寫「熱區受限於版位、只能是 24×24」，那句只算了高度。中欄是 84×64，垂直方向被排球 icon 吃掉大半，水平方向卻整整空著左右各 20px——**44px 的寬度是免費的，只有 16px 的高度需要借**：往上 10px 疊到排球 icon，往下 6px 越過 header 下緣（整條祖先鏈沒有 `overflow-hidden`，`rounded-b-lg` 不裁切子元素，因此不會被裁掉）。這兩塊區域原本冒泡到 `Scores` 的 `onClick`（開啟數據總覽），交換後只觸發重試 popover。這筆交換划算：總覽另有左右兩個比分欄可進入，而 `SyncIndicator` 是唯一的全域重試入口。
+
+順帶更正一處嚴重度：44×44 是 WCAG 2.5.5（AAA）與 Apple HIG 的數字，AA 層級適用的是 2.5.8 Target Size (Minimum)，門檻 24×24。原本的 24×24 卡在及格線上，並非 AA 不合規。
+
+實際尺寸與觸控準確度在 Apply 階段以真實元件在瀏覽器中量過，結果如下。
+
+- **375px：通過。** 內容跨距 220px 落在可用的 223px 內，設定鍵右緣距畫面邊界 8px。
+- **320px：不通過，且這是本 Change 之前就存在的狀況。** header 的固定內容合計 372px，超出 52px；改動前是 376px，超出 56px。本 Change 讓它好了 4px，但沒有解決它。
+
+320px 的支援不在本 Change 範圍。要補上那 52px 只能動到 D4 已量測後否決的方案（縮小返回／設定鍵），或為窄螢幕另做一套變體——兩者都是獨立的版面決策，已另開票追蹤。
+
+`SetTally` 另有一個附帶好處：格子比數字更快讀懂賽況——一眼看出打到第幾局、還差幾局，數字要先解析才知道。代價是 `Scores` 元件要改寫，新增 `SetTally` 子元件並移除數字局數比。
+
+被否決的其他版位方案記錄在 D4 的 alternatives。
+
+## 轉場時機
+
+`Game` 切到 `Interval` 的判斷來自 Redux 的局內進行狀態，由 `confirmEntryDraftRally` 設定。**create 路徑改為在送出當下就 dispatch**，不等回應——這是網路不佳時仍能連續記錄的前提。
+
+放寬的前提是三件事同時成立，缺一不可：`seq` ＋ `$sort` 讓亂序不再發生、佇列的自動重送讓多數失敗自癒、`SyncIndicator` 讓剩下的失敗不會無聲無息。
+
+**update 路徑不放寬**：使用者本來就在編輯視窗裡等待結果，且編輯失敗經 rollback 後該 entry 回到伺服器上原本正確的值，資料未損壞也未不一致——與 create 失敗（該球在伺服器上根本不存在）性質不同。
+
+轉場只依賴 entry 本身，不等 `completeSet`：該局是否結束是 client 從比分即可推導的事實，其持久化狀態不改變該事實。
+
+## 偵測機制
+
+`completeSet` 是否確認，兩條路徑結論相同、訊號來源不同，不能共用一套偵測：
+
+| 情境                             | 訊號                                                         | 為什麼不能用另一套                                      |
+| -------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------- |
+| 即時送出                         | response 的 `setCompletionConfirmed`                         | 本地 cache 已被樂觀寫入，自行比對必然相符，偵測不出失敗 |
+| 冷啟動（重新整理／直接進入路由） | 重新 fetch 的資料，以既有推導函式比對 entries 推導值與已存值 | 此時沒有「這次 response」可讀                           |
+
+冷啟動這條不需要任何額外持久化狀態——推導函式本來就在做這件比對。
+
+## Failure modes
+
+| 失敗                                   | 現況                                         | 改動後                                                                  |
+| -------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| `appendEntry` 成功、`completeSet` 失敗 | 整個 request 回 500，已成功的 entries 被丟棄 | 200 ＋ entries，確認欄位為 false                                        |
+| `appendEntry` 成功、回應遺失           | 使用者看到失敗，重記 → 重複                  | 佇列帶同一 id 重送，伺服器判為 no-op                                    |
+| 前一筆重試中、後一筆先送達             | 不適用（今天不會樂觀推進）                   | `$sort` 依 `seq` 歸位，陣列順序不受抵達順序影響                         |
+| 網路持續不佳                           | 每筆都要等，實質無法記錄                     | 樂觀推進，寫入在背景退避重試                                            |
+| 某筆永久失敗                           | 不適用                                       | 該筆留在佇列、entry row 標記、`SyncIndicator` 計數；其餘 entry 照常寫入 |
+| 同一 id 帶不同 payload                 | 不適用                                       | last-write-wins；順序語意屬 intent anchors                              |
+| 請求卡住不回應                         | 永不 settle                                  | timeout 後拋出可辨識的錯誤                                              |
+| 斷網                                   | 落到「未預期的錯誤」fallback                 | 正規化為可重試的錯誤型別                                                |
+| 4xx（驗證／授權）                      | 與 5xx 無從區分                              | 不進退避，直接判定失敗                                                  |
+| 自動重試進行中離開編輯視窗             | 可離開，結果未知                             | 三個出口（返回鍵、overlay、Escape）皆擋住                               |
+| 重試耗盡後離開編輯視窗                 | 可離開                                       | 允許，等同放棄編輯並 toast 告知                                         |
+| **app 於仍有未同步 entry 時被關閉**    | 最多損失當下草稿                             | **未同步的 entry 遺失——見 Risks**                                       |
+
+## Testing strategy
+
+核心性質集中在一個 seam。integration 層驅動真實 route handler 直達真實的記憶體 MongoDB，是唯一能證明本次核心性質的地方：同一 id 重送不產生重複、`seq` 較小的 entry 晚到仍排在前面、不同 id 並行寫入都保留、`completeSet` 失敗時 entries 仍完整回傳。擴充既有的 entry 寫入與 set 完成兩個測試檔，不新增分層。
+
+usecase 層以 mock repository 注入暫時性失敗，驗 `completeSet` 的重試次數與退避，以及「重試耗盡後已成功的寫入結果不被丟棄、確認欄位為 false」。依既有測試策略，usecase 測試不得 mock 任何資料庫概念。
+
+`deriveSyncStatus` 與 `hasFailedWrite` 是純函式，直接以 entity 層的測試方式覆蓋三態與邊界。
+
+component 層驗草稿預覽卡的 update loading 態與失敗態、`SyncIndicator` 三態與計數、entry row 的失敗標記、以及自動重試期間編輯視窗三個關閉出口皆不生效。
+
+## Risks
+
+**未同步 entry 在 app 被關閉時遺失。** 樂觀推進後，未確認的 entry 只存在記憶體中。這在特定情境下比改動前更糟：改動前沒收到確認就不推進，app 被回收最多損失一筆草稿；改動後可能一次損失數筆。本 Change **不**修這個缺口，它由待送佇列持久化的後續工作關閉，排在 v0.16.0。這是已知且已登記的 residual risk，不是遺漏。
+
+**`upsertEntry` 的守衛與排序是風險集中處。** append 路徑要同時擋住「id 已存在」並維持 `seq` 排序，錯了是靜默的——寫進去了但條件或順序不對，直到讀取時才顯現。integration 層的亂序與重送測試是唯一能抓到這類錯誤的地方。
+
+**`seq` 由 client 生成。** 這是必要的：若由伺服器在寫入時指定，晚到的 entry 會拿到較大的 seq，正是要修的亂序。資安上不構成新的攻擊類別——client 本來就在送整筆 entry 的內容，寫入仍由團隊角色授權把關；伺服器端的內容驗證（含 seq 合理性）屬既有的排球規則驗證工作。
+
+**usecase 合併的連帶面。** `create-substitution` 與 rally 共用同一個 repository 操作，合併後不可能只改一半，但它的 response 形狀刻意不動——這個不對稱若在實作時被「順手統一」，會擴大本 Change 的 API 變更面。
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    entryIdentityUpsert,
+    retryResponsibilitySplit,
+    entryWriteResponseContract,
+    pendingQueueSourceOfTruth,
+  ]}
+/>

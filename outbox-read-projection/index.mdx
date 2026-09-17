@@ -1,0 +1,131 @@
+---
+title: Overview
+---
+
+import { FileTour } from "@/components/FileTour";
+import { Scenario } from "@/components/Scenario";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  記下的球會從畫面上消失。它們沒有遺失——待送佇列好好地存在磁碟上，SyncIndicator
+  也誠實地說有幾筆還沒送出——但畫面上看不到，記錄員找不到是哪幾顆。原因是記球時把球寫進了
+  SWR 的快取，那格資料屬於伺服器，SWR 隨時會拿伺服器的版本整包換掉它。本 Change
+  改成在讀出來的時候才把待送的球疊上去。
+</TLDR>
+
+<Scenario
+  given="記錄員在訊號不好的場館記了三顆球，SyncIndicator 說「3 筆已保存，恢復連線後自動送出」"
+  when="他切出去看訊息，五分鐘後切回來"
+  then="改動前那三顆球從畫面上消失，比分退回五分鐘前，指示器卻還說有 3 筆——他找不到是哪三顆，逐列重試也沒得按；改動後三顆球都在，比分是他記的那個"
+/>
+
+## Context
+
+記一顆球會做兩件事（`src/components/game/panel/moves/oppo.tsx`）：
+
+```ts
+mutate(updatedGame, { revalidate: false }); // 寫進 SWR 快取
+enqueue(entry); // 進待送佇列
+```
+
+第一行把球放進 SWR 的快取。問題是那一格從來不屬於我們：SWR 是一個會自己重新抓資料的伺服器快取，它對每個 key 的假設是「這裡面是伺服器的資料，我隨時可以整包換掉」。`revalidate: false` 只擋住這一次，擋不住之後任何一次重新驗證。
+
+`useGame` 沒有關掉 `revalidateOnFocus` 與 `revalidateOnReconnect`，兩者的 SWR 預設都是開啟。四種情況會踩到，其中三種完全不需要離線：
+
+| 情況                      | 為什麼                                                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| app 被系統回收後重開      | 冷啟動時 `revalidateOnMount` 為 true，一定會抓伺服器版本。佇列已經從磁碟還原，畫面上卻沒有那些球。這個不是機率問題，每次都會發生 |
+| 恢復連線                  | `revalidateOnReconnect` 和佇列的 `online` flush 同時觸發，誰先回來誰決定畫面                                                     |
+| 離開 app 超過五分鐘再回來 | `dedupingInterval` 是五分鐘，過了就不再擋住 focus 觸發的重新驗證。一局打超過五分鐘是常態                                         |
+| flush 還在飛的時候記球    | 同時只有一趟 flush，中途入列的球要搭下一班。那趟 flush 回來時用伺服器版本整批覆蓋該局的 entries，中途記的球就被抹掉了            |
+
+球本身沒有風險，`retryable-queue-persistence` 已經讓它們安全落盤。遺失的是畫面。
+
+不過這比單純的顯示問題再深一層。`summary-drawer` 上的失敗標記是從佇列算出來的，列卻是從伺服器資料渲染的。列被蓋掉之後，佇列裡那筆有標記、卻沒有列可以掛——記錄員看得到指示器說有幾筆未同步，找不到是哪一顆，也沒得逐筆重試。`retryable-entry-writes` 剛交付的逐列重試 UI，在這個情境下按不到。
+
+## Goals
+
+- 未送出的球在畫面上看得見，包含冷啟動之後的第一次繪製。
+- 失敗標記掛得到對應的列，讓 `retryable-entry-writes` 的逐列重試在這個情境下重新可用。
+- 畫面上的比分包含未送出的球。
+
+## Non-goals
+
+- **不關掉重新驗證。** 關掉只能擋住四種情況裡的兩種——冷啟動的 `revalidateOnMount` 是必經路徑，flush 覆蓋跟重新驗證無關——而且會放棄拿到伺服器上的其他更新。
+- **不改佇列的行為。** 入列、重試、退避、落盤全部維持原樣。這張 Change 只改資料讀出來的樣子。
+- **不動局結果的推導。** client 的 `processGamePhase` 和 server 的 `deriveSetCompletion` 是同一條規則的兩份實作，而且已經對不上：編輯中間某一顆球時，client 判定這局還在進行中而把局結果清掉，伺服器判定早就結束而根本不寫。那是既有缺陷，已登記為後續 Change，排在本票之後——兩票都要動 `rally.helper`，順序反過來要改兩次同一段。
+- **不做丟棄手勢。** 合併之後，永久失敗的球會留在畫面與比分上直到七天過期。佇列沒有讓記錄員主動丟掉一顆球的路徑，補上它是新的使用者操作，另開一票。
+
+## Change boundaries
+
+- **一定在內**：`useGame` 的回傳值、合併函式、記一顆球的寫入路徑（`oppo.tsx` 與 `rally.helper.ts`）、四處讀 `set.win` 算大比分的地方。
+- **不在內**：`usePendingWrites` 的 flush 與重試邏輯、`pending-writes-slice` 的 reducer、SWR 的任何設定值、伺服器端的任何檔案。
+
+## Impact
+
+受影響的能力是 `game-recording/rally-recording` 與 `game-recording/persistence`：記錄畫面的資料來源，從「伺服器快取」改為「伺服器快取疊上這場比賽還沒送出的球」。`platform/clean-architecture` 也被觸及——`useGame` 從純資料 hook 變成會讀 Redux 的 hook。
+
+<FileTour
+  files={[
+    {
+      path: "src/hooks/use-data.ts",
+      change: "modified",
+      summary:
+        "useGame 回傳值改為快取與佇列合併的結果，以 useMemo 記憶化。回傳的欄位一個都沒變，變的是 game 裡面有什麼。二十一個呼叫端不用改。",
+    },
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      summary:
+        "新增合併函式。純函式，收一份快取資料和一份佇列，輸出一份新的。不認識比賽規則。",
+    },
+    {
+      path: "src/lib/features/game/helpers/optimistic/rally.helper.ts",
+      change: "modified",
+      summary:
+        "目前這兩個 helper 直接改傳進來的 game 物件再回傳同一個。合併之後這樣做會把合併結果寫回快取，下次讀取又疊一次。拆成兩個純函式：一個算 phase，一個產生新的快取內容。",
+    },
+    {
+      path: "src/components/game/panel/moves/oppo.tsx",
+      change: "modified",
+      summary:
+        "mutate 從傳值改為傳函式。函式拿到的參數是還沒合併的快取，寫入從此只碰它。",
+    },
+    {
+      path: "src/entities/game.ts",
+      change: "modified",
+      summary:
+        "新增 deriveSetsWon，從 entries 算出雙方各贏幾局。大比分不再讀 set.win，因為那個欄位有另一個用途（見 D2）。",
+    },
+    {
+      path: "src/components/game/header/scores.tsx",
+      change: "modified",
+      summary:
+        "第 23、24 行的 sets.filter((set) => set.win === true).length 改用 deriveSetsWon。banner/teams.tsx 第 37、38 行是同一份邏輯的複製，一起收掉。",
+    },
+  ]}
+/>
+
+## Alternatives considered
+
+Design 的 D1、D2 記錄完整的評估與否決理由，這裡只列結論方向：
+
+- **另開一個 `useGameView`，讓 `useGame` 不碰 Redux**——二十一個呼叫端要逐一判定該用哪一個，漏掉任何一個就是靜默留著這個 bug。
+- **關掉 `revalidateOnFocus` 與 `revalidateOnReconnect`**——只修好一半的情況，代價是放棄伺服器上的其他更新。
+- **等 SWR 換成 RTK Query 再一起做**——換過去這個問題不會消失。RTK Query 的 optimistic update 一樣會被重新抓的資料蓋掉，它也沒有提供待送佇列。
+- **拿掉樂觀寫入，畫面完全靠合併**——`set.win` 的重算沒有地方可以放，而且 flush 成功那一刻畫面的資料來源會切換，切換前後必須完全一樣才不會閃。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁呈現。
+
+| ID  | 問題                                                | 結論                                                                            |
+| --- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| D1  | 未送出的球要在哪裡疊回畫面上                        | `useGame` 的回傳值，寫入路徑改成只碰未合併的快取                                |
+| D2  | 同一顆球在兩邊都有時聽誰的，疊上去之後 `win` 怎麼辦 | 依 id 覆蓋、依 seq 排序，跟伺服器同一套規則；合併完全不碰 `win`，大比分改用推導 |
+
+## Revisit triggers
+
+- SWR 換成 RTK Query：合併會變成一個 selector，寫入端改用 `updateQueryData`。形狀一樣，落點要重寫。
+- 佇列開始裝 rally 以外的 entry（換人、暫停、挑戰）：合併目前只疊 entries，新型別若需要更多欄位，職責邊界要重看。
+- 丟棄手勢上線：屆時要重新決定，永久失敗的球還該不該疊在畫面上。

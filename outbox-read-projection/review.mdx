@@ -1,0 +1,239 @@
+---
+title: Review
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  三片全部交付。獨立驗證第一輪 **REFUTED**：合併後的讀取模型讓記錄流程數出來的
+  index 對不上底下的快取，照著寫會留下空洞，下一次合併踩上去讓整個比賽畫面
+  throw——正是本 Change 宣稱要修的兩個情境才會發生。修法是寫入改依 entry
+  身分定位，第二輪
+  CONFIRMED。另有兩件事在關卡上失手：元件層的接線一度沒有任何測試釘住，而註解品質檢查沒有被帶進
+  Standards 軸的 brief。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={3} total={3} />
+
+切片內容與依賴由 Implementation 頁呈現；此處只記交付的實質。commit 以 body 的 `Implements` trailer 指認，本頁一律以 slice ID 指稱。
+
+S01 與 S02 互相獨立，由兩個 executor 在各自的 worktree 平行完成後整合；S03 相依 S01，合併規則、記憶化與兩個 seam 的測試彼此耦合，留在主 session。
+
+<FileTour
+  files={[
+    {
+      path: "src/lib/features/game/pending-writes.ts",
+      change: "modified",
+      added: 36,
+      removed: 22,
+      summary:
+        "\u8b80\u53d6\u5074\u6295\u5f71\u3002\u6536\u4f3a\u670d\u5668\u7684\u5feb\u53d6\u8207\u8a72\u5834\u6bd4\u8cfd\u7684\u5f85\u9001\u9805\u76ee\uff0c\u4f9d `setIndex` \u5206\u7d44\u5f8c\u4ea4\u7d66 `upsertEntries`\u3002\u4e0d\u78b0 `win`\u2014\u2014\u90a3\u662f\u4f3a\u670d\u5668\u5df2\u78ba\u8a8d\u6b64\u5c40\u7d50\u675f\u7684\u8a18\u865f\u3002\u6c92\u6709\u5f85\u9001\u9805\u76ee\u6642\u539f\u6a23\u56de\u50b3 `game`\uff0c\u53c3\u8003\u4fdd\u6301\u7a69\u5b9a\uff0c\u4e0b\u6e38\u7684\u8a18\u61b6\u5316\u624d\u4e0d\u6703\u5931\u6548\u3002",
+      lang: "ts",
+      code: "export const mergePendingEntries = (\n  game: GameView | undefined,\n  pending: readonly PendingEntry[],\n  gameId: string,\n): GameView | undefined => {\n  if (!game) return game;\n\n  const bySet = new Map<number, PendingEntry[]>();\n  for (const item of pending) {\n    if (item.gameId !== gameId) continue;\n    const group = bySet.get(item.setIndex);\n    if (group) group.push(item);\n    else bySet.set(item.setIndex, [item]);\n  }\n  if (bySet.size === 0) return game;\n\n  return {\n    ...game,\n    sets: game.sets.map((set, setIndex) => {\n      const group = bySet.get(setIndex);\n      if (!group) return set;\n\n      return {\n        ...set,\n        entries: upsertEntries(\n          set.entries,\n          group.map(({ entry }) => ({ type: EntryType.RALLY, ...entry })),\n        ),\n      };\n    }),\n  };\n};",
+    },
+    {
+      path: "src/hooks/use-data.ts",
+      change: "modified",
+      added: 14,
+      removed: 22,
+      summary:
+        "\u6295\u5f71\u639b\u5728 `useGame` \u7684\u56de\u50b3\u4e0a\uff0c\u4e8c\u5341\u4e00\u500b\u6d88\u8cbb\u7aef\u4e00\u884c\u4e0d\u6539\u3002`mutate` \u539f\u6a23\u56de\u50b3\u2014\u2014\u5beb\u5165\u8def\u5f91\u62ff\u5230\u7684\u4ecd\u662f\u4f3a\u670d\u5668\u90a3\u4e00\u4efd\u3002",
+      lang: "ts",
+      code: "  const { data, error, isLoading, isValidating, mutate } = useSWR<\n    GameView,\n    ApiClientError\n  >(gameId ? key : null, fetcher, { ...SWR_CONFIG.DEFAULT, ...options });\n\n  const pending = useAppSelector((state) => state.pendingWrites.pending); // [!code ++]\n  const game = useMemo( // [!code ++]\n    () => mergePendingEntries(data, pending, gameId), // [!code ++]\n    [data, pending, gameId], // [!code ++]\n  ); // [!code ++]\n\n  return { game: data, error, isLoading, isValidating, mutate }; // [!code --]\n  return { game, error, isLoading, isValidating, mutate }; // [!code ++]",
+    },
+    {
+      path: "src/entities/game.ts",
+      change: "modified",
+      added: 49,
+      removed: 26,
+      summary:
+        "`upsertEntries` \u662f\u8b80\u53d6\u5408\u4f75\u8207\u6a02\u89c0\u5beb\u5165\u5171\u7528\u7684\u90a3\u689d\u898f\u5247\uff0c\u4e5f\u662f repository \u7684 `upsertEntry` \u5beb\u5165\u6642\u7528\u7684\u898f\u5247\u3002\u53e6\u52a0 `isSetFinished` \u8207 `deriveSetsWon`\uff0c\u8b93\u5927\u6bd4\u5206\u6539\u7531 entries \u63a8\u5c0e\u800c\u4e0d\u662f\u8b80 `win`\u3002",
+      lang: "ts",
+      code: "export function upsertEntries<T extends EntryIdentity>(\n  entries: readonly T[],\n  incoming: readonly T[],\n): T[] {\n  const next = entries.slice();\n\n  for (const entry of incoming) {\n    const at = next.findIndex((e) => e.id === entry.id);\n    if (at === -1) next.push(entry);\n    else next[at] = entry;\n  }\n\n  return next.sort((a, b) => a.seq - b.seq);\n}",
+    },
+    {
+      path: "src/lib/features/game/helpers/optimistic/rally.helper.ts",
+      change: "modified",
+      added: 40,
+      removed: 63,
+      summary:
+        "\u672c\u6b21\u8ff4\u6b78\u7684\u4fee\u5fa9\u9ede\u3002`entryIndex` \u5f9e\u7c3d\u7ae0\u79fb\u9664\uff0c\u6539\u4f9d entry \u8eab\u5206\u5b9a\u4f4d\u3002\u63a8\u5c0e\u8207\u5957\u7528\u62c6\u6210\u5169\u500b\u7d14\u51fd\u5f0f\uff0c`createRallyHelper`\uff0f`updateRallyHelper` \u522a\u9664\u2014\u2014\u5b83\u5011\u628a\u5169\u4ef6\u4e8b\u7d81\u5728\u540c\u4e00\u4efd `game` \u4e0a\uff0c\u800c\u547c\u53eb\u7aef\u9700\u8981\u7684\u6b63\u662f\u5169\u4efd\u4e0d\u540c\u7684\u8cc7\u6599\u3002",
+      lang: "ts",
+      code: "export const applyEntry = (\n  game: GameView,\n  setIndex: number,\n  entryIndex: number, // [!code --]\n  entryDraft: RallyView & EntryIdentity,\n  phase: SetPhase,\n): GameView => {\n  const set = game.sets[setIndex]!;\n  const sets = game.sets.slice();\n\n  const entries = set.entries.slice(); // [!code --]\n  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft }; // [!code --]\n  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]); // [!code ++]\n\n  if (phase.isSetInProgress) {\n    sets[setIndex] = { ...set, entries, win: null };\n    return { ...game, sets, win: null };\n  }\n\n  const { home, away } = entryDraft;\n  sets[setIndex] = { ...set, entries, win: home.score > away.score };\n  // ...\u5927\u6bd4\u5206\u7531 sets \u63a8\u5c0e\uff0c\u8207\u6539\u52d5\u524d\u9010\u884c\u7b49\u50f9\n};",
+    },
+    {
+      path: "src/components/game/panel/moves/oppo.tsx",
+      change: "modified",
+      added: 15,
+      removed: 42,
+      summary:
+        "\u6574\u4efd Change \u7684\u898f\u5247\u5728\u9019\u88e1\uff1aphase \u8b80\u5408\u4f75\u5f8c\u7684 `game`\uff0c\u5beb\u5165\u53ea\u78b0 updater \u4ea4\u56de\u4f86\u7684 `raw`\u3002\u5b88\u885b `assertRallyAt` \u5728 `mutate` \u4e4b\u5916\u2014\u2014\u653e\u9032 updater \u6703\u8b8a\u6210 unhandled rejection\uff0c\u800c\u6d41\u7a0b\u9084\u6703\u7e7c\u7e8c\u5165\u5217\u3002",
+      lang: "tsx",
+      code: "const create = () => {\n  const entry = { ...draft, id: crypto.randomUUID(), seq: entryIndex };\n\n  const { game: updatedGame, phase } = createRallyHelper( // [!code --]\n    { gameId, setIndex, entryIndex }, // [!code --]\n    entry, // [!code --]\n    game!, // [!code --]\n  ); // [!code --]\n  mutate(updatedGame, { revalidate: false }); // [!code --]\n  const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry); // [!code ++]\n  mutate((raw) => applyEntry(raw!, setIndex, entry, phase), { // [!code ++]\n    revalidate: false, // [!code ++]\n  }); // [!code ++]\n\n  enqueue(entry);\n  dispatch(gameActions.confirmEntryDraftRally(phase));\n  void flush();\n};",
+    },
+    {
+      path: "src/hooks/__tests__/use-game-merge.test.tsx",
+      change: "added",
+      added: 230,
+      removed: 0,
+      summary:
+        "\u516d\u500b\u6e2c\u8a66\uff0c\u771f\u5be6 SWR \u52a0\u771f\u5be6 store\u3002\u7368\u7acb\u9a57\u8b49\u7528 mutation \u78ba\u8a8d\u904e\u6bcf\u4e00\u500b\u90fd\u6bba\u5f97\u6389\u6771\u897f\uff1a\u63db\u56de\u4f4d\u7f6e\u5beb\u5165\u639b 2 \u500b\u3001\u62ff\u6389 seq \u6392\u5e8f\u639b 2 \u500b\u3001\u5408\u4f75\u8b8a no-op \u639b 5 \u500b\u3001upsert \u6c38\u9060 append \u639b 2 \u500b\u3002",
+      lang: "tsx",
+      code: 'it("records onto a cache the server has cut back, without leaving a gap", async () => {\n  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });\n  await waitFor(() => expect(result.current.game).toBeDefined());\n\n  enqueue("q1", 1);\n  await act(async () => {\n    await result.current.mutate();\n  });\n\n  const entryIndex = result.current.game!.sets[0]!.entries.length;\n  expect(entryIndex).toBe(2);\n\n  const draft = { id: "q2", seq: entryIndex, win: true, home: {}, away: {} };\n  const phase = deriveEntryPhase(result.current.game!, 0, entryIndex, draft);\n  await act(async () => {\n    await result.current.mutate((raw) => applyEntry(raw!, 0, draft, phase), {\n      revalidate: false,\n    });\n  });\n  enqueue("q2", entryIndex);\n\n  expect(cachedEntries.map((e) => e.id)).toEqual(["s0", "q2"]);\n  expect(cachedEntries.every((e) => e !== undefined)).toBe(true);\n  expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([\n    "s0",\n    "q1",\n    "q2",\n  ]);\n});',
+    },
+    {
+      path: "src/components/game/__tests__/summary-drawer-merge.test.tsx",
+      change: "added",
+      added: 88,
+      removed: 0,
+      summary:
+        "\u5931\u6557\u6a19\u8a18\u639b\u5f97\u5230\u5217\u3002\u523b\u610f\u4e0d mock SWR \u8207 Redux\u2014\u2014\u53d7\u6e2c\u7684 seam \u5c31\u662f\u5169\u8005\u7684\u4ea4\u754c\uff0cmock \u4efb\u4e00\u908a\u90fd\u8b49\u4e0d\u51fa\u6771\u897f\u3002\u9019\u662f\u672c Change \u552f\u4e00\u523b\u610f\u504f\u96e2 `docs/testing-strategy.md` \u5143\u4ef6\u5c64\u898f\u7bc4\u7684\u5730\u65b9\u3002",
+      lang: "tsx",
+      code: 'it("marks a queued rally the server rejected, on a row only the merge provides", async () => {\n  store.dispatch(\n    pendingWritesActions.enqueued({\n      entry: rally("queued-1", 1, 2),\n      gameId: "game-1",\n      setIndex: 0,\n    }),\n  );\n  store.dispatch(\n    pendingWritesActions.flushFailed({\n      ids: ["queued-1"],\n      retryable: false,\n      lastError: permanentFailure,\n    }),\n  );\n\n  render(\n    <Provider store={store}>\n      <SWRConfig\n        value={{\n          provider: () => new Map([["/api/games/game-1", { data: game }]]),\n        }}\n      >\n        <SummaryDrawer gameId="game-1" state="expanded" />\n      </SWRConfig>\n    </Provider>,\n  );\n\n  await waitFor(() =>\n    expect(screen.getAllByTestId("entry-row-retry")).toHaveLength(1),\n  );\n});',
+    },
+  ]}
+/>
+
+## Findings
+
+### 一、寫入依陣列位置定位，會讓整個比賽畫面崩潰（獨立驗證，REFUTED）
+
+`gameActions.initialize` 吃的是 `useGame` 回傳的合併結果，所以 `entryIndex` 數的是合併後那個陣列。但 `mutate((raw) => ...)` 寫的是未合併、可能更短的快取。同一個數字在兩個陣列裡指的不是同一個位置。
+
+驗證者用真實模組重現：
+
+<AnnotatedDiff
+  lang="text"
+  code={
+    "raw entries: 1  merged entries: 2  -> entryIndex 2\nnew cache entries length: 3  holes: x,,x\nSECOND MERGE THROWS: TypeError: Cannot read properties of undefined (reading 'id')"
+  }
+/>
+
+崩潰點是合併裡的 `entries.findIndex((e) => e.id === entry.id)`：`findIndex` 會走訪 hole，`e` 是 `undefined`。
+
+**可達路徑正是本 Change 宣稱要修的情境。** 冷啟動時佇列從硬碟還原，快取由伺服器回應填滿而不含未送出的球；或者一顆 4xx 永久失敗的球卡在佇列裡，而網路正常，所以每次 revalidation 都成功把它從快取移除。此後記的第一顆球就中招。改動前 `useGame` 回傳快取本身，index 與寫入目標是同一個陣列，沒有這個問題——這是本 Change 引入的迴歸。
+
+<AnnotatedDiff
+  lang="ts"
+  code={
+    "export const applyEntry = (\n  game: GameView,\n  setIndex: number,\n  entryIndex: number, // [!code --]\n  entryDraft: RallyView & EntryIdentity,\n  phase: SetPhase,\n): GameView => {\n  const set = game.sets[setIndex]!;\n  const entries = set.entries.slice(); // [!code --]\n  entries[entryIndex] = { type: EntryType.RALLY, ...entryDraft }; // [!code --]\n  const entries = upsertEntries(set.entries, [asEntry(entryDraft)]); // [!code ++]"
+  }
+/>
+
+`upsertEntries` 依 `id` 覆蓋、依 `seq` 插入——讀取側合併與 repository 的 `upsertEntry` 用同一條規則，三條路徑共用一份實作。
+
+### 二、守衛移進 SWR updater 後，壞資料仍會入列（獨立驗證）
+
+`updateRallyHelper` 的「entry 不是 rally 就拋錯」原本從 `submitEntryDraft()` 同步拋給呼叫端。移進 `mutate` 的 updater 之後，SWR 把同步 throw 收進 rejected promise，而該次 `mutate` 沒有被 await：流程繼續 `enqueue(entry)`，再拿未賦值的 `phase` 去 dispatch。錯誤處理從乾淨拋出變成先把壞資料入佇列、再以另一種方式炸掉。
+
+守衛抽成 `assertRallyAt`，在 `mutate` 之外同步呼叫，恢復原行為。
+
+### 三、元件層的接線沒有任何測試釘住（獨立驗證第二輪指出）
+
+第二輪對程式碼副本做了四種 mutation，確認六個合併測試每一個都殺得掉東西。但同時發現：把 `oppo.tsx` 改回「在 updater 內推導 phase、守衛也放進去」，整個 frontend 專案 592 個測試仍然全綠。也就是說發現一與發現二所修的接線本身沒有被釘住，只有 helper 與 hook 層有。
+
+補了兩個測試：把 `mutate` mock 成交回一份縮短的快取，斷言編輯仍落在正確的那顆球；以及非 rally 的目標在入列前就同步拋出。兩者對上一版都會失敗。
+
+### 四、註解品質檢查沒有進到 Standards 軸（流程失手）
+
+`WORKFLOW.md` §5 寫明標準軸存在的理由是涵蓋「文件寫了而工具檢不到」的東西，「comment necessity and density above all」，而 `CONTRIBUTING.md` §Comments 把規則寫全了。但送給 Standards sub-agent 的 brief 把 `CONTRIBUTING.md` 標成「commit format」，並附上一份與註解無關的 code smell 清單。Sub-agent 是空白 context，只知道 brief 裡有的東西。
+
+補做之後，本分支所有變更檔案的註解由 245 行降到 186 行，其中 71 行是既有註解。刪掉的多數是複述——重複函式名的 doc comment、標註下方常數的標籤、把 `5 * 60 * 1000` 換算成「5 minutes」的行內註解、以及 13 條複述 fixture 分數的中文註解。屬於某張 Change 的理由改成指標。
+
+## Plan versus actual
+
+`applyEntry` 的簽章與 Design 原本寫的 `applyRallyEntry(raw, setIndex, entryIndex, entry, phase)` 不同——`entryIndex` 拿掉了，這是發現一的修法。Design 已更新。
+
+Design 原本說「phase 吃 raw 會拿到過期的比分」。實際上這對記新球不成立：`deriveSetPhase` 往回掃第一個撞到的就是那顆球自己。但對**編輯**成立：被編輯的球在快取裡的位置比在畫面上前面，往回掃會先撞到 seq 更大的球。理由已改寫成成立的版本。
+
+S03 的 verification 原本指名 `use-data.test.ts` 與 `summary-drawer.test.tsx`，實際落在 `use-game-merge.test.tsx` 與 `summary-drawer-merge.test.tsx`——既有檔案整檔 mock 掉 SWR，無法承載這些斷言。切片契約已更新。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "待送項目的 setIndex 超出伺服器已有的局數時，那顆球從畫面上靜默消失",
+      severity: "info",
+      mitigation:
+        "目前不可達：新局由伺服器確認後才進記錄頁，所以快取裡一定先有那一局。真的發生時是靜默毀損而非崩潰，沒有防護。",
+    },
+    {
+      name: "同一個 entry.id 在佇列中出現兩次且 seq 不同時，client 與 server 的順序會分歧",
+      severity: "info",
+      mitigation:
+        "目前不可達：編輯沿用原 seq，enqueue 後 seq 凍結，且沒有任何 entry 刪除路徑。`upsertEntries` 無條件排序已消除其中一半。",
+    },
+    {
+      name: "替補寫入仍以陣列位置定位，且把合併結果當 optimisticData 寫回快取",
+      severity: "warning",
+      mitigation:
+        "同一個根因唯一沒收斂的呼叫點。目前不會產生空洞，因為它的 entryIndex 與它傳進去的 game 同源，而合併又會依 id 去重。已列為後續工作。",
+    },
+    {
+      name: "冷啟動且完全離線時，未送出的球看不到",
+      severity: "info",
+      mitigation:
+        "快取為空時合併回傳 undefined，畫面停在骨架。要修需要把 game 本身也落盤，超出本 Change 邊界。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- **局結果的推導下沉為兩端共用。** `applyEntry` 仍然在客戶端把 `win` 寫進快取，而伺服器的 `deriveSetCompletion` 是另一份實作。兩份目前用的是同一組規則，所以看不出差異——但那是巧合而不是保證，沒有任何測試跨在兩端上。這條也是本 Change 把 `win` 窄化為「伺服器已確認」之後，最後一個還在客戶端寫它的地方。
+
+- **送不出去的球需要一條丟棄路徑。** 本 Change 讓 4xx 永久失敗的球留在畫面上並掛出失敗標記，記錄者因此第一次看得見它。但看得見之後沒有下一步：那顆球既送不出去，也沒有辦法把它從佇列裡拿掉。七天的過期規則只在重新開啟 app 時生效，記錄途中不會清。
+
+- **替補寫入收斂到同一條規則。** 替補的呼叫端仍以陣列位置定位，而且把合併結果當 `optimisticData` 寫回快取——後者正是本 Change 建立的契約禁止的事。目前不會產生記球路徑上那個空洞，是因為它的 index 與它傳進去的資料同源，屬於僥倖而非設計。本次 Review 產生。
+
+- **建立 `CONTEXT.md`。** `Match` 與 `Game`、`Entry` 與 `Rally` 這兩組詞在程式碼裡各有明確分工，但沒有任何一份文件說明差別，讀者只能從型別反推。
+
+## Validation
+
+`pnpm verify:all` 全綠，含 `pnpm build` 與 blueprint 的靜態輸出。`pnpm test:integration` 10 suites / 28 tests。單元測試 122 suites / 974 tests。`pnpm test:workflow` 25 tests，含本次新增的三條 Blueprint 產物檢查。
+
+### 裝置驗證
+
+在已登入的開發環境上跑過，方法是在頁面層攔截 `fetch`，只把 rally 的 PUT 擋成 400、讓 GET 照常——這正是「伺服器拒收但讀取正常」那個狀態，也是崩潰唯一的入口。攔截只影響瀏覽器分頁，沒有動任何程式碼。
+
+<Scenario
+  given="記一顆球，其寫入被伺服器以 400 拒絕，因此永久留在佇列裡"
+  when="重新載入頁面——快取清空由伺服器重填（9 顆），佇列從 localStorage 還原（1 筆）"
+  then="畫面顯示 10 顆球與 10 分。冷啟動沒有讓未送出的那顆消失"
+/>
+
+<Scenario
+  given="承上，畫面有 10 顆球而快取只有 9 顆"
+  when="再記一顆球"
+  then="分數變 11，沒有崩潰、沒有 unhandled rejection。修復前這一步會在下一次合併時 throw 掉整個比賽畫面"
+/>
+
+<Scenario
+  given="再記一顆球並讓它的寫入被拒"
+  when="展開逐球紀錄"
+  then="第 12 列右側出現重試鍵，掛在正確的那一列上；解除攔截後點它，該球送出、標記消失、佇列清空"
+/>
+
+<Scenario
+  given="擋住全部寫入，把一局記到 25-0——伺服器一顆球都沒收到，`set.win` 因此停在 null"
+  when="回到賽事總覽"
+  then="大比分顯示 1:0、局分 25-0。改動前這裡會顯示 0:0，因為它讀的是 `win`。同時 `useUnconfirmedSetCompletion` 正確跳出「本局結果還沒存好」的對話框"
+/>
+
+### 部署驗證
+
+`revalidateOnFocus` 與 `revalidateOnReconnect` 在本機都觸發不了——合成的 `focus` / `visibilitychange` / `online` 事件都沒讓 SWR 發出第二次讀取，而網路面板確認距上次 GET 已 43 分鐘，兩個節流間隔都只有 5 分鐘，所以不是節流擋的。原因未查明，但那是 SWR 的觸發時機而非本 Change 的程式碼：兩條路徑的終點都是 `data` 被換掉後 `useMemo` 重算合併。
+
+改以部署到 `volleybro-test` 由開發者在真實裝置上測試，兩條都通過：切到背景超過五分鐘再切回、以及斷線後恢復連線，未送出的球都還在畫面上。
+
+### 尚未驗證
+
+「flush 進行中記球」沒有手動製造，時序只有毫秒。改以 `flush-in-flight.test.tsx` 涵蓋：真實 store、真實 SWR，把 flush 的請求握住不放，期間記第二顆球，再讓伺服器只回答第一顆。斷言飛行中那次請求的 payload 只含第一顆，且合併之後兩顆都在。把合併停用，這個測試會失敗。

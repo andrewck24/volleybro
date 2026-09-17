@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S03",
+  "title": "A restarted app still has the unsent rallies",
+  "capabilities": [
+    "game-recording/persistence",
+    "game-recording/rally-recording"
+  ],
+  "dependsOn": ["S02"],
+  "outcome": "Closing the app — or having it reclaimed — no longer discards rallies the server never confirmed. They come back on start-up and go out when the recorder returns to that game, exactly as they would have had the app stayed open.",
+  "acceptanceCriteria": [
+    "The queue is read once when the store's provider mounts. A snapshot whose version does not match is not used rather than migrated, and the store is cleared only when that version is one this build has moved past — a newer one may belong to a build the user is also running.",
+    "Stored data that cannot be read, or that carries this build's version in a shape that will not parse, is treated as no stored data and cleared: the app starts with an empty queue instead of failing, and nothing dead is left to be re-read on every start.",
+    "Restoring merges into the queue by entry identity with the in-memory copy winning, because the read is asynchronous and the recorder may already have recorded a rally while it was in flight. A rally recorded during the read is never lost.",
+    "Restored entries get a fresh attempt schedule rather than the stored one, and are eligible to send immediately when their last failure is one worth retrying.",
+    "Whether a restored entry may be retried is decided by the same standard the flush path applies — one threshold, no second predicate and no table mapping error codes to policy.",
+    "An empty queue at start-up issues no request at all.",
+    "Restoring does not send: nothing is flushed until the recorder opens that game, and the queue may hold entries for more than one game at once.",
+    "No screen changes. The indicator, the per-row failure marker and the summary drawer are already projections of the queue and the cache, and become correct by the queue being correct.",
+    "The wiring itself is covered, not only the logic: `makeStore()` with no argument reaches localStorage, and mounting the real provider restores a previous run's queue."
+  ],
+  "verification": [
+    "pnpm test",
+    "pnpm typecheck:strict",
+    "pnpm lint",
+    "pnpm format:check"
+  ],
+  "status": "completed"
+}

@@ -1,0 +1,312 @@
+---
+title: Design
+---
+
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { TLDR } from "@/components/TLDR";
+import ownershipLivesWithTheDialogRoot from "./design/decisions/D1-ownership-lives-with-the-dialog-root.json";
+import theSubmitButtonBelongsToItsForm from "./design/decisions/D2-the-submit-button-belongs-to-its-form.json";
+import noGenericAsyncDialogAction from "./design/decisions/D3-no-generic-async-dialog-action.json";
+import theButtonStatesItsOwnProgress from "./design/decisions/D4-the-button-states-its-own-progress.json";
+import theHeaderOwnsItsControls from "./design/decisions/D5-the-header-owns-its-controls.json";
+
+<TLDR>
+  正確性來自結構，不是來自一層包裝。送出鍵回到 form 邊界之內、並且落在
+  `DialogFooter`，驗證失敗就走不到成功路徑；open state 回到 render `Dialog`
+  的那一層，關不關由它決定。動作進行中，那顆鍵自己說出來。
+</TLDR>
+
+## Adopted shape：form 邊界
+
+form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出鍵是它的 `type="submit"`，而且落在 footer 裡。
+
+<svg
+  viewBox="0 0 1160 400"
+  role="img"
+  aria-label="兩個 dialog 的線框對照。左邊是之前：expand 與 close 兩顆控制鍵是一組絕對定位的元素，掛在 DialogContent 上、是 children 的兄弟，浮在右上角之外；DialogHeader 因此帶著 pr-20 替它讓位；form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住。右邊是之後：那兩顆控制鍵回到 DialogHeader 內，在 normal flow 中靠右對齊，pr-20 移除；form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 400", width: "100%", height: "auto" }}
+>
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="36" fontSize="15.5" fill="var(--destructive)">之前 · 控制鍵絕對定位，浮在所有結構之外</text>
+
+    <rect x="40" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="56" y="72" width="448" height="36" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="95" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <text x="330" y="95" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">pr-20 替它讓位</text>
+
+    <rect x="432" y="58" width="76" height="36" rx="18" fill="none" stroke="var(--destructive)" strokeDasharray="4 3" />
+    <circle cx="452" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <circle cx="488" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <text x="488" y="81" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="470" y="46" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">absolute</text>
+
+    <rect x="56" y="124" width="448" height="126" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <text x="68" y="142" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">Form</text>
+    <rect x="68" y="150" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="82" y="169" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="82" y="178" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="82" y="210" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="56" y="272" width="448" height="60" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="292" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <rect x="330" y="278" width="160" height="48" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <rect x="342" y="286" width="136" height="32" rx="6" fill="var(--primary)" />
+    <text x="410" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+    <text x="410" y="350" textAnchor="middle" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">DialogClose</text>
+
+    <text x="40" y="386" fontSize="13.5" fill="var(--destructive)">控制鍵不屬於任何區塊，送出鍵不屬於 form</text>
+
+    <text x="640" y="36" fontSize="15.5" fill="var(--primary)">之後 · 三者同在 form 之內，控制鍵回到 header</text>
+
+    <rect x="640" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="656" y="72" width="448" height="272" rx="8" fill="none" stroke="var(--primary)" strokeDasharray="5 4" strokeWidth="1.5" />
+    <text x="668" y="92" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">Form</text>
+
+    <rect x="668" y="100" width="424" height="52" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="131" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <circle cx="1030" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <circle cx="1064" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <text x="1064" y="131" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="1047" y="146" textAnchor="middle" fontSize="11.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">in flow</text>
+
+    <rect x="668" y="168" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="187" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="682" y="196" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="682" y="228" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="668" y="272" width="424" height="60" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="292" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <text x="682" y="318" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">type="submit"</text>
+    <rect x="940" y="286" width="140" height="32" rx="6" fill="var(--primary)" />
+    <text x="1010" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+
+    <text x="640" y="386" fontSize="13.5" fill="var(--primary)">每一顆按鈕都屬於某個區塊，每個區塊都屬於 form</text>
+
+  </g>
+</svg>
+
+`DialogContent` 目前把 expand 與 close 這一組控制鍵渲染成 `{children}` 的**兄弟**，`absolute top-3 right-3`。它們因此不屬於任何區塊——而 `DialogHeader` 帶著 `pr-20`，5rem 的右內距，唯一用途就是替那組浮起來的按鈕讓位。這個 magic number 就是絕對定位的帳單。
+
+控制鍵回到 `DialogHeader` 之內，在 normal flow 中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // ui/dialog.tsx — DialogContent\n   <DialogPrimitive.Content {...props}>\n     {children}\n-    {(onExpand || closeButton) && (\n-      <div className="absolute top-3 right-3 flex flex-row items-center gap-1">\n-        {onExpand && <Button onClick={onExpand}>…</Button>}\n-        {closeButton && <DialogPrimitive.Close asChild>…</DialogPrimitive.Close>}\n-      </div>\n-    )}\n   </DialogPrimitive.Content>'
+  }
+/>
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // ui/dialog.tsx — DialogHeader\n-  const DialogHeader = ({ children, className, ...props }) => (\n+  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (\n     <div\n       className={cn(\n-        "flex flex-none flex-col items-start gap-1 px-4 pt-4 pr-20 pb-2",\n+        "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",\n         className,\n       )}\n       {...props}\n     >\n-      {children}\n+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">\n+        {children}\n+      </div>\n+      {(onExpand || closeButton) && (\n+        <div className="flex flex-none flex-row items-center gap-1">\n+          {onExpand && (\n+            <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>\n+          )}\n+          {closeButton && (\n+            <DialogPrimitive.Close asChild>\n+              <Button type="button">…</Button>\n+            </DialogPrimitive.Close>\n+          )}\n+        </div>\n+      )}\n     </div>\n   );'
+  }
+/>
+
+包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // team/lineup/panel/options/libero-replace.tsx\n   <DialogContent>\n-    <DialogHeader>…</DialogHeader>\n-    <DialogBody>\n-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>\n-        …兩個 FormField…\n-      </Form>\n-    </DialogBody>\n-    <DialogFooter>\n-      <DialogClose asChild>\n-        <Button type="button" onClick={form.handleSubmit(onSubmit)}>\n-          確定\n-        </Button>\n-      </DialogClose>\n-    </DialogFooter>\n+    <Form\n+      form={form}\n+      onSubmit={form.handleSubmit(onSubmit)}\n+      className="min-h-0 flex-1 gap-0"\n+    >\n+      <DialogHeader>…</DialogHeader>\n+      <DialogBody>\n+        …兩個 FormField…\n+      </DialogBody>\n+      <DialogFooter>\n+        <Button type="submit">\n+          <RiCheckLine />\n+          確定\n+        </Button>\n+      </DialogFooter>\n+    </Form>\n   </DialogContent>'
+  }
+/>
+
+代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵，`game/options/edit/index.tsx` 的 header 裡也有一顆。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
+
+控制鍵搬進 header 之後，✕ 與 expand 同樣落入 form 邊界，所以它們也是隱含的 submit button——但這一次修正發生在 `ui/dialog.tsx` 內，一次涵蓋所有 dialog，不必倚賴每個呼叫端記得。
+
+## Adopted shape：open state 的歸屬
+
+同一條規則，四個父層，兩種持有者。
+
+<svg
+  viewBox="0 0 1160 520"
+  role="img"
+  aria-label="open state 歸屬圖。上排四個父層：ActionButton、set-options panel、lineup panel 三者以 useState 持有 open state；EditDialogContainer 則由路由持有，它寫死 open 為 true 並以離開 route 關閉。下排三組子元件：NewGameForm 對應 ActionButton，LiberoReplaceDialog 由 set-options panel 與 lineup panel 共用，三個 team 表單由 EditDialogContainer 承載。子元件只在成功後回報，不自行關閉。底部說明回報方向，以及 Esc、點 overlay、右上角關閉鍵在 controlled 模式下都只是 onOpenChange 的一次詢問。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 520", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker id="dco-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="38" fontSize="15.5" fill="var(--muted-foreground)">元件以 useState 持有</text>
+    <text x="1120" y="38" textAnchor="end" fontSize="15.5" fill="var(--muted-foreground)">路由持有</text>
+
+    <rect x="40" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="170" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">ActionButton</text>
+    <text x="170" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">layout/nav</text>
+    <rect x="66" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="170" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">改為 controlled</text>
+
+    <rect x="320" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="450" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">set-options panel</text>
+    <text x="450" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/set-options/panel</text>
+    <rect x="346" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="450" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">已 controlled</text>
+
+    <rect x="600" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="730" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">lineup panel</text>
+    <text x="730" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team/lineup/panel/options</text>
+    <rect x="626" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="730" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">改為 controlled</text>
+
+    <rect x="880" y="56" width="240" height="110" rx="8" fill="var(--card)" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="5 4" />
+    <text x="1000" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">EditDialogContainer</text>
+    <text x="1000" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">@modal 攔截路由</text>
+    <rect x="906" y="122" width="188" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="1000" y="140" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">離開 route 即關閉</text>
+
+    <line x1="170" y1="170" x2="170" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="450" y1="170" x2="560" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="730" y1="170" x2="620" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="1000" y1="170" x2="1000" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+
+    <rect x="40" y="268" width="260" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="170" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">NewGameForm</text>
+    <text x="170" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/new</text>
+    <rect x="60" y="334" width="220" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="170" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才 onSuccess</text>
+
+    <rect x="460" y="268" width="260" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="590" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">LiberoReplaceDialog</text>
+    <text x="590" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">lineup/panel/options</text>
+    <rect x="480" y="334" width="220" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="590" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才 onSuccess</text>
+
+    <rect x="880" y="268" width="240" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="1000" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">三個 team 表單</text>
+    <text x="1000" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team form · player 新增與編輯</text>
+    <rect x="900" y="334" width="200" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="1000" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才離開 route</text>
+
+    <text x="590" y="396" textAnchor="middle" fontSize="13.5" fill="var(--muted-foreground)">同一個子元件，兩個父層，同一條規則</text>
+
+    <rect x="40" y="414" width="1080" height="80" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="64" y="440" fontSize="14.5" fill="var(--foreground)">回報方向：子元件不自行關閉，只在成功後回報，由持有者決定關閉。</text>
+    <text x="64" y="462" fontSize="13.5" fill="var(--muted-foreground)">Esc、點 overlay、右上角 ✕ 在 controlled 模式下都只是 onOpenChange(false) 的一次詢問 — 關不關由持有者決定。</text>
+    <text x="64" y="482" fontSize="13.5" fill="var(--muted-foreground)">路由持有者的關閉動作是離開 route：返回來源用 router.back()，前往結果頁用 router.replace()。</text>
+
+  </g>
+</svg>
+
+controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled 模式下完全不儲存 `open`，每一個關閉意圖都變成一次 `onOpenChange(false)` 呼叫，然後什麼都不做；真正關閉是持有者更新狀態後重新 render 的結果。
+
+`EditDialogContainer` 是第二種持有者：`<Dialog open>` 寫死為 `true`，關閉等於離開這個 route。它已經符合否決權的形狀——`onOpenChange` 進到 `handleClose`，dirty 時彈出放棄確認而不關閉——所以本 Change 不改它對使用者主動關閉的處理，只補它缺少的 `DialogFooter`，以及下一節「往前離開」這個方向。
+
+## Adopted shape：往前離開 route
+
+離開 route 有兩個方向。返回來源用 `router.back()`，這是本 Change 原本唯一採用的方向。往前前往結果頁時，parallel routes 有一個既定行為會擋路：soft navigation 到一個 `@modal` 沒有對應 route 的網址時，**slot 保留原本的內容**。Next.js 的文件直接點名這一點，並以一個回傳 `null` 的 catch-all 作為關閉 modal 的方式。
+
+這正是移除成員時看到的畫面：`router.push` 回球隊頁之後，`@team` 換成了球隊頁，`@modal` 卻仍停在那位已被移除的球員的編輯畫面上。
+
+<AnnotatedDiff
+  unified
+  code={
+    "  // src/app/(tabs)/@modal/team/[...catchAll]/page.tsx（新檔案）\n+ export default function TeamModalCatchAll() {\n+   return null;\n+ }"
+  }
+/>
+
+catch-all 放在 `team/` 之下而不是 slot 根目錄。每一條 `@modal` 攔截路由都在 `(...)team` 之下，所以 `/team/*` 已涵蓋所有需要關閉的導頁；放在根目錄則會讓 `(tabs)` layout 開始匹配 `/game`、`/auth` 與不存在的網址。更具體的路由仍然優先：攔截路由照常開啟 dialog，`(workspace)` 的全頁 route 照常承接 hard navigation。
+
+有了它，完成的動作可以把使用者帶到結果，而不只是退回來源：
+
+| 動作                      | 落點                              | 方式             |
+| ------------------------- | --------------------------------- | ---------------- |
+| 新增球員（dialog 與全頁） | 新球員的資訊頁                    | `router.replace` |
+| 編輯球員（dialog）        | 球員資訊頁，也就是唯一的入口      | `router.back()`  |
+| 編輯球員（全頁）          | 球員資訊頁；header 的返回箭頭相同 | `router.replace` |
+| 移除成員                  | 球隊頁                            | `router.replace` |
+| 建立球隊（dialog 與全頁） | 新球隊頁                          | `router.replace` |
+| 編輯球隊（全頁）          | 球隊頁                            | `router.replace` |
+
+往前一律用 `replace` 而不是 `push`：剛完成的表單不該留在 history 裡，否則返回鍵會把它重新打開。新增球員在兩種模式的落點相同，所以 `CreateForm` 不再收 `onSuccess`，自己導向；`EditForm` 保留它，因為兩種模式的最佳動作不同——在 dialog 裡 `back()` 回到入口而不多一筆 history。
+
+全頁的返回另有一個坑，出在展開鍵。它以 `window.location.assign` 重新載入**同一個網址**，於是 history 裡同時留著 dialog 那一筆與全頁那一筆；全頁上的返回箭頭（`Header` 在站內一律 `router.back()`）與瀏覽器返回鍵，都只會退回 dialog 那一筆，把同一份表單再載入一次。展開鍵因此改用 `window.location.replace`，由全頁取代 dialog 那一筆：返回會回到開啟 dialog 的那一頁，全頁存檔後的返回也不會再經過表單。這一處修正涵蓋每一個展開流程，`Header` 不需要改。
+
+這不違反「子元件不自行關閉」。子元件做的是導頁，dialog 的消失是 URL 改變後 slot 落空的結構性結果；使用者主動關閉時的否決權仍在 `EditDialogContainer` 手上。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // team/players/create-form.tsx 的成功路徑\n-  await apiClient(`/api/teams/${teamId}/players`, { method: "POST", … });\n+  const player = await apiClient<PlayerView>(`/api/teams/${teamId}/players`, { method: "POST", … });\n   toast({ title: "成功", description: "球員已新增" });\n   mutate(`/api/teams/${teamId}/players`);\n   clearDraft();\n-  if (onSuccess) {\n-    onSuccess();\n-  } else {\n-    router.push(`/team/${teamId}`);\n-  }\n+  router.replace(`/team/${teamId}/players/${player.id}`);'
+  }
+/>
+
+## Adopted shape：送出鍵自己說出進行中
+
+`Button` 的 `loading` **今天就已經是完整替換**——傳了 `loadingText`，`children` 連同它的圖示一起被換掉。缺陷只發生在省略它的時候：spinner 與原圖示同時出現。所以本 Change **不新增也不移除任何 prop**，改的只有呼叫端。
+
+<AnnotatedDiff
+  code={
+    '// ui/button.tsx — 這一段不動，它本來就對\nconst Button = ({ loading = false, loadingText, children, ...props }) => {\n  const isLoading = !asChild && loading;\n  return (\n    <Comp disabled={disabled || isLoading} {...props}>\n      {isLoading ? (\n        <>\n          <RiLoader4Line className="animate-spin" />\n          {loadingText ?? children}\n        </>\n      ) : (\n        children\n      )}\n    </Comp>\n  );\n};'
+  }
+/>
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // game/new/index.tsx — 改的是這裡\n   <DialogFooter>\n-    <Button size="lg" onClick={createGame}>\n+    <Button\n+      size="lg"\n+      onClick={createGame}\n+      loading={isCreating}\n+      loadingText="建立中"\n+    >\n       創建賽事紀錄\n       <RiArrowRightLine />\n     </Button>\n   </DialogFooter>'
+  }
+/>
+
+考慮過 `loadingContent`（呼叫端自己把 spinner 寫在圖示原本的位置）。它買到的唯一額外能力是「每顆按鈕各自決定 loading 圖示」——而這個 repo 確實有第二種進行中表示：`pull-refresh-indicator` 的 `animate-volleyball-bounce`，一個品牌化的動畫。但正因為如此：若哪天要用它取代 spinner，那是一次**全域的設計系統決定**，改在 `Button` 內部一次涵蓋所有按鈕。per-call-site 的 prop 提供的是錯誤軸向上的彈性。
+
+`loadingText` 表達不了位置，所以 **spinner 一律置前**。這不構成視覺代價：loading 時文字與圖示是一起被換掉的，使用者看到的是一組全新的內容，不會把 spinner 讀成「原本的箭頭移動了」。真正會變的是按鈕寬度，因為標籤長度不同——那是替換文字本身的後果，與 spinner 的位置無關。
+
+而位置本身帶語意，本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
+
+## Behavior contract
+
+- 送出成功：子元件回報，持有者關閉——`setOpen(false)`，或由路由持有者離開 route：`router.back()` 返回來源，`router.replace()` 前往結果頁。
+- 驗證失敗：不呼叫 `onSubmit`，不回報，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
+- 請求失敗：顯示 toast 或 root error 後**不**回報，dialog 保持開啟，已填內容完整保留。
+- 進行中：送出鍵 `disabled`、`aria-busy`，內容換成 spinner 加 `loadingText`。
+- 使用者主動取消：照常關閉；`EditDialogContainer` 既有的 dirty 攔截不變。
+
+## Failure modes
+
+- **form 邊界提上來但忘記 `min-h-0 flex-1`**：`DialogBody` 失去可捲動高度，長內容溢出而非捲動。
+- **header 內的 Button 沒寫 `type="button"`**：按下它會送出表單。`game/new/index.tsx` 的返回鍵是現成的例子。
+- **`EditDialogContainer` 補上 `DialogFooter` 後，全頁模式跟著改版**：三個 team 表單同時服務 `@modal` 與 `(workspace)` 兩種 route，footer 一旦由表單自己 render，全頁模式也會看到它。六個畫面都要目視確認。
+- **帶圖示的按鈕忘記傳 `loadingText`**：會退回 spinner 加 `children`，出現兩個圖示。型別擋不住，只能逐一檢查。
+- **從 modal 往前導頁卻沒有 catch-all 承接**：slot 保留原本的 modal，畫面停在已經完成的表單上。新增的 `@modal` 攔截路由若不在 `/team` 之下，catch-all 要跟著擴大。
+- **往前導頁用 `push`**：返回鍵回到剛存好的表單，而那份表單的草稿已被清除。
+
+## Testing strategy
+
+一個 component test 釘住核心路徑：mock `apiClient` 讓它 reject，斷言 dialog 仍在畫面上、且已填的賽事資訊還在。這是修復前必然失敗、修復後必然通過的最小檢查。
+
+斷言的對象是「dialog 還在、資料還在」，**不是「toast 出現了」**。toast 今天就會出現，`createGame` 的 catch 已經呼叫 `showErrorToast`；壞掉的從來不是錯誤訊息，是承載它的畫面被卸載。只斷言 toast 的測試在修復前就是綠的。
+
+`libero-replace` 的驗證失敗路徑在現行 UI 下不可觸發（兩個欄位都是綁閉合 enum 的 `Select`），因此不為它寫一個只能靠強制注入非法值才會走到的測試。它的保護來自結構。
+
+`Button` 的 `icon` 與 loading 切換以既有的 Storybook 故事涵蓋視覺，行為面只需斷言 loading 時 icon 那一格是 spinner 而非兩者並存。
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    ownershipLivesWithTheDialogRoot,
+    theSubmitButtonBelongsToItsForm,
+    noGenericAsyncDialogAction,
+    theButtonStatesItsOwnProgress,
+    theHeaderOwnsItsControls,
+  ]}
+/>
+
+## Revisit triggers
+
+- 出現第三種 open state 持有者（既不是元件 state 也不是路由）。
+- 決定讓 `Button` 預設 `type="button"`。那會改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收，因此不在本 Change 內。
+- `liberoReplace` 改為就地 inline 進 panel。屆時本 Change 對 `libero-replace.tsx` 的修改會整段移除。
+- Radix 之後為 `DialogClose` 提供等待 async handler 的官方機制。
+- 出現不在 `/team` 之下的 `@modal` 攔截路由。catch-all 的範圍要跟著擴大，否則從那裡往前導頁時 modal 不會關閉。

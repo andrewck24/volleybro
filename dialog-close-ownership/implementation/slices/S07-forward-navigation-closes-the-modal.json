@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/implementation-slice.schema.json",
+  "id": "S07",
+  "title": "從 @modal 往前離開 route 時 modal 跟著關閉，球員表單落在結果頁",
+  "capabilities": ["platform/design-system/overlays", "platform/forms"],
+  "dependsOn": ["S05"],
+  "outcome": "路由持有的 dialog 無論返回來源或前往結果頁都會關閉；完成的球員動作把使用者帶到結果，而返回鍵不會重新打開已完成的表單。",
+  "acceptanceCriteria": [
+    "新增 @modal/team/[...catchAll]/page.tsx 回傳 null。範圍限定在 team/ 之下，不放在 @modal 根目錄，避免 (tabs) layout 開始匹配 /game、/auth 與不存在的網址。",
+    "CreateForm 移除 onSuccess prop；成功後以 router.replace 前往新球員的資訊頁，dialog 與全頁相同。@modal 的新增球員頁不再傳 onSuccess。",
+    "EditForm 保留 onSuccess：@modal 頁傳 router.back()，因為唯一入口是球員資訊頁；全頁的預設改為 router.replace 到球員資訊頁，(workspace) 編輯頁 Header 的 backHref 同樣改到球員資訊頁。",
+    "MembershipSection 移除成員後改用 router.replace 回到球隊頁，返回鍵不會重新打開已被移除的球員的編輯 dialog。",
+    "既有的 @modal 攔截路由——建立球隊、編輯球隊、陣容、新增與編輯球員——在 soft navigation 下照常以 dialog 開啟；hard navigation 仍落到 (workspace) 全頁；pnpm build 不回報 route 衝突。",
+    "create-form 與 edit-form 的測試改為斷言 replace 與球員資訊頁的網址。",
+    "在測試部署上目視確認：移除成員後 dialog 關閉並回到球隊頁；新增球員後停在新球員的資訊頁，按返回回到球隊頁；全頁編輯球員存檔後與按返回箭頭都到球員資訊頁；從 dialog 建立球隊後 dialog 關閉。"
+  ],
+  "verification": [
+    "pnpm test -- src/components/team src/components/ui src/components/layout src/app",
+    "pnpm typecheck",
+    "pnpm lint",
+    "pnpm build"
+  ],
+  "status": "completed"
+}

@@ -1,0 +1,23 @@
+---
+title: Proposal
+---
+
+## Why
+
+現行色彩系統有一個語意缺陷：light 模式下 `--background`、`--card`、`--popover` 三者同值（98.45%），頁面層與表面層塌陷成一層。為了讓頁面與 card 有對比，body 被迫使用 `bg-accent`——一個語意上屬於 hover/highlight 的 token——而 `docs/design-system.md` 又把這個 workaround 寫成正典，讓漂移固化進設計規則。
+
+這阻斷了一致的 elevation：modal 內的 card 無法與 modal 表面分離，只能靠 per-component hack（在 dialog 內抑制 Card 的 ring/shadow）。另外兩個缺口：`entry-ui` 拿掉 overlay 元件的 ring 之後效果更好，但這個觀察從未被寫成規則；`entry-ui` 新增的 Drawer（vaul bottom sheet）自帶 dimming overlay 卻落在 `bg-card`，舊的 overlay 模型無法解釋。設計語言本身也沒有單一的參考渲染面。
+
+## What Changes
+
+1. **三層背景模型**：`--background`（layer 0，僅頁面本體）、`--popover`（layer 0.5，無 overlay 浮動面）、`--card`（layer 1，Card/Item **＋所有 modal 類**）。body 從 `bg-accent` 改為 `bg-background`；modal 與頁面的分離由 scrim 表達，共用 card 色讓 Drawer peek 與頁面 card 系統全生命週期連續。
+2. **容器一律不帶 ring（D5）**：modal/popover/card 都是容器，ring 策略統一為全無；`--ring` 只保留給 focus-visible；同色表面上的 card 類以 shadow 補償。
+3. **三段式 overlay shell**：Dialog / AlertDialog / Drawer 共用 Header/Body/Footer 結構（各自持有 padding、Body 是唯一捲動容器）、統一 close/expand 控制群與 `srOnly` prop。AlertDialog 保留明確選擇的 dismiss 語意（Esc 也被阻擋）。
+4. **design-system 參考頁**：blueprint 的 design-system section 直接渲染真實 tokens 與規則，取代 `docs/design-system.md` 的過時文字成為 source of truth。
+5. **Token 生命週期**：決策期 blueprint 直接 import app 的 token 源（不漂移）；定案後凍結、內聯進各自的 `globals.css`（不留獨立 tokens 檔案）。
+
+## Impact
+
+- 影響 specs：`elevation-tokens`（三層契約 + 圖層歸屬）、`overlay-layout`（三段式結構、no-ring、dismiss 語意、srOnly）
+- 影響程式：token blocks（兩側 globals.css）、`dialog.tsx` / `alert-dialog.tsx` / `drawer.tsx` / `popover.tsx` / `select.tsx` / `card.tsx` / `item.tsx` primitives、10+ 個 dialog call sites、`docs/design-system.md`、blueprint design-system section 與本 change 頁
+- 測試：新增 dialog / alert-dialog 元件測試（TDD），既有 748 tests 全綠

@@ -1,0 +1,81 @@
+---
+title: Overview
+---
+
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  關門的時機錯了。`DialogClose` 在 handler 一 return 就關閉
+  dialog，而每一個送出都是非同步的——所以驗證與網路請求的結果，永遠在承載它的畫面被卸載之後才抵達。本
+  Change 把關閉交給承載 `Dialog` 的那一層，把送出鍵放回 `DialogFooter` 與它的
+  form 邊界之內，並讓那顆鍵在動作進行中自己說出來。
+</TLDR>
+
+## Context
+
+Radix 的 `DialogClose` 用 `composeEventHandlers` 把子元素的 `onClick` 與自己的關閉串成同一個同步 handler：**你的 handler 一 return，它就關**。它不 await。
+
+而送出幾乎都是非同步的。`form.handleSubmit(onSubmit)` 即使搭配同步的 zod resolver 也一定經過一個 microtask；API 呼叫更不用說。於是真實順序是：
+
+> 按下送出 → dialog 關閉 → 才開始驗證／送出 → 失敗
+
+失敗訊息沒有地方可去。`DialogContent` 沒有 `forceMount`，關閉即卸載，承載錯誤的 UI 已經不在了。
+
+## 清點結果
+
+repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全部 `DialogClose` / `AlertDialogAction` / `AlertDialogCancel` 的非-ui 用法後，**把 async 動作包在 `DialogClose` 底下的只有兩處**，但那不等於只有兩處需要處理——另外三個表單違反的是別的規則。
+
+| 表單                  | 出現在                           | 送出鍵                         | async              | 進行中表示 |
+| --------------------- | -------------------------------- | ------------------------------ | ------------------ | ---------- |
+| set-options panel     | Panel，非 dialog                 | form 內的 `type="submit"` ✓    | 是                 | 有         |
+| MatchInfoForm         | NewGameForm dialog 的第二個 view | form 內的 `type="submit"` ✓    | 否                 | 不適用     |
+| TeamForm              | Dialog + 全頁                    | form 內，但不在 `DialogFooter` | 是                 | 無         |
+| CreateForm            | Dialog + 全頁                    | form 內，但不在 `DialogFooter` | 是                 | 文字切換   |
+| EditForm              | Dialog + 全頁                    | form 內，但不在 `DialogFooter` | 是                 | 文字切換   |
+| libero-replace        | Dialog，兩個父層                 | `DialogClose` + `onClick` ✗    | 只有一個 microtask | 不適用     |
+| NewGameForm（非 RHF） | Dialog                           | `DialogClose` + `onClick` ✗    | 是                 | 無         |
+
+三個症狀因此浮出來：
+
+- **關閉早於結果**（libero-replace、NewGameForm）。`createGame` 自己 `try/catch` 並顯示 toast，但 `DialogContent` 已經卸載，`info`、`lineupIndex`、`view` 三個 `useState` 全部歸零。使用者拿到一則「失敗了」的 toast 和一個空白的流程，得從頭重填。
+- **送出鍵不在 `DialogFooter`**（三個 team 表單）。`EditDialogContainer` 把 children 整包塞進 `DialogBody` 而**完全沒有 `DialogFooter`**，表單各自把送出鍵放在自己的 `Card` 尾端。這三顆鍵行為正確，違反的是位置。
+- **動作進行中沒有表示**（四個 async 送出鍵中的三個）。`Button` 已有 `loading`，但只有一處在用，另外兩處改用文字切換，同一件事有兩種做法。
+
+還有一個同源的形狀問題：`libero-replace.tsx` 的 `<Form onSubmit>` **從來沒有被觸發過**。footer 那顆按鈕是 `type="button"` 且在 `<form>` 元素之外，提交完全靠 `onClick`。form 的送出路徑是死的，而那正是驗證本來應該擋在關閉之前的地方。
+
+## Goals
+
+- 讓「驗證或請求失敗」時，dialog 保持開啟、已填內容保持完整、錯誤在使用者看得到的地方。
+- 讓 open state 的持有者在每一個 dialog 都是同一個答案，涵蓋元件持有與路由持有兩種形態。
+- 讓每一顆 dialog 送出鍵都落在 `DialogFooter`，且在它所提交的 form 邊界之內，使「驗證失敗就不會關閉」成為結構的結果。
+- 讓每一顆 async 送出鍵在動作進行中自己說出來，且同一件事只剩一種做法。
+- 讓 `libero-replace.tsx` 那條死掉的 form 送出路徑變成實際執行的路徑。
+- 讓完成的動作把使用者帶到它的結果，且 modal 跟著關閉：新增球員後看到那位球員，移除成員後回到球隊頁，返回鍵不會重新打開已完成的表單。
+
+## Non-goals
+
+- 不抽 `AsyncDialogAction` 之類的共用元件。理由在 D3：泛用的 await-then-close 修不好這個 bug，因為兩處的 handler 在失敗時都不 reject。
+- 不讓 `Button` 預設 `type="button"`。那會改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收。
+- 不改 `EditDialogContainer` 由路由持有這件事。路由持有在 `@modal` 攔截路由是正確的，不是遺漏：關閉仍然等於離開 route，既有的 dirty 攔截原樣保留。本 Change 只補上「往前離開」這個方向。
+- 不寫 Design System 規則頁。那是獨立決定，等本 Change 的形狀落地後再談。
+- 不修 `useReplacePosition` 讀 `lineups[0]` 而 `setLiberoReplace` 寫 `lineups[status.lineupIndex]` 的不對齊。那是另一張票，只在此標記。
+- 不改變 liberoReplace 用獨立 dialog 呈現這件事本身。那個提案需要 UX 決定並以上述不對齊為前置。
+
+## Change boundaries
+
+- **在內**：兩個關閉早於結果的送出鍵，以及承載它們的三個父層。父層都必須 controlled，否則子元件沒有東西可以回報。
+- **在內**：`libero-replace.tsx` 的 form 邊界重畫。`<Form>` 必須包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出鍵才能是 `type="submit"` 又留在 footer。這不是順手清理，而是修法本身——死掉的 form 送出路徑因此一併復活。
+- **在內**：`EditDialogContainer` 補上 `DialogFooter`，三個 team 表單把送出鍵移進去。這三處目前沒有壞，改的是位置；代價是六個畫面（三個 dialog、三個全頁）的版面跟著變，必須逐一目視確認。
+- **在內**：player 編輯表單成功後只 toast、不關閉 modal。與本 Change 寫下的契約直接牴觸，一併對齊。
+- **在內**：從 `@modal` 往前導頁時 modal 不會關閉。parallel routes 在 soft navigation 到沒有對應 route 的網址時保留 slot 原內容，所以移除成員後導回球隊頁，dialog 仍停在已被移除的球員的編輯畫面上。`@modal/team/[...catchAll]` 回傳 `null`，修正所有這類導頁；新增球員因此能直接前往新球員的資訊頁，全頁編輯球員的存檔落點與返回箭頭也改到球員資訊頁。這一項由 delivery review 在測試部署上發現。
+- **在內**：六顆送出鍵的圖示，以及四顆 async 送出鍵的 `loading` 與 `loadingText`。`Button` 的 API 不變——`loadingText` 今天就是完整替換，缺的是呼叫端沒有用它。
+- **在內**：`DialogContent` 那組 `absolute top-3 right-3` 的 expand 與 close。它們是 `{children}` 的兄弟，不屬於任何區塊，`DialogHeader` 因此帶著 `pr-20` 替它們讓位，而 ✕ 是整個 dialog 的最後一個 tabbable。form 邊界上移到含 header 之後，它們還會落在邊界之外。控制鍵移入 `DialogHeader`，`pr-20` 移除。
+- **在內**：`set-options/panel/options.tsx` 中 `onSubmit` 內的 `setLiberoDialogOpen(false)`。libero dialog 是 modal 且渲染 overlay（全 repo 沒有任何地方傳 `modal` prop，Radix 預設為 `true`），開著時底下的送出鍵既點不到也 tab 不到。該行到不了，隨本 Change 移除。
+- **在內**：`lineup/panel/options/index.tsx` 直接從 `@radix-ui/react-dialog` import `Dialog`，繞過 `@/components/ui/dialog`。改 controlled 時一併改回。
+- **不在內**：`cta-button.tsx`、`dark-mode.tsx` 的 `DialogClose`（純 UI，無 handler）；`unconfirmed-set-dialog.tsx`、`edit-dialog-container.tsx` 的 `AlertDialogAction`（handler 同步）。掃描確認它們不受影響。
+
+## Capability impact
+
+`platform/forms` 取得一條新的約束：**送出鍵位於它所提交的 form 邊界之內，而在 dialog 中，那個位置是 `DialogFooter`。** 這條規則讓驗證閘門成為結構性的——瀏覽器與 RHF 在驗證失敗時根本不會呼叫成功路徑，所以「不該關閉」不需要任何一段程式碼記得。配套的一半是：邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。
+
+`platform/design-system/overlays` 取得兩條：**open state 由承載 `Dialog` 的那一層持有；overlay 內的元件不自行關閉，只回報結果。** 持有者有兩種合法形態，元件 state 與路由，契約相同；路由持有者以離開 route 關閉，返回來源或前往結果頁皆可，往前的方向由 `@modal` 的 catch-all 保證 slot 落空。以及：**送出鍵在 async 動作進行中自己說出來，spinner 佔用 icon 的那一格**，而 icon 的左右位置帶語意——在左說明做什麼，在右說明帶你去哪。

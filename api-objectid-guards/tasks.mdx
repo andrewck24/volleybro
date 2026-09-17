@@ -1,0 +1,43 @@
+---
+title: Tasks
+---
+
+## 1. Shared Guard Module
+
+- [x] 1.1 Implement "ObjectId path validated before handler logic" requirement: create `src/lib/api/guards.ts` exporting `assertObjectId(id: string, param?: string): void` that throws `ValidationError(CommonReason.INVALID_INPUT, "Invalid <param> format")` when `id` does not match `/^[0-9a-fA-F]{24}$/` (valid 24-character hex strings). Verified by task 1.2 unit tests passing.
+
+- [x] 1.2 `src/lib/api/__tests__/guards.test.ts` unit tests for `assertObjectId`: valid 24-char hex (no throw), 23-char hex (throws ValidationError), 25-char hex (throws), non-hex chars (throws), `"undefined"` (throws), error detail includes `param` argument. Verified `pnpm test src/lib/api/__tests__/guards.test.ts` passing.
+
+## 2. Refactor Existing Team Route
+
+- [x] 2.1 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/teams/[teamId]/route.ts`: import `assertObjectId` from `src/lib/api/guards.ts`, remove local `OBJECT_ID_RE` constant and `assertValidObjectId`, call `assertObjectId(teamId, "teamId")` in both `GET` and `PATCH` handlers. Existing tests asserting 400 on invalid teamId pass (`pnpm test src/app/api/teams`).
+
+## 3. Apply Guard to Team Sub-Routes
+
+- [x] 3.1 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/teams/[teamId]/lineups/route.ts`: call `assertObjectId(teamId, "teamId")` immediately after `const { teamId } = await props.params`, before `connectToMongoDB` and `authorizationService.verifyTeamRole`. Verified by task 5.1 test and `pnpm test src/app/api/teams`.
+
+- [x] 3.2 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/teams/[teamId]/ownership/route.ts`: call `assertObjectId(teamId, "teamId")` immediately after params destructuring, before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 3.3 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/teams/[teamId]/players/route.ts`: call `assertObjectId(teamId, "teamId")` in both `GET` and `POST` handlers before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+## 4. Apply Guard to Game and Player Routes
+
+- [x] 4.1 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/games/[gameId]/route.ts`: call `assertObjectId(gameId, "gameId")` in `GET` handler before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 4.2 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/games/[gameId]/sets/route.ts`: call `assertObjectId(gameId, "gameId")` in both `GET` and `POST` handlers before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 4.3 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/games/[gameId]/sets/rallies/route.ts`: call `assertObjectId(gameId, "gameId")` in both `POST` and `DELETE` handlers before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 4.4 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/games/[gameId]/sets/substitutions/route.ts`: call `assertObjectId(gameId, "gameId")` in `POST` handler before any DB or controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 4.5 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/players/[playerId]/route.ts`: call `assertObjectId(playerId, "playerId")` in `GET`, `PATCH`, and `DELETE` handlers immediately after `const { playerId } = await props.params`. Verified by `pnpm typecheck` passing.
+
+- [x] 4.6 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/players/[playerId]/invitations/route.ts`: call `assertObjectId(playerId, "playerId")` in `PATCH` handler before any controller call. Verified by `pnpm typecheck` passing.
+
+- [x] 4.7 Satisfy "Guard applied consistently across all ObjectId routes" for `src/app/api/players/[playerId]/memberships/route.ts`: call `assertObjectId(playerId, "playerId")` in `POST`, `PATCH`, and `DELETE` handlers before any controller call. Verified by `pnpm typecheck` passing.
+
+## 5. Post-Review Fixes
+
+- [x] 5.1 Fix silent green tests (review issue #1): add `expect.assertions(N)` guards to the two `catch`-block tests in `src/lib/api/__tests__/guards.test.ts` ("includes the param name in the error detail" and "uses default param name 'id' when param is omitted"). Verified `pnpm test src/lib/api/__tests__/guards.test.ts` still passes.
+
+- [x] 5.2 Fix duplicate `OBJECT_ID_RE` (review issue #2): export `OBJECT_ID_RE` from `src/lib/api/guards.ts` and import it in `src/lib/validations/team.ts` to replace the local definition. Verified `pnpm typecheck` passing and `pnpm test` passing.

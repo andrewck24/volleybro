@@ -1,0 +1,75 @@
+---
+title: Two-gate workflow — Delivery
+description: What changed, how it was verified, and what is left.
+---
+
+<TLDR>
+The delivery workflow now stops for you twice: the Proposal page before implementation and this Delivery page before the pull request. Change pages like this one are no longer committed. The 24 old Change directories are gone from the tree, the deployed site shows only Features and the Design System, and the reasoning survives as Feature ADR D45.
+</TLDR>
+
+## What you are accepting
+
+| Area | Before | After |
+| --- | --- | --- |
+| Human gates | Discuss exit, proposal authorisation, slice-plan approval, per-round Review updates, delivery acceptance | G1 Proposal page, G2 Delivery page |
+| Change pages | Overview, Design, Implementation, Review, slice JSON, `change.json` lifecycle, all committed | `proposal.mdx` (plus optional `proposal.tsx` mockup) and `delivery.mdx`, gitignored |
+| Slices | Blueprint JSON with status | Linear sub-issues under the Change's issue, manual and Symphony alike; skipped for a one-session Change; closed after Archive; `Implements` trailer stays |
+| Handoff in manual runs | Told to the developer only | The pushed branch, its commits, and the sub-issues, so another agent, worktree, or machine can resume |
+| ADR status | `candidate` → `accepted` → `implemented` field | Directory says proposed or adopted; `supersededBy` names a replacement |
+| Change size | No guidance | Soft targets of 5 slices, 30 src files, 8 scenarios, 40-line PR summary; warnings only; `Migration:` trailer for sharded refactors; structure and behaviour never mixed |
+| Deployed Blueprint | Features, Design System, every Change | Features and Design System |
+
+## Acceptance checks
+
+| Scenario | Result |
+| --- | --- |
+| Blueprint builds with no Change directory | Pass |
+| A Proposal with only `proposal.tsx` renders the mockup | Pass |
+| A Proposal with `.mdx` and `.tsx` renders both | Pass |
+| The deployed build shows no Changes navigation | Pass (`hasChanges` false in the page payload) |
+| A Proposal without `TLDR` or `Scenario` fails `check:workflow` | Pass |
+| A Delivery without `TLDR` or a table fails `check:workflow` | Pass |
+| More than 30 src files, 5 slices, or 8 scenarios warns and never fails | Pass |
+| A `Migration:` trailer silences the warning; the same word in the body does not | Pass |
+| All 65 Feature ADRs validate against the new schema | Pass |
+| No tracked file under `blueprint/content/changes/` | Pass |
+
+## Verification
+
+| Check | Result |
+| --- | --- |
+| `pnpm verify:all` (static, app build, 1159 app tests, Blueprint) | All four lanes pass |
+| Blueprint tests | 29 pass |
+| `check-workflow` tests | 32 pass |
+| Independent verifier | First run refuted the change; retired lifecycle code and demos were still deployed. Fixed, then confirmed by later review rounds |
+| Two-axis review | Five rounds. The last round's three fixes were applied exactly as it specified, so the loop stopped there |
+
+## Findings and fixes
+
+<RiskTable
+  risks={[
+    { name: "Proposal mockups did not render after the route rewrite", severity: "critical", mitigation: "The route now finds proposal.tsx through webpack require.context, and build and dev create the gitignored directory first. Probe builds prove it." },
+    { name: "Retired lifecycle states and components were still deployed", severity: "critical", mitigation: "Deleted ChangeOverview, ChangeCard, LifecycleBadge, TaskProgress, Timeline and change-types.ts; rewrote the two platform Feature pages." },
+    { name: "ADR directory named differently across documents", severity: "warning", mitigation: "proposal/decisions/ everywhere." },
+    { name: "Scope warning documented as a PR-body reference but implemented as a trailer", severity: "warning", mitigation: "Docs now say trailer; git's trailer parser replaces a whole-message regex." },
+    { name: "Supersession had no field once status was removed", severity: "warning", mitigation: "Optional supersededBy, rendered as a badge; D2, D3 and D8 point at D45. D9 still holds and is not marked." },
+    { name: "Five code comments cited ADR numbers from Change directories this change deletes", severity: "warning", mitigation: "They now cite Feature D24, D25, D26 and D31, and CONTRIBUTING tells comments to cite Feature numbers." },
+    { name: "Risk names did not wrap, which squeezed the Mitigation column out of view", severity: "warning", mitigation: "RiskTable lets the name column wrap." },
+    { name: "Commit messages missed bodies, trailers, or used a tool name as scope", severity: "info", mitigation: "Rewritten before push; tree identical to the pre-rewrite backup." },
+    { name: "A /changes page with no proposal.mdx stranded the reader: fumadocs hides the whole tab switcher when the current path matches no tab", severity: "warning", mitigation: "The Changes tab is always in the tabs array now, `unlisted` rather than dropped when there is no local Change; a delivery-only probe build still reaches Features and Design System from it." },
+    { name: "Slices moved from `.scratch/<slug>/` to Linear sub-issues under the Change's issue, in both manual and Symphony mode; a one-session Change skips slices and implements directly", severity: "info", mitigation: "WORKFLOW.md, the repository adapters, CONTRIBUTING, check-workflow.js and its tests, and the Feature pages and ADRs updated together; `.scratch/` stays gitignored for other tools but is no longer a workflow location." },
+  ]}
+/>
+
+## Not done, and why
+
+<RiskTable
+  risks={[
+    { name: "Dry run on a small Change to measure gate count and Blueprint-only commits", severity: "warning", mitigation: "Needs a real Change. Measure on the next one against the baseline of 28 gate prompts and 24 of 50 Blueprint-only commits." },
+    { name: "40-line PR summary is not checked by a script", severity: "info", mitigation: "The PR body is not available locally; the limit stays a written rule." },
+    { name: "An empty /changes index page still ships", severity: "info", mitigation: "No navigation points to it and it holds no Change content." },
+    { name: "D45 has no originDecision", severity: "info", mitigation: "This Change had no Proposal page; D45 records four planning decisions at once. Accepting this delivery accepts that exception." },
+    { name: "Remote preview of Change pages", severity: "info", mitigation: "Local dev server only. Add a wrangler versions upload script when a gate needs a remote reader." },
+    { name: "Spectra skills under .claude/skills are visible to one agent only", severity: "info", mitigation: "Legacy; left for the planned Spectra cleanup." },
+  ]}
+/>

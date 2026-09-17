@@ -1,0 +1,37 @@
+---
+title: Review
+---
+
+**Post-apply Review** · 2026-07-18 · reviewer: two-axis sub-agents (standards + spec, isolated context) + GHA claude-review
+
+## Pre-PR two-axis review
+
+**Standards axis**: 2 hard findings, 2 judgement calls. **Spec axis**: 0 missing requirements, 1 scope-creep note, 1 numeric mismatch.
+
+| #   | Finding                                                                                                             | Resolution                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| S1  | Artifacts commit landed after the pre-change `public/brand` SVG fix commits, against the repo's apply-ordering rule | Accepted as-is — the SVG rebuild was explicitly requested before the change existed; history not rewritten |
+| S2  | `docs/design-system.md` manifest `background_color` rule contradicted the new bare-V-on-teal composition            | Doc updated to the new rule (`04ab924b`)                                                                   |
+| S3  | Component/route tests walk the React element tree instead of RTL DOM assertions                                     | Accepted — static SVG contract pinning; documented here                                                    |
+| S4  | `collect()` tree-walker duplicated in two test files                                                                | Extracted to `src/test-utils/svg-tree.ts` (`04ab924b`)                                                     |
+| P1  | `png-to-ico` devDependency not documented in design.md                                                              | design.md decision updated (`04ab924b`)                                                                    |
+| P2  | brand-mark spec cited the Saira Stencil One aspect (531:510) instead of the wght-700 extraction                     | Spec corrected to 524:510 @ wght 700 (`04ab924b`)                                                          |
+
+## GHA claude-review · round 1
+
+CI: 9/9 checks green. Verdict: nothing blocking; 4 minor findings.
+
+| #   | Finding                                                                                                            | Resolution                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Blueprint overview summary named the old font ("Saira Stencil One lowercase v") as the new mark's source           | index.mdx summary reworded to "variable Saira Stencil family's lowercase v (wght 700)"                                     |
+| R2  | Old-mark aspect cited as 0.94 in design.md / PR body but 0.95 in proposal and mockups                              | Reconciled to 0.95 (the shipped old mark was Saira Stencil One's V, 653:688); design.md + PR body updated                  |
+| R3  | `generate-icons.mjs` regex assumed exact attribute order inside the arm groups; opaque failure on re-exported SVGs | Parser made attribute-order-independent with errors that name the expected structure; regeneration verified byte-identical |
+| R4  | No package.json entry for icon regeneration                                                                        | `pnpm generate-icons` script added                                                                                         |
+
+## GHA claude-review · round 2
+
+One residual finding; docs-only. Verdict after fix: ready to merge.
+
+| #   | Finding                                                                                                                              | Resolution                                                                                                                                                                        |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R5  | design.md Goals bullet still attributed the new mark to "Saira Stencil One" (same mistake as R1, sibling artifact missed in round 1) | Goals bullet reworded to "variable Saira Stencil family's lowercase v (wght 700)"; audited all remaining "Saira Stencil One" mentions — each now correctly refers to the old font |

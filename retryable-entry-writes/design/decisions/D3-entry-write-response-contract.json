@@ -1,0 +1,41 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D3",
+  "title": "The rally write reports its two outcomes separately instead of failing as one",
+  "status": "implemented",
+  "targets": ["game-recording/persistence"],
+  "context": "The create-rally use case awaits appendEntry, derives whether the set is complete, and awaits completeSet — all on one return path. A completeSet failure therefore throws past a successful appendEntry and discards the entries it already produced, so the request reports total failure for a write that partly succeeded. That is the code-level origin of the duplicate-rally bug: the recorder is told nothing was recorded when the rally is already stored. The response body is currently the bare entries array, which leaves no room to say anything about the second write. This repository's unified-error-handling Change established \"no envelope, success responses return the entity directly\", and that rule has never had to answer what a response should look like when one write genuinely produces two independent facts.",
+  "decision": "Once the entry write succeeds, the use case returns entries unconditionally, regardless of how completeSet went. The response body becomes a named object carrying entries plus an optional boolean stating whether the set result was confirmed as written, and the status stays 200 because the entries were in fact persisted and there is nothing for the client to correct. The field names the server's write outcome, not whether the rally ended the set — the client derives the latter from entries on its own, so returning it would restate something the client already knows. The endpoint keeps only PUT, whose HTTP semantics already mean idempotent, and accepts one or more entries per request so a queue flush is a single round trip.",
+  "alternatives": [
+    {
+      "option": "Carry the signal in a response header",
+      "reason": "Nothing in this repository conveys application-level information through custom headers, so it is no more conventional than changing the body. Headers suit transport metadata; whether a write succeeded is business data, and putting it there places it outside the schema validation every other response field passes through."
+    },
+    {
+      "option": "Migrate all list endpoints to a uniform document envelope",
+      "reason": "A cross-cutting API convention rewrite, far outside a Change scoped to entry write reliability. The perceived inconsistency also dissolves on inspection: the game list endpoint already returns its array beside pagination fields, so the existing rule is \"name the collection when there is a genuinely separate fact to report\", which this decision follows rather than breaks."
+    },
+    {
+      "option": "Fail the whole request when completeSet fails, and rely on the client retrying everything",
+      "reason": "This is today's behaviour and the source of the bug. Even with an idempotent entry write making the retry safe, reporting a successful write as a failure gives the recorder a false picture of what is stored."
+    },
+    {
+      "option": "Keep POST for new entries and PUT for edits",
+      "reason": "The two collapsed into one idempotent operation, so two verbs would describe a distinction the server no longer makes — and POST would advertise non-idempotency the endpoint no longer has."
+    }
+  ],
+  "consequences": [
+    "The rally endpoint's entry index query parameter is removed, since neither identity nor order depends on position; the set index stays because the set still has to be located.",
+    "The action functions destructure a named object instead of treating the response as an array.",
+    "The substitution endpoint keeps returning a bare array — it never triggers a set result write and has no second fact to report.",
+    "Detection differs by situation and cannot be unified: at submission time the local cache has already been optimistically written, so comparing it against itself always agrees and the response field is the only usable signal; on a cold start the freshly fetched server data can be compared against the value derived from entries, reusing the existing derivation function with no extra persisted state.",
+    "This establishes no new convention. A future endpoint with one fact to report still returns it directly."
+  ],
+  "revisitTriggers": [
+    "A third independent fact needs reporting from this or another endpoint, at which point whether a named, written-down envelope convention is worth having becomes a real question rather than a hypothetical one.",
+    "Set completion stops being derivable on the client — for instance if scoring rules move server-side — which would change what the response has to carry.",
+    "The pagination contract work lands and settles on field naming for collections beside metadata, which this decision should then be read against for consistency."
+  ],
+  "originChange": "retryable-entry-writes"
+}

@@ -1,0 +1,83 @@
+---
+title: Review
+---
+
+import { FileTour } from "@/components/FileTour";
+import { RiskTable } from "@/components/RiskTable";
+import { Scenario } from "@/components/Scenario";
+import { TaskProgress } from "@/components/TaskProgress";
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  一個 prop，交付與計畫一致。它由另一張 Change
+  的真機驗收發現，也由同一次驗收證實——復網後頁面不再重載，可直接繼續記球。程式碼先於它的
+  Blueprint 存在，那個順序本身記在下方。
+</TLDR>
+
+## Delivered
+
+<TaskProgress done={1} total={1} />
+
+<FileTour
+  files={[
+    {
+      path: "src/app/layout.tsx",
+      change: "modified",
+      summary:
+        "`SerwistProvider` 加上 `reloadOnOnline={false}`。它掛在 root layout，所以這是全應用的行為，沒有 per-route 的覆寫點。",
+      lang: "tsx",
+      code: `<SerwistProvider\n  swUrl="/serwist/sw.js"\n  disable={process.env.NODE_ENV !== "production"}\n  reloadOnOnline={false}\n>`,
+    },
+  ]}
+/>
+
+## Verification
+
+<Scenario
+  given="以加到主畫面的 iOS PWA 記錄一場比賽，中途斷網"
+  when="恢復連線"
+  then="頁面不重新載入，當前局與正在編輯的球都在，可直接繼續記球；未送出的球仍自動送出"
+/>
+
+這是在測試部署上執行的第二輪真機驗收的第四項，`honest-sync-status` 的驗收腳本涵蓋它。第一輪（修正之前）該項失敗，症狀正是本 Change 的起因——**同一個腳本在修正前後各跑一次，是本 Change 唯一也最直接的證據**。
+
+自動化層面只有回歸：`pnpm verify:all` 通過。這個 prop 的效果需要 service worker 註冊，而它只在 production build 啟用，因此單元測試證明不了它。
+
+## Plan versus actual
+
+| 差異                                | 說明                                                                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 程式碼先於 Blueprint 交付           | 缺陷在另一張 Change 的驗收中發現，當下判定為既有缺陷、應獨立且立即修正，因而先開了 Linear 票並直接修。Change 是事後補的，Overview 與 Design 描述的是已交付的東西 |
+| 起初判定為「無需 Blueprint Change」 | 該判斷被推翻：「為什麼不在復網時重載」是會被回頭質疑而答案並不顯然的決定，且沒有 ADR 就沒有 promote 的目的地。這也促成了 `platform/pwa` 這個 capability 的建立   |
+
+第二項值得下一個人知道：**這張 Change 存在的理由有一半是「那個決策需要一個家」**，而它發現那個家根本還沒蓋。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "復網不再自動取得新版 bundle",
+      severity: "info",
+      mitigation:
+        "`sw.ts` 的 `skipWaiting` 與 `clientsClaim` 讓新的 service worker 立即接管，下一次導覽即取得新資產。重載從來不是正確性的必要條件。",
+    },
+    {
+      name: "關閉是全應用的，沒有 per-route 例外",
+      severity: "info",
+      mitigation:
+        "provider 只掛載一次。若未來真有路由需要「離線期間停留的過時頁面在復網時刷新」，那是本 Change 否決過的 per-route 例外，屆時值得重新檢視。",
+    },
+    {
+      name: "取代它的機制是一個預設值",
+      severity: "info",
+      mitigation:
+        "`SWRConfig` 只設 `onError`，`revalidateOnReconnect` 維持 SWR 的預設 `true`。若哪天全域關掉它，本決策就失去了它的替代物——已記為 revisit trigger。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- `docs/design-system.md` 仍收著兩條屬於 PWA 能力的事實（manifest `background_color` 與 standalone 的 body backdrop）。`platform/pwa` 建立後它們有家了，但搬遷是獨立的決定，目前兩處並存。
+- `sw.ts` 的快取邊界靠一份明確的 `NetworkOnly` matcher 清單維持，不是命名慣例。新增的 auth 相鄰路由不會被自動涵蓋。

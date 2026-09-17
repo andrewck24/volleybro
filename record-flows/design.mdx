@@ -1,0 +1,79 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import flowDescriptor from "./design/decisions/D1-flow-descriptor.json";
+import substitutionAsABranch from "./design/decisions/D2-substitution-as-a-branch.json";
+import panelLevelGesture from "./design/decisions/D3-panel-level-gesture.json";
+
+## 採用的形狀
+
+Panel 由三個部分組成：**進度條配件**、**當前 step 的 body**、**Preview**。三者都只讀同一個來源——由 draft 推導出的 flow 狀態。
+
+```text
+deriveFlow(draft) → { steps, activeStep, reachableSteps, submittable, flow }
+                          │         │            │            │
+              進度條 ─────┘         │            │            │
+              step body ────────────┘            │            │
+              可否切換 ──────────────────────────┘            │
+              Preview send ──────────────────────────────────┘
+```
+
+四條 flow 宣告各自的 steps，共用這個骨幹：
+
+| flow         | steps                        | 備註                                 |
+| ------------ | ---------------------------- | ------------------------------------ |
+| rally        | `[player, home, away]`       | home move 為 `UNFORCED` 時收合為兩步 |
+| substitution | `[player, home, substitute]` | 於 step 2 經「替補」按鈕分支         |
+| timeout      | `[confirm]`                  | 僅建模，不實作                       |
+| challenge    | `[target, result]`           | 僅建模，不實作                       |
+
+前兩步 `player → home` 是 rally 與 substitution 的共用前綴，這正是 substitution 能成為分支而非獨立 flow 的原因。
+
+## 行為契約
+
+**steps 由 flow 宣告。** 進度條的段數等於 `steps.length`；caption 取 `steps[activeStep].caption`；填色規則不變（index 小於等於 `activeStep` 為 primary、其餘 muted、active 加寬）。前一步未完成的 step 不可達。
+
+**swipe 是 Panel 層的預設。** 面板上任何位置的水平滑動都切換到相鄰的可達 step，進度條 track 與 body 都涵蓋。被辨識為 swipe 的手勢不得觸發底下的 segment 或按鈕點擊——抑制只在 Panel 層判斷一次。
+
+**方向滑動依真實 step index。** 即使底下的 panel side 沒變（選了球員後 `player → home`，side 仍是 home），body 仍須向前滑動。
+
+**Preview 是唯一送出。** send affordance 只在 flow 宣告 `submittable` 時出現；送出只能從 Preview 發生。substitution 的 `submittable` 條件是已選定上場球員。
+
+**timeout 與 challenge 以前瞻 scenarios 約束**：各自一步一段 segment、皆經 Preview 送出、皆不需要 player 或 scoring step。design 只示範其 step 宣告形狀，證明抽象容納得下。
+
+## 失效模式
+
+| 情境                               | 現況                                 | 本 Change 之後                 |
+| ---------------------------------- | ------------------------------------ | ------------------------------ |
+| 新增一種記錄流程                   | 面板、進度條、推導各加一條分支       | 新增一份 flow 描述子           |
+| 兩處 `suppressClick` ref 不一致    | 無機制保證，swipe 可能觸發底下的點擊 | 只有一份 ref，Panel 層判斷一次 |
+| step body 忘記接 gesture           | 該 body 靜默地不回應滑動             | 不需接線，自動涵蓋             |
+| substitution 與 rally 的互動不一致 | 兩套模型，共用零程式碼               | 同一套骨幹                     |
+
+## 遷移面
+
+`ReduxStatus["panel"]` 移除 `"substitutes"`（**BREAKING**，限前端）。所有 `setPanel("substitutes")` 呼叫點移除；`setEditingEntryStatus` 中依 entry type 決定 panel 的分支改為決定初始 step。`setEntryDraftSubstitution` 等三個 draft 操作保留，但不再寫 `status.panel`。`substitutes/index.tsx` 只留下選人 UI，其「確認」鈕與背後的 `createSubstitution` 移至 Preview 的 `onSubmit` 依 flow 分派。
+
+進度條元件收攏於 `src/components/game/panel/` 之下，Storybook 的 story title 從 `Design System/Game/EntryProgressBar` 改置於 `Design System/Game/Panel/ProgressBar`，以巢狀結構表達「進度條是 Panel 的配件」。新增 `SubstitutionSubstituteStep` story。
+
+## 測試策略
+
+`deriveFlow` 是單點失效處，優先以單元測試涵蓋：rally 正常三步、home move 為 `UNFORCED` 時收合兩步、substitution 三步、以及前一步未完成時的不可達判定。
+
+進度條以 component test 斷言段數對應宣告的 step 數。swipe 與 click-suppression 的行為需在 entry route 上實地驗證——它是手勢與點擊的競態，單元測試涵蓋不到。
+
+## 風險
+
+`deriveFlow` 集中了四條 flow 的推導，錯一次影響全部；這是換取「新增 flow 不必動面板」的代價。gesture 上移到 Panel 層同理：一處錯誤影響所有 flow。兩者都以「單點、可測試」換「多點、難同步」，但確實把失敗半徑放大了。
+
+## 待交付的互動式流程圖
+
+Apply 階段於本 Change 的 `design.tsx` 建互動式 SVG 流程圖：節點為各 flow 的 steps 與分支點、邊為 transitions，hover 或點選節點高亮其所屬 flow 的路徑，凸顯共用的 `player → home` 前綴與各 flow 的分岔點。
+
+## 決策
+
+<DecisionTimeline
+  decisions={[flowDescriptor, substitutionAsABranch, panelLevelGesture]}
+/>

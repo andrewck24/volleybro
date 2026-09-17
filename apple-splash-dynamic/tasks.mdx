@@ -1,0 +1,24 @@
+---
+title: Tasks
+---
+
+## 1. Shared device configuration
+
+- [x] 1.1 Create `src/app/apple-splash/devices.ts` exporting an ordered list of the fifteen supported device configs as `{ media: string; width: number; height: number }`. Reuse the exact `media` strings and pixel sizes currently in `src/app/layout.tsx` for the nine existing iPhone sizes (750x1334, 828x1792, 1080x1920, 1125x2436, 1170x2532, 1179x2556, 1242x2688, 1284x2778, 1290x2796), then add three iPhone 17-generation sizes and three iPad portrait sizes at dpr 2. Export a helper `isSupportedSize(w, h)` that returns true only for a listed pair.
+
+## 2. Launch-screen route
+
+- [x] 2.1 Create `src/app/apple-splash/[size]/route.tsx` with a `GET` handler that parses the `[size]` segment as `"<width>x<height>"`, returns HTTP 404 when `isSupportedSize` is false, and otherwise returns a `next/og` `ImageResponse` sized to exactly that width and height.
+- [x] 2.2 In the route, render the splash as a full-bleed background of `#10687E` (the `--primary` value) with a centered inline SVG "V" using hardcoded Saira Stencil One glyph path data. Set `Cache-Control: public, max-age=31536000, immutable` on the response.
+
+## 3. Layout registration
+
+- [x] 3.1 In `src/app/layout.tsx`, replace the hand-written `appleWebApp.startupImage` array by mapping the shared `devices.ts` list so each entry's `url` becomes the path `/apple-splash/<width>x<height>`. Remove the nine inline static `/apple-splash/*.png` URLs.
+
+## 4. Remove static assets
+
+- [x] 4.1 Delete the nine PNG files under `public/apple-splash/`.
+
+## 5. Verification
+
+- [x] 5.1 Run `pnpm build` and load the app; confirm the 15 startup-image links resolve and no 404/console error references `apple-splash`.

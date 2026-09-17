@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "送出鍵位於 DialogFooter，且在它所提交的 form 邊界之內",
+  "status": "implemented",
+  "targets": ["platform/forms", "platform/design-system/overlays"],
+  "context": "libero-replace.tsx 的 Form 只包住 DialogBody，footer 的送出鍵是 form 之外的 type=\"button\"，靠 onClick 呼叫 form.handleSubmit。結果有二：form 自己的 onSubmit 從未被觸發過，是一條死掉的路徑；而驗證只能在 onClick return 之後才完成，此時 DialogClose 已經關閉了 dialog。另一端，EditDialogContainer 完全沒有 DialogFooter——三個 team 表單把送出鍵放在自己的 Card 尾端，整個落在 DialogBody 裡。只有 set-options panel 的 ActionButton 兩件事都做對了。",
+  "decision": "dialog 的送出鍵一律位於 DialogFooter，且 form 元素同時包住 DialogHeader、DialogBody、DialogFooter 三者，送出鍵為 type=\"submit\"，DialogClose 移除。三個 Dialog* 都只是帶樣式的 div、不消費 Radix context，因此 form 邊界可以自由畫在它們外面，而 EditDialogContainer 可以把 footer 的位置交給表單自己 render。配套規則：form 邊界內任何非送出用途的 Button 必須明確寫 type=\"button\"。",
+  "alternatives": [
+    {
+      "option": "form 只包住 DialogBody 與 DialogFooter，Header 留在外面",
+      "reason": "flex 成本完全相同——兩種畫法都需要恰好一個元素補 min-h-0 flex-1。差別在包三者時 Header/Body/Footer 維持兄弟關係，也就是 DialogContent 原本的組合方式；只包兩者會讓 Header 與另外兩者分屬不同層級。"
+    },
+    {
+      "option": "承認 libero-replace 的驗證不可觸發，把 onClick 改成同步的 onSubmit(form.getValues())",
+      "reason": "一行就好，但兩處的處理方式從此不一致，而且日後有人把某個欄位換成自由輸入時，這個保護會默默消失。"
+    },
+    {
+      "option": "用 form 屬性把 footer 的按鈕關聯到 body 內的 form id",
+      "reason": "不必移動 form 邊界，但要維護一組 id。DialogFooter 沒有任何理由待在 form 之外——移動邊界比引入識別碼便宜。"
+    },
+    {
+      "option": "只在 dialog 模式下把送出鍵放進 DialogFooter，全頁模式維持原樣",
+      "reason": "三個 team 表單同時服務 @modal 與 (workspace) 兩種 route。分支會讓同一個表單有兩種結構，而 DialogBody 與 DialogFooter 在全頁模式下就只是帶 padding 的 div，沒有分支的必要。"
+    }
+  ],
+  "consequences": [
+    "驗證失敗時瀏覽器與 RHF 根本不會呼叫成功路徑，因此「不該關閉」成為結構的結果，沒有任何一段程式碼需要記得檢查。",
+    "libero-replace.tsx 那條死掉的 form 送出路徑成為實際執行的路徑。",
+    "EditDialogContainer 停止把 children 包進 DialogBody，改由表單自己 render DialogBody 與 DialogFooter；六個畫面（三個 dialog、三個全頁）的版面因此改變，需要逐一目視確認。",
+    "插入的 form 元素必須帶 min-h-0 flex-1，否則 DialogContent 的 flex 鏈斷裂、DialogBody 失去可捲動高度。",
+    "Button 沒有預設 type，因此 form 邊界內的 <Button onClick> 是隱含的 submit button。game/new/index.tsx 的 DialogTitle 返回鍵是現成的例子，必須明確標註 type=\"button\"。",
+    "set-options panel 的 ActionButton 不需要移動：它已經符合這條規則，成為既有的正確樣本。",
+    "球員編輯頁是目前唯一不符合的實例：成員資格區塊的邀請流程自帶 <form>，基本資訊的 form 邊界若包住 footer 就會巢狀，因此「儲存變更」暫留在區段內。成員資格移成獨立 dialog 後即符合。"
+  ],
+  "revisitTriggers": [
+    "出現一個送出鍵，其提交目標無法用單一 form 邊界表達（例如同一個 footer 同時提交兩份獨立的 form）。",
+    "決定讓 Button 預設 type=\"button\"，使配套規則不再需要靠人記得。",
+    "成員資格移成獨立 dialog：屆時球員編輯頁的送出鍵移入 DialogFooter。"
+  ]
+}

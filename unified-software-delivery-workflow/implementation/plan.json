@@ -1,0 +1,5 @@
+{
+  "schemaVersion": 1,
+  "change": "unified-software-delivery-workflow",
+  "slices": ["S01", "S02", "S03", "S05", "S06", "S04"]
+}

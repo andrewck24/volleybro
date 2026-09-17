@@ -1,0 +1,84 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import lifecycleOwnsStatus from "./design/decisions/D1-lifecycle-owns-status.json";
+import flatChangeDirectories from "./design/decisions/D2-flat-change-directories.json";
+
+## Adopted shape
+
+One fact, `lifecycle`, in one place, `change.json`. Everything else about where a Change stands is computed from it.
+
+```text
+blueprint/content/changes/
+├── meta.json                  { "title": "Changes", "pages": ["index", "..."] }
+├── index.mdx
+├── game-positional-writes/    lifecycle: archived
+├── sync-recording/            lifecycle: discussing
+└── lifecycle-owned-status/    lifecycle: proposing
+```
+
+A Change is served at `/changes/<slug>/`, for its whole life. The directory name is the slug and the slug never changes, so neither does the URL.
+
+## Contracts
+
+**Status derivation.** `change-types.ts` gains the mapping and its accessor:
+
+```ts
+const LIFECYCLE_STATUS: Record<ChangeLifecycle, ChangeStatus> = {
+  discussing: "discussing",
+  proposing: "in-progress",
+  "ready-for-review": "in-progress",
+  "ready-for-implementation": "in-progress",
+  applying: "in-progress",
+  ingesting: "in-progress",
+  "pre-pr-review": "in-progress",
+  "awaiting-delivery-review": "in-progress",
+  archived: "archived",
+};
+
+export const statusOf = (lifecycle: ChangeLifecycle): ChangeStatus =>
+  LIFECYCLE_STATUS[lifecycle];
+```
+
+`Record<ChangeLifecycle, ChangeStatus>` is the load-bearing part. Adding a lifecycle value without mapping it is a compile error, so the derivation cannot drift from the lifecycle it derives from.
+
+**Metadata parsing.** `parseChangeMetadata(value, directoryName)` loses its `status` and `directory` arguments. It validates that `record.slug === directoryName`, computes `status` with `statusOf`, requires `archivedAt` when `lifecycle === "archived"`, and returns `href` as `/changes/${slug}/`. `lifecycleMatchesStatus` is deleted — once status is computed it can only ever match.
+
+**Catalog loading.** `loadChangeCatalog` reads one directory instead of three. Sorting and the month grouping keep using `archivedAt ?? startedAt` and are unaffected.
+
+**Schema.** `change.schema.json` drops `status` from `properties` and from `required`. This is a breaking change for the ten existing files, all of which are edited in the same Change.
+
+**Display.** `ChangeCard` and `ChangeOverview` take `lifecycle` and render one badge from it. The `status` prop and the `lifecycle !== status` condition are removed. The badge colour keeps following the coarse status, so archived stays primary-tinted and in-progress stays warning-tinted; only the label becomes precise.
+
+## What deliberately does not change
+
+The catalog's three filter buttons, the sidebar's four links, the `?status=` query parameter, and the archive's month grouping all behave exactly as they do today. `status` remains a first-class concept in the UI — it simply stops being written down.
+
+## Failure modes
+
+| Failure                                           | Before                                          | After                                               |
+| ------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------- |
+| A Change advances and its Overview links go stale | Silent dead links until a reader finds them     | Impossible; the URL does not depend on lifecycle    |
+| A Change moves and `designModules` is not updated | Build fails with a module resolution error      | No move, so no edit; the check still covers renames |
+| `change.json` disagrees with the directory        | Caught by `lifecycleMatchesStatus`              | The disagreement cannot be expressed                |
+| A new lifecycle value is added                    | Nothing breaks; it silently maps to in-progress | Compile error until it is mapped                    |
+
+## Migration
+
+Ten directories move. The internal references that must move with them are bounded: `blueprint/src` tests and the changes route, two links in `blueprint/content`, one in `WORKFLOW.md`, one in `docs/agents/artifact-lifecycle.md`. References inside `docs/changes/` and `docs/specs/` are historical snapshots and stay as they are, per `WORKFLOW.md`.
+
+`WORKFLOW.md` needs three edits: the Implementation-slice contract's directory tree, the sentence listing what a lifecycle move touches, and Archive step 6, which stops moving a directory and only sets `lifecycle` and `archivedAt`.
+
+## Testing strategy
+
+The existing suites carry most of the weight. `change-metadata.test.ts` covers the new signature and the derivation, including that a Change whose directory name differs from its slug is rejected and that `archivedAt` is still required for an archived lifecycle. `changes-tree.test.ts` is rewritten alongside the tree it tests. A rendered-output check confirms that all ten Overviews still list the same artifacts and that no link in the built site is dead — the same check that caught the shadowing problem twice.
+
+## Risks
+
+The tree rebuild is the risky part. `createChangesBreadcrumbTree` currently keys off lifecycle folder names, and with those gone it needs a different shape; its companion `withDirectChangePages` may already be dead since the meta-collection fix removed the page shadowing it compensated for. That is assessed during Apply rather than assumed here.
+
+## Decisions
+
+<DecisionTimeline decisions={[lifecycleOwnsStatus, flatChangeDirectories]} />

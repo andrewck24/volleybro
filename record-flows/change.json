@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "record-flows",
+  "title": "Record Flows",
+  "lifecycle": "proposing",
+  "startedAt": "2026-07-12",
+  "summary": "記錄面板的 step 導航抽象為可重用的 PanelSteps 模型，四種 record flow 共用同一套骨幹；substitution 從獨立面板模式收攏為 rally flow 的 step-2 分支。",
+  "capabilities": [
+    "game-recording/rally-recording",
+    "game-recording/substitution"
+  ],
+  "tags": ["frontend", "interaction-model", "refactor"]
+}

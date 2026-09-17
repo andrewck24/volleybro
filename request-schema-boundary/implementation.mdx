@@ -1,0 +1,71 @@
+---
+title: Implementation
+---
+
+import { TLDR } from "@/components/TLDR";
+
+<TLDR>
+  五片。前兩片把既有的九條路由收斂成一套慣例，後三片補上 game 的五條並卸下
+  entity 層那份重複的檢查。唯一不能調換的順序是最後一段：**先讓邊界守住，再拿掉
+  entity 的守衛**——中間不能有任何一刻是兩邊都不擋。
+</TLDR>
+
+## 相依圖
+
+```text
+S01 搬家與 input 契約 ──┬── S02 既有九條收斂
+                        │
+S03 型別對齊現實 ───────┴── S04 game 五條 parse ── S05 卸下 entity 檢查
+```
+
+S01 與 S03 沒有共同檔案，可以並行。S02 與 S04 只是都需要 S01 建立的目錄，彼此獨立。
+
+## 為什麼刪除排在最後
+
+S05 刪掉 `validateRallyEntry`。如果它排在 S04 之前，就會有一段時間 rally 完全沒有任何驗證——邊界還沒建好，entity 的已經拆了。這個窗口在一個分支上可能只有幾小時，但它會出現在 git 歷史裡，而任何從中間某個 commit 分出去的工作都會帶著它。
+
+反過來排（S05 最後）的代價只有一個：S04 落地後、S05 之前，同一套規則有兩份實作。那是暫時的重複，不是暫時的缺口。**重複可以容忍幾個 commit，缺口不行。**
+
+## S03 為什麼必須在 S04 之前
+
+不是偏好問題，是編譯問題。
+
+`Team` 現在宣告 `id` / `players` / `staffs` 必填，而 app 只送 `away: { name }`。依型別寫的 schema 會拒絕 app 自己的請求；依實際 payload 寫的 schema，其 `z.infer` 出來的 `{ id?: string }` **不能指派給** `ICreateGameInput` 的 `{ id: string }`，得加 cast。
+
+而在邊界 parse 的全部價值來自「parse 完之後的型別是可信的」。用 cast 把型別謊言接起來，等於花力氣建了一道門，然後在旁邊留一個洞。所以型別先誠實，schema 才寫得出來。
+
+## S01 為什麼不順手做 `.strict()`
+
+S01 是純搬移：檔案換位置、import 路徑更新、usecase 拿回自己的型別宣告。**沒有任何一條 route 的回應在它之後有所不同。**
+
+`.strict()` 不一樣——它會讓先前被靜默丟棄的欄位開始回 400，是六次打壞運作中流程的機會。混進搬移那一片，就沒有任何一個 commit 能回答「這個 400 是搬家造成的還是 strict 造成的」。分開之後 S01 的驗收只有一句話：測試全綠且沒有行為變化。
+
+## 最容易做錯的一件事：手寫 payload
+
+S02 要求六條 retrofit 的路由各有一個測試，餵**client 實際建構的 payload**。這條會被打折成「寫一個合理的物件送進去」，而那樣寫出來的測試永遠會過。
+
+理由在 `POST /api/games` 上看得最清楚。它今天送出三個型別裡沒有的東西：`players[].list`（表單的本地分組欄位）、`info.teams`（表單把整個 form state 攤平送進 `info`）、`weather.temperature` 的空字串（唯一漏做轉換的欄位）。**這三個沒有一個是讀程式碼推得出來的**——它們是在對照 client 與型別時才浮出來的。手寫的物件不會帶著它們，所以測試會綠，而真實流程會 400。
+
+`test/integration/game-rally-from-created-game.itest.ts` 已經解決過這個問題一次：它的 `newGameBody()` 註解寫著 "The exact body `NewGameForm.createGame` sends"。那是現成的模式，沿用它。
+
+## `rally-validation.itest.ts` 是等價性的證明
+
+S05 刪掉驗證器，而 `test/integration/rally-validation.itest.ts` 的三個案例——缺 `type`、`type` 超出 enum、缺 `win`——**必須一行不改地維持綠燈**。
+
+它斷言的是 400、`CommonReason.INVALID_INPUT`，以及 entries 長度為 0。這些全部是可觀察行為，與由誰執行檢查無關。所以它剛好是一份現成的等價性測試：**如果它需要修改才能通過，代表 S04 的 schema 與被刪掉的驗證器行為不等價**，該回頭修 schema，不是改測試。
+
+驗收條件因此明列「確認該檔未出現在 S05 的 diff 中」。
+
+## 在 S05 裡要抗拒的一件事
+
+刪掉 `validateRallyEntry` 的時候，順手把跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致、`away.num` 在 `outcome` 內）加進 schema 的 `.refine()` 會很誘人——schema 住在 `interface/`，import `scoringMoves` 不成環，**技術上完全做得到**。
+
+**不要，而且理由不是「留給另一張票」。** 依 D3 的第二問，那是一條排球規則——「主隊扣球得分時，客隊那一側只可能是這幾種動作」換掉傳輸協定與資料庫都仍然成立——所以它屬 entity，不屬邊界。**放得進去不代表該放進去。** 而 entity 要查 `scoringMoves` 仍然會成環，所以它依舊以那張表下沉為前置，落點與順序都不歸本 Change 決定。
+
+（本 Change 的早期版本主張過相反的話。判準修正的完整說明在 Design 的「一個被撤回的判準」。）
+
+## 驗證的層次
+
+每一片都跑 `pnpm test`（含 backend-unit 的接線測試）與 `pnpm typecheck:strict`。S02 之後的每一片另外跑 `pnpm test:integration`——`.github/workflows/ci.yml` 已經在 CI 執行它（`docs/testing-strategy.md` 說它不在 CI，那句話過時了，S04 一併修正）。
+
+S03 有一項只有整合測試證得了：既有 game 文件裡的 `weather` 資料沒有被刪除或改寫，只是讀取時不再映射。單元測試看不到真實文件。

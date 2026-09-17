@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "成員是已加入的球員，Player 的型別依狀態區分",
+  "status": "implemented",
+  "targets": ["team-management/membership", "team-management/roles"],
+  "context": "Player 同時表達未連結球員（NONE）、受邀者（INVITED）與成員（JOINED）三種人，但 role 不能用來分辨他們：create-player 建立未連結球員時一律寫入 MEMBER，離開隊伍、拒絕與取消邀請都不清除 role，邀請時又會重新指定 role。AuthorizationService 的 verifyTeamRole 與 verifyIsTeamAdmin 只看 role，findByTeamIdAndUserId 也不過濾 status，所以先被邀請、之後才註冊而被連結帳號的受邀者，通過全部成員檢查；被邀請為管理員者在接受前就通過管理員檢查。transfer-ownership 以 userId 是否存在判斷新擁有者已加入，同樣接受受邀者。角色階層的比較在 service 的四個方法中各寫一次。",
+  "decision": "Player 仍是一份文件，entity 型別改為依 status 區分的 union：UnlinkedPlayer（NONE，沒有 userId、email 與 role）、InvitedPlayer（INVITED，恰有 userId 或 email 其中之一，role 是邀請時提出的角色）、TeamMember（JOINED，有 userId 與 role）。成員的判斷是 isTeamMember，只看 status 是否為 JOINED；角色階層由 hasTeamRole 比較。兩者都是 entity 層的純函式。repository 讀取時把文件縮窄成三者之一，不符合的文件讀取失敗。AuthorizationService 只負責查詢、呼叫這兩個函式、在不通過時丟出 AuthorizationError。",
+  "alternatives": [
+    {
+      "option": "維持扁平的 Player，成員判斷寫成 status 為 JOINED 且 role 存在",
+      "reason": "role 在未連結球員身上仍然存在，判斷只是繞過它；畫面照樣會為沒有帳號的球員顯示角色，validatePlayerStatus 的組合規則也仍只在執行期檢查。"
+    },
+    {
+      "option": "拆出 Membership entity 與 collection，Player 只表示名單上的一格",
+      "reason": "一個成員資格恆對應名單上的一格，一位使用者在同一隊至多一位球員，拆開只多出 join 與兩邊同步的問題；所有 player 文件都要拆表，讀寫 player 的 use case 全部要改。better-auth organization plugin 屬於這個形狀，且它的 member 必須綁帳號，無法表達未連結球員。"
+    },
+    {
+      "option": "在 repository 查詢加上 status 過濾",
+      "reason": "規則藏在查詢條件裡，拿到 Player 後自行判斷的地方（transfer-ownership）仍會各寫一次，也無法在不碰資料庫的情況下測試。"
+    },
+    {
+      "option": "受邀者視為成員，只限制部分資源",
+      "reason": "等於提前設計隱私設定的關係模型。開發者決定受邀者先不是成員，需要時再調整。"
+    }
+  ],
+  "consequences": [
+    "受邀者在接受邀請前通不過任何成員或管理員檢查，包含寫入路徑。",
+    "未連結球員不再帶有角色，畫面不會為沒有帳號的球員顯示角色。",
+    "status 與欄位的組合規則由型別表達，validatePlayerStatus 的執行期檢查大部分由編譯期取代。",
+    "不符合新模型的既有文件讀取會失敗，因此部署前必須先回填資料（D4）。",
+    "既有的 verify 呼叫點除了角色管理改走 entity 判斷之外程式碼不變，行為隨定義一起修正；隱私設定的 relation 推導建立在同一組函式上。"
+  ],
+  "revisitTriggers": [
+    "出現一位使用者在同一隊需要多個身分，或成員資格需要獨立於名單存在（例如不上場的隊伍管理者）。",
+    "隱私設定需要為受邀者開放部分資源。",
+    "角色不再是線性階層。"
+  ]
+}

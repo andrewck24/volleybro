@@ -1,0 +1,162 @@
+---
+title: Design
+---
+
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { RiskTable } from "@/components/RiskTable";
+import { TLDR } from "@/components/TLDR";
+import routeBoundary from "./design/decisions/D1-request-validation-happens-at-the-route-boundary.json";
+import useCaseOwnsInput from "./design/decisions/D2-the-use-case-owns-its-input-type.json";
+import parsingAtBoundary from "./design/decisions/D3-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
+import strictNeverCoerce from "./design/decisions/D4-schemas-reject-unknown-fields-and-never-coerce.json";
+import awayKeepsTeamType from "./design/decisions/D5-away-keeps-the-team-type-with-optional-fields.json";
+
+<TLDR>
+  兩個問題決定每個檢查該放哪一層，有順序：**這是在重建 wire format
+  丟失的型別嗎？** 是的話屬邊界，parse
+  一次。**這是一條關於排球、換掉傳輸協定與資料庫都仍然成立的規則嗎？** 是的話屬
+  entity。`validateRallyEntry`
+  的四個檢查全部落在第一問，沒有一條是排球規則——所以它移到 schema，而不是與
+  schema 並存。
+</TLDR>
+
+## Adopted shape
+
+每一層只回答一個問題，而且只有一層回答它。
+
+| 層                        | 回答什麼                      | 例子                                                       |
+| ------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| route（`assertObjectId`） | 路徑參數是它宣稱的型別嗎      | `gameId` 是 24 位十六進位                                  |
+| route（`Schema.parse`）   | request body 是它宣稱的型別嗎 | `type` 是 `MoveType`、`num` 是表的合法索引、沒有未宣告欄位 |
+| use case                  | 這個人可以做這件事嗎          | `verifyTeamRole`                                           |
+| entity                    | 這符合排球與 Game 的規則嗎    | `validateLineupPlayers` 的 roster 比對                     |
+| repository                | 儲存機制自己的坑              | `anonymous` 檢查（arrayFilters 對 `null` 的匹配風險）      |
+
+前兩列合起來是「這個請求的每個值都是它宣稱的型別」，所以它們同層、同機制——`assertObjectId` 拋 `ValidationError`、`Schema.parse` 拋 `ZodError`，都由 `withErrorHandler` 轉成 400。這不是新發明：path param 那一半在 `api-objectid-guards` 就已經這樣定案，本 Change 只是把 body 那一半補上。
+
+### 一個被撤回的判準
+
+本 Change 一度用「這個檢查需不需要資料庫狀態」來分層。它很好用，也給出了正確的結論，但**它不是 Clean Architecture 的判準**——CA 問的是規則的射程，而狀態相依性只是與之相關的一個表徵。兩個方向都會誤判：
+
+- **stateless 卻是領域規則**：`away.num` 必須在 `scoringMoves[home.num].outcome` 內。這是排球規則（主隊扣球得分時，客隊那一側只可能是特定幾種動作），卻只需要查表。
+- **stateful 卻不是領域規則**：「這個 `gameId` 存在嗎」。需要資料庫，但那是 404，不是業務規則。
+
+它在 `validateRallyEntry` 上恰好答對，是因為那四條本來就不是領域規則——**正確結論配錯誤理由，會在下一個案例上失效**。所以判準改為上方 TLDR 的兩問。
+
+### 為什麼 `validateRallyEntry` 整個移走，而 `validateLineupPlayers` 只移走一半
+
+`validateRallyEntry` 檢查 `type` 在 enum 內、`num` 是 0 至 14 的整數、`win` 是 boolean、`score` 是數字。**四條都在回答「這個值真的是它宣稱的型別嗎」**，之所以需要在執行期問，只因為 TypeScript 的型別被抹除而 JSON 沒有型別。真正的排球規則長這樣：「後排球員不得記錄前排攻擊」——`validateRallyEntry` 裡一條都沒有。所以它整個落在第一問，屬邊界。
+
+`validateLineupPlayers` 是兩件事黏在一起：
+
+```ts
+// (a) 型別重建：lineup 是物件、三個陣列都在
+if (lineup == null || !Array.isArray(lineup.starting) ...) throw
+// (b) 領域規則：被指名的球員必須在這支隊伍的名單上
+for (const id of referencedIds) if (!rosterIds.has(id)) throw
+```
+
+(a) 的註解自承它存在的理由是「lineup 未經驗證就從 request body 進來」——**本 Change 之後那句話就是假的**，所以它跟著走。(b) 換掉 HTTP、換掉 MongoDB 都仍然成立，是第二問的典型例子；它需要的名單由 use case 傳入，entity 自己不查詢。
+
+### 這是執行既有決策，不是推翻它
+
+`rally-entry-validation` 的 D2 記了一條 revisit trigger：
+
+> route 層的 request schema 上線之後，重新確認兩層驗證的分工：邊界回答「形狀對不對」，entity 回答「意義對不對」，**兩者不應互相複製**。
+
+本 Change 就是那個觸發點。兩份已晉升的 D26 記錄（`game-recording/rally-recording` 與 `game-recording/persistence`）與 `platform/clean-architecture` 的一條 Known gap 需要在 Archive 時標記 superseded 或改寫。
+
+### 一個看起來被解開、其實沒有的結
+
+跨欄位自洽檢查（`scoringMoves[num]` 的 `type` / `win` 與存的一致、`away.num` 在 `outcome` 內）卡在一個前置條件：entities 不能 import `src/lib/scoring-moves.ts`，因為該檔 `import { MoveType } from "@/entities/game"`，反向會成環。所以它必須等整張表下沉到 entities。
+
+schema 住在 `src/interface/validations/`，相依方向 `interface → lib → entities` 是一條直線，所以把那個檢查放進 `.refine()` **技術上做得到**。本 Change 一度打算這麼做，理由是它同樣只需查表。
+
+**但那是撤回的判準在說話。** 依第二問，「主隊扣球得分時，客隊那一側只可能是這幾種動作」是排球規則，換掉傳輸與儲存都成立——它屬 entity。技術上放得進 schema，不代表它該放在那裡。**所以那個結沒有被解開，`scoringMoves` 的下沉仍然是它的前置。**
+
+被真正解開的只有一件小事：`num` 的上界。它不是規則，是「合法索引的範圍」——型別重建的一部分——所以改用 `scoringMoves.length - 1` 由 schema 取得，手抄的 `LAST_SCORING_MOVE = 14` 與釘住它的測試一併消失。
+
+## Contracts
+
+- **錯誤形狀不變。** `withErrorHandler` 既有的 `ZodError → ValidationError` 映射照舊，客戶端拿到 `code: "VALIDATION"`、`reason: "INVALID_INPUT"` 與帶欄位路徑的 `details`。本 Change 不新增錯誤碼。
+- **body parse 在 `teamId` 查詢參數檢查之後。** `POST /api/games` 缺 `teamId` 時仍回 `detail: "teamId is required"`，既有斷言不變。
+- **schema 是 usecase input 的下游。** `satisfies z.ZodType<IXInput["data"]>` 由 schema 端宣告，方向 `interface → application`。usecase 不得反向 import schema 的型別。
+- **`UpdatePlayerRoleSchema` 的 wire 欄位維持 `role`**，由 route 映射到 usecase 的 `newRole`。對外契約不遷就內部參數名。
+- **`LineupSchema` 是唯一的 lineup 定義（server 端）。** 由 `src/interface/validations/team.ts` 匯出，同時供 `PATCH /teams/:id/lineups` 與 `POST/PUT /games/:id/sets` 使用。它是三份 lineup 定義裡唯一拒絕空字串的那一份。
+
+## Testing strategy
+
+三層，各證明不同的事。
+
+**schema 單元測試——證明規則本身正確。** 欄位規則、範圍、`.strict()` 拒絕未宣告欄位。
+
+**route 接線測試（backend-unit，無資料庫）——證明 schema 真的被掛上。** 每條路由送畸形 body，斷言 400 **且 controller 未被呼叫**。這一層不可省：`rally-entry-validation` 記下的教訓是「單元測試證明它會拒絕，證明不了有人在該拒絕時呼叫它」，而 `validatePlayerStatus` 有 11 個全綠測試卻零生產呼叫端。跑在 `pnpm test`，CI 每次都跑。
+
+**integration 測試——證明拒絕時什麼都沒寫進去。** 只涵蓋 game 的五條寫入路徑，那裡的風險不只是拒絕，還有部分寫入。
+
+**真實 payload 測試——證明沒打壞既有流程。** 6 條 retrofit `.strict()` 的路由，每條都要餵 client 實際建構的 payload。手寫的最小物件永遠會通過，`players[].list` 與 `info.teams` 就是這樣活下來的。`test/integration/game-rally-from-created-game.itest.ts` 已經是 game 這條的釘子，更新它而不是另建。
+
+`test/integration/rally-validation.itest.ts` 的三個案例在 D3 之後**原封不動仍會通過**——zod 對缺欄位、超出 enum、缺 `win` 產生同樣的 400 與 `CommonReason.INVALID_INPUT`。它斷言的是可觀察行為，不是實作。
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "「邊界是唯一入口」沒有工具守著",
+      severity: "warning",
+      mitigation:
+        "D3 把型別重建收斂到邊界一份，前提是所有寫入都經過那個邊界。今天為真，但一個未來的 Server Action 若不經 controller，rally 的型別重建就會靜默消失。緩解是把這條前提寫進慣例並記為 revisit trigger；正解是讓所有 delivery mechanism 共用同一份 parse，而不是在內層補第二份。",
+    },
+    {
+      name: "6 條既有路由 retrofit .strict()",
+      severity: "warning",
+      mitigation:
+        "先前被靜默丟棄的多餘欄位現在回 400，是 6 次打壞運作中流程的機會。緩解是每條都要一個餵真實 client payload 的測試——讀程式碼判斷不算數，info.teams 與 players[].list 正是讀不出來的那種。",
+    },
+    {
+      name: "D4 與 D5 的 blast radius 落在 client 而非 server",
+      severity: "warning",
+      mitigation:
+        "三處 client 修正都在 src/components/game/new/index.tsx，本質是停止送出沒人讀的欄位，但它們是建立比賽的唯一路徑。integration 測試已經釘住那個 payload 的完整形狀，更新它會同時證明改動正確。",
+    },
+    {
+      name: "兩份已晉升的 D26 需要標記 superseded",
+      severity: "warning",
+      mitigation:
+        "它們是 canonical current 知識，斷言 validateRallyEntry 存在。漏掉會讓 Blueprint 描述一個不存在的函式。Archive 的檢查清單必須明列這兩份加上 clean-architecture 的 Known gap。",
+    },
+    {
+      name: "satisfies 抓不到 schema 多宣告的欄位",
+      severity: "info",
+      mitigation:
+        "它檢查的是「schema 輸出可指派給目標型別」，所以多欄位不會被抓。在 .strict() 之下多出來的欄位會在執行期被拒，usecase 也讀不到，無害。",
+    },
+    {
+      name: "api-objectid-validation 的 @trace 會指向舊路徑",
+      severity: "info",
+      mitigation:
+        "刻意的。該 spec 是不可變的歷史快照，不得修改。path param 的現行知識改由 Blueprint 承載，歷史允許過時。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionTimeline
+  decisions={[
+    routeBoundary,
+    useCaseOwnsInput,
+    parsingAtBoundary,
+    strictNeverCoerce,
+    awayKeepsTeamType,
+  ]}
+/>
+
+## References
+
+- `api-objectid-guards`——path param 在 route 第一行驗證、`withErrorHandler` 負責轉 400 的既有形狀，本 Change 的 body 驗證比照它
+- `rally-entry-validation` D2——`validateRallyEntry` 的由來，以及本 Change 正在執行的那條 revisit trigger
+- `platform/clean-architecture`——`src/lib/` 同時裝著三層、路徑不是可靠層訊號的既有記載
+- `docs/testing-strategy.md`——route-layer request mapping 屬 route 職責的既有陳述（其「integration 不在 CI」一句已過時，本 Change 一併修正）
+- `game-rally-from-created-game.itest.ts`——「真實 client payload」測試的既有形狀

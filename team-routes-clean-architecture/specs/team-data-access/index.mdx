@@ -1,0 +1,68 @@
+---
+title: team-data-access
+---
+
+## ADDED Requirements
+
+### Requirement: Team read responses expose stable string identifiers
+
+The `GET /api/teams/[teamId]` endpoint SHALL serve the team through the route → controller → use case → repository layering and return a payload conforming to `TeamView`. The team `id` SHALL be the team document's ObjectId rendered as a hex string. Every lineup player in `lineups[].starting`, `lineups[].liberos`, and `lineups[].substitutes` SHALL expose an `id` that is a hex string for a referenced player or `null` for an empty slot. The endpoint SHALL NOT return the raw Mongoose `_id` or `playerId` field.
+
+#### Scenario: Fetching an existing team returns mapped identifiers
+
+- **WHEN** a client requests `GET /api/teams/[teamId]` for an existing team
+- **THEN** the response `id` equals the team's ObjectId hex string
+- **AND** every lineup player exposes `id` as a hex string or `null`, and no `_id`/`playerId` field is present
+
+#### Scenario: Fetching a non-existent team returns not found
+
+- **WHEN** a client requests `GET /api/teams/[teamId]` for an id with no matching team
+- **THEN** the endpoint responds with the existing not-found error (404)
+
+#### Scenario: Fetching with a malformed team id is rejected
+
+- **WHEN** a client requests `GET /api/teams/[teamId]` with an id that is not a 24-character hex ObjectId
+- **THEN** the endpoint responds with the existing validation error (400)
+
+### Requirement: Team name and nickname updates return mapped identifiers
+
+The `PATCH /api/teams/[teamId]` endpoint SHALL update the team `name` and/or `nickname` through the route → controller → use case → repository layering and return a payload conforming to `TeamView` with the team `id` present as a hex string. The endpoint SHALL require the requester to be a team admin, preserving the existing authorization behavior.
+
+#### Scenario: Admin updates team name
+
+- **WHEN** a team admin sends `PATCH /api/teams/[teamId]` with a new `name`
+- **THEN** the team `name` is updated and the response exposes the team `id` as a hex string
+
+#### Scenario: Non-admin update is rejected
+
+- **WHEN** a requester who is not a team admin sends `PATCH /api/teams/[teamId]`
+- **THEN** the endpoint responds with the existing authorization error and the team is unchanged
+
+### Requirement: Lineup persistence round-trips player identifiers
+
+The `PATCH /api/teams/[teamId]/lineups` endpoint SHALL persist the submitted lineups through the route → controller → use case → repository layering and return the saved lineups conforming to `LineupView`. The repository SHALL map each submitted player `id` (and `sub.id`) to the stored Mongoose `playerId` ObjectId, and map the stored `playerId` back to `id` on read. An empty slot submitted as `id: null` SHALL be stored as a slot object with `playerId: null` (never a bare `null` element) and SHALL be returned as `id: null`. The endpoint SHALL require the requester to have at least the `MEMBER` role, preserving the existing authorization behavior.
+
+#### Scenario: Saving a lineup preserves assigned player references
+
+- **WHEN** a member saves a lineup containing an assigned player and the team is reloaded
+- **THEN** the saved and reloaded lineup expose the same player `id` for that slot
+
+##### Example: filled and empty slots round-trip
+
+- **GIVEN** a starting array with slot 0 = `{ id: "64b000000000000000000001", position: "OH" }` and slot 1 = `{ id: null }`
+- **WHEN** the lineup is persisted via `PATCH /api/teams/[teamId]/lineups` and read back
+- **THEN** slot 0 returns `id: "64b000000000000000000001"` and slot 1 returns `id: null`
+
+#### Scenario: Saving a lineup for a non-existent team returns not found
+
+- **WHEN** a member sends `PATCH /api/teams/[teamId]/lineups` for an id with no matching team
+- **THEN** the endpoint responds with the existing not-found error (404)
+
+### Requirement: Removing a player clears its lineup references
+
+When a player is removed from a team, the repository SHALL clear that player from every lineup by matching the stored `playerId` field.
+
+#### Scenario: Removed player is pulled from all lineups
+
+- **WHEN** a player is removed from a team that has the player assigned in one or more lineups
+- **THEN** the player is removed from every `starting`, `liberos`, and `substitutes` array by `playerId` match
