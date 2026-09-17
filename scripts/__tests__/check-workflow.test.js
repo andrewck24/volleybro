@@ -253,6 +253,19 @@ test("reports a Proposal missing a TLDR", async () => {
   );
 });
 
+test("skips old-format Changes from the page store", async () => {
+  assert.deepEqual(
+    await messages({
+      "blueprint/content/changes/old/change.json": "{}\n",
+      "blueprint/content/changes/old/proposal.mdx":
+        "---\ntitle: Old\n---\n\nNo components.\n",
+      "blueprint/content/changes/old/review.mdx":
+        "---\ntitle: Review\n---\n\n<FileTour files={[{ code={`a\nb`} }]} />\n",
+    }),
+    [],
+  );
+});
+
 test("accepts a Proposal with a TLDR and a Scenario", async () => {
   assert.deepEqual(
     await messages({

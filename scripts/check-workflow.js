@@ -370,10 +370,19 @@ async function changeDirectories(root) {
   const changesRoot = path.join(root, BLUEPRINT_CHANGES);
   if (!(await exists(changesRoot))) return [];
 
+  // Old-format Changes (they carry change.json) are frozen history from the
+  // store branch and predate every page rule below.
   const entries = await readdir(changesRoot, { withFileTypes: true });
-  return entries
+  const directories = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(changesRoot, entry.name));
+  const current = [];
+  for (const directory of directories) {
+    if (!(await exists(path.join(directory, "change.json")))) {
+      current.push(directory);
+    }
+  }
+  return current;
 }
 
 const CHANGE_PAGE_MARKDOWN_TABLE = /^\s*\|.*\|\s*$/m;
