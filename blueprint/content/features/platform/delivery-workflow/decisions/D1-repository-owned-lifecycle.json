@@ -17,7 +17,7 @@
     }
   ],
   "consequences": [
-    "Manual and Symphony Apply consume the same Blueprint slices and verification contract.",
+    "Manual and Symphony Apply follow the same slice and verification contract, whether slices live in .scratch/<slug>/ or tracker sub-issues.",
     "Repository policy remains usable across provider and orchestrator replacements."
   ],
   "revisitTriggers": [

@@ -25,5 +25,6 @@
     "Decision volume makes Change and Feature rendering insufficient for cross-cutting discovery."
   ],
   "originChange": "unified-software-delivery-workflow",
-  "originDecision": "D3"
+  "originDecision": "D3",
+  "supersededBy": "D45"
 }

@@ -33,6 +33,5 @@
     "An external system turns out to link to the old status-scoped URLs, which would require redirects that this decision deliberately omits."
   ],
   "originChange": "lifecycle-owned-status",
-  "originDecision": "D2",
-  "supersededBy": "D45"
+  "originDecision": "D2"
 }
