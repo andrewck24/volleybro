@@ -43,9 +43,9 @@ acceptance. Provider instruction files are bridges only.
 | Section gate                           | `pnpm verify`                                                                 |
 | Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all |
 | Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones        |
-| Change-scoped durable knowledge        | `blueprint/content/changes/<slug>/`                                           |
+| Change review surfaces (gitignored)    | `blueprint/content/changes/<slug>/proposal.mdx`, `delivery.mdx`               |
 | Canonical current capability knowledge | `blueprint/content/features/`                                                 |
-| Execution plan                         | Change-local implementation-slice JSON                                        |
+| Execution plan                         | `.scratch/<slug>/S0X.md` (manual) or Linear sub-issues (Symphony)             |
 | Version and changelog evidence         | `.changeset/` through Changesets                                              |
 | Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                   |
 | Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                        |
@@ -74,8 +74,9 @@ not from an additional workflow skill.
 - Linear owns intake and current operational state. Issues may be archived or deleted after the
   development lifecycle, so durable repository knowledge must not depend on Linear URLs or IDs.
   Name other work by its Change slug, or by a short description of it when it has no slug yet.
-- Blueprint Changes own durable rationale, adopted design, implementation slices, lifecycle, and
-  human review presentation. Blueprint does not know which issue tracker is configured.
+- Blueprint Change pages are throwaway review surfaces for the two human gates; durable rationale
+  lives in Feature ADRs, PR bodies, and commit bodies. Blueprint does not know which issue tracker
+  is configured.
 - Blueprint Features own current capability and sub-capability behavior, constraints, implemented
   or superseded decisions, and revisit triggers.
 - Code and tests own actual system behavior.
@@ -98,19 +99,22 @@ and current code. Decide whether the idea is:
 5. deferred or out of scope.
 
 Use ordinary issue statuses, parent/child relationships, duplicate relations, and blocking edges to
-express intake and wayfinding state. Label taxonomy other than the exact `agent:ready` dispatch gate
-is intentionally outside this contract and must not be inferred by agents.
+express intake and wayfinding state. Label taxonomy is intentionally outside this contract and must
+not be inferred by agents.
 
-`agent:ready` is the final human arming action for unattended execution. It never substitutes for
-approved repository artifacts, satisfied dependencies, a resolvable repository route, available
-capacity, or a healthy provider. Agents never add it.
+Moving an issue to the tracker's ready-to-start status is the final human arming action for
+unattended execution. It never substitutes for an accepted Proposal page, satisfied dependencies, a
+resolvable repository route, available capacity, or a healthy provider. Agents never make that
+status change themselves.
 
 ## Lifecycle
 
 Every Change has a stable kebab-case slug and one integration branch. Human-facing titles may
-change without changing the slug.
+change without changing the slug. Two human gates bound the whole lifecycle: **G1** accepts the
+Proposal page before any implementation, and **G2** accepts the Delivery page before the pull
+request opens. Everything between a gate and the next runs without stopping for a human.
 
-### 1. Discuss
+### 1. Discuss and propose
 
 - **Owner:** developer with an interactive root agent.
 - **Input:** an initial idea, intake comparison, repository context, and related operational work.
@@ -123,233 +127,205 @@ change without changing the slug.
     keeping specifications and implementation decisions in the active Change;
   - treat Wayfinder items as decision, research, prototype, or clarification work—not executable
     implementation slices;
-  - determine whether the result is one Change, several Changes, or no implementation work.
-- **Exit:** Change boundaries and the next clarification or proposal action are explicit in Linear.
-
-### 2. Propose
-
-- **Entry:** the developer authorizes proposal after discussion converges.
-- **Actions:**
-  - use `to-spec` or a compatible replacement to synthesize the approved Change;
-  - create or update Blueprint Overview and Design;
-  - create or update one structured ADR for each qualifying hard-to-reverse decision under the
-    Change's Design scope; ADRs belong to Design because they capture solution and architecture
-    choices, while Overview may only summarize their product or capability impact;
-  - assign each candidate ADR a non-empty `targets` array containing the narrowest affected
-    hierarchical capability or sub-capability IDs; use a parent capability only when the decision
-    governs multiple children, and list multiple targets when the boundary genuinely crosses them;
+  - determine whether the result is one Change, several Changes, or no implementation work;
+  - once boundaries are clear, use `to-spec` or a compatible replacement to synthesize the
+    approved Change into the Proposal page;
+  - create or update one structured ADR for each qualifying hard-to-reverse decision; ADRs belong
+    to the Proposal page because they capture solution and architecture choices, while its `TLDR`
+    may only summarize their product or capability impact;
+  - assign each ADR a non-empty `targets` array containing the narrowest affected hierarchical
+    capability or sub-capability IDs; use a parent capability only when the decision governs
+    multiple children, and list multiple targets when the boundary genuinely crosses them;
   - preserve context, goals/non-goals, scope, capability impact, important rejected alternatives,
-    adopted decisions, behavior contracts, failure modes, testing strategy, and revisit triggers;
-  - commit Overview and Design on the Change branch before execution preparation.
-- **Exit:** the proposed behavior and design are internally consistent and ready for decomposition.
+    adopted decisions, behavior contracts stated as acceptance scenarios, failure modes, testing
+    strategy, and revisit triggers on the Proposal page; add a design mockup (`proposal.tsx`) when
+    one clarifies the adopted shape.
+- **Exit (G1):** the Proposal page renders complete; notify the developer and stop for acceptance.
+  Acceptance authorizes slice decomposition, implementation, review to a fixed point, and Archive
+  to run without stopping again until G2. If the developer instead sends the Change to Ingest (see
+  Apply), boundaries or design change and the Proposal page is regenerated for another G1 pass.
 
-### 3. Prepare execution
-
-This stage follows Propose automatically.
-
-- Use `to-slices`, implemented as a repository adapter over ticket-decomposition skills, to create
-  vertical implementation slices under the active Blueprint Change.
-- Each slice has a stable ID, capability references, dependencies, outcome, acceptance criteria,
-  verification, and durable status.
-- Commit the complete slice plan separately from source implementation.
-- Set the Change lifecycle to `ready-for-review`, render the slices in Blueprint, and stop for human
-  review.
-- Human approval changes the lifecycle to `ready-for-implementation`. Prepare execution never adds,
-  removes, or otherwise updates `agent:ready`; the developer may add it manually only after the
-  Blueprint plan is approved and unattended execution is desired.
-- At approval, qualifying hard-to-reverse Change ADRs move from `candidate` to `accepted`. They remain
-  Change-scoped and must not be copied into Features before implementation is verified at Archive.
-
-### 4. Apply
+### 2. Apply
 
 Apply is the same repository procedure in both execution modes:
 
-1. set the Change lifecycle to `applying`, then read Overview, Design, implementation plan, current
-   capability references and git state, plus the workpad when an unattended run keeps one;
-2. select the next `pending` slice whose dependencies are `completed`;
+1. read the Proposal page, its ADRs, and git state, plus the workpad when an unattended run keeps
+   one, then decompose the Change into slices in `.scratch/<slug>/` (manual) or Linear sub-issues
+   (Symphony); the first slice is always turning the Proposal's acceptance scenarios into an
+   executable acceptance test;
+2. select the next slice whose dependencies are complete;
 3. implement through the agreed TDD seam where applicable;
 4. run the slice's targeted verification;
-5. change the slice status to `completed`;
-6. commit code, tests, and the completed slice JSON together;
-7. record a self-contained commit body with `Implements`, `Blueprint-Change`, outcome, and
+5. commit code and tests together;
+6. record a self-contained commit body with `Implements`, `Blueprint-Change`, outcome, and
    verification;
-8. continue until no eligible pending slice remains.
+7. continue until no eligible slice remains.
 
 The commit body is the canonical slice-to-commit mapping. It travels with the commit through
 rebases, which rewrite hashes but preserve bodies, so `git log --grep` reconstructs the mapping at
-any time. Blueprint artifacts therefore reference slices by stable ID and must not pin commit
-hashes: a pinned hash is a copy of a fact the commit already states, and every history rewrite
-silently invalidates it. Already-archived Changes keep the records they were accepted with; this
-rule governs Changes still in flight.
+any time. Blueprint pages therefore reference slices by stable ID and must not pin commit hashes: a
+pinned hash is a copy of a fact the commit already states, and every history rewrite silently
+invalidates it.
 
 The same-commit rule applies once this contract exists on the branch's base. When this workflow is
 first adopted around work that was already committed, or when existing commits are surgically
 replayed onto a fresh base, do not rewrite otherwise valid history solely to fabricate compliance.
-Before Pre-PR review completes and before developer acceptance, Blueprint Review must instead
+Before Pre-PR review completes and before developer acceptance, the Delivery page must instead
 identify the bootstrap deviation and describe, per completed slice, what was delivered and how it
 was verified. This exception ends after the workflow contract lands on the base branch. It does not
-license pinning commit hashes, which stay out of Blueprint artifacts for the reason given above.
+license pinning commit hashes, which stay out of Blueprint pages for the reason given above.
 
 Verification failures remain inside Apply. Diagnose whether the implementation is wrong or the
-approved design is no longer viable. Fix implementation defects without creating a separate stage.
-Do not silently change approved behavior, scope, architecture, or acceptance criteria.
+accepted Proposal is no longer viable. Fix implementation defects without creating a separate
+stage. Do not silently change accepted behavior, scope, architecture, or acceptance criteria.
 
 #### Optional Ingest action
 
 Ingest is the corrective, developer-authorized step from the former Spectra lifecycle. It is not a
-mandatory stage. When the approved plan must materially change:
+mandatory stage. When the accepted Proposal must materially change:
 
 1. pause Apply;
-2. let the developer authorize Ingest and set the Change lifecycle to `ingesting`;
+2. let the developer authorize Ingest;
 3. clarify the changed decision, using grilling when needed;
-4. update the active spec, Blueprint Overview or Design, and affected slices;
+4. update the Proposal page and affected ADRs;
 5. preserve completed slices and their evidence;
-6. commit the ingested plan changes and obtain human approval;
-7. set the lifecycle back to `applying` and resume Apply.
+6. regenerate the Proposal page and return to G1 for re-acceptance;
+7. once accepted, resume Apply from where it paused.
 
-### 5. Pre-PR gate and delivery
+### 3. Pre-PR gate and delivery
 
 After all slices complete:
 
-1. set the Change lifecycle to `pre-pr-review`, then run `pnpm verify:all`;
+1. run `pnpm verify:all`;
 2. evaluate the whole Change for Changeset applicability and the correct semantic version bump, or
    record the applicable repository-defined exemption;
 3. run the `code-review` playbook in an independent context against both repository standards and
-   the approved Change specification, giving the standards reviewer `CONTRIBUTING.md`'s own rules
-   verbatim — an independent context knows only what its brief carries;
+   the Proposal page, giving the standards reviewer `CONTRIBUTING.md`'s own rules verbatim — an
+   independent context knows only what its brief carries;
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent review until both axes reach a fixed point. A round reviews the diff to the
-   branch's last commit, so a commit made after one — a fix that unblocks the gate, or the Review
-   page itself — reopens the loop. The fixed point is a reviewed state, not a count of rounds that
-   stopped finding things; it is reached when what remains unreviewed is prose describing the
-   review, or a change whose content a round specified verbatim. A fix a round merely asked for is
-   not that, however precisely it named the defect;
-5. update Blueprint Review after each round with actual delivery, verification, findings, fixes,
-   plan-versus-actual differences, residual risks, and follow-ups, identifying slices by stable ID; and
-6. set the Change lifecycle to `awaiting-delivery-review`, read every page of the Change rendered
-   in a browser as the developer will, then notify the developer and stop for acceptance of
-   Blueprint Review. Reading the source is not reading the page: a stale count, a column that does
-   not line up, an unreadable snippet are all invisible in the file that produces them.
+   branch's last commit, so a commit made after one — a fix that unblocks the gate — reopens the
+   loop. The fixed point is a reviewed state, not a count of rounds that stopped finding things; it
+   is reached when what remains unreviewed is prose describing the review, or a change whose
+   content a round specified verbatim. A fix a round merely asked for is not that, however
+   precisely it named the defect;
+5. proceed to Archive.
 
 The standards axis exists to cover what the repository documents and no tool checks — comment
 necessity and density above all, since lint, types and formatting all pass regardless of how much
 prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
 unwritten standard is one the reviewer cannot apply: state it in `CONTRIBUTING.md` first.
 
-Do not open the pull request before developer acceptance and branch-local Archive. Acceptance of
-Blueprint Review is the last human gate before the pull request: it authorizes Archive and opening
-the pull request once Archive's checks pass, without asking again. Merging still waits for green CI
-and for whatever the developer said about merging. The repository does not run an automated Claude
-review after the pull request opens. Human PR review and comment
-fix rounds remain available, but they are optional and the default delivery path does not wait for
-comments before merge.
+Do not open the pull request before Archive completes and the developer accepts the Delivery page.
+Merging still waits for green CI and for whatever the developer said about merging. The repository
+does not run an automated review after the pull request opens without an explicit request. Human PR
+review and comment fix rounds remain available, but they are optional and the default delivery path
+does not wait for comments before merge.
 
-### 6. Archive
+### 4. Archive
 
-Archive runs on the Change branch after the developer accepts Blueprint Review and before the pull
-request opens. Follow `docs/agents/artifact-lifecycle.md`:
+Archive runs automatically after Pre-PR review reaches its fixed point, before the pull request
+opens. Follow `docs/agents/artifact-lifecycle.md`:
 
-1. reconcile Overview, Design, implementation slices, and Review with delivered code and tests;
-2. promote implemented behavior and durable constraints to the narrowest affected sub-capability;
-3. reconcile each realized Change ADR and change its status from `accepted` to `implemented`; the
-   decision-record contract below owns the numbering, what is copied where, and what stays in the
-   archived Change;
-4. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
-5. keep execution slices, review rounds, validation evidence, and plan-versus-actual history in the
-   archived Change rather than copying them into Features;
-6. set lifecycle to `archived` and add `archivedAt`; the Change stays where it is, because its
-   directory is its slug and its URL does not depend on its lifecycle; and
-7. verify tracker neutrality, workflow conformance, and the Blueprint build.
+1. promote implemented behavior and durable constraints to the narrowest affected sub-capability;
+2. promote each realized ADR from the Proposal page to `blueprint/content/features/`; the
+   decision-record contract below owns the numbering and what stays behind;
+3. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
+4. export a Delivery summary of at most 40 lines — acceptance scenario results, verification,
+   findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
+5. generate the Delivery page, read every section rendered in a browser as the developer will,
+   then notify the developer and stop for acceptance (G2). Reading the source is not reading the
+   page: a stale count, a column that does not line up, an unreadable snippet are all invisible in
+   the file that produces them;
+6. verify tracker neutrality, workflow conformance, and the Features build.
 
-Open the pull request only after the Archive commit. If optional human PR feedback arrives and
-changes durable knowledge, amend the archived Change and promoted authorities on the same branch
-and rerun the applicable gates. After merge, move the operational Linear issue to Done; merge
-performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical
-snapshots. A later low-priority migration promotes only knowledge that is still current; it does not
-rewrite the remaining snapshots.
+Acceptance of the Delivery page is the last human gate. It authorizes opening the pull request
+without asking again: open it with the exported Delivery summary in the body, then wait for CI and
+for whatever the developer said about merging. If optional human PR feedback arrives and changes
+durable knowledge, amend the promoted Features and reopen `.scratch/<slug>/` to fix it, then rerun
+the applicable gates on the same branch. After merge, move the operational Linear issue to Done;
+merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical
+snapshots. A later low-priority migration promotes only knowledge that is still current; it does
+not rewrite the remaining snapshots.
 
 ## Implementation-slice contract
 
-Canonical execution data is JSON; MDX and React components render it for human review.
+Canonical execution data is one file per slice, kept outside Git.
 
 ```text
-blueprint/content/changes/<change-slug>/
-├── change.json                 canonical Change metadata
-├── meta.json                   page list
-├── index.mdx                   Overview narrative only
-├── design.mdx
-├── design.tsx                  optional interactive design
-├── design/
-│   └── decisions/
-│       └── D001-<decision>.json
-├── implementation.mdx         rendered review page
-├── implementation/
-│   ├── plan.json
-│   └── slices/
-│       ├── S01-<name>.json
-│       └── S02-<name>.json
-└── review.mdx
+.scratch/<change-slug>/                 gitignored; removed once the Change is archived
+├── S01-<name>.md
+├── S02-<name>.md
+└── ...
 ```
 
-The Overview page renders lifecycle from `change.json`, its date from that file's `startedAt`, and
-its artifact links from the pages Blueprint actually registered for the Change, ordered by that
-Change's `meta.json`. `summary` is the catalog card's text, not page content; the Overview opens on
-`index.mdx`'s `TLDR`, which repeats it. `index.mdx` carries narrative content only and must not
-restate any of that as component props. Link text is each page's own frontmatter `title`, so an
-Overview cannot link to a page that does not exist, show a stale title, or omit a page that was
-added.
+Manual runs use these files directly; Symphony runs use Linear sub-issues under the operational
+issue instead, keeping the same fields. Each slice states a stable ID, capability references,
+dependencies, outcome, acceptance criteria, verification, and status (`pending` or `completed`).
+Runtime states such as `claimed`, `running`, executor identity, and retry count do not belong in
+either form.
 
-`change.json` states `lifecycle` and never `status`. The coarse status that groups the catalog into
-Discussing, In Progress and Archive is derived from the lifecycle by an exhaustive table in
-`change-types.ts`, so a new lifecycle value fails to compile until it is grouped. Do not reintroduce
-a stored `status`: it would be a second copy of what the lifecycle already says.
+```text
+blueprint/content/changes/<slug>/       gitignored; regenerated locally at each gate
+├── proposal.mdx
+├── proposal.tsx                        optional interactive design mockup
+├── proposal/
+│   └── decisions/
+│       └── D01-<decision>.json         proposed ADRs; promoted to Features at Archive
+└── delivery.mdx
+```
 
-A Change directory is named exactly its stable slug and is served at `/changes/<slug>/` for the
-Change's whole life. There are no lifecycle directories and no date prefixes; `archivedAt` in
-`change.json` carries the archive date, and the catalog sorts and groups by it. `content/changes/`
-does not enumerate its Changes — its `meta.json` uses `["index", "..."]` — so adding a Change
-edits no page list.
+### Change scope
 
-Advancing a Change therefore edits `change.json` and nothing else. Nothing is renamed, so no link,
-no `designModules` key and no page list can go stale behind it.
+A Change targets soft limits before it needs splitting: at most 5 slices, at most 30 changed `src`
+files, and at most 8 acceptance scenarios on the Proposal page. Exceeding a target at Proposal time
+means splitting into multiple Changes rather than writing a larger one. The exported Delivery
+summary targets at most 40 lines in the pull-request body; anything beyond that stays in commit
+bodies.
 
-Durable slice statuses are `pending`, `completed`, and `superseded`. Runtime states such as
-`claimed`, `running`, executor identity, and retry count do not belong in Git and must not be added
-to slice files.
+A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the
+existing test suite plus a dependency-direction check) or a **behavior** change, never both.
 
-Implementation slices remain Change artifacts. Feature pages receive only durable current
-behavior, constraints, and decisions; they do not receive execution checklists.
+The escape hatch is a **Migration Change**: one Proposal page, accepted once at G1, covering the
+whole migration — its shard list, order, per-shard proof of behavior preservation, and completion
+criteria. Each shard afterward is its own Change and pull request, references the Migration
+Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every
+shard. The Migration Proposal's ADR is promoted to Features once, when the first shard archives;
+the remaining shards do not repeat it. `check-workflow.js` compares the diff against `dev` and
+warns, rather than fails, when a Change exceeds these targets without a PR body reference to a
+Migration Proposal slug.
 
 ## Decision-record contract
 
-Change ADRs live under `design/decisions/` because they explain solution and architecture choices;
-Overview may summarize their capability impact but must not become a second ADR source. Their active
-lifecycle is `candidate` during Propose, `accepted` after developer plan approval, and `implemented`
-only when Archive verifies the delivered decision.
+ADRs live on the Proposal page under `proposal/decisions/` because they explain solution and
+architecture choices; the TLDR may summarize their capability impact but must not become a second
+ADR source. An ADR sitting in a Change directory is proposed; the same record copied into
+`blueprint/content/features/` is adopted. There is no separate status field — the directory it sits
+in says which.
 
 Every ADR declares `targets` while it is first drafted. Each target is a hierarchical capability ID
-such as `game-recording/rally-input`; it identifies the expected promotion destination and makes the
-affected boundary reviewable during Propose. Archive reconciles these targets against delivered
-behavior before copying the record, rather than treating an early target as irrevocable.
+such as `game-recording/rally-input`; it identifies the expected promotion destination and makes
+the affected boundary reviewable at G1. Archive reconciles these targets against delivered behavior
+before copying the record, rather than treating an early target as irrevocable.
 
 Decision JSON conforms to `blueprint/schemas/decision-record.schema.json` and preserves the same
-human-review information used by interactive Design pages: stable ID and title, decision body, and
-rejected options with rationale. It additionally records lifecycle status, targets, context,
-consequences, and revisit triggers. `DecisionTimeline` renders these records in Design and Feature
-knowledge pages; rendering never becomes a second editable decision source.
+human-review information used by the Proposal page: stable ID and title, decision body, and
+rejected options with rationale. It additionally records targets, context, consequences, and
+revisit triggers. `DecisionTimeline` renders these records on the Proposal and Feature pages;
+rendering never becomes a second editable decision source.
 
-Archive retains each reconciled ADR in the complete Change and copies the implemented record to
+Archive copies each realized ADR to
 `blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy becomes
 canonical current knowledge. Later Changes may mark that Feature copy `superseded` without editing
-the historical ADR in the archived Change.
+the proposed record, which disappears with the rest of the Change directory once it is archived.
 
-A promoted record is renumbered, because the two copies answer to different namespaces. Inside its
-Change, `D3` means the third decision of that piece of reasoning, and the archived Change keeps it
-untouched. Inside Features it has to be unique across everything promoted so far, so Archive assigns
-the next free number in **one sequence spanning the whole Features tree** and records where the
-record came from in `originChange` and `originDecision`. Both coordinates therefore resolve: the
-Change's own numbering stays the way to cite the reasoning, and the Feature number is the way to
-cite current knowledge.
+A promoted record is renumbered, because the two copies answer to different namespaces. On the
+Proposal page, `D3` means the third decision of that piece of reasoning, and it is gone once the
+Change directory is regenerated for the next gate or removed after Archive. Inside Features it has
+to be unique across everything promoted so far, so Archive assigns the next free number in **one
+sequence spanning the whole Features tree** and records where the record came from in
+`originChange` and `originDecision`. Citing the Proposal's own numbering only works while the
+Change is still open; the Feature number is the only citation that survives Archive.
 
 The sequence is global rather than per capability because one ADR may target several. Numbering per
 capability would give a single decision two numbers, and a decision is one entry however many pages
@@ -357,13 +333,13 @@ index it. The number says nothing about which capability it governs; the directo
 
 ## Branch and commit strategy
 
-One Change uses one integration branch from Propose through delivery. Propose, execution
-preparation, lifecycle approval, and each completed slice are separate reviewable commits. Use
-temporary slice branches only when truly independent work must run in parallel, then integrate them
-back into the Change branch before final verification.
+One Change uses one integration branch from the first slice commit through delivery. Each completed
+slice is a separate reviewable commit; use temporary slice branches only when truly independent
+work must run in parallel, then integrate them back into the Change branch before final
+verification.
 
-Do not create a separate planning branch and do not merge proposal artifacts into `dev` before the
-Change is delivered. Push the Change branch when another session or Symphony must resume it.
+Proposal-page content never enters git — it lives only in the regenerated, gitignored Change
+directory. Push the Change branch when another session or Symphony must resume it.
 
 Merge a Change into `dev` with a merge commit. Squashing collapses the per-slice commits and
 discards the `Implements` and `Blueprint-Change` trailers that make delivery traceable, which is
@@ -374,32 +350,32 @@ history — a single-commit fix or a tooling change — and say so in the pull r
 
 ### Manual workflow
 
-The developer invokes Apply directly after approving the Blueprint plan. Resume from repository
-artifacts, git state, and verification evidence. No Symphony process, claim, dashboard, or
-workspace manager is required.
+The developer invokes Apply directly after accepting the Proposal page at G1. Resume from
+repository artifacts, git state, and verification evidence. No Symphony process, claim, dashboard,
+or workspace manager is required.
 
 Before Manual Apply starts for an issue that may be visible to Symphony:
 
 1. inspect the configured Symphony status surface for the issue identifier; `running`, `retrying`,
    and `blocked` all mean Symphony still owns a live claim, so stop rather than entering the same
    Change workspace manually;
-2. if the issue is not tracked by Symphony, the developer removes `agent:ready` to prevent a future
-   unattended claim;
+2. if the issue is not tracked by Symphony, the developer moves it out of the tracker's
+   ready-to-start status to prevent a future unattended claim;
 3. request a Symphony refresh when the runtime is available, then inspect the issue status again;
-4. begin Manual Apply only when the issue remains absent from the runtime status surface after that
-   post-removal check.
+4. begin Manual Apply only when the issue remains absent from the runtime status surface after
+   that post-removal check.
 
-The second status check closes the race between the initial observation and label removal. If a
-claim appears during that window, label removal makes the issue unroutable and Symphony
-reconciliation must release or stop it before Manual Apply proceeds. Agents and Prepare execution
-never remove `agent:ready` on the developer's behalf, and completion of Manual Apply never restores
-the label automatically.
+The second status check closes the race between the initial observation and the status change. If
+a claim appears during that window, the status change makes the issue unroutable and Symphony
+reconciliation must release or stop it before Manual Apply proceeds. Agents never change that
+status on the developer's behalf, and completion of Manual Apply never restores it automatically.
 
 ### Symphony workflow
 
-After plan approval, the developer may add `agent:ready`. Symphony claims the Change's operational
-issue, creates or resumes an isolated workspace, and invokes the same Apply contract. The current
-dispatch unit is one Change; Symphony does not claim individual slice JSON files.
+After G1 acceptance, the developer may move the issue to the tracker's ready-to-start status.
+Symphony claims the Change's operational issue, creates or resumes an isolated workspace, and
+invokes the same Apply contract. The current dispatch unit is one Change; Symphony does not claim
+individual slice files.
 
 Removing or replacing Symphony must not alter Change artifacts, slice status semantics, commits, or
 human approval gates.
@@ -412,7 +388,7 @@ run can be resumed by another and an unblock action has somewhere to wait for th
 ```yaml
 change: stable-change-slug
 branch: feat/stable-change-slug
-phase: prepare-execution | apply | ingest | pre-pr | review | archive
+phase: apply | ingest | pre-pr | archive
 current_slice: S01 | null
 completed: []
 validation: []
@@ -424,19 +400,16 @@ The workpad may include tracker, run, workspace, commit, and pull-request refere
 active. Blueprint must not copy those tracker-specific references into its durable content.
 
 A manual run keeps no workpad. Every field above except `blockers` and `next_action` is already
-recorded in the repository — the lifecycle in `change.json`, slice status in the slice JSON,
-validation in commit trailers and the Review page — and a copy kept by hand drifts from them. A
-manual run states its blockers and next action to the developer directly.
+recorded in the repository — slice status in `.scratch/<slug>/`, validation in commit trailers —
+and a copy kept by hand drifts from them. A manual run states its blockers and next action to the
+developer directly.
 
 ## Blueprint knowledge contract
 
-- **Overview:** context, goals/non-goals, Change boundaries, capability impact, alternatives,
-  decision rationale, and revisit triggers.
-- **Design:** adopted behavior and architecture, contracts, failure modes, data and interaction
-  flows, testing strategy, trade-offs, risks, and structured Change-scoped ADRs.
-- **Implementation:** repository-native vertical slices and dependency/progress visualization.
-- **Review:** actual delivery, plan-versus-actual, validation, review findings and fixes, rollout,
-  residual risks, and follow-ups.
+- **Proposal:** context, goals/non-goals, Change boundaries and dependency direction, behavior
+  contract, acceptance scenarios, structured ADRs, design mockup, and risks.
+- **Delivery:** acceptance scenario results, verification, review findings and fixes, boundary-
+  relevant diffs, and residual risks.
 - **Features:** current capability and sub-capability behavior, constraints, implemented/superseded
   decision copies, and long-term evolution—not active execution status.
 
@@ -446,7 +419,7 @@ lifecycle authority.
 
 ### Presentation
 
-Blueprint pages exist to be read by a human deciding whether to accept delivery, so structure a
+Blueprint pages exist to be read by a human deciding whether to accept a gate, so structure a
 reader can scan is part of the artifact rather than decoration. Prose alone is insufficient wherever
 the information is spatial, comparative, or ranked by severity: no paragraph shows at a glance which
 files changed, which finding blocks acceptance, or which line a fix landed on.
@@ -461,23 +434,21 @@ Render such information with the components the repository already has, rather t
 | Before and after of a specific edit                  | `AnnotatedDiff`        |
 | Risks or review findings, ranked by severity         | `RiskTable`            |
 | A process whose steps a reader may want to open      | `InteractiveFlowchart` |
-| Completion against a total                           | `TaskProgress`         |
-| A dated sequence                                     | `Timeline`             |
 | Structured decision records                          | `DecisionTimeline`     |
 
-Minimum per page: Overview opens with `TLDR` and carries an Impact section naming the affected
-capabilities and, through `FileTour`, the affected files with the why for each; Design carries at
-least one diagram of the adopted shape and states its risks through `RiskTable`; Review states
-delivery through `FileTour`, findings and residual risks through `RiskTable`, and shows every defect
-it reports as an `AnnotatedDiff` of the fix. Implementation needs no slice component — the page
-shell already renders the slice JSON.
+Minimum per page: Proposal opens with `TLDR`, states acceptance criteria as `Scenario` blocks,
+carries at least one diagram of the adopted shape or a mockup, and states risks through
+`RiskTable`; Delivery opens with `TLDR`, shows acceptance results and verification as tables,
+findings through `RiskTable`, and boundary-relevant fixes as `AnnotatedDiff`.
 
-Four rules bind this:
+Five rules bind this:
 
 - A component earns its place by carrying structure prose cannot. The narrative that explains _why_
   still belongs beside it, and a page that is only components has lost the argument.
 - Components render data and never become a second source for it. A page must not restate what the
-  page shell already renders from `change.json`, the slice JSON, or the decision records.
+  page shell already renders from the slice files or the decision records.
 - Diagrams are part of the specification, not illustrations of it. When delivery diverges from what
   a diagram shows, the diagram is corrected in the same round as the text.
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
+- Change pages are never committed; the durable export is Markdown in the PR body and ADRs
+  promoted to Features.
