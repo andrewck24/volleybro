@@ -6,11 +6,17 @@ issue tracker or orchestration runtime is configured.
 ## Change review surfaces
 
 Every Change renders a Proposal page (with an optional design-mockup `proposal.tsx`) and, later, a
-Delivery page. Both live under `blueprint/content/changes/<slug>/`, which is gitignored: the pages
-are regenerated locally at each gate and are never committed. Structured ADR JSON follows
-`blueprint/schemas/decision-record.schema.json` and sits alongside the Proposal page while it is
-proposed. The Proposal page renders those records with `DecisionTimeline`; new Changes must not
-maintain a parallel hard-coded `DECISIONS` array as a second editable source.
+Delivery page. Both are written under `blueprint/content/changes/<slug>/`, gitignored on the Change
+branch. At each gate the agent publishes them with `pnpm blueprint:changes:publish <slug>`, which
+commits them to the orphan `blueprint-changes` branch and pushes it — the durable store of every
+Change page, old and new, that never merges into other branches. `pnpm --filter blueprint dev` and
+`build` first run `pnpm blueprint:changes:pull`, copying every published Change into
+`blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published
+Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the
+store cannot be fetched. Structured ADR JSON follows `blueprint/schemas/decision-record.schema.json`
+and sits alongside the Proposal page while it is proposed. The Proposal page renders those records
+with `DecisionTimeline`; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a
+second editable source.
 
 ## Canonical current knowledge
 

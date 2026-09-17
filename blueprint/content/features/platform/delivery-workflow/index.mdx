@@ -36,8 +36,9 @@ optional Symphony execution.
 - No pull request opens before Archive completes and the developer accepts
   the Delivery page (G2); merge performs no second knowledge sync.
 - Blueprint's Change review surfaces (`proposal.mdx`, `delivery.mdx`) are
-  gitignored and regenerated locally at each gate — they are throwaway review
-  surfaces, not durable storage.
+  gitignored on the Change branch and published to the `blueprint-changes`
+  store branch at each gate, which is their durable store — not the Change
+  branch itself.
 
 ## Implemented decisions
 

@@ -35,20 +35,20 @@ acceptance. Provider instruction files are bridges only.
 
 ## Repository profile
 
-| Responsibility                         | VolleyBro binding                                                             |
-| -------------------------------------- | ----------------------------------------------------------------------------- |
-| Integration branch and default PR base | `dev`                                                                         |
-| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                             |
-| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                             |
-| Section gate                           | `pnpm verify`                                                                 |
-| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all |
-| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones        |
-| Change review surfaces (gitignored)    | `blueprint/content/changes/<slug>/proposal.mdx`, `delivery.mdx`               |
-| Canonical current capability knowledge | `blueprint/content/features/`                                                 |
-| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change  |
-| Version and changelog evidence         | `.changeset/` through Changesets                                              |
-| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                   |
-| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                        |
+| Responsibility                         | VolleyBro binding                                                                                                                                                |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integration branch and default PR base | `dev`                                                                                                                                                            |
+| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                                |
+| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                                |
+| Section gate                           | `pnpm verify`                                                                                                                                                    |
+| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                    |
+| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                           |
+| Change review surfaces                 | `blueprint/content/changes/<slug>/proposal.mdx`, `delivery.mdx`; gitignored on the Change branch, published to the `blueprint-changes` store branch at each gate |
+| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                    |
+| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change                                                                                     |
+| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                                 |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                      |
+| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                           |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the
 current engineering playbooks; a future compatible skill may replace them without changing the
@@ -74,9 +74,9 @@ not from an additional workflow skill.
 - Linear owns intake and current operational state. Issues may be archived or deleted after the
   development lifecycle, so durable repository knowledge must not depend on Linear URLs or IDs.
   Name other work by its Change slug, or by a short description of it when it has no slug yet.
-- Blueprint Change pages are throwaway review surfaces for the two human gates; durable rationale
-  lives in Feature ADRs, PR bodies, and commit bodies. Blueprint does not know which issue tracker
-  is configured.
+- Blueprint Change pages review the two human gates and, once published, persist as durable review
+  history on the `blueprint-changes` store branch; canonical rationale still lives in Feature ADRs,
+  PR bodies, and commit bodies. Blueprint does not know which issue tracker is configured.
 - Blueprint Features own current capability and sub-capability behavior, constraints, implemented
   or superseded decisions, and revisit triggers.
 - Code and tests own actual system behavior.
@@ -140,7 +140,8 @@ request opens. Everything between a gate and the next runs without stopping for 
     adopted decisions, behavior contracts stated as acceptance scenarios, failure modes, testing
     strategy, and revisit triggers on the Proposal page; add a design mockup (`proposal.tsx`) when
     one clarifies the adopted shape.
-- **Exit (G1):** the Proposal page renders complete; notify the developer and stop for acceptance.
+- **Exit (G1):** the Proposal page renders complete; publish it with
+  `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for acceptance.
   Acceptance authorizes slice decomposition, implementation, review to a fixed point, and Archive
   to run without stopping again until G2. If the developer instead sends the Change to Ingest (see
   Apply), boundaries or design change and the Proposal page is regenerated for another G1 pass.
@@ -235,9 +236,9 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
 4. export a Delivery summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
 5. generate the Delivery page, read every section rendered in a browser as the developer will,
-   then notify the developer and stop for acceptance (G2). Reading the source is not reading the
-   page: a stale count, a column that does not line up, an unreadable snippet are all invisible in
-   the file that produces them;
+   publish it with `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for
+   acceptance (G2). Reading the source is not reading the page: a stale count, a column that does
+   not line up, an unreadable snippet are all invisible in the file that produces them;
 6. verify tracker neutrality, workflow conformance, and the Features build.
 
 Acceptance of the Delivery page is the last human gate. It authorizes opening the pull request
@@ -259,7 +260,8 @@ capability references, dependencies, outcome, acceptance criteria, verification,
 retry count do not belong on the sub-issue.
 
 ```text
-blueprint/content/changes/<slug>/       gitignored; regenerated locally at each gate
+blueprint/content/changes/<slug>/       gitignored on the Change branch; published to the
+                                         blueprint-changes store branch at each gate
 ├── proposal.mdx
 ├── proposal.tsx                        optional interactive design mockup
 ├── proposal/
@@ -403,6 +405,12 @@ pick up where the run stopped without a separate handoff file.
 
 ## Blueprint knowledge contract
 
+Proposal and Delivery pages are written under gitignored `blueprint/content/changes/<slug>/` on the
+Change branch and published to the `blueprint-changes` store branch at each gate — the durable store
+of every Change page, old and new, that never merges into other branches.
+`pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy
+carries all published Changes plus Features and the Design System from the deployed branch.
+
 - **Proposal:** context, goals/non-goals, Change boundaries and dependency direction, behavior
   contract, acceptance scenarios, structured ADRs, design mockup, and risks.
 - **Delivery:** acceptance scenario results, verification, review findings and fixes, boundary-
@@ -447,5 +455,6 @@ Five rules bind this:
 - Diagrams are part of the specification, not illustrations of it. When delivery diverges from what
   a diagram shows, the diagram is corrected in the same round as the text.
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
-- Change pages are never committed; the durable export is Markdown in the PR body and ADRs
-  promoted to Features.
+- Change pages are gitignored on the Change branch and published to the `blueprint-changes` store
+  branch at each gate, where they persist as durable review history; the PR body still carries the
+  ≤40-line Delivery summary, and ADRs still promote to Features.

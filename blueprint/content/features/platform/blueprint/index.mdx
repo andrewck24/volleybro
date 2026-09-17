@@ -14,11 +14,7 @@ capability knowledge in Features.
 
 ## Current behavior
 
-- A Change's review surfaces live at
-  `blueprint/content/changes/<slug>/proposal.mdx` and `delivery.mdx`,
-  gitignored and regenerated locally per gate with
-  `pnpm --filter blueprint dev`; nothing under `content/changes/` is
-  committed.
+- A Change's review surfaces live at `blueprint/content/changes/<slug>/proposal.mdx` and `delivery.mdx`, gitignored on the Change branch. Publishing them commits and pushes to the orphan `blueprint-changes` branch, their durable store; the Blueprint dev server and build first pull every published Change from it.
 - ADRs are drafted under `proposal/decisions/` on the Proposal page. An ADR
   sitting in a Change directory is proposed; the same record copied into
   `blueprint/content/features/` at Archive is adopted — the directory it sits
@@ -27,9 +23,13 @@ capability knowledge in Features.
   same way in manual and Symphony mode, not in Blueprint; a Change that fits
   one session skips slices entirely. Sub-issues close once the Change is
   archived.
-- `features/` and `design-system/` are the only Blueprint content that stays
-  in Git and ships. Both are canonical current knowledge, read at every
-  intake.
+- `features/` and `design-system/` stay in Git on normal branches and ship at
+  every deploy because agents read them as current knowledge and they change
+  with the code. Published Changes ship too, pulled from the
+  `blueprint-changes` store branch at build time.
+- The 22 old-format Changes moved from the four-page shell live on the store
+  branch and render through a temporary compatibility layer until they are
+  converted; that conversion work is tracked outside the repository.
 
 ## Constraints
 
