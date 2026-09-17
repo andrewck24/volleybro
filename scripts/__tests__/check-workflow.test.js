@@ -1,10 +1,24 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
-import { checkWorkflow } from "../check-workflow.js";
+import { hashDir } from "../blueprint-changes.js";
+
+import {
+  checkWorkflow,
+  checkChangeScope,
+  checkPublished,
+} from "../check-workflow.js";
+
+const execFileAsync = promisify(execFile);
+const CHECK_WORKFLOW_SCRIPT = fileURLToPath(
+  new URL("../check-workflow.js", import.meta.url),
+);
 
 const validWorkflow = `---
 delivery:
@@ -37,37 +51,42 @@ delivery:
 # Delivery contract
 `;
 
-async function makeRepository(overrides = {}) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "workflow-check-"));
-  const files = {
-    "WORKFLOW.md": validWorkflow,
-    "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
-    "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
-    "docs/agents/issue-tracker.md": "# Issue tracker adapter\n",
-    "docs/agents/domain.md": "# Domain documentation adapter\n",
-    "docs/agents/blueprint.md": "# Blueprint adapter\n",
-    "docs/agents/artifact-lifecycle.md": "# Artifact lifecycle adapter\n",
-    "CONTRIBUTING.md": "Read WORKFLOW.md before delivery work.\n",
-    ".gitignore": ".agents/settings.local.*\n",
-    "skills-lock.json": JSON.stringify({
-      version: 1,
-      skills: { "to-spec": {} },
-    }),
-    ".agents/skills/to-spec/SKILL.md": "# To spec\n",
-    ...overrides,
-  };
+const REPOSITORY_FILES = {
+  "WORKFLOW.md": validWorkflow,
+  "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
+  "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
+  "docs/agents/issue-tracker.md": "# Issue tracker adapter\n",
+  "docs/agents/domain.md": "# Domain documentation adapter\n",
+  "docs/agents/blueprint.md": "# Blueprint adapter\n",
+  "docs/agents/artifact-lifecycle.md": "# Artifact lifecycle adapter\n",
+  "CONTRIBUTING.md": "Read WORKFLOW.md before delivery work.\n",
+  ".gitignore": ".agents/settings.local.*\n",
+  "skills-lock.json": JSON.stringify({
+    version: 1,
+    skills: { "to-spec": {} },
+  }),
+  ".agents/skills/to-spec/SKILL.md": "# To spec\n",
+};
 
+async function writeFiles(root, files) {
   for (const [relativePath, content] of Object.entries(files)) {
     if (content === null) continue;
     const filePath = path.join(root, relativePath);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, content, "utf8");
   }
+}
 
+async function addSkillBridge(root) {
   const bridge = path.join(root, ".claude/skills/to-spec");
   await mkdir(path.dirname(bridge), { recursive: true });
   await symlink("../../.agents/skills/to-spec", bridge);
+}
 
+async function makeRepository(overrides = {}) {
+  const root = await mkdtemp(path.join(os.tmpdir(), "workflow-check-"));
+  await writeFiles(root, { ...REPOSITORY_FILES, ...overrides });
+  await addSkillBridge(root);
   return root;
 }
 
@@ -192,28 +211,6 @@ test("reports an active retired harness reference", async () => {
   );
 });
 
-test("reports Overview metadata restated as MDX props", async () => {
-  assert.match(
-    (
-      await messages({
-        "blueprint/content/changes/sample/index.mdx":
-          '---\ntitle: Overview\n---\n\n<ChangeOverview date="2026-08-08" />\n',
-      })
-    ).join("\n"),
-    /sample\/index\.mdx.*blueprint-overview-source/i,
-  );
-});
-
-test("accepts an Overview that carries narrative content only", async () => {
-  assert.deepEqual(
-    await messages({
-      "blueprint/content/changes/sample/index.mdx":
-        "---\ntitle: Overview\n---\n\n## Context\n",
-    }),
-    [],
-  );
-});
-
 test("reports an internal link that bypasses the router", async () => {
   assert.match(
     (
@@ -238,127 +235,84 @@ test("accepts external links and in-page anchors", async () => {
   );
 });
 
-test("reports a design module without its interactive design page", async () => {
+test("reports a Proposal missing a Scenario or a TLDR", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
-          'const designModules = {\n  "moved-change/design": () => import("x"),\n};\n',
+        "blueprint/content/changes/c/proposal.mdx":
+          "---\ntitle: Proposal\n---\n\n## Context\n",
       })
     ).join("\n"),
-    /moved-change\/design\.tsx.*does not exist/i,
+    /c\/proposal\.mdx.*blueprint-proposal/i,
   );
 });
 
-test("accepts a design module whose design page exists", async () => {
+test("reports a Proposal missing a TLDR", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Proposal\n---\n\n<Scenario given="a" when="b" then="c" />\n',
+      })
+    ).join("\n"),
+    /c\/proposal\.mdx.*blueprint-proposal/i,
+  );
+});
+
+test("skips old-format Changes from the page store", async () => {
   assert.deepEqual(
     await messages({
-      "blueprint/src/app/(docs)/changes/[[...slug]]/page.tsx":
-        'const designModules = {\n  "kept-change/design": () => import("x"),\n};\n',
-      "blueprint/content/changes/kept-change/design.tsx":
-        "export default () => null;\n",
+      "blueprint/content/changes/old/change.json": "{}\n",
+      "blueprint/content/changes/old/proposal.mdx":
+        "---\ntitle: Old\n---\n\nNo components.\n",
+      "blueprint/content/changes/old/review.mdx":
+        "---\ntitle: Review\n---\n\n<FileTour files={[{ code={`a\nb`} }]} />\n",
     }),
     [],
   );
 });
 
-const change = (lifecycle) => JSON.stringify({ slug: "c", lifecycle });
-const meta = (...pages) => JSON.stringify({ title: "c", pages });
-const tour = (entry) =>
-  `---\ntitle: Review\n---\n\n<FileTour\n  files={[\n    {\n${entry}\n    },\n  ]}\n/>\n`;
-
-test("reports a Change awaiting delivery review with no review page", async () => {
-  assert.match(
-    (
-      await messages({
-        "blueprint/content/changes/c/change.json": change(
-          "awaiting-delivery-review",
-        ),
-        "blueprint/content/changes/c/meta.json": meta("index"),
-      })
-    ).join("\n"),
-    /blueprint-review.*review page/i,
-  );
-});
-
-test("accepts a Change awaiting delivery review that carries one", async () => {
-  const gaps = (
+test("accepts a Proposal with a TLDR and a Scenario", async () => {
+  assert.deepEqual(
     await messages({
-      "blueprint/content/changes/c/change.json": change(
-        "awaiting-delivery-review",
-      ),
-      "blueprint/content/changes/c/meta.json": meta("index", "review"),
-      "blueprint/content/changes/c/review.mdx": tour(
-        `      path: "src/a.ts",\n      change: "modified",\n      code: "const a = 1;",`,
-      ),
-    })
-  ).join("\n");
-  assert.doesNotMatch(gaps, /blueprint-review/i);
-  assert.doesNotMatch(gaps, /blueprint-file-tour/i);
-});
-
-test("reports a review FileTour entry with no code", async () => {
-  assert.match(
-    (
-      await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta("index", "review"),
-        "blueprint/content/changes/c/review.mdx": tour(
-          `      path: "src/a.ts",\n      change: "modified",\n      summary: "why",`,
-        ),
-      })
-    ).join("\n"),
-    /blueprint-file-tour.*src\/a\.ts/i,
+      "blueprint/content/changes/c/proposal.mdx":
+        '---\ntitle: Proposal\n---\n\n<TLDR>Summary</TLDR>\n\n<Scenario given="a" when="b" then="c" />\n',
+    }),
+    [],
   );
 });
 
-// A snippet may contain "/>" of its own; the tour closes on its array literal.
-test("finds a later entry past a snippet that contains a JSX close", async () => {
+test("reports a Review missing a markdown table", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta("index", "review"),
         "blueprint/content/changes/c/review.mdx":
-          `---\ntitle: Review\n---\n\n<FileTour\n  files={[\n` +
-          `    {\n      path: "src/a.tsx",\n      change: "modified",\n      code: '<Thing a="1" />',\n    },\n` +
-          `    {\n      path: "src/b.ts",\n      change: "modified",\n      summary: "why",\n    },\n` +
-          `  ]}\n/>\n`,
+          "---\ntitle: Review\n---\n\n<TLDR>Summary</TLDR>\n\nNo table here.\n",
       })
     ).join("\n"),
-    /blueprint-file-tour.*src\/b\.ts/i,
+    /c\/review\.mdx.*blueprint-review/i,
   );
 });
 
-test("leaves an archived Change's review alone", async () => {
-  assert.doesNotMatch(
-    (
-      await messages({
-        "blueprint/content/changes/c/change.json": change("archived"),
-        "blueprint/content/changes/c/meta.json": meta("index", "review"),
-        "blueprint/content/changes/c/review.mdx": tour(
-          `      path: "src/a.ts",\n      change: "modified",\n      summary: "why",`,
-        ),
-      })
-    ).join("\n"),
-    /blueprint-file-tour/i,
-  );
-});
-
-test("reports an implementation page that writes its own slice progress", async () => {
+test("reports a Review missing a TLDR", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta(
-          "index",
-          "implementation",
-        ),
-        "blueprint/content/changes/c/implementation.mdx":
-          "---\ntitle: Implementation\n---\n\n<TaskProgress done={0} total={3} />\n",
+        "blueprint/content/changes/c/review.mdx":
+          "---\ntitle: Review\n---\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
       })
     ).join("\n"),
-    /blueprint-slice-progress/i,
+    /c\/review\.mdx.*blueprint-review/i,
+  );
+});
+
+test("accepts a Review with a TLDR and a markdown table", async () => {
+  assert.deepEqual(
+    await messages({
+      "blueprint/content/changes/c/review.mdx":
+        "---\ntitle: Review\n---\n\n<TLDR>Summary</TLDR>\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
+    }),
+    [],
   );
 });
 
@@ -367,10 +321,8 @@ test("reports a snippet written as a multi-line template literal", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta("index"),
-        "blueprint/content/changes/c/index.mdx":
-          "---\ntitle: Overview\n---\n\n<AnnotatedDiff\n  code={`const a = 1;\n  const b = 2;`}\n/>\n",
+        "blueprint/content/changes/c/proposal.mdx":
+          "---\ntitle: Proposal\n---\n\n<AnnotatedDiff\n  code={`const a = 1;\n  const b = 2;`}\n/>\n",
       })
     ).join("\n"),
     /blueprint-snippet/i,
@@ -381,10 +333,8 @@ test("reports a snippet written as a bare string attribute", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta("index"),
-        "blueprint/content/changes/c/index.mdx":
-          '---\ntitle: Overview\n---\n\n<AnnotatedDiff\n  code="const a = 1;\\n  const b = 2;"\n/>\n',
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Proposal\n---\n\n<AnnotatedDiff\n  code="const a = 1;\\n  const b = 2;"\n/>\n',
       })
     ).join("\n"),
     /blueprint-snippet.*bare string/i,
@@ -395,12 +345,152 @@ test("accepts a snippet written as an escaped string", async () => {
   assert.doesNotMatch(
     (
       await messages({
-        "blueprint/content/changes/c/change.json": change("applying"),
-        "blueprint/content/changes/c/meta.json": meta("index"),
-        "blueprint/content/changes/c/index.mdx":
-          '---\ntitle: Overview\n---\n\n<AnnotatedDiff code={"const a = 1;\\n  const b = 2;"} />\n',
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Proposal\n---\n\n<AnnotatedDiff code={"const a = 1;\\n  const b = 2;"} />\n',
       })
     ).join("\n"),
     /blueprint-snippet/i,
   );
+});
+
+test("checkChangeScope is silent outside a git repository", async () => {
+  const root = await makeRepository();
+  assert.deepEqual(await checkChangeScope(root), []);
+});
+
+// A minimal repo for checkChangeScope: a `dev` base commit, then a feature
+// branch with a given number of src/ files changed against it. `commitArgs`
+// lets a test add a trailer via an extra -m. `seedWorkflowFiles` also lays
+// down a valid checkWorkflow() repository, for a test that runs the CLI.
+async function makeScopeRepository(fileCount, commitArgs = [], options = {}) {
+  const { seedWorkflowFiles = false } = options;
+  const root = await mkdtemp(path.join(os.tmpdir(), "change-scope-"));
+  const git = (args) => execFileAsync("git", args, { cwd: root });
+
+  await git(["init", "-q", "-b", "dev"]);
+  await git(["config", "user.email", "test@example.com"]);
+  await git(["config", "user.name", "Test"]);
+  await writeFile(path.join(root, "README.md"), "init\n");
+  if (seedWorkflowFiles) {
+    await writeFiles(root, REPOSITORY_FILES);
+    await addSkillBridge(root);
+  }
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "init"]);
+
+  await git(["checkout", "-q", "-b", "feat/scope-test"]);
+  await mkdir(path.join(root, "src"), { recursive: true });
+  for (let i = 0; i < fileCount; i += 1) {
+    await writeFile(
+      path.join(root, `src/file${i}.ts`),
+      `export const f${i} = ${i};\n`,
+    );
+  }
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add files", ...commitArgs]);
+
+  return root;
+}
+
+test("checkChangeScope warns past the soft file-count target", async () => {
+  const root = await makeScopeRepository(31);
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+  assert.match(warnings[0], /31 files changed/);
+});
+
+test("checkChangeScope accepts a Migration trailer in the commit log", async () => {
+  const root = await makeScopeRepository(31, [
+    "-m",
+    "Migration: two-gate-workflow",
+  ]);
+  assert.deepEqual(await checkChangeScope(root), []);
+});
+
+test("checkChangeScope accepts a --migration slug", async () => {
+  const root = await makeScopeRepository(31);
+  assert.deepEqual(
+    await checkChangeScope(root, { migrationSlug: "two-gate-workflow" }),
+    [],
+  );
+});
+
+test("checkChangeScope ignores a Migration mention outside the trailer block", async () => {
+  const root = await makeScopeRepository(31, [
+    "-m",
+    "This work touches Migration: two-gate-workflow in prose, not a trailer.",
+  ]);
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+});
+
+test("checkChangeScope warns past the soft scenario-count target", async () => {
+  const scenarios = Array.from(
+    { length: 9 },
+    (_, i) => `<Scenario given="g${i}" when="w${i}" then="t${i}" />`,
+  ).join("\n");
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx": `---\ntitle: Proposal\n---\n\n${scenarios}\n`,
+  });
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+  assert.match(warnings[0], /9 acceptance scenarios/);
+});
+
+test("checkChangeScope never fails the process, even when it warns", async () => {
+  const root = await makeScopeRepository(31, [], { seedWorkflowFiles: true });
+
+  const result = await execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], {
+    cwd: root,
+  }).catch((error) => error);
+
+  assert.equal(result.code ?? 0, 0);
+  assert.match(result.stderr, /Warning:.*change-scope/is);
+});
+
+test("the gate check passes when the local pages match what was published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "published\n",
+  });
+  const changes = path.join(root, "blueprint/content/changes");
+  await writeFile(
+    path.join(changes, ".store-state.json"),
+    JSON.stringify({ c: await hashDir(path.join(changes, "c")) }),
+  );
+
+  assert.equal(await checkPublished(root, "c"), undefined);
+});
+
+test("the gate check reports pages edited since they were published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "published\n",
+  });
+  const changes = path.join(root, "blueprint/content/changes");
+  await writeFile(
+    path.join(changes, ".store-state.json"),
+    JSON.stringify({ c: await hashDir(path.join(changes, "c")) }),
+  );
+  await writeFile(path.join(changes, "c/review.mdx"), "edited\n");
+
+  assert.match(
+    await checkPublished(root, "c"),
+    /edited since it was published/,
+  );
+});
+
+test("the gate check reports a Change that was never published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "draft\n",
+  });
+
+  assert.match(await checkPublished(root, "c"), /never published/);
+});
+
+test("the gate check reports a Change with no directory at all", async () => {
+  const root = await makeRepository();
+
+  assert.match(await checkPublished(root, "c"), /no Change directory/);
 });

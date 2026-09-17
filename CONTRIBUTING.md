@@ -57,7 +57,7 @@ style(components): apply prettier formatting to team directory
 
 **Body:** the body explains _why_; what changed is supporting context the diff already shows. A tooling name is never the type or the scope.
 
-**Trailers:** slice commits carry `Implements: S0X` and `Blueprint-Change: <slug>` trailers, which are the canonical slice-to-commit mapping (see `WORKFLOW.md` §4). Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
+**Trailers:** every Change commit carries a `Blueprint-Change: <slug>` trailer. A slice commit also carries `Implements: S0X`, which together are the canonical slice-to-commit mapping (see `WORKFLOW.md`'s Apply section); the slice ID comes from the matching Linear sub-issue. A one-session Change that skips slices omits `Implements` and keeps only `Blueprint-Change`. A Migration Change shard's commit also carries a `Migration: <migration-slug>` trailer, referencing its Migration Proposal. A Fix-path commit (see `WORKFLOW.md`'s Fix path) carries `Refs: <tracker issue>` instead, and omits `Implements` and `Blueprint-Change` — a tracker issue ID belongs in a commit trailer or a pull-request body, never in source. Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
 
 ```bash
 git log -1 --format='%(trailers:only,unfold)'
@@ -92,11 +92,11 @@ Write one only for what the code cannot say by itself:
 - why an obvious alternative was rejected, where the next reader would otherwise reintroduce it;
 - a consequence that lands somewhere else in the codebase.
 
-Never restate what the line does, and never re-argue a decision a Blueprint Change already owns. Reference it instead of copying it, or the two drift apart — and qualify the id with the Change slug, because `D2` alone is ambiguous as soon as a file has been touched by more than one Change:
+Never restate what the line does, and never re-argue a decision a Feature ADR already owns. Reference it instead of copying it, or the two drift apart — and cite its Feature number, which is unique across `blueprint/content/features/` and survives Archive. A Change's own `D2` disappears with its uncommitted Proposal page, so qualify it with the Change slug only while that Change is still open:
 
 ```ts
 // Deliberately the same judgement as the indicator's warning tone.
-// See honest-sync-status D2.
+// See Feature D19.
 ```
 
 Keep what survives short. One or two lines is the norm; a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file.
@@ -118,11 +118,9 @@ The gates that must pass before a pull request are listed in `WORKFLOW.md`'s Rep
 
 ### Working in a git worktree
 
-A worktree has no `node_modules` and no `.env`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject. `pnpm build` only collects page data, so dummy values satisfy it:
+A worktree starts without `node_modules`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject.
 
-```bash
-MONGODB_URI='mongodb://localhost:27017/vb-build' BETTER_AUTH_SECRET='dummy-build-secret-0123456789' BETTER_AUTH_URL='http://localhost:3000' GOOGLE_CLIENT_ID='x' GOOGLE_CLIENT_SECRET='x' pnpm build
-```
+`.worktreeinclude` lists `.env.local`, so agent tooling that reads that file copies it into each worktree it creates. A worktree made with plain `git worktree add`, or by a tool that ignores the file, gets no copy: copy `.env.local` yourself before running `pnpm build` or `pnpm dev`.
 
 Remove a worktree that still holds symlinks with `git worktree remove --force <path>`.
 

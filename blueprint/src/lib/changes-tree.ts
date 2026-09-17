@@ -18,6 +18,18 @@ function withNavigableFolders(folder: Folder): Folder {
   const children = folder.children.map((child) =>
     child.type === "folder" ? withNavigableFolders(child) : child,
   );
+
+  // A folder with at most one page (a Change that has published only one of
+  // proposal/review, or a one-page legacy subfolder) must keep that page as its own child rather than
+  // being collapsed into `index`. Fumadocs' breadcrumb drops a folder when
+  // it is immediately followed by its own index page in the path, so
+  // collapsing here would read "Changes > <page>" and lose the change-name
+  // level; leaving `index` unset keeps folder and page as distinct path
+  // entries.
+  if (children.length <= 1) {
+    return { ...folder, children };
+  }
+
   const index = folder.index ?? firstPage({ ...folder, children });
 
   return {
@@ -36,8 +48,7 @@ function withNavigableFolders(folder: Folder): Folder {
 }
 
 // Changes sit directly under content/changes, so a breadcrumb reads
-// Changes > <change> > <page>. The lifecycle is not a path segment and is
-// shown by the Overview badge instead.
+// Changes > <change> > <page>.
 export function createChangesBreadcrumbTree(sourceTree: Root): Root {
   const changeFolders = sourceTree.children.flatMap((node) =>
     node.type === "folder" ? [withNavigableFolders(node)] : [],
@@ -57,25 +68,3 @@ export function createChangesBreadcrumbTree(sourceTree: Root): Root {
     ],
   };
 }
-
-export const changesTree: Root = {
-  name: "Changes",
-  children: [
-    { type: "page", name: "All Changes", url: "/changes" },
-    {
-      type: "page",
-      name: "Discussing",
-      url: "/changes?status=discussing",
-    },
-    {
-      type: "page",
-      name: "In Progress",
-      url: "/changes?status=in-progress",
-    },
-    {
-      type: "page",
-      name: "Archive",
-      url: "/changes?status=archived#archive",
-    },
-  ],
-};

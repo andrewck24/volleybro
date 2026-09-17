@@ -248,7 +248,7 @@ interface RallyDetailDocument extends Document {
 }
 
 // `required` records which fields a rally cannot do without; it guards nothing,
-// as bulkWrite updates skip validation. See rally-entry-validation D2.
+// as bulkWrite updates skip validation. See Feature D26.
 const rallyDetailSchema = new Schema<RallyDetailDocument>(
   {
     score: { type: Number, required: true },

@@ -59,7 +59,9 @@ export function RiskTable({ risks }: RiskTableProps) {
       <TableBody>
         {sorted.map((r) => (
           <TableRow key={r.name}>
-            <TableCell className="font-medium">{r.name}</TableCell>
+            <TableCell className="font-medium whitespace-normal">
+              {r.name}
+            </TableCell>
             <TableCell>
               <Badge
                 variant={SEVERITY_BADGE[r.severity].variant}

@@ -4,7 +4,6 @@ const decision = {
   schemaVersion: 1,
   id: "D1",
   title: "Keep workflow repository-owned",
-  status: "accepted",
   targets: ["platform/delivery-workflow"],
   context: "Manual delivery must remain possible.",
   decision: "Use a repository-owned workflow contract.",
@@ -23,14 +22,20 @@ describe("parseDecisionRecord", () => {
     expect(parseDecisionRecord(decision)).toEqual(decision);
   });
 
+  it("accepts a Feature decision that names its replacement", () => {
+    const superseded = { ...decision, supersededBy: "D45" };
+    expect(parseDecisionRecord(superseded)).toEqual(superseded);
+  });
+
   it.each([
+    { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
     { ...decision, targets: ["platform/delivery", "platform/delivery"] },
     { ...decision, targets: ["platform"] },
     { ...decision, context: "" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
-    { ...decision, status: "running" },
+    { ...decision, status: "accepted" },
   ])("rejects schema-incompatible input", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",

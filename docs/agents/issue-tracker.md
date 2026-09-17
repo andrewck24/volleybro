@@ -6,16 +6,24 @@ delivery, so repository knowledge must remain understandable without Linear URLs
 
 Matt Pocock playbooks use these adaptations:
 
-- `to-spec` may maintain an operational issue projection, but Blueprint Overview and Design are the
+- `to-spec` may maintain an operational issue projection, but the Blueprint Proposal page is the
   repository-owned Change specification.
-- `to-tickets` does not publish durable implementation issues. The Blueprint workflow adapts its
-  vertical-slice discipline into Change-local JSON.
-- Only the developer may add or remove `agent:ready`. No skill, setup process, or Prepare execution
-  action may update it.
+- `to-tickets` does not publish durable implementation issues beyond slices. A Change's slices, when
+  it needs any, are Linear sub-issues under its operational issue, the same way in manual and
+  Symphony mode; a Change that fits one session skips slices and implements directly. Each
+  sub-issue carries a stable ID, capability references, dependencies, outcome, acceptance criteria,
+  verification, and status (`pending` or `completed`); runtime state such as `claimed`, `running`,
+  executor identity, and retry count does not belong on it. Sub-issues are closed once the Change is
+  archived.
+- Only the developer may add `agent:ready`, moving the issue to Todo in the same step, to arm
+  unattended execution. No skill or setup process may add the label. Symphony moves a claimed issue
+  to In Progress, agents move it to In Review while a gate waits and to Done after merge; the table
+  in `WORKFLOW.md` owns this split.
 - Manual Apply uses a two-sided ownership check: inspect Symphony's issue status, remove
-  `agent:ready`, request a runtime refresh when available, and inspect again. `running`, `retrying`,
-  or `blocked` means the Manual session must not start. Begin only when the issue is absent after the
-  post-removal check.
+  `agent:ready` and move the issue to In Progress, request a runtime refresh when available, and
+  inspect again.
+  `running`, `retrying`, or `blocked` means the Manual session must not start. Begin only when the
+  issue is absent after the post-removal check.
 - Express discussion and Wayfinder progress with ordinary statuses, parent/child relationships,
   duplicate relations, and blocking edges. Do not invent a label taxonomy.
 - After merge, move the operational Change issue to Done. Blueprint never depends on that issue

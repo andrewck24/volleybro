@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Accordion,
   AccordionContent,
@@ -5,16 +7,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import {
-  parseDecisionRecord,
-  type DecisionStatus,
-} from "@/lib/decision-record";
-
-function statusVariant(status: DecisionStatus) {
-  return status === "accepted" || status === "implemented"
-    ? "default"
-    : "secondary";
-}
+import { parseDecisionRecord } from "@/lib/decision-record";
+import { useIsLegacyDecisions } from "@/legacy/legacy-decisions-context";
+import { stripLegacyStatus } from "@/legacy/legacy-decision-record";
 
 // A decision id is unique within its Change, not within a capability. Once
 // Archive promotes records from several Changes into one Feature page, two of
@@ -26,7 +21,10 @@ function decisionKey(record: { id: string; originChange?: string }) {
 }
 
 export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
-  const records = decisions.map(parseDecisionRecord);
+  const isLegacy = useIsLegacyDecisions();
+  const records = decisions.map((decision) =>
+    parseDecisionRecord(isLegacy ? stripLegacyStatus(decision) : decision),
+  );
 
   return (
     <div className="not-prose relative my-6 pl-8 before:absolute before:inset-y-3 before:left-3 before:w-px before:bg-border">
@@ -43,9 +41,11 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
                 <span className="flex min-w-0 flex-wrap items-center gap-2 pr-2">
                   <Badge variant="outline">{record.id}</Badge>
                   <span>{record.title}</span>
-                  <Badge variant={statusVariant(record.status)}>
-                    {record.status}
-                  </Badge>
+                  {record.supersededBy && (
+                    <Badge variant="secondary">
+                      Superseded by {record.supersededBy}
+                    </Badge>
+                  )}
                 </span>
               </AccordionTrigger>
               <AccordionContent className="flex flex-col gap-4 pb-5">

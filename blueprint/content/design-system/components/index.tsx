@@ -1,12 +1,8 @@
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
-import { ChangeCard } from "@/components/ChangeCard";
-import { ChangeOverview } from "@/components/ChangeOverview";
 import { FileTour } from "@/components/FileTour";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
-import { TaskProgress } from "@/components/TaskProgress";
-import { Timeline } from "@/components/Timeline";
 import { TLDR } from "@/components/TLDR";
 
 const flowchartNodes = [
@@ -73,9 +69,6 @@ export default function ComponentLibraryShowcase() {
       </p>
 
       <h2 id="status-progress">Status &amp; progress</h2>
-
-      <h3>TaskProgress</h3>
-      <TaskProgress done={7} total={12} />
 
       <h3>TLDR</h3>
       <TLDR>
@@ -180,25 +173,10 @@ export default function ComponentLibraryShowcase() {
             <strong>Test plan</strong> → tasks/review (prose).
           </li>
           <li>
-            <strong>Rollout</strong> → reuse the Timeline component.
+            <strong>Rollout</strong> → prose or the DecisionTimeline component.
           </li>
         </ul>
       </section>
-
-      <h3>ChangeCard</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <ChangeCard
-          name="elevation-depth-system"
-          lifecycle="applying"
-          summary="Redefine background color tokens into a three-layer elevation model and unify Dialog layout on top of that foundation."
-        />
-        <ChangeCard
-          name="apple-splash-dynamic"
-          date="2026-06-28"
-          lifecycle="archived"
-          summary="A parametric generator replaces nine hand-exported Apple splash PNGs, making splash screens track design tokens automatically."
-        />
-      </div>
 
       <h2 id="prose-explainers">Prose &amp; explainers</h2>
 
@@ -207,36 +185,6 @@ export default function ComponentLibraryShowcase() {
         given="A set is tied 24-24 and the home team is serving"
         when="The home team wins two consecutive rallies"
         then="The set is awarded to the home team at 26-24"
-      />
-
-      <h3>Timeline</h3>
-      <Timeline
-        events={[
-          {
-            date: "2026-06-16",
-            label: "Clean architecture landed",
-            description:
-              "Team routes migrated to the domain/wire/client layering.",
-            status: "done",
-            tags: ["clean-architecture"],
-          },
-          {
-            date: "2026-06-28",
-            label: "Dynamic splash screens",
-            description:
-              "Apple splash PNGs replaced by a token-driven generator.",
-            status: "done",
-            tags: ["splash", "tokens"],
-          },
-          {
-            date: "2026-07-12",
-            label: "Design system section",
-            description:
-              "Blueprint gains a browsable component library showcase.",
-            status: "pending",
-            tags: ["design-system", "showcase"],
-          },
-        ]}
       />
 
       <h2 id="tables-comparison">Tables &amp; comparison</h2>
@@ -280,19 +228,6 @@ export default function ComponentLibraryShowcase() {
 }}`}
       />
 
-      <h2 id="change-index">Change index</h2>
-
-      <h3>ChangeOverview</h3>
-      <ChangeOverview
-        date="2026-07-12"
-        lifecycle="pre-pr-review"
-        artifacts={[
-          { title: "Proposal", href: "#proposal" },
-          { title: "Design", href: "#design" },
-          { title: "Tasks", href: "#tasks" },
-        ]}
-      />
-
       <h2 id="flowchart">Flowchart</h2>
 
       <h3>InteractiveFlowchart</h3>
@@ -309,6 +244,5 @@ export const toc = [
   { title: "Status & progress", url: "#status-progress", depth: 2 },
   { title: "Prose & explainers", url: "#prose-explainers", depth: 2 },
   { title: "Tables & comparison", url: "#tables-comparison", depth: 2 },
-  { title: "Change index", url: "#change-index", depth: 2 },
   { title: "Flowchart", url: "#flowchart", depth: 2 },
 ];

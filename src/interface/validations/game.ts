@@ -32,7 +32,7 @@ const StaffSchema = z
   })
   .strict();
 
-/** Home is a resolvable Team, away is a typed-in name. See request-schema-boundary D5. */
+/** Home is a resolvable Team, away is a typed-in name. See Feature D31. */
 const HomeTeamSchema = z
   .object({
     id: objectId.optional(),

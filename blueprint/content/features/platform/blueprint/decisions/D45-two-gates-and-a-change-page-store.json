@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D45",
+  "title": "People review at two gates, and Change pages live on a store branch",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Each Change kept an Overview, Design, Implementation and Review page, slice JSON, and a lifecycle in change.json, all committed and reconciled at Archive. On team-membership-authorization, 24 of 50 commits touched only Blueprint, 13 of them resynchronising pages after a gate, and the developer answered 28 gate prompts. The pages existed to help a person decide, yet keeping them true cost as much as the code and filled every pull request with diff nobody reviewed.",
+  "decision": "A person reviews a Change twice: the Proposal page before Apply (boundaries, behaviour contract, acceptance scenarios, ADRs, mockups, risks) and the Review page before the pull request (acceptance results, verification, findings, residual risks). Everything between the gates runs unattended. Change pages are written under gitignored blueprint/content/changes/<slug>/ on the Change branch and never committed there; at each gate the agent publishes them with `pnpm blueprint:changes:publish <slug>`, which commits them to the orphan blueprint-changes branch and pushes it, the durable store of every Change page, old and new, that never merges into other branches. A small fix that only restores documented behaviour, or changes no behaviour, skips both gates and the Change page store entirely and goes straight to a pull request under the Fix path. `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy carries all published Changes alongside Features and the Design System from the deployed branch. Slices are Linear sub-issues under the Change's issue; a Change that fits one session skips slices. Features and the Design System stay in git on normal branches because agents read them as current knowledge and they change with the code. What survives a Change is its code and tests, promoted Feature knowledge and ADRs, mockups promoted to the Design System or a Feature when they become lasting rules, the Changeset, commit bodies, the published Change pages on the store branch, and a Review summary of at most 40 lines in the pull-request body. An ADR's status is its directory, and a replaced Feature ADR names its successor in supersededBy. Code comments cite Feature numbers. Change size has soft targets that warn. A Change is either a structure change, accepted on existing tests passing and dependency direction holding, or a behaviour change, never both. A large refactor is a Migration Change: its Proposal passes G1 once with the shard list, and each shard is its own Change that carries a Migration trailer and passes only G2; the Migration Proposal's ADRs are promoted once, with the first shard.",
+  "alternatives": [
+    {
+      "option": "Keep the four pages but trim their sections",
+      "reason": "The cost came from how often the pages had to be rewritten and reconciled, not from their length; trimming leaves every per-round and Archive obligation in place."
+    },
+    {
+      "option": "Move Blueprint change pages to a separate repository",
+      "reason": "Agents would work across two checkouts per Change, and the build would need a cross-repository fetch to assemble the deployed Blueprint."
+    },
+    {
+      "option": "Deploy each Change's pages to a preview URL",
+      "reason": "Both gates happen on the developer's machine, so a deploy adds credentials and a step without serving a reader; a preview script can be added when a remote reader appears."
+    },
+    {
+      "option": "Enforce a hard per-change size cap",
+      "reason": "Mature teams use soft targets with explicit exemptions; a hard cap would split large migrations into pieces no reviewer can judge without an approved overall plan."
+    },
+    {
+      "option": "Keep Change pages gitignored and local only",
+      "reason": "Every Change must stay browsable on the deployed Blueprint and from any device without checking out an old commit or tag."
+    }
+  ],
+  "consequences": [
+    "Pull requests contain code, tests, Feature knowledge, the Changeset, and the exported Review summary; the published Change pages live on the blueprint-changes store branch, not in the pull-request diff.",
+    "A Change's Proposal and Review pages persist as durable review history on the store branch after merge, browsable on the deployed Blueprint from any device.",
+    "The deployed Blueprint site carries Features, the Design System, and every published Change.",
+    "Slices are working notes; the Implements commit trailer is their only durable trace.",
+    "Superseded Feature ADRs carry supersededBy instead of a status field.",
+    "A small fix with no new behaviour contract uses the Fix path instead: no Proposal or Review page, no publish step, and a pull request whose commits carry a Refs trailer is the only gate."
+  ],
+  "revisitTriggers": [
+    "The store branch grows large enough to slow the build's fetch.",
+    "A gate is reviewed by someone who cannot run the Blueprint locally.",
+    "The size warnings are routinely ignored without a Migration trailer."
+  ],
+  "originChange": "two-gate-workflow",
+  "originDecision": "D1"
+}

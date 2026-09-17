@@ -1,161 +1,222 @@
-import { Suspense, type ComponentProps, type ComponentType } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
+import { listChanges } from "@/lib/changes-index";
+import { proposalMockups } from "@/lib/proposal-mockups";
+import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
 import defaultMdxComponents from "fumadocs-ui/mdx";
-import { ChangeOverview } from "@/components/ChangeOverview";
-import { ChangeCard } from "@/components/ChangeCard";
-import { ChangesCatalog } from "@/components/ChangesCatalog";
-import { ImplementationSlices } from "@/components/ImplementationSlices";
-import { loadChangeCatalog, loadChangeMetadata } from "@/lib/change-catalog";
-import { changeArtifacts } from "@/lib/change-artifacts";
-import { loadImplementationPlan } from "@/lib/implementation-plan-loader";
-import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
+import { TLDR } from "@/components/TLDR";
+import { Scenario } from "@/components/Scenario";
+import { RiskTable } from "@/components/RiskTable";
+import { AnnotatedDiff } from "@/components/AnnotatedDiff";
+import { FileTour } from "@/components/FileTour";
+import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
+import { isLegacySlug, loadChangeMetadata } from "@/legacy/change-catalog";
+import { changeArtifacts } from "@/legacy/change-artifacts";
+import { loadImplementationPlan } from "@/legacy/implementation-plan-loader";
+import { ChangeOverview } from "@/legacy/ChangeOverview";
+import { ImplementationSlices } from "@/legacy/ImplementationSlices";
+import { designMockups } from "@/legacy/design-mockups";
+import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
-interface TocItem {
-  title: string;
-  url: string;
-  depth: number;
-}
-
-interface DesignModule {
-  default: ComponentType;
-  toc?: TocItem[];
-}
-
-const designModules: Record<string, () => Promise<DesignModule>> = {
-  "logo-v-splash-redesign/design": () =>
-    import("../../../../../content/changes/logo-v-splash-redesign/design"),
-  "sync-recording/design": () =>
-    import("../../../../../content/changes/sync-recording/design"),
-  "game-positional-writes/design": () =>
-    import("../../../../../content/changes/game-positional-writes/design"),
-  "elevation-depth-system/design": () =>
-    import("../../../../../content/changes/elevation-depth-system/design"),
-  "entry-ui/design": () =>
-    import("../../../../../content/changes/entry-ui/design"),
-  "apple-splash-dynamic/design": () =>
-    import("../../../../../content/changes/apple-splash-dynamic/design"),
-  "contextual-edit-pages/design": () =>
-    import("../../../../../content/changes/contextual-edit-pages/design"),
-  "api-objectid-guards/design": () =>
-    import("../../../../../content/changes/api-objectid-guards/design"),
-  "team-routes-clean-architecture/design": () =>
-    import("../../../../../content/changes/team-routes-clean-architecture/design"),
+const mdxComponents = {
+  ...defaultMdxComponents,
+  TLDR,
+  Scenario,
+  RiskTable,
+  AnnotatedDiff,
+  FileTour,
+  DecisionTimeline,
+  InteractiveFlowchart,
 };
 
-const mdxComponents = { ...defaultMdxComponents, ChangeCard };
 const changesBreadcrumbTree = createChangesBreadcrumbTree(source.pageTree);
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
 }
 
-function ChangeDocsPage(props: ComponentProps<typeof DocsPage>) {
+type SourcePage = ReturnType<typeof source.getPage>;
+
+// Shared by every branch below that renders a page's MDX body directly:
+// 404s when the page is missing. An assertion function rather than one
+// that returns the body itself, so `Mdx` stays a plain `page.data.body`
+// property read at each call site — react-hooks/static-components flags a
+// component read through an extra function call as "created during
+// render", even though this one is as stable as the property it wraps.
+function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
+  if (!page) notFound();
+}
+
+function ChangesIndex() {
+  const changes = listChanges();
+  return (
+    <DocsPage>
+      <DocsBody>
+        <h1>Changes</h1>
+        {changes.length === 0 ? (
+          <p>
+            No Change pages right now — none are published or pulled yet. Run{" "}
+            <code>pnpm blueprint:changes:pull</code>.
+          </p>
+        ) : (
+          <ul>
+            {changes.map((change) => (
+              <li key={change.slug}>
+                <Link href={change.href}>{change.title}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DocsBody>
+    </DocsPage>
+  );
+}
+
+// Old-format Change pages (a directory with change.json) route through here
+// instead of the two-gate proposal/delivery shell below. Every legacy page is
+// wrapped in LegacyDecisionsProvider so a DecisionTimeline it renders (direct
+// MDX import or design.tsx import, both bypass mdxComponents) tolerates the
+// old decision records' `status` field.
+async function LegacyPage({ slug }: { slug: string[] }) {
+  const page = source.getPage(slug);
+
+  if (slug.length === 1) {
+    assertPage(page);
+    const Mdx = page.data.body;
+    const change = await loadChangeMetadata(slug[0]);
+    return (
+      <LegacyShell page={page}>
+        <ChangeOverview
+          date={change.startedAt}
+          lifecycle={change.lifecycle}
+          artifacts={changeArtifacts(source.pageTree, page.url)}
+        />
+        <Mdx components={mdxComponents} />
+      </LegacyShell>
+    );
+  }
+
+  if (slug.length === 2 && slug[1] === "implementation") {
+    assertPage(page);
+    const Mdx = page.data.body;
+    const slices = await loadImplementationPlan(slug[0]);
+    return (
+      <LegacyShell page={page}>
+        <Mdx components={mdxComponents} />
+        <ImplementationSlices slices={slices} />
+      </LegacyShell>
+    );
+  }
+
+  if (slug.length === 2 && slug[1] === "design") {
+    const mockup = designMockups[slug[0]];
+    if (!page && !mockup) notFound();
+    if (mockup) {
+      const { default: Design, toc } = mockup;
+      return (
+        <LegacyShell
+          page={page}
+          toc={toc ?? page?.data.toc ?? []}
+          title={page?.data.title ?? "Design"}
+        >
+          <Design />
+        </LegacyShell>
+      );
+    }
+    assertPage(page);
+    const Mdx = page.data.body;
+    return (
+      <LegacyShell page={page}>
+        <Mdx components={mdxComponents} />
+      </LegacyShell>
+    );
+  }
+
+  // review.mdx, tasks.mdx, specs/**, and anything else render as plain MDX.
+  assertPage(page);
+  const Mdx = page.data.body;
+  return (
+    <LegacyShell page={page}>
+      <Mdx components={mdxComponents} />
+    </LegacyShell>
+  );
+}
+
+function LegacyShell({
+  page,
+  toc = page?.data.toc,
+  title = page?.data.title,
+  children,
+}: {
+  page: SourcePage;
+  toc?: React.ComponentProps<typeof DocsPage>["toc"];
+  title?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <TreeContextProvider tree={changesBreadcrumbTree}>
       <DocsPage
-        {...props}
+        toc={toc}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
-      />
+      >
+        <DocsBody>
+          <h1>{title}</h1>
+          <LegacyDecisionsProvider>{children}</LegacyDecisionsProvider>
+        </DocsBody>
+      </DocsPage>
     </TreeContextProvider>
   );
 }
 
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
-  const key = slug?.join("/") ?? "";
 
-  if (key === "") {
-    const page = source.getPage(slug);
-    if (!page) notFound();
-    const Mdx = page.data.body;
-    const changes = await loadChangeCatalog();
-    return (
-      <ChangeDocsPage toc={page.data.toc}>
-        <DocsBody>
-          <h1>{page.data.title}</h1>
-          <Mdx components={mdxComponents} />
-          <Suspense fallback={<p>Loading changes…</p>}>
-            <ChangesCatalog changes={changes} />
-          </Suspense>
-        </DocsBody>
-      </ChangeDocsPage>
-    );
+  if (!slug || slug.length === 0) {
+    return <ChangesIndex />;
   }
 
-  // Check TSX design modules first so they get breadcrumbs from the MDX stub
-  const loader = designModules[key];
-  if (loader) {
-    const page = source.getPage(slug);
-    const { default: Design, toc: designToc } = await loader();
-    return (
-      <ChangeDocsPage toc={designToc ?? page?.data.toc ?? []}>
-        <DocsBody>
-          <h1>{page?.data.title}</h1>
-          <Design />
-        </DocsBody>
-      </ChangeDocsPage>
-    );
-  }
-
-  if (slug?.length === 2 && slug[1] === "implementation") {
-    const page = source.getPage(slug);
-    if (!page) notFound();
-    const Mdx = page.data.body;
-    const slices = await loadImplementationPlan(slug[0]);
-    return (
-      <ChangeDocsPage toc={page.data.toc}>
-        <DocsBody>
-          <h1>{page.data.title}</h1>
-          <Mdx components={mdxComponents} />
-          <ImplementationSlices slices={slices} />
-        </DocsBody>
-      </ChangeDocsPage>
-    );
+  if (isLegacySlug(slug[0])) {
+    return <LegacyPage slug={slug} />;
   }
 
   const page = source.getPage(slug);
-  if (!page) notFound();
+  const Mockup =
+    slug.at(-1) === "proposal" ? proposalMockups[slug[0]] : undefined;
+  if (!page && !Mockup) notFound();
 
-  const Mdx = page.data.body;
-
-  // Change Overview pages take their metadata from change.json and their
-  // artifact links from the page tree; the MDX below is narrative only. The
-  // change's summary is the catalog card's text and stays there -- repeating
-  // it above the MDX gave every Overview two openings saying the same thing.
-  if (slug?.length === 1) {
-    const change = await loadChangeMetadata(slug[0]);
-    return (
-      <ChangeDocsPage toc={page.data.toc}>
-        <DocsBody>
-          <h1>{page.data.title}</h1>
-          <ChangeOverview
-            date={change.startedAt}
-            lifecycle={change.lifecycle}
-            artifacts={changeArtifacts(source.pageTree, page.url)}
-          />
-          <Mdx components={mdxComponents} />
-        </DocsBody>
-      </ChangeDocsPage>
-    );
-  }
+  const Mdx = page?.data.body;
 
   return (
-    <ChangeDocsPage toc={page.data.toc}>
-      <DocsBody>
-        <h1>{page.data.title}</h1>
-        <Mdx components={mdxComponents} />
-      </DocsBody>
-    </ChangeDocsPage>
+    <TreeContextProvider tree={changesBreadcrumbTree}>
+      <DocsPage
+        toc={page?.data.toc}
+        breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
+      >
+        <DocsBody>
+          <h1>{page?.data.title ?? slug[0]}</h1>
+          {Mdx && <Mdx components={mdxComponents} />}
+          {Mockup && <Mockup />}
+        </DocsBody>
+      </DocsPage>
+    </TreeContextProvider>
   );
 }
 
 export function generateStaticParams() {
   const mdxParams = source.generateParams();
-  const designParams = Object.keys(designModules).map((key) => ({
-    slug: key.split("/"),
-  }));
-  return [...mdxParams, ...designParams];
+  const mdxSlugs = new Set(mdxParams.map((p) => p.slug.join("/")));
+
+  // A proposal.tsx with no sibling proposal.mdx still needs its own static
+  // route under `output: export`.
+  const mockupOnlyParams = Object.keys(proposalMockups)
+    .map((slug) => ({ slug: [slug, "proposal"] }))
+    .filter((p) => !mdxSlugs.has(p.slug.join("/")));
+
+  // The index route has no content page of its own (it is a plain generated
+  // list), so it needs an explicit empty-slug entry for static export.
+  return [{ slug: [] }, ...mdxParams, ...mockupOnlyParams];
 }

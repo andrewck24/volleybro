@@ -3,7 +3,6 @@
   "schemaVersion": 1,
   "id": "D25",
   "title": "讀取端跳過的是那一筆的統計累加，不是那一筆 entry，而守衛放在讀取該欄位的地方",
-  "status": "implemented",
   "targets": ["game-recording/statistics"],
   "context": "`deriveSetStats` 以球種當 key 取統計格，`home[entry.home.type]` 取不到就在下一行拋 `TypeError`。它的呼叫點在每次載入都會 dispatch 的 reducer 裡，而 app 沒有 error boundary，所以一顆球壞掉等於整場比賽再也打不開，且使用者沒有任何自救方式——重新整理與重開 app 都無效，因為壞資料在資料庫裡。守衛該放哪裡不是只有一個合理答案：`isRally` 這個 type guard 是所有 rally 消費端的共同入口，收緊它一次就能讓每個消費端都跳過壞掉的球，看起來是根因位置。但兩個消費端讀的欄位並不相同——`getPreviousRally` 那條線（`deriveServingStatus`、`deriveSetPhase`、`deriveSetsWon`）只讀 `score` 與 `win`，`deriveSetStats` 才讀 `type`。另一個獨立的問題是「跳過」指什麼：迴圈尾端還有 `rotation` 與 `isHomeServing` 的推進，一個直覺的 `continue` 會連它們一起跳過。",
   "decision": "守衛放在欄位被讀取的地方，也就是 `deriveSetStats` 的迴圈內：`home[entry.home.type]` 與 away 側任一取不到統計格時，跳過該筆的統計累加，但迴圈尾端的 `rotation` 與 `isHomeServing` 照常推進。`isRally` 一行不改。這不是「兩個地方各守一次」的重複，而是兩個不同的問題各自回答自己那一題——「這一筆能不能拿來算比分」與「這一筆能不能拿來算球種統計」本來就不是同一個判斷，用一個不相干的欄位去否決一筆資料才是錯的。容錯只回答「會不會拋」這一個問題，不重跑寫入端的完整驗證：缺 `win`、缺 `score` 都不會拋，它們由 D2 的寫入守衛負責。",

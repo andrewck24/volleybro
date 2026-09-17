@@ -1,140 +1,78 @@
-import type { Root } from "fumadocs-core/page-tree";
-
+import type { Folder, Item, Root } from "fumadocs-core/page-tree";
 import { createChangesBreadcrumbTree } from "./changes-tree";
 
-// Changes sit directly under content/changes, and the loader indexes only
-// meta.json, so a Change's design and implementation pages reach the tree as
-// pages rather than as folders shadowing them.
-const sourceTree: Root = {
-  name: "Changes",
-  children: [
-    {
-      type: "folder",
-      name: "Example Change",
+function page(name: string, url: string): Item {
+  return { type: "page", name, url };
+}
+
+// createChangesBreadcrumbTree wraps every top-level folder of the source
+// tree (one per Change) inside a single root "Changes" folder.
+function changeFolderOf(tree: Root, slug: string): Folder {
+  const changesRoot = tree.children[0];
+  if (changesRoot.type !== "folder") throw new Error("expected root folder");
+  const found = changesRoot.children.find(
+    (child) => child.type === "folder" && child.name === slug,
+  );
+  if (!found || found.type !== "folder") throw new Error(`no folder ${slug}`);
+  return found;
+}
+
+describe("createChangesBreadcrumbTree", () => {
+  it("collapses a multi-page Change's first page into `index`", () => {
+    const tree: Root = {
+      $id: "source",
+      name: "root",
       children: [
         {
-          type: "page",
-          name: "Overview",
-          url: "/changes/example-change",
-        },
-        {
-          type: "page",
-          name: "Design",
-          url: "/changes/example-change/design",
-        },
-        {
-          type: "page",
-          name: "Implementation",
-          url: "/changes/example-change/implementation",
-        },
-        {
           type: "folder",
-          name: "Specs",
+          name: "two-page-change",
           children: [
-            {
-              type: "folder",
-              name: "Example Capability",
-              index: {
-                type: "page",
-                name: "Example Capability",
-                url: "/changes/example-change/specs/example-capability",
-              },
-              children: [],
-            },
-            {
-              type: "folder",
-              name: "Another Capability",
-              index: {
-                type: "page",
-                name: "Another Capability",
-                url: "/changes/example-change/specs/another-capability",
-              },
-              children: [],
-            },
+            page("Proposal", "/changes/two-page-change/proposal"),
+            page("Review", "/changes/two-page-change/review"),
           ],
         },
+      ],
+    };
+
+    const changeFolder = changeFolderOf(
+      createChangesBreadcrumbTree(tree),
+      "two-page-change",
+    );
+
+    expect(changeFolder.index?.url).toBe("/changes/two-page-change/proposal");
+    expect(changeFolder.children).toEqual([
+      page("Review", "/changes/two-page-change/review"),
+    ]);
+  });
+
+  // Regression test: a Change with only one published page (e.g. only a
+  // Proposal, before Review exists) must keep that page as a distinct
+  // child with no `index` set. Fumadocs' breadcrumb algorithm drops a
+  // folder from the path when it is immediately followed by its own
+  // `index` page, so collapsing the lone page into `index` here would read
+  // "Changes > Proposal" instead of "Changes > single-page-change >
+  // Proposal", losing the middle breadcrumb level.
+  it("keeps a single-page Change's page as a distinct child, not the folder's index", () => {
+    const tree: Root = {
+      $id: "source",
+      name: "root",
+      children: [
         {
-          type: "page",
-          name: "Review",
-          url: "/changes/example-change/review",
+          type: "folder",
+          name: "single-page-change",
+          children: [page("Proposal", "/changes/single-page-change/proposal")],
         },
       ],
-    },
-  ],
-};
+    };
 
-it("provides navigable Fumadocs breadcrumbs without expanding the sidebar tree", () => {
-  const tree = createChangesBreadcrumbTree(sourceTree);
-  const root = tree.children[0];
+    const changeFolder = changeFolderOf(
+      createChangesBreadcrumbTree(tree),
+      "single-page-change",
+    );
 
-  expect(root).toMatchObject({
-    type: "folder",
-    root: true,
-    index: { type: "page", name: "All Changes", url: "/changes" },
+    expect(changeFolder.index).toBeUndefined();
+    expect(changeFolder.children).toEqual([
+      page("Proposal", "/changes/single-page-change/proposal"),
+    ]);
   });
-  if (root.type !== "folder") throw new Error("expected root folder");
-
-  const change = root.children[0];
-  if (change.type !== "folder") throw new Error("expected Change folder");
-
-  expect(change.index).toMatchObject({
-    type: "page",
-    name: "Overview",
-    url: "/changes/example-change",
-  });
-
-  const specs = change.children.find(
-    (child) => child.type === "folder" && child.name === "Specs",
-  );
-
-  expect(specs).toMatchObject({
-    type: "folder",
-    name: "Specs",
-    index: {
-      type: "page",
-      name: "Example Capability",
-      url: "/changes/example-change/specs/example-capability",
-    },
-    children: [
-      {
-        type: "folder",
-        name: "Another Capability",
-        index: {
-          type: "page",
-          name: "Another Capability",
-          url: "/changes/example-change/specs/another-capability",
-        },
-        children: [],
-      },
-    ],
-  });
-
-  expect(
-    change.children
-      .filter((child) => child.type === "page")
-      .map((page) => page.url),
-  ).toEqual([
-    "/changes/example-change/design",
-    "/changes/example-change/implementation",
-    "/changes/example-change/review",
-  ]);
-
-  const flattenedUrls: string[] = [];
-  const collectPages = (folder: typeof change & { type: "folder" }) => {
-    if (folder.index) flattenedUrls.push(folder.index.url);
-    for (const child of folder.children) {
-      if (child.type === "page") flattenedUrls.push(child.url);
-      if (child.type === "folder") collectPages(child);
-    }
-  };
-  collectPages(change);
-
-  expect(flattenedUrls).toEqual([
-    "/changes/example-change",
-    "/changes/example-change/design",
-    "/changes/example-change/implementation",
-    "/changes/example-change/specs/example-capability",
-    "/changes/example-change/specs/another-capability",
-    "/changes/example-change/review",
-  ]);
 });
