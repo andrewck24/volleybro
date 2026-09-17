@@ -9,17 +9,17 @@ specific term is resolved.
 - define what the term is in one or two sentences and list discouraged synonyms when useful;
 - exclude implementation details, specifications, decisions, execution state, and review evidence.
 
-Architectural decision records do not use a parallel canonical `docs/adr/` tree. During Discuss and
-propose, create structured ADRs inside the active Change's `design/decisions/` directory and record
-proposed decisions, alternatives, consequences, revisit triggers, and a non-empty `targets` array
-there. Each target uses the narrowest hierarchical capability or sub-capability ID affected by the
-decision; use a parent only for a decision that governs multiple children. The Proposal page may
-summarize capability impact, but it is not the ADR authority. There is no separate status field: an
-ADR in the Change's `design/decisions/` directory is proposed and rendered on the Proposal page for
-G1; the same record copied into a Feature's `decisions/` directory is adopted.
+Architectural decision records do not use a parallel canonical `docs/adr/` tree. During Discuss
+and propose, create structured ADRs inside the active Change's `proposal/decisions/` directory and
+record proposed decisions, alternatives, consequences, revisit triggers, and a non-empty `targets`
+array there. Each target uses the narrowest hierarchical capability or sub-capability ID affected
+by the decision; use a parent only for a decision that governs multiple children. The Proposal
+page may summarize capability impact, but it is not the ADR authority. There is no separate status
+field: an ADR in the Change's `proposal/decisions/` directory is proposed and rendered on the
+Proposal page for G1; the same record copied into a Feature's `decisions/` directory is adopted.
 
 Store these records under
-`blueprint/content/changes/<change-slug>/design/decisions/`.
+`blueprint/content/changes/<change-slug>/proposal/decisions/`.
 
 Branch-local Archive reconciles each realized ADR with delivered code and tests and copies it to the
 narrowest affected Blueprint capability's `features/<capability>/decisions/` as canonical current

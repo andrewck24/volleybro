@@ -57,7 +57,7 @@ style(components): apply prettier formatting to team directory
 
 **Body:** the body explains _why_; what changed is supporting context the diff already shows. A tooling name is never the type or the scope.
 
-**Trailers:** slice commits carry `Implements: S0X` and `Blueprint-Change: <slug>` trailers, which are the canonical slice-to-commit mapping (see `WORKFLOW.md` §4). The slice ID now comes from `.scratch/<slug>/S0X.md` (manual runs) or the matching Linear sub-issue (Symphony runs), not from Blueprint slice JSON. Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
+**Trailers:** slice commits carry `Implements: S0X` and `Blueprint-Change: <slug>` trailers, which are the canonical slice-to-commit mapping (see `WORKFLOW.md`'s Apply section). The slice ID comes from `.scratch/<slug>/S0X.md` (manual runs) or the matching Linear sub-issue (Symphony runs). A Migration Change shard's commit also carries a `Migration: <migration-slug>` trailer, referencing its Migration Proposal. Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
 
 ```bash
 git log -1 --format='%(trailers:only,unfold)'

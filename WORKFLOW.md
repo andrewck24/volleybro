@@ -291,9 +291,10 @@ whole migration — its shard list, order, per-shard proof of behavior preservat
 criteria. Each shard afterward is its own Change and pull request, references the Migration
 Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every
 shard. The Migration Proposal's ADR is promoted to Features once, when the first shard archives;
-the remaining shards do not repeat it. `check-workflow.js` compares the diff against `dev` and
-warns, rather than fails, when a Change exceeds these targets without a PR body reference to a
-Migration Proposal slug.
+the remaining shards do not repeat it. `check-workflow.js` counts changed `src` files against
+`dev`, `.scratch/<slug>/` slices, and Proposal scenarios, and warns, rather than fails, past any
+of these targets. The `src`-file-count warning is suppressed by a `Migration: <migration-slug>`
+commit trailer (or `pnpm check:workflow --migration <slug>`), not by a PR-body reference.
 
 ## Decision-record contract
 
@@ -399,10 +400,12 @@ next_action: "smallest concrete continuation step"
 The workpad may include tracker, run, workspace, commit, and pull-request references while they are
 active. Blueprint must not copy those tracker-specific references into its durable content.
 
-A manual run keeps no workpad. Every field above except `blockers` and `next_action` is already
-recorded in the repository — slice status in `.scratch/<slug>/`, validation in commit trailers —
-and a copy kept by hand drifts from them. A manual run states its blockers and next action to the
-developer directly.
+A manual run keeps a lighter workpad: every field above except `blockers` and `next_action` is
+already recorded in the repository — slice status in `.scratch/<slug>/`, validation in commit
+trailers — and a copy kept by hand drifts from them. The two fields that are not repository state
+go in `.scratch/<slug>/` too, for example a `handoff.md` beside the slice files, so another agent
+in the same worktree can pick up where the run stopped. Resuming from a different worktree or
+machine needs the branch pushed and the tracker used instead — `.scratch/` does not cross either.
 
 ## Blueprint knowledge contract
 
