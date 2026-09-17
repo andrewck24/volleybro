@@ -3,13 +3,58 @@ title: Two-gate workflow — Proposal
 description: Boundaries, behaviour contract, and adopted decisions for the two-gate delivery workflow.
 ---
 
-import d1 from "./proposal/decisions/D1.json";
+import d1 from "./proposal/decisions/D1-two-gates-and-a-change-page-store.json";
 
-> Written after delivery: this Change bootstrapped the workflow it defines, so no Proposal page existed at G1. Reconstructed from the Review page's own record so the promoted ADR can name its origin.
+> Written after delivery: this Change bootstrapped the workflow it defines, so no Proposal page existed at G1. Reconstructed from the Review page's own record so the promoted ADR can name its origin. The goals, failure modes and testing strategy a live Proposal would argue are left out on purpose: the Review page reports what was actually delivered and verified, and a reconstruction that argued them now would be reasoning invented after the fact.
 
 <TLDR>
 The delivery workflow stops for a human at two gates only: a Proposal page before implementation and a Review page before the pull request. Change pages are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed. Slice plans, per-round review pages, a `change.json` lifecycle, and the Archive reconcile step are gone; a Change's slices, when it needs any, are Linear sub-issues under its issue, and a Change that fits one session skips slices and implements directly.
 </TLDR>
+
+## The two gates
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "discuss", label: "Discuss", sublabel: "boundaries", x: 90, y: 40 },
+    { id: "proposal", label: "Proposal page", sublabel: "G1", x: 260, y: 40, shape: "diamond", w: 150, h: 60 },
+    { id: "apply", label: "Apply", sublabel: "slices, TDD", x: 440, y: 40 },
+    { id: "review", label: "Code review", sublabel: "to a fixed point", x: 610, y: 40 },
+    { id: "archive", label: "Archive", sublabel: "promote, export", x: 610, y: 140 },
+    { id: "gate2", label: "Review page", sublabel: "G2", x: 440, y: 140, shape: "diamond", w: 150, h: 60 },
+    { id: "pr", label: "Pull request", sublabel: "CI, merge", x: 260, y: 140 },
+  ]}
+  edges={[
+    { from: "discuss", to: "proposal" },
+    { from: "proposal", to: "apply", label: "accepted" },
+    { from: "apply", to: "review" },
+    { from: "review", to: "archive" },
+    { from: "archive", to: "gate2" },
+    { from: "gate2", to: "pr", label: "accepted" },
+    { from: "gate2", to: "proposal", label: "design no longer viable", dashed: true },
+  ]}
+  details={{
+    proposal: {
+      title: "G1 — Proposal page",
+      body: "The developer reads boundaries, the behaviour contract as scenarios, the ADRs, any design mockup and the risks. Acceptance authorises everything up to G2 without stopping again.",
+    },
+    apply: {
+      title: "Apply",
+      body: "Slices are Linear sub-issues, or none at all when the Change fits one session. The first slice turns the accepted scenarios into executable acceptance tests.",
+    },
+    review: {
+      title: "Pre-PR code review",
+      body: "Two axes, standards and spec, in an independent context, repeated until both reach a fixed point. This is the agent's own review, not a human gate.",
+    },
+    archive: {
+      title: "Archive",
+      body: "Promotes ADRs and behaviour to Features, reconciles CONTEXT.md vocabulary, and exports a Review summary of at most 40 lines for the pull-request body.",
+    },
+    gate2: {
+      title: "G2 — Review page",
+      body: "The developer reads acceptance results, verification, findings and residual risks. Acceptance authorises opening the pull request without asking again.",
+    },
+  }}
+/>
 
 ## Change boundaries
 
