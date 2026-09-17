@@ -255,8 +255,9 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
 5. generate the Review page, read every section rendered in a browser as the developer will,
    publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
-   `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2). Reading the source is not reading the page: a stale count, a column that does
-   not line up, an unreadable snippet are all invisible in the file that produces them;
+   `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2).
+   Reading the source is not reading the page: a stale count, a column that does not line up, an
+   unreadable snippet are all invisible in the file that produces them;
 6. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
 Acceptance of the Review page is the last human gate. It authorizes opening the pull request
@@ -284,7 +285,7 @@ blueprint/content/changes/<slug>/       gitignored on the Change branch; publish
 ├── proposal.tsx                        optional interactive design mockup
 ├── proposal/
 │   └── decisions/
-│       └── D01-<decision>.json         proposed ADRs; promoted to Features at Archive
+│       └── D1-<decision>.json          proposed ADRs; promoted to Features at Archive
 └── review.mdx
 ```
 

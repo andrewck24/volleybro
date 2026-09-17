@@ -197,8 +197,14 @@ test("pull --force replaces an existing local slug", async (t) => {
 
 test("missing remote branch: pull warns and exits 0", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t, { seedBranch: false });
-  const result = await withRemote(bare, () =>
-    execFileAsync("node", [SCRIPT, "pull"], { cwd: work }),
+  // This suite itself runs in CI, where a missing store is fatal; the
+  // developer-shell default is what this test is about.
+  const result = await withEnvOverride("CI", "", () =>
+    withEnvOverride("WORKERS_CI", "", () =>
+      withRemote(bare, () =>
+        execFileAsync("node", [SCRIPT, "pull"], { cwd: work }),
+      ),
+    ),
   );
   assert.match(result.stderr, /could not fetch/);
 });

@@ -10,8 +10,8 @@ Classify every workflow output before storing it.
 
 ## Branch-local Archive
 
-Archive runs automatically after Pre-PR code review reaches its fixed point and before the pull request
-opens:
+Archive runs automatically after Pre-PR code review reaches its fixed point and before the pull
+request opens:
 
 1. require all slices complete or explicitly superseded, full verification, Changeset assessment,
    and independent code-review/fix rounds at a fixed point;
@@ -25,7 +25,8 @@ opens:
 6. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript
    text from durable Blueprint content;
 7. generate the Review page, read it rendered in a browser, publish it with
-   `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for acceptance (G2);
+   `pnpm blueprint:changes:publish <slug>`, confirm with `pnpm check:workflow --gate <slug>`, then
+   notify the developer and stop for acceptance (G2);
 8. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
 The archived branch describes the intended post-merge canonical state. It becomes current on the

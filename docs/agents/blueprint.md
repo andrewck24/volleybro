@@ -7,11 +7,10 @@ issue tracker or orchestration runtime is configured.
 
 Every Change renders a Proposal page (with an optional design-mockup `proposal.tsx`) and, later, a
 Review page. Both are written under `blueprint/content/changes/<slug>/`, gitignored on the Change
-branch. At each gate the agent publishes them with `pnpm blueprint:changes:publish <slug>` and
-confirms with `pnpm check:workflow --gate <slug>`, which fails on anything edited since it was
-published. The publish command
+branch. At each gate the agent publishes them with `pnpm blueprint:changes:publish <slug>`, which
 commits them to the orphan `blueprint-changes` branch and pushes it — the durable store of every
-Change page, old and new, that never merges into other branches. `pnpm --filter blueprint dev` and
+Change page, old and new, that never merges into other branches. `pnpm check:workflow --gate <slug>`
+confirms the publish: it fails when a page was never published or was edited since. `pnpm --filter blueprint dev` and
 `build` first run `pnpm blueprint:changes:pull`, copying every published Change into
 `blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published
 Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the

@@ -593,9 +593,16 @@ export async function checkWorkflow(root = process.cwd()) {
   return diagnostics.sort();
 }
 
-function parseGateFlag(argv) {
-  const index = argv.indexOf("--gate");
-  return index === -1 ? undefined : argv[index + 1];
+// A flag whose value is missing is a typo, not an absent flag: returning
+// undefined there would skip the check the caller asked for.
+function flagValue(argv, name) {
+  const index = argv.indexOf(name);
+  if (index === -1) return undefined;
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`${name} needs a value`);
+  }
+  return value;
 }
 
 // A gate stops for the developer on a page they read from the store branch, so
@@ -618,20 +625,15 @@ export async function checkPublished(root, slug) {
   } — run \`pnpm blueprint:changes:publish ${slug}\` before the gate`;
 }
 
-function parseMigrationFlag(argv) {
-  const index = argv.indexOf("--migration");
-  return index === -1 ? undefined : argv[index + 1];
-}
-
 async function main() {
   const diagnostics = await checkWorkflow();
-  const gateSlug = parseGateFlag(process.argv.slice(2));
+  const gateSlug = flagValue(process.argv.slice(2), "--gate");
   if (gateSlug) {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
     if (unpublished) diagnostics.push(unpublished);
   }
   const warnings = await checkChangeScope(process.cwd(), {
-    migrationSlug: parseMigrationFlag(process.argv.slice(2)),
+    migrationSlug: flagValue(process.argv.slice(2), "--migration"),
   });
 
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
