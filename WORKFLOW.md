@@ -106,10 +106,21 @@ A small, urgent correction may instead follow the Fix path (see Fix path below) 
 a Change: the agent proposes it during intake and the developer confirms it once, on the tracker
 issue.
 
-Moving an issue to the tracker's ready-to-start status is the final human arming action for
-unattended execution. It never substitutes for an accepted Proposal page, satisfied dependencies, a
-resolvable repository route, available capacity, or a healthy provider. Agents never make that
-status change themselves.
+Adding the `agent:ready` label is the final human arming action for unattended execution; the
+developer moves the issue to Todo in the same step so the board shows it is queued. Symphony reads
+only the label. Arming never substitutes for an accepted Proposal page, satisfied dependencies, a
+resolvable repository route, available capacity, or a healthy provider. Agents never add the label
+themselves.
+
+The label and the status change together, each by one owner:
+
+| Moment                              | `agent:ready` | Status      | Owner     |
+| ----------------------------------- | ------------- | ----------- | --------- |
+| Developer arms unattended execution | added         | Todo        | developer |
+| Symphony claims the Change          | kept          | In Progress | Symphony  |
+| G1 or G2 waits for the developer    | kept          | In Review   | agent     |
+| Developer takes the Change manually | removed       | In Progress | developer |
+| Pull request merged                 | removed       | Done        | agent     |
 
 ## Lifecycle
 
@@ -387,20 +398,20 @@ Before Manual Apply starts for an issue that may be visible to Symphony:
 1. inspect the configured Symphony status surface for the issue identifier; `running`, `retrying`,
    and `blocked` all mean Symphony still owns a live claim, so stop rather than entering the same
    Change workspace manually;
-2. if the issue is not tracked by Symphony, the developer moves it out of the tracker's
-   ready-to-start status to prevent a future unattended claim;
+2. if the issue is not tracked by Symphony, the developer removes `agent:ready` and moves the issue
+   to In Progress to prevent a future unattended claim;
 3. request a Symphony refresh when the runtime is available, then inspect the issue status again;
 4. begin Manual Apply only when the issue remains absent from the runtime status surface after
    that post-removal check.
 
 The second status check closes the race between the initial observation and the status change. If
-a claim appears during that window, the status change makes the issue unroutable and Symphony
-reconciliation must release or stop it before Manual Apply proceeds. Agents never change that
-status on the developer's behalf, and completion of Manual Apply never restores it automatically.
+a claim appears during that window, removing the label makes the issue unroutable and Symphony
+reconciliation must release or stop it before Manual Apply proceeds. Agents never remove or restore
+the label on the developer's behalf, and completion of Manual Apply never restores it automatically.
 
 ### Symphony workflow
 
-After G1 acceptance, the developer may move the issue to the tracker's ready-to-start status.
+After G1 acceptance, the developer may add `agent:ready` and move the issue to Todo.
 Symphony claims the Change's operational issue, creates or resumes an isolated workspace, and
 invokes the same Apply contract. The current dispatch unit is one Change; Symphony does not claim
 individual slice sub-issues.

@@ -25,10 +25,10 @@ optional Symphony execution.
 - Archive runs automatically once Pre-PR review reaches its fixed point,
   before the pull request opens: it promotes ADRs and behavior to Features,
   exports the Delivery summary, and stops for G2 acceptance.
-- Symphony claims a Change once the developer moves its tracker issue into
-  the ready-to-start status after G1 acceptance. Manual Apply checks that the
-  status is absent, and checks again after any developer removal, before
-  starting — closing the race with a Symphony claim.
+- Symphony claims a Change once the developer adds `agent:ready` to its
+  tracker issue after G1 acceptance, moving it to Todo in the same step.
+  Manual Apply checks that no claim exists, removes the label, and checks
+  again before starting — closing the race with a Symphony claim.
 
 ## Constraints
 
