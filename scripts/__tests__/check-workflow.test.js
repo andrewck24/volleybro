@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 
 import { checkWorkflow, checkChangeScope } from "../check-workflow.js";
+
+const execFileAsync = promisify(execFile);
+const CHECK_WORKFLOW_SCRIPT = fileURLToPath(
+  new URL("../check-workflow.js", import.meta.url),
+);
 
 const validWorkflow = `---
 delivery:
@@ -300,4 +308,89 @@ test("accepts a snippet written as an escaped string", async () => {
 test("checkChangeScope is silent outside a git repository", async () => {
   const root = await makeRepository();
   assert.deepEqual(await checkChangeScope(root), []);
+});
+
+// A minimal repo for checkChangeScope: a `dev` base commit, then a feature
+// branch with a given number of src/ files changed against it. `commitArgs`
+// lets a test add a trailer via an extra -m.
+async function makeScopeRepository(fileCount, commitArgs = []) {
+  const root = await mkdtemp(path.join(os.tmpdir(), "change-scope-"));
+  const git = (args) => execFileAsync("git", args, { cwd: root });
+
+  await git(["init", "-q", "-b", "dev"]);
+  await git(["config", "user.email", "test@example.com"]);
+  await git(["config", "user.name", "Test"]);
+  await writeFile(path.join(root, "README.md"), "init\n");
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "init"]);
+
+  await git(["checkout", "-q", "-b", "feat/scope-test"]);
+  await mkdir(path.join(root, "src"), { recursive: true });
+  for (let i = 0; i < fileCount; i += 1) {
+    await writeFile(
+      path.join(root, `src/file${i}.ts`),
+      `export const f${i} = ${i};\n`,
+    );
+  }
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add files", ...commitArgs]);
+
+  return root;
+}
+
+test("checkChangeScope warns past the soft file-count target", async () => {
+  const root = await makeScopeRepository(31);
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+  assert.match(warnings[0], /31 files changed/);
+});
+
+test("checkChangeScope accepts a Migration trailer in the commit log", async () => {
+  const root = await makeScopeRepository(31, [
+    "-m",
+    "Migration: two-gate-workflow",
+  ]);
+  assert.deepEqual(await checkChangeScope(root), []);
+});
+
+test("checkChangeScope accepts a --migration slug", async () => {
+  const root = await makeScopeRepository(31);
+  assert.deepEqual(
+    await checkChangeScope(root, { migrationSlug: "two-gate-workflow" }),
+    [],
+  );
+});
+
+test("checkChangeScope never fails the process, even when it warns", async () => {
+  const root = await makeRepository();
+  await execFileAsync("git", ["init", "-q", "-b", "dev"], { cwd: root });
+  await execFileAsync("git", ["config", "user.email", "test@example.com"], {
+    cwd: root,
+  });
+  await execFileAsync("git", ["config", "user.name", "Test"], { cwd: root });
+  await execFileAsync("git", ["add", "-A"], { cwd: root });
+  await execFileAsync("git", ["commit", "-q", "-m", "init"], { cwd: root });
+
+  await execFileAsync("git", ["checkout", "-q", "-b", "feat/scope-test"], {
+    cwd: root,
+  });
+  await mkdir(path.join(root, "src"), { recursive: true });
+  for (let i = 0; i < 31; i += 1) {
+    await writeFile(
+      path.join(root, `src/file${i}.ts`),
+      `export const f${i} = ${i};\n`,
+    );
+  }
+  await execFileAsync("git", ["add", "-A"], { cwd: root });
+  await execFileAsync("git", ["commit", "-q", "-m", "add files"], {
+    cwd: root,
+  });
+
+  const result = await execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], {
+    cwd: root,
+  }).catch((error) => error);
+
+  assert.equal(result.code ?? 0, 0);
+  assert.match(result.stderr, /Warning:.*change-scope/is);
 });
