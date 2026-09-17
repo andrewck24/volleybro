@@ -41,6 +41,16 @@ interface PageProps {
 
 type SourcePage = ReturnType<typeof source.getPage>;
 
+// Shared by every branch below that renders a page's MDX body directly:
+// 404s when the page is missing. An assertion function rather than one
+// that returns the body itself, so `Mdx` stays a plain `page.data.body`
+// property read at each call site — react-hooks/static-components flags a
+// component read through an extra function call as "created during
+// render", even though this one is as stable as the property it wraps.
+function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
+  if (!page) notFound();
+}
+
 function ChangesIndex() {
   const changes = listChanges();
   return (
@@ -49,8 +59,8 @@ function ChangesIndex() {
         <h1>Changes</h1>
         {changes.length === 0 ? (
           <p>
-            No Change pages right now — they are generated locally per gate and
-            are not committed.
+            No Change pages right now — none are published or pulled yet. Run{" "}
+            <code>pnpm blueprint:changes:pull</code>.
           </p>
         ) : (
           <ul>
@@ -75,7 +85,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
   const page = source.getPage(slug);
 
   if (slug.length === 1) {
-    if (!page) notFound();
+    assertPage(page);
     const Mdx = page.data.body;
     const change = await loadChangeMetadata(slug[0]);
     return (
@@ -91,7 +101,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
   }
 
   if (slug.length === 2 && slug[1] === "implementation") {
-    if (!page) notFound();
+    assertPage(page);
     const Mdx = page.data.body;
     const slices = await loadImplementationPlan(slug[0]);
     return (
@@ -108,22 +118,17 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     if (mockup) {
       const { default: Design, toc } = mockup;
       return (
-        <TreeContextProvider tree={changesBreadcrumbTree}>
-          <DocsPage
-            toc={toc ?? page?.data.toc ?? []}
-            breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
-          >
-            <DocsBody>
-              <h1>{page?.data.title ?? "Design"}</h1>
-              <LegacyDecisionsProvider>
-                <Design />
-              </LegacyDecisionsProvider>
-            </DocsBody>
-          </DocsPage>
-        </TreeContextProvider>
+        <LegacyShell
+          page={page}
+          toc={toc ?? page?.data.toc ?? []}
+          title={page?.data.title ?? "Design"}
+        >
+          <Design />
+        </LegacyShell>
       );
     }
-    const Mdx = page!.data.body;
+    assertPage(page);
+    const Mdx = page.data.body;
     return (
       <LegacyShell page={page}>
         <Mdx components={mdxComponents} />
@@ -132,7 +137,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
   }
 
   // review.mdx, tasks.mdx, specs/**, and anything else render as plain MDX.
-  if (!page) notFound();
+  assertPage(page);
   const Mdx = page.data.body;
   return (
     <LegacyShell page={page}>
@@ -143,19 +148,23 @@ async function LegacyPage({ slug }: { slug: string[] }) {
 
 function LegacyShell({
   page,
+  toc = page?.data.toc,
+  title = page?.data.title,
   children,
 }: {
   page: SourcePage;
+  toc?: React.ComponentProps<typeof DocsPage>["toc"];
+  title?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <TreeContextProvider tree={changesBreadcrumbTree}>
       <DocsPage
-        toc={page?.data.toc}
+        toc={toc}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
       >
         <DocsBody>
-          <h1>{page?.data.title}</h1>
+          <h1>{title}</h1>
           <LegacyDecisionsProvider>{children}</LegacyDecisionsProvider>
         </DocsBody>
       </DocsPage>
