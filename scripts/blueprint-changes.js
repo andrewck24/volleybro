@@ -8,8 +8,18 @@
  *   node scripts/blueprint-changes.js publish <slug> [--dry-run]
  */
 import { execFile, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { access, cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import {
+  access,
+  cp,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,6 +32,9 @@ const REMOTE_REF = "refs/blueprint-changes/remote";
 const FETCH_REFSPEC = `+${BRANCH}:${REMOTE_REF}`;
 const DEFAULT_REMOTE = "https://github.com/andrewck24/volleybro.git";
 const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
+// Dotfile, not `meta.json` — fumadocs-mdx's meta collection in
+// source.config.ts only globs `**/meta.json`, so this never becomes a page.
+const STORE_FILE = ".store-state.json";
 
 function runGit(args, options) {
   return execFileAsync("git", args, options);
@@ -85,6 +98,52 @@ async function fetchChanges(remote, repoRoot) {
   });
 }
 
+async function readStore(changesDir) {
+  try {
+    return JSON.parse(
+      await readFile(path.join(changesDir, STORE_FILE), "utf8"),
+    );
+  } catch {
+    return {};
+  }
+}
+
+async function writeStore(changesDir, store) {
+  await writeFile(
+    path.join(changesDir, STORE_FILE),
+    JSON.stringify(store, null, 2) + "\n",
+  );
+}
+
+async function listFiles(dir, base = dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...(await listFiles(full, base)));
+    else if (entry.isFile()) files.push(path.relative(base, full));
+  }
+  return files.sort();
+}
+
+// A content hash, not a git hash — it must match a plain extracted directory
+// with no `.git`, so it can be computed for both a pulled slug and a locally
+// edited one.
+async function hashDir(dir) {
+  const hash = createHash("sha256");
+  for (const relativePath of await listFiles(dir)) {
+    hash.update(relativePath);
+    hash.update("\0");
+    hash.update(await readFile(path.join(dir, relativePath)));
+  }
+  return hash.digest("hex");
+}
+
+async function replaceDir(destDir, sourceDir) {
+  await rm(destDir, { recursive: true, force: true });
+  await cp(sourceDir, destDir, { recursive: true });
+}
+
 export async function pull(cwd, { force = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
@@ -104,6 +163,7 @@ export async function pull(cwd, { force = false } = {}) {
   }
 
   await mkdir(changesDir, { recursive: true });
+  const store = await readStore(changesDir);
   const { stdout } = await runGit(
     ["ls-tree", "-d", "--name-only", REMOTE_REF],
     { cwd: repoRoot },
@@ -113,21 +173,59 @@ export async function pull(cwd, { force = false } = {}) {
     .map((line) => line.trim())
     .filter(Boolean);
 
+  const scratchParent = await mkdtemp(
+    path.join(os.tmpdir(), "blueprint-changes-pull-"),
+  );
+
   let added = 0;
-  let skipped = 0;
-  for (const slug of slugs) {
-    const destDir = path.join(changesDir, slug);
-    if (existsSync(destDir)) {
-      if (!force) {
-        skipped += 1;
+  let refreshed = 0;
+  let upToDate = 0;
+  const keptLocal = [];
+
+  try {
+    for (const slug of slugs) {
+      const destDir = path.join(changesDir, slug);
+      const scratchDir = path.join(scratchParent, slug);
+      await archiveExtract(REMOTE_REF, slug, repoRoot, scratchParent);
+      const remoteHash = await hashDir(scratchDir);
+
+      if (!existsSync(destDir)) {
+        await cp(scratchDir, destDir, { recursive: true });
+        store[slug] = remoteHash;
+        added += 1;
         continue;
       }
-      await rm(destDir, { recursive: true, force: true });
+
+      if (force) {
+        await replaceDir(destDir, scratchDir);
+        store[slug] = remoteHash;
+        refreshed += 1;
+        continue;
+      }
+
+      const currentHash = await hashDir(destDir);
+      const recordedHash = store[slug];
+      if (recordedHash && recordedHash === currentHash) {
+        if (remoteHash !== currentHash) {
+          await replaceDir(destDir, scratchDir);
+          store[slug] = remoteHash;
+          refreshed += 1;
+        } else {
+          upToDate += 1;
+        }
+      } else {
+        keptLocal.push(slug);
+      }
     }
-    await archiveExtract(REMOTE_REF, slug, repoRoot, changesDir);
-    added += 1;
+  } finally {
+    await rm(scratchParent, { recursive: true, force: true });
   }
-  console.log(`blueprint-changes pull: ${added} added, ${skipped} skipped`);
+
+  await writeStore(changesDir, store);
+  console.log(
+    `blueprint-changes pull: ${added} added, ${refreshed} refreshed, ${upToDate} up to date, ${keptLocal.length} kept local` +
+      (keptLocal.length > 0 ? ` (${keptLocal.join(", ")})` : ""),
+  );
 }
 
 async function applyChange(tmpDir, slug, localSlugDir) {
@@ -143,6 +241,13 @@ async function applyChange(tmpDir, slug, localSlugDir) {
     cwd: tmpDir,
   });
   return true;
+}
+
+async function recordPublishedHash(repoRoot, slug, localSlugDir) {
+  const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
+  const store = await readStore(changesDir);
+  store[slug] = await hashDir(localSlugDir);
+  await writeStore(changesDir, store);
 }
 
 export async function publish(cwd, slug, { dryRun = false } = {}) {
@@ -182,6 +287,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     const changed = await applyChange(tmpDir, slug, localSlugDir);
     if (!changed) {
       console.log(`blueprint-changes publish: no changes for ${slug}`);
+      await recordPublishedHash(repoRoot, slug, localSlugDir);
       return;
     }
 
@@ -206,12 +312,14 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
         console.log(
           `blueprint-changes publish: no changes for ${slug} after retry`,
         );
+        await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       }
       await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
         cwd: tmpDir,
       });
     }
+    await recordPublishedHash(repoRoot, slug, localSlugDir);
   } finally {
     await runGit(["worktree", "remove", "--force", tmpDir], {
       cwd: repoRoot,
