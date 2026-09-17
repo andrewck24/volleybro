@@ -243,7 +243,7 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
    publish it with `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for
    acceptance (G2). Reading the source is not reading the page: a stale count, a column that does
    not line up, an unreadable snippet are all invisible in the file that produces them;
-6. verify tracker neutrality, workflow conformance, and the Features build.
+6. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
 Acceptance of the Delivery page is the last human gate. It authorizes opening the pull request
 without asking again: open it with the exported Delivery summary in the body, then wait for CI and
@@ -315,6 +315,9 @@ small to carry Proposal and Delivery pages.
    behavior contract or ADR, or Features turn out to describe the behavior wrongly.
 7. Commits on the fix path carry a `Refs: <tracker issue>` trailer and omit `Implements` and
    `Blueprint-Change`.
+8. A single-commit fix squashes into `dev` as usual. A multi-commit fix merges with a merge commit,
+   the same as a normal Change; if it is squashed instead, the squash commit keeps the `Refs`
+   trailer.
 
 ## Decision-record contract
 
@@ -338,16 +341,18 @@ rendering never becomes a second editable decision source.
 Archive copies each realized ADR to
 `blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy becomes
 canonical current knowledge. A later Change that replaces it sets `supersededBy` on the Feature
-copy to the replacing Feature ADR, without editing the proposed record, which disappears with the
-rest of the Change directory once it is archived.
+copy to the replacing Feature ADR, without editing the proposed record. That record does not
+disappear — it stays with the published Proposal page on the `blueprint-changes` store branch; the
+Feature copy is the current authority.
 
 A promoted record is renumbered, because the two copies answer to different namespaces. On the
-Proposal page, `D3` means the third decision of that piece of reasoning, and it is gone once the
-Change directory is regenerated for the next gate or removed after Archive. Inside Features it has
-to be unique across everything promoted so far, so Archive assigns the next free number in **one
-sequence spanning the whole Features tree** and records where the record came from in
-`originChange` and `originDecision`. Citing the Proposal's own numbering only works while the
-Change is still open; the Feature number is the only citation that survives Archive.
+Proposal page, `D3` means the third decision of that piece of reasoning, and that numbering stops
+being citable once the Change directory is regenerated for the next gate, even though the page
+itself persists on the store branch. Inside Features it has to be unique across everything promoted
+so far, so Archive assigns the next free number in **one sequence spanning the whole Features
+tree** and records where the record came from in `originChange` and `originDecision`. Citing the
+Proposal's own numbering only works while the Change is still open; the Feature number is the only
+citation that survives Archive.
 
 The sequence is global rather than per capability because one ADR may target several. Numbering per
 capability would give a single decision two numbers, and a decision is one entry however many pages
@@ -360,8 +365,9 @@ slice is a separate reviewable commit; use temporary slice branches only when tr
 work must run in parallel, then integrate them back into the Change branch before final
 verification.
 
-Proposal-page content never enters git — it lives only in the regenerated, gitignored Change
-directory. Push the Change branch when another session or Symphony must resume it.
+Proposal-page content never enters the Change branch — it lives only in the regenerated, gitignored
+Change directory and is published to the `blueprint-changes` store branch at each gate. Push the
+Change branch when another session or Symphony must resume it.
 
 Merge a Change into `dev` with a merge commit. Squashing collapses the per-slice commits and
 discards the `Implements` and `Blueprint-Change` trailers that make delivery traceable, which is
@@ -397,7 +403,7 @@ status on the developer's behalf, and completion of Manual Apply never restores 
 After G1 acceptance, the developer may move the issue to the tracker's ready-to-start status.
 Symphony claims the Change's operational issue, creates or resumes an isolated workspace, and
 invokes the same Apply contract. The current dispatch unit is one Change; Symphony does not claim
-individual slice files.
+individual slice sub-issues.
 
 Removing or replacing Symphony must not alter Change artifacts, slice status semantics, commits, or
 human approval gates.
@@ -475,7 +481,7 @@ Five rules bind this:
 - A component earns its place by carrying structure prose cannot. The narrative that explains _why_
   still belongs beside it, and a page that is only components has lost the argument.
 - Components render data and never become a second source for it. A page must not restate what the
-  page shell already renders from the slice files or the decision records.
+  page shell already renders from the slice sub-issues or the decision records.
 - Diagrams are part of the specification, not illustrations of it. When delivery diverges from what
   a diagram shows, the diagram is corrected in the same round as the text.
 - Use an ordered list wherever items are referred to by number elsewhere on the page.

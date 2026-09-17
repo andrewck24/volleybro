@@ -25,7 +25,8 @@ Branch-local Archive reconciles each realized ADR with delivered code and tests 
 narrowest affected Blueprint capability's `features/<capability>/decisions/` as canonical current
 knowledge. Archive validates the draft `targets` against the realized boundary before choosing those
 destinations. A later Change that replaces a Feature copy sets its `supersededBy` to the replacing
-Feature ADR; the proposed record disappears with the rest of the Change directory once archived.
+Feature ADR; the proposed record does not disappear — it stays with the published Proposal page on
+the `blueprint-changes` store branch, but the Feature copy is the current authority.
 
 Before changing domain language or a decision, read the affected Feature pages, active Change, code,
 and tests. Surface contradictions rather than silently rewriting an authority.
