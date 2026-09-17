@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "mkdir -p content/changes && next dev --webpack",
+    "build": "mkdir -p content/changes && next build --webpack",
     "start": "next start",
     "type-check": "tsc --noEmit",
     "test": "jest"

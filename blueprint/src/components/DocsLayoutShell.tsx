@@ -14,10 +14,12 @@ import { designSystemTree } from "@/lib/design-system-tree";
 export function DocsLayoutShell({
   changesTree,
   featuresTree,
+  hasChanges,
   children,
 }: {
   changesTree: Root;
   featuresTree: Root;
+  hasChanges: boolean;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -32,8 +34,11 @@ export function DocsLayoutShell({
       tree={activeTree}
       nav={{ title: "Blueprint" }}
       sidebar={{
+        // The deployed site builds without Change pages, so the tab is
+        // dropped rather than left pointing at an empty list. The /changes
+        // route itself keeps working for a direct visit or a local `dev`.
         tabs: [
-          { title: "Changes", url: "/changes" },
+          ...(hasChanges ? [{ title: "Changes", url: "/changes" }] : []),
           { title: "Features", url: "/features" },
           { title: "Design System", url: "/design-system" },
         ],
