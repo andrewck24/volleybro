@@ -13,7 +13,7 @@
     },
     {
       "option": "Move Blueprint change pages to a separate repository",
-      "reason": "Agents would work across two checkouts per Change and CI would need to fetch content from elsewhere, while the pages still would not need to outlive their gate."
+      "reason": "Agents would work across two checkouts per Change, and the build would need a cross-repository fetch to assemble the deployed Blueprint."
     },
     {
       "option": "Deploy each Change's pages to a preview URL",
@@ -34,10 +34,10 @@
     "The deployed Blueprint site carries Features, the Design System, and every published Change.",
     "Slices are working notes; the Implements commit trailer is their only durable trace.",
     "Superseded Feature ADRs carry supersededBy instead of a status field.",
-    "A small fix with no new behaviour contract uses the Fix path instead: no Proposal or Delivery page, no publish step, and a pull request carrying a Refs trailer is the only gate."
+    "A small fix with no new behaviour contract uses the Fix path instead: no Proposal or Delivery page, no publish step, and a pull request whose commits carry a Refs trailer is the only gate."
   ],
   "revisitTriggers": [
-    "Developers need to read a merged Change's review material that the pull-request body does not carry.",
+    "The store branch grows large enough to slow the build's fetch.",
     "A gate is reviewed by someone who cannot run the Blueprint locally.",
     "The size warnings are routinely ignored without a Migration trailer."
   ],
