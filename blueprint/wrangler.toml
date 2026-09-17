@@ -5,7 +5,7 @@ compatibility_date = "2026-07-01"
 directory = "./out"
 
 [build]
-command = "pnpm --filter blueprint build"
+command = "BLUEPRINT_REQUIRE_CHANGES=1 pnpm --filter blueprint build"
 
 [observability]
 enabled = false

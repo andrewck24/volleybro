@@ -29,6 +29,8 @@
     "chromatic": "npx chromatic",
     "release:version": "changeset version && node .changeset/changelog-postprocess.js",
     "blueprint": "node scripts/blueprint.js",
+    "blueprint:changes:pull": "node scripts/blueprint-changes.js pull",
+    "blueprint:changes:publish": "node scripts/blueprint-changes.js publish",
     "generate-icons": "node scripts/generate-icons.js",
     "check:workflow": "node scripts/check-workflow.js"
   },
