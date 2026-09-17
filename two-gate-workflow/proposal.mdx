@@ -1,0 +1,56 @@
+---
+title: Two-gate workflow — Proposal
+description: Boundaries, behaviour contract, and adopted decisions for the two-gate delivery workflow.
+---
+
+import d1 from "./proposal/decisions/D1.json";
+
+> Written after delivery: this Change bootstrapped the workflow it defines, so no Proposal page existed at G1. Reconstructed from the Review page's own record so the promoted ADR can name its origin.
+
+<TLDR>
+The delivery workflow stops for a human at two gates only: a Proposal page before implementation and a Review page before the pull request. Change pages are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed. Slice plans, per-round review pages, a `change.json` lifecycle, and the Archive reconcile step are gone; a Change's slices, when it needs any, are Linear sub-issues under its issue, and a Change that fits one session skips slices and implements directly.
+</TLDR>
+
+## Change boundaries
+
+- Replace the four committed Change pages (Overview, Design, Implementation, Review) and their `change.json` lifecycle with two gitignored pages, `proposal.mdx` and `review.mdx`, published to the orphan `blueprint-changes` store branch at each gate.
+- Move slice tracking off Blueprint JSON entirely: slices are Linear sub-issues under the Change's issue, in both manual and Symphony execution; a Change that fits one session skips slices and implements directly.
+- Replace the ADR `candidate → accepted → implemented` status field with directory placement: proposed under a Change's `proposal/decisions/`, adopted once copied into `blueprint/content/features/`; `supersededBy` names a replacement.
+- Add soft Change-size targets (5 slices, 30 changed `src` files, 8 acceptance scenarios, a 40-line PR summary) that warn rather than fail, plus a Migration Change escape hatch for large refactors.
+- Add a Fix path for small, urgent corrections that carries no new behaviour contract: no Proposal or Review page, no publish step, and a pull request with a `Refs:` trailer as the only gate.
+- Out of scope: converting the 22 old-format Change directories already on the store branch; they keep rendering through a temporary compatibility layer until a later migration.
+- Out of scope: a remote preview of Change pages; both gates happen on the developer's machine, so the local Blueprint dev server is enough for now.
+
+## Behaviour contract
+
+<Scenario given="a Change directory has been deleted" when="Blueprint builds" then="the build succeeds and the Changes tab stays unlisted rather than disappearing" />
+
+<Scenario given="a Change has only a proposal.tsx mockup" when="its Proposal route renders" then="the mockup renders with no proposal.mdx present" />
+
+<Scenario given="a Proposal page is missing a TLDR or a Scenario" when="check:workflow runs" then="it fails with a blueprint-proposal diagnostic naming the missing component" />
+
+<Scenario given="a Review page is missing a TLDR or a markdown table" when="check:workflow runs" then="it fails with a blueprint-review diagnostic naming the missing component" />
+
+<Scenario given="a Change changes more than 30 src files or states more than 8 acceptance scenarios" when="check:workflow runs" then="it warns and never fails the check" />
+
+<Scenario given="a Change carries a Migration: trailer on its last commit" when="check:workflow runs" then="the src-file-count warning is silenced, but the same word appearing only in a commit body does not silence it" />
+
+<Scenario given="every Feature ADR under blueprint/content/features" when="validated against the decision-record schema" then="every record conforms" />
+
+<Scenario given="the Change branch has been built" when="git tracks blueprint/content/changes/" then="no file under that directory is tracked" />
+
+## Risks
+
+<RiskTable
+  risks={[
+    { name: "Proposal mockups regressed after the route rewrite to a shared proposal/review shell", severity: "critical", mitigation: "Route mockups through webpack require.context and create the gitignored Change directory before build and dev run." },
+    { name: "Retired lifecycle states and components stay deployed after the four-page shell is dropped", severity: "critical", mitigation: "Delete the lifecycle components and rewrite the two platform Feature pages in the same Change." },
+    { name: "A single-page Change's breadcrumb could drop the middle <change> level", severity: "warning", mitigation: "Keep a folder's lone page as its own child instead of collapsing it into the folder's index." },
+    { name: "Old-format Changes with a leftover proposal.mdx could list twice on /changes", severity: "warning", mitigation: "Skip a slug from the two-gate index when its directory carries a change.json; the legacy index still lists it once." },
+    { name: "The 22 old-format Change directories need somewhere to live besides deletion", severity: "info", mitigation: "Move them to the store branch and render them through a temporary compatibility layer until a later migration converts them." },
+  ]}
+/>
+
+## Decisions
+
+<DecisionTimeline decisions={[d1]} />

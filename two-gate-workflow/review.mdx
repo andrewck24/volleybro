@@ -1,18 +1,18 @@
 ---
-title: Two-gate workflow — Delivery
+title: Two-gate workflow — Review
 description: What changed, how it was verified, and what is left.
 ---
 
 <TLDR>
-The delivery workflow now stops for you twice: the Proposal page before implementation and this Delivery page before the pull request. Change pages like this one are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed here. The 22 old Change directories moved to that store branch, the deployed site now carries every published Change alongside Features and the Design System, and the reasoning survives as Feature ADR D45. A third, lighter Fix path also lands in this Change: small corrections skip both gates entirely.
+The delivery workflow now stops for you twice: the Proposal page before implementation and this Review page before the pull request. Change pages like this one are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed here. The 22 old Change directories moved to that store branch, the deployed site now carries every published Change alongside Features and the Design System, and the reasoning survives as Feature ADR D45. A third, lighter Fix path also lands in this Change: small corrections skip both gates entirely.
 </TLDR>
 
 ## What you are accepting
 
 | Area | Before | After |
 | --- | --- | --- |
-| Human gates | Discuss exit, proposal authorisation, slice-plan approval, per-round Review updates, delivery acceptance | G1 Proposal page, G2 Delivery page |
-| Change pages | Overview, Design, Implementation, Review, slice JSON, `change.json` lifecycle, all committed | `proposal.mdx` (plus optional `proposal.tsx` mockup) and `delivery.mdx`, gitignored |
+| Human gates | Discuss exit, proposal authorisation, slice-plan approval, per-round code-review updates, delivery acceptance | G1 Proposal page, G2 Review page |
+| Change pages | Overview, Design, Implementation, Review, slice JSON, `change.json` lifecycle, all committed | `proposal.mdx` (plus optional `proposal.tsx` mockup) and `review.mdx`, gitignored |
 | Slices | Blueprint JSON with status | Linear sub-issues under the Change's issue, manual and Symphony alike; skipped for a one-session Change; closed after Archive; `Implements` trailer stays |
 | Handoff in manual runs | Told to the developer only | The pushed branch, its commits, and the sub-issues, so another agent, worktree, or machine can resume |
 | ADR status | `candidate` → `accepted` → `implemented` field | Directory says proposed or adopted; `supersededBy` names a replacement |
@@ -32,7 +32,7 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
 | A Proposal with `.mdx` and `.tsx` renders both | Pass |
 | A build without Change pages does not list the Changes tab, yet a /changes page keeps the section switcher | Pass |
 | A Proposal without `TLDR` or `Scenario` fails `check:workflow` | Pass |
-| A Delivery without `TLDR` or a table fails `check:workflow` | Pass |
+| A Review without `TLDR` or a table fails `check:workflow` | Pass |
 | More than 30 src files or 8 scenarios warns and never fails | Pass |
 | A `Migration:` trailer silences the warning; the same word in the body does not | Pass |
 | All 65 Feature ADRs validate against the new schema | Pass |
@@ -63,11 +63,12 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
     { name: "Old-format Changes with a leftover proposal.mdx were listed twice on /changes, once as \"Proposal\"", severity: "warning", mitigation: "listChanges skips a slug from the two-gate branch when its directory carries a change.json; legacyChanges still lists it once." },
     { name: "A single-page two-gate Change's breadcrumb dropped the middle <change> level, reading \"Changes > <page>\"", severity: "info", mitigation: "withNavigableFolders keeps a folder's lone page as its own child instead of collapsing it into the folder's index." },
     { name: "Commit messages missed bodies, trailers, or used a tool name as scope", severity: "info", mitigation: "Rewritten before push; tree identical to the pre-rewrite backup." },
-    { name: "A /changes page with no proposal.mdx stranded the reader: fumadocs hides the whole tab switcher when the current path matches no tab", severity: "warning", mitigation: "The Changes tab is always in the tabs array now, `unlisted` rather than dropped when there is no local Change; a delivery-only probe build still reaches Features and Design System from it." },
+    { name: "A /changes page with no proposal.mdx stranded the reader: fumadocs hides the whole tab switcher when the current path matches no tab", severity: "warning", mitigation: "The Changes tab is always in the tabs array now, `unlisted` rather than dropped when there is no local Change; a review-only probe build still reaches Features and Design System from it." },
     { name: "Slices moved from `.scratch/<slug>/` to Linear sub-issues under the Change's issue, in both manual and Symphony mode; a one-session Change skips slices and implements directly", severity: "info", mitigation: "WORKFLOW.md, the repository adapters, CONTRIBUTING, check-workflow.js and its tests, and the Feature pages and ADRs updated together; `.scratch/` stays gitignored for other tools but is no longer a workflow location." },
     { name: "Change pages had no durable store once they stopped being committed to the Change branch", severity: "info", mitigation: "The orphan `blueprint-changes` branch is now the durable store: `pnpm blueprint:changes:publish` commits and pushes each gate's pages there, and `pnpm blueprint:changes:pull` fetches every published Change before `dev` and `build`." },
     { name: "The 22 old-format Change directories needed somewhere to live besides deletion", severity: "info", mitigation: "Moved to the store branch and rendered through a temporary compatibility layer until converted; conversion is tracked outside the repository." },
-    { name: "Urgent, small fixes had no lightweight route and had to carry full Proposal and Delivery pages", severity: "info", mitigation: "Added the Fix path: G1/G2, publishing, slices, and Archive promotion are all skipped; the pull request is the only gate, with a `Refs:` commit trailer in place of `Implements`/`Blueprint-Change`." },
+    { name: "Urgent, small fixes had no lightweight route and had to carry full Proposal and Review pages", severity: "info", mitigation: "Added the Fix path: G1/G2, publishing, slices, and Archive promotion are all skipped; the pull request is the only gate, with a `Refs:` commit trailer in place of `Implements`/`Blueprint-Change`." },
+    { name: "The Proposal page for this Change did not exist, so the promoted ADR could not name its origin", severity: "info", mitigation: "Reconstructed `proposal.mdx` and `proposal/decisions/D1.json` from this Review page's own record after delivery; both D45 copies now carry `originDecision: \"D1\"`." },
   ]}
 />
 
@@ -77,7 +78,6 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
   risks={[
     { name: "Dry run on a small Change to measure gate count and Blueprint-only commits", severity: "warning", mitigation: "Needs a real Change. Measure on the next one against the baseline of 28 gate prompts and 24 of 50 Blueprint-only commits." },
     { name: "40-line PR summary is not checked by a script", severity: "info", mitigation: "The PR body is not available locally; the limit stays a written rule." },
-    { name: "D45 has no originDecision", severity: "info", mitigation: "This Change had no Proposal page; D45 records four planning decisions at once. Accepting this delivery accepts that exception." },
     { name: "Symphony's active-status filter comes from its published spec, not from reading the runtime", severity: "warning", mitigation: "Confirm that the runtime's active states are Todo and In Progress before arming the first unattended Change." },
     { name: "The concurrent-publish test does not force the retry path", severity: "info", mitigation: "The retry is covered by its own rejection tests; a forced interleaving can be added with the next change to the sync script." },
     { name: "CONTRIBUTING still names an AI vendor and its skills directory", severity: "info", mitigation: "Pre-existing; handled by the follow-up that splits reviewer standards out of CONTRIBUTING." },
