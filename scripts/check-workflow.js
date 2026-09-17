@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
 import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -56,18 +60,10 @@ const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
 const BLUEPRINT_CHANGES = "blueprint/content/changes";
 const BLUEPRINT_LINK_SOURCES = ["blueprint/src", "blueprint/content"];
 const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
-const CHANGES_ROUTE = path.join(
-  "blueprint",
-  "src",
-  "app",
-  "(docs)",
-  "changes",
-  "[[...slug]]",
-  "page.tsx",
-);
 const ANCHOR_TAG = /<a(\s[^>]*)>/g;
 const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
-const DESIGN_MODULE_KEY = /"([^"]+)\/design":/g;
+const CHANGE_SCOPE_SOFT_LIMIT = 30;
+const MIGRATION_TRAILER = /^Migration:\s*(\S+)/im;
 
 async function validateContributorGuidance(root) {
   const contributorPath = path.join(root, "CONTRIBUTING.md");
@@ -339,25 +335,6 @@ async function activeReferenceFiles(root) {
   });
 }
 
-// A Change Overview renders change.json and the registered pages. Restating any
-// of that as MDX props reintroduces the hand-synchronised copies the
-// Implementation-slice contract removed.
-async function validateOverviewSource(root) {
-  const files = await listFiles(path.join(root, BLUEPRINT_CHANGES));
-  const diagnostics = [];
-
-  for (const filePath of files) {
-    if (path.basename(filePath) !== "index.mdx") continue;
-    const content = await readFile(filePath, "utf8");
-    if (!content.includes("<ChangeOverview")) continue;
-    diagnostics.push(
-      `${path.relative(root, filePath)} [blueprint-overview-source]: Overview metadata comes from change.json, not ChangeOverview props`,
-    );
-  }
-
-  return diagnostics;
-}
-
 // A raw anchor is a full document load, which discards the sidebar state
 // fumadocs keeps in React state. Internal links have to route through next/link.
 async function validateInternalLinks(root) {
@@ -389,96 +366,47 @@ async function validateInternalLinks(root) {
   return diagnostics;
 }
 
-// The design module registry repeats each Change's directory. Until that
-// coupling goes away, name the mismatch instead of failing as a module
-// resolution error deep inside the bundler.
-async function validateDesignModules(root) {
-  const routePath = path.join(root, CHANGES_ROUTE);
-  if (!(await exists(routePath))) return [];
-
-  const route = await readFile(routePath, "utf8");
-  const diagnostics = [];
-  for (const [, changePath] of route.matchAll(DESIGN_MODULE_KEY)) {
-    const designPath = path.join(
-      root,
-      BLUEPRINT_CHANGES,
-      changePath,
-      "design.tsx",
-    );
-    if (!(await exists(designPath))) {
-      diagnostics.push(
-        `${CHANGES_ROUTE} [blueprint-design-module]: ${changePath}/design.tsx does not exist`,
-      );
-    }
-  }
-
-  return diagnostics;
-}
-
-// A Change that says it is ready for the developer must carry the page that
-// asks for the decision. Archived Changes are frozen history and predate this.
-const REVIEWED_LIFECYCLE = "awaiting-delivery-review";
-
-async function validateChangeArtifacts(root) {
+// A Change directory that exists locally is always current work in
+// progress -- there is no lifecycle field left to read, and an archived
+// Change is not tracked, let alone present on disk.
+async function changeDirectories(root) {
   const changesRoot = path.join(root, BLUEPRINT_CHANGES);
-  if (!(await exists(changesRoot))) return { diagnostics: [], active: [] };
+  if (!(await exists(changesRoot))) return [];
 
-  const diagnostics = [];
-  const active = [];
   const entries = await readdir(changesRoot, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const dir = path.join(changesRoot, entry.name);
-    const changePath = path.join(dir, "change.json");
-    const metaPath = path.join(dir, "meta.json");
-    if (!(await exists(changePath)) || !(await exists(metaPath))) continue;
-
-    const change = JSON.parse(await readFile(changePath, "utf8"));
-    const meta = JSON.parse(await readFile(metaPath, "utf8"));
-    if (change.lifecycle !== "archived") active.push(dir);
-    if (change.lifecycle !== REVIEWED_LIFECYCLE) continue;
-    if (meta.pages?.includes("review")) continue;
-
-    diagnostics.push(
-      `${BLUEPRINT_CHANGES}/${entry.name} [blueprint-review]: lifecycle "${change.lifecycle}" without a review page`,
-    );
-  }
-
-  return { diagnostics, active };
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(changesRoot, entry.name));
 }
 
-// A Review's FileTour of prose alone asks the reader to take the summary on
-// trust. Overview tours are written before the code exists, so this binds
-// review.mdx only; archived Changes are frozen history and are left alone.
-function fileTourGaps(relativePath, content) {
-  const start = content.indexOf("<FileTour");
-  if (start === -1) return [];
-
-  // Not the first "/>": a snippet can contain one. The tour closes on its
-  // own array literal.
-  const close = content.slice(start).search(/\n\s*\]\}\s*\/>/);
-  if (close === -1) return [];
-  const tour = content.slice(start, start + close);
-  const cuts = [...tour.matchAll(/\bpath:\s*["'`]([^"'`]+)["'`]/g)];
-  return cuts.flatMap((cut, index) => {
-    const body = tour.slice(cut.index, cuts[index + 1]?.index ?? tour.length);
-    if (!/\bchange:\s*["'`]/.test(body)) return [];
-    if (/\bcode:\s*["'`]/.test(body)) return [];
-    return [`${relativePath} [blueprint-file-tour]: ${cut[1]} has no code`];
-  });
-}
-
-async function validateFileTours(root, changeDirectories) {
+// The two-gate model's whole content contract: a Proposal makes its case with
+// a TLDR and at least one acceptance Scenario, a Delivery reports results with
+// a TLDR and a table. Everything else about a Change page is free-form prose.
+async function validateChangePages(root, directories) {
   const diagnostics = [];
-  for (const directory of changeDirectories) {
-    for (const filePath of await listFiles(directory)) {
-      if (!filePath.endsWith("review.mdx")) continue;
-      diagnostics.push(
-        ...fileTourGaps(
-          path.relative(root, filePath),
-          await readFile(filePath, "utf8"),
-        ),
-      );
+  const markdownTable = /^\s*\|.*\|\s*$/m;
+
+  for (const directory of directories) {
+    const slug = path.basename(directory);
+
+    const proposalPath = path.join(directory, "proposal.mdx");
+    if (await exists(proposalPath)) {
+      const content = await readFile(proposalPath, "utf8");
+      if (!content.includes("<TLDR") || !content.includes("<Scenario")) {
+        diagnostics.push(
+          `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [blueprint-proposal]: must contain a TLDR and at least one Scenario`,
+        );
+      }
+    }
+
+    const deliveryPath = path.join(directory, "delivery.mdx");
+    if (await exists(deliveryPath)) {
+      const content = await readFile(deliveryPath, "utf8");
+      if (!content.includes("<TLDR") || !markdownTable.test(content)) {
+        diagnostics.push(
+          `${BLUEPRINT_CHANGES}/${slug}/delivery.mdx [blueprint-delivery]: must contain a TLDR and a markdown table`,
+        );
+      }
     }
   }
 
@@ -513,22 +441,54 @@ async function validateSnippetLiterals(root, changeDirectories) {
   return diagnostics;
 }
 
-// The route derives slice progress from the plan and renders it. A count
-// written into the page is a second copy that goes stale the moment a slice
-// completes -- which is how every one of these was found reading 0.
-async function validateSliceProgress(root, changeDirectories) {
-  const diagnostics = [];
-  for (const directory of changeDirectories) {
-    const pagePath = path.join(directory, "implementation.mdx");
-    if (!(await exists(pagePath))) continue;
-    const content = await readFile(pagePath, "utf8");
-    if (!/<TaskProgress\b/.test(content)) continue;
-    diagnostics.push(
-      `${path.relative(root, pagePath)} [blueprint-slice-progress]: progress comes from the plan, not a prop`,
-    );
+async function git(root, args) {
+  return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
+}
+
+async function resolveScopeBase(root) {
+  try {
+    await git(root, ["rev-parse", "--verify", "origin/dev"]);
+    return "origin/dev";
+  } catch {
+    return "dev";
+  }
+}
+
+// D4: a soft file-count target on src/, not a hard cap. A migration -- named
+// either by a commit trailer or the --migration flag -- is the escape hatch
+// for a change too large to shard any other way; everything else is expected
+// to split into more than one Change.
+export async function checkChangeScope(root = process.cwd(), options = {}) {
+  const base = await resolveScopeBase(root);
+
+  let changedFiles;
+  try {
+    const output = await git(root, [
+      "diff",
+      "--name-only",
+      `${base}...HEAD`,
+      "--",
+      "src",
+    ]);
+    changedFiles = output ? output.split("\n") : [];
+  } catch {
+    return [];
   }
 
-  return diagnostics;
+  if (changedFiles.length <= CHANGE_SCOPE_SOFT_LIMIT) return [];
+  if (options.migrationSlug) return [];
+
+  let log = "";
+  try {
+    log = await git(root, ["log", `${base}..HEAD`, "--format=%B"]);
+  } catch {
+    log = "";
+  }
+  if (MIGRATION_TRAILER.test(log)) return [];
+
+  return [
+    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; reference a Migration Proposal slug (commit trailer "Migration: <slug>" or --migration <slug>) or split the Change`,
+  ];
 }
 
 export async function checkWorkflow(root = process.cwd()) {
@@ -565,18 +525,10 @@ export async function checkWorkflow(root = process.cwd()) {
     }
   }
 
-  diagnostics.push(...(await validateOverviewSource(root)));
   diagnostics.push(...(await validateInternalLinks(root)));
-  diagnostics.push(...(await validateDesignModules(root)));
-  const changeArtifacts = await validateChangeArtifacts(root);
-  diagnostics.push(...changeArtifacts.diagnostics);
-  diagnostics.push(...(await validateFileTours(root, changeArtifacts.active)));
-  diagnostics.push(
-    ...(await validateSliceProgress(root, changeArtifacts.active)),
-  );
-  diagnostics.push(
-    ...(await validateSnippetLiterals(root, changeArtifacts.active)),
-  );
+  const directories = await changeDirectories(root);
+  diagnostics.push(...(await validateChangePages(root, directories)));
+  diagnostics.push(...(await validateSnippetLiterals(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));
   diagnostics.push(...(await validateContributorGuidance(root)));
@@ -594,8 +546,19 @@ export async function checkWorkflow(root = process.cwd()) {
   return diagnostics.sort();
 }
 
+function parseMigrationFlag(argv) {
+  const index = argv.indexOf("--migration");
+  return index === -1 ? undefined : argv[index + 1];
+}
+
 async function main() {
   const diagnostics = await checkWorkflow();
+  const warnings = await checkChangeScope(process.cwd(), {
+    migrationSlug: parseMigrationFlag(process.argv.slice(2)),
+  });
+
+  for (const warning of warnings) console.warn(`Warning: ${warning}`);
+
   if (diagnostics.length === 0) {
     console.log("Workflow conformance passed.");
     return;
