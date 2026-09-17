@@ -467,7 +467,7 @@ async function hasMigrationTrailer(root, base) {
   }
 }
 
-// two-gate-workflow D4: soft target, never a hard failure -- a Migration
+// Feature D45: soft target, never a hard failure -- a Migration
 // Change (commit trailer or --migration) is the only escape hatch.
 async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
@@ -495,7 +495,7 @@ async function checkFileCountScope(root, options) {
   ];
 }
 
-// Slices and Proposal scenarios are the other two two-gate-workflow D4 soft
+// Slices and Proposal scenarios are the other two Feature D45 soft
 // targets; both are read straight off whatever Change directories exist
 // locally, independent of the src/ file-count check above.
 async function checkChangeSizeWarnings(root) {

@@ -1,9 +1,6 @@
 const ID_PATTERN = /^D[0-9]+$/;
 const TARGET_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
 const CHANGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-// A promoted record is renumbered for the Features namespace and keeps the
-// number it had inside its Change here, so both coordinates resolve.
-const DECISION_ID_PATTERN = /^D[0-9]+$/;
 const ALLOWED_KEYS = new Set([
   "$schema",
   "schemaVersion",
@@ -100,7 +97,7 @@ export function parseDecisionRecord(value: unknown): DecisionRecord {
         !CHANGE_SLUG_PATTERN.test(record.originChange))) ||
     (record.originDecision !== undefined &&
       (!isNonEmptyString(record.originDecision) ||
-        !DECISION_ID_PATTERN.test(record.originDecision))) ||
+        !ID_PATTERN.test(record.originDecision))) ||
     (record.supersededBy !== undefined &&
       (!isNonEmptyString(record.supersededBy) ||
         !ID_PATTERN.test(record.supersededBy)))
