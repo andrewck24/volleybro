@@ -99,7 +99,7 @@ async function fetchChanges(remote, repoRoot) {
   });
 }
 
-async function readStore(changesDir) {
+export async function readStore(changesDir) {
   try {
     return JSON.parse(
       await readFile(path.join(changesDir, STORE_FILE), "utf8"),
@@ -130,7 +130,7 @@ async function listFiles(dir, base = dir) {
 // A content hash, not a git hash — it must match a plain extracted directory
 // with no `.git`, so it can be computed for both a pulled slug and a locally
 // edited one.
-async function hashDir(dir) {
+export async function hashDir(dir) {
   const hash = createHash("sha256");
   for (const relativePath of await listFiles(dir)) {
     hash.update(relativePath);
@@ -145,6 +145,15 @@ async function replaceDir(destDir, sourceDir) {
   await cp(sourceDir, destDir, { recursive: true });
 }
 
+// A build that silently drops every Change page is worse than one that stops,
+// and a hosted build cannot be asked to pass a flag: any CI-ish environment
+// requires the store unless it opts out explicitly.
+function isRequired() {
+  const explicit = process.env.BLUEPRINT_REQUIRE_CHANGES;
+  if (explicit !== undefined) return explicit === "1";
+  return Boolean(process.env.CI || process.env.WORKERS_CI);
+}
+
 export async function pull(cwd, { force = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
@@ -154,7 +163,7 @@ export async function pull(cwd, { force = false } = {}) {
     await fetchChanges(remote, repoRoot);
   } catch {
     const message = `blueprint-changes pull: could not fetch ${BRANCH} from ${remote}`;
-    if (process.env.BLUEPRINT_REQUIRE_CHANGES === "1") {
+    if (isRequired()) {
       console.error(message);
       process.exitCode = 1;
       return;

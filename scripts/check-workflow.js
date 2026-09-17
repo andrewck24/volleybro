@@ -4,6 +4,8 @@ import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { hashDir, readStore } from "./blueprint-changes.js";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -591,6 +593,31 @@ export async function checkWorkflow(root = process.cwd()) {
   return diagnostics.sort();
 }
 
+function parseGateFlag(argv) {
+  const index = argv.indexOf("--gate");
+  return index === -1 ? undefined : argv[index + 1];
+}
+
+// A gate stops for the developer on a page they read from the store branch, so
+// an unpublished edit would show them something other than what the agent
+// means them to accept. `publish` records the hash it pushed, so anything else
+// on disk is unpublished.
+export async function checkPublished(root, slug) {
+  const changesDir = path.join(root, BLUEPRINT_CHANGES);
+  const slugDir = path.join(changesDir, slug);
+  if (!(await exists(slugDir))) {
+    return `${BLUEPRINT_CHANGES}/${slug} [blueprint-gate]: no Change directory to publish`;
+  }
+
+  const published = (await readStore(changesDir))[slug];
+  const current = await hashDir(slugDir);
+  if (published === current) return undefined;
+
+  return `${BLUEPRINT_CHANGES}/${slug} [blueprint-gate]: ${
+    published ? "edited since it was published" : "never published"
+  } — run \`pnpm blueprint:changes:publish ${slug}\` before the gate`;
+}
+
 function parseMigrationFlag(argv) {
   const index = argv.indexOf("--migration");
   return index === -1 ? undefined : argv[index + 1];
@@ -598,6 +625,11 @@ function parseMigrationFlag(argv) {
 
 async function main() {
   const diagnostics = await checkWorkflow();
+  const gateSlug = parseGateFlag(process.argv.slice(2));
+  if (gateSlug) {
+    const unpublished = await checkPublished(process.cwd(), gateSlug);
+    if (unpublished) diagnostics.push(unpublished);
+  }
   const warnings = await checkChangeScope(process.cwd(), {
     migrationSlug: parseMigrationFlag(process.argv.slice(2)),
   });

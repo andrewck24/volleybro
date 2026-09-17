@@ -12,3 +12,4 @@
 - Small corrections that restore documented behaviour can follow a fix path with no Blueprint pages; the pull request is their only human gate and their commits carry a `Refs` trailer
 - Arming unattended execution adds the `agent:ready` label and moves the issue to Todo; Symphony dispatches only labelled issues in an active status, and each later status change has one named owner
 - `.worktreeinclude` lists `.env.local`, so worktrees created by agent tooling that reads it start with the local environment file
+- A gate fails when its Change page was never published or was edited since, so a reviewer never reads a page the store branch does not have

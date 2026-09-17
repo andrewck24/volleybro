@@ -7,7 +7,13 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { checkWorkflow, checkChangeScope } from "../check-workflow.js";
+import { hashDir } from "../blueprint-changes.js";
+
+import {
+  checkWorkflow,
+  checkChangeScope,
+  checkPublished,
+} from "../check-workflow.js";
 
 const execFileAsync = promisify(execFile);
 const CHECK_WORKFLOW_SCRIPT = fileURLToPath(
@@ -443,4 +449,48 @@ test("checkChangeScope never fails the process, even when it warns", async () =>
 
   assert.equal(result.code ?? 0, 0);
   assert.match(result.stderr, /Warning:.*change-scope/is);
+});
+
+test("the gate check passes when the local pages match what was published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "published\n",
+  });
+  const changes = path.join(root, "blueprint/content/changes");
+  await writeFile(
+    path.join(changes, ".store-state.json"),
+    JSON.stringify({ c: await hashDir(path.join(changes, "c")) }),
+  );
+
+  assert.equal(await checkPublished(root, "c"), undefined);
+});
+
+test("the gate check reports pages edited since they were published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "published\n",
+  });
+  const changes = path.join(root, "blueprint/content/changes");
+  await writeFile(
+    path.join(changes, ".store-state.json"),
+    JSON.stringify({ c: await hashDir(path.join(changes, "c")) }),
+  );
+  await writeFile(path.join(changes, "c/review.mdx"), "edited\n");
+
+  assert.match(
+    await checkPublished(root, "c"),
+    /edited since it was published/,
+  );
+});
+
+test("the gate check reports a Change that was never published", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx": "draft\n",
+  });
+
+  assert.match(await checkPublished(root, "c"), /never published/);
+});
+
+test("the gate check reports a Change with no directory at all", async () => {
+  const root = await makeRepository();
+
+  assert.match(await checkPublished(root, "c"), /no Change directory/);
 });

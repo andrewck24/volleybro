@@ -158,7 +158,8 @@ request opens. Everything between a gate and the next runs without stopping for 
     strategy, and revisit triggers on the Proposal page; add a design mockup (`proposal.tsx`) when
     one clarifies the adopted shape.
 - **Exit (G1):** the Proposal page renders complete; publish it with
-  `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for acceptance.
+  `pnpm blueprint:changes:publish <slug>`, confirm with `pnpm check:workflow --gate <slug>`, then
+  notify the developer and stop for acceptance.
   Acceptance authorizes slice decomposition, implementation, code review to a fixed point, and Archive
   to run without stopping again until G2. If the developer instead sends the Change to Ingest (see
   Apply), boundaries or design change and the Proposal page is regenerated for another G1 pass.
@@ -253,8 +254,8 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
 4. export a Review summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
 5. generate the Review page, read every section rendered in a browser as the developer will,
-   publish it with `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for
-   acceptance (G2). Reading the source is not reading the page: a stale count, a column that does
+   publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
+   `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2). Reading the source is not reading the page: a stale count, a column that does
    not line up, an unreadable snippet are all invisible in the file that produces them;
 6. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 

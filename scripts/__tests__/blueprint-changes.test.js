@@ -203,6 +203,28 @@ test("missing remote branch: pull warns and exits 0", async (t) => {
   assert.match(result.stderr, /could not fetch/);
 });
 
+test("missing remote branch: pull exits 1 in CI without any flag", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t, { seedBranch: false });
+  const error = await withEnvOverride("CI", "1", () =>
+    withRemote(bare, () =>
+      execFileAsync("node", [SCRIPT, "pull"], { cwd: work }),
+    ).catch((e) => e),
+  );
+  assert.equal(error.code, 1);
+});
+
+test("missing remote branch: BLUEPRINT_REQUIRE_CHANGES=0 opts CI out", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t, { seedBranch: false });
+  const result = await withEnvOverride("CI", "1", () =>
+    withEnvOverride("BLUEPRINT_REQUIRE_CHANGES", "0", () =>
+      withRemote(bare, () =>
+        execFileAsync("node", [SCRIPT, "pull"], { cwd: work }),
+      ),
+    ),
+  );
+  assert.match(result.stderr, /could not fetch/);
+});
+
 test("missing remote branch: pull exits 1 under BLUEPRINT_REQUIRE_CHANGES", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t, { seedBranch: false });
   const error = await withEnvOverride("BLUEPRINT_REQUIRE_CHANGES", "1", () =>
