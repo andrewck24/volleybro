@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D45",
+  "title": "People review at two gates, and Change pages are never committed",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Each Change kept an Overview, Design, Implementation and Review page, slice JSON, and a lifecycle in change.json, all committed and reconciled at Archive. On team-membership-authorization, 24 of 50 commits touched only Blueprint, 13 of them resynchronising pages after a gate, and the developer answered 28 gate prompts. The pages existed to help a person decide, yet keeping them true cost as much as the code and filled every pull request with diff nobody reviewed.",
+  "decision": "A person reviews a Change twice: the Proposal page before Apply (boundaries, behaviour contract, acceptance scenarios, ADRs, mockups, risks) and the Delivery page before the pull request (acceptance results, verification, findings, residual risks). Everything between the gates runs unattended. Change pages live in gitignored blueprint/content/changes/<slug>/ and are regenerated locally per gate; slices live in .scratch/<slug>/ or tracker sub-issues. What survives a Change is its code and tests, promoted Feature knowledge and ADRs, the Changeset, commit bodies, and a Delivery summary of at most 40 lines in the pull-request body. An ADR's status is its directory, and a replaced Feature ADR names its successor in supersededBy. Change size has soft targets that warn, with a Migration Change as the named escape hatch for large refactors.",
+  "alternatives": [
+    {
+      "option": "Keep the four pages but trim their sections",
+      "reason": "The cost came from how often the pages had to be rewritten and reconciled, not from their length; trimming leaves every per-round and Archive obligation in place."
+    },
+    {
+      "option": "Move Blueprint change pages to a separate repository",
+      "reason": "Agents would work across two checkouts per Change and CI would need to fetch content from elsewhere, while the pages still would not need to outlive their gate."
+    },
+    {
+      "option": "Deploy each Change's pages to a preview URL",
+      "reason": "Both gates happen on the developer's machine, so a deploy adds credentials and a step without serving a reader; a preview script can be added when a remote reader appears."
+    },
+    {
+      "option": "Enforce a hard per-change size cap",
+      "reason": "Mature teams use soft targets with explicit exemptions; a hard cap would split large migrations into pieces no reviewer can judge without an approved overall plan."
+    }
+  ],
+  "consequences": [
+    "Pull requests contain only code, tests, Feature knowledge, the Changeset, and the exported Delivery summary.",
+    "A Change's reasoning outside its ADRs lives in commit bodies and the pull-request body, not in a browsable Change page after merge.",
+    "The deployed Blueprint site carries Features and the Design System only.",
+    "Slices are working notes; the Implements commit trailer is their only durable trace.",
+    "Superseded Feature ADRs carry supersededBy instead of a status field."
+  ],
+  "revisitTriggers": [
+    "Developers need to read a merged Change's review material that the pull-request body does not carry.",
+    "A gate is reviewed by someone who cannot run the Blueprint locally.",
+    "The size warnings are routinely ignored without a Migration trailer."
+  ],
+  "originChange": "two-gate-workflow"
+}
