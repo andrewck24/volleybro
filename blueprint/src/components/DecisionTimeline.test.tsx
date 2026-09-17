@@ -6,7 +6,6 @@ const decision = {
   schemaVersion: 1,
   id: "D1",
   title: "Keep workflow repository-owned",
-  status: "accepted",
   targets: ["platform/delivery-workflow"],
   context: "Manual delivery must remain possible.",
   decision: "Use a repository-owned workflow contract.",
@@ -35,7 +34,7 @@ describe("DecisionTimeline", () => {
   it("rejects schema-incompatible records", () => {
     expect(() =>
       render(
-        <DecisionTimeline decisions={[{ ...decision, status: "running" }]} />,
+        <DecisionTimeline decisions={[{ ...decision, status: "accepted" }]} />,
       ),
     ).toThrow("Invalid decision record: D1");
 

@@ -4,7 +4,6 @@ const decision = {
   schemaVersion: 1,
   id: "D1",
   title: "Keep workflow repository-owned",
-  status: "accepted",
   targets: ["platform/delivery-workflow"],
   context: "Manual delivery must remain possible.",
   decision: "Use a repository-owned workflow contract.",
@@ -30,7 +29,7 @@ describe("parseDecisionRecord", () => {
     { ...decision, context: "" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
-    { ...decision, status: "running" },
+    { ...decision, status: "accepted" },
   ])("rejects schema-incompatible input", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",

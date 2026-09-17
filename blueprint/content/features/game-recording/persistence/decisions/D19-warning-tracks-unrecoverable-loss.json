@@ -3,7 +3,6 @@
   "schemaVersion": 1,
   "id": "D19",
   "title": "警告語氣改掛「不可重試」，per-rally 標記一併收窄",
-  "status": "implemented",
   "targets": ["game-recording/rally-recording", "game-recording/persistence"],
   "context": "unsynced 目前的觸發條件是「退避表用盡」，配 warning 色與驚嘆號。但退避用盡不代表資料有危險：retryable-queue-persistence 讓它落盤了，任何一顆新球的 flush 或 online 事件都會帶著它一起送出，`retryable-queue-persistence` 的人工驗證也確認恢復連線後全數自送。用警告標記一個已被妥善處理的情況，正是本 Change 要消除的過度警告。真正會遺失的是另一類——`mayBeAttemptedAgain(lastError) === false` 的 entry，也就是 retryable-entry-writes 的 D2 決定「立即 escalate、不重試」的 4xx。online 事件救不了它（伺服器會以同樣的理由再次拒絕），retryRequested 也救不了（它只重設 nextAttemptAt，不改變會再次失敗的事實），最終被 hasExpired 在七天後於 rehydrate 時靜默丟棄。retryable-entry-writes 的 S08 建立的 per-rally 失敗標記（實心 destructive ring）使用同一個含糊的判準「嘗試用盡」，因為當時還沒有人區分「暫時送不出去」與「永遠送不出去」。",
   "decision": "警告語氣的觸發條件由「退避表用盡」改為「存在不可重試的 entry」，`hasFailedWrite` 同步改讀 `mayBeAttemptedAgain(lastError) === false`。指示器與 per-rally 標記自此讀同一個判準，不可能一個是中性而另一個標紅。退避用盡但仍可重試的 entry 落入中性的「待送」狀態，不觸發警告色、不觸發 per-rally 標記。此判準不需要抖動門檻：不可重試是終局事實，不會來回翻動。",

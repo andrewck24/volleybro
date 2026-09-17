@@ -1,9 +1,3 @@
-const DECISION_STATUSES = [
-  "candidate",
-  "accepted",
-  "implemented",
-  "superseded",
-] as const;
 const ID_PATTERN = /^D[0-9]+$/;
 const TARGET_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
 const CHANGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -15,7 +9,6 @@ const ALLOWED_KEYS = new Set([
   "schemaVersion",
   "id",
   "title",
-  "status",
   "targets",
   "context",
   "decision",
@@ -27,13 +20,10 @@ const ALLOWED_KEYS = new Set([
 ]);
 const ALTERNATIVE_KEYS = new Set(["option", "reason"]);
 
-export type DecisionStatus = (typeof DECISION_STATUSES)[number];
-
 export type DecisionRecord = {
   schemaVersion: 1;
   id: string;
   title: string;
-  status: DecisionStatus;
   targets: string[];
   context: string;
   decision: string;
@@ -92,7 +82,6 @@ export function parseDecisionRecord(value: unknown): DecisionRecord {
     !isNonEmptyString(record.id) ||
     !ID_PATTERN.test(record.id) ||
     !isNonEmptyString(record.title) ||
-    !DECISION_STATUSES.includes(record.status as DecisionStatus) ||
     !isStringArray(record.targets, {
       nonEmpty: true,
       pattern: TARGET_PATTERN,

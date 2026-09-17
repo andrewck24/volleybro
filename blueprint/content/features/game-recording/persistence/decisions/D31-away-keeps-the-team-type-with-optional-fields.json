@@ -3,7 +3,6 @@
   "schemaVersion": 1,
   "id": "D31",
   "title": "對手沿用同一個 Team 型別並把欄位改為選填，不拆成獨立的窄型別",
-  "status": "implemented",
   "targets": ["game-recording/persistence"],
   "context": "替 `POST /api/games` 寫 schema 時發現一個型別謊言。`src/entities/game.ts` 的 `Team` 宣告 `id`、`players`、`staffs` 皆必填，但 app 自己的表單只送 `home: { id, name, players, lineup }` 與 `away: { name }`——away 缺三個必填欄位，home 缺 `staffs`。而 `teamSchema` 沒有 `{ _id: false }`，所以 mongoose 替 away 自動生成一個宣告為 `ref: \"Team\"`、卻不指向任何 Team 的 `_id`。忠實依照型別撰寫的 schema 會拒絕 app 自己的建立比賽請求；依照實際 payload 撰寫則編不過，因為 `z.infer` 出來的 `{ id?: string }` 不能指派給 `{ id: string }`，得加 cast——而 cast 正是這類問題的來源。所以型別必須改。問題是怎麼改：把 away 拆成一個本來就沒有 id 的獨立窄型別，或是在同一個 `Team` 型別上把三個欄位改為選填。",
   "decision": "在**同一個 `Team` 型別**上把 `id` / `players` / `staffs` 改為選填，不拆成獨立的窄型別。理由是終局為收斂而非分歧：對手今天只是一個使用者輸入的名稱，因為還沒有機制去解析對手隊伍——不是因為對手在本質上不是隊伍。隊伍查詢與資料分享能力上線後，away 會承載與 home 幾乎相同的結構，屆時只是把選填欄位填滿；拆成兩個型別之後還得合併回來。同時整個移除 `Match.weather`：它宣告為 `{ temperature: number }`，而 client 永遠送 `{ temperature: \"\" }`（表單初始值是全 repo 唯一的寫入處），**沒有任何 UI 讀取或顯示它**。刪除涵蓋 `entities/game.ts`、mongoose schema 的 interface 與 schema 定義、client 的兩個 response/form schema，以及表單初始值共六處。既有 game 文件裡的 `weather` 資料不會被破壞，只是讀取時不再映射。",

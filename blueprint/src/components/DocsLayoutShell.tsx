@@ -6,16 +6,17 @@ import { DocsLayout } from "fumadocs-ui/layouts/docs";
 import type { Root } from "fumadocs-core/page-tree";
 
 import { designSystemTree } from "@/lib/design-system-tree";
-import { changesTree } from "@/lib/changes-tree";
 
 // The (docs) route group shares one layout, but each nav tab needs its own
 // sidebar tree. Fumadocs' DocsLayout takes a single `tree`, so we pick it here
 // from the active path: /design-system uses its hand-authored tree, /features
-// uses the features source tree, every other section keeps the changes tree.
+// and /changes each use their own source tree.
 export function DocsLayoutShell({
+  changesTree,
   featuresTree,
   children,
 }: {
+  changesTree: Root;
   featuresTree: Root;
   children: ReactNode;
 }) {

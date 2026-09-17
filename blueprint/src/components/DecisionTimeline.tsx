@@ -5,16 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import {
-  parseDecisionRecord,
-  type DecisionStatus,
-} from "@/lib/decision-record";
-
-function statusVariant(status: DecisionStatus) {
-  return status === "accepted" || status === "implemented"
-    ? "default"
-    : "secondary";
-}
+import { parseDecisionRecord } from "@/lib/decision-record";
 
 // A decision id is unique within its Change, not within a capability. Once
 // Archive promotes records from several Changes into one Feature page, two of
@@ -43,9 +34,6 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
                 <span className="flex min-w-0 flex-wrap items-center gap-2 pr-2">
                   <Badge variant="outline">{record.id}</Badge>
                   <span>{record.title}</span>
-                  <Badge variant={statusVariant(record.status)}>
-                    {record.status}
-                  </Badge>
                 </span>
               </AccordionTrigger>
               <AccordionContent className="flex flex-col gap-4 pb-5">

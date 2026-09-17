@@ -8,7 +8,6 @@
     "schemaVersion",
     "id",
     "title",
-    "status",
     "targets",
     "context",
     "decision",
@@ -30,9 +29,6 @@
     "title": {
       "type": "string",
       "minLength": 1
-    },
-    "status": {
-      "enum": ["candidate", "accepted", "implemented", "superseded"]
     },
     "targets": {
       "type": "array",
