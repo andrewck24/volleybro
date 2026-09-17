@@ -102,6 +102,10 @@ Use ordinary issue statuses, parent/child relationships, duplicate relations, an
 express intake and wayfinding state. Label taxonomy is intentionally outside this contract and must
 not be inferred by agents.
 
+A small, urgent correction may instead follow the Fix path (see Fix path below) rather than becoming
+a Change: the agent proposes it during intake and the developer confirms it once, on the tracker
+issue.
+
 Moving an issue to the tracker's ready-to-start status is the final human arming action for
 unattended execution. It never substitutes for an accepted Proposal page, satisfied dependencies, a
 resolvable repository route, available capacity, or a healthy provider. Agents never make that
@@ -291,6 +295,26 @@ the remaining shards do not repeat it. `check-workflow.js` counts changed `src` 
 `dev` and Proposal scenarios, and warns, rather than fails, past either target. The `src`-file-count
 warning is suppressed by a `Migration: <migration-slug>` commit trailer (or
 `pnpm check:workflow --migration <slug>`), not by a PR-body reference.
+
+### Fix path
+
+A third path exists beside the normal Change and the Migration Change, for a fix too urgent or too
+small to carry Proposal and Delivery pages.
+
+1. Applies when the fix restores behavior Features already describe, or is a small change with no
+   behavior change (docs, config, a minor dependency bump); it creates no new ADR or behavior
+   contract, fits in one session, and stays within the soft size targets above.
+2. The agent proposes the fix path during intake; the developer confirms it once, on the tracker
+   issue.
+3. Kept: a failing test that reproduces the bug before the fix (when it is a bug), `pnpm verify:all`,
+   the two-axis code review with the issue as the spec, and a Changeset when applicable.
+4. Skipped: G1, the Proposal and Delivery pages, publishing, slices, and Archive promotion.
+5. The only human gate is the pull request: its body names the fix path and carries a short
+   verification summary; merging is acceptance.
+6. Escalate to a normal Change — write the Proposal, pass G1 — as soon as the fix needs a new
+   behavior contract or ADR, or Features turn out to describe the behavior wrongly.
+7. Commits on the fix path carry a `Refs: <tracker issue>` trailer and omit `Implements` and
+   `Blueprint-Change`.
 
 ## Decision-record contract
 

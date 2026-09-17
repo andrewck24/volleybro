@@ -39,6 +39,11 @@ optional Symphony execution.
   gitignored on the Change branch and published to the `blueprint-changes`
   store branch at each gate, which is their durable store — not the Change
   branch itself.
+- A small fix that only restores behavior Features already describe, or
+  changes no behavior, may skip both gates via the Fix path: no Proposal or
+  Delivery page, only a pull request the developer accepts, carrying a
+  `Refs: <tracker issue>` commit trailer instead of `Implements` and
+  `Blueprint-Change`.
 
 ## Implemented decisions
 
