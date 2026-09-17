@@ -96,7 +96,7 @@ Never restate what the line does, and never re-argue a decision a Feature ADR al
 
 ```ts
 // Deliberately the same judgement as the indicator's warning tone.
-// See Feature D24.
+// See Feature D19.
 ```
 
 Keep what survives short. One or two lines is the norm; a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file.
