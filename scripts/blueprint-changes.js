@@ -251,6 +251,25 @@ async function recordPublishedHash(repoRoot, slug, localSlugDir) {
   await writeStore(changesDir, store);
 }
 
+const MAX_PUSH_ATTEMPTS = 2;
+
+// A push is rejected this way only when the remote branch moved since we
+// forked our worktree from it — the race `publish` retries once. Any other
+// failure (auth, network, a protected branch) is not that race and must
+// surface instead of being silently retried.
+function isNonFastForwardRejection(error) {
+  const stderr = String(error?.stderr ?? "");
+  return (
+    stderr.includes("non-fast-forward") ||
+    stderr.includes("fetch first") ||
+    stderr.includes("[rejected]") ||
+    // Two pushes landing at the same instant race on the ref's lock file
+    // instead of git's usual non-fast-forward check — same race, different
+    // wording.
+    stderr.includes("cannot lock ref")
+  );
+}
+
 export async function publish(cwd, slug, { dryRun = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
@@ -277,7 +296,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
       await runGit(["worktree", "add", "--detach", tmpDir], {
         cwd: repoRoot,
       });
-      await runGit(["checkout", "--orphan", "blueprint-changes-tmp"], {
+      await runGit(["checkout", "--orphan", `${BRANCH}-tmp`], {
         cwd: tmpDir,
       });
       await runGit(["rm", "-rf", "--quiet", "."], { cwd: tmpDir }).catch(
@@ -285,42 +304,43 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
       );
     }
 
-    const changed = await applyChange(tmpDir, slug, localSlugDir);
-    if (!changed) {
-      console.log(`blueprint-changes publish: no changes for ${slug}`);
-      await recordPublishedHash(repoRoot, slug, localSlugDir);
-      return;
-    }
-
-    if (dryRun) {
-      const { stdout } = await runGit(["log", "-1", "--stat"], {
-        cwd: tmpDir,
-      });
-      console.log(stdout);
-      return;
-    }
-
-    try {
-      await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
-        cwd: tmpDir,
-      });
-    } catch {
-      // Someone else published first — rebase our slug onto their tip once.
-      await fetchChanges(remote, repoRoot);
-      await runGit(["reset", "--hard", REMOTE_REF], { cwd: tmpDir });
-      const retried = await applyChange(tmpDir, slug, localSlugDir);
-      if (!retried) {
-        console.log(
-          `blueprint-changes publish: no changes for ${slug} after retry`,
-        );
+    // At most one retry: a concurrent publish can win the race once, but a
+    // second rejection in a row is a real problem, not the race.
+    for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
+      const changed = await applyChange(tmpDir, slug, localSlugDir);
+      if (!changed) {
+        console.log(`blueprint-changes publish: no changes for ${slug}`);
         await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       }
-      await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
-        cwd: tmpDir,
-      });
+
+      if (dryRun) {
+        const { stdout } = await runGit(["log", "-1", "--stat"], {
+          cwd: tmpDir,
+        });
+        console.log(stdout);
+        return;
+      }
+
+      try {
+        await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
+          cwd: tmpDir,
+        });
+        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        return;
+      } catch (error) {
+        if (
+          attempt === MAX_PUSH_ATTEMPTS ||
+          !isNonFastForwardRejection(error)
+        ) {
+          throw error;
+        }
+        // Someone else published first — rebase our slug onto their tip
+        // and retry once.
+        await fetchChanges(remote, repoRoot);
+        await runGit(["reset", "--hard", REMOTE_REF], { cwd: tmpDir });
+      }
     }
-    await recordPublishedHash(repoRoot, slug, localSlugDir);
   } finally {
     await runGit(["worktree", "remove", "--force", tmpDir], {
       cwd: repoRoot,
