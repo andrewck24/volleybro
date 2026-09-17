@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 
 import { DecisionTimeline } from "./DecisionTimeline";
+import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
 const decision = {
   schemaVersion: 1,
@@ -51,6 +52,28 @@ describe("DecisionTimeline", () => {
         <DecisionTimeline
           decisions={[{ ...decision, claimedBy: "worker-1" }]}
         />,
+      ),
+    ).toThrow("Invalid decision record: D1");
+  });
+
+  it("renders a legacy status-carrying record under LegacyDecisionsProvider", () => {
+    render(
+      <LegacyDecisionsProvider>
+        <DecisionTimeline decisions={[{ ...decision, status: "accepted" }]} />
+      </LegacyDecisionsProvider>,
+    );
+
+    expect(screen.getByText(decision.decision)).toBeInTheDocument();
+  });
+
+  it("still rejects an unknown key other than status under LegacyDecisionsProvider", () => {
+    expect(() =>
+      render(
+        <LegacyDecisionsProvider>
+          <DecisionTimeline
+            decisions={[{ ...decision, claimedBy: "worker-1" }]}
+          />
+        </LegacyDecisionsProvider>,
       ),
     ).toThrow("Invalid decision record: D1");
   });

@@ -1,9 +1,43 @@
 import "server-only";
 
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
+
 import { source } from "@/lib/source";
 import { proposalMockups } from "@/lib/proposal-mockups";
+import { CHANGES_ROOT } from "@/legacy/change-catalog";
+import { SLUG_PATTERN, parseChangeMetadata } from "@/legacy/change-metadata";
 
 export type ChangeSummary = { slug: string; title: string; href: string };
+
+// Old-format Changes (a directory with change.json) sort after two-gate
+// Changes, newest-dated first: this index is read synchronously by the page,
+// so it reads change.json directly rather than through the async legacy
+// loader used by the page routes.
+function legacyChanges(): ChangeSummary[] {
+  if (!existsSync(CHANGES_ROOT)) return [];
+
+  return readdirSync(CHANGES_ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && SLUG_PATTERN.test(entry.name))
+    .flatMap((entry) => {
+      const changeJsonPath = path.join(CHANGES_ROOT, entry.name, "change.json");
+      if (!existsSync(changeJsonPath)) return [];
+      const metadata = parseChangeMetadata(
+        JSON.parse(readFileSync(changeJsonPath, "utf8")),
+        entry.name,
+      );
+      return [
+        {
+          slug: metadata.slug,
+          title: metadata.title,
+          href: `/changes/${metadata.slug}`,
+          order: metadata.archivedAt ?? metadata.startedAt,
+        },
+      ];
+    })
+    .sort((a, b) => b.order.localeCompare(a.order))
+    .map(({ order: _order, ...summary }) => summary);
+}
 
 // A Change is a proposal.mdx + delivery.mdx pair under content/changes/<slug>/
 // (proposal.mdx may instead, or also, be a proposal.tsx mockup), gitignored
@@ -23,7 +57,7 @@ export function listChanges(): ChangeSummary[] {
       .concat(Object.keys(proposalMockups)),
   );
 
-  return Array.from(slugs)
+  const twoGate = Array.from(slugs)
     .map((slug) => {
       const proposal = byPath.get(`${slug}/proposal`);
       const delivery = byPath.get(`${slug}/delivery`);
@@ -34,4 +68,6 @@ export function listChanges(): ChangeSummary[] {
       };
     })
     .sort((a, b) => a.slug.localeCompare(b.slug));
+
+  return [...twoGate, ...legacyChanges()];
 }
