@@ -263,7 +263,7 @@ test("accepts a Proposal with a TLDR and a Scenario", async () => {
   );
 });
 
-test("reports a Delivery missing a TLDR or a markdown table", async () => {
+test("reports a Delivery missing a markdown table", async () => {
   assert.match(
     (
       await messages({

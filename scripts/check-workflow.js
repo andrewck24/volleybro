@@ -395,7 +395,7 @@ const CHANGE_PAGE_RULES = [
   },
 ];
 
-async function validateChangePages(root, directories) {
+async function validateChangePages(directories) {
   const diagnostics = [];
 
   for (const directory of directories) {
@@ -423,9 +423,9 @@ const SNIPPET_FORMS = [
   [/\n\s*code="/, "a bare string attribute"],
 ];
 
-async function validateSnippetLiterals(root, changeDirectories) {
+async function validateSnippetLiterals(root, directories) {
   const diagnostics = [];
-  for (const directory of changeDirectories) {
+  for (const directory of directories) {
     for (const filePath of await listFiles(directory)) {
       if (!filePath.endsWith(".mdx")) continue;
       const content = await readFile(filePath, "utf8");
@@ -495,9 +495,9 @@ async function checkFileCountScope(root, options) {
   ];
 }
 
-// Slices and Proposal scenarios are the other two D4 soft targets; both are
-// read straight off whatever Change directories exist locally, independent
-// of the src/ file-count check above.
+// Slices and Proposal scenarios are the other two two-gate-workflow D4 soft
+// targets; both are read straight off whatever Change directories exist
+// locally, independent of the src/ file-count check above.
 async function checkChangeSizeWarnings(root) {
   const diagnostics = [];
 
@@ -575,7 +575,7 @@ export async function checkWorkflow(root = process.cwd()) {
 
   diagnostics.push(...(await validateInternalLinks(root)));
   const directories = await changeDirectories(root);
-  diagnostics.push(...(await validateChangePages(root, directories)));
+  diagnostics.push(...(await validateChangePages(directories)));
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));

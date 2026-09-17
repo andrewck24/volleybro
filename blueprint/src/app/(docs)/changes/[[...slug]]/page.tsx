@@ -61,12 +61,11 @@ export default async function Page({ params }: PageProps) {
   }
 
   const page = source.getPage(slug);
-  const loadMockup =
+  const Mockup =
     slug.at(-1) === "proposal" ? proposalMockups[slug[0]] : undefined;
-  if (!page && !loadMockup) notFound();
+  if (!page && !Mockup) notFound();
 
   const Mdx = page?.data.body;
-  const Mockup = loadMockup ? (await loadMockup()).default : null;
 
   return (
     <DocsPage toc={page?.data.toc}>

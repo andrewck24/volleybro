@@ -6,8 +6,8 @@ interface RequireContext {
   (id: string): { default: ComponentType };
 }
 
-// content/changes is gitignored (Change pages are throwaway review surfaces,
-// D2) and usually absent on a fresh checkout. Verified: webpack's
+// content/changes is gitignored (two-gate-workflow D2: Change pages are
+// throwaway review surfaces) and usually absent on a fresh checkout. Verified: webpack's
 // require.context fails the build ("Module not found") when the directory is
 // entirely missing, so `dev`/`build` in package.json `mkdir -p` it first.
 const req = (
@@ -16,13 +16,11 @@ const req = (
   }
 ).context("../../content/changes", true, /\/proposal\.tsx$/);
 
-export const proposalMockups: Record<
-  string,
-  () => Promise<{ default: ComponentType }>
-> = Object.fromEntries(
-  req.keys().map((key: string) => [
-    // key looks like "./<slug>/proposal.tsx"
-    key.replace(/^\.\//, "").replace(/\/proposal\.tsx$/, ""),
-    () => Promise.resolve(req(key)),
-  ]),
-);
+export const proposalMockups: Record<string, ComponentType> =
+  Object.fromEntries(
+    req.keys().map((key: string) => [
+      // key looks like "./<slug>/proposal.tsx"
+      key.replace(/^\.\//, "").replace(/\/proposal\.tsx$/, ""),
+      req(key).default,
+    ]),
+  );
