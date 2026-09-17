@@ -34,7 +34,8 @@ export function DocsLayoutShell({
       tree={activeTree}
       nav={{ title: "Blueprint" }}
       sidebar={{
-        // The deployed site builds without Change pages, so the tab is
+        // A local build that never ran `pnpm blueprint:changes:pull` (or ran
+        // it against an empty store) has no Change pages, so the tab is
         // unlisted rather than dropped: fumadocs' tab switcher hides itself
         // entirely when the current path matches no tab, so a direct /changes
         // visit still needs this tab present to reach Features or Design
