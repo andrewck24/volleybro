@@ -78,7 +78,8 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
     const finish = (error) => {
       if (settled) return;
       settled = true;
-      error ? reject(error) : resolve();
+      if (error) reject(error);
+      else resolve();
     };
 
     archive.on("error", finish);
