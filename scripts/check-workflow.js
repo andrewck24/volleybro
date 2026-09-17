@@ -63,7 +63,8 @@ const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
 const ANCHOR_TAG = /<a(\s[^>]*)>/g;
 const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
-const MIGRATION_TRAILER = /^Migration:\s*(\S+)/im;
+const SLICE_COUNT_SOFT_LIMIT = 5;
+const SCENARIO_COUNT_SOFT_LIMIT = 8;
 
 async function validateContributorGuidance(root) {
   const contributorPath = path.join(root, "CONTRIBUTING.md");
@@ -366,9 +367,6 @@ async function validateInternalLinks(root) {
   return diagnostics;
 }
 
-// A Change directory that exists locally is always current work in
-// progress -- there is no lifecycle field left to read, and an archived
-// Change is not tracked, let alone present on disk.
 async function changeDirectories(root) {
   const changesRoot = path.join(root, BLUEPRINT_CHANGES);
   if (!(await exists(changesRoot))) return [];
@@ -379,34 +377,36 @@ async function changeDirectories(root) {
     .map((entry) => path.join(changesRoot, entry.name));
 }
 
-// The two-gate model's whole content contract: a Proposal makes its case with
-// a TLDR and at least one acceptance Scenario, a Delivery reports results with
-// a TLDR and a table. Everything else about a Change page is free-form prose.
+const CHANGE_PAGE_MARKDOWN_TABLE = /^\s*\|.*\|\s*$/m;
+const CHANGE_PAGE_RULES = [
+  {
+    file: "proposal.mdx",
+    requires: (content) =>
+      content.includes("<TLDR") && content.includes("<Scenario"),
+    message: (slug) =>
+      `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [blueprint-proposal]: must contain a TLDR and at least one Scenario`,
+  },
+  {
+    file: "delivery.mdx",
+    requires: (content) =>
+      content.includes("<TLDR") && CHANGE_PAGE_MARKDOWN_TABLE.test(content),
+    message: (slug) =>
+      `${BLUEPRINT_CHANGES}/${slug}/delivery.mdx [blueprint-delivery]: must contain a TLDR and a markdown table`,
+  },
+];
+
 async function validateChangePages(root, directories) {
   const diagnostics = [];
-  const markdownTable = /^\s*\|.*\|\s*$/m;
 
   for (const directory of directories) {
     const slug = path.basename(directory);
 
-    const proposalPath = path.join(directory, "proposal.mdx");
-    if (await exists(proposalPath)) {
-      const content = await readFile(proposalPath, "utf8");
-      if (!content.includes("<TLDR") || !content.includes("<Scenario")) {
-        diagnostics.push(
-          `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [blueprint-proposal]: must contain a TLDR and at least one Scenario`,
-        );
-      }
-    }
+    for (const rule of CHANGE_PAGE_RULES) {
+      const filePath = path.join(directory, rule.file);
+      if (!(await exists(filePath))) continue;
 
-    const deliveryPath = path.join(directory, "delivery.mdx");
-    if (await exists(deliveryPath)) {
-      const content = await readFile(deliveryPath, "utf8");
-      if (!content.includes("<TLDR") || !markdownTable.test(content)) {
-        diagnostics.push(
-          `${BLUEPRINT_CHANGES}/${slug}/delivery.mdx [blueprint-delivery]: must contain a TLDR and a markdown table`,
-        );
-      }
+      const content = await readFile(filePath, "utf8");
+      if (!rule.requires(content)) diagnostics.push(rule.message(slug));
     }
   }
 
@@ -454,11 +454,22 @@ async function resolveScopeBase(root) {
   }
 }
 
-// D4: a soft file-count target on src/, not a hard cap. A migration -- named
-// either by a commit trailer or the --migration flag -- is the escape hatch
-// for a change too large to shard any other way; everything else is expected
-// to split into more than one Change.
-export async function checkChangeScope(root = process.cwd(), options = {}) {
+async function hasMigrationTrailer(root, base) {
+  try {
+    const trailers = await git(root, [
+      "log",
+      `${base}..HEAD`,
+      "--format=%(trailers:key=Migration,valueonly)",
+    ]);
+    return trailers.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// two-gate-workflow D4: soft target, never a hard failure -- a Migration
+// Change (commit trailer or --migration) is the only escape hatch.
+async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
 
   let changedFiles;
@@ -477,17 +488,54 @@ export async function checkChangeScope(root = process.cwd(), options = {}) {
 
   if (changedFiles.length <= CHANGE_SCOPE_SOFT_LIMIT) return [];
   if (options.migrationSlug) return [];
-
-  let log = "";
-  try {
-    log = await git(root, ["log", `${base}..HEAD`, "--format=%B"]);
-  } catch {
-    log = "";
-  }
-  if (MIGRATION_TRAILER.test(log)) return [];
+  if (await hasMigrationTrailer(root, base)) return [];
 
   return [
     `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; reference a Migration Proposal slug (commit trailer "Migration: <slug>" or --migration <slug>) or split the Change`,
+  ];
+}
+
+// Slices and Proposal scenarios are the other two D4 soft targets; both are
+// read straight off whatever Change directories exist locally, independent
+// of the src/ file-count check above.
+async function checkChangeSizeWarnings(root) {
+  const diagnostics = [];
+
+  for (const directory of await changeDirectories(root)) {
+    const slug = path.basename(directory);
+
+    const proposalPath = path.join(directory, "proposal.mdx");
+    if (await exists(proposalPath)) {
+      const content = await readFile(proposalPath, "utf8");
+      const scenarioCount = (content.match(/<Scenario\b/g) ?? []).length;
+      if (scenarioCount > SCENARIO_COUNT_SOFT_LIMIT) {
+        diagnostics.push(
+          `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+        );
+      }
+    }
+
+    const scratchDir = path.join(root, ".scratch", slug);
+    if (await exists(scratchDir)) {
+      const entries = await readdir(scratchDir);
+      const sliceCount = entries.filter((name) =>
+        /^S\d+.*\.md$/.test(name),
+      ).length;
+      if (sliceCount > SLICE_COUNT_SOFT_LIMIT) {
+        diagnostics.push(
+          `.scratch/${slug} [change-scope]: ${sliceCount} slice files exceeds the soft target of ${SLICE_COUNT_SOFT_LIMIT}; split the Change`,
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+export async function checkChangeScope(root = process.cwd(), options = {}) {
+  return [
+    ...(await checkFileCountScope(root, options)),
+    ...(await checkChangeSizeWarnings(root)),
   ];
 }
 

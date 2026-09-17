@@ -45,37 +45,42 @@ delivery:
 # Delivery contract
 `;
 
-async function makeRepository(overrides = {}) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "workflow-check-"));
-  const files = {
-    "WORKFLOW.md": validWorkflow,
-    "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
-    "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
-    "docs/agents/issue-tracker.md": "# Issue tracker adapter\n",
-    "docs/agents/domain.md": "# Domain documentation adapter\n",
-    "docs/agents/blueprint.md": "# Blueprint adapter\n",
-    "docs/agents/artifact-lifecycle.md": "# Artifact lifecycle adapter\n",
-    "CONTRIBUTING.md": "Read WORKFLOW.md before delivery work.\n",
-    ".gitignore": ".agents/settings.local.*\n",
-    "skills-lock.json": JSON.stringify({
-      version: 1,
-      skills: { "to-spec": {} },
-    }),
-    ".agents/skills/to-spec/SKILL.md": "# To spec\n",
-    ...overrides,
-  };
+const REPOSITORY_FILES = {
+  "WORKFLOW.md": validWorkflow,
+  "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
+  "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
+  "docs/agents/issue-tracker.md": "# Issue tracker adapter\n",
+  "docs/agents/domain.md": "# Domain documentation adapter\n",
+  "docs/agents/blueprint.md": "# Blueprint adapter\n",
+  "docs/agents/artifact-lifecycle.md": "# Artifact lifecycle adapter\n",
+  "CONTRIBUTING.md": "Read WORKFLOW.md before delivery work.\n",
+  ".gitignore": ".agents/settings.local.*\n",
+  "skills-lock.json": JSON.stringify({
+    version: 1,
+    skills: { "to-spec": {} },
+  }),
+  ".agents/skills/to-spec/SKILL.md": "# To spec\n",
+};
 
+async function writeFiles(root, files) {
   for (const [relativePath, content] of Object.entries(files)) {
     if (content === null) continue;
     const filePath = path.join(root, relativePath);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, content, "utf8");
   }
+}
 
+async function addSkillBridge(root) {
   const bridge = path.join(root, ".claude/skills/to-spec");
   await mkdir(path.dirname(bridge), { recursive: true });
   await symlink("../../.agents/skills/to-spec", bridge);
+}
 
+async function makeRepository(overrides = {}) {
+  const root = await mkdtemp(path.join(os.tmpdir(), "workflow-check-"));
+  await writeFiles(root, { ...REPOSITORY_FILES, ...overrides });
+  await addSkillBridge(root);
   return root;
 }
 
@@ -236,6 +241,18 @@ test("reports a Proposal missing a Scenario or a TLDR", async () => {
   );
 });
 
+test("reports a Proposal missing a TLDR", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Proposal\n---\n\n<Scenario given="a" when="b" then="c" />\n',
+      })
+    ).join("\n"),
+    /c\/proposal\.mdx.*blueprint-proposal/i,
+  );
+});
+
 test("accepts a Proposal with a TLDR and a Scenario", async () => {
   assert.deepEqual(
     await messages({
@@ -252,6 +269,18 @@ test("reports a Delivery missing a TLDR or a markdown table", async () => {
       await messages({
         "blueprint/content/changes/c/delivery.mdx":
           "---\ntitle: Delivery\n---\n\n<TLDR>Summary</TLDR>\n\nNo table here.\n",
+      })
+    ).join("\n"),
+    /c\/delivery\.mdx.*blueprint-delivery/i,
+  );
+});
+
+test("reports a Delivery missing a TLDR", async () => {
+  assert.match(
+    (
+      await messages({
+        "blueprint/content/changes/c/delivery.mdx":
+          "---\ntitle: Delivery\n---\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
       })
     ).join("\n"),
     /c\/delivery\.mdx.*blueprint-delivery/i,
@@ -312,8 +341,10 @@ test("checkChangeScope is silent outside a git repository", async () => {
 
 // A minimal repo for checkChangeScope: a `dev` base commit, then a feature
 // branch with a given number of src/ files changed against it. `commitArgs`
-// lets a test add a trailer via an extra -m.
-async function makeScopeRepository(fileCount, commitArgs = []) {
+// lets a test add a trailer via an extra -m. `seedWorkflowFiles` also lays
+// down a valid checkWorkflow() repository, for a test that runs the CLI.
+async function makeScopeRepository(fileCount, commitArgs = [], options = {}) {
+  const { seedWorkflowFiles = false } = options;
   const root = await mkdtemp(path.join(os.tmpdir(), "change-scope-"));
   const git = (args) => execFileAsync("git", args, { cwd: root });
 
@@ -321,6 +352,10 @@ async function makeScopeRepository(fileCount, commitArgs = []) {
   await git(["config", "user.email", "test@example.com"]);
   await git(["config", "user.name", "Test"]);
   await writeFile(path.join(root, "README.md"), "init\n");
+  if (seedWorkflowFiles) {
+    await writeFiles(root, REPOSITORY_FILES);
+    await addSkillBridge(root);
+  }
   await git(["add", "-A"]);
   await git(["commit", "-q", "-m", "init"]);
 
@@ -362,30 +397,50 @@ test("checkChangeScope accepts a --migration slug", async () => {
   );
 });
 
-test("checkChangeScope never fails the process, even when it warns", async () => {
-  const root = await makeRepository();
-  await execFileAsync("git", ["init", "-q", "-b", "dev"], { cwd: root });
-  await execFileAsync("git", ["config", "user.email", "test@example.com"], {
-    cwd: root,
-  });
-  await execFileAsync("git", ["config", "user.name", "Test"], { cwd: root });
-  await execFileAsync("git", ["add", "-A"], { cwd: root });
-  await execFileAsync("git", ["commit", "-q", "-m", "init"], { cwd: root });
+test("checkChangeScope ignores a Migration mention outside the trailer block", async () => {
+  const root = await makeScopeRepository(31, [
+    "-m",
+    "This work touches Migration: two-gate-workflow in prose, not a trailer.",
+  ]);
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+});
 
-  await execFileAsync("git", ["checkout", "-q", "-b", "feat/scope-test"], {
-    cwd: root,
+test("checkChangeScope warns past the soft scenario-count target", async () => {
+  const scenarios = Array.from(
+    { length: 9 },
+    (_, i) => `<Scenario given="g${i}" when="w${i}" then="t${i}" />`,
+  ).join("\n");
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx": `---\ntitle: Proposal\n---\n\n${scenarios}\n`,
   });
-  await mkdir(path.join(root, "src"), { recursive: true });
-  for (let i = 0; i < 31; i += 1) {
-    await writeFile(
-      path.join(root, `src/file${i}.ts`),
-      `export const f${i} = ${i};\n`,
-    );
-  }
-  await execFileAsync("git", ["add", "-A"], { cwd: root });
-  await execFileAsync("git", ["commit", "-q", "-m", "add files"], {
-    cwd: root,
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+  assert.match(warnings[0], /9 acceptance scenarios/);
+});
+
+test("checkChangeScope warns past the soft slice-count target", async () => {
+  const slices = Object.fromEntries(
+    Array.from({ length: 6 }, (_, i) => [
+      `.scratch/c/S0${i + 1}.md`,
+      `# Slice ${i + 1}\n`,
+    ]),
+  );
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx":
+      "---\ntitle: Proposal\n---\n\n<TLDR>Summary</TLDR>\n",
+    ...slices,
   });
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /change-scope/i);
+  assert.match(warnings[0], /6 slice files/);
+});
+
+test("checkChangeScope never fails the process, even when it warns", async () => {
+  const root = await makeScopeRepository(31, [], { seedWorkflowFiles: true });
 
   const result = await execFileAsync("node", [CHECK_WORKFLOW_SCRIPT], {
     cwd: root,
