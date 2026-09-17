@@ -421,24 +421,6 @@ test("checkChangeScope warns past the soft scenario-count target", async () => {
   assert.match(warnings[0], /9 acceptance scenarios/);
 });
 
-test("checkChangeScope warns past the soft slice-count target", async () => {
-  const slices = Object.fromEntries(
-    Array.from({ length: 6 }, (_, i) => [
-      `.scratch/c/S0${i + 1}.md`,
-      `# Slice ${i + 1}\n`,
-    ]),
-  );
-  const root = await makeRepository({
-    "blueprint/content/changes/c/proposal.mdx":
-      "---\ntitle: Proposal\n---\n\n<TLDR>Summary</TLDR>\n",
-    ...slices,
-  });
-  const warnings = await checkChangeScope(root);
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /change-scope/i);
-  assert.match(warnings[0], /6 slice files/);
-});
-
 test("checkChangeScope never fails the process, even when it warns", async () => {
   const root = await makeScopeRepository(31, [], { seedWorkflowFiles: true });
 

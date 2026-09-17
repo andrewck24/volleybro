@@ -63,7 +63,6 @@ const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
 const ANCHOR_TAG = /<a(\s[^>]*)>/g;
 const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
-const SLICE_COUNT_SOFT_LIMIT = 5;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
 
 async function validateContributorGuidance(root) {
@@ -495,9 +494,11 @@ async function checkFileCountScope(root, options) {
   ];
 }
 
-// Slices and Proposal scenarios are the other two Feature D45 soft
-// targets; both are read straight off whatever Change directories exist
-// locally, independent of the src/ file-count check above.
+// Proposal scenarios are the other Feature D45 soft target checked here,
+// read straight off whatever Change directories exist locally, independent
+// of the src/ file-count check above. Slice count is also a soft target
+// (WORKFLOW.md's Change scope section), but slices are Linear sub-issues
+// now, so it is a written target only and not checked here.
 async function checkChangeSizeWarnings(root) {
   const diagnostics = [];
 
@@ -511,19 +512,6 @@ async function checkChangeSizeWarnings(root) {
       if (scenarioCount > SCENARIO_COUNT_SOFT_LIMIT) {
         diagnostics.push(
           `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
-        );
-      }
-    }
-
-    const scratchDir = path.join(root, ".scratch", slug);
-    if (await exists(scratchDir)) {
-      const entries = await readdir(scratchDir);
-      const sliceCount = entries.filter((name) =>
-        /^S\d+.*\.md$/.test(name),
-      ).length;
-      if (sliceCount > SLICE_COUNT_SOFT_LIMIT) {
-        diagnostics.push(
-          `.scratch/${slug} [change-scope]: ${sliceCount} slice files exceeds the soft target of ${SLICE_COUNT_SOFT_LIMIT}; split the Change`,
         );
       }
     }

@@ -17,7 +17,7 @@
     }
   ],
   "consequences": [
-    "Manual and Symphony Apply follow the same slice and verification contract, whether slices live in .scratch/<slug>/ or tracker sub-issues.",
+    "Manual and Symphony Apply follow the same slice and verification contract, with slices as Linear sub-issues under the Change's issue either way.",
     "Repository policy remains usable across provider and orchestrator replacements."
   ],
   "revisitTriggers": [

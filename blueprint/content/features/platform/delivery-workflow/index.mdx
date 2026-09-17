@@ -17,9 +17,11 @@ optional Symphony execution.
   before any implementation starts, **G2** accepts the Delivery page before
   the pull request opens. Everything between a gate and the next runs without
   stopping for a human.
-- Apply decomposes an accepted Proposal into slices in `.scratch/<slug>/`
-  (manual) or Linear sub-issues (Symphony), implements them, reviews to a
-  fixed point, then runs Archive — all before G2, in one pass.
+- Apply decomposes an accepted Proposal into slices — Linear sub-issues under
+  the Change's issue, the same way in manual and Symphony mode — unless the
+  Change fits one session, which implements directly instead. Either way it
+  implements, reviews to a fixed point, then runs Archive — all before G2, in
+  one pass.
 - Archive runs automatically once Pre-PR review reaches its fixed point,
   before the pull request opens: it promotes ADRs and behavior to Features,
   exports the Delivery summary, and stops for G2 acceptance.

@@ -45,7 +45,7 @@ acceptance. Provider instruction files are bridges only.
 | Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones        |
 | Change review surfaces (gitignored)    | `blueprint/content/changes/<slug>/proposal.mdx`, `delivery.mdx`               |
 | Canonical current capability knowledge | `blueprint/content/features/`                                                 |
-| Execution plan                         | `.scratch/<slug>/S0X.md` (manual) or Linear sub-issues (Symphony)             |
+| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change  |
 | Version and changelog evidence         | `.changeset/` through Changesets                                              |
 | Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                   |
 | Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                        |
@@ -150,9 +150,10 @@ request opens. Everything between a gate and the next runs without stopping for 
 Apply is the same repository procedure in both execution modes:
 
 1. read the Proposal page, its ADRs, and git state, plus the workpad when an unattended run keeps
-   one, then decompose the Change into slices in `.scratch/<slug>/` (manual) or Linear sub-issues
-   (Symphony); the first slice is always turning the Proposal's acceptance scenarios into an
-   executable acceptance test;
+   one; a Change that fits one session implements directly, with no slice decomposition — its
+   handoff is the branch and its commits. Otherwise decompose the Change into Linear sub-issues
+   under the Change's issue, the same way in manual and Symphony mode; the first slice is always
+   turning the Proposal's acceptance scenarios into an executable acceptance test;
 2. select the next slice whose dependencies are complete;
 3. implement through the agreed TDD seam where applicable;
 4. run the slice's targeted verification;
@@ -242,7 +243,7 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
 Acceptance of the Delivery page is the last human gate. It authorizes opening the pull request
 without asking again: open it with the exported Delivery summary in the body, then wait for CI and
 for whatever the developer said about merging. If optional human PR feedback arrives and changes
-durable knowledge, amend the promoted Features and reopen `.scratch/<slug>/` to fix it, then rerun
+durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun
 the applicable gates on the same branch. After merge, move the operational Linear issue to Done;
 merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical
 snapshots. A later low-priority migration promotes only knowledge that is still current; it does
@@ -250,20 +251,12 @@ not rewrite the remaining snapshots.
 
 ## Implementation-slice contract
 
-Canonical execution data is one file per slice, kept outside Git.
-
-```text
-.scratch/<change-slug>/                 gitignored; removed once the Change is archived
-├── S01-<name>.md
-├── S02-<name>.md
-└── ...
-```
-
-Manual runs use these files directly; Symphony runs use Linear sub-issues under the operational
-issue instead, keeping the same fields. Each slice states a stable ID, capability references,
-dependencies, outcome, acceptance criteria, verification, and status (`pending` or `completed`).
-Runtime states such as `claimed`, `running`, executor identity, and retry count do not belong in
-either form.
+Canonical execution data is one Linear sub-issue per slice, under the Change's operational issue,
+the same way in manual and Symphony mode. A Change that fits one session skips slices entirely and
+implements directly; its handoff is the branch and its commits. Each slice states a stable ID,
+capability references, dependencies, outcome, acceptance criteria, verification, and status
+(`pending` or `completed`). Runtime states such as `claimed`, `running`, executor identity, and
+retry count do not belong on the sub-issue.
 
 ```text
 blueprint/content/changes/<slug>/       gitignored; regenerated locally at each gate
@@ -279,9 +272,10 @@ blueprint/content/changes/<slug>/       gitignored; regenerated locally at each 
 
 A Change targets soft limits before it needs splitting: at most 5 slices, at most 30 changed `src`
 files, and at most 8 acceptance scenarios on the Proposal page. Exceeding a target at Proposal time
-means splitting into multiple Changes rather than writing a larger one. The exported Delivery
-summary targets at most 40 lines in the pull-request body; anything beyond that stays in commit
-bodies.
+means splitting into multiple Changes rather than writing a larger one. The slice count is a
+written target only: slices are Linear sub-issues now, so `check-workflow.js` cannot count them and
+does not warn on this one. The exported Delivery summary targets at most 40 lines in the
+pull-request body; anything beyond that stays in commit bodies.
 
 A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the
 existing test suite plus a dependency-direction check) or a **behavior** change, never both.
@@ -292,9 +286,9 @@ criteria. Each shard afterward is its own Change and pull request, references th
 Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every
 shard. The Migration Proposal's ADR is promoted to Features once, when the first shard archives;
 the remaining shards do not repeat it. `check-workflow.js` counts changed `src` files against
-`dev`, `.scratch/<slug>/` slices, and Proposal scenarios, and warns, rather than fails, past any
-of these targets. The `src`-file-count warning is suppressed by a `Migration: <migration-slug>`
-commit trailer (or `pnpm check:workflow --migration <slug>`), not by a PR-body reference.
+`dev` and Proposal scenarios, and warns, rather than fails, past either target. The `src`-file-count
+warning is suppressed by a `Migration: <migration-slug>` commit trailer (or
+`pnpm check:workflow --migration <slug>`), not by a PR-body reference.
 
 ## Decision-record contract
 
@@ -402,11 +396,10 @@ The workpad may include tracker, run, workspace, commit, and pull-request refere
 active. Blueprint must not copy those tracker-specific references into its durable content.
 
 A manual run keeps a lighter workpad: every field above except `blockers` and `next_action` is
-already recorded in the repository — slice status in `.scratch/<slug>/`, validation in commit
-trailers — and a copy kept by hand drifts from them. The two fields that are not repository state
-go in `.scratch/<slug>/` too, for example a `handoff.md` beside the slice files, so another agent
-in the same worktree can pick up where the run stopped. Resuming from a different worktree or
-machine needs the branch pushed and the tracker used instead — `.scratch/` does not cross either.
+already recorded in the repository — slice status on the Linear sub-issues, validation in commit
+trailers — and a copy kept by hand drifts from them. A multi-session manual run hands off through
+the pushed branch and its commits plus the sub-issues, so another agent, worktree, or machine can
+pick up where the run stopped without a separate handoff file.
 
 ## Blueprint knowledge contract
 

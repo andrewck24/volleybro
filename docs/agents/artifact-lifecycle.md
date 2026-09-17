@@ -2,10 +2,10 @@
 
 Classify every workflow output before storing it.
 
-| Class             | Examples                                                                                                                                               | Lifecycle                                                                                                                                               |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operational       | Tracker intake/spec projection, Wayfinder maps, workpad, `.scratch/<slug>/` slice files, Proposal and Delivery pages, temporary handoff, provider text | Update only while active; extract missing durable knowledge at Archive, then allow deletion. Blueprint change pages are gitignored and never committed. |
-| Canonical current | Blueprint Features, promoted decision copies, `CONTEXT.md`, code/tests, Changesets                                                                     | Update only when knowledge is verified and promoted at Archive; supersede explicitly through later Changes.                                             |
+| Class             | Examples                                                                                                                                        | Lifecycle                                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operational       | Tracker intake/spec projection, Wayfinder maps, workpad, Linear slice sub-issues, Proposal and Delivery pages, temporary handoff, provider text | Update only while active; extract missing durable knowledge at Archive, then allow deletion. Blueprint change pages are gitignored and never committed. |
+| Canonical current | Blueprint Features, promoted decision copies, `CONTEXT.md`, code/tests, Changesets                                                              | Update only when knowledge is verified and promoted at Archive; supersede explicitly through later Changes.                                             |
 
 ## Branch-local Archive
 

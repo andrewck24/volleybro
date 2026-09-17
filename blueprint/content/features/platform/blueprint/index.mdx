@@ -23,9 +23,10 @@ capability knowledge in Features.
   sitting in a Change directory is proposed; the same record copied into
   `blueprint/content/features/` at Archive is adopted — the directory it sits
   in is the only status field.
-- Implementation slices live in `.scratch/<slug>/` (manual) or Linear
-  sub-issues (Symphony), not in Blueprint; they disappear with the workspace
-  once the Change is archived.
+- Implementation slices are Linear sub-issues under the Change's issue, the
+  same way in manual and Symphony mode, not in Blueprint; a Change that fits
+  one session skips slices entirely. Sub-issues close once the Change is
+  archived.
 - `features/` and `design-system/` are the only Blueprint content that stays
   in Git and ships. Both are canonical current knowledge, read at every
   intake.
