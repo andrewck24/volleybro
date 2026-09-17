@@ -317,8 +317,9 @@ rendering never becomes a second editable decision source.
 
 Archive copies each realized ADR to
 `blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy becomes
-canonical current knowledge. Later Changes may mark that Feature copy `superseded` without editing
-the proposed record, which disappears with the rest of the Change directory once it is archived.
+canonical current knowledge. A later Change that replaces it sets `supersededBy` on the Feature
+copy to the replacing Feature ADR, without editing the proposed record, which disappears with the
+rest of the Change directory once it is archived.
 
 A promoted record is renumbered, because the two copies answer to different namespaces. On the
 Proposal page, `D3` means the third decision of that piece of reasoning, and it is gone once the

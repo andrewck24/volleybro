@@ -17,6 +17,7 @@ const ALLOWED_KEYS = new Set([
   "revisitTriggers",
   "originChange",
   "originDecision",
+  "supersededBy",
 ]);
 const ALTERNATIVE_KEYS = new Set(["option", "reason"]);
 
@@ -32,6 +33,7 @@ export type DecisionRecord = {
   revisitTriggers: string[];
   originChange?: string;
   originDecision?: string;
+  supersededBy?: string;
 };
 
 function isNonEmptyString(value: unknown): value is string {
@@ -98,7 +100,10 @@ export function parseDecisionRecord(value: unknown): DecisionRecord {
         !CHANGE_SLUG_PATTERN.test(record.originChange))) ||
     (record.originDecision !== undefined &&
       (!isNonEmptyString(record.originDecision) ||
-        !DECISION_ID_PATTERN.test(record.originDecision)))
+        !DECISION_ID_PATTERN.test(record.originDecision))) ||
+    (record.supersededBy !== undefined &&
+      (!isNonEmptyString(record.supersededBy) ||
+        !ID_PATTERN.test(record.supersededBy)))
   ) {
     throw new Error(
       `Invalid decision record: ${String(record.id ?? "unknown")}`,

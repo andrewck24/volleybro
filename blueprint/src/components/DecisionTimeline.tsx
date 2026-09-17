@@ -34,6 +34,11 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
                 <span className="flex min-w-0 flex-wrap items-center gap-2 pr-2">
                   <Badge variant="outline">{record.id}</Badge>
                   <span>{record.title}</span>
+                  {record.supersededBy && (
+                    <Badge variant="secondary">
+                      Superseded by {record.supersededBy}
+                    </Badge>
+                  )}
                 </span>
               </AccordionTrigger>
               <AccordionContent className="flex flex-col gap-4 pb-5">

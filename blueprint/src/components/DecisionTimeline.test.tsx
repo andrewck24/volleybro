@@ -31,6 +31,14 @@ describe("DecisionTimeline", () => {
     expect(screen.getByText(decision.revisitTriggers[0])).toBeInTheDocument();
   });
 
+  it("marks a superseded decision with its replacement", () => {
+    render(
+      <DecisionTimeline decisions={[{ ...decision, supersededBy: "D45" }]} />,
+    );
+
+    expect(screen.getByText("Superseded by D45")).toBeInTheDocument();
+  });
+
   it("rejects schema-incompatible records", () => {
     expect(() =>
       render(

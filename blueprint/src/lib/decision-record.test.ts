@@ -22,7 +22,13 @@ describe("parseDecisionRecord", () => {
     expect(parseDecisionRecord(decision)).toEqual(decision);
   });
 
+  it("accepts a Feature decision that names its replacement", () => {
+    const superseded = { ...decision, supersededBy: "D45" };
+    expect(parseDecisionRecord(superseded)).toEqual(superseded);
+  });
+
   it.each([
+    { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
     { ...decision, targets: ["platform/delivery", "platform/delivery"] },
     { ...decision, targets: ["platform"] },

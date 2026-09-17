@@ -7,9 +7,10 @@ interface RequireContext {
 }
 
 // content/changes is gitignored (two-gate-workflow D2: Change pages are
-// throwaway review surfaces) and usually absent on a fresh checkout. Verified: webpack's
-// require.context fails the build ("Module not found") when the directory is
-// entirely missing, so `dev`/`build` in package.json `mkdir -p` it first.
+// throwaway review surfaces) and usually absent on a fresh checkout.
+// Verified: webpack's require.context fails the build ("Module not found")
+// when the directory is entirely missing, so `dev`/`build` in package.json
+// `mkdir -p` it first.
 const req = (
   require as unknown as {
     context: (dir: string, sub: boolean, re: RegExp) => RequireContext;

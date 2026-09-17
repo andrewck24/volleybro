@@ -88,6 +88,11 @@
     "originDecision": {
       "type": "string",
       "pattern": "^D[0-9]+$"
+    },
+    "supersededBy": {
+      "type": "string",
+      "pattern": "^D[0-9]+$",
+      "description": "The Feature decision that replaces this one."
     }
   }
 }
