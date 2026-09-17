@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import {
+  access,
   chmod,
   mkdtemp,
   mkdir,
@@ -193,6 +194,17 @@ test("pull --force replaces an existing local slug", async (t) => {
   await withRemote(bare, () => pull(work, { force: true }));
 
   assert.deepEqual(await readdir(alphaDir), ["proposal.mdx"]);
+});
+
+test("pull leaves the repository unshallow", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  await withRemote(bare, () =>
+    execFileAsync("node", [SCRIPT, "pull"], { cwd: work }),
+  );
+
+  // A shallow fetch grafts the repository that runs it, and a grafted
+  // repository can have a later push refused by its host.
+  await assert.rejects(access(path.join(work, ".git", "shallow")));
 });
 
 test("missing remote branch: pull warns and exits 0", async (t) => {

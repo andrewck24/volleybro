@@ -93,10 +93,12 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
   });
 }
 
+// No `--depth`: a shallow fetch writes a graft into whichever repository runs
+// it, which marks the whole repository shallow and can make a later push to a
+// host refuse the history. The store holds pages, not a large history, so a
+// single-branch fetch is cheap enough to take whole.
 async function fetchChanges(remote, repoRoot) {
-  await runGit(["fetch", remote, FETCH_REFSPEC, "--depth=1"], {
-    cwd: repoRoot,
-  });
+  await runGit(["fetch", remote, FETCH_REFSPEC], { cwd: repoRoot });
 }
 
 export async function readStore(changesDir) {
