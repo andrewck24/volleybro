@@ -17,6 +17,7 @@
     }
   ],
   "consequences": [
+    "Superseded by the two-gate-workflow change: Change pages no longer store lifecycle, status, or slice JSON; see WORKFLOW.md's two-gate model.",
     "Slice JSON is committed with the source and tests that complete it.",
     "Runtime claim, retry, and worker identity remain outside Git."
   ],

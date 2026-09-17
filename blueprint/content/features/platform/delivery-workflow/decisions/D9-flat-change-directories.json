@@ -21,6 +21,7 @@
     }
   ],
   "consequences": [
+    "Superseded by the two-gate-workflow change: Change pages no longer store lifecycle, status, or slice JSON; see WORKFLOW.md's two-gate model.",
     "A Change's URL is fixed from the moment it is created, so Overview links, breadcrumbs, and cross-references cannot be invalidated by lifecycle progress.",
     "Advancing a Change edits change.json and nothing else. The Archive procedure loses its directory move and its designModules edit.",
     "Every existing Change URL changes once, at this Change's Apply. Internal references are updated in the same commit; no redirects are added, since there are no external references.",

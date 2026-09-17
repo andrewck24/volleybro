@@ -21,6 +21,7 @@
     }
   ],
   "consequences": [
+    "Superseded by the two-gate-workflow change: Change pages no longer store lifecycle, status, or slice JSON; see WORKFLOW.md's two-gate model.",
     "A Change advances by editing one field. The status can no longer disagree with the lifecycle because it is no longer written down.",
     "lifecycleMatchesStatus disappears; it becomes a tautology once status is computed from lifecycle.",
     "change.schema.json drops status from both properties and required, which is a breaking schema change for the ten existing change.json files.",
