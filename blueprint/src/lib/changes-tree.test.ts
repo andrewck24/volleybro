@@ -28,7 +28,7 @@ describe("createChangesBreadcrumbTree", () => {
           name: "two-page-change",
           children: [
             page("Proposal", "/changes/two-page-change/proposal"),
-            page("Delivery", "/changes/two-page-change/delivery"),
+            page("Review", "/changes/two-page-change/review"),
           ],
         },
       ],
@@ -41,12 +41,12 @@ describe("createChangesBreadcrumbTree", () => {
 
     expect(changeFolder.index?.url).toBe("/changes/two-page-change/proposal");
     expect(changeFolder.children).toEqual([
-      page("Delivery", "/changes/two-page-change/delivery"),
+      page("Review", "/changes/two-page-change/review"),
     ]);
   });
 
   // Regression test: a Change with only one published page (e.g. only a
-  // Proposal, before Delivery exists) must keep that page as a distinct
+  // Proposal, before Review exists) must keep that page as a distinct
   // child with no `index` set. Fumadocs' breadcrumb algorithm drops a
   // folder from the path when it is immediately followed by its own
   // `index` page, so collapsing the lone page into `index` here would read

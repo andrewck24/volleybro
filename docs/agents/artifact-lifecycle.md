@@ -5,12 +5,12 @@ Classify every workflow output before storing it.
 | Class                  | Examples                                                                                                           | Lifecycle                                                                                                                                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Operational            | Tracker intake/spec projection, Wayfinder maps, workpad, Linear slice sub-issues, temporary handoff, provider text | Update only while active; extract missing durable knowledge at Archive, then allow deletion.                                                                                                        |
-| Durable review history | Proposal and Delivery pages                                                                                        | Gitignored on the Change branch; published to the `blueprint-changes` store branch at each gate, where they persist without merging into other branches. They are not a second lifecycle authority. |
+| Durable review history | Proposal and Review pages                                                                                          | Gitignored on the Change branch; published to the `blueprint-changes` store branch at each gate, where they persist without merging into other branches. They are not a second lifecycle authority. |
 | Canonical current      | Blueprint Features, promoted decision copies, `CONTEXT.md`, code/tests, Changesets                                 | Update only when knowledge is verified and promoted at Archive; supersede explicitly through later Changes.                                                                                         |
 
 ## Branch-local Archive
 
-Archive runs automatically after Pre-PR review reaches its fixed point and before the pull request
+Archive runs automatically after Pre-PR code review reaches its fixed point and before the pull request
 opens:
 
 1. require all slices complete or explicitly superseded, full verification, Changeset assessment,
@@ -20,11 +20,11 @@ opens:
    origin Change slug, rationale, important rejected alternatives worth remembering, and revisit
    triggers;
 4. reconcile `CONTEXT.md` only for stable domain vocabulary resolved during the Change;
-5. export a Delivery summary of at most 40 lines — acceptance scenario results, verification,
+5. export a Review summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
 6. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript
    text from durable Blueprint content;
-7. generate the Delivery page, read it rendered in a browser, publish it with
+7. generate the Review page, read it rendered in a browser, publish it with
    `pnpm blueprint:changes:publish <slug>`, then notify the developer and stop for acceptance (G2);
 8. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
@@ -35,7 +35,7 @@ applicable gates. Merge performs no second knowledge sync; it only permits the o
 move to Done.
 
 Change pages are durable review history again: publishing them to the `blueprint-changes` store
-branch keeps every Proposal and Delivery page browsable after merge, without making them a second
+branch keeps every Proposal and Review page browsable after merge, without making them a second
 lifecycle authority — Features, ADRs, and commit bodies remain canonical current knowledge.
 
 Historical Spectra/OpenSpec artifacts are immutable snapshots. Migration work promotes only

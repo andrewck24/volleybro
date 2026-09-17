@@ -49,7 +49,7 @@ export function listChanges(): ChangeSummary[] {
     Array.from(byPath.keys())
       .filter(
         (pagePath) =>
-          pagePath.endsWith("/proposal") || pagePath.endsWith("/delivery"),
+          pagePath.endsWith("/proposal") || pagePath.endsWith("/review"),
       )
       .map((pagePath) => pagePath.split("/")[0])
       // Old-format directories carry a change.json and are listed by
@@ -62,11 +62,11 @@ export function listChanges(): ChangeSummary[] {
   const twoGate = Array.from(slugs)
     .map((slug) => {
       const proposal = byPath.get(`${slug}/proposal`);
-      const delivery = byPath.get(`${slug}/delivery`);
+      const review = byPath.get(`${slug}/review`);
       return {
         slug,
-        title: proposal?.data.title ?? delivery?.data.title ?? slug,
-        href: proposal?.url ?? delivery?.url ?? `/changes/${slug}/proposal`,
+        title: proposal?.data.title ?? review?.data.title ?? slug,
+        href: proposal?.url ?? review?.url ?? `/changes/${slug}/proposal`,
       };
     })
     .sort((a, b) => a.slug.localeCompare(b.slug));

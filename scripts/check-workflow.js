@@ -395,11 +395,11 @@ const CHANGE_PAGE_RULES = [
       `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [blueprint-proposal]: must contain a TLDR and at least one Scenario`,
   },
   {
-    file: "delivery.mdx",
+    file: "review.mdx",
     requires: (content) =>
       content.includes("<TLDR") && CHANGE_PAGE_MARKDOWN_TABLE.test(content),
     message: (slug) =>
-      `${BLUEPRINT_CHANGES}/${slug}/delivery.mdx [blueprint-delivery]: must contain a TLDR and a markdown table`,
+      `${BLUEPRINT_CHANGES}/${slug}/review.mdx [blueprint-review]: must contain a TLDR and a markdown table`,
   },
 ];
 

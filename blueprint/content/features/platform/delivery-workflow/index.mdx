@@ -14,17 +14,17 @@ optional Symphony execution.
 ## Current behavior
 
 - Two human gates bound the whole lifecycle: **G1** accepts the Proposal page
-  before any implementation starts, **G2** accepts the Delivery page before
+  before any implementation starts, **G2** accepts the Review page before
   the pull request opens. Everything between a gate and the next runs without
   stopping for a human.
 - Apply decomposes an accepted Proposal into slices — Linear sub-issues under
   the Change's issue, the same way in manual and Symphony mode — unless the
   Change fits one session, which implements directly instead. Either way it
-  implements, reviews to a fixed point, then runs Archive — all before G2, in
-  one pass.
-- Archive runs automatically once Pre-PR review reaches its fixed point,
+  implements, code-reviews to a fixed point, then runs Archive — all before
+  G2, in one pass.
+- Archive runs automatically once Pre-PR code review reaches its fixed point,
   before the pull request opens: it promotes ADRs and behavior to Features,
-  exports the Delivery summary, and stops for G2 acceptance.
+  exports the Review summary, and stops for G2 acceptance.
 - Symphony claims a Change once the developer adds `agent:ready` to its
   tracker issue after G1 acceptance, moving it to Todo in the same step.
   Before Manual Apply, the developer checks that no claim exists, removes
@@ -35,14 +35,14 @@ optional Symphony execution.
 
 - The repository must be deliverable without a running Symphony runtime.
 - No pull request opens before Archive completes and the developer accepts
-  the Delivery page (G2); merge performs no second knowledge sync.
-- Blueprint's Change review surfaces (`proposal.mdx`, `delivery.mdx`) are
+  the Review page (G2); merge performs no second knowledge sync.
+- Blueprint's Change review surfaces (`proposal.mdx`, `review.mdx`) are
   gitignored on the Change branch and published to the `blueprint-changes`
   store branch at each gate, which is their durable store — not the Change
   branch itself.
 - A small fix that only restores behavior Features already describe, or
   changes no behavior, may skip both gates via the Fix path: no Proposal or
-  Delivery page, only a pull request the developer accepts, carrying a
+  Review page, only a pull request the developer accepts, carrying a
   `Refs: <tracker issue>` commit trailer instead of `Implements` and
   `Blueprint-Change`.
 

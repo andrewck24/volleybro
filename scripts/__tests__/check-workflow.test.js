@@ -276,35 +276,35 @@ test("accepts a Proposal with a TLDR and a Scenario", async () => {
   );
 });
 
-test("reports a Delivery missing a markdown table", async () => {
+test("reports a Review missing a markdown table", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/delivery.mdx":
-          "---\ntitle: Delivery\n---\n\n<TLDR>Summary</TLDR>\n\nNo table here.\n",
+        "blueprint/content/changes/c/review.mdx":
+          "---\ntitle: Review\n---\n\n<TLDR>Summary</TLDR>\n\nNo table here.\n",
       })
     ).join("\n"),
-    /c\/delivery\.mdx.*blueprint-delivery/i,
+    /c\/review\.mdx.*blueprint-review/i,
   );
 });
 
-test("reports a Delivery missing a TLDR", async () => {
+test("reports a Review missing a TLDR", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/delivery.mdx":
-          "---\ntitle: Delivery\n---\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
+        "blueprint/content/changes/c/review.mdx":
+          "---\ntitle: Review\n---\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
       })
     ).join("\n"),
-    /c\/delivery\.mdx.*blueprint-delivery/i,
+    /c\/review\.mdx.*blueprint-review/i,
   );
 });
 
-test("accepts a Delivery with a TLDR and a markdown table", async () => {
+test("accepts a Review with a TLDR and a markdown table", async () => {
   assert.deepEqual(
     await messages({
-      "blueprint/content/changes/c/delivery.mdx":
-        "---\ntitle: Delivery\n---\n\n<TLDR>Summary</TLDR>\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
+      "blueprint/content/changes/c/review.mdx":
+        "---\ntitle: Review\n---\n\n<TLDR>Summary</TLDR>\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
     }),
     [],
   );

@@ -46,10 +46,10 @@ describe("listChanges", () => {
     mockLegacyDirs = {};
   });
 
-  it("titles and links from proposal.mdx when both proposal and delivery exist", () => {
+  it("titles and links from proposal.mdx when both proposal and review exist", () => {
     mockGetPages.mockReturnValue([
       page("a/proposal", "A Proposal"),
-      page("a/delivery", "A Delivery"),
+      page("a/review", "A Review"),
     ]);
 
     expect(listChanges()).toEqual([
@@ -57,11 +57,11 @@ describe("listChanges", () => {
     ]);
   });
 
-  it("falls back to the delivery title and href when there is no proposal.mdx", () => {
-    mockGetPages.mockReturnValue([page("b/delivery", "B Delivery")]);
+  it("falls back to the review title and href when there is no proposal.mdx", () => {
+    mockGetPages.mockReturnValue([page("b/review", "B Review")]);
 
     expect(listChanges()).toEqual([
-      { slug: "b", title: "B Delivery", href: "/changes/b/delivery" },
+      { slug: "b", title: "B Review", href: "/changes/b/review" },
     ]);
   });
 
