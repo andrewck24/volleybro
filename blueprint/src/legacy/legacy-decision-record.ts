@@ -1,4 +1,4 @@
-// Compatibility layer for old-format Change pages; delete once all 22 are converted to the two-gate format.
+// Compatibility layer for old-format Change pages; delete once no old-format Change remains.
 
 // Old decision records carry a `status` field the current strict
 // parseDecisionRecord rejects as an unknown key; this drops it before the

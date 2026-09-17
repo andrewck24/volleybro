@@ -1,4 +1,4 @@
-// Compatibility layer for old-format Change pages; delete once all 22 are converted to the two-gate format.
+// Compatibility layer for old-format Change pages; delete once no old-format Change remains.
 
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 
