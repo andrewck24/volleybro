@@ -14,7 +14,11 @@ capability knowledge in Features.
 
 ## Current behavior
 
-- A Change's review surfaces live at `blueprint/content/changes/<slug>/proposal.mdx` and `delivery.mdx`, gitignored on the Change branch. Publishing them commits and pushes to the orphan `blueprint-changes` branch, their durable store; the Blueprint dev server and build first pull every published Change from it.
+- A Change's review surfaces live at
+  `blueprint/content/changes/<slug>/proposal.mdx` and `delivery.mdx`,
+  gitignored on the Change branch. Publishing them commits and pushes to the
+  orphan `blueprint-changes` branch, their durable store; the Blueprint dev
+  server and build first pull every published Change from it.
 - ADRs are drafted under `proposal/decisions/` on the Proposal page. An ADR
   sitting in a Change directory is proposed; the same record copied into
   `blueprint/content/features/` at Archive is adopted — the directory it sits
