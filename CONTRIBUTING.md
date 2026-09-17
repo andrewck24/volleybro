@@ -118,11 +118,9 @@ The gates that must pass before a pull request are listed in `WORKFLOW.md`'s Rep
 
 ### Working in a git worktree
 
-A worktree has no `node_modules` and no `.env`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject. `pnpm build` only collects page data, so dummy values satisfy it:
+A worktree starts without `node_modules`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject.
 
-```bash
-MONGODB_URI='mongodb://localhost:27017/vb-build' BETTER_AUTH_SECRET='dummy-build-secret-0123456789' BETTER_AUTH_URL='http://localhost:3000' GOOGLE_CLIENT_ID='x' GOOGLE_CLIENT_SECRET='x' pnpm build
-```
+`.worktreeinclude` lists `.env.local`, so agent tooling that reads that file copies it into each worktree it creates. A worktree made with plain `git worktree add`, or by a tool that ignores the file, gets no copy: copy `.env.local` yourself before running `pnpm build` or `pnpm dev`.
 
 Remove a worktree that still holds symlinks with `git worktree remove --force <path>`.
 
