@@ -92,11 +92,11 @@ Write one only for what the code cannot say by itself:
 - why an obvious alternative was rejected, where the next reader would otherwise reintroduce it;
 - a consequence that lands somewhere else in the codebase.
 
-Never restate what the line does, and never re-argue a decision a Blueprint Change already owns. Reference it instead of copying it, or the two drift apart — and qualify the id with the Change slug, because `D2` alone is ambiguous as soon as a file has been touched by more than one Change:
+Never restate what the line does, and never re-argue a decision a Feature ADR already owns. Reference it instead of copying it, or the two drift apart — and cite its Feature number, which is unique across `blueprint/content/features/` and survives Archive. A Change's own `D2` disappears with its uncommitted Proposal page, so qualify it with the Change slug only while that Change is still open:
 
 ```ts
 // Deliberately the same judgement as the indicator's warning tone.
-// See honest-sync-status D2.
+// See Feature D24.
 ```
 
 Keep what survives short. One or two lines is the norm; a doc comment longer than the code it describes is a sign the rationale belongs in the Change, not the file.
