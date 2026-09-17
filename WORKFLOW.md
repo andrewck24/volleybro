@@ -107,8 +107,10 @@ a Change: the agent proposes it during intake and the developer confirms it once
 issue.
 
 Adding the `agent:ready` label is the final human arming action for unattended execution; the
-developer moves the issue to Todo in the same step so the board shows it is queued. Symphony reads
-only the label. Arming never substitutes for an accepted Proposal page, satisfied dependencies, a
+developer moves the issue to Todo in the same step so the board shows it is queued. Symphony
+dispatches an issue only while it carries the label and sits in an active status (Todo or In
+Progress); In Review and Done take it out of the queue without touching the label. Arming never
+substitutes for an accepted Proposal page, satisfied dependencies, a
 resolvable repository route, available capacity, or a healthy provider. Agents never add the label
 themselves.
 
@@ -118,9 +120,9 @@ The label and the status change together, each by one owner:
 | ----------------------------------- | ------------- | ----------- | --------- |
 | Developer arms unattended execution | added         | Todo        | developer |
 | Symphony claims the Change          | kept          | In Progress | Symphony  |
-| G1 or G2 waits for the developer    | kept          | In Review   | agent     |
+| G1 or G2 waits for the developer    | unchanged     | In Review   | agent     |
 | Developer takes the Change manually | removed       | In Progress | developer |
-| Pull request merged                 | removed       | Done        | agent     |
+| Pull request merged                 | unchanged     | Done        | agent     |
 
 ## Lifecycle
 
@@ -400,11 +402,11 @@ Before Manual Apply starts for an issue that may be visible to Symphony:
    Change workspace manually;
 2. if the issue is not tracked by Symphony, the developer removes `agent:ready` and moves the issue
    to In Progress to prevent a future unattended claim;
-3. request a Symphony refresh when the runtime is available, then inspect the issue status again;
+3. request a Symphony refresh when the runtime is available, then inspect the Symphony status surface again;
 4. begin Manual Apply only when the issue remains absent from the runtime status surface after
    that post-removal check.
 
-The second status check closes the race between the initial observation and the status change. If
+The second status check closes the race between the initial observation and the label removal. If
 a claim appears during that window, removing the label makes the issue unroutable and Symphony
 reconciliation must release or stop it before Manual Apply proceeds. Agents never remove or restore
 the label on the developer's behalf, and completion of Manual Apply never restores it automatically.

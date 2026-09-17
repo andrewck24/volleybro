@@ -27,8 +27,9 @@ optional Symphony execution.
   exports the Delivery summary, and stops for G2 acceptance.
 - Symphony claims a Change once the developer adds `agent:ready` to its
   tracker issue after G1 acceptance, moving it to Todo in the same step.
-  Manual Apply checks that no claim exists, removes the label, and checks
-  again before starting — closing the race with a Symphony claim.
+  Before Manual Apply, the developer checks that no claim exists, removes
+  the label, moves the issue to In Progress, and checks again — closing
+  the race with a Symphony claim.
 
 ## Constraints
 

@@ -79,7 +79,7 @@ async function makeRemoteAndWork(t, options = {}) {
 
 // A second local checkout against the same bare remote, for scenarios where
 // two publishers race — `makeRemoteAndWork` only ever sets up one.
-async function addWork(t, tmp, name) {
+async function addWork(tmp, name) {
   const work = path.join(tmp, name);
   await initWork(work);
   return work;
@@ -328,9 +328,9 @@ test("publish to a remote without the branch creates it", async (t) => {
   assert.match(stdout, /proposal\.mdx/);
 });
 
-test("publish retries once when a concurrent push wins the race, and the retry succeeds", async (t) => {
+test("concurrent publishes of different slugs both land on the store branch", async (t) => {
   const { tmp, bare, work } = await makeRemoteAndWork(t);
-  const otherWork = await addWork(t, tmp, "work-other");
+  const otherWork = await addWork(tmp, "work-other");
 
   for (const [dir, content] of [
     [work, "# gamma from work\n"],
