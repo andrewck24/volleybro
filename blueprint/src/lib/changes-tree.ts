@@ -18,6 +18,18 @@ function withNavigableFolders(folder: Folder): Folder {
   const children = folder.children.map((child) =>
     child.type === "folder" ? withNavigableFolders(child) : child,
   );
+
+  // A folder with at most one page (a Change that has published only one of
+  // proposal/delivery) must keep that page as its own child rather than
+  // being collapsed into `index`. Fumadocs' breadcrumb drops a folder when
+  // it is immediately followed by its own index page in the path, so
+  // collapsing here would read "Changes > <page>" and lose the change-name
+  // level; leaving `index` unset keeps folder and page as distinct path
+  // entries.
+  if (children.length <= 1) {
+    return { ...folder, children };
+  }
+
   const index = folder.index ?? firstPage({ ...folder, children });
 
   return {

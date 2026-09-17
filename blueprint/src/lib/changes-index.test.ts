@@ -106,4 +106,25 @@ describe("listChanges", () => {
       { slug: "older", title: "Older Legacy", href: "/changes/older" },
     ]);
   });
+
+  it("lists an old-format Change once, even when a leftover proposal.mdx also exists", () => {
+    mockGetPages.mockReturnValue([page("stale/proposal", "Stale Proposal")]);
+    mockLegacyDirs = {
+      stale: {
+        schemaVersion: 1,
+        slug: "stale",
+        title: "Stale Legacy",
+        lifecycle: "archived",
+        startedAt: "2026-01-01",
+        archivedAt: "2026-01-05",
+        summary: "s",
+        capabilities: ["platform/x"],
+        tags: ["frontend"],
+      },
+    };
+
+    expect(listChanges()).toEqual([
+      { slug: "stale", title: "Stale Legacy", href: "/changes/stale" },
+    ]);
+  });
 });

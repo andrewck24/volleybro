@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { source } from "@/lib/source";
 import { proposalMockups } from "@/lib/proposal-mockups";
-import { CHANGES_ROOT } from "@/legacy/change-catalog";
+import { CHANGES_ROOT, isLegacySlug } from "@/legacy/change-catalog";
 import { SLUG_PATTERN, parseChangeMetadata } from "@/legacy/change-metadata";
 
 export type ChangeSummary = { slug: string; title: string; href: string };
@@ -39,11 +39,8 @@ function legacyChanges(): ChangeSummary[] {
     .map(({ order: _order, ...summary }) => summary);
 }
 
-// A Change is a proposal.mdx + delivery.mdx pair under content/changes/<slug>/
-// (proposal.mdx may instead, or also, be a proposal.tsx mockup), gitignored
-// and generated per gate. The index lists every slug that has any of those,
-// titled from whichever of proposal.mdx / delivery.mdx exists (proposal wins),
-// falling back to the slug, and links to proposal if present else delivery.
+// A proposal.tsx mockup has no Fumadocs page, so it needs its own slug
+// source (proposalMockups) alongside source.getPages().
 export function listChanges(): ChangeSummary[] {
   const byPath = new Map(
     source.getPages().map((page) => [page.slugs.join("/"), page]),
@@ -51,9 +48,14 @@ export function listChanges(): ChangeSummary[] {
   const slugs = new Set(
     Array.from(byPath.keys())
       .filter(
-        (path) => path.endsWith("/proposal") || path.endsWith("/delivery"),
+        (pagePath) =>
+          pagePath.endsWith("/proposal") || pagePath.endsWith("/delivery"),
       )
-      .map((path) => path.split("/")[0])
+      .map((pagePath) => pagePath.split("/")[0])
+      // Old-format directories carry a change.json and are listed by
+      // legacyChanges() below; skip them here even when they also have a
+      // leftover proposal.mdx, or they would be listed twice.
+      .filter((slug) => !isLegacySlug(slug))
       .concat(Object.keys(proposalMockups)),
   );
 
