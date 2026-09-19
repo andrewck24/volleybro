@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D5",
+  "title": "Version 1 records keep rendering, through the compatibility layer",
+  "targets": ["platform/blueprint"],
+  "context": "48 decision records sit inside published Change pages on the blueprint-changes store branch. Every one of them is schemaVersion 1 with a targets array, and the older ones also carry the status field that blueprint/src/legacy/legacy-decision-record.ts already strips before parsing. That branch is durable review history that never merges, and rewriting it to match a new schema would edit the record of what was decided at the time. But those pages render in the same build as the Features tree, through the same parseDecisionRecord, so a parser that accepts only version 2 turns the whole store branch into a build failure — including the two-gate-workflow Proposal page, which is new-format and therefore does not go through the legacy Change shell at all.",
+  "decision": "parseDecisionRecord accepts both versions and returns the version 2 shape. A version 1 value is upconverted before validation, by the existing legacy module: drop status, drop originDecision, and read targets as capabilities. Version 1 is accepted only for records reached through a Change page; blueprint/content/decisions/ is version 2 only, enforced by the same test that validates every record in the tree. The legacy module keeps its existing note that it is deleted once no page needs it.",
+  "alternatives": [
+    {
+      "option": "Rewrite the 48 records on the store branch to version 2",
+      "reason": "The store branch is the record of what a gate reviewed; editing it to satisfy a later schema falsifies that record, and the branch exists precisely so those pages do not have to be maintained."
+    },
+    {
+      "option": "Stop rendering decision records on Change pages",
+      "reason": "The decisions are the substance of a Proposal page; a page that hid them would not be reviewable history."
+    }
+  ],
+  "consequences": [
+    "The compatibility layer grows from stripping one field to a version-1 upconversion, and its deletion is now tied to the store branch rather than to the old four-page format.",
+    "Two shapes are valid on the way in and one shape exists after parsing, so nothing downstream branches on version."
+  ],
+  "revisitTriggers": [
+    "The store branch stops being rendered by the deployed Blueprint.",
+    "A third schema version is needed, which would make the upconversion a chain rather than a single step."
+  ]
+}

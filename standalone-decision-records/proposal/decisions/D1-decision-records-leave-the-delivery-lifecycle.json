@@ -1,0 +1,39 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Decision records leave the delivery lifecycle and live in one flat directory",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "A decision record is currently born inside a Change, under that Change's proposal/decisions/, and only becomes adopted when Archive copies it into the narrowest affected Feature's decisions/ directory. Directory placement carries the record's status, and a record that governs several capabilities is copied into each of them. The result on disk: 65 files under blueprint/content/features/**/decisions/ hold 45 distinct records, so 20 files are pure duplicates; 19 numbers occur more than once and D29 occurs three times. For all 45 records the set of directories the record sits in is exactly the set of IDs in its own targets array, with zero mismatches — the directory tree re-states a field the file already carries, and each restatement is a copy that can drift. Matt Pocock's original design, which this repository's playbooks otherwise follow, gives ADRs no relationship to a unit of delivery at all: they are written the moment a decision is made, numbered by scanning the directory, and never owned by a ticket or a Change.",
+  "decision": "A decision record belongs to the repository, not to a Change. Every record lives at blueprint/content/decisions/D<n>-<slug>.json, one file per decision, with no per-capability copies. Its number is assigned when it is written, by scanning that directory for the highest existing number and adding one, so there is a single numbering namespace and no renumbering step. A record is written the moment the decision is made — during a Change's Discuss, or outside any Change — and it is adopted from that moment: there is no proposed stage and no status field, because a decision that is still open is not written down as a decision. A record's lifecycle has two events, birth and replacement, and replacement is recorded by setting supersededBy on the record being replaced. Feature pages stop importing records by relative path and render them by filtering on the capabilities field, through a build-time index that reads the flat directory the way blueprint/src/lib/changes-index.ts already reads the Change directory; a record renders on the page of each capability ID it names, matched exactly, so a record that governs a parent capability names that parent.",
+  "alternatives": [
+    {
+      "option": "Keep the per-capability directories and add a check that copies of one number stay identical",
+      "reason": "It spends a new mechanical check to defend a redundancy that does not have to exist; deleting the copies removes the failure mode instead of policing it."
+    },
+    {
+      "option": "Keep one canonical copy per record but leave it inside its origin Change's directory",
+      "reason": "Change directories are gitignored on the branch and published to a store branch that never merges, so current canonical knowledge would live outside the working tree agents read."
+    },
+    {
+      "option": "Number records per capability instead of globally",
+      "reason": "One record can name several capabilities, so a per-capability sequence would give a single decision two numbers, and a decision is one entry however many pages index it."
+    },
+    {
+      "option": "Keep the proposed/adopted distinction by adding a status field back",
+      "reason": "It restores as a field the thing directory placement was carrying, and the distinction has no referent once records are written at the moment the decision is made."
+    }
+  ],
+  "consequences": [
+    "65 files become 45; no number occurs twice and no record has a second copy that can drift.",
+    "G1 no longer reviews whether a decision is approved — the decision was made during Discuss — so the gate reviews boundaries, the behaviour contract and the acceptance scenarios, and reads the records as context.",
+    "Archive loses its promotion and renumbering step for decision records; what it promotes is behaviour and constraints to Features.",
+    "A Feature page's decision list is derived from the records rather than maintained on the page, so adding a record to an existing capability edits no MDX.",
+    "Records published inside Change pages on the blueprint-changes store branch stay where they are; they are history, not current knowledge."
+  ],
+  "revisitTriggers": [
+    "The flat directory grows past the point where a human can scan it for the next free number.",
+    "Two decisions need the same number because records start being written concurrently on separate branches.",
+    "A capability needs decisions listed in an order other than by number."
+  ]
+}

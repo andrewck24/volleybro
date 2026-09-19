@@ -1,0 +1,106 @@
+---
+title: Standalone decision records — Proposal
+description: Decision records leave the delivery lifecycle for one flat, deduplicated directory with a smaller schema.
+---
+
+import d1 from "./proposal/decisions/D1-decision-records-leave-the-delivery-lifecycle.json";
+import d2 from "./proposal/decisions/D2-targets-becomes-capabilities.json";
+import d3 from "./proposal/decisions/D3-five-required-fields.json";
+import d4 from "./proposal/decisions/D4-origindecision-is-deleted.json";
+import d5 from "./proposal/decisions/D5-version-1-records-render-through-the-legacy-layer.json";
+import d6 from "./proposal/decisions/D6-the-fix-path-line-is-drawn-at-the-decision-body.json";
+
+<TLDR>
+A decision record stops belonging to a Change. All records move to one flat `blueprint/content/decisions/` directory, numbered at birth, with no per-capability copies and no promotion step; Feature pages render them by filtering on `capabilities`, the field that used to be called `targets`. The schema drops to five required fields, deletes `originDecision`, and moves to version 2, while version 1 records published on the store branch keep rendering through the compatibility layer. The Fix path may correct a record, but not its `decision` body or its `supersededBy`.
+</TLDR>
+
+## Why now
+
+Three facts, all measured against the tree as it stands:
+
+1. `blueprint/content/features/**/decisions/` holds **65 files containing 45 distinct records**. Nineteen numbers occur more than once; `D29` occurs three times.
+2. For **all 45** records, the set of directories the record sits in is **exactly** the set of IDs inside its own `targets` array. Zero mismatches. The directory tree carries no information the file does not already carry.
+3. Every copy of every duplicated record is byte-identical today apart from its `$schema` relative path — so the copies have not drifted **yet**, and deduplicating them is mechanical rather than a merge.
+
+The second fact is the argument. A duplicate that restates a field is not redundancy that needs a consistency check; it is redundancy that needs deleting.
+
+## The shape after this Change
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "discuss", label: "A decision is made", sublabel: "in Discuss, or outside any Change", x: 90, y: 40, w: 180 },
+    { id: "write", label: "Record written", sublabel: "blueprint/content/decisions/", x: 320, y: 40, w: 180 },
+    { id: "number", label: "Number assigned", sublabel: "max + 1, at birth", x: 550, y: 40, w: 170 },
+    { id: "feature", label: "Feature pages", sublabel: "filtered by capabilities", x: 320, y: 150, w: 180 },
+    { id: "supersede", label: "Replaced", sublabel: "supersededBy names the successor", x: 550, y: 150, w: 190 },
+  ]}
+  edges={[
+    { from: "discuss", to: "write" },
+    { from: "write", to: "number" },
+    { from: "write", to: "feature" },
+    { from: "write", to: "supersede", label: "later", dashed: true },
+  ]}
+  details={{
+    write: {
+      title: "One file, one decision",
+      body: "No proposal/decisions/ directory, no per-capability copy, no promotion at Archive. A record is adopted from the moment it is written, because a decision that is still open is not written down as a decision.",
+    },
+    feature: {
+      title: "Rendering is derived",
+      body: "A build-time index reads the flat directory the way blueprint/src/lib/changes-index.ts already reads the Change directory, and each Feature page renders the records whose capabilities name it exactly.",
+    },
+    supersede: {
+      title: "Two lifecycle events",
+      body: "Birth and replacement. There is no status field, and there never was one — directory placement was carrying it.",
+    },
+  }}
+/>
+
+## Change boundaries
+
+- Move all 45 distinct records to `blueprint/content/decisions/D<n>-<slug>.json`, deleting the 20 duplicate files and fixing each record's `$schema` relative path.
+- Rename `targets` to `capabilities` in the schema, the hand-written validator, `DecisionTimeline`, and every record.
+- Move the schema to version 2: five required fields, `originDecision` deleted, `originChange` kept and optional.
+- Replace the relative-path imports on around a dozen Feature `index.mdx` pages with a capability-filtered render backed by a build-time index.
+- Extend the legacy compatibility layer to upconvert version 1 records so the 48 records published inside store-branch Change pages keep rendering.
+- Rewrite the Decision-record contract in `WORKFLOW.md` and the ADR sections of `docs/agents/domain.md` to the new model, and redraw the Fix path line at the `decision` and `supersededBy` fields.
+- **Out of scope** — `CONTRIBUTING.md`'s code-comment citation rule still distinguishes a Feature number from a Change's own `D2`, a distinction this Change removes. That file belongs to `reviewer-standards-split`, which is sequenced after this Change and carries the rewrite.
+- **Out of scope** — the records already published inside Change pages on the `blueprint-changes` store branch. They are history and are not migrated.
+- **Out of scope** — ATE-167's remaining two items (schema validation in CI, store-branch retention policy). Its duplicate-consistency item is deleted by this Change rather than solved by it; the other two are re-scoped once this lands.
+
+## Behaviour contract
+
+<Scenario given="a decision record naming two capabilities" when="Blueprint builds" then="it renders on both Feature pages from a single file, with no copy anywhere in the tree" />
+
+<Scenario given="every file under blueprint/content/decisions/" when="the record index is built" then="each number occurs exactly once" />
+
+<Scenario given="a record carrying only schemaVersion, id, title, capabilities and decision" when="it is validated" then="it passes" />
+
+<Scenario given="a record under blueprint/content/decisions/ that still uses targets, originDecision, or schemaVersion 1" when="the tree is validated" then="validation fails and names the record" />
+
+<Scenario given="a version 1 record inside a published Change page on the store branch" when="that page renders" then="it renders through the compatibility layer with its capabilities read from targets" />
+
+<Scenario given="a capability whose page names no decisions" when="that Feature page renders" then="it renders with no decision timeline and no error" />
+
+<Scenario given="a new decision record is written" when="its number is chosen" then="it is the highest number in blueprint/content/decisions/ plus one" />
+
+## Risks
+
+<RiskTable
+  risks={[
+    { name: "A version-2-only parser breaks every published Change page in the same build", severity: "critical", mitigation: "D5: parseDecisionRecord accepts both versions and upconverts version 1 through the existing legacy module; the store branch is never rewritten." },
+    { name: "Feature pages lose their decisions silently if a capabilities value no longer matches a page", severity: "critical", mitigation: "Validate every capabilities entry against the Feature tree in the same test that validates the records, so an unmatched ID fails rather than rendering an empty page." },
+    { name: "The migration is applied to files by hand and a record is dropped or half-renamed", severity: "warning", mitigation: "Migrate with a script under scripts/migrations/, and assert 45 records out for 65 files in, all numbers unique, before the commit." },
+    { name: "Moving rendering from MDX imports to a build-time index changes when a bad record fails", severity: "warning", mitigation: "The index parses every record at build time, so a malformed record fails the build as it does today rather than at request time." },
+    { name: "G1 stops reviewing whether a decision is approved, so a decision reaches Features without a second reader", severity: "info", mitigation: "Accepted consequence of D1: the decision was made in Discuss with the developer present, and the gate reviews boundaries and contract instead." },
+    { name: "Concurrent branches pick the same next number", severity: "info", mitigation: "Numbers are unique per merged state and the uniqueness assertion catches a collision at the gate; no locking until it actually happens." },
+  ]}
+/>
+
+## Decisions
+
+<DecisionTimeline decisions={[d1, d2, d3, d4, d5, d6]} />
+
+## Bootstrap note
+
+These six records are born under the model they replace: inside a Change's `proposal/decisions/`, in version 1, with `targets` and all nine fields filled. A rule that frees decision records from the delivery lifecycle cannot be recorded by a record that is already free of it. They move to `blueprint/content/decisions/` in version 2 form during this Change's own Apply, as part of the same migration pass as the other 45. This is what a bootstrap looks like, not a defect in the model.
