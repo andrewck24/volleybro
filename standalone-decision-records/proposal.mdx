@@ -101,6 +101,18 @@ The second fact is the argument. A duplicate that restates a field is not redund
 
 <DecisionTimeline decisions={[d1, d2, d3, d4, d5, d6]} />
 
+## References
+
+Collected during the 2026-09-19 discussion. **A reference records what was true the day it was read**, so each row states its own strength and what it is allowed to support. The counts in "Why now" are measurements of this repository, not references, and are stated there.
+
+| Source | Supports | Strength |
+| --- | --- | --- |
+| The installed `domain-modeling` playbook and its ADR format | An ADR lives at `docs/adr/<n>-<slug>.md`, is numbered by scanning the directory for the highest number, is written the moment a decision is made, and may be a single paragraph with status, options and consequences all optional. | **High**. The playbook this repository otherwise follows, read as installed; it is the source of D1's and D3's shape. |
+| The same suite's `to-spec` and `to-tickets` | They tell an agent to **respect** the ADRs in the area it is touching. They neither produce nor own one, so a decision record has no relationship to a unit of delivery. | **High**. It is the single sentence that separates the two models, and it is explicit. |
+| The same suite's `grill-with-docs` | Decisions are written during the grilling that produces them, not at a later stage. | **High**. Its whole body is one instruction to run grilling through `domain-modeling`. |
+| No external source found | Nothing in the playbook suite addresses reviewing a decision at a gate, because it has no gates. | **Low**, and the honest gap: dropping the proposed stage is this repository's own call, carried by D1's consequences rather than by anything read. |
+
+
 ## Bootstrap note
 
 These six records are born under the model they replace: inside a Change's `proposal/decisions/`, in version 1, with `targets` and all nine fields filled. A rule that frees decision records from the delivery lifecycle cannot be recorded by a record that is already free of it. They move to `blueprint/content/decisions/` in version 2 form during this Change's own Apply, as part of the same migration pass as the other 45. This is what a bootstrap looks like, not a defect in the model.
