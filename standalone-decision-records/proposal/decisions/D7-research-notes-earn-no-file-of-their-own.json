@@ -1,0 +1,32 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D7",
+  "title": "Research notes earn no file of their own, and sources go in a conditional References section",
+  "targets": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "The artifact lifecycle table excludes temporary research from durable content without saying where it goes instead, so a research playbook told to match the repository's convention finds none and writes a file beside the Change pages. That is what happened: four research notes were published with two-gate-workflow, they outlived the question that produced them, and a docs collection that globs plain Markdown then failed the entire Blueprint build on their missing frontmatter. A research note records what was true the day it was written, so a stale one is worse than none, while the evidence behind a decision still has to reach the person standing at the gate.",
+  "decision": "Nothing in the research and working-notes class earns a file. Investigation results go back to the tracker issue that asked for them, where the timestamp and the surrounding thread are part of the record. The sources behind a decision go in the Proposal page's `## References` section, each row naming what it supports and how strong it is, with the strongest dissenting source recorded too, so a reader meets the evidence as dated and weighted rather than as standing fact. That section holds research that was done: a Change that consulted no outside source has none, and an empty or padded section is worse than an absent one. A working plan or a measurement taken during Discuss is folded into the Proposal's own sections. Only what this repository has adopted earns a file — its decision records, its capability descriptions, and the rules it holds itself to — and an external pattern earns one only as a rule this repository follows, never as a summary of someone else's writing.",
+  "alternatives": [
+    {
+      "option": "Keep research notes as files but give them frontmatter",
+      "reason": "It fixes the build and keeps the real problem: a dated note sitting in the tree as though it were current knowledge, with nothing that ever retires it."
+    },
+    {
+      "option": "Require a References section on every Proposal page",
+      "reason": "A Change whose evidence is its own measurements would either omit a required section or pad it; the absence of the section is itself information."
+    },
+    {
+      "option": "Keep the sources in the tracker discussion only",
+      "reason": "The person deciding at G1 reads the Proposal page, and evidence that never reaches that page is evidence the gate cannot weigh."
+    }
+  ],
+  "consequences": [
+    "The four research notes published with two-gate-workflow are gone from the store branch, their content folded into that Proposal's own sections.",
+    "A Proposal page may carry no References section at all, and that says its argument rests on the repository's own measurements.",
+    "A reference is read as dated evidence for one claim, not as a standing authority."
+  ],
+  "revisitTriggers": [
+    "A research result turns out to need a life longer than the Change that produced it and longer than its tracker issue.",
+    "References sections start being written to satisfy the rule rather than to carry evidence."
+  ]
+}
