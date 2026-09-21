@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D1",
+  "title": "Reviewer rules and contributor docs are different documents",
+  "targets": ["platform/delivery-workflow"],
+  "context": "CONTRIBUTING.md is written for two readers at once: a developer getting started in the repository, and the standards reviewer agent, which the Pre-PR gate hands the file's rules verbatim because an independent context knows only what its brief carries. The file holds 22 rules, of which only four are actually enforced by a tool today. Once commit-guardrails moves the mechanical ones into configuration, what remains splits cleanly by reader: judgement rules a reviewer applies, and orientation a developer needs. The code-review and retro playbooks this repository uses look for CODING_STANDARDS.md in the repository root by name, and they are vendor-managed and not editable.",
+  "decision": "Add root CODING_STANDARDS.md holding only the judgement rules a reviewer applies — comment necessity and density, which layer a test belongs in, commit bodies explaining why, the bilingual pull-request summary — written the way the writing-for-agents playbook says to write for an agent reader. Reduce CONTRIBUTING.md to how to work in this repository: branches, worktrees, the commands to run, when a Changeset is needed, and pointers to WORKFLOW.md, CODING_STANDARDS.md, the testing strategy and the maintenance policy. Both files stay in the repository root. The Pre-PR standards reviewer's brief cites CODING_STANDARDS.md instead of CONTRIBUTING.md.",
+  "alternatives": [
+    {
+      "option": "Move both files under docs/agents/",
+      "reason": "That directory means adapter, not authority; scripts/check-workflow.js and the guidance files hard-code root paths, and the vendor-managed playbooks look for CODING_STANDARDS.md in the root by name."
+    },
+    {
+      "option": "Keep one file and mark the reviewer sections",
+      "reason": "The reviewer brief carries whatever it is given; a marked section inside a file written for a different reader still arrives as a wall of orientation the reviewer has no use for."
+    }
+  ],
+  "consequences": [
+    "The standards axis of Pre-PR review reads a document written for it, so an unwritten standard is visibly missing rather than buried.",
+    "CONTRIBUTING.md lands at roughly 60 to 70 lines.",
+    "If CODING_STANDARDS.md later grows too long, the root file stays thin and chapters move to docs/standards/."
+  ],
+  "revisitTriggers": [
+    "A reviewer round cites a rule that exists in neither file.",
+    "CODING_STANDARDS.md stops fitting in a reviewer brief."
+  ]
+}

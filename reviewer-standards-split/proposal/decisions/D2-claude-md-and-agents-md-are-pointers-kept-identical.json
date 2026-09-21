@@ -1,0 +1,27 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 1,
+  "id": "D2",
+  "title": "CLAUDE.md and AGENTS.md are pointers, kept identical by a check",
+  "targets": ["platform/delivery-workflow"],
+  "context": "Both guidance files restate parts of WORKFLOW.md instead of pointing at it, and both have already drifted. Both claim WORKFLOW.md section 5 owns the Pre-PR gate when it is now section 3. CLAUDE.md carries a rule about holding questions until the gate that AGENTS.md lacks; AGENTS.md carries a rule about tool names in commit scopes that CLAUDE.md lacks. AGENTS.md also asserts that CONTRIBUTING.md does not state two rules that it does state. Separating documents by reader does not stop them drifting — only a check does.",
+  "decision": "Rewrite both files as pointers with no summaries of what they point at, and no section-number references, which go stale on every reorganisation. Add a check to scripts/check-workflow.js: the two files must be byte-identical except for one designated line, and neither may contain a section-number reference of the form used today.",
+  "alternatives": [
+    {
+      "option": "Make one file a symlink to the other",
+      "reason": "The one differing line is real — each file names its own provider — and a symlink cannot express it."
+    },
+    {
+      "option": "Generate both from a shared source",
+      "reason": "A generator plus a template is more machinery than a diff check for a file that is a dozen lines of pointers."
+    }
+  ],
+  "consequences": [
+    "A rule added to one guidance file and not the other fails the check instead of drifting silently.",
+    "Changing the designated differing line means changing the check.",
+    "A reader wanting the rule itself follows the pointer, so the rule has exactly one home."
+  ],
+  "revisitTriggers": [
+    "A third provider needs a guidance file, making the one-differing-line rule insufficient."
+  ]
+}
