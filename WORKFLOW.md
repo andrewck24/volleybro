@@ -75,10 +75,11 @@ not from an additional workflow skill.
   development lifecycle, so durable repository knowledge must not depend on Linear URLs or IDs.
   Name other work by its Change slug, or by a short description of it when it has no slug yet.
 - Blueprint Change pages review the two human gates and, once published, persist as durable review
-  history on the `blueprint-changes` store branch; canonical rationale still lives in Feature ADRs,
-  PR bodies, and commit bodies. Blueprint does not know which issue tracker is configured.
-- Blueprint Features own current capability and sub-capability behavior, constraints, implemented
-  or superseded decisions, and revisit triggers.
+  history on the `blueprint-changes` store branch; canonical rationale still lives in decision
+  records, PR bodies, and commit bodies. Blueprint does not know which issue tracker is configured.
+- Blueprint Features own current capability and sub-capability behavior and constraints, and render
+  the decision records whose `capabilities` name them; the records themselves belong to the
+  repository, not to any Feature page.
 - Code and tests own actual system behavior.
 - Changesets own semantic version and changelog evidence.
 - Symphony owns polling, claims, concurrency, retries, isolated workspaces, and structured run
@@ -147,12 +148,15 @@ request opens. Everything between a gate and the next runs without stopping for 
   - determine whether the result is one Change, several Changes, or no implementation work;
   - once boundaries are clear, use `to-spec` or a compatible replacement to synthesize the
     approved Change into the Proposal page;
-  - create or update one structured ADR for each qualifying hard-to-reverse decision; ADRs belong
-    to the Proposal page because they capture solution and architecture choices, while its `TLDR`
-    may only summarize their product or capability impact;
-  - assign each ADR a non-empty `targets` array containing the narrowest affected hierarchical
-    capability or sub-capability IDs; use a parent capability only when the decision governs
-    multiple children, and list multiple targets when the boundary genuinely crosses them;
+  - the moment a hard-to-reverse decision is made, write it as a decision record at
+    `blueprint/content/decisions/D<n>-<slug>.json`; it is adopted from that moment, because a
+    decision still open is not written down as a decision, and the Proposal's `TLDR` may only
+    summarize its product or capability impact, never restate it;
+  - assign each decision record a non-empty `capabilities` array containing the narrowest affected
+    hierarchical capability or sub-capability IDs, such as `game-recording/rally-input`; use a
+    parent capability only when the decision governs multiple children, and list multiple
+    capabilities when the boundary genuinely crosses them; fill `originChange` with this Change's
+    slug, which is what a later reader follows back to its branch, pull request, and discussion;
   - preserve context, goals/non-goals, scope, capability impact, important rejected alternatives,
     adopted decisions, behavior contracts stated as acceptance scenarios, failure modes, testing
     strategy, and revisit triggers on the Proposal page; add a design mockup (`proposal.tsx`) when
@@ -248,17 +252,17 @@ Archive runs automatically after Pre-PR code review reaches its fixed point, bef
 opens. Follow `docs/agents/artifact-lifecycle.md`:
 
 1. promote implemented behavior and durable constraints to the narrowest affected sub-capability;
-2. promote each realized ADR from the Proposal page to `blueprint/content/features/`; the
-   decision-record contract below owns the numbering and what stays behind;
-3. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
-4. export a Review summary of at most 40 lines — acceptance scenario results, verification,
+   Archive does not promote, reconcile, or renumber decision records — a decision record already
+   lives at its permanent `blueprint/content/decisions/` path from the moment it was written;
+2. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
+3. export a Review summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
-5. generate the Review page, read every section rendered in a browser as the developer will,
+4. generate the Review page, read every section rendered in a browser as the developer will,
    publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
    `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2).
    Reading the source is not reading the page: a stale count, a column that does not line up, an
    unreadable snippet are all invisible in the file that produces them;
-6. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
+5. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
 Acceptance of the Review page is the last human gate. It authorizes opening the pull request
 without asking again: open it with the exported Review summary in the body, then wait for CI and
@@ -283,10 +287,11 @@ blueprint/content/changes/<slug>/       gitignored on the Change branch; publish
                                          blueprint-changes store branch at each gate
 ├── proposal.mdx
 ├── proposal.tsx                        optional interactive design mockup
-├── proposal/
-│   └── decisions/
-│       └── D1-<decision>.json          proposed ADRs; promoted to Features at Archive
 └── review.mdx
+
+blueprint/content/decisions/            flat, repository-wide, one file per decision
+└── D<n>-<slug>.json                    written the moment a decision is made, during a Change's
+                                         Discuss or outside any Change; adopted from that moment
 ```
 
 ### Change scope
@@ -305,8 +310,8 @@ The escape hatch is a **Migration Change**: one Proposal page, accepted once at 
 whole migration — its shard list, order, per-shard proof of behavior preservation, and completion
 criteria. Each shard afterward is its own Change and pull request, references the Migration
 Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every
-shard. The Migration Proposal's ADR is promoted to Features once, when the first shard archives;
-the remaining shards do not repeat it. `check-workflow.js` counts changed `src` files against
+shard. The Migration Proposal's decision record is written once, when the migration decision is
+made; the remaining shards do not repeat it. `check-workflow.js` counts changed `src` files against
 `dev` and Proposal scenarios, and warns, rather than fails, past either target. The `src`-file-count
 warning is suppressed by a `Migration: <migration-slug>` commit trailer (or
 `pnpm check:workflow --migration <slug>`), not by a PR-body reference.
@@ -317,61 +322,57 @@ A third path exists beside the normal Change and the Migration Change, for a fix
 small to carry Proposal and Review pages.
 
 1. Applies when the fix restores behavior Features already describe, or is a small change with no
-   behavior change (docs, config, a minor dependency bump); it creates no new ADR or behavior
-   contract, fits in one session, and stays within the soft size targets above.
-2. The agent proposes the fix path during intake; the developer confirms it once, on the tracker
-   issue.
+   behavior change (docs, config, a minor dependency bump); it creates no new behavior contract,
+   fits in one session, and stays within the soft size targets above. It may also write and
+   correct decision records — fixing a typo, a stale reference, or a wrong `capabilities` entry,
+   and writing down a decision that was already made but never recorded. Editing a record's
+   `decision` body, or setting `supersededBy`, is a new judgement and crosses the line: it
+   escalates to a normal Change with a G1.
+2. The agent proposes the fix path during intake; the developer confirms it once — on the tracker
+   issue when the fix came from one, or in the session when it did not.
 3. Kept: a failing test that reproduces the bug before the fix (when it is a bug), `pnpm verify:all`,
    the two-axis code review with the issue as the spec, and a Changeset when applicable.
 4. Skipped: G1, the Proposal and Review pages, publishing, slices, and Archive promotion.
 5. The only human gate is the pull request: its body names the fix path and carries a short
    verification summary; merging is acceptance.
 6. Escalate to a normal Change — write the Proposal, pass G1 — as soon as the fix needs a new
-   behavior contract or ADR, or Features turn out to describe the behavior wrongly.
-7. Commits on the fix path carry a `Refs: <tracker issue>` trailer and omit `Implements` and
-   `Blueprint-Change`.
+   behavior contract, or Features turn out to describe the behavior wrongly, or the fix would edit
+   a decision record's `decision` body or set its `supersededBy`.
+7. A Fix-path commit carries a `Refs: <tracker issue>` trailer when the fix came from a tracker
+   issue, and no reference trailer when it did not; either way it omits `Implements` and
+   `Blueprint-Change`, and the body states what triggered the fix.
 8. A single-commit fix squashes into `dev` as usual. A multi-commit fix merges with a merge commit,
-   the same as a normal Change; if it is squashed instead, the squash commit keeps the `Refs`
-   trailer.
+   the same as a normal Change; if it is squashed instead, the squash commit keeps whatever
+   reference trailer the original commits carried.
 
 ## Decision-record contract
 
-ADRs live on the Proposal page under `proposal/decisions/` because they explain solution and
-architecture choices; the TLDR may summarize their capability impact but must not become a second
-ADR source. An ADR sitting in a Change directory is proposed; the same record copied into
-`blueprint/content/features/` is adopted. There is no separate status field — the directory it sits
-in says which.
+A decision record belongs to the repository, not to a Change. Every record lives at
+`blueprint/content/decisions/D<n>-<slug>.json`, one file per decision, flat, with no per-capability
+copies. Its number is assigned when it is written, by scanning that directory for the highest
+number and adding one — one namespace, no renumbering, ever.
 
-Every ADR declares `targets` while it is first drafted. Each target is a hierarchical capability ID
-such as `game-recording/rally-input`; it identifies the expected promotion destination and makes
-the affected boundary reviewable at G1. Archive reconciles these targets against delivered behavior
-before copying the record, rather than treating an early target as irrevocable.
+A record is written the moment the decision is made — during a Change's Discuss, or outside any
+Change — and it is adopted from that moment. There is no proposed stage and no status field,
+because a decision that is still open is not written down as a decision. Its lifecycle has two
+events: birth, and replacement by setting `supersededBy` on the record being replaced.
 
-Decision JSON conforms to `blueprint/schemas/decision-record.schema.json` and preserves the same
-human-review information used by the Proposal page: stable ID and title, decision body, and
-rejected options with rationale. It additionally records targets, context, consequences, and
-revisit triggers. `DecisionTimeline` renders these records on the Proposal and Feature pages;
-rendering never becomes a second editable decision source.
+Decision JSON conforms to `blueprint/schemas/decision-record.schema.json`, schema version 2.
+Required: `schemaVersion`, `id`, `title`, `capabilities`, `decision`. Optional: `context`,
+`alternatives`, `consequences`, `revisitTriggers`, `$schema`, `originChange`, `supersededBy`.
+`originDecision` no longer exists. `capabilities` is a non-empty array of hierarchical capability
+IDs such as `game-recording/rally-input`; Feature pages render the records whose `capabilities`
+name that page, matched exactly. `originChange` survives as the trace back to the branch, pull
+request, and discussion that produced a decision: filled when the decision was made during a
+Change's Discuss, left empty when it was not. `DecisionTimeline` renders these records on the
+Proposal and Feature pages; rendering never becomes a second editable decision source.
 
-Archive copies each realized ADR to
-`blueprint/content/features/<capability>/<sub-capability>/decisions/`. The Feature copy becomes
-canonical current knowledge. A later Change that replaces it sets `supersededBy` on the Feature
-copy to the replacing Feature ADR, without editing the proposed record. That record does not
-disappear — it stays with the published Proposal page on the `blueprint-changes` store branch; the
-Feature copy is the current authority.
+Archive no longer promotes, reconciles, or renumbers decision records — a record already lives at
+its permanent path from the moment it was written. What Archive promotes is behavior and durable
+constraints to Features.
 
-A promoted record is renumbered, because the two copies answer to different namespaces. On the
-Proposal page, `D3` means the third decision of that piece of reasoning, and that numbering stops
-being citable once the Change directory is regenerated for the next gate, even though the page
-itself persists on the store branch. Inside Features it has to be unique across everything promoted
-so far, so Archive assigns the next free number in **one sequence spanning the whole Features
-tree** and records where the record came from in `originChange` and `originDecision`. Citing the
-Proposal's own numbering only works while the Change is still open; the Feature number is the only
-citation that survives Archive.
-
-The sequence is global rather than per capability because one ADR may target several. Numbering per
-capability would give a single decision two numbers, and a decision is one entry however many pages
-index it. The number says nothing about which capability it governs; the directory it sits in does.
+Records published inside Change pages on the `blueprint-changes` store branch stay as they are, in
+version 1. They are history, read through a compatibility layer, not current knowledge.
 
 ## Branch and commit strategy
 
@@ -457,11 +458,12 @@ of every Change page, old and new, that never merges into other branches.
 carries all published Changes plus Features and the Design System from the deployed branch.
 
 - **Proposal:** context, goals/non-goals, Change boundaries and dependency direction, behavior
-  contract, acceptance scenarios, structured ADRs, design mockup, and risks.
+  contract, acceptance scenarios, decision records made during this Change's Discuss, design
+  mockup, and risks.
 - **Review:** acceptance scenario results, verification, code review findings and fixes, boundary-
   relevant diffs, and residual risks.
-- **Features:** current capability and sub-capability behavior, constraints, implemented/superseded
-  decision copies, and long-term evolution—not active execution status.
+- **Features:** current capability and sub-capability behavior and constraints, the decision
+  records whose `capabilities` name the page, and long-term evolution—not active execution status.
 
 Provider-native subagents remain within one root session and Change workspace. They never poll or
 claim the external queue, arm unattended execution, reprioritize intake, or create a parallel
@@ -502,4 +504,4 @@ Five rules bind this:
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
 - Change pages are gitignored on the Change branch and published to the `blueprint-changes` store
   branch at each gate, where they persist as durable review history; the PR body still carries the
-  ≤40-line Review summary, and ADRs still promote to Features.
+  ≤40-line Review summary, and decision records still live at their own repository-wide path.
