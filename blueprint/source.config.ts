@@ -8,13 +8,19 @@ import { defineDocs, defineConfig } from "fumadocs-mdx/config";
 // sibling page of the same name.
 const metaFiles = { files: ["**/meta.json"] };
 
+// A docs collection also globs plain `.md`, so any prose file a Change happens
+// to carry becomes a page and fails the whole build on its missing frontmatter.
+const mdxOnly = { files: ["**/*.mdx"] };
+
 export const { docs, meta } = defineDocs({
   dir: "content/changes",
+  docs: mdxOnly,
   meta: metaFiles,
 });
 
 export const { docs: featureDocs, meta: featureMeta } = defineDocs({
   dir: "content/features",
+  docs: mdxOnly,
   meta: metaFiles,
 });
 
