@@ -1,5 +1,5 @@
 ---
-title: 提案
+title: Standalone Decision Records - Proposal
 description: 決策記錄脫離交付流程，改住在一個扁平、去重複的目錄，schema 一併縮小。
 ---
 
@@ -64,7 +64,7 @@ import d8 from "./proposal/decisions/D8-the-fix-path-reference-trailer-is-condit
 - 在 schema、手寫 validator、`DecisionTimeline` 與每一份記錄中，把 `targets` 更名為 `capabilities`。
 - schema 升到版本 2：required 五個欄位，刪除 `originDecision`，`originChange` 保留且為選配。
 - 把約十餘個 Feature `index.mdx` 的相對路徑 import，換成由 build-time index 支撐的 capability 過濾渲染。
-- 擴充 legacy 相容層，把 version 1 記錄升版，讓 store 分支上已發佈 Change 頁裡的 48 份記錄繼續渲染。
+- 擴充 legacy 相容層，把 version 1 記錄升版，讓 store 分支上早先 Change 頁裡的 48 份記錄繼續渲染。
 - 依新模型改寫 `WORKFLOW.md` 的 Decision-record contract 與 `docs/agents/domain.md` 的 ADR 段落，並把 Fix path 的紅線改畫在 `decision` 與 `supersededBy` 兩個欄位上。
 - 落地研究筆記規則：改寫 `docs/agents/artifact-lifecycle.md`，明定研究與工作筆記不自成檔案，以及 Proposal 頁 `## References` 段落的條件性與寫法。
 - 把 Fix path 的 `Refs:` trailer 改為條件性，同步改寫 `WORKFLOW.md` Fix path 第 2、7 條與 `CONTRIBUTING.md` 的 trailer 段落。
@@ -107,6 +107,10 @@ import d8 from "./proposal/decisions/D8-the-fix-path-reference-trailer-is-condit
 ## 決策
 
 <DecisionTimeline decisions={[d1, d2, d3, d4, d5, d6, d7, d8]} />
+
+## 順序
+
+四個之中排第一。其餘三個都要等它落地，才能用新模型寫自己的決策記錄。它與 `reviewer-standards-split` 在 `CONTRIBUTING.md` 的註解引用規則上交棒——本 Change 消滅那個區別，後者執行改寫。
 
 ## References
 
