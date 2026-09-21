@@ -1,10 +1,10 @@
 import { parseDecisionRecord } from "./decision-record";
 
 const decision = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   id: "D1",
   title: "Keep workflow repository-owned",
-  targets: ["platform/delivery-workflow"],
+  capabilities: ["platform/delivery-workflow"],
   context: "Manual delivery must remain possible.",
   decision: "Use a repository-owned workflow contract.",
   alternatives: [
@@ -30,9 +30,13 @@ describe("parseDecisionRecord", () => {
   it.each([
     { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
-    { ...decision, targets: ["platform/delivery", "platform/delivery"] },
-    { ...decision, targets: ["platform"] },
+    {
+      ...decision,
+      capabilities: ["platform/delivery", "platform/delivery"],
+    },
+    { ...decision, capabilities: ["platform"] },
     { ...decision, context: "" },
+    { ...decision, originDecision: "D3" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
     { ...decision, status: "accepted" },

@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { parseDecisionRecord } from "@/lib/decision-record";
 import { useIsLegacyDecisions } from "@/legacy/legacy-decisions-context";
-import { stripLegacyStatus } from "@/legacy/legacy-decision-record";
+import { upconvertLegacyDecisionRecord } from "@/legacy/legacy-decision-record";
 
 // A decision id is unique within its Change, not within a capability. Once
 // Archive promotes records from several Changes into one Feature page, two of
@@ -23,7 +23,7 @@ function decisionKey(record: { id: string; originChange?: string }) {
 export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
   const isLegacy = useIsLegacyDecisions();
   const records = decisions.map((decision) =>
-    parseDecisionRecord(isLegacy ? stripLegacyStatus(decision) : decision),
+    parseDecisionRecord(isLegacy ? upconvertLegacyDecisionRecord(decision) : decision),
   );
 
   return (
@@ -50,26 +50,28 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
               </AccordionTrigger>
               <AccordionContent className="flex flex-col gap-4 pb-5">
                 <div className="flex flex-wrap gap-1.5">
-                  {record.targets.map((target) => (
-                    <Badge key={target} variant="outline">
-                      {target}
+                  {record.capabilities.map((capability) => (
+                    <Badge key={capability} variant="outline">
+                      {capability}
                     </Badge>
                   ))}
                 </div>
 
-                <div className="grid gap-1">
-                  <h4 className="m-0 text-sm font-semibold">Context</h4>
-                  <p className="m-0 text-sm text-muted-foreground">
-                    {record.context}
-                  </p>
-                </div>
+                {record.context && (
+                  <div className="grid gap-1">
+                    <h4 className="m-0 text-sm font-semibold">Context</h4>
+                    <p className="m-0 text-sm text-muted-foreground">
+                      {record.context}
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid gap-1">
                   <h4 className="m-0 text-sm font-semibold">Decision</h4>
                   <p className="m-0 text-sm">{record.decision}</p>
                 </div>
 
-                {record.alternatives.length > 0 && (
+                {record.alternatives && record.alternatives.length > 0 && (
                   <div className="grid gap-2">
                     <h4 className="m-0 text-sm font-semibold">
                       Alternatives not chosen
@@ -90,25 +92,29 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
                   </div>
                 )}
 
-                <div className="grid gap-1">
-                  <h4 className="m-0 text-sm font-semibold">Consequences</h4>
-                  <ul className="m-0 grid gap-1 pl-5 text-sm">
-                    {record.consequences.map((consequence) => (
-                      <li key={consequence}>{consequence}</li>
-                    ))}
-                  </ul>
-                </div>
+                {record.consequences && (
+                  <div className="grid gap-1">
+                    <h4 className="m-0 text-sm font-semibold">Consequences</h4>
+                    <ul className="m-0 grid gap-1 pl-5 text-sm">
+                      {record.consequences.map((consequence) => (
+                        <li key={consequence}>{consequence}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-                <div className="grid gap-1">
-                  <h4 className="m-0 text-sm font-semibold">
-                    Revisit triggers
-                  </h4>
-                  <ul className="m-0 grid gap-1 pl-5 text-sm">
-                    {record.revisitTriggers.map((trigger) => (
-                      <li key={trigger}>{trigger}</li>
-                    ))}
-                  </ul>
-                </div>
+                {record.revisitTriggers && (
+                  <div className="grid gap-1">
+                    <h4 className="m-0 text-sm font-semibold">
+                      Revisit triggers
+                    </h4>
+                    <ul className="m-0 grid gap-1 pl-5 text-sm">
+                      {record.revisitTriggers.map((trigger) => (
+                        <li key={trigger}>{trigger}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {record.originChange && (
                   <p className="m-0 text-xs text-muted-foreground">

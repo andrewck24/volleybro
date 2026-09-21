@@ -1,35 +1,38 @@
 const ID_PATTERN = /^D[0-9]+$/;
-const TARGET_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
+const CAPABILITY_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
 const CHANGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ALLOWED_KEYS = new Set([
   "$schema",
   "schemaVersion",
   "id",
   "title",
-  "targets",
-  "context",
+  "capabilities",
   "decision",
+  "context",
   "alternatives",
   "consequences",
   "revisitTriggers",
   "originChange",
-  "originDecision",
   "supersededBy",
 ]);
+// Version 1 named the capability list `targets` and carried the Proposal-page
+// number a promoted record was renumbered from. Both are read only from
+// records published inside Change pages on the store branch, which are history
+// and are never rewritten.
+const VERSION_1_KEYS = new Set([...ALLOWED_KEYS, "targets", "originDecision"]);
 const ALTERNATIVE_KEYS = new Set(["option", "reason"]);
 
 export type DecisionRecord = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   title: string;
-  targets: string[];
-  context: string;
+  capabilities: string[];
   decision: string;
-  alternatives: Array<{ option: string; reason: string }>;
-  consequences: string[];
-  revisitTriggers: string[];
+  context?: string;
+  alternatives?: Array<{ option: string; reason: string }>;
+  consequences?: string[];
+  revisitTriggers?: string[];
   originChange?: string;
-  originDecision?: string;
   supersededBy?: string;
 };
 
@@ -68,44 +71,69 @@ function isAlternative(
   );
 }
 
+function isOptional(
+  value: unknown,
+  check: (value: unknown) => boolean,
+): boolean {
+  return value === undefined || check(value);
+}
+
+function isDecisionId(value: unknown): boolean {
+  return isNonEmptyString(value) && ID_PATTERN.test(value);
+}
+
 export function parseDecisionRecord(value: unknown): DecisionRecord {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Decision record must contain an object");
   }
 
   const record = value as Record<string, unknown>;
+  const isVersion1 = record.schemaVersion === 1;
+  const allowed = isVersion1 ? VERSION_1_KEYS : ALLOWED_KEYS;
+  const capabilities = isVersion1 ? record.targets : record.capabilities;
+
   if (
-    Object.keys(record).some((key) => !ALLOWED_KEYS.has(key)) ||
+    Object.keys(record).some((key) => !allowed.has(key)) ||
+    (record.schemaVersion !== 2 && !isVersion1) ||
     (record.$schema !== undefined && typeof record.$schema !== "string") ||
-    record.schemaVersion !== 1 ||
-    !isNonEmptyString(record.id) ||
-    !ID_PATTERN.test(record.id) ||
+    !isDecisionId(record.id) ||
     !isNonEmptyString(record.title) ||
-    !isStringArray(record.targets, {
+    !isStringArray(capabilities, {
       nonEmpty: true,
-      pattern: TARGET_PATTERN,
+      pattern: CAPABILITY_PATTERN,
       unique: true,
     }) ||
-    !isNonEmptyString(record.context) ||
     !isNonEmptyString(record.decision) ||
-    !Array.isArray(record.alternatives) ||
-    !record.alternatives.every(isAlternative) ||
-    !isStringArray(record.consequences, { nonEmpty: true }) ||
-    !isStringArray(record.revisitTriggers, { nonEmpty: true }) ||
-    (record.originChange !== undefined &&
-      (!isNonEmptyString(record.originChange) ||
-        !CHANGE_SLUG_PATTERN.test(record.originChange))) ||
-    (record.originDecision !== undefined &&
-      (!isNonEmptyString(record.originDecision) ||
-        !ID_PATTERN.test(record.originDecision))) ||
-    (record.supersededBy !== undefined &&
-      (!isNonEmptyString(record.supersededBy) ||
-        !ID_PATTERN.test(record.supersededBy)))
+    !isOptional(record.context, isNonEmptyString) ||
+    !isOptional(
+      record.alternatives,
+      (alternatives) =>
+        Array.isArray(alternatives) && alternatives.every(isAlternative),
+    ) ||
+    !isOptional(record.consequences, (consequences) =>
+      isStringArray(consequences, { nonEmpty: true }),
+    ) ||
+    !isOptional(record.revisitTriggers, (triggers) =>
+      isStringArray(triggers, { nonEmpty: true }),
+    ) ||
+    !isOptional(
+      record.originChange,
+      (origin) => isNonEmptyString(origin) && CHANGE_SLUG_PATTERN.test(origin),
+    ) ||
+    !isOptional(record.supersededBy, isDecisionId) ||
+    (isVersion1 && !isOptional(record.originDecision, isDecisionId))
   ) {
     throw new Error(
       `Invalid decision record: ${String(record.id ?? "unknown")}`,
     );
   }
 
-  return record as DecisionRecord;
+  if (!isVersion1) return record as DecisionRecord;
+
+  const {
+    targets: _targets,
+    originDecision: _originDecision,
+    ...rest
+  } = record;
+  return { ...rest, schemaVersion: 2, capabilities } as DecisionRecord;
 }

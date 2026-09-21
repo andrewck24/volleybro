@@ -1,9 +1,11 @@
-// Compatibility layer for old-format Change pages; delete once no old-format Change remains.
+// Compatibility layer for records published inside Change pages on the store
+// branch; delete once no such page needs it.
 
-// Old decision records carry a `status` field the current strict
-// parseDecisionRecord rejects as an unknown key; this drops it before the
-// value reaches that parser.
-export function stripLegacyStatus(value: unknown): unknown {
+// Version 1 records carry a `status` field that the current strict
+// parseDecisionRecord rejects as an unknown key. Placement said everything
+// else a status could say, so this drops it before the value reaches that
+// parser, which reads the rest of version 1 on its own.
+export function upconvertLegacyDecisionRecord(value: unknown): unknown {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return value;
   }
