@@ -14,6 +14,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: 0
+
 jobs:
   test:
     name: Test
@@ -88,13 +91,36 @@ jobs:
       - run: pnpm --filter blueprint test
       - run: pnpm --filter blueprint build
 
+  # Only pull requests into dev: every commit reaching main was already
+  # checked on its way into dev, and a dev-to-main range still carries
+  # history written before these rules existed (see decision 0055).
+  commitlint:
+    name: Commit messages
+    if: github.base_ref == 'dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+        env:
+          COMMITLINT_BRANCH: ${{ github.head_ref }}
+
   # The branch rulesets require a check named exactly "Verify". Renaming the
   # jobs without this would leave that context permanently unreported and
   # every pull request blocked, so the name stays and becomes the gate the
   # parallel jobs report through.
   verify:
     name: Verify
-    needs: [test, static, integration, blueprint]
+    needs: [test, static, integration, blueprint, commitlint]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -105,6 +131,15 @@ jobs:
           echo "static=${{ needs.static.result }}"
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+          echo "commitlint=${{ needs.commitlint.result }}"
+          # commitlint is intentionally skipped for pull requests not targeting
+          # dev (see its own `if:`); every other job must always run.
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            exit 1
+          fi
+          if [ "${{ needs.test.result == 'skipped' || needs.static.result == 'skipped' || needs.integration.result == 'skipped' || needs.blueprint.result == 'skipped' }}" = "true" ]; then
+            exit 1
+          fi
+          if [ "${{ needs.commitlint.result != 'success' && needs.commitlint.result != 'skipped' }}" = "true" ]; then
             exit 1
           fi
