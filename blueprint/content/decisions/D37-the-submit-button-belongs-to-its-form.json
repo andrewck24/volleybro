@@ -3,10 +3,7 @@
   "schemaVersion": 2,
   "id": "D37",
   "title": "A dialog's submit button sits in DialogFooter, inside the form it submits",
-  "capabilities": [
-    "platform/forms",
-    "platform/design-system/overlays"
-  ],
+  "capabilities": ["platform/forms", "platform/design-system/overlays"],
   "decision": "A dialog's submit button always sits in DialogFooter, the form element wraps DialogHeader, DialogBody and DialogFooter together, the button is type=\"submit\", and DialogClose is removed. The three Dialog* parts are styled divs that consume no Radix context, so the form boundary can be drawn around them, and EditDialogContainer can leave rendering the footer to the form. The paired rule: any Button inside a form boundary that does not submit must declare type=\"button\".",
   "context": "libero-replace.tsx wrapped only DialogBody in its Form, and its footer button was a type=\"button\" outside the form that called form.handleSubmit from onClick. The form's own onSubmit had never fired, and validation could finish only after onClick returned, by which point DialogClose had closed the dialog. At the other end, EditDialogContainer had no DialogFooter at all: the three team forms put their submit buttons at the end of their own Card, inside DialogBody. Only the set-options panel's ActionButton got both things right.",
   "alternatives": [

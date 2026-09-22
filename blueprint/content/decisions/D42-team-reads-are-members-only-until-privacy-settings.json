@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D42",
   "title": "Until privacy settings exist, team reads are members-only",
-  "capabilities": [
-    "team-management/membership"
-  ],
+  "capabilities": ["team-management/membership"],
   "decision": "All three read endpoints require, inside their use case, that the caller is a member of that team (D41). The team name an invitee needs is supplied by their own player list (GET /api/users/{userId}/players), each entry carrying a teamName, and an invitation item does not link to the team page before it is accepted. AcceptInvitationUseCase returns the Player it already read, so the controller no longer goes through GetPlayerUseCase. The visibility of individual response fields (email limited to the owner and admins) is out of scope for this decision.",
   "context": "GET /api/teams/{teamId} had no withAuth, so it was readable without signing in, returning the team name, lineups (including player ids) and stats; GET /api/players/{playerId} and GET /api/teams/{teamId}/players returned player data, including email, to any signed-in caller. The invitation page used GET /api/teams/{teamId} to show the invited team's name and linked to the team page; AcceptInvitation's controller obtained the teamId through GetPlayerUseCase.",
   "alternatives": [

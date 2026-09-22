@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D50",
   "title": "Version 1 records keep rendering, through the compatibility layer",
-  "capabilities": [
-    "platform/blueprint"
-  ],
+  "capabilities": ["platform/blueprint"],
   "decision": "parseDecisionRecord accepts both versions and returns the version 2 shape. A version 1 value is upconverted before validation, by the existing legacy module: drop status, drop originDecision, and read targets as capabilities. Version 1 is accepted only for records reached through a Change page; blueprint/content/decisions/ is version 2 only, enforced by the same test that validates every record in the tree. The legacy module keeps its existing note that it is deleted once no page needs it.",
   "context": "48 decision records belonging to earlier Changes sit inside published Change pages on the blueprint-changes store branch, beside this Change's own proposed records. Every one of them is schemaVersion 1 with a targets array, and the older ones also carry the status field that blueprint/src/legacy/legacy-decision-record.ts already strips before parsing. That branch is durable review history that never merges, and rewriting it to match a new schema would edit the record of what was decided at the time. But those pages render in the same build as the Features tree, through the same parseDecisionRecord, so a parser that accepts only version 2 turns the whole store branch into a build failure — including the two-gate-workflow Proposal page, which is new-format and therefore does not go through the legacy Change shell at all.",
   "alternatives": [

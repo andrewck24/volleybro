@@ -3,10 +3,7 @@
   "schemaVersion": 2,
   "id": "D38",
   "title": "No generic AsyncDialogAction component",
-  "capabilities": [
-    "platform/design-system/overlays",
-    "platform/forms"
-  ],
+  "capabilities": ["platform/design-system/overlays", "platform/forms"],
   "decision": "Do not build it. Ownership of open state (D36) and the form boundary (D37) make correctness come from structure rather than from a wrapper.",
   "context": "The original proposal suggested an AsyncDialogAction helper to absorb the pattern of waiting for an async handler before closing. Its natural implementation is await onClick() followed by close().",
   "alternatives": [

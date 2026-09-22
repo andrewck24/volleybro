@@ -14,6 +14,9 @@
  * twice, or a count that does not come out at 45 stops the run before anything
  * is written.
  *
+ * Writes plain two-space JSON, so follow it with
+ * `pnpm exec prettier --write "blueprint/content/decisions/*.json"`.
+ *
  * Usage: `node --experimental-strip-types scripts/migrations/flat-decision-records.ts`
  */
 import {

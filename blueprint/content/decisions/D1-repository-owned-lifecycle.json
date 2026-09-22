@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D1",
   "title": "Keep the delivery lifecycle repository-owned and Manual-first",
-  "capabilities": [
-    "platform/delivery-workflow"
-  ],
+  "capabilities": ["platform/delivery-workflow"],
   "decision": "Root WORKFLOW.md and repository adapters own the complete delivery lifecycle. Symphony may claim and invoke only the approved Apply contract and does not own specification, review, Archive, or human acceptance.",
   "context": "VolleyBro must remain fully deliverable when Symphony is unavailable or replaced, while unattended execution should reuse the same approved plan.",
   "alternatives": [

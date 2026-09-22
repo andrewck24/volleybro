@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D48",
   "title": "Five required fields, the rest optional",
-  "capabilities": [
-    "platform/blueprint"
-  ],
+  "capabilities": ["platform/blueprint"],
   "decision": "Required: schemaVersion, id, title, capabilities, decision. Optional: context, alternatives, consequences, revisitTriggers, $schema, originChange, supersededBy. schemaVersion becomes 2. The minItems constraints on consequences and revisitTriggers apply only when the field is present, so an empty array stays invalid while an absent field is fine.",
   "context": "The schema requires nine fields: schemaVersion, id, title, targets, context, decision, alternatives, consequences with at least one entry, and revisitTriggers with at least one entry. The playbook this repository follows says an ADR can be a single paragraph, that rejected alternatives are recorded only when they are worth remembering, and that consequences are recorded only when a non-obvious downstream effect needs calling out; it has no concept of a revisit trigger at all. Requiring all nine turns a one-paragraph decision into a form to fill in, and a required field that has nothing true to say gets filled with something untrue. That cost is paid at the moment a decision is being written down, which is exactly the moment where friction stops it from being written down at all.",
   "alternatives": [

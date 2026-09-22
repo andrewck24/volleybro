@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D30",
   "title": "所有 request schema 拒絕未宣告欄位，且一律不做型別轉換",
-  "capabilities": [
-    "platform/clean-architecture"
-  ],
+  "capabilities": ["platform/clean-architecture"],
   "decision": "12 個 request schema 一律 `.strict()`，未宣告欄位回 400 而非靜默丟棄；`UpdateProfileRequestSchema` 因此不再是特例，而是最早做對的那一個。**一律不使用 `z.coerce.*`**：`z.coerce.number()` 把 `\"\"` 轉成 `0`、把 `\"abc\"` 轉成 `NaN`，兩者都會靜默入庫——用轉換換取「不改 client」等於親手違背本 Change 的目的。client 端因此有三處修正，全在 `src/components/game/new/index.tsx`，本質都是「停止送出沒有人讀的東西」：不再送 `weather`（連同 `Match.weather` 整個移除，見 D5）、`players` 送出前去掉 `list`、`infoData` 排除 `teams`。body 的 parse 發生在 `teamId` 查詢參數檢查**之後**，維持 `src/app/api/games/__tests__/route.test.ts` 既有的 `detail: \"teamId is required\"` 斷言。6 條 retrofit `.strict()` 的既有路由，每條都必須有一個餵**真實 client payload** 的測試——手寫的最小物件永遠會通過，`players[].list` 與 `info.teams` 就是這樣活下來的。 一條必要的界線：禁止的是 **coercion**（`z.coerce.*` 先轉換再看結果，非法輸入變成 `0` 或 `NaN` 而不是錯誤），不是 **先驗證後轉換**。`Match.time.date` 的型別是 `Date`，而 wire 上是 ISO 字串，所以它用 `z.iso.datetime().transform((v) => new Date(v))`：格式不合法的字串在轉換發生前就被拒絕成 400，轉換只作用在已證明合法的值上。判準是「非法輸入會得到錯誤還是一個看起來合理的值」，不是「有沒有出現 transform」。",
   "context": "12 個 request schema 裡只有 `UpdateProfileRequestSchema` 使用 `.strict()`，其餘沿用 zod 預設的 strip（未宣告欄位靜默丟棄）。查證 client 實際送出的內容時，`POST /api/games` 一條就出現三個與型別不符的地方：`players[]` 帶著本地分組用的 `list` 欄位（game 的 `Player` 型別沒有它）；`infoData` 把整個 `TMatchInfoForm` 攤平送進 `info`，其中包含 `teams`，而 `Match` 型別根本沒有 `teams` 欄位；`weather.temperature` 送的是空字串，而型別宣告是 `number`——`createGame` 轉換了 `phase`、`division`、`category`、`scoring.setCount`，唯獨漏掉它。前兩項在 strip 之下已經安靜存在了很久，沒有任何機制會叫出來。第三項則是真正的型別錯誤，無論 strip 或 strict 都必須處理。這裡有一個誘人的近路：用 `z.coerce.number()` 把字串轉成數字就不必改 client。",
   "alternatives": [

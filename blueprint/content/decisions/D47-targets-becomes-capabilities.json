@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D47",
   "title": "targets becomes capabilities",
-  "capabilities": [
-    "platform/blueprint"
-  ],
+  "capabilities": ["platform/blueprint"],
   "decision": "Rename targets to capabilities in the schema, the hand-written validator, DecisionTimeline, and all 45 records. The field keeps its shape: a non-empty array of unique hierarchical capability IDs. The rename is part of the same migration pass as the flattening, so no record is touched twice.",
   "context": "The targets field was named for what it did under the promotion model: it named the expected promotion destination, made the affected boundary reviewable at G1, and was the thing Archive reconciled against delivered behaviour before copying the record. None of those three jobs survives the flat model. What the field does afterwards is state which capabilities a decision applies to, and that value is both the rendering key for Feature pages and the retrieval key for an agent looking for the decisions that bind a piece of code. docs/agents/domain.md already defines each value as a hierarchical capability or sub-capability ID, so the vocabulary exists and the field name is the only thing out of step with it.",
   "alternatives": [

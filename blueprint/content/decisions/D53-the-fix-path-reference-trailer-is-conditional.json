@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D53",
   "title": "The Fix path's reference trailer is conditional on there being an issue",
-  "capabilities": [
-    "platform/delivery-workflow"
-  ],
+  "capabilities": ["platform/delivery-workflow"],
   "decision": "A Fix-path commit carries `Refs: <tracker issue>` when the fix came from a tracker issue, and carries no reference trailer when it did not; either way it omits `Implements` and `Blueprint-Change`, and its body states what triggered the fix. The confirmation step follows the same split: on the tracker issue when the fix came from one, in the session when it did not. `CONTRIBUTING.md`'s trailer paragraph states the same condition. No tooling changes: `check-workflow.js` reads only the `Migration` trailer.",
   "context": "The Fix path makes a `Refs: <tracker issue>` trailer unconditional, and pairs it with a confirmation step that happens on the tracker issue. Both assume every fix descends from an issue. A build break found inside a session does not: the only way to satisfy the rule is to open an issue afterwards that records nothing the commit body does not already say. The trailer exists to name where skipping the gates was agreed; when that agreement happened in the session, there is nothing to name, and a trailer pointing at an issue created to satisfy the trailer is a citation of itself.",
   "alternatives": [

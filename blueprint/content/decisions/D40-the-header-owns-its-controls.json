@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "D40",
   "title": "DialogHeader owns its controls, in normal flow",
-  "capabilities": [
-    "platform/design-system/overlays"
-  ],
+  "capabilities": ["platform/design-system/overlays"],
   "decision": "The expand and close buttons move into DialogHeader, in normal flow to the right of the title, and pr-20 goes. closeButton, onExpand and expandLabel move from DialogContent to DialogHeader, where they render. Both buttons declare type=\"button\", so D37's paired rule holds inside the shared component once.",
   "context": "DialogContent rendered the expand and close buttons as a sibling of its children, inside an absolute top-3 right-3 container. The buttons belonged to no section; DialogHeader carried pr-20, a 5rem right padding that existed only to make room for them; and they came after the children, so close was the dialog's last tabbable element, after every field and the submit button. Once a form boundary wrapped the header, they would also fall outside the form that D37 draws.",
   "alternatives": [

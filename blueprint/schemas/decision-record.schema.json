@@ -4,13 +4,7 @@
   "title": "Blueprint decision record",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "id",
-    "title",
-    "capabilities",
-    "decision"
-  ],
+  "required": ["schemaVersion", "id", "title", "capabilities", "decision"],
   "properties": {
     "$schema": {
       "type": "string"
@@ -48,10 +42,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "option",
-          "reason"
-        ],
+        "required": ["option", "reason"],
         "properties": {
           "option": {
             "type": "string",

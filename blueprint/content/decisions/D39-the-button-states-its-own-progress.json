@@ -3,10 +3,7 @@
   "schemaVersion": 2,
   "id": "D39",
   "title": "A submit button shows its progress through the existing loadingText",
-  "capabilities": [
-    "platform/design-system/overlays",
-    "platform/forms"
-  ],
+  "capabilities": ["platform/design-system/overlays", "platform/forms"],
   "decision": "Reuse the existing loadingText and add no prop. It already replaces everything, since the content is loadingText ?? children, so passing it swaps the icon out with the text. The defect occurs only when it is omitted, so every loading button with an icon passes loadingText. The spinner always leads.",
   "context": "Of the four asynchronous submit buttons, only the set-options panel's showed loading. Creating a game, creating a team, adding a player and saving a player showed nothing, and two of them switched their label between texts instead, so the same thing was done two ways. Button's loading keeps its children when loadingText is omitted, so a button with an icon showed the spinner and the icon together.",
   "alternatives": [

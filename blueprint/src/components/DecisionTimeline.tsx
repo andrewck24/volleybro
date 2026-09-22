@@ -23,7 +23,9 @@ function decisionKey(record: { id: string; originChange?: string }) {
 export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
   const isLegacy = useIsLegacyDecisions();
   const records = decisions.map((decision) =>
-    parseDecisionRecord(isLegacy ? upconvertLegacyDecisionRecord(decision) : decision),
+    parseDecisionRecord(
+      isLegacy ? upconvertLegacyDecisionRecord(decision) : decision,
+    ),
   );
 
   return (
