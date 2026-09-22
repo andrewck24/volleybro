@@ -47,7 +47,8 @@ commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散�
 
 ## 本次 Change 的邊界
 
-- 照上圖加入三個檢查點：husky 的 `pre-commit` 與 `commit-msg` 兩個 hook，以及 CI 對 pull request 範圍的 commitlint；CI 在 workflow 層級設 `HUSKY=0`。
+- 照上圖加入三個檢查點：husky 的 `pre-commit` 與 `commit-msg` 兩個 hook，以及 CI 對 pull request 範圍的 commitlint；CI 在 workflow 層級設 `HUSKY=0`。CI 的 commitlint 只查目標是 `dev` 的 pull request：進 `main` 的 commit 都已在 `dev` 查過，而 `dev` → `main` 的範圍還帶著規則上線前的歷史 commit。
+- Changesets 的 release commit 改成合規的 `chore(release): update versions` 加上 body，讓 `main` → `dev` 的 sync PR 照常通過，不為 bot 開例外。
 - trailer 檢查以分支名稱判定 Change：`feat|fix|refactor/<slug>` 上的 commit 必須帶 `Blueprint-Change: <slug>`，值要等於分支名的 slug；其他分支不要求。hook 讀當前分支，讀不到（rebase 中的 detached HEAD）就略過；CI 只在 pull request 上執行並讀它的 head 分支名，直接 push 到 `dev` 的 commit 不在檢查範圍，與 Change 一律走 PR 一致。
 - `WORKFLOW.md` 的分支表加上 Fix path 的 `hotfix/<slug>`，Fix path 一節同步寫明，不論 commit type。
 - 從 `CONTRIBUTING.md` 與 `WORKFLOW.md` 刪掉每一條已被新檢查涵蓋的規則，包含 commit type 對照表（改成一行指向 commitlint 設定的指標），以及 `CONTRIBUTING.md` 裡「絕對匯入走 `@/*`」那一行（`tsc` 已擋）。
@@ -59,15 +60,15 @@ commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散�
 
 <Scenario given="a commit on feat/<slug>, fix/<slug> or refactor/<slug> whose Blueprint-Change trailer is missing or names a different slug" when="the commit-msg hook runs" then="the commit is rejected naming which of the two it is" />
 
-<Scenario given="a commit with no trailer on dev, on hotfix/<slug>, or on any other non-Change branch" when="the commit-msg hook runs" then="it passes" />
+<Scenario given="a commit with no trailer and a never-before-used scope on dev, on hotfix/<slug>, or on any other non-Change branch" when="the commit-msg hook runs" then="it passes, because scope has no enum and the branch is not a Change branch" />
 
 <Scenario given="a commit reworded during a rebase, with HEAD detached" when="the commit-msg hook runs" then="the trailer rule is skipped, and CI applies it using the pull request's head branch" />
 
 <Scenario given="a commit message carrying an AI attribution trailer" when="the commit-msg hook runs" then="the commit is rejected" />
 
-<Scenario given="a commit using a scope that has never been used before" when="the commit-msg hook runs" then="it passes, because scope has no enum" />
-
 <Scenario given="a pull request whose commits were created without hooks" when="CI runs" then="commitlint checks every commit in the range and fails on the same rules" />
+
+<Scenario given="the sync pull request from main to dev carrying the Changesets release commit" when="CI runs" then="commitlint passes it without any exemption" />
 
 <Scenario given="a fresh worktree after pnpm install --frozen-lockfile" when="a malformed commit is attempted" then="the hook runs and rejects it" />
 
@@ -113,4 +114,5 @@ commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散�
 | commitlint 文件 | `trailer-exists` 一次只接受一個 trailer 且不驗證其值，一個專案也只能有一支 local plugin。 | **高**。硬性限制，也是 trailer 與 attribution 兩項檢查共用一支 plugin 的原因。 |
 | 本 repo 自 2026-08-11 第一個 `Blueprint-Change` trailer 以來併入 `dev` 的分支 | 9 個 `fix/`、4 個 `refactor/` 分支沒有 trailer，8 個 `fix/`、3 個 `feat/` 分支是 Change；分支前綴目前分辨不出 Change，這是 Fix path 改用 `hotfix/` 的依據。 | **高**。在本 repo 清點。 |
 | 本 repo 的 `tsconfig.json` 與 `src/`，2026-09-23 實測 | 沒有 `baseUrl`，一個 `from "src/..."` 的反例報 TS2307，所以 `@/*` 規則已由 `tsc` 執行；`src/` 沒有任何 issue 編號，唯一一次事故（`6ed9b1c20`）發生在 Blueprint 的 MDX，ESLint 讀不到。這是撤掉兩條 ESLint 規則的依據。 | **高**。反例實測與全樹搜尋。 |
+| 本 repo 的 `34f793ef3` 與 `.github/workflows/ci.yml` | github-actions[bot] 的 release commit 是 `release: update versions`，type 不在 `config-conventional` 之內、也沒有 body；CI 同時跑在進 `dev` 與進 `main` 的 PR 上。不改的話每次 release 與 sync PR 都會被擋，這是 CI 只查進 `dev` 的 PR、並改寫 release commit 的依據。 | **高**。在本 repo 讀到。 |
 | 本 repo 最近 400 個非 merge commit | 36 個不同 scope，其中 15 個只用過一次，22 個 commit 沒有 scope；約 75% 的 scope 能對應到 capability ID，而用量最大的 `blueprint`（146 次）多半指的是交付工具本身，不是產品能力。 | **高**。在本 repo 清點，也是現階段否決 scope enum 的依據。 |
