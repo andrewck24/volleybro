@@ -5,19 +5,30 @@ import localPlugin from "./scripts/commitlint/plugin.js";
 // replaced.
 const RETIRED_TOOL_SCOPES = ["spectra", "openspec", "spec-kit", "bmad"];
 
-// Only a merge commit is exempt from every rule. commitlint's own
-// defaultIgnores also exempts revert/fixup!/squash! commits, which would
-// let a revert on a Change branch skip the trailer rule silently.
+// commitlint's own defaultIgnores exempts revert/fixup!/squash! commits from
+// every rule, including the trailer one. A revert keeps no exemption — it is
+// written revert: <subject> with a body and trailer like any other commit.
+// fixup!/squash! stay exempt locally so autosquash works, but not in CI:
+// they must be squashed before a pull request merges.
 const MERGE_COMMIT = /^Merge (pull request|branch|remote-tracking branch) /;
+const AUTOSQUASH_COMMIT = /^(fixup|squash)!/;
 
 const commitlintConfig = {
   extends: ["@commitlint/config-conventional"],
   plugins: [localPlugin],
   defaultIgnores: false,
-  ignores: [(message) => MERGE_COMMIT.test(message)],
+  ignores: [
+    (message) => MERGE_COMMIT.test(message),
+    (message) => !process.env.CI && AUTOSQUASH_COMMIT.test(message),
+  ],
   rules: {
     "body-empty": [2, "never"],
-    "scope-deny-list": [2, "always", RETIRED_TOOL_SCOPES],
+    // config-conventional sets no scope-case rule of its own, and scope-enum's
+    // match is exact-case (@commitlint/ensure's enum check is a plain
+    // indexOf), so a retired name in another case would otherwise slip past
+    // scope-enum; lower-casing the scope first closes that gap.
+    "scope-case": [2, "always", "lower-case"],
+    "scope-enum": [2, "never", RETIRED_TOOL_SCOPES],
     "blueprint-change-trailer": [2, "always"],
     "no-ai-attribution": [2, "always"],
   },
