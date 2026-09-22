@@ -1,6 +1,6 @@
 ---
 name: writing-changesets
-description: Use when creating a changeset file during spectra:archive, writing or editing changeset body content, running release:version, reviewing a CHANGELOG.md entry, or asking how the release workflow works
+description: Use when creating a changeset file during Archive, writing or editing changeset body content, running release:version, reviewing a CHANGELOG.md entry, or asking how the release workflow works
 ---
 
 # Writing Changesets
@@ -49,14 +49,14 @@ Skip the changeset only if the change has zero user-visible impact (pure refacto
 
 When in doubt, prefer `minor` for features, `patch` for fixes.
 
-## Deriving Body from a Spectra Change
+## Deriving Body from a Change
 
-When writing the body at archive time, pull from the change's artifacts:
+When writing the body at Archive, pull from the Change's own artifacts:
 
-1. Read `proposal.md` for scope and motivation
-2. Read `tasks.md` for what was actually implemented
-3. Map each user-visible task to a bullet under the correct `###` heading (see `body-format.md`)
-4. Ignore internal tasks (refactors, test infra, CI plumbing) unless they affect contributors
+1. Read the Proposal page for scope and motivation
+2. Read the branch's commits for what was actually implemented — `git log dev..HEAD`, whose bodies carry the outcome and verification per slice
+3. Map each user-visible change to a bullet under the correct `###` heading (see `body-format.md`)
+4. Ignore internal work (refactors, test infra, CI plumbing) unless it affects contributors
 
 ## Rationalization Table
 

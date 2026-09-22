@@ -22,6 +22,7 @@
 .claude/settings.*
 .agent/
 .agents/settings.local.*
+.codex/
 .gemini/
 .github/chatmodes/
 .github/prompts/
