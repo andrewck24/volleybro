@@ -19,10 +19,7 @@ const commitlintConfig = {
   ],
   rules: {
     "body-empty": [2, "never"],
-    // config-conventional sets no scope-case rule of its own, and scope-enum's
-    // match is exact-case (@commitlint/ensure's enum check is a plain
-    // indexOf), so a retired name in another case would otherwise slip past
-    // scope-enum; lower-casing the scope first closes that gap.
+    // scope-enum matches exact-case; lower-casing first stops a retired name slipping past in another case.
     "scope-case": [2, "always", "lower-case"],
     "scope-enum": [2, "never", RETIRED_TOOL_SCOPES],
     "blueprint-change-trailer": [2, "always"],
