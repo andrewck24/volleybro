@@ -3,14 +3,14 @@ title: Standalone Decision Records — Proposal
 description: 決策記錄脫離交付流程，改住在一個扁平、去重複的目錄，schema 一併縮小。
 ---
 
-import d1 from "./proposal/decisions/D1-decision-records-leave-the-delivery-lifecycle.json";
-import d2 from "./proposal/decisions/D2-targets-becomes-capabilities.json";
-import d3 from "./proposal/decisions/D3-five-required-fields.json";
-import d4 from "./proposal/decisions/D4-origindecision-is-deleted.json";
-import d5 from "./proposal/decisions/D5-version-1-records-render-through-the-legacy-layer.json";
-import d6 from "./proposal/decisions/D6-the-fix-path-line-is-drawn-at-the-decision-body.json";
-import d7 from "./proposal/decisions/D7-research-notes-earn-no-file-of-their-own.json";
-import d8 from "./proposal/decisions/D8-the-fix-path-reference-trailer-is-conditional.json";
+import d1 from "../../decisions/D46-decision-records-leave-the-delivery-lifecycle.json";
+import d2 from "../../decisions/D47-targets-becomes-capabilities.json";
+import d3 from "../../decisions/D48-five-required-fields.json";
+import d4 from "../../decisions/D49-origindecision-is-deleted.json";
+import d5 from "../../decisions/D50-version-1-records-render-through-the-legacy-layer.json";
+import d6 from "../../decisions/D51-the-fix-path-line-is-drawn-at-the-decision-body.json";
+import d7 from "../../decisions/D52-research-notes-earn-no-file-of-their-own.json";
+import d8 from "../../decisions/D53-the-fix-path-reference-trailer-is-conditional.json";
 
 <TLDR>
 決策記錄不再隸屬於任何一個 Change。所有記錄移到扁平的 `blueprint/content/decisions/`，編號於誕生時指派，沒有 per-capability 複本，也沒有 Archive 的提升步驟；Feature 頁改為依 `capabilities` 欄位過濾渲染，該欄位即原本的 `targets`。schema 的 required 欄位降到五個，刪除 `originDecision`，版本升到 2；已發佈在 store 分支上的 version 1 記錄則透過相容層繼續渲染。Fix path 可以修正一份記錄，但碰到 `decision` 本文或 `supersededBy` 就必須升級。同時落地兩條連帶的文件規則：研究筆記不自成檔案，以及 Fix path 的 `Refs:` trailer 改為條件性。
@@ -94,11 +94,11 @@ import d8 from "./proposal/decisions/D8-the-fix-path-reference-trailer-is-condit
 
 <RiskTable
   risks={[
-    { name: "只收 version 2 的 parser 會在同一次 build 中弄垮每一個已發佈的 Change 頁", severity: "critical", mitigation: "D5：parseDecisionRecord 同時接受兩個版本，透過既有的 legacy 模組把 version 1 升版；store 分支永不改寫。" },
+    { name: "只收 version 2 的 parser 會在同一次 build 中弄垮每一個已發佈的 Change 頁", severity: "critical", mitigation: "D50：parseDecisionRecord 同時接受兩個版本，透過既有的 legacy 模組把 version 1 升版；store 分支永不改寫。" },
     { name: "capabilities 的值若不再對應到任何一頁，Feature 頁會無聲地少掉決策", severity: "critical", mitigation: "在驗證記錄的同一個測試裡，把每個 capabilities 值對照 Feature 樹驗證，對不上就失敗，而不是渲染出一個空頁。" },
     { name: "手工套用遷移，漏掉一份記錄或只改一半", severity: "warning", mitigation: "用 scripts/migrations/ 下的腳本遷移，並在 commit 前斷言 65 進 45 出、編號全數唯一。" },
     { name: "渲染從 MDX import 改為 build-time index，壞記錄失敗的時機也跟著變", severity: "warning", mitigation: "index 在 build 時解析每一份記錄，所以壞記錄一樣在 build 失敗，不會延到 request 時。" },
-    { name: "G1 不再審「這個決策批不批」，決策沒有第二位讀者就進了 Features", severity: "info", mitigation: "D1 接受的代價：決策是在開發者在場的 Discuss 中做出的，gate 改審邊界與契約。" },
+    { name: "G1 不再審「這個決策批不批」，決策沒有第二位讀者就進了 Features", severity: "info", mitigation: "D46 接受的代價：決策是在開發者在場的 Discuss 中做出的，gate 改審邊界與契約。" },
     { name: "並行的分支取到同一個下一號", severity: "info", mitigation: "編號在每個已合併狀態下唯一，唯一性斷言會在 gate 攔下碰撞；真的發生之前不做鎖。" },
     { name: "本 Change 吸收了兩條文件規則，邊界從「決策記錄」擴到「Proposal 頁的寫法」", severity: "info", mitigation: "兩條規則都改在本 Change 已經要動的那幾個檔案裡，且都與 Fix path 的紅線同屬一次判斷；分成獨立 Change 會為三十行散文多開一次 gate。" },
   ]}
@@ -118,10 +118,10 @@ import d8 from "./proposal/decisions/D8-the-fix-path-reference-trailer-is-condit
 
 | 來源 | 支持什麼 | 強度 |
 | --- | --- | --- |
-| 已安裝的 `domain-modeling` playbook 與其 ADR 格式 | ADR 住在 `docs/adr/<n>-<slug>.md`，編號靠掃描目錄取最大值加一，在決策發生的當下寫下，而且可以只有一段話——status、options、consequences 全是選配。 | **高**。本 repo 其餘部分本來就遵循的 playbook，直接讀已安裝的版本；它是 D1 與 D3 形狀的來源。 |
+| 已安裝的 `domain-modeling` playbook 與其 ADR 格式 | ADR 住在 `docs/adr/<n>-<slug>.md`，編號靠掃描目錄取最大值加一，在決策發生的當下寫下，而且可以只有一段話——status、options、consequences 全是選配。 | **高**。本 repo 其餘部分本來就遵循的 playbook，直接讀已安裝的版本；它是 D46 與 D48 形狀的來源。 |
 | 同一套的 `to-spec` 與 `to-tickets` | 它們只叫 agent **respect** 所觸碰範圍內既有的 ADR。既不產生也不擁有，所以決策記錄與交付單位之間沒有任何關係。 | **高**。這是分開兩個模型的那一句話，而且寫得很明確。 |
 | 同一套的 `grill-with-docs` | 決策在產生它的那場 grilling 當中就寫下，不等任何階段結束。 | **高**。它全文只有一句指令：透過 `domain-modeling` 跑 grilling。 |
-| 找不到外部來源 | 這套 playbook 沒有談「在 gate 上審一個決策」，因為它根本沒有 gate。 | **低**，而且是誠實的缺口：拿掉 proposed 階段是本 repo 自己的判斷，由 D1 的 consequences 承擔，不是讀來的。 |
+| 找不到外部來源 | 這套 playbook 沒有談「在 gate 上審一個決策」，因為它根本沒有 gate。 | **低**，而且是誠實的缺口：拿掉 proposed 階段是本 repo 自己的判斷，由 D46 的 consequences 承擔，不是讀來的。 |
 
 ## Bootstrap 註記
 

@@ -1,0 +1,65 @@
+---
+title: Standalone Decision Records — Review
+description: 交付結果、驗證證據、兩軸 review 的發現與修正，以及殘留風險。
+---
+
+<TLDR>
+65 個檔案成為 53 份記錄，住在扁平的 `blueprint/content/decisions/`；Feature 頁改依 `capabilities` 過濾渲染，不再逐條 import。schema 升到 version 2，required 五個欄位，`originDecision` 刪除，store 分支上的 version 1 記錄透過相容層繼續渲染。八個驗收 scenario 有七個由測試證明，第八個（編號於誕生時取 max+1）是寫入當下的紀律，沒有程式能驗——這是唯一的殘留風險。兩軸 code review 跑了兩輪達到不動點，六個發現全部處置，其中最嚴重的一個是我自己把 2,857 行無關檔案掃進了第一個 commit。
+</TLDR>
+
+## 驗收結果
+
+| # | Scenario | 結果 | 證據 |
+| --- | --- | --- | --- |
+| 1 | 一份記錄命名兩個 capability，兩頁都渲染，樹中無複本 | 通過 | `decisions-tree.test.ts` 的「leaves no per-capability copy behind」；瀏覽器確認 `platform/blueprint` 與 `platform/delivery-workflow` 各自渲染 D46 |
+| 2 | 每個編號恰好出現一次 | 通過 | `decisions-tree.test.ts`「uses each number exactly once」，53 個檔案 |
+| 3 | 只帶五個必填欄位的記錄通過驗證 | 通過 | `decisions-tree.test.ts`「accepts a record that is only a title, a capability and a decision」 |
+| 4 | 扁平目錄下仍帶 `targets`／`originDecision`／version 1 的記錄驗證失敗並指名 | 通過 | 同檔 `it.each` 拒絕表，加上 `decision-record.test.ts` 的 `originDecision` 案例 |
+| 5 | store 分支已發佈 Change 頁裡的 version 1 記錄仍渲染，`capabilities` 讀自 `targets` | 通過 | review 代理實際 fetch `origin/blueprint-changes`，把帶 `status` 與不帶 `status` 的真實記錄各沿渲染路徑追過一次 |
+| 6 | 沒有記錄的 capability 渲染時沒有 timeline 也不報錯 | 通過 | `DecisionTimeline.test.tsx`「renders nothing for a capability that names no decisions」 |
+| 7 | 新記錄的編號是目錄最大值加一 | **未證明** | 寫入當下的紀律，沒有程式路徑可驗；見殘留風險 |
+| 8 | 沒有外部來源的 Change 不帶 References 段落 | 通過 | 文件規則，由 `docs/agents/artifact-lifecycle.md` 承載 |
+
+## 驗證
+
+| 檢查 | 結果 |
+| --- | --- |
+| `pnpm verify:all` | 四條 lane 全綠：`static` 58.7s、`app-build` 10.0s、`app-test` 38.5s、`blueprint` 54.1s |
+| `pnpm --filter blueprint test` | 13 suites，59 tests |
+| `pnpm check:workflow` / `pnpm test:workflow` | 通過／63 tests |
+| 瀏覽器實讀 | `team-management/roles` 出現 D41；`platform/blueprint` 出現 D46–D50；`platform/delivery-workflow` 出現 D51–D53 |
+| 遷移斷言 | 65 檔入、53 筆出（45 既有 + 本 Change 的 8 筆），編號唯一，複本內容一致 |
+
+`app-build` 第一次失敗於缺少 `MONGODB_URI`——這個 checkout 沒有 `.env.local`，與本 Change 無關。以 dummy 變數重跑後通過。
+
+## Code review 的發現與修正
+
+兩輪達到不動點。第二輪唯一的新發現是一條測試斷言，屬於「前一輪逐字指定的內容」，不再重開迴圈。
+
+<RiskTable
+  risks={[
+    { name: "第一個 commit 混入 2,857 行無關的 vendor 檔案（.agents/skills/spectra-*、.codex/config.toml）", severity: "critical", mitigation: "起因是我用 git add -A 修改 commit，掃進了未追蹤檔案。分支未推，以 git rebase --onto 重做該 commit 並重放其餘八個；dev...HEAD 現在零命中。" },
+    { name: "parseDecisionRecord 把兩個 schema 版本糊在同一條 35 行布林鏈裡", severity: "warning", mitigation: "拆成 hasValidBody 與各版本自己的 key 集合。第二輪逐欄位比對 schema 確認無任何放寬。" },
+    { name: "originDecision 的拒絕斷言同時存在於兩個測試檔", severity: "warning", mitigation: "只留在 parser 自己的 suite。" },
+    { name: "DecisionTimeline 在沒有記錄時渲染一條空軌", severity: "warning", mitigation: "改為回傳 null，並補一條斷言守住它。" },
+    { name: "遷移腳本已無法再執行——來源目錄不存在", severity: "info", mitigation: "刪除。它做了什麼、斷言了什麼，commit 與訊息留著。" },
+    { name: "S05 的第一個 commit 漏掉 docs/agents/blueprint.md，七個 commit 之後才補", severity: "info", mitigation: "brief 漏列該檔案。已補，兩個 commit 同掛 Implements: S05。" },
+  ]}
+/>
+
+## 邊界上最關鍵的一段 diff
+
+相容層是整個 Change 唯一會一次弄垮所有已發佈 Change 頁的地方。它的形狀是：parser 自己讀得懂 version 1，而 `status` 的豁免留在 legacy 層——所以 `status` 只有舊頁面可以帶，沒有隨著 version 1 的支援一起變成全域合法。
+
+<AnnotatedDiff lang="ts" code={"export function parseDecisionRecord(value: unknown): DecisionRecord {\n  const record = value as Record<string, unknown>;\n\n  if (record.schemaVersion === 1) { // [!code ++]\n    // 只有 store 分支上的歷史記錄會走到這裡 // [!code ++]\n    if ( // [!code ++]\n      !hasOnlyKeys(record, VERSION_1_KEYS) || // [!code ++]\n      !isOptional(record.originDecision, isDecisionId) || // [!code ++]\n      !hasValidBody(record, record.targets) // [!code ++]\n    ) { // [!code ++]\n      throw invalid(); // [!code ++]\n    } // [!code ++]\n    const { targets, originDecision: _number, ...rest } = record; // [!code ++]\n    return { ...rest, schemaVersion: 2, capabilities: targets }; // [!code ++]\n  } // [!code ++]\n\n  if (\n    record.schemaVersion !== 2 ||\n    !hasOnlyKeys(record, ALLOWED_KEYS) ||\n    !hasValidBody(record, record.capabilities)\n  ) {\n    throw invalid();\n  }\n  return record as DecisionRecord;\n}"} />
+
+## 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "Scenario 7 未被任何程式證明：編號取 max+1 是寫入當下的紀律", severity: "warning", mitigation: "沒有補一個沒人呼叫的 helper 來假裝它可驗。目前的護欄是 decisions-tree.test.ts 的唯一性斷言——它抓得到撞號，抓不到跳號。真的發生撞號時再加鎖。" },
+    { name: "Feature 頁的 ## Implemented decisions 標題寫在 MDX 裡，timeline 空掉時標題會孤懸", severity: "info", mitigation: "目前每個帶該標題的頁面都有記錄，屬於潛在而非現存。要根治得把標題也交給元件，那會改動 12 頁的 TOC，不值得現在做。" },
+    { name: "本 Change 自己的 8 份記錄誕生於舊模型，在遷移中被重新編號為 D46–D53", severity: "info", mitigation: "bootstrap 的正常樣子，也是記錄一生中唯一一次改編號。Proposal 頁的引用已同步更新。" },
+    { name: "blueprint/content/decisions/ 的扁平目錄會隨時間變長", severity: "info", mitigation: "53 份仍可一眼掃完。超過人可掃描的長度時，D46 的 revisit trigger 會被觸發。" },
+  ]}
+/>
