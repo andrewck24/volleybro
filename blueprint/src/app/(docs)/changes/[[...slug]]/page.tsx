@@ -13,6 +13,7 @@ import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { isLegacySlug, loadChangeMetadata } from "@/legacy/change-catalog";
 import { changeArtifacts } from "@/legacy/change-artifacts";
@@ -22,6 +23,24 @@ import { ImplementationSlices } from "@/legacy/ImplementationSlices";
 import { designMockups } from "@/legacy/design-mockups";
 import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
+// The eighteen old-format Change pages on the store branch pass `decisions`
+// with records living inside their own Change directory; new-format pages
+// pass `ids` and let the build resolve whichever records this checkout has
+// (a Proposal page is published at a gate before its own records merge).
+function ChangeDecisionTimeline({
+  ids,
+  decisions,
+}: {
+  ids?: string[];
+  decisions?: unknown[];
+}) {
+  return (
+    <DecisionTimeline
+      decisions={ids ? decisionsById(ids) : (decisions ?? [])}
+    />
+  );
+}
+
 const mdxComponents = {
   ...defaultMdxComponents,
   TLDR,
@@ -29,7 +48,7 @@ const mdxComponents = {
   RiskTable,
   AnnotatedDiff,
   FileTour,
-  DecisionTimeline,
+  DecisionTimeline: ChangeDecisionTimeline,
   InteractiveFlowchart,
 };
 

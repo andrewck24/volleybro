@@ -16,9 +16,10 @@ confirms the publish: it fails when a page was never published or was edited sin
 Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the
 store cannot be fetched. Decision records live at `blueprint/content/decisions/<nnnn>-<slug>.json`,
 follow `blueprint/schemas/decision-record.schema.json`, and belong to the repository rather than to
-any Change. A Proposal page imports the records written during its own Discuss and renders them
-with `DecisionTimeline`; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a
-second editable source.
+any Change. A Proposal page is published at a gate before its own records merge, so it names the
+records it wants by id and `DecisionTimeline` resolves whichever ones this checkout has, skipping
+the rest; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a second editable
+source.
 
 ## Canonical current knowledge
 

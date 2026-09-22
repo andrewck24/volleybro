@@ -30,6 +30,11 @@ function decisionsFor(capability: string): Array<{ id: string }> {
   return jest.requireActual("./decisions-index").decisionsFor(capability);
 }
 
+function decisionsById(ids: string[]): Array<{ id: string }> {
+  jest.resetModules();
+  return jest.requireActual("./decisions-index").decisionsById(ids);
+}
+
 describe("decisionsFor", () => {
   beforeEach(() => {
     mockFiles = {};
@@ -83,5 +88,23 @@ describe("decisionsFor", () => {
     };
 
     expect(decisionsFor("no-such-capability")).toEqual([]);
+  });
+});
+
+describe("decisionsById", () => {
+  beforeEach(() => {
+    mockFiles = {};
+  });
+
+  it("returns records in the order ids were given, skipping ids it does not have", () => {
+    mockFiles = {
+      "0001-first.json": record("0001", ["team-management/roles"]),
+      "0002-second.json": record("0002", ["team-management/roles"]),
+    };
+
+    expect(decisionsById(["0002", "0099", "0001"]).map((r) => r.id)).toEqual([
+      "0002",
+      "0001",
+    ]);
   });
 });
