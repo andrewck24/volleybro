@@ -93,7 +93,7 @@ jobs:
 
   # Only pull requests into dev: every commit reaching main was already
   # checked on its way into dev, and a dev-to-main range still carries
-  # history written before these rules existed (see decision 0055).
+  # history written before these rules existed (see ADR-0055).
   commitlint:
     name: Commit messages
     if: github.base_ref == 'dev'
@@ -132,14 +132,9 @@ jobs:
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"
-          # commitlint is intentionally skipped for pull requests not targeting
-          # dev (see its own `if:`); every other job must always run.
           if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
             exit 1
           fi
           if [ "${{ needs.test.result == 'skipped' || needs.static.result == 'skipped' || needs.integration.result == 'skipped' || needs.blueprint.result == 'skipped' }}" = "true" ]; then
-            exit 1
-          fi
-          if [ "${{ needs.commitlint.result != 'success' && needs.commitlint.result != 'skipped' }}" = "true" ]; then
             exit 1
           fi
