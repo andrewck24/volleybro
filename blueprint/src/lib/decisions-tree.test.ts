@@ -67,7 +67,7 @@ describe("the decision record tree", () => {
 describe("the version 2 record format", () => {
   const minimal = {
     schemaVersion: 2,
-    id: "D1",
+    id: "0001",
     title: "Decision records leave the delivery lifecycle",
     capabilities: ["platform/blueprint"],
     decision: "Every record lives in one flat directory.",

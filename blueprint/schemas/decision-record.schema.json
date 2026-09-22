@@ -14,7 +14,7 @@
     },
     "id": {
       "type": "string",
-      "pattern": "^D[0-9]+$"
+      "pattern": "^[0-9]{4}$"
     },
     "title": {
       "type": "string",
@@ -77,7 +77,7 @@
     },
     "supersededBy": {
       "type": "string",
-      "pattern": "^D[0-9]+$"
+      "pattern": "^[0-9]{4}$"
     }
   }
 }

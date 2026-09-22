@@ -21,7 +21,7 @@ const records = readdirSync(DECISIONS_ROOT)
   );
 
 function decisionNumber(record: DecisionRecord): number {
-  return Number(record.id.slice(1));
+  return Number(record.id);
 }
 
 export function decisionsFor(capability: string): DecisionRecord[] {

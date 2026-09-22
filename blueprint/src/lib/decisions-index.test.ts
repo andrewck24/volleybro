@@ -37,49 +37,49 @@ describe("decisionsFor", () => {
 
   it("matches a capability exactly, not its parent or its child", () => {
     mockFiles = {
-      "D1-parent.json": record("D1", ["team-management/roles"]),
-      "D2-child.json": record("D2", ["team-management/roles/detail"]),
+      "0001-parent.json": record("0001", ["team-management/roles"]),
+      "0002-child.json": record("0002", ["team-management/roles/detail"]),
     };
 
     expect(decisionsFor("team-management/roles").map((r) => r.id)).toEqual([
-      "D1",
+      "0001",
     ]);
     expect(
       decisionsFor("team-management/roles/detail").map((r) => r.id),
-    ).toEqual(["D2"]);
+    ).toEqual(["0002"]);
   });
 
   it("lists a record naming two capabilities under both", () => {
     mockFiles = {
-      "D1-shared.json": record("D1", [
+      "0001-shared.json": record("0001", [
         "team-management/roles",
         "game-recording/statistics",
       ]),
     };
 
     expect(decisionsFor("team-management/roles").map((r) => r.id)).toEqual([
-      "D1",
+      "0001",
     ]);
     expect(decisionsFor("game-recording/statistics").map((r) => r.id)).toEqual([
-      "D1",
+      "0001",
     ]);
   });
 
   it("sorts matches by decision number ascending", () => {
     mockFiles = {
-      "D10-later.json": record("D10", ["team-management/roles"]),
-      "D2-earlier.json": record("D2", ["team-management/roles"]),
+      "0010-later.json": record("0010", ["team-management/roles"]),
+      "0002-earlier.json": record("0002", ["team-management/roles"]),
     };
 
     expect(decisionsFor("team-management/roles").map((r) => r.id)).toEqual([
-      "D2",
-      "D10",
+      "0002",
+      "0010",
     ]);
   });
 
   it("returns an empty list for a capability with no records", () => {
     mockFiles = {
-      "D1-elsewhere.json": record("D1", ["team-management/roles"]),
+      "0001-elsewhere.json": record("0001", ["team-management/roles"]),
     };
 
     expect(decisionsFor("no-such-capability")).toEqual([]);
