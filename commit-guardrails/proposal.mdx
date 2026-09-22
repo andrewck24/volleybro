@@ -11,8 +11,6 @@ commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散�
 
 `two-gate-workflow` 期間，review 抓到缺 body 的 commit、用工具名當 scope、缺 trailer、type 用錯；最後以 rebase 改寫了四個 commit message。一個 `no-unused-expressions` 錯誤也是撐到 `verify:all` 才被擋下。每一項都是早就寫下來的規則。
 
-trailer 尤其關鍵：它是 Archive 與 review 都仰賴的 slice 對 commit 的機器可讀映射，所以缺 trailer 是交付證據破了個洞，不是風格瑕疵。
-
 ## 三個時機，三道檢查
 
 <InteractiveFlowchart
@@ -42,22 +40,18 @@ trailer 尤其關鍵：它是 Archive 與 review 都仰賴的 slice 對 commit �
     },
     ci: {
       title: "hook 是回饋，CI 才是權威",
-      body: "commitlint --from/--to 檢查 PR 裡的每一個 commit，補上四條繞過路徑：worktree 沒安裝、HUSKY=0、--no-verify、透過 GitHub API 直接建 commit。",
+      body: "commitlint --from/--to 檢查 PR 裡的每一個 commit，hook 被繞過的 commit 在這裡一樣會被擋。",
     },
   }}
 />
 
 ## 本次 Change 的邊界
 
-- 加入 husky 與兩個 hook：`pre-commit` 只跑 lint-staged（`eslint --fix` 與 prettier，僅限 staged 檔案），`commit-msg` 跑 commitlint。
-- 加入 commitlint：以 `config-conventional` 為基底，加上 `body-empty: never`，以及一支 local plugin 負責 trailer 的存在與格式、外加擋掉 AI attribution。scope 不設 enum，只有退役工具名的黑名單。
-- 在 CI 加上 `commitlint --from <base.sha> --to <head.sha>`，並在 CI 安裝時設 `HUSKY=0`。
-- trailer 檢查以分支名稱判定 Change：`feat|fix|refactor/<slug>` 上的 commit 必須帶 `Blueprint-Change: <slug>`，值要等於分支名的 slug；其他分支不要求。hook 讀當前分支，讀不到（rebase 中的 detached HEAD）就略過；CI 讀 pull request 的 head 分支名。
+- 照上圖加入三個檢查點：husky 的 `pre-commit` 與 `commit-msg` 兩個 hook，以及 CI 對 pull request 範圍的 commitlint；CI 在 workflow 層級設 `HUSKY=0`。
+- trailer 檢查以分支名稱判定 Change：`feat|fix|refactor/<slug>` 上的 commit 必須帶 `Blueprint-Change: <slug>`，值要等於分支名的 slug；其他分支不要求。hook 讀當前分支，讀不到（rebase 中的 detached HEAD）就略過；CI 只在 pull request 上執行並讀它的 head 分支名，直接 push 到 `dev` 的 commit 不在檢查範圍，與 Change 一律走 PR 一致。
 - `WORKFLOW.md` 的分支表加上 Fix path 的 `hotfix/<slug>`，Fix path 一節同步寫明，不論 commit type。
-- 從 `CONTRIBUTING.md` 與 `WORKFLOW.md` 刪掉每一條已被新檢查涵蓋的規則，包含 commit type 對照表——它改成一行指向 commitlint 設定的指標。
-- **不在範圍內** —— 把 reviewer 規則拆進 `CODING_STANDARDS.md`。那是 `reviewer-standards-split`，順序在後；本 Change 只負責刪掉已經機械化的那些。
-- **不在範圍內** —— ESLint 規則。原本列的兩條都撤掉：絕對匯入限 `@/*` 已由 `tsc` 擋下（`tsconfig.json` 沒有 `baseUrl`，`from "src/..."` 報 TS2307，已用反例實測），所以本 Change 直接刪掉 `CONTRIBUTING.md` 裡那一行；原始碼不得出現 issue 編號，在 `src/` 找不到任何一次違規，唯一一次事故發生在 Blueprint 的 MDX，ESLint 讀不到，所以留在散文，交給 `reviewer-standards-split` 歸類。
-- **不在範圍內** —— 在 hook 裡跑 typecheck 或測試。那由 `pnpm verify`、`pnpm verify:all` 與 CI 的 static job 承擔。
+- 從 `CONTRIBUTING.md` 與 `WORKFLOW.md` 刪掉每一條已被新檢查涵蓋的規則，包含 commit type 對照表（改成一行指向 commitlint 設定的指標），以及 `CONTRIBUTING.md` 裡「絕對匯入走 `@/*`」那一行（`tsc` 已擋）。
+- **不在範圍內** —— ESLint 規則：`@/*` 已由 `tsc` 擋下，issue 編號在 `src/` 沒有違規紀錄（依據見 References）。
 
 ## 行為契約
 
@@ -95,7 +89,7 @@ trailer 尤其關鍵：它是 Archive 與 review 都仰賴的 slice 對 commit �
 
 ## 順序
 
-四個之中排第二。`standalone-decision-records` 已經落地，本 Change 的決策記錄用它的新模型寫成 `0055`–`0057`。
+剩下三個之中排第一。`standalone-decision-records` 已經落地，本 Change 的決策記錄用它的新模型寫成 `0055`–`0057`。
 
 與 `reviewer-standards-split` **有**檔案重疊：兩者都會動 `WORKFLOW.md` 與 `CONTRIBUTING.md`。重疊是可分離的——本 Change 只從這兩份檔案**刪掉**已被工具涵蓋的規則，`reviewer-standards-split` 才搬動剩下的判斷型規則；先刪後搬，後者才知道自己要搬的是哪些。仍需序列化，本 Change 先落地。
 
@@ -118,4 +112,5 @@ trailer 尤其關鍵：它是 Archive 與 review 都仰賴的 slice 對 commit �
 | [husky 的 `index.js`](https://raw.githubusercontent.com/typicode/husky/main/index.js)，加上在玩具 repo 的實測 | `core.hooksPath` 是相對路徑、寫在共用的 `.git/config`，所以每個 worktree 都相對自己的根目錄解析；新建的 worktree 在 `pnpm install` 重建被 gitignore 的 `.husky/_` 之前不跑 hook，而且靜默失敗。 | **高**。讀原始碼後再實測。它推翻了「hook 碰不到 agent worktree」這個先前的判斷。 |
 | commitlint 文件 | `trailer-exists` 一次只接受一個 trailer 且不驗證其值，一個專案也只能有一支 local plugin。 | **高**。硬性限制，也是 trailer 與 attribution 兩項檢查共用一支 plugin 的原因。 |
 | 本 repo 自 2026-08-11 第一個 `Blueprint-Change` trailer 以來併入 `dev` 的分支 | 9 個 `fix/`、4 個 `refactor/` 分支沒有 trailer，8 個 `fix/`、3 個 `feat/` 分支是 Change；分支前綴目前分辨不出 Change，這是 Fix path 改用 `hotfix/` 的依據。 | **高**。在本 repo 清點。 |
+| 本 repo 的 `tsconfig.json` 與 `src/`，2026-09-23 實測 | 沒有 `baseUrl`，一個 `from "src/..."` 的反例報 TS2307，所以 `@/*` 規則已由 `tsc` 執行；`src/` 沒有任何 issue 編號，唯一一次事故（`6ed9b1c20`）發生在 Blueprint 的 MDX，ESLint 讀不到。這是撤掉兩條 ESLint 規則的依據。 | **高**。反例實測與全樹搜尋。 |
 | 本 repo 最近 400 個非 merge commit | 36 個不同 scope，其中 15 個只用過一次，22 個 commit 沒有 scope；約 75% 的 scope 能對應到 capability ID，而用量最大的 `blueprint`（146 次）多半指的是交付工具本身，不是產品能力。 | **高**。在本 repo 清點，也是現階段否決 scope enum 的依據。 |
