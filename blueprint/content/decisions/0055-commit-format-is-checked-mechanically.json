@@ -3,9 +3,7 @@
   "schemaVersion": 2,
   "id": "0055",
   "title": "Commit format is checked mechanically, and scope stays open",
-  "capabilities": [
-    "platform/delivery-workflow"
-  ],
+  "capabilities": ["platform/delivery-workflow"],
   "context": "Commit type, scope, body and trailer rules are written in CONTRIBUTING.md and WORKFLOW.md and enforced by nobody. During two-gate-workflow, code review found commits with no body, a tool name used as scope, a missing trailer and a wrong type, and four commit messages were rewritten by rebase at the end. Trailers are the machine-readable mapping from slice to commit that Archive and review both depend on, so a missing trailer is a hole in delivery evidence rather than a style slip. Across the last 400 non-merge commits there are 36 distinct scopes, 15 of them used once, and 22 commits with no scope at all.",
   "decision": "Commit messages are checked by commitlint: @commitlint/config-conventional as the base, body-empty set to never, and one local plugin covering what config-conventional cannot — that the required trailers are present and well formed, and that no AI attribution trailer appears. Scope is not an enum. It is checked only against a deny list for retired tool names. The checks run in a commit-msg hook locally and over the pull request's whole commit range in CI, so the hook gives immediate feedback and CI is the authority. CI checks pull requests into dev only: every commit reaching main has already been checked on its way into dev, and a dev-to-main range still carries history written before the rules existed. The Changesets release commit is written to pass the same rules, so the main-to-dev sync pull request needs no exemption. A rule that commitlint can express is deleted from the prose that currently states it.",
   "alternatives": [
