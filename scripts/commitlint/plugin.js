@@ -90,13 +90,18 @@ function stripDiffAndComments(rawMessage) {
   });
 }
 
+// Only attribution keys count: a Blueprint-Change slug or a Refs value
+// may legitimately contain an assistant's name.
+const ATTRIBUTION_TRAILERS = new Set(["co-authored-by", "generated-by"]);
+// Anchored at line start (after any emoji), so prose quoting the rule passes.
+const GENERATED_LINE = /^\W*generated[\s-](with|by)\b/i;
+
 export function evaluateAiAttribution(message) {
   const raw = message ?? "";
 
   for (const [key, values] of parseTrailers(raw)) {
-    const named = values.find(
-      (value) => namesAiAssistant(key) || namesAiAssistant(value),
-    );
+    if (!ATTRIBUTION_TRAILERS.has(key.toLowerCase())) continue;
+    const named = values.find(namesAiAssistant);
     if (named) {
       return {
         ok: false,
@@ -107,9 +112,7 @@ export function evaluateAiAttribution(message) {
 
   const generatedLine = stripDiffAndComments(raw)
     .split("\n")
-    .find(
-      (line) => /generated[\s-](with|by)/i.test(line) && namesAiAssistant(line),
-    );
+    .find((line) => GENERATED_LINE.test(line) && namesAiAssistant(line));
   if (generatedLine) {
     return {
       ok: false,
