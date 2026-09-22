@@ -13,6 +13,9 @@ concurrency:
   group: changesets-${{ github.ref }}
   cancel-in-progress: false # half a written release PR is worse than a slow one
 
+env:
+  HUSKY: 0
+
 jobs:
   release:
     name: Release

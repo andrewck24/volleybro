@@ -34,6 +34,9 @@ concurrency:
   group: chromatic-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: 0
+
 jobs:
   chromatic:
     name: Chromatic
