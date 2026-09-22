@@ -70,6 +70,37 @@ function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
   if (!page) notFound();
 }
 
+// A Change page's body is MDX pulled from the shared `blueprint-changes`
+// store branch, published at its own gate — before this checkout, so it can
+// reference a record, prop, or schema this branch does not have yet. A React
+// error boundary placed around `<Mdx/>` does not stop such a throw from
+// failing `next build`'s static export: verified empirically (with a Client
+// Component boundary in place, `getDerivedStateFromError` was never called
+// and the export still failed the whole build). `next build --webpack`'s
+// export worker treats any component throw as fatal to that route, whether
+// or not a descendant boundary would normally recover from it — Next has no
+// server left at request time, under `output: "export"`, to fall back to.
+// Calling the compiled MDX function directly, instead of returning it as
+// JSX, does work: it runs the page body's own top-level code on this call
+// stack, so a plain try/catch here is what actually stands between a broken
+// page and the rest of the export.
+function renderChangeBody(
+  Mdx: NonNullable<NonNullable<SourcePage>["data"]["body"]>,
+  title: string,
+) {
+  try {
+    return Mdx({ components: mdxComponents });
+  } catch (error) {
+    console.error(`Change page "${title}" failed to render:`, error);
+    return (
+      <p className="text-sm text-destructive">
+        此頁面（{title}）在此 checkout 中無法顯示：
+        {error instanceof Error ? error.message : String(error)}
+      </p>
+    );
+  }
+}
+
 function ChangesIndex() {
   const changes = listChanges();
   return (
@@ -217,7 +248,7 @@ export default async function Page({ params }: PageProps) {
       >
         <DocsBody>
           <h1>{page?.data.title ?? slug[0]}</h1>
-          {Mdx && <Mdx components={mdxComponents} />}
+          {Mdx && renderChangeBody(Mdx, page?.data.title ?? slug[0])}
           {Mockup && <Mockup />}
         </DocsBody>
       </DocsPage>

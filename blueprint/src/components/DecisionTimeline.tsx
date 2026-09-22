@@ -7,7 +7,10 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { parseDecisionRecord } from "@/lib/decision-record";
+import {
+  parseDecisionRecord,
+  type DecisionRecord,
+} from "@/lib/decision-record";
 import { useIsLegacyDecisions } from "@/legacy/legacy-decisions-context";
 import { upconvertLegacyDecisionRecord } from "@/legacy/legacy-decision-record";
 
@@ -20,20 +23,59 @@ function decisionKey(record: { id: string; originChange?: string }) {
     : record.id;
 }
 
-export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
+type DecisionEntry =
+  | { ok: true; record: DecisionRecord }
+  | { ok: false; key: string; message: string };
+
+// A Change page's records can come from another checkout (an unmerged
+// Proposal, a scratch draft) — one bad record must not blank the whole
+// timeline, so each is parsed on its own and a failure becomes an entry
+// instead of a throw.
+function parseEntry(
+  decision: unknown,
+  isLegacy: boolean,
+  index: number,
+): DecisionEntry {
+  try {
+    return {
+      ok: true,
+      record: parseDecisionRecord(
+        isLegacy ? upconvertLegacyDecisionRecord(decision) : decision,
+      ),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      key: `invalid-${index}`,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
   const isLegacy = useIsLegacyDecisions();
-  const records = decisions.map((decision) =>
-    parseDecisionRecord(
-      isLegacy ? upconvertLegacyDecisionRecord(decision) : decision,
-    ),
+  const entries = (decisions ?? []).map((decision, index) =>
+    parseEntry(decision, isLegacy, index),
   );
 
-  if (records.length === 0) return null;
+  if (entries.length === 0) return null;
+
+  const defaultOpen = entries
+    .filter((entry): entry is Extract<DecisionEntry, { ok: true }> => entry.ok)
+    .map((entry) => decisionKey(entry.record));
 
   return (
     <div className="not-prose relative my-6 pl-8 before:absolute before:inset-y-3 before:left-3 before:w-px before:bg-border">
-      <Accordion type="multiple" defaultValue={records.map(decisionKey)}>
-        {records.map((record) => {
+      <Accordion type="multiple" defaultValue={defaultOpen}>
+        {entries.map((entry) => {
+          if (!entry.ok) {
+            return (
+              <p key={entry.key} className="text-sm text-destructive">
+                此筆 decision record 無法顯示：{entry.message}
+              </p>
+            );
+          }
+          const record = entry.record;
           return (
             <AccordionItem
               key={decisionKey(record)}
