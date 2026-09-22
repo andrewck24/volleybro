@@ -5,11 +5,7 @@ import localPlugin from "./scripts/commitlint/plugin.js";
 // replaced.
 const RETIRED_TOOL_SCOPES = ["spectra", "openspec", "spec-kit", "bmad"];
 
-// commitlint's own defaultIgnores exempts revert/fixup!/squash! commits from
-// every rule, including the trailer one. A revert keeps no exemption — it is
-// written revert: <subject> with a body and trailer like any other commit.
-// fixup!/squash! stay exempt locally so autosquash works, but not in CI:
-// they must be squashed before a pull request merges.
+// Revert/fixup!/squash! handling: see ADR-0055's consequences.
 const MERGE_COMMIT = /^Merge (pull request|branch|remote-tracking branch) /;
 const AUTOSQUASH_COMMIT = /^(fixup|squash)!/;
 

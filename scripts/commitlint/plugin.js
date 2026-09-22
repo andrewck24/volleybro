@@ -93,20 +93,22 @@ function stripDiffAndComments(rawMessage) {
 export function evaluateAiAttribution(message) {
   const raw = message ?? "";
 
-  const aiCoAuthor = (parseTrailers(raw).get("co-authored-by") ?? []).find(
-    namesAiAssistant,
-  );
-  if (aiCoAuthor) {
-    return {
-      ok: false,
-      message: `commit carries a Co-Authored-By trailer naming an AI assistant ("${aiCoAuthor}"); AI attribution is not allowed in commit messages.`,
-    };
+  for (const [key, values] of parseTrailers(raw)) {
+    const named = values.find(
+      (value) => namesAiAssistant(key) || namesAiAssistant(value),
+    );
+    if (named) {
+      return {
+        ok: false,
+        message: `commit carries a "${key}" trailer naming an AI assistant ("${named}"); AI attribution is not allowed in commit messages.`,
+      };
+    }
   }
 
   const generatedLine = stripDiffAndComments(raw)
     .split("\n")
     .find(
-      (line) => /generated (with|by)/i.test(line) && namesAiAssistant(line),
+      (line) => /generated[\s-](with|by)/i.test(line) && namesAiAssistant(line),
     );
   if (generatedLine) {
     return {
