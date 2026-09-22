@@ -1,0 +1,42 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "D27",
+  "title": "request 驗證發生在 route 邊界，schema 住 src/interface/validations/",
+  "capabilities": [
+    "platform/clean-architecture"
+  ],
+  "decision": "request body 以 `Schema.parse(await req.json())` 在 route handler 內驗證，`ZodError` 交給既有的 `withErrorHandler` 轉成帶 `issues` 的 400——與 `assertObjectId` 同位置、同機制，同一個請求的合法性檢查不分家。schema 定義集中在 `src/interface/validations/`，`game.ts` 新增，`team.ts` 與 `player.ts` 由 `src/lib/validations/` 搬入，11 個 importer 一併更新。route 檔內 inline 的兩個與 controller 內的一個全部收斂進來。選 `src/interface/` 而非留在 `src/lib/` 的理由是後者同時裝著三個層的程式碼，路徑無法作為層的訊號；`interface/` 讓相依方向可讀，也讓未來的 import 邊界規則有立足點。這是**過渡狀態**：終局是 controller 成為 interface adapter 並接手 mapping 與 parse，由 `api-route-restructure` 承接。兩者的差別只是 `.parse()` 的呼叫位置——controller 與 schema 同層，**schema 檔案不需要再搬第二次**。",
+  "context": "全 repo 14 個吃 request body 的 handler 裡，team 與 player 的九個全部會 parse，game 的五個一個都不會。但「補上 game」只是一半的問題：既有的九個把 schema 放在三個不同的層——`src/lib/validations/`（多數）、route 檔內 inline（`CreateTeamSchema`、`PatchInvitationSchema`）、controller 內（`UpdateProfileRequestSchema`）。三套都在跑，沒有一套可以被指為「這個 repo 的做法」，所以下一個人會再選一次，而 game 會成為第四種。驗證發生的層也分裂：多數在 route，profiles 在 controller，且它用 `safeParse` 加手寫的 `ValidationError` 包裝，產生的結果與 `withErrorHandler` 對 `ZodError` 的既有處理完全相同——那是一段沒人回頭刪的重複實作，不是一個做法。教科書的 Clean Architecture 會把 transport 驗證放進 interface adapter，聽起來支持 controller；但這個 repo 的 15 個 controller 全部是 4 行的 DI lookup shim，零格式轉換，真正的轉換工作（`searchParams` 解析、`assertObjectId`、組 input DTO）全在 route 檔裡。`docs/testing-strategy.md` 也明文把 route-layer request mapping 列為 route 的職責。更關鍵的是 path param 那一半已經定案：`api-objectid-validation` spec 要求 `assertObjectId` 是 `props.params` 之後的第一個 statement，並明確禁止 per-handler 的 catch。",
+  "alternatives": [
+    {
+      "option": "驗證放在 controller 層，比照 `profile.controller.ts`",
+      "reason": "在這個 repo 等於把內容塞進一個空殼。15 個 controller 有 14 個是純 DI lookup，唯一有內容的就是那段與 `withErrorHandler` 重複的 `safeParse`。而且 path param 的驗證已被 spec 釘在 route 第一行，body 跑到 controller 會讓同一個請求的 400 有兩個來源。controller 層驗證宣稱的好處是「不管誰呼叫都會驗」，但每個 controller 的唯一呼叫端就是它的 route。"
+    },
+    {
+      "option": "新增 `withValidation` wrapper，比照 `withAuth` 把 schema 當參數包起來",
+      "reason": "`withAuth` 能包是因為它對所有 route 做同一件事。每條 route 要傳不同 schema，而 game 這五條的 body 還與 searchParams（`si`、`ei`）耦合，wrapper 得多開一個口子把 params 傳進去。它會成為第四種做法而不是收斂。8 條路由各一行 `.parse()` 比一個要處理 params 耦合的泛型 wrapper 好讀。"
+    },
+    {
+      "option": "只新增 `src/lib/validations/game.ts`，不搬既有兩個檔案",
+      "reason": "diff 最小，但本 Change 的主要成果當天失效：schema 仍在兩個位置，新的那個只有一個檔案，選擇權又交還給下一個人。"
+    },
+    {
+      "option": "先做終局：直接把 mapping 與 parse 移進 controller",
+      "reason": "會動全部 14 個 handler 與 15 個 controller，並牴觸一份已封存的 spec。把「game 五條路由沒有任何 request 驗證」這個止血，綁在一個跨 29 個檔案的分層重構後面。"
+    }
+  ],
+  "consequences": [
+    "game 的五條寫入路由從此在邊界回 400，而不是讓非法值一路穿到儲存層才以 `CastError` 或 `TypeError` 失敗。",
+    "repo 有一套可指認的 request 驗證慣例，第四種做法不會憑空出現。",
+    "`src/lib/` 少掉一層混雜（validations），但 `lib/api/`、`lib/features/`、`lib/auth`、`lib/scoring-moves.ts` 仍在，路徑要成為可靠的層訊號還需要後續工作，import 邊界的 lint 規則因此仍無立足點。",
+    "終局落地時 schema 檔案不動，只有 `.parse()` 的呼叫點從 route 移入 controller。",
+    "`docs/specs/api-objectid-validation/spec.md` 的 `@trace` 會指向搬走的 `lib/validations/team.ts`。該檔是不可變的歷史快照，不得修改；path param 的現行知識改由 Blueprint 承載。"
+  ],
+  "revisitTriggers": [
+    "controller 成為 interface adapter：`.parse()` 的呼叫點移入 controller，本記錄關於「發生在 route」的部分改寫，schema 位置不變。",
+    "出現第二種 delivery mechanism（Server Action、批次匯入、第二個 client）：邊界不再只有 HTTP route，屆時要重新確認「唯一入口」這個前提。",
+    "`src/lib/` 的層歸屬清理完成：import 邊界 lint 規則變得可表達，本記錄的「靠 review 把關」轉為工具強制。"
+  ],
+  "originChange": "request-schema-boundary"
+}

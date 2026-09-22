@@ -3,23 +3,23 @@ title: Persistence
 description: How a game reaches the database — domain operations addressed by identity, with the failure radius limited to the entry being written.
 ---
 
-import entriesAsSourceOfTruth from "./decisions/D4-entries-as-source-of-truth.json";
-import domainOperationRepository from "./decisions/D5-domain-operation-repository.json";
-import explicitSetCompletion from "./decisions/D7-explicit-set-completion.json";
-import entryIdentityUpsert from "./decisions/D10-entry-identity-upsert.json";
-import retryResponsibilitySplit from "./decisions/D11-retry-responsibility-split.json";
-import entryWriteResponseContract from "./decisions/D12-entry-write-response-contract.json";
-import pendingQueueSourceOfTruth from "./decisions/D13-pending-queue-source-of-truth.json";
-import storagePortBoundary from "./decisions/D14-storage-port-boundary.json";
-import persistedShape from "./decisions/D15-persisted-shape.json";
-import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
-import persistenceErrorLayering from "./decisions/D17-persistence-error-layering.json";
-import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
-import storageAvailabilityIsAFirstClassState from "./decisions/D20-storage-availability-is-a-first-class-state.json";
-import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
-import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
-import parsingBelongsAtTheBoundary from "./decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
-import awayKeepsTheTeamType from "./decisions/D31-away-keeps-the-team-type-with-optional-fields.json";
+import entriesAsSourceOfTruth from "../../../decisions/D4-entries-as-source-of-truth.json";
+import domainOperationRepository from "../../../decisions/D5-domain-operation-repository.json";
+import explicitSetCompletion from "../../../decisions/D7-explicit-set-completion.json";
+import entryIdentityUpsert from "../../../decisions/D10-entry-identity-upsert.json";
+import retryResponsibilitySplit from "../../../decisions/D11-retry-responsibility-split.json";
+import entryWriteResponseContract from "../../../decisions/D12-entry-write-response-contract.json";
+import pendingQueueSourceOfTruth from "../../../decisions/D13-pending-queue-source-of-truth.json";
+import storagePortBoundary from "../../../decisions/D14-storage-port-boundary.json";
+import persistedShape from "../../../decisions/D15-persisted-shape.json";
+import flushStaysGameScoped from "../../../decisions/D16-flush-stays-game-scoped.json";
+import persistenceErrorLayering from "../../../decisions/D17-persistence-error-layering.json";
+import warningTracksUnrecoverableLoss from "../../../decisions/D19-warning-tracks-unrecoverable-loss.json";
+import storageAvailabilityIsAFirstClassState from "../../../decisions/D20-storage-availability-is-a-first-class-state.json";
+import mergeMirrorsUpsert from "../../../decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
+import entityValidatorGuardsTheWrite from "../../../decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
+import parsingBelongsAtTheBoundary from "../../../decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
+import awayKeepsTheTeamType from "../../../decisions/D31-away-keeps-the-team-type-with-optional-fields.json";
 
 The repository speaks in domain operations, not in documents. Recording a rally
 appends one entry; it does not rewrite the game.

@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "D49",
+  "title": "originDecision is deleted, originChange keeps its name",
+  "capabilities": [
+    "platform/blueprint"
+  ],
+  "decision": "Delete originDecision from the schema, the validator and all 45 records. Keep originChange, unrenamed and optional: it is the surviving trace back to the branch, pull request and discussion that produced a decision, filled when the decision was made during a Change's Discuss and left empty when it was not.",
+  "context": "originChange and originDecision together record where a record sat before it was promoted. They exist only because promotion crossed two numbering namespaces: D3 on a Proposal page and a global Feature number were different coordinates for the same record. All 45 records carry both fields. With one namespace left, originDecision can never be written again by any new record — there is no second number to map to. Its only remaining use is finding a promoted record's number on its origin Proposal page, and the largest single Change produced five decisions, so matching by title recovers that from the store branch. Deleting it is not free of work but it is free of extra work: additionalProperties is false, so the field has to leave the 45 files in the same pass that flattens and renames them.",
+  "alternatives": [
+    {
+      "option": "Keep originDecision in the schema marked legacy-only",
+      "reason": "A field no new record can ever write is sediment; readers have to learn it to discover it does not apply to them."
+    },
+    {
+      "option": "Rename originChange to origin",
+      "reason": "origin already means the remote in a repository whose documents talk constantly about branches and pushes, and the name would read as wider than the value, which the schema pattern restricts to a kebab-case Change slug. If a record ever needs a non-Change origin the value's shape changes too, so the rename would not have prepared for it."
+    }
+  ],
+  "consequences": [
+    "The schema goes from thirteen properties to twelve; required goes from nine to five.",
+    "Recovering which decision of a Change a record was requires matching titles against the published Proposal page on the store branch."
+  ],
+  "revisitTriggers": [
+    "A decision needs to record an origin that is not a Change, such as a tracker issue or an incident."
+  ]
+}

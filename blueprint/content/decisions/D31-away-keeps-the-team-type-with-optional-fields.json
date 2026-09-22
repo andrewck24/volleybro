@@ -1,0 +1,43 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "D31",
+  "title": "對手沿用同一個 Team 型別並把欄位改為選填，不拆成獨立的窄型別",
+  "capabilities": [
+    "game-recording/persistence"
+  ],
+  "decision": "在**同一個 `Team` 型別**上把 `id` / `players` / `staffs` 改為選填，不拆成獨立的窄型別。理由是終局為收斂而非分歧：對手今天只是一個使用者輸入的名稱，因為還沒有機制去解析對手隊伍——不是因為對手在本質上不是隊伍。隊伍查詢與資料分享能力上線後，away 會承載與 home 幾乎相同的結構，屆時只是把選填欄位填滿；拆成兩個型別之後還得合併回來。同時整個移除 `Match.weather`：它宣告為 `{ temperature: number }`，而 client 永遠送 `{ temperature: \"\" }`（表單初始值是全 repo 唯一的寫入處），**沒有任何 UI 讀取或顯示它**。刪除涵蓋 `entities/game.ts`、mongoose schema 的 interface 與 schema 定義、client 的兩個 response/form schema，以及表單初始值共六處。既有 game 文件裡的 `weather` 資料不會被破壞，只是讀取時不再映射。",
+  "context": "替 `POST /api/games` 寫 schema 時發現一個型別謊言。`src/entities/game.ts` 的 `Team` 宣告 `id`、`players`、`staffs` 皆必填，但 app 自己的表單只送 `home: { id, name, players, lineup }` 與 `away: { name }`——away 缺三個必填欄位，home 缺 `staffs`。而 `teamSchema` 沒有 `{ _id: false }`，所以 mongoose 替 away 自動生成一個宣告為 `ref: \"Team\"`、卻不指向任何 Team 的 `_id`。忠實依照型別撰寫的 schema 會拒絕 app 自己的建立比賽請求；依照實際 payload 撰寫則編不過，因為 `z.infer` 出來的 `{ id?: string }` 不能指派給 `{ id: string }`，得加 cast——而 cast 正是這類問題的來源。所以型別必須改。問題是怎麼改：把 away 拆成一個本來就沒有 id 的獨立窄型別，或是在同一個 `Team` 型別上把三個欄位改為選填。",
+  "alternatives": [
+    {
+      "option": "依 `Team` 型別嚴格驗證，改 client 讓 away 也送 `id` / `players` / `staffs`",
+      "reason": "走不通。away 是場外對手，沒有對應的 Team record，`id` 要填什麼？除非發明一個——而 mongoose 現在自動生成的那個假 `_id` 正是這條路的產物。"
+    },
+    {
+      "option": "schema 依實際 payload 標為選填，但不動 `Team` 型別，以 cast 銜接",
+      "reason": "編譯不過，除非加 cast。而在邊界 parse 的全部價值來自「parse 完之後的型別是可信的」；如果那個型別本身在說謊，加 schema 只是把謊言正式化。"
+    },
+    {
+      "option": "把 away 拆成獨立的 `OpponentTeam` 型別，只有 `name`",
+      "reason": "型別會更精確地描述今天，但描述錯了明天。對手取得真實身分之後兩個型別要合併，而合併期間所有讀 `teams.away` 的地方都得處理兩種形狀。選填欄位在同一個型別上，填滿的那天不需要任何遷移。"
+    },
+    {
+      "option": "保留 `Match.weather`，只把型別改成 `string` 以符合 client 送的東西",
+      "reason": "把一個沒有任何讀取端的欄位保留下來，並讓它的型別去遷就一個永遠是空字串的寫入。它不是型別錯，是一個沒有實作的欄位。"
+    }
+  ],
+  "consequences": [
+    "`Team` 型別與 app 實際送出的內容一致，`POST /api/games` 的 schema 不需要任何 cast。",
+    "所有讀 `teams.away.players` 或 `teams.away.id` 的地方必須處理 undefined。今天沒有這樣的讀取端（away 從來就沒有這些資料），但型別現在會強制未來的讀取端面對它。",
+    "mongoose 仍會替 away 自動生成 `_id`——本 Change 不動 `teamSchema` 的 `_id` 設定，因為改它會影響既有文件的讀取。那個假的 Team 參照仍然存在，由對手連結為真實隊伍的工作處理。",
+    "`Match.weather` 從型別、mongoose schema 與 client schema 中消失；重新加入時需要同時提供輸入與顯示，屬 Game Setup 多步驟重構的範圍。",
+    "`Team.staffs` 改為選填之後，比賽當下的職員快照仍然無人填寫。它的資料來源是 team 側的 officials 名單，屬另一張票。"
+  ],
+  "revisitTriggers": [
+    "對手可連結為真實 Team：選填欄位開始被填滿，屆時要決定它們是否轉回必填，以及未連結的對手如何表達。",
+    "`Match` 升格為獨立的 fixture 實體：fixture 天然有兩支真實隊伍，本記錄關於「away 只有名稱」的前提隨之消失。",
+    "出現第一個讀 `teams.away.players` 的功能（對戰統計、對手名單顯示）：屆時 undefined 的處理從型別義務變成真實的 UX 決定。",
+    "隨隊職員名單上線：`staffs` 取得資料來源，選填與否需要重新判斷。"
+  ],
+  "originChange": "request-schema-boundary"
+}

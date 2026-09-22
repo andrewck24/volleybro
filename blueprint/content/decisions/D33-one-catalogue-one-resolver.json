@@ -1,0 +1,39 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "D33",
+  "title": "One catalogue of user-facing strings, one total resolver",
+  "capabilities": [
+    "platform/error-handling"
+  ],
+  "decision": "One file holds every user-facing error string as a flat record of ErrorMessage objects with title and description. Keys are either a reason constant or one of four class-level constants — SESSION_EXPIRED, NETWORK_TIMEOUT, SERVER_ERROR, UNKNOWN — and the class-level keys are typed so a typo is a compile error rather than a silent fall-through. One resolver, resolveErrorDisplay(error: unknown): ErrorMessage, is a total function: an unrecognised key returns the UNKNOWN entry and never a server field. showErrorToast becomes the resolver plus a toast wrapper; the AlertDialog sites hold the resolved ErrorMessage and render both halves through one shared notice. Titles are stored per entry even where they repeat.",
+  "context": "Two functions decide what a user reads and they disagree. showErrorToast consults a reason map, returns early on 401 because a global handler owns that case, and always supplies a title from one of five inline literals. getErrorMessage never consults the map, has no 401 branch, and returns a bare string with no title concept. They are not two entry points to one decision: the three getErrorMessage call sites render into an AlertDialog that stays open after the failure, and the thirteen showErrorToast sites are transient notifications, three of which are read paths rather than mutations. What differs between them is whether to display at all, which belongs to the surface; what must not differ is what the failure says, which belongs to the reason. Today both differ, and the reason map covers 2 of 24 constants, so a zh-TW product renders English developer-facing English for almost every 4xx. Both halves of the current shape are specified rather than accidental: docs/specs/error-handling/spec.md requires components to map reasons \"using component-local zh-TW strings\", and carries a scenario stating that a reason with no mapped string SHALL display error.detail. The catalogue replaces the first and the total resolver removes the second.",
+  "alternatives": [
+    {
+      "option": "Two tables — class-level titles, reason-level descriptions — joined at display time",
+      "reason": "It avoids repeating a default title across roughly twenty entries, but it encodes 'title never varies by reason' as a structural rule. That is an observation about today's impoverished copy, not a constraint: 'no one can leave a team they own' deserves a better title than 'something went wrong'. Locking the shape would forbid the improvement this Change exists to enable, and it gives i18n two shapes to migrate instead of one."
+    },
+    {
+      "option": "Return ErrorMessage | null, where null means the global 401 handler owns this error",
+      "reason": "The dedup it buys is unobservable. The toast reducer keeps a limit of one and replaces rather than stacks, so a second toast carrying the identical SESSION_EXPIRED content is invisible. In exchange every call site gains a branch and the type carries a state that needs a comment to explain. A total function has neither."
+    },
+    {
+      "option": "Keep two functions with independent mappings, one per surface",
+      "reason": "Requires the same reason to be worded twice and lets the two drift — the same failure the schema work documents elsewhere in this repository. It also leaves reachability a property of reason and entry point together, which makes an exhaustiveness test meaningless."
+    }
+  ],
+  "consequences": [
+    "The repeated default title is deliberate. It makes each reason's title a visible, editable cell rather than one a class table decides silently.",
+    "An existing hole closes: a 401 raised during a dialog action currently shows the global toast, the English detail inline, and a redirect at once. With a total resolver the dialog shows the same session-expired message the toast does.",
+    "The toast inside handle401Redirect stays. It is the safety net for call sites that swallow their own errors, of which at least one exists.",
+    "The catalogue is already the shape of a message catalogue — a flat record keyed by stable constants — so i18n replaces its values in one file rather than hunting 88 files that carry hardcoded strings.",
+    "getErrorMessage is retired as a name. It returned more than a message and not every error has one.",
+    "This supersedes the \"API client and frontend error consumption\" requirement's component-local mapping and its fallback-to-detail scenario. Copy stops being component-local because a string repeated per component cannot be kept consistent or translated once."
+  ],
+  "revisitTriggers": [
+    "A third display surface appears — an inline form error, an error boundary — that does not route through the resolver. The single authority is gone the moment a surface decides for itself.",
+    "An i18n library is chosen whose API cannot be reached by replacing the catalogue's values, which would mean the shape needs to change rather than its contents.",
+    "A reason genuinely needs to display differently on two surfaces, which would mean the surface/reason split drawn here is in the wrong place."
+  ],
+  "originChange": "error-display-boundary"
+}
