@@ -96,21 +96,25 @@ jobs:
   # history written before these rules existed (see ADR-0055).
   commitlint:
     name: Commit messages
-    if: github.base_ref == 'dev'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        if: github.base_ref == 'dev'
         with:
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
+        if: github.base_ref == 'dev'
       - uses: actions/setup-node@v4
+        if: github.base_ref == 'dev'
         with:
           node-version-file: .nvmrc
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+        if: github.base_ref == 'dev'
 
       - run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+        if: github.base_ref == 'dev'
         env:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
 
@@ -132,9 +136,6 @@ jobs:
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
-            exit 1
-          fi
-          if [ "${{ needs.test.result == 'skipped' || needs.static.result == 'skipped' || needs.integration.result == 'skipped' || needs.blueprint.result == 'skipped' }}" = "true" ]; then
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
             exit 1
           fi
