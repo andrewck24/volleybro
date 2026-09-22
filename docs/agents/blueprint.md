@@ -21,6 +21,13 @@ records it wants by id and `DecisionTimeline` resolves whichever ones this check
 the rest; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a second editable
 source.
 
+Because those pages come from the store branch, any one of them can reference something this
+checkout lacks, and a Change page that cannot render must not take the build with it. The Change
+route calls a page body as a function and renders the thrown message in its place. A design mockup
+holds hooks, so it cannot be called that way; it renders in the browser behind an error boundary
+instead. Neither a boundary nor `error.tsx` helps during prerender — under `output: "export"` a
+throw there ends the build before React can catch it.
+
 ## Canonical current knowledge
 
 Blueprint Features describe the current and planned capability tree:
