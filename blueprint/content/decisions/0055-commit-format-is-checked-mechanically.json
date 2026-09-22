@@ -1,0 +1,42 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0055",
+  "title": "Commit format is checked mechanically, and scope stays open",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Commit type, scope, body and trailer rules are written in CONTRIBUTING.md and WORKFLOW.md and enforced by nobody. During two-gate-workflow, code review found commits with no body, a tool name used as scope, a missing trailer and a wrong type, and four commit messages were rewritten by rebase at the end. Trailers are the machine-readable mapping from slice to commit that Archive and review both depend on, so a missing trailer is a hole in delivery evidence rather than a style slip. Across the last 400 non-merge commits there are 36 distinct scopes, 15 of them used once, and 22 commits with no scope at all.",
+  "decision": "Commit messages are checked by commitlint: @commitlint/config-conventional as the base, body-empty set to never, and one local plugin covering what config-conventional cannot — that the required trailers are present and well formed, and that no AI attribution trailer appears. Scope is not an enum. It is checked only against a deny list for retired tool names. The checks run in a commit-msg hook locally and over the pull request's whole commit range in CI, so the hook gives immediate feedback and CI is the authority. CI checks pull requests into dev only: every commit reaching main has already been checked on its way into dev, and a dev-to-main range still carries history written before the rules existed. The Changesets release commit is written to pass the same rules, so the main-to-dev sync pull request needs no exemption. A rule that commitlint can express is deleted from the prose that currently states it.",
+  "alternatives": [
+    {
+      "option": "Generate the scope enum from the capability IDs under blueprint/content/features/",
+      "reason": "Features do not yet cover everything, the capability names themselves are not finally reviewed, and a new capability's first commit would need a scope that only its own not-yet-written Feature page could authorise — an ordering deadlock."
+    },
+    {
+      "option": "A hand-maintained scope enum",
+      "reason": "36 scopes with 15 singletons means the list is mostly exceptions, and every new area starts with a rejected commit."
+    },
+    {
+      "option": "Keep the human-readable type table in CONTRIBUTING.md beside the commitlint config",
+      "reason": "Two copies of a list drift; the config is the single source and the prose points at it."
+    },
+    {
+      "option": "Run commitlint on every pull request, including release pull requests into main",
+      "reason": "The first release after the rules land would fail on history that predates them, and every release would fail on the bot's `release: update versions` commit, which has neither a conventional type nor a body."
+    },
+    {
+      "option": "Exempt the Changesets bot's commits from the check",
+      "reason": "An exemption has to be recorded and maintained; writing the release commit to the rules removes the exception instead."
+    }
+  ],
+  "consequences": [
+    "A commit that would have been caught in review, or rewritten by rebase at the end, fails at the moment it is written.",
+    "Scope stays a free-form label, so the trailers plus type carry the machine-readable traceability.",
+    "commitlint is limited to one local plugin per project, so the trailer and attribution checks share one.",
+    "A revert is written as `revert: <subject>` with a body and the trailer, since git's default `Revert \"…\"` header has no conventional type; `fixup!` and `squash!` commits pass the local hook for autosquash but fail CI, so they are squashed before a pull request merges."
+  ],
+  "revisitTriggers": [
+    "The capability tree is finally reviewed and stable enough to generate a scope enum from.",
+    "Scope drift starts costing more than the enum would."
+  ],
+  "originChange": "commit-guardrails"
+}

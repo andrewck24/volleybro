@@ -13,6 +13,9 @@ concurrency:
   group: changesets-${{ github.ref }}
   cancel-in-progress: false # half a written release PR is worse than a slow one
 
+env:
+  HUSKY: 0
+
 jobs:
   release:
     name: Release
@@ -43,7 +46,11 @@ jobs:
         id: changesets
         with:
           version: pnpm run release:version
-          commit: "release: update versions"
+          commit: |
+            chore(release): update versions
+
+            Automated version bump: package.json version, CHANGELOG.md entries, and
+            consumed changeset deletions, from the pending changesets in .changeset/.
           title: "release: update versions"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

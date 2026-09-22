@@ -1,0 +1,33 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0057",
+  "title": "A Change branch is known by its name, and the Fix path gets a prefix of its own",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "The trailer rule applies to Change commits only: a Fix-path commit must omit `Blueprint-Change`. So a commit-msg check has to know whether the commit belongs to a Change, and the commit message alone cannot tell it — a Change commit that forgot its trailer looks exactly like a Fix-path commit. The Change's own directory under `blueprint/content/changes/` is gitignored, so it is absent in a fresh worktree and in CI, and a check keyed on it would disagree between hook and CI. The branch name is the remaining signal, but `WORKFLOW.md` binds Change branches to `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` and gives the Fix path no name of its own. Of the branches merged into `dev` since the first `Blueprint-Change` trailer on 2026-08-11, nine `fix/` and four `refactor/` branches carried no trailer, beside eight `fix/` and three `feat/` branches that were Changes, so the prefix does not identify a Change today.",
+  "decision": "A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch, and every commit on it carries `Blueprint-Change: <slug>` with the same slug as the branch name. Fix-path work uses `hotfix/<slug>` whatever its commit type, including docs, config and refactors. Any other branch — `dev`, `hotfix/*`, `chore/*`, `docs/*`, an agent's `claude/*` worktree branch — has no trailer requirement. Outside `hotfix/*`, where the Fix path forbids it, a trailer is still allowed, as on the `docs/` follow-up branch that recorded work for an already-merged Change. The commit-msg hook reads the current branch name; when it cannot, as in a detached HEAD during a rebase, it skips the rule. CI reads the pull request's head branch name and applies the same rule to every commit in the range, so CI remains the authority.",
+  "alternatives": [
+    {
+      "option": "Treat a branch as a Change branch when `blueprint/content/changes/<slug>/` exists",
+      "reason": "The directory is gitignored. It is missing in a fresh worktree and in CI, so the hook and CI would reach opposite verdicts on the same commit."
+    },
+    {
+      "option": "Check the message alone: require `Blueprint-Change` whenever `Implements` or `Migration` is present",
+      "reason": "It misses a Change commit that carries no trailer at all, which is the failure that forced the rebase rewrite during two-gate-workflow."
+    },
+    {
+      "option": "Keep the current prefixes and give Change branches a distinct one instead, such as `change/<slug>`",
+      "reason": "A Change pushed to a habitual `feat/` branch would silently skip the check in both hook and CI. With the Fix path moved, the habitual mistake — Fix-path work on `fix/` — is rejected loudly at the first commit."
+    }
+  ],
+  "consequences": [
+    "The value of the trailer is checked, not only its presence, so a mistyped slug is rejected; commitlint's `trailer-exists` cannot do this, so the check lives in the one local plugin.",
+    "Fix-path work on a `fix/` or `refactor/` branch out of habit is rejected at its first commit, which is the intended way the new prefix is learned.",
+    "A Change commit made on an arbitrarily named branch, such as an agent worktree, passes the hook and is caught by CI once the commits reach the Change branch's pull request."
+  ],
+  "revisitTriggers": [
+    "Change branches start being created under a name that does not carry the slug.",
+    "The Fix path is merged into the Change path or removed."
+  ],
+  "originChange": "commit-guardrails"
+}
