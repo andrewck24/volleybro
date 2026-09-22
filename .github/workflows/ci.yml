@@ -91,9 +91,7 @@ jobs:
       - run: pnpm --filter blueprint test
       - run: pnpm --filter blueprint build
 
-  # Only pull requests into dev: every commit reaching main was already
-  # checked on its way into dev, and a dev-to-main range still carries
-  # history written before these rules existed (see ADR-0055).
+  # Pull requests into dev only; see ADR-0055.
   commitlint:
     name: Commit messages
     runs-on: ubuntu-latest

@@ -100,7 +100,7 @@ export function evaluateAiAttribution(message) {
   const raw = message ?? "";
 
   for (const [key, values] of parseTrailers(raw)) {
-    if (!ATTRIBUTION_TRAILERS.has(key.toLowerCase())) continue;
+    if (!ATTRIBUTION_TRAILERS.has(key)) continue;
     const named = values.find(namesAiAssistant);
     if (named) {
       return {
