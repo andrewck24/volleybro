@@ -27,7 +27,7 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 <type>(<scope>): <short description>
 ```
 
-**Types:** the allowed types, and every other mechanical rule (non-empty body, no AI attribution, no retired tool name as scope), are enforced by [`commitlint.config.js`](./commitlint.config.js) — that file is the single source, not this list.
+**Types:** the allowed types come from [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional), which [`commitlint.config.js`](./commitlint.config.js) extends and adds the rest of the mechanical rules to (non-empty body, trailers, no AI attribution, no retired tool name as scope) — that file is the single source, not this list.
 
 **Examples:**
 
@@ -42,7 +42,7 @@ perf(game): reduce rally list re-renders with memoization
 style(components): apply prettier formatting to team directory
 ```
 
-**Body:** the body explains _why_; what changed is supporting context the diff already shows. A tooling name is never the type or the scope — the scope deny list only catches the retired ones by name, so this is still a judgment call for the rest.
+**Body:** the body explains _why_; what changed is supporting context the diff already shows. A tooling name is never the type or the scope.
 
 **Trailers:** every Change commit carries a `Blueprint-Change: <slug>` trailer; a commit on a `feat/`, `fix/`, or `refactor/` branch that omits it, or names a different slug, is rejected by the commit-msg hook (see `WORKFLOW.md`'s Fix path for what "Change branch" means). A slice commit also carries `Implements: S0X`, which together are the canonical slice-to-commit mapping (see `WORKFLOW.md`'s Apply section); the slice ID comes from the matching Linear sub-issue. A one-session Change that skips slices omits `Implements` and keeps only `Blueprint-Change`. A Migration Change shard's commit also carries a `Migration: <migration-slug>` trailer, referencing its Migration Proposal. A Fix-path commit (on a `hotfix/<slug>` branch — see `WORKFLOW.md`'s Fix path) carries `Refs: <tracker issue>` instead when the fix came from a tracker issue, and no reference trailer when it did not; either way it omits `Implements` and `Blueprint-Change` — a tracker issue ID belongs in a commit trailer or a pull-request body, never in source. Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
 
