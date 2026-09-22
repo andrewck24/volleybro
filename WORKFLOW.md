@@ -39,6 +39,7 @@ acceptance. Provider instruction files are bridges only.
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Integration branch and default PR base | `dev`                                                                                                                                                          |
 | Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                              |
+| Fix path branch                        | `hotfix/<slug>`, whatever the commit type                                                                                                                      |
 | Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                              |
 | Section gate                           | `pnpm verify`                                                                                                                                                  |
 | Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                  |
@@ -328,20 +329,25 @@ small to carry Proposal and Review pages.
    and writing down a decision that was already made but never recorded. Editing a record's
    `decision` body, or setting `supersededBy`, is a new judgement and crosses the line: it
    escalates to a normal Change with a G1.
-2. The agent proposes the fix path during intake; the developer confirms it once — on the tracker
+2. Fix-path work happens on a `hotfix/<slug>` branch, whatever the commit type — docs, config,
+   and refactor fixes included. It never uses `feat/`, `fix/`, or `refactor/`: those are Change
+   branch prefixes, and the commit-msg hook rejects a commit on one of them that carries no
+   `Blueprint-Change` trailer, so starting Fix-path work there out of habit fails loudly at the
+   first commit.
+3. The agent proposes the fix path during intake; the developer confirms it once — on the tracker
    issue when the fix came from one, or in the session when it did not.
-3. Kept: a failing test that reproduces the bug before the fix (when it is a bug), `pnpm verify:all`,
+4. Kept: a failing test that reproduces the bug before the fix (when it is a bug), `pnpm verify:all`,
    the two-axis code review with the issue as the spec, and a Changeset when applicable.
-4. Skipped: G1, the Proposal and Review pages, publishing, slices, and Archive promotion.
-5. The only human gate is the pull request: its body names the fix path and carries a short
+5. Skipped: G1, the Proposal and Review pages, publishing, slices, and Archive promotion.
+6. The only human gate is the pull request: its body names the fix path and carries a short
    verification summary; merging is acceptance.
-6. Escalate to a normal Change — write the Proposal, pass G1 — as soon as the fix needs a new
+7. Escalate to a normal Change — write the Proposal, pass G1 — as soon as the fix needs a new
    behavior contract, or Features turn out to describe the behavior wrongly, or the fix would edit
    a decision record's `decision` body or set its `supersededBy`.
-7. A Fix-path commit carries a `Refs: <tracker issue>` trailer when the fix came from a tracker
+8. A Fix-path commit carries a `Refs: <tracker issue>` trailer when the fix came from a tracker
    issue, and no reference trailer when it did not; either way it omits `Implements` and
    `Blueprint-Change`, and the body states what triggered the fix.
-8. A single-commit fix squashes into `dev` as usual. A multi-commit fix merges with a merge commit,
+9. A single-commit fix squashes into `dev` as usual. A multi-commit fix merges with a merge commit,
    the same as a normal Change; if it is squashed instead, the squash commit keeps whatever
    reference trailer the original commits carried.
 
