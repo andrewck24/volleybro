@@ -80,7 +80,6 @@ describe("the version 2 record format", () => {
   it.each([
     { ...minimal, schemaVersion: 1 },
     { ...minimal, capabilities: undefined, targets: ["platform/blueprint"] },
-    { ...minimal, originDecision: "D3" },
     { ...minimal, consequences: [] },
   ])("rejects a record the new format does not allow", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(

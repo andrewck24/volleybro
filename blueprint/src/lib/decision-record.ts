@@ -82,58 +82,80 @@ function isDecisionId(value: unknown): boolean {
   return isNonEmptyString(value) && ID_PATTERN.test(value);
 }
 
+// Everything both versions require of a record, once the version has said
+// which key holds the capability list.
+function hasValidBody(
+  record: Record<string, unknown>,
+  capabilities: unknown,
+): boolean {
+  return (
+    (record.$schema === undefined || typeof record.$schema === "string") &&
+    isDecisionId(record.id) &&
+    isNonEmptyString(record.title) &&
+    isStringArray(capabilities, {
+      nonEmpty: true,
+      pattern: CAPABILITY_PATTERN,
+      unique: true,
+    }) &&
+    isNonEmptyString(record.decision) &&
+    isOptional(record.context, isNonEmptyString) &&
+    isOptional(
+      record.alternatives,
+      (alternatives) =>
+        Array.isArray(alternatives) && alternatives.every(isAlternative),
+    ) &&
+    isOptional(record.consequences, (consequences) =>
+      isStringArray(consequences, { nonEmpty: true }),
+    ) &&
+    isOptional(record.revisitTriggers, (triggers) =>
+      isStringArray(triggers, { nonEmpty: true }),
+    ) &&
+    isOptional(
+      record.originChange,
+      (origin) => isNonEmptyString(origin) && CHANGE_SLUG_PATTERN.test(origin),
+    ) &&
+    isOptional(record.supersededBy, isDecisionId)
+  );
+}
+
+function hasOnlyKeys(
+  record: Record<string, unknown>,
+  allowed: Set<string>,
+): boolean {
+  return Object.keys(record).every((key) => allowed.has(key));
+}
+
 export function parseDecisionRecord(value: unknown): DecisionRecord {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("Decision record must contain an object");
   }
 
   const record = value as Record<string, unknown>;
-  const isVersion1 = record.schemaVersion === 1;
-  const allowed = isVersion1 ? VERSION_1_KEYS : ALLOWED_KEYS;
-  const capabilities = isVersion1 ? record.targets : record.capabilities;
+  const invalid = () =>
+    new Error(`Invalid decision record: ${String(record.id ?? "unknown")}`);
 
-  if (
-    Object.keys(record).some((key) => !allowed.has(key)) ||
-    (record.schemaVersion !== 2 && !isVersion1) ||
-    (record.$schema !== undefined && typeof record.$schema !== "string") ||
-    !isDecisionId(record.id) ||
-    !isNonEmptyString(record.title) ||
-    !isStringArray(capabilities, {
-      nonEmpty: true,
-      pattern: CAPABILITY_PATTERN,
-      unique: true,
-    }) ||
-    !isNonEmptyString(record.decision) ||
-    !isOptional(record.context, isNonEmptyString) ||
-    !isOptional(
-      record.alternatives,
-      (alternatives) =>
-        Array.isArray(alternatives) && alternatives.every(isAlternative),
-    ) ||
-    !isOptional(record.consequences, (consequences) =>
-      isStringArray(consequences, { nonEmpty: true }),
-    ) ||
-    !isOptional(record.revisitTriggers, (triggers) =>
-      isStringArray(triggers, { nonEmpty: true }),
-    ) ||
-    !isOptional(
-      record.originChange,
-      (origin) => isNonEmptyString(origin) && CHANGE_SLUG_PATTERN.test(origin),
-    ) ||
-    !isOptional(record.supersededBy, isDecisionId) ||
-    (isVersion1 && !isOptional(record.originDecision, isDecisionId))
-  ) {
-    throw new Error(
-      `Invalid decision record: ${String(record.id ?? "unknown")}`,
-    );
+  if (record.schemaVersion === 1) {
+    if (
+      !hasOnlyKeys(record, VERSION_1_KEYS) ||
+      !isOptional(record.originDecision, isDecisionId) ||
+      !hasValidBody(record, record.targets)
+    ) {
+      throw invalid();
+    }
+    const { targets, originDecision: _number, ...rest } = record;
+    return {
+      ...rest,
+      schemaVersion: 2,
+      capabilities: targets,
+    } as DecisionRecord;
   }
 
-  if (!isVersion1) return record as DecisionRecord;
-
-  const {
-    targets: _targets,
-    originDecision: _originDecision,
-    ...rest
-  } = record;
-  return { ...rest, schemaVersion: 2, capabilities } as DecisionRecord;
+  if (
+    record.schemaVersion !== 2 ||
+    !hasOnlyKeys(record, ALLOWED_KEYS) ||
+    !hasValidBody(record, record.capabilities)
+  ) {
+    throw invalid();
+  }
+  return record as DecisionRecord;
 }

@@ -28,6 +28,8 @@ export function DecisionTimeline({ decisions }: { decisions: unknown[] }) {
     ),
   );
 
+  if (records.length === 0) return null;
+
   return (
     <div className="not-prose relative my-6 pl-8 before:absolute before:inset-y-3 before:left-3 before:w-px before:bg-border">
       <Accordion type="multiple" defaultValue={records.map(decisionKey)}>
