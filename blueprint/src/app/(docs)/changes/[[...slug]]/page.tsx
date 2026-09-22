@@ -70,20 +70,13 @@ function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
   if (!page) notFound();
 }
 
-// A Change page's body is MDX pulled from the shared `blueprint-changes`
-// store branch, published at its own gate — before this checkout, so it can
-// reference a record, prop, or schema this branch does not have yet. A React
-// error boundary placed around `<Mdx/>` does not stop such a throw from
-// failing `next build`'s static export: verified empirically (with a Client
-// Component boundary in place, `getDerivedStateFromError` was never called
-// and the export still failed the whole build). `next build --webpack`'s
-// export worker treats any component throw as fatal to that route, whether
-// or not a descendant boundary would normally recover from it — Next has no
-// server left at request time, under `output: "export"`, to fall back to.
-// Calling the compiled MDX function directly, instead of returning it as
-// JSX, does work: it runs the page body's own top-level code on this call
-// stack, so a plain try/catch here is what actually stands between a broken
-// page and the rest of the export.
+// A Change page's body is MDX pulled from the shared `blueprint-changes` store
+// branch, published at its own gate — so it can reference a record, prop or
+// schema this checkout does not have. A React error boundary does not catch
+// that: under `output: "export"` the export worker treats any throw as fatal to
+// the route, and `getDerivedStateFromError` never runs. Calling the compiled
+// body as a function puts its render on this call stack, where a try/catch can
+// reach it.
 function renderChangeBody(
   Mdx: NonNullable<NonNullable<SourcePage>["data"]["body"]>,
   title: string,
@@ -166,6 +159,10 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const mockup = designMockups[slug[0]];
     if (!page && !mockup) notFound();
     if (mockup) {
+      // Not routed through renderChangeBody: a mockup is TSX bundled in this
+      // checkout, not MDX pulled from the store branch, so it cannot carry the
+      // staleness that guard exists for — and calling a component that may hold
+      // hooks as a plain function would break it.
       const { default: Design, toc } = mockup;
       return (
         <LegacyShell
