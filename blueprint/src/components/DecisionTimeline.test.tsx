@@ -40,20 +40,25 @@ describe("DecisionTimeline", () => {
     expect(screen.getByText("Superseded by D45")).toBeInTheDocument();
   });
 
-  it("rejects schema-incompatible records", () => {
-    expect(() =>
-      render(
-        <DecisionTimeline decisions={[{ ...decision, status: "accepted" }]} />,
-      ),
-    ).toThrow("Invalid decision record: D1");
+  it("shows a note in place of a schema-incompatible record instead of throwing", () => {
+    render(
+      <DecisionTimeline decisions={[{ ...decision, status: "accepted" }]} />,
+    );
 
-    expect(() =>
-      render(
-        <DecisionTimeline
-          decisions={[{ ...decision, claimedBy: "worker-1" }]}
-        />,
-      ),
-    ).toThrow("Invalid decision record: D1");
+    expect(screen.getByText(/Invalid decision record: D1/)).toBeInTheDocument();
+  });
+
+  it("renders the records that parse alongside a note for the one that does not", () => {
+    const other = { ...decision, id: "D2", decision: "Use a second record." };
+    render(
+      <DecisionTimeline
+        decisions={[decision, { ...other, claimedBy: "worker-1" }]}
+      />,
+    );
+
+    expect(screen.getByText(decision.decision)).toBeInTheDocument();
+    expect(screen.getByText(/Invalid decision record: D2/)).toBeInTheDocument();
+    expect(screen.queryByText(other.decision)).not.toBeInTheDocument();
   });
 
   it("renders a legacy status-carrying record under LegacyDecisionsProvider", () => {
@@ -66,15 +71,27 @@ describe("DecisionTimeline", () => {
     expect(screen.getByText(decision.decision)).toBeInTheDocument();
   });
 
-  it("still rejects an unknown key other than status under LegacyDecisionsProvider", () => {
-    expect(() =>
-      render(
-        <LegacyDecisionsProvider>
-          <DecisionTimeline
-            decisions={[{ ...decision, claimedBy: "worker-1" }]}
-          />
-        </LegacyDecisionsProvider>,
-      ),
-    ).toThrow("Invalid decision record: D1");
+  it("renders nothing for a capability that names no decisions", () => {
+    const { container } = render(<DecisionTimeline decisions={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing when decisions is undefined", () => {
+    const { container } = render(<DecisionTimeline />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("still flags an unknown key other than status under LegacyDecisionsProvider", () => {
+    render(
+      <LegacyDecisionsProvider>
+        <DecisionTimeline
+          decisions={[{ ...decision, claimedBy: "worker-1" }]}
+        />
+      </LegacyDecisionsProvider>,
+    );
+
+    expect(screen.getByText(/Invalid decision record: D1/)).toBeInTheDocument();
   });
 });

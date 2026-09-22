@@ -3,11 +3,6 @@ title: Forms
 description: Where a submit button lives, how it shows progress, and the rules that keep validation ahead of any close or navigation.
 ---
 
-import { DecisionTimeline } from "@/components/DecisionTimeline";
-import theSubmitButtonBelongsToItsForm from "./decisions/D37-the-submit-button-belongs-to-its-form.json";
-import noGenericAsyncDialogAction from "./decisions/D38-no-generic-async-dialog-action.json";
-import theButtonStatesItsOwnProgress from "./decisions/D39-the-button-states-its-own-progress.json";
-
 Forms use React Hook Form through `Form` in `src/components/ui/form.tsx`, and `Button` from `src/components/ui/button.tsx`.
 
 ## Current behavior
@@ -27,16 +22,10 @@ Forms use React Hook Form through `Form` in `src/components/ui/form.tsx`, and `B
 ## Known gaps
 
 - The player edit page keeps its save button inside the basic-information section rather than in `DialogFooter`. The membership section's invite flow has its own `<form>`, and a boundary wrapping the footer would nest it. Moving membership management to the player's page, with its own dialogs, removes the exception.
-- `min-h-0 flex-1` is repeated on the four forms that wrap a dialog, so a change to `DialogContent`'s layout must update each; D38 explains why there is no shared wrapper.
+- `min-h-0 flex-1` is repeated on the four forms that wrap a dialog, so a change to `DialogContent`'s layout must update each; ADR-0038 explains why there is no shared wrapper.
 - The `type="button"` rule relies on people remembering it. Defaulting `Button` to `type="button"` would change `team/form.tsx`, which relies on the implicit submit.
 - `Button`'s `RiLoader4Line` and the `Spinner` in `src/components/ui/spinner.tsx` are two spinners in use.
 
 ## Implemented decisions
 
-<DecisionTimeline
-  decisions={[
-    theSubmitButtonBelongsToItsForm,
-    noGenericAsyncDialogAction,
-    theButtonStatesItsOwnProgress,
-  ]}
-/>
+<DecisionTimeline />

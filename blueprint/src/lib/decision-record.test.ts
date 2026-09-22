@@ -1,10 +1,10 @@
 import { parseDecisionRecord } from "./decision-record";
 
 const decision = {
-  schemaVersion: 1,
-  id: "D1",
+  schemaVersion: 2,
+  id: "0001",
   title: "Keep workflow repository-owned",
-  targets: ["platform/delivery-workflow"],
+  capabilities: ["platform/delivery-workflow"],
   context: "Manual delivery must remain possible.",
   decision: "Use a repository-owned workflow contract.",
   alternatives: [
@@ -23,16 +23,20 @@ describe("parseDecisionRecord", () => {
   });
 
   it("accepts a Feature decision that names its replacement", () => {
-    const superseded = { ...decision, supersededBy: "D45" };
+    const superseded = { ...decision, supersededBy: "0045" };
     expect(parseDecisionRecord(superseded)).toEqual(superseded);
   });
 
   it.each([
     { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
-    { ...decision, targets: ["platform/delivery", "platform/delivery"] },
-    { ...decision, targets: ["platform"] },
+    {
+      ...decision,
+      capabilities: ["platform/delivery", "platform/delivery"],
+    },
+    { ...decision, capabilities: ["platform"] },
     { ...decision, context: "" },
+    { ...decision, originDecision: "D3" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
     { ...decision, status: "accepted" },

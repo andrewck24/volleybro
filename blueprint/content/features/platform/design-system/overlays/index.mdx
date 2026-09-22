@@ -3,13 +3,6 @@ title: Overlays
 description: Who holds a dialog's open state, where its controls live, and how a dialog held by a route closes when its task is done.
 ---
 
-import { DecisionTimeline } from "@/components/DecisionTimeline";
-import openStateLivesWithTheDialogRoot from "./decisions/D36-open-state-lives-with-the-dialog-root.json";
-import theSubmitButtonBelongsToItsForm from "./decisions/D37-the-submit-button-belongs-to-its-form.json";
-import noGenericAsyncDialogAction from "./decisions/D38-no-generic-async-dialog-action.json";
-import theButtonStatesItsOwnProgress from "./decisions/D39-the-button-states-its-own-progress.json";
-import theHeaderOwnsItsControls from "./decisions/D40-the-header-owns-its-controls.json";
-
 Dialogs are built on Radix Dialog through `src/components/ui/dialog.tsx`. A dialog belongs either to a component, which holds its `open` state, or to a route, where the dialog is an intercepting route in the `@modal` slot and closing it means leaving the URL.
 
 ## Current behavior
@@ -38,12 +31,4 @@ Dialogs are built on Radix Dialog through `src/components/ui/dialog.tsx`. A dial
 
 ## Implemented decisions
 
-<DecisionTimeline
-  decisions={[
-    openStateLivesWithTheDialogRoot,
-    theSubmitButtonBelongsToItsForm,
-    noGenericAsyncDialogAction,
-    theButtonStatesItsOwnProgress,
-    theHeaderOwnsItsControls,
-  ]}
-/>
+<DecisionTimeline />

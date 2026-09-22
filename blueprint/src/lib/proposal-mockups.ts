@@ -7,7 +7,7 @@ interface RequireContext {
 }
 
 // content/changes is gitignored (Change pages are throwaway review
-// surfaces; see Feature D45) and usually absent on a fresh checkout.
+// surfaces; see ADR-0045) and usually absent on a fresh checkout.
 // Verified: webpack's require.context fails the build ("Module not found")
 // when the directory is entirely missing, so `dev`/`build` in package.json
 // `mkdir -p` it first.

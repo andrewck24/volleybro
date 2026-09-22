@@ -1,0 +1,40 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0041",
+  "title": "A member is a joined player, and Player's type splits by status",
+  "capabilities": ["team-management/membership", "team-management/roles"],
+  "decision": "Player stays one document, but the entity type becomes a union discriminated by status: UnlinkedPlayer (NONE, no userId, email or role), InvitedPlayer (INVITED, exactly one of userId or email, role is the one the invitation offered), and TeamMember (JOINED, has both userId and role). Membership is decided by isTeamMember, which looks only at whether status is JOINED; the role hierarchy is compared by hasTeamRole. Both are pure entity-layer functions. The repository narrows a document read from storage into one of the three on read, and a document that does not fit fails to narrow. AuthorizationService only looks the player up, calls these two functions, and throws an AuthorizationError when they do not pass.",
+  "context": "Player expressed three kinds of person at once — an unlinked player (NONE), an invitee (INVITED) and a member (JOINED) — but role could not tell them apart: create-player always wrote MEMBER for an unlinked player, leaving the team, declining and cancelling an invitation never cleared role, and inviting someone assigned role again. AuthorizationService's verifyTeamRole and verifyIsTeamAdmin looked only at role, and findByTeamIdAndUserId did not filter by status either, so an invitee who was invited first and registered later, and whose account got linked, passed every member check; someone invited as admin passed the admin check before accepting. transfer-ownership decided the new owner had joined by whether userId existed, which likewise accepted an invitee. The role-hierarchy comparison was duplicated once in each of the service's four methods.",
+  "alternatives": [
+    {
+      "option": "Keep Player flat, and decide membership as status JOINED with role present",
+      "reason": "role still existed on an unlinked player, so the check would only be working around it; the UI would still show a role for a player without an account, and the combination rules in validatePlayerStatus would still only be checked at runtime."
+    },
+    {
+      "option": "Split out a Membership entity and collection, and let Player represent only one row on the roster",
+      "reason": "A membership always corresponds to exactly one roster row, and one user has at most one player per team, so splitting them only adds a join and a two-sided sync problem; every player document would need splitting, and every use case that reads or writes a player would change. better-auth's organization plugin takes this shape, and its member must be bound to an account, which cannot express an unlinked player."
+    },
+    {
+      "option": "Add a status filter to the repository query",
+      "reason": "The rule would be hidden inside a query condition, and a call site that takes a Player and decides for itself (transfer-ownership) would still duplicate it, and it could not be tested without touching the database."
+    },
+    {
+      "option": "Treat an invitee as a member, restricted to some resources",
+      "reason": "This is effectively designing the relation model for privacy settings ahead of time. The developer decided an invitee is not a member for now, to be adjusted when privacy settings need it."
+    }
+  ],
+  "consequences": [
+    "An invitee fails every member or admin check before accepting the invitation, including write paths.",
+    "An unlinked player no longer carries a role, so the UI never shows a role for a player without an account.",
+    "The combination rules for status and fields are expressed by the types, so most of validatePlayerStatus's runtime checks are replaced at compile time.",
+    "An existing document that does not fit the new model fails to read, so the data must be backfilled before deploy (D44).",
+    "Existing verify call sites are unchanged in code, other than role management moving to the entity-level check; behavior is corrected as the definition changes with it, and the privacy-settings relation derivation is built on the same functions."
+  ],
+  "revisitTriggers": [
+    "A user needs more than one identity on the same team, or membership needs to exist independently of the roster (for example, a team manager who never takes the court).",
+    "Privacy settings need to open some resources to invitees.",
+    "Role stops being a linear hierarchy."
+  ],
+  "originChange": "team-membership-authorization"
+}

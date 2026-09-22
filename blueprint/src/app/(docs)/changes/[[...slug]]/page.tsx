@@ -13,7 +13,9 @@ import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
+import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
+import { MockupFrame } from "@/components/MockupFrame";
 import { isLegacySlug, loadChangeMetadata } from "@/legacy/change-catalog";
 import { changeArtifacts } from "@/legacy/change-artifacts";
 import { loadImplementationPlan } from "@/legacy/implementation-plan-loader";
@@ -22,6 +24,24 @@ import { ImplementationSlices } from "@/legacy/ImplementationSlices";
 import { designMockups } from "@/legacy/design-mockups";
 import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
+// The eighteen old-format Change pages on the store branch pass `decisions`
+// with records living inside their own Change directory; new-format pages
+// pass `ids` and let the build resolve whichever records this checkout has
+// (a Proposal page is published at a gate before its own records merge).
+function ChangeDecisionTimeline({
+  ids,
+  decisions,
+}: {
+  ids?: string[];
+  decisions?: unknown[];
+}) {
+  return (
+    <DecisionTimeline
+      decisions={ids ? decisionsById(ids) : (decisions ?? [])}
+    />
+  );
+}
+
 const mdxComponents = {
   ...defaultMdxComponents,
   TLDR,
@@ -29,7 +49,7 @@ const mdxComponents = {
   RiskTable,
   AnnotatedDiff,
   FileTour,
-  DecisionTimeline,
+  DecisionTimeline: ChangeDecisionTimeline,
   InteractiveFlowchart,
 };
 
@@ -49,6 +69,30 @@ type SourcePage = ReturnType<typeof source.getPage>;
 // render", even though this one is as stable as the property it wraps.
 function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
   if (!page) notFound();
+}
+
+// A Change page's body is MDX pulled from the shared `blueprint-changes` store
+// branch, published at its own gate — so it can reference a record, prop or
+// schema this checkout does not have. A React error boundary does not catch
+// that: under `output: "export"` the export worker treats any throw as fatal to
+// the route, and `getDerivedStateFromError` never runs. Calling the compiled
+// body as a function puts its render on this call stack, where a try/catch can
+// reach it.
+function renderChangeBody(
+  Mdx: NonNullable<NonNullable<SourcePage>["data"]["body"]>,
+  title: string,
+) {
+  try {
+    return Mdx({ components: mdxComponents });
+  } catch (error) {
+    console.error(`Change page "${title}" failed to render:`, error);
+    return (
+      <p className="text-sm text-destructive">
+        此頁面（{title}）在此 checkout 中無法顯示：
+        {error instanceof Error ? error.message : String(error)}
+      </p>
+    );
+  }
 }
 
 function ChangesIndex() {
@@ -95,7 +139,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
           lifecycle={change.lifecycle}
           artifacts={changeArtifacts(source.pageTree, page.url)}
         />
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
       </LegacyShell>
     );
   }
@@ -106,7 +150,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const slices = await loadImplementationPlan(slug[0]);
     return (
       <LegacyShell page={page}>
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
         <ImplementationSlices slices={slices} />
       </LegacyShell>
     );
@@ -116,6 +160,10 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const mockup = designMockups[slug[0]];
     if (!page && !mockup) notFound();
     if (mockup) {
+      // Isolated by MockupFrame rather than renderChangeBody: a mockup is
+      // pulled from the store branch like any other Change page and carries
+      // the same staleness, but every one of them holds hooks, so it cannot
+      // be called as a plain function.
       const { default: Design, toc } = mockup;
       return (
         <LegacyShell
@@ -123,7 +171,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
           toc={toc ?? page?.data.toc ?? []}
           title={page?.data.title ?? "Design"}
         >
-          <Design />
+          <MockupFrame Mockup={Design} />
         </LegacyShell>
       );
     }
@@ -131,7 +179,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const Mdx = page.data.body;
     return (
       <LegacyShell page={page}>
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
       </LegacyShell>
     );
   }
@@ -141,7 +189,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
   const Mdx = page.data.body;
   return (
     <LegacyShell page={page}>
-      <Mdx components={mdxComponents} />
+      {renderChangeBody(Mdx, page.data.title)}
     </LegacyShell>
   );
 }
@@ -198,8 +246,8 @@ export default async function Page({ params }: PageProps) {
       >
         <DocsBody>
           <h1>{page?.data.title ?? slug[0]}</h1>
-          {Mdx && <Mdx components={mdxComponents} />}
-          {Mockup && <Mockup />}
+          {Mdx && renderChangeBody(Mdx, page?.data.title ?? slug[0])}
+          {Mockup && <MockupFrame Mockup={Mockup} />}
         </DocsBody>
       </DocsPage>
     </TreeContextProvider>

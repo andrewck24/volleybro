@@ -3,19 +3,6 @@ title: Rally recording
 description: Recording, editing and substituting rally by rally, with the server deciding when a set is won.
 ---
 
-import explicitSetCompletion from "./decisions/D7-explicit-set-completion.json";
-import retryResponsibilitySplit from "./decisions/D11-retry-responsibility-split.json";
-import pendingQueueSourceOfTruth from "./decisions/D13-pending-queue-source-of-truth.json";
-import persistedShape from "./decisions/D15-persisted-shape.json";
-import flushStaysGameScoped from "./decisions/D16-flush-stays-game-scoped.json";
-import measuredFailureOverConnectivitySignal from "./decisions/D18-measured-failure-over-connectivity-signal.json";
-import warningTracksUnrecoverableLoss from "./decisions/D19-warning-tracks-unrecoverable-loss.json";
-import manualRetryIsADatedPatch from "./decisions/D21-manual-retry-is-a-dated-patch.json";
-import outboxProjectionLivesInUseGame from "./decisions/D23-outbox-projection-lives-in-usegame.json";
-import mergeMirrorsUpsert from "./decisions/D24-merge-mirrors-upsert-and-never-touches-win.json";
-import entityValidatorGuardsTheWrite from "./decisions/D26-entity-validator-guards-the-write-and-required-only-records.json";
-import parsingBelongsAtTheBoundary from "./decisions/D29-parsing-belongs-at-the-boundary-domain-rules-do-not.json";
-
 Recording a rally appends one entry. Everything else about the set — the score,
 the rotation, whether it is at set point — follows from the entries.
 
@@ -136,19 +123,4 @@ the rotation, whether it is at set point — follows from the entries.
 
 ## Implemented decisions
 
-<DecisionTimeline
-  decisions={[
-    explicitSetCompletion,
-    retryResponsibilitySplit,
-    pendingQueueSourceOfTruth,
-    persistedShape,
-    flushStaysGameScoped,
-    measuredFailureOverConnectivitySignal,
-    warningTracksUnrecoverableLoss,
-    manualRetryIsADatedPatch,
-    outboxProjectionLivesInUseGame,
-    mergeMirrorsUpsert,
-    entityValidatorGuardsTheWrite,
-    parsingBelongsAtTheBoundary,
-  ]}
-/>
+<DecisionTimeline />

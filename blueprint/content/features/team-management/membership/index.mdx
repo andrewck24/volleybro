@@ -3,11 +3,6 @@ title: Membership
 description: The three kinds of player, who a member is, and how invitations reach an account.
 ---
 
-import { DecisionTimeline } from "@/components/DecisionTimeline";
-import aMemberIsAJoinedPlayer from "./decisions/D41-a-member-is-a-joined-player-and-player-splits-by-status.json";
-import teamReadsAreMembersOnly from "./decisions/D42-team-reads-are-members-only-until-privacy-settings.json";
-import backfillBeforeTheModelTightens from "./decisions/D44-backfill-before-the-model-tightens.json";
-
 A roster row on a team, `Player`, is one of three kinds. An unlinked player has no account and no pending invitation. An invitee has been invited and holds the role the invitation offered, but is not yet a member. A member has accepted the invitation and joined with an account; only a member holds the permissions their role grants. `isTeamMember` in `src/entities/player.ts` decides membership by status alone — `JOINED` — never by role, so an invitee never passes a member check no matter what role they were invited with.
 
 ## Current behavior
@@ -39,10 +34,4 @@ A roster row on a team, `Player`, is one of three kinds. An unlinked player has 
 
 ## Implemented decisions
 
-<DecisionTimeline
-  decisions={[
-    aMemberIsAJoinedPlayer,
-    teamReadsAreMembersOnly,
-    backfillBeforeTheModelTightens,
-  ]}
-/>
+<DecisionTimeline />

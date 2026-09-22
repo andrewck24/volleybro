@@ -3,12 +3,6 @@ title: Blueprint
 description: Gitignored review surfaces for the two human gates, plus durable capability knowledge in Features.
 ---
 
-import repositoryNativeSlices from "./decisions/D2-repository-native-slices.json";
-import changeScopedAdrPromotion from "./decisions/D3-change-scoped-adr-promotion.json";
-import lifecycleOwnsStatus from "./decisions/D8-lifecycle-owns-status.json";
-import flatChangeDirectories from "./decisions/D9-flat-change-directories.json";
-import twoGates from "./decisions/D45-two-gates-and-a-change-page-store.json";
-
 Repository-owned review surfaces for the two human gates, plus durable
 capability knowledge in Features.
 
@@ -19,10 +13,12 @@ capability knowledge in Features.
   gitignored on the Change branch. Publishing them commits and pushes to the
   orphan `blueprint-changes` branch, their durable store; the Blueprint dev
   server and build first pull every published Change from it.
-- ADRs are drafted under `proposal/decisions/` on the Proposal page. An ADR
-  sitting in a Change directory is proposed; the same record copied into
-  `blueprint/content/features/` at Archive is adopted — the directory it sits
-  in is the only status field.
+- Decision records live at `blueprint/content/decisions/NNNN-<slug>.json`,
+  flat and repository-wide, one file per decision. A record is written the
+  moment the decision is made and is adopted from that moment; it is never
+  copied, promoted or renumbered. Each Feature page renders the records whose
+  `capabilities` name it, so one decision governing several capabilities stays
+  one file.
 - Implementation slices are Linear sub-issues under the Change's issue, the
   same way in manual and Symphony mode, not in Blueprint; a Change that fits
   one session skips slices entirely. Sub-issues close once the Change is
@@ -44,18 +40,11 @@ capability knowledge in Features.
 - Execution claims, retries, workspace paths, and provider text are runtime
   facts, not durable Feature content.
 - A fact that can be derived is not stored a second time.
-- A decision id is unique within its Change, not within a capability, so
-  Archive renumbers promoted records and records their origin in
-  `originChange`/`originDecision`.
+- A decision id is unique across the repository. It is assigned once, when
+  the record is written, by taking the highest number in the store and adding
+  one; `originChange` names the Change whose Discuss produced it, when one
+  did.
 
 ## Implemented decisions
 
-<DecisionTimeline
-  decisions={[
-    repositoryNativeSlices,
-    changeScopedAdrPromotion,
-    lifecycleOwnsStatus,
-    flatChangeDirectories,
-    twoGates,
-  ]}
-/>
+<DecisionTimeline />
