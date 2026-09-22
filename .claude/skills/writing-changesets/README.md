@@ -12,7 +12,7 @@ feat/xxx ──PR──> dev ──PR──> main
                      -> sync PR back to dev
 ```
 
-- **feat/fix branches**: where implementation happens (spectra:apply)
+- **feat/fix branches**: where implementation happens (WORKFLOW.md's Apply)
 - **dev**: integration branch; accumulates completed features
 - **main**: release branch; every merge triggers a version bump
 
@@ -22,8 +22,8 @@ feat/xxx ──PR──> dev ──PR──> main
 ┌─────────────────────────────────────────────────────────────┐
 │  FEAT BRANCH                                                │
 │                                                             │
-│  1. spectra:apply    -- implement the change                │
-│  2. spectra:archive  -- finalize the change                 │
+│  1. Apply            -- implement the change                │
+│  2. Archive          -- finalize the change                 │
 │  3. pnpm changeset   -- create .changeset/<id>.md           │
 │  4. git add + commit -- "chore: add changeset for <name>"   │
 │                                                             │
@@ -61,7 +61,7 @@ feat/xxx ──PR──> dev ──PR──> main
 
 ### Step 3: Creating a Changeset
 
-Run on the feat branch, after `spectra:archive`:
+Run on the feat branch, during Archive:
 
 ```bash
 pnpm changeset
