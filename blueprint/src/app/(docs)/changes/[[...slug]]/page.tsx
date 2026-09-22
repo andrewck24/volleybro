@@ -145,7 +145,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
           lifecycle={change.lifecycle}
           artifacts={changeArtifacts(source.pageTree, page.url)}
         />
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
       </LegacyShell>
     );
   }
@@ -156,7 +156,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const slices = await loadImplementationPlan(slug[0]);
     return (
       <LegacyShell page={page}>
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
         <ImplementationSlices slices={slices} />
       </LegacyShell>
     );
@@ -181,7 +181,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const Mdx = page.data.body;
     return (
       <LegacyShell page={page}>
-        <Mdx components={mdxComponents} />
+        {renderChangeBody(Mdx, page.data.title)}
       </LegacyShell>
     );
   }
@@ -191,7 +191,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
   const Mdx = page.data.body;
   return (
     <LegacyShell page={page}>
-      <Mdx components={mdxComponents} />
+      {renderChangeBody(Mdx, page.data.title)}
     </LegacyShell>
   );
 }
