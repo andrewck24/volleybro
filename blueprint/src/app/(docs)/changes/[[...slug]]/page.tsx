@@ -15,6 +15,7 @@ import { FileTour } from "@/components/FileTour";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
+import { MockupFrame } from "@/components/MockupFrame";
 import { isLegacySlug, loadChangeMetadata } from "@/legacy/change-catalog";
 import { changeArtifacts } from "@/legacy/change-artifacts";
 import { loadImplementationPlan } from "@/legacy/implementation-plan-loader";
@@ -159,10 +160,10 @@ async function LegacyPage({ slug }: { slug: string[] }) {
     const mockup = designMockups[slug[0]];
     if (!page && !mockup) notFound();
     if (mockup) {
-      // Not routed through renderChangeBody: a mockup is TSX bundled in this
-      // checkout, not MDX pulled from the store branch, so it cannot carry the
-      // staleness that guard exists for — and calling a component that may hold
-      // hooks as a plain function would break it.
+      // Isolated by MockupFrame rather than renderChangeBody: a mockup is
+      // pulled from the store branch like any other Change page and carries
+      // the same staleness, but every one of them holds hooks, so it cannot
+      // be called as a plain function.
       const { default: Design, toc } = mockup;
       return (
         <LegacyShell
@@ -170,7 +171,7 @@ async function LegacyPage({ slug }: { slug: string[] }) {
           toc={toc ?? page?.data.toc ?? []}
           title={page?.data.title ?? "Design"}
         >
-          <Design />
+          <MockupFrame Mockup={Design} />
         </LegacyShell>
       );
     }
@@ -246,7 +247,7 @@ export default async function Page({ params }: PageProps) {
         <DocsBody>
           <h1>{page?.data.title ?? slug[0]}</h1>
           {Mdx && renderChangeBody(Mdx, page?.data.title ?? slug[0])}
-          {Mockup && <Mockup />}
+          {Mockup && <MockupFrame Mockup={Mockup} />}
         </DocsBody>
       </DocsPage>
     </TreeContextProvider>
