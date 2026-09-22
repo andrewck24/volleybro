@@ -66,6 +66,12 @@ describe("DecisionTimeline", () => {
     expect(screen.getByText(decision.decision)).toBeInTheDocument();
   });
 
+  it("renders nothing for a capability that names no decisions", () => {
+    const { container } = render(<DecisionTimeline decisions={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("still rejects an unknown key other than status under LegacyDecisionsProvider", () => {
     expect(() =>
       render(
