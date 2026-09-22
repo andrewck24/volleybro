@@ -27,7 +27,7 @@ All commit messages must follow [Conventional Commits](https://www.conventionalc
 <type>(<scope>): <short description>
 ```
 
-**Types:** the allowed types come from [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional), which [`commitlint.config.js`](./commitlint.config.js) extends and adds the rest of the mechanical rules to (non-empty body, trailers, no AI attribution, no retired tool name as scope) — that file is the single source, not this list.
+**Types:** the allowed types come from [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional), which [`commitlint.config.js`](./commitlint.config.js) extends and adds the rest of the mechanical rules to (non-empty body, trailers, no AI attribution, no retired tool name as scope) — consult that file, not this paragraph, for the exact rules.
 
 **Examples:**
 
