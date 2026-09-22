@@ -58,6 +58,7 @@ Pre-PR gate 把 `CONTRIBUTING.md` 的規則原文交給 standards reviewer，因
 - `CONTRIBUTING.md` 精簡為分支、worktree、常用指令、何時開 changeset，加四個指標。
 - `CLAUDE.md` 與 `AGENTS.md` 改寫為純指標，並在 `check:workflow` 加一條規則：兩份檔案除指定的那一行外必須完全相同，且不得出現章節編號引用。
 - 新增 subagent brief 模板：目標、範圍與排除、驗收指令、指向 `CODING_STANDARDS.md` 的指標、回報格式——以「一個可獨立驗證的單位」為切分依據。
+- 把寫作規範一併寫進 `CODING_STANDARDS.md`，而不是靠每次口頭交代：文件語言切分（agent 面向用 `en`，開發者面向的 Blueprint 頁用 `zh-tw`，專有與領域名詞留 `en`）、Blueprint 頁面標題格式、以及 `RiskTable` 這類元件的字串不吃 markdown。`standalone-decision-records` 的四頁 Proposal 因為這些規則沒有寫下來而整批重寫過一次，那是這個 Change 要消滅的成本類型裡最大的一筆。
 - 更新所有指向被搬走規則的引用：`WORKFLOW.md` 的 Pre-PR standards reviewer 與「未寫下的規範」兩處，以及 `scripts/check-workflow.js` 的 retired-authority 檢查。
 - 改寫 `CONTRIBUTING.md` 的程式碼註解引用規則——它仍在區分「Feature 編號」與「Change 自己的 `D2`」，而 `standalone-decision-records` 消滅了這個區別並把該檔案交接過來。
 - **不在範圍內** —— 機械性規則本身。`commit-guardrails` 會先把它們搬進設定檔並從散文刪除。
@@ -71,6 +72,8 @@ Pre-PR gate 把 `CONTRIBUTING.md` 的規則原文交給 standards reviewer，因
 <Scenario given="a section-number reference added to either guidance file" when="check:workflow runs" then="it fails" />
 
 <Scenario given="CODING_STANDARDS.md" when="it is read end to end" then="every rule in it is one a tool cannot check" />
+
+<Scenario given="a Blueprint page written from CODING_STANDARDS.md alone" when="it is reviewed" then="its language split, title format and component string handling need no correction" />
 
 <Scenario given="a subagent brief written from the template" when="it is handed to an executor" then="it names one independently verifiable unit, its acceptance command, and the standards document" />
 
