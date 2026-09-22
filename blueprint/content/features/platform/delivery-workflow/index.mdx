@@ -18,8 +18,10 @@ optional Symphony execution.
   implements, code-reviews to a fixed point, then runs Archive — all before
   G2, in one pass.
 - Archive runs automatically once Pre-PR code review reaches its fixed point,
-  before the pull request opens: it promotes ADRs and behavior to Features,
-  exports the Review summary, and stops for G2 acceptance.
+  before the pull request opens: it promotes behavior and durable constraints
+  to Features, exports the Review summary, and stops for G2 acceptance.
+  Decision records are not part of that promotion — each already lives at its
+  permanent path from the moment it was written.
 - Symphony claims a Change once the developer adds `agent:ready` to its
   tracker issue after G1 acceptance, moving it to Todo in the same step.
   Before Manual Apply, the developer checks that no claim exists, removes
