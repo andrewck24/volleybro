@@ -1,0 +1,30 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0054",
+  "title": "A decision number is four digits, so the store sorts in the order it was written",
+  "capabilities": ["platform/blueprint"],
+  "context": "The first 53 records were numbered D1 through D53, and once they sat in one flat directory the listing came out wrong: D10 sorts before D2, D1 is followed by D10 and D11. Under the previous model the numbers were scattered across per-capability directories of two to six files each, where lexical order never mattered. One directory that only grows makes it matter. The playbook this repository follows numbers its own records 0001, 0002 and so on for exactly this reason, and this repository had departed from that without a reason of its own.",
+  "decision": "A decision number is four digits, zero-padded: the id is `0046`, the file is `0046-<slug>.json`. Prose cites a record as `ADR-0046`, following the same playbook's `superseded by ADR-NNNN`, while the id field and the file name carry the bare digits. The 45 records already in the store keep the number they had — D10 is 0010, D45 is 0045 — because this is a renumbering of the same decisions, not a re-issue. Records published inside Change pages on the `blueprint-changes` store branch are not renumbered at all: their ids belong to a different namespace, numbered within their own Proposal page, so that branch's D1 is the first decision of whichever Change published it rather than the first record of this store. Version 1 and version 2 therefore validate two different id shapes, each in its own branch of the parser.",
+  "alternatives": [
+    {
+      "option": "Keep D1 through D53 and rely on a numeric sort wherever the records are listed",
+      "reason": "Every consumer would have to know to parse the number out — the build-time index, a shell listing, an editor's file tree, a reviewer scanning a diff. Padding puts the knowledge in the name instead of in each reader."
+    },
+    {
+      "option": "Pad but keep the D prefix, as D0046",
+      "reason": "The prefix was doing the work of a namespace when Proposal numbering and Feature numbering were different sequences. One sequence needs no prefix, and the playbook's own format has none."
+    },
+    {
+      "option": "Renumber the version 1 records published inside Change pages on the store branch to match",
+      "reason": "Their numbering is per Proposal page, not repository-wide, so there is nothing to match: two different Changes each published a D1. They are also the record of what each gate reviewed, and rewriting them would falsify it."
+    }
+  ],
+  "consequences": [
+    "The four-digit width caps the store at 9999 records, which is four times the repository's entire commit history.",
+    "A prose citation and a file name now differ by the ADR- prefix, so a reader searching for 0046 finds the file and a reader searching for ADR-0046 finds the discussion.",
+    "A citation of D10 in older prose still means the record now numbered 0010; only the width changed, not which decision the number points at."
+  ],
+  "revisitTriggers": ["The store approaches four digits."],
+  "originChange": "standalone-decision-records"
+}

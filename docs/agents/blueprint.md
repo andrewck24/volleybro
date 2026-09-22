@@ -14,7 +14,7 @@ confirms the publish: it fails when a page was never published or was edited sin
 `build` first run `pnpm blueprint:changes:pull`, copying every published Change into
 `blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published
 Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the
-store cannot be fetched. Decision records live at `blueprint/content/decisions/D<n>-<slug>.json`,
+store cannot be fetched. Decision records live at `blueprint/content/decisions/<nnnn>-<slug>.json`,
 follow `blueprint/schemas/decision-record.schema.json`, and belong to the repository rather than to
 any Change. A Proposal page imports the records written during its own Discuss and renders them
 with `DecisionTimeline`; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a

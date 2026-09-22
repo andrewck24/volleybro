@@ -11,9 +11,10 @@ specific term is resolved.
 
 Architectural decision records do not use a parallel canonical `docs/adr/` tree, and they do not
 belong to a Change. A decision record belongs to the repository: it lives at
-`blueprint/content/decisions/D<n>-<slug>.json`, one flat file per decision, with no per-capability
-copies. Its number is assigned when it is written, by scanning that directory for the highest
-number and adding one — one namespace, no renumbering, ever.
+`blueprint/content/decisions/<nnnn>-<slug>.json`, one flat file per decision, with no
+per-capability copies. Its number is assigned when it is written, by scanning that directory for
+the highest number and adding one — one namespace, no renumbering, ever. Four digits, so the
+directory sorts in the order the records were made; cite a record in prose as `ADR-0046`.
 
 Write a decision record the moment the decision is made — during a Change's Discuss, or outside any
 Change — and it is adopted from that moment. There is no proposed stage and no status field, because

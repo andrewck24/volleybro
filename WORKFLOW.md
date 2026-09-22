@@ -149,7 +149,7 @@ request opens. Everything between a gate and the next runs without stopping for 
   - once boundaries are clear, use `to-spec` or a compatible replacement to synthesize the
     approved Change into the Proposal page;
   - the moment a hard-to-reverse decision is made, write it as a decision record at
-    `blueprint/content/decisions/D<n>-<slug>.json`; it is adopted from that moment, because a
+    `blueprint/content/decisions/<nnnn>-<slug>.json`; it is adopted from that moment, because a
     decision still open is not written down as a decision, and the Proposal's `TLDR` may only
     summarize its product or capability impact, never restate it;
   - assign each decision record a non-empty `capabilities` array containing the narrowest affected
@@ -290,7 +290,7 @@ blueprint/content/changes/<slug>/       gitignored on the Change branch; publish
 └── review.mdx
 
 blueprint/content/decisions/            flat, repository-wide, one file per decision
-└── D<n>-<slug>.json                    written the moment a decision is made, during a Change's
+└── <nnnn>-<slug>.json                  written the moment a decision is made, during a Change's
                                          Discuss or outside any Change; adopted from that moment
 ```
 
@@ -348,9 +348,11 @@ small to carry Proposal and Review pages.
 ## Decision-record contract
 
 A decision record belongs to the repository, not to a Change. Every record lives at
-`blueprint/content/decisions/D<n>-<slug>.json`, one file per decision, flat, with no per-capability
-copies. Its number is assigned when it is written, by scanning that directory for the highest
-number and adding one — one namespace, no renumbering, ever.
+`blueprint/content/decisions/<nnnn>-<slug>.json`, one file per decision, flat, with no
+per-capability copies. Its number is assigned when it is written, by scanning that directory for
+the highest number and adding one — one namespace, no renumbering, ever. The number is written to
+four digits so the directory sorts in the order the records were made; prose cites a record as
+`ADR-0046`, while the `id` field and the file name carry the bare digits.
 
 A record is written the moment the decision is made — during a Change's Discuss, or outside any
 Change — and it is adopted from that moment. There is no proposed stage and no status field,
