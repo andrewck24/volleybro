@@ -43,7 +43,11 @@ jobs:
         id: changesets
         with:
           version: pnpm run release:version
-          commit: "release: update versions"
+          commit: |
+            chore(release): update versions
+
+            Automated version bump: package.json version, CHANGELOG.md entries, and
+            consumed changeset deletions, from the pending changesets in .changeset/.
           title: "release: update versions"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
