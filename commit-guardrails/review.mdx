@@ -48,6 +48,15 @@ commit 規則從散文變成三道檢查：`pre-commit` 只跑 lint-staged，`co
   ]}
 />
 
+## 邊界上最關鍵的一段 diff
+
+AI attribution 檢查是這個 Change 最容易擋錯人的地方：擋得太鬆，署名就溜進 `dev`；擋得太嚴，連合法的 commit 都寫不出來。第三輪為了堵住 `Generated-by:` trailer，把「任何 trailer 的值含 AI 名稱」都當成署名，結果 slug 叫 `claude-md-bridge` 的 Change 連自己的 `Blueprint-Change` trailer 都過不了。修正是把判斷收回到「署名類的 key」與「行首的 Generated with/by」。
+
+<AnnotatedDiff
+  lang="js"
+  code={"// scripts/commitlint/plugin.js\n// 只有署名類的 key 算數；Blueprint-Change 的 slug 或 Refs 的值可以合法地含 AI 名稱\nconst ATTRIBUTION_TRAILERS = new Set([\"co-authored-by\", \"generated-by\"]); // [!code ++]\n// 錨定在行首（允許前面有 emoji），散文裡引用這條規則不會被擋\nconst GENERATED_LINE = /^\\W*generated[\\s-](with|by)\\b/i; // [!code ++]\n\nexport function evaluateAiAttribution(message) {\n  const raw = message ?? \"\";\n  for (const [key, values] of parseTrailers(raw)) {\n    const named = values.find( // [!code --]\n      (value) => namesAiAssistant(key) || namesAiAssistant(value), // [!code --]\n    ); // [!code --]\n    if (!ATTRIBUTION_TRAILERS.has(key)) continue; // [!code ++]\n    const named = values.find(namesAiAssistant); // [!code ++]\n    if (named) return { ok: false, message: \"…\" };\n  }\n  const generatedLine = stripDiffAndComments(raw)\n    .split(\"\\n\")\n    .find( // [!code --]\n      (line) => /generated[\\s-](with|by)/i.test(line) && namesAiAssistant(line), // [!code --]\n    ); // [!code --]\n    .find((line) => GENERATED_LINE.test(line) && namesAiAssistant(line)); // [!code ++]\n  // …\n}"}
+/>
+
 ## 刪掉的散文
 
 每一條都在替代它的檢查對一個刻意構造的反例失敗之後才刪。
