@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0051",
+  "title": "The Fix path line is drawn at the decision body, not at the file",
+  "capabilities": [
+    "platform/delivery-workflow"
+  ],
+  "decision": "The Fix path may write and correct decision records, except for two fields. Editing the decision body, or setting supersededBy, is a new judgement and escalates to a normal Change with a G1. Everything else — fixing a typo, a stale reference or a wrong capabilities entry, and writing down a decision that was already made and simply never recorded — stays on the Fix path. WORKFLOW.md's Fix path states the line by naming those two fields, and drops the no new ADR condition.",
+  "context": "The Fix path applies when a change creates no new ADR, and requires escalation to a normal Change as soon as one is needed. That line is drawn around an object: touch a decision record and you are out. It was affordable while records were born inside a Change and disappeared with it. Once records live permanently in blueprint/content/decisions/, their descriptive errors accumulate — a typo, a stale reference, a capabilities entry pointing at the wrong page, a description that no longer matches the code — and each correction would need its own Proposal, G1 and Review page. Correcting the record of a decision and making a decision are different acts, and only the second one needs a human to approve boundaries.",
+  "alternatives": [
+    {
+      "option": "Keep the line at the file: any decision record touches means a normal Change",
+      "reason": "It makes a typo correction cost a Proposal page and a gate, so the corrections do not get made and the records rot."
+    },
+    {
+      "option": "Let the Fix path edit anything in a decision record",
+      "reason": "Rewriting a decision body silently changes what the repository has decided, with no gate anywhere; that is the one thing the gates exist for."
+    }
+  ],
+  "consequences": [
+    "Backfilling a decision that was always in force, but never written down, is a Fix path change.",
+    "A reviewer checking a Fix path pull request that touches a record looks at exactly two fields to decide whether it should have been a Change."
+  ],
+  "revisitTriggers": [
+    "Fix path pull requests start carrying decision-body edits described as wording fixes."
+  ]
+}

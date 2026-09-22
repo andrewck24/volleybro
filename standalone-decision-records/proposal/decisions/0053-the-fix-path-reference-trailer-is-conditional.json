@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0053",
+  "title": "The Fix path's reference trailer is conditional on there being an issue",
+  "capabilities": [
+    "platform/delivery-workflow"
+  ],
+  "decision": "A Fix-path commit carries `Refs: <tracker issue>` when the fix came from a tracker issue, and carries no reference trailer when it did not; either way it omits `Implements` and `Blueprint-Change`, and its body states what triggered the fix. The confirmation step follows the same split: on the tracker issue when the fix came from one, in the session when it did not. `CONTRIBUTING.md`'s trailer paragraph states the same condition. No tooling changes: `check-workflow.js` reads only the `Migration` trailer.",
+  "context": "The Fix path makes a `Refs: <tracker issue>` trailer unconditional, and pairs it with a confirmation step that happens on the tracker issue. Both assume every fix descends from an issue. A build break found inside a session does not: the only way to satisfy the rule is to open an issue afterwards that records nothing the commit body does not already say. The trailer exists to name where skipping the gates was agreed; when that agreement happened in the session, there is nothing to name, and a trailer pointing at an issue created to satisfy the trailer is a citation of itself.",
+  "alternatives": [
+    {
+      "option": "Keep the trailer unconditional and open an issue for every mid-session fix",
+      "reason": "It manufactures a tracker record whose only content is that a trailer needed a target, and it puts intake work in the way of a fix that is already understood."
+    },
+    {
+      "option": "Allow a free-form value such as a session reference",
+      "reason": "A session identifier is not durable — transcripts are ephemeral by this contract — so the trailer would point at something no later reader can open."
+    }
+  ],
+  "consequences": [
+    "A fix found and agreed inside a session commits with no reference trailer, and its body carries the trigger instead.",
+    "A commit's trailers stop being a reliable signal that a fix had an issue; the body is where the origin is read."
+  ],
+  "revisitTriggers": [
+    "A mechanical check starts depending on the Fix path's reference trailer being present."
+  ]
+}
