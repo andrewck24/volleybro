@@ -4,8 +4,9 @@
     {
       "name": "blueprint",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "blueprint", "dev", "--port", "3100"],
-      "port": 3100
+      "runtimeArgs": ["--filter", "blueprint", "dev"],
+      "port": 3100,
+      "autoPort": true
     },
     {
       "name": "app",
