@@ -27,6 +27,14 @@ optional Symphony execution.
   Before Manual Apply, the developer checks that no claim exists, removes
   the label, moves the issue to In Progress, and checks again — closing
   the race with a Symphony claim.
+- Commit messages are checked before a commit exists: a `commit-msg` hook
+  runs commitlint (conventional type, a body, no AI attribution, no retired
+  tool as scope) and a `pre-commit` hook formats and lints staged files only.
+  CI re-runs commitlint over every commit of a pull request into `dev`, so
+  the hook is feedback and CI is the authority.
+- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change
+  branch: every commit on it carries `Blueprint-Change: <slug>` naming that
+  same slug, or it is rejected.
 
 ## Constraints
 
@@ -39,9 +47,10 @@ optional Symphony execution.
   branch itself.
 - A small fix that only restores behavior Features already describe, or
   changes no behavior, may skip both gates via the Fix path: no Proposal or
-  Review page, only a pull request the developer accepts, carrying a
-  `Refs: <tracker issue>` commit trailer instead of `Implements` and
-  `Blueprint-Change`.
+  Review page, only a pull request the developer accepts, from a
+  `hotfix/<slug>` branch whatever its commit type, carrying a
+  `Refs: <tracker issue>` commit trailer when the fix came from one, instead
+  of `Implements` and `Blueprint-Change`.
 
 ## Implemented decisions
 
