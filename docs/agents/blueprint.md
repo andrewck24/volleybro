@@ -14,8 +14,9 @@ confirms the publish: it fails when a page was never published or was edited sin
 `build` first run `pnpm blueprint:changes:pull`, copying every published Change into
 `blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published
 Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the
-store cannot be fetched. Structured ADR JSON follows `blueprint/schemas/decision-record.schema.json`
-and sits alongside the Proposal page while it is proposed. The Proposal page renders those records
+store cannot be fetched. Decision records live at `blueprint/content/decisions/D<n>-<slug>.json`,
+follow `blueprint/schemas/decision-record.schema.json`, and belong to the repository rather than to
+any Change. A Proposal page imports the records written during its own Discuss and renders them
 with `DecisionTimeline`; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a
 second editable source.
 
@@ -25,15 +26,15 @@ Blueprint Features describe the current and planned capability tree:
 
 - place current behavior and capability-specific constraints on the narrowest sub-capability;
 - place a constraint or decision on a parent capability only when it governs multiple children;
-- keep Archive-promoted decision copies with origin Change slug, rationale, important rejected
-  alternatives, consequences, and revisit triggers;
+- let each page render the decision records whose `capabilities` name it, rather than listing them
+  by hand;
 - place reusable UI/UX rules in the Design System rather than duplicating them across Features;
 - represent product direction as roadmap state without copying operational scheduling from the
   configured tracker.
 
-Archive writes promoted Feature decision copies under the narrowest
-`<capability>/<sub-capability>/decisions/` directory. Before Archive, the only ADR authority is the
-active Change's proposed decision records.
+A Feature page holds no decision file of its own: a record names its capabilities and every page
+they name renders it, so one decision governing several capabilities stays one file. Archive
+promotes behavior and durable constraints to Features and leaves the records where they are.
 
 Code and tests remain the behavioral authority. Feature prose must agree with their observable
 behavior, while Changesets remain the authority for semantic version and changelog evidence.
