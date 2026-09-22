@@ -58,6 +58,7 @@ description: 決策記錄脫離交付流程，改住在一個扁平、去重複�
 - schema 升到版本 2：required 五個欄位，刪除 `originDecision`，`originChange` 保留且為選配。
 - 把約十餘個 Feature `index.mdx` 的相對路徑 import，換成由 build-time index 支撐的 capability 過濾渲染。
 - 擴充 legacy 相容層，把 version 1 記錄升版，讓 store 分支上早先 Change 頁裡的 48 份記錄繼續渲染。
+- 讓單一 Change 頁的渲染失敗只弄壞那一頁：頁面 body 改以函式呼叫包在 try/catch 中（`output: "export"` 之下 React error boundary 不會被觸發，已實測），失敗時顯示可見的 fallback；決策渲染路徑本身改為 total。
 - 依新模型改寫 `WORKFLOW.md` 的 Decision-record contract 與 `docs/agents/domain.md` 的 ADR 段落，並把 Fix path 的紅線改畫在 `decision` 與 `supersededBy` 兩個欄位上。
 - 落地研究筆記規則：改寫 `docs/agents/artifact-lifecycle.md`，明定研究與工作筆記不自成檔案，以及 Proposal 頁 `## References` 段落的條件性與寫法。
 - 把 Fix path 的 `Refs:` trailer 改為條件性，同步改寫 `WORKFLOW.md` Fix path 第 2、7 條與 `CONTRIBUTING.md` 的 trailer 段落。
@@ -85,6 +86,10 @@ description: 決策記錄脫離交付流程，改住在一個扁平、去重複�
 
 <Scenario given="a Change that consulted no outside source" when="its Proposal page is written" then="it carries no References section, and no rule asks for an empty one" />
 
+<Scenario given="a published Change page that throws while rendering" when="Blueprint builds" then="the build succeeds, that page shows a visible fallback naming it, and every other page renders its own content" />
+
+<Scenario given="one decision record among several that fails to parse" when="the timeline renders" then="the records that parse still render and a visible note replaces the one that does not" />
+
 ## 風險
 
 <RiskTable
@@ -95,7 +100,7 @@ description: 決策記錄脫離交付流程，改住在一個扁平、去重複�
     { name: "渲染從 MDX import 改為 build-time index，壞記錄失敗的時機也跟著變", severity: "warning", mitigation: "index 在 build 時解析每一份記錄，所以壞記錄一樣在 build 失敗，不會延到 request 時。" },
     { name: "G1 不再審「這個決策批不批」，決策沒有第二位讀者就進了 Features", severity: "info", mitigation: "ADR-0046 接受的代價：決策是在開發者在場的 Discuss 中做出的，gate 改審邊界與契約。" },
     { name: "並行的分支取到同一個下一號", severity: "info", mitigation: "編號在每個已合併狀態下唯一，唯一性斷言會在 gate 攔下碰撞；真的發生之前不做鎖。" },
-    { name: "Ingest 之後有 9 個 acceptance scenario，超過 8 個的 soft target 一個", severity: "info", mitigation: "check:workflow 對此只警告不失敗。契約說提案時超標就該拆分，但這是對一個已交付的 Change 做 Ingest 之後多出的一條——拆分正是開發者選擇 Ingest 而非另開 Change 時否決的做法。記錄在此，由 G1 判斷。" },
+    { name: "11 個 acceptance scenario，超過 8 個的 soft target 三條", severity: "warning", mitigation: "check:workflow 對此只警告不失敗。三條都是開發者在 G1 之後加進範圍的：一條來自 Ingest 的編號決定，兩條來自 S06 的 build 降級。拆分正是選擇 Ingest 與擴大範圍時各自否決過的做法，所以記錄超標而不拆——但這個 Change 已經比它被接受時大，那是 G2 該衡量的事實。" },
     { name: "本 Change 吸收了兩條文件規則，邊界從「決策記錄」擴到「Proposal 頁的寫法」", severity: "info", mitigation: "兩條規則都改在本 Change 已經要動的那幾個檔案裡，且都與 Fix path 的紅線同屬一次判斷；分成獨立 Change 會為三十行散文多開一次 gate。" },
   ]}
 />
