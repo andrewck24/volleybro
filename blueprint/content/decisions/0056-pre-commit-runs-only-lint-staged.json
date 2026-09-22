@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0056",
+  "title": "The pre-commit hook runs only lint-staged",
+  "capabilities": [
+    "platform/delivery-workflow"
+  ],
+  "context": "The repository has no hooks at all: lint, typecheck, test and check:workflow run only in CI and in the verify gates. The industry pattern is narrow: a pre-commit hook formats and lints staged files and nothing else, because a slow hook is a hook developers bypass. Agent worktrees were expected to escape hooks entirely, but testing showed husky writes a relative core.hooksPath into the shared .git/config that every worktree resolves against its own root; the generated .husky/_ directory is gitignored and recreated by pnpm install, which CONTRIBUTING.md already requires in each worktree. So hooks do reach agent worktrees, and the remaining bypasses are a worktree with no install, HUSKY=0, --no-verify, and commits created through the GitHub API.",
+  "decision": "husky installs two hooks. pre-commit runs lint-staged only, which runs eslint --fix and prettier over staged files. commit-msg runs commitlint. Typechecking and tests stay out of both, because pnpm verify, pnpm verify:all and the CI static job already own them. CI re-runs commitlint over the pull request range so the four bypasses do not become holes.",
+  "alternatives": [
+    {
+      "option": "Run typecheck or the test suite in pre-commit",
+      "reason": "It makes every commit slow enough that --no-verify becomes routine, and the same checks already gate the branch twice."
+    },
+    {
+      "option": "Rely on CI alone and install no hooks",
+      "reason": "The feedback arrives after the commit exists, which is what forced the rebase rewrite during two-gate-workflow; hooks do reach agent worktrees, so they are worth installing."
+    }
+  ],
+  "consequences": [
+    "A worktree created but never installed silently runs no hooks; CI is the backstop.",
+    "The CI install sets HUSKY=0 so the prepare script does not run there."
+  ],
+  "revisitTriggers": [
+    "Commits keep arriving in CI that the hooks would have caught, meaning worktrees are skipping installation."
+  ],
+  "originChange": "commit-guardrails"
+}
