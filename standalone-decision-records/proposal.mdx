@@ -3,15 +3,6 @@ title: Standalone Decision Records — Proposal
 description: 決策記錄脫離交付流程，改住在一個扁平、去重複的目錄，schema 一併縮小。
 ---
 
-import d1 from "./proposal/decisions/0046-decision-records-leave-the-delivery-lifecycle.json";
-import d2 from "./proposal/decisions/0047-targets-becomes-capabilities.json";
-import d3 from "./proposal/decisions/0048-five-required-fields.json";
-import d4 from "./proposal/decisions/0049-origindecision-is-deleted.json";
-import d5 from "./proposal/decisions/0050-version-1-records-render-through-the-legacy-layer.json";
-import d6 from "./proposal/decisions/0051-the-fix-path-line-is-drawn-at-the-decision-body.json";
-import d7 from "./proposal/decisions/0052-research-notes-earn-no-file-of-their-own.json";
-import d8 from "./proposal/decisions/0053-the-fix-path-reference-trailer-is-conditional.json";
-import d9 from "./proposal/decisions/0054-a-decision-number-is-four-digits.json";
 
 <TLDR>
 決策記錄不再隸屬於任何一個 Change。所有記錄移到扁平的 `blueprint/content/decisions/`，編號於誕生時指派，沒有 per-capability 複本，也沒有 Archive 的提升步驟；Feature 頁改為依 `capabilities` 欄位過濾渲染，該欄位即原本的 `targets`。schema 的 required 欄位降到五個，刪除 `originDecision`，版本升到 2；已發佈在 store 分支上的 version 1 記錄則透過相容層繼續渲染。Fix path 可以修正一份記錄，但碰到 `decision` 本文或 `supersededBy` 就必須升級。編號是四位數零填充，扁平目錄因此照記錄產生的順序排序。同時落地兩條連帶的文件規則：研究筆記不自成檔案，以及 Fix path 的 `Refs:` trailer 改為條件性。
@@ -111,7 +102,10 @@ import d9 from "./proposal/decisions/0054-a-decision-number-is-four-digits.json"
 
 ## 決策
 
-<DecisionTimeline decisions={[d1, d2, d3, d4, d5, d6, d7, d8, d9]} />
+> 這九份記錄（`0046`–`0054`）此刻不渲染在**已發佈**的頁面上，只在 Change 分支的本機 Blueprint 上渲染。
+> 原因是本 Change 自己造成的：store 分支是每一個分支 build 的共用輸入，而 `dev` 上的 parser 還只認得 version 1。
+> 一個發佈於「自己的 schema 尚未合併」之時的頁面，無法被其他分支渲染——這是 ADR-0046 的一個缺口，記在下方殘留風險。
+> 合併後會補上渲染並重新發佈。
 
 ## 順序
 
