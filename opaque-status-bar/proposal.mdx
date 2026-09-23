@@ -13,6 +13,14 @@ description: iOS 27 的 Liquid Glass 模糊蓋住 Header；standalone PWA 改用
   背景色的寫入保留。Linear：ATE-190。
 </TLDR>
 
+## 問題與實驗
+
+左圖為目前的正式站（`black-translucent`），Header 的 logo 與上半部被一層白色模糊蓋住；右圖為只把 `statusBarStyle` 改成 `default` 的實驗部署，Header 清晰。兩張都是 iOS 27 真機、從主畫面開啟的 PWA。
+
+| 目前：`black-translucent` | 實驗：`default` |
+| --- | --- |
+| ![正式站首頁，狀態列下方的 Header 被模糊蓋住](./before-ios27-black-translucent.webp) | ![實驗部署首頁，Header 清晰](./after-ios27-default.webp) |
+
 ## 決策總表
 
 | #   | 決策                                                                                                                                                                                               |
