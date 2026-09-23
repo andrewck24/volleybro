@@ -1,10 +1,10 @@
 ---
 title: Opaque Status Bar — Review
-description: 5 條驗收情境中 4 條在 iOS 27 真機通過、1 條由程式碼保證；兩軸 code review 兩輪到達 fixed point；verify:all 全部 lane 通過。
+description: 5 條驗收情境中 4 條在 iOS 27 真機通過、1 條由程式碼保證；兩軸 code review 四輪到達 fixed point；verify:all 全部 lane 通過。
 ---
 
 <TLDR>
-standalone PWA 改用不透明狀態列（`statusBarStyle: "default"`），Header 不再被 iOS 27 的 Liquid Glass 模糊蓋住。`BodyBackdrop` 改名為 `StatusBarColor`，由 auth、tabs、workspace、game 四個路由群組的 layout 各自宣告顏色，元件在 `<head>` 最前面放一個自己擁有的 `theme-color`，並跟隨 app 內選的深淺色。iOS 27 真機上情境 1–4 通過；code review 找到 workspace 路由不跟 app 主題的缺漏並已修正，兩輪後兩軸都沒有 finding；`verify:all` 四個 lane 全部通過。
+standalone PWA 改用不透明狀態列（`statusBarStyle: "default"`），Header 不再被 iOS 27 的 Liquid Glass 模糊蓋住。`BodyBackdrop` 改名為 `StatusBarColor`，由 auth、tabs、workspace、game 四個路由群組的 layout 各自宣告顏色，元件在 `<head>` 最前面放一個自己擁有的 `theme-color`，並跟隨 app 內選的深淺色。iOS 27 真機上情境 1–4 通過；code review 找到 workspace 路由不跟 app 主題的缺漏並已修正，四輪後兩軸都沒有 finding；`verify:all` 四個 lane 全部通過。
 </TLDR>
 
 ## 驗收情境結果
@@ -24,7 +24,9 @@ standalone PWA 改用不透明狀態列（`statusBarStyle: "default"`），Heade
 1. 路由宣告原本排在 S2，實際在 S1 完成：沒有它，真機無法驗證「進入比賽頁即時換成 card 色」。S2 因此只剩文件與 changeset。
 2. Q5「沒有宣告的路由一律用 background」的實作方式：root 的 `theme-color` 只能跟隨系統深淺色，無法跟隨 app 內選的主題，所以 tabs 與 workspace 都明確宣告 background，以符合 Q5 的本意。
 3. `docs/specs/overlay-layout/spec.md` 也更新了改名後的檔案路徑，這份文件不在 Proposal 的清單上。
-4. Proposal 補上 References 一節，列出決策依據的外部來源與持相反結論的來源。
+4. Proposal 補上 References 一節，列出決策依據的外部來源與持相反結論的來源；並依開發者要求加上真機的前後對照截圖。
+5. 為了讓截圖在部署後能顯示，Blueprint 關閉圖片最佳化（`images: { unoptimized: true }`）：Blueprint 是靜態匯出，部署環境沒有 `/_next/image` 端點。Change 頁與截圖都不進 Change 分支，所以 PR 的 diff 裡看不到用到這項設定的地方。
+6. 依開發者決定修正兩份過時文件：`elevation-tokens` spec 與 Blueprint design-system 頁原本寫 manifest 的 `background_color` 等於淺色 `--background`，改為與 manifest、`android-splash` spec 一致的 `--primary` 青綠色，並註明它只影響 Android 啟動畫面，與各頁的 `StatusBarColor` 無關。
 
 ## 驗證
 
@@ -65,7 +67,7 @@ Code review 找到的缺漏：workspace 路由沒有宣告，只能跟隨系統�
 
 ## Code review findings 與修正
 
-兩輪兩軸 review：第一輪 spec 軸找到一個缺漏、standards 軸提出五項判斷建議；修正後第二輪兩軸都沒有 finding。
+四輪兩軸 review：第一輪 spec 軸找到一個缺漏、standards 軸提出五項判斷建議；第二輪兩軸都沒有 finding。之後新增的截圖設定、`background_color` 文件修正與 Archive 的 Feature 頁再經兩輪：第三輪 standards 軸對 Feature 頁提出兩項重複內容的建議，第四輪只剩逐字指定的兩處引用修正，已照做。
 
 <RiskTable
   risks={[
@@ -94,6 +96,12 @@ Code review 找到的缺漏：workspace 路由沒有宣告，只能跟隨系統�
         "保留 hex（first paint 需要字面值），註解指明它拷貝的 token。",
     },
     {
+      name: "PWA feature 頁重述 ADR-0068 的理由，並複製 Design System 的規則",
+      severity: "info",
+      mitigation:
+        "只保留行為描述，約束改為指向 `docs/design-system.md` 的 PWA Status Bar Color；Known gaps 的引用改為正確章節並引用 ADR-0068。",
+    },
+    {
       name: "測試的 spy 在斷言失敗時不會還原，且與全域同名",
       severity: "info",
       mitigation:
@@ -102,7 +110,7 @@ Code review 找到的缺漏：workspace 路由沒有宣告，只能跟隨系統�
   ]}
 />
 
-判斷為不修改：`game/layout.tsx` 的註解說明子路由的共同點，屬於規範允許的「影響落在其他地方」；ADR-0068 標題以 and 連接兩件事，但後者由前者推導，保留為一份 record，請在 G2 確認。
+判斷為不修改：`game/layout.tsx` 的註解說明子路由的共同點，屬於規範允許的「影響落在其他地方」；PWA feature 頁的兩條約束與元件註解措辭相近，但 Archive 本來就要寫下長期有效的約束。ADR-0068 標題以 and 連接兩件事，開發者在 G2 確認維持為一份 record。
 
 ## 殘餘風險
 
@@ -139,7 +147,3 @@ Code review 找到的缺漏：workspace 路由沒有宣告，只能跟隨系統�
     },
   ]}
 />
-
-## 範圍外發現
-
-Blueprint design-system 頁說 manifest 的 `background_color` 等於淺色 `--background`，但 `docs/design-system.md`、PWA feature 頁與 manifest 實際的值都是 primary `#10687e`。這是既有的矛盾，本 Change 未修改。
