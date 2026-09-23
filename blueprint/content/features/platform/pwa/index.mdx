@@ -31,8 +31,8 @@ VolleyBro installs as a standalone PWA (`@serwist/turbopack`). These are the bou
 ## Known gaps
 
 - The landing page at `/` renders no `StatusBarColor`, so in standalone mode its status bar follows the system colour scheme rather than the in-app theme. It is not on the launch path (`start_url` is `/home`).
-- Switching tabs still shows the Liquid Glass blur briefly during the view transition, because the header slides with the tab content.
-- The manifest `background_color`/splash-color relationship and the status bar colour rules are also documented in `docs/design-system.md` (Depth, Elevation & Edge Definition). Moving that documentation here fully is a separate decision the main session has not taken; until then both sets of rules live in both places.
+- Switching tabs still shows the Liquid Glass blur (see ADR-0068) briefly during the view transition, because the header slides with the tab content.
+- The manifest `background_color`/splash-color relationship and the status bar colour rules are also documented in `docs/design-system.md` (PWA Status Bar Color). Moving that documentation here fully is a separate decision the main session has not taken; until then both sets of rules live in both places.
 - Caching boundaries (`NetworkOnly` on auth routes, `defaultCache` for everything else) are held by the explicit matcher list in `src/app/sw.ts` rather than by a naming convention — a new auth-adjacent route that leaks session state into cache would not be caught automatically.
 
 ## Implemented decisions
