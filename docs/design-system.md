@@ -125,7 +125,7 @@ The standalone PWA uses an opaque status bar (`statusBarStyle: "default"`, ADR-0
 
 - Auth routes use `--color-primary` to match their brand ground.
 - Game routes (overview, sets, recording) use `--color-card` to match their raised headers; the declaration lives in `app/game/layout.tsx`.
-- Every other route falls back to the root `theme-color`, the light and dark `--background` values.
+- Tab and workspace routes use `--color-background`. They declare it too: the root `theme-color` can only follow the system colour scheme, not the theme chosen in the app, so it serves first paint alone.
 
 `StatusBarColor` resolves the token against the current theme and rewrites `theme-color` when the user switches between light and dark. It also sets `document.body.style.backgroundColor` to the same token, so installs added before ADR-0068 and still on `black-translucent` keep their colours. That backdrop is not the source of truth for page or surface backgrounds and does not create a fourth layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and `accent` remains hover/highlight only.
 

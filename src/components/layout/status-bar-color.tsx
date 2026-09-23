@@ -6,11 +6,7 @@ type StatusBarColorProps = {
   color: string;
 };
 
-/**
- * Colours the opaque standalone status bar through theme-color, resolving the
- * route's surface token against the current theme. It also keeps the html and
- * body backdrop so installs still on black-translucent see no change.
- */
+/** Colours the opaque standalone status bar from a route's surface token. See ADR-0068. */
 export const StatusBarColor = ({ color }: StatusBarColorProps) => {
   // Update before paint so standalone system chrome never exposes the prior route color.
   useLayoutEffect(() => {
@@ -33,7 +29,6 @@ export const StatusBarColor = ({ color }: StatusBarColorProps) => {
     };
     writeThemeColor();
 
-    // next-themes switches themes by toggling the class on <html>.
     const observer = new MutationObserver(writeThemeColor);
     observer.observe(html, { attributes: true, attributeFilter: ["class"] });
 

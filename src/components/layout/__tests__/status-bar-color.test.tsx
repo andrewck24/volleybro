@@ -2,7 +2,6 @@ import { StatusBarColor } from "@/components/layout/status-bar-color";
 import { act, render } from "@testing-library/react";
 
 const metas: HTMLMetaElement[] = [];
-const themeColors = () => metas.map((meta) => meta.content);
 
 // theme-color lives in <head>, which Testing Library's screen does not query.
 const headThemeColors = () => {
@@ -30,6 +29,7 @@ describe("StatusBarColor", () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     metas.splice(0).forEach((meta) => meta.remove());
     document.documentElement.className = "";
     document.documentElement.style.backgroundColor = "";
@@ -87,14 +87,13 @@ describe("StatusBarColor", () => {
       ["(prefers-color-scheme: light)", "rgb(1, 1, 1)"],
       ["(prefers-color-scheme: dark)", "rgb(2, 2, 2)"],
     ]);
-    expect(themeColors()).toEqual(["rgb(1, 1, 1)", "rgb(2, 2, 2)"]);
   });
 
   it("rewrites the theme-color when the theme class on <html> changes", async () => {
-    const getComputedStyle = jest.spyOn(window, "getComputedStyle");
+    const computedStyleSpy = jest.spyOn(window, "getComputedStyle");
     render(<StatusBarColor color="var(--color-card)" />);
 
-    getComputedStyle.mockReturnValue({
+    computedStyleSpy.mockReturnValue({
       backgroundColor: "rgb(29, 35, 45)",
     } as CSSStyleDeclaration);
     await act(async () => {
@@ -102,6 +101,5 @@ describe("StatusBarColor", () => {
     });
 
     expect(headThemeColors()[0]).toEqual(["", "rgb(29, 35, 45)"]);
-    getComputedStyle.mockRestore();
   });
 });

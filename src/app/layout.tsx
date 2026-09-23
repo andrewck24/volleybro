@@ -69,8 +69,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // First paint only: StatusBarColor rewrites these from the route's token and
-  // the user's chosen theme once it mounts.
+  // First paint only, before StatusBarColor mounts: the light and dark
+  // --background values from globals.css.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f2f2f6" },
     { media: "(prefers-color-scheme: dark)", color: "#020a17" },

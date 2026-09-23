@@ -84,8 +84,8 @@ Components that render their own dimming `Overlay` (Dialog, AlertDialog, Drawer)
 
 #### Scenario: Route-scoped PWA status bar colour
 
-- **WHEN** a standalone PWA route's header sits on a surface other than `--background`
-- **THEN** that route's layout MAY render `StatusBarColor` with the matching semantic token, which writes the resolved colour to `theme-color` and mirrors it onto `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor`
+- **WHEN** a standalone PWA route group renders
+- **THEN** its layout SHALL render `StatusBarColor` with the semantic token its header sits on, which writes the resolved colour to `theme-color` and mirrors it onto `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor`
 - **AND** this inline body backdrop SHALL NOT be treated as the page content background, SHALL NOT use `--accent`, and SHALL be cleaned up when the route unmounts
 
 #### Scenario: PWA launch fallback matches the page background

@@ -138,7 +138,7 @@ export default function ElevationDepthPage() {
         <code>StatusBarColor</code>, which writes <code>theme-color</code> from
         the surface its header sits on and follows the user&apos;s light or dark
         theme. Game routes use <code>bg-card</code>, auth uses{" "}
-        <code>bg-primary</code>, and every other route falls back to{" "}
+        <code>bg-primary</code>, and tab and workspace routes declare{" "}
         <code>bg-background</code>. It also mirrors the token onto the body as a
         backdrop for installs still on the translucent status bar; that backdrop
         does not create another layer and does not replace content tokens, and{" "}
