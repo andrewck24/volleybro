@@ -46,3 +46,38 @@ promotes behavior and durable constraints to Features and leaves the records whe
 
 Code and tests remain the behavioral authority. Feature prose must agree with their observable
 behavior, while Changesets remain the authority for semantic version and changelog evidence.
+
+## Writing a Change page
+
+Read this section before writing or editing any Blueprint page. The agent writing a page reads it at that moment; the standards reviewer reaches it through `CODING_STANDARDS.md`.
+
+Blueprint pages exist to be read by a person, so structure a reader can scan is part of the artifact rather than decoration. Prose alone is insufficient wherever the information is spatial, comparative, or ranked by severity: no paragraph shows at a glance which files changed, which finding blocks acceptance, or which line a fix landed on. Render such information with the components the repository already has, rather than describing it:
+
+| Information                                          | Component              |
+| ---------------------------------------------------- | ---------------------- |
+| The page's claim, before any detail                  | `TLDR`                 |
+| A behavior stated as given / when / then             | `Scenario`             |
+| What changed per file, or a term-by-term walkthrough | `FileTour`             |
+| Before and after of a specific edit                  | `AnnotatedDiff`        |
+| Risks or code review findings, ranked by severity    | `RiskTable`            |
+| A process whose steps a reader may want to open      | `InteractiveFlowchart` |
+| Structured decision records                          | `DecisionTimeline`     |
+
+Minimum per page. A Proposal is the summary the developer confirmed at G1, taken verbatim: it opens with `TLDR`, then the decisions, the scope, the acceptance criteria as `Scenario` blocks, and the risks through `RiskTable`; it adds an `InteractiveFlowchart` when the Change alters a process and a mockup (`proposal.tsx`) when the Change answers a design question, and needs no other diagram or narrative. A Review opens with `TLDR`, shows acceptance results and verification as tables, findings through `RiskTable`, and boundary-relevant fixes as `AnnotatedDiff`.
+
+Rules that bind every page:
+
+- A component earns its place by carrying structure prose cannot. The narrative that explains _why_ still belongs beside it.
+- Components render data and never become a second source for it. A page must not restate what the page shell already renders from the slice sub-issues or the decision records.
+- Diagrams are part of the specification, not illustrations of it. When delivery diverges from what a diagram shows, the diagram is corrected in the same round as the text.
+- Use an ordered list wherever items are referred to by number elsewhere on the page.
+- The frontmatter `title` is `<name> — Proposal` or `<name> — Review`, with an em dash, so the sidebar tells Changes apart. The name is for people and may differ from the slug. `pnpm check:workflow --gate <slug>` checks the shape.
+- Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown.
+- Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
+- Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.
+
+## Writing a decision record
+
+A record holds one decision. Write one only when the decision is hard to reverse, would surprise a reader without its context, and came out of a real trade-off; an easily reversed or obvious choice needs no record.
+
+The `decision` field states the decision itself in a few sentences; supporting detail belongs in `context` or `consequences`. At a gate, `pnpm check:workflow --gate <slug>` warns when a record added on the branch has a `decision` longer than 1000 characters. The warning is a prompt to act, not a failure: split a record that bundles several decisions, or move detail out of a single decision's `decision` field. When neither applies, keep the record and put it to the developer at the gate with the reason.

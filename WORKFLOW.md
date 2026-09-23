@@ -112,7 +112,7 @@ Adding the `agent:ready` label is the final human arming action for unattended e
 developer moves the issue to Todo in the same step so the board shows it is queued. Symphony
 dispatches an issue only while it carries the label and sits in an active status (Todo or In
 Progress); In Review and Done take it out of the queue without touching the label. Arming never
-substitutes for an accepted Proposal page, satisfied dependencies, a
+substitutes for an accepted G1, satisfied dependencies, a
 resolvable repository route, available capacity, or a healthy provider. Agents never add the label
 themselves.
 
@@ -130,8 +130,10 @@ The label and the status change together, each by one owner:
 
 Every Change has a stable kebab-case slug and one integration branch. Human-facing titles may
 change without changing the slug. Two human gates bound the whole lifecycle: **G1** accepts the
-Proposal page before any implementation, and **G2** accepts the Review page before the pull
-request opens. Everything between a gate and the next runs without stopping for a human.
+converged discussion before any implementation, and **G2** accepts the Review page before the pull
+request opens. Everything between a gate and the next runs without stopping for a human: collect
+judgement questions and ask them at the next gate alongside the finished work, and stop early only
+when a different answer would make the remaining work useless.
 
 ### 1. Discuss and propose
 
@@ -148,7 +150,7 @@ request opens. Everything between a gate and the next runs without stopping for 
     implementation slices;
   - determine whether the result is one Change, several Changes, or no implementation work;
   - once boundaries are clear, use `to-spec` or a compatible replacement to synthesize the
-    approved Change into the Proposal page;
+    Change into the final summary below;
   - the moment a hard-to-reverse decision is made, write it as a decision record at
     `blueprint/content/decisions/<nnnn>-<slug>.json`; it is adopted from that moment, because a
     decision still open is not written down as a decision, and the Proposal's `TLDR` may only
@@ -158,16 +160,20 @@ request opens. Everything between a gate and the next runs without stopping for 
     parent capability only when the decision governs multiple children, and list multiple
     capabilities when the boundary genuinely crosses them; fill `originChange` with this Change's
     slug, which is what a later reader follows back to its branch, pull request, and discussion;
-  - preserve context, goals/non-goals, scope, capability impact, important rejected alternatives,
-    adopted decisions, behavior contracts stated as acceptance scenarios, failure modes, testing
-    strategy, and revisit triggers on the Proposal page; add a design mockup (`proposal.tsx`) when
-    one clarifies the adopted shape.
-- **Exit (G1):** the Proposal page renders complete; publish it with
-  `pnpm blueprint:changes:publish <slug>`, confirm with `pnpm check:workflow --gate <slug>`, then
-  notify the developer and stop for acceptance.
-  Acceptance authorizes slice decomposition, implementation, code review to a fixed point, and Archive
-  to run without stopping again until G2. If the developer instead sends the Change to Ingest (see
-  Apply), boundaries or design change and the Proposal page is regenerated for another G1 pass.
+  - close the discussion with a final summary — decisions, scope, acceptance scenarios, and risks —
+    and stop for the developer to confirm it in the conversation.
+- **Exit (G1):** the developer's confirmation of that summary is G1. Then, without stopping again:
+  1. commit and push the decision records to the Change branch — the branch preview build pulls
+     the page store but is not rebuilt by publishing, so records pushed later are missing from it,
+     and a gate that adds no commit needs the branch build rerun by hand;
+  2. read `docs/agents/blueprint.md` and write the Proposal page, taking the confirmed summary
+     verbatim; it is that summary's durable record for readers who never saw the discussion;
+  3. publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
+     `pnpm check:workflow --gate <slug>`.
+
+  Acceptance authorizes slice decomposition, implementation, code review to a fixed point, and
+  Archive to run without stopping again until G2. If the developer instead sends the Change to
+  Ingest (see Apply), boundaries or design change and the summary goes back for another G1 pass.
 
 ### 2. Apply
 
@@ -204,6 +210,11 @@ Verification failures remain inside Apply. Diagnose whether the implementation i
 accepted Proposal is no longer viable. Fix implementation defects without creating a separate
 stage. Do not silently change accepted behavior, scope, architecture, or acceptance criteria.
 
+A deletion beyond the requested scope is a judgement, not cleanup. When knip, a dead-code audit, or
+the agent's own analysis flags files outside the Change, list them with a per-file rationale and ask
+at the next gate. Being unreferenced in the import graph is not evidence on its own: a file may be a
+documented API contract, an alias of a live database collection, or reserved for planned work.
+
 #### Optional Ingest action
 
 Ingest is the corrective, developer-authorized step from the former Spectra lifecycle. It is not a
@@ -211,10 +222,11 @@ mandatory stage. When the accepted Proposal must materially change:
 
 1. pause Apply;
 2. let the developer authorize Ingest;
-3. clarify the changed decision, using grilling when needed;
+3. clarify the changed decision, using `grill-with-docs` when needed;
 4. update the Proposal page and affected ADRs;
 5. preserve completed slices and their evidence;
-6. regenerate the Proposal page and return to G1 for re-acceptance;
+6. return the updated summary to G1 for confirmation, then regenerate and republish the Proposal
+   page;
 7. once accepted, resume Apply from where it paused.
 
 ### 3. Pre-PR gate and delivery
@@ -225,7 +237,7 @@ After all slices complete:
 2. evaluate the whole Change for Changeset applicability and the correct semantic version bump, or
    record the applicable repository-defined exemption;
 3. run the `code-review` playbook in an independent context against both repository standards and
-   the Proposal page, giving the standards reviewer `CONTRIBUTING.md`'s own rules verbatim — an
+   the Proposal page, giving the standards reviewer `CODING_STANDARDS.md` verbatim — an
    independent context knows only what its brief carries;
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent code review until both axes reach a fixed point. A round reviews the diff to the
@@ -239,10 +251,10 @@ After all slices complete:
 The standards axis exists to cover what the repository documents and no tool checks — comment
 necessity and density above all, since lint, types and formatting all pass regardless of how much
 prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
-unwritten standard is one the reviewer cannot apply: state it in `CONTRIBUTING.md` first.
+unwritten standard is one the reviewer cannot apply: state it in `CODING_STANDARDS.md` first.
 
 Do not open the pull request before Archive completes and the developer accepts the Review page.
-Merging still waits for green CI and for whatever the developer said about merging. The repository
+That acceptance is itself the permission to open it; do not ask a second time. Merging still waits for green CI and for whatever the developer said about merging. The repository
 does not run an automated review after the pull request opens without an explicit request. Human PR
 review and comment fix rounds remain available, but they are optional and the default delivery path
 does not wait for comments before merge.
@@ -258,7 +270,8 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
 2. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 3. export a Review summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
-4. generate the Review page, read every section rendered in a browser as the developer will,
+4. read `docs/agents/blueprint.md`, generate the Review page, read every section rendered in a
+   browser as the developer will,
    publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
    `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2).
    Reading the source is not reading the page: a stale count, a column that does not line up, an
@@ -269,10 +282,18 @@ Acceptance of the Review page is the last human gate. It authorizes opening the 
 without asking again: open it with the exported Review summary in the body, then wait for CI and
 for whatever the developer said about merging. If optional human PR feedback arrives and changes
 durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun
-the applicable gates on the same branch. After merge, move the operational Linear issue to Done;
-merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical
-snapshots. A later low-priority migration promotes only knowledge that is still current; it does
-not rewrite the remaining snapshots.
+the applicable gates on the same branch. Merge performs no second knowledge sync. Historical
+Spectra/OpenSpec artifacts remain historical snapshots. A later low-priority migration promotes
+only knowledge that is still current; it does not rewrite the remaining snapshots.
+
+After merge, move the operational issue to Done (see `docs/agents/issue-tracker.md`) and clean up
+the local checkout from outside the Change's worktree, in this order — GitHub already deleted the
+remote branch:
+
+1. `git fetch`;
+2. fast-forward the local `dev` to `origin/dev`;
+3. `git worktree remove <path>`, which refuses a worktree with uncommitted changes;
+4. `git branch -d <branch>`, which succeeds only after step 2 makes the merge visible locally.
 
 ## Implementation-slice contract
 
@@ -282,6 +303,12 @@ implements directly; its handoff is the branch and its commits. Each slice state
 capability references, dependencies, outcome, acceptance criteria, verification, and status
 (`pending` or `completed`). Runtime states such as `claimed`, `running`, executor identity, and
 retry count do not belong on the sub-issue.
+
+A slice handed to a subagent travels as a brief of four parts: the slice sub-issue verbatim, the
+rules from `CONTRIBUTING.md` and `CODING_STANDARDS.md` that the slice will touch, quoted rather
+than pointed at, what is out of scope, and the report format. A one-session Change with no
+sub-issue writes the same four parts itself. A fresh context knows only what its brief carries,
+and a brief that carries every rule is too large to act on.
 
 ```text
 blueprint/content/changes/<slug>/       gitignored on the Change branch; published to the
@@ -301,8 +328,7 @@ A Change targets soft limits before it needs splitting: at most 5 slices, at mos
 files, and at most 8 acceptance scenarios on the Proposal page. Exceeding a target at Proposal time
 means splitting into multiple Changes rather than writing a larger one. The slice count is a
 written target only: slices are Linear sub-issues now, so `check-workflow.js` cannot count them and
-does not warn on this one. The exported Review summary targets at most 40 lines in the
-pull-request body; anything beyond that stays in commit bodies.
+does not warn on this one.
 
 A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the
 existing test suite plus a dependency-direction check) or a **behavior** change, never both.
@@ -389,6 +415,12 @@ slice is a separate reviewable commit; use temporary slice branches only when tr
 work must run in parallel, then integrate them back into the Change branch before final
 verification.
 
+Every commit on a Change branch carries a `Blueprint-Change: <slug>` trailer naming that Change; a
+slice commit also carries `Implements: S0X`, the ID of its Linear sub-issue, and a one-session
+Change's commits carry `Blueprint-Change` alone. A Migration shard adds
+`Migration: <migration-slug>` (see Change scope), and a Fix-path commit carries its own trailers
+instead (see Fix path). `CONTRIBUTING.md` covers how to write a trailer so git parses it.
+
 Proposal-page content never enters the Change branch — it lives only in the regenerated, gitignored
 Change directory and is published to the `blueprint-changes` store branch at each gate. Push the
 Change branch when another session or Symphony must resume it.
@@ -465,9 +497,9 @@ of every Change page, old and new, that never merges into other branches.
 `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy
 carries all published Changes plus Features and the Design System from the deployed branch.
 
-- **Proposal:** context, goals/non-goals, Change boundaries and dependency direction, behavior
-  contract, acceptance scenarios, decision records made during this Change's Discuss, design
-  mockup, and risks.
+- **Proposal:** the summary confirmed at G1 — decisions, scope and dependency direction,
+  acceptance scenarios, and risks — plus a flowchart when the Change alters a process and a design
+  mockup when it answers a design question.
 - **Review:** acceptance scenario results, verification, code review findings and fixes, boundary-
   relevant diffs, and residual risks.
 - **Features:** current capability and sub-capability behavior and constraints, the decision
@@ -479,37 +511,6 @@ lifecycle authority.
 
 ### Presentation
 
-Blueprint pages exist to be read by a human deciding whether to accept a gate, so structure a
-reader can scan is part of the artifact rather than decoration. Prose alone is insufficient wherever
-the information is spatial, comparative, or ranked by severity: no paragraph shows at a glance which
-files changed, which finding blocks acceptance, or which line a fix landed on.
-
-Render such information with the components the repository already has, rather than describing it:
-
-| Information                                          | Component              |
-| ---------------------------------------------------- | ---------------------- |
-| The page's claim, before any detail                  | `TLDR`                 |
-| A behavior stated as given / when / then             | `Scenario`             |
-| What changed per file, or a term-by-term walkthrough | `FileTour`             |
-| Before and after of a specific edit                  | `AnnotatedDiff`        |
-| Risks or code review findings, ranked by severity    | `RiskTable`            |
-| A process whose steps a reader may want to open      | `InteractiveFlowchart` |
-| Structured decision records                          | `DecisionTimeline`     |
-
-Minimum per page: Proposal opens with `TLDR`, states acceptance criteria as `Scenario` blocks,
-carries at least one diagram of the adopted shape or a mockup, and states risks through
-`RiskTable`; Review opens with `TLDR`, shows acceptance results and verification as tables,
-findings through `RiskTable`, and boundary-relevant fixes as `AnnotatedDiff`.
-
-Five rules bind this:
-
-- A component earns its place by carrying structure prose cannot. The narrative that explains _why_
-  still belongs beside it, and a page that is only components has lost the argument.
-- Components render data and never become a second source for it. A page must not restate what the
-  page shell already renders from the slice sub-issues or the decision records.
-- Diagrams are part of the specification, not illustrations of it. When delivery diverges from what
-  a diagram shows, the diagram is corrected in the same round as the text.
-- Use an ordered list wherever items are referred to by number elsewhere on the page.
-- Change pages are gitignored on the Change branch and published to the `blueprint-changes` store
-  branch at each gate, where they persist as durable review history; the PR body still carries the
-  ≤40-line Review summary, and decision records still live at their own repository-wide path.
+How a Change page is written — the components that carry its structure, the minimum each page
+holds, its language, and its title — lives in `docs/agents/blueprint.md`. Read it before writing or
+editing any Blueprint page.
