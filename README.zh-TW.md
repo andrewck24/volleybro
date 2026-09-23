@@ -98,42 +98,19 @@
 
 ### 記錄一球
 
-單一球的記錄分為三個點擊步驟，過程中以 Redux 保存草稿；送出後沿著 Clean Architecture 各層向下傳遞。SWR 會先套用樂觀更新，因此畫面不需等待網路回應。
+單一球的記錄分為三個點擊步驟，過程中以 Redux 保存草稿；若為對方失誤則略過我方動作。最後由預覽的送出動作提交草稿。
 
-```mermaid
-flowchart TD
-    subgraph UI["🖐️ 記錄介面 — 草稿存於 Redux Toolkit"]
-        A["點擊球場選擇發球員<br/><i>setEntryDraftPlayer</i>"]
-        B["點擊我方動作<br/>發球 · 攻擊 · 攔網 · 舉球 · 防守<br/><i>setEntryDraftHomeMove</i>"]
-        C["點擊對方動作與結果<br/><i>setEntryDraftAwayMove</i>"]
-        D["於摘要抽屜預覽"]
-        A --> B --> C --> D
-    end
+<p align="center">
+  <img src="docs/diagrams/rally-draft.svg" alt="記錄草稿：選擇球員、我方動作，再選對方動作與結果；對方失誤時略過我方動作；由預覽送出草稿" width="800">
+</p>
 
-    D -->|送出| E["createRally action<br/>POST /api/games/:id/sets/rallies"]
+送出時不需等待網路。這一球會先以樂觀更新寫入 SWR 的比賽快取，並加入保存在 localStorage 的待送佇列；佇列會批次送往伺服器、對可重試的失敗以退避重試，並把伺服器回應套用回快取。
 
-    subgraph Optimistic["⚡ 樂觀更新"]
-        F["rally.helper 重新計算<br/>比分 · 輪轉 · 數據 · 賽況"]
-        G["SWR mutate — 畫面即時更新"]
-        F --> G
-    end
+<p align="center">
+  <img src="docs/diagrams/rally-write.svg" alt="寫入路徑：送出後先樂觀更新 SWR 快取並加入佇列；待送佇列批次經由 route handler、controller、RecordRallies use case 與 game repository 寫入 MongoDB，回應再套用回快取" width="800">
+</p>
 
-    E --> F
-
-    subgraph Server["🧱 Clean Architecture — 伺服器端"]
-        H["Route Handler"]
-        I["RallyController"]
-        J["CreateRallyUseCase"]
-        K["MongoGameRepository"]
-        L[("MongoDB Atlas")]
-        H --> I --> J --> K --> L
-    end
-
-    E --> H
-    L -.->|重新驗證| G
-```
-
-一局與整場比賽是否結束屬於**推導結果，而非儲存欄位**——伺服器端會對僅供追加的記錄串列做一次 fold，判斷該局仍在進行中、來到局點，或已分出勝負（25 分且領先 2 分；決勝局為 15 分）。不需要手動結束任何一局。
+一局與整場比賽是否結束屬於**推導結果，從不手動輸入**——每次寫入後，伺服器端會對僅供追加的記錄串列做一次 fold，判斷該局仍在進行中、來到局點，或已分出勝負（25 分且領先 2 分；決勝局為 15 分），並記錄結果。不需要手動結束任何一局。
 
 ### 同步協作與 Live View（規劃中）
 
@@ -142,29 +119,9 @@ flowchart TD
 > [!NOTE]
 > 本節描述的是已定案但**尚未實作**的設計，各功能目前狀態詳見[產品藍圖][blueprint-url]。
 
-```mermaid
-flowchart LR
-    R1["記錄者 A"]
-    R2["記錄者 B"]
-    V["Live View<br/><i>唯讀</i>"]
-
-    R1 -->|"POST 逐球記錄<br/>basedOn: entryIndex + score"| G
-
-    subgraph Backend["伺服器"]
-        G{"伺服器守衛<br/>錨點是否仍有效？"}
-        DB[("MongoDB Atlas")]
-        CS["Change Stream"]
-        SSE["SSE route handler"]
-        G -->|"✅ 相符"| DB
-        DB --> CS --> SSE
-    end
-
-    G -->|"❌ 409 錨點過期"| P["衝突解決面板<br/>捨棄 · 覆寫 · 接續"]
-    P -.->|解決後| R1
-
-    SSE -->|"即時記錄"| R2
-    SSE -->|"即時記錄"| V
-```
+<p align="center">
+  <img src="docs/diagrams/sync-live-view.svg" alt="規劃中的同步：記錄者帶著意圖錨點送出；伺服器守門檢查通過後寫入 MongoDB，change stream 經由 SSE route 廣播給其他記錄者與觀看者；錨點過期時回傳 409 並開啟衝突面板" width="800">
+</p>
 
 錨點記錄的是使用者**開始輸入當下**所看到的狀態，而非按下送出當下。這個差別很關鍵：若非如此，當 SSE 更新在輸入過程中抵達，客戶端會誤以為自己正在寫入下一球，而伺服器其實已在該位置有記錄。錨點過期會回傳 `409` 並開啟阻擋式的衝突解決面板，而不是無聲地覆蓋隊友的記錄。
 

@@ -98,42 +98,19 @@ Installable with platform-specific splash screens, tab-based navigation with ind
 
 ### Recording a Rally
 
-A single rally moves through three tap-driven steps held in Redux as a draft, then travels down the Clean Architecture stack on submit. SWR applies the result optimistically so the UI never waits on the network.
+A single rally moves through three tap-driven steps held in Redux as a draft; an opponent error skips our move. The preview's send action submits the draft.
 
-```mermaid
-flowchart TD
-    subgraph UI["🖐️ Recording UI — draft held in Redux Toolkit"]
-        A["Tap court to select server<br/><i>setEntryDraftPlayer</i>"]
-        B["Tap our move<br/>serve · attack · block · set · dig<br/><i>setEntryDraftHomeMove</i>"]
-        C["Tap opponent move &amp; outcome<br/><i>setEntryDraftAwayMove</i>"]
-        D["Preview in summary drawer"]
-        A --> B --> C --> D
-    end
+<p align="center">
+  <img src="docs/diagrams/rally-draft.svg" alt="Entry draft: pick a player, our move, then the opponent move and outcome; an opponent error skips our move; the preview sends the draft" width="800">
+</p>
 
-    D -->|submit| E["createRally action<br/>POST /api/games/:id/sets/rallies"]
+Sending never waits on the network. The rally is applied optimistically to the SWR game cache and appended to a pending-writes queue persisted in localStorage; the queue flushes batches to the server, retries retryable failures with backoff, and applies the server's response back to the cache.
 
-    subgraph Optimistic["⚡ Optimistic update"]
-        F["rally.helper recomputes<br/>score · rotation · stats · phase"]
-        G["SWR mutate — UI updates instantly"]
-        F --> G
-    end
+<p align="center">
+  <img src="docs/diagrams/rally-write.svg" alt="Write path: send updates the SWR cache optimistically and enqueues the rally; the pending-writes queue flushes batches through the route handler, controller, RecordRallies use case, and game repository to MongoDB, and the response is applied back to the cache" width="800">
+</p>
 
-    E --> F
-
-    subgraph Server["🧱 Clean Architecture — server"]
-        H["Route Handler"]
-        I["RallyController"]
-        J["CreateRallyUseCase"]
-        K["MongoGameRepository"]
-        L[("MongoDB Atlas")]
-        H --> I --> J --> K --> L
-    end
-
-    E --> H
-    L -.->|revalidate| G
-```
-
-Set and match completion are **derived, not stored** — a server-side fold over the append-only entry list decides whether a set is still in progress, at set point, or won (25 points with a two-point lead; 15 in a deciding set). Nothing has to be manually closed out.
+Set and match completion are **derived, never entered by hand** — after each write, the server folds the append-only entry list to decide whether a set is still in progress, at set point, or won (25 points with a two-point lead; 15 in a deciding set), and records the result. Nothing has to be manually closed out.
 
 ### Sync & Live View (Planned)
 
@@ -142,29 +119,9 @@ Multiple people often record the same match, and teammates want to follow along.
 > [!NOTE]
 > This section describes an agreed design that is **not yet implemented**. See the [Blueprint][blueprint-url] for current feature status.
 
-```mermaid
-flowchart LR
-    R1["Recorder A"]
-    R2["Recorder B"]
-    V["Live View<br/><i>read-only</i>"]
-
-    R1 -->|"POST rally<br/>basedOn: entryIndex + score"| G
-
-    subgraph Backend["Server"]
-        G{"Server guard<br/>anchor still valid?"}
-        DB[("MongoDB Atlas")]
-        CS["Change Stream"]
-        SSE["SSE route handler"]
-        G -->|"✅ match"| DB
-        DB --> CS --> SSE
-    end
-
-    G -->|"❌ 409 stale anchor"| P["Conflict panel<br/>discard · override · rebase"]
-    P -.->|resolved| R1
-
-    SSE -->|"live entries"| R2
-    SSE -->|"live entries"| V
-```
+<p align="center">
+  <img src="docs/diagrams/sync-live-view.svg" alt="Planned sync: recorders post rallies with an intent anchor; a server guard writes valid ones to MongoDB, a change stream feeds an SSE route that fans entries out to other recorders and live viewers, and a stale anchor returns 409 and opens a conflict panel" width="800">
+</p>
 
 The anchor is the state a recorder saw _when they started typing_, not when they hit send. That distinction matters: without it, an SSE update landing mid-input would make the client believe it is writing the next rally when the server already has one at that position. A stale anchor returns `409` and opens a blocking conflict panel rather than silently overwriting a teammate's work.
 
