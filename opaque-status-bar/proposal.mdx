@@ -1,0 +1,104 @@
+---
+title: Opaque Status Bar — Proposal
+description: iOS 27 的 Liquid Glass 模糊蓋住 Header；standalone PWA 改用不透明狀態列，底色由各路由經 StatusBarColor 寫入的 theme-color 決定，並跟隨使用者選擇的深淺色。
+---
+
+<TLDR>
+  iOS 26 起，standalone PWA 只要把內容畫到狀態列底下（`black-translucent` +
+  `viewport-fit=cover`），系統就會加上一條往下延伸約 40pt 的 Liquid Glass
+  模糊帶；iOS 27 上 Header 的 logo 因此被糊掉。iOS 27 真機實驗證實改用 `default`
+  後模糊消失。本 Change 讓狀態列改為不透明，底色改由 `theme-color`
+  決定：`BodyBackdrop` 改名為 `StatusBarColor`，由各路由的 layout
+  宣告顏色、在客戶端寫入 meta 並跟隨深淺色切換，原本對 `html`/`body`
+  背景色的寫入保留。Linear：ATE-190。
+</TLDR>
+
+## 決策總表
+
+| #   | 決策                                                                                                                                                                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | `theme-color` 由客戶端元件寫入：`BodyBackdrop` 改名為 `StatusBarColor`，layout 照舊傳入 CSS 變數，元件讀出實際算出的顏色寫進 `<meta name="theme-color">`，切換深淺色時重寫，卸載時還原（ADR-0068） |
+| Q2  | `StatusBarColor` 保留對 `html`/`body` 背景色的寫入；是否移除另開 issue 實驗                                                                                                                        |
+| Q3  | root `viewport.themeColor` 改為淺色、深色兩組 background 值，只負責 hydration 前的第一個畫面；短暫不一致可以接受，真機確認會閃再升級                                                               |
+| Q4  | S1 先在真機驗證動態 `theme-color`，不通過就停下重新討論 Q1 到 Q3                                                                                                                                   |
+| Q5  | 沒有宣告的路由一律用 background；auth 維持 primary、tabs 維持 background；card 的宣告從記錄頁 layout 移到 `app/game/layout.tsx`，涵蓋總覽、sets 與記錄頁                                           |
+| Q6  | Header 留白不調整；實驗部署已確認首頁與比賽相關頁面的排版沒有問題                                                                                                                                  |
+| Q7  | 舊安裝只在發版說明處理：changeset 註明 iOS 使用者需刪除並重新加入主畫面；app 內不偵測、不提示                                                                                                      |
+| Q8  | 「狀態列不透明、`theme-color` 決定底色」寫成 decision record（ADR-0068），capability 為 `platform/pwa`                                                                                             |
+
+## 範圍
+
+1. `src/app/layout.tsx`：`statusBarStyle` 改為 `default`，`viewport.themeColor` 改為淺色、深色兩組值。
+2. `BodyBackdrop` 改名為 `StatusBarColor`，加上寫入 `theme-color` 與跟隨主題切換；對應的測試一併改名並擴充。
+3. 三個 layout 的使用方式，以及記錄頁的宣告移到 `app/game/layout.tsx`。
+4. 文件：`docs/design-system.md` 的 PWA Body Backdrop 一節、`docs/specs/elevation-tokens/spec.md` 的「Route-scoped PWA body backdrop」情境、Blueprint design-system 頁的「C · PWA body backdrop」，以及 Blueprint `features/platform/pwa`（Archive 時更新）。
+5. 一份 changeset，含重新安裝的說明。
+
+**不在範圍內**：切換分頁時的短暫模糊（ATE-191）；移除 `html`/`body` 背景色的寫入（另開 issue 實驗）；Header 留白調整與 ATE-122 的 320px 溢出。
+
+## 順序
+
+1. S1：完成 `StatusBarColor` 寫入 `theme-color` 與 `statusBarStyle` 後部署到 `volleybro-test`，在 iOS 27 真機驗證動態 `theme-color`；不通過就停下重新討論 Q1 到 Q3。
+2. S2：路由宣告、文件與 changeset。
+
+## 驗收情境
+
+以下情境皆在 iOS 27 真機、全新加入主畫面的 PWA 上驗證，第 5 項除外。
+
+<Scenario
+  given="the tabs home page"
+  when="it is at rest"
+  then="the status bar is the background colour and the header shows no blur"
+/>
+
+<Scenario
+  given="the home page"
+  when="the user opens a game overview and then the recording page, and returns home"
+  then="the status bar switches to the card colour and meets each game header as one surface, and returns to the background colour at home"
+/>
+
+<Scenario
+  given="a signed-in user"
+  when="they sign out and land on the auth page"
+  then="the status bar becomes the primary colour"
+/>
+
+<Scenario
+  given="any page"
+  when="the user switches between light, dark, and system themes in the app"
+  then="the status bar colour follows immediately and its time and battery glyphs stay legible on every colour, including dark and primary"
+/>
+
+<Scenario
+  given="an install added before this change and not re-added"
+  when="the user opens it"
+  then="the colours behind the status bar match those before the change"
+/>
+
+## 風險
+
+<RiskTable
+  risks={[
+    {
+      name: "iOS 只在啟動時讀一次 theme-color",
+      severity: "critical",
+      mitigation: "S1 先在真機驗證；不通過就停下，重新討論 Q1 到 Q3。",
+    },
+    {
+      name: "狀態列文字在深色或 primary 底色上看不清",
+      severity: "warning",
+      mitigation:
+        "尚不確定 iOS 是否依 theme-color 亮度切換文字顏色；S1 真機一併確認。",
+    },
+    {
+      name: "啟動時狀態列短暫顯示錯誤顏色",
+      severity: "info",
+      mitigation:
+        "Q3 已接受；真機上若明顯，再改為逐路由 viewport export 或 inline script。",
+    },
+  ]}
+/>
+
+## 決策
+
+<DecisionTimeline ids={["0068"]} />
