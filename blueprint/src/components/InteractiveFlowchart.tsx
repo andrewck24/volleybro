@@ -1,6 +1,8 @@
 "use client";
 import React, { useState } from "react";
 
+import { renderInline } from "@/lib/render-inline";
+
 interface Node {
   id: string;
   label: string;
@@ -280,8 +282,10 @@ export function InteractiveFlowchart({
       <div className="w-full shrink-0 self-start rounded-lg border bg-card p-4 md:w-64">
         {activeDetail ? (
           <>
-            <strong>{activeDetail.title}</strong>
-            <p className="text-sm text-muted-foreground">{activeDetail.body}</p>
+            <strong>{renderInline(activeDetail.title)}</strong>
+            <p className="text-sm text-muted-foreground">
+              {renderInline(activeDetail.body)}
+            </p>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
