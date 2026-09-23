@@ -294,7 +294,8 @@ remote branch:
 1. `git fetch`;
 2. fast-forward the local `dev` to `origin/dev`;
 3. `git worktree remove <path>`, which refuses a worktree with uncommitted changes;
-4. `git branch -d <branch>`, which succeeds only after step 2 makes the merge visible locally.
+4. `git branch -d <branch>`, which succeeds only after step 2 makes the merge visible locally; a
+   squash-merged Fix-path branch is never an ancestor of `dev`, so it needs `git branch -D`.
 
 ## Implementation-slice contract
 
