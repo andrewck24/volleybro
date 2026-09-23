@@ -1,10 +1,10 @@
 ---
 title: Reviewer Standards Split — Review
-description: 8 條 acceptance scenario 全數通過；兩軸 code review 經三輪到達 fixed point；verify:all 除 app-build 因本機缺 MONGODB_URI 外全數通過。
+description: 8 條 acceptance scenario 全數通過；兩軸 code review 經三輪到達 fixed point；verify:all 全部 lane 通過。
 ---
 
 <TLDR>
-判斷型規則已搬進只在 review 時讀的 `CODING_STANDARDS.md`，寫作規範落到 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只含 `@AGENTS.md`。`check:workflow` 新增五類檢查與一個警告，元件字串的反引號渲染為 inline code，ADR-0045 拆成 ADR-0061 到 ADR-0067，G1 改為確認對話總表（ADR-0060）。8 條 scenario 都有會在缺少實作時失敗的測試並全數通過；兩軸 review 三輪後到達 fixed point。唯一未綠的是 `verify:all` 的 app-build lane：本機與 worktree 都沒有 `.env.local`，以佔位的 `MONGODB_URI` 重跑 `pnpm build` 成功，本 Change 也未觸及 `src/`。
+判斷型規則已搬進只在 review 時讀的 `CODING_STANDARDS.md`，寫作規範落到 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只含 `@AGENTS.md`。`check:workflow` 新增五類檢查與一個警告，元件字串的反引號渲染為 inline code，ADR-0045 拆成 ADR-0061 到 ADR-0067，G1 改為確認對話總表（ADR-0060）。8 條 scenario 都有會在缺少實作時失敗的測試並全數通過；兩軸 review 三輪後到達 fixed point。`.env.local` 補回並以 `.env.example` 為準後，`verify:all` 的四個 lane 都通過。
 </TLDR>
 
 ## Acceptance scenario 結果
@@ -29,8 +29,8 @@ description: 8 條 acceptance scenario 全數通過；兩軸 code review 經三�
 | workflow 檢查單元測試 | `node --test scripts/__tests__/check-workflow.test.js` | 60／60 通過 |
 | Blueprint 元件測試 | `cd blueprint && pnpm exec jest` | 70／70 通過 |
 | 實際 repo 的 workflow 檢查 | `node scripts/check-workflow.js` | 通過（僅既有的 `standalone-decision-records` scenario 數警告） |
-| 最終 gate | `pnpm verify:all` | static、app-test、blueprint 通過；app-build 因缺 `MONGODB_URI` 失敗 |
-| app build（佔位環境變數） | `MONGODB_URI=… pnpm build` | 成功，只有 Better Auth 預設 secret 的警告 |
+| 最終 gate | `pnpm verify:all` | static、app-test、blueprint 通過 |
+| app build | `pnpm build`（`.env.local` 依 `.env.example` 補回） | 成功 |
 | Blueprint build | `pnpm --filter blueprint build` | 成功，Proposal 頁的 timeline 解析全部 10 筆 record |
 
 ## Code review findings 與修正
@@ -72,7 +72,6 @@ Pre-PR standards reviewer 拿到的文件：
 
 <RiskTable
   risks={[
-    { name: "app-build lane 在本機需要 `.env.local` 才能通過", severity: "info", mitigation: "與本 Change 無關；CI 把 app build 交給 Vercel。" },
     { name: "流程圖節點與連線 label 不支援 inline code", severity: "info", mitigation: "已寫進 `docs/agents/blueprint.md`；需要時再為 SVG 加 `tspan` 版本。" },
     { name: "命名慣例仍靠 reviewer 判斷", severity: "info", mitigation: "lint 化另開 ticket，完成後從 `CODING_STANDARDS.md` 刪除。" },
     { name: "source 註解仍有舊格式的 Feature D 引用", severity: "info", mitigation: "已另開 Fix path 任務改寫為 ADR-NNNN。" },
