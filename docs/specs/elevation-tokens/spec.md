@@ -88,11 +88,11 @@ Components that render their own dimming `Overlay` (Dialog, AlertDialog, Drawer)
 - **THEN** its layout SHALL render `StatusBarColor` with the semantic token its header sits on, which writes the resolved colour to `theme-color` and mirrors it onto `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor`
 - **AND** this inline body backdrop SHALL NOT be treated as the page content background, SHALL NOT use `--accent`, and SHALL be cleaned up when the route unmounts
 
-#### Scenario: PWA launch fallback matches the page background
+#### Scenario: PWA launch fallback matches the brand splash
 
 - **WHEN** a user agent uses the manifest color while launching the standalone PWA
-- **THEN** the manifest `background_color` SHALL equal the light-mode `--background` color
-- **AND** the fallback SHALL NOT introduce a separate near-white page layer
+- **THEN** the manifest `background_color` SHALL equal the `--primary` brand teal, as `docs/specs/android-splash/spec.md` requires
+- **AND** the launch fallback SHALL NOT be treated as a page or surface background
 
 #### Scenario: Modal overlay respects the PWA system chrome boundary
 

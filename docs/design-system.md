@@ -131,7 +131,7 @@ The standalone PWA uses an opaque status bar (`statusBarStyle: "default"`, ADR-0
 
 Overlay scrims do not use the status bar colour or the body backdrop. They use `inset-0` to cover the full web content viewport and leave any iOS-reserved status-bar region to system composition. This avoids a second background side effect whose timing or opacity can drift from the scrim; on affected WebKit versions, DOM content cannot paint beyond the viewport boundary.
 
-The PWA manifest `background_color` must match the brand `--primary` teal (`#10687e`), the same field the iOS launch screens use — Chrome composes the Android splash from this color plus the maskable icon (whose own field is the same teal), so the splash reads as a bare V on brand ground rather than a near-white frame. This does not replace Apple's `apple-touch-startup-image` handling.
+The PWA manifest `background_color` must match the brand `--primary` teal (`#10687e`), the same field the iOS launch screens use — Chrome composes the Android splash from this color plus the maskable icon (whose own field is the same teal), so the splash reads as a bare V on brand ground rather than a near-white frame. This does not replace Apple's `apple-touch-startup-image` handling. It only colours that launch splash: it is unrelated to the status bar colour each route sets through `StatusBarColor`.
 
 ### Token Lightness Reference (light mode)
 

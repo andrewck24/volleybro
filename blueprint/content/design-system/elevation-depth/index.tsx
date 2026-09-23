@@ -145,10 +145,12 @@ export default function ElevationDepthPage() {
         <code>accent</code> remains reserved for hover/highlight states. Overlay
         scrims are separate: they cover the full web content viewport with{" "}
         <code>inset-0</code> and never change the status bar colour. The PWA
-        manifest <code>background_color</code> matches the light-mode{" "}
-        <code>--background</code> value so the launch fallback does not add a
-        separate near-white layer. It does not replace Apple&apos;s{" "}
-        <code>apple-touch-startup-image</code> handling.
+        manifest <code>background_color</code> is the <code>--primary</code>{" "}
+        brand teal, so the Android launch splash reads as a bare mark on brand
+        ground like the iOS launch screen. It only colours that splash: it is
+        not a page background and is unrelated to the status bar colour each
+        route sets through <code>StatusBarColor</code>. It does not replace
+        Apple&apos;s <code>apple-touch-startup-image</code> handling.
       </p>
     </div>
   );
