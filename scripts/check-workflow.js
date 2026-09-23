@@ -48,7 +48,16 @@ const SUPPORTED_ADAPTERS = {
   evaluation: new Set(["symphony", "off"]),
 };
 
-const BRIDGE_FILES = ["CLAUDE.md", "AGENTS.md"];
+const BRIDGE_FILES = ["AGENTS.md"];
+const GUIDANCE_IMPORT = "@AGENTS.md";
+const RETIRED_AUTHORITY_FILES = [
+  "CONTRIBUTING.md",
+  "CODING_STANDARDS.md",
+  "AGENTS.md",
+];
+const SECTION_REFERENCE = /§\s?\d|\bsection\s*\d/i;
+const PRE_PR_GATE_HEADING = /^### 3\. Pre-PR gate and delivery\s*$/m;
+const NEXT_HEADING = /^#{2,3}\s/m;
 const REPOSITORY_ADAPTER_FILES = [
   "docs/agents/issue-tracker.md",
   "docs/agents/domain.md",
@@ -68,17 +77,68 @@ const CHANGE_SCOPE_SOFT_LIMIT = 30;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
 
 async function validateContributorGuidance(root) {
-  const contributorPath = path.join(root, "CONTRIBUTING.md");
-  if (!(await exists(contributorPath))) return [];
+  const diagnostics = [];
+  for (const relativePath of RETIRED_AUTHORITY_FILES) {
+    const filePath = path.join(root, relativePath);
+    if (!(await exists(filePath))) continue;
 
-  const content = await readFile(contributorPath, "utf8");
-  if (/\bspectra\b/i.test(content)) {
+    const content = await readFile(filePath, "utf8");
+    if (/\bspectra\b/i.test(content)) {
+      diagnostics.push(
+        `${relativePath} [retired-authority]: active contributor guidance must not present Spectra as a delivery authority`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
+async function validateGuidanceImport(root) {
+  const filePath = path.join(root, "CLAUDE.md");
+  if (!(await exists(filePath))) {
+    return ["CLAUDE.md [guidance-import]: file is missing"];
+  }
+
+  const content = await readFile(filePath, "utf8");
+  if (content !== GUIDANCE_IMPORT && content !== `${GUIDANCE_IMPORT}\n`) {
     return [
-      "CONTRIBUTING.md [retired-authority]: active contributor guidance must not present Spectra as a delivery authority",
+      `CLAUDE.md [guidance-import]: must contain exactly "${GUIDANCE_IMPORT}"`,
     ];
   }
 
   return [];
+}
+
+function validateSectionReferences(relativePath, content) {
+  if (!SECTION_REFERENCE.test(content)) return [];
+  return [
+    `${relativePath} [section-reference]: must not reference a section number; state the rule instead of citing its position`,
+  ];
+}
+
+// The section is bounded by the next ###/## heading, so a rename of that
+// heading (or its removal) silently stops enforcing this rather than
+// matching the wrong span.
+function validatePrePrGateSection(content) {
+  const match = content.match(PRE_PR_GATE_HEADING);
+  if (!match) return [];
+
+  const rest = content.slice(match.index + match[0].length);
+  const nextHeading = rest.match(NEXT_HEADING);
+  const section = nextHeading ? rest.slice(0, nextHeading.index) : rest;
+
+  const diagnostics = [];
+  if (!/CODING_STANDARDS\.md/.test(section)) {
+    diagnostics.push(
+      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must mention CODING_STANDARDS.md",
+    );
+  }
+  if (/CONTRIBUTING\.md/.test(section)) {
+    diagnostics.push(
+      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must not mention CONTRIBUTING.md",
+    );
+  }
+  return diagnostics;
 }
 
 async function validateRetiredAuthorities(root) {
@@ -477,7 +537,7 @@ async function hasMigrationTrailer(root, base) {
   }
 }
 
-// Feature D45: soft target, never a hard failure -- a Migration
+// ADR-0065: soft target, never a hard failure -- a Migration
 // Change (commit trailer or --migration) is the only escape hatch.
 async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
@@ -505,7 +565,7 @@ async function checkFileCountScope(root, options) {
   ];
 }
 
-// Proposal scenarios are the other Feature D45 soft target checked here,
+// Proposal scenarios are the other ADR-0065 soft target checked here,
 // read straight off whatever Change directories exist locally, independent
 // of the src/ file-count check above. Slice count is also a soft target
 // (WORKFLOW.md's Change scope section), but slices are Linear sub-issues
@@ -551,7 +611,10 @@ export async function checkWorkflow(root = process.cwd()) {
     } catch (error) {
       diagnostics.push(`WORKFLOW.md [delivery-profile]: ${error.message}`);
     }
+    diagnostics.push(...validatePrePrGateSection(workflow));
   }
+
+  diagnostics.push(...(await validateGuidanceImport(root)));
 
   for (const relativePath of BRIDGE_FILES) {
     const filePath = path.join(root, relativePath);
@@ -559,9 +622,9 @@ export async function checkWorkflow(root = process.cwd()) {
       diagnostics.push(`${relativePath} [workflow-bridge]: file is missing`);
       continue;
     }
-    diagnostics.push(
-      ...validateBridge(relativePath, await readFile(filePath, "utf8")),
-    );
+    const content = await readFile(filePath, "utf8");
+    diagnostics.push(...validateBridge(relativePath, content));
+    diagnostics.push(...validateSectionReferences(relativePath, content));
   }
 
   for (const relativePath of REPOSITORY_ADAPTER_FILES) {
@@ -625,16 +688,129 @@ export async function checkPublished(root, slug) {
   } — run \`pnpm blueprint:changes:publish ${slug}\` before the gate`;
 }
 
+const GATE_PAGE_SUFFIXES = {
+  "proposal.mdx": "Proposal",
+  "review.mdx": "Review",
+};
+
+export async function checkGateTitles(root, slug) {
+  const diagnostics = [];
+  const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
+
+  for (const [file, suffix] of Object.entries(GATE_PAGE_SUFFIXES)) {
+    const filePath = path.join(changeDir, file);
+    if (!(await exists(filePath))) continue;
+
+    const content = await readFile(filePath, "utf8");
+    const titleMatch = content.match(/^title:\s*(.*)$/m);
+    const title = titleMatch ? titleMatch[1].trim() : "";
+    const nameMatch = title.match(new RegExp(`^(.+) — ${suffix}$`));
+    const name = nameMatch ? nameMatch[1].trim() : "";
+
+    if (!name || name === "Proposal" || name === "Review") {
+      diagnostics.push(
+        `${BLUEPRINT_CHANGES}/${slug}/${file} [gate-title]: title must be "<name> — ${suffix}" with a non-empty name`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
+// A gate stops for the developer once the branch carries everything it
+// claims to: decision records committed, and the branch pushed so its
+// commits exist somewhere other than this checkout.
+export async function checkGateBranchState(root) {
+  const diagnostics = [];
+
+  const status = await git(root, [
+    "status",
+    "--porcelain",
+    "--",
+    "blueprint/content/decisions",
+  ]).catch(() => "");
+  if (status) {
+    diagnostics.push(
+      "blueprint/content/decisions [gate-branch-state]: commit and push the Change branch before publishing — decision records have uncommitted or untracked changes",
+    );
+  }
+
+  try {
+    await git(root, ["rev-parse", "--verify", "@{u}"]);
+  } catch {
+    diagnostics.push(
+      "[gate-branch-state]: commit and push the Change branch before publishing — the current branch has no upstream",
+    );
+    return diagnostics;
+  }
+
+  const ahead = await git(root, ["rev-list", "--count", "@{u}..HEAD"]);
+  if (Number(ahead) > 0) {
+    diagnostics.push(
+      "[gate-branch-state]: commit and push the Change branch before publishing — the branch is ahead of its upstream",
+    );
+  }
+
+  return diagnostics;
+}
+
+const DECISION_LENGTH_SOFT_LIMIT = 1000;
+
+export async function checkDecisionRecordLength(root) {
+  const base = await resolveScopeBase(root);
+
+  let added;
+  try {
+    const output = await git(root, [
+      "diff",
+      "--name-only",
+      "--diff-filter=A",
+      `${base}...HEAD`,
+      "--",
+      "blueprint/content/decisions",
+    ]);
+    added = output ? output.split("\n") : [];
+  } catch {
+    return [];
+  }
+
+  const diagnostics = [];
+  for (const relativePath of added) {
+    let record;
+    try {
+      record = JSON.parse(
+        await readFile(path.join(root, relativePath), "utf8"),
+      );
+    } catch {
+      continue;
+    }
+
+    const length = record.decision?.length ?? 0;
+    if (length > DECISION_LENGTH_SOFT_LIMIT) {
+      diagnostics.push(
+        `${relativePath} [decision-length]: decision is ${length} characters, past the soft target of ${DECISION_LENGTH_SOFT_LIMIT}; split the record or move detail into context or consequences`,
+      );
+    }
+  }
+
+  return diagnostics;
+}
+
 async function main() {
   const diagnostics = await checkWorkflow();
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
   if (gateSlug) {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
     if (unpublished) diagnostics.push(unpublished);
+    diagnostics.push(...(await checkGateTitles(process.cwd(), gateSlug)));
+    diagnostics.push(...(await checkGateBranchState(process.cwd())));
   }
   const warnings = await checkChangeScope(process.cwd(), {
     migrationSlug: flagValue(process.argv.slice(2), "--migration"),
   });
+  if (gateSlug) {
+    warnings.push(...(await checkDecisionRecordLength(process.cwd())));
+  }
 
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
 
