@@ -1,111 +1,144 @@
 ---
 title: Reviewer Standards Split — Proposal
-description: reviewer 的判斷型規則搬進 CODING_STANDARDS.md；CONTRIBUTING.md 與兩份指引檔回到「上手」與「指標」。
+description: 判斷型規則搬進只在 review 時讀的 CODING_STANDARDS.md；寫作規範落到寫作者會讀的文件；AGENTS.md 成為唯一指引檔；G1 改為確認 grill 收斂結果；ADR-0045 拆成單一決策。
 ---
 
-import d1 from "./proposal/decisions/D1-reviewer-rules-and-contributor-docs-are-different-documents.json";
-import d2 from "./proposal/decisions/D2-claude-md-and-agents-md-are-pointers-kept-identical.json";
-
 <TLDR>
-`CONTRIBUTING.md` 同時寫給開發者與 standards reviewer agent。把它拆開：判斷型規則搬到新的根目錄 `CODING_STANDARDS.md`，由 Pre-PR 的 reviewer brief 引用；`CONTRIBUTING.md` 只留「怎麼在這個 repo 上手幹活」，約 60 到 70 行。`CLAUDE.md` 與 `AGENTS.md` 改為純指標，不放摘要、不寫章節編號，並由一條機械檢查維持兩份一致。subagent brief 模板一併落地——brief 必須自己帶上規範，因為新開的 context 沒有。
+`CONTRIBUTING.md` 同時寫給開發者與 standards reviewer，兩份指引檔各自重述 `WORKFLOW.md` 並已漂移，寫作規範（語言切分、頁面標題、元件字串）只存在於口頭交代與 agent 記憶。本 Change 依「誰在什麼時候讀」重新分家：判斷型規則進只在 review 時讀的 `CODING_STANDARDS.md`，寫作時用的規則進寫作者本來就會讀的 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只 import 它。能機械化的規範改由 `check:workflow` 檢查或直接消滅。同時把 G1 改為開發者在對話中確認 grill 收斂結果，並把綁了十幾個決策的 ADR-0045 拆成單一決策的 record。
 </TLDR>
 
-## 為什麼是現在
+本頁依 ADR-0060 撰寫：內容逐字取自 grill 最後確認的總表。因為本 Change 仍在舊契約下，G1 照舊驗收這一頁。
 
-Pre-PR gate 把 `CONTRIBUTING.md` 的規則原文交給 standards reviewer，因為獨立 context 只知道 brief 帶進去的東西。而那份 brief 現在塞滿了 worktree 設定。
+## 決策總表
 
-同時，漂移已經公開發生：兩份指引檔都寫「`WORKFLOW.md` §5 owns the pre-PR gate」，但改版後 Pre-PR 是 §3；兩者各自帶著對方沒有的規則；`AGENTS.md` 還宣稱 `CONTRIBUTING.md` 沒寫的兩條規則，其實 `CONTRIBUTING.md` 兩條都寫了。
+| # | 決策 |
+| --- | --- |
+| Q1 | `CODING_STANDARDS.md` 只在 review 時讀；寫作時要用的規範放在寫作者本來就會讀的文件，`CODING_STANDARDS.md` 以指標指向它們（ADR-0058） |
+| Q2 | `WORKFLOW.md` 的 `Presentation` 整段搬進 `docs/agents/blueprint.md`；`WORKFLOW.md` 在 G1 與 Archive 兩個寫頁面的步驟各加一行觸發句 |
+| Q3 | 觸發做兩層：散文觸發句，加上 `check:workflow --gate` 的機械檢查；reviewer 經由 `CODING_STANDARDS.md` 的指標當後盾 |
+| Q4 | 頁面標題只檢查形狀：`<非空名稱> — Proposal` 或 `<非空名稱> — Review`，em dash 照字面比對 |
+| Q5 | 共用的 `renderInline` 把元件字串中的反引號渲染成 `<code>`，取代「元件字串不吃 markdown」這條規則 |
+| Q6 | 語言切分依產出物放置：commit 與 PR 的規則放 `CONTRIBUTING.md`；Blueprint 頁、decision record、`Scenario` 的規則放 `blueprint.md` |
+| Q7 | `CONTRIBUTING.md` 17 條規則的去向照下方清點表；刪除 Airbnb 與 tooling 名稱兩條；「commit body 寫 why」併入 commit 寫作規則，reviewer 不檢查；PR body 不要求寫 why |
+| Q8 | 「哪種 commit 帶哪個 trailer」由 `WORKFLOW.md` 擁有，`CONTRIBUTING.md` 只留格式細節與驗證指令；40 行 Review summary 只保留 Archive 第 3 步一處 |
+| Q9 | 指引檔現有規則的去向照下方 a 到 k 的表 |
+| Q10、Q11 | `AGENTS.md` 是唯一指引檔；`CLAUDE.md` 只含 `@AGENTS.md`（ADR-0059） |
+| Q13 | 不另開 brief 模板檔；在 Implementation-slice contract 寫明 brief 的組成：slice sub-issue 原文、該 slice 會碰到的規則原文、範圍排除、回報格式 |
+| Q14 | G1 預覽：先 commit 並 push decision record 再 publish；gate 檢查沒有未 commit 的 record、本機分支沒有領先 `origin`；沒有新 commit 時手動重跑分支 build |
+| Q15 | 合併後清理寫進 `WORKFLOW.md`：`git fetch`、fast-forward `dev`、在 worktree 外 `git worktree remove`、`git branch -d`；`issue-tracker.md` 只保留「移到 Done」 |
+| Q16 | 8 條可執行的 acceptance scenario，維持一個 Change |
+| Q17、Q25 | G1 由開發者在對話中確認總表；Proposal 頁是它的定稿；流程變更仍附流程圖（ADR-0060） |
+| Q19–Q21、Q23 | ADR-0045 拆成單一決策 record（ADR-0061 到 ADR-0067，`originChange` 為 `two-gate-workflow`）；`supersededBy` 指向 ADR-0061；0045 的 consequences 列出完整去向 |
+| Q22、Q24 | 本分支新增的 record，`decision` 超過 1000 字元時 gate 發出警告；agent 先拆分或把細節移到 `context`／`consequences`，不得已才在 G1 交給開發者；不設豁免標記 |
+| — | `WORKFLOW.md` 的 grill skill 統一為 `grill-with-docs`；`check-workflow.js` 註解中的「Feature D45」改為 ADR 引用 |
 
-另外，`two-gate-workflow` 期間有一個 executor 因為 brief 涵蓋六大塊而拒絕執行，拆成三份後才完成；多個 executor 的產出在 review 才被抓到註解密度、重複程式碼與 commit 格式問題——因為 brief 沒有附上規範。
-
-## 拆分後，誰讀哪一份
+## G1 流程的改變
 
 <InteractiveFlowchart
   nodes={[
-    { id: "dev", label: "開發者", sublabel: "第一次在這個 repo 幹活", x: 100, y: 40, w: 170 },
-    { id: "reviewer", label: "standards reviewer", sublabel: "獨立 context", x: 100, y: 150, w: 190 },
-    { id: "executor", label: "executor subagent", sublabel: "只收到 brief", x: 100, y: 255, w: 190 },
-    { id: "contributing", label: "CONTRIBUTING.md", sublabel: "分支、worktree、指令", x: 420, y: 40, w: 210 },
-    { id: "standards", label: "CODING_STANDARDS.md", sublabel: "判斷型規則", x: 420, y: 195, w: 220 },
-    { id: "pointers", label: "CLAUDE.md ＝ AGENTS.md", sublabel: "純指標，機械檢查維持一致", x: 420, y: 300, w: 250 },
+    { id: "grill", label: "grill", sublabel: "逐題決策", x: 90, y: 40, w: 140 },
+    { id: "summary", label: "確認總表", sublabel: "開發者在對話中確認 = G1", x: 330, y: 40, w: 230 },
+    { id: "records", label: "commit 並 push record", sublabel: "Change 分支", x: 590, y: 40, w: 210 },
+    { id: "page", label: "Proposal 頁", sublabel: "逐字取自總表", x: 590, y: 150, w: 190 },
+    { id: "publish", label: "publish", sublabel: "blueprint-changes 分支", x: 350, y: 150, w: 200 },
+    { id: "gate", label: "check:workflow --gate", sublabel: "標題、record、push、長度", x: 110, y: 150, w: 220 },
+    { id: "apply", label: "Apply", x: 110, y: 250, w: 120 },
   ]}
   edges={[
-    { from: "dev", to: "contributing" },
-    { from: "reviewer", to: "standards" },
-    { from: "executor", to: "standards", label: "brief 帶上" },
-    { from: "pointers", to: "contributing", dashed: true },
-    { from: "pointers", to: "standards", dashed: true },
+    { from: "grill", to: "summary" },
+    { from: "summary", to: "records" },
+    { from: "records", to: "page" },
+    { from: "page", to: "publish" },
+    { from: "publish", to: "gate" },
+    { from: "gate", to: "apply" },
   ]}
   details={{
-    reviewer: {
-      title: "brief 帶什麼，它就只知道什麼",
-      body: "Pre-PR gate 把規則原文交給它，所以那份 brief 現在塞滿了 worktree 設定。改為引用 CODING_STANDARDS.md 之後，沒寫下的規範會變成明顯的缺漏，而不是被埋住。",
+    summary: {
+      title: "驗收發生在對話裡",
+      body: "開發者已經逐題確認過決策與 scenario，不必再讀一次組好的頁面。頁面服務的是沒參與 grill 的讀者：接手的 Apply、Pre-PR 的 spec reviewer、Review 頁與日後的讀者。",
     },
-    standards: {
-      title: "只收工具擋不住的",
-      body: "註解的必要性與密度、測試該落在哪一層、commit body 寫為什麼、PR 雙語摘要。機械化得了的規則由 commit-guardrails 先搬進設定檔。",
+    records: {
+      title: "先 push record 再 publish",
+      body: "分支預覽的 build 會 pull store，但 publish 不會觸發 Change 分支重建。gate 檢查擋下未 commit 的 record 與未 push 的 commit；只改頁面時要手動重跑分支 build。",
     },
-    pointers: {
-      title: "兩份檔案，一行之差",
-      body: "不放摘要、不寫章節編號——章節編號每次改版都會失效，而摘要是漂移的來源。check:workflow 驗證兩份除指定的那一行外完全相同。",
+    gate: {
+      title: "機械檢查接手散文規則",
+      body: "頁面標題形狀與未 push 的 record 會讓檢查失敗；新增 record 的 decision 超過 1000 字元只發警告，由 agent 拆分或精簡，不得已才交給開發者。",
     },
   }}
 />
 
-## 本次 Change 的邊界
+## 規則去向
 
-- 新增根目錄 `CODING_STANDARDS.md`，只收判斷型規則，依 agent 讀者的方式撰寫。
-- `CONTRIBUTING.md` 精簡為分支、worktree、常用指令、何時開 changeset，加四個指標。
-- `CLAUDE.md` 與 `AGENTS.md` 改寫為純指標，並在 `check:workflow` 加一條規則：兩份檔案除指定的那一行外必須完全相同，且不得出現章節編號引用。
-- 新增 subagent brief 模板：目標、範圍與排除、驗收指令、指向 `CODING_STANDARDS.md` 的指標、回報格式——以「一個可獨立驗證的單位」為切分依據。
-- 把寫作規範一併寫進 `CODING_STANDARDS.md`，而不是靠每次口頭交代：文件語言切分（agent 面向用 `en`，開發者面向的 Blueprint 頁用 `zh-tw`，專有與領域名詞留 `en`）、Blueprint 頁面標題格式、以及 `RiskTable` 這類元件的字串不吃 markdown。`standalone-decision-records` 的四頁 Proposal 因為這些規則沒有寫下來而整批重寫過一次，那是這個 Change 要消滅的成本類型裡最大的一筆。
-- 更新所有指向被搬走規則的引用：`WORKFLOW.md` 的 Pre-PR standards reviewer 與「未寫下的規範」兩處，以及 `scripts/check-workflow.js` 的 retired-authority 檢查。
-- 改寫 `CONTRIBUTING.md` 的程式碼註解引用規則——它仍在區分「Feature 編號」與「Change 自己的 `D2`」，而 `standalone-decision-records` 消滅了這個區別並把該檔案交接過來。
-- **不在範圍內** —— 機械性規則本身。`commit-guardrails` 會先把它們搬進設定檔並從散文刪除。
+`CONTRIBUTING.md` 的清點：
+
+| # | 規則 | 去向 |
+| --- | --- | --- |
+| 1 | 先讀 `WORKFLOW.md` | `CONTRIBUTING`（指標） |
+| 2 | 分支與 PR 流程 | `CONTRIBUTING`（指標，去掉章節編號） |
+| 3 | PR 用 en 並附 zh-tw 摘要；PR 不可有 AI 署名 | `CONTRIBUTING` |
+| 4 | commit 格式、type、範例 | `CONTRIBUTING`（範例加 commitlint 指標） |
+| 5 | commit 用 en；body 寫 why | `CONTRIBUTING` |
+| 7 | tooling 名稱不可當 type 或 scope | 刪除（commitlint 已擋） |
+| 8 | trailer 格式細節與驗證指令 | `CONTRIBUTING`；哪種 commit 帶哪個 trailer歸 `WORKFLOW` |
+| 9 | Airbnb style | 刪除（不是事實） |
+| 10 | `pnpm lint`、`pnpm typecheck` | `CONTRIBUTING` |
+| 11 | 檔名與識別字命名慣例 | `CODING_STANDARDS`（lint 化另開 ticket） |
+| 12 | 註解整節 | `CODING_STANDARDS`，引用格式改為 ADR 編號 |
+| 13 | source 中不可放 issue id | `CODING_STANDARDS` |
+| 14 | testing strategy | 兩處都放指標 |
+| 15–17 | worktree、Changesets、依賴維護 | `CONTRIBUTING` |
+
+指引檔的清點：
+
+| # | 規則 | 去向 |
+| --- | --- | --- |
+| a、b | vendor skill 不可修改；工具 artifact 不是第二個權威 | 刪除（`WORKFLOW` 已有） |
+| c | 判斷型刪除要先確認 | `WORKFLOW` Apply |
+| d | 問題等到 gate 再問 | `WORKFLOW` Lifecycle 開頭 |
+| e、f | 以 slug 引用 Change；不 hard-wrap 散文 | `CONTRIBUTING` 新增 Writing 一節，`blueprint.md` 指過去 |
+| g | commit 格式相關 | 刪除（Q7 已處理） |
+| h | Pre-PR 見 §5 | 改為不帶編號的指標 |
+| i | PR 開了只等 CI | 刪除，`WORKFLOW` §3 缺的事實補進去 |
+| j | See also | 保留 |
+| k | 驗收即是開 PR 的許可 | `WORKFLOW` §3 |
+
+**不在範圍內**：命名慣例的 lint 化，另開 ticket。
 
 ## 行為契約
 
 <Scenario given="the Pre-PR standards reviewer brief" when="it is assembled" then="it cites CODING_STANDARDS.md and no longer cites CONTRIBUTING.md" />
 
-<Scenario given="a rule added to CLAUDE.md but not AGENTS.md" when="check:workflow runs" then="it fails naming the differing lines" />
+<Scenario given="a CLAUDE.md containing anything other than the single line @AGENTS.md" when="check:workflow runs" then="it fails" />
 
-<Scenario given="a section-number reference added to either guidance file" when="check:workflow runs" then="it fails" />
+<Scenario given="a section-number reference in AGENTS.md" when="check:workflow runs" then="it fails" />
 
-<Scenario given="CODING_STANDARDS.md" when="it is read end to end" then="every rule in it is one a tool cannot check" />
+<Scenario given="a Change page whose title is not a non-empty name followed by an em dash and Proposal or Review" when="check:workflow runs with --gate" then="it fails naming the page" />
 
-<Scenario given="a Blueprint page written from CODING_STANDARDS.md alone" when="it is reviewed" then="its language split, title format and component string handling need no correction" />
+<Scenario given="an uncommitted decision record, or a Change branch ahead of its remote" when="check:workflow runs with --gate" then="it fails" />
 
-<Scenario given="a subagent brief written from the template" when="it is handed to an executor" then="it names one independently verifiable unit, its acceptance command, and the standards document" />
+<Scenario given="a component string prop containing a backtick-quoted span" when="the page renders" then="the span renders as inline code" />
 
-<Scenario given="the retired-authority check in scripts/check-workflow.js" when="it runs after the split" then="it recognises CODING_STANDARDS.md as a current authority" />
+<Scenario given="CODING_STANDARDS.md or AGENTS.md presenting Spectra as a delivery authority" when="check:workflow runs" then="the retired-authority check fails" />
+
+<Scenario given="a decision record added on the branch whose decision exceeds 1000 characters" when="check:workflow runs with --gate" then="it warns naming the record and does not fail" />
 
 ## 風險
 
 <RiskTable
   risks={[
-    { name: "拆分過程漏掉一條規則，兩邊都沒有", severity: "critical", mitigation: "在動筆寫任一份檔案之前，先清點現行 22 條規則，逐條記下去向——CODING_STANDARDS.md、CONTRIBUTING.md、工具設定，或刪除。" },
-    { name: "兩檔一致性檢查與正當的 provider 差異打架", severity: "warning", mitigation: "允許一行指定的差異；其他需要差異的東西，正是它該搬進被指向文件的訊號。" },
+    { name: "拆分過程漏掉一條規則，兩邊都沒有", severity: "critical", mitigation: "照上方兩張清點表逐條搬移；Pre-PR 的 spec reviewer 拿表對照最終檔案。" },
+    { name: "Proposal 頁與對話中確認的總表不一致", severity: "warning", mitigation: "頁面逐字取自總表；spec reviewer 在 Pre-PR 以頁面對照程式碼，發現分歧即觸發 ADR-0060 的 revisit trigger。" },
+    { name: "ADR-0045 拆分時改變了原意", severity: "warning", mitigation: "拆出的 record 保留原文措辭與被否決的替代方案；已被其他 record 取代的條款只在去向清單中註明，不重寫。" },
     { name: "本 Change 與 triage-state-mapping 都會改 WORKFLOW.md 與 check-workflow.js", severity: "warning", mitigation: "序列化；本 Change 先落地，後者 rebase 到它之上。" },
-    { name: "CODING_STANDARDS.md 長成第二份 WORKFLOW.md", severity: "info", mitigation: "它只收 review 的判斷型規則；生命週期與 gate 留在 WORKFLOW.md，檔案若過長則於根目錄留薄的一份、細節分章放 docs/standards/。" },
+    { name: "1000 字元警告被習慣性忽略", severity: "info", mitigation: "ADR-0065 的 revisit trigger 涵蓋此情況，屆時再改為硬性檢查。" },
   ]}
 />
 
 ## 決策
 
-<DecisionTimeline decisions={[d1, d2]} />
+<DecisionTimeline ids={["0058", "0059", "0060", "0061", "0062", "0063", "0064", "0065", "0066", "0067"]} />
 
 ## 順序
 
-四個之中排第三。它依賴 `commit-guardrails` 先刪掉機械性規則，也依賴 `standalone-decision-records` 才能改寫註解引用那條。它必須早於 `triage-state-mapping`，兩者會動到同樣的兩個檔案。
-
-## References
-
-蒐集於 2026-09-18 的討論。**一份 reference 記錄的是它被讀到那天為真的事**，所以每一列都要說出自己的強度，以及它能支持到什麼程度。
-
-| 來源 | 支持什麼 | 強度 |
-| --- | --- | --- |
-| 已安裝的 `writing-for-agents` playbook | 怎麼替 agent 讀者寫文件：放 context pointer 而非摘要，並把 sediment 指為失敗模式——而那正是兩份指引檔現在的樣子。 | **高**。本 Change 套用的規則，而且它指出的病徵在檔案裡看得見。 |
-| 已安裝的 `code-review` 與 `retro` playbook | 兩者都以檔名在根目錄尋找 `CODING_STANDARDS.md`，而且都由 vendor 管理、不可修改。 | **高**。讀自已安裝的 skill；它直接決定了檔案的位置，不需再論證。 |
-| 對 `CONTRIBUTING.md` 現行 22 條規則的清點 | 其中 4 條今天真的被工具擋住；3 條是屬於 reviewer 的判斷題；4 條 trailer 規則中有 3 條沒有任何檢查——`Migration` 是唯一被 `check-workflow.js` 讀取的——而且四條都在這裡與 `WORKFLOW.md` 各寫了一次。 | **高**。在本 repo 清點，也是這次拆分屬於「分家」而非「重寫」的原因。 |
-| 以 actor 讀的單一職責原則 | 兩個讀者就是兩份文件——比「避免重複」更準的拆分理由。 | **中**。原則而非證據；它解釋形狀，不構成論據。 |
-| `AGENTS.md` 與 `CONTRIBUTING.md` 的現況 | 反面意見：光靠拆分沒用——依讀者分家並沒有阻止這兩份漂移，真正做事的是那條機械檢查，不是原則。 | **高**。漂移就在檔案裡。 |
+它依賴已合併的 `commit-guardrails` 與 `standalone-decision-records`，並且必須早於 `triage-state-mapping`：兩者會動到同樣的兩個檔案。
