@@ -1,0 +1,84 @@
+---
+title: Reviewer Standards Split — Review
+description: 8 條 acceptance scenario 全數通過；兩軸 code review 經三輪到達 fixed point；verify:all 除 app-build 因本機缺 MONGODB_URI 外全數通過。
+---
+
+<TLDR>
+判斷型規則已搬進只在 review 時讀的 `CODING_STANDARDS.md`，寫作規範落到 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只含 `@AGENTS.md`。`check:workflow` 新增五類檢查與一個警告，元件字串的反引號渲染為 inline code，ADR-0045 拆成 ADR-0061 到 ADR-0067，G1 改為確認對話總表（ADR-0060）。8 條 scenario 都有會在缺少實作時失敗的測試並全數通過；兩軸 review 三輪後到達 fixed point。唯一未綠的是 `verify:all` 的 app-build lane：本機與 worktree 都沒有 `.env.local`，以佔位的 `MONGODB_URI` 重跑 `pnpm build` 成功，本 Change 也未觸及 `src/`。
+</TLDR>
+
+## Acceptance scenario 結果
+
+8 條全數通過，每條都有會在缺少實作時失敗的測試。
+
+| # | Scenario | 測試 |
+| --- | --- | --- |
+| 1 | Pre-PR reviewer brief 引用 `CODING_STANDARDS.md`、不再引用 `CONTRIBUTING.md` | `check-workflow.test.js`：Pre-PR gate section missing CODING_STANDARDS.md／still cites CONTRIBUTING.md |
+| 2 | `CLAUDE.md` 不是剛好 `@AGENTS.md` 時失敗 | CLAUDE.md content other than the guidance import／missing CLAUDE.md |
+| 3 | `AGENTS.md` 出現章節編號時失敗 | section-number reference（`§` 與 spelled-out 兩種） |
+| 4 | 頁面標題形狀不符時 gate 失敗 | `checkGateTitles` 四個案例，含 YAML 加引號的標題 |
+| 5 | 未 commit 的 record 或分支領先 upstream 時 gate 失敗 | `checkGateBranchState`：uncommitted records／ahead／no upstream |
+| 6 | 元件字串的反引號渲染為 inline code | `render-inline.test.tsx`、`Scenario.test.tsx`、`RiskTable.test.tsx` |
+| 7 | retired-authority 檢查涵蓋 `CODING_STANDARDS.md` 與 `AGENTS.md` | Spectra as an active authority in CODING_STANDARDS.md／AGENTS.md |
+| 8 | 新增 record 的 `decision` 超過 1000 字元時 gate 只警告 | decision-length 警告含 record 路徑；CLI 以 exit 0 結束 |
+
+## 驗證
+
+| 項目 | 指令 | 結果 |
+| --- | --- | --- |
+| workflow 檢查單元測試 | `node --test scripts/__tests__/check-workflow.test.js` | 60／60 通過 |
+| Blueprint 元件測試 | `cd blueprint && pnpm exec jest` | 70／70 通過 |
+| 實際 repo 的 workflow 檢查 | `node scripts/check-workflow.js` | 通過（僅既有的 `standalone-decision-records` scenario 數警告） |
+| 最終 gate | `pnpm verify:all` | static、app-test、blueprint 通過；app-build 因缺 `MONGODB_URI` 失敗 |
+| app build（佔位環境變數） | `MONGODB_URI=… pnpm build` | 成功，只有 Better Auth 預設 secret 的警告 |
+| Blueprint build | `pnpm --filter blueprint build` | 成功，Proposal 頁的 timeline 解析全部 10 筆 record |
+
+## Code review findings 與修正
+
+三輪兩軸 review，最後一輪兩軸都沒有 finding，只剩 standards 逐字指定的一句措辭修改，已照做。
+
+<RiskTable
+  risks={[
+    { name: "ADR-0045 拆分漏掉 preview URL 替代方案、一個 revisit trigger 與 mockup promotion 條款", severity: "warning", mitigation: "補進 ADR-0062，0045 的去向清單改指向 ADR-0062 與 `WORKFLOW.md` 的 Authority and retention。" },
+    { name: "`WORKFLOW.md` 仍有三處寫 G1 驗收頁面，Ingest 的順序也與 ADR-0060 相反", severity: "warning", mitigation: "改為確認總表；Ingest 改成先更新 ADR 與總表、確認後再重新產生頁面。" },
+    { name: "Pre-PR 檢查寫死章節編號 `### 3.`，與本 Change 禁止章節編號的規則衝突", severity: "warning", mitigation: "改以 heading 文字 Pre-PR gate 比對，註解改寫成真正的風險：heading 改名會讓檢查失效。" },
+    { name: "Scenario 1、8 的測試只驗了一半", severity: "warning", mitigation: "補上同時引用兩份檔案的案例，以及驗證警告含路徑、CLI exit 0 的案例。" },
+    { name: "ADR-0058、ADR-0059 的 `decision` 夾帶 consequences", severity: "info", mitigation: "移到 `consequences`，`decision` 只留決策本身。" },
+    { name: "註解以位置引用規則、以 scenario 編號當引用、測試 helper 重複", severity: "info", mitigation: "改為指向 G1 exit steps；刪除 scenario 編號；抽出共用的 git 初始化與 `addBareRemote`。" },
+    { name: "驗收即開 PR 許可的規則出現兩次；判斷型刪除改成「到 gate 再問」後少了「先不刪」", severity: "info", mitigation: "刪除重複句；補上「開發者回覆前一律不刪」。" },
+    { name: "YAML 加引號的標題被誤判", severity: "info", mitigation: "比對前去掉一對成對的引號，並加測試。" },
+  ]}
+/>
+
+有三項判斷為不修正：0045 的 `supersededBy` 只指向一筆（Q21 的決定）；沒有 upstream 也讓 gate 失敗（Scenario 5 的合理延伸）；`CONTRIBUTING.md` 註明 commit body 須在 100 字元換行（G1 前承諾補上的事實）。
+
+## 邊界上的修正
+
+`CLAUDE.md` 從 26 行、與 `AGENTS.md` 各自漂移的指引，變成單一 import：
+
+<AnnotatedDiff
+  lang="md"
+  code={`- # Delivery Workflow Bridge
+- (26 lines restating WORKFLOW.md, drifted from AGENTS.md)
++ @AGENTS.md`}
+/>
+
+Pre-PR standards reviewer 拿到的文件：
+
+<AnnotatedDiff
+  lang="md"
+  code={`- the Proposal page, giving the standards reviewer \`CONTRIBUTING.md\`'s own rules verbatim — an
++ the Proposal page, giving the standards reviewer \`CODING_STANDARDS.md\` verbatim — an
+  independent context knows only what its brief carries;`}
+/>
+
+## 殘餘風險
+
+<RiskTable
+  risks={[
+    { name: "app-build lane 在本機需要 `.env.local` 才能通過", severity: "info", mitigation: "與本 Change 無關；CI 把 app build 交給 Vercel。" },
+    { name: "流程圖節點與連線 label 不支援 inline code", severity: "info", mitigation: "已寫進 `docs/agents/blueprint.md`；需要時再為 SVG 加 `tspan` 版本。" },
+    { name: "命名慣例仍靠 reviewer 判斷", severity: "info", mitigation: "lint 化另開 ticket，完成後從 `CODING_STANDARDS.md` 刪除。" },
+    { name: "source 註解仍有舊格式的 Feature D 引用", severity: "info", mitigation: "已另開 Fix path 任務改寫為 ADR-NNNN。" },
+  ]}
+/>
