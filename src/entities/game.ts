@@ -410,7 +410,7 @@ export function deriveSetPhase(
 }
 
 // The repository writes entries by this same rule; the two must not diverge.
-// See Feature D24.
+// See ADR-0024.
 export function upsertEntries<T extends EntryIdentity>(
   entries: readonly T[],
   incoming: readonly T[],
@@ -489,7 +489,7 @@ export function deriveSetStats(
       const awayStat = away[entry.away.type] as Tally | undefined;
 
       // A stored rally can name a move outside MoveType, which has no tally to
-      // add to. See Feature D25.
+      // add to. See ADR-0025.
       if (homeStat && awayStat) {
         if (win) {
           homeStat.success += 1;
