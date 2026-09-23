@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0063",
+  "title": "A small fix skips both gates",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045. ADR-0051 later drew where the line falls for fixes that touch decision records.",
+  "decision": "A fix that only restores documented behaviour, or changes no behaviour, skips both gates and the Change page store and goes straight to a pull request under the Fix path. Its commits carry a Refs trailer when the fix came from a tracker issue, and the pull request is its only gate.",
+  "consequences": [
+    "A Fix-path change has no Proposal or Review page and no publish step."
+  ],
+  "originChange": "two-gate-workflow"
+}

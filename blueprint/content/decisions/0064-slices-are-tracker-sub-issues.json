@@ -1,0 +1,14 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0064",
+  "title": "Slices are tracker sub-issues, and a one-session Change has none",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045. Slice JSON committed beside the Change pages had to be reconciled at every gate.",
+  "decision": "A Change's slices are sub-issues under its tracker issue, the same in manual and Symphony mode. A Change that fits one session skips slices and implements directly. The Implements commit trailer is a slice's only durable trace.",
+  "consequences": [
+    "Slices are working notes; nothing in the repository records them beyond commit trailers.",
+    "check-workflow.js cannot count slices, so the slice soft target is written only."
+  ],
+  "originChange": "two-gate-workflow"
+}

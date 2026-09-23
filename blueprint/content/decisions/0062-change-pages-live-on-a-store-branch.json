@@ -1,0 +1,26 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0062",
+  "title": "Change pages live on an orphan store branch",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Split out of ADR-0045. Committing Change pages on the Change branch filled every pull request with diff nobody reviewed, yet every Change must stay browsable after merge.",
+  "decision": "Change pages are written under gitignored blueprint/content/changes/<slug>/ on the Change branch and never committed there. At each gate `pnpm blueprint:changes:publish <slug>` commits them to the orphan blueprint-changes branch and pushes it; that branch never merges anywhere. `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy carries every published Change. Features and the Design System stay in git on normal branches, because agents read them as current knowledge and they change with the code.",
+  "alternatives": [
+    {
+      "option": "Move Blueprint change pages to a separate repository",
+      "reason": "Agents would work across two checkouts per Change, and the build would need a cross-repository fetch."
+    },
+    {
+      "option": "Keep Change pages gitignored and local only",
+      "reason": "Every Change must stay browsable on the deployed Blueprint from any device without checking out an old commit."
+    }
+  ],
+  "consequences": [
+    "Pull requests carry code, tests, Feature knowledge, the Changeset and a Review summary; Change pages are not in the diff."
+  ],
+  "revisitTriggers": [
+    "The store branch grows large enough to slow the build's fetch."
+  ],
+  "originChange": "two-gate-workflow"
+}

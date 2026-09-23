@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0065",
+  "title": "Change size has soft targets that warn",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045.",
+  "decision": "A Change targets at most 5 slices, 30 changed src files and 8 acceptance scenarios. check-workflow.js warns, rather than fails, past the targets it can count. Exceeding a target at Proposal time means splitting into several Changes rather than writing a larger one.",
+  "alternatives": [
+    {
+      "option": "Enforce a hard per-change size cap",
+      "reason": "Mature teams use soft targets with explicit exemptions; a hard cap would split large migrations into pieces no reviewer can judge without an approved overall plan."
+    }
+  ],
+  "revisitTriggers": [
+    "The size warnings are routinely ignored without a Migration trailer."
+  ],
+  "originChange": "two-gate-workflow"
+}
