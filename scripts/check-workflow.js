@@ -48,7 +48,6 @@ const SUPPORTED_ADAPTERS = {
   evaluation: new Set(["symphony", "off"]),
 };
 
-const BRIDGE_FILES = ["AGENTS.md"];
 const GUIDANCE_IMPORT = "@AGENTS.md";
 const RETIRED_AUTHORITY_FILES = [
   "CONTRIBUTING.md",
@@ -56,7 +55,7 @@ const RETIRED_AUTHORITY_FILES = [
   "AGENTS.md",
 ];
 const SECTION_REFERENCE = /§\s?\d|\bsection\s*\d/i;
-const PRE_PR_GATE_HEADING = /^### 3\. Pre-PR gate and delivery\s*$/m;
+const PRE_PR_GATE_HEADING = /^###\s+.*Pre-PR gate.*$/m;
 const NEXT_HEADING = /^#{2,3}\s/m;
 const REPOSITORY_ADAPTER_FILES = [
   "docs/agents/issue-tracker.md",
@@ -76,7 +75,7 @@ const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
 
-async function validateContributorGuidance(root) {
+async function validateGuidanceProse(root) {
   const diagnostics = [];
   for (const relativePath of RETIRED_AUTHORITY_FILES) {
     const filePath = path.join(root, relativePath);
@@ -116,9 +115,9 @@ function validateSectionReferences(relativePath, content) {
   ];
 }
 
-// The section is bounded by the next ###/## heading, so a rename of that
-// heading (or its removal) silently stops enforcing this rather than
-// matching the wrong span.
+// Matched by heading text, not position, so renumbering "### 3." doesn't
+// break this. Renaming the "Pre-PR gate" heading itself still silently
+// stops enforcing it.
 function validatePrePrGateSection(content) {
   const match = content.match(PRE_PR_GATE_HEADING);
   if (!match) return [];
@@ -616,15 +615,13 @@ export async function checkWorkflow(root = process.cwd()) {
 
   diagnostics.push(...(await validateGuidanceImport(root)));
 
-  for (const relativePath of BRIDGE_FILES) {
-    const filePath = path.join(root, relativePath);
-    if (!(await exists(filePath))) {
-      diagnostics.push(`${relativePath} [workflow-bridge]: file is missing`);
-      continue;
-    }
-    const content = await readFile(filePath, "utf8");
-    diagnostics.push(...validateBridge(relativePath, content));
-    diagnostics.push(...validateSectionReferences(relativePath, content));
+  const agentsPath = path.join(root, "AGENTS.md");
+  if (!(await exists(agentsPath))) {
+    diagnostics.push("AGENTS.md [workflow-bridge]: file is missing");
+  } else {
+    const content = await readFile(agentsPath, "utf8");
+    diagnostics.push(...validateBridge("AGENTS.md", content));
+    diagnostics.push(...validateSectionReferences("AGENTS.md", content));
   }
 
   for (const relativePath of REPOSITORY_ADAPTER_FILES) {
@@ -641,7 +638,7 @@ export async function checkWorkflow(root = process.cwd()) {
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
   diagnostics.push(...(await validateRetiredAuthorities(root)));
-  diagnostics.push(...(await validateContributorGuidance(root)));
+  diagnostics.push(...(await validateGuidanceProse(root)));
 
   for (const filePath of await activeReferenceFiles(root)) {
     if (!(await exists(filePath))) continue;
@@ -692,6 +689,7 @@ const GATE_PAGE_SUFFIXES = {
   "proposal.mdx": "Proposal",
   "review.mdx": "Review",
 };
+const GATE_PAGE_NAMES = new Set(Object.values(GATE_PAGE_SUFFIXES));
 
 export async function checkGateTitles(root, slug) {
   const diagnostics = [];
@@ -703,11 +701,13 @@ export async function checkGateTitles(root, slug) {
 
     const content = await readFile(filePath, "utf8");
     const titleMatch = content.match(/^title:\s*(.*)$/m);
-    const title = titleMatch ? titleMatch[1].trim() : "";
+    let title = titleMatch ? titleMatch[1].trim() : "";
+    const quoted = title.match(/^(["'])(.*)\1$/);
+    if (quoted) title = quoted[2];
     const nameMatch = title.match(new RegExp(`^(.+) — ${suffix}$`));
     const name = nameMatch ? nameMatch[1].trim() : "";
 
-    if (!name || name === "Proposal" || name === "Review") {
+    if (!name || GATE_PAGE_NAMES.has(name)) {
       diagnostics.push(
         `${BLUEPRINT_CHANGES}/${slug}/${file} [gate-title]: title must be "<name> — ${suffix}" with a non-empty name`,
       );
@@ -717,9 +717,12 @@ export async function checkGateTitles(root, slug) {
   return diagnostics;
 }
 
-// A gate stops for the developer once the branch carries everything it
-// claims to: decision records committed, and the branch pushed so its
-// commits exist somewhere other than this checkout.
+const GATE_BRANCH_STATE_ACTION =
+  "commit and push the Change branch before publishing";
+
+// Why: WORKFLOW.md G1 step 1 — the branch preview build pulls the page
+// store, but publishing doesn't rebuild it, so records pushed later are
+// missing from what the developer reviews.
 export async function checkGateBranchState(root) {
   const diagnostics = [];
 
@@ -731,7 +734,7 @@ export async function checkGateBranchState(root) {
   ]).catch(() => "");
   if (status) {
     diagnostics.push(
-      "blueprint/content/decisions [gate-branch-state]: commit and push the Change branch before publishing — decision records have uncommitted or untracked changes",
+      `blueprint/content/decisions [gate-branch-state]: ${GATE_BRANCH_STATE_ACTION} — decision records have uncommitted or untracked changes`,
     );
   }
 
@@ -739,7 +742,7 @@ export async function checkGateBranchState(root) {
     await git(root, ["rev-parse", "--verify", "@{u}"]);
   } catch {
     diagnostics.push(
-      "[gate-branch-state]: commit and push the Change branch before publishing — the current branch has no upstream",
+      `[gate-branch-state]: ${GATE_BRANCH_STATE_ACTION} — the current branch has no upstream`,
     );
     return diagnostics;
   }
@@ -747,7 +750,7 @@ export async function checkGateBranchState(root) {
   const ahead = await git(root, ["rev-list", "--count", "@{u}..HEAD"]);
   if (Number(ahead) > 0) {
     diagnostics.push(
-      "[gate-branch-state]: commit and push the Change branch before publishing — the branch is ahead of its upstream",
+      `[gate-branch-state]: ${GATE_BRANCH_STATE_ACTION} — the branch is ahead of its upstream`,
     );
   }
 
@@ -799,16 +802,14 @@ export async function checkDecisionRecordLength(root) {
 async function main() {
   const diagnostics = await checkWorkflow();
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
+  const warnings = await checkChangeScope(process.cwd(), {
+    migrationSlug: flagValue(process.argv.slice(2), "--migration"),
+  });
   if (gateSlug) {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
     if (unpublished) diagnostics.push(unpublished);
     diagnostics.push(...(await checkGateTitles(process.cwd(), gateSlug)));
     diagnostics.push(...(await checkGateBranchState(process.cwd())));
-  }
-  const warnings = await checkChangeScope(process.cwd(), {
-    migrationSlug: flagValue(process.argv.slice(2), "--migration"),
-  });
-  if (gateSlug) {
     warnings.push(...(await checkDecisionRecordLength(process.cwd())));
   }
 

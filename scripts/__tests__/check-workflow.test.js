@@ -443,25 +443,40 @@ test("checkChangeScope is silent outside a git repository", async () => {
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
+// Shared by makeScopeRepository, makeGitRepository and makeDecisionRepository:
+// a fresh repo with a first commit on `branch`, ready for each test's own
+// follow-up commits.
+async function initGitRepository(prefix, branch, seed) {
+  const root = await mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
+  const git = (args) => execFileAsync("git", args, { cwd: root });
+
+  await git(["init", "-q", "-b", branch]);
+  await git(["config", "user.email", "test@example.com"]);
+  await git(["config", "user.name", "Test"]);
+  await writeFile(path.join(root, "README.md"), "init\n");
+  if (seed) await seed(root);
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "init"]);
+
+  return { root, git };
+}
+
 // A minimal repo for checkChangeScope: a `dev` base commit, then a feature
 // branch with a given number of src/ files changed against it. `commitArgs`
 // lets a test add a trailer via an extra -m. `seedWorkflowFiles` also lays
 // down a valid checkWorkflow() repository, for a test that runs the CLI.
 async function makeScopeRepository(fileCount, commitArgs = [], options = {}) {
   const { seedWorkflowFiles = false } = options;
-  const root = await mkdtemp(path.join(os.tmpdir(), "change-scope-"));
-  const git = (args) => execFileAsync("git", args, { cwd: root });
-
-  await git(["init", "-q", "-b", "dev"]);
-  await git(["config", "user.email", "test@example.com"]);
-  await git(["config", "user.name", "Test"]);
-  await writeFile(path.join(root, "README.md"), "init\n");
-  if (seedWorkflowFiles) {
-    await writeFiles(root, REPOSITORY_FILES);
-    await addSkillBridge(root);
-  }
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "init"]);
+  const { root, git } = await initGitRepository(
+    "change-scope",
+    "dev",
+    seedWorkflowFiles
+      ? async (repoRoot) => {
+          await writeFiles(repoRoot, REPOSITORY_FILES);
+          await addSkillBridge(repoRoot);
+        }
+      : undefined,
+  );
 
   await git(["checkout", "-q", "-b", "feat/scope-test"]);
   await mkdir(path.join(root, "src"), { recursive: true });
@@ -617,19 +632,21 @@ test("checkGateTitles skips pages that do not exist", async () => {
   assert.deepEqual(await checkGateTitles(root, "missing"), []);
 });
 
+test("checkGateTitles accepts a YAML-quoted title", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx":
+      '---\ntitle: "Reviewer Standards Split — Proposal"\n---\n',
+    "blueprint/content/changes/c/review.mdx":
+      "---\ntitle: 'Reviewer Standards Split — Review'\n---\n",
+  });
+  assert.deepEqual(await checkGateTitles(root, "c"), []);
+});
+
 // checkGateBranchState needs a real git repo (a plain temp directory of
 // files, as makeRepository builds, is never one), plus a bare repo to stand
 // in for the remote for the upstream scenarios.
 async function makeGitRepository() {
-  const root = await mkdtemp(path.join(os.tmpdir(), "gate-branch-"));
-  const git = (args) => execFileAsync("git", args, { cwd: root });
-  await git(["init", "-q", "-b", "main"]);
-  await git(["config", "user.email", "test@example.com"]);
-  await git(["config", "user.name", "Test"]);
-  await writeFile(path.join(root, "README.md"), "init\n");
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "init"]);
-  return { root, git };
+  return initGitRepository("gate-branch", "main");
 }
 
 async function addBareRemote(root, git) {
@@ -685,14 +702,7 @@ test("checkGateBranchState accepts a clean branch matching its upstream", async 
 // repos follow makeScopeRepository's shape but change decision records
 // instead of src/ files.
 async function makeDecisionRepository() {
-  const root = await mkdtemp(path.join(os.tmpdir(), "decision-length-"));
-  const git = (args) => execFileAsync("git", args, { cwd: root });
-  await git(["init", "-q", "-b", "dev"]);
-  await git(["config", "user.email", "test@example.com"]);
-  await git(["config", "user.name", "Test"]);
-  await writeFile(path.join(root, "README.md"), "init\n");
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "init"]);
+  const { root, git } = await initGitRepository("decision-length", "dev");
   await git(["checkout", "-q", "-b", "feat/decision-test"]);
   await mkdir(path.join(root, "blueprint/content/decisions"), {
     recursive: true,
@@ -713,6 +723,7 @@ test("checkDecisionRecordLength warns past the soft character target", async () 
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /decision-length/i);
   assert.match(warnings[0], /1001 characters/);
+  assert.match(warnings[0], /blueprint\/content\/decisions\/0099-long\.json/);
 });
 
 test("checkDecisionRecordLength ignores records within the soft target", async () => {
@@ -725,6 +736,57 @@ test("checkDecisionRecordLength ignores records within the soft target", async (
   await git(["commit", "-q", "-m", "add decision"]);
 
   assert.deepEqual(await checkDecisionRecordLength(root), []);
+});
+
+// CLI-level version of scenario 8: `--gate` runs checkDecisionRecordLength
+// too, and a warning must not fail the process.
+test("the CLI exits 0 with a decision-length warning when that is the only gate issue", async () => {
+  const { root, git } = await initGitRepository(
+    "decision-cli",
+    "dev",
+    async (repoRoot) => {
+      await writeFiles(repoRoot, {
+        ...REPOSITORY_FILES,
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Reviewer Standards Split — Proposal\n---\n\n<TLDR>Summary</TLDR>\n\n<Scenario given="a" when="b" then="c" />\n',
+        "blueprint/content/changes/c/review.mdx":
+          "---\ntitle: Reviewer Standards Split — Review\n---\n\n<TLDR>Summary</TLDR>\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
+      });
+      await addSkillBridge(repoRoot);
+
+      const changesDir = path.join(repoRoot, "blueprint/content/changes");
+      await writeFile(
+        path.join(changesDir, ".store-state.json"),
+        JSON.stringify({ c: await hashDir(path.join(changesDir, "c")) }),
+      );
+    },
+  );
+  const bare = await mkdtemp(path.join(os.tmpdir(), "decision-cli-remote-"));
+  await execFileAsync("git", ["init", "-q", "--bare", bare]);
+  await git(["remote", "add", "origin", bare]);
+  await git(["push", "-q", "-u", "origin", "dev"]);
+
+  await git(["checkout", "-q", "-b", "feat/decision-warn"]);
+  await mkdir(path.join(root, "blueprint/content/decisions"), {
+    recursive: true,
+  });
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-long.json"),
+    JSON.stringify({ decision: "x".repeat(1001) }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add decision"]);
+  await git(["push", "-q", "-u", "origin", "feat/decision-warn"]);
+
+  const result = await execFileAsync(
+    "node",
+    [CHECK_WORKFLOW_SCRIPT, "--gate", "c"],
+    { cwd: root },
+  ).catch((error) => error);
+
+  assert.equal(result.code ?? 0, 0);
+  assert.match(result.stderr, /Warning:.*decision-length/is);
+  assert.match(result.stderr, /blueprint\/content\/decisions\/0099-long\.json/);
 });
 
 test("checkDecisionRecordLength ignores a record that only changed", async () => {
