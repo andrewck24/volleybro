@@ -27,6 +27,10 @@ capability knowledge in Features.
   every deploy because agents read them as current knowledge and they change
   with the code. Published Changes ship too, pulled from the
   `blueprint-changes` store branch at build time.
+- Blueprint component string props, such as those of `Scenario` and
+  `RiskTable`, render a backtick-quoted span as inline code and everything
+  else as plain text; flowchart node and edge labels are drawn in SVG and stay
+  plain text. How a page is written lives in `docs/agents/blueprint.md`.
 - The 22 old-format Changes moved from the four-page shell live on the store
   branch and render through a temporary compatibility layer until they are
   converted; that conversion work is tracked outside the repository.

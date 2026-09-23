@@ -34,12 +34,14 @@
     "The deployed Blueprint site carries Features, the Design System, and every published Change.",
     "Slices are working notes; the Implements commit trailer is their only durable trace.",
     "Superseded Feature ADRs carry supersededBy instead of a status field.",
-    "A small fix with no new behaviour contract uses the Fix path instead: no Proposal or Review page, no publish step, and a pull request whose commits carry a Refs trailer is the only gate."
+    "A small fix with no new behaviour contract uses the Fix path instead: no Proposal or Review page, no publish step, and a pull request whose commits carry a Refs trailer is the only gate.",
+    "Split by reviewer-standards-split into one record per decision: two gates (ADR-0061), what each gate accepts (ADR-0060, rewritten by that Change), the store branch (ADR-0062), the Fix path (ADR-0063), slices (ADR-0064), size targets (ADR-0065), structure or behaviour (ADR-0066) and Migration Changes (ADR-0067). ADR status, supersededBy and the Archive promotion of Migration records were already replaced by ADR-0046; the Feature-number comment citation by ADR-0046 and ADR-0054. The list of what survives a Change is not a decision: WORKFLOW.md's Authority and retention section covers it, and mockup promotion is recorded in ADR-0062."
   ],
   "revisitTriggers": [
     "The store branch grows large enough to slow the build's fetch.",
     "A gate is reviewed by someone who cannot run the Blueprint locally.",
     "The size warnings are routinely ignored without a Migration trailer."
   ],
-  "originChange": "two-gate-workflow"
+  "originChange": "two-gate-workflow",
+  "supersededBy": "0061"
 }

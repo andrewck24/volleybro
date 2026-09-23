@@ -8,10 +8,21 @@ optional Symphony execution.
 
 ## Current behavior
 
-- Two human gates bound the whole lifecycle: **G1** accepts the Proposal page
-  before any implementation starts, **G2** accepts the Review page before
-  the pull request opens. Everything between a gate and the next runs without
-  stopping for a human.
+- Two human gates bound the whole lifecycle: at **G1** the developer confirms
+  the discussion's final summary before any implementation starts, and the
+  Proposal page records that summary verbatim afterwards; **G2** accepts the
+  Review page before the pull request opens. Everything between a gate and
+  the next runs without stopping for a human.
+- At each gate `pnpm check:workflow --gate <slug>` fails on a page title that
+  is not `<name> — Proposal` or `<name> — Review`, on uncommitted decision
+  records, and on a Change branch not pushed to its upstream, and warns when
+  a record added on the branch has a `decision` over 1000 characters.
+- `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly
+  `@AGENTS.md`; `check:workflow` fails otherwise, and when `AGENTS.md` cites a
+  section number. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`,
+  which holds only review-time judgement rules; the rules a writer applies
+  live in `CONTRIBUTING.md` (commits, pull requests) and
+  `docs/agents/blueprint.md` (Blueprint pages, decision records).
 - Apply decomposes an accepted Proposal into slices — Linear sub-issues under
   the Change's issue, the same way in manual and Symphony mode — unless the
   Change fits one session, which implements directly instead. Either way it
@@ -23,7 +34,7 @@ optional Symphony execution.
   Decision records are not part of that promotion — each already lives at its
   permanent path from the moment it was written.
 - Symphony claims a Change once the developer adds `agent:ready` to its
-  tracker issue after G1 acceptance, moving it to Todo in the same step.
+  tracker issue after G1, moving it to Todo in the same step.
   Before Manual Apply, the developer checks that no claim exists, removes
   the label, moves the issue to In Progress, and checks again — closing
   the race with a Symphony claim.
@@ -40,7 +51,9 @@ optional Symphony execution.
 
 - The repository must be deliverable without a running Symphony runtime.
 - No pull request opens before Archive completes and the developer accepts
-  the Review page (G2); merge performs no second knowledge sync.
+  the Review page (G2); merge performs no second knowledge sync. After merge
+  the local `dev` is fast-forwarded and the Change's worktree and local branch
+  are removed.
 - Blueprint's Change review surfaces (`proposal.mdx`, `review.mdx`) are
   gitignored on the Change branch and published to the `blueprint-changes`
   store branch at each gate, which is their durable store — not the Change

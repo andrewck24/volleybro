@@ -26,4 +26,16 @@ describe("Scenario", () => {
       screen.getByText("they are redirected to the dashboard"),
     ).toBeInTheDocument();
   });
+
+  it("renders a backtick-quoted span in a step as inline code", () => {
+    render(
+      <Scenario
+        given="the file `login.ts` exists"
+        when="they run the tests"
+        then="it passes"
+      />,
+    );
+
+    expect(screen.getByText("login.ts").tagName).toBe("CODE");
+  });
 });

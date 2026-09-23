@@ -19,11 +19,12 @@ request opens:
    Archive does not promote, reconcile, or renumber decision records — a decision record already
    lives at its permanent `blueprint/content/decisions/` path from the moment it was written;
 3. reconcile `CONTEXT.md` only for stable domain vocabulary resolved during the Change;
-4. export a Review summary of at most 40 lines — acceptance scenario results, verification,
-   findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
+4. export the Review summary for the pull-request body, as `WORKFLOW.md`'s Archive section
+   defines it;
 5. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript
    text from durable Blueprint content;
-6. generate the Review page, read it rendered in a browser, publish it with
+6. generate the Review page following `docs/agents/blueprint.md`, read it rendered in a browser,
+   publish it with
    `pnpm blueprint:changes:publish <slug>`, confirm with `pnpm check:workflow --gate <slug>`, then
    notify the developer and stop for acceptance (G2);
 7. once accepted, verify tracker neutrality, workflow conformance, and the Features build.

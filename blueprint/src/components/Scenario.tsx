@@ -2,6 +2,7 @@ import { Fragment } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { renderInline } from "@/lib/render-inline";
 
 type ScenarioProps = {
   given: string;
@@ -37,7 +38,9 @@ export function Scenario({ given, when, then }: ScenarioProps) {
               >
                 {label}
               </span>
-              <span className="text-sm leading-relaxed">{value}</span>
+              <span className="text-sm leading-relaxed">
+                {renderInline(value)}
+              </span>
             </div>
           </Fragment>
         ))}

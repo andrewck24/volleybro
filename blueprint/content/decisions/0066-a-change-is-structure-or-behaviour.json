@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0066",
+  "title": "A Change is a structure change or a behaviour change, never both",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045.",
+  "decision": "A Change is either a structure change, accepted on the existing tests passing and dependency direction holding, or a behaviour change, accepted on its own scenarios — never both.",
+  "originChange": "two-gate-workflow"
+}

@@ -13,6 +13,9 @@ import {
   checkWorkflow,
   checkChangeScope,
   checkPublished,
+  checkGateTitles,
+  checkGateBranchState,
+  checkDecisionRecordLength,
 } from "../check-workflow.js";
 
 const execFileAsync = promisify(execFile);
@@ -53,7 +56,7 @@ delivery:
 
 const REPOSITORY_FILES = {
   "WORKFLOW.md": validWorkflow,
-  "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
+  "CLAUDE.md": "@AGENTS.md\n",
   "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md).\n",
   "docs/agents/issue-tracker.md": "# Issue tracker adapter\n",
   "docs/agents/domain.md": "# Domain documentation adapter\n",
@@ -119,8 +122,98 @@ test("reports an unsupported delivery adapter", async () => {
 
 test("reports a provider bridge without the canonical pointer", async () => {
   assert.match(
-    (await messages({ "CLAUDE.md": "Repository instructions.\n" })).join("\n"),
-    /CLAUDE\.md.*WORKFLOW\.md/i,
+    (await messages({ "AGENTS.md": "Repository instructions.\n" })).join("\n"),
+    /AGENTS\.md.*WORKFLOW\.md/i,
+  );
+});
+
+test("accepts CLAUDE.md containing exactly the guidance import line", async () => {
+  assert.deepEqual(await messages(), []);
+});
+
+test("reports CLAUDE.md content other than the guidance import", async () => {
+  assert.match(
+    (
+      await messages({ "CLAUDE.md": "Read [WORKFLOW.md](WORKFLOW.md).\n" })
+    ).join("\n"),
+    /CLAUDE\.md.*guidance-import/i,
+  );
+});
+
+test("reports a missing CLAUDE.md", async () => {
+  assert.match(
+    (await messages({ "CLAUDE.md": null })).join("\n"),
+    /CLAUDE\.md.*guidance-import/i,
+  );
+});
+
+test("reports a section-number reference in AGENTS.md", async () => {
+  assert.match(
+    (
+      await messages({
+        "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md) §5.\n",
+      })
+    ).join("\n"),
+    /AGENTS\.md.*section-reference/i,
+  );
+});
+
+test("reports a spelled-out section-number reference in AGENTS.md", async () => {
+  assert.match(
+    (
+      await messages({
+        "AGENTS.md": "Read [WORKFLOW.md](WORKFLOW.md), see section 5.\n",
+      })
+    ).join("\n"),
+    /AGENTS\.md.*section-reference/i,
+  );
+});
+
+test("reports the Pre-PR gate section missing CODING_STANDARDS.md", async () => {
+  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CONTRIBUTING.md.\n\n### 4. Archive\n`;
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /WORKFLOW\.md.*standards-reviewer/i,
+  );
+});
+
+test("reports a Pre-PR gate section that still cites CONTRIBUTING.md", async () => {
+  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md and CONTRIBUTING.md.\n\n### 4. Archive\n`;
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /must not mention CONTRIBUTING\.md/,
+  );
+});
+
+test("accepts a Pre-PR gate section that cites CODING_STANDARDS.md only", async () => {
+  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md.\n\n### 4. Archive\n`;
+  assert.deepEqual(await messages({ "WORKFLOW.md": workflow }), []);
+});
+
+test("is silent about Pre-PR gate wording when the section is absent", async () => {
+  assert.deepEqual(await messages(), []);
+});
+
+test("reports Spectra as an active authority in CODING_STANDARDS.md", async () => {
+  assert.match(
+    (
+      await messages({
+        "CODING_STANDARDS.md": "Use Spectra artifacts for review.\n",
+      })
+    ).join("\n"),
+    /CODING_STANDARDS\.md.*retired-authority/i,
+  );
+});
+
+test("reports Spectra as an active authority in AGENTS.md", async () => {
+  assert.match(
+    (
+      await messages({
+        "AGENTS.md":
+          "Read [WORKFLOW.md](WORKFLOW.md). Use Spectra artifacts.\n",
+      })
+    ).join("\n"),
+    /AGENTS\.md.*retired-authority/i,
   );
 });
 
@@ -358,25 +451,37 @@ test("checkChangeScope is silent outside a git repository", async () => {
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
+async function initGitRepository(prefix, branch, seed) {
+  const root = await mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
+  const git = (args) => execFileAsync("git", args, { cwd: root });
+
+  await git(["init", "-q", "-b", branch]);
+  await git(["config", "user.email", "test@example.com"]);
+  await git(["config", "user.name", "Test"]);
+  await writeFile(path.join(root, "README.md"), "init\n");
+  if (seed) await seed(root);
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "init"]);
+
+  return { root, git };
+}
+
 // A minimal repo for checkChangeScope: a `dev` base commit, then a feature
 // branch with a given number of src/ files changed against it. `commitArgs`
 // lets a test add a trailer via an extra -m. `seedWorkflowFiles` also lays
 // down a valid checkWorkflow() repository, for a test that runs the CLI.
 async function makeScopeRepository(fileCount, commitArgs = [], options = {}) {
   const { seedWorkflowFiles = false } = options;
-  const root = await mkdtemp(path.join(os.tmpdir(), "change-scope-"));
-  const git = (args) => execFileAsync("git", args, { cwd: root });
-
-  await git(["init", "-q", "-b", "dev"]);
-  await git(["config", "user.email", "test@example.com"]);
-  await git(["config", "user.name", "Test"]);
-  await writeFile(path.join(root, "README.md"), "init\n");
-  if (seedWorkflowFiles) {
-    await writeFiles(root, REPOSITORY_FILES);
-    await addSkillBridge(root);
-  }
-  await git(["add", "-A"]);
-  await git(["commit", "-q", "-m", "init"]);
+  const { root, git } = await initGitRepository(
+    "change-scope",
+    "dev",
+    seedWorkflowFiles
+      ? async (repoRoot) => {
+          await writeFiles(repoRoot, REPOSITORY_FILES);
+          await addSkillBridge(repoRoot);
+        }
+      : undefined,
+  );
 
   await git(["checkout", "-q", "-b", "feat/scope-test"]);
   await mkdir(path.join(root, "src"), { recursive: true });
@@ -493,4 +598,214 @@ test("the gate check reports a Change with no directory at all", async () => {
   const root = await makeRepository();
 
   assert.match(await checkPublished(root, "c"), /no Change directory/);
+});
+
+test("checkGateTitles reports a proposal title missing the suffix", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx":
+      "---\ntitle: Something\n---\n\n<TLDR>x</TLDR>\n",
+  });
+  assert.match(
+    (await checkGateTitles(root, "c")).join("\n"),
+    /proposal\.mdx.*gate-title/is,
+  );
+});
+
+test("checkGateTitles reports a title whose name is just the suffix", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/review.mdx":
+      "---\ntitle: Review — Review\n---\n",
+  });
+  assert.match(
+    (await checkGateTitles(root, "c")).join("\n"),
+    /review\.mdx.*gate-title/is,
+  );
+});
+
+test("checkGateTitles accepts well-formed titles", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx":
+      "---\ntitle: Reviewer Standards Split — Proposal\n---\n",
+    "blueprint/content/changes/c/review.mdx":
+      "---\ntitle: Reviewer Standards Split — Review\n---\n",
+  });
+  assert.deepEqual(await checkGateTitles(root, "c"), []);
+});
+
+test("checkGateTitles skips pages that do not exist", async () => {
+  const root = await makeRepository();
+  assert.deepEqual(await checkGateTitles(root, "missing"), []);
+});
+
+test("checkGateTitles accepts a YAML-quoted title", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/proposal.mdx":
+      '---\ntitle: "Reviewer Standards Split — Proposal"\n---\n',
+    "blueprint/content/changes/c/review.mdx":
+      "---\ntitle: 'Reviewer Standards Split — Review'\n---\n",
+  });
+  assert.deepEqual(await checkGateTitles(root, "c"), []);
+});
+
+// checkGateBranchState needs a real git repo (a plain temp directory of
+// files, as makeRepository builds, is never one), plus a bare repo to stand
+// in for the remote for the upstream scenarios.
+async function makeGitRepository() {
+  return initGitRepository("gate-branch", "main");
+}
+
+async function addBareRemote(git, branch = "main") {
+  const bare = await mkdtemp(path.join(os.tmpdir(), "gate-remote-"));
+  await execFileAsync("git", ["init", "-q", "--bare", bare]);
+  await git(["remote", "add", "origin", bare]);
+  await git(["push", "-q", "-u", "origin", branch]);
+}
+
+test("checkGateBranchState reports a branch with no upstream", async () => {
+  const { root } = await makeGitRepository();
+  assert.match(
+    (await checkGateBranchState(root)).join("\n"),
+    /gate-branch-state.*upstream/is,
+  );
+});
+
+test("checkGateBranchState reports a branch ahead of its upstream", async () => {
+  const { root, git } = await makeGitRepository();
+  await addBareRemote(git);
+  await writeFile(path.join(root, "extra.txt"), "x\n");
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "extra"]);
+  assert.match(
+    (await checkGateBranchState(root)).join("\n"),
+    /gate-branch-state.*ahead/is,
+  );
+});
+
+test("checkGateBranchState reports uncommitted decision records", async () => {
+  const { root, git } = await makeGitRepository();
+  await addBareRemote(git);
+  await mkdir(path.join(root, "blueprint/content/decisions"), {
+    recursive: true,
+  });
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-x.json"),
+    "{}\n",
+  );
+  assert.match(
+    (await checkGateBranchState(root)).join("\n"),
+    /decisions.*gate-branch-state/is,
+  );
+});
+
+test("checkGateBranchState accepts a clean branch matching its upstream", async () => {
+  const { root, git } = await makeGitRepository();
+  await addBareRemote(git);
+  assert.deepEqual(await checkGateBranchState(root), []);
+});
+
+// checkDecisionRecordLength reuses resolveScopeBase's `dev` base, so these
+// repos follow makeScopeRepository's shape but change decision records
+// instead of src/ files.
+async function makeDecisionRepository() {
+  const { root, git } = await initGitRepository("decision-length", "dev");
+  await git(["checkout", "-q", "-b", "feat/decision-test"]);
+  await mkdir(path.join(root, "blueprint/content/decisions"), {
+    recursive: true,
+  });
+  return { root, git };
+}
+
+test("checkDecisionRecordLength warns past the soft character target", async () => {
+  const { root, git } = await makeDecisionRepository();
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-long.json"),
+    JSON.stringify({ decision: "x".repeat(1001) }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add decision"]);
+
+  const warnings = await checkDecisionRecordLength(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /decision-length/i);
+  assert.match(warnings[0], /1001 characters/);
+  assert.match(warnings[0], /blueprint\/content\/decisions\/0099-long\.json/);
+});
+
+test("checkDecisionRecordLength ignores records within the soft target", async () => {
+  const { root, git } = await makeDecisionRepository();
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-short.json"),
+    JSON.stringify({ decision: "x".repeat(1000) }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add decision"]);
+
+  assert.deepEqual(await checkDecisionRecordLength(root), []);
+});
+
+test("the CLI exits 0 with a decision-length warning when that is the only gate issue", async () => {
+  const { root, git } = await initGitRepository(
+    "decision-cli",
+    "dev",
+    async (repoRoot) => {
+      await writeFiles(repoRoot, {
+        ...REPOSITORY_FILES,
+        "blueprint/content/changes/c/proposal.mdx":
+          '---\ntitle: Reviewer Standards Split — Proposal\n---\n\n<TLDR>Summary</TLDR>\n\n<Scenario given="a" when="b" then="c" />\n',
+        "blueprint/content/changes/c/review.mdx":
+          "---\ntitle: Reviewer Standards Split — Review\n---\n\n<TLDR>Summary</TLDR>\n\n| Scenario | Result |\n| --- | --- |\n| a | pass |\n",
+      });
+      await addSkillBridge(repoRoot);
+
+      const changesDir = path.join(repoRoot, "blueprint/content/changes");
+      await writeFile(
+        path.join(changesDir, ".store-state.json"),
+        JSON.stringify({ c: await hashDir(path.join(changesDir, "c")) }),
+      );
+    },
+  );
+  await addBareRemote(git, "dev");
+
+  await git(["checkout", "-q", "-b", "feat/decision-warn"]);
+  await mkdir(path.join(root, "blueprint/content/decisions"), {
+    recursive: true,
+  });
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-long.json"),
+    JSON.stringify({ decision: "x".repeat(1001) }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add decision"]);
+  await git(["push", "-q", "-u", "origin", "feat/decision-warn"]);
+
+  const result = await execFileAsync(
+    "node",
+    [CHECK_WORKFLOW_SCRIPT, "--gate", "c"],
+    { cwd: root },
+  ).catch((error) => error);
+
+  assert.equal(result.code ?? 0, 0);
+  assert.match(result.stderr, /Warning:.*decision-length/is);
+  assert.match(result.stderr, /blueprint\/content\/decisions\/0099-long\.json/);
+});
+
+test("checkDecisionRecordLength ignores a record that only changed", async () => {
+  const { root, git } = await makeDecisionRepository();
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-existing.json"),
+    JSON.stringify({ decision: "short" }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "add decision"]);
+  await git(["checkout", "-q", "dev"]);
+  await git(["merge", "-q", "feat/decision-test"]);
+  await git(["checkout", "-q", "-b", "feat/modify-test"]);
+  await writeFile(
+    path.join(root, "blueprint/content/decisions/0099-existing.json"),
+    JSON.stringify({ decision: "x".repeat(1001) }),
+  );
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "modify decision"]);
+
+  assert.deepEqual(await checkDecisionRecordLength(root), []);
 });

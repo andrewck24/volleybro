@@ -19,4 +19,20 @@ describe("RiskTable", () => {
     expect(rows[3]).toHaveTextContent("Info risk");
     expect(rows[4]).toHaveTextContent("Low risk");
   });
+
+  it("renders a backtick-quoted span in a risk field as inline code", () => {
+    render(
+      <RiskTable
+        risks={[
+          {
+            name: "Stale `cache.ts`",
+            severity: "warning",
+            mitigation: "clear it",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("cache.ts").tagName).toBe("CODE");
+  });
 });

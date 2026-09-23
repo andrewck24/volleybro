@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { renderInline } from "@/lib/render-inline";
 import { cn } from "@/lib/utils";
 
 type ChangeType = "added" | "modified" | "removed";
@@ -101,7 +102,9 @@ export function FileTour({ files }: FileTourProps) {
               </span>
             </AccordionTrigger>
             <AccordionContent>
-              <p className="text-sm text-muted-foreground">{file.summary}</p>
+              <p className="text-sm text-muted-foreground">
+                {renderInline(file.summary)}
+              </p>
               {file.code && (
                 <div className="mt-3">
                   <DynamicCodeBlock
