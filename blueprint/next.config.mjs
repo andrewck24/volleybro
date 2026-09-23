@@ -5,6 +5,8 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   output: "export",
+  // A static export has no /_next/image endpoint, so MDX images must ship as files.
+  images: { unoptimized: true },
   turbopack: false,
   webpack(config, { dev }) {
     // Fumadocs uses dynamic imports that webpack cannot safely cache.

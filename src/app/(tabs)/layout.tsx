@@ -3,7 +3,7 @@
  * as Dialogs via intercepting routes in @modal/. Hard navigation bypasses interception
  * and falls through to (workspace) routes instead.
  */
-import { BodyBackdrop } from "@/components/layout/body-backdrop";
+import { StatusBarColor } from "@/components/layout/status-bar-color";
 import {
   TabContainer,
   type TabContainerProps,
@@ -12,7 +12,7 @@ import {
 const ProtectedLayout = (props: TabContainerProps) => {
   return (
     <>
-      <BodyBackdrop color="var(--color-background)" />
+      <StatusBarColor color="var(--color-background)" />
       <TabContainer {...props} />
     </>
   );

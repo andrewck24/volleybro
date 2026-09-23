@@ -37,7 +37,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -48,7 +48,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
@@ -93,7 +93,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -104,7 +104,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
@@ -146,7 +146,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -157,7 +157,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
@@ -192,7 +192,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -203,7 +203,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
@@ -238,7 +238,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -249,7 +249,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
