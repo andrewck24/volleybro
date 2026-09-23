@@ -1,0 +1,29 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0068",
+  "title": "The PWA status bar is opaque and theme-color owns its colour",
+  "capabilities": ["platform/pwa"],
+  "context": "From iOS 26 a standalone web app that draws under the status bar (black-translucent with viewport-fit=cover) gets the Liquid Glass scroll edge effect: a blur band reaching about 40pt below the status bar that washed out the header on iOS 27. No CSS or meta switch disables it. On a real iOS 27 device, switching to the default status bar style removed the blur while the page was at rest.",
+  "decision": "The standalone PWA uses the default, opaque status bar style and no longer draws content under the status bar. The status bar colour comes from the theme-color meta, which each route layout sets through StatusBarColor from its own surface token and which follows the user's resolved light or dark theme.",
+  "alternatives": [
+    {
+      "option": "Keep black-translucent and cover the blur with a backdrop-filter overlay.",
+      "reason": "WebKit no longer renders a fixed overlay under the status bar in standalone mode."
+    },
+    {
+      "option": "Declare theme-color per route through Next.js viewport exports.",
+      "reason": "The server cannot see a user-chosen theme, and every colour would need a second hex copy of the CSS tokens."
+    }
+  ],
+  "consequences": [
+    "iOS reads the status bar style when the app is added to the Home Screen, so existing installs keep black-translucent until removed and re-added; reverting this decision needs the same reinstall.",
+    "env(safe-area-inset-top) is zero in portrait, so every header that pads by it collapses to its own height without further change.",
+    "StatusBarColor keeps setting the html and body background as BodyBackdrop did, so an install still on black-translucent sees the same colours as before."
+  ],
+  "revisitTriggers": [
+    "iOS offers a way to turn off the scroll edge effect for web apps.",
+    "iOS stops applying theme-color changes made after launch."
+  ],
+  "originChange": "opaque-status-bar"
+}
