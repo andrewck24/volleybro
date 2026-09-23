@@ -297,7 +297,7 @@ describe("set derivation", () => {
 
   describe("deriveSetStats", () => {
     // The legal counterpart of the two broken sequences below: the counts a
-    // skipped rally must not disturb. See Feature D25.
+    // skipped rally must not disturb. See ADR-0025.
     const legal = () =>
       deriveSetStats([rally(false, 0, 1, "p1"), rally(true, 1, 1, "p2")], set);
 
