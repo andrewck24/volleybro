@@ -102,3 +102,13 @@ description: iOS 27 的 Liquid Glass 模糊蓋住 Header；standalone PWA 改用
 ## 決策
 
 <DecisionTimeline ids={["0068"]} />
+
+## References
+
+| 來源                                                                     | 支持的論點                                                                                         | 強度                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| iOS 27 真機實驗（`volleybro-test`，只改 `statusBarStyle`）               | 改用 `default` 後 Header 靜止時不再模糊                                                            | 強：本 app、目標 iOS 版本的直接觀察                          |
+| [tmshv/vcsudoku#38](https://github.com/tmshv/vcsudoku/pull/38)           | 模糊來自 `black-translucent` 加上 `viewport-fit=cover`；改用 `default` 並以 `theme-color` 接手底色 | 中：同樣的修法，但未在 iOS 27 真機驗證                       |
+| [MrClit/fin-app#411](https://github.com/MrClit/fin-app/issues/411)       | iOS 27 上模糊更明顯；status bar style 在加入主畫面時讀取                                           | 中：現象描述吻合，修法未驗證                                 |
+| [sirk0/hypersweeper#145](https://github.com/sirk0/hypersweeper/pull/145) | 動態改寫 `theme-color` 可讓狀態列跟隨主題                                                          | 弱：未記錄真機驗證                                           |
+| [amir20/dozzle#5222](https://github.com/amir20/dozzle/pull/5222)         | **反方**：在 iOS 26 上量測，改用 `default` 後模糊幾乎沒有改善                                      | 中：唯一有量測的來源，但版本不同，與本次 iOS 27 實驗結果相反 |

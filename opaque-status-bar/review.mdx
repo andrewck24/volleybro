@@ -1,0 +1,145 @@
+---
+title: Opaque Status Bar — Review
+description: 5 條驗收情境中 4 條在 iOS 27 真機通過、1 條由程式碼保證；兩軸 code review 兩輪到達 fixed point；verify:all 全部 lane 通過。
+---
+
+<TLDR>
+standalone PWA 改用不透明狀態列（`statusBarStyle: "default"`），Header 不再被 iOS 27 的 Liquid Glass 模糊蓋住。`BodyBackdrop` 改名為 `StatusBarColor`，由 auth、tabs、workspace、game 四個路由群組的 layout 各自宣告顏色，元件在 `<head>` 最前面放一個自己擁有的 `theme-color`，並跟隨 app 內選的深淺色。iOS 27 真機上情境 1–4 通過；code review 找到 workspace 路由不跟 app 主題的缺漏並已修正，兩輪後兩軸都沒有 finding；`verify:all` 四個 lane 全部通過。
+</TLDR>
+
+## 驗收情境結果
+
+| #   | 情境                                                                    | 結果         | 驗證方式                                                                                                    |
+| --- | ----------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------- |
+| 1   | tabs 首頁靜止時，狀態列為 background 色、Header 無模糊                  | 通過         | iOS 27 真機，全新加入主畫面                                                                                 |
+| 2   | 首頁 → 比賽總覽 → 記錄頁 → 返回首頁，狀態列即時換色並與 Header 接成一塊 | 通過         | iOS 27 真機                                                                                                 |
+| 3   | 登出回到 auth 頁，狀態列變成 primary                                    | 通過         | iOS 27 真機                                                                                                 |
+| 4   | 切換淺色、深色、跟隨系統，狀態列即時跟隨，文字清楚                      | 通過         | iOS 27 真機                                                                                                 |
+| 5   | 未重新加入主畫面的舊安裝，狀態列底下的顏色與改版前相同                  | 由程式碼保證 | `StatusBarColor` 仍以同一個 token 寫入 `html`/`body` 背景色，與 `BodyBackdrop` 相同；單元測試覆蓋寫入與還原 |
+
+真機驗證時也觀察了回彈（rubber band）露出的顏色：各頁都是當下主題的背景色。這份觀察已轉交給評估是否移除 `html`/`body` 背景色寫入的後續工作。
+
+## 與 Proposal 的差異
+
+1. 路由宣告原本排在 S2，實際在 S1 完成：沒有它，真機無法驗證「進入比賽頁即時換成 card 色」。S2 因此只剩文件與 changeset。
+2. Q5「沒有宣告的路由一律用 background」的實作方式：root 的 `theme-color` 只能跟隨系統深淺色，無法跟隨 app 內選的主題，所以 tabs 與 workspace 都明確宣告 background，以符合 Q5 的本意。
+3. `docs/specs/overlay-layout/spec.md` 也更新了改名後的檔案路徑，這份文件不在 Proposal 的清單上。
+4. Proposal 補上 References 一節，列出決策依據的外部來源與持相反結論的來源。
+
+## 驗證
+
+| 項目                           | 指令                                | 結果                                                                         |
+| ------------------------------ | ----------------------------------- | ---------------------------------------------------------------------------- |
+| 最終 gate（review 修正後重跑） | `pnpm verify:all`                   | static、app-build、app-test、blueprint 全部通過                              |
+| 全部單元測試（S1）             | `npx jest`                          | 1258／1258 通過                                                              |
+| `StatusBarColor` 測試          | `npx jest src/components/layout`    | 背景色寫入與還原、自有 meta 置頂且不動框架的 meta、`<html>` class 變更時重寫 |
+| decision record 驗證           | `cd blueprint && npx jest decision` | 34／34 通過                                                                  |
+| 本機瀏覽器                     | auth → landing → auth 客戶端換頁    | 找到並修正兩個單元測試抓不到的問題（見下節）                                 |
+| 真機                           | iOS 27、`volleybro-test` 部署       | 情境 1–4 通過                                                                |
+
+## 邊界上的修正
+
+本機瀏覽器發現，Next.js 在客戶端換頁時會重新產生 viewport 的 `theme-color` meta，直接改寫它的值會被丟掉。改為元件自己擁有一個 meta，放在 `<head>` 最前面，卸載時移除：
+
+<AnnotatedDiff
+  code={
+    '- for (const { meta } of metas) meta.content = resolved;\n+ const meta = document.createElement("meta");\n+ meta.name = "theme-color";\n+ document.head.prepend(meta);'
+  }
+/>
+
+同一次測試也發現，換頁當下讀 `body` 的背景色會拿到 `transition-colors` 動畫中的舊顏色，改從沒有 transition 的 `<html>` 讀：
+
+<AnnotatedDiff
+  code={
+    "- meta.content = getComputedStyle(document.body).backgroundColor;\n+ meta.content = getComputedStyle(html).backgroundColor;"
+  }
+/>
+
+Code review 找到的缺漏：workspace 路由沒有宣告，只能跟隨系統深淺色。修正後由 layout 明確宣告：
+
+<AnnotatedDiff
+  code={
+    '  <main className="mx-auto flex w-full max-w-196 flex-col …">\n+   <StatusBarColor color="var(--color-background)" />\n    {children}'
+  }
+/>
+
+## Code review findings 與修正
+
+兩輪兩軸 review：第一輪 spec 軸找到一個缺漏、standards 軸提出五項判斷建議；修正後第二輪兩軸都沒有 finding。
+
+<RiskTable
+  risks={[
+    {
+      name: "workspace 路由的狀態列不跟隨 app 內選的主題",
+      severity: "warning",
+      mitigation:
+        "`(workspace)/layout.tsx` 宣告 background；三份文件改為每個路由群組都要宣告。",
+    },
+    {
+      name: "spec 情境寫成只有非 background 的路由才宣告",
+      severity: "warning",
+      mitigation:
+        "`elevation-tokens` spec 改為每個 standalone 路由群組 SHALL 宣告。",
+    },
+    {
+      name: "元件的 doc comment 重述 ADR-0068",
+      severity: "info",
+      mitigation:
+        "縮成一行並引用 ADR-0068；刪除與程式碼重複的 next-themes 註解。",
+    },
+    {
+      name: "root 的深色 hex 是 `--background` 的第二份拷貝",
+      severity: "info",
+      mitigation:
+        "保留 hex（first paint 需要字面值），註解指明它拷貝的 token。",
+    },
+    {
+      name: "測試的 spy 在斷言失敗時不會還原，且與全域同名",
+      severity: "info",
+      mitigation:
+        "改在 `afterEach` 呼叫 `jest.restoreAllMocks()`，改名為 `computedStyleSpy`，刪除重複的斷言。",
+    },
+  ]}
+/>
+
+判斷為不修改：`game/layout.tsx` 的註解說明子路由的共同點，屬於規範允許的「影響落在其他地方」；ADR-0068 標題以 and 連接兩件事，但後者由前者推導，保留為一份 record，請在 G2 確認。
+
+## 殘餘風險
+
+<RiskTable
+  risks={[
+    {
+      name: "舊安裝在重新加入主畫面前仍會模糊",
+      severity: "warning",
+      mitigation:
+        "changeset 註明 iPhone 需刪除後重新加入主畫面；舊安裝的顏色不會退步。",
+    },
+    {
+      name: "切換分頁時 Header 短暫出現模糊",
+      severity: "info",
+      mitigation:
+        "Header 隨分頁內容一起滑動所致，已另開追蹤，待本 Change 合併後處理。",
+    },
+    {
+      name: "landing 頁 `/` 的狀態列只跟隨系統深淺色",
+      severity: "info",
+      mitigation:
+        "不在 PWA 啟動路徑上（`start_url` 為 `/home`）；已記入 PWA feature 的 Known gaps。",
+    },
+    {
+      name: "啟動時狀態列可能短暫顯示錯誤顏色",
+      severity: "info",
+      mitigation:
+        "Q3 已接受；真機未觀察到，若之後明顯再改為逐路由 viewport export 或 inline script。",
+    },
+    {
+      name: "`html`/`body` 背景色寫入可能已經多餘",
+      severity: "info",
+      mitigation: "真機回彈只露出主題背景色；是否移除已另開追蹤。",
+    },
+  ]}
+/>
+
+## 範圍外發現
+
+Blueprint design-system 頁說 manifest 的 `background_color` 等於淺色 `--background`，但 `docs/design-system.md`、PWA feature 頁與 manifest 實際的值都是 primary `#10687e`。這是既有的矛盾，本 Change 未修改。
