@@ -140,12 +140,10 @@ This project uses [Storybook](https://storybook.js.org/) for component developme
    ```
 
 3. **環境變數設定 / Environment Variables**  
-   在專案根目錄建立 `.env.local` 檔案，並設定以下變數：
+   複製 `.env.example` 為 `.env.local`，再依檔案內的註解填入各變數 / Copy `.env.example` to `.env.local` and fill in each variable as its comment describes:
 
-   ```env
-   AUTH_GOOGLE_ID=your_google_client_id
-   AUTH_GOOGLE_SECRET=your_google_client_secret
-   MONGODB_URI=your_mongodb_connection_string
+   ```bash
+   cp .env.example .env.local
    ```
 
 4. **運行測試 / Run tests**
