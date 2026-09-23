@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   authors: [{ name: APP_NAME }, { name: AUTHOR }],
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: APP_DEFAULT_TITLE,
     startupImage: devices.map(({ media, width, height }) => ({
       url: `/apple-splash/${width}x${height}?v=${SPLASH_VERSION}`,
@@ -69,7 +69,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f2f2f6" }],
+  // First paint only: StatusBarColor rewrites these from the route's token and
+  // the user's chosen theme once it mounts.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f2f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#020a17" },
+  ],
   initialScale: 1,
   minimumScale: 1,
   maximumScale: 1,
