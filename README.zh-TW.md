@@ -174,18 +174,9 @@ flowchart LR
 
 VolleyBro 採用 Clean Architecture：同心分層，**原始碼依賴一律只向內**，內層對外層一無所知。
 
-```mermaid
-flowchart TB
-    subgraph L4["④ Frameworks &amp; Drivers · infrastructure / app / components"]
-        subgraph L3["③ Interface Adapters · interface / controllers"]
-            subgraph L2["② Use Cases · applications（use cases + repository &amp; service 介面）"]
-                subgraph L1["① Entities · entities"]
-                    core["User · Team · Player<br/>Profile · Game"]
-                end
-            end
-        end
-    end
-```
+<p align="center">
+  <img src="docs/diagrams/architecture.svg" alt="Clean Architecture 分層：核心為 entities，外層依序為 use cases、interface adapters、frameworks & drivers；infrastructure 實作 use cases 宣告的介面" width="800">
+</p>
 
 跨越邊界向內時採用**依賴反轉**：Use Cases 層宣告 repository / service 的_介面_，由 infrastructure 層實作，並在執行期由 InversifyJS 注入具體實作 —— 因此領域層與 use cases 完全不沾 MongoDB、Next.js 或認證細節。
 

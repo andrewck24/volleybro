@@ -174,18 +174,9 @@ The anchor is the state a recorder saw _when they started typing_, not when they
 
 VolleyBro follows Clean Architecture: concentric layers where **source-code dependencies point only inward**. An inner layer knows nothing about the layers around it.
 
-```mermaid
-flowchart TB
-    subgraph L4["④ Frameworks &amp; Drivers · infrastructure / app / components"]
-        subgraph L3["③ Interface Adapters · interface / controllers"]
-            subgraph L2["② Use Cases · applications (use cases + repository &amp; service interfaces)"]
-                subgraph L1["① Entities · entities"]
-                    core["User · Team · Player<br/>Profile · Game"]
-                end
-            end
-        end
-    end
-```
+<p align="center">
+  <img src="docs/diagrams/architecture.svg" alt="Clean Architecture layers: entities at the core, wrapped by use cases, interface adapters, and frameworks & drivers; infrastructure implements the interfaces declared by the use cases" width="800">
+</p>
 
 Crossing a boundary inward uses **dependency inversion**: the Use Cases layer declares repository and service _interfaces_, the infrastructure layer implements them, and InversifyJS injects the concrete implementation at runtime — so the domain and use cases stay free of MongoDB, Next.js, or auth details.
 
