@@ -14,13 +14,18 @@
     {
       "option": "Keep Change pages gitignored and local only",
       "reason": "Every Change must stay browsable on the deployed Blueprint from any device without checking out an old commit."
+    },
+    {
+      "option": "Deploy each Change's pages to a preview URL",
+      "reason": "Both gates happen on the developer's machine, so a deploy adds credentials and a step without serving a reader; a preview script can be added when a remote reader appears."
     }
   ],
   "consequences": [
     "Pull requests carry code, tests, Feature knowledge, the Changeset and a Review summary; Change pages are not in the diff."
   ],
   "revisitTriggers": [
-    "The store branch grows large enough to slow the build's fetch."
+    "The store branch grows large enough to slow the build's fetch.",
+    "A gate is reviewed by someone who cannot run the Blueprint locally."
   ],
   "originChange": "two-gate-workflow"
 }

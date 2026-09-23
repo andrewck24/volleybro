@@ -212,7 +212,7 @@ stage. Do not silently change accepted behavior, scope, architecture, or accepta
 
 A deletion beyond the requested scope is a judgement, not cleanup. When knip, a dead-code audit, or
 the agent's own analysis flags files outside the Change, list them with a per-file rationale and ask
-at the next gate. Being unreferenced in the import graph is not evidence on its own: a file may be a
+at the next gate; delete none of them until the developer answers. Being unreferenced in the import graph is not evidence on its own: a file may be a
 documented API contract, an alias of a live database collection, or reserved for planned work.
 
 #### Optional Ingest action
@@ -254,7 +254,7 @@ prose sits in a file. A review that only re-runs the gates is not an independent
 unwritten standard is one the reviewer cannot apply: state it in `CODING_STANDARDS.md` first.
 
 Do not open the pull request before Archive completes and the developer accepts the Review page.
-That acceptance is itself the permission to open it; do not ask a second time. Merging still waits for green CI and for whatever the developer said about merging. The repository
+Merging still waits for green CI and for whatever the developer said about merging. The repository
 does not run an automated review after the pull request opens without an explicit request. Human PR
 review and comment fix rounds remain available, but they are optional and the default delivery path
 does not wait for comments before merge.

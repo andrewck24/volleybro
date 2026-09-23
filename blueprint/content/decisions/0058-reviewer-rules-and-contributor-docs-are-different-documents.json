@@ -5,7 +5,7 @@
   "title": "Reviewer rules and contributor docs are different documents",
   "capabilities": ["platform/delivery-workflow"],
   "context": "CONTRIBUTING.md is written for two readers at once: a developer getting started in the repository, and the standards reviewer, which the Pre-PR gate hands the file's rules verbatim because an independent context knows only what its brief carries. An inventory of its 17 rules after commit-guardrails found two to delete — a tooling-name rule commitlint already enforces, and an Airbnb style guide the ESLint config does not use — and the rest splitting by reader into orientation and judgement. Two of the rules the Proposal first gave the reviewer cannot be reviewed at all: the code-review playbook passes the reviewer `git log --oneline`, so commit bodies never reach it, and a pull request does not exist yet at Pre-PR. The retro playbook looks for CODING_STANDARDS.md by name and says it is read during review, not implementation; the code-review playbook names it as an example of a standards document.",
-  "decision": "Add root CODING_STANDARDS.md, read only during review, holding the judgement rules a reviewer can see in a diff: comment necessity and density, naming conventions, no issue IDs in source, and which layer a test belongs in. A rule a writer needs while writing lives in the document that writer already reads — commit and pull-request rules in CONTRIBUTING.md, Blueprint page and decision-record rules in docs/agents/blueprint.md — and CODING_STANDARDS.md points at them. CONTRIBUTING.md keeps how to work in this repository: branches, worktrees, commit and pull-request writing, commands, Changesets, and pointers. The Pre-PR standards reviewer's brief cites CODING_STANDARDS.md instead of CONTRIBUTING.md.",
+  "decision": "Add root CODING_STANDARDS.md, read only during review, holding the judgement rules a reviewer can see in a diff: comment necessity and density, naming conventions, no issue IDs in source, and which layer a test belongs in. A rule a writer needs while writing lives in the document that writer already reads — commit and pull-request rules in CONTRIBUTING.md, Blueprint page and decision-record rules in docs/agents/blueprint.md — and CODING_STANDARDS.md points at them.",
   "alternatives": [
     {
       "option": "Move both files under docs/agents/",
@@ -21,6 +21,8 @@
     }
   ],
   "consequences": [
+    "CONTRIBUTING.md keeps how to work in this repository: branches, worktrees, commit and pull-request writing, commands, Changesets, and pointers.",
+    "The Pre-PR standards reviewer's brief cites CODING_STANDARDS.md instead of CONTRIBUTING.md.",
     "The standards axis of Pre-PR review reads a document written for it, so an unwritten standard is visibly missing rather than buried.",
     "Commit-body and pull-request rules are enforced where they are written, not by review, because review cannot see them."
   ],

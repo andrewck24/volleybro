@@ -19,8 +19,12 @@ All commit messages follow [Conventional Commits](https://www.conventionalcommit
 ```text
 feat(team): add player invitation flow
 fix(game): correct set score calculation on substitution
+docs(contributing): add branch naming convention
 refactor(ui): extract ItemFooter into standalone component
+test(usecases): add coverage for CreateRecord edge cases
 chore(deps): upgrade mongoose to v8
+perf(game): reduce rally list re-renders with memoization
+style(components): apply prettier formatting to team directory
 ```
 
 Write commit messages in English. The body explains _why_; what changed is supporting context the diff already shows. Review never sees a commit body, so this is the only place the rule is applied — and a body fixed after the fact means rewriting history.
