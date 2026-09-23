@@ -720,9 +720,7 @@ export async function checkGateTitles(root, slug) {
 const GATE_BRANCH_STATE_ACTION =
   "commit and push the Change branch before publishing";
 
-// Why: WORKFLOW.md G1 step 1 — the branch preview build pulls the page
-// store, but publishing doesn't rebuild it, so records pushed later are
-// missing from what the developer reviews.
+// The reason lives in WORKFLOW.md's G1 exit steps.
 export async function checkGateBranchState(root) {
   const diagnostics = [];
 

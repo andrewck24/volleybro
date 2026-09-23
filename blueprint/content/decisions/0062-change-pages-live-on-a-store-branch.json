@@ -21,7 +21,8 @@
     }
   ],
   "consequences": [
-    "Pull requests carry code, tests, Feature knowledge, the Changeset and a Review summary; Change pages are not in the diff."
+    "Pull requests carry code, tests, Feature knowledge, the Changeset and a Review summary; Change pages are not in the diff.",
+    "A design mockup outlives its Change only by promotion to the Design System or a Feature, when it becomes a lasting rule."
   ],
   "revisitTriggers": [
     "The store branch grows large enough to slow the build's fetch.",

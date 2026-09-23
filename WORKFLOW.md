@@ -212,8 +212,9 @@ stage. Do not silently change accepted behavior, scope, architecture, or accepta
 
 A deletion beyond the requested scope is a judgement, not cleanup. When knip, a dead-code audit, or
 the agent's own analysis flags files outside the Change, list them with a per-file rationale and ask
-at the next gate; delete none of them until the developer answers. Being unreferenced in the import graph is not evidence on its own: a file may be a
-documented API contract, an alias of a live database collection, or reserved for planned work.
+at the next gate; delete none of them until the developer answers. Being unreferenced in the import
+graph is not evidence on its own: a file may be a documented API contract, an alias of a live
+database collection, or reserved for planned work.
 
 #### Optional Ingest action
 
@@ -223,7 +224,7 @@ mandatory stage. When the accepted Proposal must materially change:
 1. pause Apply;
 2. let the developer authorize Ingest;
 3. clarify the changed decision, using `grill-with-docs` when needed;
-4. update the Proposal page and affected ADRs;
+4. update the affected ADRs and the summary;
 5. preserve completed slices and their evidence;
 6. return the updated summary to G1 for confirmation, then regenerate and republish the Proposal
    page;
@@ -333,7 +334,7 @@ does not warn on this one.
 A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the
 existing test suite plus a dependency-direction check) or a **behavior** change, never both.
 
-The escape hatch is a **Migration Change**: one Proposal page, accepted once at G1, covering the
+The escape hatch is a **Migration Change**: one Proposal, accepted once at G1, covering the
 whole migration — its shard list, order, per-shard proof of behavior preservation, and completion
 criteria. Each shard afterward is its own Change and pull request, references the Migration
 Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every
@@ -434,7 +435,7 @@ history — a single-commit fix or a tooling change — and say so in the pull r
 
 ### Manual workflow
 
-The developer invokes Apply directly after accepting the Proposal page at G1. Resume from
+The developer invokes Apply directly after accepting G1. Resume from
 repository artifacts, git state, and verification evidence. No Symphony process, claim, dashboard,
 or workspace manager is required.
 

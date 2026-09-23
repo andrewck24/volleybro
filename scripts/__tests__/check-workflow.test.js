@@ -177,6 +177,14 @@ test("reports the Pre-PR gate section missing CODING_STANDARDS.md", async () => 
   );
 });
 
+test("reports a Pre-PR gate section that still cites CONTRIBUTING.md", async () => {
+  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md and CONTRIBUTING.md.\n\n### 4. Archive\n`;
+  assert.match(
+    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
+    /must not mention CONTRIBUTING\.md/,
+  );
+});
+
 test("accepts a Pre-PR gate section that cites CODING_STANDARDS.md only", async () => {
   const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md.\n\n### 4. Archive\n`;
   assert.deepEqual(await messages({ "WORKFLOW.md": workflow }), []);
@@ -443,9 +451,6 @@ test("checkChangeScope is silent outside a git repository", async () => {
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
-// Shared by makeScopeRepository, makeGitRepository and makeDecisionRepository:
-// a fresh repo with a first commit on `branch`, ready for each test's own
-// follow-up commits.
 async function initGitRepository(prefix, branch, seed) {
   const root = await mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
   const git = (args) => execFileAsync("git", args, { cwd: root });
@@ -649,11 +654,11 @@ async function makeGitRepository() {
   return initGitRepository("gate-branch", "main");
 }
 
-async function addBareRemote(root, git) {
+async function addBareRemote(git, branch = "main") {
   const bare = await mkdtemp(path.join(os.tmpdir(), "gate-remote-"));
   await execFileAsync("git", ["init", "-q", "--bare", bare]);
   await git(["remote", "add", "origin", bare]);
-  await git(["push", "-q", "-u", "origin", "main"]);
+  await git(["push", "-q", "-u", "origin", branch]);
 }
 
 test("checkGateBranchState reports a branch with no upstream", async () => {
@@ -666,7 +671,7 @@ test("checkGateBranchState reports a branch with no upstream", async () => {
 
 test("checkGateBranchState reports a branch ahead of its upstream", async () => {
   const { root, git } = await makeGitRepository();
-  await addBareRemote(root, git);
+  await addBareRemote(git);
   await writeFile(path.join(root, "extra.txt"), "x\n");
   await git(["add", "-A"]);
   await git(["commit", "-q", "-m", "extra"]);
@@ -678,7 +683,7 @@ test("checkGateBranchState reports a branch ahead of its upstream", async () => 
 
 test("checkGateBranchState reports uncommitted decision records", async () => {
   const { root, git } = await makeGitRepository();
-  await addBareRemote(root, git);
+  await addBareRemote(git);
   await mkdir(path.join(root, "blueprint/content/decisions"), {
     recursive: true,
   });
@@ -694,7 +699,7 @@ test("checkGateBranchState reports uncommitted decision records", async () => {
 
 test("checkGateBranchState accepts a clean branch matching its upstream", async () => {
   const { root, git } = await makeGitRepository();
-  await addBareRemote(root, git);
+  await addBareRemote(git);
   assert.deepEqual(await checkGateBranchState(root), []);
 });
 
@@ -738,8 +743,6 @@ test("checkDecisionRecordLength ignores records within the soft target", async (
   assert.deepEqual(await checkDecisionRecordLength(root), []);
 });
 
-// CLI-level version of scenario 8: `--gate` runs checkDecisionRecordLength
-// too, and a warning must not fail the process.
 test("the CLI exits 0 with a decision-length warning when that is the only gate issue", async () => {
   const { root, git } = await initGitRepository(
     "decision-cli",
@@ -761,10 +764,7 @@ test("the CLI exits 0 with a decision-length warning when that is the only gate 
       );
     },
   );
-  const bare = await mkdtemp(path.join(os.tmpdir(), "decision-cli-remote-"));
-  await execFileAsync("git", ["init", "-q", "--bare", bare]);
-  await git(["remote", "add", "origin", bare]);
-  await git(["push", "-q", "-u", "origin", "dev"]);
+  await addBareRemote(git, "dev");
 
   await git(["checkout", "-q", "-b", "feat/decision-warn"]);
   await mkdir(path.join(root, "blueprint/content/decisions"), {
