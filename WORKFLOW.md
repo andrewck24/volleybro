@@ -435,9 +435,9 @@ history — a single-commit fix or a tooling change — and say so in the pull r
 
 ### Manual workflow
 
-The developer invokes Apply directly after accepting G1. Resume from
-repository artifacts, git state, and verification evidence. No Symphony process, claim, dashboard,
-or workspace manager is required.
+The developer invokes Apply directly after confirming the summary at G1. Resume from repository
+artifacts, git state, and verification evidence. No Symphony process, claim, dashboard, or workspace
+manager is required.
 
 Before Manual Apply starts for an issue that may be visible to Symphony:
 
