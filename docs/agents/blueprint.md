@@ -72,7 +72,7 @@ Rules that bind every page:
 - Diagrams are part of the specification, not illustrations of it. When delivery diverges from what a diagram shows, the diagram is corrected in the same round as the text.
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
 - The frontmatter `title` is `<name> — Proposal` or `<name> — Review`, with an em dash, so the sidebar tells Changes apart. The name is for people and may differ from the slug. `pnpm check:workflow --gate <slug>` checks the shape.
-- Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown.
+- Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown. Flowchart node and edge labels are drawn in SVG and stay plain text entirely.
 - Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
 - Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.
 
