@@ -1,6 +1,6 @@
 ---
 title: Triage State Mapping — Review
-description: 交付結果、驗收證據、三輪 code review 的發現與處置，以及留給 G2 的一個問題。
+description: 交付結果、驗收證據、三輪 code review 的發現與處置，以及 G2 的一個決定。
 ---
 
 <TLDR>
@@ -53,9 +53,9 @@ triage playbook 的七個角色現在有了 tracker 對照：`docs/agents/triage
   code={"-queued. Symphony dispatches an issue only while it carries the label and sits in Todo, and keeps a\n-run only while the issue stays in an active status (Todo or In Progress); In Review and Done take it\n+queued. Symphony dispatches and keeps running an issue only while it carries the label and sits in\n+an active status (Todo or In Progress); In Review and Done take it out of the queue without touching\n \n-the status carries; swapping `ready-for-human` back to `ready-for-agent` re-queues it.\n+the status carries. Swapping `ready-for-human` back to `ready-for-agent` re-arms it, which is the\n+developer's decision, and Symphony picks it up again from In Progress."}
 />
 
-## 留給 G2 的問題
+## G2 的決定
 
-狀態表中「Developer takes an unarmed Change」一列寫的是 `ready-for-human` removed, if present。Proposal 只說 agent 把 issue 移到 In Progress，沒有提到 label。之所以移除，是因為 G1 通過後的 issue 身上帶著 `ready-for-human`，留著的話，在 In Progress 上會被讀成「run 卡住、等開發者」。規格審查把它列為 Proposal 沒要求的規則。請確認要保留，還是改成不動 label。
+狀態表中「Developer takes an unarmed Change」一列寫的是 `ready-for-human` removed, if present。Proposal 沒有提到這一點，規格審查把它列為 Proposal 沒要求的規則。開發者在 G2 決定保留：G1 通過後的 issue 身上帶著 `ready-for-human`，留著的話，在 In Progress 上會被讀成「run 卡住、等開發者」。
 
 ## 殘留風險
 
