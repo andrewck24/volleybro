@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rally-write-title rally-write-desc">
+  <title id="rally-write-title">Recording a rally: the write path</title>
+  <desc id="rally-write-desc">Sending a rally writes it optimistically into the SWR game cache and a persisted pending-writes queue; the queue flushes batches to the rallies route, which runs the controller, the RecordRallies use case, and the game repository against MongoDB, and the response is applied back to the cache.</desc>
+  <defs>
+    <style>
+      .paper { fill: #f2f2f6; }
+      .ink { fill: #000000; }
+      .muted { fill: #626262; }
+      .accent-t { fill: #10687e; }
+      .zone { fill: none; stroke: rgba(0,0,0,0.28); }
+      .node { fill: #fbfbfb; stroke: #000000; }
+      .store { fill: rgba(0,0,0,0.05); stroke: #626262; }
+      .focal { fill: rgba(16,104,126,0.08); stroke: #10687e; }
+      .wire { stroke: #626262; fill: none; }
+      .wire-accent { stroke: #10687e; fill: none; }
+      .head { fill: #626262; }
+      .head-accent { fill: #10687e; }
+      text { font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      @media (prefers-color-scheme: dark) {
+        .paper { fill: #020a17; }
+        .ink { fill: #f4f5f6; }
+        .muted { fill: #94a3b8; }
+        .accent-t { fill: #22a3c3; }
+        .zone { stroke: rgba(244,245,246,0.22); }
+        .node { fill: #1d232d; stroke: #94a3b8; }
+        .store { fill: rgba(244,245,246,0.05); stroke: #94a3b8; }
+        .focal { fill: rgba(34,163,195,0.10); stroke: #22a3c3; }
+        .wire { stroke: #94a3b8; }
+        .wire-accent { stroke: #22a3c3; }
+        .head { fill: #94a3b8; }
+        .head-accent { fill: #22a3c3; }
+      }
+    </style>
+    <marker id="rally-write-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head" points="0 0, 8 3, 0 6"/></marker>
+    <marker id="rally-write-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head-accent" points="0 0, 8 3, 0 6"/></marker>
+  </defs>
+  <rect class="paper" y="0" width="1000" height="400" rx="8"/>
+  <rect class="zone" x="24" y="40" width="504" height="312" rx="8" stroke-width="1"/>
+  <rect class="paper" x="36" y="32" width="64" height="16"/>
+  <text class="mono muted" x="44" y="44" font-size="8" letter-spacing="0.14em">CLIENT</text>
+  <rect class="zone" x="640" y="40" width="336" height="332" rx="8" stroke-width="1"/>
+  <rect class="paper" x="652" y="32" width="64" height="16"/>
+  <text class="mono muted" x="660" y="44" font-size="8" letter-spacing="0.14em">SERVER</text>
+  <path class="wire" d="M 136 168 V 104 Q 136 96 144 96 H 296" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire" d="M 136 216 V 280 Q 136 288 144 288 H 296" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire-accent" d="M 496 288 H 580 Q 588 288 588 280 V 116 Q 588 108 596 108 H 680" stroke-width="1.2" marker-end="url(#rally-write-arrow-accent)"/>
+  <path class="wire" d="M 680 84 H 497" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire" d="M 800 112 V 131" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire" d="M 800 172 V 191" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire" d="M 800 232 V 251" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <path class="wire" d="M 800 292 V 311" stroke-width="1.2" marker-end="url(#rally-write-arrow)"/>
+  <rect class="paper" x="546" y="65" width="84" height="12" rx="2"/>
+  <text class="mono muted" x="588" y="74" font-size="8" text-anchor="middle" letter-spacing="0.06em">APPLY FLUSHED</text>
+  <rect class="paper" x="518" y="191" width="64" height="12" rx="2"/>
+  <text class="mono accent-t" x="576" y="200" font-size="8" text-anchor="end" letter-spacing="0.06em">PUT BATCH</text>
+  <rect class="paper" x="142" y="123" width="68" height="12" rx="2"/>
+  <text class="mono muted" x="148" y="132" font-size="8" text-anchor="start" letter-spacing="0.06em">OPTIMISTIC</text>
+  <rect class="paper" x="142" y="243" width="52" height="12" rx="2"/>
+  <text class="mono muted" x="148" y="252" font-size="8" text-anchor="start" letter-spacing="0.06em">ENQUEUE</text>
+  <rect class="node" x="56" y="168" width="160" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="136" y="190" font-size="12" font-weight="600" text-anchor="middle">Send</text>
+  <text class="mono muted" x="136" y="204" font-size="9" text-anchor="middle">useSubmitEntryDraft</text>
+  <rect class="node" x="296" y="72" width="200" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="396" y="94" font-size="12" font-weight="600" text-anchor="middle">SWR game cache</text>
+  <text class="mono muted" x="396" y="108" font-size="9" text-anchor="middle">applyEntry · no revalidate</text>
+  <rect class="focal" x="296" y="264" width="200" height="48" rx="6" stroke-width="1"/>
+  <text class="accent-t" x="396" y="286" font-size="12" font-weight="600" text-anchor="middle">Pending writes</text>
+  <text class="mono muted" x="396" y="300" font-size="9" text-anchor="middle">Redux + localStorage · retry</text>
+  <rect class="node" x="680" y="72" width="240" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="800" y="90" font-size="12" font-weight="600" text-anchor="middle">Route handler</text>
+  <text class="mono muted" x="800" y="104" font-size="9" text-anchor="middle">PUT …/sets/rallies?si=</text>
+  <rect class="node" x="680" y="132" width="240" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="800" y="150" font-size="12" font-weight="600" text-anchor="middle">Controller</text>
+  <text class="mono muted" x="800" y="164" font-size="9" text-anchor="middle">recordRalliesController</text>
+  <rect class="node" x="680" y="192" width="240" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="800" y="210" font-size="12" font-weight="600" text-anchor="middle">Use case</text>
+  <text class="mono muted" x="800" y="224" font-size="9" text-anchor="middle">RecordRalliesUseCase</text>
+  <rect class="node" x="680" y="252" width="240" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="800" y="270" font-size="12" font-weight="600" text-anchor="middle">Game repository</text>
+  <text class="mono muted" x="800" y="284" font-size="9" text-anchor="middle">upsertEntry</text>
+  <rect class="store" x="680" y="312" width="240" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="800" y="336" font-size="12" font-weight="600" text-anchor="middle">MongoDB Atlas</text>
+</svg>
