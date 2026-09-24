@@ -88,7 +88,7 @@
   <!-- ② Use Cases -->
   <rect class="node" x="428" y="176" width="152" height="48" rx="6" stroke-width="1"/>
   <text class="ink" x="504" y="197" font-size="12" font-weight="600" text-anchor="middle">Use cases</text>
-  <text class="mono muted" x="504" y="212" font-size="9" text-anchor="middle">CreateRally, …</text>
+  <text class="mono muted" x="504" y="212" font-size="9" text-anchor="middle">RecordRallies, …</text>
 
   <rect class="node" x="428" y="272" width="152" height="48" rx="6" stroke-width="1"/>
   <text class="ink" x="504" y="293" font-size="12" font-weight="600" text-anchor="middle">Interfaces</text>

@@ -70,7 +70,7 @@
 
 ### 🏐 比賽記錄
 
-一球三次點擊——選發球員、記錄我方動作、記錄對方回應與結果。比分、輪轉與各項技術數據隨記錄即時更新；替補可在記錄流程中直接完成，不需離開畫面。
+一球三次點擊——選擇做出動作的球員、記錄我方動作、記錄對方回應與結果。比分、輪轉與各項技術數據隨記錄即時更新；替補可在記錄流程中直接完成，不需離開畫面。
 
 <div align="center">
   <img src="public/landing/features/game-demo-1-light.png" alt="逐球記錄介面" width="240">
@@ -143,7 +143,7 @@ VolleyBro 採用 Clean Architecture：同心分層，**原始碼依賴一律只�
 src/
 ├── entities/         # 領域層 — User、Team、Player、Profile、Game
 ├── applications/     # 應用層
-│   ├── usecases/     #   商業使用案例（CreateGame、CreateRally…）
+│   ├── usecases/     #   商業使用案例（CreateGame、RecordRallies…）
 │   ├── repositories/ #   資料存取抽象介面
 │   └── services/     #   外部服務抽象介面
 ├── interface/        # 介面層 — 協調 use case 的 controller
@@ -165,7 +165,7 @@ src/
 
 ### 前置需求
 
-- **Node.js** `>=22`
+- **Node.js** `24.x`
 - **pnpm**（版本由 `packageManager` 欄位鎖定，執行 `corepack enable` 即可自動套用）
 - **MongoDB** 連線字串與 **Google OAuth** 憑證
 

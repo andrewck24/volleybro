@@ -70,7 +70,7 @@ It is a Progressive Web App — installable, offline-capable, and equally usable
 
 ### 🏐 Match Recording
 
-Three taps per rally — pick the server, log your side's action, log the opponent's response. Scores, rotation, and per-skill statistics update as you record. Substitutions are recorded inline without leaving the flow.
+Three taps per rally — pick the player who made the play, log your side's action, log the opponent's response. Scores, rotation, and per-skill statistics update as you record. Substitutions are recorded inline without leaving the flow.
 
 <div align="center">
   <img src="public/landing/features/game-demo-1-light.png" alt="Rally recording interface" width="240">
@@ -143,7 +143,7 @@ Crossing a boundary inward uses **dependency inversion**: the Use Cases layer de
 src/
 ├── entities/         # Domain layer — User, Team, Player, Profile, Game
 ├── applications/     # Application layer
-│   ├── usecases/     #   Business use cases (CreateGame, CreateRally, …)
+│   ├── usecases/     #   Business use cases (CreateGame, RecordRallies, …)
 │   ├── repositories/ #   Abstract data-access interfaces
 │   └── services/     #   Abstract external-service interfaces
 ├── interface/        # Interface layer — controllers orchestrating use cases
@@ -165,7 +165,7 @@ Further reading: [`docs/architecture.md`](./docs/architecture.md) · [`docs/desi
 
 ### Prerequisites
 
-- **Node.js** `>=22`
+- **Node.js** `24.x`
 - **pnpm** (the repo pins a version via `packageManager`; `corepack enable` will pick it up)
 - A **MongoDB** connection string and **Google OAuth** credentials
 
