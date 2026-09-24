@@ -1,5 +1,139 @@
 # VolleyBro CHANGELOG
 
+## [0.15.0](https://github.com/andrewck24/volleybro/compare/v0.14.4...v0.15.0) 2026-09-24
+
+### Added
+
+#### Game
+
+- Keep recording without waiting for the server between rallies, so a weak connection at the venue no longer holds up play
+- Flag anything that has not been saved yet, with a count and a way to retry it, and stay out of the way while there is nothing to report
+- Show how many sets each side has won as filled cells beside each score, replacing the numeric set score
+- Mark a rally that could not be saved on its own row in the per-rally record, with a retry beside it
+- Hold the next set until the last one's result has been recorded, rather than letting it start on a result that was never saved, and warn before leaving it unsaved by any route
+
+#### Infrastructure
+
+- `.env.example` lists every environment variable the app reads, with where each value comes from; the README setup step now copies it to `.env.local` instead of listing three of them
+
+### Fixed
+
+#### Game
+
+- Stop the same rally being recorded twice after a failed submission: recording the ball that ended a set could save the rally, report failure anyway, and invite recording it again
+- Keep a rally that arrived late in its right place in the set instead of after the ones recorded since
+- Retry saving a set's result instead of giving up on the first failure
+- Report why a rally could not be saved instead of always showing the same generic message, and stop a lost connection looking like an unexpected error
+- Report a failed substitution instead of silently doing nothing
+- Keep an edit on screen when it cannot be saved, rather than discarding it and showing a message that disappears
+- Keep the new-game dialog open when creating the game fails. The match details and lineup you had entered used to vanish along with the dialog, leaving an error notification and an empty form to fill in again
+- Keep the rest of a set when one rally cannot be saved: a single unstorable value used to reject everything already recorded in that set
+- Stop two devices recording the same set from overwriting each other's rallies
+- Show the right number of sets won on the match list, and statistics that match what was actually recorded, for every match including ones recorded before this release
+- Tell a match still in progress apart from a lost one on the match list, instead of showing every new match as lost
+- Stop the sync indicator spinning through an entire offline stretch. It now settles into a static state a few seconds after the writes actually start failing, and says the rallies are saved and what happens next, instead of implying the app is stuck
+- Treat a connection that reports itself as online but cannot reach the server the same as being offline, which is the more common case in a gym
+- Reserve the warning colour, in the indicator and on the rally rows, for entries a retry cannot save. Entries merely waiting out a backoff send themselves and no longer look like something went wrong
+- Hide the manual retry while the device is off the network, where it could only fail, and show it as busy while its own request is in flight
+- Say so when local storage is full, before the first rally is recorded, and point at the unsynced games whose rallies are taking up the space
+- Keep rallies that have not reached the server on screen. Reopening the game, coming back onto the network, returning after a few minutes away, or recording while an earlier rally is still being sent no longer makes them disappear
+- Show the failed-write marker and its retry on the rally it belongs to, in the cases where that row had gone missing along with the rally
+- Show the set score a set has actually reached, instead of leaving it a set short when the server never recorded the result
+- Record rallies again: every submission failed with a "not found" error, because a point won against the opponent has no player to name on their side
+- Stop showing the recording court for a set that was never started, where every rally submitted from it was rejected
+- Offer the correct next set when starting a new one from a set that is not the last
+- Keep a match openable when one of its rallies does not say how the point was won. Such a match used to fail to open at all, on every device, with nothing the recorder could do about it
+- Stop reloading the page when the connection comes back, which used to discard the set in progress and in practice needed the app killed and reopened before recording could continue
+- Answer a malformed recording request with the field that is wrong, instead of a generic "unexpected error". Sending a set, a rally, a substitution, or a new game in the wrong shape used to reach the database before anything noticed
+- Record "no player attributed" one way instead of two, so a rally that credits nobody reads the same everywhere it is stored and displayed
+- Stop a game from being created with a temperature reading, a duplicated roster, or a nested copy of both teams — three fields the recording form sent that nothing ever read
+- Keep rallies that were recorded but not yet saved when the app is closed or shut down by the phone: they are stored on the device as they are recorded, and sent the next time that match is opened
+- Keep the saved serving side and start time in a set's settings after saving. The form used to jump back to a serve worked out from the previous set, and saving again would have stored that instead
+
+#### UI
+
+- Show the court's full frame on narrow screens, instead of it being cut off along the left and right edges
+- Show the court's frame along the top and bottom edges on iOS, where it was previously cut off
+- Add breathing room below the last row of recording buttons
+- On a full-page form opened with a dialog's expand button, the back arrow and the browser's back button now return to where the dialog was opened, instead of reloading the form
+- Say what went wrong, in Chinese, when an action is refused. Almost every failure used to show an English sentence written for developers — a member who is not the team owner was told to refresh the page, when what they needed was that only the owner can transfer ownership
+- Stop the same failure from being described two different ways depending on whether it appeared in a dialog or a notification. A session that expired mid-action used to produce a notification, an English line inside the open dialog, and a redirect, all at once
+- Say that the lineup has changed, rather than that the set cannot be found, when a substitution or a lineup edit references a player who is no longer there. This happens when another device has changed the roster or the lineup since this one last loaded it
+- Report a failed substitution instead of silently undoing it. The optimistic update rolled back with nothing shown, so the substitution simply appeared not to have happened
+- Stop iOS 26 and later from blurring the header of the installed app: the status bar is now opaque and takes the colour of the page beneath it, following light and dark mode. On iPhone, remove VolleyBro from the Home Screen and add it again to pick this up.
+
+#### Team
+
+- Close the edit-player dialog after a successful save. It used to stay open, which read as if the save had not happened
+- Close the edit-player dialog after removing a member, and return to the team page. The dialog used to stay open over the team page, still showing the removed player
+- Close the new-team dialog after the team is created. It used to stay open over the new team's page
+- The browser's back button no longer reopens the add-player, edit-player, new-team or edit-team form after it has been saved
+- Inviting someone who already has an account now reaches them: the invitation appears in their invitation list instead of waiting for an account that already exists
+- Signing up with an email that differs only in letter case from the invited address now still picks up the invitation
+- Transferring ownership to the current owner is refused instead of leaving the team without an owner
+- Inviting a person who is already on the roster, or an address that already has a pending invitation, now explains that instead of creating a second entry for the same person
+- A player on the roster without an account no longer shows a role, and a role is only offered when an invitation is actually being sent
+- Being removed from a team no longer leaves that team selected: the app falls back to another team you have joined, and team pages that cannot be read now show an error instead of a blank or broken screen
+
+#### Infrastructure
+
+- Keep sentences written for developers out of API responses. They named internal statuses and fields, and were shown to whoever hit the error
+
+#### Account
+
+- Sign in again: every attempt failed with a linking error, because account records created before the current authentication library blocked a uniqueness rule the new one applies to all of them
+
+### Changed
+
+#### Infrastructure
+
+- Commit messages are checked before a commit exists: a `commit-msg` hook runs commitlint on the conventional type, a required body, and the absence of AI attribution, and CI re-runs the same checks over every commit of a pull request into `dev`. Scope stays free-form, except for retired tool names
+- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch, and every commit on it must carry a `Blueprint-Change: <slug>` trailer naming that same slug. Fix-path work moves to `hotfix/<slug>`, whatever its commit type, and needs no trailer
+- A `pre-commit` hook formats and lints only the staged files; typechecking and tests stay in the verify gates
+- The automated release commit is now `chore(release): update versions` with a body, so the release sync back into `dev` passes the same commit checks
+- Commit rules that the tooling now enforces are removed from `CONTRIBUTING.md`, which points at the commitlint configuration instead of repeating the type table
+- Code review now reads a new root `CODING_STANDARDS.md` holding only the judgement rules no tool checks — comments, naming, no issue IDs in source, where a test belongs. `CONTRIBUTING.md` keeps how to work in the repository, including the commit and pull-request writing rules, and drops two rules that were either enforced by commitlint already or not true
+- `AGENTS.md` is the one agent guidance file and `CLAUDE.md` only imports it, so the two can no longer drift; `pnpm check:workflow` fails if `CLAUDE.md` holds anything else or `AGENTS.md` cites a section number
+- G1 is now the developer confirming the discussion's final summary; the Proposal page records that summary verbatim instead of being re-read, and still carries a flowchart when a Change alters a process
+- Blueprint page and decision-record writing rules — page language, title shape, component strings — live in `docs/agents/blueprint.md`. `pnpm check:workflow --gate` fails on a malformed page title, on uncommitted decision records, and on an unpushed Change branch, and warns when a new record's decision runs past 1000 characters
+- Backtick-quoted spans in Blueprint component strings, such as `Scenario` and `RiskTable`, render as inline code
+- The bundled two-gate decision record is split into one record per decision
+- `WORKFLOW.md` states how a subagent brief is composed and how to clean up the local checkout after a merge
+- Decision records now live in one flat `blueprint/content/decisions/` store that belongs to the repository rather than to a Change. A record is written the moment the decision is made and is adopted from that moment: there is no proposed stage, no per-capability copy, and no promotion or renumbering at Archive. The 65 files that held 45 records are now 45 files
+- A Feature page renders the decision records whose `capabilities` name it, instead of importing and listing them by hand. One decision governing several capabilities stays one file and appears on every page it names
+- The decision-record schema moves to version 2: `targets` is now `capabilities`, only `schemaVersion`, `id`, `title`, `capabilities` and `decision` are required, and `originDecision` is gone. A decision may be a title, a capability and a paragraph. Records already published inside Change pages on the store branch stay at version 1 and keep rendering through the compatibility layer
+- The Fix path may write and correct a decision record — a typo, a stale reference, a wrong `capabilities` entry, or a decision that was made but never written down. Editing a record's `decision` body or setting `supersededBy` still escalates to a normal Change
+- A Fix-path commit carries `Refs: <tracker issue>` only when the fix came from a tracker issue, and no reference trailer when it was found and agreed inside a session
+- Research and working notes no longer earn a file of their own. Investigation results go back to their tracker issue, and the sources behind a decision go in the Proposal page's `## References` section, which a Change that consulted no outside source simply does not have
+- The delivery workflow stops for a human at two points only: a Proposal page before implementation and a Review page before the pull request. Slice plans, per-round review pages, lifecycle states, and the Archive reconcile step are gone; a Change's slices, when it needs any, are Linear sub-issues under its issue, and a Change that fits one session skips slices and implements directly
+- Blueprint change pages are generated locally under gitignored `blueprint/content/changes/` and published to the orphan `blueprint-changes` branch at each gate; the 22 archived change directories moved to that store branch instead of being deleted, and the deployed Blueprint site now carries every published Change alongside Features and the Design System
+- `pnpm check:workflow` checks the two Blueprint pages instead of the four-page shell, and warns when a change touches more than 30 source files without naming a Migration Proposal
+- Small corrections that restore documented behaviour can follow a fix path with no Blueprint pages; the pull request is their only human gate and their commits carry a `Refs` trailer
+- Arming unattended execution adds the `agent:ready` label and moves the issue to Todo; Symphony dispatches only labelled issues in an active status, and each later status change has one named owner
+- `.worktreeinclude` lists `.env.local`, so worktrees created by agent tooling that reads it start with the local environment file
+- A gate fails when its Change page was never published or was edited since, so a reviewer never reads a page the store branch does not have
+- `pnpm verify` and `pnpm verify:all` run their checks as concurrent lanes; `verify:all` skips lanes whose inputs the branch did not touch, and `--full` runs everything
+
+#### Team
+
+- Adding a player now takes you to the new player's page instead of the team page
+- Saving the edit-player form now returns to the player's page, and on its full page the back arrow leads there too, instead of to the team page
+- The team owner is called 擁有者 rather than 隊長, the plain member role is called 一般成員, and removing a player from the roster is called 刪除球員
+
+#### UI
+
+- Show that a save is in progress on the button that started it, when creating a game, creating or editing a team, and adding or editing a player
+- Keep the save button of the team form and the new-player form at the bottom of the dialog instead of scrolling away with the fields
+- Stop long dialog titles from running underneath the close and expand buttons, and let keyboard users reach those buttons before the form fields rather than after them
+
+### Security
+
+#### Team
+
+- Only members of a team can read its information, its roster and the details of a player on it; people outside the team, and anyone not signed in, no longer can
+- Someone who has been invited but has not accepted yet no longer counts as a member: they cannot record games, edit lineups or manage the roster until they accept
+- The team owner can no longer be demoted or deleted by an administrator, and nobody can change their own role or delete their own player — leaving a team is what the leave action is for
+
 ## [0.14.4](https://github.com/andrewck24/volleybro/compare/v0.14.3...v0.14.4) 2026-07-25
 
 ### Fixed
