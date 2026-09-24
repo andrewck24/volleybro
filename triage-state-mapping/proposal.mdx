@@ -1,22 +1,24 @@
 ---
 title: Triage State Mapping — Proposal
-description: triage playbook 的三欄角色對照、線性的 issue 生命週期，以及 retro 在交付契約中的位置。
+description: triage playbook 的三欄角色對照、線性的 issue 生命週期、開發者動作可經同意由 agent 代為執行，以及 retro 在交付契約中的位置。
 ---
 
-import d1 from "./proposal/decisions/D1-status-is-the-bucket-the-label-says-who-holds-the-ball.json";
-import d2 from "./proposal/decisions/D2-g1-waits-at-todo-and-a-stuck-run-swaps-the-label.json";
-
 <TLDR>
-已安裝的 triage playbook 需要一套 tracker 對照，而交付契約明文禁止——兩者必有一個要讓步。狀態承載粗粒度的進度，標籤承載球在誰手上，blocked 維持用依賴關係表達。`docs/agents/triage-labels.md` 以三欄記下這套對照。G1 改在 Todo 搭配 `ready-for-human`，順帶消掉 `WORKFLOW.md` 對「gate 等在哪裡」的自我矛盾；執行中卡住的 run 換標籤而不動狀態。retro 則在契約裡取得觸發條件。
+已安裝的 triage playbook 需要一套 tracker 對照，而交付契約明文禁止——兩者必有一個要讓步。狀態承載粗粒度的進度，標籤承載球在誰手上，blocked 維持用依賴關係表達；`docs/agents/triage-labels.md` 以三欄記下這套對照。G1 改在 Todo 等待，In Review 只代表 G2；執行中卡住的 run 換標籤而不動狀態。開發者擁有的動作是決定而不是按鍵：開發者明確同意後 agent 可代為執行。retro 在契約裡取得觸發條件。
 </TLDR>
 
-## 為什麼是現在
+本頁依 ADR-0060 撰寫：內容逐字取自 G1 確認的最終摘要。
 
-三個衝突，全部是現在進行式：
+## 決策
 
-1. `triage` playbook 已安裝，卻沒有 `docs/agents/triage-labels.md`；而 `WORKFLOW.md` 與 `docs/agents/issue-tracker.md` 都禁止發明標籤分類——那正是安裝它所必須做的事。
-2. `WORKFLOW.md` 說 G1 是 Discuss 的出口、武裝發生在 G1 之後並把票移到 Todo，又說 gate 等待時狀態是 In Review。照字面讀，一張票會走 In Review → Todo → 再回 In Review。
-3. 沒有任何條文涵蓋「無人值守的 run 開跑之後才需要開發者」這件事，而 `retro` 已安裝，契約裡卻沒有一處說明何時該跑。
+| #        | 決策                                                                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ADR-0069 | 狀態表示大致進度，label 表示球在誰手上，blocked 維持用依賴關係表達                                                                                                       |
+| ADR-0070 | G1 改在 Todo 等待（搭配 `ready-for-human`）；執行中卡住的 run 換 label，狀態不動。assignee 規則「Backlog 以外必須有 assignee」由 adapter runbook 驗證，不寫進 `scripts/check-workflow.js`，repo 腳本保持 tracker neutrality |
+| ADR-0071 | 開發者擁有的動作是決定，不是只有開發者能按的鍵：開發者明確同意後，agent 可代為執行。同意範圍由開發者決定，可以逐一 issue，也可以整批授權；G1、G2 的接受本身不能委派 |
+| —        | 放寬手動接手時的狀態移動：沒有 `ready-for-agent`、也不在 Symphony 狀態頁上的 issue，由 agent 移到 In Progress。容易撤回，不另立 ADR                                         |
+
+<DecisionTimeline ids={["0069", "0070", "0071"]} />
 
 ## 本次 Change 之後的生命週期
 
@@ -39,7 +41,11 @@ import d2 from "./proposal/decisions/D2-g1-waits-at-todo-and-a-stuck-run-swaps-t
   details={{
     todo1: {
       title: "G1 等在這裡",
-      body: "接受 Proposal 頁是只有人能做的判斷，而那正是 ready-for-human 的定義。In Review 因此維持單一語意：G2。",
+      body: "接受 Proposal 是只有人能做的判斷，而那正是 ready-for-human 的定義。In Review 因此維持單一語意：G2。",
+    },
+    todo2: {
+      title: "武裝由開發者決定",
+      body: "加上 ready-for-agent 是開發者的決定；開發者明確同意後，agent 可以代為加上，照樣先確認 G1 已通過、依賴都已滿足。",
     },
     progress: {
       title: "卡住的 run 換標籤",
@@ -52,17 +58,17 @@ import d2 from "./proposal/decisions/D2-g1-waits-at-todo-and-a-stuck-run-swaps-t
   }}
 />
 
-## 本次 Change 的邊界
+## 範圍
 
-- 撰寫 `docs/agents/triage-labels.md`，採三欄——角色、載體、值——因為 vendor 範本的兩欄假設每個角色都是標籤。
-- 改寫 `WORKFLOW.md` 與 `docs/agents/issue-tracker.md` 中「不發明標籤分類」的措辭，使其允許 playbook 的 canonical 角色、且僅止於此；兩份檔案中的 `agent:ready` 一律更名為 `ready-for-agent`。
-- 把 `WORKFLOW.md` 狀態表中那一列 gate 拆成 G1（Todo）與 G2（In Review）兩列，並寫入執行中換標籤的做法。
-- 在 `scripts/check-workflow.js` 加一條 assignee 規則：Backlog 以外的票必須有 assignee。
-- 在 `WORKFLOW.md` 加入 `retro` 步驟：merge 之後，若任一 gate 曾被退回或 code review 超過三輪，執行一次 retro，採用的建議開成 issue。
-- **不在範圍內，改以母票上的 runbook 處理** —— Linear 的標籤更名與退役、runtime 的 `required_labels` 與 `active_states` 設定、註冊 agent 身分、驗證 tracker 是否會為 agent 的寫入發出通知、驗證 adapter 是否把 blocking edge 算成不可派工、清掉 Codex 那張票的殘留標籤。這些都沒有 diff，也沒有 acceptance scenario。
-- **不在範圍內** —— 封存在 `docs/changes/archive/` 的 spec 快照。它們是歷史。
+1. 新增 `docs/agents/triage-labels.md`，採三欄對照：角色、載體、值。
+2. `WORKFLOW.md` 與 `docs/agents/issue-tracker.md`：放寬「不發明標籤分類」的措辭，只允許 playbook 的 canonical 角色；`agent:ready` 全部改名為 `ready-for-agent`。
+3. `WORKFLOW.md` 狀態表：G1（Todo）和 G2（In Review）拆成兩列，並寫入執行中換 label 的做法；「手動接手」那一列和 Manual workflow 一節改成放寬規則。
+4. `WORKFLOW.md` 的武裝段落、label／狀態對照表的 Owner 欄、Manual workflow 一節，以及 `issue-tracker.md` 的武裝規則，改寫成「開發者決定，同意後 agent 可代為執行」。
+5. `WORKFLOW.md` 新增 retro 步驟：merge 之後，若任一 gate 被退回過，或 code review 超過三輪，就跑一次 retro，採用的建議開成 issue。
+6. 不在範圍內，改由母票上的 runbook 處理：Linear 的 label 改名與退役、runtime 的 `required_labels` 和 `active_states`、agent 身分、通知驗證、blocking edge 驗證、清掉殘留的 label，以及 assignee 規則。
+7. 不在範圍內：`docs/changes/archive/` 裡的歷史快照。
 
-## 行為契約
+## 驗收情境
 
 <Scenario given="docs/agents/triage-labels.md" when="it is read against the installed playbook" then="every category role and every state role has exactly one carrier and one value" />
 
@@ -70,30 +76,22 @@ import d2 from "./proposal/decisions/D2-g1-waits-at-todo-and-a-stuck-run-swaps-t
 
 <Scenario given="WORKFLOW.md's status table" when="it is read top to bottom" then="G1 and G2 are separate rows and no status appears before a status it precedes" />
 
-<Scenario given="an issue outside Backlog with no assignee" when="check:workflow runs" then="it fails naming the issue" />
-
 <Scenario given="a Change whose gate was sent back" when="the pull request has merged" then="WORKFLOW.md directs a retro run and the adopted suggestions become issues" />
+
+<Scenario given="an issue taken manually" when="it carries no ready-for-agent label and is absent from the Symphony status surface" then="the agent moves it to In Progress; when it carries the label, the label is removed by the developer, or by the agent on consent, around two status checks" />
+
+<Scenario given="every action WORKFLOW.md and docs/agents/issue-tracker.md assign to the developer" when="the rule is read" then="it states that the developer decides and the agent may carry it out on explicit consent, and no rule bars the agent unconditionally" />
 
 ## 風險
 
 <RiskTable
   risks={[
-    { name: "active_states 只設 [\"Todo\"] 會讓 run 一開跑就被停掉", severity: "critical", mitigation: "對照表把派工政策與 runtime 設定分開敘述：dispatch 要求 Todo，續跑要求 In Progress 留在 active_states 之中。" },
+    { name: "active_states 只設 Todo 會讓 run 一開跑就被停掉", severity: "critical", mitigation: "對照表把派工政策與 runtime 設定分開敘述：dispatch 要求 Todo，續跑要求 In Progress 留在 active_states 之中。" },
     { name: "若 adapter 沒把被擋住的票標成不可派工，blocked 這件事等於沒做", severity: "critical", mitigation: "在 runbook 中對實際運行的設定驗證，驗過之後對照表才能宣稱依賴關係會擋下派工。" },
     { name: "agent 的通知可能永遠到不了開發者，因為目前所有寫入都以開發者本人的身分發出", severity: "warning", mitigation: "runbook 項目：先驗證 tracker 對「自己觸發的事件」的通知行為，若成立則註冊 agent 身分。" },
-    { name: "本 Change 與 reviewer-standards-split 都會改 WORKFLOW.md 與 check-workflow.js", severity: "warning", mitigation: "排在最後，rebase 到它之上。" },
     { name: "退役 needs-user 會讓帶著它的兩張票無處可去", severity: "info", mitigation: "先各自改貼：卡在憑證的那張改 ready-for-human 並移到 Todo，政策未定的那張改 needs-info 留在 Backlog。" },
   ]}
 />
-
-## 決策
-
-<DecisionTimeline decisions={[d1, d2]} />
-
-## 順序
-
-四個之中排最後。它與 `reviewer-standards-split` 共用 `WORKFLOW.md` 與 `scripts/check-workflow.js`，必須 rebase 到它之上。
-
 ## References
 
 蒐集於 2026-09-18 的討論。**一份 reference 記錄的是它被讀到那天為真的事**，所以每一列都要說出自己的強度，以及它能支持到什麼程度。
