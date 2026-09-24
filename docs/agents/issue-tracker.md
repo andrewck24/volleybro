@@ -15,16 +15,15 @@ Matt Pocock playbooks use these adaptations:
   verification, and status (`pending` or `completed`); runtime state such as `claimed`, `running`,
   executor identity, and retry count does not belong on it. Sub-issues are closed once the Change is
   archived.
-- Only the developer may add `agent:ready`, moving the issue to Todo in the same step, to arm
-  unattended execution. No skill or setup process may add the label. Symphony moves a claimed issue
-  to In Progress, agents move it to In Review while a gate waits and to Done after merge; the table
-  in `WORKFLOW.md` owns this split.
-- Manual Apply uses a two-sided ownership check: inspect Symphony's issue status, remove
-  `agent:ready` and move the issue to In Progress, request a runtime refresh when available, and
-  inspect again.
-  `running`, `retrying`, or `blocked` means the Manual session must not start. Begin only when the
-  issue is absent after the post-removal check.
+- Arming, the status moves, and who owns each follow the table in `WORKFLOW.md`, including when the
+  agent may act on the developer's consent. No skill or setup process adds `ready-for-agent`
+  unattended.
+- Manual Apply on an armed issue uses a two-sided ownership check: inspect Symphony's issue status,
+  remove `ready-for-agent` and move the issue to In Progress, request a runtime refresh when
+  available, and inspect again. `running`, `retrying`, or `blocked` means the Manual session must
+  not start. Begin only when the issue is absent after the post-removal check. An unarmed issue
+  needs no second check; `WORKFLOW.md`'s Manual workflow covers it.
 - Express discussion and Wayfinder progress with ordinary statuses, parent/child relationships,
-  duplicate relations, and blocking edges. Do not invent a label taxonomy.
+  duplicate relations, and blocking edges. Labels follow `docs/agents/triage-labels.md`.
 - After merge, move the operational Change issue to Done. Blueprint never depends on that issue
   remaining accessible.

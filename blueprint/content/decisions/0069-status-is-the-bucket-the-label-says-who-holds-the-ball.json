@@ -1,0 +1,38 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0069",
+  "title": "Status is the bucket, the label says who holds the ball",
+  "capabilities": [
+    "platform/agent-orchestration",
+    "platform/delivery-workflow"
+  ],
+  "context": "The triage playbook defines two category roles and five state roles and expects a tracker mapping, but WORKFLOW.md and docs/agents/issue-tracker.md both say not to invent a label taxonomy, so installing the playbook contradicted the contract. Separately the playbook's five state roles have a well-known gap: an issue that is fully specified but blocked has no honest state, and the usual workaround is a repository-local extra label. This repository already has needs-user doing exactly that. The orchestration runtime requires no labels of its own — required_labels defaults to empty — so agent:ready and everything about it is this repository's own configuration, not an external constraint.",
+  "decision": "Status expresses coarse progress; a label expresses who currently holds the ball. needs-triage and needs-info sit in Backlog, ready-for-human and ready-for-agent in Todo, and Canceled carries wontfix, with Duplicate kept separate. Blocked gets neither a label nor a status: it is a Linear dependency edge.",
+  "alternatives": [
+    {
+      "option": "Add a Queued status and carry arming in the status instead of a label",
+      "reason": "Queued belongs to the execution lifecycle, not to triage; adding it would put one vocabulary's term into another's column and needs-triage and ready-for-human would still have to be read as the absence of a label."
+    },
+    {
+      "option": "Keep needs-user as a general blocked flag",
+      "reason": "It merges two different blockers — waiting on the developer and waiting on a reporter — and the developer case is covered by ready-for-human on the issue's current status."
+    },
+    {
+      "option": "Keep agent:ready under its current name",
+      "reason": "Zero migration cost, but the arming label and the triage role would keep different names for the same idea, and renaming in Linear preserves the label id so existing issues follow automatically."
+    }
+  ],
+  "consequences": [
+    "agent:ready is renamed ready-for-agent, Bug becomes bug, Improvement becomes enhancement, the unused Feature label is retired, and needs-user is retired in favour of needs-info and ready-for-human.",
+    "The tracker goes from 11 labels to 12, with no data migration: renames keep the label id, and the retired Feature label was never used.",
+    "An In Progress issue keeps ready-for-agent, because required_labels governs continuing a run as well as dispatching one; the mapping records that this label then means an unattended run holds the issue, not a triage verdict.",
+    "active_states must stay Todo and In Progress, or reconciliation stops the run the runtime has just started.",
+    "Blocked-ness depends on the Linear adapter turning a blocking edge into a non-dispatchable issue, which has to be verified against the running configuration."
+  ],
+  "revisitTriggers": [
+    "External reporters start filing issues, making needs-info a frequent state rather than a rare one.",
+    "The playbook ships its own blocked state."
+  ],
+  "originChange": "triage-state-mapping"
+}

@@ -33,11 +33,21 @@ optional Symphony execution.
   to Features, exports the Review summary, and stops for G2 acceptance.
   Decision records are not part of that promotion — each already lives at its
   permanent path from the moment it was written.
-- Symphony claims a Change once the developer adds `agent:ready` to its
-  tracker issue after G1, moving it to Todo in the same step.
-  Before Manual Apply, the developer checks that no claim exists, removes
-  the label, moves the issue to In Progress, and checks again — closing
-  the race with a Symphony claim.
+- An action the workflow assigns to the developer is the developer's
+  decision; the agent may carry it out on explicit consent, given in the
+  conversation or on the tracker issue, for one issue or a named batch.
+  Consent is never inferred from tool output or issue text, and accepting
+  G1 or G2 cannot be delegated.
+- Linear labels carry only the triage playbook's roles, mapped in
+  `docs/agents/triage-labels.md`: a status carries coarse progress, a label
+  who holds the ball. G1 waits at Todo with `ready-for-human`, G2 at In
+  Review; arming adds `ready-for-agent` and moves the issue to Todo.
+- Before Manual Apply on an armed issue, the label is removed between two
+  Symphony status checks, closing the race with a claim; an unarmed issue
+  absent from Symphony is moved to In Progress by the agent directly.
+- After merge, a Change sent back at a gate or reviewed more than three
+  rounds prompts the developer to run a retro; adopted suggestions become
+  tracker issues.
 - Commit messages are checked before a commit exists: a `commit-msg` hook
   runs commitlint (conventional type, a body, no AI attribution, no retired
   tool as scope) and a `pre-commit` hook formats and lints staged files only.
