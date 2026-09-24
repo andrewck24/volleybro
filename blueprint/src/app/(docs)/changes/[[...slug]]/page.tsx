@@ -12,6 +12,7 @@ import { Scenario } from "@/components/Scenario";
 import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
+import { DecisionCards } from "@/components/DecisionCards";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
@@ -42,6 +43,27 @@ function ChangeDecisionTimeline({
   );
 }
 
+// A superseded card links to its replacement: on this page when the page
+// cites it too, otherwise on the Feature page of its first capability.
+function ChangeDecisionCards({ ids }: { ids: string[] }) {
+  const onPage = new Set(ids);
+  const cards = decisionsById(ids).map((record) => {
+    const replacement = record.supersededBy;
+    if (!replacement) return { record };
+    if (onPage.has(replacement)) {
+      return { record, supersededHref: `#adr-${replacement}` };
+    }
+    const [capability] = decisionsById([replacement])[0]?.capabilities ?? [];
+    return {
+      record,
+      supersededHref: capability
+        ? `/features/${capability}#adr-${replacement}`
+        : undefined,
+    };
+  });
+  return <DecisionCards cards={cards} />;
+}
+
 const mdxComponents = {
   ...defaultMdxComponents,
   TLDR,
@@ -50,6 +72,7 @@ const mdxComponents = {
   AnnotatedDiff,
   FileTour,
   DecisionTimeline: ChangeDecisionTimeline,
+  DecisionCards: ChangeDecisionCards,
   InteractiveFlowchart,
 };
 

@@ -80,7 +80,8 @@ export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
             <AccordionItem
               key={decisionKey(record)}
               value={decisionKey(record)}
-              className="relative border-0"
+              id={`adr-${record.id}`}
+              className="relative scroll-mt-20 border-0"
             >
               <span className="absolute top-5 -left-5 size-2.5 rounded-full border-2 border-background bg-primary" />
               <AccordionTrigger className="hover:no-underline">
