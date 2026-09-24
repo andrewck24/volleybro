@@ -51,7 +51,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -62,7 +62,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
@@ -82,29 +82,29 @@ Components that render their own dimming `Overlay` (Dialog, AlertDialog, Drawer)
 - **WHEN** the application shell renders
 - **THEN** the `body` element's background resolves to `--background`, and no page-level container relies on `--accent` for its base surface
 
-#### Scenario: Route-scoped PWA body backdrop
+#### Scenario: Route-scoped PWA status bar colour
 
-- **WHEN** a standalone PWA route needs translucent system chrome to match adjacent app chrome
-- **THEN** that route MAY set `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor` from its own layout using the matching semantic token
+- **WHEN** a standalone PWA route group renders
+- **THEN** its layout SHALL render `StatusBarColor` with the semantic token its header sits on, which writes the resolved colour to `theme-color` and mirrors it onto `document.documentElement.style.backgroundColor` and `document.body.style.backgroundColor`
 - **AND** this inline body backdrop SHALL NOT be treated as the page content background, SHALL NOT use `--accent`, and SHALL be cleaned up when the route unmounts
 
-#### Scenario: PWA launch fallback matches the page background
+#### Scenario: PWA launch fallback matches the brand splash
 
 - **WHEN** a user agent uses the manifest color while launching the standalone PWA
-- **THEN** the manifest `background_color` SHALL equal the light-mode `--background` color
-- **AND** the fallback SHALL NOT introduce a separate near-white page layer
+- **THEN** the manifest `background_color` SHALL equal the `--primary` brand teal, as `docs/specs/android-splash/spec.md` requires
+- **AND** the launch fallback SHALL NOT be treated as a page or surface background
 
 #### Scenario: Modal overlay respects the PWA system chrome boundary
 
 - **WHEN** an overlay-backed modal (Dialog or AlertDialog) is open in standalone PWA mode
 - **THEN** the modal overlay element SHALL cover the full web content viewport using `inset-0`
-- **AND** it SHALL NOT mutate the route-scoped body backdrop to emulate the scrim in an iOS-owned status-bar region
+- **AND** it SHALL NOT mutate the route-scoped status bar colour or body backdrop to emulate the scrim in an iOS-owned status-bar region
 
 #### Scenario: Expanded recording drawer respects the PWA system chrome boundary
 
 - **WHEN** the recording summary drawer is expanded in standalone PWA mode
 - **THEN** the drawer overlay element SHALL cover the full web content viewport using `inset-0`
-- **AND** neither the expanded drawer nor the idle drawer peek SHALL mutate the route-scoped body backdrop
+- **AND** neither the expanded drawer nor the idle drawer peek SHALL mutate the route-scoped status bar colour or body backdrop
 
 #### Scenario: Card inside a modal is distinguished by shadow
 
@@ -128,7 +128,7 @@ code:
   - src/components/custom/logo.tsx
   - blueprint/content/changes/archive/2026-07-16-elevation-depth-system/review.mdx
   - src/components/layout/tab-container.tsx
-  - src/components/layout/body-backdrop.tsx
+  - src/components/layout/status-bar-color.tsx
   - package.json
   - src/components/layout/header.tsx
   - src/components/layout/bg-handler.tsx
@@ -139,7 +139,7 @@ tests:
   - src/components/ui/__tests__/dialog.test.tsx
   - src/components/game/__tests__/summary-drawer.test.tsx
   - src/components/ui/__tests__/alert-dialog.test.tsx
-  - src/components/layout/__tests__/body-backdrop.test.tsx
+  - src/components/layout/__tests__/status-bar-color.test.tsx
   - src/app/apple-splash/__tests__/manifest.test.ts
   - src/components/ui/__tests__/drawer.test.tsx
   - src/components/layout/__tests__/edit-dialog-container.test.tsx
