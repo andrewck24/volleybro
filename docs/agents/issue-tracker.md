@@ -21,7 +21,8 @@ Matt Pocock playbooks use these adaptations:
 - Manual Apply on an armed issue uses a two-sided ownership check: inspect Symphony's issue status,
   remove `ready-for-agent` and move the issue to In Progress, request a runtime refresh when
   available, and inspect again. `running`, `retrying`, or `blocked` means the Manual session must
-  not start. Begin only when the issue is absent after the post-removal check.
+  not start. Begin only when the issue is absent after the post-removal check. An unarmed issue
+  needs no second check; `WORKFLOW.md`'s Manual workflow covers it.
 - Express discussion and Wayfinder progress with ordinary statuses, parent/child relationships,
   duplicate relations, and blocking edges. Labels follow `docs/agents/triage-labels.md`.
 - After merge, move the operational Change issue to Done. Blueprint never depends on that issue

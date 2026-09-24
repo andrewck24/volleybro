@@ -25,8 +25,6 @@
   ],
   "consequences": [
     "agent:ready is renamed ready-for-agent, Bug becomes bug, Improvement becomes enhancement, the unused Feature label is retired, and needs-user is retired in favour of needs-info and ready-for-human.",
-    "docs/agents/triage-labels.md records the mapping in three columns — role, carrier, value — because the vendor template's two columns assume every role is a label.",
-    "The not-a-label-taxonomy wording in WORKFLOW.md and issue-tracker.md is rewritten to permit exactly the playbook's canonical roles and nothing else.",
     "The tracker goes from 11 labels to 12, with no data migration: renames keep the label id, and the retired Feature label was never used.",
     "An In Progress issue keeps ready-for-agent, because required_labels governs continuing a run as well as dispatching one; the mapping records that this label then means an unattended run holds the issue, not a triage verdict.",
     "active_states must stay Todo and In Progress, or reconciliation stops the run the runtime has just started.",
