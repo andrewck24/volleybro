@@ -5,9 +5,10 @@ issue tracker or orchestration runtime is configured.
 
 ## Change review surfaces
 
-Every Change renders a Proposal page (with an optional design-mockup `proposal.tsx`) and, later, a
-Review page. Both are written under `blueprint/content/changes/<slug>/`, gitignored on the Change
-branch. At each gate the agent publishes them with `pnpm blueprint:changes:publish <slug>`, which
+Every Change is one page, `index.mdx`, with a Proposal tab and, from G2, a Review tab (ADR-0072),
+plus an optional design mockup `design.tsx`. The page is written under
+`blueprint/content/changes/<slug>/`, gitignored on the Change branch. At each gate the agent
+publishes it with `pnpm blueprint:changes:publish <slug>`, which
 commits them to the orphan `blueprint-changes` branch and pushes it — the durable store of every
 Change page, old and new, that never merges into other branches. `pnpm check:workflow --gate <slug>`
 confirms the publish: it fails when a page was never published or was edited since. `pnpm --filter blueprint dev` and
@@ -16,8 +17,8 @@ confirms the publish: it fails when a page was never published or was edited sin
 Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the
 store cannot be fetched. Decision records live at `blueprint/content/decisions/<nnnn>-<slug>.json`,
 follow `blueprint/schemas/decision-record.schema.json`, and belong to the repository rather than to
-any Change. A Proposal page is published at a gate before its own records merge, so it names the
-records it wants by id and `DecisionTimeline` resolves whichever ones this checkout has, skipping
+any Change. A Proposal tab is published at a gate before its own records merge, so it names the
+records it wants by id and `DecisionCards` resolves whichever ones this checkout has, skipping
 the rest; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a second editable
 source.
 
@@ -53,17 +54,38 @@ Read this section before writing or editing any Blueprint page. The agent writin
 
 Blueprint pages exist to be read by a person, so structure a reader can scan is part of the artifact rather than decoration. Prose alone is insufficient wherever the information is spatial, comparative, or ranked by severity: no paragraph shows at a glance which files changed, which finding blocks acceptance, or which line a fix landed on. Render such information with the components the repository already has, rather than describing it:
 
-| Information                                          | Component              |
-| ---------------------------------------------------- | ---------------------- |
-| The page's claim, before any detail                  | `TLDR`                 |
-| A behavior stated as given / when / then             | `Scenario`             |
-| What changed per file, or a term-by-term walkthrough | `FileTour`             |
-| Before and after of a specific edit                  | `AnnotatedDiff`        |
-| Risks or code review findings, ranked by severity    | `RiskTable`            |
-| A process whose steps a reader may want to open      | `InteractiveFlowchart` |
-| Structured decision records                          | `DecisionTimeline`     |
+| Information                                       | Component              |
+| ------------------------------------------------- | ---------------------- |
+| The page's claim, before any detail               | `TLDR`                 |
+| A behavior stated as given / when / then          | `Scenario`             |
+| The acceptance scenarios, defined once as data    | `Scenarios`            |
+| Before and after of a specific edit               | `AnnotatedDiff`        |
+| Risks or code review findings, ranked by severity | `RiskTable`            |
+| A process whose steps a reader may want to open   | `InteractiveFlowchart` |
+| Structured decision records                       | `DecisionCards`        |
+| A result per scenario                             | `ScenarioResults`      |
+| What was tested, how, by whom, with what result   | `TestPlan`             |
 
-Minimum per page. A Proposal is the summary the developer confirmed at G1, taken verbatim: it opens with `TLDR`, then the decisions, the scope, the acceptance criteria as `Scenario` blocks, and the risks through `RiskTable`; it adds an `InteractiveFlowchart` when the Change alters a process and a mockup (`proposal.tsx`) when the Change answers a design question, and needs no other diagram or narrative. A Review opens with `TLDR`, shows acceptance results and verification as tables, findings through `RiskTable`, and boundary-relevant fixes as `AnnotatedDiff`.
+The page's shape, with `scenarios` exported once at the top so both tabs read the same data:
+
+```mdx
+---
+title: <name>
+description: <one line>
+capabilities: ["<capability id>"]
+---
+
+export const scenarios = [{ id: "S1", given: "…", when: "…", then: "…" }];
+
+<ChangeTabs>
+  <Proposal>…</Proposal>
+  <Review>…</Review>
+</ChangeTabs>
+```
+
+The Proposal tab is the summary the developer confirmed at G1, taken verbatim: `TLDR` stating the problem and the solution; for a behavior Change, a before/after table of two to four rows showing what changes for the reader; `DecisionCards` for the decision records; the scope; `<Scenarios items={scenarios} />`; and the risks through `RiskTable`. It adds an `InteractiveFlowchart` when the Change alters a process, `<DesignMockup />` (rendering `design.tsx`) when it answers a design question, and a `## References` section when research backs a decision, and needs no other narrative. The page shell renders the header — gate, capability badges, figures — so the page does not write it.
+
+The Review tab runs in this order, and the gate checks it (ADR-0073): `ActionItems` (what the developer must decide or do, or 無), `ReviewFocus` (the two or three places in the pull request most worth the developer's own reading, with why), `Deviations` (from the Proposal, or 無; a short `AnnotatedDiff` only when a deviation is clearest as code), `ScenarioResults` (a result for every scenario id, with one line of evidence), `TestPlan` (each item naming its executor, agent or developer; `ActionItems` points at the developer-run ones), `AfterRelease` when something must happen after release, and `ReviewDetails`, collapsed, holding verification detail, code review findings and residual risks. It carries no code diff by default: the pull request shows the full diff.
 
 Rules that bind every page:
 
@@ -71,7 +93,9 @@ Rules that bind every page:
 - Components render data and never become a second source for it. A page must not restate what the page shell already renders from the slice sub-issues or the decision records.
 - Diagrams are part of the specification, not illustrations of it. When delivery diverges from what a diagram shows, the diagram is corrected in the same round as the text.
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
-- The frontmatter `title` is `<name> — Proposal` or `<name> — Review`, with an em dash, so the sidebar tells Changes apart. The name is for people and may differ from the slug. `pnpm check:workflow --gate <slug>` checks the shape.
+- The frontmatter `title` is the Change's name, for people; it may differ from the slug. `pnpm check:workflow --gate <slug>` fails an empty title or one that is only a tab name.
+- Prose never hand-copies a count (ADR-0074). A figure `facts.json` holds is left to the header; any other number is replaced by a qualitative statement, or stands beside the command that produced it so a reviewer can rerun it.
+- The Proposal tab is frozen after G1 (ADR-0075): edit it only by passing G1 again, even for layout.
 - Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown. Flowchart node and edge labels are drawn in SVG and stay plain text entirely.
 - Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
 - Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.
