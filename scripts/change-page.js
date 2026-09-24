@@ -29,16 +29,17 @@ const blank = (text) => text.replace(/[^\n]/g, " ");
 // original at the same offsets. Code shows examples of the syntax, and a
 // string value can say anything, so neither may count as structure.
 function structureOf(content) {
+  const keepQuotes = (quoted) =>
+    quoted[0] + blank(quoted.slice(1, -1)) + quoted[0];
   return content
     .replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
-    .replace(/`[^`\n]*`/g, blank)
+    .replace(/`[^`]*`/g, keepQuotes)
     .replace(
-      /(["'])(?:\\.|(?!\1)[^\\\n])*\1/g,
-      (quoted, _quote, offset, text) =>
-        // A quoted key stays readable; only values are blanked.
+      /"(?:\\.|[^"\\\n])*"|(?<!\w)'(?:\\.|[^'\\\n])*'/g,
+      (quoted, offset, text) =>
         /^\s*:/.test(text.slice(offset + quoted.length))
           ? quoted
-          : quoted[0] + blank(quoted.slice(1, -1)) + quoted[0],
+          : keepQuotes(quoted),
     );
 }
 
@@ -73,35 +74,47 @@ function arrayObjects(structure, opener) {
   return objects;
 }
 
-function valueOf(content, structure, [start, end], key) {
+function depthWithin(structure, start, index) {
+  let depth = 0;
+  for (let i = start; i < index; i++) {
+    if (structure[i] === "{" || structure[i] === "[") depth++;
+    else if (structure[i] === "}" || structure[i] === "]") depth--;
+  }
+  return depth;
+}
+
+// Only the object's own key counts, not the same key in an object nested in it.
+function stringValueAt(content, structure, [start, end], key) {
   const pattern = new RegExp(
-    `(?:^|[{,\\s])["']?${key}["']?\\s*:\\s*(["'])`,
+    `(?:^|[{,\\s])["']?${key}["']?\\s*:\\s*(["'\`])`,
     "g",
   );
   pattern.lastIndex = start;
-  const match = pattern.exec(structure);
-  if (!match || match.index >= end) return undefined;
-  const valueStart = match.index + match[0].length;
-  return content.slice(valueStart, structure.indexOf(match[1], valueStart));
+  for (let match; (match = pattern.exec(structure)) && match.index < end;) {
+    if (depthWithin(structure, start, match.index + 1) !== 1) continue;
+    const valueStart = match.index + match[0].length;
+    return content.slice(valueStart, structure.indexOf(match[1], valueStart));
+  }
+  return undefined;
 }
 
-function entries(content, opener) {
+function idAndResultEntries(content, opener) {
   const structure = structureOf(content);
   return arrayObjects(structure, opener).map((range) => ({
-    id: valueOf(content, structure, range, "id"),
-    result: valueOf(content, structure, range, "result"),
+    id: stringValueAt(content, structure, range, "id"),
+    result: stringValueAt(content, structure, range, "result"),
   }));
 }
 
 const SCENARIOS = /export\s+const\s+scenarios\s*=\s*\[/;
-const RESULTS = /<ScenarioResults\b[^>]*?results\s*=\s*\{\s*\[/;
+const RESULTS = /<ScenarioResults\b[\s\S]*?results\s*=\s*\{\s*\[/;
 
 export function scenarioIds(content) {
-  return entries(content, SCENARIOS).map((entry) => entry.id);
+  return idAndResultEntries(content, SCENARIOS).map((entry) => entry.id);
 }
 
 export function resultIds(content) {
-  return entries(content, RESULTS)
+  return idAndResultEntries(content, RESULTS)
     .filter((entry) => entry.result !== "pending")
     .map((entry) => entry.id);
 }

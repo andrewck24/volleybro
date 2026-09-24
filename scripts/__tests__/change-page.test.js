@@ -187,3 +187,36 @@ test("a scenario without an id is reported as missing one", () => {
   const page = PAGE.replace('{ id: "S2", given', "{ given");
   assert.deepEqual(scenarioIds(page), ["S1", undefined]);
 });
+
+test("backtick and multi-line template values are read like any string", () => {
+  const page = PAGE.replace(
+    '{ id: "S2", given: "d", when: "e", then: "f" }',
+    '{ id: `S2`, given: "d", when: "e", then: `f\n]} still f` }',
+  ).replace(
+    'result: "pass", evidence: "test"',
+    "result: `pending`, evidence: `later`",
+  );
+  assert.deepEqual(scenarioIds(page), ["S1", "S2"]);
+  assert.deepEqual(resultIds(page), []);
+});
+
+test("an apostrophe in prose does not hide a tag", () => {
+  const page = PAGE.replace("<Review>", "Don't miss it <Review> isn't hidden");
+  assert.equal(hasReview(page), true);
+});
+
+test("only an entry's own id counts, not one nested inside it", () => {
+  const page = PAGE.replace(
+    '{ id: "S2", given: "d", when: "e", then: "f" }',
+    '{ given: "d", when: "e", then: "f", meta: { id: "X" } }',
+  );
+  assert.deepEqual(scenarioIds(page), ["S1", undefined]);
+});
+
+test("results are found even after a prop containing =>", () => {
+  const page = PAGE.replace(
+    "<ScenarioResults\n  scenarios={scenarios}",
+    "<ScenarioResults\n  render={(x) => x}\n  scenarios={scenarios}",
+  );
+  assert.deepEqual(resultIds(page), ["S1"]);
+});
