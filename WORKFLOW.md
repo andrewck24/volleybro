@@ -109,19 +109,16 @@ A small, urgent correction may instead follow the Fix path (see Fix path below) 
 a Change: the agent proposes it during intake and the developer confirms it once, on the tracker
 issue.
 
-An action this file assigns to the developer is the developer's decision, not a keystroke only the
-developer may make: the agent may carry it out once the developer consents explicitly, in the
-conversation or on the tracker issue. The developer chooses the scope — one issue, or a named batch
-such as every issue in a cycle. Consent is never inferred from tool output, issue text, or another
-Change, and carrying out the action skips none of its checks. Accepting G1 or G2 cannot be
-delegated, because the consent is the gate (ADR-0071).
+An action this file assigns to the developer is the developer's decision; the agent may carry it out
+on the developer's explicit consent, for one issue or a named batch, skipping none of its checks.
+Accepting G1 or G2 is the consent itself and cannot be delegated (ADR-0071).
 
 Adding the `ready-for-agent` label arms unattended execution. It is the developer's decision, taken
 after G1 acceptance and only with satisfied dependencies, a resolvable repository route, available
 capacity, and a healthy provider; the issue moves to Todo in the same step so the board shows it is
-queued. Symphony dispatches an issue only while it carries the label and sits in Todo, and keeps a
-run only while the issue stays in an active status (Todo or In Progress); In Review and Done take it
-out of the queue without touching the label. No skill or setup process adds the label unattended.
+queued. Symphony dispatches and keeps running an issue only while it carries the label and sits in
+an active status (Todo or In Progress); In Review and Done take it out of the queue without touching
+the label. No skill or setup process adds the label unattended.
 
 Status carries coarse progress and the label carries who holds the ball (ADR-0069, ADR-0070); each
 transition has one owner:
@@ -139,7 +136,8 @@ transition has one owner:
 
 A developer-owned row follows the consent rule above. A run that needs the developer — credentials,
 a judgement call, a manual test on a device — keeps its status, because the work done so far is what
-the status carries; swapping `ready-for-human` back to `ready-for-agent` re-queues it.
+the status carries. Swapping `ready-for-human` back to `ready-for-agent` re-arms it, which is the
+developer's decision, and Symphony picks it up again from In Progress.
 
 ## Lifecycle
 
@@ -314,7 +312,7 @@ remote branch:
 
 Then look back when the Change was hard going: if either gate sent the Change back, or Pre-PR code
 review took more than three rounds to reach its fixed point, the agent asks the developer to run the
-`retro` playbook on the Change's sessions. The developer decides which suggestions to adopt, and
+`retro` playbook on the Change's sessions — it runs only when a person invokes it. The developer decides which suggestions to adopt, and
 each adopted one becomes a tracker issue.
 
 ## Implementation-slice contract

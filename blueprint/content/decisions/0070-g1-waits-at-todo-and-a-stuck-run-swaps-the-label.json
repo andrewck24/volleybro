@@ -5,7 +5,7 @@
   "title": "G1 waits at Todo, and a stuck run swaps the label instead of the status",
   "capabilities": ["platform/delivery-workflow"],
   "context": "WORKFLOW.md contradicts itself about where G1 waits. G1 is the exit of Discuss; arming happens after G1 acceptance and moves the issue to Todo; yet the status table maps both gates to In Review. Read literally, an issue goes In Review, then Todo, then In Progress, then In Review again. Separately, nothing in the contract covers a run that starts and then needs the developer — for credentials, a judgement call, or a manual test on a device — which is a shape the triage playbook does not model either, because its state machine stops at the point work begins.",
-  "decision": "G1 waits at Todo with ready-for-human, which is what the label means: a judgement only a person can make. In Review keeps one meaning, G2 — implemented, awaiting acceptance. A run that starts and then needs the developer swaps its label from ready-for-agent to ready-for-human and stays In Progress: the work done is held by the status, the ball is held by the label, and the runtime stops the run by itself because the label it needs to continue is gone. Swapping the label back re-queues it. WORKFLOW.md's status table splits its single gate row into a G1 row and a G2 row.",
+  "decision": "G1 waits at Todo with ready-for-human, which fits the label's meaning in the playbook: work that cannot be delegated, judgement calls included. In Review keeps one meaning, G2 — implemented, awaiting acceptance. A run that starts and then needs the developer swaps its label from ready-for-agent to ready-for-human and stays In Progress: the work done is held by the status, the ball is held by the label, and the runtime stops the run by itself because the label it needs to continue is gone. Swapping the label back re-arms the issue, and the runtime picks it up again from In Progress.",
   "alternatives": [
     {
       "option": "Widen In Review to mean any pause waiting for the developer",
@@ -17,6 +17,7 @@
     }
   ],
   "consequences": [
+    "WORKFLOW.md's status table splits its single gate row into a G1 row and a G2 row.",
     "The lifecycle reads linearly across the board: Backlog, Todo, In Progress, In Review, Done.",
     "An agent that needs the developer must be able to notify them, which needs its own tracker identity — a tracker generally does not notify a user about their own actions, and every write today is made as the developer.",
     "Notifying an assignee only works if there is one, so intake must set an assignee. The adapter runbook verifies that every issue outside Backlog has one; check:workflow does not, because it would have to call the tracker and the repository's scripts stay tracker-neutral."
