@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { listChanges } from "@/lib/changes-index";
-import { proposalMockups } from "@/lib/proposal-mockups";
+import { proposalMockups, singlePageDesigns } from "@/lib/proposal-mockups";
 import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
@@ -12,8 +12,27 @@ import { Scenario } from "@/components/Scenario";
 import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
+import { ChangeHeader } from "@/components/ChangeHeader";
+import { ChangeTabs, Proposal, Review } from "@/components/ChangeTabs";
 import { DecisionCards } from "@/components/DecisionCards";
+import {
+  ActionItems,
+  AfterRelease,
+  Deviations,
+  ReviewDetails,
+  ReviewFocus,
+} from "@/components/ReviewSections";
+import {
+  ScenarioResults,
+  Scenarios,
+  TestPlan,
+} from "@/components/ScenarioCards";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
+import {
+  isSinglePageChange,
+  readCapabilities,
+  readFacts,
+} from "@/lib/change-meta";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { MockupFrame } from "@/components/MockupFrame";
@@ -73,6 +92,17 @@ const mdxComponents = {
   FileTour,
   DecisionTimeline: ChangeDecisionTimeline,
   DecisionCards: ChangeDecisionCards,
+  ChangeTabs,
+  Proposal,
+  Review,
+  Scenarios,
+  ScenarioResults,
+  TestPlan,
+  ActionItems,
+  ReviewFocus,
+  Deviations,
+  AfterRelease,
+  ReviewDetails,
   InteractiveFlowchart,
 };
 
@@ -104,9 +134,10 @@ function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
 function renderChangeBody(
   Mdx: NonNullable<NonNullable<SourcePage>["data"]["body"]>,
   title: string,
+  components: typeof mdxComponents = mdxComponents,
 ) {
   try {
-    return Mdx({ components: mdxComponents });
+    return Mdx({ components });
   } catch (error) {
     console.error(`Change page "${title}" failed to render:`, error);
     return (
@@ -243,6 +274,36 @@ function LegacyShell({
   );
 }
 
+// ADR-0072: one page per Change. A design.tsx mockup renders where the
+// Proposal places <DesignMockup />, isolated by MockupFrame like any mockup.
+function SinglePageChange({ slug }: { slug: string }) {
+  const page = source.getPage([slug]);
+  assertPage(page);
+  const Mdx = page.data.body;
+  const Design = singlePageDesigns[slug];
+  const components = {
+    ...mdxComponents,
+    DesignMockup: () => (Design ? <MockupFrame Mockup={Design} /> : null),
+  };
+  return (
+    <TreeContextProvider tree={changesBreadcrumbTree}>
+      <DocsPage
+        toc={page.data.toc}
+        breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
+      >
+        <DocsBody>
+          <ChangeHeader
+            title={page.data.title}
+            capabilities={readCapabilities(slug)}
+            facts={readFacts(slug)}
+          />
+          {renderChangeBody(Mdx, page.data.title, components)}
+        </DocsBody>
+      </DocsPage>
+    </TreeContextProvider>
+  );
+}
+
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
@@ -252,6 +313,10 @@ export default async function Page({ params }: PageProps) {
 
   if (isLegacySlug(slug[0])) {
     return <LegacyPage slug={slug} />;
+  }
+
+  if (slug.length === 1 && isSinglePageChange(slug[0])) {
+    return <SinglePageChange slug={slug[0]} />;
   }
 
   const page = source.getPage(slug);

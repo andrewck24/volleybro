@@ -25,3 +25,21 @@ export const proposalMockups: Record<string, ComponentType> =
       req(key).default,
     ]),
   );
+
+// A single-page Change (ADR-0072) keeps its mockup in design.tsx; old-format
+// directories also carry one, but only single-page slugs are looked up here.
+const designReq = (
+  require as unknown as {
+    context: (dir: string, sub: boolean, re: RegExp) => RequireContext;
+  }
+).context("../../content/changes", true, /\/design\.tsx$/);
+
+export const singlePageDesigns: Record<string, ComponentType> =
+  Object.fromEntries(
+    designReq
+      .keys()
+      .map((key: string) => [
+        key.replace(/^\.\//, "").replace(/\/design\.tsx$/, ""),
+        designReq(key).default,
+      ]),
+  );

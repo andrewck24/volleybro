@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import {
   Accordion,
   AccordionContent,
@@ -52,8 +54,19 @@ function parseEntry(
   }
 }
 
+// The browser jumps to #adr-<id> before hydration opens the accordion and
+// shifts the page, so the jump lands short; repeat it once rendered.
+function useScrollToDecisionAnchor() {
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id.startsWith("adr-")) return;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+  }, []);
+}
+
 export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
   const isLegacy = useIsLegacyDecisions();
+  useScrollToDecisionAnchor();
   const entries = (decisions ?? []).map((decision, index) =>
     parseEntry(decision, isLegacy, index),
   );

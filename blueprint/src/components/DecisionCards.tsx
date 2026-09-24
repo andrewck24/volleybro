@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { CardItem, CardList } from "@/components/CardList";
 import { Badge } from "@/components/ui/badge";
 import type { DecisionRecord } from "@/lib/decision-record";
@@ -49,9 +51,9 @@ export function DecisionCards({ cards }: { cards: DecisionCard[] }) {
           }
         >
           {record.supersededBy && supersededHref && (
-            <a href={supersededHref} className="text-sm">
+            <Link href={supersededHref} className="text-sm">
               查看取代它的 ADR-{record.supersededBy}
-            </a>
+            </Link>
           )}
           <div className="flex items-start gap-2">
             <VerdictBadge adopted />

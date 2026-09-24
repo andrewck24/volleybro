@@ -1,0 +1,49 @@
+import Link from "next/link";
+
+import { Badge } from "@/components/ui/badge";
+import type { ChangeFacts } from "@/lib/change-meta";
+
+const GATE_LABEL = { G1: "G1 Proposal", G2: "G2 Review" } as const;
+
+function figures(facts: ChangeFacts): string[] {
+  const shown: string[] = [];
+  const add = (value: number | null | undefined, label: string) => {
+    if (value) shown.push(`${value} ${label}`);
+  };
+  add(facts.commits, "commits");
+  add(facts.filesChanged, "files");
+  if (facts.insertions || facts.deletions) {
+    shown.push(`+${facts.insertions ?? 0} / −${facts.deletions ?? 0}`);
+  }
+  add(facts.srcFilesChanged, "src files");
+  add(facts.scenarios, "scenarios");
+  return shown;
+}
+
+export function ChangeHeader({
+  title,
+  capabilities,
+  facts,
+}: {
+  title: string;
+  capabilities: string[];
+  facts: ChangeFacts;
+}) {
+  const shown = figures(facts);
+  return (
+    <header className="not-prose mb-6 flex flex-col gap-3">
+      <h1 className="text-3xl font-semibold">{title}</h1>
+      <div className="flex flex-wrap items-center gap-2">
+        {facts.gate && <Badge>{GATE_LABEL[facts.gate]}</Badge>}
+        {capabilities.map((capability) => (
+          <Badge key={capability} variant="outline" asChild>
+            <Link href={`/features/${capability}`}>{capability}</Link>
+          </Badge>
+        ))}
+      </div>
+      {shown.length > 0 && (
+        <p className="m-0 text-sm text-muted-foreground">{shown.join("，")}</p>
+      )}
+    </header>
+  );
+}
