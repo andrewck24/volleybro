@@ -5,6 +5,8 @@
 
 **Rally-by-rally volleyball match recording and team management, built for the sideline.**
 
+<img src="docs/images/readme-banner.png" alt="VolleyBro logo beside three phones showing the rally list, the recording court, and the team roster" width="100%">
+
 [![Next.js][nextjs-badge]][nextjs-url]
 [![React][react-badge]][react-url]
 [![TypeScript][typescript-badge]][typescript-url]

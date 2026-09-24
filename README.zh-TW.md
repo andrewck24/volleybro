@@ -5,6 +5,8 @@
 
 **為場邊而生的排球逐球記錄與球隊管理工具。**
 
+<img src="docs/images/readme-banner.png" alt="VolleyBro 標誌與三支手機，分別顯示逐球列表、記錄球場與球隊名單" width="100%">
+
 [![Next.js][nextjs-badge]][nextjs-url]
 [![React][react-badge]][react-url]
 [![TypeScript][typescript-badge]][typescript-url]
