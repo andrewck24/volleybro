@@ -59,11 +59,12 @@ triage playbook 的七個角色現在有了 tracker 對照：`docs/agents/triage
 
 ## 殘留風險
 
+Linear 的 label 已在 G2 前改名與退役：`agent:ready` 改為 `ready-for-agent`、`Bug` 改為 `bug`、`Improvement` 改為 `enhancement`，新增 `needs-triage`、`needs-info`、`ready-for-human`，退役 `Feature` 與 `needs-user`；原本帶 `needs-user` 的兩張 issue 已改貼。剩下三項只在 Symphony 實際派工時才會出問題。
+
 <RiskTable
   risks={[
-    { name: "Linear 上的 label 還沒改名與退役", severity: "warning", mitigation: "runbook 項目：agent:ready 改名 ready-for-agent、Bug 改 bug、Improvement 改 enhancement、退役 Feature 與 needs-user。runbook 完成前，WORKFLOW 講的名稱與 Linear 實際不符。" },
-    { name: "active_states 只設 Todo 會讓 run 一開跑就被停掉", severity: "warning", mitigation: "runbook 項目：確認 runtime 設定同時列 Todo 與 In Progress，required_labels 設為 ready-for-agent。" },
-    { name: "adapter 是否把 blocking edge 當成不可派工，尚未對實際設定驗證", severity: "warning", mitigation: "runbook 項目，驗過之前對照表所說「blocked 以依賴關係表達」只成立一半。" },
-    { name: "agent 的通知可能到不了開發者，assignee 規則也還沒有檢查", severity: "info", mitigation: "runbook 項目：驗證 tracker 對自己觸發事件的通知行為、註冊 agent 身分、驗證 Backlog 以外都有 assignee。" },
+    { name: "active_states 只設 Todo 會讓 run 一開跑就被停掉", severity: "warning", mitigation: "Symphony runtime 專案的 runbook issue：確認 runtime 設定同時列 Todo 與 In Progress，required_labels 設為 ready-for-agent。" },
+    { name: "被 blocked-by 關係擋住的 issue 是否真的不會被派工，尚未對實際設定驗證", severity: "warning", mitigation: "同一張 runbook issue，驗過之前對照表所說「blocked 以依賴關係表達」只成立一半。" },
+    { name: "agent 的通知可能到不了開發者，assignee 規則也還沒有檢查", severity: "info", mitigation: "同一張 runbook issue：驗證 tracker 對自己觸發事件的通知行為、註冊 agent 身分、驗證 Backlog 以外都有 assignee。" },
   ]}
 />
