@@ -148,3 +148,42 @@ test("a pending result does not count as a result", () => {
   );
   assert.deepEqual(resultIds(page), []);
 });
+
+test("inline code, tilde and indented fences do not count as tags", () => {
+  const page = [
+    "<ChangeTabs>",
+    "<Proposal>",
+    "Tabs are written `<Review>` and `</Proposal>` in the page.",
+    "",
+    "~~~mdx",
+    "</Proposal>",
+    "~~~",
+    "",
+    "  ```",
+    "  <Review>",
+    "  ```",
+    "",
+    "after",
+    "</Proposal>",
+    "</ChangeTabs>",
+  ].join("\n");
+  assert.match(proposalPart(page), /after/);
+  assert.equal(hasReview(page), false);
+});
+
+test("entry keys may come in any order", () => {
+  const page = PAGE.replace(
+    '{ id: "S2", given: "d", when: "e", then: "f" }',
+    '{ given: "d", when: "e", id: "S2", then: "f" }',
+  ).replace(
+    '{ id: "S1", result: "pass", evidence: "test" }',
+    '{ evidence: "test", result: "pass", id: "S1" }',
+  );
+  assert.deepEqual(scenarioIds(page), ["S1", "S2"]);
+  assert.deepEqual(resultIds(page), ["S1"]);
+});
+
+test("a scenario without an id is reported as missing one", () => {
+  const page = PAGE.replace('{ id: "S2", given', "{ given");
+  assert.deepEqual(scenarioIds(page), ["S1", undefined]);
+});

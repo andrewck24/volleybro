@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 
 import { ChangeTabs, Proposal, Review } from "./ChangeTabs";
+import { ActionItems, ReviewDetails, ReviewFocus } from "./ReviewSections";
+import { ScenarioResults, TestPlan } from "./ScenarioCards";
 
 // fumadocs-ui ships ESM that jest does not transform; the stub renders the
 // props ChangeTabs decides, which is what these tests are about. Hash sync
@@ -77,21 +79,14 @@ describe("ChangeTabs", () => {
   });
 });
 
-jest.mock("./ScenarioCards", () => ({
-  ScenarioResults: () => <p>results section</p>,
-  TestPlan: () => <p>test plan section</p>,
-}));
-
 describe("Review", () => {
-  it("renders its sections in the fixed order whatever order they were written", () => {
-    const { ActionItems, ReviewFocus, ReviewDetails } =
-      jest.requireActual("./ReviewSections");
-    const { ScenarioResults, TestPlan } = jest.requireMock("./ScenarioCards");
+  it("moves sections into the fixed order and leaves other content in place", () => {
     render(
       <Review>
+        <p>intro note</p>
         <ReviewDetails>details</ReviewDetails>
-        <TestPlan />
-        <ScenarioResults />
+        <TestPlan items={[]} />
+        <ScenarioResults scenarios={[]} results={[]} />
         <ReviewFocus>focus</ReviewFocus>
         <ActionItems>actions</ActionItems>
       </Review>,
@@ -100,10 +95,11 @@ describe("Review", () => {
     const text =
       screen.getByRole("region", { name: "review" }).textContent ?? "";
     const positions = [
+      "intro note",
       "actions",
       "focus",
-      "results section",
-      "test plan section",
+      "驗收結果",
+      "Test plan",
       "details",
     ].map((label) => text.indexOf(label));
     expect(positions).toEqual([...positions].sort((a, b) => a - b));

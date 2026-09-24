@@ -791,6 +791,12 @@ export async function checkSinglePageGate(
     );
   }
 
+  if (scenarioIds(content).some((id) => !id)) {
+    diagnostics.push(
+      `${where} [gate-scenario-shape]: every entry in scenarios needs an id`,
+    );
+  }
+
   if (!hasReview(content)) return diagnostics;
 
   const results = new Set(resultIds(content));
@@ -802,19 +808,13 @@ export async function checkSinglePageGate(
     }
   }
 
-  const sections = reviewSections(content).filter((section) =>
-    REQUIRED_REVIEW_SECTIONS.includes(section),
-  );
+  const sections = reviewSections(content);
   const missing = REQUIRED_REVIEW_SECTIONS.filter(
     (section) => !sections.includes(section),
   );
   if (missing.length > 0) {
     diagnostics.push(
       `${where} [gate-review-sections]: the Review tab is missing ${missing.join(", ")}`,
-    );
-  } else if (sections.join() !== REQUIRED_REVIEW_SECTIONS.join()) {
-    diagnostics.push(
-      `${where} [gate-review-sections]: Review sections must run ${REQUIRED_REVIEW_SECTIONS.join(", ")}`,
     );
   }
 

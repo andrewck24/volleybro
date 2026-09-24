@@ -33,14 +33,20 @@ export function Proposal({ children }: { children: ReactNode }) {
   );
 }
 
-// Sections render in ADR-0073's order whatever order the page wrote them in.
 export function Review({ children }: { children: ReactNode }) {
-  const ordered = Children.toArray(children).sort(
-    (a, b) => orderOf(a) - orderOf(b),
+  const nodes = Children.toArray(children);
+  const slots = nodes.flatMap((node, index) =>
+    orderOf(node) < REVIEW_ORDER.length ? [index] : [],
   );
+  const sections = slots
+    .map((index) => nodes[index])
+    .sort((a, b) => orderOf(a) - orderOf(b));
+  slots.forEach((slot, i) => {
+    nodes[slot] = sections[i];
+  });
   return (
     <Tab value="Review" id="review">
-      {ordered}
+      {nodes}
     </Tab>
   );
 }

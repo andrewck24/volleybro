@@ -873,15 +873,9 @@ test("single-page gate reports a missing required Review section", async () => {
   );
 });
 
-test("single-page gate reports Review sections out of order", async () => {
-  const review = FULL_REVIEW.replace(
-    "<ActionItems>無</ActionItems>\n<ReviewFocus>- a</ReviewFocus>",
-    "<ReviewFocus>- a</ReviewFocus>\n<ActionItems>無</ActionItems>",
-  );
-  assert.match(
-    await singlePageGate(singlePage({ review })),
-    /gate-review-sections/i,
-  );
+test("single-page gate reports a scenario with no id", async () => {
+  const page = singlePage().replace('{ id: "S2", given', "{ given");
+  assert.match(await singlePageGate(page), /gate-scenario-shape/i);
 });
 
 test("single-page gate ignores two-page and old-format Changes", async () => {

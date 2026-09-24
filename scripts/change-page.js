@@ -22,49 +22,99 @@ export const REQUIRED_REVIEW_SECTIONS = REVIEW_SECTIONS.filter(
   (section) => section !== "AfterRelease",
 );
 
-// Tags and ids inside fenced code are examples, not structure: blank the
-// fences out (keeping offsets) before looking, then slice the original.
-function maskCode(content) {
-  return content.replace(/^```[\s\S]*?^```/gm, (block) =>
-    block.replace(/[^\n]/g, " "),
-  );
+const blank = (text) => text.replace(/[^\n]/g, " ");
+
+// The page's structure with code and string contents blanked out, offsets
+// kept: tags, brackets and keys are found here, values read from the
+// original at the same offsets. Code shows examples of the syntax, and a
+// string value can say anything, so neither may count as structure.
+function structureOf(content) {
+  return content
+    .replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
+    .replace(/`[^`\n]*`/g, blank)
+    .replace(
+      /(["'])(?:\\.|(?!\1)[^\\\n])*\1/g,
+      (quoted, _quote, offset, text) =>
+        // A quoted key stays readable; only values are blanked.
+        /^\s*:/.test(text.slice(offset + quoted.length))
+          ? quoted
+          : quoted[0] + blank(quoted.slice(1, -1)) + quoted[0],
+    );
 }
 
 function between(content, open, close) {
-  const masked = maskCode(content);
-  const start = masked.search(open);
+  const structure = structureOf(content);
+  const start = structure.search(open);
   if (start === -1) return "";
-  const bodyStart = masked.indexOf(">", start) + 1;
-  const end = masked.indexOf(close, bodyStart);
+  const bodyStart = structure.indexOf(">", start) + 1;
+  const end = structure.indexOf(close, bodyStart);
   return end === -1 ? "" : content.slice(bodyStart, end);
 }
 
-// An entry is recognised by how it opens — `{ id: "S1", given:` for a
-// scenario, `{ id: "S1", result:` for a result — so the same words inside a
-// string value never count.
-const KEY = (name) => `["']?${name}["']?\\s*:\\s*`;
-const ENTRY = (second) =>
-  new RegExp(
-    `\\{\\s*${KEY("id")}["']([^"']+)["']\\s*,\\s*${KEY(second)}["']([^"']*)["']`,
+// The objects of the array literal that follows `opener`, as [start, end]
+// offsets; nesting is tracked on the structure, where strings are blank.
+function arrayObjects(structure, opener) {
+  const match = opener.exec(structure);
+  if (!match) return [];
+  const objects = [];
+  let depth = 0;
+  let objectStart = -1;
+  for (let i = match.index + match[0].length; i < structure.length; i++) {
+    const char = structure[i];
+    if (char === "[" || char === "{") {
+      if (char === "{" && depth === 0) objectStart = i;
+      depth++;
+    } else if (char === "]" || char === "}") {
+      if (depth === 0) break;
+      depth--;
+      if (char === "}" && depth === 0) objects.push([objectStart, i + 1]);
+    }
+  }
+  return objects;
+}
+
+function valueOf(content, structure, [start, end], key) {
+  const pattern = new RegExp(
+    `(?:^|[{,\\s])["']?${key}["']?\\s*:\\s*(["'])`,
     "g",
   );
+  pattern.lastIndex = start;
+  const match = pattern.exec(structure);
+  if (!match || match.index >= end) return undefined;
+  const valueStart = match.index + match[0].length;
+  return content.slice(valueStart, structure.indexOf(match[1], valueStart));
+}
+
+function entries(content, opener) {
+  const structure = structureOf(content);
+  return arrayObjects(structure, opener).map((range) => ({
+    id: valueOf(content, structure, range, "id"),
+    result: valueOf(content, structure, range, "result"),
+  }));
+}
+
+const SCENARIOS = /export\s+const\s+scenarios\s*=\s*\[/;
+const RESULTS = /<ScenarioResults\b[^>]*?results\s*=\s*\{\s*\[/;
 
 export function scenarioIds(content) {
-  return [...maskCode(content).matchAll(ENTRY("given"))].map((m) => m[1]);
+  return entries(content, SCENARIOS).map((entry) => entry.id);
 }
 
 export function resultIds(content) {
-  return [...maskCode(content).matchAll(ENTRY("result"))]
-    .filter((m) => m[2] !== "pending")
-    .map((m) => m[1]);
+  return entries(content, RESULTS)
+    .filter((entry) => entry.result !== "pending")
+    .map((entry) => entry.id);
 }
 
 export function decisionIds(content) {
+  const structure = structureOf(content);
   return [
-    ...maskCode(content).matchAll(/<DecisionCards\s+ids=\{\[([^\]]*)\]\}/g),
-  ]
-    .flatMap((match) => [...match[1].matchAll(/["']([^"']+)["']/g)])
-    .map((match) => match[1]);
+    ...structure.matchAll(/<DecisionCards\s+ids=\{\[([^\]]*)\]\}/g),
+  ].flatMap((match) => {
+    const listStart = match.index + match[0].indexOf("[") + 1;
+    const list = content.slice(listStart, listStart + match[1].length);
+    return [...list.matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
+  });
 }
 
 export function proposalPart(content) {
@@ -72,18 +122,17 @@ export function proposalPart(content) {
 }
 
 export function hasReview(content) {
-  return /<Review[\s>]/.test(maskCode(content));
+  return /<Review[\s>]/.test(structureOf(content));
 }
 
 export function reviewSections(content) {
-  const review = maskCode(between(content, /<Review[\s>]/, "</Review>"));
+  const review = structureOf(between(content, /<Review[\s>]/, "</Review>"));
   const found = [...review.matchAll(/<([A-Z][A-Za-z]*)\b/g)]
     .map((match) => match[1])
     .filter((name) => REVIEW_SECTIONS.includes(name));
   return found.filter((name, index) => found.indexOf(name) === index);
 }
 
-// ADR-0072: index.mdx without change.json; change.json marks the old format.
 export function isSinglePageDir(files) {
   return files.includes("index.mdx") && !files.includes("change.json");
 }
