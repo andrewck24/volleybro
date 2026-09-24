@@ -33,6 +33,6 @@ are that kind of work, so they carry the same label; which one it is follows fro
 Arming puts an issue in Todo, but Symphony dispatches any issue that carries `ready-for-agent` in an
 active status. `active_states` must therefore list both Todo and In Progress: without In Progress,
 reconciliation stops a run the moment Symphony claims it, and a stopped run that is re-armed cannot
-resume (ADR-0070). On an In Progress issue, `ready-for-agent` therefore means an unattended run
-holds it, not a triage verdict. The labels themselves are created and renamed in Linear by hand,
-outside this repository.
+resume (ADR-0070). Because `required_labels` also governs continuing a run, `ready-for-agent` on an
+In Progress issue means an unattended run holds it, not a triage verdict. The labels themselves are
+created and renamed in Linear by hand, outside this repository.
