@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0074",
+  "title": "Numbers on a Change page come from generated facts, never from the writer",
+  "capabilities": ["platform/blueprint"],
+  "context": "The standalone-decision-records Proposal hand-copied three counts and all three were wrong; the triage-state-mapping Review hand-copied its commit and line counts. The repository's rule is that a fact that can be derived is not stored a second time.",
+  "decision": "blueprint:changes:publish writes facts.json into the Change's store directory at every publish: the gate, the publish time, and what can be derived from the Change branch against dev — commit count, changed files and lines, changed src files, scenario count, and the decision records the page cites. The page renders its numbers from that file. Prose never hand-copies a count: a number that cannot be derived is replaced by a qualitative statement, or stands beside the command that produced it.",
+  "alternatives": [
+    {
+      "option": "Derive the numbers at site build time",
+      "reason": "The site builds after the Change branch is merged and deleted, so its git history is no longer at hand."
+    },
+    {
+      "option": "A general mechanism for repository-wide statistics",
+      "reason": "Those appear on few pages; the prose rule covers them without a mechanism."
+    }
+  ],
+  "consequences": [
+    "Every published version of facts.json stays in the store branch's history, so gate-by-gate figures are available for evaluation without another store.",
+    "At G1 most figures are empty, and the page header renders empty values."
+  ],
+  "originChange": "single-page-change"
+}

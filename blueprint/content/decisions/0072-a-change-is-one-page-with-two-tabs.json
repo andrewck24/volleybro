@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0072",
+  "title": "A Change is one page with a Proposal tab and a Review tab",
+  "capabilities": ["platform/blueprint"],
+  "context": "Each Change rendered as two pages, proposal.mdx and review.mdx, at two URLs. The Review restated the Proposal's scenarios and TLDR, readers had to move between pages to connect results to what was agreed, and agents wrote and maintained both. The developer found the gate pages scattered and heavy to read.",
+  "decision": "A Change is one page, blueprint/content/changes/<slug>/index.mdx, served at /changes/<slug>, with a Proposal tab and a Review tab. The page opens on the Proposal tab so a reader first learns what the Change is; #review opens the Review tab directly. The Review tab appears at G2. Facts both tabs share, such as the acceptance scenarios, are defined once in the file and rendered by each tab rather than written twice.",
+  "alternatives": [
+    {
+      "option": "Keep two pages and trim their sections",
+      "reason": "The duplication between the pages, and the move between them, is the cost; trimming leaves both."
+    },
+    {
+      "option": "Open the tab of the latest gate by default",
+      "reason": "A reader arriving at a Change wants to know what it is before how it went; the gate link can still point at #review."
+    }
+  ],
+  "consequences": [
+    "The directory holds index.mdx, the generated facts.json, and optionally design.tsx and images.",
+    "The six Changes already on the two-page format move to one page in single-page-rollout; the old two-page routes stay until then.",
+    "check:workflow --gate checks a title of the shape <name> instead of <name> — Proposal or <name> — Review."
+  ],
+  "originChange": "single-page-change"
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0073",
+  "title": "The Review tab leads with what needs the developer and where to look",
+  "capabilities": ["platform/blueprint"],
+  "context": "At G1 the developer confirms the summary in the conversation and does not reread the Proposal (ADR-0060), so the developer's reading cost sits almost entirely at G2. On the triage-state-mapping Review, the one question the developer had to answer sat in the fifth section, after tables of results, verification, findings and a diff.",
+  "decision": "The Review tab runs, in order: what the developer must decide or do, where to focus the review, deviations from the Proposal, acceptance results by scenario, the test plan, and after-release steps when there are any; verification detail, code review findings and residual risks follow collapsed. It shows no code diff by default, because the pull request carries the full diff; a deviation may carry a short one. Each test plan item names its executor, agent or developer, and an agent-run item reports its result in place.",
+  "alternatives": [
+    {
+      "option": "Keep a boundary-relevant diff on every Review",
+      "reason": "It is an excerpt of what the pull request shows in full, and it cost more to render than it told the reader."
+    },
+    {
+      "option": "List developer-run tests only in the section that asks the developer to act",
+      "reason": "The test plan is the one place every check lives; that section points at the developer-run items instead."
+    }
+  ],
+  "consequences": [
+    "A Review with nothing to decide and no deviations can be accepted after reading its first sections.",
+    "Scenario results and test plan items are data rendered as cards, so a missing result is caught mechanically."
+  ],
+  "originChange": "single-page-change"
+}
