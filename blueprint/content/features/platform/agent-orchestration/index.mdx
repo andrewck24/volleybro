@@ -10,6 +10,10 @@ contract.
 
 - Symphony polls eligible work, claims a Change, creates an isolated workspace,
   and invokes the approved Apply contract.
+- Symphony dispatches and keeps running only issues that carry
+  `ready-for-agent` in an active status (Todo or In Progress). A run that
+  needs the developer swaps the label for `ready-for-human` and keeps its
+  status, which stops it; re-arming resumes it from In Progress.
 - Manual Apply remains valid when Symphony is stopped, unavailable, or
   intentionally not used.
 - Runtime claims, retries, workspace paths, and provider execution evidence
