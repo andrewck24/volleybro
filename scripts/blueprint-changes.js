@@ -25,10 +25,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { changeFacts } from "./change-page.js";
+
 const execFileAsync = promisify(execFile);
 
 const BRANCH = "blueprint-changes";
-const REMOTE_REF = "refs/blueprint-changes/remote";
+export const REMOTE_REF = "refs/blueprint-changes/remote";
 const FETCH_REFSPEC = `+${BRANCH}:${REMOTE_REF}`;
 const DEFAULT_REMOTE = "https://github.com/andrewck24/volleybro.git";
 const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
@@ -255,6 +257,28 @@ async function applyChange(tmpDir, slug, localSlugDir) {
   return true;
 }
 
+// Only a single-page Change (ADR-0072) carries facts; two-page and old-format
+// directories publish as they are.
+async function writeFacts(repoRoot, slugDir) {
+  const indexPath = path.join(slugDir, "index.mdx");
+  try {
+    await access(indexPath);
+  } catch {
+    return;
+  }
+  try {
+    await access(path.join(slugDir, "change.json"));
+    return;
+  } catch {
+    // no change.json: a single-page Change
+  }
+  const facts = await changeFacts(repoRoot, await readFile(indexPath, "utf8"));
+  await writeFile(
+    path.join(slugDir, "facts.json"),
+    `${JSON.stringify(facts, null, 2)}\n`,
+  );
+}
+
 async function recordPublishedHash(repoRoot, slug, localSlugDir) {
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
   const store = await readStore(changesDir);
@@ -285,6 +309,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
+  await writeFacts(repoRoot, localSlugDir);
 
   const remote = await resolveRemote(repoRoot);
 

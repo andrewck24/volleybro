@@ -412,3 +412,73 @@ test("publish rethrows a push failure that is not a race (pre-receive hook rejec
     /blocked by policy/,
   );
 });
+
+async function makeSinglePageChange(work, slug, { review = false } = {}) {
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", `feat/${slug}`]);
+  await mkdir(path.join(work, "src"), { recursive: true });
+  await writeFile(path.join(work, "src", "a.ts"), "one\ntwo\n");
+  await workGit(["add", "-A"]);
+  await workGit(["commit", "-q", "-m", "feat: add a"]);
+
+  const dir = path.join(work, "blueprint", "content", "changes", slug);
+  await mkdir(dir, { recursive: true });
+  const reviewTab = review
+    ? "<Review>\n<ActionItems>無</ActionItems>\n</Review>\n"
+    : "";
+  await writeFile(
+    path.join(dir, "index.mdx"),
+    `---\ntitle: ${slug}\n---\n\nexport const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\n<ChangeTabs>\n<Proposal>\n<DecisionCards ids={["0072"]} />\n</Proposal>\n${reviewTab}</ChangeTabs>\n`,
+  );
+  return dir;
+}
+
+test("publish writes facts.json for a single-page Change and ships it", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeSinglePageChange(work, "gamma");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+  assert.ok(!Number.isNaN(Date.parse(facts.publishedAt)));
+  assert.equal(facts.commits, 1);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.equal(facts.deletions, 0);
+  assert.equal(facts.srcFilesChanged, 1);
+  assert.equal(facts.scenarios, 1);
+  assert.deepEqual(facts.decisions, ["0072"]);
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:gamma/facts.json"],
+    { cwd: bare },
+  );
+  assert.equal(JSON.parse(stdout).gate, "G1");
+});
+
+test("publish records G2 once the page has a Review tab", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeSinglePageChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G2");
+});
+
+test("publish writes no facts.json for a two-page Change", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = path.join(work, "blueprint", "content", "changes", "gamma");
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, "proposal.mdx"), "# gamma\n");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  await assert.rejects(access(path.join(dir, "facts.json")));
+});
