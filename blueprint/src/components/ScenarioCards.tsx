@@ -115,13 +115,13 @@ export function TestPlan({ items }: { items: TestPlanItem[] }) {
       <h2>Test plan</h2>
       <CardList>
         {items.map((item) => {
-          const byDeveloper = item.executor === "developer";
+          const isDeveloperRun = item.executor === "developer";
           return (
             <CardItem
               key={item.id}
               value={item.id}
               className={cn(
-                byDeveloper && "border-l-4 border-l-warning bg-warning/5",
+                isDeveloperRun && "border-l-4 border-l-warning bg-warning/5",
               )}
               summary={
                 <>
@@ -129,8 +129,8 @@ export function TestPlan({ items }: { items: TestPlanItem[] }) {
                   <span className="text-sm font-medium">
                     {renderInline(item.checks)}
                   </span>
-                  <Badge variant={byDeveloper ? "default" : "secondary"}>
-                    {byDeveloper ? "開發者執行" : "agent 執行"}
+                  <Badge variant={isDeveloperRun ? "default" : "secondary"}>
+                    {isDeveloperRun ? "開發者執行" : "agent 執行"}
                   </Badge>
                   <OutcomeBadge result={item.result} />
                 </>

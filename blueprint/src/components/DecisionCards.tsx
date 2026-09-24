@@ -12,18 +12,18 @@ export type DecisionCard = {
   supersededHref?: string;
 };
 
-function VerdictBadge({ adopted }: { adopted: boolean }) {
+function VerdictBadge({ isAdopted }: { isAdopted: boolean }) {
   return (
     <Badge
       variant="outline"
       className={cn(
         "mt-0.5",
-        adopted
+        isAdopted
           ? "bg-primary/10 text-primary dark:bg-primary/20"
           : "bg-destructive/10 text-destructive dark:bg-destructive/20",
       )}
     >
-      {adopted ? "採用" : "棄用"}
+      {isAdopted ? "採用" : "棄用"}
     </Badge>
   );
 }
@@ -56,12 +56,12 @@ export function DecisionCards({ cards }: { cards: DecisionCard[] }) {
             </Link>
           )}
           <div className="flex items-start gap-2">
-            <VerdictBadge adopted />
+            <VerdictBadge isAdopted />
             <p className="m-0 text-sm text-foreground">{record.decision}</p>
           </div>
           {record.alternatives?.map((alternative) => (
             <div key={alternative.option} className="flex items-start gap-2">
-              <VerdictBadge adopted={false} />
+              <VerdictBadge isAdopted={false} />
               <p className="m-0 text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">
                   {alternative.option}

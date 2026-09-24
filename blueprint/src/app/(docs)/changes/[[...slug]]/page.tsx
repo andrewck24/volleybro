@@ -274,8 +274,6 @@ function LegacyShell({
   );
 }
 
-// ADR-0072: one page per Change. A design.tsx mockup renders where the
-// Proposal places <DesignMockup />, isolated by MockupFrame like any mockup.
 function SinglePageChange({ slug }: { slug: string }) {
   const page = source.getPage([slug]);
   assertPage(page);

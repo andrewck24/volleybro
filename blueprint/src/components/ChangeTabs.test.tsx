@@ -76,3 +76,36 @@ describe("ChangeTabs", () => {
     );
   });
 });
+
+jest.mock("./ScenarioCards", () => ({
+  ScenarioResults: () => <p>results section</p>,
+  TestPlan: () => <p>test plan section</p>,
+}));
+
+describe("Review", () => {
+  it("renders its sections in the fixed order whatever order they were written", () => {
+    const { ActionItems, ReviewFocus, ReviewDetails } =
+      jest.requireActual("./ReviewSections");
+    const { ScenarioResults, TestPlan } = jest.requireMock("./ScenarioCards");
+    render(
+      <Review>
+        <ReviewDetails>details</ReviewDetails>
+        <TestPlan />
+        <ScenarioResults />
+        <ReviewFocus>focus</ReviewFocus>
+        <ActionItems>actions</ActionItems>
+      </Review>,
+    );
+
+    const text =
+      screen.getByRole("region", { name: "review" }).textContent ?? "";
+    const positions = [
+      "actions",
+      "focus",
+      "results section",
+      "test plan section",
+      "details",
+    ].map((label) => text.indexOf(label));
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+});

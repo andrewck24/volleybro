@@ -22,51 +22,70 @@ export const REQUIRED_REVIEW_SECTIONS = REVIEW_SECTIONS.filter(
   (section) => section !== "AfterRelease",
 );
 
-function between(content, open, close) {
-  const start = content.indexOf(open);
-  if (start === -1) return "";
-  const end = content.indexOf(close, start + open.length);
-  return end === -1 ? "" : content.slice(start + open.length, end);
-}
-
-function ids(fragment) {
-  return [...fragment.matchAll(/\bid:\s*["']([^"']+)["']/g)].map(
-    (match) => match[1],
+// Tags and ids inside fenced code are examples, not structure: blank the
+// fences out (keeping offsets) before looking, then slice the original.
+function maskCode(content) {
+  return content.replace(/^```[\s\S]*?^```/gm, (block) =>
+    block.replace(/[^\n]/g, " "),
   );
 }
 
+function between(content, open, close) {
+  const masked = maskCode(content);
+  const start = masked.search(open);
+  if (start === -1) return "";
+  const bodyStart = masked.indexOf(">", start) + 1;
+  const end = masked.indexOf(close, bodyStart);
+  return end === -1 ? "" : content.slice(bodyStart, end);
+}
+
+// An entry is recognised by how it opens — `{ id: "S1", given:` for a
+// scenario, `{ id: "S1", result:` for a result — so the same words inside a
+// string value never count.
+const KEY = (name) => `["']?${name}["']?\\s*:\\s*`;
+const ENTRY = (second) =>
+  new RegExp(
+    `\\{\\s*${KEY("id")}["']([^"']+)["']\\s*,\\s*${KEY(second)}["']([^"']*)["']`,
+    "g",
+  );
+
 export function scenarioIds(content) {
-  const match = content.match(/export const scenarios\s*=\s*\[([\s\S]*?)\];/);
-  return match ? ids(match[1]) : [];
+  return [...maskCode(content).matchAll(ENTRY("given"))].map((m) => m[1]);
 }
 
 export function resultIds(content) {
-  const block = content.match(/<ScenarioResults\b[\s\S]*?\/>/);
-  if (!block) return [];
-  const results = block[0].match(/results=\{\[([\s\S]*?)\]\}/);
-  return results ? ids(results[1]) : [];
+  return [...maskCode(content).matchAll(ENTRY("result"))]
+    .filter((m) => m[2] !== "pending")
+    .map((m) => m[1]);
 }
 
 export function decisionIds(content) {
-  return [...content.matchAll(/<DecisionCards\s+ids=\{\[([^\]]*)\]\}/g)]
+  return [
+    ...maskCode(content).matchAll(/<DecisionCards\s+ids=\{\[([^\]]*)\]\}/g),
+  ]
     .flatMap((match) => [...match[1].matchAll(/["']([^"']+)["']/g)])
     .map((match) => match[1]);
 }
 
 export function proposalPart(content) {
-  return between(content, "<Proposal>", "</Proposal>");
+  return between(content, /<Proposal[\s>]/, "</Proposal>");
 }
 
 export function hasReview(content) {
-  return content.includes("<Review>");
+  return /<Review[\s>]/.test(maskCode(content));
 }
 
 export function reviewSections(content) {
-  const review = between(content, "<Review>", "</Review>");
+  const review = maskCode(between(content, /<Review[\s>]/, "</Review>"));
   const found = [...review.matchAll(/<([A-Z][A-Za-z]*)\b/g)]
     .map((match) => match[1])
     .filter((name) => REVIEW_SECTIONS.includes(name));
   return found.filter((name, index) => found.indexOf(name) === index);
+}
+
+// ADR-0072: index.mdx without change.json; change.json marks the old format.
+export function isSinglePageDir(files) {
+  return files.includes("index.mdx") && !files.includes("change.json");
 }
 
 export function parseShortstat(line) {
@@ -78,7 +97,7 @@ export function parseShortstat(line) {
   };
 }
 
-async function git(root, args) {
+export async function git(root, args) {
   return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
 }
 

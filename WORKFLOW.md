@@ -523,16 +523,13 @@ of every Change page, old and new, that never merges into other branches.
 carries all published Changes plus Features and the Design System from the deployed branch.
 
 - **Proposal tab:** the summary confirmed at G1 — decisions, scope and dependency direction,
-  acceptance scenarios, and risks — plus a flowchart when the Change alters a process and a design
-  mockup when it answers a design question. It is frozen once G1 passes: the gate fails a G2 page
-  whose Proposal differs from the G1 publish, so changing it means passing G1 again (ADR-0075).
-- **Review tab:** what the developer must decide or do, where to focus the review, deviations from
-  the Proposal, acceptance results by scenario, the test plan, and after-release steps, with
-  verification detail, findings and residual risks collapsed (ADR-0073).
-- **Figures:** every number either tab shows comes from `facts.json`, which
-  `blueprint:changes:publish` writes at each gate (ADR-0074).
+  acceptance scenarios, and risks — frozen once G1 passes (ADR-0075).
+- **Review tab:** the delivery, led by what the developer must decide or do (ADR-0073).
 - **Features:** current capability and sub-capability behavior and constraints, the decision
   records whose `capabilities` name the page, and long-term evolution—not active execution status.
+
+What each tab holds, in what order, and where its figures come from (ADR-0074) is in
+`docs/agents/blueprint.md`.
 
 Provider-native subagents remain within one root session and Change workspace. They never poll or
 claim the external queue, arm unattended execution, reprioritize intake, or create a parallel

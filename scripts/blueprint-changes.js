@@ -25,7 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { changeFacts } from "./change-page.js";
+import { changeFacts, isSinglePageDir } from "./change-page.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -99,7 +99,7 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
 // it, which marks the whole repository shallow and can make a later push to a
 // host refuse the history. The store holds pages, not a large history, so a
 // single-branch fetch is cheap enough to take whole.
-async function fetchChanges(remote, repoRoot) {
+export async function fetchChanges(remote, repoRoot) {
   await runGit(["fetch", remote, FETCH_REFSPEC], { cwd: repoRoot });
 }
 
@@ -257,22 +257,10 @@ async function applyChange(tmpDir, slug, localSlugDir) {
   return true;
 }
 
-// Only a single-page Change (ADR-0072) carries facts; two-page and old-format
-// directories publish as they are.
 async function writeFacts(repoRoot, slugDir) {
-  const indexPath = path.join(slugDir, "index.mdx");
-  try {
-    await access(indexPath);
-  } catch {
-    return;
-  }
-  try {
-    await access(path.join(slugDir, "change.json"));
-    return;
-  } catch {
-    // no change.json: a single-page Change
-  }
-  const facts = await changeFacts(repoRoot, await readFile(indexPath, "utf8"));
+  if (!isSinglePageDir(await readdir(slugDir))) return;
+  const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
+  const facts = await changeFacts(repoRoot, content);
   await writeFile(
     path.join(slugDir, "facts.json"),
     `${JSON.stringify(facts, null, 2)}\n`,
@@ -309,7 +297,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
-  await writeFacts(repoRoot, localSlugDir);
+  if (!dryRun) await writeFacts(repoRoot, localSlugDir);
 
   const remote = await resolveRemote(repoRoot);
 

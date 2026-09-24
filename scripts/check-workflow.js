@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 
 import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
-import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hashDir, readStore, REMOTE_REF } from "./blueprint-changes.js";
 import {
+  fetchChanges,
+  hashDir,
+  readStore,
+  REMOTE_REF,
+  resolveRemote,
+} from "./blueprint-changes.js";
+import {
+  git,
   hasReview,
+  isSinglePageDir,
   proposalPart,
   REQUIRED_REVIEW_SECTIONS,
   resolveScopeBase,
@@ -15,9 +22,6 @@ import {
   reviewSections,
   scenarioIds,
 } from "./change-page.js";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -527,10 +531,6 @@ async function validateSnippetLiterals(root, directories) {
   return diagnostics;
 }
 
-async function git(root, args) {
-  return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
-}
-
 async function hasMigrationTrailer(root, base) {
   try {
     const trailers = await git(root, [
@@ -705,6 +705,13 @@ const GATE_PAGE_SUFFIXES = {
 };
 const GATE_PAGE_NAMES = new Set(Object.values(GATE_PAGE_SUFFIXES));
 
+function frontmatterTitle(content) {
+  const titleMatch = content.match(/^title:\s*(.*)$/m);
+  const title = titleMatch ? titleMatch[1].trim() : "";
+  const quoted = title.match(/^(["'])(.*)\1$/);
+  return quoted ? quoted[2] : title;
+}
+
 export async function checkGateTitles(root, slug) {
   const diagnostics = [];
   const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
@@ -713,11 +720,7 @@ export async function checkGateTitles(root, slug) {
     const filePath = path.join(changeDir, file);
     if (!(await exists(filePath))) continue;
 
-    const content = await readFile(filePath, "utf8");
-    const titleMatch = content.match(/^title:\s*(.*)$/m);
-    let title = titleMatch ? titleMatch[1].trim() : "";
-    const quoted = title.match(/^(["'])(.*)\1$/);
-    if (quoted) title = quoted[2];
+    const title = frontmatterTitle(await readFile(filePath, "utf8"));
     const nameMatch = title.match(new RegExp(`^(.+) — ${suffix}$`));
     const name = nameMatch ? nameMatch[1].trim() : "";
 
@@ -729,13 +732,6 @@ export async function checkGateTitles(root, slug) {
   }
 
   return diagnostics;
-}
-
-function frontmatterTitle(content) {
-  const titleMatch = content.match(/^title:\s*(.*)$/m);
-  const title = titleMatch ? titleMatch[1].trim() : "";
-  const quoted = title.match(/^(["'])(.*)\1$/);
-  return quoted ? quoted[2] : title;
 }
 
 // ADR-0075: the Proposal accepted at G1 is compared with the most recent G1
@@ -770,11 +766,19 @@ async function g1Proposal(root, slug) {
   return undefined;
 }
 
-export async function checkSinglePageGate(root, slug) {
+async function refreshStore(root) {
+  await fetchChanges(await resolveRemote(root), root);
+}
+
+export async function checkSinglePageGate(
+  root,
+  slug,
+  { refresh = refreshStore } = {},
+) {
   const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
+  if (!(await exists(changeDir))) return [];
+  if (!isSinglePageDir(await readdir(changeDir))) return [];
   const indexPath = path.join(changeDir, "index.mdx");
-  if (!(await exists(indexPath))) return [];
-  if (await exists(path.join(changeDir, "change.json"))) return [];
 
   const where = `${BLUEPRINT_CHANGES}/${slug}/index.mdx`;
   const content = await readFile(indexPath, "utf8");
@@ -814,6 +818,14 @@ export async function checkSinglePageGate(root, slug) {
     );
   }
 
+  try {
+    await refresh(root);
+  } catch (error) {
+    diagnostics.push(
+      `${where} [gate-proposal-frozen]: could not fetch the store branch to compare the Proposal with its G1 publish — ${error.message.split("\n")[0]}`,
+    );
+    return diagnostics;
+  }
   const accepted = await g1Proposal(root, slug);
   if (
     accepted !== undefined &&

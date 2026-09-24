@@ -104,3 +104,47 @@ test("parseShortstat reads files, insertions and deletions", () => {
     deletions: 0,
   });
 });
+
+test("hasReview accepts a Review tag with whitespace before its end", () => {
+  assert.equal(hasReview(PAGE.replace("<Review>", "<Review >")), true);
+  assert.equal(hasReview(PAGE.replace("<Review>", "<Review\n>")), true);
+});
+
+test("tags inside fenced code do not count", () => {
+  const page = [
+    "<ChangeTabs>",
+    "<Proposal>",
+    "before",
+    "",
+    "```mdx",
+    "</Proposal>",
+    "<Review>",
+    "```",
+    "",
+    "after",
+    "</Proposal>",
+    "</ChangeTabs>",
+  ].join("\n");
+  assert.match(proposalPart(page), /after/);
+  assert.equal(hasReview(page), false);
+});
+
+test("scenario and result ids accept quoted keys and ignore look-alikes in text", () => {
+  const page = PAGE.replace(
+    '{ id: "S1", given',
+    '{ "id": "S1", "given"',
+  ).replace(
+    'evidence: "test" }',
+    "evidence: \"see { id: 'S2' } and /> and ];\" }",
+  );
+  assert.deepEqual(scenarioIds(page), ["S1", "S2"]);
+  assert.deepEqual(resultIds(page), ["S1"]);
+});
+
+test("a pending result does not count as a result", () => {
+  const page = PAGE.replace(
+    'result: "pass", evidence: "test"',
+    'result: "pending", evidence: "later"',
+  );
+  assert.deepEqual(resultIds(page), []);
+});

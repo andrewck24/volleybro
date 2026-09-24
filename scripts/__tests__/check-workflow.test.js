@@ -811,6 +811,8 @@ test("checkDecisionRecordLength ignores a record that only changed", async () =>
   assert.deepEqual(await checkDecisionRecordLength(root), []);
 });
 
+const noop = async () => {};
+
 function singlePage({
   title = "Sample",
   proposal = "<TLDR>x</TLDR>",
@@ -834,7 +836,7 @@ async function singlePageGate(content) {
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": content,
   });
-  return (await checkSinglePageGate(root, "c")).join("\n");
+  return (await checkSinglePageGate(root, "c", { refresh: noop })).join("\n");
 }
 
 test("single-page gate accepts a complete G1 page", async () => {
@@ -889,8 +891,8 @@ test("single-page gate ignores two-page and old-format Changes", async () => {
     "blueprint/content/changes/d/index.mdx": "---\ntitle: Proposal\n---\n",
     "blueprint/content/changes/d/change.json": "{}",
   });
-  assert.deepEqual(await checkSinglePageGate(root, "c"), []);
-  assert.deepEqual(await checkSinglePageGate(root, "d"), []);
+  assert.deepEqual(await checkSinglePageGate(root, "c", { refresh: noop }), []);
+  assert.deepEqual(await checkSinglePageGate(root, "d", { refresh: noop }), []);
 });
 
 // A store branch holding a G1 publish and then a G2 publish of slug c,
@@ -929,7 +931,7 @@ test("single-page gate passes a G2 page whose Proposal matches G1", async () => 
     "blueprint/content/changes/c/index.mdx": page,
   });
   await withStoreHistory(root, singlePage());
-  assert.deepEqual(await checkSinglePageGate(root, "c"), []);
+  assert.deepEqual(await checkSinglePageGate(root, "c", { refresh: noop }), []);
 });
 
 test("single-page gate fails a G2 page whose Proposal changed after G1", async () => {
@@ -942,7 +944,7 @@ test("single-page gate fails a G2 page whose Proposal changed after G1", async (
   });
   await withStoreHistory(root, singlePage());
   assert.match(
-    (await checkSinglePageGate(root, "c")).join("\n"),
+    (await checkSinglePageGate(root, "c", { refresh: noop })).join("\n"),
     /gate-proposal-frozen/i,
   );
 });
@@ -955,5 +957,20 @@ test("single-page gate skips the freeze check without a G1 publish", async () =>
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": page,
   });
-  assert.deepEqual(await checkSinglePageGate(root, "c"), []);
+  assert.deepEqual(await checkSinglePageGate(root, "c", { refresh: noop }), []);
+});
+
+test("single-page gate fails a G2 page when the store branch cannot be fetched", async () => {
+  const root = await makeRepository({
+    "blueprint/content/changes/c/index.mdx": singlePage({
+      review: FULL_REVIEW,
+    }),
+  });
+  const refresh = async () => {
+    throw new Error("fatal: could not read from remote");
+  };
+  assert.match(
+    (await checkSinglePageGate(root, "c", { refresh })).join("\n"),
+    /gate-proposal-frozen.*could not fetch/is,
+  );
 });
