@@ -1,6 +1,10 @@
 "use client";
 import { MatchInfo } from "@/components/game/match";
 import { MatchInfoForm } from "@/components/game/new/info-form";
+import {
+  newGameBody,
+  newGameFormDefaults,
+} from "@/lib/features/game/new-game-form";
 import { PlayersList } from "@/components/game/new/players-list";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import {
   DialogBody,
-  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -31,7 +34,13 @@ import { useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
-export const NewGameForm = ({ teamId }: { teamId: string }) => {
+export const NewGameForm = ({
+  teamId,
+  onSuccess,
+}: {
+  teamId: string;
+  onSuccess: () => void;
+}) => {
   const router = useRouter();
   const { toast } = useToast();
   const [view, setView] = useState("");
@@ -46,21 +55,9 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     document.startViewTransition(() => setView(view));
   };
 
-  const [info, setInfo] = useState<TMatchInfoForm>({
-    name: "",
-    number: 1,
-    phase: "0",
-    division: "0",
-    category: "0",
-    teams: {
-      home: { name: team?.name },
-      away: { name: "" },
-    },
-    scoring: { setCount: "3", decidingSetPoints: 15 },
-    location: { city: "", hall: "" },
-    time: { date: new Date(), start: "", end: "" },
-    weather: { temperature: "" },
-  });
+  const [info, setInfo] = useState<TMatchInfoForm>(
+    newGameFormDefaults(team?.name),
+  );
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {
     if (!team || !teamPlayers) return [];
@@ -82,40 +79,31 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
     .filter((player) => player.id)
     .sort((a, b) => a.number - b.number);
 
-  const createGame = async () => {
-    const infoData = {
-      ...info,
-      phase: Number(info.phase),
-      division: Number(info.division),
-      category: Number(info.category),
-      scoring: {
-        ...info.scoring,
-        setCount: Number(info.scoring.setCount),
-      },
-    };
+  const [isCreating, setIsCreating] = useState(false);
 
+  const createGame = async () => {
+    setIsCreating(true);
     try {
       const game = await apiClient<{ id: string }>(`/api/games?ti=${teamId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          info: infoData,
-          teams: {
-            home: {
-              id: teamId,
-              name: info.teams.home.name,
-              players,
-              lineup: team?.lineups[lineupIndex],
-            },
-            away: { name: info.teams.away.name },
-          },
-        }),
+        body: JSON.stringify(
+          newGameBody({
+            info,
+            teamId,
+            players,
+            lineup: team?.lineups[lineupIndex],
+          }),
+        ),
       });
 
       mutate(`/api/games/${game.id}`, game, false);
+      onSuccess();
       return router.push(`/game/${game.id}`);
     } catch (err) {
       showErrorToast(err, toast);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -131,7 +119,13 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
   return (
     <>
       {!view ? (
-        <>
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          onSubmit={(e) => {
+            e.preventDefault();
+            createGame();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>新增賽事紀錄</DialogTitle>
             <DialogDescription>
@@ -158,6 +152,7 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
                     {team?.lineups.map((_, index) => (
                       <Button
                         key={index}
+                        type="button"
                         variant={lineupIndex === index ? "default" : "outline"}
                         size="icon"
                         onClick={() => setLineupIndex(index)}
@@ -173,19 +168,23 @@ export const NewGameForm = ({ teamId }: { teamId: string }) => {
             </Card>
           </DialogBody>
           <DialogFooter>
-            <DialogClose asChild>
-              <Button size="lg" onClick={createGame}>
-                創建賽事紀錄
-                <RiArrowRightLine />
-              </Button>
-            </DialogClose>
+            <Button
+              type="submit"
+              size="lg"
+              loading={isCreating}
+              loadingText="建立中"
+            >
+              創建賽事紀錄
+              <RiArrowRightLine />
+            </Button>
           </DialogFooter>
-        </>
+        </form>
       ) : (
         <>
           <DialogHeader>
             <DialogTitle>
               <Button
+                type="button"
                 variant="ghost"
                 className="size-5 p-0 [&>svg]:size-5"
                 onClick={() => handleViewChange("")}

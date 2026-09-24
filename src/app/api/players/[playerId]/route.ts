@@ -1,7 +1,10 @@
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
-import { PlayerSchema, UpdatePlayerInfoSchema } from "@/lib/validations/player";
+import {
+  PlayerSchema,
+  UpdatePlayerInfoSchema,
+} from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -14,11 +17,11 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ playerId: string }> },
 ) =>
-  withAuth(async (_req, { userId: _userId }) => {
+  withAuth(async (_req, { userId }) => {
     const { playerId } = await props.params;
     assertObjectId(playerId, "playerId");
 
-    const player = await playerController.getPlayer({ playerId });
+    const player = await playerController.getPlayer({ playerId, userId });
     const validatedPlayer = PlayerSchema.parse(player);
     return NextResponse.json(validatedPlayer, { status: 200 });
   })(_req);

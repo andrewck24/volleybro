@@ -1,7 +1,10 @@
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { assertObjectId } from "@/lib/api/guards";
 import { withAuth } from "@/lib/api/wrappers";
-import { CreatePlayerSchema, PlayerSchema } from "@/lib/validations/player";
+import {
+  CreatePlayerSchema,
+  PlayerSchema,
+} from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -33,11 +36,11 @@ export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
-  withAuth(async (_req, { userId: _userId }) => {
+  withAuth(async (_req, { userId }) => {
     const { teamId } = await props.params;
     assertObjectId(teamId, "teamId");
 
-    const players = await playerController.getTeamPlayers({ teamId });
+    const players = await playerController.getTeamPlayers({ teamId, userId });
 
     const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
 

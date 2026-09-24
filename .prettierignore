@@ -11,6 +11,7 @@ CHANGELOG.md
 .source/
 
 # Agent config, skills, and worktrees
+.agents/
 .claude/
 
 # Frozen change archives — historical artifacts, never reformat

@@ -23,11 +23,7 @@ export async function proxy(request: NextRequest) {
     const sessionToken = getSessionCookie(request);
     if (!sessionToken) {
       return NextResponse.json(
-        {
-          code: "AUTHENTICATION",
-          reason: AuthReason.SESSION_REQUIRED,
-          detail: "Authentication is required",
-        },
+        { code: "AUTHENTICATION", reason: AuthReason.SESSION_REQUIRED },
         { status: 401 },
       );
     }

@@ -1,0 +1,34 @@
+---
+title: Overlays
+description: Who holds a dialog's open state, where its controls live, and how a dialog held by a route closes when its task is done.
+---
+
+Dialogs are built on Radix Dialog through `src/components/ui/dialog.tsx`. A dialog belongs either to a component, which holds its `open` state, or to a route, where the dialog is an intercepting route in the `@modal` slot and closing it means leaving the URL.
+
+## Current behavior
+
+- Every dialog that carries an action is controlled. The layer that renders `Dialog` holds `open` — `useState` in `ActionButton` (new game), the set-options panel and the lineup panel — and the component inside the overlay never closes itself; it reports success through `onSuccess`. `Esc`, the overlay and the close button each only ask, through `onOpenChange(false)`.
+- A dialog closes only after its action succeeds. A failed submission leaves it open with everything that was entered.
+- Route-held dialogs live under `src/app/(tabs)/@modal/(...)team/` and render through `EditDialogContainer` (`src/components/layout/edit-dialog-container.tsx`), which fixes `open` to `true` and closes by leaving the route: `router.back()` returns to where the dialog was opened, and a completed action may instead `router.replace()` to its result. A dirty form intercepts a user-initiated close with a discard confirmation.
+- A soft navigation to a URL the `@modal` slot has no route for would keep the slot's last content on screen. `src/app/(tabs)/@modal/team/[...catchAll]/page.tsx` returns `null`, so every forward navigation out of a `/team` modal empties the slot.
+- Forward navigation after a completed form replaces the current entry, so the browser's back button never returns to a saved form. Adding a player lands on the new player's page; saving a player in a dialog returns to the player's page, its only entry point; saving a team lands on the team page; removing a member returns to the team page.
+- The expand button of a route-held dialog loads its full page with `window.location.replace`, replacing the dialog's history entry, so going back from the full page returns to the page the dialog was opened from.
+- `DialogHeader` renders the expand and close controls itself, in normal flow to the right of the title, both `type="button"`. Keyboard users reach them before the body's fields, and `-my-1.5` centers the 32px buttons on the title's 20px first line. `closeButton`, `onExpand` and `expandLabel` are `DialogHeader` props.
+- `DialogHeader`, `DialogBody` and `DialogFooter` are styled `div`s that consume no Radix context, so a `form` can wrap all three.
+
+## Constraints
+
+- A component inside an overlay must not close the dialog itself, and `DialogClose asChild` must not wrap a button with an asynchronous handler: Radix closes as soon as the handler returns, before anything it awaits has finished.
+- A new `@modal` intercepting route outside `/team` needs the catch-all widened, or forward navigation from it leaves the modal on screen.
+- A form that wraps header, body and footer needs `min-h-0 flex-1`, or `DialogBody` loses its scrollable height.
+
+## Known gaps
+
+- The catch-all makes every unmatched `/team/*` URL a route: it renders an empty tabs page instead of not-found. Restoring the 404 needs the `@team` slot to provide its own not-found.
+- After expanding an edit and saving it on the full page, history holds the result page twice — the page the dialog was opened from, then the replaced result — so back visits the same page once.
+- After removing a member, back lands on the removed player's page, which reports the player as not found.
+- On a full page reached by expanding, the player edit page's permission-gated section appears a second or two late: whether to show it depends on the current user and the team's players, which a hard navigation has to fetch again.
+
+## Implemented decisions
+
+<DecisionTimeline />

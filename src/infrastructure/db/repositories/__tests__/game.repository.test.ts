@@ -234,9 +234,10 @@ describe("GameRepositoryImpl", () => {
       const result = await repository.findById(mockGameIdString);
 
       const home = result!.teams.home;
-      expect(home.players[0]!.id).toBe(playerHexId);
+      const homePlayers = home.players ?? [];
+      expect(homePlayers[0]!.id).toBe(playerHexId);
       expect(
-        (home.players[0] as unknown as { playerId?: unknown }).playerId,
+        (homePlayers[0] as unknown as { playerId?: unknown }).playerId,
       ).toBeUndefined();
 
       const starting = result!.sets[0]!.lineups.home.starting;

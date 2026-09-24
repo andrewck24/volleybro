@@ -16,7 +16,7 @@ import nextJest from "next/jest.js";
 // workers via NODE_OPTIONS (covers the default parallel runner).
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
-const preload = `${process.cwd()}/jest.preload.integration.mjs`;
+const preload = `${process.cwd()}/jest.preload.integration.js`;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
     `${process.env.NODE_OPTIONS ?? ""} --import ${preload}`.trim();
@@ -33,6 +33,9 @@ export default async function jestConfig() {
     moduleNameMapper: {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
+      // The migration scripts run under ts-node/esm, which requires the `.js`
+      // specifier the TypeScript source does not have on disk.
+      "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
       "/node_modules/(?!.*(inversify|@inversifyjs)/)",
@@ -58,6 +61,7 @@ export default async function jestConfig() {
       "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -78,6 +82,7 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "integration",
     testEnvironment: "node",
+    globalSetup: "<rootDir>/jest.global-setup.integration.ts",
     setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
     testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
   };

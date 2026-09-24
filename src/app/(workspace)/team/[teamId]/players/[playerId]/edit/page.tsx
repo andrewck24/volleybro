@@ -8,7 +8,10 @@ const EditPlayerPage = async (props: {
 
   return (
     <>
-      <Header title="編輯球員" backHref={`/team/${teamId}`} />
+      <Header
+        title="編輯球員"
+        backHref={`/team/${teamId}/players/${playerId}`}
+      />
       <EditForm teamId={teamId} playerId={playerId} />
     </>
   );

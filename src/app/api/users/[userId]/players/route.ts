@@ -5,8 +5,13 @@
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import * as playerController from "@/interface/controllers/player/player.controller";
 import { withAuth } from "@/lib/api/wrappers";
-import { PlayerSchema } from "@/lib/validations/player";
+import { PlayerSchema } from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const UserPlayerSchema = PlayerSchema.extend({
+  teamName: z.string().optional(),
+});
 
 export const GET = (
   _req: NextRequest,
@@ -26,7 +31,7 @@ export const GET = (
       userId: targetUserId,
     });
 
-    const validatedPlayers = players.map((p) => PlayerSchema.parse(p));
+    const validatedPlayers = players.map((p) => UserPlayerSchema.parse(p));
 
     return NextResponse.json(validatedPlayers, { status: 200 });
   })(_req);

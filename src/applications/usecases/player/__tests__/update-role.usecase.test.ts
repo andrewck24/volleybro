@@ -1,106 +1,152 @@
 import {
-  createMockAuthorizationService,
+  createInvitedPlayer,
   createMockPlayerRepository,
   createPlayer,
+  createUnlinkedPlayer,
 } from "@/__tests__/helpers";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
-import { NotFoundError } from "@/entities/errors";
+import {
+  AuthorizationError,
+  AuthReason,
+  ConflictError,
+  NotFoundError,
+  PlayerReason,
+} from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 describe("UpdateRoleUseCase", () => {
   let useCase: IUpdateRoleUseCase;
   let mockPlayerRepository: ReturnType<typeof createMockPlayerRepository>;
-  let mockAuthService: ReturnType<typeof createMockAuthorizationService>;
+
+  const caller = "user-actor";
+
+  const actor = (role: PlayerRole) =>
+    createPlayer({ id: "actor", userId: caller, role });
+
+  const targets = {
+    owner: createPlayer({
+      id: "target",
+      userId: "user-target",
+      role: PlayerRole.OWNER,
+    }),
+    admin: createPlayer({
+      id: "target",
+      userId: "user-target",
+      role: PlayerRole.ADMIN,
+    }),
+    member: createPlayer({
+      id: "target",
+      userId: "user-target",
+      role: PlayerRole.MEMBER,
+    }),
+    invitee: createInvitedPlayer({ id: "target", email: "invited@x.com" }),
+    unlinked: createUnlinkedPlayer({ id: "target" }),
+  };
+
+  const expectRefusal = async (attempt: Promise<unknown>, reason: string) => {
+    await expect(attempt).rejects.toBeInstanceOf(AuthorizationError);
+    await expect(attempt).rejects.toMatchObject({ reason });
+    expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+  };
+
+  const update = () =>
+    useCase.execute({
+      playerId: "target",
+      newRole: PlayerRole.ADMIN,
+      userId: caller,
+    });
 
   beforeEach(() => {
     mockPlayerRepository = createMockPlayerRepository();
-    mockAuthService = createMockAuthorizationService();
-    useCase = new UpdateRoleUseCase(mockPlayerRepository, mockAuthService);
+    useCase = new UpdateRoleUseCase(mockPlayerRepository);
+    mockPlayerRepository.update.mockResolvedValue(
+      createPlayer({
+        id: "target",
+        userId: "user-target",
+        role: PlayerRole.ADMIN,
+      }),
+    );
   });
 
-  describe("execute", () => {
-    it("should update player role to ADMIN", async () => {
-      const playerId = "player_123";
-      const newRole = PlayerRole.ADMIN;
-      const userId = "user_456";
-
-      const currentPlayer = createPlayer({
-        id: playerId,
-        teamId: "team_123",
-      });
-
-      const updatedPlayer = createPlayer({
-        ...currentPlayer,
-        role: newRole,
-      });
-
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
-      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
-
-      const result = await useCase.execute({ playerId, newRole, userId });
-
-      expect(result.role).toBe(newRole);
-    });
-
-    it("should allow ADMIN to downgrade own role to MEMBER", async () => {
-      const playerId = "player_123";
-      const userId = "player_123"; // Same user
-      const newRole = PlayerRole.MEMBER;
-
-      const currentPlayer = createPlayer({
-        id: playerId,
-        name: "Test Admin",
-        teamId: "team_123",
-        role: PlayerRole.ADMIN,
-      });
-
-      const updatedPlayer = createPlayer({
-        ...currentPlayer,
-        role: newRole,
-      });
-
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
-      mockAuthService.verifyIsTeamAdmin.mockResolvedValue();
-      mockPlayerRepository.update.mockResolvedValue(updatedPlayer);
-
-      const result = await useCase.execute({ playerId, newRole, userId });
-
-      expect(result.role).toBe(newRole);
-    });
-
-    it("should prevent non-admin from updating roles", async () => {
-      const playerId = "player_123";
-      const newRole = PlayerRole.ADMIN;
-      const userId = "user_456";
-
-      const currentPlayer = createPlayer({
-        id: playerId,
-        teamId: "team_123",
-      });
-
-      mockPlayerRepository.findById.mockResolvedValue(currentPlayer);
-      mockAuthService.verifyIsTeamAdmin.mockRejectedValue(
-        new Error("User is not admin"),
+  describe("targets an admin may change", () => {
+    beforeEach(() => {
+      mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+        actor(PlayerRole.ADMIN),
       );
-
-      await expect(
-        useCase.execute({ playerId, newRole, userId }),
-      ).rejects.toThrow("User is not admin");
     });
 
-    it("should reject if player not found", async () => {
-      mockPlayerRepository.findById.mockResolvedValue(null);
+    it.each(["admin", "member", "invitee"] as const)(
+      "changes the role of %s",
+      async (kind) => {
+        mockPlayerRepository.findById.mockResolvedValue(targets[kind]);
 
-      await expect(
+        expect(await update()).toMatchObject({ role: PlayerRole.ADMIN });
+      },
+    );
+
+    it("refuses the owner, who can only hand ownership over", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(targets.owner);
+
+      await expectRefusal(update(), PlayerReason.TARGET_IS_OWNER);
+    });
+
+    it("refuses the caller's own player", async () => {
+      const self = actor(PlayerRole.ADMIN);
+      mockPlayerRepository.findById.mockResolvedValue(self);
+
+      await expectRefusal(
         useCase.execute({
-          playerId: "non_existent",
-          newRole: PlayerRole.ADMIN,
-          userId: "user_456",
+          playerId: self.id,
+          newRole: PlayerRole.MEMBER,
+          userId: caller,
         }),
-      ).rejects.toBeInstanceOf(NotFoundError);
+        PlayerReason.TARGET_IS_SELF,
+      );
     });
+
+    it("refuses an unlinked player, who has no role", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(targets.unlinked);
+
+      const attempt = update();
+
+      await expect(attempt).rejects.toBeInstanceOf(ConflictError);
+      await expect(attempt).rejects.toMatchObject({
+        reason: PlayerReason.TARGET_NOT_LINKED,
+      });
+      expect(mockPlayerRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  it("lets the owner change an admin", async () => {
+    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+      actor(PlayerRole.OWNER),
+    );
+    mockPlayerRepository.findById.mockResolvedValue(targets.admin);
+
+    expect(await update()).toMatchObject({ role: PlayerRole.ADMIN });
+  });
+
+  it("refuses a caller who is a member without a role to grant", async () => {
+    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(
+      actor(PlayerRole.MEMBER),
+    );
+    mockPlayerRepository.findById.mockResolvedValue(targets.member);
+
+    await expectRefusal(update(), AuthReason.INSUFFICIENT_ROLE);
+  });
+
+  it("refuses a caller with no player on the team", async () => {
+    mockPlayerRepository.findByTeamIdAndUserId.mockResolvedValue(null);
+    mockPlayerRepository.findById.mockResolvedValue(targets.member);
+
+    await expectRefusal(update(), AuthReason.NOT_TEAM_MEMBER);
+  });
+
+  it("rejects if the player is not found", async () => {
+    mockPlayerRepository.findById.mockResolvedValue(null);
+
+    await expect(update()).rejects.toBeInstanceOf(NotFoundError);
   });
 });

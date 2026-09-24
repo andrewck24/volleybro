@@ -1,0 +1,142 @@
+---
+title: Persistence
+description: How a game reaches the database — domain operations addressed by identity, with the failure radius limited to the entry being written.
+---
+
+The repository speaks in domain operations, not in documents. Recording a rally
+appends one entry; it does not rewrite the game.
+
+## Current behavior
+
+- `IGameRepository` exposes `upsertEntry` and `completeSet`. Each is a write
+  touching only what it names.
+- An entry carries a client-generated identity and a sequence number, both set
+  before it leaves the client. `upsertEntry` takes one or more entries and
+  issues a bulkWrite in which exactly one operation lands per entry: a `$set`
+  through `arrayFilters` matching the identity when it already exists, or a
+  `$push` guarded by `$ne` on that identity when it does not. The `$push`
+  sorts on the sequence, so an entry that arrives late is placed by the order
+  it was recorded in rather than the order it arrived.
+- Resending the same entry is therefore a no-op rather than a duplicate, which
+  is what makes a retry safe after a lost response.
+- An entry reaching the repository without an identity is rejected. `undefined`
+  would reach MongoDB as `null` and the arrayFilters would then match every
+  entry that also lacks one, so a single edit would overwrite all of them.
+- A substitution writes its entry and the lineup it produces in one update, so
+  the two cannot disagree.
+- The set result is written after the entry write, retried in the same request
+  three times before the response goes out, and reported separately from the
+  entry write's own outcome. An entry that landed is never discarded because
+  the set result failed.
+- Whether a game or a set exists is decided by the write condition itself. The
+  condition names the exact path, because a filter carrying only the id does
+  not fail on an out-of-range index — MongoDB pads the array with nulls and
+  writes anyway. Both misses therefore report zero matched documents, and one
+  existence lookup on the failure path separates `GAME_NOT_FOUND` from
+  `SET_NOT_FOUND`.
+- `update()` survives for set-level writes only: `create-set` and `update-set`
+  carry domain validation and delete semantics and have no lost-update
+  pressure.
+- Database syntax lives inside `GameRepositoryImpl`. Use case tests mock no
+  database concept, which is what keeps it there.
+- The pending-write queue outlives the process. Its contents are mirrored to
+  `localStorage` whenever they change, and the write happens before the request
+  is sent, so an app the operating system reclaims mid-recording has already
+  saved what it accepted. The snapshot is the whole queue each time, written
+  immediately when nothing is in flight and collapsing to the newest when
+  something is.
+- Storage is reached through one client-side type — `load`, `save`, `clear` —
+  with a `localStorage` implementation. Every method is asynchronous even
+  though this one is not, because the stores a native target would use have no
+  synchronous form. The implementation writes synchronously inside that
+  asynchronous body, so returning from `save` means the bytes are down.
+- What survives a restart is the entry, where it belongs, why it last failed
+  and when it first failed. The attempt schedule is recomputed rather than
+  stored, and the version lives in the snapshot rather than in the key, so a
+  snapshot this build cannot read can still be found and discarded.
+- Restoring merges by entry identity with the in-memory copy winning, because
+  the read is asynchronous and a rally can be recorded while it is in flight.
+- Whether another attempt is worth making has exactly one home. The flush, the
+  restore and the expiry rule read the same threshold, so none of them can
+  disagree about which failures are worth carrying.
+- Storage that cannot be read or cannot be understood is cleared rather than
+  left to be re-read on every start. The single exception is a snapshot from a
+  newer version, which may belong to a build the user is also running.
+- The Mongoose schema marks a rally's score, move type, move number and win as
+  required, and none of those marks runs. Every entry is written through
+  `bulkWrite`, and Mongoose validates only the `insertOne` and `replaceOne`
+  operations in one — `runValidators` is ignored for the rest. Casting still
+  applies, so a value of the wrong type is refused while a missing one and one
+  outside an enum are not. The marks are a record of which fields a rally
+  cannot do without, not a guard; the guard is in the domain layer.
+
+## Constraints
+
+- Nothing may rely on the Mongoose schema to reject an entry. It is the layer
+  that looks like it does and does not, which is how a rally missing the move
+  it recorded reached the database in the first place.
+
+- A disagreement between what the recorder sees and what the server holds is
+  the app's to resolve. It never becomes a user action — a confirm dialog, a
+  manual refresh, a choice of which copy is right — unless the app genuinely
+  cannot decide; one interruption during recording loses a rally.
+- The queue is laid over the server's answer by the same identity-and-sequence
+  rule the repository writes by, so what the recorder sees now is what the
+  server will hold once the queue drains.
+
+- **New write paths must not use `update()`.** A sixth game write path that
+  reaches for it means this condition was not honoured.
+- Both entry operations stay ordinary updates rather than aggregation pipeline
+  updates, so Mongoose casting still bounds the blast radius.
+- Identity never changes; sequence may be renumbered. Overloading one field for
+  both would make reordering an edit to identity.
+- A failed cast may damage only the entry being written. Every entry already
+  recorded in that set stays intact.
+- **An unwritable store is tolerated at the call site, never inside the
+  adapter.** The port reports honestly whether data reached the disk; whether
+  that failure is survivable is a policy, and it lives in one line next to the
+  rest of the queue's policy.
+- An entry whose last failure cannot be fixed by sending it again is dropped
+  after seven days. Persisting the queue removed the only exit such an entry
+  had — closing the app — and this restores it. Work that might still land
+  never expires, however long it has waited.
+- Age is measured from an entry's first failure, not its latest attempt. A
+  flush re-sends every pending entry for its game, so a timestamp that moved
+  with each attempt would measure the recorder's activity instead.
+- Statistics have no writer. The `stats` field remains in the Mongoose schema
+  for a future materialization decision, and any such materialization must be a
+  cache derived from entries — never a second accumulating write path.
+
+## Known gaps
+
+- Delivery still depends on the recorder returning to that game. The queue
+  spans games but the flush is mounted under one, so entries for a game nobody
+  reopens wait indefinitely, and nothing outside that game's recording screen
+  says so. Closing this is the offline recording work.
+- A store that cannot be written is now reported: probed once at start-up
+  through the same port the queue uses, and again whenever a save fails, since
+  a store can pass at start-up and fill during a match. The flag is one-way,
+  because nothing here can observe a store recovering.
+- Only one cause of that reaches a recorder. Blocked site data is detectable
+  but unreachable — cookies being blocked stops the sign-in first — so a full
+  quota is what the condition actually reports, and the wording names it. The
+  queue is the only thing this app puts in local storage, so a full store is
+  usually its own unsent rallies from a game nobody has reopened.
+- A store that works for this session and forgets afterwards cannot be seen at
+  all. Private browsing, the platform's long-inactivity clearing and eviction
+  under disk pressure all write and read back correctly; nothing synchronous
+  distinguishes them from a healthy store. Persistence is requested once at
+  start-up for the two the browser can act on, and that request's effect is
+  not verifiable from inside the app.
+- Seven days has no measured basis. It restores a property persistence removed
+  rather than expressing anything known about how long a stuck entry is worth
+  keeping.
+- Idempotency holds for the same identity carrying the same payload. The same
+  identity carrying a different payload is last-write-wins, which is an
+  ordering question left to intent anchors.
+- Inserting a rally mid-set is the first operation that would need renumbering;
+  appending never does, and deleting leaves a harmless gap.
+
+## Implemented decisions
+
+<DecisionTimeline />

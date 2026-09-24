@@ -7,7 +7,7 @@
 
 // Role labels
 export const ROLE_LABELS: Record<string, string> = {
-  MEMBER: "成員",
+  MEMBER: "一般成員",
   ADMIN: "管理員",
   OWNER: "擁有者",
 };

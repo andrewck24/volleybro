@@ -39,9 +39,6 @@ interface MatchDocument extends Document {
     start?: string;
     end?: string;
   };
-  weather?: {
-    temperature: number;
-  };
 }
 
 const matchSchema = new Schema<MatchDocument>({
@@ -75,9 +72,6 @@ const matchSchema = new Schema<MatchDocument>({
     date: { type: String },
     start: { type: String },
     end: { type: String },
-  },
-  weather: {
-    temperature: { type: Number },
   },
 });
 
@@ -142,6 +136,9 @@ interface PlayerDocument extends Document {
   playerId: Types.ObjectId | null;
   name: string;
   number: number;
+  // Statistics are derived from a set's entries (see deriveSetStats in
+  // src/entities/game.ts), not read from this field. It has no writer; the
+  // column is kept for a future materialization decision rather than dropped.
   stats: PlayerStatsDocument[];
 }
 
@@ -222,6 +219,8 @@ interface TeamDocument extends Document {
   name: string;
   players: PlayerDocument[];
   staffs: StaffDocument[];
+  // Same as PlayerDocument.stats: no writer, kept for a future materialization
+  // decision. Team totals are derived from entries on read.
   stats: TeamStatsDocument[];
   lineup: { [key: number]: Types.ObjectId };
 }
@@ -248,14 +247,17 @@ interface RallyDetailDocument extends Document {
   };
 }
 
+// `required` records which fields a rally cannot do without; it guards nothing,
+// as bulkWrite updates skip validation. See ADR-0026.
 const rallyDetailSchema = new Schema<RallyDetailDocument>(
   {
-    score: { type: Number },
+    score: { type: Number, required: true },
     type: {
       type: Number,
+      required: true,
       enum: Object.values(MoveType).filter((v) => typeof v === "number"),
     },
-    num: { type: Number },
+    num: { type: Number, required: true },
     player: {
       playerId: { type: Schema.Types.ObjectId, ref: "Player", default: null },
       zone: { type: Number },
@@ -271,7 +273,7 @@ interface RallyDocument extends Document {
 }
 
 const rallySchema = new Schema<RallyDocument>({
-  win: { type: Boolean },
+  win: { type: Boolean, required: true },
   home: { type: rallyDetailSchema },
   away: { type: rallyDetailSchema },
 });
@@ -313,11 +315,17 @@ const challengeSchema = new Schema(
 );
 
 interface EntryDocument extends Document {
+  id: string;
+  seq: number;
   type: EntryType;
 }
 
 const entrySchema = new Schema<EntryDocument>(
-  { type: { type: String, required: true, enum: Object.values(EntryType) } },
+  {
+    id: { type: String, required: true },
+    seq: { type: Number, required: true },
+    type: { type: String, required: true, enum: Object.values(EntryType) },
+  },
   { discriminatorKey: "type", _id: false },
 );
 

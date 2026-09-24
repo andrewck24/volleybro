@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/empty";
 import { Item, ItemContent, ItemGroup } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PlayerStatus } from "@/entities/player";
 import { usePlayer } from "@/hooks/use-data";
 import { POSITION_LABELS, ROLE_LABELS } from "@/lib/constants/labels";
 import { FiEdit2, FiUser } from "react-icons/fi";
@@ -22,7 +23,11 @@ export function PlayerInfo({ teamId, playerId }: PlayerInfoProps) {
   const positionLabel = player?.position
     ? POSITION_LABELS[player?.position]
     : undefined;
-  const roleLabel = player?.role ? ROLE_LABELS[player?.role] : undefined;
+  // Only an invitee or a member holds a role; an unlinked player shows none.
+  const roleLabel =
+    player?.role && player.status !== PlayerStatus.NONE
+      ? ROLE_LABELS[player.role]
+      : undefined;
 
   if (isLoading) return <PlayerInfoSkeleton />;
   if (error) return <ServerErrorState onRetry={() => mutate()} />;

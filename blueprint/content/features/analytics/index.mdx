@@ -1,0 +1,54 @@
+---
+title: Analytics
+description: Match overview, team statistics by skill, set-by-set scoring, and planned per-player analysis.
+---
+
+export const nodes = [
+  { id: "record", label: "Recorded Match", x: 100, y: 70, w: 150 },
+  { id: "overview", label: "Match Overview", x: 330, y: 70, w: 150 },
+  { id: "team", label: "Team Stats", x: 330, y: 180, w: 130 },
+  { id: "sets", label: "Set Scores", x: 540, y: 70, w: 130 },
+  { id: "player", label: "Player Stats", x: 540, y: 180, w: 130 },
+];
+
+export const edges = [
+  { from: "record", to: "overview" },
+  { from: "overview", to: "team" },
+  { from: "overview", to: "sets" },
+  { from: "team", to: "player", dashed: true },
+];
+
+export const details = {
+  record: {
+    title: "Recorded Match",
+    body: "Every analysis view is derived from the append-only rally entries captured during recording.",
+  },
+  overview: {
+    title: "Match Overview",
+    body: "A summary of the match: result, sets, and headline numbers for both teams.",
+  },
+  team: {
+    title: "Team Statistics",
+    body: "Per-skill breakdown — serving, blocking, attack, reception, defense, setting, and unforced errors — for each side.",
+  },
+  sets: {
+    title: "Set-by-Set Scoring",
+    body: "The scoreline of each set, reconstructed from the rally timeline.",
+  },
+  player: {
+    title: "Player Statistics",
+    body: "Planned: per-player metrics and advanced visualisation aggregated across matches. Not yet built.",
+  },
+};
+
+Analysis is built entirely from recorded rallies. The dashed edge marks work
+that is planned but not yet built.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                                          | Status                           |
+| --------------------------------------------------- | -------------------------------- |
+| Match overview, team statistics, set-by-set scoring | <StatusBadge status="shipped" /> |
+| Per-player statistics & advanced visualisation      | <StatusBadge status="planned" /> |

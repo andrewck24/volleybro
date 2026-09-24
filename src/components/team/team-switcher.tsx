@@ -19,8 +19,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
-import { useProfile, useTeam, useUser, useUserPlayers } from "@/hooks/use-data";
+import {
+  useActiveTeamId,
+  useTeam,
+  useUser,
+  useUserPlayers,
+} from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
+import { showErrorToast } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiArrowDownWideLine, RiGroupLine } from "react-icons/ri";
@@ -41,8 +47,8 @@ export const TeamSwitcher = ({ teamId }: { teamId: string }) => {
           <RiArrowDownWideLine className="size-5 shrink-0" />
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" closeButton={false}>
-        <DialogHeader>
+      <DialogContent size="lg">
+        <DialogHeader closeButton={false}>
           <DialogTitle>切換球隊</DialogTitle>
           <DialogDescription srOnly>選擇要切換的球隊</DialogDescription>
         </DialogHeader>
@@ -63,7 +69,8 @@ function TeamList({
 }) {
   const router = useRouter();
   const { user } = useUser();
-  const { profile, mutate: mutateProfile } = useProfile();
+  const { teamId: currentActiveTeamId, mutate: mutateActiveTeamId } =
+    useActiveTeamId();
   const { players } = useUserPlayers(user?.id);
   const { toast } = useToast();
 
@@ -82,15 +89,11 @@ function TeamList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTeamId: newTeamId }),
       });
-      await mutateProfile();
+      await mutateActiveTeamId();
       onSelect();
       router.replace(`/team/${newTeamId}`);
-    } catch {
-      toast({
-        title: "切換失敗",
-        description: "球隊切換未儲存，請稍後再試。",
-        variant: "destructive",
-      });
+    } catch (err) {
+      showErrorToast(err, toast);
     }
   };
 
@@ -100,7 +103,7 @@ function TeamList({
         <TeamItem
           key={p.id}
           teamId={p.teamId!}
-          isActive={profile?.activeTeamId === p.teamId}
+          isActive={currentActiveTeamId === p.teamId}
           onClick={handleSwitch}
         />
       ))}

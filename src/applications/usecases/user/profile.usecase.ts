@@ -1,5 +1,4 @@
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
-import { ValidationError, ProfileReason } from "@/entities/errors";
 import type { Profile } from "@/entities/profile";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
@@ -65,13 +64,6 @@ export class UpdateProfileUseCase {
 
   async execute(input: IUpdateProfileInput): Promise<IUpdateProfileOutput> {
     const { userId, updates } = input;
-
-    if ("userId" in updates || "id" in updates) {
-      throw new ValidationError(
-        ProfileReason.INVALID_EMAIL,
-        "Cannot update userId or id fields",
-      );
-    }
 
     const existingProfile = await this.profileRepository.findByUserId(userId);
     if (!existingProfile) {

@@ -1,4 +1,4 @@
-import { getPreviousRally } from "@/lib/features/game/helpers";
+import { getPreviousRally } from "@/entities/game";
 import type { SetView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
 

@@ -56,7 +56,7 @@ code:
   - .changeset/serwist-turbopack.md
   - src/applications/usecases/player/remove-player.usecase.ts
   - CLAUDE.md
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/applications/usecases/player/update-player-info.usecase.ts
   - src/infrastructure/services/auth/authorization.service.ts
   - serwist.config.js
@@ -107,7 +107,7 @@ tests:
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/transfer-ownership.usecase.test.ts
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
   - src/entities/__tests__/player.test.ts
@@ -166,7 +166,7 @@ code:
   - .changeset/serwist-turbopack.md
   - src/applications/usecases/player/remove-player.usecase.ts
   - CLAUDE.md
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/applications/usecases/player/update-player-info.usecase.ts
   - src/infrastructure/services/auth/authorization.service.ts
   - serwist.config.js
@@ -217,7 +217,7 @@ tests:
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/transfer-ownership.usecase.test.ts
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
   - src/entities/__tests__/player.test.ts
@@ -276,7 +276,7 @@ code:
   - .changeset/serwist-turbopack.md
   - src/applications/usecases/player/remove-player.usecase.ts
   - CLAUDE.md
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/applications/usecases/player/update-player-info.usecase.ts
   - src/infrastructure/services/auth/authorization.service.ts
   - serwist.config.js
@@ -327,7 +327,7 @@ tests:
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/transfer-ownership.usecase.test.ts
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
   - src/entities/__tests__/player.test.ts
@@ -386,7 +386,7 @@ code:
   - .changeset/serwist-turbopack.md
   - src/applications/usecases/player/remove-player.usecase.ts
   - CLAUDE.md
-  - src/infrastructure/db/repositories/repository-helpers.mongo.ts
+  - src/infrastructure/db/repositories/error-translation.mongo.ts
   - src/applications/usecases/player/update-player-info.usecase.ts
   - src/infrastructure/services/auth/authorization.service.ts
   - serwist.config.js
@@ -437,7 +437,7 @@ tests:
   - src/applications/usecases/player/__tests__/create-invitation.usecase.test.ts
   - src/applications/usecases/player/__tests__/transfer-ownership.usecase.test.ts
   - src/applications/usecases/game/__tests__/update-rally.usecase.test.ts
-  - src/infrastructure/db/repositories/__tests__/repository-helpers.test.ts
+  - src/infrastructure/db/repositories/__tests__/error-translation.test.ts
   - src/applications/usecases/player/__tests__/remove-player.usecase.test.ts
   - src/applications/usecases/player/__tests__/cancel-invitation.usecase.test.ts
   - src/entities/__tests__/player.test.ts

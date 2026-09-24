@@ -1,40 +1,75 @@
-# Workflow name
 name: "Chromatic Publish"
+
 permissions:
   contents: read
 
-# Event for the workflow
 on:
-  push:
+  pull_request:
+    branches:
+      - dev
+      - main
     paths:
-      - "package.json"
+      - "pnpm-lock.yaml"
       - ".storybook/**"
       - "src/components/ui/**"
       - "src/components/custom/**"
+      - "src/components/game/**"
       - "src/components/layout/**"
       - "src/stories/**"
+  push:
+    branches:
+      - dev
+      - main
+    paths:
+      - "pnpm-lock.yaml"
+      - ".storybook/**"
+      - "src/components/ui/**"
+      - "src/components/custom/**"
+      - "src/components/game/**"
+      - "src/components/layout/**"
+      - "src/stories/**"
+  workflow_dispatch:
 
-# List of jobs
+concurrency:
+  group: chromatic-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HUSKY: 0
+
 jobs:
-  test:
-    # Operating System
+  chromatic:
+    name: Chromatic
     runs-on: ubuntu-latest
-    # Job steps
-    if: ${{ !contains(github.event.head_commit.message, '[skip chromatic]') }}
+    timeout-minutes: 20
+    if: ${{ !contains(github.event.head_commit.message || github.event.pull_request.title, '[skip chromatic]') }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Chromatic diffs against history to find a baseline
+          # pull_request checks out an ephemeral merge commit; TurboSnap would
+          # then diff every commit on dev since the branch point.
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version-file: .nvmrc
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      #👇 Adds Chromatic as a step in the workflow
+
       - uses: chromaui/action@latest
-        # Options required for Chromatic's GitHub Action
+        env:
+          CHROMATIC_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          CHROMATIC_SLUG: ${{ github.repository }}
         with:
-          #👇 Chromatic projectToken,
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Without this every trigger snapshots all 105 stories, and the paths
+          # filter above cannot tell a payload edit inside src/components/game/
+          # from a visual one.
+          onlyChanged: true
+          # Served from staticDirs, so no story imports them and the dependency
+          # graph cannot see them; changing one falls back to a full snapshot.
+          externals: |
+            public/**

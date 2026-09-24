@@ -1,0 +1,46 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0036",
+  "title": "The layer that renders a dialog owns its open state",
+  "capabilities": ["platform/design-system/overlays"],
+  "decision": "Every dialog that carries an action is controlled: open state lives in the layer that renders the Dialog, and a component inside the overlay never closes itself; it reports success. A holder takes one of two forms: a component holding useState (ActionButton, the set-options panel, the lineup panel), or a route (EditDialogContainer, which closes by leaving the route). A route holder leaves back to the origin with router.back() or forward to the result with router.replace(), and @modal/team/[...catchAll] returns null so that forward navigation closes the modal too. The contract is the same for both forms: the child reports, the holder decides. Only where the dialog and the full page land in the same place does the child navigate to the result itself; the dialog then disappears as a structural consequence of the URL changing. LiberoReplaceDialog has two holders, and each holds its own open state under the same rule.",
+  "context": "Dialog holders disagreed about open state. The set-options panel was already controlled; the lineup panel and ActionButton were uncontrolled, keeping open inside Radix; EditDialogContainer took a third path, fixing <Dialog open> to true and closing by leaving the route. An uncontrolled dialog leaves no seam for the timing of its close: DialogClose closes the moment it is clicked, and the caller can neither read nor veto it. A route holder can also leave in two directions, back to the origin or forward to the result, and parallel routes keep the @modal slot's last content on a soft navigation to a URL the slot has no route for, so leaving forward does not close the modal by itself.",
+  "alternatives": [
+    {
+      "option": "Stay uncontrolled and let the child click a hidden DialogClose through a ref",
+      "reason": "No holder changes, but the set-options panel needs that state anyway, and the other two gain a ref hack that bypasses Radix's own interface. Controlled open state is Radix's existing answer to this problem."
+    },
+    {
+      "option": "Pass setOpen into the child",
+      "reason": "One translation fewer, but the child is then welded to a dialog, and a route holder has no setOpen to pass. A reporting interface serves both kinds of holder."
+    },
+    {
+      "option": "Make EditDialogContainer hold useState as well",
+      "reason": "Its close already means leaving the route: an @modal intercepting dialog disappearing is the URL changing. Component state would decouple the browser's back button from the dialog. Route ownership is correct there, not an oversight."
+    },
+    {
+      "option": "Route holders only ever go back, returning to the origin after every action",
+      "reason": "No catch-all needed, but after adding a player the user lands on the team page and has to find the new player in the list, and an action that must leave the current page, such as removing a member, has nowhere to go. The result page is the natural landing place for a completed action."
+    },
+    {
+      "option": "Place the catch-all at the @modal slot root, as the Next.js documentation's example does",
+      "reason": "Widest coverage, but the (tabs) layout would start matching /game, /auth and unknown URLs. Every @modal intercepting route lives under (...)team, so a catch-all under team/ already covers every navigation that needs to close a modal."
+    }
+  ],
+  "consequences": [
+    "Controlled open state buys a veto, not the ability to close: Radix stores no open value, so Esc, the overlay and DialogClose are each only a request through onOpenChange(false) that the holder may ignore.",
+    "EditDialogContainer already had the veto's shape: onOpenChange reaches handleClose, which asks to discard a dirty form instead of closing.",
+    "Children converge on one interface: report only on success. A useState holder then calls setOpen(false); a route holder calls router.back() to return or router.replace() to go forward to the result.",
+    "Forward navigation after a completed form always replaces, so the saved form does not stay in history for the back button to reopen.",
+    "Navigations that already went forward out of a modal, returning to the team page after removing a member and opening a newly created team, are covered by the catch-all as well.",
+    "The expand button replaces the dialog's history entry with its full page (window.location.replace), so going back from the full page returns to where the dialog was opened.",
+    "The lineup panel's direct import of Dialog from @radix-ui/react-dialog went back through @/components/ui/dialog."
+  ],
+  "revisitTriggers": [
+    "Radix provides an official way for DialogClose to wait for an async handler.",
+    "A third kind of open-state holder appears that is neither component state nor a route.",
+    "An @modal intercepting route appears outside /team; the catch-all has to widen with it."
+  ],
+  "originChange": "dialog-close-ownership"
+}

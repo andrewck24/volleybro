@@ -1,29 +1,22 @@
 "use client";
 import { Container, MoveButton } from "@/components/game/panel/moves";
-import { useToast } from "@/components/ui/use-toast";
 import { useGame } from "@/hooks/use-data";
-import { showErrorToast } from "@/lib/api/error-toast";
-import { createRally } from "@/lib/features/game/actions/create-rally";
-import { updateRally } from "@/lib/features/game/actions/update-rally";
+import type { PendingWritesApi } from "@/hooks/use-pending-writes";
 import { gameActions } from "@/lib/features/game/game-slice";
 import {
-  createRallyHelper,
-  updateRallyHelper,
+  applyEntry,
+  assertRallyAt,
+  deriveEntryPhase,
 } from "@/lib/features/game/helpers";
 import type { RallyView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { scoringMoves, type ScoringMove } from "@/lib/scoring-moves";
 import { FiMinus, FiPlus } from "react-icons/fi";
 
-/**
- * The real entry-submission path: creates a new rally (mode "general") or
- * persists an edit (mode "editing") via the optimistic helpers + API actions,
- * then confirms the draft in Redux. Shared by OppoMoves' own "tap the same
- * move again" submit and by the Preview's tap-to-submit gesture (group 6) so
- * the Preview's freeze actually persists the entry instead of just flashing.
- */
-export const useSubmitEntryDraft = (gameId: string) => {
-  const { toast } = useToast();
+export const useSubmitEntryDraft = (
+  gameId: string,
+  { enqueue, flush }: Pick<PendingWritesApi, "enqueue" | "flush">,
+) => {
   const dispatch = useAppDispatch();
   const { setIndex, mode } = useAppSelector((state) => state.game);
   const {
@@ -32,52 +25,45 @@ export const useSubmitEntryDraft = (gameId: string) => {
   } = useAppSelector((state) => state.game[mode]);
   const { game, mutate } = useGame(gameId);
 
-  // Await the optimistic mutate and only confirm the draft in Redux once the
-  // server actually persisted it. If the request fails the mutate rejects and
-  // rolls the SWR game back, we skip the confirm (draft stays put for a retry),
-  // and the error surfaces as a toast instead of a crash.
-  const create = async () => {
-    const { game: updatedGame, phase } = createRallyHelper(
-      { gameId, setIndex, entryIndex },
-      draft as RallyView,
-      game!,
-    );
-    await mutate(
-      createRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
-      {
-        revalidate: false,
-        optimisticData: updatedGame,
-      },
-    );
+  // Advances the draft the instant the entry is enqueued, without waiting for
+  // the server: the queue's retry and the sync indicator are what make the
+  // recorder safe to keep going.
+  const create = () => {
+    const entry = {
+      ...(draft as RallyView),
+      id: crypto.randomUUID(),
+      seq: entryIndex,
+    };
+    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
+    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
+      revalidate: false,
+    });
+    enqueue(entry);
     dispatch(gameActions.confirmEntryDraftRally(phase));
+    void flush();
   };
 
   const update = async () => {
-    const { game: updatedGame, phase } = updateRallyHelper(
-      { gameId, setIndex, entryIndex },
-      draft as RallyView,
-      game!,
-    );
-    await mutate(
-      updateRally({ gameId, setIndex, entryIndex }, draft as RallyView, game!),
-      {
-        revalidate: false,
-        optimisticData: updatedGame,
-      },
-    );
+    const entry = { ...(draft as RallyView), id: draft.id, seq: draft.seq };
+    assertRallyAt(game!, setIndex, entryIndex);
+    const phase = deriveEntryPhase(game!, setIndex, entryIndex, entry);
+    mutate((raw) => applyEntry(raw!, setIndex, entry, phase), {
+      revalidate: false,
+    });
+    enqueue(entry);
+    const result = await flush();
+    if (!result.ok) {
+      return;
+    }
     dispatch(gameActions.confirmEntryDraftRally(phase));
     dispatch(gameActions.setGameMode("general"));
   };
 
   return async () => {
-    try {
-      if (mode === "general") {
-        await create();
-      } else {
-        await update();
-      }
-    } catch (error) {
-      showErrorToast(error, toast);
+    if (mode === "general") {
+      create();
+    } else {
+      await update();
     }
   };
 };
@@ -92,8 +78,8 @@ export const OppoMoves = () => {
   );
 
   // Selecting an away move only stages it in the draft; submission is owned by
-  // the Preview's send affordance (D12), so there is no second-tap-to-submit
-  // here anymore.
+  // the Preview's send affordance (`entry-ui` change), so there is no
+  // second-tap-to-submit here anymore.
   const onOppoClick = (move: ScoringMove) => {
     dispatch(gameActions.setEntryDraftAwayMove(move));
   };

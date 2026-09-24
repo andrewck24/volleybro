@@ -1,0 +1,30 @@
+---
+title: Roles
+description: The OWNER / ADMIN / MEMBER hierarchy, and who may manage whom.
+---
+
+A member's role ranks OWNER above ADMIN above MEMBER. Only a member holds a role — an invitee holds the role their invitation offered, but it has no effect until they join, and an unlinked player has no role at all.
+
+## Current behavior
+
+- `hasTeamRole` in `src/entities/player.ts` compares a member's role against a required rank; `canManageTeam` is `hasTeamRole` at ADMIN or above.
+- The owner and admins may change or delete an admin, a regular member, an invitee or an unlinked player. A regular member may manage no one.
+- The owner is nobody's target for a role change or deletion. Ownership leaves the OWNER role only through transfer, which is a two-step, non-atomic pair of writes — the new owner is promoted, then the outgoing owner is demoted to ADMIN — and a mid-failure can leave two owners. Transferring ownership to the current owner is refused, since the same document would otherwise be promoted and then immediately demoted, leaving the team with no owner.
+- Nobody may target their own player for a role change or deletion; leaving the team is the path for that instead, and it keeps the roster row as an unlinked player rather than removing it.
+- `refuseToManagePlayer` in `src/entities/player.ts` is the single function both `update-role` and `remove-player` use to decide whether the caller may act on a given target, so the two write paths cannot drift from each other.
+
+## Constraints
+
+- A write path that changes or removes a player must check the target through `refuseToManagePlayer`, not only the caller's own role.
+- The owner role must never reach zero holders on a team that has players; a role change or deletion must never be able to demote or remove the sole owner.
+
+## Known gaps
+
+- `update-role`, `remove-player` and a few other use cases (find-game, cancel-invitation, update-player-info) read their target before authorizing against it.
+- `PATCH /api/teams/{teamId}` and its lineups route authorize inside the route handler rather than the use case, unlike the pattern the rest of team management follows.
+- Ownership transfer's two writes are not atomic; a failure between them leaves the team with two owners.
+- Ownership-transfer acceptance — requiring the recipient to accept before the role actually moves, the way several reference products do — is not built yet.
+
+## Implemented decisions
+
+<DecisionTimeline />

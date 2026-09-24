@@ -5,7 +5,9 @@ compatibility_date = "2026-07-01"
 directory = "./out"
 
 [build]
-command = "pnpm --filter blueprint build"
+# Hosted builds set CI, which already makes a missing page store fatal. This
+# only matters when someone deploys from a shell.
+command = "BLUEPRINT_REQUIRE_CHANGES=1 pnpm --filter blueprint build"
 
 [observability]
 enabled = false

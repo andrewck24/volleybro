@@ -1,12 +1,14 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
-import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import { authorizeManagePlayer } from "@/applications/usecases/player/membership";
 import {
+  ConflictError,
   NotFoundError,
   UnexpectedError,
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
 import type { Player, PlayerRole } from "@/entities/player";
+import { PlayerStatus } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -25,8 +27,6 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
-    @inject(TYPES.AuthorizationService)
-    private authService: IAuthorizationService,
   ) {}
 
   async execute({
@@ -34,7 +34,6 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
     newRole,
     userId,
   }: IUpdateRoleInput): Promise<Player> {
-    // 1. 取得球員，確認存在
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -43,15 +42,25 @@ export class UpdateRoleUseCase implements IUpdateRoleUseCase {
       );
     }
 
-    // 2. 驗證權限 - 必須是該隊伍的 ADMIN 或 OWNER
     if (!player.teamId)
       throw new NotFoundError(
         PlayerReason.PLAYER_NOT_FOUND,
         "Player has no team",
       );
-    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
+    await authorizeManagePlayer(
+      this.playerRepository,
+      player.teamId,
+      player,
+      userId,
+    );
 
-    // 3. 更新角色
+    if (player.status === PlayerStatus.NONE) {
+      throw new ConflictError(
+        PlayerReason.TARGET_NOT_LINKED,
+        "An unlinked player has no role to change",
+      );
+    }
+
     const updatedPlayer = await this.playerRepository.update(playerId, {
       role: newRole,
     });

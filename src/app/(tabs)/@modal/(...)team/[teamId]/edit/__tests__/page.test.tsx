@@ -78,7 +78,9 @@ describe("EditTeamModalPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /儲存修改/i }));
 
     await waitFor(() => {
-      expect(screen.getByText("驗證失敗")).toBeInTheDocument();
+      expect(
+        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
+      ).toBeInTheDocument();
     });
     expect(mockBack).not.toHaveBeenCalled();
   });

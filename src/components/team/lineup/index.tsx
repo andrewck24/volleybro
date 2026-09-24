@@ -1,5 +1,6 @@
 "use client";
 import { LoadingCourt } from "@/components/custom/court";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import LineupCourt from "@/components/team/lineup/court";
 import { LineupPanel } from "@/components/team/lineup/panel";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,12 @@ import { RiSaveLine } from "react-icons/ri";
 const Lineup = ({ teamId }: { teamId: string }) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const { team, mutate } = useTeam(teamId);
-  const { players } = useTeamPlayers(teamId);
+  const { team, error: teamError, mutate } = useTeam(teamId);
+  const {
+    players,
+    error: playersError,
+    mutate: mutatePlayers,
+  } = useTeamPlayers(teamId);
 
   const handleSave = async (lineups: LineupView[]) => {
     try {
@@ -66,6 +71,16 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   useEffect(() => {
     if (team && team.lineups) dispatch(lineupActions.initialize(team.lineups));
   }, [team, dispatch]);
+
+  if (teamError || playersError)
+    return (
+      <ServerErrorState
+        onRetry={() => {
+          mutate();
+          mutatePlayers();
+        }}
+      />
+    );
 
   if (!team || !players || !lineups.length) {
     return <LineupSkeleton />;

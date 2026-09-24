@@ -1,15 +1,15 @@
 "use client";
 import { MoveType } from "@/entities/game";
-import { useGame } from "@/hooks/use-data";
 import { useAppSelector } from "@/lib/redux/hooks";
 
-export const GameOptionsOverview = ({ gameId }: { gameId: string }) => {
-  const { game } = useGame(gameId);
-  const { setIndex } = useAppSelector((state) => state.game);
-  const { home, away } = game!.teams;
-  const homeStats = home.stats[setIndex];
-  const awayStats = away.stats[setIndex];
-  if (!homeStats || !awayStats) return null;
+export const GameOptionsOverview = ({
+  gameId: _gameId,
+}: {
+  gameId: string;
+}) => {
+  const {
+    stats: { home: homeStats, away: awayStats },
+  } = useAppSelector((state) => state.game.general.status);
 
   return (
     <>

@@ -43,7 +43,7 @@ export class CreateGameUseCase implements ICreateGameUseCase {
     );
 
     const game = await this.gameRepository.create({
-      win: false,
+      win: null,
       teamId: params.teamId,
       info: data.info,
       teams: { home: { ...data.teams.home }, away: { ...data.teams.away } },

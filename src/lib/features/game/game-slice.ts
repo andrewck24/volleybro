@@ -1,9 +1,12 @@
-import { EntryType, Side } from "@/entities/game";
 import {
-  gamePhaseHelper,
-  getPreviousScores,
-  getServingStatus,
-} from "@/lib/features/game/helpers";
+  EntryType,
+  Side,
+  deriveServingStatus,
+  deriveSetPhase,
+  deriveSetStats,
+  setTargetPoints,
+} from "@/entities/game";
+import { getPreviousScores } from "@/lib/features/game/helpers";
 import type {
   GameView,
   ReduxEntryDraft,
@@ -22,9 +25,10 @@ const statusState: ReduxStatus = {
   scores: { home: 0, away: 0 },
   entryIndex: 0,
   isServing: false,
-  inProgress: false,
+  isSetInProgress: false,
   isSetPoint: false,
   panel: "home",
+  stats: deriveSetStats(undefined, { options: { serve: "home" } }),
 };
 
 const rallyDetailState: ReduxEntryDraft["home"] = {
@@ -41,6 +45,8 @@ const initialState: ReduxGameState = {
   general: {
     status: statusState,
     entryDraft: {
+      id: "",
+      seq: 0,
       win: null,
       home: rallyDetailState,
       away: rallyDetailState,
@@ -49,6 +55,8 @@ const initialState: ReduxGameState = {
   editing: {
     status: statusState,
     entryDraft: {
+      id: "",
+      seq: 0,
       win: null,
       home: rallyDetailState,
       away: rallyDetailState,
@@ -64,12 +72,15 @@ const initialize: CaseReducer<
   const { game, setIndex } = action.payload;
   const set = game.sets[setIndex];
   const entryIndex = set?.entries?.length || 0;
-  const { inProgress, isSetPoint } = gamePhaseHelper(
-    game,
-    setIndex,
+  const { isSetInProgress, isSetPoint } = deriveSetPhase(
+    set,
     entryIndex,
+    setTargetPoints(game.info.scoring, setIndex),
   );
-  const isServing = getServingStatus(set, entryIndex);
+  const isServing = deriveServingStatus(set, entryIndex);
+  const stats = deriveSetStats(set?.entries, {
+    options: set?.options ?? { serve: "home" },
+  });
   state.id = game.id;
   state.setIndex = setIndex;
   state.mode = "general";
@@ -77,9 +88,10 @@ const initialize: CaseReducer<
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
     isServing,
-    inProgress,
+    isSetInProgress,
     isSetPoint,
     panel: "home" as ReduxStatus["panel"],
+    stats,
   };
   state.general.status = { ...state.general.status, ...status };
   state.editing.status = { ...state.editing.status, ...status };
@@ -154,9 +166,9 @@ const setEntryDraftAwayMove: CaseReducer<
 
 const confirmEntryDraftRally: CaseReducer<
   ReduxGameState,
-  PayloadAction<{ inProgress: boolean; isSetPoint: boolean }>
+  PayloadAction<{ isSetInProgress: boolean; isSetPoint: boolean }>
 > = (state, action) => {
-  const { inProgress, isSetPoint } = action.payload;
+  const { isSetInProgress, isSetPoint } = action.payload;
   const { mode } = state;
   const { entryIndex } = state[mode].status;
 
@@ -168,7 +180,7 @@ const confirmEntryDraftRally: CaseReducer<
     },
     entryIndex: entryIndex + 1,
     isServing: state[mode].entryDraft.win ?? false,
-    inProgress,
+    isSetInProgress,
     isSetPoint,
     panel: "home",
   };
@@ -191,13 +203,13 @@ const setEntryDraftSubstitution: CaseReducer<
   PayloadAction<string>
 > = (state, action) => {
   const { mode } = state;
-  const inPlayer = action.payload;
-  const outPlayer = state[mode].entryDraft.home.player?.id ?? "";
+  const outPlayer = state[mode].entryDraft.home.player?.id;
+  if (!outPlayer) return;
   state[mode].entryDraft = {
     ...state[mode].entryDraft,
     substitution: {
       team: Side.HOME,
-      players: { in: inPlayer, out: outPlayer },
+      players: { in: action.payload, out: outPlayer },
     },
   };
 };
@@ -259,14 +271,16 @@ const setEditingEntryStatus: CaseReducer<
   const set = game.sets[setIndex];
   const entry = set?.entries[entryIndex];
   if (!entry) return;
-  const { inProgress, isSetPoint } = gamePhaseHelper(
-    game,
-    setIndex,
+  const { isSetInProgress, isSetPoint } = deriveSetPhase(
+    set,
     entryIndex,
+    setTargetPoints(game.info.scoring, setIndex),
   );
 
   state.mode = "editing";
   state.editing.entryDraft = {
+    id: entry.id,
+    seq: entry.seq,
     win: entry.type === EntryType.RALLY ? entry.win : null,
     home:
       entry.type === EntryType.RALLY
@@ -288,10 +302,10 @@ const setEditingEntryStatus: CaseReducer<
   };
   state.editing.status = {
     ...state.editing.status,
-    isServing: getServingStatus(set, entryIndex),
+    isServing: deriveServingStatus(set, entryIndex),
     scores: getPreviousScores(set?.entries, entryIndex),
     entryIndex,
-    inProgress: inProgress,
+    isSetInProgress,
     isSetPoint: isSetPoint,
     panel: entry.type === EntryType.SUBSTITUTION ? "substitutes" : "away",
   };

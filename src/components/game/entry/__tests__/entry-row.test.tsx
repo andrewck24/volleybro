@@ -4,9 +4,7 @@ import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const players: GamePlayerView[] = [
-  { id: "p1", name: "選手一", number: 4, stats: [] },
-];
+const players: GamePlayerView[] = [{ id: "p1", name: "選手一", number: 4 }];
 
 const entry: EntryView = {
   type: EntryType.RALLY,
@@ -134,6 +132,38 @@ describe("EntryRow", () => {
     expect(
       screen.queryByTestId("entry-action-rollbackToHere"),
     ).not.toBeInTheDocument();
+  });
+
+  // S08: a rally whose write exhausted its attempts is marked on its row,
+  // with a floating retry control -- not a toast, since it must persist.
+  it("shows no retry control when the write has not failed", () => {
+    render(<EntryRow entry={entry} players={players} isLatest={true} />);
+
+    expect(screen.queryByTestId("entry-row-retry")).not.toBeInTheDocument();
+  });
+
+  it("shows a retry control on a failed row and invokes onRetry without toggling expansion", async () => {
+    const user = userEvent.setup();
+    const onRetry = jest.fn();
+    render(
+      <EntryRow
+        entry={entry}
+        players={players}
+        isLatest={true}
+        failed
+        onRetry={onRetry}
+      />,
+    );
+
+    const retry = screen.getByTestId("entry-row-retry");
+    expect(retry).toBeInTheDocument();
+
+    await user.click(retry);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("entry-row-expanded")).toHaveAttribute(
+      "data-open",
+      "false",
+    );
   });
 
   it("invokes the edit callback and does not also toggle expansion", async () => {

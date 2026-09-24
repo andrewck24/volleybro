@@ -6,20 +6,20 @@ import { TYPES } from "@/infrastructure/di/types";
 import { getTeamController } from "@/interface/controllers/team/get-team.controller";
 import { updateTeamController } from "@/interface/controllers/team/update-team.controller";
 import { assertObjectId } from "@/lib/api/guards";
-import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
-import { TeamUpdateSchema } from "@/lib/validations/team";
+import { withAuth } from "@/lib/api/wrappers";
+import { TeamUpdateSchema } from "@/interface/validations/team";
 import { NextRequest, NextResponse } from "next/server";
 
 export const GET = (
   _req: NextRequest,
   props: { params: Promise<{ teamId: string }> },
 ) =>
-  withErrorHandler(async (_req) => {
+  withAuth(async (_req, { userId }) => {
     const { teamId } = await props.params;
     assertObjectId(teamId, "teamId");
     await connectToMongoDB();
 
-    const team = await getTeamController(teamId);
+    const team = await getTeamController({ teamId, userId });
     if (!team) {
       throw new NotFoundError(
         CommonReason.RESOURCE_NOT_FOUND,

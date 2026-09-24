@@ -5,41 +5,135 @@ on:
     branches:
       - dev
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  HUSKY: 0
+
 jobs:
-  verify:
-    name: Verify
+  test:
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # next build imports route modules while collecting page data, which
-      # validates this variable's presence; no real connection is made.
-      MONGODB_URI: mongodb://localhost:27017/ci-placeholder
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          # pnpm 11 requires Node >= 22.13 (engines is >=22)
-          node-version: 22
+          node-version-file: .nvmrc
           cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm test
+
+  static:
+    name: Static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm format:check
+      - run: pnpm test:workflow
+      - run: pnpm check:workflow
+      - run: pnpm typecheck:strict
+      - run: pnpm lint
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+
+      - id: mongodb-memory-server-version
+        run: echo "version=$(pnpm pkg get devDependencies.mongodb-memory-server --workspace-root | tr -d '\"^')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ steps.mongodb-memory-server-version.outputs.version }}
 
       - run: pnpm install --frozen-lockfile
 
-      # format:check + typecheck (TS7 native via tsgo) + lint + test
-      - run: pnpm verify
+      - run: pnpm test:integration
+
+  blueprint:
+    name: Blueprint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter blueprint test
-
-      - run: pnpm build
-
       - run: pnpm --filter blueprint build
+
+  # Pull requests into dev only; see ADR-0055.
+  commitlint:
+    name: Commit messages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        if: github.base_ref == 'dev'
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        if: github.base_ref == 'dev'
+      - uses: actions/setup-node@v4
+        if: github.base_ref == 'dev'
+        with:
+          node-version-file: .nvmrc
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+        if: github.base_ref == 'dev'
+
+      - run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
+        if: github.base_ref == 'dev'
+        env:
+          COMMITLINT_BRANCH: ${{ github.head_ref }}
+
+  # The branch rulesets require a check named exactly "Verify". Renaming the
+  # jobs without this would leave that context permanently unreported and
+  # every pull request blocked, so the name stays and becomes the gate the
+  # parallel jobs report through.
+  verify:
+    name: Verify
+    needs: [test, static, integration, blueprint, commitlint]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Report the parallel jobs' result
+        run: |
+          echo "test=${{ needs.test.result }}"
+          echo "static=${{ needs.static.result }}"
+          echo "integration=${{ needs.integration.result }}"
+          echo "blueprint=${{ needs.blueprint.result }}"
+          echo "commitlint=${{ needs.commitlint.result }}"
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            exit 1
+          fi

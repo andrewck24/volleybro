@@ -32,12 +32,6 @@ jest.mock("@/components/ui/use-toast", () => ({
 }));
 
 // Mock showErrorToast so we can verify it's NOT called for AlertDialog flows
-const mockShowErrorToast = jest.fn();
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-  getErrorMessage: jest.requireActual("@/lib/api/error-toast").getErrorMessage,
-}));
-
 // Mock RoleSelect
 jest.mock("@/components/team/role-select", () => ({
   RoleSelect: ({
@@ -70,15 +64,11 @@ function createApiError(
   return new ApiClientError(detail, {
     code: code as AppErrorCode,
     reason,
-    detail,
     status,
   });
 }
 
-const joinedPlayer = createPlayer({
-  number: 7,
-  email: "test@example.com",
-});
+const joinedPlayer = createPlayer({ number: 7 });
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {
@@ -102,29 +92,30 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
       // Open the remove dialog
-      await user.click(screen.getByRole("button", { name: "移除成員" }));
+      await user.click(screen.getByRole("button", { name: "刪除球員" }));
 
       // Confirm remove
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText("Only the team owner can remove members"),
+          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
         ).toBeInTheDocument();
       });
 
       // Dialog should still be visible (title still present)
       expect(
-        screen.getByText(/確定要將.*從隊伍中移除嗎？/),
+        screen.getByText(/確定要將.*從名單中刪除嗎？/),
       ).toBeInTheDocument();
 
       // showErrorToast should NOT be called — error is inline
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
 
     it("should clear error and close dialog on successful retry", async () => {
@@ -145,24 +136,24 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: "移除成員" }));
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "刪除球員" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       await waitFor(() => {
         expect(screen.getByText(/伺服器暫時無法處理/)).toBeInTheDocument();
       });
-
       // Second call succeeds
       mockApiClient.mockResolvedValueOnce({});
 
-      await user.click(screen.getByRole("button", { name: "確認移除" }));
+      await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "成員已移除" }),
+          expect.objectContaining({ title: "球員已刪除" }),
         );
       });
     });
@@ -185,6 +176,7 @@ describe("AlertDialog error state — MembershipSection", () => {
           player={joinedPlayer}
           teamId="team-1"
           isCurrentOwner={true}
+          isSelf={false}
         />,
       );
 
@@ -199,16 +191,14 @@ describe("AlertDialog error state — MembershipSection", () => {
       // Error message should appear inline in dialog
       await waitFor(() => {
         expect(
-          screen.getByText(
-            "Only the current team owner can transfer ownership",
-          ),
+          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
         ).toBeInTheDocument();
       });
 
       // Dialog should still be visible
       expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
 
-      expect(mockShowErrorToast).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
     });
   });
 });

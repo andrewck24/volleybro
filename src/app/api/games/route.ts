@@ -2,6 +2,7 @@ import { ValidationError, CommonReason } from "@/entities/errors";
 import { connectToMongoDB } from "@/infrastructure/db/mongoose/connect-to-mongodb";
 import { findGameSummariesController } from "@/interface/controllers/game/game-summary.controller";
 import { createGameController } from "@/interface/controllers/game/game.controller";
+import { CreateGameSchema } from "@/interface/validations/game";
 import { withErrorHandler } from "@/lib/api/wrappers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -24,20 +25,14 @@ export const GET = withErrorHandler(async (req: NextRequest) => {
 
 export const POST = withErrorHandler(async (req: NextRequest) => {
   await connectToMongoDB();
-  const request = await req.json();
   const searchParams = req.nextUrl.searchParams;
   const teamId = searchParams.get("ti");
 
   if (!teamId)
     throw new ValidationError(CommonReason.INVALID_INPUT, "teamId is required");
 
-  const input = {
-    params: { teamId },
-    data: {
-      info: request.info,
-      teams: request.teams,
-    },
-  };
+  const data = CreateGameSchema.parse(await req.json());
+  const input = { params: { teamId }, data };
 
   const game = await createGameController(input);
 

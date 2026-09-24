@@ -1,0 +1,42 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0032",
+  "title": "Developer-facing error text never crosses the wire; the error body is code, reason and status",
+  "capabilities": ["platform/error-handling"],
+  "decision": "The error response body carries code, reason and status, and nothing else except the details field settled in D3. detail stays on AppError as the source of Error.message for logging, but it is never serialized and the client type no longer declares it. This makes the leak impossible by construction rather than detectable by review: there is no field for a display path to fall back to, and no text for a future consumer to misuse. The repository already made this decision once — WriteError in the game feature carries code, reason and status only, and its comment states the reason: detail and message move with copy and translation, and nothing can act on them. This applies that decision to the API error contract.",
+  "context": "AppError takes three arguments — a stable reason enum, a detail string that is serialized to the client, and an optional internalMessage that becomes Error.message and reaches the logs. The split is honoured for identifiers: of 113 construction sites, only two interpolate a real id and both put it in the third slot, with a test already asserting it does not appear in the response body. It is not honoured for vocabulary. That is not an oversight either: docs/specs/error-handling/spec.md states the rule the code follows, describing detail as \"de-identified, stable, human-readable — safe for HTTP responses and monitoring grouping\", and its serialization requirement says \"Only error.detail (de-identified) SHALL be serialized\". The specification is right that detail carries no identifiers and wrong that this makes it safe to send: de-identified is not the same as intelligible to a user, and \"INVITED status must have exactly one of userId or email\" discloses the internal model while containing no id at all. The specification also predates the count that matters: 82 of the 93 construction sites pass no third argument at all, so the second slot is simultaneously the text that goes on the wire and the message that reaches the log. Most authors are writing the latter — 'INVITED status must have exactly one of userId or email, not both', 'Invalid teamId format', 'Cannot update userId or id fields' — and those strings are then rendered to the user, because the display path falls back to detail for any reason it does not recognise, which is 22 of 24. The same field also has a second producer: the Edge 401 in proxy.ts bypasses serializeError entirely and writes its own detail, so one reason carries two different sentences.",
+  "alternatives": [
+    {
+      "option": "Keep detail on the wire and enforce the detail/internalMessage split at every throw site",
+      "reason": "Replaces a structural guarantee with a discipline held by review, and review is precisely how the current state arose. The split has existed since AppError was written and is already violated in the majority of construction sites; nothing about restating it would make the next site comply."
+    },
+    {
+      "option": "Keep detail on the wire and fix only the display fallback",
+      "reason": "The string is still in the response body and readable in DevTools, so nothing about the disclosure changes. It also leaves the field available to the next display path that gets written, which is how the second, divergent path arose in the first place."
+    },
+    {
+      "option": "Sanitise detail server-side before serializing — strip interpolations, keep the sentence",
+      "reason": "There is nothing mechanical to strip. The problem is not interpolation but vocabulary: 'INVITED status must have exactly one of userId or email' contains no interpolation and discloses the internal model. Deciding sentence by sentence what is safe is the review-held discipline the first alternative already failed at."
+    },
+    {
+      "option": "Keep the specified contract and treat the disclosure as acceptable",
+      "reason": "It is the honest reading of what the specification says, and it survives the identifier argument — no detail carries a record id. It does not survive the vocabulary argument or the product one: a zh-TW application renders English internal sentences for almost every 4xx, which is not a contract anyone would write down today. The specification's own goal, a stable de-identified string for grouping, is better served by reason, which is already on the wire and is an enum."
+    }
+  ],
+  "consequences": [
+    "Removing the field from the ApiError interface makes tsc enumerate every reader, which is the point of doing it before any copy work. Grep alone would miss error.message.",
+    "The ApiClientError constructor must stop passing info.detail as the Error message, or the same string survives on .message where tsc will not enumerate readers.",
+    "proxy.ts must be changed in the same slice as serializeError. It is a separate runtime and a separate producer; changing only the Node path leaves the Edge 401 disclosing.",
+    "Twelve test files break. detail is asserted in far more places than it is read.",
+    "Client-side error monitoring improves rather than degrades: reason is a stable enum and a better fingerprint than text that interpolates ids, which would fragment one fault into unbounded distinct groups.",
+    "Correlating one client-side report with one server log entry is no longer possible from the response alone. That gap is real, and its answer is a request correlation id rather than free text; it is deferred because the repository has no error-tracking consumer yet.",
+    "This supersedes named requirements in docs/specs/error-handling/spec.md: the serialization clause in \"withErrorHandler route wrapper and HTTP error response format\", detail's description under \"AppError class hierarchy\", and the fallback scenario under \"API client and frontend error consumption\". Those specs are immutable historical snapshots, so they are not edited; the superseding record is this decision, promoted at Archive."
+  ],
+  "revisitTriggers": [
+    "A free-text field returns to the error response body under any name. The guarantee is that the body is a closed set, not that one particular field is absent.",
+    "An error-tracking platform is adopted and needs to drill from an aggregate back to a single request, which is when the correlation id becomes necessary rather than speculative.",
+    "A delivery mechanism appears that does not route through withErrorHandler or proxy.ts, such as a Server Action, which would become a third producer of error responses."
+  ],
+  "originChange": "error-display-boundary"
+}

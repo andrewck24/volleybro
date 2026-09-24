@@ -5,7 +5,7 @@ import {
   Profile as ProfileModel,
   type ProfileDocument,
 } from "@/infrastructure/db/mongoose/schemas/profile";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
 export class ProfileRepositoryImpl implements IProfileRepository {
   private toProfile(doc: ProfileDocument): Profile {

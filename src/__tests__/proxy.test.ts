@@ -61,8 +61,15 @@ describe("proxy — API authentication gate", () => {
       expect(body).toEqual({
         code: "AUTHENTICATION",
         reason: "SESSION_REQUIRED",
-        detail: "Authentication is required",
       });
+    });
+
+    it("serializes a closed set of keys, matching the Node handler", async () => {
+      mockGetSessionCookie.mockReturnValue(null);
+      const res = await proxy(makeRequest("/api/teams") as never);
+      const body = await res.json();
+
+      expect(Object.keys(body as object).sort()).toEqual(["code", "reason"]);
     });
   });
 

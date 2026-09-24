@@ -1,21 +1,29 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { NotFoundError, CommonReason } from "@/entities/errors";
-import { Player, PlayerRole, PlayerStatus } from "@/entities/player";
+import {
+  narrowPlayer,
+  NewPlayer,
+  Player,
+  PlayerFields,
+  PlayerStatus,
+} from "@/entities/player";
 import {
   PlayerModel,
   type PlayerDocument,
 } from "@/infrastructure/db/mongoose/schemas/player";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
 export class PlayerRepositoryImpl implements IPlayerRepository {
   private toPlayer(doc: PlayerDocument): Player {
-    const obj = doc.toObject();
-    return {
-      ...obj,
-      id: obj._id.toString(),
-      teamId: obj.teamId?.toString(),
-      userId: obj.userId?.toString(),
-    };
+    const { _id, teamId, userId, ...rest } = doc.toObject();
+    // Absent links are left out rather than set to undefined, so the narrowed
+    // player carries exactly the fields its shape declares.
+    return narrowPlayer({
+      ...rest,
+      id: _id.toString(),
+      ...(teamId ? { teamId: teamId.toString() } : {}),
+      ...(userId ? { userId: userId.toString() } : {}),
+    });
   }
 
   async findById(id: string): Promise<Player | null> {
@@ -66,9 +74,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async create(
-    player: Omit<Player, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Player> {
+  async create(player: NewPlayer): Promise<Player> {
     try {
       const newPlayer = await PlayerModel.create(player);
       return this.toPlayer(newPlayer);
@@ -77,7 +83,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async update(id: string, updates: Partial<Player>): Promise<Player> {
+  async update(id: string, updates: Partial<PlayerFields>): Promise<Player> {
     const $set: Record<string, unknown> = {};
     const $unset: Record<string, string> = {};
 
@@ -126,30 +132,6 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async findTeamOwner(teamId: string): Promise<Player | null> {
-    try {
-      const doc = await PlayerModel.findOne({
-        teamId,
-        role: PlayerRole.OWNER,
-      }).exec();
-      return doc ? this.toPlayer(doc) : null;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async findAdminsByTeamId(teamId: string): Promise<Player[]> {
-    try {
-      const docs = await PlayerModel.find({
-        teamId,
-        role: { $in: [PlayerRole.ADMIN, PlayerRole.OWNER] },
-      }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async existsInvitation(teamId: string, email: string): Promise<boolean> {
     try {
       const count = await PlayerModel.countDocuments({
@@ -177,13 +159,17 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
 
   async linkUserToInvitations(email: string, userId: string): Promise<number> {
     try {
+      // The address arrives in whatever case the identity provider holds it,
+      // and an invitation stored before this release kept the case it was typed
+      // in. The same collation the user lookup uses lets the two meet, without
+      // a $regex, whose `.` would reach a different address.
       const result = await PlayerModel.updateMany(
         { email, status: PlayerStatus.INVITED },
         {
           $set: { userId, status: PlayerStatus.INVITED },
           $unset: { email: "" },
         },
-      );
+      ).collation({ locale: "en", strength: 2 });
       return result.modifiedCount;
     } catch (error) {
       throw translateRepositoryError(error);

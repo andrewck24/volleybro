@@ -1,0 +1,70 @@
+---
+title: Delivery workflow
+description: A repository-owned, Manual-first lifecycle bounded by two human gates.
+---
+
+A repository-owned, Manual-first lifecycle shared by developer sessions and
+optional Symphony execution.
+
+## Current behavior
+
+- Two human gates bound the whole lifecycle: at **G1** the developer confirms
+  the discussion's final summary before any implementation starts, and the
+  Proposal page records that summary verbatim afterwards; **G2** accepts the
+  Review page before the pull request opens. Everything between a gate and
+  the next runs without stopping for a human.
+- At each gate `pnpm check:workflow --gate <slug>` fails on a page title that
+  is not `<name> — Proposal` or `<name> — Review`, on uncommitted decision
+  records, and on a Change branch not pushed to its upstream, and warns when
+  a record added on the branch has a `decision` over 1000 characters.
+- `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly
+  `@AGENTS.md`; `check:workflow` fails otherwise, and when `AGENTS.md` cites a
+  section number. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`,
+  which holds only review-time judgement rules; the rules a writer applies
+  live in `CONTRIBUTING.md` (commits, pull requests) and
+  `docs/agents/blueprint.md` (Blueprint pages, decision records).
+- Apply decomposes an accepted Proposal into slices — Linear sub-issues under
+  the Change's issue, the same way in manual and Symphony mode — unless the
+  Change fits one session, which implements directly instead. Either way it
+  implements, code-reviews to a fixed point, then runs Archive — all before
+  G2, in one pass.
+- Archive runs automatically once Pre-PR code review reaches its fixed point,
+  before the pull request opens: it promotes behavior and durable constraints
+  to Features, exports the Review summary, and stops for G2 acceptance.
+  Decision records are not part of that promotion — each already lives at its
+  permanent path from the moment it was written.
+- Symphony claims a Change once the developer adds `agent:ready` to its
+  tracker issue after G1, moving it to Todo in the same step.
+  Before Manual Apply, the developer checks that no claim exists, removes
+  the label, moves the issue to In Progress, and checks again — closing
+  the race with a Symphony claim.
+- Commit messages are checked before a commit exists: a `commit-msg` hook
+  runs commitlint (conventional type, a body, no AI attribution, no retired
+  tool as scope) and a `pre-commit` hook formats and lints staged files only.
+  CI re-runs commitlint over every commit of a pull request into `dev`, so
+  the hook is feedback and CI is the authority.
+- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change
+  branch: every commit on it carries `Blueprint-Change: <slug>` naming that
+  same slug, or it is rejected.
+
+## Constraints
+
+- The repository must be deliverable without a running Symphony runtime.
+- No pull request opens before Archive completes and the developer accepts
+  the Review page (G2); merge performs no second knowledge sync. After merge
+  the local `dev` is fast-forwarded and the Change's worktree and local branch
+  are removed.
+- Blueprint's Change review surfaces (`proposal.mdx`, `review.mdx`) are
+  gitignored on the Change branch and published to the `blueprint-changes`
+  store branch at each gate, which is their durable store — not the Change
+  branch itself.
+- A small fix that only restores behavior Features already describe, or
+  changes no behavior, may skip both gates via the Fix path: no Proposal or
+  Review page, only a pull request the developer accepts, from a
+  `hotfix/<slug>` branch whatever its commit type, carrying a
+  `Refs: <tracker issue>` commit trailer when the fix came from one, instead
+  of `Implements` and `Blueprint-Change`.
+
+## Implemented decisions
+
+<DecisionTimeline />

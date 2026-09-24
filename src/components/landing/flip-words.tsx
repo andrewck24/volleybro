@@ -1,5 +1,5 @@
 "use client";
-import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import * as m from "motion/react-m";

@@ -1,11 +1,25 @@
-import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
-import { NotFoundError, CommonReason } from "@/entities/errors";
-import { EntryType, type Game, type GameSummary } from "@/entities/game";
+import type {
+  EntryRef,
+  IGameRepository,
+} from "@/applications/repositories/game.repository.interface";
+import {
+  NotFoundError,
+  ValidationError,
+  CommonReason,
+  GameReason,
+} from "@/entities/errors";
+import {
+  EntryType,
+  type Entry,
+  type Game,
+  type GameSummary,
+  type Set,
+} from "@/entities/game";
 import {
   GameDocument,
   Game as GameModel,
 } from "@/infrastructure/db/mongoose/schemas/game";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 import mongoose, { type Types } from "mongoose";
 
 /** Raw (persisted) shapes returned by `doc.toObject()`, before id mapping. */
@@ -61,8 +75,10 @@ export class GameRepositoryImpl implements IGameRepository {
 
   private toLineupRead(lineup: RawLineup | undefined) {
     if (!lineup) return lineup;
+    // The subdocument's own `_id` has no field on `Lineup` and no place in
+    // the request the client builds from this value.
     return {
-      ...lineup,
+      options: lineup.options,
       starting: (lineup.starting ?? []).map((p) => this.mapLineupPlayerRead(p)),
       liberos: (lineup.liberos ?? []).map((p) => this.mapLineupPlayerRead(p)),
       substitutes: (lineup.substitutes ?? []).map((p) =>
@@ -151,16 +167,24 @@ export class GameRepositoryImpl implements IGameRepository {
 
   // --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
 
+  /** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
+  private toPlayerRef(id: string | null | undefined) {
+    return id || null;
+  }
+
   private mapLineupPlayerWrite(p: {
     id?: string | null;
     position?: string;
     sub?: { id?: string; entryIndex?: { in?: number; out?: number } };
   }) {
     return {
-      playerId: p?.id ?? null,
+      playerId: this.toPlayerRef(p?.id),
       position: p?.position,
       sub: p?.sub
-        ? { playerId: p.sub.id ?? null, entryIndex: p.sub.entryIndex }
+        ? {
+            playerId: this.toPlayerRef(p.sub.id),
+            entryIndex: p.sub.entryIndex,
+          }
         : undefined,
     };
   }
@@ -191,7 +215,7 @@ export class GameRepositoryImpl implements IGameRepository {
     snapshot: { id?: string | null } & Record<string, unknown>,
   ) {
     const { id, ...rest } = snapshot;
-    return { ...rest, playerId: id ?? null };
+    return { ...rest, playerId: this.toPlayerRef(id) };
   }
 
   private mapTeamWrite(
@@ -234,19 +258,33 @@ export class GameRepositoryImpl implements IGameRepository {
     if (!d?.player) return d;
     return {
       ...d,
-      player: { playerId: d.player.id ?? null, zone: d.player.zone },
+      player: {
+        playerId: this.toPlayerRef(d.player.id),
+        zone: d.player.zone,
+      },
     };
   }
 
   private mapEntryWrite(entry: Record<string, unknown> & { type?: EntryType }) {
-    // Substitution `players.in/out` keep their field names; Mongoose casts the
-    // hex strings to ObjectId on the declared paths. Only rally detail needs the
-    // `player.id -> player.playerId` rename.
     if (entry?.type === EntryType.RALLY) {
       return {
         ...entry,
         home: this.mapRallyDetailWrite(entry.home),
         away: this.mapRallyDetailWrite(entry.away),
+      };
+    }
+    // Substitution keeps the `players.in/out` field names; only the ids need
+    // the same empty-string collapse as every other ObjectId path.
+    if (entry?.type === EntryType.SUBSTITUTION) {
+      const players = entry.players as
+        { in?: string | null; out?: string | null } | undefined;
+      if (!players) return entry;
+      return {
+        ...entry,
+        players: {
+          in: this.toPlayerRef(players.in),
+          out: this.toPlayerRef(players.out),
+        },
       };
     }
     return entry;
@@ -341,6 +379,150 @@ export class GameRepositoryImpl implements IGameRepository {
     } catch (error) {
       throw translateRepositoryError(error);
     }
+  }
+
+  /**
+   * A positional write touches one entry, so the guard has to keep the write
+   * off a path that does not exist yet — an out-of-range index would otherwise
+   * pad the array with nulls instead of failing.
+   */
+  private async writeToSet(
+    { gameId, setIndex }: EntryRef,
+    guardPath: string,
+    update: Record<string, unknown>,
+  ): Promise<Entry[]> {
+    try {
+      const doc = await this.model
+        .findOneAndUpdate(
+          { _id: gameId, [guardPath]: { $exists: true } },
+          update,
+          {
+            returnDocument: "after",
+            projection: { sets: { $slice: [setIndex, 1] } },
+          },
+        )
+        .exec();
+      if (doc) {
+        const [set] =
+          (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
+        return (set?.entries ?? []).map((e) =>
+          this.mapEntryRead(e),
+        ) as unknown as Entry[];
+      }
+      // The guard failed as a whole; one lookup says which half of it did.
+      const game = await this.model.exists({ _id: gameId }).exec();
+      throw game
+        ? new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found")
+        : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  /**
+   * One entry becomes two candidate operations, and exactly one lands: a
+   * `$set` through an array filter when the identity already exists, or a
+   * guarded `$push` when it does not. Both are ordinary updates rather than
+   * an aggregation pipeline update, so Mongoose casting still applies.
+   */
+  async upsertEntry(
+    ref: EntryRef,
+    entries: Entry[],
+    lineups?: Partial<Set["lineups"]>,
+  ): Promise<Entry[]> {
+    const { gameId, setIndex } = ref;
+    const path = `sets.${setIndex}`;
+    const guard = { _id: gameId, [path]: { $exists: true } };
+    const setLineups = Object.entries(lineups ?? {}).map(
+      ([side, lineup]) =>
+        [
+          `${path}.lineups.${side}`,
+          this.toLineupWrite(
+            lineup as unknown as Parameters<typeof this.toLineupWrite>[0],
+          ),
+        ] as const,
+    );
+    const lineupSet = setLineups.length
+      ? Object.fromEntries(setLineups)
+      : undefined;
+
+    // `id: undefined` reaches Mongo as null, which the arrayFilters below
+    // match against every other entry that also has none -- one edit would
+    // overwrite all of them. Pre-identity documents make that reachable.
+    const anonymous = entries.find(
+      (entry) => typeof entry.id !== "string" || typeof entry.seq !== "number",
+    );
+    if (anonymous)
+      throw new ValidationError(
+        CommonReason.INVALID_INPUT,
+        "An entry must carry an id and a seq to be written",
+      );
+
+    const ops = entries.flatMap((entry) => {
+      const mapped = this.mapEntryWrite(entry);
+      return [
+        {
+          updateOne: {
+            filter: { ...guard, [`${path}.entries.id`]: entry.id },
+            update: {
+              $set: {
+                [`${path}.entries.$[e]`]: mapped,
+                ...lineupSet,
+              },
+            },
+            arrayFilters: [{ "e.id": entry.id }],
+          },
+        },
+        {
+          updateOne: {
+            filter: { ...guard, [`${path}.entries.id`]: { $ne: entry.id } },
+            update: {
+              $push: {
+                [`${path}.entries`]: { $each: [mapped], $sort: { seq: 1 } },
+              },
+              ...(lineupSet && { $set: lineupSet }),
+            },
+          },
+        },
+      ];
+    });
+
+    try {
+      if (ops.length) await this.model.bulkWrite(ops, { ordered: true });
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+
+    try {
+      const doc = await this.model
+        .findOne(guard, { sets: { $slice: [setIndex, 1] } })
+        .exec();
+      if (!doc) {
+        const game = await this.model.exists({ _id: gameId }).exec();
+        throw game
+          ? new NotFoundError(GameReason.SET_NOT_FOUND, "Set not found")
+          : new NotFoundError(GameReason.GAME_NOT_FOUND, "Game not found");
+      }
+      const [set] =
+        (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
+      return (set?.entries ?? []).map((e) => this.mapEntryRead(e)) as Entry[];
+    } catch (error) {
+      throw translateRepositoryError(error);
+    }
+  }
+
+  async completeSet(
+    ref: EntryRef,
+    win: boolean | null,
+    gameWin?: boolean | null,
+  ): Promise<void> {
+    const path = `sets.${ref.setIndex}`;
+    await this.writeToSet(ref, path, {
+      $set: {
+        [`${path}.win`]: win,
+        ...(gameWin !== undefined && { win: gameWin }),
+      },
+    });
   }
 
   async delete(id: string): Promise<boolean> {

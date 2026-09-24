@@ -4,7 +4,7 @@ import { withAuth } from "@/lib/api/wrappers";
 import {
   PlayerSchema,
   TransferOwnershipSchema,
-} from "@/lib/validations/player";
+} from "@/interface/validations/player";
 import { NextRequest, NextResponse } from "next/server";
 
 /**

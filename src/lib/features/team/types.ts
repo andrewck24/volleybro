@@ -54,7 +54,12 @@ export const TeamResponseSchema = z.object({
   updatedAt: z.coerce.date().optional(),
 });
 
+export const UserPlayerResponseSchema = PlayerResponseSchema.extend({
+  teamName: z.string().optional(),
+});
+
 export type PlayerView = z.infer<typeof PlayerResponseSchema>;
+export type UserPlayerView = z.infer<typeof UserPlayerResponseSchema>;
 export type TeamView = z.infer<typeof TeamResponseSchema>;
 export type LineupView = z.infer<typeof LineupResponseSchema>;
 export type LineupList = "starting" | "liberos" | "substitutes";

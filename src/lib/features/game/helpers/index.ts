@@ -1,22 +1,22 @@
-import { gamePhaseHelper } from "@/lib/features/game/helpers/queries/game-phase.helper";
-import { getPreviousRally } from "@/lib/features/game/helpers/queries/previous-rally.helper";
 import { getPreviousScores } from "@/lib/features/game/helpers/queries/previous-scores.helper";
-import { getServingStatus } from "@/lib/features/game/helpers/queries/serving-status.helper";
 import { getSetLineup } from "@/lib/features/game/helpers/queries/set-lineup.helper";
+import { getSetOptions } from "@/lib/features/game/helpers/queries/set-options.helper";
+import { getTeamsStats } from "@/lib/features/game/helpers/queries/team-stats.helper";
 
 import {
-  createRallyHelper,
-  updateRallyHelper,
+  applyEntry,
+  assertRallyAt,
+  deriveEntryPhase,
 } from "@/lib/features/game/helpers/optimistic/rally.helper";
 import { createSubstitutionHelper } from "@/lib/features/game/helpers/optimistic/substitution.helper";
 
 export {
-  createRallyHelper,
+  applyEntry,
+  assertRallyAt,
   createSubstitutionHelper,
-  gamePhaseHelper,
-  getPreviousRally,
+  deriveEntryPhase,
   getPreviousScores,
-  getServingStatus,
   getSetLineup,
-  updateRallyHelper,
+  getSetOptions,
+  getTeamsStats,
 };

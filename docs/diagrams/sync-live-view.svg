@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 32 1000 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="sync-live-view-title sync-live-view-desc">
+  <title id="sync-live-view-title">Sync and live view (planned)</title>
+  <desc id="sync-live-view-desc">Planned design: a recorder posts a rally with an intent anchor; a server guard writes it to MongoDB when the anchor is still valid, and a change stream feeds an SSE route that fans live entries out to other recorders and read-only live viewers; a stale anchor returns 409 and opens a blocking conflict panel.</desc>
+  <defs>
+    <style>
+      .paper { fill: #f2f2f6; }
+      .ink { fill: #000000; }
+      .muted { fill: #626262; }
+      .accent-t { fill: #10687e; }
+      .zone { fill: none; stroke: rgba(0,0,0,0.28); }
+      .node { fill: #fbfbfb; stroke: #000000; }
+      .store { fill: rgba(0,0,0,0.05); stroke: #626262; }
+      .focal { fill: rgba(16,104,126,0.08); stroke: #10687e; }
+      .wire { stroke: #626262; fill: none; }
+      .wire-accent { stroke: #10687e; fill: none; }
+      .head { fill: #626262; }
+      .head-accent { fill: #10687e; }
+      text { font-family: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+      .mono { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+      @media (prefers-color-scheme: dark) {
+        .paper { fill: #020a17; }
+        .ink { fill: #f4f5f6; }
+        .muted { fill: #94a3b8; }
+        .accent-t { fill: #22a3c3; }
+        .zone { stroke: rgba(244,245,246,0.22); }
+        .node { fill: #1d232d; stroke: #94a3b8; }
+        .store { fill: rgba(244,245,246,0.05); stroke: #94a3b8; }
+        .focal { fill: rgba(34,163,195,0.10); stroke: #22a3c3; }
+        .wire { stroke: #94a3b8; }
+        .wire-accent { stroke: #22a3c3; }
+        .head { fill: #94a3b8; }
+        .head-accent { fill: #22a3c3; }
+      }
+    </style>
+    <marker id="sync-live-view-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head" points="0 0, 8 3, 0 6"/></marker>
+    <marker id="sync-live-view-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon class="head-accent" points="0 0, 8 3, 0 6"/></marker>
+  </defs>
+  <rect class="paper" y="32" width="1000" height="320" rx="8"/>
+  <rect class="zone" x="208" y="72" width="592" height="248" rx="8" stroke-width="1"/>
+  <rect class="paper" x="220" y="64" width="104" height="16"/>
+  <text class="mono muted" x="228" y="76" font-size="8" letter-spacing="0.14em">SERVER · PLANNED</text>
+  <path class="wire" d="M 168 144 H 240" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire" d="M 368 144 H 432" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire" d="M 560 144 H 624" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire" d="M 688 168 V 224" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire" d="M 752 232 H 840" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire" d="M 752 268 H 840" stroke-width="1.2" marker-end="url(#sync-live-view-arrow)"/>
+  <path class="wire-accent" d="M 304 168 V 264 Q 304 272 296 272 H 168" stroke-width="1.2" marker-end="url(#sync-live-view-arrow-accent)"/>
+  <path class="wire" d="M 96 248 V 169" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#sync-live-view-arrow)"/>
+  <rect class="paper" x="170" y="125" width="68" height="12" rx="2"/>
+  <text class="mono muted" x="204" y="134" font-size="8" text-anchor="middle" letter-spacing="0.06em">POST RALLY</text>
+  <rect class="paper" x="380" y="125" width="40" height="12" rx="2"/>
+  <text class="mono muted" x="400" y="134" font-size="8" text-anchor="middle" letter-spacing="0.06em">VALID</text>
+  <rect class="paper" x="310" y="205" width="64" height="12" rx="2"/>
+  <text class="mono accent-t" x="316" y="214" font-size="8" text-anchor="start" letter-spacing="0.06em">409 STALE</text>
+  <rect class="paper" x="34" y="203" width="56" height="12" rx="2"/>
+  <text class="mono muted" x="84" y="212" font-size="8" text-anchor="end" letter-spacing="0.06em">RESOLVED</text>
+  <rect class="paper" x="778" y="213" width="36" height="12" rx="2"/>
+  <text class="mono muted" x="796" y="222" font-size="8" text-anchor="middle" letter-spacing="0.06em">LIVE</text>
+  <rect class="node" x="24" y="120" width="144" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="96" y="142" font-size="12" font-weight="600" text-anchor="middle">Recorder A</text>
+  <text class="mono muted" x="96" y="156" font-size="9" text-anchor="middle">sends a rally</text>
+  <rect class="focal" x="240" y="120" width="128" height="48" rx="6" stroke-width="1"/>
+  <text class="accent-t" x="304" y="142" font-size="12" font-weight="600" text-anchor="middle">Anchor guard</text>
+  <text class="mono muted" x="304" y="156" font-size="9" text-anchor="middle">entryIndex + score</text>
+  <rect class="store" x="432" y="120" width="128" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="496" y="148" font-size="12" font-weight="600" text-anchor="middle">MongoDB Atlas</text>
+  <rect class="node" x="624" y="120" width="128" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="688" y="148" font-size="12" font-weight="600" text-anchor="middle">Change stream</text>
+  <rect class="node" x="624" y="224" width="128" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="688" y="246" font-size="12" font-weight="600" text-anchor="middle">SSE route</text>
+  <text class="mono muted" x="688" y="260" font-size="9" text-anchor="middle">fan-out</text>
+  <rect class="node" x="840" y="208" width="128" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="904" y="232" font-size="12" font-weight="600" text-anchor="middle">Recorder B</text>
+  <rect class="node" x="840" y="256" width="128" height="40" rx="6" stroke-width="1"/>
+  <text class="ink" x="904" y="274" font-size="12" font-weight="600" text-anchor="middle">Live view</text>
+  <text class="mono muted" x="904" y="288" font-size="9" text-anchor="middle">read-only</text>
+  <rect class="node" x="24" y="248" width="144" height="48" rx="6" stroke-width="1"/>
+  <text class="ink" x="96" y="270" font-size="12" font-weight="600" text-anchor="middle">Conflict panel</text>
+  <text class="mono muted" x="96" y="284" font-size="9" text-anchor="middle">discard/override/rebase</text>
+</svg>

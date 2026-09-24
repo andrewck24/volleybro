@@ -3,13 +3,15 @@ import { GameReason } from "@/entities/errors";
 import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { POST as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
+import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { useFakeAuth } from "./support/auth";
 import { callRoute } from "./support/request";
 import { seedGame, type SeededGame } from "./support/seed";
 
 const rally = {
+  id: "entry-1",
+  seq: 0,
   win: true,
   home: { score: 1, type: MoveType.ATTACK, num: 0 },
   away: { score: 0, type: MoveType.ATTACK, num: 0 },
@@ -17,14 +19,14 @@ const rally = {
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-describe("POST /api/games/:id/sets/rallies", () => {
+describe("PUT /api/games/:id/sets/rallies", () => {
   let seeded: SeededGame;
 
   beforeEach(async () => {
     useFakeAuth();
-    // A guest player on the roster is the real-world trigger for the 404:
-    // create-set used to crash on its null id, so the set never persisted.
-    seeded = await seedGame({ includeGuest: true });
+    // A null roster id is not what broke rally recording, but create-set walks
+    // the whole squad and must not throw on one.
+    seeded = await seedGame({ includeNullIdPlayer: true });
   });
 
   const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
@@ -44,22 +46,27 @@ describe("POST /api/games/:id/sets/rallies", () => {
 
     const res = await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: rally,
+      method: "PUT",
+      query: { si: 0 },
+      body: [rally],
     });
 
     expect(res.status).toBe(200);
     const afterRally = await repo().findById(seeded.gameId);
     expect(afterRally!.sets[0]!.entries).toHaveLength(1);
+    // The identity and sequence the client sent must round-trip unchanged.
+    expect(afterRally!.sets[0]!.entries[0]).toMatchObject({
+      id: rally.id,
+      seq: rally.seq,
+    });
   });
 
   it("returns 404 SET_NOT_FOUND for a set index that does not exist", async () => {
     const res = await callRoute(createRally, {
       gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0, ei: 0 },
-      body: rally,
+      method: "PUT",
+      query: { si: 0 },
+      body: [rally],
     });
     expect(res.status).toBe(404);
     expect((res.json as { reason?: string }).reason).toBe(

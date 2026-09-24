@@ -2,7 +2,7 @@
 import { AnalyticsFeatures } from "@/components/landing/features/analytics";
 import { GameFeatures } from "@/components/landing/features/game";
 import { TeamFeatures } from "@/components/landing/features/team";
-import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import Image from "next/image";

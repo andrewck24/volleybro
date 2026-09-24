@@ -1,0 +1,44 @@
+---
+title: Features
+description: A living map of what VolleyBro does today and what is planned next, grouped by product surface.
+---
+
+This section is the feature blueprint for VolleyBro — one page per feature
+domain. Each page shows the domain's flow as an interactive diagram (click a
+step to see what it does) and a status table.
+
+## Status legend
+
+Status reflects what is in the codebase today, not a roadmap promise.
+
+| Badge                                | Meaning                              |
+| ------------------------------------ | ------------------------------------ |
+| <StatusBadge status="shipped" />     | In production and in use             |
+| <StatusBadge status="in-progress" /> | Partially built or actively changing |
+| <StatusBadge status="planned" />     | Designed or scoped, not yet built    |
+
+## Surfaces
+
+Domains are grouped by the product surface they belong to, aligned with the
+planned monorepo split (`apps/web`, `apps/landing`, `packages/*`).
+
+### App
+
+The main application — team operations, live match recording, and analysis.
+
+- [Team Management](/features/team-management) — teams, members, roles, lineups
+- [Game Recording](/features/game-recording) — rally-by-rally recording flow
+- [Analytics](/features/analytics) — match and team statistics
+- [Notifications](/features/notifications) — the planned notification system
+- [Account & Settings](/features/account) — sign-in, profile, appearance, onboarding
+
+### Landing
+
+- [Landing](/features/landing) — the public marketing page
+
+### Shared / Platform
+
+- [Platform](/features/platform) — PWA, design system, architecture foundations
+  - [Delivery Workflow](/features/platform/delivery-workflow) — the repository-owned delivery lifecycle
+  - [Blueprint](/features/platform/blueprint) — durable knowledge for Changes and decisions
+  - [Agent Orchestration](/features/platform/agent-orchestration) — optional Symphony execution

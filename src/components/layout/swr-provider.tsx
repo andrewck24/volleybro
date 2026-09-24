@@ -20,6 +20,8 @@ export function SWRProvider({ children }: { children: React.ReactNode }) {
   }, [router, toast]);
 
   useEffect(() => {
+    // Never reset: released only by the full page load that sign-in
+    // performs. See error-display-boundary S03.
     let redirecting = false;
     const handleUnauthorized = () => {
       if (redirecting) return;

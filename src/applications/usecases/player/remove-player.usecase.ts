@@ -1,12 +1,17 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
+import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
-import type { IAuthorizationService } from "@/applications/services/auth/authorization.service.interface";
+import {
+  authorizeManagePlayer,
+  clearActiveTeam,
+} from "@/applications/usecases/player/membership";
 import {
   NotFoundError,
   UnexpectedError,
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
+import { isTeamMember } from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -24,17 +29,16 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
   constructor(
     @inject(TYPES.PlayerRepository)
     private playerRepository: IPlayerRepository,
-    @inject(TYPES.AuthorizationService)
-    private authService: IAuthorizationService,
     @inject(TYPES.TeamRepository)
     private teamRepository: ITeamRepository,
+    @inject(TYPES.ProfileRepository)
+    private profileRepository: IProfileRepository,
   ) {}
 
   async execute({
     playerId,
     userId,
   }: IRemovePlayerInput): Promise<{ success: boolean }> {
-    // 1. Get player
     const player = await this.playerRepository.findById(playerId);
     if (!player) {
       throw new NotFoundError(
@@ -43,15 +47,18 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
       );
     }
 
-    // 2. Verify user is admin of team
     if (!player.teamId)
       throw new NotFoundError(
         PlayerReason.PLAYER_NOT_FOUND,
         "Player has no team",
       );
-    await this.authService.verifyIsTeamAdmin(player.teamId, userId);
+    await authorizeManagePlayer(
+      this.playerRepository,
+      player.teamId,
+      player,
+      userId,
+    );
 
-    // 3. Delete player
     const deleted = await this.playerRepository.delete(playerId);
     if (!deleted) {
       throw new UnexpectedError(
@@ -60,8 +67,14 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
       );
     }
 
-    // 4. Remove player from team lineups
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
+
+    if (isTeamMember(player))
+      await clearActiveTeam(
+        this.profileRepository,
+        player.userId,
+        player.teamId,
+      );
 
     return { success: true };
   }

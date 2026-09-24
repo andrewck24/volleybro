@@ -31,6 +31,8 @@ Each layer has a designated testing school and defined mock boundaries.
 
 The unit tiers above each isolate a single layer. The **integration tier** wires the whole request stack together against a real database — the seam the mongoose-stubbed backend project cannot reach. Deferred tiers (staging smoke via Bruno, end-to-end via Playwright) are planned but not yet implemented.
 
+**What needs a real sign-in.** Only rendered auth-gated pages do. Server behaviour runs through `test/integration/` with `useFakeAuth`, which rebinds the auth services in the container; client logic runs in the jsdom `frontend` project. For real-device acceptance, deploy the working tree to the unprotected `volleybro-test` project with `git status --short && pnpm dlx vercel --prod --yes`; the CLI is already authenticated and needs no global install. Hand out `https://volleybro-test.vercel.app`, never the org-suffixed alias, which redirects to SSO.
+
 ```mermaid
 flowchart TB
     subgraph stack["Request stack"]
@@ -70,13 +72,11 @@ Per-layer reality under each tier:
 
 The integration tier is what closes the previously-uncovered **route ↔ usecase ↔ repository ↔ DB** persistence seam: it drives a real `NextRequest` through the exported route handler so route-layer request mapping (`si`/`ei` params, JSON body, forwarded fields) is exercised end to end against a real Mongoose write/read round-trip.
 
-**Where it runs:** the integration project is a **local pre-PR gate, not part of CI**. `pnpm test` (and therefore `pnpm verify`, which CI runs) covers only the `backend` and `frontend` projects. Run the integration tier locally before opening a PR:
+**Where it runs:** `.github/workflows/ci.yml` runs it as its own job, separate from `pnpm test` (which covers only the `backend` and `frontend` projects). Run it locally before opening a PR too, since it is slower and network-dependent (it downloads and boots a real `mongodb-memory-server` binary):
 
 ```bash
 pnpm test:integration
 ```
-
-It is excluded from CI because it downloads and boots a real `mongodb-memory-server` binary — slow and network-dependent — which is verified locally rather than on every CI run.
 
 ---
 
@@ -94,7 +94,9 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 - Catch layout, spacing, color, and responsive breakpoint regressions via screenshot diffing
 - Stories serve as living documentation and visual test cases
-- Run Chromatic on CI to gate visual changes
+- Run Chromatic on CI to gate visual changes, with TurboSnap (`onlyChanged`) so a
+  trigger snapshots only the stories the change can reach — the workflow's path
+  filter admits edits that are not visual at all
 - Stories do **not** include `play()` functions — Storybook is not used for interaction testing
 - `fn()` from `storybook/test` is used only for action spying in the Actions panel, not for assertions
 - The behavioral ↔ visual split is intentional: Jest + RTL owns interactions, Chromatic owns pixels
@@ -115,7 +117,7 @@ Defines what belongs in shared setup files versus inline per-test mocks.
 | `jest.setup.frontend.ts`    | Browser APIs (`matchMedia`, `ResizeObserver`, `IntersectionObserver`)                                                                                    | Frontend project (`jest.config.ts` `projects.frontend`)       |
 | `jest.setup.integration.ts` | Starts a real in-memory MongoDB, connects mongoose, clears collections between tests; stubs `@/lib/auth` + `next/headers` so the container is importable | Integration project (`jest.config.ts` `projects.integration`) |
 
-The integration project deliberately does **not** load `jest.setup.backend.ts`: it needs the real Mongoose driver, not the stub. `jest.config.ts` also exposes `globalThis.AsyncLocalStorage` (and forwards it to workers via `jest.preload.integration.mjs`) because Next's server modules — pulled in when real route handlers are imported — capture it at load time.
+The integration project deliberately does **not** load `jest.setup.backend.ts`: it needs the real Mongoose driver, not the stub. `jest.config.ts` also exposes `globalThis.AsyncLocalStorage` (and forwards it to workers via `jest.preload.integration.js`) because Next's server modules — pulled in when real route handlers are imported — capture it at load time.
 
 **Rule:** A mock belongs in a setup file when _every_ test in that project needs it to run at all. Browser API stubs and DB connection setup qualify. Business-logic fakes do not.
 

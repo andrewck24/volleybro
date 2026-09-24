@@ -1,0 +1,19 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0061",
+  "title": "People review a Change at two gates, and nothing stops between them",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045. Each Change used to keep four pages and a lifecycle file, all committed and reconciled at Archive. On team-membership-authorization, 24 of 50 commits touched only Blueprint, 13 of them resynchronising pages after a gate, and the developer answered 28 gate prompts.",
+  "decision": "A person reviews a Change twice: G1 before Apply and G2 before the pull request opens. Everything between the two gates runs unattended. What each gate accepts is recorded in ADR-0060.",
+  "alternatives": [
+    {
+      "option": "Keep the four pages but trim their sections",
+      "reason": "The cost came from how often the pages had to be rewritten and reconciled, not from their length; trimming leaves every per-round and Archive obligation in place."
+    }
+  ],
+  "consequences": [
+    "Questions that arise between gates wait for the next gate unless a different answer would make the remaining work useless."
+  ],
+  "originChange": "two-gate-workflow"
+}

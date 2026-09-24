@@ -3,6 +3,8 @@
 // .light/.dark scopes. The open Drawer-layer question and its interactive
 // comparison live in the elevation-depth-system change's design page.
 
+import Link from "next/link";
+
 const layers = [
   {
     name: "Level 0 · Page",
@@ -122,30 +124,33 @@ export default function ElevationDepthPage() {
         <code>bg-card</code> — the scrim separates it from the page, and the
         Drawer peek stays continuous with the page&apos;s card surfaces. The
         interactive comparison that settled this lives in the{" "}
-        <a href="/changes/archive/2026-07-16-elevation-depth-system/design">
+        <Link href="/changes/elevation-depth-system/design">
           elevation-depth-system change&apos;s design page
-        </a>
+        </Link>
         .
       </p>
 
-      <h2 id="pwa-backdrop">C · PWA body backdrop</h2>
+      <h2 id="pwa-status-bar">C · PWA status bar colour</h2>
       <p>
-        Standalone PWA routes may set{" "}
-        <code>document.body.style.backgroundColor</code> from their route layout
-        so translucent system chrome stays visually continuous with the adjacent
-        app chrome. This is only a body backdrop: it does not create another
-        layer and does not replace content tokens. Page content still uses{" "}
-        <code>bg-background</code>, raised recording chrome can align the
-        backdrop to <code>bg-card</code>, auth can align it to{" "}
-        <code>bg-primary</code>, and <code>accent</code> remains reserved for
-        hover/highlight states. Overlay scrims are separate: they cover the full
-        web content viewport with <code>inset-0</code> and leave any
-        iOS-reserved status-bar region to system composition. They do not mutate
-        the route backdrop while opening. The PWA manifest{" "}
-        <code>background_color</code> matches the light-mode{" "}
-        <code>--background</code> value so the launch fallback does not add a
-        separate near-white layer. It does not replace Apple&apos;s{" "}
-        <code>apple-touch-startup-image</code> handling.
+        The standalone PWA uses an opaque status bar, so page content never
+        draws under it: iOS 26 and later blur the band below a status bar that
+        content sits under. Each route layout colours the status bar through{" "}
+        <code>StatusBarColor</code>, which writes <code>theme-color</code> from
+        the surface its header sits on and follows the user&apos;s light or dark
+        theme. Game routes use <code>bg-card</code>, auth uses{" "}
+        <code>bg-primary</code>, and tab and workspace routes declare{" "}
+        <code>bg-background</code>. It also mirrors the token onto the body as a
+        backdrop for installs still on the translucent status bar; that backdrop
+        does not create another layer and does not replace content tokens, and{" "}
+        <code>accent</code> remains reserved for hover/highlight states. Overlay
+        scrims are separate: they cover the full web content viewport with{" "}
+        <code>inset-0</code> and never change the status bar colour. The PWA
+        manifest <code>background_color</code> is the <code>--primary</code>{" "}
+        brand teal, so the Android launch splash reads as a bare mark on brand
+        ground like the iOS launch screen. It only colours that splash: it is
+        not a page background and is unrelated to the status bar colour each
+        route sets through <code>StatusBarColor</code>. It does not replace
+        Apple&apos;s <code>apple-touch-startup-image</code> handling.
       </p>
     </div>
   );
@@ -159,5 +164,5 @@ export const toc = [
     url: "#drawer-question",
     depth: 2,
   },
-  { title: "C · PWA body backdrop", url: "#pwa-backdrop", depth: 2 },
+  { title: "C · PWA status bar colour", url: "#pwa-status-bar", depth: 2 },
 ];

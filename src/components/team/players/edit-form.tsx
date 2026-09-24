@@ -4,6 +4,7 @@ import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DialogBody } from "@/components/ui/dialog";
 import {
   Empty,
   EmptyHeader,
@@ -28,19 +29,21 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { PlayerRole } from "@/entities/player";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { usePlayer, useTeamPlayers, useUser } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { resolveErrorDisplay, showErrorToast } from "@/lib/api/error-toast";
 import type { PlayerView } from "@/lib/features/team/types";
 import {
   UpdatePlayerInfoSchema,
   type UpdatePlayerInfoInput,
-} from "@/lib/validations/player";
+} from "@/interface/validations/player";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { FiUser } from "react-icons/fi";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiSaveLine } from "react-icons/ri";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 import { useSWRConfig } from "swr";
@@ -49,17 +52,26 @@ interface EditFormProps {
   teamId: string;
   playerId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
+export function EditForm({
+  teamId,
+  playerId,
+  onStateChange,
+  onSuccess,
+}: EditFormProps) {
   const { player, isLoading, error, mutate } = usePlayer(playerId);
   const { user } = useUser();
   const { players: teamPlayers } = useTeamPlayers(teamId);
 
-  if (isLoading) return <PlayerEditFormSkeleton />;
-  if (error) return <ServerErrorState onRetry={() => mutate()} />;
-  if (!player)
-    return (
+  let content;
+  if (isLoading) {
+    content = <PlayerEditFormSkeleton />;
+  } else if (error) {
+    content = <ServerErrorState onRetry={() => mutate()} />;
+  } else if (!player) {
+    content = (
       <Empty>
         <EmptyMedia variant="icon">
           <FiUser />
@@ -69,33 +81,40 @@ export function EditForm({ teamId, playerId, onStateChange }: EditFormProps) {
         </EmptyHeader>
       </Empty>
     );
+  } else {
+    const currentUserPlayer = teamPlayers?.find(
+      (p) => p.userId === user?.id && p.status === PlayerStatus.JOINED,
+    );
+    const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
+    const showMembership =
+      currentUserPlayer &&
+      (currentUserPlayer.role === PlayerRole.OWNER ||
+        currentUserPlayer.role === PlayerRole.ADMIN);
 
-  const currentUserPlayer = teamPlayers?.find((p) => p.userId === user?.id);
-  const isCurrentOwner = currentUserPlayer?.role === PlayerRole.OWNER;
-  const showMembership =
-    currentUserPlayer &&
-    (currentUserPlayer.role === PlayerRole.OWNER ||
-      currentUserPlayer.role === PlayerRole.ADMIN);
+    content = (
+      <Card className="py-8">
+        <InfoSection
+          player={player}
+          teamId={teamId}
+          onStateChange={onStateChange}
+          onSuccess={onSuccess}
+        />
+        {showMembership && (
+          <>
+            <Separator />
+            <MembershipSection
+              player={player}
+              teamId={teamId}
+              isCurrentOwner={isCurrentOwner}
+              isSelf={currentUserPlayer.id === player.id}
+            />
+          </>
+        )}
+      </Card>
+    );
+  }
 
-  return (
-    <Card className="py-8">
-      <InfoSection
-        player={player}
-        teamId={teamId}
-        onStateChange={onStateChange}
-      />
-      {showMembership && (
-        <>
-          <Separator />
-          <MembershipSection
-            player={player}
-            teamId={teamId}
-            isCurrentOwner={isCurrentOwner}
-          />
-        </>
-      )}
-    </Card>
-  );
+  return <DialogBody>{content}</DialogBody>;
 }
 
 function PlayerEditFormSkeleton() {
@@ -124,11 +143,14 @@ function InfoSection({
   player,
   teamId,
   onStateChange,
+  onSuccess,
 }: {
   player: PlayerView;
   teamId: string;
   onStateChange?: (isDirty: boolean) => void;
+  onSuccess?: () => void;
 }) {
+  const router = useRouter();
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
@@ -163,9 +185,16 @@ function InfoSection({
       mutate(`/api/players/${player.id}`);
       mutate(`/api/teams/${teamId}/players`);
       clearDraft();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.replace(`/team/${teamId}/players/${player.id}`);
+      }
     } catch (error) {
       showErrorToast(error, toast);
-      form.setError("root", { message: "更新失敗，請稍後再試" });
+      form.setError("root", {
+        message: resolveErrorDisplay(error).description,
+      });
     }
   });
 
@@ -244,9 +273,11 @@ function InfoSection({
       <Button
         type="submit"
         className="w-full"
-        disabled={form.formState.isSubmitting}
+        loading={form.formState.isSubmitting}
+        loadingText="儲存中"
       >
-        {form.formState.isSubmitting ? "儲存中..." : "儲存變更"}
+        <RiSaveLine />
+        儲存變更
       </Button>
     </Form>
   );

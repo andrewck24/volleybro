@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlayerRole } from "@/entities/player";
+import { ROLE_LABELS } from "@/lib/constants/labels";
 
 interface RoleSelectProps {
   value: PlayerRole;
@@ -15,12 +16,6 @@ interface RoleSelectProps {
   disabled?: boolean;
   placeholder?: string;
 }
-
-const ROLE_LABELS: Record<PlayerRole, string> = {
-  [PlayerRole.MEMBER]: "成員",
-  [PlayerRole.ADMIN]: "管理員",
-  [PlayerRole.OWNER]: "隊長",
-};
 
 /**
  * T030 [US1] RoleSelect - 角色選擇元件

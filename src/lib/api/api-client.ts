@@ -19,9 +19,6 @@ export class ApiClientError extends Error {
   get reason() {
     return this.info.reason;
   }
-  get detail() {
-    return this.info.detail;
-  }
   get details() {
     return this.info.details;
   }
@@ -30,18 +27,37 @@ export class ApiClientError extends Error {
   }
 }
 
+const DEFAULT_TIMEOUT_MS = 8000;
+
+function normalizeNetworkError(error: unknown): ApiClientError {
+  const isTimeout =
+    error instanceof DOMException && error.name === "TimeoutError";
+  const reason = isTimeout ? "TIMEOUT" : "NETWORK_ERROR";
+
+  return new ApiClientError(reason, { code: "TRANSIENT", reason, status: 503 });
+}
+
 export async function apiClient<T = unknown>(
   url: string,
   options?: RequestInit,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
-  const res = await fetch(url, options);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    throw normalizeNetworkError(error);
+  }
 
   if (!res.ok) {
     const info = await parseApiError(res);
     if (res.status === 401 && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
     }
-    throw new ApiClientError(info.detail, info);
+    throw new ApiClientError(info.reason, info);
   }
 
   return res.json();

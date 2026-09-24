@@ -21,7 +21,8 @@
 # AI agents
 .claude/settings.*
 .agent/
-.agents/
+.agents/settings.local.*
+.codex/
 .gemini/
 .github/chatmodes/
 .github/prompts/
@@ -61,3 +62,7 @@ storybook-static
 
 # npm lockfile (using pnpm)
 package-lock.json
+
+# Blueprint Change pages are throwaway review surfaces, generated per gate
+/blueprint/content/changes/
+.scratch/

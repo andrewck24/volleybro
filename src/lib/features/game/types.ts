@@ -5,7 +5,10 @@ import {
   MatchPhase,
   MoveType,
   Side,
+  type DerivedSetStats,
+  type EntryIdentity,
 } from "@/entities/game";
+import type { AppErrorCode } from "@/entities/errors";
 import { Position as TeamPosition } from "@/entities/team";
 import type { LineupList } from "@/lib/features/team/types";
 import { z } from "zod";
@@ -24,7 +27,7 @@ const PlayerStatsResponseSchema = z.object({
   [MoveType.SETTING]: StatEntryResponseSchema,
 });
 
-const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
+export const TeamStatsResponseSchema = PlayerStatsResponseSchema.extend({
   [MoveType.UNFORCED]: StatEntryResponseSchema,
   rotation: z.number(),
   timeout: z.number(),
@@ -36,7 +39,6 @@ const GamePlayerResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   number: z.number(),
-  stats: z.array(PlayerStatsResponseSchema),
 });
 
 const StaffResponseSchema = z.object({
@@ -80,7 +82,6 @@ export const GameTeamResponseSchema = z.object({
   name: z.string(),
   players: z.array(GamePlayerResponseSchema),
   staffs: z.array(StaffResponseSchema),
-  stats: z.array(TeamStatsResponseSchema),
   lineup: LineupResponseSchema.optional(),
 });
 
@@ -106,11 +107,6 @@ export const MatchResponseSchema = z.object({
       date: z.coerce.date().optional(),
       start: z.string().optional(),
       end: z.string().optional(),
-    })
-    .optional(),
-  weather: z
-    .object({
-      temperature: z.number(),
     })
     .optional(),
 });
@@ -151,14 +147,30 @@ const ChallengeResponseSchema = z.object({
   success: z.boolean(),
 });
 
+// A stable identity and an ordering position, generated on the client before
+// the optimistic update runs. See entities/game.ts's EntryIdentity for why
+// they are separate fields.
+const EntryIdentityResponseSchema = z.object({
+  id: z.string(),
+  seq: z.number(),
+});
+
 export const EntryResponseSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal(EntryType.RALLY) }).merge(RallyResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.RALLY) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(RallyResponseSchema),
   z
     .object({ type: z.literal(EntryType.SUBSTITUTION) })
+    .merge(EntryIdentityResponseSchema)
     .merge(SubstitutionResponseSchema),
-  z.object({ type: z.literal(EntryType.TIMEOUT) }).merge(TimeoutResponseSchema),
+  z
+    .object({ type: z.literal(EntryType.TIMEOUT) })
+    .merge(EntryIdentityResponseSchema)
+    .merge(TimeoutResponseSchema),
   z
     .object({ type: z.literal(EntryType.CHALLENGE) })
+    .merge(EntryIdentityResponseSchema)
     .merge(ChallengeResponseSchema),
 ]);
 
@@ -189,7 +201,7 @@ const GameSummaryTeamResponseSchema = z.object({
 
 export const GameSummaryResponseSchema = z.object({
   id: z.string(),
-  win: z.boolean(),
+  win: z.boolean().nullable(),
   info: MatchResponseSchema,
   teams: z.object({
     home: GameSummaryTeamResponseSchema,
@@ -219,25 +231,39 @@ export type TimeoutView = z.infer<typeof TimeoutResponseSchema>;
 export type ChallengeView = z.infer<typeof ChallengeResponseSchema>;
 export type EntryView = z.infer<typeof EntryResponseSchema>;
 
+/**
+ * The rally endpoint's response: entries land whenever the entry write
+ * succeeds, and `setCompletionConfirmed` is only present when a set result
+ * was attempted, stating whether that second write landed. Undefined means
+ * no set result was attempted for this write.
+ */
+export type RecordRalliesResponse = {
+  entries: EntryView[];
+  setCompletionConfirmed?: boolean;
+};
+
 export type GameView = z.infer<typeof GameResponseSchema>;
 export type GameTeamView = z.infer<typeof GameTeamResponseSchema>;
 export type SetView = z.infer<typeof SetResponseSchema>;
 export type GameSummaryView = z.infer<typeof GameSummaryResponseSchema>;
 
 // For Forms and Tables
+// Two divergences from the request schema are deliberate and unreachable
+// through the controls: the optional id, and the string enums the body
+// converts. See error-display-boundary S07.
 export const MatchInfoFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
   teams: z.object({
-    home: z.object({ name: z.string().optional() }),
-    away: z.object({ name: z.string().optional() }),
+    home: z.object({ name: z.string() }),
+    away: z.object({ name: z.string() }),
   }),
   number: z.coerce.number().int().optional(),
   phase: z.enum(["0", "1", "2", "3", "4"]).optional(),
   division: z.enum(["0", "1", "2", "3"]).optional(),
   category: z.enum(["0", "1", "2", "3"]).optional(),
   scoring: z.object({
-    setCount: z.string(),
+    setCount: z.enum(["1", "3", "5"]),
     decidingSetPoints: z.coerce.number().int(),
   }),
   location: z
@@ -253,11 +279,6 @@ export const MatchInfoFormSchema = z.object({
       end: z.string().optional(),
     })
     .optional(),
-  weather: z
-    .object({
-      temperature: z.string().optional(),
-    })
-    .optional(),
 });
 
 export type TMatchInfoForm = z.infer<typeof MatchInfoFormSchema>;
@@ -266,8 +287,8 @@ export const SetOptionsFormSchema = z.object({
   serve: z.enum(["home", "away"]),
   time: z
     .object({
-      start: z.string().optional(),
-      end: z.string().optional(),
+      start: z.string(),
+      end: z.string(),
     })
     .optional(),
 });
@@ -289,9 +310,10 @@ export type ReduxStatus = {
   };
   entryIndex: number;
   isServing: boolean;
-  inProgress: boolean;
+  isSetInProgress: boolean;
   isSetPoint: boolean;
   panel: "home" | "away" | "substitutes";
+  stats: DerivedSetStats;
 };
 
 type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {
@@ -300,6 +322,12 @@ type ReduxRallyDetail = Omit<RallyDetailView, "type" | "num"> & {
 };
 
 export type ReduxEntryDraft = Omit<RallyView, "win" | "home" | "away"> & {
+  // Identity of the entry this draft becomes on submit. Empty/zero until
+  // then: a create fills it in just before the optimistic update runs (a
+  // fresh client-generated id, seq = the current entryIndex); an edit
+  // inherits the original entry's id and seq from setEditingEntryStatus.
+  id: string;
+  seq: number;
   win: RallyView["win"] | null;
   home: ReduxRallyDetail;
   away: ReduxRallyDetail;
@@ -320,6 +348,74 @@ export type ReduxGameState = {
     status: ReduxStatus;
     entryDraft: ReduxEntryDraft;
   };
+};
+
+// For the pending-write queue: unconfirmed rally writes, kept in their own
+// slice because their lifetime differs from the per-set draft above.
+// The part of a failed write worth keeping. `detail` and `message` are absent
+// on purpose: they move with copy and translation, and nothing can act on them.
+export type WriteError = {
+  code: AppErrorCode;
+  reason: string;
+  status: number;
+};
+
+export type PendingEntry = {
+  entry: RallyView & EntryIdentity;
+  gameId: string;
+  setIndex: number;
+  attempts: number;
+  // Timestamp of the next scheduled attempt; null means the backoff budget
+  // is exhausted or the error itself is not retryable.
+  nextAttemptAt: number | null;
+  // Why the last attempt failed. `nextAttemptAt: null` conflates a spent
+  // backoff with a failure that can never succeed; this keeps them apart.
+  lastError?: WriteError;
+  // When this entry first failed, never refreshed: a flush re-sends every
+  // pending entry for its game, so a moving timestamp would measure the
+  // recorder's activity rather than the entry's age.
+  firstFailedAt?: number;
+};
+
+// The queue as it exists on disk. A snapshot whose `version` does not match is
+// not used rather than migrated, and only an older one is cleared -- see D2.
+export type PersistedPendingEntry = Pick<
+  PendingEntry,
+  "entry" | "gameId" | "setIndex" | "lastError" | "firstFailedAt"
+>;
+
+export type PersistedQueue = {
+  version: number;
+  items: PersistedPendingEntry[];
+};
+
+// Storage is writable by anything on this origin and what comes back is sent
+// to the server, so it is parsed rather than cast.
+export const PersistedQueueSchema: z.ZodType<PersistedQueue> = z.object({
+  version: z.number(),
+  items: z.array(
+    z.object({
+      entry: RallyResponseSchema.merge(EntryIdentityResponseSchema),
+      gameId: z.string(),
+      setIndex: z.number(),
+      lastError: z
+        .object({
+          // A string rather than the union, which lives in the error model.
+          // Nothing branches on it -- only `status` decides anything.
+          code: z.custom<AppErrorCode>((value) => typeof value === "string"),
+          reason: z.string(),
+          status: z.number(),
+        })
+        .optional(),
+      firstFailedAt: z.number().optional(),
+    }),
+  ),
+});
+
+export type PendingWritesState = {
+  pending: PendingEntry[];
+  // The one thing SyncIndicator reports that the queue cannot tell it.
+  storageUnavailable: boolean;
 };
 
 // For Other Components

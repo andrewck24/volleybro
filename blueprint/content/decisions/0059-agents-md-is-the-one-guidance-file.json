@@ -1,0 +1,33 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0059",
+  "title": "AGENTS.md is the one guidance file; CLAUDE.md only imports it",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "CLAUDE.md and AGENTS.md each restated parts of WORKFLOW.md instead of pointing at it, and both drifted: both still cite section 5 for the Pre-PR gate, which is now section 3; each carried rules the other lacked; AGENTS.md claimed CONTRIBUTING.md omitted two rules it states. Claude Code reads AGENTS.md natively from v2.1.277, but by default only when no CLAUDE.md exists in the working directory or above it, and not at all on third-party providers, with telemetry disabled, or in the first session after an upgrade.",
+  "decision": "AGENTS.md is the only guidance file with content, and CLAUDE.md contains exactly `@AGENTS.md`.",
+  "alternatives": [
+    {
+      "option": "Delete CLAUDE.md and rely on native AGENTS.md support",
+      "reason": "Sessions that cannot read AGENTS.md would silently lose every instruction."
+    },
+    {
+      "option": "Make CLAUDE.md a symlink to AGENTS.md",
+      "reason": "A Windows checkout can materialise the symlink as a plain text file."
+    },
+    {
+      "option": "Keep two files identical except one line, enforced by a diff check",
+      "reason": "The designated differing line only existed to name each file's provider; with neutral wording there is nothing left to differ."
+    }
+  ],
+  "consequences": [
+    "AGENTS.md holds pointers, not summaries of what they point at, names no provider, and cites no section numbers, which go stale on every reorganisation.",
+    "scripts/check-workflow.js fails when CLAUDE.md contains anything else, or when AGENTS.md contains a section-number reference.",
+    "A rule has exactly one guidance-file home, so it cannot drift between two copies.",
+    "A reader wanting the rule itself follows the pointer."
+  ],
+  "revisitTriggers": [
+    "Claude Code reads AGENTS.md by default even when CLAUDE.md exists, or every session in use supports native reading — then CLAUDE.md can be deleted."
+  ],
+  "originChange": "reviewer-standards-split"
+}

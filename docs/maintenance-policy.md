@@ -27,6 +27,30 @@ When upgrading any package to a new major version:
 
 ---
 
+## Constraints an Upgrade Adds to Existing Data
+
+A dependency that owns a schema can introduce a **constraint** in a minor version, and apply it to data written long before it existed. Better Auth 1.7 added a unique index over `(issuer, accountId)` on the accounts collection; its Mongo adapter creates that index **lazily, on the first write** rather than at install time. Records from the previous auth library carried neither indexed field, so every one of them presented the key `(null, null)`, the index could never build, and the failure was returned to whichever write happened to trigger it. Nobody could sign in — including users whose own records were entirely current.
+
+Two things make this class of failure hard to read:
+
+- **The reported error names the caller's domain, not the cause.** Better Auth caught the index failure and reported `unable_to_link_account`. Reading that at face value sends you looking at account linking, which is working correctly. The server log carried the real error; the client only ever saw the symptom.
+- **Nothing fails at upgrade time.** The install succeeds, the build succeeds, the test suite passes — every test runs against a fresh database, where no legacy record exists. The failure needs production-shaped data, so it appears first in whichever environment has the oldest data.
+
+Before upgrading a package that owns a schema:
+
+1. Read the changelog for **new indexes and constraints**, not only for API changes.
+2. Check existing data against each one before deploying. A unique index over fields that older records lack is the common case: they all collapse to the same key.
+3. Assume constraints are applied lazily unless the adapter documents otherwise — a clean install proves nothing about a database with history in it.
+
+When existing data has to be reconciled, the migration is a script under `scripts/migrations/`, and:
+
+- it is a **dry run by default**, with `--apply` to write;
+- it **converts rather than deletes** wherever a record still belongs to someone — deleting eight legacy account records would have been one line and would have cost seven people their sign-in;
+- it **verifies afterwards** that the constraint can now hold, since a migration that leaves one collision behind has fixed nothing;
+- it is **idempotent**, and its header records which environments it has been applied to. It lives under `scripts/migrations/` while that list is incomplete, because until then it is something to run; once every environment is accounted for it moves to `docs/migrations/`, where it is a record of what was done rather than an invitation to do it again.
+
+---
+
 ## TypeScript Dual Toolchain
 
 The repo intentionally installs two TypeScript versions (see Paca VB-51 for the convergence conditions and steps):

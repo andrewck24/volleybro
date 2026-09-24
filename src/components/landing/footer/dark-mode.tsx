@@ -1,5 +1,5 @@
 "use client";
-import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useTheme } from "next-themes";
 import {
   RiSunLine,

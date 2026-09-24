@@ -1,6 +1,7 @@
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
+import { clearActiveTeam } from "@/applications/usecases/player/membership";
 import {
   AuthorizationError,
   NotFoundError,
@@ -8,7 +9,12 @@ import {
   CommonReason,
   PlayerReason,
 } from "@/entities/errors";
-import { PlayerRole, PlayerStatus } from "@/entities/player";
+import {
+  hasTeamRole,
+  isTeamMember,
+  PlayerRole,
+  PlayerStatus,
+} from "@/entities/player";
 import { TYPES } from "@/infrastructure/di/types";
 import { inject, injectable } from "inversify";
 
@@ -44,14 +50,14 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     }
 
-    if (player.userId !== userId) {
+    if (!isTeamMember(player) || player.userId !== userId) {
       throw new AuthorizationError(
         PlayerReason.NOT_PLAYER_OWNER,
         "You cannot leave a player that does not belong to you",
       );
     }
 
-    if (player.role === PlayerRole.OWNER) {
+    if (hasTeamRole(player, PlayerRole.OWNER)) {
       throw new AuthorizationError(
         PlayerReason.OWNER_CANNOT_LEAVE,
         "Team owner cannot leave the team",
@@ -61,6 +67,8 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
     const updated = await this.playerRepository.update(playerId, {
       status: PlayerStatus.NONE,
       userId: undefined,
+      email: undefined,
+      role: undefined,
     });
     if (!updated) {
       throw new UnexpectedError(
@@ -76,11 +84,7 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
-    // Clear activeTeamId if it points to the team the user just left
-    const profile = await this.profileRepository.findByUserId(userId);
-    if (profile?.activeTeamId === player.teamId) {
-      await this.profileRepository.updateActiveTeamId(userId, null);
-    }
+    await clearActiveTeam(this.profileRepository, userId, player.teamId);
 
     return { success: true };
   }

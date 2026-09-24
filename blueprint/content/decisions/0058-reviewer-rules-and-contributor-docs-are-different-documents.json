@@ -1,0 +1,34 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0058",
+  "title": "Reviewer rules and contributor docs are different documents",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "CONTRIBUTING.md is written for two readers at once: a developer getting started in the repository, and the standards reviewer, which the Pre-PR gate hands the file's rules verbatim because an independent context knows only what its brief carries. An inventory of its 17 rules after commit-guardrails found two to delete — a tooling-name rule commitlint already enforces, and an Airbnb style guide the ESLint config does not use — and the rest splitting by reader into orientation and judgement. Two of the rules the Proposal first gave the reviewer cannot be reviewed at all: the code-review playbook passes the reviewer `git log --oneline`, so commit bodies never reach it, and a pull request does not exist yet at Pre-PR. The retro playbook looks for CODING_STANDARDS.md by name and says it is read during review, not implementation; the code-review playbook names it as an example of a standards document.",
+  "decision": "Add root CODING_STANDARDS.md, read only during review, holding the judgement rules a reviewer can see in a diff: comment necessity and density, naming conventions, no issue IDs in source, and which layer a test belongs in. A rule a writer needs while writing lives in the document that writer already reads — commit and pull-request rules in CONTRIBUTING.md, Blueprint page and decision-record rules in docs/agents/blueprint.md — and CODING_STANDARDS.md points at them.",
+  "alternatives": [
+    {
+      "option": "Move both files under docs/agents/",
+      "reason": "That directory means adapter, not authority; scripts/check-workflow.js and the guidance file hard-code root paths, and the retro playbook looks for CODING_STANDARDS.md in the root."
+    },
+    {
+      "option": "Keep one file and mark the reviewer sections",
+      "reason": "The reviewer brief carries whatever it is given; a marked section inside a file written for a different reader still arrives as orientation the reviewer has no use for."
+    },
+    {
+      "option": "Have executors read CODING_STANDARDS.md while writing",
+      "reason": "A brief that carries every judgement rule is the oversized brief an executor already refused once; a brief carries only the rules its slice touches."
+    }
+  ],
+  "consequences": [
+    "CONTRIBUTING.md keeps how to work in this repository: branches, worktrees, commit and pull-request writing, commands, Changesets, and pointers.",
+    "The Pre-PR standards reviewer's brief cites CODING_STANDARDS.md instead of CONTRIBUTING.md.",
+    "The standards axis of Pre-PR review reads a document written for it, so an unwritten standard is visibly missing rather than buried.",
+    "Commit-body and pull-request rules are enforced where they are written, not by review, because review cannot see them."
+  ],
+  "revisitTriggers": [
+    "A reviewer round cites a rule that exists in none of the three documents.",
+    "CODING_STANDARDS.md stops fitting in a reviewer brief."
+  ],
+  "originChange": "reviewer-standards-split"
+}

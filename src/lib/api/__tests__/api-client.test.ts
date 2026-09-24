@@ -97,4 +97,47 @@ describe("apiClient", () => {
       expect(unauthorizedCalls).toHaveLength(0);
     });
   });
+
+  describe("on timeout", () => {
+    it("aborts via AbortSignal.timeout and rejects with a TRANSIENT ApiClientError", async () => {
+      jest.spyOn(global, "fetch").mockImplementation(() => {
+        const err = new DOMException("The signal timed out", "TimeoutError");
+        return Promise.reject(err);
+      });
+
+      let caught: unknown;
+      try {
+        await apiClient("/api/test", undefined, 5);
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBeInstanceOf(ApiClientError);
+      const error = caught as ApiClientError;
+      expect(error.code).toBe("TRANSIENT");
+      expect(error.status).toBeGreaterThanOrEqual(500);
+      expect(error.reason).toBe("TIMEOUT");
+    });
+  });
+
+  describe("on network failure", () => {
+    it("normalises a fetch rejection into the same ApiClientError shape as an HTTP failure", async () => {
+      jest
+        .spyOn(global, "fetch")
+        .mockRejectedValue(new TypeError("Failed to fetch"));
+
+      let caught: unknown;
+      try {
+        await apiClient("/api/test");
+      } catch (e) {
+        caught = e;
+      }
+
+      expect(caught).toBeInstanceOf(ApiClientError);
+      const error = caught as ApiClientError;
+      expect(error.code).toBe("TRANSIENT");
+      expect(error.status).toBeGreaterThanOrEqual(500);
+      expect(error.reason).toBe("NETWORK_ERROR");
+    });
+  });
 });

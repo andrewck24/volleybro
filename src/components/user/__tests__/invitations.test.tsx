@@ -6,21 +6,29 @@ import userEvent from "@testing-library/user-event";
 import React from "react";
 
 const mockMutate = jest.fn();
+const mockUseTeam = jest.fn();
 
 jest.mock("@/hooks/use-data", () => ({
   useUser: () => ({ user: { id: "user-1" } }),
   useUserPlayers: () => ({
     players: [
-      { id: "player-1", teamId: "team-1", status: PlayerStatus.INVITED },
-      { id: "player-2", teamId: "team-2", status: PlayerStatus.INVITED },
+      {
+        id: "player-1",
+        teamId: "team-1",
+        teamName: "Team team-1",
+        status: PlayerStatus.INVITED,
+      },
+      {
+        id: "player-2",
+        teamId: "team-2",
+        teamName: "Team team-2",
+        status: PlayerStatus.INVITED,
+      },
     ],
     isLoading: false,
     mutate: mockMutate,
   }),
-  useTeam: (teamId: string) => ({
-    team: { id: teamId, name: `Team ${teamId}` },
-    isLoading: false,
-  }),
+  useTeam: (...args: unknown[]) => mockUseTeam(...args),
 }));
 
 jest.mock("@/lib/api/api-client", () => ({
@@ -63,6 +71,22 @@ describe("Invitations processingId state", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockMutate.mockResolvedValue(undefined);
+  });
+
+  it("shows the team name from teamName without calling useTeam", () => {
+    render(<Invitations />);
+
+    expect(screen.getByText("Team team-1")).toBeInTheDocument();
+    expect(screen.getByText("Team team-2")).toBeInTheDocument();
+    expect(mockUseTeam).not.toHaveBeenCalled();
+  });
+
+  it("does not render a link covering the invitation row", () => {
+    render(<Invitations />);
+
+    expect(
+      screen.queryByRole("link", { name: "前往隊伍" }),
+    ).not.toBeInTheDocument();
   });
 
   it("disables all buttons while one invitation is processing", async () => {

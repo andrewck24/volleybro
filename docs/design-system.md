@@ -119,19 +119,19 @@ This keeps list density high while maintaining Schoger-style clean edges and dep
 
 The app body uses `bg-background` as its page background. `accent` is reserved for hover/highlight states and must never be used as a page or surface background.
 
-### PWA Body Backdrop
+### PWA Status Bar Color
 
-Standalone PWA routes may set `document.body.style.backgroundColor` from their route layout to keep translucent system chrome visually continuous with the adjacent app chrome. This is a backdrop for the browser/status-bar area, not the source of truth for page or surface backgrounds.
+The standalone PWA uses an opaque status bar (`statusBarStyle: "default"`, ADR-0068): page content never draws under it, because iOS 26 and later blur the band below a status bar that content sits under. The status bar takes its colour from `theme-color`, which each route layout sets through `StatusBarColor` from the surface its header sits on:
 
 - Auth routes use `--color-primary` to match their brand ground.
-- Recording entry routes use `--color-card` to match the raised recording header.
-- Normal app routes rely on the CSS body `bg-background` and do not need an inline body color.
+- Game routes (overview, sets, recording) use `--color-card` to match their raised headers; the declaration lives in `app/game/layout.tsx`.
+- Tab and workspace routes use `--color-background`. They declare it too: the root `theme-color` can only follow the system colour scheme, not the theme chosen in the app, so it serves first paint alone.
 
-This backdrop does not create a fourth layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and `accent` remains hover/highlight only.
+`StatusBarColor` resolves the token against the current theme and rewrites `theme-color` when the user switches between light and dark. It also sets `document.body.style.backgroundColor` to the same token, so installs added before ADR-0068 and still on `black-translucent` keep their colours. That backdrop is not the source of truth for page or surface backgrounds and does not create a fourth layer: page content still uses `bg-background`, raised surfaces still use `bg-card`, and `accent` remains hover/highlight only.
 
-Overlay scrims do not use body backdrop. They use `inset-0` to cover the full web content viewport and leave any iOS-reserved status-bar region to system composition. This avoids a second background side effect whose timing or opacity can drift from the scrim; on affected WebKit versions, DOM content cannot paint beyond the viewport boundary.
+Overlay scrims do not use the status bar colour or the body backdrop. They use `inset-0` to cover the full web content viewport and leave any iOS-reserved status-bar region to system composition. This avoids a second background side effect whose timing or opacity can drift from the scrim; on affected WebKit versions, DOM content cannot paint beyond the viewport boundary.
 
-The PWA manifest `background_color` must match the brand `--primary` teal (`#10687e`), the same field the iOS launch screens use — Chrome composes the Android splash from this color plus the maskable icon (whose own field is the same teal), so the splash reads as a bare V on brand ground rather than a near-white frame. This does not replace Apple's `apple-touch-startup-image` handling.
+The PWA manifest `background_color` must match the brand `--primary` teal (`#10687e`), the same field the iOS launch screens use — Chrome composes the Android splash from this color plus the maskable icon (whose own field is the same teal), so the splash reads as a bare V on brand ground rather than a near-white frame. This does not replace Apple's `apple-touch-startup-image` handling. It only colours that launch splash: it is unrelated to the status bar colour each route sets through `StatusBarColor`.
 
 ### Token Lightness Reference (light mode)
 
@@ -175,6 +175,14 @@ The PWA manifest `background_color` must match the brand `--primary` teal (`#106
 | ------------ | --------------------- | ----------------------------- |
 | Saira        | `--font-saira`        | Primary - headings, body text |
 | Noto Sans TC | `--font-noto-sans-tc` | CJK fallback                  |
+
+### Size Floor
+
+The rendered scale in the blueprint `design-system` section stops at `text-xs` (0.75rem / 12px). Take sizes from that scale and do not go under it.
+
+Never reach for an arbitrary `text-[Npx]`. A px literal ignores the reader's own font-size preference; a rem value from the scale follows it.
+
+One exception: a digit inside a fixed-size badge may be smaller, because the badge cannot grow with it. It must never be the only place that number appears.
 
 ## Spacing
 

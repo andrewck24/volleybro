@@ -92,7 +92,6 @@ describe("UpdatePlayerInfoUseCase", () => {
       const currentPlayer = createPlayer({
         id: "player_123",
         name: "Old Name",
-        email: "test@example.com",
         teamId: "team_123",
       });
 

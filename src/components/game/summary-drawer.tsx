@@ -6,6 +6,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Separator } from "@/components/ui/separator";
 import { useGame } from "@/hooks/use-data";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { hasFailedWrite } from "@/lib/features/game/pending-writes";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { useState } from "react";
 
 export type SummaryDrawerState = "idle" | "expanded";
 
-/** Props PreviewCard needs, minus `inProgress` (the caller already checked it). */
+/** Props PreviewCard needs, minus `hasPreview` (the caller already checked it). */
 export type SummaryDrawerPreview = {
   entry: EntryView;
   previousEntry: EntryView | undefined;
@@ -44,7 +45,7 @@ const SNAP_POINTS: (number | string)[] = [PEEK_SNAP, 0.85];
  * DrawerContent shows only its top edge at the peek snap and rises to ~85dvh
  * when expanded, so the peek's top row IS the top of the expanded drawer.
  *
- * The top row follows the two states (D8/D12):
+ * The top row follows the two states (`entry-ui` change):
  * - **recording**: a pulsing draft `PreviewCard` sits above the committed list;
  *   tapping it submits (when complete), the handle toggles the drawer.
  * - **idle**: there is no separate Preview bar -- the newest committed entry is
@@ -67,6 +68,8 @@ export const SummaryDrawerCard = ({
   onEntryClick,
   onEntryDelete,
   onEntryRollback,
+  failedEntryIds,
+  onEntryRetry,
   className,
 }: {
   entries: IndexedEntry[];
@@ -80,6 +83,10 @@ export const SummaryDrawerCard = ({
   onEntryClick?: (entryIndex: number) => void;
   onEntryDelete?: (entryIndex: number) => void;
   onEntryRollback?: (entryIndex: number) => void;
+  // ids whose write cannot be sent at all (hasFailedWrite), a pure
+  // projection of the pending-write queue -- not stored here.
+  failedEntryIds?: Set<string>;
+  onEntryRetry?: () => void;
   className?: string;
 }) => {
   const expanded = state === "expanded";
@@ -217,6 +224,8 @@ export const SummaryDrawerCard = ({
                     onEdit={() => onEntryClick?.(index)}
                     onDelete={() => onEntryDelete?.(index)}
                     onRollbackToHere={() => onEntryRollback?.(index)}
+                    failed={failedEntryIds?.has(entry.id) ?? false}
+                    onRetry={onEntryRetry}
                   />
                 </div>
               ))}
@@ -236,6 +245,7 @@ export const SummaryDrawer = ({
   onToggle: controlledOnToggle,
   onSubmit,
   onEditRequest,
+  onEntryRetry,
   className,
 }: {
   gameId: string;
@@ -243,6 +253,7 @@ export const SummaryDrawer = ({
   onToggle?: () => void;
   onSubmit?: () => void;
   onEditRequest?: () => void;
+  onEntryRetry?: () => void;
   className?: string;
 }) => {
   const [uncontrolledState, setUncontrolledState] =
@@ -256,6 +267,14 @@ export const SummaryDrawer = ({
   const { game } = useGame(gameId);
   const { setIndex } = useAppSelector((s) => s.game);
   const preview = useEntryDraftPreview(gameId, "general");
+  const failedEntryIds = useAppSelector(
+    (s) =>
+      new Set(
+        s.pendingWrites.pending
+          .filter((p) => hasFailedWrite(s.pendingWrites, p.entry.id))
+          .map((p) => p.entry.id),
+      ),
+  );
 
   // Guard a transient undefined game (e.g. a failed optimistic mutate rolling
   // back) so a submission error never crashes the whole Game tree.
@@ -267,7 +286,7 @@ export const SummaryDrawer = ({
   // Only the uncommitted draft is the distinct Preview bar (while recording);
   // when idle the newest committed entry is simply the top row, so it appears
   // in the list rather than as a separate preview.
-  const recording = preview.inProgress && preview.isEditing;
+  const recording = preview.hasPreview && preview.isEditing;
   const listEntries = entries.map((entry, index) => ({ entry, index }));
 
   const handleEntryClick = (entryIndex: number) => {
@@ -281,10 +300,12 @@ export const SummaryDrawer = ({
       totalEntries={entries.length}
       players={players}
       state={state}
-      preview={recording && preview.inProgress ? preview : undefined}
+      preview={recording && preview.hasPreview ? preview : undefined}
       onToggle={onToggle}
       onSubmit={onSubmit}
       onEntryClick={handleEntryClick}
+      failedEntryIds={failedEntryIds}
+      onEntryRetry={onEntryRetry}
       className={className}
     />
   );

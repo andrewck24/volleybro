@@ -38,22 +38,30 @@ export const Substitutes = ({
 
   const onSubmit = async () => {
     try {
-      mutate(
-        createSubstitution(
-          { gameId, setIndex, entryIndex },
-          draft.substitution!,
-          game!,
-        ),
+      // A new substitution gets a fresh identity generated here, before the
+      // optimistic update below applies it; editing reuses the id
+      // setEditingEntryStatus already loaded onto the draft.
+      const entry = {
+        ...draft.substitution!,
+        id: draft.id || crypto.randomUUID(),
+        seq: entryIndex,
+      };
+      // Advances the draft the instant the write starts, without waiting for
+      // the server; awaiting afterwards is what routes a rejection into the
+      // catch below rather than leaving it unhandled.
+      const write = mutate(
+        createSubstitution({ gameId, setIndex, entryIndex }, entry, game!),
         {
           revalidate: false,
           optimisticData: createSubstitutionHelper(
             { gameId, setIndex, entryIndex },
-            draft.substitution!,
+            entry,
             game!,
           ),
         },
       );
       dispatch(gameActions.confirmEntryDraftSubstitution());
+      await write;
     } catch (error) {
       showErrorToast(error, toast);
     }

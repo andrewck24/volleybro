@@ -41,7 +41,6 @@ function makeApiClientError(status: number): ApiClientError {
   const info: ApiError = {
     code: "UNEXPECTED",
     reason: "TEST",
-    detail: "test error",
     status,
   };
   return new ApiClientError("test error", info);
@@ -65,7 +64,7 @@ describe("SWRProvider", () => {
   });
 
   describe("onError callback", () => {
-    it("calls showErrorToast for all errors (401 is silently swallowed inside showErrorToast)", () => {
+    it("calls showErrorToast for all errors, including 401", () => {
       render(
         <SWRProvider>
           <span />

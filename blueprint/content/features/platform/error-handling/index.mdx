@@ -1,0 +1,35 @@
+---
+title: Error handling
+description: What an error response may contain, where the sentence a user reads comes from, and which constraints are checked before a request is sent at all.
+---
+
+An error is asked about twice. The server answers what happened, and its answer is a constant with no wording in it. The client answers what a person should read, and its answer comes from one catalogue. Nothing the server writes for a developer is ever the thing a user sees.
+
+## Current behavior
+
+- `AppError` has three slots: a `reason` constant, a `detail` string, and an optional `internalMessage`. Only `reason` — with `code` and `status`, plus `details` on a validation failure — reaches the client. `detail` stays on the server as the source of `Error.message` for the logs.
+- Two places produce error responses and both hold to that shape: `withErrorHandler` in the Node runtime, and the 401 written directly in `src/proxy.ts`, which does not pass through `serializeError` at all.
+- A validation failure sends field paths and nothing else. The auto-generated English message, and the `expected` / `minimum` / `origin` fields that describe the schema rather than the failure, are dropped.
+- Every user-facing error string lives in `src/lib/api/error-messages.ts` as a `title` and a `description`. Keys are either a reason constant or one of four class-level constants — `SESSION_EXPIRED`, `NETWORK_TIMEOUT`, `SERVER_ERROR`, `UNKNOWN`.
+- `resolveErrorDisplay` is a total function. Every input resolves to an entry, an unrecognised key returns `UNKNOWN`, and no caller branches on the result. Toasts wrap it; confirmation dialogs hold the resolved message and render both halves.
+- A constraint the client can evaluate for itself is not sent. The form's own schema decides what each field says; the server's schema decides whether the request is admissible.
+
+## Constraints
+
+- The error body is a closed set. The guarantee is not that one particular field is absent but that no free-text field may be added under any name.
+- A new reason without a catalogue entry does not compile, and would also fail the exhaustiveness test. Both derive from the exported enums rather than a written list, so a sixth reason enum is covered the moment it is exported.
+- User-facing error copy may appear only in the catalogue's own file. A test walks `src/` and fails on any component, hook, or page that repeats one of its strings — the rule that makes translating this application a change to one file.
+- `reason` is a stable wire constant. It is what the client decides on, so renaming one is a breaking change to the contract, not a refactor.
+- `detail` must never become an input to display. There is no field for a fallback path to reach for, which is what makes the leak impossible by construction rather than caught by review.
+
+## Known gaps
+
+- Correlating one client-side report with one server log entry is not possible from the response alone. The answer is a request correlation id rather than free text; it waits for an error-tracking consumer to exist.
+- One reason still carries more than one failure: `PLAYER_NOT_FOUND` covers both a missing player and a player record with no `teamId`. The second is a broken data invariant whose remedy is not something a user can act on, so it deliberately shares the generic copy rather than gaining its own.
+- The catalogue lives in `src/lib/api/` while having no API concern. A presentational component importing from `@/lib/api/` reads as a layering violation, and the comparable `ROLE_LABELS` sits in `lib/constants/`. The move waits on the wider question of what else in that directory belongs where.
+- Two game forms still hand-copy their request schema instead of deriving it. They are held to the server's schemas by drift tests in both directions, which is a weaker guarantee than derivation.
+- Four reasons are unreachable through the interface today because a UI gate hides the action. The gates make them rare, not impossible: team membership is cached for five minutes, so a change made on another device leaves a stale control on screen. They carry copy for that window.
+
+## Implemented decisions
+
+<DecisionTimeline />

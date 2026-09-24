@@ -12,10 +12,10 @@ import {
  * Unified schema for team members, invited users, and pure players
  *
  * Status Model (explicit field):
- * - NONE: Pure player, no system account linked (userId ✗, email ✗)
- * - INVITED + userId: Registered user invited (userId ✓, email ✗)
- * - INVITED + email: Unregistered user invited (userId ✗, email ✓)
- * - JOINED: User has accepted invitation (userId ✓, email ✗)
+ * - NONE: Unlinked player, no account linked (userId ✗, email ✗, role ✗)
+ * - INVITED + userId: Registered user invited (userId ✓, email ✗, role ✓)
+ * - INVITED + email: Unregistered user invited (userId ✗, email ✓, role ✓)
+ * - JOINED: User has accepted invitation (userId ✓, email ✗, role ✓)
  */
 
 export interface PlayerDocument extends Document {
@@ -49,11 +49,12 @@ const PlayerSchema = new Schema<PlayerDocument>(
       enum: ["", "OH", "MB", "OP", "S", "L"],
       default: "",
     },
+    // No default: a document that predates the field must fail to narrow on
+    // read rather than be silently taken for an unlinked player.
     status: {
       type: String,
       enum: ["NONE", "INVITED", "JOINED"],
       required: true,
-      default: "NONE",
     },
     teamId: {
       type: Schema.Types.ObjectId,
@@ -84,24 +85,21 @@ PlayerSchema.index({ teamId: 1 });
 PlayerSchema.index({ userId: 1 });
 PlayerSchema.index({ email: 1 });
 
-// T060: Composite unique index to prevent duplicate invitations to same email in same team
-// Sparse: only applies to documents where email field exists
-// PartialFilterExpression: only applies to non-null, non-empty email values
+// Partial unique indexes: MongoDB rejects `sparse` together with a
+// partialFilterExpression, and does not support `$nin` inside one, so the
+// previous declarations never created an index. Filtering on the stored type
+// covers exactly the documents the uniqueness applies to.
 PlayerSchema.index(
   { teamId: 1, email: 1 },
-  {
-    unique: true,
-    sparse: true,
-    partialFilterExpression: {
-      email: { $exists: true, $nin: [null, ""] },
-    },
-  },
+  { unique: true, partialFilterExpression: { email: { $type: "string" } } },
 );
 
-// T060: Composite index for querying members who have joined a team
-PlayerSchema.index({ teamId: 1, userId: 1 });
+PlayerSchema.index(
+  { teamId: 1, userId: 1 },
+  { unique: true, partialFilterExpression: { userId: { $type: "objectId" } } },
+);
 
-// T060: Composite index for querying members by role within a team
+// Composite index for querying members by role within a team
 PlayerSchema.index({ teamId: 1, role: 1 });
 
 // Prevent model overwrite error in development (hot reload)

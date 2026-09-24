@@ -1,0 +1,129 @@
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
+import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+
+const mockCreatePlayer = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetTeamPlayers = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
+
+jest.mock("@/interface/controllers/player/player.controller", () => ({
+  createPlayer: mockCreatePlayer,
+  getTeamPlayers: mockGetTeamPlayers,
+}));
+
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
+
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const SESSION = { user: { id: "user-1" } };
+
+type RouteResponse = { status: number; json: () => Promise<unknown> };
+
+let POST: (
+  req: never,
+  props: { params: Promise<{ teamId: string }> },
+) => Promise<RouteResponse>;
+
+describe("POST /api/teams/[teamId]/players", () => {
+  beforeEach(async () => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ POST } = await import("../route"));
+  });
+
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
+        name: "陳大文",
+        list: "starting",
+      },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("returns 400 for a role without an email to invite", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", role: PlayerRole.ADMIN },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("returns 400 for OWNER, which only a transfer can grant", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", email: "chen@example.com", role: PlayerRole.OWNER },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+
+    expect(res.status).toBe(400);
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  // The exact body CreateForm's handleSubmit sends (src/components/team/players/create-form.tsx):
+  it("returns 201 for the payload the create-player form actually sends", async () => {
+    const created = {
+      id: "player-1",
+      name: "陳大文",
+      number: 5,
+      position: Position.MB,
+      status: PlayerStatus.NONE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mockCreatePlayer.mockResolvedValue(created);
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
+        name: "陳大文",
+        number: 5,
+        position: Position.MB,
+      },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
+
+    const res = await POST(req as never, props);
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body).toEqual(created);
+    expect(mockCreatePlayer).toHaveBeenCalledWith({
+      teamId: VALID_OBJECT_ID,
+      data: {
+        name: "陳大文",
+        number: 5,
+        position: Position.MB,
+      },
+      userId: SESSION.user.id,
+    });
+  });
+});

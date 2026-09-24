@@ -181,3 +181,10 @@
     @apply font-sans;
   }
 }
+
+/* fumadocs gives a code block no margin of its own: the gap above one comes
+   from the bottom margin of the paragraph before it, so two in a row touch.
+   Unlayered so it outranks the layered prose rules. */
+.prose figure + figure {
+  margin-top: 1rem;
+}

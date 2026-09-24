@@ -27,7 +27,7 @@ const NewTeamModalPage = () => {
       body: JSON.stringify(formData),
     });
     mutate(`/api/teams/${team.id}`, team, false);
-    router.push(`/team/${team.id}?tab=about`);
+    router.replace(`/team/${team.id}?tab=about`);
   };
 
   return (

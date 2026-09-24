@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { renderInline } from "@/lib/render-inline";
 
 type Severity = "critical" | "warning" | "info" | "ok";
 
@@ -59,7 +60,9 @@ export function RiskTable({ risks }: RiskTableProps) {
       <TableBody>
         {sorted.map((r) => (
           <TableRow key={r.name}>
-            <TableCell className="font-medium">{r.name}</TableCell>
+            <TableCell className="font-medium whitespace-normal">
+              {renderInline(r.name)}
+            </TableCell>
             <TableCell>
               <Badge
                 variant={SEVERITY_BADGE[r.severity].variant}
@@ -69,7 +72,9 @@ export function RiskTable({ risks }: RiskTableProps) {
                 {r.severity}
               </Badge>
             </TableCell>
-            <TableCell className="whitespace-normal">{r.mitigation}</TableCell>
+            <TableCell className="whitespace-normal">
+              {renderInline(r.mitigation)}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

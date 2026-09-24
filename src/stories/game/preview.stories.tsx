@@ -4,12 +4,12 @@ import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 
-const players: GamePlayerView[] = [
-  { id: "p1", name: "選手一", number: 7, stats: [] },
-];
+const players: GamePlayerView[] = [{ id: "p1", name: "選手一", number: 7 }];
 
 const previousEntry: EntryView = {
   type: EntryType.RALLY,
+  id: "entry-previous",
+  seq: 0,
   win: true,
   home: {
     score: 12,
@@ -22,6 +22,8 @@ const previousEntry: EntryView = {
 
 const undecidedEntry: EntryView = {
   type: EntryType.RALLY,
+  id: "entry-undecided",
+  seq: 1,
   // A draft mid-input: the player is chosen but no outcome has been picked
   // yet, so home/away type stay null and <Rally> renders the muted Figures.
   win: false,
@@ -36,6 +38,8 @@ const undecidedEntry: EntryView = {
 
 const decidedEntry: EntryView = {
   type: EntryType.RALLY,
+  id: "entry-decided",
+  seq: 1,
   win: true,
   home: {
     score: 13,

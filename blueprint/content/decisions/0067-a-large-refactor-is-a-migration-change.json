@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0067",
+  "title": "A large refactor is a Migration Change",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Split out of ADR-0045. A refactor too large for the size targets still needs one approved overall plan.",
+  "decision": "A large refactor is a Migration Change: its Proposal passes G1 once with the shard list, order and completion criteria, and each shard is its own Change that carries a Migration trailer, references the Migration Proposal's slug and passes only G2. The Migration's decision record is written once, when the migration is decided.",
+  "consequences": [
+    "A Migration trailer suppresses the src-file-count warning for its shards."
+  ],
+  "originChange": "two-gate-workflow"
+}

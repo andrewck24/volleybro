@@ -1,0 +1,57 @@
+---
+title: Notifications
+description: The in-app notification system — designed but not yet built. Pending invitations are currently surfaced in the user area.
+---
+
+export const nodes = [
+  { id: "event", label: "Event", x: 90, y: 70, sublabel: "e.g. invite" },
+  { id: "notify", label: "Notification", x: 290, y: 70, w: 130 },
+  { id: "centre", label: "Centre", x: 490, y: 70 },
+  { id: "navdot", label: "Nav Unread", x: 290, y: 180, w: 130 },
+];
+
+export const edges = [
+  { from: "event", to: "notify" },
+  { from: "notify", to: "centre" },
+  { from: "notify", to: "navdot" },
+];
+
+export const details = {
+  event: {
+    title: "Trigger Event",
+    body: "An action that concerns a user — today, primarily a team invitation — would raise a notification.",
+  },
+  notify: {
+    title: "Notification",
+    body: "Planned: the event becomes a persisted notification addressed to the recipient. No notification entity exists yet.",
+  },
+  centre: {
+    title: "Notification Centre",
+    body: "Planned: a dedicated place to read and act on notifications. The notifications tab is currently a placeholder.",
+  },
+  navdot: {
+    title: "Nav Unread Indicator",
+    body: "Planned: an unread red dot on the relevant nav item, sharing the same unread source as the centre.",
+  },
+};
+
+Notifications are a **planned** system. Today the only user-facing signal — a
+pending team invitation — is surfaced in the user area, not through a
+notification centre. The flow below is the designed target.
+
+> **Not built yet.** There is no notification entity, use case, or API, and the
+> notifications tab is currently a placeholder. See the status table below.
+
+<InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
+
+## Status
+
+| Capability                          | Status                           |
+| ----------------------------------- | -------------------------------- |
+| Notification system & centre        | <StatusBadge status="planned" /> |
+| Nav unread indicator                | <StatusBadge status="planned" /> |
+| Push notifications (Web Push / FCM) | <StatusBadge status="planned" /> |
+
+> Pending invitations are surfaced today in the user area — part of team
+> membership, not a notification system. Building the notification system is
+> planned.

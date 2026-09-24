@@ -8,25 +8,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { gameActions } from "@/lib/features/game/game-slice";
-import { useAppDispatch } from "@/lib/redux/hooks";
+import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { RiArrowLeftWideLine } from "react-icons/ri";
 
 export const EntriesEdit = ({ gameId }: { gameId: string }) => {
-  const dispatch = useAppDispatch();
+  const { writing, leaveEditing } = useEditingGuard();
 
   return (
     <>
-      <DialogHeader className="flex-row items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => dispatch(gameActions.setGameMode("general"))}
-        >
-          <RiArrowLeftWideLine />
-          <span className="sr-only">back</span>
-        </Button>
-        <DialogTitle>編輯逐球紀錄</DialogTitle>
+      <DialogHeader>
+        <DialogTitle>
+          <Button
+            variant="ghost"
+            className="size-5 p-0 [&>svg]:size-5"
+            disabled={writing}
+            onClick={leaveEditing}
+          >
+            <RiArrowLeftWideLine />
+            <span className="sr-only">back</span>
+          </Button>
+          編輯逐球紀錄
+        </DialogTitle>
         <DialogDescription srOnly>逐球紀錄編輯頁面</DialogDescription>
       </DialogHeader>
       <GameCourt gameId={gameId} mode="editing" />

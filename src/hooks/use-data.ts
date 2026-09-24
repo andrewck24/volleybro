@@ -2,18 +2,17 @@ import { PlayerStatus } from "@/entities/player";
 import type { Profile } from "@/entities/profile";
 import type { User } from "@/entities/user";
 import { apiClient, ApiClientError } from "@/lib/api/api-client";
+import { mergePendingEntries } from "@/lib/features/game/pending-writes";
 import type { GameSummaryView, GameView } from "@/lib/features/game/types";
-import type { PlayerView, TeamView } from "@/lib/features/team/types";
-import { useCallback } from "react";
+import type {
+  PlayerView,
+  TeamView,
+  UserPlayerView,
+} from "@/lib/features/team/types";
+import { useAppSelector } from "@/lib/redux/hooks";
+import { useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import useSWRInfinite from "swr/infinite";
-
-/**
- * Centralized SWR configuration to:
- * - Reduce redundant API requests
- * - Optimize cache strategies per resource type
- * - Improve consistency across all data hooks
- */
 
 export { ApiClientError };
 
@@ -25,22 +24,17 @@ const useHasCache = (key: string) => {
   return cache.get(key) !== undefined;
 };
 
-// Optimized SWR configuration presets
-// Deduplication intervals prevent redundant requests when multiple components mount simultaneously
 const SWR_CONFIG = {
-  // Default config for single-resource fetches (user, team, game)
   DEFAULT: {
-    dedupingInterval: 5 * 60 * 1000, // 5 minutes - prevent concurrent requests
-    focusThrottleInterval: 5 * 60 * 1000, // 5 minutes - prevent refetch on window focus
-    errorRetryInterval: 5000, // 5 seconds - retry failed requests
+    dedupingInterval: 5 * 60 * 1000,
+    focusThrottleInterval: 5 * 60 * 1000,
+    errorRetryInterval: 5000,
   },
-  // Config for frequently-changing data (lists)
   LIST: {
-    dedupingInterval: 2 * 60 * 1000, // 2 minutes - more aggressive for lists
+    dedupingInterval: 2 * 60 * 1000,
     focusThrottleInterval: 3 * 60 * 1000,
     errorRetryInterval: 5000,
   },
-  // Config for infinite scrolling data
   INFINITE: {
     dedupingInterval: 2 * 60 * 1000,
     focusThrottleInterval: 3 * 60 * 1000,
@@ -73,7 +67,7 @@ export const useUserPlayers = (
 ) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
-    PlayerView[],
+    UserPlayerView[],
     ApiClientError
   >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
 
@@ -81,8 +75,11 @@ export const useUserPlayers = (
 };
 
 /**
- * Returns the active team ID for the current user.
- * Falls back to the first JOINED player's teamId when profile.activeTeamId is null.
+ * The active team: `profile.activeTeamId` when the user is still a member of
+ * that team, otherwise the first team they have joined, otherwise none. The
+ * server never picks a replacement, so a stale `activeTeamId` (a membership
+ * that ended after it was set) is resolved here, from data already being
+ * fetched for other reasons.
  */
 export const useActiveTeamId = () => {
   const {
@@ -99,21 +96,24 @@ export const useActiveTeamId = () => {
   } = useProfile();
   const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
 
-  const isLoading =
-    userLoading || profileLoading || (!profile?.activeTeamId && playersLoading);
+  const isLoading = userLoading || profileLoading || playersLoading;
   const error = userError ?? profileError;
   const mutate = useCallback(
     () => Promise.all([mutateUser(), mutateProfile()]),
     [mutateUser, mutateProfile],
   );
 
-  if (profile?.activeTeamId)
-    return { teamId: profile.activeTeamId, isLoading, error, mutate };
-
-  const firstJoined = players.find(
+  const joinedPlayers = players.filter(
     (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
-  return { teamId: firstJoined?.teamId, isLoading, error, mutate };
+  const isStillJoined = joinedPlayers.some(
+    (p) => p.teamId === profile?.activeTeamId,
+  );
+  const teamId = isStillJoined
+    ? profile?.activeTeamId
+    : joinedPlayers[0]?.teamId;
+
+  return { teamId, isLoading, error, mutate };
 };
 
 export const useTeam = (
@@ -189,7 +189,13 @@ export const useGame = (
     ...options,
   });
 
-  return { game: data, error, isLoading, isValidating, mutate };
+  const pending = useAppSelector((state) => state.pendingWrites.pending);
+  const game = useMemo(
+    () => mergePendingEntries(data, pending, gameId),
+    [data, pending, gameId],
+  );
+
+  return { game, error, isLoading, isValidating, mutate };
 };
 
 export const useGameSummaries = (

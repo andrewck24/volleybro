@@ -2,7 +2,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { DialogBody, DialogFooter } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -20,13 +22,14 @@ import type { TeamView } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { type Resolver } from "react-hook-form";
+import { RiSaveLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 import { Skeleton } from "@/components/ui/skeleton";
 import { z } from "zod";
 
 const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
-const TeamSchema = z
+export const TeamSchema = z
   .object({
     name: z
       .string()
@@ -85,53 +88,63 @@ const TeamForm = ({
       clearDraft();
     } catch (e) {
       form.setError("root", {
-        message: e instanceof Error ? e.message : "提交失敗，請稍後再試",
+        message: resolveErrorDisplay(e).description,
       });
     }
   });
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle>編輯隊伍資訊</CardTitle>
-      </CardHeader>
-      <Form form={form} onSubmit={handleSubmit}>
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>隊伍名稱</FormLabel>
-              <FormControl>
-                <Input placeholder="日本國家男子排球隊" {...field} />
-              </FormControl>
-              <FormDescription>請輸入 20 字以內的隊伍全名</FormDescription>
-            </FormItem>
+    <Form form={form} onSubmit={handleSubmit} className="min-h-0 flex-1 gap-0">
+      <DialogBody>
+        <Card className={className}>
+          <CardHeader>
+            <CardTitle>編輯隊伍資訊</CardTitle>
+          </CardHeader>
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>隊伍名稱</FormLabel>
+                <FormControl>
+                  <Input placeholder="日本國家男子排球隊" {...field} />
+                </FormControl>
+                <FormDescription>請輸入 20 字以內的隊伍全名</FormDescription>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="nickname"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>隊伍簡稱</FormLabel>
+                <FormControl>
+                  <Input placeholder="RYUJIN" {...field} />
+                </FormControl>
+                <FormDescription>請輸入 8 字以內隊伍簡稱</FormDescription>
+              </FormItem>
+            )}
+          />
+          {form.formState.errors.root && (
+            <p className="text-sm text-destructive">
+              {form.formState.errors.root.message}
+            </p>
           )}
-        />
-        <FormField
-          control={form.control}
-          name="nickname"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>隊伍簡稱</FormLabel>
-              <FormControl>
-                <Input placeholder="RYUJIN" {...field} />
-              </FormControl>
-              <FormDescription>請輸入 8 字以內隊伍簡稱</FormDescription>
-            </FormItem>
-          )}
-        />
-        {form.formState.errors.root && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.root.message}
-          </p>
-        )}
-        <Button size="lg">
+        </Card>
+      </DialogBody>
+      <DialogFooter>
+        <Button
+          type="submit"
+          size="lg"
+          loading={form.formState.isSubmitting}
+          loadingText={defaultValues?.name ? "儲存中" : "建立中"}
+        >
+          <RiSaveLine />
           {defaultValues?.name ? "儲存修改" : "建立隊伍"}
         </Button>
-      </Form>
-    </Card>
+      </DialogFooter>
+    </Form>
   );
 };
 
@@ -148,7 +161,7 @@ export function EditTeamWorkspace({ teamId }: { teamId: string }) {
       body: JSON.stringify(formData),
     });
     mutate({ ...team, ...teamData }, { revalidate: true });
-    router.push(`/team/${teamId}?tab=about`);
+    router.replace(`/team/${teamId}?tab=about`);
   };
 
   if (isLoading) return <EditTeamWorkspaceSkeleton />;
@@ -205,7 +218,7 @@ export function NewTeamWorkspace() {
       body: JSON.stringify(formData),
     });
     mutate(`/api/teams/${team.id}`, team, false);
-    router.push(`/team/${team.id}?tab=about`);
+    router.replace(`/team/${team.id}?tab=about`);
   };
 
   return (

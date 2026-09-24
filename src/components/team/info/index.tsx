@@ -1,7 +1,6 @@
 "use client";
 import {
   AlertDialog,
-  AlertDialogBody,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -18,17 +17,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { useTeam, useTeamPlayers, useUser } from "@/hooks/use-data";
+import { ErrorNotice } from "@/components/custom/error/error-notice";
+import { ServerErrorState } from "@/components/custom/error/server-error-state";
 import { apiClient } from "@/lib/api/api-client";
-import { getErrorMessage } from "@/lib/api/error-toast";
+import type { ErrorMessage } from "@/lib/api/error-messages";
+import { resolveErrorDisplay } from "@/lib/api/error-toast";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiEditBoxLine, RiGroupLine, RiInformationLine } from "react-icons/ri";
 
 const TeamInfo = ({ teamId }: { teamId: string }) => {
-  const { team, isLoading: isTeamLoading } = useTeam(teamId);
+  const {
+    team,
+    isLoading: isTeamLoading,
+    error: teamError,
+    mutate: mutateTeam,
+  } = useTeam(teamId);
   const {
     players,
     isLoading: isPlayersLoading,
+    error: playersError,
     mutate,
   } = useTeamPlayers(teamId);
   const { user, isLoading: isUserLoading } = useUser();
@@ -36,14 +44,24 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
   const router = useRouter();
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const [leaveError, setLeaveError] = useState<ErrorMessage | null>(null);
 
   if (isTeamLoading || isPlayersLoading || isUserLoading)
     return <TeamInfoSkeleton />;
 
+  if (teamError || playersError || !team || !players)
+    return (
+      <ServerErrorState
+        onRetry={() => {
+          mutateTeam();
+          mutate();
+        }}
+      />
+    );
+
   const contents = [
-    { key: "簡稱", value: team!.nickname, icon: <RiInformationLine /> },
-    { key: "人數", value: players!.length, icon: <RiGroupLine /> },
+    { key: "簡稱", value: team.nickname, icon: <RiInformationLine /> },
+    { key: "人數", value: players.length, icon: <RiGroupLine /> },
   ];
   const currentUserPlayer = players?.find((p) => p.userId === user?.id);
   const isAdmin = currentUserPlayer
@@ -68,7 +86,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
       mutate();
       router.push("/user/invitations");
     } catch (err) {
-      setLeaveError(getErrorMessage(err));
+      setLeaveError(resolveErrorDisplay(err));
     } finally {
       setIsLeaving(false);
     }
@@ -123,11 +141,7 @@ const TeamInfo = ({ teamId }: { teamId: string }) => {
                     離開後將無法查看隊伍相關資訊與個人數據。此操作無法撤銷，若要重新加入需再次接受邀請。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                {leaveError && (
-                  <AlertDialogBody>
-                    <p className="text-sm text-destructive">{leaveError}</p>
-                  </AlertDialogBody>
-                )}
+                {leaveError && <ErrorNotice message={leaveError} />}
                 <AlertDialogFooter>
                   <AlertDialogCancel>取消</AlertDialogCancel>
                   <Button

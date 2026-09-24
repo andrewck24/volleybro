@@ -4,6 +4,7 @@ import {
 } from "@/components/game/entry/last-entry-rule";
 import { Rally } from "@/components/game/entry/rally";
 import { Substitution } from "@/components/game/entry/substitution";
+import { FailedWriteRetry } from "@/components/game/failed-write-retry";
 import { EntryType } from "@/entities/game";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
 import { cn } from "@/lib/utils";
@@ -137,6 +138,8 @@ export const EntryRow = ({
   onToggleExpand,
   swipeRevealed: swipeRevealedProp,
   onSwipeReveal,
+  failed,
+  onRetry,
   className,
 }: {
   entry: EntryView;
@@ -150,6 +153,11 @@ export const EntryRow = ({
   onToggleExpand?: () => void;
   swipeRevealed?: boolean;
   onSwipeReveal?: (revealed: boolean) => void;
+  // hasFailedWrite: matched to the queue by entry id. Not a toast -- it
+  // persists until the entry leaves the queue, which a retry achieves only
+  // once whatever the server rejected has changed.
+  failed?: boolean;
+  onRetry?: () => void;
   className?: string;
 }) => {
   const [localExpanded, setLocalExpanded] = useState(false);
@@ -209,7 +217,20 @@ export const EntryRow = ({
       onClick={handleRowClick}
     >
       <div className="flex w-full flex-row items-center">
-        <Entry entry={entry} players={players} className="flex-1" />
+        <div className="relative flex-1">
+          <Entry
+            entry={entry}
+            players={players}
+            className={cn(failed && "ring-1 ring-destructive")}
+          />
+          {failed && (
+            <FailedWriteRetry
+              onRetry={onRetry}
+              testId="entry-row-retry"
+              passThroughPointerEvents
+            />
+          )}
+        </div>
         {swipeRevealed && (
           <div
             data-testid="entry-row-swipe-actions"

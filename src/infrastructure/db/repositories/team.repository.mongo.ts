@@ -5,7 +5,7 @@ import {
   TeamDocument,
   Team as TeamModel,
 } from "@/infrastructure/db/mongoose/schemas/team";
-import { translateRepositoryError } from "@/infrastructure/db/repositories/repository-helpers.mongo";
+import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 import { Types } from "mongoose";
 
 export class TeamRepositoryImpl implements ITeamRepository {
@@ -68,7 +68,8 @@ export class TeamRepositoryImpl implements ITeamRepository {
       id: obj._id.toString(),
       lineups:
         obj.lineups?.map((lineup) => ({
-          ...lineup,
+          // `lineupSchema` is the one sub-schema without `{ _id: false }`.
+          options: lineup.options,
           starting: lineup.starting.map((p) => this.mapLineupPlayer(p)),
           liberos: lineup.liberos.map((p) => this.mapLineupPlayer(p)),
           substitutes: lineup.substitutes.map((p) => this.mapLineupPlayer(p)),

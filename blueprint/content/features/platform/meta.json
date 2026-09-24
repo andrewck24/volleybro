@@ -1,0 +1,14 @@
+{
+  "title": "Platform",
+  "pages": [
+    "index",
+    "delivery-workflow",
+    "blueprint",
+    "agent-orchestration",
+    "clean-architecture",
+    "design-system",
+    "forms",
+    "error-handling",
+    "pwa"
+  ]
+}

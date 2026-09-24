@@ -1,0 +1,37 @@
+---
+title: Membership
+description: The three kinds of player, who a member is, and how invitations reach an account.
+---
+
+A roster row on a team, `Player`, is one of three kinds. An unlinked player has no account and no pending invitation. An invitee has been invited and holds the role the invitation offered, but is not yet a member. A member has accepted the invitation and joined with an account; only a member holds the permissions their role grants. `isTeamMember` in `src/entities/player.ts` decides membership by status alone — `JOINED` — never by role, so an invitee never passes a member check no matter what role they were invited with.
+
+## Current behavior
+
+- `Player` is a union of `UnlinkedPlayer` (no userId, email or role), `InvitedPlayer` (exactly one of userId or email, plus the invited role) and `TeamMember` (userId and role). A document read from storage is narrowed into one of the three, and a document that does not fit fails to read.
+- An invitee fails every member and admin check, including write paths, until they accept.
+- Team info, the roster, and a single player's data are readable only by a member of that team. `GetTeamUseCase`, `GetTeamPlayersUseCase` and `GetPlayerUseCase` each verify membership before reading, and the check runs inside the use case rather than the route, so a caller that reaches the use case through another controller is protected too. This is a stand-in for privacy settings, which do not exist yet — once they ship, a team owner will decide who beyond its members can see this data.
+- `AuthorizationService` only looks a player up and asks the entity functions `isTeamMember` and `hasTeamRole` whether the caller passes; the rules themselves live in `src/entities/player.ts`, not in the service.
+- Inviting an address matches a registered account by case-insensitive exact email, using a collation-based query rather than a regular expression, since a regex's `.` would match any character and could link the invitation to the wrong account. An address that matches more than one account is refused. An address with no registered account is stored lowercased, as an invitation waiting on registration.
+- Partial unique indexes on `(teamId, userId)` and `(teamId, email)` guarantee, at the database level, that one user has at most one player per team and that a team never has two invitations to the same email.
+- `useActiveTeamId` resolves a user's default team from their joined memberships only: it uses the profile's `activeTeamId` when that team is still one they have joined, and otherwise falls back to their first other joined team.
+- Existing data is normalized before this model's deploy, so every document narrows on read; account linking for invitations that matched a registered address only runs after deploy, once the new authorization checks are live.
+
+## Constraints
+
+- A membership check must run before the data it protects is read, not merely before the response is returned — a use case that reads first and rejects after has already pulled the data into memory.
+- An authorization parameter must never be optional on a use case that needs it; an optional check is unsafe by default.
+- Invitee-to-account matching must use collation-based exact comparison, never `$regex`.
+
+## Known gaps
+
+- `GET /api/users?email=` lets any signed-in user look up another user by email; it is unrestricted today and belongs to the privacy-settings topic.
+- Every member currently sees every other player's email; there is no per-field visibility rule yet (for example, restricting email to the owner and admins).
+- The three member-only read endpoints' rejection paths have no integration-test coverage: the integration test suite's authorization double always allows, so their 403s are only proven at the unit level.
+- A signed-in user can still tell whether a player id exists, because a missing `teamId` on a player returns 403 while a missing player returns 404.
+- Several use cases — find-game, cancel-invitation, update-role, remove-player and update-player-info — read their target before authorizing against it, unlike the three read endpoints above.
+- Unlinking an account (an admin disconnecting someone else's account, leaving their roster row as an unlinked player) is not built yet.
+- Team creation is three non-atomic writes: a failure partway leaves a team with no players and no owner, and a double submit creates two teams.
+
+## Implemented decisions
+
+<DecisionTimeline />
