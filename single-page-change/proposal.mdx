@@ -1,0 +1,64 @@
+---
+title: Single Page Change — Proposal
+description: Change 頁改為單一 index.mdx、Proposal 與 Review 兩個 tab；Review 先放要開發者做的事與審查重點；數字由工具產生；G1 後 Proposal 鎖定。
+---
+
+<TLDR>
+現有 Change 頁拆成兩頁、章節繁多，開發者抓不到重點、閱讀負擔重，agent 的維護成本也高。本 Change 把每個 Change 改成單一頁面、兩個 tab：Proposal 以 TLDR 與前後對照表說明問題與解法，決策收合成卡片；Review 先列需要開發者決定或執行的事與審查重點。scenario 與 test plan 定義成資料，頁面上的數字由 publish 產生，gate 擋下漏報的結果與 G1 之後被改動的 Proposal。
+</TLDR>
+
+## 現在與之後
+
+| 面向         | 現在                                       | 之後                                                       |
+| ------------ | ------------------------------------------ | ---------------------------------------------------------- |
+| 頁面         | `proposal.mdx`、`review.mdx` 兩頁兩個網址  | 單一 `index.mdx`，Proposal 與 Review 兩個 tab              |
+| G2 閱讀順序  | 驗收表、驗證、finding、diff，要拍板的事在後 | 先列要你決定或執行的事與審查重點，其餘收合                 |
+| scenario     | Proposal 寫一次，Review 再抄一次           | 定義一次，Review 依編號回報結果                            |
+| 決策         | 決策表加上完整展開的 `DecisionTimeline`    | 可收合的卡片，展開才看採用與棄用的選項                     |
+| 數字         | 手抄，會錯                                 | publish 產生 `facts.json`，頁面只引用它                    |
+| Proposal     | G1 後仍可無聲修改                          | G2 時 gate 比對 G1 版本，不同即失敗                        |
+
+## 決策
+
+<DecisionTimeline ids={["0072", "0073", "0074", "0075"]} />
+
+Proposal 放哪些內容屬於寫作規則，寫進 `docs/agents/blueprint.md`，不另立 ADR：標頭（capability badge 連到 Features、gate 狀態、`facts.json` 的數字）、TLDR（問題與解法）、前後對照表（behavior Change 必放，structure Change 可省略）、決策卡片、範圍、scenario、風險；流程圖、design mockup、References 需要時才放。
+
+## 範圍
+
+1. 目錄結構：`index.mdx`、publish 產生的 `facts.json`，以及選用的 `design.tsx` 與圖片。
+2. 頁面外殼：兩個 tab、預設 Proposal、`#review` 錨點，以及標頭。
+3. 共用的決策卡片元件：從 ADR id 渲染，收合時顯示編號與標題，展開顯示採用與棄用的選項；已被取代的紀錄以 badge 連到取代它的 ADR。Features 頁為每筆 ADR 加上錨點。
+4. scenario 與 test plan 資料化：在 `index.mdx` 定義一次，由元件渲染；test plan 以卡片呈現，收合時顯示編號、驗證的行為、執行者與結果，展開顯示方法、環境與證據。視覺設計以 UI 設計 skill 引導，與決策卡片一致。
+5. `blueprint:changes:publish` 在每次 publish 寫入 `facts.json`（含 `gate`、`publishedAt`）。
+6. `check:workflow --gate`：標題只檢查 `<name>`；每條 scenario 都有結果、Review 的必要區塊都存在；G2 時 Proposal 區塊須與 G1 版本相同。
+7. 更新 `docs/agents/blueprint.md` 與 `WORKFLOW.md` 的頁面規則與目錄樹，加入「正文不得手抄計數」的規則；mockup 檔名統一為 `design.tsx`，`MockupFrame` 保留。
+8. 不在範圍內：6 個新格式 Change 的遷移、deploy hook、review 範圍縮小（屬 `single-page-rollout`）；22 個舊格式頁面與相容層（另案）；agent 自動驗證需登入的畫面（另案）。
+
+## 驗收情境
+
+<Scenario given="a Change directory with index.mdx" when="the page is opened" then="it shows a Proposal tab and a Review tab, opens on Proposal, and opens on Review when the URL carries #review" />
+
+<Scenario given="a published Change" when="its header renders" then="it shows capability badges linked to their Feature pages, the gate, and the figures from facts.json" />
+
+<Scenario given="a Proposal citing decision records" when="the decision cards render" then="each card shows its number and title collapsed, adopted and rejected options expanded, and a superseded record links to the record that replaced it" />
+
+<Scenario given="a Review tab missing a result for one scenario" when="check:workflow --gate runs at G2" then="it fails naming that scenario" />
+
+<Scenario given="a Proposal part that differs from the version published at G1" when="check:workflow --gate runs at G2" then="it fails" />
+
+<Scenario given="a Change branch" when="blueprint:changes:publish runs" then="facts.json records the gate, the publish time, and figures that match the branch's diff against dev" />
+
+<Scenario given="a Review tab missing a required section" when="check:workflow --gate runs at G2" then="it fails, and the sections that exist render in the required order" />
+
+<Scenario given="docs/agents/blueprint.md" when="it is read" then="it forbids hand-copied counts in prose and names what to write instead" />
+
+## 風險
+
+<RiskTable
+  risks={[
+    { name: "6 個新格式 Change 在 single-page-rollout 完成前仍是兩頁格式", severity: "warning", mitigation: "本 Change 保留舊的兩頁路由，新舊格式並存到遷移完成。" },
+    { name: "Proposal 鎖定需要從 store 分支歷史找出 G1 那次 publish", severity: "warning", mitigation: "facts.json 記錄 gate，比對找最近一次 gate 為 G1 的 publish；沒有 G1 紀錄的 Change 略過而不誤擋。" },
+    { name: "G1 時 facts.json 大多是空值", severity: "info", mitigation: "標頭把空值渲染成不顯示，而不是 0。" },
+  ]}
+/>
