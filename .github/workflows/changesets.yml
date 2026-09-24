@@ -92,7 +92,11 @@ jobs:
           # Sync the release commit (bump + CHANGELOG + changeset deletions) back
           # to dev. The PR is RELEASE_TOKEN-authored, so Verify runs and
           # auto-merge can complete once it passes — no ruleset bypass needed.
-          if pr_url=$(gh pr create --base dev --head main \
+          # Its head is a throwaway branch, never main: the repo deletes a
+          # merged PR's head branch, and that once deleted main.
+          sync_branch="sync/${tag}"
+          git push origin "HEAD:refs/heads/${sync_branch}"
+          if pr_url=$(gh pr create --base dev --head "$sync_branch" \
             --title "chore: sync ${tag} release back to dev" \
             --body "Automated sync of the ${tag} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev."); then
             gh pr merge "$pr_url" --auto --merge \
