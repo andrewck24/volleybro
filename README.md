@@ -5,7 +5,7 @@
 
 **Rally-by-rally volleyball match recording and team management, built for the sideline.**
 
-<img src="docs/images/readme-banner.png" alt="VolleyBro logo beside three phones showing the rally list, the recording court, and the team roster" width="100%">
+<img src="docs/images/readme-banner.webp" alt="VolleyBro logo beside three phones showing the rally list, the recording court, and the team roster" width="100%">
 
 [![Next.js][nextjs-badge]][nextjs-url]
 [![React][react-badge]][react-url]
@@ -73,8 +73,14 @@ It is a Progressive Web App — installable, offline-capable, and equally usable
 Three taps per rally — pick the player who made the play, log your side's action, log the opponent's response. Scores, rotation, and per-skill statistics update as you record. Substitutions are recorded inline without leaving the flow.
 
 <div align="center">
-  <img src="public/landing/features/game-demo-1-light.png" alt="Rally recording interface" width="240">
-  <img src="public/landing/features/game-demo-2-light.png" alt="Match record browsing" width="240">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/game-demo-1-dark.png">
+    <img src="public/landing/features/game-demo-1-light.png" alt="Rally recording interface" width="240">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/game-demo-2-dark.png">
+    <img src="public/landing/features/game-demo-2-light.png" alt="Match record browsing" width="240">
+  </picture>
 </div>
 
 ### 📊 Match Analysis
@@ -86,8 +92,14 @@ Team statistics broken down by skill — serving, blocking, attack, reception, d
 Create a team, invite members by user search, and manage roles (`OWNER` / `ADMIN` / `MEMBER`). Members move through an explicit invitation lifecycle (`NONE` → `INVITED` → `JOINED`), and lineups are configured per match.
 
 <div align="center">
-  <img src="public/landing/features/team-demo-1-light.png" alt="Team management" width="240">
-  <img src="public/landing/features/team-demo-2-light.png" alt="Lineup configuration" width="240">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/team-demo-1-dark.png">
+    <img src="public/landing/features/team-demo-1-light.png" alt="Team management" width="240">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/team-demo-2-dark.png">
+    <img src="public/landing/features/team-demo-2-light.png" alt="Lineup configuration" width="240">
+  </picture>
 </div>
 
 ### 📱 Native-Feeling PWA

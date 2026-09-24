@@ -5,7 +5,7 @@
 
 **為場邊而生的排球逐球記錄與球隊管理工具。**
 
-<img src="docs/images/readme-banner.png" alt="VolleyBro 標誌與三支手機，分別顯示逐球列表、記錄球場與球隊名單" width="100%">
+<img src="docs/images/readme-banner.webp" alt="VolleyBro 標誌與三支手機，分別顯示逐球列表、記錄球場與球隊名單" width="100%">
 
 [![Next.js][nextjs-badge]][nextjs-url]
 [![React][react-badge]][react-url]
@@ -73,8 +73,14 @@
 一球三次點擊——選擇做出動作的球員、記錄我方動作、記錄對方回應與結果。比分、輪轉與各項技術數據隨記錄即時更新；替補可在記錄流程中直接完成，不需離開畫面。
 
 <div align="center">
-  <img src="public/landing/features/game-demo-1-light.png" alt="逐球記錄介面" width="240">
-  <img src="public/landing/features/game-demo-2-light.png" alt="賽事記錄瀏覽" width="240">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/game-demo-1-dark.png">
+    <img src="public/landing/features/game-demo-1-light.png" alt="逐球記錄介面" width="240">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/game-demo-2-dark.png">
+    <img src="public/landing/features/game-demo-2-light.png" alt="賽事記錄瀏覽" width="240">
+  </picture>
 </div>
 
 ### 📊 賽事分析
@@ -86,8 +92,14 @@
 建立隊伍、透過使用者搜尋邀請成員，並管理權限角色（`OWNER` / `ADMIN` / `MEMBER`）。成員狀態遵循明確的邀請流程（`NONE` → `INVITED` → `JOINED`），陣容則於每場比賽個別設定。
 
 <div align="center">
-  <img src="public/landing/features/team-demo-1-light.png" alt="隊伍管理" width="240">
-  <img src="public/landing/features/team-demo-2-light.png" alt="陣容設定" width="240">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/team-demo-1-dark.png">
+    <img src="public/landing/features/team-demo-1-light.png" alt="隊伍管理" width="240">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/landing/features/team-demo-2-dark.png">
+    <img src="public/landing/features/team-demo-2-light.png" alt="陣容設定" width="240">
+  </picture>
 </div>
 
 ### 📱 接近原生的 PWA 體驗
