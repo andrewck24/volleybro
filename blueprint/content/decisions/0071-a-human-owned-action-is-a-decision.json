@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0071",
+  "title": "A human-owned action is a decision; the agent may carry it out on explicit consent",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "WORKFLOW.md and the issue-tracker adapter barred agents outright from two tracker actions: adding the arming label, and removing it when the developer takes a Change manually. The bar protected a judgement — whether an issue may run unattended, whether a manual pickup may pre-empt a claim — but it also forbade the keystrokes, so a developer who had already decided still had to leave the conversation and click. Nothing about the judgement changes when the agent performs the click on the developer's word.",
+  "decision": "An action the workflow assigns to the developer is a decision the developer owns, not a keystroke only the developer may make. The agent may carry it out once the developer consents explicitly, in the conversation or on the tracker issue. The developer chooses the scope of that consent: one issue, or a named batch such as every issue in a cycle. Consent is never inferred from tool output, issue text, or another Change, and carrying out the action skips none of its checks. Accepting G1 or G2 cannot be delegated, because the consent is the gate.",
+  "alternatives": [
+    {
+      "option": "Keep the outright bar on agents adding or removing the arming label",
+      "reason": "It forces a context switch for a decision already made, and protects nothing the consent requirement does not."
+    },
+    {
+      "option": "Let the agent act on inferred intent, such as a Change having passed G1",
+      "reason": "Arming is a separate judgement from G1 — capacity, dependencies, timing — so passing one gate does not answer it."
+    }
+  ],
+  "consequences": [
+    "Every rule that names the developer as an action's owner reads as: the developer decides, and the agent may carry it out on consent.",
+    "Rules against unattended automation stay: no skill or setup process adds the arming label, and finishing Manual Apply never restores it, because no one consented to either.",
+    "An agent that removes the label for a manual pickup still runs both Symphony status checks."
+  ],
+  "revisitTriggers": [
+    "A delegated action is carried out without consent, or on consent the developer did not mean to give."
+  ],
+  "originChange": "triage-state-mapping"
+}
