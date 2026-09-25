@@ -98,7 +98,7 @@ export const scenarios = [
 <ActionItems>
 
 1. 接受下方「與 Proposal 的偏差」四項。
-2. 執行 test plan 的 T5：在瀏覽器與手機上打開一個遷移後的頁面（S8）。
+2. 執行 test plan 的 T5：在瀏覽器與手機上打開一個遷移後的頁面，告訴我是否可讀。S8 的結果要等你回報後才能填上，G2 gate 才會通過。
 
 </ActionItems>
 
@@ -138,7 +138,7 @@ export const scenarios = [
     { id: "T2", checks: "索引、頁首與元件", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T3", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T4", checks: "deploy hook 實際觸發", method: "publish 後查看 GitHub Actions 的 Blueprint deploy run", executor: "agent", environment: "GitHub Actions", result: "pass" },
-    { id: "T5", checks: "遷移後的頁面在你慣用的瀏覽器與手機上可讀（S8）", method: "合併並部署後，打開任一遷移頁面，看兩個 tab 與卡片", executor: "developer", environment: "正式站", result: "pending" },
+    { id: "T5", checks: "遷移後的頁面在你慣用的瀏覽器與手機上可讀（S8）", method: "G2 時在 dev server 打開任一遷移頁面，看兩個 tab 與卡片；手機以同一網路連到 dev server", executor: "developer", environment: "本機 dev server", result: "pending" },
   ]}
 />
 
