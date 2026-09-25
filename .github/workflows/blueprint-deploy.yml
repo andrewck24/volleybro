@@ -1,7 +1,6 @@
 name: Blueprint deploy
 
-# publish copies this file onto the blueprint-changes store branch, because a
-# push runs the workflows of the pushed commit, not those on dev.
+# Copied here by publish.
 on:
   push:
     branches:

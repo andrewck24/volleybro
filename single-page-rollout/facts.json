@@ -1,11 +1,11 @@
 {
-  "gate": "G1",
-  "publishedAt": "2026-09-25T20:09:39.518Z",
+  "gate": "G2",
+  "publishedAt": "2026-09-25T20:26:05.184Z",
   "mergedAt": null,
-  "commits": 2,
-  "filesChanged": 7,
-  "insertions": 191,
-  "deletions": 15,
+  "commits": 9,
+  "filesChanged": 18,
+  "insertions": 292,
+  "deletions": 186,
   "srcFilesChanged": 0,
   "scenarios": 8,
   "decisions": []

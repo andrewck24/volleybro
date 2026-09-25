@@ -93,4 +93,81 @@ export const scenarios = [
 />
 
 </Proposal>
+<Review>
+
+<ActionItems>
+
+1. 接受下方「與 Proposal 的偏差」四項。
+2. 執行 test plan 的 T5：在瀏覽器與手機上打開一個遷移後的頁面（S8）。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/change-page.js` 的 `landingOf`：如何在 `dev` 的 first-parent 歷史中找到一個 Change 落地的 commit。merge commit 看 subject 裡的分支名稱，squash commit 看 `Blueprint-Change` trailer；找不到就當作還沒合併。
+2. `scripts/blueprint-changes.js` 的 `syncDeployWorkflow` 與 pull 的過濾：deploy workflow 為什麼要放進 orphan 的 store 分支，以及 pull 為什麼要跳過它。
+3. 7 個遷移後的頁面：挑一頁比對 Proposal 與 Review 兩個 tab，確認原文都還在。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **`ScenarioResults` 多了「未完整驗證」這個結果（`unverified`）。** 三個舊 Change 的驗收表寫著「未證明」、「部分證明」、「由程式碼保證」。把這些寫成 pass 會誇大，寫成 pending 則不符實情，所以新增這個值，原本的措辭保留在證據欄。gate 只把 pass／fail 算成結果，所以新頁面不能拿它來充數。
+2. **修正 `/changes` 索引。** 索引原本只列出有 `/proposal` 或 `/review` 子頁的 Change，單頁格式從來沒被列進去。不修的話，這 7 頁遷移後就會從索引消失。
+3. **頁首單複數。** 頁首把「1 commits」改成「1 commit」。這不在 Proposal 裡，是在 `review-round-economy` 的頁首發現的，當時已說明會在這個 Change 一起修。
+4. **每頁 Review tab 開頭加上原本 Review 頁的 description。** 兩個檔案合併成一個之後，原本的第二份 frontmatter 放不進去；如果不這樣做，其中的摘要會消失。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "7 個 slug 在 dev server 上都回傳 200，兩個 tab 都在；舊的 `/proposal` 網址回傳 404" },
+    { id: "S2", result: "pass", evidence: "瀏覽器確認各頁都有決策卡片與 scenario 卡片；`two-gate-workflow` 顯示 ADR-0045" },
+    { id: "S3", result: "pass", evidence: "7 頁都顯示 `ScenarioResults`；逐字比對遷移前後，只少了表頭、列號、通過字樣與結果區塊的標題" },
+    { id: "S4", result: "pass", evidence: "`blueprint-changes` 的測試：merge commit 與 squash 各一；7 頁 publish 後的 `mergedAt` 與合併時間相符" },
+    { id: "S5", result: "pass", evidence: "既有的 facts 測試，另加 `mergedAt` 為 null 的斷言" },
+    { id: "S6", result: "pass", evidence: "publish 本 Change 後，Blueprint deploy workflow 自動觸發並成功呼叫 hook；缺 secret 時失敗是 workflow 裡的明確檢查" },
+    { id: "S7", result: "pass", evidence: "`pnpm verify:all` 四條 lane 全部通過；舊格式頁面在 dev server 上照常渲染" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "publish 的 facts、workflow 同步、pull 過濾", method: "`pnpm test:workflow`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T2", checks: "索引、頁首與元件", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T3", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T4", checks: "deploy hook 實際觸發", method: "publish 後查看 GitHub Actions 的 Blueprint deploy run", executor: "agent", environment: "GitHub Actions", result: "pass" },
+    { id: "T5", checks: "遷移後的頁面在你慣用的瀏覽器與手機上可讀（S8）", method: "合併並部署後，打開任一遷移頁面，看兩個 tab 與卡片", executor: "developer", environment: "正式站", result: "pending" },
+  ]}
+/>
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+<RiskTable
+  risks={[
+    { name: "two-gate-workflow 的驗收表沒有轉成卡片，殘留風險也沒放進 ReviewDetails", severity: "warning", mitigation: "spec 第 1 輪發現：表格的 10 列其實能對應到 8 條 scenario。已依對應轉成卡片，每列的文字都保留，殘留風險一節也移進 ReviewDetails。" },
+    { name: "Review 頁的 description 在合併時遺失", severity: "warning", mitigation: "每頁 Review tab 開頭改放原本的 description，`blueprint.md` 也寫明這一點。" },
+    { name: "blueprint.md 的轉換規則為例外加了條件", severity: "info", mitigation: "刪掉「列數要與 scenario 相符」這個條件。" },
+    { name: "設計檔查找的 helper 只剩一個呼叫者；落地範圍的欄位名稱與 facts.commits 撞名", severity: "info", mitigation: "helper 改為 inline；欄位改名為 `commitRange`。" },
+    { name: "Change 分支前綴有兩份；applyChange 順帶處理 workflow 同步", severity: "info", mitigation: "前綴由 commitlint plugin 匯出，兩處共用；workflow 同步拆成獨立的 `syncDeployWorkflow`。" },
+    { name: "store workflow 的原因在多處重複說明", severity: "info", mitigation: "原因只寫在 `syncDeployWorkflow`，其他地方改為指向它。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "`dev` 的 push 與 store 的 publish 可能在短時間內各觸發一次建置", severity: "info", mitigation: "兩次建置拉到的內容相同，只是多花一次建置時間。之後若常發生，再改成 debounce。" },
+    { name: "check-workflow 仍保留兩頁格式的 gate 檢查", severity: "info", mitigation: "現在已沒有兩頁格式的頁面，這段檢查不會再被觸發。Proposal 沒有把它列進範圍，留待之後清理。" },
+    { name: "landingOf 依分支名稱或 trailer 辨認 Change", severity: "info", mitigation: "若 merge 時改寫了 subject、又沒有 trailer，會找不到落地 commit，退回用分支 diff 計算。7 個現有的 Change 都能正確辨認。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
 </ChangeTabs>
