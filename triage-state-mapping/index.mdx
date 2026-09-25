@@ -119,6 +119,8 @@ export const scenarios = [
 </Proposal>
 <Review>
 
+交付結果、驗收證據、三輪 code review 的發現與處置，以及 G2 的一個決定。
+
 <TLDR>
 triage playbook 的七個角色現在有了 tracker 對照：`docs/agents/triage-labels.md` 以角色、載體、值三欄記錄，交付契約只允許這些 label。`WORKFLOW.md` 的狀態表拆成八列，G1 在 Todo、G2 在 In Review，卡住的 run 換 label 不動狀態。開發者擁有的動作改為「開發者決定，經明確同意可由 agent 執行」，未武裝的 issue 由 agent 直接接手。合併後加入 retro 觸發條件。實作沒有偏離 Proposal；review 抓到「派工只看 Todo」與「在 In Progress 重新武裝」互相矛盾，已改為派工看 active status。
 </TLDR>
