@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   evaluateChangeBranchTrailer,
   evaluateAiAttribution,
+  evaluateFooterLookalike,
 } from "../commitlint/plugin.js";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
@@ -223,4 +224,33 @@ test("an emoji-prefixed 'Generated with' line is rejected", () => {
   const message =
     "feat(x): subject\n\nbody.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)";
   assert.equal(evaluateAiAttribution(message).ok, false);
+});
+
+test("a body line starting with a Word: token is named, since the parser ends the body there", () => {
+  const message =
+    "docs(x): subject\n\nStandards: the helper goes and the\ncomment goes too.\n\nRefs: ATE-1";
+  const verdict = evaluateFooterLookalike(message);
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.message, /"Standards: the helper goes and the"/);
+});
+
+test("a Word: line after the body has started is left to commitlint", () => {
+  const message =
+    "docs(x): subject\n\nWhat changed.\n\nVerification: pnpm test:workflow.\n\nRefs: ATE-1";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});
+
+test("the trailer paragraph, URLs and prose colons pass", () => {
+  const message =
+    "docs(x): subject\n\nSee https://example.com and note this: a colon mid-line.\n\nBlueprint-Change: x\nImplements: S01";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});
+
+test("commitlint names the look-alike line instead of reporting an empty body", () => {
+  const result = runCommitlint(
+    "docs(x): subject\n\nStandards: the helper goes.\n\nMore body.\n",
+    "dev",
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.output, /footer-lookalike/);
 });
