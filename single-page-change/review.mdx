@@ -1,0 +1,83 @@
+---
+title: Single Page Change — Review
+description: 單頁 Change 的交付結果：先列需要你決定的事與審查重點，再列偏差、驗收、test plan，最後是七輪 code review 的處置。
+---
+
+<TLDR>
+Change 頁現在可以是單一 `index.mdx`：頁首帶 gate、capability badge 與 `facts.json` 的數字，Proposal 與 Review 兩個 tab，預設開 Proposal，`#review` 開 Review。決策收合成卡片，scenario 定義一次、Review 依編號回報 pass／fail，test plan 卡片標明執行者。gate 以網站同一套 MDX 文法讀頁面，擋下漏報的結果、缺少的區塊與 G1 之後被改動的 Proposal。本頁仍是兩頁格式：這個 Change 自己的頁面連同另外六個，由 `single-page-rollout` 遷移。
+</TLDR>
+
+本頁先照新 Review 的順序排列，作為遷移前的預覽。數字一律不手抄；要看規模，執行 `git diff --shortstat origin/dev...feat/single-page-change`。
+
+## 需要你決定／做的事
+
+1. 接受下方「與 Proposal 的偏差」的四項。其中兩項改了 G1 之後的 ADR `decision` 內文（ADR-0073 移出次要規則、ADR-0075 擴大凍結範圍），照 WORKFLOW 屬於新判斷，需要你明確接受。
+2. 用瀏覽器看一次 test plan 的 T6：執行者是你。
+
+## 審查重點
+
+1. `scripts/change-page.js`：gate 的核心。改用 MDX parser 後，頁面結構一律從語法樹讀，frontmatter 先遮掉再解析；凍結範圍是 frontmatter、`scenarios` export 與所有 `<Proposal>` 元素。
+2. `scripts/check-workflow.js` 的 `checkSinglePageGate`：G2 時先 fetch store 分支，fetch 失敗就讓 gate 失敗；兩頁與舊格式的 Change 走原本的檢查。
+3. `blueprint/src/components/ChangeTabs.tsx`：tab 是否存在由子元素型別決定，Review 只在區塊之間重排、其餘內容留在原位。
+
+## 與 Proposal 的偏差
+
+| # | 偏差 | 原因 |
+| --- | --- | --- |
+| 1 | gate 的解析改用 MDX parser，新增三個 root devDependency（`mdast-util-from-markdown`、`micromark-extension-mdxjs`、`mdast-util-mdx`） | 正規表示式版本連續四輪各被找到新的誤判通過；三個套件本來就在 lockfile，版本與 fumadocs 相同。你在 round 4 後選擇了這個做法 |
+| 2 | Scenario 7 的「順序」由頁面渲染保證，gate 只檢查必要區塊是否存在，不再檢查順序 | 頁面已自行排序，gate 再擋順序只會擋下渲染正確的頁面 |
+| 3 | 凍結範圍從「Proposal 區塊」擴大到 frontmatter、`scenarios` export 與所有 `<Proposal>` 元素；ADR-0075 的 `decision` 隨之修改 | scenario 與 frontmatter 寫在 `<Proposal>` 外面，原範圍讓它們在 G1 後可以被無聲修改 |
+| 4 | 新增寫作規則：tab 與 Review 區塊的開頭、結尾標籤各自獨立一行，寫在同一行由 gate 擋下 | 寫在同一行時 MDX 把它當行內元素，渲染在段落裡、也無法排序 |
+
+另有兩項不改行為的整理：ADR-0073、ADR-0074 把附帶的次要規則移到 consequences；ADR-0074 原本說空值會顯示，改為只顯示存在的數字，與程式碼一致。
+
+## 驗收結果
+
+| # | Scenario | 結果 | 證據 |
+| --- | --- | --- | --- |
+| 1 | 單一 `index.mdx` 兩個 tab，預設 Proposal，`#review` 開 Review | pass | `ChangeTabs` 單元測試；瀏覽器實測 `#review` 切到 Review |
+| 2 | 頁首顯示 capability badge（連 Features）、gate 與 `facts.json` 數字 | pass | `ChangeHeader` 單元測試（空值不顯示）；瀏覽器實測 |
+| 3 | 決策卡片收合／展開，被取代的紀錄連到取代者 | pass | `DecisionCards` 單元測試；瀏覽器實測連結落在 Features 頁 `#adr-0061` |
+| 4 | G2 缺少某條 scenario 的結果時 gate 失敗並指名 | pass | `check-workflow` 測試「names a scenario with no result」；`pending` 與非 pass／fail 不算結果 |
+| 5 | G2 時 Proposal 與 G1 版本不同則失敗 | pass | 測試涵蓋 Proposal、scenario 內容與 frontmatter 的修改，以及 store 無法 fetch 的情況 |
+| 6 | publish 寫出 gate、時間與和 diff 相符的數字 | pass | `blueprint-changes` 測試比對 `git diff` 的結果 |
+| 7 | 缺少必要區塊時 gate 失敗，區塊依序渲染 | pass（見偏差 2） | 缺區塊與行內區塊的 gate 測試；`Review` 以真實元件測試重排結果 |
+| 8 | `blueprint.md` 禁止手抄計數並說明替代寫法 | pass | `docs/agents/blueprint.md` 的寫作規則 |
+
+## Test plan
+
+| # | 驗證 | 方法 | 執行者 | 結果 |
+| --- | --- | --- | --- | --- |
+| T1 | gate 與 publish 的行為 | `pnpm test:workflow` | agent | pass |
+| T2 | 頁面元件 | `blueprint` 的 jest 與 `tsc --noEmit` | agent | pass |
+| T3 | 全部 gate | `pnpm verify:all`（static、app-build、app-test、blueprint） | agent | pass |
+| T4 | 單頁外殼在瀏覽器的行為 | 以暫時的單頁 Change 實測兩種主題：預設 tab、`#review`、區塊順序、卡片展開、被取代連結與 Features 錨點 | agent | pass |
+| T5 | 解析的邊界情況 | spec reviewer 七輪以 `node` 實測（code、字串、key 順序、frontmatter、CRLF 等） | agent | pass |
+| T6 | 單頁 Change 在你慣用的瀏覽器與手機上可讀 | 等 `single-page-rollout` 遷移第一個頁面後打開它 | 開發者 | pending |
+
+## 驗證明細、finding 與殘留風險
+
+七輪兩軸 code review 達不動點：第七輪規格面沒有阻擋性發現，標準面唯一一項由審查逐字指定。
+
+### Code review 的發現與處置
+
+<RiskTable
+  risks={[
+    { name: "gate 的正規表示式解析可被寫法繞過", severity: "critical", mitigation: "前四輪逐一找到：多一個空格的 Review 標籤、code 與字串裡的標籤、引號或順序不同的 key、evidence 裡的 id、pending 被當成結果、反引號與跨行字串、撇號。最後改用網站同一套 MDX parser，整類問題一起消失。" },
+    { name: "G1 凍結沒涵蓋 scenario 與 frontmatter", severity: "critical", mitigation: "第五、六輪找到。凍結範圍改為 frontmatter、scenarios export 與所有 Proposal 元素；frontmatter 先辨識再遮掉，容許 fence 後空白與 CRLF。" },
+    { name: "store 參照不存在或過期時凍結檢查靜默略過", severity: "warning", mitigation: "gate 先 fetch store 分支，fetch 失敗就讓 gate 失敗。" },
+    { name: "Review 重排把非區塊內容推到最後", severity: "warning", mitigation: "只在區塊之間互換位置，其他內容留在原位。" },
+    { name: "frontmatter 被當成 MDX 解析", severity: "warning", mitigation: "含標籤或大括號的 title、description 會讓 gate 與 publish 失敗；現在先遮掉 frontmatter 再解析。" },
+    { name: "命名、註解重述與重複的判斷", severity: "info", mitigation: "布林改用 is 前綴；重述程式碼或 ADR 的註解刪除；單頁判斷與 git helper 在腳本端只留一份；WORKFLOW 改為指向 adapter。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "七個兩頁格式的 Change 仍用舊路由", severity: "warning", mitigation: "由 single-page-rollout 遷移，完成後刪除舊路由。" },
+    { name: "單頁判斷在 TS 與 JS 各有一份", severity: "info", mitigation: "TS 那份在 Next 建置時執行，無法引用腳本；兩份都只看 index.mdx 存在且沒有 change.json。" },
+    { name: "第一行是分隔線或 frontmatter 沒有結尾時可能誤辨識", severity: "info", mitigation: "兩種情況都會讓 gate 以明確的錯誤失敗（title 或 MDX 錯誤），不會誤判通過；網站建置本來也會因缺 frontmatter 出錯。" },
+  ]}
+/>
