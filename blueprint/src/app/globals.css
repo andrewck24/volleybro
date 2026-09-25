@@ -188,3 +188,9 @@
 .prose figure + figure {
   margin-top: 1rem;
 }
+
+/* Tables take spacing from their neighbours. Unlayered: outranks prose and
+   utilities alike. */
+.prose table {
+  margin-block: 0;
+}
