@@ -132,6 +132,8 @@ export const scenarios = [
 </Proposal>
 <Review>
 
+交付結果、驗證證據、四輪 code review 的發現與處置，以及殘留風險。
+
 <TLDR>
 65 個檔案成為 54 份記錄，住在扁平的 `blueprint/content/decisions/`，編號四位數零填充；Feature 頁改依 `capabilities` 過濾渲染，不再逐條 import。schema 升到 version 2（required 五個欄位、刪除 `originDecision`），store 分支上的 version 1 記錄透過相容層繼續渲染。本 Change 在 G2 之後被退回一次（Ingest：編號零填充），並在第二次 G1 之後擴大範圍一次（S06：單一頁面的渲染失敗不再弄壞整個 build）。11 條 acceptance scenario，9 條由測試或實測證明。四輪兩軸 review，九項發現全部處置。
 </TLDR>
