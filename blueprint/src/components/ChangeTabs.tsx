@@ -21,8 +21,10 @@ const REVIEW_ORDER: unknown[] = [
 ];
 
 // The tabs hold the whole page, so they drop the boxed frame fumadocs gives
-// an inline tab set and its padding, and give the width to the text.
-const FRAME_CLASS = "rounded-none border-0 bg-transparent";
+// an inline tab set and its padding, and line up with the text. The tab
+// list takes no className of its own, so its padding is reached from here.
+const FRAME_CLASS =
+  "rounded-none border-0 bg-transparent [&>[role=tablist]]:px-0";
 const PANEL_CLASS = "px-0 bg-transparent";
 
 function orderOf(child: ReactNode) {
