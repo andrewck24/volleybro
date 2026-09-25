@@ -211,18 +211,65 @@ async function orNull(read) {
   }
 }
 
-// ADR-0074: every figure a page shows comes from here, never from the writer.
-export async function changeFacts(root, content, now = new Date()) {
-  const base = await resolveScopeBase(root);
-  const stat = await orNull(async () =>
-    parseShortstat(await git(root, ["diff", "--shortstat", `${base}...HEAD`])),
+// The commit on dev's first-parent line that landed the Change: a merge commit
+// whose subject names its branch, or a squash commit carrying its trailer.
+export async function landingOf(root, base, slug) {
+  const name = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const branch = new RegExp(
+    `(?:^|[\\s/'])(?:feat|fix|refactor)/${name}(?:$|[\\s'])`,
   );
+  const trailer = new RegExp(`^Blueprint-Change: ${name}$`, "m");
+  const log = await git(root, [
+    "log",
+    "--first-parent",
+    "--format=%H%x1f%P%x1f%cI%x1f%B%x1e",
+    base,
+  ]);
+  for (const record of log.split("\x1e")) {
+    const [hash, parents = "", mergedAt, body = ""] = record
+      .trim()
+      .split("\x1f");
+    const [first, second] = parents.split(" ");
+    const subject = body.split("\n")[0];
+    if (second && branch.test(subject)) {
+      return {
+        from: first,
+        to: hash,
+        commits: `${first}..${second}`,
+        mergedAt,
+      };
+    }
+    if (first && !second && trailer.test(body)) {
+      return { from: first, to: hash, commits: null, mergedAt };
+    }
+  }
+  return null;
+}
+
+// ADR-0074: every figure a page shows comes from here, never from the writer.
+// A merged Change is measured by what landed it, so republishing it from
+// another branch cannot pick up that branch's diff.
+export async function changeFacts(
+  root,
+  content,
+  { slug, now = new Date() } = {},
+) {
+  const base = await resolveScopeBase(root);
+  const landing = slug ? await orNull(() => landingOf(root, base, slug)) : null;
+  const range = landing ? [landing.from, landing.to] : [`${base}...HEAD`];
+  const stat = await orNull(async () =>
+    parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
+  );
+  const commitRange = landing ? landing.commits : `${base}..HEAD`;
   return {
     gate: hasReview(content) ? "G2" : "G1",
     publishedAt: now.toISOString(),
-    commits: await orNull(async () =>
-      Number(await git(root, ["rev-list", "--count", `${base}..HEAD`])),
-    ),
+    mergedAt: landing ? new Date(landing.mergedAt).toISOString() : null,
+    commits: commitRange
+      ? await orNull(async () =>
+          Number(await git(root, ["rev-list", "--count", commitRange])),
+        )
+      : null,
     filesChanged: stat?.filesChanged ?? null,
     insertions: stat?.insertions ?? null,
     deletions: stat?.deletions ?? null,
@@ -230,7 +277,7 @@ export async function changeFacts(root, content, now = new Date()) {
       const output = await git(root, [
         "diff",
         "--name-only",
-        `${base}...HEAD`,
+        ...range,
         "--",
         "src",
       ]);

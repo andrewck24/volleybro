@@ -8,15 +8,15 @@ const GATE_LABEL = { G1: "G1 Proposal", G2: "G2 Review" } as const;
 function figures(facts: ChangeFacts): string[] {
   const shown: string[] = [];
   const add = (value: number | null | undefined, label: string) => {
-    if (value) shown.push(`${value} ${label}`);
+    if (value) shown.push(`${value} ${label}${value === 1 ? "" : "s"}`);
   };
-  add(facts.commits, "commits");
-  add(facts.filesChanged, "files");
+  add(facts.commits, "commit");
+  add(facts.filesChanged, "file");
   if (facts.insertions || facts.deletions) {
     shown.push(`+${facts.insertions ?? 0} / −${facts.deletions ?? 0}`);
   }
-  add(facts.srcFilesChanged, "src files");
-  add(facts.scenarios, "scenarios");
+  add(facts.srcFilesChanged, "src file");
+  add(facts.scenarios, "scenario");
   return shown;
 }
 

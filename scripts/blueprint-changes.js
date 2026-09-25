@@ -262,7 +262,9 @@ async function writeFacts(repoRoot, slugDir) {
   const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
   let facts;
   try {
-    facts = await changeFacts(repoRoot, content);
+    facts = await changeFacts(repoRoot, content, {
+      slug: path.basename(slugDir),
+    });
   } catch (error) {
     throw new Error(
       `${path.basename(slugDir)}/index.mdx is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
