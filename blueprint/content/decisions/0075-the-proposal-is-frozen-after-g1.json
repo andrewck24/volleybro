@@ -1,0 +1,20 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0075",
+  "title": "The Proposal is frozen after G1",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "With one page per Change, publishing the Review at G2 republishes the whole file, Proposal included. The existing gate check only asks whether the page changed since it was last published, so a Proposal edited after G1 would pass unnoticed.",
+  "decision": "At G2, check:workflow --gate compares what G1 accepted — the Proposal tab, the frontmatter and the exported scenarios — with the version published at G1, taken from the store branch's history, and fails when they differ. The only way to change a Proposal after G1 is to pass G1 again, through Ingest or a G1 revision, which publishes a new version to compare against. Presentation-only edits take the same route; there is no exemption.",
+  "alternatives": [
+    {
+      "option": "Trust the writer not to edit the Proposal after G1",
+      "reason": "The Proposal is the record of what was accepted; an unchecked edit rewrites what the developer agreed to."
+    }
+  ],
+  "consequences": [
+    "A Change with no G1 publish in the store history, such as an old-format page, is skipped rather than failed.",
+    "facts.json is outside the comparison, since it is regenerated at every publish."
+  ],
+  "originChange": "single-page-change"
+}

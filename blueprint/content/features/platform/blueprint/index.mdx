@@ -8,11 +8,21 @@ capability knowledge in Features.
 
 ## Current behavior
 
-- A Change's review surfaces live at
-  `blueprint/content/changes/<slug>/proposal.mdx` and `review.mdx`,
-  gitignored on the Change branch. Publishing them commits and pushes to the
-  orphan `blueprint-changes` branch, their durable store; the Blueprint dev
-  server and build first pull every published Change from it.
+- A Change is one page, `blueprint/content/changes/<slug>/index.mdx`,
+  gitignored on the Change branch, at `/changes/<slug>`: a header with the
+  gate, capability badges linked to their Feature pages and the figures
+  from `facts.json`, then a Proposal tab and, from G2, a Review tab. It
+  opens on Proposal; `#review` opens Review. Publishing commits and pushes
+  it to the orphan `blueprint-changes` branch, its durable store, and
+  writes `facts.json` first; the Blueprint dev server and build pull every
+  published Change from it. Changes written in the earlier two-page format
+  keep their `/proposal` and `/review` routes until they are migrated.
+- Scenarios are exported once as data: the Proposal renders them and the
+  Review reports a pass or fail per scenario id. The Review renders its
+  sections in a fixed order whatever order they are written in, and test
+  plan items name their executor. Decision records render as collapsible
+  cards; a superseded record links to its replacement, and every record on
+  a Feature page carries an `adr-<id>` anchor.
 - Decision records live at `blueprint/content/decisions/NNNN-<slug>.json`,
   flat and repository-wide, one file per decision. A record is written the
   moment the decision is made and is adopted from that moment; it is never

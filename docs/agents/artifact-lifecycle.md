@@ -5,7 +5,7 @@ Classify every workflow output before storing it.
 | Class                  | Examples                                                                                                           | Lifecycle                                                                                                                                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Operational            | Tracker intake/spec projection, Wayfinder maps, workpad, Linear slice sub-issues, temporary handoff, provider text | Update only while active; extract missing durable knowledge at Archive, then allow deletion.                                                                                                        |
-| Durable review history | Proposal and Review pages                                                                                          | Gitignored on the Change branch; published to the `blueprint-changes` store branch at each gate, where they persist without merging into other branches. They are not a second lifecycle authority. |
+| Durable review history | Proposal and Review tabs                                                                                           | Gitignored on the Change branch; published to the `blueprint-changes` store branch at each gate, where they persist without merging into other branches. They are not a second lifecycle authority. |
 | Canonical current      | Blueprint Features, decision records, `CONTEXT.md`, code/tests, Changesets                                         | Update only when knowledge is verified and promoted at Archive; supersede explicitly through later Changes.                                                                                         |
 
 ## Branch-local Archive
@@ -23,7 +23,7 @@ request opens:
    defines it;
 5. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript
    text from durable Blueprint content;
-6. generate the Review page following `docs/agents/blueprint.md`, read it rendered in a browser,
+6. generate the Review tab following `docs/agents/blueprint.md`, read it rendered in a browser,
    publish it with
    `pnpm blueprint:changes:publish <slug>`, confirm with `pnpm check:workflow --gate <slug>`, then
    notify the developer and stop for acceptance (G2);
@@ -36,7 +36,7 @@ applicable gates. Merge performs no second knowledge sync; it only permits the o
 move to Done.
 
 Change pages are durable review history again: publishing them to the `blueprint-changes` store
-branch keeps every Proposal and Review page browsable after merge, without making them a second
+branch keeps every Proposal and Review tab browsable after merge, without making them a second
 lifecycle authority — Features, decision records, and commit bodies remain canonical current
 knowledge.
 
@@ -50,7 +50,7 @@ after that promotion has been verified.
 Research and working notes earn no file of their own.
 
 Investigation results go back to the tracker issue that asked for them. The sources behind a
-decision go in the Proposal page's `## References` section, each row naming what it supports and
+decision go in the Proposal tab's `## References` section, each row naming what it supports and
 how strong it is, with the strongest dissenting source recorded too. That section holds research
 that was done: a Change that consulted no outside source simply has none, and an empty or padded
 References section is worse than an absent one. A working plan or measurement taken during Discuss

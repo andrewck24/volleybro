@@ -13,10 +13,16 @@ optional Symphony execution.
   Proposal page records that summary verbatim afterwards; **G2** accepts the
   Review page before the pull request opens. Everything between a gate and
   the next runs without stopping for a human.
-- At each gate `pnpm check:workflow --gate <slug>` fails on a page title that
-  is not `<name> — Proposal` or `<name> — Review`, on uncommitted decision
-  records, and on a Change branch not pushed to its upstream, and warns when
-  a record added on the branch has a `decision` over 1000 characters.
+- At each gate `pnpm check:workflow --gate <slug>` fails on uncommitted
+  decision records and on a Change branch not pushed to its upstream, and
+  warns when a record added on the branch has a `decision` over 1000
+  characters. On a single-page Change, which it reads with the MDX parser
+  the site compiles with, it also fails an empty or tab-name title, a page
+  that is not valid MDX, a scenario with no id, and at G2 a scenario with no
+  pass or fail result, a missing or inline Review section, and a Proposal,
+  frontmatter or scenarios export that differs from the latest G1 publish;
+  a two-page Change's titles must still read `<name> — Proposal` or
+  `<name> — Review`.
 - `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly
   `@AGENTS.md`; `check:workflow` fails otherwise, and when `AGENTS.md` cites a
   section number. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`,

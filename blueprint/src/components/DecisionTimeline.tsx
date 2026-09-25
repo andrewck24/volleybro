@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import {
   Accordion,
   AccordionContent,
@@ -52,8 +54,19 @@ function parseEntry(
   }
 }
 
+// The browser jumps to #adr-<id> before hydration opens the accordion and
+// shifts the page, so the jump lands short; repeat it once rendered.
+function useScrollToDecisionAnchor() {
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id.startsWith("adr-")) return;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+  }, []);
+}
+
 export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
   const isLegacy = useIsLegacyDecisions();
+  useScrollToDecisionAnchor();
   const entries = (decisions ?? []).map((decision, index) =>
     parseEntry(decision, isLegacy, index),
   );
@@ -80,7 +93,8 @@ export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
             <AccordionItem
               key={decisionKey(record)}
               value={decisionKey(record)}
-              className="relative border-0"
+              id={`adr-${record.id}`}
+              className="relative scroll-mt-20 border-0"
             >
               <span className="absolute top-5 -left-5 size-2.5 rounded-full border-2 border-background bg-primary" />
               <AccordionTrigger className="hover:no-underline">

@@ -25,10 +25,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { changeFacts, isSinglePageDir } from "./change-page.js";
+
 const execFileAsync = promisify(execFile);
 
 const BRANCH = "blueprint-changes";
-const REMOTE_REF = "refs/blueprint-changes/remote";
+export const REMOTE_REF = "refs/blueprint-changes/remote";
 const FETCH_REFSPEC = `+${BRANCH}:${REMOTE_REF}`;
 const DEFAULT_REMOTE = "https://github.com/andrewck24/volleybro.git";
 const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
@@ -97,7 +99,7 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
 // it, which marks the whole repository shallow and can make a later push to a
 // host refuse the history. The store holds pages, not a large history, so a
 // single-branch fetch is cheap enough to take whole.
-async function fetchChanges(remote, repoRoot) {
+export async function fetchChanges(remote, repoRoot) {
   await runGit(["fetch", remote, FETCH_REFSPEC], { cwd: repoRoot });
 }
 
@@ -255,6 +257,23 @@ async function applyChange(tmpDir, slug, localSlugDir) {
   return true;
 }
 
+async function writeFacts(repoRoot, slugDir) {
+  if (!isSinglePageDir(await readdir(slugDir))) return;
+  const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
+  let facts;
+  try {
+    facts = await changeFacts(repoRoot, content);
+  } catch (error) {
+    throw new Error(
+      `${path.basename(slugDir)}/index.mdx is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
+    );
+  }
+  await writeFile(
+    path.join(slugDir, "facts.json"),
+    `${JSON.stringify(facts, null, 2)}\n`,
+  );
+}
+
 async function recordPublishedHash(repoRoot, slug, localSlugDir) {
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
   const store = await readStore(changesDir);
@@ -285,6 +304,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
+  if (!dryRun) await writeFacts(repoRoot, localSlugDir);
 
   const remote = await resolveRemote(repoRoot);
 

@@ -1,14 +1,30 @@
 #!/usr/bin/env node
 
 import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
-import { execFile } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hashDir, readStore } from "./blueprint-changes.js";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import {
+  fetchChanges,
+  hashDir,
+  readStore,
+  REMOTE_REF,
+  resolveRemote,
+} from "./blueprint-changes.js";
+import {
+  assertValidMdx,
+  frozenPart,
+  git,
+  hasReview,
+  inlineReviewSections,
+  isSinglePageDir,
+  proposalPart,
+  REQUIRED_REVIEW_SECTIONS,
+  resolveScopeBase,
+  resultIds,
+  reviewSections,
+  scenarioIds,
+} from "./change-page.js";
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -446,6 +462,16 @@ async function changeDirectories(root) {
   return current;
 }
 
+// A page that is not valid MDX fails the gate with the parser's message;
+// outside the gate it only fails the rules that need its structure.
+function orUndefined(read) {
+  try {
+    return read();
+  } catch {
+    return undefined;
+  }
+}
+
 const CHANGE_PAGE_MARKDOWN_TABLE = /^\s*\|.*\|\s*$/m;
 const CHANGE_PAGE_RULES = [
   {
@@ -461,6 +487,14 @@ const CHANGE_PAGE_RULES = [
       content.includes("<TLDR") && CHANGE_PAGE_MARKDOWN_TABLE.test(content),
     message: (slug) =>
       `${BLUEPRINT_CHANGES}/${slug}/review.mdx [blueprint-review]: must contain a TLDR and a markdown table`,
+  },
+  {
+    file: "index.mdx",
+    requires: (content) =>
+      orUndefined(() => proposalPart(content).includes("<TLDR")) &&
+      orUndefined(() => scenarioIds(content).length) > 0,
+    message: (slug) =>
+      `${BLUEPRINT_CHANGES}/${slug}/index.mdx [blueprint-proposal]: the Proposal tab must contain a TLDR and the page must export at least one scenario`,
   },
 ];
 
@@ -508,19 +542,6 @@ async function validateSnippetLiterals(root, directories) {
   }
 
   return diagnostics;
-}
-
-async function git(root, args) {
-  return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
-}
-
-async function resolveScopeBase(root) {
-  try {
-    await git(root, ["rev-parse", "--verify", "origin/dev"]);
-    return "origin/dev";
-  } catch {
-    return "dev";
-  }
 }
 
 async function hasMigrationTrailer(root, base) {
@@ -575,13 +596,22 @@ async function checkChangeSizeWarnings(root) {
   for (const directory of await changeDirectories(root)) {
     const slug = path.basename(directory);
 
-    const proposalPath = path.join(directory, "proposal.mdx");
-    if (await exists(proposalPath)) {
-      const content = await readFile(proposalPath, "utf8");
-      const scenarioCount = (content.match(/<Scenario\b/g) ?? []).length;
+    for (const [file, count] of [
+      [
+        "proposal.mdx",
+        (content) => (content.match(/<Scenario\b/g) ?? []).length,
+      ],
+      [
+        "index.mdx",
+        (content) => orUndefined(() => scenarioIds(content).length) ?? 0,
+      ],
+    ]) {
+      const filePath = path.join(directory, file);
+      if (!(await exists(filePath))) continue;
+      const scenarioCount = count(await readFile(filePath, "utf8"));
       if (scenarioCount > SCENARIO_COUNT_SOFT_LIMIT) {
         diagnostics.push(
-          `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+          `${BLUEPRINT_CHANGES}/${slug}/${file} [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
         );
       }
     }
@@ -691,6 +721,13 @@ const GATE_PAGE_SUFFIXES = {
 };
 const GATE_PAGE_NAMES = new Set(Object.values(GATE_PAGE_SUFFIXES));
 
+function frontmatterTitle(content) {
+  const titleMatch = content.match(/^title:\s*(.*)$/m);
+  const title = titleMatch ? titleMatch[1].trim() : "";
+  const quoted = title.match(/^(["'])(.*)\1$/);
+  return quoted ? quoted[2] : title;
+}
+
 export async function checkGateTitles(root, slug) {
   const diagnostics = [];
   const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
@@ -699,11 +736,7 @@ export async function checkGateTitles(root, slug) {
     const filePath = path.join(changeDir, file);
     if (!(await exists(filePath))) continue;
 
-    const content = await readFile(filePath, "utf8");
-    const titleMatch = content.match(/^title:\s*(.*)$/m);
-    let title = titleMatch ? titleMatch[1].trim() : "";
-    const quoted = title.match(/^(["'])(.*)\1$/);
-    if (quoted) title = quoted[2];
+    const title = frontmatterTitle(await readFile(filePath, "utf8"));
     const nameMatch = title.match(new RegExp(`^(.+) — ${suffix}$`));
     const name = nameMatch ? nameMatch[1].trim() : "";
 
@@ -712,6 +745,124 @@ export async function checkGateTitles(root, slug) {
         `${BLUEPRINT_CHANGES}/${slug}/${file} [gate-title]: title must be "<name> — ${suffix}" with a non-empty name`,
       );
     }
+  }
+
+  return diagnostics;
+}
+
+// ADR-0075: what G1 accepted is compared with the most recent G1
+// publish on the store branch; no G1 publish there means nothing to compare.
+async function g1Frozen(root, slug) {
+  let shas;
+  try {
+    const output = await git(root, [
+      "log",
+      "--format=%H",
+      REMOTE_REF,
+      "--",
+      `${slug}/facts.json`,
+    ]);
+    shas = output ? output.split("\n") : [];
+  } catch {
+    return undefined;
+  }
+  for (const sha of shas) {
+    try {
+      const facts = JSON.parse(
+        await git(root, ["show", `${sha}:${slug}/facts.json`]),
+      );
+      if (facts.gate !== "G1") continue;
+      return frozenPart(await git(root, ["show", `${sha}:${slug}/index.mdx`]));
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+}
+
+async function refreshStore(root) {
+  await fetchChanges(await resolveRemote(root), root);
+}
+
+export async function checkSinglePageGate(
+  root,
+  slug,
+  { refresh = refreshStore } = {},
+) {
+  const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
+  if (!(await exists(changeDir))) return [];
+  if (!isSinglePageDir(await readdir(changeDir))) return [];
+  const indexPath = path.join(changeDir, "index.mdx");
+
+  const where = `${BLUEPRINT_CHANGES}/${slug}/index.mdx`;
+  const content = await readFile(indexPath, "utf8");
+  const diagnostics = [];
+
+  const title = frontmatterTitle(content);
+  if (!title || GATE_PAGE_NAMES.has(title)) {
+    diagnostics.push(
+      `${where} [gate-title]: title must be the Change's name, not empty or a tab name`,
+    );
+  }
+
+  try {
+    assertValidMdx(content);
+  } catch (error) {
+    diagnostics.push(
+      `${where} [gate-mdx]: the page is not valid MDX — ${error.message.split("\n")[0]}`,
+    );
+    return diagnostics;
+  }
+
+  if (scenarioIds(content).some((id) => !id)) {
+    diagnostics.push(
+      `${where} [gate-scenario-shape]: every entry in scenarios needs an id`,
+    );
+  }
+
+  if (!hasReview(content)) return diagnostics;
+
+  const results = new Set(resultIds(content));
+  for (const id of scenarioIds(content)) {
+    if (!results.has(id)) {
+      diagnostics.push(
+        `${where} [gate-scenario-results]: scenario ${id} has no result in ScenarioResults`,
+      );
+    }
+  }
+
+  const sections = reviewSections(content);
+  const missing = REQUIRED_REVIEW_SECTIONS.filter(
+    (section) => !sections.includes(section),
+  );
+  if (missing.length > 0) {
+    diagnostics.push(
+      `${where} [gate-review-sections]: the Review tab is missing ${missing.join(", ")}`,
+    );
+  }
+  const inline = inlineReviewSections(content);
+  if (inline.length > 0) {
+    diagnostics.push(
+      `${where} [gate-review-sections]: write ${inline.join(", ")} with the opening and closing tags on their own lines`,
+    );
+  }
+
+  try {
+    await refresh(root);
+  } catch (error) {
+    diagnostics.push(
+      `${where} [gate-proposal-frozen]: could not fetch the store branch to compare the Proposal with its G1 publish — ${error.message.split("\n")[0]}`,
+    );
+    return diagnostics;
+  }
+  const accepted = await g1Frozen(root, slug);
+  if (
+    accepted !== undefined &&
+    accepted.trim() !== frozenPart(content).trim()
+  ) {
+    diagnostics.push(
+      `${where} [gate-proposal-frozen]: the Proposal differs from the version published at G1; change it only by passing G1 again`,
+    );
   }
 
   return diagnostics;
@@ -807,6 +958,7 @@ async function main() {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
     if (unpublished) diagnostics.push(unpublished);
     diagnostics.push(...(await checkGateTitles(process.cwd(), gateSlug)));
+    diagnostics.push(...(await checkSinglePageGate(process.cwd(), gateSlug)));
     diagnostics.push(...(await checkGateBranchState(process.cwd())));
     warnings.push(...(await checkDecisionRecordLength(process.cwd())));
   }

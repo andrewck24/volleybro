@@ -35,21 +35,21 @@ acceptance. Provider instruction files are bridges only.
 
 ## Repository profile
 
-| Responsibility                         | VolleyBro binding                                                                                                                                              |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Integration branch and default PR base | `dev`                                                                                                                                                          |
-| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                              |
-| Fix path branch                        | `hotfix/<slug>`, whatever the commit type                                                                                                                      |
-| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                              |
-| Section gate                           | `pnpm verify`                                                                                                                                                  |
-| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                  |
-| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                         |
-| Change review surfaces                 | `blueprint/content/changes/<slug>/proposal.mdx`, `review.mdx`; gitignored on the Change branch, published to the `blueprint-changes` store branch at each gate |
-| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                  |
-| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change                                                                                   |
-| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                               |
-| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                    |
-| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                         |
+| Responsibility                         | VolleyBro binding                                                                                                                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integration branch and default PR base | `dev`                                                                                                                                                                                 |
+| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                                                     |
+| Fix path branch                        | `hotfix/<slug>`, whatever the commit type                                                                                                                                             |
+| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                                                     |
+| Section gate                           | `pnpm verify`                                                                                                                                                                         |
+| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                                         |
+| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                                                |
+| Change review surface                  | `blueprint/content/changes/<slug>/index.mdx`, one page with Proposal and Review tabs; gitignored on the Change branch, published to the `blueprint-changes` store branch at each gate |
+| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                                         |
+| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change                                                                                                          |
+| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                                                      |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                                           |
+| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                                                |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the
 current engineering playbooks; a future compatible skill may replace them without changing the
@@ -145,7 +145,7 @@ developer's decision, and Symphony picks it up again from In Progress.
 
 Every Change has a stable kebab-case slug and one integration branch. Human-facing titles may
 change without changing the slug. Two human gates bound the whole lifecycle: **G1** accepts the
-converged discussion before any implementation, and **G2** accepts the Review page before the pull
+converged discussion before any implementation, and **G2** accepts the Review tab before the pull
 request opens. Everything between a gate and the next runs without stopping for a human: collect
 judgement questions and ask them at the next gate alongside the finished work, and stop early only
 when a different answer would make the remaining work useless.
@@ -181,7 +181,7 @@ when a different answer would make the remaining work useless.
   1. commit and push the decision records to the Change branch — the branch preview build pulls
      the page store but is not rebuilt by publishing, so records pushed later are missing from it,
      and a gate that adds no commit needs the branch build rerun by hand;
-  2. read `docs/agents/blueprint.md` and write the Proposal page, taking the confirmed summary
+  2. read `docs/agents/blueprint.md` and write the Proposal tab, taking the confirmed summary
      verbatim; it is that summary's durable record for readers who never saw the discussion;
   3. publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
      `pnpm check:workflow --gate <slug>`.
@@ -194,7 +194,7 @@ when a different answer would make the remaining work useless.
 
 Apply is the same repository procedure in both execution modes:
 
-1. read the Proposal page, its ADRs, and git state, plus the workpad when an unattended run keeps
+1. read the Proposal tab, its ADRs, and git state, plus the workpad when an unattended run keeps
    one; a Change that fits one session implements directly, with no slice decomposition — its
    handoff is the branch and its commits. Otherwise decompose the Change into Linear sub-issues
    under the Change's issue, the same way in manual and Symphony mode; the first slice is always
@@ -216,7 +216,7 @@ invalidates it.
 The same-commit rule applies once this contract exists on the branch's base. When this workflow is
 first adopted around work that was already committed, or when existing commits are surgically
 replayed onto a fresh base, do not rewrite otherwise valid history solely to fabricate compliance.
-Before Pre-PR code review completes and before developer acceptance, the Review page must instead
+Before Pre-PR code review completes and before developer acceptance, the Review tab must instead
 identify the bootstrap deviation and describe, per completed slice, what was delivered and how it
 was verified. This exception ends after the workflow contract lands on the base branch. It does not
 license pinning commit hashes, which stay out of Blueprint pages for the reason given above.
@@ -253,7 +253,7 @@ After all slices complete:
 2. evaluate the whole Change for Changeset applicability and the correct semantic version bump, or
    record the applicable repository-defined exemption;
 3. run the `code-review` playbook in an independent context against both repository standards and
-   the Proposal page, giving the standards reviewer `CODING_STANDARDS.md` verbatim — an
+   the Proposal tab, giving the standards reviewer `CODING_STANDARDS.md` verbatim — an
    independent context knows only what its brief carries;
 4. fix every accepted finding, rerun affected targeted checks and `pnpm verify:all`, then repeat
    independent code review until both axes reach a fixed point. A round reviews the diff to the
@@ -269,7 +269,7 @@ necessity and density above all, since lint, types and formatting all pass regar
 prose sits in a file. A review that only re-runs the gates is not an independent axis, and an
 unwritten standard is one the reviewer cannot apply: state it in `CODING_STANDARDS.md` first.
 
-Do not open the pull request before Archive completes and the developer accepts the Review page.
+Do not open the pull request before Archive completes and the developer accepts the Review tab.
 Merging still waits for green CI and for whatever the developer said about merging. The repository
 does not run an automated review after the pull request opens without an explicit request. Human PR
 review and comment fix rounds remain available, but they are optional and the default delivery path
@@ -286,7 +286,7 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
 2. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 3. export a Review summary of at most 40 lines — acceptance scenario results, verification,
    findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
-4. read `docs/agents/blueprint.md`, generate the Review page, read every section rendered in a
+4. read `docs/agents/blueprint.md`, generate the Review tab, read every section rendered in a
    browser as the developer will,
    publish it with `pnpm blueprint:changes:publish <slug>` and confirm with
    `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2).
@@ -294,7 +294,7 @@ opens. Follow `docs/agents/artifact-lifecycle.md`:
    unreadable snippet are all invisible in the file that produces them;
 5. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
-Acceptance of the Review page is the last human gate. It authorizes opening the pull request
+Acceptance of the Review tab is the last human gate. It authorizes opening the pull request
 without asking again: open it with the exported Review summary in the body, then wait for CI and
 for whatever the developer said about merging. If optional human PR feedback arrives and changes
 durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun
@@ -335,9 +335,9 @@ and a brief that carries every rule is too large to act on.
 ```text
 blueprint/content/changes/<slug>/       gitignored on the Change branch; published to the
                                          blueprint-changes store branch at each gate
-├── proposal.mdx
-├── proposal.tsx                        optional interactive design mockup
-└── review.mdx
+├── index.mdx                           one page: a Proposal tab, and a Review tab from G2
+├── facts.json                          written by blueprint:changes:publish, never by hand
+└── design.tsx                          optional interactive design mockup
 
 blueprint/content/decisions/            flat, repository-wide, one file per decision
 └── <nnnn>-<slug>.json                  written the moment a decision is made, during a Change's
@@ -347,7 +347,7 @@ blueprint/content/decisions/            flat, repository-wide, one file per deci
 ### Change scope
 
 A Change targets soft limits before it needs splitting: at most 5 slices, at most 30 changed `src`
-files, and at most 8 acceptance scenarios on the Proposal page. Exceeding a target at Proposal time
+files, and at most 8 acceptance scenarios on the Proposal tab. Exceeding a target at Proposal time
 means splitting into multiple Changes rather than writing a larger one. The slice count is a
 written target only: slices are Linear sub-issues now, so `check-workflow.js` cannot count them and
 does not warn on this one.
@@ -368,7 +368,7 @@ warning is suppressed by a `Migration: <migration-slug>` commit trailer (or
 ### Fix path
 
 A third path exists beside the normal Change and the Migration Change, for a fix too urgent or too
-small to carry Proposal and Review pages.
+small to carry Proposal and Review tabs.
 
 1. Applies when the fix restores behavior Features already describe, or is a small change with no
    behavior change (docs, config, a minor dependency bump); it creates no new behavior contract,
@@ -386,7 +386,7 @@ small to carry Proposal and Review pages.
    issue when the fix came from one, or in the session when it did not.
 4. Kept: a failing test that reproduces the bug before the fix (when it is a bug), `pnpm verify:all`,
    the two-axis code review with the issue as the spec, and a Changeset when applicable.
-5. Skipped: G1, the Proposal and Review pages, publishing, slices, and Archive promotion.
+5. Skipped: G1, the Proposal and Review tabs, publishing, slices, and Archive promotion.
 6. The only human gate is the pull request: its body names the fix path and carries a short
    verification summary; merging is acceptance.
 7. Escalate to a normal Change — write the Proposal, pass G1 — as soon as the fix needs a new
@@ -417,11 +417,11 @@ Decision JSON conforms to `blueprint/schemas/decision-record.schema.json`, schem
 Required: `schemaVersion`, `id`, `title`, `capabilities`, `decision`. Optional: `context`,
 `alternatives`, `consequences`, `revisitTriggers`, `$schema`, `originChange`, `supersededBy`.
 `originDecision` no longer exists. `capabilities` is a non-empty array of hierarchical capability
-IDs such as `game-recording/rally-input`; Feature pages render the records whose `capabilities`
-name that page, matched exactly. `originChange` survives as the trace back to the branch, pull
-request, and discussion that produced a decision: filled when the decision was made during a
-Change's Discuss, left empty when it was not. `DecisionTimeline` renders these records on the
-Proposal and Feature pages; rendering never becomes a second editable decision source.
+IDs such as `game-recording/rally-input`; Feature pages render the records whose `capabilities` name
+that page, matched exactly. `originChange` survives as the trace back to the branch, pull request,
+and discussion that produced a decision: filled when the decision was made during a Change's
+Discuss, left empty when it was not. `DecisionCards` renders these records on a Change page and
+`DecisionTimeline` on Feature pages; rendering never becomes a second editable decision source.
 
 Archive no longer promotes, reconciles, or renumbers decision records — a record already lives at
 its permanent path from the moment it was written. What Archive promotes is behavior and durable
@@ -443,7 +443,7 @@ Change's commits carry `Blueprint-Change` alone. A Migration shard adds
 `Migration: <migration-slug>` (see Change scope), and a Fix-path commit carries its own trailers
 instead (see Fix path). `CONTRIBUTING.md` covers how to write a trailer so git parses it.
 
-Proposal-page content never enters the Change branch — it lives only in the regenerated, gitignored
+Change-page content never enters the Change branch — it lives only in the regenerated, gitignored
 Change directory and is published to the `blueprint-changes` store branch at each gate. Push the
 Change branch when another session or Symphony must resume it.
 
@@ -516,19 +516,20 @@ pick up where the run stopped without a separate handoff file.
 
 ## Blueprint knowledge contract
 
-Proposal and Review pages are written under gitignored `blueprint/content/changes/<slug>/` on the
+Proposal and Review tabs are written under gitignored `blueprint/content/changes/<slug>/` on the
 Change branch and published to the `blueprint-changes` store branch at each gate — the durable store
 of every Change page, old and new, that never merges into other branches.
 `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy
 carries all published Changes plus Features and the Design System from the deployed branch.
 
-- **Proposal:** the summary confirmed at G1 — decisions, scope and dependency direction,
-  acceptance scenarios, and risks — plus a flowchart when the Change alters a process and a design
-  mockup when it answers a design question.
-- **Review:** acceptance scenario results, verification, code review findings and fixes, boundary-
-  relevant diffs, and residual risks.
+- **Proposal tab:** the summary confirmed at G1 — decisions, scope and dependency direction,
+  acceptance scenarios, and risks — frozen once G1 passes (ADR-0075).
+- **Review tab:** the delivery, led by what the developer must decide or do (ADR-0073).
 - **Features:** current capability and sub-capability behavior and constraints, the decision
   records whose `capabilities` name the page, and long-term evolution—not active execution status.
+
+What each tab holds, in what order, and where its figures come from (ADR-0074) is in
+`docs/agents/blueprint.md`.
 
 Provider-native subagents remain within one root session and Change workspace. They never poll or
 claim the external queue, arm unattended execution, reprioritize intake, or create a parallel
