@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0076",
+  "title": "After the first round, a review covers only what changed",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "Every Pre-PR review round reviewed the whole diff against dev. In single-page-change that meant seven full two-axis reviews of the same Change, most of which re-read code an earlier round had already passed.",
+  "decision": "The first round reviews the whole diff against dev. Each later round reviews the commits since the last reviewed commit, together with how every finding of the earlier rounds was handled; the reviewer may read whole files to judge whether a fix broke code around it. A round continues the same reviewer context when the provider can resume it; otherwise a fresh reviewer receives the reports and dispositions of every earlier round. The round after an approach switch (ADR-0077) reviews the whole diff again. The fixed-point criterion does not change.",
+  "alternatives": [
+    {
+      "option": "Review the whole diff every round",
+      "reason": "Safe, but each round costs as much as the first while finding less, and the cost grows with the number of rounds."
+    },
+    {
+      "option": "Give a fresh reviewer only the first round's report",
+      "reason": "Findings raised after the first round, and how they were handled, would be lost."
+    }
+  ],
+  "consequences": [
+    "The code-review playbook needs no change: a later round passes the last reviewed commit as its fixed point.",
+    "An interaction between a fix and code outside the changed lines is caught only if the reviewer reads the surrounding file."
+  ],
+  "originChange": "review-round-economy"
+}

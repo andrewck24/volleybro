@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0077",
+  "title": "A root cause found in two rounds in a row switches the approach",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "In single-page-change, review rounds one to four each found a new way past a hand-written regular-expression parser. Each fix patched one case and the next round found another; switching to the MDX parser removed the whole class, but only after round four.",
+  "decision": "Findings are grouped by root cause, not by symptom. When findings with the same root cause appear in two consecutive rounds, the agent stops patching cases and switches to the fix that best matches established practice for that class of problem, without stopping to ask. A switch that changes only the implementation technique is recorded as a deviation on the Review tab. A switch that edits a decision record's decision text is recorded as a deviation and listed among what the developer must decide at G2. A switch that would change an acceptance scenario or anything else in the frozen Proposal goes through Ingest.",
+  "alternatives": [
+    {
+      "option": "Stop and let the developer choose the new approach",
+      "reason": "It breaks the rule that nothing stops between the gates, and the developer still sees and can reject the switch at G2."
+    },
+    {
+      "option": "Treat findings in the same file or function as the same class",
+      "reason": "Mechanical but wrong in both directions: unrelated defects share files, and one root cause can surface anywhere."
+    }
+  ],
+  "consequences": [
+    "Each review report names the root cause of its findings, and the Review tab states why two findings were judged to share one.",
+    "An agent cannot relax the acceptance criteria it is judged by: that change needs another G1 pass."
+  ],
+  "originChange": "review-round-economy"
+}
