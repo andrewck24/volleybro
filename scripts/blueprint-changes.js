@@ -245,7 +245,7 @@ export async function pull(cwd, { force = false } = {}) {
 }
 
 // A push runs the workflows of the pushed commit, so the orphan store needs
-// its own copy of the deploy workflow; pull skips it by its leading dot.
+// its own copy of the deploy workflow.
 async function syncDeployWorkflow(tmpDir, repoRoot) {
   const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
   if (!existsSync(source)) return;
