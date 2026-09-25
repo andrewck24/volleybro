@@ -1,7 +1,22 @@
 ---
-title: Reviewer Standards Split — Proposal
+title: Reviewer Standards Split
 description: 判斷型規則搬進只在 review 時讀的 CODING_STANDARDS.md；寫作規範落到寫作者會讀的文件；AGENTS.md 成為唯一指引檔；G1 改為確認 grill 收斂結果；ADR-0045 拆成單一決策。
+capabilities: ["platform/delivery-workflow","platform/blueprint"]
 ---
+
+export const scenarios = [
+  { id: "S1", given: "the Pre-PR standards reviewer brief", when: "it is assembled", then: "it cites CODING_STANDARDS.md and no longer cites CONTRIBUTING.md" },
+  { id: "S2", given: "a CLAUDE.md containing anything other than the single line @AGENTS.md", when: "check:workflow runs", then: "it fails" },
+  { id: "S3", given: "a section-number reference in AGENTS.md", when: "check:workflow runs", then: "it fails" },
+  { id: "S4", given: "a Change page whose title is not a non-empty name followed by an em dash and Proposal or Review", when: "check:workflow runs with --gate", then: "it fails naming the page" },
+  { id: "S5", given: "an uncommitted decision record, or a Change branch ahead of its remote", when: "check:workflow runs with --gate", then: "it fails" },
+  { id: "S6", given: "a component string prop containing a backtick-quoted span", when: "the page renders", then: "the span renders as inline code" },
+  { id: "S7", given: "CODING_STANDARDS.md or AGENTS.md presenting Spectra as a delivery authority", when: "check:workflow runs", then: "the retired-authority check fails" },
+  { id: "S8", given: "a decision record added on the branch whose decision exceeds 1000 characters", when: "check:workflow runs with --gate", then: "it warns naming the record and does not fail" },
+];
+
+<ChangeTabs>
+<Proposal>
 
 <TLDR>
 `CONTRIBUTING.md` 同時寫給開發者與 standards reviewer，兩份指引檔各自重述 `WORKFLOW.md` 並已漂移，寫作規範（語言切分、頁面標題、元件字串）只存在於口頭交代與 agent 記憶。本 Change 依「誰在什麼時候讀」重新分家：判斷型規則進只在 review 時讀的 `CODING_STANDARDS.md`，寫作時用的規則進寫作者本來就會讀的 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只 import 它。能機械化的規範改由 `check:workflow` 檢查或直接消滅。同時把 G1 改為開發者在對話中確認 grill 收斂結果，並把綁了十幾個決策的 ADR-0045 拆成單一決策的 record。
@@ -107,21 +122,7 @@ description: 判斷型規則搬進只在 review 時讀的 CODING_STANDARDS.md；
 
 ## 行為契約
 
-<Scenario given="the Pre-PR standards reviewer brief" when="it is assembled" then="it cites CODING_STANDARDS.md and no longer cites CONTRIBUTING.md" />
-
-<Scenario given="a CLAUDE.md containing anything other than the single line @AGENTS.md" when="check:workflow runs" then="it fails" />
-
-<Scenario given="a section-number reference in AGENTS.md" when="check:workflow runs" then="it fails" />
-
-<Scenario given="a Change page whose title is not a non-empty name followed by an em dash and Proposal or Review" when="check:workflow runs with --gate" then="it fails naming the page" />
-
-<Scenario given="an uncommitted decision record, or a Change branch ahead of its remote" when="check:workflow runs with --gate" then="it fails" />
-
-<Scenario given="a component string prop containing a backtick-quoted span" when="the page renders" then="the span renders as inline code" />
-
-<Scenario given="CODING_STANDARDS.md or AGENTS.md presenting Spectra as a delivery authority" when="check:workflow runs" then="the retired-authority check fails" />
-
-<Scenario given="a decision record added on the branch whose decision exceeds 1000 characters" when="check:workflow runs with --gate" then="it warns naming the record and does not fail" />
+<Scenarios items={scenarios} />
 
 ## 風險
 
@@ -137,8 +138,94 @@ description: 判斷型規則搬進只在 review 時讀的 CODING_STANDARDS.md；
 
 ## 決策
 
-<DecisionTimeline ids={["0058", "0059", "0060", "0061", "0062", "0063", "0064", "0065", "0066", "0067"]} />
+<DecisionCards ids={["0058", "0059", "0060", "0061", "0062", "0063", "0064", "0065", "0066", "0067"]} />
 
 ## 順序
 
 它依賴已合併的 `commit-guardrails` 與 `standalone-decision-records`，並且必須早於 `triage-state-mapping`：兩者會動到同樣的兩個檔案。
+
+</Proposal>
+<Review>
+
+<TLDR>
+判斷型規則已搬進只在 review 時讀的 `CODING_STANDARDS.md`，寫作規範落到 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只含 `@AGENTS.md`。`check:workflow` 新增五類檢查與一個警告，元件字串的反引號渲染為 inline code，ADR-0045 拆成 ADR-0061 到 ADR-0067，G1 改為確認對話總表（ADR-0060）。8 條 scenario 都有會在缺少實作時失敗的測試並全數通過；兩軸 review 三輪後到達 fixed point。`.env.local` 補回並以 `.env.example` 為準後，`verify:all` 的四個 lane 都通過。
+</TLDR>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "Pre-PR reviewer brief 引用 `CODING_STANDARDS.md`、不再引用 `CONTRIBUTING.md`。`check-workflow.test.js`：Pre-PR gate section missing CODING_STANDARDS.md／still cites CONTRIBUTING.md" },
+    { id: "S2", result: "pass", evidence: "`CLAUDE.md` 不是剛好 `@AGENTS.md` 時失敗。CLAUDE.md content other than the guidance import／missing CLAUDE.md" },
+    { id: "S3", result: "pass", evidence: "`AGENTS.md` 出現章節編號時失敗。section-number reference（`§` 與 spelled-out 兩種）" },
+    { id: "S4", result: "pass", evidence: "頁面標題形狀不符時 gate 失敗。`checkGateTitles` 四個案例，含 YAML 加引號的標題" },
+    { id: "S5", result: "pass", evidence: "未 commit 的 record 或分支領先 upstream 時 gate 失敗。`checkGateBranchState`：uncommitted records／ahead／no upstream" },
+    { id: "S6", result: "pass", evidence: "元件字串的反引號渲染為 inline code。`render-inline.test.tsx`、`Scenario.test.tsx`、`RiskTable.test.tsx`" },
+    { id: "S7", result: "pass", evidence: "retired-authority 檢查涵蓋 `CODING_STANDARDS.md` 與 `AGENTS.md`。Spectra as an active authority in CODING_STANDARDS.md／AGENTS.md" },
+    { id: "S8", result: "pass", evidence: "新增 record 的 `decision` 超過 1000 字元時 gate 只警告。decision-length 警告含 record 路徑；CLI 以 exit 0 結束" },
+  ]}
+/>
+
+8 條全數通過，每條都有會在缺少實作時失敗的測試。
+
+## 驗證
+
+| 項目 | 指令 | 結果 |
+| --- | --- | --- |
+| workflow 檢查單元測試 | `node --test scripts/__tests__/check-workflow.test.js` | 60／60 通過 |
+| Blueprint 元件測試 | `cd blueprint && pnpm exec jest` | 70／70 通過 |
+| 實際 repo 的 workflow 檢查 | `node scripts/check-workflow.js` | 通過（僅既有的 `standalone-decision-records` scenario 數警告） |
+| 最終 gate | `pnpm verify:all` | static、app-test、blueprint 通過 |
+| app build | `pnpm build`（`.env.local` 依 `.env.example` 補回） | 成功 |
+| Blueprint build | `pnpm --filter blueprint build` | 成功，Proposal 頁的 timeline 解析全部 10 筆 record |
+
+## 邊界上的修正
+
+`CLAUDE.md` 從 26 行、與 `AGENTS.md` 各自漂移的指引，變成單一 import：
+
+<AnnotatedDiff
+  lang="md"
+  code={"- # Delivery Workflow Bridge\n- (26 lines restating WORKFLOW.md, drifted from AGENTS.md)\n+ @AGENTS.md"}
+/>
+
+Pre-PR standards reviewer 拿到的文件：
+
+<AnnotatedDiff
+  lang="md"
+  code={"- the Proposal page, giving the standards reviewer `CONTRIBUTING.md`'s own rules verbatim — an\n+ the Proposal page, giving the standards reviewer `CODING_STANDARDS.md` verbatim — an\n  independent context knows only what its brief carries;"}
+/>
+
+<ReviewDetails>
+
+### Code review findings 與修正
+
+三輪兩軸 review，最後一輪兩軸都沒有 finding，只剩 standards 逐字指定的一句措辭修改，已照做。
+
+<RiskTable
+  risks={[
+    { name: "ADR-0045 拆分漏掉 preview URL 替代方案、一個 revisit trigger 與 mockup promotion 條款", severity: "warning", mitigation: "補進 ADR-0062，0045 的去向清單改指向 ADR-0062 與 `WORKFLOW.md` 的 Authority and retention。" },
+    { name: "`WORKFLOW.md` 仍有三處寫 G1 驗收頁面，Ingest 的順序也與 ADR-0060 相反", severity: "warning", mitigation: "改為確認總表；Ingest 改成先更新 ADR 與總表、確認後再重新產生頁面。" },
+    { name: "Pre-PR 檢查寫死章節編號 `### 3.`，與本 Change 禁止章節編號的規則衝突", severity: "warning", mitigation: "改以 heading 文字 Pre-PR gate 比對，註解改寫成真正的風險：heading 改名會讓檢查失效。" },
+    { name: "Scenario 1、8 的測試只驗了一半", severity: "warning", mitigation: "補上同時引用兩份檔案的案例，以及驗證警告含路徑、CLI exit 0 的案例。" },
+    { name: "ADR-0058、ADR-0059 的 `decision` 夾帶 consequences", severity: "info", mitigation: "移到 `consequences`，`decision` 只留決策本身。" },
+    { name: "註解以位置引用規則、以 scenario 編號當引用、測試 helper 重複", severity: "info", mitigation: "改為指向 G1 exit steps；刪除 scenario 編號；抽出共用的 git 初始化與 `addBareRemote`。" },
+    { name: "驗收即開 PR 許可的規則出現兩次；判斷型刪除改成「到 gate 再問」後少了「先不刪」", severity: "info", mitigation: "刪除重複句；補上「開發者回覆前一律不刪」。" },
+    { name: "YAML 加引號的標題被誤判", severity: "info", mitigation: "比對前去掉一對成對的引號，並加測試。" },
+  ]}
+/>
+
+有三項判斷為不修正：0045 的 `supersededBy` 只指向一筆（Q21 的決定）；沒有 upstream 也讓 gate 失敗（Scenario 5 的合理延伸）；`CONTRIBUTING.md` 註明 commit body 須在 100 字元換行（G1 前承諾補上的事實）。
+
+### 殘餘風險
+
+<RiskTable
+  risks={[
+    { name: "流程圖節點與連線 label 不支援 inline code", severity: "info", mitigation: "已寫進 `docs/agents/blueprint.md`；需要時再為 SVG 加 `tspan` 版本。" },
+    { name: "命名慣例仍靠 reviewer 判斷", severity: "info", mitigation: "lint 化另開 ticket，完成後從 `CODING_STANDARDS.md` 刪除。" },
+    { name: "source 註解仍有舊格式的 Feature D 引用", severity: "info", mitigation: "已另開 Fix path 任務改寫為 ADR-NNNN。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>
