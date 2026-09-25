@@ -3,123 +3,50 @@ title: Rally recording
 description: Recording, editing and substituting rally by rally, with the server deciding when a set is won.
 ---
 
-Recording a rally appends one entry. Everything else about the set — the score,
-the rotation, whether it is at set point — follows from the entries.
+Recording a rally appends one entry. Everything else about the set — the score, the rotation, whether it is at set point — follows from the entries.
 
 ## Current behavior
 
-- Three write paths record entries: creating a rally, editing a rally, and
-  recording a substitution. Each writes only the entry it is about.
-- Creating a rally does not wait for the server. The entry joins a pending-write
-  queue and the draft advances immediately, so a weak connection at the venue
-  cannot hold up play. Editing still waits, because an edit that fails leaves
-  correct data on the server and the recorder is watching a dialog for it.
-- What the recorder sees is the server's answer with the queue laid over it.
-  The cache holds only what the server has accepted, so a revalidation replaces
-  it wholesale; the merge happens on the way out of the hook, which is why a
-  reconnect, a return after minutes away or a cold start cannot take an unsent
-  rally off the screen. The merged value is never written back.
-- A write is addressed by the entry's identity, not by its position in the
-  list. The recorder counts positions off what is on screen, and the cache
-  underneath can hold fewer entries, so the two only agree by identity.
-- The set tally is derived from the entries. `win` means the server confirmed
-  the set ended, and nothing else reads it that way.
-- The queue is the single source of truth for what has not reached the server.
-  The sync indicator and the per-row failure marker are projections of it, plus
-  one flag for whether this device can keep what is unsent; neither stores a
-  status of its own.
-- The indicator reports five conditions, worst possibility first, so nothing
-  uncertain can be shown as the most optimistic answer. A spinner appears only
-  where its implied "this finishes shortly" holds; two measured failures move
-  the queue to a static mark that says the rallies are saved and what happens
-  next. The threshold is counted rather than timed, so a two-second blip never
-  reaches it.
-- The browser's connectivity signal decides no condition. It chooses between
-  two true sentences once the queue already knows it is failing, because only
-  its negative answer is trustworthy — a device on a dead network reports
-  itself online.
-- The warning tone marks entries a retry cannot save, not entries waiting out
-  a backoff. Those send themselves on the next flush or on reconnect, and the
-  per-row marker reads the same judgement so the two cannot disagree.
-- A failed write retries itself: twice inline within one attempt, then in the
-  background on a widening delay. Once that budget is spent the entry stays
-  queued and waits for the recorder to retry it by hand.
-- Closing the app no longer discards what the queue held. Entries come back on
-  the next start and go out when the recorder opens that game again — the same
-  place they would have been waiting had the app stayed open. Restoring does
-  not send: nothing leaves until that game is open.
-- A failure the server will refuse again — an expired session among them — is
-  not resent on its own. The entry stays queued and the recorder's own retry
-  sends it, which for an expired session means after signing back in.
-- The sync indicator appears only when it has something to report. An empty
-  queue renders a same-sized empty slot, so nothing around it shifts, and a
-  queue recovering from failure holds a check mark briefly rather than
-  vanishing.
-- After an entry write the server derives whether the set has finished, and
-  writes the set's result once when it has, together with the match result when
-  that becomes decided. It writes only when the derived value differs from what
-  it read, so this is once per set rather than once per rally.
-- Editing a rally that puts a finished set back in progress resets the set's
-  result.
-- The between-sets screen is covered by a dialog that cannot be dismissed while
-  this set's result is still owed to the server — including by the back
-  gesture, which asks before leaving. The next set cannot start on a result
-  that was never saved.
-- A set is won at its target score with a two-point lead; the deciding set
-  plays to its own target. Both are expressed by `setTargetPoints` and
-  `deriveSetPhase` in the domain layer.
-- A game starts undecided. `win` is `null` until a result exists, because by
-  this codebase's convention a boolean means the match is over.
-- A rally is refused before it is stored unless every field it is read by
-  carries a value in range: both sides' move type and move number, the score,
-  and which side won. The refusal is a 400 naming the field, from the domain
-  layer, before the write is attempted.
+- Three write paths record entries: creating a rally, editing a rally, and recording a substitution. Each writes only the entry it is about.
+- Creating a rally does not wait for the server. The entry joins a pending-write queue and the draft advances immediately, so a weak connection at the venue cannot hold up play. Editing still waits, because an edit that fails leaves correct data on the server and the recorder is watching a dialog for it.
+- What the recorder sees is the server's answer with the queue laid over it. The cache holds only what the server has accepted, so a revalidation replaces it wholesale; the merge happens on the way out of the hook, which is why a reconnect, a return after minutes away or a cold start cannot take an unsent rally off the screen. The merged value is never written back.
+- A write is addressed by the entry's identity, not by its position in the list. The recorder counts positions off what is on screen, and the cache underneath can hold fewer entries, so the two only agree by identity.
+- The set tally is derived from the entries. `win` means the server confirmed the set ended, and nothing else reads it that way.
+- The queue is the single source of truth for what has not reached the server. The sync indicator and the per-row failure marker are projections of it, plus one flag for whether this device can keep what is unsent; neither stores a status of its own.
+- The indicator reports five conditions, worst possibility first, so nothing uncertain can be shown as the most optimistic answer. A spinner appears only where its implied "this finishes shortly" holds; two measured failures move the queue to a static mark that says the rallies are saved and what happens next. The threshold is counted rather than timed, so a two-second blip never reaches it.
+- The browser's connectivity signal decides no condition. It chooses between two true sentences once the queue already knows it is failing, because only its negative answer is trustworthy — a device on a dead network reports itself online.
+- The warning tone marks entries a retry cannot save, not entries waiting out a backoff. Those send themselves on the next flush or on reconnect, and the per-row marker reads the same judgement so the two cannot disagree.
+- A failed write retries itself: twice inline within one attempt, then in the background on a widening delay. Once that budget is spent the entry stays queued and waits for the recorder to retry it by hand.
+- Closing the app no longer discards what the queue held. Entries come back on the next start and go out when the recorder opens that game again — the same place they would have been waiting had the app stayed open. Restoring does not send: nothing leaves until that game is open.
+- A failure the server will refuse again — an expired session among them — is not resent on its own. The entry stays queued and the recorder's own retry sends it, which for an expired session means after signing back in.
+- The sync indicator appears only when it has something to report. An empty queue renders a same-sized empty slot, so nothing around it shifts, and a queue recovering from failure holds a check mark briefly rather than vanishing.
+- After an entry write the server derives whether the set has finished, and writes the set's result once when it has, together with the match result when that becomes decided. It writes only when the derived value differs from what it read, so this is once per set rather than once per rally.
+- Editing a rally that puts a finished set back in progress resets the set's result.
+- The between-sets screen is covered by a dialog that cannot be dismissed while this set's result is still owed to the server — including by the back gesture, which asks before leaving. The next set cannot start on a result that was never saved.
+- A set is won at its target score with a two-point lead; the deciding set plays to its own target. Both are expressed by `setTargetPoints` and `deriveSetPhase` in the domain layer.
+- A game starts undecided. `win` is `null` until a result exists, because by this codebase's convention a boolean means the match is over.
+- A rally is refused before it is stored unless every field it is read by carries a value in range: both sides' move type and move number, the score, and which side won. The refusal is a 400 naming the field, from the domain layer, before the write is attempted.
 
 ## Constraints
 
-- What a rally must carry has one definition. The write refuses by it and the
-  read tolerates by it; stating it twice would let the reader drift wider than
-  the writer, which is how a rally that cannot be read got stored.
-- The server is the authority on whether a set is won. The client does not
-  declare it, which is the prerequisite for server-authoritative scoring under
-  synchronised recording.
-- A set's result is a derived value written at a defined point, not an
-  accumulation. It must not become a per-rally write.
-- Whether a write is outstanding is read from the queue, never stored beside
-  it. A second copy of that fact drifts from the queue the moment a retry
-  schedule changes.
-- The merged view is a read. Writing it back to the cache would put a rally
-  that is already queued into the cache too, and the next merge would show it
-  twice.
-- An index counted off the merged view means nothing to the cache underneath
-  it. Writing by position there leaves gaps, and the next merge walks into one.
-- The recorder is never left with an unsent result and no way to see or retry
-  it. A surface that hides the indicator must block the way forward instead.
-- The indicator may not claim more than the queue knows. Every sentence it
-  shows has to be true of every state that reaches it, which is why the
-  browser's connectivity signal picks wording and never a condition.
+- What a rally must carry has one definition. The write refuses by it and the read tolerates by it; stating it twice would let the reader drift wider than the writer, which is how a rally that cannot be read got stored.
+- The server is the authority on whether a set is won. The client does not declare it, which is the prerequisite for server-authoritative scoring under synchronised recording.
+- A set's result is a derived value written at a defined point, not an accumulation. It must not become a per-rally write.
+- Whether a write is outstanding is read from the queue, never stored beside it. A second copy of that fact drifts from the queue the moment a retry schedule changes.
+- The merged view is a read. Writing it back to the cache would put a rally that is already queued into the cache too, and the next merge would show it twice.
+- An index counted off the merged view means nothing to the cache underneath it. Writing by position there leaves gaps, and the next merge walks into one.
+- The recorder is never left with an unsent result and no way to see or retry it. A surface that hides the indicator must block the way forward instead.
+- The indicator may not claim more than the queue knows. Every sentence it shows has to be true of every state that reaches it, which is why the browser's connectivity signal picks wording and never a condition.
 
 ## Known gaps
 
-- Timeout and challenge exist as entry types but have no recording flow — no
-  use case, API route, or panel trigger.
-- Ordering conflicts between devices are out of reach: sequence numbers prevent
-  reordering and duplication, not two recorders disagreeing about what happened.
-- The target score is fixed at 25, or the deciding-set value from the match
-  scoring. Informal matches played to another total cannot be recorded: the
-  set never derives as finished, so its result is never written.
-- Unsent work is visible only inside the game it belongs to. A recorder who
-  finishes a match and walks away is never told that something never left, and
-  the match list meanwhile shows a score missing those rallies.
-- An entry a retry cannot save has no route out of the queue. The indicator
-  names it and the entry list marks the row, but reaching that row from the
-  indicator, or discarding it, is not built.
-- The manual retry stands in for a mechanism. The backoff table terminates, and
-  a device that never left the network sees no reconnect event, so nothing
-  notices the server coming back. Durable replay is what removes the button.
-- The connection that reports itself online while reaching nothing has never
-  been exercised on a device; it failed to reproduce twice and rests on unit
-  tests alone.
+- Timeout and challenge exist as entry types but have no recording flow — no use case, API route, or panel trigger.
+- Ordering conflicts between devices are out of reach: sequence numbers prevent reordering and duplication, not two recorders disagreeing about what happened.
+- The target score is fixed at 25, or the deciding-set value from the match scoring. Informal matches played to another total cannot be recorded: the set never derives as finished, so its result is never written.
+- Unsent work is visible only inside the game it belongs to. A recorder who finishes a match and walks away is never told that something never left, and the match list meanwhile shows a score missing those rallies.
+- An entry a retry cannot save has no route out of the queue. The indicator names it and the entry list marks the row, but reaching that row from the indicator, or discarding it, is not built.
+- The manual retry stands in for a mechanism. The backoff table terminates, and a device that never left the network sees no reconnect event, so nothing notices the server coming back. Durable replay is what removes the button.
+- The connection that reports itself online while reaching nothing has never been exercised on a device; it failed to reproduce twice and rests on unit tests alone.
 
 ## Implemented decisions
 
