@@ -948,6 +948,43 @@ export async function checkDecisionRecordLength(root) {
   return diagnostics;
 }
 
+// WORKFLOW's Pre-PR step 2 settles the Changeset before code review; a
+// Changeset written after review reopens the review loop.
+export async function checkChangesetAtG2(root, slug) {
+  let content;
+  try {
+    content = await readFile(
+      path.join(root, "blueprint/content/changes", slug, "index.mdx"),
+      "utf8",
+    );
+  } catch {
+    return [];
+  }
+  if (!hasReview(content)) return [];
+
+  const base = await resolveScopeBase(root);
+  let changed;
+  try {
+    changed = await git(root, [
+      "diff",
+      "--name-only",
+      `${base}...HEAD`,
+      "--",
+      ".changeset",
+    ]);
+  } catch {
+    return [];
+  }
+  const hasChangeset = changed
+    .split("\n")
+    .some((file) => file.endsWith(".md") && !file.endsWith("README.md"));
+  return hasChangeset
+    ? []
+    : [
+        `${slug} [changeset]: the branch has no Changeset at G2; write one before code review, or state in the Review tab why none applies`,
+      ];
+}
+
 async function main() {
   const diagnostics = await checkWorkflow();
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
@@ -961,6 +998,7 @@ async function main() {
     diagnostics.push(...(await checkSinglePageGate(process.cwd(), gateSlug)));
     diagnostics.push(...(await checkGateBranchState(process.cwd())));
     warnings.push(...(await checkDecisionRecordLength(process.cwd())));
+    warnings.push(...(await checkChangesetAtG2(process.cwd(), gateSlug)));
   }
 
   for (const warning of warnings) console.warn(`Warning: ${warning}`);
