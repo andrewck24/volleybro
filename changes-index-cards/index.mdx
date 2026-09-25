@@ -1,0 +1,80 @@
+---
+title: Changes Index Cards
+description: /changes 改回卡片並依時間由新到舊排序；每個 Change 以 startedAt 與 archivedAt 標日期；Blueprint 有自己的首頁。
+capabilities: ["platform/blueprint"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "published Changes of both formats",
+    when: "a reader opens /changes",
+    then: "each Change is a card showing its title, description, state and date",
+  },
+  {
+    id: "S2",
+    given: "single-page and old-format Changes with different dates",
+    when: "the index is listed",
+    then: "they are ordered newest first on one timeline, by archivedAt and then startedAt",
+  },
+  {
+    id: "S3",
+    given: "a Change that has not landed on dev",
+    when: "its card is shown",
+    then: "it is dated by when it started and sorted by that date",
+  },
+  {
+    id: "S4",
+    given: "a single-page Change",
+    when: "it is published",
+    then: "facts.json records startedAt as its first publish and archivedAt as when it landed on dev, or null before it lands",
+  },
+  {
+    id: "S5",
+    given: "the Blueprint",
+    when: "a reader opens /",
+    then: "the page answers 200 with a short introduction and entries to Features, Changes and the Design System",
+  },
+  {
+    id: "S6",
+    given: "a phone-width viewport",
+    when: "a reader opens /changes or /",
+    then: "neither page scrolls sideways",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+`/changes` 在改成兩道 gate 時退化成一串標題連結，沒有日期、狀態，也沒有排序；Blueprint 的 `/` 則只是轉址到 `/changes`，連預覽工具都判斷不出 server 已經啟動。這個 Change 讓兩種格式的 Change 都用 `startedAt` 與 `archivedAt` 標日期，`/changes` 改回卡片、由新到舊排在同一條時間軸上，並替 Blueprint 建一個真正的首頁。
+</TLDR>
+
+| | 現在 | 之後 |
+| --- | --- | --- |
+| `/changes` | 標題連結清單，單頁格式依 slug 排序，舊格式另外排在後面 | 卡片：標題、描述、狀態、日期、capability；兩種格式混排，由新到舊 |
+| 單頁格式的日期 | `publishedAt`、`mergedAt`；`mergedAt` 在合併前 publish 後一直是 null | `startedAt`（第一次 publish）、`archivedAt`（落地 `dev`）；合併後重新 publish 一次 |
+| `/` | 轉址到 `/changes`，回應 307 | 首頁：簡短介紹與 Features、Changes、Design System 三個入口，回應 200 |
+
+<DecisionCards ids={["0078"]} />
+
+## 範圍
+
+1. `facts.json` 改用 `startedAt` 與 `archivedAt`：`startedAt` 取這個 slug 在 store 分支上第一次 publish 的時間，`archivedAt` 取代 `mergedAt`。
+2. `WORKFLOW.md` 合併後的收尾加上一步：從 `dev` 重新 publish 這個 Change，讓 `archivedAt` 寫進 `facts.json`。已合併但還沒有 `archivedAt` 的 Change 在本 Change 內補發。
+3. `/changes` 以卡片呈現，兩種格式依 `archivedAt ?? startedAt` 由新到舊排序。
+4. Blueprint 首頁 `/`。
+
+還沒完成的舊格式 Change（仍在 proposing 或 discussing）沒有 `archivedAt`，照 `startedAt` 排序。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    { name: "舊格式的日期只有日，新格式有時間", severity: "info", mitigation: "同一天內的先後可能不精確，卡片只顯示到日。" },
+    { name: "合併後忘了重新 publish", severity: "warning", mitigation: "寫進 WORKFLOW 合併後的收尾步驟；漏掉時卡片退回用 startedAt 排序，不會消失。" },
+  ]}
+/>
+
+</Proposal>
+</ChangeTabs>
