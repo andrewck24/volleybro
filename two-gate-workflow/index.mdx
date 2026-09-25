@@ -147,6 +147,8 @@ One dissent, recorded because it is the strongest argument against D1: Grady Boo
 </Proposal>
 <Review>
 
+What changed, how it was verified, and what is left.
+
 <TLDR>
 The delivery workflow now stops for you twice: the Proposal page before implementation and this Review page before the pull request. Change pages like this one are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed here. The 22 old Change directories moved to that store branch, the deployed site now carries every published Change alongside Features and the Design System, and the reasoning survives as Feature ADR D45. A third, lighter Fix path also lands in this Change: small corrections skip both gates entirely.
 </TLDR>
@@ -167,20 +169,19 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
 | Worktree environment | Dummy variables typed at build time | `.worktreeinclude` copies `.env.local` into agent-created worktrees |
 | Small fixes | No lightweight route; every fix went through both gates | Fix path: no G1/G2, docs/config/behaviour-restoring fixes only, a pull request with a `Refs:` trailer is the only gate |
 
-## Acceptance checks
-
-| Scenario | Result |
-| --- | --- |
-| Blueprint builds with no Change directory | Pass |
-| A Proposal with only `proposal.tsx` renders the mockup | Pass |
-| A Proposal with `.mdx` and `.tsx` renders both | Pass |
-| A build without Change pages does not list the Changes tab, yet a /changes page keeps the section switcher | Pass |
-| A Proposal without `TLDR` or `Scenario` fails `check:workflow` | Pass |
-| A Review without `TLDR` or a table fails `check:workflow` | Pass |
-| More than 30 src files or 8 scenarios warns and never fails | Pass |
-| A `Migration:` trailer silences the warning; the same word in the body does not | Pass |
-| All 65 Feature ADRs validate against the new schema | Pass |
-| No tracked file under `blueprint/content/changes/` | Pass |
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "Blueprint builds with no Change directory；A build without Change pages does not list the Changes tab, yet a /changes page keeps the section switcher" },
+    { id: "S2", result: "pass", evidence: "A Proposal with only `proposal.tsx` renders the mockup；A Proposal with `.mdx` and `.tsx` renders both" },
+    { id: "S3", result: "pass", evidence: "A Proposal without `TLDR` or `Scenario` fails `check:workflow`" },
+    { id: "S4", result: "pass", evidence: "A Review without `TLDR` or a table fails `check:workflow`" },
+    { id: "S5", result: "pass", evidence: "More than 30 src files or 8 scenarios warns and never fails" },
+    { id: "S6", result: "pass", evidence: "A `Migration:` trailer silences the warning; the same word in the body does not" },
+    { id: "S7", result: "pass", evidence: "All 65 Feature ADRs validate against the new schema" },
+    { id: "S8", result: "pass", evidence: "No tracked file under `blueprint/content/changes/`" },
+  ]}
+/>
 
 ## Verification
 
@@ -192,21 +193,6 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
 | `blueprint-changes` tests | 14 pass |
 | Independent verifier | First run refuted the change; retired lifecycle code and demos were still deployed. Fixed, then confirmed by later review rounds |
 | Two-axis review | Seven rounds. The last round's fixes were applied exactly as it specified, so the loop stopped there |
-
-## Not done, and why
-
-<RiskTable
-  risks={[
-    { name: "Dry run on a small Change to measure gate count and Blueprint-only commits", severity: "warning", mitigation: "Needs a real Change. Measure on the next one against the baseline of 28 gate prompts and 24 of 50 Blueprint-only commits." },
-    { name: "40-line PR summary is not checked by a script", severity: "info", mitigation: "The PR body is not available locally; the limit stays a written rule." },
-    { name: "Symphony's active-status filter comes from its published spec, not from reading the runtime", severity: "warning", mitigation: "Confirm that the runtime's active states are Todo and In Progress before arming the first unattended Change." },
-    { name: "The concurrent-publish test does not force the retry path", severity: "info", mitigation: "The retry is covered by its own rejection tests; a forced interleaving can be added with the next change to the sync script." },
-    { name: "CONTRIBUTING still names an AI vendor and its skills directory", severity: "info", mitigation: "Pre-existing; handled by the follow-up that splits reviewer standards out of CONTRIBUTING." },
-    { name: "Remote preview of Change pages", severity: "info", mitigation: "Local dev server only. Add a wrangler versions upload script when a gate needs a remote reader." },
-    { name: "Spectra skills under .claude/skills are visible to one agent only", severity: "info", mitigation: "Legacy; left for the planned Spectra cleanup." },
-    { name: "DecisionTimeline became a client component, so Feature decision data now ships in the client bundle, and core files import the legacy layer", severity: "info", mitigation: "Both go away when the legacy layer is deleted, tracked with the 22 old-format Changes' conversion." },
-  ]}
-/>
 
 <ReviewDetails>
 
@@ -230,6 +216,21 @@ The delivery workflow now stops for you twice: the Proposal page before implemen
     { name: "The 22 old-format Change directories needed somewhere to live besides deletion", severity: "info", mitigation: "Moved to the store branch and rendered through a temporary compatibility layer until converted; conversion is tracked outside the repository." },
     { name: "Urgent, small fixes had no lightweight route and had to carry full Proposal and Review pages", severity: "info", mitigation: "Added the Fix path: G1/G2, publishing, slices, and Archive promotion are all skipped; the pull request is the only gate, with a `Refs:` commit trailer in place of `Implements`/`Blueprint-Change`." },
     { name: "The Proposal page for this Change did not exist, so the promoted ADR could not name its origin", severity: "info", mitigation: "Reconstructed `proposal.mdx` and `proposal/decisions/D1.json` from this Review page's own record after delivery; both D45 copies now carry `originDecision: \"D1\"`." },
+  ]}
+/>
+
+### Not done, and why
+
+<RiskTable
+  risks={[
+    { name: "Dry run on a small Change to measure gate count and Blueprint-only commits", severity: "warning", mitigation: "Needs a real Change. Measure on the next one against the baseline of 28 gate prompts and 24 of 50 Blueprint-only commits." },
+    { name: "40-line PR summary is not checked by a script", severity: "info", mitigation: "The PR body is not available locally; the limit stays a written rule." },
+    { name: "Symphony's active-status filter comes from its published spec, not from reading the runtime", severity: "warning", mitigation: "Confirm that the runtime's active states are Todo and In Progress before arming the first unattended Change." },
+    { name: "The concurrent-publish test does not force the retry path", severity: "info", mitigation: "The retry is covered by its own rejection tests; a forced interleaving can be added with the next change to the sync script." },
+    { name: "CONTRIBUTING still names an AI vendor and its skills directory", severity: "info", mitigation: "Pre-existing; handled by the follow-up that splits reviewer standards out of CONTRIBUTING." },
+    { name: "Remote preview of Change pages", severity: "info", mitigation: "Local dev server only. Add a wrangler versions upload script when a gate needs a remote reader." },
+    { name: "Spectra skills under .claude/skills are visible to one agent only", severity: "info", mitigation: "Legacy; left for the planned Spectra cleanup." },
+    { name: "DecisionTimeline became a client component, so Feature decision data now ships in the client bundle, and core files import the legacy layer", severity: "info", mitigation: "Both go away when the legacy layer is deleted, tracked with the 22 old-format Changes' conversion." },
   ]}
 />
 
