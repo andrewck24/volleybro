@@ -40,7 +40,7 @@ git log -1 --format='%(trailers:only,unfold)'
 ## Writing
 
 - Reference another Change by its kebab-case slug (`` `type-decoupling` change ``), never by a letter label.
-- Never hard-wrap prose you write or edit, in Markdown or in pull-request bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Docs predating this rule are still wrapped: match the file's existing width when editing one, and never reflow it wholesale as a side effect. Commit bodies are the exception: commitlint limits their lines to 100 characters.
+- Never hard-wrap prose you write or edit, in Markdown or in pull-request bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Commit bodies are the exception: commitlint limits their lines to 100 characters.
 - Blueprint pages and decision records have their own writing rules in [`docs/agents/blueprint.md`](./docs/agents/blueprint.md).
 
 ---

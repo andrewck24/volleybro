@@ -188,7 +188,7 @@ Archive runs automatically after Pre-PR code review reaches its fixed point, bef
 
 Acceptance of the Review tab is the last human gate. It authorizes opening the pull request without asking again: open it with the exported Review summary in the body, then wait for CI and for whatever the developer said about merging. If optional human PR feedback arrives and changes durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun the applicable gates on the same branch. Merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical snapshots. A later low-priority migration promotes only knowledge that is still current; it does not rewrite the remaining snapshots.
 
-After merge, move the operational issue to Done (see `docs/agents/issue-tracker.md`) and clean up the local checkout from outside the Change's worktree, in this order — GitHub already deleted the remote branch:
+After merge, move the operational issue and its sub-issues to Done, then update every issue whose description tracks this Change: close a parent once all its children are done, and record on an epic or related issue what shipped and what remains. Then clean up the local checkout from outside the Change's worktree, in this order — GitHub already deleted the remote branch:
 
 1. `git fetch`;
 2. fast-forward the local `dev` to `origin/dev`;
