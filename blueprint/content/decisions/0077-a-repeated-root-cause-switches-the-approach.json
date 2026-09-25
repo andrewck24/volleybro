@@ -18,7 +18,8 @@
   ],
   "consequences": [
     "Each review report names the root cause of its findings, and the Review tab states why two findings were judged to share one.",
-    "An agent cannot relax the acceptance criteria it is judged by: that change needs another G1 pass."
+    "An agent cannot relax the acceptance criteria it is judged by: that change needs another G1 pass.",
+    "Decision records sit outside the ADR-0075 freeze: the Proposal renders them but does not own them, so a decision text edited after G1 reaches the developer at G2 rather than failing the gate."
   ],
   "originChange": "review-round-economy"
 }

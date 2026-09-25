@@ -305,7 +305,7 @@ A manual run keeps a lighter workpad: every field above except `blockers` and `n
 
 Proposal and Review tabs are written under gitignored `blueprint/content/changes/<slug>/` on the Change branch and published to the `blueprint-changes` store branch at each gate — the durable store of every Change page, old and new, that never merges into other branches. `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, so every deploy carries all published Changes plus Features and the Design System from the deployed branch.
 
-- **Proposal tab:** the summary confirmed at G1 — decisions, scope and dependency direction, acceptance scenarios, and risks — frozen once G1 passes (ADR-0075). The decision records it renders belong to the repository and are not part of that freeze: a `decision` text edited after G1 is put to the developer at G2 (ADR-0077).
+- **Proposal tab:** the summary confirmed at G1 — which decisions apply, scope and dependency direction, acceptance scenarios, and risks — frozen once G1 passes (ADR-0075); the text of the decision records it renders is not frozen with it (ADR-0077).
 - **Review tab:** the delivery, led by what the developer must decide or do (ADR-0073).
 - **Features:** current capability and sub-capability behavior and constraints, the decision records whose `capabilities` name the page, and long-term evolution—not active execution status.
 
