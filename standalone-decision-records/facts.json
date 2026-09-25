@@ -1,0 +1,22 @@
+{
+  "gate": "G2",
+  "publishedAt": "2026-09-25T20:15:35.905Z",
+  "mergedAt": "2026-09-22T17:04:57.000Z",
+  "commits": null,
+  "filesChanged": 106,
+  "insertions": 1438,
+  "deletions": 1578,
+  "srcFilesChanged": 0,
+  "scenarios": 11,
+  "decisions": [
+    "0046",
+    "0047",
+    "0048",
+    "0049",
+    "0050",
+    "0051",
+    "0052",
+    "0053",
+    "0054"
+  ]
+}
