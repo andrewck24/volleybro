@@ -1,0 +1,80 @@
+---
+title: Review Round Economy
+description: 第 1 輪之後的 review 只審改過的部分；同一個 root cause 連續兩輪出現就換做法，不停下來問。
+capabilities: ["platform/delivery-workflow"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "a Pre-PR code review has finished its first round",
+    when: "a later round starts",
+    then: "it reviews the commits from the last reviewed commit to HEAD, plus how each earlier finding was handled, and may read whole files",
+  },
+  {
+    id: "S2",
+    given: "a later review round starts",
+    when: "the provider can or cannot resume the previous reviewer context",
+    then: "it continues that context when it can; otherwise a fresh reviewer receives the reports and dispositions of every earlier round",
+  },
+  {
+    id: "S3",
+    given: "the previous round ended in an approach switch",
+    when: "the next round starts",
+    then: "it reviews the whole diff against dev again",
+  },
+  {
+    id: "S4",
+    given: "findings with the same root cause appear in two consecutive rounds",
+    when: "the agent handles them",
+    then: "it switches to the fix that best matches established practice instead of patching the case, without stopping to ask the developer",
+  },
+  {
+    id: "S5",
+    given: "an approach switch changes only the technique, or edits a decision record's decision text",
+    when: "the Review tab is written",
+    then: "the switch is recorded as a deviation, and an edited decision text is also listed among what the developer must decide at G2",
+  },
+  {
+    id: "S6",
+    given: "an approach switch would change an acceptance scenario or anything else frozen at G1",
+    when: "the agent reaches that point",
+    then: "it goes through Ingest instead of recording a deviation",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+Pre-PR code review 每一輪都重審整個 diff，而且同一類問題可能一輪接一輪逐個修補，沒有停損點。`single-page-change` 因此多跑了好幾輪：前面幾輪都在修同一個手寫解析器的新繞過方式。這個 Change 讓第 2 輪起只審上一輪之後的 commit；同一個 root cause 連續兩輪出現時，改用該類問題的最佳實踐修法，記成偏差，到 G2 再交給開發者判斷。
+</TLDR>
+
+| | 現在 | 之後 |
+| --- | --- | --- |
+| 第 2 輪起的 review 範圍 | 整個 diff 對 `dev` | 上一輪審過的 commit 到 HEAD，加上前面各項 finding 的處置 |
+| reviewer 無法接續時 | 沒有規定 | 新 reviewer 拿到前面所有輪次的報告與處置 |
+| 同一類問題反覆出現 | 每輪逐個修補 | 以 root cause 判定，連續兩輪就換成最佳實踐的做法 |
+| 換做法時 | 沒有規定 | 手法或 ADR 內文：記成偏差不停下來；scenario 或 Proposal：走 Ingest |
+
+<DecisionCards ids={["0076", "0077"]} />
+
+## 範圍
+
+1. `WORKFLOW.md` 的 Pre-PR 第 4 步：輪次範圍、reviewer 接續、換做法的規則。
+2. `docs/agents/blueprint.md`：`Deviations` 如何記錄換做法與判定理由，`ActionItems` 何時要列出被修改的 ADR 內文。
+3. ADR-0076、ADR-0077。
+
+`code-review` playbook 不改：後面的輪次只要把上一輪審過的 commit 當作比較基準點傳進去就好。retro 的觸發條件（超過三輪）不變。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    { name: "只審增量會漏掉修正與舊程式碼的互動", severity: "warning", mitigation: "reviewer 可以讀整個檔案；換做法後的下一輪回到全範圍。" },
+    { name: "root cause 是否相同靠判斷", severity: "info", mitigation: "判定理由寫在 Review 頁的偏差裡，開發者在 G2 看得到，也可以否決。" },
+  ]}
+/>
+
+</Proposal>
+</ChangeTabs>
