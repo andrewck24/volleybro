@@ -40,7 +40,7 @@ git log -1 --format='%(trailers:only,unfold)'
 ## Writing
 
 - Reference another Change by its kebab-case slug (`` `type-decoupling` change ``), never by a letter label.
-- Never hard-wrap prose you write or edit, in Markdown or in pull-request bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Docs predating this rule are still wrapped: match the file's existing width when editing one, and never reflow it wholesale as a side effect. Commit bodies are the exception: commitlint limits their lines to 100 characters.
+- Never hard-wrap prose you write or edit, in Markdown or in pull-request bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Commit bodies are the exception: commitlint limits their lines to 100 characters.
 - Blueprint pages and decision records have their own writing rules in [`docs/agents/blueprint.md`](./docs/agents/blueprint.md).
 
 ---
@@ -103,9 +103,7 @@ Omit internal refactors, test additions, linting fixes, and dep upgrades with no
 
 Commit the generated `.changeset/*.md` file along with your changes. PRs that omit a changeset when required will not trigger an automated version PR.
 
-Linear milestones are a separate release-planning gate for target windows, grouping, and delivery
-order. They do not select semantic version impact, and a Changeset does not replace milestone
-planning. See `WORKFLOW.md` for release-bound and exemption rules.
+Linear milestones are a separate release-planning gate for target windows, grouping, and delivery order. They do not select semantic version impact, and a Changeset does not replace milestone planning. See `WORKFLOW.md` for release-bound and exemption rules.
 
 > Agent users: the [`writing-changesets` skill](.claude/skills/writing-changesets/SKILL.md) is available in this project to guide changeset authoring.
 

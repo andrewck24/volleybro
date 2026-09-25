@@ -3,61 +3,25 @@ title: Blueprint
 description: Gitignored review surfaces for the two human gates, plus durable capability knowledge in Features.
 ---
 
-Repository-owned review surfaces for the two human gates, plus durable
-capability knowledge in Features.
+Repository-owned review surfaces for the two human gates, plus durable capability knowledge in Features.
 
 ## Current behavior
 
-- A Change is one page, `blueprint/content/changes/<slug>/index.mdx`,
-  gitignored on the Change branch, at `/changes/<slug>`: a header with the
-  gate, capability badges linked to their Feature pages and the figures
-  from `facts.json`, then a Proposal tab and, from G2, a Review tab. It
-  opens on Proposal; `#review` opens Review. Publishing commits and pushes
-  it to the orphan `blueprint-changes` branch, its durable store, and
-  writes `facts.json` first; the Blueprint dev server and build pull every
-  published Change from it. Changes written in the earlier two-page format
-  keep their `/proposal` and `/review` routes until they are migrated.
-- Scenarios are exported once as data: the Proposal renders them and the
-  Review reports a pass or fail per scenario id. The Review renders its
-  sections in a fixed order whatever order they are written in, and test
-  plan items name their executor. Decision records render as collapsible
-  cards; a superseded record links to its replacement, and every record on
-  a Feature page carries an `adr-<id>` anchor.
-- Decision records live at `blueprint/content/decisions/NNNN-<slug>.json`,
-  flat and repository-wide, one file per decision. A record is written the
-  moment the decision is made and is adopted from that moment; it is never
-  copied, promoted or renumbered. Each Feature page renders the records whose
-  `capabilities` name it, so one decision governing several capabilities stays
-  one file.
-- Implementation slices are Linear sub-issues under the Change's issue, the
-  same way in manual and Symphony mode, not in Blueprint; a Change that fits
-  one session skips slices entirely. Sub-issues close once the Change is
-  archived.
-- `features/` and `design-system/` stay in Git on normal branches and ship at
-  every deploy because agents read them as current knowledge and they change
-  with the code. Published Changes ship too, pulled from the
-  `blueprint-changes` store branch at build time.
-- Blueprint component string props, such as those of `Scenario` and
-  `RiskTable`, render a backtick-quoted span as inline code and everything
-  else as plain text; flowchart node and edge labels are drawn in SVG and stay
-  plain text. How a page is written lives in `docs/agents/blueprint.md`.
-- The 22 old-format Changes moved from the four-page shell live on the store
-  branch and render through a temporary compatibility layer until they are
-  converted; that conversion work is tracked outside the repository.
+- A Change is one page, `blueprint/content/changes/<slug>/index.mdx`, gitignored on the Change branch, at `/changes/<slug>`: a header with the gate, capability badges linked to their Feature pages and the figures from `facts.json`, then a Proposal tab and, from G2, a Review tab. It opens on Proposal; `#review` opens Review. Publishing commits and pushes it to the orphan `blueprint-changes` branch, its durable store, and writes `facts.json` first; the Blueprint dev server and build pull every published Change from it. Changes written in the earlier two-page format keep their `/proposal` and `/review` routes until they are migrated.
+- Scenarios are exported once as data: the Proposal renders them and the Review reports a pass or fail per scenario id. The Review renders its sections in a fixed order whatever order they are written in, and test plan items name their executor. Decision records render as collapsible cards; a superseded record links to its replacement, and every record on a Feature page carries an `adr-<id>` anchor.
+- Decision records live at `blueprint/content/decisions/NNNN-<slug>.json`, flat and repository-wide, one file per decision. A record is written the moment the decision is made and is adopted from that moment; it is never copied, promoted or renumbered. Each Feature page renders the records whose `capabilities` name it, so one decision governing several capabilities stays one file.
+- Implementation slices are Linear sub-issues under the Change's issue, the same way in manual and Symphony mode, not in Blueprint; a Change that fits one session skips slices entirely. Sub-issues close when the Change merges.
+- `features/` and `design-system/` stay in Git on normal branches and ship at every deploy because agents read them as current knowledge and they change with the code. Published Changes ship too, pulled from the `blueprint-changes` store branch at build time.
+- Blueprint component string props, such as those of `Scenario` and `RiskTable`, render a backtick-quoted span as inline code and everything else as plain text; flowchart node and edge labels are drawn in SVG and stay plain text. How a page is written lives in `docs/agents/blueprint.md`.
+- The 22 old-format Changes moved from the four-page shell live on the store branch and render through a temporary compatibility layer until they are converted; that conversion work is tracked outside the repository.
 
 ## Constraints
 
-- Blueprint is tracker-neutral and must remain understandable when operational
-  issues expire or are deleted.
-- Code and tests remain the authority for actual behavior; Blueprint records
-  durable rationale and reviewed knowledge.
-- Execution claims, retries, workspace paths, and provider text are runtime
-  facts, not durable Feature content.
+- Blueprint is tracker-neutral and must remain understandable when operational issues expire or are deleted.
+- Code and tests remain the authority for actual behavior; Blueprint records durable rationale and reviewed knowledge.
+- Execution claims, retries, workspace paths, and provider text are runtime facts, not durable Feature content.
 - A fact that can be derived is not stored a second time.
-- A decision id is unique across the repository. It is assigned once, when
-  the record is written, by taking the highest number in the store and adding
-  one; `originChange` names the Change whose Discuss produced it, when one
-  did.
+- A decision id is unique across the repository. It is assigned once, when the record is written, by taking the highest number in the store and adding one; `originChange` names the Change whose Discuss produced it, when one did.
 
 ## Implemented decisions
 

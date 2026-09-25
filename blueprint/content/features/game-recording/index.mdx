@@ -41,22 +41,13 @@ export const details = {
   },
 };
 
-The recording flow guides the scorer through lineup setup, rally-by-rally input,
-and automatic rotation. Click a node to see what it does.
+The recording flow guides the scorer through lineup setup, rally-by-rally input, and automatic rotation. Click a node to see what it does.
 
 <InteractiveFlowchart nodes={nodes} edges={edges} details={details} />
 
-Set and game completion are **derived by the server, then written once** — a
-fold over the append-only entry list decides whether a set is in progress, at
-set point, or won, and the result is recorded at the moment it changes rather
-than accumulated per rally. Nothing has to be manually closed out.
+Set and game completion are **derived by the server, then written once** — a fold over the append-only entry list decides whether a set is in progress, at set point, or won, and the result is recorded at the moment it changes rather than accumulated per rally. Nothing has to be manually closed out.
 
-Entries are the only stored record of what happened in a set. Statistics,
-rotation and serve rights are computed from them; see
-[Statistics](/features/game-recording/statistics). How those writes reach the
-database is described in [Persistence](/features/game-recording/persistence),
-and the recording flow itself in
-[Rally recording](/features/game-recording/rally-recording).
+Entries are the only stored record of what happened in a set. Statistics, rotation and serve rights are computed from them; see [Statistics](/features/game-recording/statistics). How those writes reach the database is described in [Persistence](/features/game-recording/persistence), and the recording flow itself in [Rally recording](/features/game-recording/rally-recording).
 
 ## Status
 
@@ -70,5 +61,4 @@ and the recording flow itself in
 | Sync collaboration & Live View                    | <StatusBadge status="planned" /> |
 | Leagues & tournaments                             | <StatusBadge status="planned" /> |
 
-> Timeout and challenge exist as entity types today but have no recording flow
-> yet — no use case, API route, or panel trigger.
+> Timeout and challenge exist as entity types today but have no recording flow yet — no use case, API route, or panel trigger.
