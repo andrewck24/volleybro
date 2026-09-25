@@ -13,7 +13,8 @@ export type ScenarioData = {
   then: string;
 };
 
-export type Outcome = "pass" | "fail" | "pending";
+// "unverified" records an older Change that closed a scenario without full proof.
+export type Outcome = "pass" | "fail" | "pending" | "unverified";
 
 export type ScenarioResult = {
   id: string;
@@ -35,12 +36,14 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
   pass: "通過",
   fail: "失敗",
   pending: "待執行",
+  unverified: "未完整驗證",
 };
 
 const OUTCOME_CLASS: Record<Outcome, string> = {
   pass: "bg-success/10 text-success dark:bg-success/20",
   fail: "bg-destructive/10 text-destructive dark:bg-destructive/20",
   pending: "bg-muted text-muted-foreground",
+  unverified: "border-warning/40 bg-warning/10 text-warning",
 };
 
 export function OutcomeBadge({ result }: { result: Outcome }) {
