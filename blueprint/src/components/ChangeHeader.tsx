@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { ChangeFacts } from "@/lib/change-meta";
 
-const GATE_LABEL = { G1: "G1 Proposal", G2: "G2 Review" } as const;
+export const GATE_LABEL = { G1: "G1 Proposal", G2: "G2 Review" } as const;
 
 function figures(facts: ChangeFacts): string[] {
   const shown: string[] = [];

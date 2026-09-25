@@ -269,8 +269,8 @@ async function applyChange(tmpDir, slug, localSlugDir) {
   return true;
 }
 
-// A Change starts at its first publish, which the store's history keeps;
-// before that first publish there is no history, and it starts now.
+// The fallback start for a Change with no commit yet: its first publish,
+// or now when this is that first publish.
 async function firstPublishedAt(repoRoot, slug) {
   try {
     const { stdout } = await runGit(

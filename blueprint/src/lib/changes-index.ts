@@ -3,6 +3,7 @@ import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
+import { GATE_LABEL } from "@/components/ChangeHeader";
 import { readCapabilities, readFacts } from "@/lib/change-meta";
 import { source } from "@/lib/source";
 import { CHANGES_ROOT, isLegacySlug } from "@/legacy/change-catalog";
@@ -22,7 +23,7 @@ export type ChangeSummary = {
 
 type Dated = ChangeSummary & { order: string };
 
-function dated(archivedAt?: string | null, startedAt?: string) {
+function changeDate(archivedAt?: string | null, startedAt?: string) {
   if (archivedAt) return { kind: "archived" as const, value: archivedAt };
   if (startedAt) return { kind: "started" as const, value: startedAt };
   return undefined;
@@ -42,7 +43,7 @@ function legacyChanges(): Dated[] {
         JSON.parse(readFileSync(changeJsonPath, "utf8")),
         entry.name,
       );
-      const date = dated(metadata.archivedAt, metadata.startedAt);
+      const date = changeDate(metadata.archivedAt, metadata.startedAt);
       return [
         {
           slug: metadata.slug,
@@ -67,7 +68,7 @@ function singlePageChanges(): Dated[] {
     .map((page) => {
       const slug = page.slugs[0];
       const facts = readFacts(slug);
-      const date = dated(facts.archivedAt, facts.startedAt);
+      const date = changeDate(facts.archivedAt, facts.startedAt);
       return {
         slug,
         title: page.data.title,
@@ -76,7 +77,7 @@ function singlePageChanges(): Dated[] {
         state: facts.archivedAt
           ? { label: "archived", status: "archived" as const }
           : {
-              label: facts.gate === "G2" ? "G2 Review" : "G1 Proposal",
+              label: GATE_LABEL[facts.gate ?? "G1"],
               status: "in-progress" as const,
             },
         date,
@@ -86,8 +87,7 @@ function singlePageChanges(): Dated[] {
     });
 }
 
-// ADR-0078: one timeline for both formats, newest first; an undated
-// Change (a draft never published) sorts last.
+// ADR-0078; a draft never published has no date and sorts last.
 export function listChanges(): ChangeSummary[] {
   return [...singlePageChanges(), ...legacyChanges()]
     .sort((a, b) => b.order.localeCompare(a.order))

@@ -539,6 +539,7 @@ test("publish leaves the commit count unknown for a squash-merged Change", async
     await readFile(path.join(dir, "facts.json"), "utf8"),
   );
   assert.equal(facts.commits, null);
+  assert.equal(facts.startedAt, facts.archivedAt);
   assert.equal(facts.filesChanged, 1);
   assert.equal(facts.insertions, 2);
   assert.ok(!Number.isNaN(Date.parse(facts.archivedAt)));
@@ -590,4 +591,58 @@ test("startedAt stays at the Change's start across publishes", async (t) => {
     `startedAt ${second.startedAt} is not the Change's start`,
   );
   assert.notEqual(second.publishedAt, first.publishedAt);
+});
+
+test("a Change starts at its first commit, even one made long before its first publish", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", "feat/gamma"]);
+  await mkdir(path.join(work, "src"), { recursive: true });
+  await writeFile(path.join(work, "src", "old.ts"), "x\n");
+  await workGit(["add", "-A"]);
+  await execFileAsync("git", ["commit", "-q", "-m", "feat: old"], {
+    cwd: work,
+    env: { ...process.env, GIT_AUTHOR_DATE: "2020-01-02T03:04:05Z" },
+  });
+  const dir = path.join(work, "blueprint", "content", "changes", "gamma");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    path.join(dir, "index.mdx"),
+    "---\ntitle: gamma\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n</ChangeTabs>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.startedAt, "2020-01-02T03:04:05.000Z");
+});
+
+test("a Change with no commit yet starts at its first publish and keeps that start", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  await git(work)(["checkout", "-q", "-b", "feat/gamma"]);
+  const dir = path.join(work, "blueprint", "content", "changes", "gamma");
+  await mkdir(dir, { recursive: true });
+  const page =
+    "---\ntitle: gamma\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n</ChangeTabs>\n";
+  await writeFile(path.join(dir, "index.mdx"), page);
+  await withRemote(bare, () => publish(work, "gamma"));
+  const first = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  await writeFile(path.join(dir, "index.mdx"), `${page}\nmore\n`);
+  await withRemote(bare, () => publish(work, "gamma"));
+  const second = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  const gap = Math.abs(
+    Date.parse(second.startedAt) - Date.parse(first.publishedAt),
+  );
+  assert.ok(
+    gap < 5000,
+    `startedAt ${second.startedAt} is not the first publish`,
+  );
 });

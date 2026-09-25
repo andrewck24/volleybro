@@ -10,12 +10,15 @@
     {
       "option": "Keep mergedAt for single-page Changes",
       "reason": "It names the moment precisely, but leaves two vocabularies for one timeline, and the developer finds startedAt and archivedAt easier to read."
+    },
+    {
+      "option": "Start a Change at its first publish, from the page store's history",
+      "reason": "Bulk imports and rebased publishes rewrote the store's commit dates, which dated some Changes after they had landed; a commit's author date survives a rebase."
     }
   ],
   "consequences": [
     "archivedAt is not the time of WORKFLOW's Archive step, which runs before the pull request opens; it is when the Change landed on dev.",
     "facts.json is last written at G2, before the merge, so the post-merge cleanup republishes the page to record archivedAt.",
-    "The page store's own commit dates are not used: bulk imports and rebased publishes rewrote them, dating some Changes after they landed.",
     "A squash-merged Change keeps only its squash commit, so it starts when it landed, for the same reason its commit count is unknown."
   ],
   "originChange": "changes-index-cards"

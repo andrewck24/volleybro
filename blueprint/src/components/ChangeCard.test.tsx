@@ -19,6 +19,9 @@ describe("ChangeCard", () => {
     );
 
     expect(screen.getByRole("link")).toHaveAttribute("href", "/changes/a");
+    expect(screen.getByText("A Change")).toBeInTheDocument();
+    expect(screen.getByText("What it does.")).toBeInTheDocument();
+    expect(screen.getByText("archived")).toBeInTheDocument();
     expect(screen.getByText("2026-09-25")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
     expect(screen.queryByText("three")).not.toBeInTheDocument();
