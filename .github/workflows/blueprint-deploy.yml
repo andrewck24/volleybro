@@ -1,0 +1,24 @@
+name: Blueprint deploy
+
+# publish copies this file onto the blueprint-changes store branch, because a
+# push runs the workflows of the pushed commit, not those on dev.
+on:
+  push:
+    branches:
+      - blueprint-changes
+
+permissions: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the Blueprint production build
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK is not set"
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "$DEPLOY_HOOK" > /dev/null
