@@ -1,0 +1,207 @@
+---
+title: Commit Guardrails
+description: husky、lint-staged 與 commitlint 把寫下來的 commit 規則，變成在 commit 產生之前就會跑的檢查。
+capabilities: ["platform/delivery-workflow"]
+---
+
+export const scenarios = [
+  { id: "S1", given: "a commit message with a subject but no body", when: "the commit-msg hook runs", then: "the commit is rejected naming body-empty" },
+  { id: "S2", given: "a commit on feat/<slug>, fix/<slug> or refactor/<slug> whose Blueprint-Change trailer is missing or names a different slug", when: "the commit-msg hook runs", then: "the commit is rejected naming which of the two it is" },
+  { id: "S3", given: "a commit with no trailer and a never-before-used scope on dev, on hotfix/<slug>, or on any other non-Change branch", when: "the commit-msg hook runs", then: "it passes, because scope has no enum and the branch is not a Change branch" },
+  { id: "S4", given: "a commit reworded during a rebase, with HEAD detached", when: "the commit-msg hook runs", then: "the trailer rule is skipped, and CI applies it using the pull request's head branch" },
+  { id: "S5", given: "a commit message carrying an AI attribution trailer", when: "the commit-msg hook runs", then: "the commit is rejected" },
+  { id: "S6", given: "a pull request whose commits were created without hooks", when: "CI runs", then: "commitlint checks every commit in the range and fails on the same rules" },
+  { id: "S7", given: "the sync pull request from main to dev carrying the Changesets release commit", when: "CI runs", then: "commitlint passes it without any exemption" },
+  { id: "S8", given: "a fresh worktree after pnpm install --frozen-lockfile", when: "a malformed commit is attempted", then: "the hook runs and rejects it" },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散文。husky 安裝 `pre-commit`（跑 lint-staged）與 `commit-msg`（跑 commitlint）兩個 hook；CI 再對整個 pull request 的 commit 範圍重跑一次 commitlint。scope 維持自由格式，只用黑名單擋退役工具名。trailer 檢查靠分支名稱判斷一個 commit 屬不屬於 Change：`feat/`、`fix/`、`refactor/<slug>` 上的每個 commit 都要帶值等於 slug 的 `Blueprint-Change`，Fix path 則改用自己的 `hotfix/<slug>`。凡是工具現在會檢查的規則，都從敘述它的文件裡刪掉。
+</TLDR>
+
+## 為什麼是現在
+
+`two-gate-workflow` 期間，review 抓到缺 body 的 commit、用工具名當 scope、缺 trailer、type 用錯；最後以 rebase 改寫了四個 commit message。一個 `no-unused-expressions` 錯誤也是撐到 `verify:all` 才被擋下。每一項都是早就寫下來的規則。
+
+## 三個時機，三道檢查
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "edit", label: "編輯", sublabel: "工作目錄", x: 90, y: 40, w: 130 },
+    { id: "precommit", label: "pre-commit", sublabel: "lint-staged：eslint --fix、prettier", x: 300, y: 40, w: 230 },
+    { id: "commitmsg", label: "commit-msg", sublabel: "commitlint：type、body、trailer", x: 570, y: 40, w: 210 },
+    { id: "commit", label: "commit 成立", x: 570, y: 150, w: 150 },
+    { id: "ci", label: "CI", sublabel: "對整個 PR 範圍重跑", x: 330, y: 150, w: 190 },
+    { id: "gates", label: "verify 閘門", sublabel: "typecheck、測試、build", x: 90, y: 150, w: 160 },
+  ]}
+  edges={[
+    { from: "edit", to: "precommit" },
+    { from: "precommit", to: "commitmsg" },
+    { from: "commitmsg", to: "commit" },
+    { from: "commit", to: "ci" },
+    { from: "ci", to: "gates" },
+  ]}
+  details={{
+    precommit: {
+      title: "只跑 staged 檔案",
+      body: "慢的 hook 會被 --no-verify 繞過，所以 typecheck 與測試都不放進來。它們已經有 pnpm verify、pnpm verify:all 與 CI 的 static job 三層承擔。",
+    },
+    commitmsg: {
+      title: "格式在 commit 成立之前就擋下",
+      body: "config-conventional 加上 body-empty: never，再加一支 local plugin 檢查 trailer 與 AI attribution。scope 不設 enum，只擋退役工具名。",
+    },
+    ci: {
+      title: "hook 是回饋，CI 才是權威",
+      body: "commitlint --from/--to 檢查 PR 裡的每一個 commit，hook 被繞過的 commit 在這裡一樣會被擋。",
+    },
+  }}
+/>
+
+## 本次 Change 的邊界
+
+- 照上圖加入三個檢查點：husky 的 `pre-commit` 與 `commit-msg` 兩個 hook，以及 CI 對 pull request 範圍的 commitlint；CI 在 workflow 層級設 `HUSKY=0`。CI 的 commitlint 只查目標是 `dev` 的 pull request：進 `main` 的 commit 都已在 `dev` 查過，而 `dev` → `main` 的範圍還帶著規則上線前的歷史 commit。
+- Changesets 的 release commit 改成合規的 `chore(release): update versions` 加上 body，讓 `main` → `dev` 的 sync PR 照常通過，不為 bot 開例外。
+- trailer 檢查以分支名稱判定 Change：`feat|fix|refactor/<slug>` 上的 commit 必須帶 `Blueprint-Change: <slug>`，值要等於分支名的 slug；其他分支不要求。hook 讀當前分支，讀不到（rebase 中的 detached HEAD）就略過；CI 只在 pull request 上執行並讀它的 head 分支名，直接 push 到 `dev` 的 commit 不在檢查範圍，與 Change 一律走 PR 一致。
+- `WORKFLOW.md` 的分支表加上 Fix path 的 `hotfix/<slug>`，Fix path 一節同步寫明，不論 commit type。
+- 從 `CONTRIBUTING.md` 與 `WORKFLOW.md` 刪掉每一條已被新檢查涵蓋的規則，包含 commit type 對照表（改成一行指向 commitlint 設定的指標），以及 `CONTRIBUTING.md` 裡「絕對匯入走 `@/*`」那一行（`tsc` 已擋）。
+- **不在範圍內** —— ESLint 規則：`@/*` 已由 `tsc` 擋下，issue 編號在 `src/` 沒有違規紀錄（依據見 References）。
+
+## 行為契約
+
+<Scenarios items={scenarios} />
+
+## 風險
+
+<RiskTable
+  risks={[
+    { name: "worktree 建好卻沒安裝，hook 完全不跑，而且無聲無息", severity: "warning", mitigation: "CI 對整個 pull request 範圍重跑 commitlint；hook 是即時回饋，CI 才是權威。" },
+    { name: "commitlint 一個專案只允許一支 local plugin", severity: "warning", mitigation: "trailer 檢查與 attribution 黑名單共用那一支；日後新增的機械性 commit 規則也進同一個檔案。" },
+    { name: "Fix path 的工作照舊開在 fix/ 或 refactor/ 分支", severity: "warning", mitigation: "第一個 commit 就因缺 trailer 被擋，錯誤訊息指向 hotfix/<slug>；這是大聲的失敗，不是靜默漏檢。" },
+    { name: "從散文刪規則，刪掉了工具其實沒涵蓋的那一條", severity: "warning", mitigation: "只有在替代它的檢查能對一個刻意構造的反例失敗之後，才刪掉那一行。" },
+    { name: "某個 CI job 漏了 HUSKY=0，prepare 在非預期環境執行", severity: "info", mitigation: "在 workflow 層級設一次，而不是逐 job 設。" },
+  ]}
+/>
+
+## 決策
+
+<DecisionCards ids={["0055", "0056", "0057"]} />
+
+## 順序
+
+剩下三個之中排第一。`standalone-decision-records` 已經落地，本 Change 的決策記錄用它的新模型寫成 `0055`–`0057`。
+
+與 `reviewer-standards-split` **有**檔案重疊：兩者都會動 `WORKFLOW.md` 與 `CONTRIBUTING.md`。重疊是可分離的——本 Change 只從這兩份檔案**刪掉**已被工具涵蓋的規則，`reviewer-standards-split` 才搬動剩下的判斷型規則；先刪後搬，後者才知道自己要搬的是哪些。仍需序列化，本 Change 先落地。
+
+## References
+
+蒐集於 2026-09-18 的討論。**一份 reference 記錄的是它被讀到那天為真的事**，所以每一列都要說出自己的強度，以及它能支持到什麼程度。
+
+### 阻擋性檢查該放在哪裡
+
+| 來源 | 支持什麼 | 強度 |
+| --- | --- | --- |
+| [Next.js 的 `.husky/pre-commit`](https://raw.githubusercontent.com/vercel/next.js/canary/.husky/pre-commit) | 一個大型專案的 pre-commit hook 只有一行 `pnpm lint-staged`，沒有別的。是做法本身，不是對做法的描述。 | **高**。檔案本身。 |
+| [Software Engineering at Google 第 23 章](https://abseil.io/resources/swe-book/html/ch23.html) 與 [Efficacy of presubmits](https://testing.googleblog.com/2018/09/efficacy-presubmit.html) | 阻擋性檢查跑在 review 之前的伺服器端；開發者本機只跑快的子集，慢的完整套件留給 post-submit。 | **中**。第一手，但規模差距使其門檻值無法移植；它只能論證形狀。 |
+| [對 Robert C. Martin 2026 年那串的評論](https://agileway.substack.com/p/reflections-on-robert-c-martins-popular) | 反面意見：值得建的 gauntlet 是行為性的——測試、mutation testing、複雜度——而 commit 格式不是。 | **中**。評論而非數據，而且這個異議是被接受而非反駁的：本 Change 買的是可靠的交付紀錄，`pnpm verify` 買的才是正確性。 |
+
+### 工具能檢查什麼、不能檢查什麼
+
+| 來源 | 支持什麼 | 強度 |
+| --- | --- | --- |
+| [husky 的 `index.js`](https://raw.githubusercontent.com/typicode/husky/main/index.js)，加上在玩具 repo 的實測 | `core.hooksPath` 是相對路徑、寫在共用的 `.git/config`，所以每個 worktree 都相對自己的根目錄解析；新建的 worktree 在 `pnpm install` 重建被 gitignore 的 `.husky/_` 之前不跑 hook，而且靜默失敗。 | **高**。讀原始碼後再實測。它推翻了「hook 碰不到 agent worktree」這個先前的判斷。 |
+| commitlint 文件 | `trailer-exists` 一次只接受一個 trailer 且不驗證其值，一個專案也只能有一支 local plugin。 | **高**。硬性限制，也是 trailer 與 attribution 兩項檢查共用一支 plugin 的原因。 |
+| 本 repo 自 2026-08-11 第一個 `Blueprint-Change` trailer 以來併入 `dev` 的分支 | 9 個 `fix/`、4 個 `refactor/` 分支沒有 trailer，8 個 `fix/`、3 個 `feat/` 分支是 Change；分支前綴目前分辨不出 Change，這是 Fix path 改用 `hotfix/` 的依據。 | **高**。在本 repo 清點。 |
+| 本 repo 的 `tsconfig.json` 與 `src/`，2026-09-23 實測 | 沒有 `baseUrl`，一個 `from "src/..."` 的反例報 TS2307，所以 `@/*` 規則已由 `tsc` 執行；`src/` 沒有任何 issue 編號，唯一一次事故（`6ed9b1c20`）發生在 Blueprint 的 MDX，ESLint 讀不到。這是撤掉兩條 ESLint 規則的依據。 | **高**。反例實測與全樹搜尋。 |
+| 本 repo 的 `34f793ef3` 與 `.github/workflows/ci.yml` | github-actions[bot] 的 release commit 是 `release: update versions`，type 不在 `config-conventional` 之內、也沒有 body；CI 同時跑在進 `dev` 與進 `main` 的 PR 上。不改的話每次 release 與 sync PR 都會被擋，這是 CI 只查進 `dev` 的 PR、並改寫 release commit 的依據。 | **高**。在本 repo 讀到。 |
+| 本 repo 最近 400 個非 merge commit | 36 個不同 scope，其中 15 個只用過一次，22 個 commit 沒有 scope；約 75% 的 scope 能對應到 capability ID，而用量最大的 `blueprint`（146 次）多半指的是交付工具本身，不是產品能力。 | **高**。在本 repo 清點，也是現階段否決 scope enum 的依據。 |
+
+</Proposal>
+<Review>
+
+<TLDR>
+commit 規則從散文變成三道檢查：`pre-commit` 只跑 lint-staged，`commit-msg` 跑 commitlint，CI 對進 `dev` 的 pull request 範圍重跑一次。trailer 檢查以分支名稱判定 Change，Fix path 改走 `hotfix/<slug>`。Changesets 的 release commit 改寫成合規格式，不為 bot 開例外。`CONTRIBUTING.md` 刪掉工具已涵蓋的 type 對照表與 `@/*` 那一行。實作沒有偏離 Proposal；Apply 期間補進 `ADR-0055` 的一條 consequence（revert 與 `fixup!` 的處理），是把「Change 分支上每個 commit 都帶 trailer」貫徹到底，不是新判斷。
+</TLDR>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "有 subject 沒有 body 的 commit 被擋，指名 `body-empty`。以 `commitlint --edit` 探測；規格審查第五輪重跑" },
+    { id: "S2", result: "pass", evidence: "Change 分支上 trailer 缺少或 slug 不符，分別報錯。`commitlint-plugin.test.js`「missing trailer on a Change branch…」「a trailer naming a different slug…」，兩則訊息都指向 `hotfix/<slug>`" },
+    { id: "S3", result: "pass", evidence: "`dev`、`hotfix/<slug>` 等非 Change 分支，沒有 trailer、用全新 scope 都通過。同檔「no trailer on dev, hotfix/*…」；探測 `chore/x` 與新 scope" },
+    { id: "S4", result: "pass", evidence: "rebase 中 detached HEAD 時略過 trailer 規則，交給 CI。同檔「an empty/unknown branch (detached HEAD)…」；另以真實 `git commit` 在 detached HEAD 實測" },
+    { id: "S5", result: "pass", evidence: "帶 AI attribution 的 commit 被擋。`Co-authored-by`（不分大小寫）、`Generated-by`、行首的「Generated with/by」都被擋；slug 含 AI 名稱、散文引用這條規則、`-v` 的 diff 都不會誤擋" },
+    { id: "S6", result: "unverified", evidence: "沒經過 hook 的 commit 在 CI 以同樣規則失敗。部分證明：本機以 `CI=true commitlint --from f17ee89b8` 跑過本分支範圍；CI job 本身要等這個 PR 才第一次執行" },
+    { id: "S7", result: "pass", evidence: "`main` → `dev` 的 sync PR 裡的 release commit 不需例外即通過。探測 `chore(release): update versions` 加 body；讀 `changesets/action` 原始碼確認 `git-cli` 模式以單一引數傳入 `git commit -m`，換行保留" },
+    { id: "S8", result: "pass", evidence: "新 worktree 經 `pnpm install --frozen-lockfile` 後，hook 會擋下格式錯的 commit。在 scratchpad 建拋棄式 worktree 實測，被擋後移除" },
+  ]}
+/>
+
+## 驗證
+
+| 檢查 | 結果 |
+| --- | --- |
+| `pnpm verify:all` | 四個 lane 全數通過（`static`、`app-build`、`app-test`、`blueprint`），五輪各跑一次 |
+| `pnpm test:workflow` | 87 tests，0 fail |
+| `node scripts/check-workflow.js` | 通過 |
+| 本分支自己的 commit | 除了最早的三個（兩個記錄 commit 與安裝 hook 的那一個），全部在 hook 裝好之後寫成，每一個都通過了它 |
+
+規模：21 個 commit，17 個檔案（+972 / −30）。plugin 最後收成 `commitlint.config.js` 加一個 `scripts/commitlint/plugin.js`，trailer 交給 `git interpret-trailers --parse` 解析，不自己寫 parser。
+
+## 邊界上最關鍵的一段 diff
+
+AI attribution 檢查是這個 Change 最容易擋錯人的地方：擋得太鬆，署名就溜進 `dev`；擋得太嚴，連合法的 commit 都寫不出來。第三輪為了堵住 `Generated-by:` trailer，把「任何 trailer 的值含 AI 名稱」都當成署名，結果 slug 叫 `claude-md-bridge` 的 Change 連自己的 `Blueprint-Change` trailer 都過不了。修正是把判斷收回到「署名類的 key」與「行首的 Generated with/by」。
+
+<AnnotatedDiff
+  lang="js"
+  code={"// scripts/commitlint/plugin.js\n// 只有署名類的 key 算數；Blueprint-Change 的 slug 或 Refs 的值可以合法地含 AI 名稱\nconst ATTRIBUTION_TRAILERS = new Set([\"co-authored-by\", \"generated-by\"]); // [!code ++]\n// 錨定在行首（允許前面有 emoji），散文裡引用這條規則不會被擋\nconst GENERATED_LINE = /^\\W*generated[\\s-](with|by)\\b/i; // [!code ++]\n\nexport function evaluateAiAttribution(message) {\n  const raw = message ?? \"\";\n  for (const [key, values] of parseTrailers(raw)) {\n    const named = values.find( // [!code --]\n      (value) => namesAiAssistant(key) || namesAiAssistant(value), // [!code --]\n    ); // [!code --]\n    if (!ATTRIBUTION_TRAILERS.has(key)) continue; // [!code ++]\n    const named = values.find(namesAiAssistant); // [!code ++]\n    if (named) return { ok: false, message: \"…\" };\n  }\n  const generatedLine = stripDiffAndComments(raw)\n    .split(\"\\n\")\n    .find( // [!code --]\n      (line) => /generated[\\s-](with|by)/i.test(line) && namesAiAssistant(line), // [!code --]\n    ); // [!code --]\n    .find((line) => GENERATED_LINE.test(line) && namesAiAssistant(line)); // [!code ++]\n  // …\n}"}
+/>
+
+## 刪掉的散文
+
+每一條都在替代它的檢查對一個刻意構造的反例失敗之後才刪。
+
+| 刪掉的規則 | 由誰取代 | 反例 |
+| --- | --- | --- |
+| `CONTRIBUTING.md` 的 commit type 對照表 | `@commitlint/config-conventional` 的 `type-enum` | `notatype(x): …` 被擋 |
+| `CONTRIBUTING.md`「絕對匯入走 `@/*`」 | `tsc`（`tsconfig.json` 沒有 `baseUrl`） | `from "src/lib/utils"` 報 TS2307 |
+| commit 不得帶 AI attribution（commit 那一半；PR 那一半仍是散文） | `no-ai-attribution` 規則 | `Co-Authored-By: Claude` 被擋 |
+
+scope 黑名單是 `spectra`、`openspec`、`spec-kit`、`bmad`，依據是 `eslint.config.js` 的 archive ignore、`check-workflow.js` 的 legacy adapter 與 `git log` 裡的用法。
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+五輪兩軸。第五輪規格面沒有實質發現，標準面的兩項由審查逐字指定，依契約的不動點定義不再重開迴圈。
+
+<RiskTable
+  risks={[
+    { name: "只要目標是 main 就跑 CI 檢查，會讓每次 release 都失敗", severity: "critical", mitigation: "G1 前發現：dev → main 的範圍帶著規則上線前的歷史，bot 的 release commit 也不合規。CI 改為只查進 dev 的 PR，release commit 改寫成合規格式，理由寫進 ADR-0055。" },
+    { name: "AI attribution 檢查三度失準", severity: "critical", mitigation: "先是大小寫繞過（GitHub 寫 Co-authored-by），再是 Generated-by trailer 漏網，修正時又放得太寬、連含 AI 名稱的 slug 都擋。最後只看署名類 trailer key，「Generated with/by」錨定在行首。" },
+    { name: "commitlint 預設略過 Revert、fixup!、squash!，讓它們不帶 trailer 就進 dev", severity: "warning", mitigation: "只略過 merge commit；fixup! 與 squash! 只在本機放行、CI 擋下；revert 寫成 revert: 並帶 trailer。" },
+    { name: "手寫的 trailer parser 比 git 嚴格", severity: "warning", mitigation: "刪掉 parser，改用 git interpret-trailers --parse，行為與 git 一致。" },
+    { name: "git commit -v 附上的 diff 會觸發 AI attribution 檢查", severity: "warning", mitigation: "掃描前先切掉 scissors 行以下的內容並移除註解行。" },
+    { name: "changesets.yml 與 chromatic.yml 沒有設 HUSKY=0", severity: "warning", mitigation: "每個會安裝的 workflow 都在 workflow 層級設一次。" },
+    { name: "plugin 拆成五個檔案、自寫 scope 黑名單規則", severity: "info", mitigation: "收成一個檔案；黑名單改用內建的 scope-enum never 加 scope-case。" },
+    { name: "註解重述決策記錄、引用了錯的 ADR", severity: "info", mitigation: "改成只引用 ADR-0055；錯的引用刪掉。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "CI 的 commitlint job 還沒真正在 GitHub 上跑過", severity: "warning", mitigation: "這個 PR 就是它第一次執行；CI 結果即是 Scenario 6 的最後一段證據。" },
+    { name: "body 中以「字詞加冒號」開頭的一行，會讓 commitlint 誤判為 footer 並發出 footer-leading-blank 警告", severity: "info", mitigation: "只是警告，不擋 commit。關掉它等於放棄一條 config-conventional 的預設，目前不值得。" },
+    { name: "本機 build 需要 MONGODB_URI", severity: "info", mitigation: "既有狀況，與本 Change 無關；驗證時以佔位值執行。" },
+    { name: "G1 預覽的流程文字尚未寫進 WORKFLOW.md", severity: "info", mitigation: "已決定併入 reviewer-standards-split：G1 publish 前先 commit 並 push 記錄；關卡沒有新 commit 時要重跑分支 build。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>
