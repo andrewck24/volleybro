@@ -98,7 +98,6 @@ export const scenarios = [
 <ActionItems>
 
 1. 接受下方「與 Proposal 的偏差」五項（前四項已接受；第 5 項是依你在 G2 的回饋所做的修改）。
-2. 執行 test plan 的 T5：在瀏覽器與手機上打開一個遷移後的頁面，告訴我是否可讀。S8 的結果要等你回報後才能填上，G2 gate 才會通過。
 
 </ActionItems>
 
@@ -130,6 +129,7 @@ export const scenarios = [
     { id: "S5", result: "pass", evidence: "既有的 facts 測試，另加 `mergedAt` 為 null 的斷言" },
     { id: "S6", result: "pass", evidence: "publish 本 Change 後，Blueprint deploy workflow 自動觸發並成功呼叫 hook；缺 secret 時失敗是 workflow 裡的明確檢查" },
     { id: "S7", result: "pass", evidence: "`pnpm verify:all` 四條 lane 全部通過；舊格式頁面在 dev server 上照常渲染" },
+    { id: "S8", result: "pass", evidence: "開發者在桌面、手機、平板上實測：tab、toc、sidebar 都能操作，閱讀寬度足夠（拿掉 tab 外框之後）" },
   ]}
 />
 
@@ -139,7 +139,7 @@ export const scenarios = [
     { id: "T2", checks: "索引、頁首與元件", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T3", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T4", checks: "deploy hook 實際觸發", method: "publish 後查看 GitHub Actions 的 Blueprint deploy run", executor: "agent", environment: "GitHub Actions", result: "pass" },
-    { id: "T5", checks: "遷移後的頁面在你慣用的瀏覽器與手機上可讀（S8）", method: "G2 時在 dev server 打開任一遷移頁面，看兩個 tab 與卡片；手機以同一網路連到 dev server", executor: "developer", environment: "本機 dev server", result: "pending" },
+    { id: "T5", checks: "遷移後的頁面在你慣用的瀏覽器與手機上可讀（S8）", method: "G2 時在 dev server 打開任一遷移頁面，看兩個 tab 與卡片；手機以同一網路連到 dev server", executor: "developer", environment: "本機 dev server", result: "pass", evidence: "桌面、手機、平板都沒問題" },
   ]}
 />
 
