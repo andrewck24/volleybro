@@ -111,7 +111,7 @@ Rules that bind every page:
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
 - The frontmatter `title` is the Change's name, for people; it may differ from the slug. `pnpm check:workflow --gate <slug>` fails an empty title or one that is only a tab name.
 - Prose never hand-copies a count (ADR-0074). A figure `facts.json` holds is left to the header; any other number is replaced by a qualitative statement, or stands beside the command that produced it so a reviewer can rerun it.
-- The Proposal tab is frozen after G1 (ADR-0075): edit it only by passing G1 again, even for layout.
+- What G1 accepted is frozen (ADR-0075): the Proposal tab, the frontmatter and the exported scenarios change only by passing G1 again, even for layout.
 - Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown. Flowchart node and edge labels are drawn in SVG and stay plain text entirely.
 - Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
 - Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.

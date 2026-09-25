@@ -12,6 +12,8 @@ import {
   resolveRemote,
 } from "./blueprint-changes.js";
 import {
+  assertValidMdx,
+  frozenPart,
   git,
   hasReview,
   inlineReviewSections,
@@ -748,9 +750,9 @@ export async function checkGateTitles(root, slug) {
   return diagnostics;
 }
 
-// ADR-0075: the Proposal accepted at G1 is compared with the most recent G1
+// ADR-0075: what G1 accepted is compared with the most recent G1
 // publish on the store branch; no G1 publish there means nothing to compare.
-async function g1Proposal(root, slug) {
+async function g1Frozen(root, slug) {
   let shas;
   try {
     const output = await git(root, [
@@ -770,9 +772,7 @@ async function g1Proposal(root, slug) {
         await git(root, ["show", `${sha}:${slug}/facts.json`]),
       );
       if (facts.gate !== "G1") continue;
-      return proposalPart(
-        await git(root, ["show", `${sha}:${slug}/index.mdx`]),
-      );
+      return frozenPart(await git(root, ["show", `${sha}:${slug}/index.mdx`]));
     } catch {
       continue;
     }
@@ -806,7 +806,7 @@ export async function checkSinglePageGate(
   }
 
   try {
-    scenarioIds(content);
+    assertValidMdx(content);
   } catch (error) {
     diagnostics.push(
       `${where} [gate-mdx]: the page is not valid MDX — ${error.message.split("\n")[0]}`,
@@ -855,10 +855,10 @@ export async function checkSinglePageGate(
     );
     return diagnostics;
   }
-  const accepted = await g1Proposal(root, slug);
+  const accepted = await g1Frozen(root, slug);
   if (
     accepted !== undefined &&
-    accepted.trim() !== proposalPart(content).trim()
+    accepted.trim() !== frozenPart(content).trim()
   ) {
     diagnostics.push(
       `${where} [gate-proposal-frozen]: the Proposal differs from the version published at G1; change it only by passing G1 again`,

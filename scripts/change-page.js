@@ -61,16 +61,18 @@ function stringOf(value) {
 }
 
 // An entry's own string fields, keyed; a key it lacks reads as undefined.
+// An element that is not an object literal (a spread, a variable) reads as an
+// entry with no id, so the gate reports it instead of skipping it.
 function entriesOf(arrayExpression) {
-  return (arrayExpression?.elements ?? [])
-    .filter((element) => element?.type === "ObjectExpression")
-    .map((object) =>
-      Object.fromEntries(
-        object.properties
-          .filter((property) => property.type === "Property")
-          .map((property) => [keyOf(property), stringOf(property.value)]),
-      ),
-    );
+  return (arrayExpression?.elements ?? []).map((element) =>
+    element?.type === "ObjectExpression"
+      ? Object.fromEntries(
+          element.properties
+            .filter((property) => property.type === "Property")
+            .map((property) => [keyOf(property), stringOf(property.value)]),
+        )
+      : {},
+  );
 }
 
 function scenarioEntries(tree) {
@@ -79,7 +81,9 @@ function scenarioEntries(tree) {
     for (const statement of node.data.estree.body) {
       for (const declarator of statement.declaration?.declarations ?? []) {
         if (declarator.id?.name === "scenarios") {
-          return entriesOf(declarator.init);
+          return declarator.init?.type === "ArrayExpression"
+            ? entriesOf(declarator.init)
+            : [{}];
         }
       }
     }
@@ -101,7 +105,7 @@ export function scenarioIds(content) {
 export function resultIds(content) {
   return elements(parse(content), "ScenarioResults")
     .flatMap((element) => entriesOf(attributeArray(element, "results")))
-    .filter((entry) => entry.result !== "pending")
+    .filter((entry) => entry.result === "pass" || entry.result === "fail")
     .map((entry) => entry.id);
 }
 
@@ -113,12 +117,26 @@ export function decisionIds(content) {
 
 export function proposalPart(content) {
   const [proposal] = elements(parse(content), "Proposal");
-  return proposal
-    ? content.slice(
-        proposal.position.start.offset,
-        proposal.position.end.offset,
-      )
-    : "";
+  return proposal ? sourceOf(content, proposal) : "";
+}
+
+function sourceOf(content, node) {
+  return content.slice(node.position.start.offset, node.position.end.offset);
+}
+
+// ADR-0075: what G1 accepted is the frontmatter, the page's exports (the
+// scenarios among them) and every Proposal element — not only the tab.
+export function frozenPart(content) {
+  const tree = parse(content);
+  const frontmatter = content.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? "";
+  const exports = [...walk(tree)].filter((node) => node.type === "mdxjsEsm");
+  return [frontmatter, ...exports, ...elements(tree, "Proposal")]
+    .map((part) => (typeof part === "string" ? part : sourceOf(content, part)))
+    .join("\n");
+}
+
+export function assertValidMdx(content) {
+  parse(content);
 }
 
 export function hasReview(content) {

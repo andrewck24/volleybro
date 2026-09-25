@@ -260,7 +260,14 @@ async function applyChange(tmpDir, slug, localSlugDir) {
 async function writeFacts(repoRoot, slugDir) {
   if (!isSinglePageDir(await readdir(slugDir))) return;
   const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
-  const facts = await changeFacts(repoRoot, content);
+  let facts;
+  try {
+    facts = await changeFacts(repoRoot, content);
+  } catch (error) {
+    throw new Error(
+      `${path.basename(slugDir)}/index.mdx is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
+    );
+  }
   await writeFile(
     path.join(slugDir, "facts.json"),
     `${JSON.stringify(facts, null, 2)}\n`,

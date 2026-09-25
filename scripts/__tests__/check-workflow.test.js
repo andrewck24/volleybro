@@ -989,3 +989,18 @@ test("single-page gate reports a page that is not valid MDX", async () => {
     /gate-mdx/i,
   );
 });
+
+test("single-page gate fails a G2 page whose scenarios changed after G1", async () => {
+  const page = singlePage({ review: FULL_REVIEW }).replace(
+    'then: "c"',
+    'then: "rewritten"',
+  );
+  const root = await makeRepository({
+    "blueprint/content/changes/c/index.mdx": page,
+  });
+  await withStoreHistory(root, singlePage());
+  assert.match(
+    (await checkSinglePageGate(root, "c", { refresh: noop })).join("\n"),
+    /gate-proposal-frozen/i,
+  );
+});

@@ -6,6 +6,7 @@ import {
   hasReview,
   inlineReviewSections,
   parseShortstat,
+  frozenPart,
   proposalPart,
   resultIds,
   reviewSections,
@@ -248,4 +249,35 @@ test("a Review section written on one line is reported as inline", () => {
   );
   assert.deepEqual(inlineReviewSections(page), ["Deviations"]);
   assert.equal(reviewSections(page).includes("Deviations"), false);
+});
+
+test("frozenPart covers the frontmatter and the scenarios, not only the Proposal tab", () => {
+  const edited = PAGE.replace('then: "c"', 'then: "changed"');
+  assert.notEqual(frozenPart(edited), frozenPart(PAGE));
+  const retitled = PAGE.replace("title: Sample", "title: Renamed");
+  assert.notEqual(frozenPart(retitled), frozenPart(PAGE));
+  const reviewEdited = PAGE.replace("- one", "- two");
+  assert.equal(frozenPart(reviewEdited), frozenPart(PAGE));
+});
+
+test("only pass and fail count as results", () => {
+  for (const value of ['"todo"', "status", "`${s}`"]) {
+    const page = PAGE.replace('result: "pass"', `result: ${value}`);
+    assert.deepEqual(resultIds(page), [], value);
+  }
+  const noResult = PAGE.replace('result: "pass", ', "");
+  assert.deepEqual(resultIds(noResult), []);
+});
+
+test("scenarios built by spread or from a variable read as malformed", () => {
+  const spread = PAGE.replace(
+    "export const scenarios = [",
+    "export const base = [];\nexport const scenarios = [\n  ...base,",
+  );
+  assert.ok(scenarioIds(spread).includes(undefined));
+  const aliased = PAGE.replace(
+    /export const scenarios = \[[\s\S]*?\];/,
+    "export const base = [];\nexport const scenarios = base;",
+  );
+  assert.deepEqual(scenarioIds(aliased), [undefined]);
 });
