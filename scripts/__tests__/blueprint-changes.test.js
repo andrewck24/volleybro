@@ -451,6 +451,7 @@ test("publish writes facts.json for a single-page Change and ships it", async (t
   assert.equal(facts.srcFilesChanged, 1);
   assert.equal(facts.scenarios, 1);
   assert.deepEqual(facts.decisions, ["0072"]);
+  assert.equal(facts.mergedAt, null);
 
   const { stdout } = await execFileAsync(
     "git",
@@ -481,4 +482,84 @@ test("publish writes no facts.json for a two-page Change", async (t) => {
   await withRemote(bare, () => publish(work, "gamma"));
 
   await assert.rejects(access(path.join(dir, "facts.json")));
+});
+
+async function landAndBranchOff(work, slug, { squash }) {
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "dev"]);
+  if (squash) {
+    await workGit(["merge", "-q", "--squash", `feat/${slug}`]);
+    await workGit([
+      "commit",
+      "-q",
+      "-m",
+      `feat: ${slug}\n\nBlueprint-Change: ${slug}`,
+    ]);
+  } else {
+    await workGit([
+      "merge",
+      "-q",
+      "--no-ff",
+      "-m",
+      `Merge pull request #1 from owner/feat/${slug}`,
+      `feat/${slug}`,
+    ]);
+  }
+  await workGit(["checkout", "-q", "-b", "feat/later"]);
+  await writeFile(path.join(work, "src", "b.ts"), "x\ny\nz\n");
+  await workGit(["add", "-A"]);
+  await workGit(["commit", "-q", "-m", "feat: add b"]);
+}
+
+test("publish measures a merged Change by the merge commit that landed it", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeSinglePageChange(work, "gamma");
+  await landAndBranchOff(work, "gamma", { squash: false });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.commits, 1);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.ok(!Number.isNaN(Date.parse(facts.mergedAt)));
+});
+
+test("publish leaves the commit count unknown for a squash-merged Change", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeSinglePageChange(work, "gamma");
+  await landAndBranchOff(work, "gamma", { squash: true });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.commits, null);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.ok(!Number.isNaN(Date.parse(facts.mergedAt)));
+});
+
+test("publish ships the deploy workflow to the store, and pull leaves it there", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workflowDir = path.join(work, ".github", "workflows");
+  await mkdir(workflowDir, { recursive: true });
+  await writeFile(path.join(workflowDir, "blueprint-deploy.yml"), "name: x\n");
+  await makeSinglePageChange(work, "gamma");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:.github/workflows/blueprint-deploy.yml"],
+    { cwd: bare },
+  );
+  assert.equal(stdout, "name: x\n");
+
+  await withRemote(bare, () => pull(work));
+  const changesDir = path.join(work, "blueprint", "content", "changes");
+  assert.ok(!(await readdir(changesDir)).includes(".github"));
 });

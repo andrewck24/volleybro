@@ -15,7 +15,7 @@ interface RequireContext {
 }
 
 // content/changes is gitignored and usually absent on a fresh checkout; see
-// proposal-mockups.ts for the same require.context caveat.
+// change-designs.ts for the same require.context caveat.
 const req = (
   require as unknown as {
     context: (dir: string, sub: boolean, re: RegExp) => RequireContext;

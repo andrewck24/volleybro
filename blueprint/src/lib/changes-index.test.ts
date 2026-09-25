@@ -5,13 +5,6 @@ jest.mock("@/lib/source", () => ({
   source: { getPages: () => mockGetPages() },
 }));
 
-let mockProposalMockups: Record<string, unknown> = {};
-jest.mock("@/lib/proposal-mockups", () => ({
-  get proposalMockups() {
-    return mockProposalMockups;
-  },
-}));
-
 let mockLegacyDirs: Record<string, unknown> = {};
 jest.mock("node:fs", () => {
   const actual = jest.requireActual("node:fs");
@@ -42,40 +35,23 @@ function page(slug: string, title: string) {
 
 describe("listChanges", () => {
   beforeEach(() => {
-    mockProposalMockups = {};
     mockLegacyDirs = {};
   });
 
-  it("titles and links from proposal.mdx when both proposal and review exist", () => {
+  it("lists each single-page Change by its page title, sorted by slug", () => {
     mockGetPages.mockReturnValue([
-      page("a/proposal", "A Proposal"),
-      page("a/review", "A Review"),
+      page("b", "B Change"),
+      page("a", "A Change"),
     ]);
 
     expect(listChanges()).toEqual([
-      { slug: "a", title: "A Proposal", href: "/changes/a/proposal" },
+      { slug: "a", title: "A Change", href: "/changes/a" },
+      { slug: "b", title: "B Change", href: "/changes/b" },
     ]);
   });
 
-  it("falls back to the review title and href when there is no proposal.mdx", () => {
-    mockGetPages.mockReturnValue([page("b/review", "B Review")]);
-
-    expect(listChanges()).toEqual([
-      { slug: "b", title: "B Review", href: "/changes/b/review" },
-    ]);
-  });
-
-  it("falls back to the slug and a proposal href for a proposal.tsx-only mockup", () => {
-    mockGetPages.mockReturnValue([]);
-    mockProposalMockups = { c: () => null };
-
-    expect(listChanges()).toEqual([
-      { slug: "c", title: "c", href: "/changes/c/proposal" },
-    ]);
-  });
-
-  it("lists legacy Changes after two-gate Changes, newest archivedAt/startedAt first", () => {
-    mockGetPages.mockReturnValue([page("a/proposal", "A Proposal")]);
+  it("lists legacy Changes after single-page Changes, newest archivedAt/startedAt first", () => {
+    mockGetPages.mockReturnValue([page("a", "A Change")]);
     mockLegacyDirs = {
       older: {
         schemaVersion: 1,
@@ -101,14 +77,14 @@ describe("listChanges", () => {
     };
 
     expect(listChanges()).toEqual([
-      { slug: "a", title: "A Proposal", href: "/changes/a/proposal" },
+      { slug: "a", title: "A Change", href: "/changes/a" },
       { slug: "newer", title: "Newer Legacy", href: "/changes/newer" },
       { slug: "older", title: "Older Legacy", href: "/changes/older" },
     ]);
   });
 
-  it("lists an old-format Change once, even when a leftover proposal.mdx also exists", () => {
-    mockGetPages.mockReturnValue([page("stale/proposal", "Stale Proposal")]);
+  it("lists an old-format Change once, though its index is a top-level page too", () => {
+    mockGetPages.mockReturnValue([page("stale", "Stale Index")]);
     mockLegacyDirs = {
       stale: {
         schemaVersion: 1,

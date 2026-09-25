@@ -20,6 +20,13 @@ const REVIEW_ORDER: unknown[] = [
   ReviewDetails,
 ];
 
+// The tabs hold the whole page, so they drop the boxed frame fumadocs gives
+// an inline tab set and its padding, and line up with the text. The tab
+// list takes no className of its own, so its padding is reached from here.
+const FRAME_CLASS =
+  "rounded-none border-0 bg-transparent [&>[role=tablist]]:px-0";
+const PANEL_CLASS = "px-0 bg-transparent";
+
 function orderOf(child: ReactNode) {
   const index = isValidElement(child) ? REVIEW_ORDER.indexOf(child.type) : -1;
   return index === -1 ? REVIEW_ORDER.length : index;
@@ -27,7 +34,7 @@ function orderOf(child: ReactNode) {
 
 export function Proposal({ children }: { children: ReactNode }) {
   return (
-    <Tab value="Proposal" id="proposal">
+    <Tab value="Proposal" id="proposal" className={PANEL_CLASS}>
       {children}
     </Tab>
   );
@@ -45,7 +52,7 @@ export function Review({ children }: { children: ReactNode }) {
     nodes[slot] = sections[i];
   });
   return (
-    <Tab value="Review" id="review">
+    <Tab value="Review" id="review" className={PANEL_CLASS}>
       {nodes}
     </Tab>
   );
@@ -58,6 +65,7 @@ export function ChangeTabs({ children }: { children: ReactNode }) {
   );
   return (
     <Tabs
+      className={FRAME_CLASS}
       items={hasReview ? ["Proposal", "Review"] : ["Proposal"]}
       defaultIndex={0}
       updateAnchor

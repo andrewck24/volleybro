@@ -31,7 +31,10 @@ function currentBranch() {
   }
 }
 
-const CHANGE_BRANCH = /^(feat|fix|refactor)\/(.+)$/;
+export const CHANGE_BRANCH_PREFIXES = ["feat", "fix", "refactor"];
+const CHANGE_BRANCH = new RegExp(
+  `^(${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`,
+);
 
 function fixPathSuffix(prefix, slug) {
   return `Fix-path work belongs on hotfix/${slug} instead, not ${prefix}/${slug}.`;

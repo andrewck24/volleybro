@@ -37,6 +37,7 @@ const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
 // Dotfile, not `meta.json` — fumadocs-mdx's meta collection in
 // source.config.ts only globs `**/meta.json`, so this never becomes a page.
 const STORE_FILE = ".store-state.json";
+const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
 
 function runGit(args, options) {
   return execFileAsync("git", args, options);
@@ -185,7 +186,8 @@ export async function pull(cwd, { force = false } = {}) {
   const slugs = stdout
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    // Dot-directories hold store plumbing such as the deploy workflow.
+    .filter((name) => name && !name.startsWith("."));
 
   const scratchParent = await mkdtemp(
     path.join(os.tmpdir(), "blueprint-changes-pull-"),
@@ -242,6 +244,16 @@ export async function pull(cwd, { force = false } = {}) {
   );
 }
 
+// A push runs the workflows of the pushed commit, so the orphan store needs
+// its own copy of the deploy workflow.
+async function syncDeployWorkflow(tmpDir, repoRoot) {
+  const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
+  if (!existsSync(source)) return;
+  const workflow = path.join(tmpDir, ...DEPLOY_WORKFLOW);
+  await mkdir(path.dirname(workflow), { recursive: true });
+  await cp(source, workflow);
+}
+
 async function applyChange(tmpDir, slug, localSlugDir) {
   const targetDir = path.join(tmpDir, slug);
   await rm(targetDir, { recursive: true, force: true });
@@ -262,7 +274,9 @@ async function writeFacts(repoRoot, slugDir) {
   const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
   let facts;
   try {
-    facts = await changeFacts(repoRoot, content);
+    facts = await changeFacts(repoRoot, content, {
+      slug: path.basename(slugDir),
+    });
   } catch (error) {
     throw new Error(
       `${path.basename(slugDir)}/index.mdx is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
@@ -338,6 +352,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     // At most one retry: a concurrent publish can win the race once, but a
     // second rejection in a row is a real problem, not the race.
     for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
+      await syncDeployWorkflow(tmpDir, repoRoot);
       const changed = await applyChange(tmpDir, slug, localSlugDir);
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);

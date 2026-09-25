@@ -37,4 +37,18 @@ describe("ChangeHeader", () => {
 
     expect(screen.getByText("2 commits，8 scenarios")).toBeInTheDocument();
   });
+
+  it("uses the singular for a figure of one", () => {
+    render(
+      <ChangeHeader
+        title="Single Page Change"
+        capabilities={[]}
+        facts={{ commits: 1, filesChanged: 1, scenarios: 1 }}
+      />,
+    );
+
+    expect(
+      screen.getByText("1 commit，1 file，1 scenario"),
+    ).toBeInTheDocument();
+  });
 });
