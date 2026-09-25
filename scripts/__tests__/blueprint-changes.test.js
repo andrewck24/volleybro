@@ -565,7 +565,7 @@ test("publish ships the deploy workflow to the store, and pull leaves it there",
   assert.ok(!(await readdir(changesDir)).includes(".github"));
 });
 
-test("a later publish keeps the Change's first publish as startedAt", async (t) => {
+test("startedAt stays at the Change's start across publishes", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const dir = await makeSinglePageChange(work, "gamma");
   await withRemote(bare, () => publish(work, "gamma"));
@@ -587,7 +587,7 @@ test("a later publish keeps the Change's first publish as startedAt", async (t) 
   );
   assert.ok(
     gap < 5000,
-    `startedAt ${second.startedAt} is not the first publish`,
+    `startedAt ${second.startedAt} is not the Change's start`,
   );
   assert.notEqual(second.publishedAt, first.publishedAt);
 });

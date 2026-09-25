@@ -262,10 +262,25 @@ export async function changeFacts(
     parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
   );
   const commitRange = landing ? landing.commitRange : `${base}..HEAD`;
+  // The page store's commit dates were rewritten by bulk imports and
+  // rebased publishes, so a Change starts at its own first commit; only a
+  // Change with no commit yet falls back to its first publish.
+  const firstCommitAt = await orNull(async () => {
+    const [first] = (
+      await git(root, [
+        "log",
+        "--reverse",
+        "--format=%aI",
+        commitRange ?? `${landing.from}..${landing.to}`,
+      ])
+    ).split("\n");
+    return first ? new Date(first).toISOString() : null;
+  });
+  const started = firstCommitAt ?? startedAt ?? now.toISOString();
   return {
     gate: hasReview(content) ? "G2" : "G1",
     publishedAt: now.toISOString(),
-    startedAt: startedAt ?? now.toISOString(),
+    startedAt: started,
     archivedAt: landing ? new Date(landing.archivedAt).toISOString() : null,
     commits: commitRange
       ? await orNull(async () =>
