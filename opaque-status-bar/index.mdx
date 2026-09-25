@@ -108,6 +108,8 @@ export const scenarios = [
 </Proposal>
 <Review>
 
+5 條驗收情境中 4 條在 iOS 27 真機通過、1 條由程式碼保證；兩軸 code review 四輪到達 fixed point；verify:all 全部 lane 通過。
+
 <TLDR>
 standalone PWA 改用不透明狀態列（`statusBarStyle: "default"`），Header 不再被 iOS 27 的 Liquid Glass 模糊蓋住。`BodyBackdrop` 改名為 `StatusBarColor`，由 auth、tabs、workspace、game 四個路由群組的 layout 各自宣告顏色，元件在 `<head>` 最前面放一個自己擁有的 `theme-color`，並跟隨 app 內選的深淺色。iOS 27 真機上情境 1–4 通過；code review 找到 workspace 路由不跟 app 主題的缺漏並已修正，四輪後兩軸都沒有 finding；`verify:all` 四個 lane 全部通過。
 </TLDR>
