@@ -147,6 +147,8 @@ export const scenarios = [
 </Proposal>
 <Review>
 
+8 條 acceptance scenario 全數通過；兩軸 code review 經三輪到達 fixed point；verify:all 全部 lane 通過。
+
 <TLDR>
 判斷型規則已搬進只在 review 時讀的 `CODING_STANDARDS.md`，寫作規範落到 `CONTRIBUTING.md` 與 `docs/agents/blueprint.md`，`AGENTS.md` 成為唯一指引檔、`CLAUDE.md` 只含 `@AGENTS.md`。`check:workflow` 新增五類檢查與一個警告，元件字串的反引號渲染為 inline code，ADR-0045 拆成 ADR-0061 到 ADR-0067，G1 改為確認對話總表（ADR-0060）。8 條 scenario 都有會在缺少實作時失敗的測試並全數通過；兩軸 review 三輪後到達 fixed point。`.env.local` 補回並以 `.env.example` 為準後，`verify:all` 的四個 lane 都通過。
 </TLDR>
