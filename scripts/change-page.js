@@ -85,7 +85,7 @@ function entriesOf(arrayExpression) {
   );
 }
 
-function scenariosStatement(tree) {
+function findScenariosExport(tree) {
   for (const node of walk(tree)) {
     if (node.type !== "mdxjsEsm") continue;
     for (const statement of node.data.estree.body) {
@@ -99,7 +99,7 @@ function scenariosStatement(tree) {
 }
 
 function scenarioEntries(tree) {
-  const found = scenariosStatement(tree);
+  const found = findScenariosExport(tree);
   if (!found) return [];
   return found.declarator.init?.type === "ArrayExpression"
     ? entriesOf(found.declarator.init)
@@ -142,7 +142,7 @@ function sourceOf(content, node) {
 // See ADR-0075.
 export function frozenPart(content) {
   const tree = parse(content);
-  const statement = scenariosStatement(tree)?.statement;
+  const statement = findScenariosExport(tree)?.statement;
   return [
     frontmatterOf(content),
     statement ? content.slice(statement.start, statement.end) : "",
