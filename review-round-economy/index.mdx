@@ -77,4 +77,77 @@ Pre-PR code review 每一輪都重審整個 diff，而且同一類問題可能�
 />
 
 </Proposal>
+<Review>
+
+<ActionItems>
+
+1. 接受下方「與 Proposal 的偏差」第 1 項。這是第 3 輪 review 前，依本 Change 自己的停損規則換的做法。只換手法，沒有改動任何 ADR 的 `decision` 內文。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `WORKFLOW.md` Pre-PR 第 4 步的兩個子項：輪次範圍、reviewer 接續、以 root cause 判定與換做法。它們是第 4 步迴圈中每一輪的規則，不是迴圈結束後才執行的步驟。
+2. ADR-0077 新增的最後一條 `consequences`：decision record 不在 ADR-0075 的凍結範圍內。WORKFLOW 的 Proposal tab 那一行只引用它，不再自己寫一次。
+3. `docs/agents/blueprint.md` 對 `ActionItems` 與 `Deviations` 的兩處補充：換做法時，Review tab 的撰寫者要寫什麼。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **換成「每條規則只有一個 owner」的寫法**。這是依 ADR-0077 自動觸發的做法轉換。
+   - 觸發原因：第 1 輪 standards 找到同一條規則分別寫在 ADR、WORKFLOW、Feature 頁，而且已經開始走樣；第 2 輪兩軸又各找到一個新實例。standards 發現凍結範圍的例外沒有任何 ADR 擁有；spec 發現修正只改了 WORKFLOW，Feature 頁沒跟上。
+   - 三者算同一個 root cause：都是「一條規則在多份文件各自寫一次，改了一處，其他處就落後」。
+   - 新做法：凍結例外寫進 ADR-0077 的 `consequences`，WORKFLOW 引用它；Feature 頁每條規則只寫一行，附上 ADR，不再重述條件分支；changeset 也改成一行。
+   - 影響範圍：ADR 只動了 `consequences`，G1 確認過的 `decision` 內文沒有改。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "WORKFLOW 第 4 步第一個子項。本 Change 第 2 輪只審了 1317bbe9c，並附上第 1 輪的處置" },
+    { id: "S2", result: "pass", evidence: "同一子項。本 Change 第 2、3 輪都沿用第 1 輪的兩位 reviewer" },
+    { id: "S3", result: "pass", evidence: "同一子項末句。本 Change 換做法後，第 3 輪重審了 `dev...HEAD`" },
+    { id: "S4", result: "pass", evidence: "第 4 步第二個子項。本 Change 第 2 輪後自己觸發了一次，見偏差 1" },
+    { id: "S5", result: "pass", evidence: "第二個子項，加上 `blueprint.md` 的 `Deviations` 與 `ActionItems` 規則" },
+    { id: "S6", result: "pass", evidence: "第二個子項末句：Ingest 是唯一會停下來的例外" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "文件與 decision record 的格式與連結", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass", evidence: "static 與 blueprint 兩條通過；app 兩條因 diff 不涉及 app 而略過" },
+    { id: "T2", checks: "頁面發佈與 gate", method: "`pnpm check:workflow --gate review-round-economy`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T3", checks: "新規則實際可行", method: "本 Change 自己的第 2、3 輪照新規則執行：只審增量、接續 reviewer、觸發換做法、換做法後回到全範圍", executor: "agent", environment: "本 session", result: "pass", evidence: "已達不動點，最後一輪的修正是 reviewer 逐字指定的內容" },
+    { id: "T4", checks: "Change 頁在瀏覽器中可讀", method: "`pnpm --filter blueprint dev` 後閱讀 Proposal 與 Review 兩個 tab", executor: "agent", environment: "本機 dev server", result: "pass" },
+  ]}
+/>
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+<RiskTable
+  risks={[
+    { name: "同一條規則分別寫在 ADR、WORKFLOW、Feature 頁與 changeset，已經走樣", severity: "warning", mitigation: "第 1 至 3 輪陸續發現。第 2 輪後依 ADR-0077 換成單一 owner 的寫法，第 3 輪修正 changeset 裡漏改的一處。" },
+    { name: "新增的步驟看起來像在迴圈結束後才執行", severity: "info", mitigation: "改成第 4 步的子項。" },
+    { name: "「不停下來」與 Ingest 的優先順序沒有寫明", severity: "info", mitigation: "子項明寫：Ingest 是唯一會停下來的例外。" },
+    { name: "ADR-0077 一份 record 裝了兩個決定；ADR-0076 的 decision 夾帶程序", severity: "info", mitigation: "不處理：兩份的 decision 內文都是 G1 確認過的，改寫它本身就會變成要開發者在 G2 決定的事。" },
+    { name: "ADR `context` 引用其他 Change 時沒照 CONTRIBUTING 的寫法", severity: "info", mitigation: "不處理：與 ADR-0070 至 0075 的既有寫法一致，規則與慣例的落差不在本 Change 範圍。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "只審增量，可能漏掉修正與未改動程式碼之間的互動", severity: "warning", mitigation: "reviewer 可以讀整個檔案；換做法後回到全範圍。實際效果要多跑幾個 Change 才看得出來。" },
+    { name: "ADR-0075 本身看不到 decision record 不在凍結範圍內", severity: "info", mitigation: "例外寫在 ADR-0077 的 consequences。schema 只有 `supersededBy`，沒有表達「修訂範圍」的欄位，所以只能單向引用。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
 </ChangeTabs>
