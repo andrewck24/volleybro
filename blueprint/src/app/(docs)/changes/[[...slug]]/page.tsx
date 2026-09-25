@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { listChanges } from "@/lib/changes-index";
-import { proposalMockups, singlePageDesigns } from "@/lib/proposal-mockups";
+import { singlePageDesigns } from "@/lib/change-designs";
 import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
@@ -44,24 +44,6 @@ import { ImplementationSlices } from "@/legacy/ImplementationSlices";
 import { designMockups } from "@/legacy/design-mockups";
 import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
-// The eighteen old-format Change pages on the store branch pass `decisions`
-// with records living inside their own Change directory; new-format pages
-// pass `ids` and let the build resolve whichever records this checkout has
-// (a Proposal page is published at a gate before its own records merge).
-function ChangeDecisionTimeline({
-  ids,
-  decisions,
-}: {
-  ids?: string[];
-  decisions?: unknown[];
-}) {
-  return (
-    <DecisionTimeline
-      decisions={ids ? decisionsById(ids) : (decisions ?? [])}
-    />
-  );
-}
-
 // A superseded card links to its replacement: on this page when the page
 // cites it too, otherwise on the Feature page of its first capability.
 function ChangeDecisionCards({ ids }: { ids: string[] }) {
@@ -90,7 +72,7 @@ const mdxComponents = {
   RiskTable,
   AnnotatedDiff,
   FileTour,
-  DecisionTimeline: ChangeDecisionTimeline,
+  DecisionTimeline,
   DecisionCards: ChangeDecisionCards,
   ChangeTabs,
   Proposal,
@@ -317,40 +299,11 @@ export default async function Page({ params }: PageProps) {
     return <SinglePageChange slug={slug[0]} />;
   }
 
-  const page = source.getPage(slug);
-  const Mockup =
-    slug.at(-1) === "proposal" ? proposalMockups[slug[0]] : undefined;
-  if (!page && !Mockup) notFound();
-
-  const Mdx = page?.data.body;
-
-  return (
-    <TreeContextProvider tree={changesBreadcrumbTree}>
-      <DocsPage
-        toc={page?.data.toc}
-        breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
-      >
-        <DocsBody>
-          <h1>{page?.data.title ?? slug[0]}</h1>
-          {Mdx && renderChangeBody(Mdx, page?.data.title ?? slug[0])}
-          {Mockup && <MockupFrame Mockup={Mockup} />}
-        </DocsBody>
-      </DocsPage>
-    </TreeContextProvider>
-  );
+  notFound();
 }
 
 export function generateStaticParams() {
-  const mdxParams = source.generateParams();
-  const mdxSlugs = new Set(mdxParams.map((p) => p.slug.join("/")));
-
-  // A proposal.tsx with no sibling proposal.mdx still needs its own static
-  // route under `output: export`.
-  const mockupOnlyParams = Object.keys(proposalMockups)
-    .map((slug) => ({ slug: [slug, "proposal"] }))
-    .filter((p) => !mdxSlugs.has(p.slug.join("/")));
-
   // The index route has no content page of its own (it is a plain generated
   // list), so it needs an explicit empty-slug entry for static export.
-  return [{ slug: [] }, ...mdxParams, ...mockupOnlyParams];
+  return [{ slug: [] }, ...source.generateParams()];
 }
