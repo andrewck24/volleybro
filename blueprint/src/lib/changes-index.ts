@@ -3,17 +3,34 @@ import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
+import { readCapabilities, readFacts } from "@/lib/change-meta";
 import { source } from "@/lib/source";
 import { CHANGES_ROOT, isLegacySlug } from "@/legacy/change-catalog";
 import { SLUG_PATTERN, parseChangeMetadata } from "@/legacy/change-metadata";
 
-export type ChangeSummary = { slug: string; title: string; href: string };
+export type ChangeStatus = "archived" | "in-progress" | "discussing";
 
-// Old-format Changes (a directory with change.json) sort after single-page
-// Changes, newest-dated first: this index is read synchronously by the page,
-// so it reads change.json directly rather than through the async legacy
-// loader used by the page routes.
-function legacyChanges(): ChangeSummary[] {
+export type ChangeSummary = {
+  slug: string;
+  title: string;
+  href: string;
+  description?: string;
+  state: { label: string; status: ChangeStatus };
+  date?: { kind: "archived" | "started"; value: string };
+  capabilities: string[];
+};
+
+type Dated = ChangeSummary & { order: string };
+
+function dated(archivedAt?: string | null, startedAt?: string) {
+  if (archivedAt) return { kind: "archived" as const, value: archivedAt };
+  if (startedAt) return { kind: "started" as const, value: startedAt };
+  return undefined;
+}
+
+// Read synchronously by the page, so change.json is read directly rather
+// than through the async legacy loader the page routes use.
+function legacyChanges(): Dated[] {
   if (!existsSync(CHANGES_ROOT)) return [];
 
   return readdirSync(CHANGES_ROOT, { withFileTypes: true })
@@ -25,31 +42,54 @@ function legacyChanges(): ChangeSummary[] {
         JSON.parse(readFileSync(changeJsonPath, "utf8")),
         entry.name,
       );
+      const date = dated(metadata.archivedAt, metadata.startedAt);
       return [
         {
           slug: metadata.slug,
           title: metadata.title,
           href: `/changes/${metadata.slug}`,
-          order: metadata.archivedAt ?? metadata.startedAt,
+          description: metadata.summary,
+          state: { label: metadata.lifecycle, status: metadata.status },
+          date,
+          capabilities: metadata.capabilities,
+          order: date?.value ?? "",
         },
       ];
-    })
-    .sort((a, b) => b.order.localeCompare(a.order))
-    .map(({ order: _order, ...summary }) => summary);
+    });
 }
 
 // A single-page Change is one top-level page; old-format directories are
 // top-level too but are listed by legacyChanges() from their change.json.
-export function listChanges(): ChangeSummary[] {
-  const singlePage = source
+function singlePageChanges(): Dated[] {
+  return source
     .getPages()
     .filter((page) => page.slugs.length === 1 && !isLegacySlug(page.slugs[0]))
-    .map((page) => ({
-      slug: page.slugs[0],
-      title: page.data.title,
-      href: page.url,
-    }))
-    .sort((a, b) => a.slug.localeCompare(b.slug));
+    .map((page) => {
+      const slug = page.slugs[0];
+      const facts = readFacts(slug);
+      const date = dated(facts.archivedAt, facts.startedAt);
+      return {
+        slug,
+        title: page.data.title,
+        href: page.url,
+        description: page.data.description,
+        state: facts.archivedAt
+          ? { label: "archived", status: "archived" as const }
+          : {
+              label: facts.gate === "G2" ? "G2 Review" : "G1 Proposal",
+              status: "in-progress" as const,
+            },
+        date,
+        capabilities: readCapabilities(slug),
+        order: date?.value ?? "",
+      };
+    });
+}
 
-  return [...singlePage, ...legacyChanges()];
+// ADR-0078: one timeline for both formats, newest first; an undated
+// Change (a draft never published) sorts last.
+export function listChanges(): ChangeSummary[] {
+  return [...singlePageChanges(), ...legacyChanges()]
+    .sort((a, b) => b.order.localeCompare(a.order))
+    .map(({ order: _order, ...summary }) => summary);
 }
