@@ -121,6 +121,8 @@ commit 的 type、body 與 trailer 規則，不再是只有 review 會抓的散�
 </Proposal>
 <Review>
 
+交付結果、驗證證據、五輪 code review 的發現與處置，以及殘留風險。
+
 <TLDR>
 commit 規則從散文變成三道檢查：`pre-commit` 只跑 lint-staged，`commit-msg` 跑 commitlint，CI 對進 `dev` 的 pull request 範圍重跑一次。trailer 檢查以分支名稱判定 Change，Fix path 改走 `hotfix/<slug>`。Changesets 的 release commit 改寫成合規格式，不為 bot 開例外。`CONTRIBUTING.md` 刪掉工具已涵蓋的 type 對照表與 `@/*` 那一行。實作沒有偏離 Proposal；Apply 期間補進 `ADR-0055` 的一條 consequence（revert 與 `fixup!` 的處理），是把「Change 分支上每個 commit 都帶 trailer」貫徹到底，不是新判斷。
 </TLDR>
