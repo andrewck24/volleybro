@@ -542,3 +542,24 @@ test("publish leaves the commit count unknown for a squash-merged Change", async
   assert.equal(facts.insertions, 2);
   assert.ok(!Number.isNaN(Date.parse(facts.mergedAt)));
 });
+
+test("publish ships the deploy workflow to the store, and pull leaves it there", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workflowDir = path.join(work, ".github", "workflows");
+  await mkdir(workflowDir, { recursive: true });
+  await writeFile(path.join(workflowDir, "blueprint-deploy.yml"), "name: x\n");
+  await makeSinglePageChange(work, "gamma");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:.github/workflows/blueprint-deploy.yml"],
+    { cwd: bare },
+  );
+  assert.equal(stdout, "name: x\n");
+
+  await withRemote(bare, () => pull(work));
+  const changesDir = path.join(work, "blueprint", "content", "changes");
+  assert.ok(!(await readdir(changesDir)).includes(".github"));
+});

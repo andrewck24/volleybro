@@ -37,6 +37,7 @@ const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
 // Dotfile, not `meta.json` — fumadocs-mdx's meta collection in
 // source.config.ts only globs `**/meta.json`, so this never becomes a page.
 const STORE_FILE = ".store-state.json";
+const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
 
 function runGit(args, options) {
   return execFileAsync("git", args, options);
@@ -185,7 +186,7 @@ export async function pull(cwd, { force = false } = {}) {
   const slugs = stdout
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter((name) => name && !name.startsWith("."));
 
   const scratchParent = await mkdtemp(
     path.join(os.tmpdir(), "blueprint-changes-pull-"),
@@ -242,10 +243,16 @@ export async function pull(cwd, { force = false } = {}) {
   );
 }
 
-async function applyChange(tmpDir, slug, localSlugDir) {
+async function applyChange(tmpDir, slug, localSlugDir, repoRoot) {
   const targetDir = path.join(tmpDir, slug);
   await rm(targetDir, { recursive: true, force: true });
   await cp(localSlugDir, targetDir, { recursive: true });
+  const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
+  if (existsSync(source)) {
+    const workflow = path.join(tmpDir, ...DEPLOY_WORKFLOW);
+    await mkdir(path.dirname(workflow), { recursive: true });
+    await cp(source, workflow);
+  }
   await runGit(["add", "-A"], { cwd: tmpDir });
   const { stdout } = await runGit(["status", "--porcelain"], {
     cwd: tmpDir,
@@ -340,7 +347,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     // At most one retry: a concurrent publish can win the race once, but a
     // second rejection in a row is a real problem, not the race.
     for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
-      const changed = await applyChange(tmpDir, slug, localSlugDir);
+      const changed = await applyChange(tmpDir, slug, localSlugDir, repoRoot);
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);
         await recordPublishedHash(repoRoot, slug, localSlugDir);
