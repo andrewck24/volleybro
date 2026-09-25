@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   decisionIds,
   hasReview,
+  inlineReviewSections,
   parseShortstat,
   proposalPart,
   resultIds,
@@ -33,11 +34,23 @@ export const scenarios = [
 </Proposal>
 <Review>
 
-<ActionItems>無</ActionItems>
+<ActionItems>
 
-<ReviewFocus>- one</ReviewFocus>
+無
 
-<Deviations>無</Deviations>
+</ActionItems>
+
+<ReviewFocus>
+
+- one
+
+</ReviewFocus>
+
+<Deviations>
+
+無
+
+</Deviations>
 
 <ScenarioResults
   scenarios={scenarios}
@@ -48,7 +61,11 @@ export const scenarios = [
 
 <TestPlan items={[{ id: "T1", checks: "x", method: "y", executor: "agent", environment: "local", result: "pass", evidence: "z" }]} />
 
-<ReviewDetails>detail</ReviewDetails>
+<ReviewDetails>
+
+detail
+
+</ReviewDetails>
 
 </Review>
 </ChangeTabs>
@@ -201,7 +218,10 @@ test("backtick and multi-line template values are read like any string", () => {
 });
 
 test("an apostrophe in prose does not hide a tag", () => {
-  const page = PAGE.replace("<Review>", "Don't miss it <Review> isn't hidden");
+  const page = PAGE.replace(
+    "<Review>",
+    "Don't miss it, it isn't hidden.\n\n<Review>",
+  );
   assert.equal(hasReview(page), true);
 });
 
@@ -219,4 +239,13 @@ test("results are found even after a prop containing =>", () => {
     "<ScenarioResults\n  render={(x) => x}\n  scenarios={scenarios}",
   );
   assert.deepEqual(resultIds(page), ["S1"]);
+});
+
+test("a Review section written on one line is reported as inline", () => {
+  const page = PAGE.replace(
+    "<Deviations>\n\n無\n\n</Deviations>",
+    "<Deviations>無</Deviations>",
+  );
+  assert.deepEqual(inlineReviewSections(page), ["Deviations"]);
+  assert.equal(reviewSections(page).includes("Deviations"), false);
 });

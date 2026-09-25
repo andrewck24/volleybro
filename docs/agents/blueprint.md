@@ -68,7 +68,7 @@ Blueprint pages exist to be read by a person, so structure a reader can scan is 
 
 The page's shape, with `scenarios` exported once at the top so both tabs read the same data:
 
-```mdx
+```text
 ---
 title: <name>
 description: <one line>
@@ -78,10 +78,26 @@ capabilities: ["<capability id>"]
 export const scenarios = [{ id: "S1", given: "…", when: "…", then: "…" }];
 
 <ChangeTabs>
-  <Proposal>…</Proposal>
-  <Review>…</Review>
+<Proposal>
+
+…
+
+</Proposal>
+<Review>
+
+<ActionItems>
+
+…
+
+</ActionItems>
+
+…
+
+</Review>
 </ChangeTabs>
 ```
+
+Every tab and section puts its opening and closing tags on lines of their own: written on one line, MDX treats it as inline text, it renders inside a paragraph, and the gate fails it.
 
 The Proposal tab is the summary the developer confirmed at G1, taken verbatim: `TLDR` stating the problem and the solution; for a behavior Change, a before/after table of two to four rows showing what changes for the reader; `DecisionCards` for the decision records; the scope; `<Scenarios items={scenarios} />`; and the risks through `RiskTable`. It adds an `InteractiveFlowchart` when the Change alters a process, `<DesignMockup />` (rendering `design.tsx`) when it answers a design question, and a `## References` section when research backs a decision, and needs no other narrative. The page shell renders the header — gate, capability badges, figures — so the page does not write it.
 

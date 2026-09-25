@@ -1,12 +1,11 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-const execFileAsync = promisify(execFile);
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { mdxFromMarkdown } from "mdast-util-mdx";
+import { mdxjs } from "micromark-extension-mdxjs";
 
-// Reads a single-page Change (`index.mdx` with Proposal and Review tabs,
-// ADR-0072) well enough for the publish script and the gate check. The page
-// is authored to a fixed shape, so regular expressions over that shape are
-// enough; a full MDX parse would buy nothing the gate uses.
+const execFileAsync = promisify(execFile);
 
 const REVIEW_SECTIONS = [
   "ActionItems",
@@ -22,128 +21,127 @@ export const REQUIRED_REVIEW_SECTIONS = REVIEW_SECTIONS.filter(
   (section) => section !== "AfterRelease",
 );
 
-const blank = (text) => text.replace(/[^\n]/g, " ");
-
-// The page's structure with code and string contents blanked out, offsets
-// kept: tags, brackets and keys are found here, values read from the
-// original at the same offsets. Code shows examples of the syntax, and a
-// string value can say anything, so neither may count as structure.
-function structureOf(content) {
-  const keepQuotes = (quoted) =>
-    quoted[0] + blank(quoted.slice(1, -1)) + quoted[0];
-  return content
-    .replace(/^[ \t]*(`{3,}|~{3,})[\s\S]*?^[ \t]*\1[^\n]*$/gm, blank)
-    .replace(/`[^`]*`/g, keepQuotes)
-    .replace(
-      /"(?:\\.|[^"\\\n])*"|(?<!\w)'(?:\\.|[^'\\\n])*'/g,
-      (quoted, offset, text) =>
-        /^\s*:/.test(text.slice(offset + quoted.length))
-          ? quoted
-          : keepQuotes(quoted),
-    );
+// The gate reads the page with the same MDX grammar the site compiles it
+// with, so code, strings and prose can never pass for structure.
+function parse(content) {
+  return fromMarkdown(content, {
+    extensions: [mdxjs()],
+    mdastExtensions: [mdxFromMarkdown()],
+  });
 }
 
-function between(content, open, close) {
-  const structure = structureOf(content);
-  const start = structure.search(open);
-  if (start === -1) return "";
-  const bodyStart = structure.indexOf(">", start) + 1;
-  const end = structure.indexOf(close, bodyStart);
-  return end === -1 ? "" : content.slice(bodyStart, end);
+function* walk(node) {
+  yield node;
+  for (const child of node.children ?? []) yield* walk(child);
 }
 
-// The objects of the array literal that follows `opener`, as [start, end]
-// offsets; nesting is tracked on the structure, where strings are blank.
-function arrayObjects(structure, opener) {
-  const match = opener.exec(structure);
-  if (!match) return [];
-  const objects = [];
-  let depth = 0;
-  let objectStart = -1;
-  for (let i = match.index + match[0].length; i < structure.length; i++) {
-    const char = structure[i];
-    if (char === "[" || char === "{") {
-      if (char === "{" && depth === 0) objectStart = i;
-      depth++;
-    } else if (char === "]" || char === "}") {
-      if (depth === 0) break;
-      depth--;
-      if (char === "}" && depth === 0) objects.push([objectStart, i + 1]);
-    }
-  }
-  return objects;
-}
-
-function depthWithin(structure, start, index) {
-  let depth = 0;
-  for (let i = start; i < index; i++) {
-    if (structure[i] === "{" || structure[i] === "[") depth++;
-    else if (structure[i] === "}" || structure[i] === "]") depth--;
-  }
-  return depth;
-}
-
-// Only the object's own key counts, not the same key in an object nested in it.
-function stringValueAt(content, structure, [start, end], key) {
-  const pattern = new RegExp(
-    `(?:^|[{,\\s])["']?${key}["']?\\s*:\\s*(["'\`])`,
-    "g",
+function elements(tree, name) {
+  return [...walk(tree)].filter(
+    (node) =>
+      (node.type === "mdxJsxFlowElement" ||
+        node.type === "mdxJsxTextElement") &&
+      node.name === name,
   );
-  pattern.lastIndex = start;
-  for (let match; (match = pattern.exec(structure)) && match.index < end;) {
-    if (depthWithin(structure, start, match.index + 1) !== 1) continue;
-    const valueStart = match.index + match[0].length;
-    return content.slice(valueStart, structure.indexOf(match[1], valueStart));
+}
+
+function keyOf(property) {
+  return property.key?.type === "Identifier"
+    ? property.key.name
+    : property.key?.value;
+}
+
+function stringOf(value) {
+  if (value?.type === "Literal" && typeof value.value === "string") {
+    return value.value;
+  }
+  if (value?.type === "TemplateLiteral" && value.expressions.length === 0) {
+    return value.quasis[0].value.cooked;
   }
   return undefined;
 }
 
-function idAndResultEntries(content, opener) {
-  const structure = structureOf(content);
-  return arrayObjects(structure, opener).map((range) => ({
-    id: stringValueAt(content, structure, range, "id"),
-    result: stringValueAt(content, structure, range, "result"),
-  }));
+// An entry's own string fields, keyed; a key it lacks reads as undefined.
+function entriesOf(arrayExpression) {
+  return (arrayExpression?.elements ?? [])
+    .filter((element) => element?.type === "ObjectExpression")
+    .map((object) =>
+      Object.fromEntries(
+        object.properties
+          .filter((property) => property.type === "Property")
+          .map((property) => [keyOf(property), stringOf(property.value)]),
+      ),
+    );
 }
 
-const SCENARIOS = /export\s+const\s+scenarios\s*=\s*\[/;
-const RESULTS = /<ScenarioResults\b[\s\S]*?results\s*=\s*\{\s*\[/;
+function scenarioEntries(tree) {
+  for (const node of walk(tree)) {
+    if (node.type !== "mdxjsEsm") continue;
+    for (const statement of node.data.estree.body) {
+      for (const declarator of statement.declaration?.declarations ?? []) {
+        if (declarator.id?.name === "scenarios") {
+          return entriesOf(declarator.init);
+        }
+      }
+    }
+  }
+  return [];
+}
+
+function attributeArray(element, name) {
+  const attribute = element.attributes.find(
+    (candidate) => candidate.name === name,
+  );
+  return attribute?.value?.data?.estree?.body[0]?.expression;
+}
 
 export function scenarioIds(content) {
-  return idAndResultEntries(content, SCENARIOS).map((entry) => entry.id);
+  return scenarioEntries(parse(content)).map((entry) => entry.id);
 }
 
 export function resultIds(content) {
-  return idAndResultEntries(content, RESULTS)
+  return elements(parse(content), "ScenarioResults")
+    .flatMap((element) => entriesOf(attributeArray(element, "results")))
     .filter((entry) => entry.result !== "pending")
     .map((entry) => entry.id);
 }
 
 export function decisionIds(content) {
-  const structure = structureOf(content);
-  return [
-    ...structure.matchAll(/<DecisionCards\s+ids=\{\[([^\]]*)\]\}/g),
-  ].flatMap((match) => {
-    const listStart = match.index + match[0].indexOf("[") + 1;
-    const list = content.slice(listStart, listStart + match[1].length);
-    return [...list.matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
-  });
+  return elements(parse(content), "DecisionCards").flatMap((element) =>
+    (attributeArray(element, "ids")?.elements ?? []).map(stringOf),
+  );
 }
 
 export function proposalPart(content) {
-  return between(content, /<Proposal[\s>]/, "</Proposal>");
+  const [proposal] = elements(parse(content), "Proposal");
+  return proposal
+    ? content.slice(
+        proposal.position.start.offset,
+        proposal.position.end.offset,
+      )
+    : "";
 }
 
 export function hasReview(content) {
-  return /<Review[\s>]/.test(structureOf(content));
+  return elements(parse(content), "Review").length > 0;
+}
+
+function reviewNames(content, type) {
+  const [review] = elements(parse(content), "Review");
+  if (!review) return [];
+  const found = [...walk(review)]
+    .filter((node) => node.type === type && REVIEW_SECTIONS.includes(node.name))
+    .map((node) => node.name);
+  return found.filter((name, index) => found.indexOf(name) === index);
 }
 
 export function reviewSections(content) {
-  const review = structureOf(between(content, /<Review[\s>]/, "</Review>"));
-  const found = [...review.matchAll(/<([A-Z][A-Za-z]*)\b/g)]
-    .map((match) => match[1])
-    .filter((name) => REVIEW_SECTIONS.includes(name));
-  return found.filter((name, index) => found.indexOf(name) === index);
+  return reviewNames(content, "mdxJsxFlowElement");
+}
+
+// A section written on one line is inline MDX: it renders inside a <p> and
+// the Review cannot put it in order.
+export function inlineReviewSections(content) {
+  return reviewNames(content, "mdxJsxTextElement");
 }
 
 export function isSinglePageDir(files) {

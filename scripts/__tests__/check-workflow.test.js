@@ -824,13 +824,13 @@ function singlePage({
 }
 
 const FULL_REVIEW = [
-  "<ActionItems>無</ActionItems>",
-  "<ReviewFocus>- a</ReviewFocus>",
-  "<Deviations>無</Deviations>",
+  "<ActionItems>\n\n無\n\n</ActionItems>",
+  "<ReviewFocus>\n\n- a\n\n</ReviewFocus>",
+  "<Deviations>\n\n無\n\n</Deviations>",
   '<ScenarioResults scenarios={scenarios} results={[{ id: "S1", result: "pass", evidence: "t" }, { id: "S2", result: "pass", evidence: "t" }]} />',
   "<TestPlan items={[]} />",
-  "<ReviewDetails>d</ReviewDetails>",
-].join("\n");
+  "<ReviewDetails>\n\nd\n\n</ReviewDetails>",
+].join("\n\n");
 
 async function singlePageGate(content) {
   const root = await makeRepository({
@@ -866,7 +866,10 @@ test("single-page gate names a scenario with no result", async () => {
 });
 
 test("single-page gate reports a missing required Review section", async () => {
-  const review = FULL_REVIEW.replace("<ReviewFocus>- a</ReviewFocus>\n", "");
+  const review = FULL_REVIEW.replace(
+    "<ReviewFocus>\n\n- a\n\n</ReviewFocus>\n\n",
+    "",
+  );
   assert.match(
     await singlePageGate(singlePage({ review })),
     /gate-review-sections.*ReviewFocus/is,
@@ -966,5 +969,23 @@ test("single-page gate fails a G2 page when the store branch cannot be fetched",
   assert.match(
     (await checkSinglePageGate(root, "c", { refresh })).join("\n"),
     /gate-proposal-frozen.*could not fetch/is,
+  );
+});
+
+test("single-page gate reports a Review section written on one line", async () => {
+  const review = FULL_REVIEW.replace(
+    "<Deviations>\n\n無\n\n</Deviations>",
+    "<Deviations>無</Deviations>",
+  );
+  assert.match(
+    await singlePageGate(singlePage({ review })),
+    /gate-review-sections.*Deviations.*own lines/is,
+  );
+});
+
+test("single-page gate reports a page that is not valid MDX", async () => {
+  assert.match(
+    await singlePageGate(singlePage({ proposal: "<TLDR>unclosed" })),
+    /gate-mdx/i,
   );
 });

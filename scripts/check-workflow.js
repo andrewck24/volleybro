@@ -14,6 +14,7 @@ import {
 import {
   git,
   hasReview,
+  inlineReviewSections,
   isSinglePageDir,
   proposalPart,
   REQUIRED_REVIEW_SECTIONS,
@@ -459,6 +460,16 @@ async function changeDirectories(root) {
   return current;
 }
 
+// A page that is not valid MDX fails the gate with the parser's message;
+// outside the gate it only fails the rules that need its structure.
+function orUndefined(read) {
+  try {
+    return read();
+  } catch {
+    return undefined;
+  }
+}
+
 const CHANGE_PAGE_MARKDOWN_TABLE = /^\s*\|.*\|\s*$/m;
 const CHANGE_PAGE_RULES = [
   {
@@ -478,8 +489,8 @@ const CHANGE_PAGE_RULES = [
   {
     file: "index.mdx",
     requires: (content) =>
-      proposalPart(content).includes("<TLDR") &&
-      scenarioIds(content).length > 0,
+      orUndefined(() => proposalPart(content).includes("<TLDR")) &&
+      orUndefined(() => scenarioIds(content).length) > 0,
     message: (slug) =>
       `${BLUEPRINT_CHANGES}/${slug}/index.mdx [blueprint-proposal]: the Proposal tab must contain a TLDR and the page must export at least one scenario`,
   },
@@ -588,7 +599,10 @@ async function checkChangeSizeWarnings(root) {
         "proposal.mdx",
         (content) => (content.match(/<Scenario\b/g) ?? []).length,
       ],
-      ["index.mdx", (content) => scenarioIds(content).length],
+      [
+        "index.mdx",
+        (content) => orUndefined(() => scenarioIds(content).length) ?? 0,
+      ],
     ]) {
       const filePath = path.join(directory, file);
       if (!(await exists(filePath))) continue;
@@ -791,6 +805,15 @@ export async function checkSinglePageGate(
     );
   }
 
+  try {
+    scenarioIds(content);
+  } catch (error) {
+    diagnostics.push(
+      `${where} [gate-mdx]: the page is not valid MDX — ${error.message.split("\n")[0]}`,
+    );
+    return diagnostics;
+  }
+
   if (scenarioIds(content).some((id) => !id)) {
     diagnostics.push(
       `${where} [gate-scenario-shape]: every entry in scenarios needs an id`,
@@ -815,6 +838,12 @@ export async function checkSinglePageGate(
   if (missing.length > 0) {
     diagnostics.push(
       `${where} [gate-review-sections]: the Review tab is missing ${missing.join(", ")}`,
+    );
+  }
+  const inline = inlineReviewSections(content);
+  if (inline.length > 0) {
+    diagnostics.push(
+      `${where} [gate-review-sections]: write ${inline.join(", ")} with the opening and closing tags on their own lines`,
     );
   }
 
