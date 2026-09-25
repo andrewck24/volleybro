@@ -968,6 +968,7 @@ export async function checkChangesetAtG2(root, slug) {
     changed = await git(root, [
       "diff",
       "--name-only",
+      "--diff-filter=A",
       `${base}...HEAD`,
       "--",
       ".changeset",

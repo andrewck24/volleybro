@@ -254,3 +254,8 @@ test("commitlint names the look-alike line instead of reporting an empty body", 
   assert.equal(result.ok, false);
   assert.match(result.output, /footer-lookalike/);
 });
+
+test("a message of only a subject and trailers is left to body-empty", () => {
+  const message = "docs(x): subject\n\nBlueprint-Change: some-change";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});

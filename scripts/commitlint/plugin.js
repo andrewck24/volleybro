@@ -128,14 +128,17 @@ export function evaluateAiAttribution(message) {
 
 // The conventional parser starts the footer at the first line shaped like
 // "Token: value". When the body opens with such a line, the whole body
-// becomes footer and commitlint reports an empty body instead.
+// becomes footer and commitlint reports an empty body instead. Only the
+// opening line is flagged: a "Verification: ..." paragraph later in a body
+// is common and parses harmlessly.
 const FOOTER_TOKEN = /^[A-Za-z][\w-]*: \S/;
 
 export function evaluateFooterLookalike(message) {
-  const [, firstParagraph] = stripDiffAndComments(message ?? "")
+  const [, ...paragraphs] = stripDiffAndComments(message ?? "")
     .trim()
     .split(/\n\s*\n/);
-  const firstLine = firstParagraph?.split("\n")[0] ?? "";
+  // A lone paragraph after the subject is the trailer block, not a body.
+  const firstLine = paragraphs.length > 1 ? paragraphs[0].split("\n")[0] : "";
   return FOOTER_TOKEN.test(firstLine)
     ? {
         ok: false,
