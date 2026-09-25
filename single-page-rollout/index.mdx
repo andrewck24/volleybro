@@ -1,0 +1,96 @@
+---
+title: Single Page Rollout
+description: 七個兩頁格式的 Change 改成單頁，刪除兩頁路由；publish 替已合併的 Change 取落地範圍的數字與 mergedAt；store 分支有 push 就觸發正式站部署。
+capabilities: ["platform/blueprint"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "the seven two-page Changes have been migrated",
+    when: "a reader opens `/changes/<slug>` for any of them, or an old `/changes/<slug>/proposal` or `/review` URL",
+    then: "the Change renders as one page with a Proposal tab and a Review tab, and the old URLs return 404",
+  },
+  {
+    id: "S2",
+    given: "a migrated Change's Proposal tab",
+    when: "a reader opens it",
+    then: "its decisions render as decision cards and its acceptance scenarios as scenario cards, and `two-gate-workflow` cites ADR-0045 instead of an in-page decision",
+  },
+  {
+    id: "S3",
+    given: "a migrated Change's Review tab",
+    when: "a reader opens it",
+    then: "where the old page had an acceptance-result table it shows `ScenarioResults` cards, and every other section keeps its original text",
+  },
+  {
+    id: "S4",
+    given: "a Change that has already merged into dev",
+    when: "its page is published",
+    then: "facts.json takes its figures and `mergedAt` from the commit that landed it, and a squash-merged Change records `commits` as null",
+  },
+  {
+    id: "S5",
+    given: "a Change that has not merged yet",
+    when: "its page is published",
+    then: "facts.json takes its figures from the branch diff against dev, and `mergedAt` is null",
+  },
+  {
+    id: "S6",
+    given: "the deploy-hook workflow",
+    when: "the blueprint-changes branch receives a push",
+    then: "it calls the production deploy hook, and fails when the hook secret is missing",
+  },
+  {
+    id: "S7",
+    given: "the two-page route has been removed",
+    when: "Blueprint builds",
+    then: "the build passes and the old-format Changes still render",
+  },
+  {
+    id: "S8",
+    given: "a migrated Change page",
+    when: "the developer opens it in a desktop browser and on a phone",
+    then: "every section reads correctly",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+單頁格式已經交付，但兩頁格式的 Change 仍走舊路由，決策與驗收還是舊的表格和時間軸。publish 產生的數字一律取自當下分支，對已合併的 Change 重新發佈就會寫錯。另外，store 分支的新頁面要等 `dev` 下次 push 才會上正式站。這個 Change 把這些 Change 全部改成單頁、刪除兩頁路由；已合併的 Change 改以它落地的 commit 計算數字，並記錄 `mergedAt`；store 分支一有 push 就觸發正式站部署。
+</TLDR>
+
+| | 現在 | 之後 |
+| --- | --- | --- |
+| 兩頁格式的 Change | `/proposal`、`/review` 兩個網址，決策用時間軸、驗收用表格 | 一頁兩個 tab，決策卡片、scenario 卡片、`ScenarioResults` 卡片 |
+| 重新發佈已合併的 Change | 數字取自當下分支，是錯的 | 取自它在 `dev` 落地的 commit，並寫入 `mergedAt` |
+| 新發佈的頁面上正式站 | 等 `dev` 下次 push | store 分支 push 後立即觸發部署 |
+
+本 Change 沒有新的決策紀錄：它落實的是 ADR-0072（一個 Change 一頁）與 ADR-0074（數字來自產生的 facts）。
+
+## 範圍
+
+1. **遷移 7 個兩頁 Change，只動結構**：`two-gate-workflow`、`standalone-decision-records`、`reviewer-standards-split`、`commit-guardrails`、`opaque-status-bar`、`triage-state-mapping`、`single-page-change`。
+   - Proposal：`DecisionTimeline` 改成 `DecisionCards`，`<Scenario>` 改成 `scenarios` export；`two-gate-workflow` 的頁內決策改為引用 ADR-0045。
+   - Review：驗收結果表改成 `ScenarioResults` 卡片，code review 與殘留風險包進 `ReviewDetails`，其餘段落保留原文。
+   - 遷移過來的頁面不跑 G2 必要區塊檢查，這條寫進 `docs/agents/blueprint.md`。
+2. **刪除兩頁格式的程式碼**：route 的 `/proposal`、`/review` 分支、`ChangeDecisionTimeline`、`proposalMockups`。不做轉址。
+3. **publish 的 `facts.json`**：已合併的 Change 以落地的 commit 計算。merge commit 取兩個 parent 之間的範圍；squash commit 取它自己的 diff，`commits` 記為 `null`。新增 `mergedAt`，記錄落地 commit 的時間；還沒合併的照舊使用分支 diff，`mergedAt` 為 `null`。
+4. **deploy hook**：GitHub Action 在 `blueprint-changes` 有 push 時呼叫 `CLOUDFLARE_BLUEPRINT_DEPLOY_HOOK`，secret 不存在就失敗。`dev` 仍由 Cloudflare 自行建置，重複建置先不處理。
+
+之後：`/changes` 改回卡片、依 `mergedAt ?? publishedAt` 由新到舊排序，並建立 Blueprint 首頁，另外做成一個 Change。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    { name: "遷移時改到已驗收的內容", severity: "warning", mitigation: "每頁遷移前後都去掉空白與元件標籤後比對文字。" },
+    { name: "刪除路由弄壞舊格式頁面", severity: "warning", mitigation: "S7 與 Blueprint 建置。" },
+    { name: "找錯某個 Change 的落地 commit", severity: "info", mitigation: "只認 `dev` first-parent 歷史中分支名或 `Blueprint-Change` trailer 與 slug 完全相符的 commit；找不到就照未合併處理。" },
+  ]}
+/>
+
+</Proposal>
+</ChangeTabs>
