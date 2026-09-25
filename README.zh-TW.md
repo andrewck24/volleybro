@@ -7,14 +7,9 @@
 
 <img src="docs/images/readme-banner.webp" alt="VolleyBro 標誌與三支手機，分別顯示逐球列表、記錄球場與球隊名單" width="100%">
 
-[![Next.js][nextjs-badge]][nextjs-url]
-[![React][react-badge]][react-url]
-[![TypeScript][typescript-badge]][typescript-url]
-[![MongoDB][mongodb-badge]][mongodb-url]
-[![Tailwind CSS][tailwind-badge]][tailwind-url]
+[![Next.js][nextjs-badge]][nextjs-url] [![React][react-badge]][react-url] [![TypeScript][typescript-badge]][typescript-url] [![MongoDB][mongodb-badge]][mongodb-url] [![Tailwind CSS][tailwind-badge]][tailwind-url]
 
-[![CI][ci-badge]][ci-url]
-[![Version][version-badge]][changelog-url]
+[![CI][ci-badge]][ci-url] [![Version][version-badge]][changelog-url]
 
 [**線上版本**](https://volleybro.vercel.app/) · [**產品藍圖**][blueprint-url] · [**元件庫**](https://dev--67bbfeabbc72894ce5eb92db.chromatic.com) · [**回報問題**][issues-url] · [**討論區**][discussions-url]
 

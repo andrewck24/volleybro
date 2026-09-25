@@ -103,9 +103,7 @@ Omit internal refactors, test additions, linting fixes, and dep upgrades with no
 
 Commit the generated `.changeset/*.md` file along with your changes. PRs that omit a changeset when required will not trigger an automated version PR.
 
-Linear milestones are a separate release-planning gate for target windows, grouping, and delivery
-order. They do not select semantic version impact, and a Changeset does not replace milestone
-planning. See `WORKFLOW.md` for release-bound and exemption rules.
+Linear milestones are a separate release-planning gate for target windows, grouping, and delivery order. They do not select semantic version impact, and a Changeset does not replace milestone planning. See `WORKFLOW.md` for release-bound and exemption rules.
 
 > Agent users: the [`writing-changesets` skill](.claude/skills/writing-changesets/SKILL.md) is available in this project to guide changeset authoring.
 
