@@ -451,7 +451,8 @@ test("publish writes facts.json for a single-page Change and ships it", async (t
   assert.equal(facts.srcFilesChanged, 1);
   assert.equal(facts.scenarios, 1);
   assert.deepEqual(facts.decisions, ["0072"]);
-  assert.equal(facts.mergedAt, null);
+  assert.equal(facts.archivedAt, null);
+  assert.ok(!Number.isNaN(Date.parse(facts.startedAt)));
 
   const { stdout } = await execFileAsync(
     "git",
@@ -524,7 +525,7 @@ test("publish measures a merged Change by the merge commit that landed it", asyn
   assert.equal(facts.commits, 1);
   assert.equal(facts.filesChanged, 1);
   assert.equal(facts.insertions, 2);
-  assert.ok(!Number.isNaN(Date.parse(facts.mergedAt)));
+  assert.ok(!Number.isNaN(Date.parse(facts.archivedAt)));
 });
 
 test("publish leaves the commit count unknown for a squash-merged Change", async (t) => {
@@ -540,7 +541,7 @@ test("publish leaves the commit count unknown for a squash-merged Change", async
   assert.equal(facts.commits, null);
   assert.equal(facts.filesChanged, 1);
   assert.equal(facts.insertions, 2);
-  assert.ok(!Number.isNaN(Date.parse(facts.mergedAt)));
+  assert.ok(!Number.isNaN(Date.parse(facts.archivedAt)));
 });
 
 test("publish ships the deploy workflow to the store, and pull leaves it there", async (t) => {
@@ -562,4 +563,31 @@ test("publish ships the deploy workflow to the store, and pull leaves it there",
   await withRemote(bare, () => pull(work));
   const changesDir = path.join(work, "blueprint", "content", "changes");
   assert.ok(!(await readdir(changesDir)).includes(".github"));
+});
+
+test("a later publish keeps the Change's first publish as startedAt", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeSinglePageChange(work, "gamma");
+  await withRemote(bare, () => publish(work, "gamma"));
+  const first = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  await writeFile(
+    path.join(dir, "index.mdx"),
+    (await readFile(path.join(dir, "index.mdx"), "utf8")) + "\nmore\n",
+  );
+  await withRemote(bare, () => publish(work, "gamma"));
+  const second = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  const gap = Math.abs(
+    Date.parse(second.startedAt) - Date.parse(first.publishedAt),
+  );
+  assert.ok(
+    gap < 5000,
+    `startedAt ${second.startedAt} is not the first publish`,
+  );
+  assert.notEqual(second.publishedAt, first.publishedAt);
 });
