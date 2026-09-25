@@ -38,7 +38,8 @@ export function ChangeCard({ change }: { change: ChangeSummary }) {
             </Badge>
             {change.date && (
               <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                {change.date.kind} {change.date.value.slice(0, 10)}
+                {change.date.kind === "started" && "started "}
+                {change.date.value.slice(0, 10)}
               </span>
             )}
           </div>
