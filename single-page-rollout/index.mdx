@@ -97,7 +97,7 @@ export const scenarios = [
 
 <ActionItems>
 
-1. 接受下方「與 Proposal 的偏差」四項。
+1. 接受下方「與 Proposal 的偏差」五項（前四項已接受；第 5 項是依你在 G2 的回饋所做的修改）。
 2. 執行 test plan 的 T5：在瀏覽器與手機上打開一個遷移後的頁面，告訴我是否可讀。S8 的結果要等你回報後才能填上，G2 gate 才會通過。
 
 </ActionItems>
@@ -116,6 +116,7 @@ export const scenarios = [
 2. **修正 `/changes` 索引。** 索引原本只列出有 `/proposal` 或 `/review` 子頁的 Change，單頁格式從來沒被列進去。不修的話，這 7 頁遷移後就會從索引消失。
 3. **頁首單複數。** 頁首把「1 commits」改成「1 commit」。這不在 Proposal 裡，是在 `review-round-economy` 的頁首發現的，當時已說明會在這個 Change 一起修。
 4. **每頁 Review tab 開頭加上原本 Review 頁的 description。** 兩個檔案合併成一個之後，原本的第二份 frontmatter 放不進去；如果不這樣做，其中的摘要會消失。
+5. **Change 頁的 tab 拿掉外框。** 你在 G2 做 S8 檢查時發現，fumadocs 給 tab 的外框、底色與內距，讓手機直立時的閱讀寬度太窄。依你的要求，所有寬度都拿掉外框與內距，tab 列也改為與內文左側對齊。
 
 </Deviations>
 
@@ -154,6 +155,7 @@ export const scenarios = [
     { name: "設計檔查找的 helper 只剩一個呼叫者；落地範圍的欄位名稱與 facts.commits 撞名", severity: "info", mitigation: "helper 改為 inline；欄位改名為 `commitRange`。" },
     { name: "Change 分支前綴有兩份；applyChange 順帶處理 workflow 同步", severity: "info", mitigation: "前綴由 commitlint plugin 匯出，兩處共用；workflow 同步拆成獨立的 `syncDeployWorkflow`。" },
     { name: "store workflow 的原因在多處重複說明", severity: "info", mitigation: "原因只寫在 `syncDeployWorkflow`，其他地方改為指向它。" },
+    { name: "手機直立時 tab 外框吃掉閱讀寬度", severity: "warning", mitigation: "G2 時由開發者發現。tab 在所有寬度都拿掉外框、底色與內距，tab 列與內文對齊；第 4、5 輪 review 只審這兩個 commit。" },
   ]}
 />
 
