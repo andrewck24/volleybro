@@ -186,6 +186,7 @@ export async function pull(cwd, { force = false } = {}) {
   const slugs = stdout
     .split("\n")
     .map((line) => line.trim())
+    // Dot-directories hold store plumbing such as the deploy workflow.
     .filter((name) => name && !name.startsWith("."));
 
   const scratchParent = await mkdtemp(
@@ -243,16 +244,20 @@ export async function pull(cwd, { force = false } = {}) {
   );
 }
 
-async function applyChange(tmpDir, slug, localSlugDir, repoRoot) {
+// A push runs the workflows of the pushed commit, so the orphan store needs
+// its own copy of the deploy workflow; pull skips it by its leading dot.
+async function syncDeployWorkflow(tmpDir, repoRoot) {
+  const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
+  if (!existsSync(source)) return;
+  const workflow = path.join(tmpDir, ...DEPLOY_WORKFLOW);
+  await mkdir(path.dirname(workflow), { recursive: true });
+  await cp(source, workflow);
+}
+
+async function applyChange(tmpDir, slug, localSlugDir) {
   const targetDir = path.join(tmpDir, slug);
   await rm(targetDir, { recursive: true, force: true });
   await cp(localSlugDir, targetDir, { recursive: true });
-  const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
-  if (existsSync(source)) {
-    const workflow = path.join(tmpDir, ...DEPLOY_WORKFLOW);
-    await mkdir(path.dirname(workflow), { recursive: true });
-    await cp(source, workflow);
-  }
   await runGit(["add", "-A"], { cwd: tmpDir });
   const { stdout } = await runGit(["status", "--porcelain"], {
     cwd: tmpDir,
@@ -347,7 +352,8 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     // At most one retry: a concurrent publish can win the race once, but a
     // second rejection in a row is a real problem, not the race.
     for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
-      const changed = await applyChange(tmpDir, slug, localSlugDir, repoRoot);
+      await syncDeployWorkflow(tmpDir, repoRoot);
+      const changed = await applyChange(tmpDir, slug, localSlugDir);
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);
         await recordPublishedHash(repoRoot, slug, localSlugDir);

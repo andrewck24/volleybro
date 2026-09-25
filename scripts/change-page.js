@@ -1,3 +1,4 @@
+import { CHANGE_BRANCH_PREFIXES } from "./commitlint/plugin.js";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -216,7 +217,7 @@ async function orNull(read) {
 export async function landingOf(root, base, slug) {
   const name = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const branch = new RegExp(
-    `(?:^|[\\s/'])(?:feat|fix|refactor)/${name}(?:$|[\\s'])`,
+    `(?:^|[\\s/'])(?:${CHANGE_BRANCH_PREFIXES.join("|")})/${name}(?:$|[\\s'])`,
   );
   const trailer = new RegExp(`^Blueprint-Change: ${name}$`, "m");
   const log = await git(root, [
@@ -235,12 +236,12 @@ export async function landingOf(root, base, slug) {
       return {
         from: first,
         to: hash,
-        commits: `${first}..${second}`,
+        commitRange: `${first}..${second}`,
         mergedAt,
       };
     }
     if (first && !second && trailer.test(body)) {
-      return { from: first, to: hash, commits: null, mergedAt };
+      return { from: first, to: hash, commitRange: null, mergedAt };
     }
   }
   return null;
@@ -260,7 +261,7 @@ export async function changeFacts(
   const stat = await orNull(async () =>
     parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
   );
-  const commitRange = landing ? landing.commits : `${base}..HEAD`;
+  const commitRange = landing ? landing.commitRange : `${base}..HEAD`;
   return {
     gate: hasReview(content) ? "G2" : "G1",
     publishedAt: now.toISOString(),
