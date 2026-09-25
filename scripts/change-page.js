@@ -21,10 +21,20 @@ export const REQUIRED_REVIEW_SECTIONS = REVIEW_SECTIONS.filter(
   (section) => section !== "AfterRelease",
 );
 
+const FRONTMATTER = /^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
+
+function frontmatterOf(content) {
+  return content.match(FRONTMATTER)?.[0] ?? "";
+}
+
 // The gate reads the page with the same MDX grammar the site compiles it
-// with, so code, strings and prose can never pass for structure.
+// with, so code, strings and prose can never pass for structure. The
+// frontmatter is YAML, not MDX, so it is blanked first, offsets kept.
 function parse(content) {
-  return fromMarkdown(content, {
+  const frontmatter = frontmatterOf(content);
+  const body =
+    frontmatter.replace(/[^\r\n]/g, " ") + content.slice(frontmatter.length);
+  return fromMarkdown(body, {
     extensions: [mdxjs()],
     mdastExtensions: [mdxFromMarkdown()],
   });
@@ -75,20 +85,25 @@ function entriesOf(arrayExpression) {
   );
 }
 
-function scenarioEntries(tree) {
+function scenariosStatement(tree) {
   for (const node of walk(tree)) {
     if (node.type !== "mdxjsEsm") continue;
     for (const statement of node.data.estree.body) {
-      for (const declarator of statement.declaration?.declarations ?? []) {
-        if (declarator.id?.name === "scenarios") {
-          return declarator.init?.type === "ArrayExpression"
-            ? entriesOf(declarator.init)
-            : [{}];
-        }
-      }
+      const declarator = statement.declaration?.declarations?.find(
+        (candidate) => candidate.id?.name === "scenarios",
+      );
+      if (declarator) return { statement, declarator };
     }
   }
-  return [];
+  return undefined;
+}
+
+function scenarioEntries(tree) {
+  const found = scenariosStatement(tree);
+  if (!found) return [];
+  return found.declarator.init?.type === "ArrayExpression"
+    ? entriesOf(found.declarator.init)
+    : [{}];
 }
 
 function attributeArray(element, name) {
@@ -124,15 +139,15 @@ function sourceOf(content, node) {
   return content.slice(node.position.start.offset, node.position.end.offset);
 }
 
-// ADR-0075: what G1 accepted is the frontmatter, the page's exports (the
-// scenarios among them) and every Proposal element — not only the tab.
+// See ADR-0075.
 export function frozenPart(content) {
   const tree = parse(content);
-  const frontmatter = content.match(/^---\n[\s\S]*?\n---\n/)?.[0] ?? "";
-  const exports = [...walk(tree)].filter((node) => node.type === "mdxjsEsm");
-  return [frontmatter, ...exports, ...elements(tree, "Proposal")]
-    .map((part) => (typeof part === "string" ? part : sourceOf(content, part)))
-    .join("\n");
+  const statement = scenariosStatement(tree)?.statement;
+  return [
+    frontmatterOf(content),
+    statement ? content.slice(statement.start, statement.end) : "",
+    ...elements(tree, "Proposal").map((node) => sourceOf(content, node)),
+  ].join("\n");
 }
 
 export function assertValidMdx(content) {

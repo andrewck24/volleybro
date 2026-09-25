@@ -281,3 +281,34 @@ test("scenarios built by spread or from a variable read as malformed", () => {
   );
   assert.deepEqual(scenarioIds(aliased), [undefined]);
 });
+
+test("frontmatter is not parsed as MDX, whatever it contains", () => {
+  const withoutReview = PAGE.replace(/<Review>[\s\S]*<\/Review>\n/, "");
+  const page = withoutReview.replace(
+    "title: Sample",
+    "title: <name>\ndescription: 用 <Review> tab 呈現 {x}",
+  );
+  assert.doesNotThrow(() => scenarioIds(page));
+  assert.equal(hasReview(page), false);
+});
+
+test("frontmatter stays frozen with trailing spaces or CRLF line ends", () => {
+  const spaced = PAGE.replace("---\ntitle", "--- \ntitle");
+  assert.notEqual(
+    frozenPart(spaced),
+    frozenPart(spaced.replace("title: Sample", "title: Renamed")),
+  );
+  const crlf = PAGE.replace(/\n/g, "\r\n");
+  assert.notEqual(
+    frozenPart(crlf),
+    frozenPart(crlf.replace("title: Sample", "title: Renamed")),
+  );
+});
+
+test("only the scenarios export is frozen, not an unrelated export", () => {
+  const added = PAGE.replace(
+    "export const scenarios",
+    "export const note = 1;\nexport const scenarios",
+  );
+  assert.equal(frozenPart(added), frozenPart(PAGE));
+});
