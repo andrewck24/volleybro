@@ -8,6 +8,8 @@ Every Change is one page, `index.mdx`, with a Proposal tab and, from G2, a Revie
 
 Because those pages come from the store branch, any one of them can reference something this checkout lacks, and a Change page that cannot render must not take the build with it. The Change route calls a page body as a function and renders the thrown message in its place. A design mockup holds hooks, so it cannot be called that way; it renders in the browser behind an error boundary instead. Neither a boundary nor `error.tsx` helps during prerender — under `output: "export"` a throw there ends the build before React can catch it.
 
+The dependency also runs the other way: a published page's `design.tsx` imports from `blueprint/src/components`, so a component's props are an API to every published page, whatever this branch's own pages use. Before changing one, run `pnpm blueprint:changes:pull`, search `blueprint/content/changes/` for the component, and prove the change with `pnpm --filter blueprint build`, which type-checks the published pages too.
+
 ## Canonical current knowledge
 
 Blueprint Features describe the current and planned capability tree:
