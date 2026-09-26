@@ -1,0 +1,127 @@
+---
+title: Legacy Change Conversion
+description: 22 個舊格式 Change 機械轉換成單頁、刪除相容程式碼；6 個 Spectra change 仍成立的行為提升到 Features，補回遺失的三份決策。
+capabilities: ["platform/blueprint", "platform/delivery-workflow"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "Shard 1 has been published",
+    when: "the files on the blueprint-changes store branch are listed",
+    then: "no change.json, slice JSON, implementation.mdx, review.mdx or tasks.mdx remains",
+  },
+  {
+    id: "S2",
+    given: "Shard 1 has merged",
+    when: "the Blueprint source is searched",
+    then: "it has no legacy directory and no TaskProgress, FileTour, WorkflowBlastRadius or WorkflowLifecycleFlowchart component",
+  },
+  {
+    id: "S3",
+    given: "the conversion script runs over the 22 old Changes",
+    when: "a source paragraph is neither in the converted page nor in the declared drop list",
+    then: "the script fails and names the paragraph",
+  },
+  {
+    id: "S4",
+    given: "every Change page has been converted",
+    when: "Blueprint builds",
+    then: "the build has no prerender error and the Changes index lists every Change",
+  },
+  {
+    id: "S5",
+    given: "Blueprint runs in dev mode",
+    when: "each Change page is opened in a browser",
+    then: "the console has no error-level message and every tab the page has shows content",
+  },
+  {
+    id: "S6",
+    given: "the converted record-flows and sync-recording drafts",
+    when: "a reader opens them",
+    then: "each shows only a Proposal tab that keeps its decisions as text, and none of those decisions is a record in the decisions directory",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+  Change 頁格式改過兩次，兩次都把舊頁留在相容層後面，留下 22
+  頁、三種來源結構和一整個 `legacy` 目錄；6 個 Spectra change
+  的行為規格也從沒提升到 Features，`team-membership-authorization`
+  的三份決策則在搬遷時遺失。這個 Migration Change 分兩個 shard：先用一次性腳本把
+  22 頁機械轉成單頁並刪除相容程式碼，再把仍成立的行為提升到
+  Features、補回遺失的決策。
+</TLDR>
+
+|                           | 現在                                       | 之後                                          |
+| ------------------------- | ------------------------------------------ | --------------------------------------------- |
+| 舊格式 Change 頁          | 三種結構，靠 `legacy` 目錄與四個舊元件渲染 | 全部是單頁格式，頁首一行註明由舊格式機械轉換  |
+| Spectra change 的行為規格 | 只在舊頁的 `specs/` 裡，Features 沒有      | 仍成立的寫進 Features，沒做完的列給開發者決定 |
+| 下次改頁面格式            | 慣例是保留相容層、日後再轉                 | 同一個 Change 轉換所有舊頁（ADR-0079）        |
+
+<DecisionCards ids={["0079"]} />
+
+## 範圍
+
+### Shard 1：機械轉換與刪除
+
+1. 以 `scripts/migrations/` 下的一次性腳本轉換 22 頁，用完即刪：
+   - frontmatter 取自 `change.json` 的 title 與 capabilities，tags 丟棄；`facts.json` 由腳本從 `change.json` 的日期推導，不手抄其他數字。
+   - Proposal tab 開頭以一行普通段落（不用引文框）註明「由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄」，草稿另註「未通過 G1」。
+   - `index.mdx`、`proposal.mdx`、`design.mdx` 的 `TLDR`、散文、`AnnotatedDiff`、`InteractiveFlowchart` 原文放進 Proposal tab。
+   - 舊 change 內的 ADR 改用 `DecisionCards` 引用全域編號。
+   - `review.mdx` 的散文與 `RiskTable` 放進 Review tab 的 `ReviewDetails`，並留一行 PR 連結。
+   - `design.tsx` 原樣保留。
+   - 丟棄：`FileTour`、`TaskProgress`、兩個 `Workflow*` 元件、`implementation/`、`tasks.mdx`、`Scenario`、`specs/`（由 Shard 2 處理）。
+2. `record-flows` 與 `sync-recording` 是從未通過 G1 的草稿，只產生 Proposal tab；它們的決策以靜態文字保留，不寫進決策目錄，因為 Features 頁會把目錄裡的記錄列為已實作。
+3. 刪除 `legacy` 目錄、四個舊元件與它們的測試，以及 route、Changes 索引、`DecisionTimeline` 對它們的依賴。
+4. 修改 `WORKFLOW.md`（歷史快照保持原樣的規則、store 分支記錄經相容層讀取的段落）、`docs/agents/artifact-lifecycle.md`（Spectra 快照不可變）與 `docs/agents/blueprint.md`（轉換頁規則），改寫成 ADR-0079 的規則。
+
+### Shard 2：知識提升
+
+1. 6 個 Spectra change（`api-objectid-guards`、`apple-splash-dynamic`、`contextual-edit-pages`、`elevation-depth-system`、`entry-ui`、`team-routes-clean-architecture`）的每條 requirement 對照現行程式碼：
+   - 有程式碼或測試證據的，以 Features 現有格式寫進對應 capability；證據列在 Review tab，不寫進 Features 本文。
+   - 被後續 change 改掉的，照現行行為寫。
+   - 沒做完的，不寫入，列在 Review tab 的 `ActionItems` 由開發者決定。
+2. `team-membership-authorization` 的三份決策核對仍成立後，寫進決策目錄。
+
+每個 shard 是各自的 pull request，跳過 G1、直接到 G2。Shard 2 以它自己的 Change 頁過 G2。
+
+### 不在範圍內
+
+- 讓 Features 改用 given/when/then 或導入可執行的 Gherkin 測試，另案評估。
+- `record-flows` 與 `sync-recording` 的決策核對與入庫，在它們各自的 G1 處理。
+- decision-record schema 的驗證與 store 分支保留政策，在 Shard 1 合併後另案處理。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "轉換時漏掉原文",
+      severity: "warning",
+      mitigation: "S3：腳本逐段比對，每段不是在輸出就是在丟棄清單，否則失敗。",
+    },
+    {
+      name: "刪除相容程式碼後某頁無法渲染",
+      severity: "warning",
+      mitigation:
+        "S4 建置與 S5 逐頁瀏覽器檢查；另外實讀 `entry-ui`、`dialog-close-ownership`、`sync-recording` 三頁。",
+    },
+    {
+      name: "未實作的決策被 Features 列為已實作",
+      severity: "warning",
+      mitigation: "S6：草稿決策不入庫。",
+    },
+    {
+      name: "Shard 2 把不再成立的行為寫進 Features",
+      severity: "info",
+      mitigation: "每條都要有程式碼或測試證據，找不到的交給開發者決定。",
+    },
+  ]}
+/>
+
+</Proposal>
+</ChangeTabs>
