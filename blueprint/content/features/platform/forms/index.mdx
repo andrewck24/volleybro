@@ -12,7 +12,7 @@ Forms use React Hook Form through `Form` in `src/components/ui/form.tsx`, and `B
 - An asynchronous submit button shows its progress with `loading` and `loadingText`. `loadingText` replaces the whole content, icon included, with a spinner followed by the text, so the spinner always leads.
 - Icon position carries meaning: an icon on the left says what a button does (save, add, confirm); an icon on the right says where it takes you (an arrow).
 - A failed request shows its error, as a toast or a root error, and does not report success; the entered values stay.
-- The team and player forms keep an unsaved draft in `sessionStorage` through `useFormDraft` (`src/hooks/use-form-draft.ts`), written only once the form is dirty and keyed per form and record: `draft:team:{id|new}`, `draft:player:{id}`, `draft:player:new:{teamId}`. Reopening the form merges the draft over its defaults, and a draft that cannot be parsed is ignored. A successful submit or a confirmed discard clears it; otherwise it lasts as long as the browser tab's session.
+- The team and player forms keep an unsaved draft in `sessionStorage` through `useFormDraft` (`src/hooks/use-form-draft.ts`), one per form and record, written only once the form is dirty. Reopening the form merges the draft over its defaults, and a draft that cannot be read is ignored. A successful submit or a confirmed discard clears it; otherwise it lasts as long as the browser tab's session.
 - Expanding a dirty dialog into its full page suppresses the browser's leave warning once, because the draft carries over to the full page.
 
 ## Constraints

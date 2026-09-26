@@ -10,7 +10,7 @@ Layering is only real if something fails when it is broken. These are the depend
 - `src/entities/` imports nothing outside `src/entities/`. It is safe in the browser bundle, which is what lets the server and the frontend share the same domain rules instead of each keeping a copy.
 - Domain rules exported from entities declare only the structure they read, so a caller holding a domain shape and a caller holding a presentation shape both satisfy them without a cast and without either adopting the other's types.
 - `src/applications/` does not import from `src/lib/features/`. Its only outward import is the create-player validation schema.
-- A player is `id` above the repositories and `playerId` in storage. The team and game repositories map between the two on every read and write, the positional entry writes included, so no layer above them sees `playerId`; an empty lineup slot reads as `null`. Substitution entries carry their players as bare id strings rather than `{ id }` objects.
+- A player is `id` above the repositories and `playerId` in storage. The team and game repositories map between the two on every read and write, the positional entry writes included, so no layer above them sees `playerId`.
 - Database syntax stays inside repository implementations. The check is that use case tests mock no database concept.
 
 ## Constraints
