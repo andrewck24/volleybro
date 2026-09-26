@@ -119,11 +119,11 @@ export const scenarios = [
 
 <ActionItems>
 
-1. **ADR-0081 的 `decision` 內文在 G1 之後改了。** Ingest 時你同意拆分：ADR-0081 只留 ruleset 與「不得改寫歷史」，50 MB 門檻移到新的 ADR-0082。ADR-0080 的 `context` 與 `consequences` 也改寫了（不是 `decision` 內文），說明 record 壞掉時是 build 失敗，以及 zod 為何仍進入前端 bundle。
+1. **ADR-0081 的 `decision` 內文在 G1 之後改了。** Ingest 時你同意拆分：ADR-0081 只留 ruleset 與「不得改寫歷史」，50 MB 門檻移到新的 ADR-0082。ADR-0080 的 `context` 與 `consequences` 也改寫了（不是 `decision` 內文），說明 record 壞掉時是 build 失敗，以及 zod 只在 build 時執行、不進前端 bundle。
 2. **推翻了 `standalone-decision-records` 的 S11**，你在 G2 已同意：`DecisionTimeline` 不再逐筆解析、也不再以註記取代壞掉的 record，見 Deviations 第 1 點。
-3. **S7 的 given 在 G2 前經 Ingest 改寫**，你已同意：從「publish 之後才 push」改成「publish 之後 preview 重建」，理由見 Deviations 第 3 點。
+3. **S7 的 given 在 G2 前經 Ingest 改寫**，你已同意：從「publish 之後才 push」改成「publish 之後 preview 重建」，理由見 Deviations 第 2 點。
 4. **PR body 的 preview 連結在開 PR 時加上**：S7 的前半（preview 頁面）已在 G2 前驗證，後半要等 PR 存在。
-5. **review 走了四輪**，超過三輪；merge 之後會請你跑 `retro`。
+5. **review 走了五輪**，超過三輪；merge 之後會請你跑 `retro`。
 
 </ActionItems>
 
@@ -131,7 +131,7 @@ export const scenarios = [
 
 1. `blueprint/src/lib/decision-record.ts`：整個手寫 validator 換成 zod schema，型別由 `z.infer` 推導。拒絕未知 key 與錯誤訊息格式是這次最直接的行為變化。
 2. `scripts/blueprint-changes.js` 的 `warnIfHistoryTooLarge`：git 太舊時靜默略過是刻意的，值得確認你接受這個取捨。
-3. `WORKFLOW.md` 的 G2 段落：「最後一次 push 在最後一次 publish 之後」這條新規則會影響之後每個 Change 的收尾順序。
+3. `WORKFLOW.md` 的 G2 段落：「最後一次 publish 之後確認 preview 是最新版，否則手動重跑 branch build」這條新規則會影響之後每個 Change 的收尾。
 
 </ReviewFocus>
 
