@@ -1,10 +1,13 @@
 ---
-title: Overview
+title: "Reconnect Without Reload"
+description: "連線中斷又恢復會讓整頁重載，記錄中的 set 被丟掉，實務上得把 app 關掉重開才能繼續記錄。原因是 `SerwistProvider` 預設把 `reloadOnOnline` 開著，而 `layout.tsx` 從沒傳過這個 prop。本 Change 把它關掉——取代它的機制原本就在，已經存在的 SWRConfig 會在重新連線時逐請求重新驗證，不必丟掉任何畫面狀態。"
+capabilities: ["platform/pwa"]
 ---
 
-import { FileTour } from "@/components/FileTour";
-import { Scenario } from "@/components/Scenario";
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
 
 <TLDR>
   連線中斷又恢復會讓整頁重載，記錄中的 set 被丟掉，實務上得把 app
@@ -14,11 +17,6 @@ import { TLDR } from "@/components/TLDR";
   會在重新連線時逐請求重新驗證，不必丟掉任何畫面狀態。
 </TLDR>
 
-<Scenario
-  given="使用者在訊號不好的球場記錄比賽,正在記一個 set"
-  when="連線中斷又恢復"
-  then="改動前整頁 reload,記錄中的 set、正在編輯的 rally、捲動位置全部遺失,實務上得關掉 app 重開才能繼續;改動後畫面狀態原封不動,SWR 逐 hook 重新驗證資料"
-/>
 
 ## Context
 
@@ -65,16 +63,6 @@ service worker 只在 production build 註冊,`reloadOnOnline` 的監聽者從�
 
 受影響的能力是 `platform/pwa`——連線恢復後的行為契約,從「整頁重載」改為「逐請求重新驗證,不丟畫面狀態」。
 
-<FileTour
-  files={[
-    {
-      path: "src/app/layout.tsx",
-      change: "modified",
-      summary:
-        "SerwistProvider 加上 reloadOnOnline={false}。這是整張 Change 唯一觸及的一行——provider 在整個 app 只掛載這一次,沒有第二個呼叫點需要跟著改。",
-    },
-  ]}
-/>
 
 ## Alternatives considered
 
@@ -96,3 +84,210 @@ Design 的 D1 完整記錄評估過程與否決理由,這裡只記結論方向:
 
 - 未來有路由真的需要在連線恢復時強制刷新一份停滯的頁面:D1 否決的路由層級例外屆時值得重新評估,而且會有一個具體路由可以拿來評估,而不是假設性的。
 - `swr-provider.tsx` 的 `revalidateOnReconnect` 被全域關閉:取代 `reloadOnOnline` 的機制就沒了,連線恢復的處理需要新的負責對象。
+
+## Design
+
+<TLDR>
+  `reloadOnOnline` 關掉之後，連線恢復不再有任何路徑呼叫
+  `location.reload()`。取代它的路徑不是新的——`SWRConfig` 的
+  `revalidateOnReconnect` 今天就是預設的 `true`，每個 hook 早就在重新連線時各自
+  revalidate，只是過去被同一個事件上的 reload 蓋過去而沒人看見。
+</TLDR>
+
+## Adopted shape
+
+改動前，同一個瀏覽器 `online` 事件掛著兩個互不知情的監聽者：`SerwistProvider` 的整頁
+reload，與 SWR 內部的逐 hook revalidate。前者先跑完、頁面已經在重新載入，後者的結果永遠沒有機會被看到。改動只是拿掉左邊那條路徑，右邊的行為完全沒有變動。
+
+<svg
+  viewBox="0 0 900 420"
+  role="img"
+  aria-label="連線恢復時的兩條路徑。改動前：瀏覽器觸發 online 事件，SerwistProvider 的監聽者呼叫 location.reload，整頁重載，記錄中的 set、正在編輯的 rally、捲動位置全部遺失；SWR 的逐 hook revalidate 雖然也被同一事件觸發，但頁面已經在重載，它的結果沒有機會被看到。改動後：SerwistProvider 不再監聽 online 事件；SWR 的 revalidateOnReconnect 保持它原本就有的預設值 true，每個掛載中的 hook 各自重新驗證資料，畫面狀態原封不動。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "900 / 420", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker
+      id="rwr-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-monospace, monospace">
+    <text x="20" y="24" fontSize="13" fill="var(--muted-foreground)">改動前</text>
+    <rect x="20" y="36" width="150" height="40" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="95" y="60" textAnchor="middle" fontSize="11" fill="var(--foreground)">window "online"</text>
+
+    <line x1="170" y1="46" x2="290" y2="46" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="26" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--destructive)" />
+    <text x="400" y="50" textAnchor="middle" fontSize="11" fill="var(--destructive)">SerwistProvider → location.reload()</text>
+
+    <line x1="170" y1="66" x2="290" y2="96" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="80" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="400" y="104" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)">SWR revalidateOnReconnect</text>
+
+    <line x1="510" y1="46" x2="640" y2="46" stroke="var(--destructive)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="640" y="26" width="240" height="60" rx="8" fill="var(--background)" stroke="var(--destructive)" />
+    <text x="760" y="48" textAnchor="middle" fontSize="11" fill="var(--destructive)">整頁重載</text>
+    <text x="760" y="66" textAnchor="middle" fontSize="10" fill="var(--destructive)">set／編輯中的 rally／捲動位置全部遺失</text>
+
+    <text x="640" y="112" fontSize="9" fill="var(--muted-foreground)">頁面已重載，這條路徑的結果沒人看得到</text>
+
+    <line x1="16" y1="150" x2="884" y2="150" stroke="var(--border)" strokeDasharray="6 6" />
+
+    <text x="20" y="184" fontSize="13" fill="var(--muted-foreground)">改動後</text>
+    <rect x="20" y="196" width="150" height="40" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="95" y="220" textAnchor="middle" fontSize="11" fill="var(--foreground)">window "online"</text>
+
+    <line x1="170" y1="216" x2="290" y2="216" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="4 4" />
+    <rect x="290" y="196" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="400" y="220" textAnchor="middle" fontSize="11" fill="var(--muted-foreground)">SerwistProvider：無監聽者</text>
+
+    <line x1="170" y1="236" x2="290" y2="266" stroke="var(--success)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="290" y="250" width="220" height="40" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="400" y="274" textAnchor="middle" fontSize="11" fill="var(--success)">SWR revalidateOnReconnect</text>
+
+    <line x1="510" y1="270" x2="640" y2="270" stroke="var(--success)" strokeWidth="1.5" markerEnd="url(#rwr-arrow)" />
+    <rect x="640" y="250" width="240" height="60" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="760" y="272" textAnchor="middle" fontSize="11" fill="var(--success)">逐 hook 重新驗證</text>
+    <text x="760" y="290" textAnchor="middle" fontSize="10" fill="var(--success)">畫面狀態原封不動</text>
+
+    <text x="290" y="330" fontSize="10" fill="var(--muted-foreground)">此路徑的行為在改動前後完全相同——它從第一天就存在，只是被上面那條蓋過去</text>
+
+    <text x="290" y="360" fontSize="9" fill="var(--muted-foreground)">skipWaiting + clientsClaim 已確保新版 JS 在下一次導覽時生效，reload 不是新版本上線的必要條件</text>
+
+  </g>
+</svg>
+
+## Contracts
+
+改動本身沒有新的契約——`reloadOnOnline` 是 `@serwist/turbopack/react` 既有的 prop，這裡只是把它從隱式的預設值改成顯式的 `false`：
+
+```tsx
+// src/app/layout.tsx
+<SerwistProvider
+  swUrl="/serwist/sw.js"
+  disable={process.env.NODE_ENV !== "production"}
+  reloadOnOnline={false}
+>
+```
+
+`SWRConfig` 完全不動——`onError` 是它今天僅有的設定，`revalidateOnReconnect` 從沒被覆寫過：
+
+```tsx
+// src/components/layout/swr-provider.tsx
+<SWRConfig value={{ onError }}>{children}</SWRConfig>
+```
+
+## Failure modes
+
+
+| 情境                                         | 行為                                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 連線恢復時使用者不在任何掛載 SWR hook 的畫面 | 沒有任何請求發出，與改動前 SWR 那一半的行為相同——改動只拿掉 reload，不影響 revalidate 的觸發條件                         |
+| 連線恢復後 SW 有新版本待啟用                 | `skipWaiting: true`／`clientsClaim: true` 已讓新 SW 在安裝完成後立刻啟用；下一次導覽即拿到新資產，不依賴這次的 reload    |
+| 開發環境（service worker `disable`）         | 不受影響——`reloadOnOnline` 的監聽者原本就掛在 `disable` 為 true 時從未註冊的路徑上，這也是為什麼這個問題在本機從未出現過 |
+
+## Testing strategy
+
+沒有新增自動化測試。這是單一 provider 上單一 prop 的改動，`pnpm typecheck:strict` 與既有的建置流程足以確認 prop 被正確傳遞；`location.reload()` 是否真的不再被呼叫,是瀏覽器對 `online` 事件的行為，jsdom 沒有對應的可觀察副作用可以斷言。真實裝置離線再恢復連線、確認記錄畫面狀態保留,是交付驗收的一部分，不屬於任何切片的 verification。
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "新版 JS 不再透過 reload 主動拉取",
+      severity: "info",
+      mitigation:
+        "`src/app/sw.ts` 的 skipWaiting 與 clientsClaim 已確保新 service worker 安裝完成後立刻啟用；下一次導覽即拿到新資產，reload 從來不是正確性的必要條件，只是提早了時機。",
+    },
+    {
+      name: "退回單一標準的代價要靠下一位讀者自己去 swr-provider.tsx 確認",
+      severity: "info",
+      mitigation:
+        "S01 的驗收條件把「SWRConfig 未被改動、revalidateOnReconnect 維持預設 true」明列出來，讓 reviewer 不必自己去確認取代機制原本就在。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionCards ids={["0022"]} />
+
+</Proposal>
+<Review>
+
+<ReviewDetails>
+
+## Review
+
+<TLDR>
+  一個 prop，交付與計畫一致。它由另一張 Change
+  的真機驗收發現，也由同一次驗收證實——復網後頁面不再重載，可直接繼續記球。程式碼先於它的
+  Blueprint 存在，那個順序本身記在下方。
+</TLDR>
+
+## Delivered
+
+
+
+## Verification
+
+
+這是在測試部署上執行的第二輪真機驗收的第四項，`honest-sync-status` 的驗收腳本涵蓋它。第一輪（修正之前）該項失敗，症狀正是本 Change 的起因——**同一個腳本在修正前後各跑一次，是本 Change 唯一也最直接的證據**。
+
+自動化層面只有回歸：`pnpm verify:all` 通過。這個 prop 的效果需要 service worker 註冊，而它只在 production build 啟用，因此單元測試證明不了它。
+
+## Plan versus actual
+
+| 差異                                | 說明                                                                                                                                                             |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 程式碼先於 Blueprint 交付           | 缺陷在另一張 Change 的驗收中發現，當下判定為既有缺陷、應獨立且立即修正，因而先開了 Linear 票並直接修。Change 是事後補的，Overview 與 Design 描述的是已交付的東西 |
+| 起初判定為「無需 Blueprint Change」 | 該判斷被推翻：「為什麼不在復網時重載」是會被回頭質疑而答案並不顯然的決定，且沒有 ADR 就沒有 promote 的目的地。這也促成了 `platform/pwa` 這個 capability 的建立   |
+
+第二項值得下一個人知道：**這張 Change 存在的理由有一半是「那個決策需要一個家」**，而它發現那個家根本還沒蓋。
+
+## Residual risks
+
+<RiskTable
+  risks={[
+    {
+      name: "復網不再自動取得新版 bundle",
+      severity: "info",
+      mitigation:
+        "`sw.ts` 的 `skipWaiting` 與 `clientsClaim` 讓新的 service worker 立即接管，下一次導覽即取得新資產。重載從來不是正確性的必要條件。",
+    },
+    {
+      name: "關閉是全應用的，沒有 per-route 例外",
+      severity: "info",
+      mitigation:
+        "provider 只掛載一次。若未來真有路由需要「離線期間停留的過時頁面在復網時刷新」，那是本 Change 否決過的 per-route 例外，屆時值得重新檢視。",
+    },
+    {
+      name: "取代它的機制是一個預設值",
+      severity: "info",
+      mitigation:
+        "`SWRConfig` 只設 `onError`，`revalidateOnReconnect` 維持 SWR 的預設 `true`。若哪天全域關掉它，本決策就失去了它的替代物——已記為 revisit trigger。",
+    },
+  ]}
+/>
+
+## Follow-ups
+
+- `docs/design-system.md` 仍收著兩條屬於 PWA 能力的事實（manifest `background_color` 與 standalone 的 body backdrop）。`platform/pwa` 建立後它們有家了，但搬遷是獨立的決定，目前兩處並存。
+- `sw.ts` 的快取邊界靠一份明確的 `NetworkOnly` matcher 清單維持，不是命名慣例。新增的 auth 相鄰路由不會被自動涵蓋。
+
+合併於 [andrewck24/volleybro#398](https://github.com/andrewck24/volleybro/pull/398)。
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>

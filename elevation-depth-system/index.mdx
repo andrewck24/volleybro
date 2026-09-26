@@ -1,10 +1,115 @@
 ---
-title: Overview
+title: "Elevation and Depth System"
+description: "建立三層 elevation 模型、overlay depth 規則與一致的 Dialog、AlertDialog、Drawer 組合。"
+capabilities: ["platform/design-system/elevation","platform/design-system/overlays"]
 ---
 
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
 
 <TLDR>
   建立三層 elevation 模型、overlay depth 規則與一致的
   Dialog、AlertDialog、Drawer 組合。
 </TLDR>
+
+## Proposal
+
+## Why
+
+現行色彩系統有一個語意缺陷：light 模式下 `--background`、`--card`、`--popover` 三者同值（98.45%），頁面層與表面層塌陷成一層。為了讓頁面與 card 有對比，body 被迫使用 `bg-accent`——一個語意上屬於 hover/highlight 的 token——而 `docs/design-system.md` 又把這個 workaround 寫成正典，讓漂移固化進設計規則。
+
+這阻斷了一致的 elevation：modal 內的 card 無法與 modal 表面分離，只能靠 per-component hack（在 dialog 內抑制 Card 的 ring/shadow）。另外兩個缺口：`entry-ui` 拿掉 overlay 元件的 ring 之後效果更好，但這個觀察從未被寫成規則；`entry-ui` 新增的 Drawer（vaul bottom sheet）自帶 dimming overlay 卻落在 `bg-card`，舊的 overlay 模型無法解釋。設計語言本身也沒有單一的參考渲染面。
+
+## What Changes
+
+1. **三層背景模型**：`--background`（layer 0，僅頁面本體）、`--popover`（layer 0.5，無 overlay 浮動面）、`--card`（layer 1，Card/Item **＋所有 modal 類**）。body 從 `bg-accent` 改為 `bg-background`；modal 與頁面的分離由 scrim 表達，共用 card 色讓 Drawer peek 與頁面 card 系統全生命週期連續。
+2. **容器一律不帶 ring（D5）**：modal/popover/card 都是容器，ring 策略統一為全無；`--ring` 只保留給 focus-visible；同色表面上的 card 類以 shadow 補償。
+3. **三段式 overlay shell**：Dialog / AlertDialog / Drawer 共用 Header/Body/Footer 結構（各自持有 padding、Body 是唯一捲動容器）、統一 close/expand 控制群與 `srOnly` prop。AlertDialog 保留明確選擇的 dismiss 語意（Esc 也被阻擋）。
+4. **design-system 參考頁**：blueprint 的 design-system section 直接渲染真實 tokens 與規則，取代 `docs/design-system.md` 的過時文字成為 source of truth。
+5. **Token 生命週期**：決策期 blueprint 直接 import app 的 token 源（不漂移）；定案後凍結、內聯進各自的 `globals.css`（不留獨立 tokens 檔案）。
+
+## Impact
+
+- 影響 specs：`elevation-tokens`（三層契約 + 圖層歸屬）、`overlay-layout`（三段式結構、no-ring、dismiss 語意、srOnly）
+- 影響程式：token blocks（兩側 globals.css）、`dialog.tsx` / `alert-dialog.tsx` / `drawer.tsx` / `popover.tsx` / `select.tsx` / `card.tsx` / `item.tsx` primitives、10+ 個 dialog call sites、`docs/design-system.md`、blueprint design-system section 與本 change 頁
+- 測試：新增 dialog / alert-dialog 元件測試（TDD），既有 748 tests 全綠
+
+<DesignMockup />
+
+</Proposal>
+<Review>
+
+<ReviewDetails>
+
+## Review
+
+# Post-apply self-review: elevation-depth-system
+
+雙軌驗證：fresh-context verifier（對照 specs/design 逐項驗證）＋ 獨立 code review（嚴格找缺陷）。
+Verifier 判定 **CONFIRMED**（748 tests 全綠、`tsc --noEmit` 乾淨、D1–D7 契約逐項成立、全 src 無遷移殘留）；
+code review 判定 **ship-ready**，3 個非阻斷小項，均已當場修復。
+
+---
+
+## Status summary
+
+| #   | Severity   | Finding                                                                       | File                            | Status                                                |
+| --- | ---------- | ----------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| 1   | Warning    | `AlertDialogContent` 無 `max-h`，`AlertDialogBody` 的捲動永遠不會觸發         | `ui/alert-dialog.tsx`           | ✅ 已修（補 `max-h-[85svh]`，對齊 Dialog）            |
+| 2   | Suggestion | libero-replace 遷移後 footer 按鈕 `type="submit"` 位於 form 外成為 inert 屬性 | `options/libero-replace.tsx`    | ✅ 已修（改 `type="button"`；`onClick` 提交路徑不變） |
+| 3   | Suggestion | blueprint globals.css 註解仍引用已刪除的 `src/styles/tokens.css`              | `blueprint/src/app/globals.css` | ✅ 已修（註解改指 globals.css token blocks）          |
+
+## Verified non-issues（review 檢查後排除）
+
+- **libero-replace Enter-to-submit**：表單內只有 Radix Select（Enter 開下拉、從未觸發原生 submit），click 路徑經 `onClick` 保留——無行為回歸。
+- **AlertDialog Esc 阻擋**：D6 刻意行為（明確選擇 dismiss），非鍵盤陷阱——Tab/按鈕聚焦正常、`onOpenChange` 保持接線。
+- **edit-dialog discard guard**：close / Esc / overlay click / expand 全部經由新內建控制群正確路由；`srOnly` 取代 `aria-describedby={undefined}` 是實質 a11y 改善。
+- **捲動容器**：所有 DialogContent 都有唯一有效捲動區（含 action-button→NewGameForm 的跨檔組合），無雙重捲動、無 overflow-hidden 裁切。
+- **D5 ring 移除**：card/item/popover/select 裝飾 ring 全除、focus-visible 保留；dialog 內 Item 重獲 `shadow-sm`（suppression 已改僅限 Card 內）。
+- **D2 圖層順序**：light 95.6 < 97 < 98.45、dark 4.9 < 10 < 14.5，單調成立；tokens 內聯後無孤兒 import。
+
+## 人工驗證項 — ✅ 已通過
+
+- 任務 5.1 / 9.3：team-switcher 的 `TeamList`、game/options 列表內 Item 的陰影識別度（light/dark 雙主題）— 通過。
+- 任務 11.1：各 overlay（Dialog / AlertDialog / Drawer）雙主題目視檢查 — 通過。
+- 追加發現並修復：landing header 在 light mode 仍用全白 `public/logo.svg` — 改用 adaptive `LogoType`，孤兒 SVG 已刪除。
+
+`pnpm type-check`、`pnpm build`（app + blueprint）、748 tests 均通過。
+
+---
+
+## PR-review round 1（PR #318）
+
+| #   | Severity    | Finding                                                                                                                                                                                                                                                                                              | Resolution                                                                                      |
+| --- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| R1  | Minor       | `DialogClose asChild` + async `onClick`（`form.handleSubmit` / `createGame`）：Radix 在 handler 返回後立即關閉，不等 promise — 驗證失敗或錯誤發生時 dialog 已關、無可見回饋。出現於 libero-replace（本 PR 引入的形態）與 game/new（pre-existing）。目前欄位皆為有效預設的 Select，實際觸發機率極低。 | 📋 已記錄為 Paca Bug #50（pattern 級修復：close 應在 promise resolve 後才觸發），不在本 PR 修。 |
+| R2  | Observation | cta-button 的 iOS 安裝說明句被 `srOnly` 隱藏 — 符合 task 4.9 字面，但對明眼使用者是可見的 UX 退化。                                                                                                                                                                                                  | ✅ 已修 — 移除 `srOnly`，說明句恢復可見；task 4.9 措辭同步更正。                                |
+
+## PR-review round 2（PR #319）
+
+PR #319 將 standalone PWA backdrop 改為 route-scoped `BodyBackdrop`，並補齊 overlay viewport、manifest 與 system chrome 契約。Review 提出 3 個非阻斷項目，均已評估；其中 2 項形成程式碼修正，1 項確認為 commit scope observation。修正 commit `6e83a435` 已隨 PR merge 至 `dev`（merge commit `a1537584`）。
+
+| #   | Severity    | Finding                                                                                                                                                                                                      | Resolution                                                                                                                                                                                                                      |
+| --- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R3  | Suggestion  | `BodyBackdrop` 使用 `useInsertionEffect` 修改 `documentElement` / `body`。雖可達成 paint timing，但 React 將此 hook 定位為 CSS-in-JS style injection；一般 DOM side effect 使用它不符合預期 contract。       | ✅ 已修 — 改用 `useLayoutEffect`，在 DOM commit 後、browser paint 前同步 backdrop；加入 timing 註解，避免日後改成 paint 後執行的 `useEffect` 而重新產生 route color flash。                                                     |
+| R4  | Test gap    | 缺少 `BodyBackdrop` 自身的 lifecycle test，未直接保護 mount 套色、`color` prop update 與 unmount restore。                                                                                                   | ✅ 已修 — 新增 direct component test，驗證 `<html>` 與 `<body>` 同步更新，並確認 cleanup 精確還原各自原有的 inline background color。                                                                                           |
+| R5  | Observation | `edit-dialog-container.test.tsx` 的 warning cleanup 與 PWA backdrop 主題不同，雖屬同一批 validation-warning 整理，但 commit 內容較多元；原 test name 亦宣稱 hard navigation，超出 assertion 真正驗證的範圍。 | ✅ 已釐清 — 保留 warning cleanup 的既有 commit 分組，不重寫 history；將 test name 改為只描述 observable behavior（不呼叫 `router.back`、navigation 前 suppress leave warning），並移除不受測試直接證明的 hard-navigation 註解。 |
+
+### Hook timing decision
+
+`BodyBackdrop` 操作的是已 commit 的 document DOM，不是注入 stylesheet rule。採用 `useLayoutEffect` 可同時滿足兩個條件：DOM 已可安全存取，且更新發生於首次 paint 前。`useEffect` 通常在 paint 後執行，可能短暫露出前一路由顏色；`useInsertionEffect` 則保留給 CSS-in-JS infrastructure，不再用於 application-level DOM mutation。
+
+### Validation after review fixes
+
+- Focused Jest suites：2 suites、9 tests 全數通過；`BodyBackdrop` 與 `EditDialogContainer` 涵蓋率 100%。
+- `pnpm lint`、`pnpm typecheck`、Prettier check 全數通過，無 warning。
+- `pnpm build` 通過 Next.js compile、TypeScript、static generation 與 Serwist service-worker build。
+
+合併於 [andrewck24/volleybro#318](https://github.com/andrewck24/volleybro/pull/318)。
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>

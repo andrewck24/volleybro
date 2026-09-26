@@ -6,7 +6,6 @@ import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { DecisionTimeline } from "@/components/DecisionTimeline";
-import { FileTour } from "@/components/FileTour";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
@@ -14,10 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-import entriesAsSourceOfTruth from "./design/decisions/D1-entries-as-source-of-truth.json";
-import domainOperationRepository from "./design/decisions/D2-domain-operation-repository.json";
-import sharedDomainFunctions from "./design/decisions/D3-shared-domain-functions.json";
-import explicitSetCompletion from "./design/decisions/D4-explicit-set-completion.json";
+import entriesAsSourceOfTruth from "../../decisions/0004-entries-as-source-of-truth.json";
+import domainOperationRepository from "../../decisions/0005-domain-operation-repository.json";
+import sharedDomainFunctions from "../../decisions/0006-shared-domain-functions.json";
+import explicitSetCompletion from "../../decisions/0007-explicit-set-completion.json";
 
 export const toc = [
   { title: "採納的決策", url: "#decisions", depth: 2 },
@@ -1339,7 +1338,15 @@ export default function Design() {
         <p>
           以下是本頁反覆出現、但不假設讀者已經熟悉的名詞。展開看定義與最小範例。
         </p>
-        <FileTour files={CONCEPTS} />
+        <dl>
+          {CONCEPTS.map((item) => (
+            <div key={item.path}>
+              <dt className="font-semibold">{item.path}</dt>
+              <dd>{item.summary}</dd>
+              {item.code && <pre><code>{item.code}</code></pre>}
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section className="space-y-4">

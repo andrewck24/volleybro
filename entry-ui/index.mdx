@@ -1,10 +1,225 @@
 ---
-title: Overview
+title: "Entry UI"
+description: "重塑 rally entry 輸入流程與 Summary drawer，作為 sync-recording 的前置 UI slice。"
+capabilities: ["game-recording/rally-input","game-recording/entry-history"]
 ---
 
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
 
 <TLDR>
   重塑 rally entry 輸入流程與 Summary drawer，作為 sync-recording 的前置 UI
   slice。
 </TLDR>
+
+## Proposal
+
+## Why
+
+entry-ui 是 sync-recording epic 中「零後端依賴、可先行」的切片。在導入多人協作記錄（SSE／衝突偵測）之前，先把單機記錄的輸入與編輯體驗重塑成協作就緒的形態：現行輸入步驟隱性、送出確認不可發現，Summary 藏在 Options dialog 內；這些摩擦在多筆 entry 快速進出、需要明確「最後一筆」語意的協作情境下會被放大。本 change 交付 discuss 決策 D8（輸入流程）與 D12（Summary drawer），兩者皆純前端、可獨立於後端同步先行上線。
+
+## What Changes
+
+- **D8 entry 輸入流程**：輸入 panel 上緣新增三步驟延展分段進度條（球員 → 我方 → 對方；對方失誤選定後收合為單步）；說明文字統一置於進度條下方、無編號、帶輪換動畫；步驟切換靠點選進度條或 pointer 滑動（capture-on-intent，滑動後抑制誤觸 click，以 aria-disabled 取代原生 disabled，前一步未完成不可前進）。送出集中至 Preview：仿 Entry 版式（左側比分 Figures 三態——閒置＝上一筆、勝負未定＝muted、已定＝勝方著色），輸入中 pulse、完成時 ring＋send icon、送出＝定格（背景閃一次）。
+- **D12 Summary drawer**：Summary 自 Options dialog 獨立為以 Preview 為上緣的 bottom drawer；閒置時只露出把手＋最新 entry，展開時最新 entry 升起、原地成為清單第一筆。每行左滑揭露動作鈕；整行 tap 行內展開（accordion）顯示 recordedBy／時間與完整動作。按鈕組成反映「最後一筆規則」：最新一筆＝編輯＋刪除，其餘＝編輯＋退回重記至此（替代路徑直接可見，取代 disabled 刪除鈕）。與 D8 Preview 的手勢分工：閒置 tap＝展開 drawer；輸入中 Preview tap 僅處理送出；把手恆為 drawer 開關；輸入中 draft 以 pulse 佔清單第一列，送出定格後原地轉為正式第一筆。
+
+## Capabilities
+
+### New Capabilities
+
+- `entry-input-flow`（對應 Story #29 · D8）：三步驟延展分段進度條導航（點選／滑動切換、前一步未完成不可前進、對方失誤收合為單步）與 Preview 承載的送出流程（比分 Figures 三態、完成 highlight、送出定格）。
+- `entry-summary-drawer`（對應 Story #30 · D12）：以 Preview 為上緣的 bottom drawer、每筆 entry 的左滑動作鈕與 tap 行內展開，並依「最後一筆規則」決定編輯／刪除／退回重記至此的動作組成。
+
+### Modified Capabilities
+
+（無）
+
+## Non-Goals
+
+- 後端同步、SSE stream、presence、離線佇列。
+- server 端守衛：意圖錨點 `basedOn`（D3–D5）、衝突面板（D7）、覆蓋版本檢查（D9）、最後一筆規則的 server 強制與退回重記 truncate 廣播（D10）、set 結束邊界（D13）。
+- live-view 觀眾唯讀頁（D14/D15）。
+- D12 的「退回重記至此」與編輯／刪除動作只渲染 UI affordance、串接既有單機記錄流程；協作驗證屬 sync-recording change。
+
+## Impact
+
+- Affected specs：新增 `entry-input-flow`、`entry-summary-drawer` 兩個 capability。
+- Affected code：
+  - New：三步驟延展分段進度條元件、Preview 上緣 bottom drawer 容器（具體路徑於 design 定檔）。
+  - Modified：
+    - `src/components/game/preview.tsx`
+    - `src/components/game/panel/index.tsx`
+    - `src/components/game/panel/moves/ours.tsx`
+    - `src/components/game/panel/moves/oppo.tsx`
+    - `src/components/game/options/summary.tsx`
+    - `src/components/game/options/index.tsx`
+    - `src/components/game/entry/index.tsx`
+    - `src/components/game/entry/rally.tsx`
+    - `src/components/game/entry/substitution.tsx`
+    - `src/app/game/[gameId]/sets/[setIndex]/entry/page.tsx`
+  - Removed：（無）
+
+<DesignMockup />
+
+</Proposal>
+<Review>
+
+<ReviewDetails>
+
+## Review
+
+# Post-apply self-review: entry-ui
+
+Findings from the post-apply self-review (`/code-review high` + `/simplify`) over the
+feature diff (`src/`, tasks 1.1–6.2). One clear-cut correctness bug was fixed; the rest are
+pre-existing issues or product/design trade-offs deliberately left for the human review gate.
+
+All 727 tests pass and `tsc --noEmit` is clean after the fix.
+
+---
+
+## Status summary
+
+| #   | Severity   | Finding                                                                  | File                                    | Status                                        |
+| --- | ---------- | ------------------------------------------------------------------------ | --------------------------------------- | --------------------------------------------- |
+| 1   | Warning    | Right-swipe on an entry row leaked a tap into the accordion              | `src/components/game/entry/index.tsx`   | ✅ Fixed — commit `38de9bf9`                  |
+| 2   | Warning    | Dead delete / rollback buttons — no reducer wired                        | `summary-drawer.tsx`, `entry/index.tsx` | ✅ Hidden — un-hide tracked in sync-recording |
+| 3   | Warning    | `onStepChange` is a no-op for the player step (index 0)                  | `panel/index.tsx`                       | ⚠️ Flagged                                    |
+| 4   | Warning    | Mode desync during the edit flow (`mode="general"` hardcoded)            | `panel/index.tsx`, `preview.tsx`        | ⚠️ Flagged                                    |
+| 5   | Warning    | Empty-set crash (pre-existing, not introduced by this diff)              | `preview.tsx` → `entry/index.tsx`       | ⚠️ Flagged                                    |
+| 6   | Suggestion | `suppressClickRef` can stick if a swipe ends off any button              | `progress-bar.tsx`, `entry/index.tsx`   | ⚠️ Flagged                                    |
+| 7   | Suggestion | `PreviewCard.handleClick` reads `frozen` from a render closure           | `preview.tsx`                           | ⚠️ Flagged                                    |
+| 8   | Suggestion | Swipe-gesture block duplicated between `EntryRow` and `EntryProgressBar` | `entry/index.tsx`, `progress-bar.tsx`   | ⚠️ Flagged                                    |
+| 9   | Suggestion | `isComplete = submittable === true` redundant strict-equality            | `preview.tsx`                           | ⚠️ Flagged                                    |
+| 10  | Suggestion | `getEntryProgress` recomputed up to 3× per render                        | `summary-drawer.tsx`, `preview.tsx`     | ⚠️ Flagged                                    |
+| 11  | 🔴 Bug     | Summary drawer "編輯" action never opened the edit dialog (no-op)        | `summary-drawer.tsx`, `index.tsx`       | ✅ Fixed — commit `f9b10c13` (PR-review r1)   |
+
+---
+
+## Fixed
+
+### #1 — Right-swipe leaked a tap into the accordion (Warning)
+
+**File**: `src/components/game/entry/index.tsx` (handlePointerMove).
+**Root cause**: a recognized right-swipe (`dx > 0`, ≥ 40px) set `drag.triggered = true` but did
+not set `suppressClickRef`, so the browser-synthesized tap on pointerup reached
+`handleRowClick` and toggled the accordion on a horizontal swipe.
+**Fix**: suppress the click on **any** recognized swipe (moved `suppressClickRef.current = true`
+out of the `dx < 0` branch), mirroring `EntryProgressBar`. Left-swipe still uniquely reveals the
+action buttons. Existing row tests stay green.
+
+---
+
+## Flagged (deferred to the review gate)
+
+These are **not** fixed — each needs a product/design or core-logic decision beyond the
+entry-ui frontend scope.
+
+- **#2 刪除／回溯按鈕（Warning）— 已隱藏。** `composeEntryActions` 仍依「最後一筆規則」計算出
+  刪除（最新一筆）與 退回重記至此（其餘），但這些動作的 reducer 尚未存在（`game-slice` 沒有
+  delete/rollback，屬 **sync-recording** change 的協作版本檢查／廣播語意）。本次已將 `EntryRow`
+  的動作渲染過濾為 **只顯示「編輯」**（`composeEntryActions(isLatest).filter(a => a === "edit")`，
+  附 `ponytail:` 註記），純函式與其單元測試維持不變。**取消隱藏**已登記到 sync-recording 的
+  賽後編輯 UI story（D10）——待該 change 接上 reducer 後，移除此 filter 即恢復刪除／回溯按鈕。
+
+- **#3 Player-step tap is a no-op (Warning).** Tapping/swiping back to the 選擇球員 segment is
+  enabled but dispatches nothing (there is no `panel: "player"` state — player selection lives on
+  the court). Decision: should step 0 reset the draft, refocus the court, or stay a no-op.
+
+- **#4 編輯流程的 mode desync（Warning）— 詳細說明。**
+
+  **背景**：Redux game state 依 `mode` 分成多份 slice（`state.game[mode]`，`mode` 為 `"general"`
+  或 `"editing"`）。正常記錄走 `general`，點「編輯」某一筆既有 entry 時，`setEditingEntryStatus`
+  會把該筆載入 `editing` slice，讓使用者在不污染 `general` draft 的情況下修改。
+
+  **問題**：`game/index.tsx` 在組裝時把 `mode="general"` **寫死**傳給 `GamePanel` 與（原）
+  `GamePreview`（此為既有做法，非本次新增）。於是本次新增、讀取這個 prop 的元件——
+  `EntryProgressBar`（讀 `getEntryProgress(draft)`，draft 來自 `state.game[mode]`）與 Preview 的
+  tap-to-submit（`useEntryDraftPreview(gameId, mode)`）——在編輯期間都仍讀 `general` slice；但同層的
+  `GameMoves` 讀的是 **live 的 `state.game.mode`**。兩者資料源不一致。
+
+  **後果**：一旦進入編輯（`mode` 變 `editing`），進度條顯示的是 `general` 的舊進度、而非正在編輯的
+  那筆；且點 Preview 會走「展開 drawer」而不是「送出這次編輯」，因為 `isEditing` 是由 `general`
+  slice 推導、判定為 false。
+
+  **為何不在本 change 修**：這不是 entry-ui 新引入的 bug，而是本次**暴露**了既有的 `mode` 寫死。
+  正解是一個架構決策——編輯流程要如何把 `mode` 傳遞到整個 game 子樹（例如以 context 或 Redux
+  selector 取代寫死的 prop），影響面超出 entry-ui 前端切片，宜由後續處理編輯／協作的 change 統一收斂。
+
+- **#5 空 set 的 crash（Warning，既有問題）— 詳細說明。**
+
+  **觸發條件**：一個剛建立、還沒有任何 entry 的 set（`entries: []`），且 draft 尚未動過。
+
+  **成因鏈**：`gamePhaseHelper` 以「`entries` 是否 truthy／inProgress」判斷比賽階段，但**空陣列
+  `[]` 在 JS 為 truthy**，於是它回傳 `inProgress: true`，程式進入記錄中的渲染分支。此時 Preview
+  要顯示「上一筆 entry」（`entries[entryIndex - 1]`），在空 set 下算出 `entries[-1] === undefined`；
+  而 draft 未動過、也產不出 draftRallyEntry，最終 `entry` 落為 `undefined`。`<Entry>` 直接存取
+  `entry.type` → 對 `undefined` 取值，丟出 TypeError。
+
+  **為何不在本 change 修**：此問題在本次修改前的 `7fb974f7` 已**逐字存在**（非 entry-ui 引入）。
+  根因在 `gamePhaseHelper` 對「空 set」的相位判定（空陣列不應視為 inProgress），屬 core game logic；
+  在那裡修才對，且牽動既有 727 測試涵蓋的比賽相位邏輯，超出 entry-ui 前端切片範圍。**建議**：於
+  `gamePhaseHelper` 補上 `entries.length > 0` 的守衛，或在 Preview 端對 `entry == null` 時 fail-safe
+  渲染空狀態——擇一，但以前者為正解。
+
+- **#6–#10 Suggestions.** Sticky `suppressClickRef` on an off-button swipe end (self-heals after
+  one tap; a timeout reset risks re-introducing the double-fire the flag prevents); `frozen` read
+  from a render closure (largely covered by React's discrete-event flushing + `key` remount);
+  duplicated swipe-gesture block between `EntryRow` and `EntryProgressBar` (they differ — left-only
+  vs both directions — so a shared `useSwipeGesture` hook is a real refactor); a redundant
+  `=== true` (deliberate defensive style); and `getEntryProgress` recomputed a few times per render
+  (a cheap pure fn, negligible). Each is a judgment call, not a defect.
+
+---
+
+## PR-review round 1 — CI reviewer (`claude-code-review`)
+
+The automated PR review on #311 surfaced one finding the post-apply self-review missed, plus a
+few confirmations. Fixed in commit `f9b10c13`; `pnpm typecheck` clean and the affected suites
+(`summary-drawer`, `entry-progress`, `gesture-integration`) green.
+
+### #11 — Summary drawer "編輯" action was a dead no-op (Bug, fixed)
+
+**Files**: `src/components/game/summary-drawer.tsx`, `src/components/game/index.tsx`.
+**Root cause**: moving the Summary out of the Options dialog into a standalone, always-mounted
+`SummaryDrawer` severed an implicit dependency. Tapping "編輯" dispatched
+`setEditingEntryStatus` (flipping Redux `mode` to `"editing"`) but nothing opened the Options
+`Dialog` housing `EntriesEdit` — `dialogOpen` was only ever set by the header's options button.
+Because delete/rollback are hidden by the last-entry rule (#2), edit was the **only** exposed
+row action on the newest entry, and it did nothing. This is the desync that self-review #4 had
+only assumed _inside_ an already-open dialog — it was in fact a no-op before the dialog ever
+opened.
+**Fix**: minimal callback bridge — `SummaryDrawer` gains an `onEditRequest` prop invoked after
+the dispatch, and the `Game` shell wires it to `setDialogOpen(true)`. A container-level
+regression test asserts the edit action both dispatches `setEditingEntryStatus` and fires
+`onEditRequest`. Scope was deliberately held to the bridge; extracting `EntriesEdit` into a
+dedicated `edit-dialog` (game-page layout, before/after conflict confirm, leave-warning) is a
+separate follow-up change, sequenced after this PR merges.
+
+### Confirmed, no change needed
+
+- **`submittable` invariant** — the CI reviewer noted `submittable` now checks only
+  `away.num`. Verified correct against `setEntryDraftHomeMove` (sets `win` / `home` / a default
+  `away` atomically); added a one-line invariant comment in `entry-progress.ts` so it cannot
+  silently break. No logic change.
+- **`useStepSwipe` instantiated twice** — same duplication already flagged as #8; confirmed a
+  refactor call, not a defect.
+- **`create-rally` / `update-rally` re-throw** — confirmed a necessary correctness fix (a failed
+  request otherwise resolves `undefined`, which SWR would cache as game state).
+- **Config changes** (eslint globs, jsdom `PointerCapture` polyfill, `vaul`) — correct and
+  narrowly scoped.
+
+### Known coverage gap (acknowledged)
+
+The bridge test is container-level. The full round-trip (drawer tap → dialog open →
+`EntriesEdit` render) is still uncovered because `gesture-integration.test.tsx` stubs
+`GameOptions` — this is exactly how #11 shipped unnoticed. Closing it belongs with the
+`edit-dialog` follow-up, where the edit surface becomes independently testable.
+
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>

@@ -1,9 +1,121 @@
 ---
-title: Overview
+title: "API ObjectId Guards"
+description: "以共用 guard 統一所有 MongoDB ObjectId API path parameter 的驗證與錯誤回應。"
+capabilities: ["platform/api/validation","platform/data-access/mongodb"]
 ---
 
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
 
 <TLDR>
   以共用 guard 統一所有 MongoDB ObjectId API path parameter 的驗證與錯誤回應。
 </TLDR>
+
+## Proposal
+
+## Summary
+
+Extract a shared `assertObjectId` guard for MongoDB ObjectId path-parameter validation and apply it to all API routes that accept an ObjectId segment but currently perform no format check.
+
+## Motivation
+
+Only `src/app/api/teams/[teamId]/route.ts` validates the `teamId` path segment against the ObjectId format before using it. Ten other route handlers that accept `teamId`, `gameId`, or `playerId` pass the raw path string directly into the service/authorization/repository layer. When a caller sends a syntactically invalid string (e.g. `"undefined"`, `"bad-id"`), Mongoose constructs `new Types.ObjectId(id)` and throws a `BSONError`. `translateRepositoryError` does not recognise `BSONError`, so the error falls through to a generic 500 — masking an input error that should be a 400.
+
+## Proposed Solution
+
+1. Create `src/lib/api/guards.ts` with an exported `assertObjectId(id, param?)` function that throws `ValidationError(400)` when the string is not a 24-character hex ObjectId.
+2. Apply `assertObjectId` as the first call in every handler that uses an ObjectId path segment.
+3. Refactor `src/app/api/teams/[teamId]/route.ts` to import from the new shared module instead of its local copy.
+
+## Non-Goals
+
+- `src/app/api/users/[userId]/players/route.ts` is excluded — `userId` is a Better Auth string identifier, not a MongoDB ObjectId, and is validated by identity comparison against the session user, not by DB lookup.
+- Changing `translateRepositoryError` to catch `BSONError` — input validation belongs at the request boundary, not the infrastructure layer.
+- Adding ObjectId validation to frontend client code.
+
+## Alternatives Considered
+
+**Teach `translateRepositoryError` about `BSONError`**: rejected — this hides a validation concern inside the infrastructure layer and produces generic error messages that do not identify which parameter was malformed.
+
+**`withValidatedParams(schema)` wrapper factory**: rejected — requires the wrapper to understand Next.js async `props.params` destructuring, adding complexity with no benefit over a one-line `assertObjectId` call.
+
+## Impact
+
+- Affected specs: none (defensive hardening only, no new capabilities)
+- Affected code:
+  - New: `src/lib/api/guards.ts`
+  - Modified: `src/app/api/teams/[teamId]/route.ts`
+  - Modified: `src/app/api/teams/[teamId]/lineups/route.ts`
+  - Modified: `src/app/api/teams/[teamId]/ownership/route.ts`
+  - Modified: `src/app/api/teams/[teamId]/players/route.ts`
+  - Modified: `src/app/api/games/[gameId]/route.ts`
+  - Modified: `src/app/api/games/[gameId]/sets/route.ts`
+  - Modified: `src/app/api/games/[gameId]/sets/rallies/route.ts`
+  - Modified: `src/app/api/games/[gameId]/sets/substitutions/route.ts`
+  - Modified: `src/app/api/players/[playerId]/route.ts`
+  - Modified: `src/app/api/players/[playerId]/invitations/route.ts`
+  - Modified: `src/app/api/players/[playerId]/memberships/route.ts`
+  - Modified: `src/app/api/teams/[teamId]/__tests__/route.test.ts`
+  - New: `src/lib/api/__tests__/guards.test.ts`
+
+<DesignMockup />
+
+</Proposal>
+<Review>
+
+<ReviewDetails>
+
+## Review
+
+# Code Review: api-objectid-guards
+
+Post-implementation review findings. Status updated as fixes land.
+
+---
+
+## Status Summary
+
+| #   | Title                                                      | Severity | Status   |
+| --- | ---------------------------------------------------------- | -------- | -------- |
+| 1   | Silent green tests — try/catch without `expect.assertions` | Bug      | ✅ Fixed |
+| 2   | Duplicate `OBJECT_ID_RE` in `team.ts` and `guards.ts`      | Nit      | ✅ Fixed |
+
+---
+
+## Issue #1: Silent green tests — try/catch without `expect.assertions`
+
+**File**: `src/lib/api/__tests__/guards.test.ts`, lines 31–50
+
+**Root cause**: Two tests ("includes the param name in the error detail" and "uses default param name 'id' when param is omitted") place all their `expect(...)` calls inside a `catch` block with no `expect.assertions(N)` guard. If `assertObjectId` does not throw, the catch block is skipped entirely and Jest records 0 assertions — the tests pass silently (false green).
+
+**Trigger**: Refactor `assertObjectId` into a no-op, or make the import resolve to a stub. Both tests remain green while the guard is broken.
+
+**Fix**: Added `expect.assertions(N)` at the top of each affected test so Jest fails when the catch is never entered.
+
+---
+
+## Issue #2: Duplicate `OBJECT_ID_RE` in `team.ts` and `guards.ts`
+
+**Files**: `src/lib/validations/team.ts` line 4, `src/lib/api/guards.ts` line 4
+
+**Root cause**: Both files independently define `const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/` for the same purpose (MongoDB ObjectId format validation). Neither references the other. The regex in `team.ts` is module-private (not exported).
+
+**Risk**: If the ObjectId format check ever needs to change (e.g. to support a different ID scheme), both definitions must be updated in sync. No centralised utility existed before this PR.
+
+**Fix**: Extract `OBJECT_ID_RE` from `guards.ts` as an exported constant and import it in `team.ts`.
+
+---
+
+## Investigated but Not Flagged
+
+- **`/api/users/[userId]/players` missing guard** (REFUTED): Better Auth `userId` is a nanoid string, not a 24-hex-char MongoDB ObjectId. Applying `assertObjectId` would always reject valid authenticated users. No guard is appropriate here.
+- **Error message change** ("Invalid team ID format" → "Invalid teamId format"): No downstream code matches on the detail string; error handlers key on `code`/`reason` only. No client breakage.
+- **`connectToMongoDB` reordering in game routes**: Now called after `assertObjectId` — this is correct fail-fast behaviour, not a regression.
+
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>

@@ -1,5 +1,0 @@
-{
-  "schemaVersion": 1,
-  "change": "retryable-queue-persistence",
-  "slices": ["S01", "S02", "S03", "S04"]
-}

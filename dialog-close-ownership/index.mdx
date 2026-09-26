@@ -1,8 +1,13 @@
 ---
-title: Overview
+title: "Dialog Close Ownership"
+description: "關門的時機從「按下送出的那一刻」移到「動作成功之後」。持有 open state 的一律是 render Dialog 的那一層，dialog 內的元件只回報 onSuccess；送出鍵回到它所屬的 form 邊界之內，驗證失敗因此連成功路徑都走不到。"
+capabilities: ["platform/forms","platform/design-system/overlays"]
 ---
 
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
 
 <TLDR>
   關門的時機錯了。`DialogClose` 在 handler 一 return 就關閉
@@ -79,3 +84,630 @@ repo 內有六個 RHF 表單，其中五個會出現在 dialog 裡。掃過全�
 `platform/forms` 取得一條新的約束：**送出鍵位於它所提交的 form 邊界之內，而在 dialog 中，那個位置是 `DialogFooter`。** 這條規則讓驗證閘門成為結構性的——瀏覽器與 RHF 在驗證失敗時根本不會呼叫成功路徑，所以「不該關閉」不需要任何一段程式碼記得。配套的一半是：邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。
 
 `platform/design-system/overlays` 取得兩條：**open state 由承載 `Dialog` 的那一層持有；overlay 內的元件不自行關閉，只回報結果。** 持有者有兩種合法形態，元件 state 與路由，契約相同；路由持有者以離開 route 關閉，返回來源或前往結果頁皆可，往前的方向由 `@modal` 的 catch-all 保證 slot 落空。以及：**送出鍵在 async 動作進行中自己說出來，spinner 佔用 icon 的那一格**，而 icon 的左右位置帶語意——在左說明做什麼，在右說明帶你去哪。
+
+## Design
+
+<TLDR>
+  正確性來自結構，不是來自一層包裝。送出鍵回到 form 邊界之內、並且落在
+  `DialogFooter`，驗證失敗就走不到成功路徑；open state 回到 render `Dialog`
+  的那一層，關不關由它決定。動作進行中，那顆鍵自己說出來。
+</TLDR>
+
+## Adopted shape：form 邊界
+
+form 邊界包住 `DialogHeader`、`DialogBody`、`DialogFooter` 三者，送出鍵是它的 `type="submit"`，而且落在 footer 裡。
+
+<svg
+  viewBox="0 0 1160 400"
+  role="img"
+  aria-label="兩個 dialog 的線框對照。左邊是之前：expand 與 close 兩顆控制鍵是一組絕對定位的元素，掛在 DialogContent 上、是 children 的兄弟，浮在右上角之外；DialogHeader 因此帶著 pr-20 替它讓位；form 虛線框只包住 DialogBody，送出鍵位於 form 之外的 DialogFooter 裡並被 DialogClose 虛線框包住。右邊是之後：那兩顆控制鍵回到 DialogHeader 內，在 normal flow 中靠右對齊，pr-20 移除；form 虛線框同時包住 DialogHeader、DialogBody 與 DialogFooter 三者，送出鍵成為 form 的 type=submit 按鈕並留在 DialogFooter 裡。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 400", width: "100%", height: "auto" }}
+>
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="36" fontSize="15.5" fill="var(--destructive)">之前 · 控制鍵絕對定位，浮在所有結構之外</text>
+
+    <rect x="40" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="56" y="72" width="448" height="36" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="95" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <text x="330" y="95" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">pr-20 替它讓位</text>
+
+    <rect x="432" y="58" width="76" height="36" rx="18" fill="none" stroke="var(--destructive)" strokeDasharray="4 3" />
+    <circle cx="452" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <circle cx="488" cy="76" r="10" fill="var(--background)" stroke="var(--border)" />
+    <text x="488" y="81" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="470" y="46" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--destructive)">absolute</text>
+
+    <rect x="56" y="124" width="448" height="126" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <text x="68" y="142" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">Form</text>
+    <rect x="68" y="150" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="82" y="169" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="82" y="178" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="82" y="210" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="56" y="272" width="448" height="60" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="70" y="292" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <rect x="330" y="278" width="160" height="48" rx="8" fill="none" stroke="var(--destructive)" strokeDasharray="5 4" />
+    <rect x="342" y="286" width="136" height="32" rx="6" fill="var(--primary)" />
+    <text x="410" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+    <text x="410" y="350" textAnchor="middle" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--destructive)">DialogClose</text>
+
+    <text x="40" y="386" fontSize="13.5" fill="var(--destructive)">控制鍵不屬於任何區塊，送出鍵不屬於 form</text>
+
+    <text x="640" y="36" fontSize="15.5" fill="var(--primary)">之後 · 三者同在 form 之內，控制鍵回到 header</text>
+
+    <rect x="640" y="52" width="480" height="310" rx="10" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="656" y="72" width="448" height="272" rx="8" fill="none" stroke="var(--primary)" strokeDasharray="5 4" strokeWidth="1.5" />
+    <text x="668" y="92" fontSize="14.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">Form</text>
+
+    <rect x="668" y="100" width="424" height="52" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="131" fontSize="14.5" fill="var(--foreground)">DialogHeader</text>
+    <circle cx="1030" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <circle cx="1064" cy="126" r="10" fill="var(--card)" stroke="var(--border)" />
+    <text x="1064" y="131" textAnchor="middle" fontSize="12" fill="var(--muted-foreground)">✕</text>
+    <text x="1047" y="146" textAnchor="middle" fontSize="11.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">in flow</text>
+
+    <rect x="668" y="168" width="424" height="92" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="187" fontSize="13.5" fill="var(--muted-foreground)">DialogBody</text>
+    <rect x="682" y="196" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+    <rect x="682" y="228" width="396" height="26" rx="5" fill="var(--card)" stroke="var(--border)" />
+
+    <rect x="668" y="272" width="424" height="60" rx="6" fill="var(--background)" stroke="var(--border)" />
+    <text x="682" y="292" fontSize="13.5" fill="var(--muted-foreground)">DialogFooter</text>
+    <text x="682" y="318" fontSize="13.5" fontFamily="ui-monospace, monospace" fill="var(--primary)">type="submit"</text>
+    <rect x="940" y="286" width="140" height="32" rx="6" fill="var(--primary)" />
+    <text x="1010" y="307" textAnchor="middle" fontSize="14.5" fill="var(--primary-foreground)">確定</text>
+
+    <text x="640" y="386" fontSize="13.5" fill="var(--primary)">每一顆按鈕都屬於某個區塊，每個區塊都屬於 form</text>
+
+  </g>
+</svg>
+
+`DialogContent` 目前把 expand 與 close 這一組控制鍵渲染成 `{children}` 的**兄弟**，`absolute top-3 right-3`。它們因此不屬於任何區塊——而 `DialogHeader` 帶著 `pr-20`，5rem 的右內距，唯一用途就是替那組浮起來的按鈕讓位。這個 magic number 就是絕對定位的帳單。
+
+控制鍵回到 `DialogHeader` 之內，在 normal flow 中靠右對齊，`pr-20` 隨之刪除，標題不再需要閃避看不見的東西。順序也一併修正：那組按鈕原本渲染在 `{children}` 之後，所以 ✕ 是整個 dialog 的**最後一個** tabbable，排在每一個欄位與送出鍵後面。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // ui/dialog.tsx — DialogContent\n   <DialogPrimitive.Content {...props}>\n     {children}\n-    {(onExpand || closeButton) && (\n-      <div className="absolute top-3 right-3 flex flex-row items-center gap-1">\n-        {onExpand && <Button onClick={onExpand}>…</Button>}\n-        {closeButton && <DialogPrimitive.Close asChild>…</DialogPrimitive.Close>}\n-      </div>\n-    )}\n   </DialogPrimitive.Content>'
+  }
+/>
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // ui/dialog.tsx — DialogHeader\n-  const DialogHeader = ({ children, className, ...props }) => (\n+  const DialogHeader = ({ closeButton = true, onExpand, expandLabel, ...props }) => (\n     <div\n       className={cn(\n-        "flex flex-none flex-col items-start gap-1 px-4 pt-4 pr-20 pb-2",\n+        "flex flex-none flex-row items-start gap-2 px-4 pt-4 pb-2",\n         className,\n       )}\n       {...props}\n     >\n-      {children}\n+      <div className="flex min-w-0 flex-1 flex-col items-start gap-1">\n+        {children}\n+      </div>\n+      {(onExpand || closeButton) && (\n+        <div className="flex flex-none flex-row items-center gap-1">\n+          {onExpand && (\n+            <Button type="button" onClick={onExpand} aria-label={expandLabel}>…</Button>\n+          )}\n+          {closeButton && (\n+            <DialogPrimitive.Close asChild>\n+              <Button type="button">…</Button>\n+            </DialogPrimitive.Close>\n+          )}\n+        </div>\n+      )}\n     </div>\n   );'
+  }
+/>
+
+包住 header 而不是只包 body 與 footer，是為了讓 `DialogHeader`、`DialogBody`、`DialogFooter` 維持兄弟關係——那是 `DialogContent` 原本的組合方式。兩種畫法的 flex 成本相同：都需要恰好一個元素補 `min-h-0 flex-1`。包三者時，form 成為 `DialogContent` 唯一的 flex child，三個區塊是 form 的 flex children，**結構與今天完全一致，只是整體下移一層**。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // team/lineup/panel/options/libero-replace.tsx\n   <DialogContent>\n-    <DialogHeader>…</DialogHeader>\n-    <DialogBody>\n-      <Form form={form} onSubmit={form.handleSubmit(onSubmit)}>\n-        …兩個 FormField…\n-      </Form>\n-    </DialogBody>\n-    <DialogFooter>\n-      <DialogClose asChild>\n-        <Button type="button" onClick={form.handleSubmit(onSubmit)}>\n-          確定\n-        </Button>\n-      </DialogClose>\n-    </DialogFooter>\n+    <Form\n+      form={form}\n+      onSubmit={form.handleSubmit(onSubmit)}\n+      className="min-h-0 flex-1 gap-0"\n+    >\n+      <DialogHeader>…</DialogHeader>\n+      <DialogBody>\n+        …兩個 FormField…\n+      </DialogBody>\n+      <DialogFooter>\n+        <Button type="submit">\n+          <RiCheckLine />\n+          確定\n+        </Button>\n+      </DialogFooter>\n+    </Form>\n   </DialogContent>'
+  }
+/>
+
+代價是一個真實的坑：`Button` 沒有預設 `type`，所以 form 邊界內的 `<Button onClick={…}>` 是隱含的 submit button。`game/new/index.tsx` 的 `DialogTitle` 裡就有一顆返回鍵，`game/options/edit/index.tsx` 的 header 裡也有一顆。規則因此成對：**邊界內任何非送出用途的 Button 必須明確寫 `type="button"`。**
+
+控制鍵搬進 header 之後，✕ 與 expand 同樣落入 form 邊界，所以它們也是隱含的 submit button——但這一次修正發生在 `ui/dialog.tsx` 內，一次涵蓋所有 dialog，不必倚賴每個呼叫端記得。
+
+## Adopted shape：open state 的歸屬
+
+同一條規則，四個父層，兩種持有者。
+
+<svg
+  viewBox="0 0 1160 520"
+  role="img"
+  aria-label="open state 歸屬圖。上排四個父層：ActionButton、set-options panel、lineup panel 三者以 useState 持有 open state；EditDialogContainer 則由路由持有，它寫死 open 為 true 並以離開 route 關閉。下排三組子元件：NewGameForm 對應 ActionButton，LiberoReplaceDialog 由 set-options panel 與 lineup panel 共用，三個 team 表單由 EditDialogContainer 承載。子元件只在成功後回報，不自行關閉。底部說明回報方向，以及 Esc、點 overlay、右上角關閉鍵在 controlled 模式下都只是 onOpenChange 的一次詢問。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 520", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker id="dco-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="40" y="38" fontSize="15.5" fill="var(--muted-foreground)">元件以 useState 持有</text>
+    <text x="1120" y="38" textAnchor="end" fontSize="15.5" fill="var(--muted-foreground)">路由持有</text>
+
+    <rect x="40" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="170" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">ActionButton</text>
+    <text x="170" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">layout/nav</text>
+    <rect x="66" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="170" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">改為 controlled</text>
+
+    <rect x="320" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="450" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">set-options panel</text>
+    <text x="450" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/set-options/panel</text>
+    <rect x="346" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="450" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">已 controlled</text>
+
+    <rect x="600" y="56" width="260" height="110" rx="8" fill="var(--card)" stroke="var(--primary)" strokeWidth="1.5" />
+    <text x="730" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">lineup panel</text>
+    <text x="730" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team/lineup/panel/options</text>
+    <rect x="626" y="122" width="208" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="730" y="140" textAnchor="middle" fontSize="13" fill="var(--primary)">改為 controlled</text>
+
+    <rect x="880" y="56" width="240" height="110" rx="8" fill="var(--card)" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeDasharray="5 4" />
+    <text x="1000" y="88" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">EditDialogContainer</text>
+    <text x="1000" y="108" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">@modal 攔截路由</text>
+    <rect x="906" y="122" width="188" height="26" rx="13" fill="var(--background)" stroke="var(--border)" />
+    <text x="1000" y="140" textAnchor="middle" fontSize="13" fill="var(--muted-foreground)">離開 route 即關閉</text>
+
+    <line x1="170" y1="170" x2="170" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="450" y1="170" x2="560" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="730" y1="170" x2="620" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+    <line x1="1000" y1="170" x2="1000" y2="262" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#dco-arrow)" />
+
+    <rect x="40" y="268" width="260" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="170" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">NewGameForm</text>
+    <text x="170" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">game/new</text>
+    <rect x="60" y="334" width="220" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="170" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才 onSuccess</text>
+
+    <rect x="460" y="268" width="260" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="590" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">LiberoReplaceDialog</text>
+    <text x="590" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">lineup/panel/options</text>
+    <rect x="480" y="334" width="220" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="590" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才 onSuccess</text>
+
+    <rect x="880" y="268" width="240" height="106" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="1000" y="300" textAnchor="middle" fontSize="15.5" fill="var(--foreground)">三個 team 表單</text>
+    <text x="1000" y="320" textAnchor="middle" fontSize="13" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">team form · player 新增與編輯</text>
+    <rect x="900" y="334" width="200" height="26" rx="13" fill="var(--card)" stroke="var(--border)" />
+    <text x="1000" y="352" textAnchor="middle" fontSize="13" fill="var(--foreground)">成功才離開 route</text>
+
+    <text x="590" y="396" textAnchor="middle" fontSize="13.5" fill="var(--muted-foreground)">同一個子元件，兩個父層，同一條規則</text>
+
+    <rect x="40" y="414" width="1080" height="80" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="64" y="440" fontSize="14.5" fill="var(--foreground)">回報方向：子元件不自行關閉，只在成功後回報，由持有者決定關閉。</text>
+    <text x="64" y="462" fontSize="13.5" fill="var(--muted-foreground)">Esc、點 overlay、右上角 ✕ 在 controlled 模式下都只是 onOpenChange(false) 的一次詢問 — 關不關由持有者決定。</text>
+    <text x="64" y="482" fontSize="13.5" fill="var(--muted-foreground)">路由持有者的關閉動作是離開 route：返回來源用 router.back()，前往結果頁用 router.replace()。</text>
+
+  </g>
+</svg>
+
+controlled 給的不是「能關」，而是**否決權**。Radix 在 controlled 模式下完全不儲存 `open`，每一個關閉意圖都變成一次 `onOpenChange(false)` 呼叫，然後什麼都不做；真正關閉是持有者更新狀態後重新 render 的結果。
+
+`EditDialogContainer` 是第二種持有者：`<Dialog open>` 寫死為 `true`，關閉等於離開這個 route。它已經符合否決權的形狀——`onOpenChange` 進到 `handleClose`，dirty 時彈出放棄確認而不關閉——所以本 Change 不改它對使用者主動關閉的處理，只補它缺少的 `DialogFooter`，以及下一節「往前離開」這個方向。
+
+## Adopted shape：往前離開 route
+
+離開 route 有兩個方向。返回來源用 `router.back()`，這是本 Change 原本唯一採用的方向。往前前往結果頁時，parallel routes 有一個既定行為會擋路：soft navigation 到一個 `@modal` 沒有對應 route 的網址時，**slot 保留原本的內容**。Next.js 的文件直接點名這一點，並以一個回傳 `null` 的 catch-all 作為關閉 modal 的方式。
+
+這正是移除成員時看到的畫面：`router.push` 回球隊頁之後，`@team` 換成了球隊頁，`@modal` 卻仍停在那位已被移除的球員的編輯畫面上。
+
+<AnnotatedDiff
+  unified
+  code={
+    "  // src/app/(tabs)/@modal/team/[...catchAll]/page.tsx（新檔案）\n+ export default function TeamModalCatchAll() {\n+   return null;\n+ }"
+  }
+/>
+
+catch-all 放在 `team/` 之下而不是 slot 根目錄。每一條 `@modal` 攔截路由都在 `(...)team` 之下，所以 `/team/*` 已涵蓋所有需要關閉的導頁；放在根目錄則會讓 `(tabs)` layout 開始匹配 `/game`、`/auth` 與不存在的網址。更具體的路由仍然優先：攔截路由照常開啟 dialog，`(workspace)` 的全頁 route 照常承接 hard navigation。
+
+有了它，完成的動作可以把使用者帶到結果，而不只是退回來源：
+
+| 動作                      | 落點                              | 方式             |
+| ------------------------- | --------------------------------- | ---------------- |
+| 新增球員（dialog 與全頁） | 新球員的資訊頁                    | `router.replace` |
+| 編輯球員（dialog）        | 球員資訊頁，也就是唯一的入口      | `router.back()`  |
+| 編輯球員（全頁）          | 球員資訊頁；header 的返回箭頭相同 | `router.replace` |
+| 移除成員                  | 球隊頁                            | `router.replace` |
+| 建立球隊（dialog 與全頁） | 新球隊頁                          | `router.replace` |
+| 編輯球隊（全頁）          | 球隊頁                            | `router.replace` |
+
+往前一律用 `replace` 而不是 `push`：剛完成的表單不該留在 history 裡，否則返回鍵會把它重新打開。新增球員在兩種模式的落點相同，所以 `CreateForm` 不再收 `onSuccess`，自己導向；`EditForm` 保留它，因為兩種模式的最佳動作不同——在 dialog 裡 `back()` 回到入口而不多一筆 history。
+
+全頁的返回另有一個坑，出在展開鍵。它以 `window.location.assign` 重新載入**同一個網址**，於是 history 裡同時留著 dialog 那一筆與全頁那一筆；全頁上的返回箭頭（`Header` 在站內一律 `router.back()`）與瀏覽器返回鍵，都只會退回 dialog 那一筆，把同一份表單再載入一次。展開鍵因此改用 `window.location.replace`，由全頁取代 dialog 那一筆：返回會回到開啟 dialog 的那一頁，全頁存檔後的返回也不會再經過表單。這一處修正涵蓋每一個展開流程，`Header` 不需要改。
+
+這不違反「子元件不自行關閉」。子元件做的是導頁，dialog 的消失是 URL 改變後 slot 落空的結構性結果；使用者主動關閉時的否決權仍在 `EditDialogContainer` 手上。
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // team/players/create-form.tsx 的成功路徑\n-  await apiClient(`/api/teams/${teamId}/players`, { method: "POST", … });\n+  const player = await apiClient<PlayerView>(`/api/teams/${teamId}/players`, { method: "POST", … });\n   toast({ title: "成功", description: "球員已新增" });\n   mutate(`/api/teams/${teamId}/players`);\n   clearDraft();\n-  if (onSuccess) {\n-    onSuccess();\n-  } else {\n-    router.push(`/team/${teamId}`);\n-  }\n+  router.replace(`/team/${teamId}/players/${player.id}`);'
+  }
+/>
+
+## Adopted shape：送出鍵自己說出進行中
+
+`Button` 的 `loading` **今天就已經是完整替換**——傳了 `loadingText`，`children` 連同它的圖示一起被換掉。缺陷只發生在省略它的時候：spinner 與原圖示同時出現。所以本 Change **不新增也不移除任何 prop**，改的只有呼叫端。
+
+<AnnotatedDiff
+  code={
+    '// ui/button.tsx — 這一段不動，它本來就對\nconst Button = ({ loading = false, loadingText, children, ...props }) => {\n  const isLoading = !asChild && loading;\n  return (\n    <Comp disabled={disabled || isLoading} {...props}>\n      {isLoading ? (\n        <>\n          <RiLoader4Line className="animate-spin" />\n          {loadingText ?? children}\n        </>\n      ) : (\n        children\n      )}\n    </Comp>\n  );\n};'
+  }
+/>
+
+<AnnotatedDiff
+  unified
+  code={
+    '  // game/new/index.tsx — 改的是這裡\n   <DialogFooter>\n-    <Button size="lg" onClick={createGame}>\n+    <Button\n+      size="lg"\n+      onClick={createGame}\n+      loading={isCreating}\n+      loadingText="建立中"\n+    >\n       創建賽事紀錄\n       <RiArrowRightLine />\n     </Button>\n   </DialogFooter>'
+  }
+/>
+
+考慮過 `loadingContent`（呼叫端自己把 spinner 寫在圖示原本的位置）。它買到的唯一額外能力是「每顆按鈕各自決定 loading 圖示」——而這個 repo 確實有第二種進行中表示：`pull-refresh-indicator` 的 `animate-volleyball-bounce`，一個品牌化的動畫。但正因為如此：若哪天要用它取代 spinner，那是一次**全域的設計系統決定**，改在 `Button` 內部一次涵蓋所有按鈕。per-call-site 的 prop 提供的是錯誤軸向上的彈性。
+
+`loadingText` 表達不了位置，所以 **spinner 一律置前**。這不構成視覺代價：loading 時文字與圖示是一起被換掉的，使用者看到的是一組全新的內容，不會把 spinner 讀成「原本的箭頭移動了」。真正會變的是按鈕寬度，因為標籤長度不同——那是替換文字本身的後果，與 spinner 的位置無關。
+
+而位置本身帶語意，本來就不該統一：**圖示在左說明這顆鍵做什麼**（save、add、check），**圖示在右說明它把你帶去哪**（箭頭）。`set-options` 的「開始新一局」箭頭在右而「儲存設定」save 在左，不是不一致，是同一條規則套在兩種動作上——前者導向 entry 頁，後者留在原地。
+
+## Behavior contract
+
+- 送出成功：子元件回報，持有者關閉——`setOpen(false)`，或由路由持有者離開 route：`router.back()` 返回來源，`router.replace()` 前往結果頁。
+- 驗證失敗：不呼叫 `onSubmit`，不回報，dialog 保持開啟，RHF 的欄位錯誤照常顯示。
+- 請求失敗：顯示 toast 或 root error 後**不**回報，dialog 保持開啟，已填內容完整保留。
+- 進行中：送出鍵 `disabled`、`aria-busy`，內容換成 spinner 加 `loadingText`。
+- 使用者主動取消：照常關閉；`EditDialogContainer` 既有的 dirty 攔截不變。
+
+## Failure modes
+
+- **form 邊界提上來但忘記 `min-h-0 flex-1`**：`DialogBody` 失去可捲動高度，長內容溢出而非捲動。
+- **header 內的 Button 沒寫 `type="button"`**：按下它會送出表單。`game/new/index.tsx` 的返回鍵是現成的例子。
+- **`EditDialogContainer` 補上 `DialogFooter` 後，全頁模式跟著改版**：三個 team 表單同時服務 `@modal` 與 `(workspace)` 兩種 route，footer 一旦由表單自己 render，全頁模式也會看到它。六個畫面都要目視確認。
+- **帶圖示的按鈕忘記傳 `loadingText`**：會退回 spinner 加 `children`，出現兩個圖示。型別擋不住，只能逐一檢查。
+- **從 modal 往前導頁卻沒有 catch-all 承接**：slot 保留原本的 modal，畫面停在已經完成的表單上。新增的 `@modal` 攔截路由若不在 `/team` 之下，catch-all 要跟著擴大。
+- **往前導頁用 `push`**：返回鍵回到剛存好的表單，而那份表單的草稿已被清除。
+
+## Testing strategy
+
+一個 component test 釘住核心路徑：mock `apiClient` 讓它 reject，斷言 dialog 仍在畫面上、且已填的賽事資訊還在。這是修復前必然失敗、修復後必然通過的最小檢查。
+
+斷言的對象是「dialog 還在、資料還在」，**不是「toast 出現了」**。toast 今天就會出現，`createGame` 的 catch 已經呼叫 `showErrorToast`；壞掉的從來不是錯誤訊息，是承載它的畫面被卸載。只斷言 toast 的測試在修復前就是綠的。
+
+`libero-replace` 的驗證失敗路徑在現行 UI 下不可觸發（兩個欄位都是綁閉合 enum 的 `Select`），因此不為它寫一個只能靠強制注入非法值才會走到的測試。它的保護來自結構。
+
+`Button` 的 `icon` 與 loading 切換以既有的 Storybook 故事涵蓋視覺，行為面只需斷言 loading 時 icon 那一格是 spinner 而非兩者並存。
+
+## Decisions
+
+<DecisionCards ids={["0036", "0037", "0038", "0039", "0040"]} />
+
+## Revisit triggers
+
+- 出現第三種 open state 持有者（既不是元件 state 也不是路由）。
+- 決定讓 `Button` 預設 `type="button"`。那會改變 `team/form.tsx` 目前依賴隱含 submit 的送出鍵，需要自己的驗收，因此不在本 Change 內。
+- `liberoReplace` 改為就地 inline 進 panel。屆時本 Change 對 `libero-replace.tsx` 的修改會整段移除。
+- Radix 之後為 `DialogClose` 提供等待 async handler 的官方機制。
+- 出現不在 `/team` 之下的 `@modal` 攔截路由。catch-all 的範圍要跟著擴大，否則從那裡往前導頁時 modal 不會關閉。
+
+</Proposal>
+<Review>
+
+<ReviewDetails>
+
+## Review
+
+<TLDR>
+  現在 dialog 只在動作成功之後才關閉，由持有 open state 的那一層關閉；路由持有的
+  dialog 無論返回來源或前往結果頁都會關閉。七個切片全數交付，其中 S07
+  來自第一次驗收：在測試部署上找到標題沒有對齊、移除成員後 dialog
+  不關，並依開發者的要求讓球員表單落在球員頁。修正後再跑三輪兩軸
+  review。修正後的畫面在第二次驗收時全數通過，本 Change 已由開發者驗收。
+</TLDR>
+
+## 交付內容
+
+
+## 驗證
+
+- **`pnpm verify:all`**，最後一次在最後一個程式碼修正提交之後執行，其後的 commit 只改 changeset 文字、Review 頁與 commit message：144 個 suite、1058 個測試、blueprint 49 個測試、app build、`assert-sw`、blueprint build 與 workflow conformance 全數通過。app build 的 route 表把 `/team/[...catchAll]` 與各條具體的 `/team` route 並列，沒有衝突。
+- **整合測試沒有執行**，也不需要。diff 沒有碰到 API route、use case、repository、entity 或 validation schema；`src/app` 底下改的是頁面與 route 檔：新增的 catch-all、三個 `@modal` 頁（陣容、編輯球員、建立球隊）與一個 `(workspace)` 頁（編輯球員）。
+- **S02 的測試確實會在修復前失敗。** 用 `dev` 版本的 `game/new/index.tsx` 與 `action-button.tsx` 實測，失敗在找不到 `role="dialog"`。
+- **第一次驗收在測試部署上執行。** 建立賽事失敗、兩個自由球員替換入口、隊伍與球員表單的 dialog 與全頁都已由開發者確認；找到的三件事即 S07 與 header 對齊的來源。修正後的第二次驗收同樣在測試部署上執行，header 對齊、移除成員、新增與編輯球員、建立球隊、每個展開流程的返回，以及既有 dialog 的開啟，全數由開發者確認通過。
+
+## Review findings
+
+兩軸各自在獨立的 context 裡執行。前三輪在第一次驗收前收斂；第四輪檢查驗收後的 Ingest、header 對齊與 S07；第五輪確認第四輪的修正，並推翻了其中返回箭頭的修法；第六輪確認最後的修法，它找到的 commit trailer 格式與文字問題，依 reviewer 指定的內容修正後收斂。
+
+<RiskTable
+  risks={[
+    {
+      name: "驗收：移除成員後 dialog 不關閉",
+      severity: "warning",
+      mitigation:
+        "接受並已修（S07）。根因不在成員區塊：soft navigation 到 @modal 沒有對應 route 的網址時 slot 保留原內容，而 D1 只描述了以 router.back() 離開的方向。以 @modal/team/[...catchAll] 讓往前的導頁同樣關閉 modal，移除成員改用 replace。",
+    },
+    {
+      name: "驗收：header 標題與控制鍵沒有垂直對齊",
+      severity: "warning",
+      mitigation:
+        "接受並已修，屬於 S06 的實作缺陷。標題行高 20px、按鈕 32px，header 靠上對齊，標題中線高了 6px；控制鍵群組加 -my-1.5。",
+    },
+    {
+      name: "驗收：新增與編輯球員後應前往球員頁",
+      severity: "info",
+      mitigation:
+        "由開發者授權 Ingest 併入本 Change，成為 S07；全頁編輯球員的返回箭頭也依開發者選擇改到球員頁。S05「不把使用者帶去新的地方」的驗收條件由 S07 取代。",
+    },
+    {
+      name: "Spec R4：全頁的返回箭頭到不了球員頁",
+      severity: "warning",
+      mitigation:
+        "接受並已修，第二次才修對。Header 在站內一律 router.back()，而展開鍵以 assign 重新載入同一個網址，history 裡留著 dialog 那一筆，所以只改 backHref 沒有效果。第一次修法讓 Header 在 referrer 路徑等於目前路徑時改走 backHref，被第五輪推翻；最後改為展開鍵用 window.location.replace，Header 不動。",
+    },
+    {
+      name: "Spec R5：同路徑規則讓球員頁的返回箭頭回到表單",
+      severity: "warning",
+      mitigation:
+        "接受並已修。document.referrer 屬於整份文件，soft navigation 之後仍指向編輯頁；返回箭頭 push 到球員頁後，球員頁的 Header 看到不同路徑就 router.back()，回到表單，兩頁來回。根因是 history 裡多出來的 dialog 那一筆，所以撤回 Header 的修改，改由展開鍵以 replace 取代那一筆。",
+    },
+    {
+      name: "Spec R5：Review 頁的 @modal 頁清單與測試數量不符",
+      severity: "info",
+      mitigation:
+        "接受並已修。清單依 reviewer 給的句子替換，數量以最後一次 verify:all 為準。",
+    },
+    {
+      name: "Standards R5：lifecycle 轉換應自成一個 commit",
+      severity: "info",
+      mitigation:
+        "接受並已修。pre-pr-review 與 awaiting-delivery-review 各自提交，不與 Review 頁混在一起。",
+    },
+    {
+      name: "Standards R5：fix(team) 的主旨讀起來像換掉了表單",
+      severity: "info",
+      mitigation: "接受並已修，依 reviewer 給的主旨 reword。",
+    },
+    {
+      name: "Standards R5：Header 裡 router.push(backHref) 重複四次",
+      severity: "info",
+      mitigation: "不再適用。Header 的修改已撤回。",
+    },
+    {
+      name: "Standards R6：整條分支的 commit trailer 讀不到",
+      severity: "warning",
+      mitigation:
+        "接受並已修。Verification 斷行後的續行沒有縮排，git 不把最後一段認成 trailer block，連 Implements 與 Blueprint-Change 都讀不到；前五輪都沒有發現。分支未推送，以 msg-filter 為續行補一個空格，改寫前後 tree 相同，並以 git interpret-trailers 逐一確認每個 commit 讀得到的 key。",
+    },
+    {
+      name: "Standards R6：一則 commit body 提到已不在歷史裡的 commit",
+      severity: "info",
+      mitigation: "接受並已修，在同一次改寫中刪掉那一句。",
+    },
+    {
+      name: "Standards R6：design.mdx 的 Header 規則段落出現在沒有實作它的 commit",
+      severity: "info",
+      mitigation:
+        "不採納。要修正就得改寫中間 commit 的 tree，只換到歷史的整齊；最終內容已經正確，後一個 commit 的 body 也說明了它取代了什麼。",
+    },
+    {
+      name: "Spec R6：changeset 漏寫建立球隊 dialog 的關閉與球隊表單的返回鍵",
+      severity: "info",
+      mitigation: "接受並已修，逐字採用 reviewer 給的兩個句子。",
+    },
+    {
+      name: "Spec R6：Review 頁的輪數、切片歸屬與殘留風險範圍",
+      severity: "info",
+      mitigation: "接受並已修，逐字採用 reviewer 給的替換文字。",
+    },
+    {
+      name: "Standards R5：changeset 的語氣混用祈使句與陳述句",
+      severity: "info",
+      mitigation:
+        "不採納。reviewer 標為可接受；前幾輪的條目本來就混用，統一語氣不改變任何一條的意思。",
+    },
+    {
+      name: "Spec R4：D1 說往前導頁一律 replace，建立與編輯球隊仍用 push",
+      severity: "info",
+      mitigation:
+        "接受並已修。三處 router.push 改為 replace，而不是改寫 D1 去記錄一個例外。",
+    },
+    {
+      name: "Spec R4 · Standards R4：changeset 對全頁說過頭，且把行為改變放在 Fixed",
+      severity: "info",
+      mitigation:
+        "接受並已修。落點的改變移到 Changed，dialog 不關閉與返回鍵重新打開表單留在 Fixed。返回鍵的說法當時先限定在 dialog；第五輪之後展開鍵改用 replace，全頁也成立，限定隨之拿掉。",
+    },
+    {
+      name: "Spec R4 · Standards R4：Review 頁與 lifecycle 落後於分支",
+      severity: "info",
+      mitigation:
+        "接受並已修，即本次更新；lifecycle 在 review 期間為 pre-pr-review。",
+    },
+    {
+      name: "Standards R4：commit 主旨用了英式拼法 centre",
+      severity: "info",
+      mitigation: "接受並已修。分支未推送，以 reword 改為 center。",
+    },
+    {
+      name: "Standards R4：lifecycle 回到 applying 與 header 修正放在同一個 commit",
+      severity: "info",
+      mitigation:
+        "不採納改寫。與前幾輪同類的混合 commit 處理方式一致；之後把 lifecycle 轉換放在自己的 commit。",
+    },
+    {
+      name: "Standards R4：球員頁網址在四處組字串",
+      severity: "info",
+      mitigation:
+        "不採納。這個 repo 的 route 字串一律就地組成，/team/${teamId} 出現得更多；只替一種網址抽 helper 反而製造不一致。",
+    },
+    {
+      name: "Spec R1：球員表單由子元件自己 router.push 關閉",
+      severity: "warning",
+      mitigation:
+        "接受並已修。在 @modal 攔截路由裡，這會多一筆 history，按瀏覽器返回就重新打開剛存好的表單。當時改為兩個 modal 頁傳入 router.back()；S07 之後新增球員改以 replace 前往結果頁，編輯球員保留 router.back()。",
+    },
+    {
+      name: "Spec R1：S02 測試的「資料還在」斷言是空的",
+      severity: "warning",
+      mitigation:
+        "接受並已修。原本斷言的隊名是 useTeam mock 帶出的預設值，dialog 重新 mount 也會出現，所以那半邊在修復前後都會過。改為先切到陣容配置 2 再送出。",
+    },
+    {
+      name: "Standards R1：一個 feat commit 誤帶 blueprint/AGENTS.md 與 CLAUDE.md",
+      severity: "warning",
+      mitigation:
+        "接受並已修。這是 next dev 自動產生的檔案，被 git add -A 一併帶進去。分支未推送，以 fixup 加 autosquash 改寫歷史移除，檔案保留在磁碟上。",
+    },
+    {
+      name: "Standards R1：edit-dialog-container 有一個永遠不會失敗的測試",
+      severity: "warning",
+      mitigation:
+        "接受並已修。它斷言一個已經沒有任何檔案 render 的 testid 不存在。scroll 行為的守衛留在 ui/__tests__/dialog.test.tsx。",
+    },
+    {
+      name: "Standards R2：分支上所有 commit body 都是 zh-tw",
+      severity: "warning",
+      mitigation:
+        "接受並已修。全域規則要求 commit message 使用 en-us，dev 上的 body 也全是英文。以 filter-branch 改寫 18 則訊息；改寫前後 tree 逐位元相同，slice 對應以 git log --grep 驗證。",
+    },
+    {
+      name: "Standards R1–R2：重述名稱或型別的註解",
+      severity: "info",
+      mitigation:
+        "接受並已修。包括 tab 順序測試的註解、DialogHeader 控制鍵 props 的 JSDoc、AnnotatedDiff 過長而且重複的說明。",
+    },
+    {
+      name: "Standards R1：game/sets/edit 的 closeButton 恆為 true",
+      severity: "info",
+      mitigation:
+        '接受並已修。它位於 mode === "general" 的分支內，就等於預設值。',
+    },
+    {
+      name: "Standards R1：EditForm 的四個 return 各包一層 DialogBody",
+      severity: "info",
+      mitigation: "接受並已修，改為只包一次。",
+    },
+    {
+      name: "Standards R2：新測試重複宣告用不到的 ApiClientError",
+      severity: "info",
+      mitigation: "接受並已修。改為 jest.requireActual，只覆寫 apiClient。",
+    },
+    {
+      name: "Spec R2–R3：changeset 在全頁模式說過頭，又漏寫全頁的改變",
+      severity: "info",
+      mitigation:
+        "接受並已修。返回行為限定在 dialog 模式，並補上全頁的改變；第四輪依 S07 的新落點再改寫一次。",
+    },
+    {
+      name: "Spec R1：AnnotatedDiff 與 globals.css 不屬於任何切片",
+      severity: "info",
+      mitigation: "接受為偏離，見〈計畫與實際的差異〉。",
+    },
+    {
+      name: "Spec R1：info-form 的日期 PopoverTrigger 沒有 type",
+      severity: "info",
+      mitigation:
+        '不採納。Radix 的 PopoverTrigger 本身就帶 type="button"，asChild 會透過 Slot 傳到 Button 上，所以它不是隱含的 submit button。',
+    },
+    {
+      name: "Standards R1：返回鍵的 className 在兩個檔案重複",
+      severity: "info",
+      mitigation: "不採納。只有兩處，還沒到 rule of three。",
+    },
+    {
+      name: "Standards R1：min-h-0 flex-1 在四個表單重複",
+      severity: "info",
+      mitigation:
+        "不採納。這是 D2 記載的版面要求；game/new 用的是一般 form 元素而不是 Form 元件，一個常數會橫跨兩種元素；抽成共用 helper 就是 D3 已經否決的泛用 dialog-form 抽象。列入殘留風險。",
+    },
+    {
+      name: "Standards R1：一則非 slice commit 用裸 D4，另一則混合兩件事",
+      severity: "info",
+      mitigation:
+        "不採納。trailer 只要求在 slice commit 上；拆開混合的 commit 需要再改一次歷史，只換到外觀上的整齊。",
+    },
+  ]}
+/>
+
+### 最尖銳的兩則
+
+Spec 第一輪抓到的 `router.push` 是我自己放進去的。S05 執行時，executor 為了跟新增球員表單一致，用了 `push` 而不是 brief 寫的 `router.back()`，我當時判斷 `push` 同時適用 modal 與全頁兩種 route，就接受了。這個判斷漏掉了一件事：在 modal 路由裡，`push` 會多留一筆 history。等於把新增球員表單既有的缺陷又複製了一份，而且違反了本 Change 自己寫下的 D1。
+
+第四輪的返回箭頭是同一種錯。我在 S07 的驗收條件裡寫下「全頁的返回箭頭到球員頁」，實作只改了 `backHref`，沒有讀 `Header` 怎麼使用它；而它在站內一律 `router.back()`，`backHref` 只是沒有 history 時的退路。兩次都是只看了傳進去的值，沒有看接收它的那一端。而第一次補救又犯了一次：我讓 `Header` 比對 referrer，把一個屬於整份文件的值當成了上一次導頁的來源。真正多出來的是 history 裡 dialog 那一筆，修它的地方是展開鍵，不是讀 history 的那一端。
+
+## 計畫與實際的差異
+
+- **範圍在核准前擴大了兩次。** 清點六個表單之後發現 `EditDialogContainer` 沒有 `DialogFooter`，於是加入 S05；控制鍵的絕對定位與 `pr-20` 則促成 S06。兩次都在實作開始前完成。
+- **D4 的介面改了三次，最後回到原點。** 依序是 `icon` 加 `iconPosition`、`loadingContent`，最後回到既有的 `loadingText`。`Button` 的 API 最終完全沒有變。
+- **S05 經過一次 Ingest。** 原本要三個表單都把送出鍵放進 footer，結果是兩個加一個例外，由開發者選定。D2 的決定不變，只加上一條 consequence 與退場條件。
+- **S05 執行時被 rate limit 中斷。** 由新的 executor 從中間狀態接手完成。
+- **新增球員表單的關閉方式在 review 時一併修正。** 它不在原計畫的修改清單上，但它屬於 S05 的清點範圍，也受同一條行為契約約束。
+- **第一次驗收之後經過第二次 Ingest，加入 S07。** D1 補上「往前離開 route」的方向，Design、Overview 與 Implementation 隨之更新；S05 保持原樣，它的「不把使用者帶去新的地方」由 S07 取代。header 對齊則是 S06 的實作缺陷，直接修正。
+- **為了讓已核准的文字成立，另改了兩處。** 展開鍵改用 `window.location.replace`，是 S07「返回箭頭到球員頁」得以成立的前提，歸在 S07，並順帶修好其他展開流程；建立與編輯球隊改用 `replace`，是 D1「往前導頁一律 replace」的要求，不屬於任何切片。
+- **Blueprint 的呈現基礎設施不屬於任何切片。** `AnnotatedDiff` 新增的 `unified` 模式，以及 `.prose figure + figure` 的間距規則，都是為了讓 Design 頁能以正確的縮排與底色呈現 JSX diff。
+- **D1–D5 在計畫核准後沒有改成 `accepted`。** 它們從 Propose 起一直是 `candidate`，直到 Archive 才直接改為 `implemented`；升級到 Features 的副本編為 D36–D40。
+- **提交紀律出了兩次錯，都在 pre-PR 修正。** 一次 `git add -A` 帶進了生成檔；commit body 全部寫成 zh-tw。分支沒有推送，兩者都以改寫歷史修正。
+
+## 殘留風險與後續
+
+<RiskTable
+  risks={[
+    {
+      name: "/team 之下不存在的網址不再回應 404",
+      severity: "info",
+      mitigation:
+        "catch-all 在 /team/* 形成一條 route，無法匹配的網址會顯示空的 tabs 畫面而不是 not-found。站內沒有連結會產生這種網址；若要恢復 404，需要 @team slot 自己提供 not-found，另案處理。",
+    },
+    {
+      name: "catch-all 只涵蓋 /team",
+      severity: "info",
+      mitigation:
+        "所有 @modal 攔截路由目前都在 (...)team 之下。新增一條不在 /team 之下的攔截路由時，catch-all 的範圍要跟著擴大，已列為 D1 的 revisit trigger。",
+    },
+    {
+      name: "全頁編輯球員或球隊存檔後，history 裡有兩筆結果頁",
+      severity: "info",
+      mitigation:
+        "展開後存檔會 replace 到結果頁，而前一筆就是開啟 dialog 的那個結果頁，所以按返回會先回到同一頁一次。表單不會被重新打開；要消除這一步，得讓全頁在有站內來源時改用 back，另案考慮。",
+    },
+    {
+      name: "驗收時發現的既有缺陷：單局設定的發球權在存檔後跳回推算值",
+      severity: "info",
+      mitigation:
+        "set-options panel 的 defaultValues 依上一局推算發球權，沒有讀這一局已存的值；存檔後 mutate 觸發 form.reset，畫面跳回推算值。伺服器存下的是正確的值，但使用者若再存一次，推算值與當下時間會被寫回。dev 上既有，與本 Change 無關，已另以獨立的修正處理：編輯既有的局改讀它已存的設定。",
+    },
+    {
+      name: "展開到全頁後，球員編輯頁的成員區塊晚一兩秒才出現",
+      severity: "info",
+      mitigation:
+        "是否顯示要等目前使用者與球隊成員名單載入後才能決定。在 app 內導頁時兩者已在快取裡，展開是 hard navigation，要重新抓取，區塊因此延遲出現並推動版面。這是既有行為，併入成員資格移出球員編輯頁的後續工作，改以 skeleton 佔位。",
+    },
+    {
+      name: "移除成員後按返回會落到被移除球員的資訊頁",
+      severity: "info",
+      mitigation:
+        "replace 讓返回不再打開已移除球員的 dialog，但前一筆 history 仍是那位球員的資訊頁，會顯示找不到球員。",
+    },
+    {
+      name: "球員編輯頁是 D2 的唯一例外",
+      severity: "info",
+      mitigation:
+        "成員資格區塊的邀請流程自帶一個 form，基本資訊的 form 邊界若包住 footer 就會巢狀，所以「儲存變更」暫時留在區段內。退場條件是把成員資格移到獨立的 dialog，已另立追蹤；驗收時方向調整為在球員資訊頁新增會籍區塊，由它開啟獨立的 dialog。",
+    },
+    {
+      name: "min-h-0 flex-1 分散在四個表單",
+      severity: "info",
+      mitigation:
+        "DialogContent 的版面若改變，要同步修改四處。刻意不抽象，理由見 D3。",
+    },
+    {
+      name: "Button 沒有預設 type",
+      severity: "info",
+      mitigation:
+        'D2 的配套規則（form 邊界內的非送出鍵必須明確 type="button"）目前靠人記得。讓 Button 預設 type="button" 會改變 team/form.tsx 的舊行為，列在 D2 的 revisit trigger。',
+    },
+    {
+      name: "useReplacePosition 讀 lineups[0]，reducer 寫 lineups[lineupIndex]",
+      severity: "info",
+      mitigation:
+        "在 lineupIndex 大於 0 時，自由球員替換的設定看起來沒有作用。這是本 Change 發現的既有缺陷，已另立追蹤，不在範圍內。",
+    },
+  ]}
+/>
+
+合併於 [andrewck24/volleybro#409](https://github.com/andrewck24/volleybro/pull/409)。
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>

@@ -1,8 +1,13 @@
 ---
-title: Overview
+title: "Record Flows"
+description: "記錄面板的 step 導航抽象為可重用的 PanelSteps 模型，四種 record flow 共用同一套骨幹；substitution 從獨立面板模式收攏為 rally flow 的 step-2 分支。"
+capabilities: ["game-recording/rally-recording","game-recording/substitution"]
 ---
 
-import { TLDR } from "@/components/TLDR";
+<ChangeTabs>
+<Proposal>
+
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。這是未通過 G1 的草稿，其中的決策未經核對，也不在決策記錄裡。
 
 <TLDR>
   記錄面板的 step 導航抽象為可重用的 PanelSteps 模型，四種 record flow
@@ -50,3 +55,104 @@ timeout 與 challenge 在 `entities/game.ts` 已有 `EntryType` 與型別、draf
 
 - timeout 或 challenge 實作時發現 PanelSteps 容納不下其形狀，代表前瞻建模的 scenarios 沒有約束到真正的變異點。
 - 出現第五種記錄流程而它又走了獨立面板模式，代表這個抽象沒有真的降低分岔的成本。
+
+## Design
+
+## 採用的形狀
+
+Panel 由三個部分組成：**進度條配件**、**當前 step 的 body**、**Preview**。三者都只讀同一個來源——由 draft 推導出的 flow 狀態。
+
+```text
+deriveFlow(draft) → { steps, activeStep, reachableSteps, submittable, flow }
+                          │         │            │            │
+              進度條 ─────┘         │            │            │
+              step body ────────────┘            │            │
+              可否切換 ──────────────────────────┘            │
+              Preview send ──────────────────────────────────┘
+```
+
+四條 flow 宣告各自的 steps，共用這個骨幹：
+
+| flow         | steps                        | 備註                                 |
+| ------------ | ---------------------------- | ------------------------------------ |
+| rally        | `[player, home, away]`       | home move 為 `UNFORCED` 時收合為兩步 |
+| substitution | `[player, home, substitute]` | 於 step 2 經「替補」按鈕分支         |
+| timeout      | `[confirm]`                  | 僅建模，不實作                       |
+| challenge    | `[target, result]`           | 僅建模，不實作                       |
+
+前兩步 `player → home` 是 rally 與 substitution 的共用前綴，這正是 substitution 能成為分支而非獨立 flow 的原因。
+
+## 行為契約
+
+**steps 由 flow 宣告。** 進度條的段數等於 `steps.length`；caption 取 `steps[activeStep].caption`；填色規則不變（index 小於等於 `activeStep` 為 primary、其餘 muted、active 加寬）。前一步未完成的 step 不可達。
+
+**swipe 是 Panel 層的預設。** 面板上任何位置的水平滑動都切換到相鄰的可達 step，進度條 track 與 body 都涵蓋。被辨識為 swipe 的手勢不得觸發底下的 segment 或按鈕點擊——抑制只在 Panel 層判斷一次。
+
+**方向滑動依真實 step index。** 即使底下的 panel side 沒變（選了球員後 `player → home`，side 仍是 home），body 仍須向前滑動。
+
+**Preview 是唯一送出。** send affordance 只在 flow 宣告 `submittable` 時出現；送出只能從 Preview 發生。substitution 的 `submittable` 條件是已選定上場球員。
+
+**timeout 與 challenge 以前瞻 scenarios 約束**：各自一步一段 segment、皆經 Preview 送出、皆不需要 player 或 scoring step。design 只示範其 step 宣告形狀，證明抽象容納得下。
+
+## 失效模式
+
+| 情境                               | 現況                                 | 本 Change 之後                 |
+| ---------------------------------- | ------------------------------------ | ------------------------------ |
+| 新增一種記錄流程                   | 面板、進度條、推導各加一條分支       | 新增一份 flow 描述子           |
+| 兩處 `suppressClick` ref 不一致    | 無機制保證，swipe 可能觸發底下的點擊 | 只有一份 ref，Panel 層判斷一次 |
+| step body 忘記接 gesture           | 該 body 靜默地不回應滑動             | 不需接線，自動涵蓋             |
+| substitution 與 rally 的互動不一致 | 兩套模型，共用零程式碼               | 同一套骨幹                     |
+
+## 遷移面
+
+`ReduxStatus["panel"]` 移除 `"substitutes"`（**BREAKING**，限前端）。所有 `setPanel("substitutes")` 呼叫點移除；`setEditingEntryStatus` 中依 entry type 決定 panel 的分支改為決定初始 step。`setEntryDraftSubstitution` 等三個 draft 操作保留，但不再寫 `status.panel`。`substitutes/index.tsx` 只留下選人 UI，其「確認」鈕與背後的 `createSubstitution` 移至 Preview 的 `onSubmit` 依 flow 分派。
+
+進度條元件收攏於 `src/components/game/panel/` 之下，Storybook 的 story title 從 `Design System/Game/EntryProgressBar` 改置於 `Design System/Game/Panel/ProgressBar`，以巢狀結構表達「進度條是 Panel 的配件」。新增 `SubstitutionSubstituteStep` story。
+
+## 測試策略
+
+`deriveFlow` 是單點失效處，優先以單元測試涵蓋：rally 正常三步、home move 為 `UNFORCED` 時收合兩步、substitution 三步、以及前一步未完成時的不可達判定。
+
+進度條以 component test 斷言段數對應宣告的 step 數。swipe 與 click-suppression 的行為需在 entry route 上實地驗證——它是手勢與點擊的競態，單元測試涵蓋不到。
+
+## 風險
+
+`deriveFlow` 集中了四條 flow 的推導，錯一次影響全部；這是換取「新增 flow 不必動面板」的代價。gesture 上移到 Panel 層同理：一處錯誤影響所有 flow。兩者都以「單點、可測試」換「多點、難同步」，但確實把失敗半徑放大了。
+
+## 待交付的互動式流程圖
+
+Apply 階段於本 Change 的 `design.tsx` 建互動式 SVG 流程圖：節點為各 flow 的 steps 與分支點、邊為 transitions，hover 或點選節點高亮其所屬 flow 的路徑，凸顯共用的 `player → home` 前綴與各 flow 的分岔點。
+
+## 決策
+
+**D1. A record flow declares its steps instead of the panel hardcoding them**
+
+One flow descriptor replaces the constant arrays. A Step carries id, caption, body (which panel content it renders; the player step has none because the choice happens on the court), isReachable(draft) and isSubmittable(draft). getEntryProgress becomes deriveFlow(draft), returning steps, activeStep, reachableSteps, submittable and the flow identity. The panel stops recomputing any of it. The rally branch keeps its existing collapse rule — the home move being UNFORCED collapses three steps to two — restated as one possible result of the descriptor rather than a second array.
+
+背景：entry-progress.ts expresses the rally flow as two constant arrays — STEPS and OPPONENT_ERROR_STEPS — and getEntryProgress(draft) picks between them. ProgressStep carries only key and caption, so which panel body a step renders, whether a step is reachable, and whether the flow can submit are all decided elsewhere: panel/index.tsx recomputes activeStep from status.panel plus a steps.length === 2 test for the opponent-error case. The knowledge of what a flow is, is spread across a constant array, a derivation function and a component's branching. Adding a fourth flow means adding another branch to each of them.
+
+- 未採用：Give each flow its own component tree managing its own state（That is the current situation and the direct cause of the substitutes special case. It also gives timeout and challenge no cheap way in: each would arrive as another parallel tree with its own progress bar, its own submit control and its own gesture wiring.）
+
+- 未採用：Keep the arrays and add a third one for substitution（It works for one more flow and fails for the two after that. The branching in panel/index.tsx grows with every flow, and each new array is another place the reachability rule can be stated inconsistently.）
+
+**D2. Substitution is a branch of the rally flow, not a panel mode**
+
+Substitution becomes the step-2 branch of the rally flow, with steps [player, home, substitute]. The 替補 button on the home-move panel selects the substitution branch instead of a scoring move, and step 3 renders the substitute picker — the selection UI extracted from substitutes/index.tsx with its header, back and confirm controls removed. Step 1 keeps its meaning through the branch: the on-court player chosen there is the outgoing player, which is already how setEntryDraftSubstitution reads it. ReduxStatus["panel"] loses the "substitutes" value, and submission moves to the Preview send button like every other flow.
+
+背景：Recording a substitution leaves the rally flow entirely. The 替補 button dispatches setPanel("substitutes"), panel/index.tsx renders &#60;Substitutes&#62; in place of the whole panel, and that component brings its own Card header, back button and confirm button. The progress bar, the caption, the directional slide and the Preview submit are all skipped. A user recording a substitution is in a different interaction model from the one they were in a moment earlier, and the two models share no code.
+
+- 未採用：Keep the dedicated substitutes mode and give it its own progress bar and Preview wiring（It removes the visible inconsistency while keeping the structural one. Every shared behaviour — gesture handling, click suppression, submit affordance — would then exist twice and have to be kept in step by hand.）
+
+- 未採用：Model substitution as its own flow rather than a branch of the rally flow（Its first two steps are the rally flow's first two steps: choose an on-court player, then act on the home panel. A separate flow would duplicate them and force the 替補 button to abandon a partially built draft rather than continue it.）
+
+**D3. The swipe gesture belongs to the Panel, not to each body that responds to it**
+
+useStepSwipe is called once in the Panel container and its pointer and click-capture handlers are attached to the whole panel. The progress bar track, the moves body and any future step body are covered by one gesture with one suppressClick ref. progress-bar.tsx and moves/index.tsx stop calling the hook.
+
+背景：useStepSwipe is called twice — once in progress-bar.tsx and once in moves/index.tsx — so there are two hook instances and two suppressClick refs. Swiping works on the progress bar track and on the GameMoves body, and nowhere else on the panel. Each new step body has to remember to wire the gesture up again, and the two suppression refs have no mechanism keeping them consistent with each other.
+
+- 未採用：Keep both call sites and synchronise the suppression refs（Two refs that must agree is the problem, not the solution. Every added step body would still have to opt in, and forgetting to would produce a body that silently does not respond to the gesture.）
+
+</Proposal>
+
+</ChangeTabs>
