@@ -20,7 +20,24 @@ const lineupOf = (
 });
 
 describe("useReplacePosition", () => {
-  it("reads the lineup the panel has selected", () => {
+  it.each([
+    [
+      0,
+      {
+        liberoReplaceMode: 0,
+        liberoReplacePosition: Position.NONE,
+        hasPairedReplacePosition: true,
+      },
+    ],
+    [
+      1,
+      {
+        liberoReplaceMode: 1,
+        liberoReplacePosition: Position.MB,
+        hasPairedReplacePosition: false,
+      },
+    ],
+  ])("reads lineup %i when the panel has selected it", (index, expected) => {
     const store = makeStore();
     store.dispatch(
       lineupActions.initialize([
@@ -34,16 +51,12 @@ describe("useReplacePosition", () => {
         ),
       ]),
     );
-    store.dispatch(lineupActions.setLineupIndex(1));
+    store.dispatch(lineupActions.setLineupIndex(index));
 
     const { result } = renderHook(() => useReplacePosition(), {
       wrapper: ({ children }) => <Provider store={store}>{children}</Provider>,
     });
 
-    expect(result.current).toEqual({
-      liberoReplaceMode: 1,
-      liberoReplacePosition: Position.MB,
-      hasPairedReplacePosition: false,
-    });
+    expect(result.current).toEqual(expected);
   });
 });

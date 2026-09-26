@@ -48,7 +48,6 @@ const Lineup = ({ teamId }: { teamId: string }) => {
 
   const { lineups, status } = useAppSelector((state) => state.lineup);
   const { hasPairedReplacePosition } = useReplacePosition();
-  const hasPairedSwitchPosition = Boolean(hasPairedReplacePosition);
 
   useEffect(() => {
     if (team && team.lineups) dispatch(lineupActions.initialize(team.lineups));
@@ -73,14 +72,14 @@ const Lineup = ({ teamId }: { teamId: string }) => {
       <LineupCourt players={players} />
       <LineupPanel
         players={players}
-        hasPairedSwitchPosition={hasPairedSwitchPosition}
+        hasPairedSwitchPosition={hasPairedReplacePosition}
       />
       {!status.optionMode && (
         <div className="flex w-full flex-col px-4 pt-2">
           <Button
             size="lg"
             onClick={() => handleSave(lineups)}
-            disabled={!status.edited || !hasPairedSwitchPosition}
+            disabled={!status.edited || !hasPairedReplacePosition}
           >
             <RiSaveLine />
             儲存陣容

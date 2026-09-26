@@ -6,7 +6,7 @@ export const useReplacePosition = () => {
   );
   const liberoReplaceMode = lineup?.options.liberoReplaceMode;
   const liberoReplacePosition = lineup?.options.liberoReplacePosition;
-  const hasPairedReplacePosition =
+  const hasPairedReplacePosition = Boolean(
     liberoReplaceMode === 0 ||
     (liberoReplacePosition === "OP"
       ? lineup?.starting.some((player) => player.id && player.position === "OP")
@@ -19,7 +19,8 @@ export const useReplacePosition = () => {
             opposite?.id &&
             opposite.position === liberoReplacePosition
           );
-        }));
+        })),
+  );
 
   return {
     liberoReplaceMode,
