@@ -20,8 +20,8 @@ export const scenarios = [
   {
     id: "S3",
     given: "a record whose capability does not match the capability pattern",
-    when: "a Feature page renders it through `DecisionTimeline`",
-    then: "the failure shown on the page names the field path",
+    when: "the Blueprint builds",
+    then: "the build fails with an error naming the field path, such as `capabilities.0`",
   },
   {
     id: "S4",
@@ -45,7 +45,7 @@ export const scenarios = [
     id: "S7",
     given: "this Change's branch pushed after its G2 publish",
     when: "its branch preview is opened at `/changes/blueprint-contract-guardrails`",
-    then: "the page shows the Review tab and the cards for ADR-0080 and ADR-0081, and the pull request body links to it",
+    then: "the page shows the Review tab and the cards for ADR-0080, ADR-0081 and ADR-0082, and the pull request body links to it",
   },
 ];
 
@@ -62,19 +62,19 @@ export const scenarios = [
 |                         | 現在                                                   | 之後                                                                  |
 | ----------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- |
 | decision record 的定義  | JSON schema、TypeScript 型別、手寫 validator 三份並存  | `decision-record.ts` 的 zod schema 一份，型別由 `z.infer` 推導        |
-| record 解析失敗         | 只說 `Invalid decision record: <id>`                   | 指出欄位路徑與違反的規則                                              |
+| record 解析失敗         | build 失敗，只說 `Invalid decision record: <id>`       | build 失敗，並指出欄位路徑與違反的規則                                |
 | `blueprint-changes`     | 可被刪除、可被 force-push；「大到拖慢 build」沒有數字  | ruleset 禁止刪除與 force-push；歷史超過 50 MB 時 `changes:pull` 警告  |
 | PR 的 reviewer          | 從 PR 找不到 Change 頁面                               | PR body 附 branch preview 的 Change 頁面，看得到本次的 ADR            |
 
-<DecisionCards ids={["0080", "0081"]} />
+<DecisionCards ids={["0080", "0081", "0082"]} />
 
 ## 範圍
 
-1. 以 zod 改寫 `blueprint/src/lib/decision-record.ts`：parser 就是 schema，型別由 `z.infer` 推導，`strictObject` 拒絕未知 key；在 `blueprint/package.json` 宣告 zod（完整版）。
+1. 以 zod 改寫 `blueprint/src/lib/decision-record.ts`：parser 就是 schema，型別由 `z.infer` 推導，`strictObject` 拒絕未知 key；在 `blueprint/package.json` 宣告 zod（完整版）。`DecisionTimeline` 改收 server 已解析的 `DecisionRecord[]`，不再在瀏覽器端重新解析。
 2. 刪除 `blueprint/schemas/`，移除所有 record 的 `$schema`。
 3. `blueprint:changes:pull` 抓取後量測 store 完整歷史的磁碟大小，超過 50 MB 印出 warning，不 fail。
 4. 以 `gh api` 建立 `blueprint-changes` 的 ruleset：deletion 與 non_fast_forward。
-5. ADR-0062 的 `revisitTriggers` 改指向 ADR-0081。
+5. ADR-0062 的 `revisitTriggers` 改指向 ADR-0082。
 6. 更新 `WORKFLOW.md` 的 Decision-record contract 與 `docs/agents/blueprint.md`，改指向 parser；`WORKFLOW.md` 補上「最後一次 push 在最後一次 publish 之後，publish 後沒有新 commit 時手動重跑 branch build」，以及 PR body 附上 `<branch-preview>/changes/<slug>`。
 7. 更新 Feature `platform/blueprint` 與 `platform/delivery-workflow`。
 
@@ -84,6 +84,7 @@ export const scenarios = [
 - 在 site build 時推導 `archivedAt`、省去 merge 後的 publish：另案評估。
 - 在 `platform/blueprint` 畫出 Change 頁面的生命週期流程圖：另案以 Fix path 處理。
 - 原本的「同編號 ADR 副本一致性」：ADR 已是扁平的單一檔案，問題不存在。
+- Feature 頁改用 `DecisionCards`：另案評估是否統一兩個元件。
 
 <Scenarios items={scenarios} />
 
@@ -96,9 +97,9 @@ export const scenarios = [
         "格式轉換（ADR-0079）改用一般 commit；真要改寫必須先明確解除 ruleset。store 最早的 commit 晚於票上的量測日期，歷史曾被重建過，這正是 ruleset 要防的事。",
     },
     {
-      name: "zod 進入 Blueprint 的前端 bundle",
+      name: "git 2.31 以前沒有 `--disk-usage`，量測靜默略過",
       severity: "info",
-      mitigation: "`DecisionTimeline` 是 client component；Blueprint 是內部文件站，成本可接受。",
+      mitigation: "本機 dev 的 git 一定夠新；Cloudflare build 的 git 版本無法確認。",
     },
     {
       name: "歷史大小的量測成本隨歷史成長",
@@ -108,7 +109,7 @@ export const scenarios = [
     {
       name: "錯誤訊息格式改變",
       severity: "info",
-      mitigation: "S3 在瀏覽器確認 `DecisionTimeline` 上失敗項目的呈現。",
+      mitigation: "壞的 record 本來就讓 build 失敗；S3 確認新訊息指出欄位路徑。",
     },
   ]}
 />
