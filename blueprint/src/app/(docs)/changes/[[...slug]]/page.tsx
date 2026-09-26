@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
-import { listChanges } from "@/lib/changes-index";
+import { changesTree, listChanges } from "@/lib/changes-index";
 import { changeDesigns } from "@/lib/change-designs";
 import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
@@ -73,7 +73,7 @@ const mdxComponents = {
   InteractiveFlowchart,
 };
 
-const changesBreadcrumbTree = createChangesBreadcrumbTree(source.pageTree);
+const changesBreadcrumbTree = createChangesBreadcrumbTree(changesTree());
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;

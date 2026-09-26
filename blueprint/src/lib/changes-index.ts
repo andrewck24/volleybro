@@ -6,6 +6,7 @@ import {
   readCapabilities,
   readFacts,
 } from "@/lib/change-meta";
+import { createChangesTree } from "@/lib/changes-tree";
 import { source } from "@/lib/source";
 
 export type ChangeStatus = "archived" | "in-progress" | "draft";
@@ -65,4 +66,11 @@ export function listChanges(): ChangeSummary[] {
   return changePages()
     .sort((a, b) => b.order.localeCompare(a.order))
     .map(({ order: _order, ...summary }) => summary);
+}
+
+export function changesTree() {
+  return createChangesTree(
+    source.pageTree,
+    listChanges().map((change) => change.href),
+  );
 }
