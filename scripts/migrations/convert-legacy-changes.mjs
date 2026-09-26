@@ -220,7 +220,8 @@ function paragraphs(text) {
 }
 
 // A mockup that imported its Change's own records now imports the global ones,
-// and loses the FileTour the single-page format no longer ships.
+// and its FileTour glossary, a component the single-page format no longer
+// ships, becomes a plain definition list so the definitions survive.
 function patchDesign(slug, source) {
   const ids = [];
   const patched = source
@@ -233,7 +234,11 @@ function patchDesign(slug, source) {
       return `"../../decisions/${target}"`;
     })
     .replace(/^import \{ FileTour \} from "@\/components\/FileTour";\n/m, "")
-    .replace(/^\s*<FileTour [^\n]*\/>\n/m, "");
+    .replace(
+      /^(\s*)<FileTour files=\{(\w+)\} \/>\n/m,
+      (_, indent, list) =>
+        `${indent}<dl>\n${indent}  {${list}.map((item) => (\n${indent}    <div key={item.path}>\n${indent}      <dt className="font-semibold">{item.path}</dt>\n${indent}      <dd>{item.summary}</dd>\n${indent}      {item.code && <pre><code>{item.code}</code></pre>}\n${indent}    </div>\n${indent}  ))}\n${indent}</dl>\n`,
+    );
   if (/FileTour|design\/decisions/.test(patched)) {
     throw new Error(
       `${slug}/design.tsx still references a dropped file or component`,
