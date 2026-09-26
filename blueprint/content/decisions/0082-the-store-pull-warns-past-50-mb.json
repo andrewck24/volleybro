@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "id": "0082",
+  "title": "Pulling the store warns once its history passes 50 MB",
+  "capabilities": ["platform/blueprint"],
+  "context": "ADR-0062's only revisit trigger for the store branch said it would be reconsidered when it grew large enough to slow the build's fetch, with no size and nothing that measured it. The pull fetches the branch's full history. On 2026-09-27 that history took 1.26 MB on disk and a single-branch clone took under two seconds.",
+  "decision": "blueprint:changes:pull measures the store's full history on disk after fetching it and prints a warning, without failing, when it exceeds 50 MB. The warning is the trigger to decide the store's retention; ADR-0081 limits that retention to ordinary commits or another ref.",
+  "alternatives": [
+    {
+      "option": "Measure the fetch time instead of the size",
+      "reason": "The fetch time is dominated by network round trips at this size and varies with the build machine, so a time threshold would warn on noise; the size is stable and is what the full fetch actually transfers."
+    },
+    {
+      "option": "Write the threshold down without anything that measures it",
+      "reason": "Nobody would measure the store until the build was already slow, which is the silent failure the threshold exists to prevent."
+    },
+    {
+      "option": "Fail the build past the threshold",
+      "reason": "A large store slows deploys without breaking them, so failing would turn a prompt to plan retention into an outage."
+    }
+  ],
+  "consequences": [
+    "A git older than 2.31, which lacks rev-list --disk-usage, skips the measurement silently, so the warning relies on at least one environment that pulls the store running a current git."
+  ],
+  "revisitTriggers": [
+    "blueprint:changes:pull warns that the store's history exceeds 50 MB."
+  ],
+  "originChange": "blueprint-contract-guardrails"
+}

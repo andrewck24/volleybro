@@ -3,7 +3,7 @@
   "id": "0080",
   "title": "A decision record has one definition, the zod schema its parser runs",
   "capabilities": ["platform/blueprint"],
-  "context": "A decision record was defined three times: a JSON Schema file that no code loaded and that only editors read through each record's $schema field, a hand-written TypeScript type, and a hand-written validator joined to that type by a cast. Any two could drift without a check noticing, and the validator's only error named the record, not the field that failed, while DecisionTimeline shows that error on the Feature page. Records are written by agents during Discuss, which validate through the parser and the tree test rather than an editor.",
+  "context": "A decision record was defined three times: a JSON Schema file that no code loaded and that only editors read through each record's $schema field, a hand-written TypeScript type, and a hand-written validator joined to that type by a cast. Any two could drift without a check noticing, and the validator's only error named the record, not the field that failed, so a malformed record failed the Blueprint build without saying why. Records are written by agents during Discuss, which validate through the parser and the tree test rather than an editor.",
   "decision": "The zod schema in blueprint/src/lib/decision-record.ts is the only definition of a decision record. Parsing runs that schema, the DecisionRecord type is inferred from it, and unknown keys are rejected. No JSON Schema file is kept or generated, and records carry no $schema field.",
   "alternatives": [
     {
@@ -20,9 +20,9 @@
     }
   ],
   "consequences": [
-    "zod reaches the Blueprint's client bundle, because DecisionTimeline parses records in the browser.",
+    "Feature pages hand DecisionTimeline records the server already parsed, so the parser, and zod with it, stays out of the Blueprint's client bundle.",
     "Editors no longer validate a record as it is typed; the tree test and the parser catch the same errors before a commit lands.",
-    "A parse failure names the field path and the rule it broke."
+    "A malformed record fails the Blueprint build with an error that names the field path and the rule it broke."
   ],
   "revisitTriggers": [
     "A consumer outside the Blueprint needs to validate records without running TypeScript, which would argue for generating a JSON Schema from the zod schema."
