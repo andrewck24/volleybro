@@ -27,7 +27,6 @@
 .github/chatmodes/
 .github/prompts/
 .github/skills/
-.spectra/
 .serena/
 docs/.vector-search.db*
 
