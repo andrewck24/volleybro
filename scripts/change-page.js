@@ -178,10 +178,6 @@ export function inlineReviewSections(content) {
   return reviewNames(content, "mdxJsxTextElement");
 }
 
-export function isSinglePageDir(files) {
-  return files.includes("index.mdx");
-}
-
 export function parseShortstat(line) {
   const count = (pattern) => Number(line.match(pattern)?.[1] ?? 0);
   return {

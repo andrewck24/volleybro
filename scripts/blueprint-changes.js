@@ -25,7 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { changeFacts, isSinglePageDir } from "./change-page.js";
+import { changeFacts } from "./change-page.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -285,8 +285,9 @@ async function firstPublishedAt(repoRoot, slug) {
 }
 
 async function writeFacts(repoRoot, slugDir) {
-  if (!isSinglePageDir(await readdir(slugDir))) return;
-  const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
+  const indexPath = path.join(slugDir, "index.mdx");
+  if (!existsSync(indexPath)) return;
+  const content = await readFile(indexPath, "utf8");
   const slug = path.basename(slugDir);
   let facts;
   try {
