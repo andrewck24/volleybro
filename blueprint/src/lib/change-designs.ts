@@ -19,12 +19,11 @@ const designs = (require as unknown as WebpackRequire).context(
   /\/design\.tsx$/,
 );
 
-export const singlePageDesigns: Record<string, ComponentType> =
-  Object.fromEntries(
-    designs
-      .keys()
-      .map((key) => [
-        key.replace(/^\.\//, "").replace("/design.tsx", ""),
-        designs(key).default,
-      ]),
-  );
+export const changeDesigns: Record<string, ComponentType> = Object.fromEntries(
+  designs
+    .keys()
+    .map((key) => [
+      key.replace(/^\.\//, "").replace("/design.tsx", ""),
+      designs(key).default,
+    ]),
+);

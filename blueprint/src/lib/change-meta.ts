@@ -20,7 +20,7 @@ export type ChangeFacts = {
   decisions?: string[];
 };
 
-export function isSinglePageChange(slug: string, root = CHANGES_ROOT) {
+export function hasChangePage(slug: string, root = CHANGES_ROOT) {
   return existsSync(path.join(root, slug, "index.mdx"));
 }
 

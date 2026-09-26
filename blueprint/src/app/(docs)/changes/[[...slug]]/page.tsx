@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
-import { listChanges } from "@/lib/changes-index";
-import { singlePageDesigns } from "@/lib/change-designs";
+import { changesTree, listChanges } from "@/lib/changes-index";
+import { changeDesigns } from "@/lib/change-designs";
 import { createChangesBreadcrumbTree } from "@/lib/changes-tree";
 import { DocsPage, DocsBody } from "fumadocs-ui/layouts/docs/page";
 import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
@@ -26,11 +26,7 @@ import {
   Scenarios,
   TestPlan,
 } from "@/components/ScenarioCards";
-import {
-  isSinglePageChange,
-  readCapabilities,
-  readFacts,
-} from "@/lib/change-meta";
+import { hasChangePage, readCapabilities, readFacts } from "@/lib/change-meta";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { MockupFrame } from "@/components/MockupFrame";
@@ -76,8 +72,6 @@ const mdxComponents = {
   ReviewDetails,
   InteractiveFlowchart,
 };
-
-const changesBreadcrumbTree = createChangesBreadcrumbTree(source.pageTree);
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
@@ -139,17 +133,17 @@ function ChangesIndex() {
   );
 }
 
-function SinglePageChange({ slug }: { slug: string }) {
+function ChangePage({ slug }: { slug: string }) {
   const page = source.getPage([slug]);
   assertPage(page);
   const Mdx = page.data.body;
-  const Design = singlePageDesigns[slug];
+  const Design = changeDesigns[slug];
   const components = {
     ...mdxComponents,
     DesignMockup: () => (Design ? <MockupFrame Mockup={Design} /> : null),
   };
   return (
-    <TreeContextProvider tree={changesBreadcrumbTree}>
+    <TreeContextProvider tree={createChangesBreadcrumbTree(changesTree())}>
       <DocsPage
         toc={page.data.toc}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
@@ -174,8 +168,8 @@ export default async function Page({ params }: PageProps) {
     return <ChangesIndex />;
   }
 
-  if (slug.length === 1 && isSinglePageChange(slug[0])) {
-    return <SinglePageChange slug={slug[0]} />;
+  if (slug.length === 1 && hasChangePage(slug[0])) {
+    return <ChangePage slug={slug[0]} />;
   }
 
   notFound();

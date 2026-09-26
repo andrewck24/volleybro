@@ -50,7 +50,7 @@ describe("listChanges", () => {
     ]);
   });
 
-  it("labels a single-page Change by its gate until it lands, then as archived", () => {
+  it("labels a Change by its gate until it lands, then as archived", () => {
     mockGetPages.mockReturnValue([
       page("landed", "Landed"),
       page("open", "Open"),
