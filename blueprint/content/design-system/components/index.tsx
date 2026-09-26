@@ -1,5 +1,4 @@
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
-import { FileTour } from "@/components/FileTour";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
@@ -74,106 +73,39 @@ export default function ComponentLibraryShowcase() {
       <TLDR>
         This change swaps the grayscale chart palette for the canonical colorful
         one, sources the warning and note accents from it, and replaces two thin
-        components with the TLDR and FileTour patterns.
+        components with the TLDR pattern.
       </TLDR>
-
-      <h3>FileTour</h3>
-      <p>
-        One collapsible walkthrough that serves two modes at once. Badged
-        entries (change + added/removed + snippet) narrate a diff file by file;
-        entries that omit those fields become a concept walkthrough where header
-        = term, summary = definition, and code = example.
-      </p>
-      <FileTour
-        files={[
-          {
-            path: "src/components/FileTour.tsx",
-            change: "added",
-            added: 96,
-            summary:
-              "New collapsible walkthrough. Each row shows the file path and a diff stat when collapsed, and reveals the why plus an optional snippet when expanded — composed from the accordion primitive so it stays keyboard-accessible.",
-            lang: "tsx",
-            code: `export function FileTour({ files }: FileTourProps) {
-  return (
-    <Card className="gap-0 py-0">
-      <Accordion type="multiple">
-        {files.map((file, index) => (
-          <AccordionItem key={file.path} value={file.path}>
-            <AccordionTrigger>
-              <span className="font-mono text-sm">{file.path}</span>
-            </AccordionTrigger>
-            <AccordionContent>
-              <p>{file.summary}</p>
-              {file.code && (
-                <DynamicCodeBlock lang={file.lang ?? "tsx"} code={file.code} />
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-    </Card>
-  );
-}`,
-          },
-          {
-            path: "src/app/globals.css",
-            change: "modified",
-            added: 14,
-            removed: 62,
-            summary:
-              "Reordered tokens to canonical shadcn order and re-sourced the warning and note accents from the chart palette so both themes stay in sync.",
-          },
-          {
-            path: "src/components/PRWriteup.tsx",
-            change: "removed",
-            removed: 41,
-            summary:
-              "Thin stub superseded by the TLDR and FileTour patterns; nothing imported it after the migration.",
-          },
-          {
-            path: "Side-out",
-            summary:
-              "Concept mode — no change badge or diff stat. Winning a rally while the opposing team is serving, which earns your team the right to serve next.",
-            code: `if (rallyWinner === receivingTeam) {\n  serve = receivingTeam;\n  rotate(receivingTeam);\n}`,
-            lang: "ts",
-          },
-          {
-            path: "Rally",
-            summary:
-              "Concept mode — a single sequence of play that starts with a serve and ends when the ball is dead, the unit a point is scored on.",
-            code: `type Rally = {\n  serve: TeamId;\n  touches: Touch[];\n  winner: TeamId;\n};`,
-            lang: "ts",
-          },
-        ]}
-      />
 
       <section>
         <h3>PR-writeup section mapping</h3>
         <p>
           Where each section of the &ldquo;PR writeup&rdquo; reference belongs
-          in the blueprint page flow:
+          on a Change page:
         </p>
         <ul>
           <li>
-            <strong>TL;DR</strong> → page/overview top (the TLDR component).
+            <strong>TL;DR</strong> → the top of the Proposal tab (the TLDR
+            component).
           </li>
           <li>
-            <strong>Why</strong> → proposal/design (prose).
+            <strong>Why</strong> → the Proposal tab (prose).
           </li>
           <li>
             <strong>Before/After</strong> → a table or AnnotatedDiff.
           </li>
           <li>
-            <strong>File-by-file</strong> → design (the FileTour component).
+            <strong>File-by-file</strong> → the pull request&rsquo;s own diff; a
+            Change page carries none.
           </li>
           <li>
-            <strong>Where to focus review</strong> → review (prose).
+            <strong>Where to focus review</strong> → the Review tab&rsquo;s
+            ReviewFocus.
           </li>
           <li>
-            <strong>Test plan</strong> → tasks/review (prose).
+            <strong>Test plan</strong> → the Review tab&rsquo;s TestPlan.
           </li>
           <li>
-            <strong>Rollout</strong> → prose or the DecisionTimeline component.
+            <strong>Rollout</strong> → the Review tab&rsquo;s AfterRelease.
           </li>
         </ul>
       </section>

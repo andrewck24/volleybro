@@ -13,37 +13,18 @@ import {
   parseDecisionRecord,
   type DecisionRecord,
 } from "@/lib/decision-record";
-import { useIsLegacyDecisions } from "@/legacy/legacy-decisions-context";
-import { upconvertLegacyDecisionRecord } from "@/legacy/legacy-decision-record";
-
-// A decision id is unique within its Change, not within a capability. Once
-// Archive promotes records from several Changes into one Feature page, two of
-// them can both be D2, so the rendering key carries the origin Change too.
-function decisionKey(record: { id: string; originChange?: string }) {
-  return record.originChange
-    ? `${record.originChange}/${record.id}`
-    : record.id;
-}
 
 type DecisionEntry =
   | { ok: true; record: DecisionRecord }
   | { ok: false; key: string; message: string };
 
-// A Change page's records can come from another checkout (an unmerged
-// Proposal, a scratch draft) — one bad record must not blank the whole
-// timeline, so each is parsed on its own and a failure becomes an entry
-// instead of a throw.
-function parseEntry(
-  decision: unknown,
-  isLegacy: boolean,
-  index: number,
-): DecisionEntry {
+// One bad record must not blank the whole timeline, so each is parsed on its
+// own and a failure becomes an entry instead of a throw.
+function parseEntry(decision: unknown, index: number): DecisionEntry {
   try {
     return {
       ok: true,
-      record: parseDecisionRecord(
-        isLegacy ? upconvertLegacyDecisionRecord(decision) : decision,
-      ),
+      record: parseDecisionRecord(decision),
     };
   } catch (error) {
     return {
@@ -65,17 +46,16 @@ function useScrollToDecisionAnchor() {
 }
 
 export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
-  const isLegacy = useIsLegacyDecisions();
   useScrollToDecisionAnchor();
   const entries = (decisions ?? []).map((decision, index) =>
-    parseEntry(decision, isLegacy, index),
+    parseEntry(decision, index),
   );
 
   if (entries.length === 0) return null;
 
   const defaultOpen = entries
     .filter((entry): entry is Extract<DecisionEntry, { ok: true }> => entry.ok)
-    .map((entry) => decisionKey(entry.record));
+    .map((entry) => entry.record.id);
 
   return (
     <div className="not-prose relative my-6 pl-8 before:absolute before:inset-y-3 before:left-3 before:w-px before:bg-border">
@@ -91,8 +71,8 @@ export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
           const record = entry.record;
           return (
             <AccordionItem
-              key={decisionKey(record)}
-              value={decisionKey(record)}
+              key={record.id}
+              value={record.id}
               id={`adr-${record.id}`}
               className="relative scroll-mt-20 border-0"
             >

@@ -23,5 +23,6 @@
   "revisitTriggers": [
     "The store branch stops being rendered by the deployed Blueprint.",
     "A third schema version is needed, which would make the upconversion a chain rather than a single step."
-  ]
+  ],
+  "supersededBy": "0079"
 }

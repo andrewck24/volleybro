@@ -443,21 +443,31 @@ async function validateInternalLinks(root) {
   return diagnostics;
 }
 
+async function isConverted(directory) {
+  try {
+    const facts = JSON.parse(
+      await readFile(path.join(directory, "facts.json"), "utf8"),
+    );
+    return facts.converted === true;
+  } catch {
+    return false;
+  }
+}
+
 async function changeDirectories(root) {
   const changesRoot = path.join(root, BLUEPRINT_CHANGES);
   if (!(await exists(changesRoot))) return [];
 
-  // Old-format Changes (they carry change.json) are frozen history from the
-  // store branch and predate every page rule below.
+  // Pages converted from an earlier format (ADR-0079) never pass a gate and
+  // predate every page rule below; their facts.json marks them. Publishing
+  // rewrites facts.json without the mark, so a republished page is checked.
   const entries = await readdir(changesRoot, { withFileTypes: true });
   const directories = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(changesRoot, entry.name));
   const current = [];
   for (const directory of directories) {
-    if (!(await exists(path.join(directory, "change.json")))) {
-      current.push(directory);
-    }
+    if (!(await isConverted(directory))) current.push(directory);
   }
   return current;
 }

@@ -179,7 +179,7 @@ export function inlineReviewSections(content) {
 }
 
 export function isSinglePageDir(files) {
-  return files.includes("index.mdx") && !files.includes("change.json");
+  return files.includes("index.mdx");
 }
 
 export function parseShortstat(line) {

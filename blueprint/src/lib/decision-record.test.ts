@@ -30,16 +30,15 @@ describe("parseDecisionRecord", () => {
   it.each([
     { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
+    { ...decision, schemaVersion: 3 },
     {
       ...decision,
       capabilities: ["platform/delivery", "platform/delivery"],
     },
     { ...decision, capabilities: ["platform"] },
     { ...decision, context: "" },
-    { ...decision, originDecision: "D3" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
-    { ...decision, status: "accepted" },
   ])("rejects schema-incompatible input", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",

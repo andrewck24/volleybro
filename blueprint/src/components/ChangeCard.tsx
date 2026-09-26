@@ -16,7 +16,7 @@ const STATUS_CLASS: Record<ChangeStatus, string> = {
     "border-[color-mix(in_oklch,var(--primary)_35%,transparent)] bg-[color-mix(in_oklch,var(--primary)_12%,transparent)] text-primary",
   "in-progress":
     "border-[color-mix(in_oklch,var(--warning)_40%,transparent)] bg-[color-mix(in_oklch,var(--warning)_12%,transparent)] text-warning",
-  discussing: "border-dashed bg-transparent text-muted-foreground",
+  draft: "border-dashed bg-transparent text-muted-foreground",
 };
 
 const VISIBLE_CAPABILITIES = 2;

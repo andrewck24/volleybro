@@ -1,5 +1,4 @@
-const VERSION_1_ID_PATTERN = /^D[0-9]+$/;
-const VERSION_2_ID_PATTERN = /^[0-9]{4}$/;
+const ID_PATTERN = /^[0-9]{4}$/;
 const CAPABILITY_PATTERN = /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/;
 const CHANGE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ALLOWED_KEYS = new Set([
@@ -16,11 +15,6 @@ const ALLOWED_KEYS = new Set([
   "originChange",
   "supersededBy",
 ]);
-// Version 1 named the capability list `targets` and carried the Proposal-page
-// number a promoted record was renumbered from. Both are read only from
-// records published inside Change pages on the store branch, which are history
-// and are never rewritten.
-const VERSION_1_KEYS = new Set([...ALLOWED_KEYS, "targets", "originDecision"]);
 const ALTERNATIVE_KEYS = new Set(["option", "reason"]);
 
 export type DecisionRecord = {
@@ -79,22 +73,16 @@ function isOptional(
   return value === undefined || check(value);
 }
 
-function isDecisionId(value: unknown, pattern: RegExp): boolean {
-  return isNonEmptyString(value) && pattern.test(value);
+function isDecisionId(value: unknown): boolean {
+  return isNonEmptyString(value) && ID_PATTERN.test(value);
 }
 
-// Everything both versions require of a record, once the version has said
-// which key holds the capability list and which id shape it uses.
-function hasValidBody(
-  record: Record<string, unknown>,
-  capabilities: unknown,
-  idPattern: RegExp,
-): boolean {
+function hasValidBody(record: Record<string, unknown>): boolean {
   return (
     (record.$schema === undefined || typeof record.$schema === "string") &&
-    isDecisionId(record.id, idPattern) &&
+    isDecisionId(record.id) &&
     isNonEmptyString(record.title) &&
-    isStringArray(capabilities, {
+    isStringArray(record.capabilities, {
       nonEmpty: true,
       pattern: CAPABILITY_PATTERN,
       unique: true,
@@ -116,7 +104,7 @@ function hasValidBody(
       record.originChange,
       (origin) => isNonEmptyString(origin) && CHANGE_SLUG_PATTERN.test(origin),
     ) &&
-    isOptional(record.supersededBy, (value) => isDecisionId(value, idPattern))
+    isOptional(record.supersededBy, isDecisionId)
   );
 }
 
@@ -136,28 +124,10 @@ export function parseDecisionRecord(value: unknown): DecisionRecord {
   const invalid = () =>
     new Error(`Invalid decision record: ${String(record.id ?? "unknown")}`);
 
-  if (record.schemaVersion === 1) {
-    if (
-      !hasOnlyKeys(record, VERSION_1_KEYS) ||
-      !isOptional(record.originDecision, (value) =>
-        isDecisionId(value, VERSION_1_ID_PATTERN),
-      ) ||
-      !hasValidBody(record, record.targets, VERSION_1_ID_PATTERN)
-    ) {
-      throw invalid();
-    }
-    const { targets, originDecision: _number, ...rest } = record;
-    return {
-      ...rest,
-      schemaVersion: 2,
-      capabilities: targets,
-    } as DecisionRecord;
-  }
-
   if (
     record.schemaVersion !== 2 ||
     !hasOnlyKeys(record, ALLOWED_KEYS) ||
-    !hasValidBody(record, record.capabilities, VERSION_2_ID_PATTERN)
+    !hasValidBody(record)
   ) {
     throw invalid();
   }
