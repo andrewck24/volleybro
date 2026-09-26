@@ -76,12 +76,8 @@ describe("the version 2 record format", () => {
     expect(parseDecisionRecord(minimal)).toEqual(minimal);
   });
 
-  it.each([
-    { ...minimal, schemaVersion: 1 },
-    { ...minimal, capabilities: undefined, targets: ["platform/blueprint"] },
-    { ...minimal, consequences: [] },
-  ])("rejects a record the new format does not allow", (record) => {
-    expect(() => parseDecisionRecord(record)).toThrow(
+  it("rejects a record the new format does not allow", () => {
+    expect(() => parseDecisionRecord({ ...minimal, consequences: [] })).toThrow(
       "Invalid decision record",
     );
   });

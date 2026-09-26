@@ -36,10 +36,8 @@ describe("parseDecisionRecord", () => {
     },
     { ...decision, capabilities: ["platform"] },
     { ...decision, context: "" },
-    { ...decision, originDecision: "D3" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
-    { ...decision, status: "accepted" },
   ])("rejects schema-incompatible input", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",

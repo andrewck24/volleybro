@@ -41,7 +41,7 @@ describe("DecisionTimeline", () => {
 
   it("shows a note in place of a schema-incompatible record instead of throwing", () => {
     render(
-      <DecisionTimeline decisions={[{ ...decision, status: "accepted" }]} />,
+      <DecisionTimeline decisions={[{ ...decision, claimedBy: "worker-1" }]} />,
     );
 
     expect(
