@@ -17,6 +17,7 @@ import {
   checkSinglePageGate,
   checkGateBranchState,
   checkDecisionRecordLength,
+  checkChangesetAtG2,
 } from "../check-workflow.js";
 
 const execFileAsync = promisify(execFile);
@@ -1003,4 +1004,28 @@ test("single-page gate fails a G2 page whose scenarios changed after G1", async 
     (await checkSinglePageGate(root, "c", { refresh: noop })).join("\n"),
     /gate-proposal-frozen/i,
   );
+});
+
+async function makeG2Repository(files) {
+  const { root, git } = await makeDecisionRepository();
+  await writeFiles(root, {
+    "blueprint/content/changes/c/index.mdx":
+      "---\ntitle: C\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n<Review>\n\ny\n\n</Review>\n</ChangeTabs>\n",
+    ...files,
+  });
+  await git(["add", "-A"]);
+  await git(["commit", "-q", "-m", "work"]);
+  return root;
+}
+
+test("checkChangesetAtG2 warns when a G2 branch carries no Changeset", async () => {
+  const root = await makeG2Repository({ "src/a.ts": "a\n" });
+  const warnings = await checkChangesetAtG2(root, "c");
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /\[changeset\]/);
+});
+
+test("checkChangesetAtG2 passes once the branch adds a Changeset", async () => {
+  const root = await makeG2Repository({ ".changeset/c.md": "---\n---\n" });
+  assert.deepEqual(await checkChangesetAtG2(root, "c"), []);
 });
