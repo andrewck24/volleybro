@@ -38,7 +38,7 @@ const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
 // source.config.ts only globs `**/meta.json`, so this never becomes a page.
 const STORE_FILE = ".store-state.json";
 const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
-// See ADR-0081.
+// See ADR-0082.
 const HISTORY_WARN_BYTES = 50_000_000;
 
 function runGit(args, options) {
@@ -176,7 +176,7 @@ async function warnIfHistoryTooLarge(repoRoot, limit) {
   if (bytes > limit) {
     const toMb = (value) => (value / 1_000_000).toFixed(1);
     console.warn(
-      `blueprint-changes pull: the ${BRANCH} history is ${toMb(bytes)} MB, past the ${toMb(limit)} MB threshold; revisit its retention (ADR-0081)`,
+      `blueprint-changes pull: the ${BRANCH} history is ${toMb(bytes)} MB, past the ${toMb(limit)} MB threshold; revisit its retention (ADR-0082)`,
     );
   }
 }

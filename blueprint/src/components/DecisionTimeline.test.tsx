@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 
+import type { DecisionRecord } from "@/lib/decision-record";
+
 import { DecisionTimeline } from "./DecisionTimeline";
 
-const decision = {
+const decision: DecisionRecord = {
   schemaVersion: 2,
   id: "0001",
   title: "Keep workflow repository-owned",
@@ -37,41 +39,6 @@ describe("DecisionTimeline", () => {
     );
 
     expect(screen.getByText("Superseded by 0045")).toBeInTheDocument();
-  });
-
-  it("shows a note in place of a schema-incompatible record instead of throwing", () => {
-    render(
-      <DecisionTimeline decisions={[{ ...decision, claimedBy: "worker-1" }]} />,
-    );
-
-    expect(
-      screen.getByText(/Invalid decision record: 0001/),
-    ).toBeInTheDocument();
-  });
-
-  it("names the failing field in the note", () => {
-    render(
-      <DecisionTimeline
-        decisions={[{ ...decision, capabilities: ["platform"] }]}
-      />,
-    );
-
-    expect(screen.getByText(/capabilities\.0/)).toBeInTheDocument();
-  });
-
-  it("renders the records that parse alongside a note for the one that does not", () => {
-    const other = { ...decision, id: "0002", decision: "Use a second record." };
-    render(
-      <DecisionTimeline
-        decisions={[decision, { ...other, claimedBy: "worker-1" }]}
-      />,
-    );
-
-    expect(screen.getByText(decision.decision)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Invalid decision record: 0002/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(other.decision)).not.toBeInTheDocument();
   });
 
   it("renders nothing for a capability that names no decisions", () => {

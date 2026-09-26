@@ -143,7 +143,7 @@ test("pull warns only when the store history passes the threshold", async (t) =>
 
   await withRemote(bare, () => pull(work, { historyWarnBytes: 1 }));
   assert.equal(warnings.mock.callCount(), 1);
-  assert.match(warnings.mock.calls[0].arguments[0], /ADR-0081/);
+  assert.match(warnings.mock.calls[0].arguments[0], /ADR-0082/);
   assert.equal(process.exitCode ?? 0, 0);
 });
 
