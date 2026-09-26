@@ -66,14 +66,14 @@ export const scenarios = [
 
 <ActionItems>
 
-以下是規格寫了、但現行程式碼沒有做到的部分，依規則沒有寫進 Features。每一項請決定：寫進該頁的 Known gaps、另開 issue，或丟棄。
+無。以下是規格寫了、但現行程式碼沒做到的部分，都沒有寫進 Features；你在 G2 的決定如下。
 
-1. **Summary drawer 的最後一筆規則**（`entry-ui`）：規格要求最後一筆可以刪除或退回，這條規則已寫成純函式（`src/components/game/entry/last-entry-rule.ts`），但畫面只提供編輯，刪除與退回沒有接上；程式碼註記是在等 `sync-recording` 的 reducer。
-2. **Summary drawer 的列展開**（`entry-ui`）：展開後只顯示動作，沒有規格要求的記錄者與時間；左滑與點擊展開也沒有互斥，一列左滑時另一列可以同時是點開的。
-3. **陣容 dialog 沒有草稿**（`contextual-edit-pages`）：team 與 player 表單都有草稿與放棄確認，陣容沒有，關閉時不會詢問。
-4. **Drawer 不符合共用的 overlay 結構**（`elevation-depth-system`）：Dialog 與 AlertDialog 有 Header、Body、Footer 三段，且只有 Body 捲動；Drawer 沒有 Body，也沒有 `srOnly`。Summary drawer 沒有 `DrawerDescription`，Radix 可能因此警告。
-5. **移除球員時，漏掉被當成替換（`sub`）的位置**（核對時發現的既有缺陷，不在規格內）：`removePlayerFromLineups` 只拿掉球員本身在陣容清單裡的項目，沒有比對各項目裡的 `sub.playerId`，所以只以 `sub` 出現的球員會留在陣容裡；後面的位置也會往前移，而不是留下空位。
-6. **個人檔案的 `activeTeamId` 沒有檢查 ObjectId 格式**（核對時發現，不在規格內）：其他 request schema 都用共用的 `objectId` 驗證，只有這個欄位接受任何字串。為了不讓 Current behavior 那句說得比程式碼還廣，這項已先記在 `platform/error-handling` 的 Known gaps；要改成開 issue 或直接修正，請告訴我。
+1. **Summary drawer 的最後一筆規則**（`entry-ui`）：純函式已有，畫面只接了編輯，刪除與退回在等 `sync-recording`。現況已補充到 sync-recording 裡負責賽後編輯的工作項。
+2. **Summary drawer 的列**（`entry-ui`）：展開後沒有記錄者與時間；左滑與點擊展開行為幾乎相同。已另開工作項：移除左滑動作（日後改用 Swift 重寫時再考慮加回），並補上記錄者與時間。
+3. **陣容 dialog 沒有草稿與放棄確認**（`contextual-edit-pages`）：已另開工作項。
+4. **Drawer 不採用 Dialog 的三段結構**（`elevation-depth-system`）：你決定 drawer 目前不納入這條規範，不另外處理。
+5. **移除球員時漏掉 `sub`，後面的位置往前移**（核對時發現的既有缺陷）：已另開工作項。
+6. **個人檔案的 `activeTeamId` 沒有檢查 ObjectId 格式**（核對時發現）：已另開工作項；修好之前記在 `platform/error-handling` 的 Known gaps。
 
 這次沒有要你親自執行的測試，全部由 agent 完成。
 
