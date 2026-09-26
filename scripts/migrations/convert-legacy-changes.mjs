@@ -23,7 +23,7 @@ const DECISIONS = path.join(ROOT, "blueprint/content/decisions");
 const CHECK_ONLY = process.argv.includes("--check");
 
 // Components whose whole block is dropped: they render process records the
-// single-page format has no place for, or history the grill chose not to keep.
+// single-page format has no place for, or history ADR-0079 does not keep.
 const DROPPED_COMPONENTS = [
   "FileTour",
   "TaskProgress",
@@ -32,7 +32,7 @@ const DROPPED_COMPONENTS = [
   "WorkflowLifecycleFlowchart",
 ];
 // Whole files dropped: the implementation plan and slices, OpenSpec tasks, and
-// OpenSpec specs, which the knowledge-promotion shard promotes to Features.
+// OpenSpec specs, whose still-current requirements are promoted to Features.
 const DROPPED_FILE =
   /^(implementation(\.mdx|\/)|tasks\.mdx$|specs\/|change\.json$|meta\.json$|design\/decisions\/)/;
 
@@ -69,7 +69,9 @@ function listFiles(dir, base = dir) {
   });
 }
 
-const globalDecisions = readdirSync(DECISIONS).map((file) =>
+const FENCE = /^\s*```/;
+const decisionFiles = readdirSync(DECISIONS);
+const globalDecisions = decisionFiles.map((file) =>
   JSON.parse(readFileSync(path.join(DECISIONS, file), "utf8")),
 );
 
@@ -132,17 +134,18 @@ function renderDraftDecision(record) {
 // Returns { body, dropped } for one MDX file: imports and dropped components
 // removed, DecisionTimeline replaced by DecisionCards (or static text for a
 // draft whose records never entered the decisions directory).
-function transformMdx(slug, text, { draft, dir }) {
+function transformMdx(slug, text, { isDraft, dir }) {
   const lines = text.split("\n");
   const imports = new Map();
   const out = [];
   const dropped = [];
-  let inFence = false;
+  let isInFence = false;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    if (/^\s*```/.test(line)) inFence = !inFence;
-    if (inFence || /^\s*```/.test(line)) {
+    const isFenceLine = FENCE.test(line);
+    if (isFenceLine) isInFence = !isInFence;
+    if (isInFence || isFenceLine) {
       out.push(line);
       continue;
     }
@@ -172,7 +175,7 @@ function transformMdx(slug, text, { draft, dir }) {
       const names = [...block.matchAll(/\b(\w+)\b/g)]
         .map((m) => m[1])
         .filter((name) => imports.has(name));
-      if (draft) {
+      if (isDraft) {
         out.push(
           names
             .map((name) =>
@@ -203,12 +206,12 @@ function normalize(text) {
 }
 
 function paragraphs(text) {
-  let inFence = false;
+  let isInFence = false;
   const blocks = [];
   let current = [];
   for (const line of text.split("\n")) {
-    if (/^\s*```/.test(line)) inFence = !inFence;
-    if (!inFence && line.trim() === "") {
+    if (FENCE.test(line)) isInFence = !isInFence;
+    if (!isInFence && line.trim() === "") {
       if (current.length) blocks.push(current.join("\n"));
       current = [];
     } else {
@@ -228,9 +231,7 @@ function patchDesign(slug, source) {
     .replace(/"\.\/design\/decisions\/(D\d+-[^"]+\.json)"/g, (_, file) => {
       const id = globalIdFor(slug, file);
       ids.push(id);
-      const target = readdirSync(DECISIONS).find((name) =>
-        name.startsWith(`${id}-`),
-      );
+      const target = decisionFiles.find((name) => name.startsWith(`${id}-`));
       return `"../../decisions/${target}"`;
     })
     .replace(/^import \{ FileTour \} from "@\/components\/FileTour";\n/m, "")
@@ -254,7 +255,7 @@ const PROPOSAL_ORDER = ["index.mdx", "proposal.mdx", "design.mdx"];
 function convert(slug) {
   const dir = path.join(CHANGES, slug);
   const meta = JSON.parse(readFileSync(path.join(dir, "change.json"), "utf8"));
-  const draft = meta.lifecycle !== "archived";
+  const isDraft = meta.lifecycle !== "archived";
   const files = listFiles(dir);
   const hasDesign = files.includes("design.tsx");
 
@@ -274,7 +275,7 @@ function convert(slug) {
     const { title, body: raw } = splitFrontmatter(
       readFileSync(path.join(dir, file), "utf8"),
     );
-    const { body, dropped: gone } = transformMdx(slug, raw, { draft, dir });
+    const { body, dropped: gone } = transformMdx(slug, raw, { isDraft, dir });
     sources.push(raw);
     dropped.push(gone);
     kept.push(body);
@@ -283,14 +284,14 @@ function convert(slug) {
   };
 
   const proposal = [
-    draft ? `${NOTE}${DRAFT_NOTE}` : NOTE,
+    isDraft ? `${NOTE}${DRAFT_NOTE}` : NOTE,
     section("index.mdx"),
     section("proposal.mdx", "Proposal"),
     section("design.mdx", "Design"),
     hasDesign ? "<DesignMockup />" : "",
   ].filter(Boolean);
 
-  const review = draft ? "" : section("review.mdx", "Review");
+  const review = isDraft ? "" : section("review.mdx", "Review");
   const pr = PULL_REQUESTS[slug];
   const reviewTab = review
     ? [
@@ -328,7 +329,6 @@ function convert(slug) {
     "",
   ].join("\n");
 
-  // Verification: every source paragraph is kept or declared dropped.
   const keptText = normalize(page);
   const droppedText = normalize(dropped.join("\n"));
   const missing = sources
@@ -352,7 +352,7 @@ function convert(slug) {
   ];
   const facts = {
     converted: true,
-    ...(draft ? {} : { gate: "G2" }),
+    ...(isDraft ? {} : { gate: "G2" }),
     startedAt: new Date(meta.startedAt).toISOString(),
     archivedAt: meta.archivedAt
       ? new Date(meta.archivedAt).toISOString()
@@ -376,7 +376,7 @@ function convert(slug) {
   }
   return {
     slug,
-    draft,
+    isDraft,
     decisions: decisionIds.length,
     review: Boolean(review),
     pr: Boolean(pr),

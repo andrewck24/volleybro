@@ -95,4 +95,16 @@ describe("listChanges", () => {
     expect(changes.map((change) => change.slug)).toEqual(["old", "draft"]);
     expect(changes[1].date).toBeUndefined();
   });
+
+  it("labels a converted draft as a draft rather than by a gate", () => {
+    mockGetPages.mockReturnValue([page("idea", "Idea")]);
+    mockFacts = {
+      idea: { converted: true, startedAt: "2026-07-07T00:00:00.000Z" },
+    };
+
+    expect(listChanges()[0].state).toEqual({
+      label: "draft",
+      status: "discussing",
+    });
+  });
 });

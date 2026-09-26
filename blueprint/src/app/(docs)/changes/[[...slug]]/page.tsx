@@ -26,7 +26,6 @@ import {
   Scenarios,
   TestPlan,
 } from "@/components/ScenarioCards";
-import { DecisionTimeline } from "@/components/DecisionTimeline";
 import {
   isSinglePageChange,
   readCapabilities,
@@ -63,7 +62,6 @@ const mdxComponents = {
   Scenario,
   RiskTable,
   AnnotatedDiff,
-  DecisionTimeline,
   DecisionCards: ChangeDecisionCards,
   ChangeTabs,
   Proposal,

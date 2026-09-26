@@ -73,7 +73,7 @@ export default function ComponentLibraryShowcase() {
       <TLDR>
         This change swaps the grayscale chart palette for the canonical colorful
         one, sources the warning and note accents from it, and replaces two thin
-        components with the TLDR and FileTour patterns.
+        components with the TLDR pattern.
       </TLDR>
 
       <section>

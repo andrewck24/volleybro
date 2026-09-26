@@ -459,7 +459,8 @@ async function changeDirectories(root) {
   if (!(await exists(changesRoot))) return [];
 
   // Pages converted from an earlier format (ADR-0079) never pass a gate and
-  // predate every page rule below; their facts.json marks them.
+  // predate every page rule below; their facts.json marks them. Publishing
+  // rewrites facts.json without the mark, so a republished page is checked.
   const entries = await readdir(changesRoot, { withFileTypes: true });
   const directories = entries
     .filter((entry) => entry.isDirectory())

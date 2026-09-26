@@ -6,6 +6,7 @@ import path from "node:path";
 const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
 
 export type ChangeFacts = {
+  converted?: boolean;
   gate?: "G1" | "G2";
   publishedAt?: string;
   startedAt?: string;

@@ -8,7 +8,7 @@ import {
 } from "@/lib/change-meta";
 import { source } from "@/lib/source";
 
-export type ChangeStatus = "archived" | "in-progress";
+export type ChangeStatus = "archived" | "in-progress" | "discussing";
 
 export type ChangeSummary = {
   slug: string;
@@ -29,7 +29,15 @@ function changeDate(archivedAt?: string | null, startedAt?: string) {
   return undefined;
 }
 
-// A Change is one top-level page.
+// A converted draft never passed G1, so no gate describes it.
+function changeState(facts: ChangeFacts): ChangeSummary["state"] {
+  if (facts.archivedAt) return { label: "archived", status: "archived" };
+  if (facts.converted && !facts.gate) {
+    return { label: "draft", status: "discussing" };
+  }
+  return { label: GATE_LABEL[facts.gate ?? "G1"], status: "in-progress" };
+}
+
 function changePages(): Dated[] {
   return source
     .getPages()
@@ -43,12 +51,7 @@ function changePages(): Dated[] {
         title: page.data.title,
         href: page.url,
         description: page.data.description,
-        state: facts.archivedAt
-          ? { label: "archived", status: "archived" as const }
-          : {
-              label: GATE_LABEL[facts.gate ?? "G1"],
-              status: "in-progress" as const,
-            },
+        state: changeState(facts),
         date,
         capabilities: readCapabilities(slug),
         facts,
