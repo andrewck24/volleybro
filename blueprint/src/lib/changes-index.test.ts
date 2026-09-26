@@ -104,7 +104,7 @@ describe("listChanges", () => {
 
     expect(listChanges()[0].state).toEqual({
       label: "draft",
-      status: "discussing",
+      status: "draft",
     });
   });
 });

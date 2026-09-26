@@ -8,7 +8,7 @@ import {
 } from "@/lib/change-meta";
 import { source } from "@/lib/source";
 
-export type ChangeStatus = "archived" | "in-progress" | "discussing";
+export type ChangeStatus = "archived" | "in-progress" | "draft";
 
 export type ChangeSummary = {
   slug: string;
@@ -33,7 +33,7 @@ function changeDate(archivedAt?: string | null, startedAt?: string) {
 function changeState(facts: ChangeFacts): ChangeSummary["state"] {
   if (facts.archivedAt) return { label: "archived", status: "archived" };
   if (facts.converted && !facts.gate) {
-    return { label: "draft", status: "discussing" };
+    return { label: "draft", status: "draft" };
   }
   return { label: GATE_LABEL[facts.gate ?? "G1"], status: "in-progress" };
 }

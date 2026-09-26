@@ -80,14 +80,15 @@ export default function ComponentLibraryShowcase() {
         <h3>PR-writeup section mapping</h3>
         <p>
           Where each section of the &ldquo;PR writeup&rdquo; reference belongs
-          in the blueprint page flow:
+          on a Change page:
         </p>
         <ul>
           <li>
-            <strong>TL;DR</strong> → page/overview top (the TLDR component).
+            <strong>TL;DR</strong> → the top of the Proposal tab (the TLDR
+            component).
           </li>
           <li>
-            <strong>Why</strong> → proposal/design (prose).
+            <strong>Why</strong> → the Proposal tab (prose).
           </li>
           <li>
             <strong>Before/After</strong> → a table or AnnotatedDiff.
@@ -97,13 +98,14 @@ export default function ComponentLibraryShowcase() {
             Change page carries none.
           </li>
           <li>
-            <strong>Where to focus review</strong> → review (prose).
+            <strong>Where to focus review</strong> → the Review tab&rsquo;s
+            ReviewFocus.
           </li>
           <li>
-            <strong>Test plan</strong> → tasks/review (prose).
+            <strong>Test plan</strong> → the Review tab&rsquo;s TestPlan.
           </li>
           <li>
-            <strong>Rollout</strong> → prose or the DecisionTimeline component.
+            <strong>Rollout</strong> → the Review tab&rsquo;s AfterRelease.
           </li>
         </ul>
       </section>
