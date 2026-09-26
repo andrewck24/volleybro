@@ -200,7 +200,7 @@ After merge, move the operational issue and its sub-issues to Done, then update 
 4. `git branch -d <branch>`, which succeeds only after step 2 makes the merge visible locally; a squash-merged Fix-path branch is never an ancestor of `dev`, so it needs `git branch -D`.
 5. for a Change, `pnpm blueprint:changes:pull` and then `pnpm blueprint:changes:publish <slug>` from the updated `dev`: the page was last published at G2, before the merge, so this publish is what records its `archivedAt` (ADR-0078).
 
-Then look back when the Change was hard going: if either gate sent the Change back, or Pre-PR code review took more than three rounds to reach its fixed point, the agent asks the developer to run the `retro` playbook on the Change's sessions — it runs only when a person invokes it. The developer decides which suggestions to adopt, and each adopted one becomes a tracker issue.
+Then look back when the Change was hard going: if either gate sent the Change back, or Pre-PR code review took more than three rounds to reach its fixed point, the agent asks the developer to run the `retro` playbook on the Change's sessions — it runs only when a person invokes it. The developer decides which suggestions to adopt. An adopted one that fits the Fix path may be fixed in the same session with no tracker issue; any other becomes a tracker issue.
 
 ## Implementation-slice contract
 
