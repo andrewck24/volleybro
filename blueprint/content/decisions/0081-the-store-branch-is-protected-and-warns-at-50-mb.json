@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "id": "0081",
+  "title": "The store branch cannot be deleted or rewritten, and warns past 50 MB",
+  "capabilities": ["platform/blueprint"],
+  "context": "The blueprint-changes branch is the durable store of every Change page, and ADR-0075's freeze check reads the G1 version of a Proposal from its history. No ruleset covered it, so it could be deleted or force-pushed, and its earliest commit is already later than a measurement taken of it days before, so its history has been rebuilt once. Its only revisit trigger said it would be reconsidered when it grew large enough to slow the build's fetch, with no size and nothing that measured it. On 2026-09-27 its full history took 1.26 MB on disk and a single-branch clone took under two seconds.",
+  "decision": "A GitHub ruleset forbids deleting blueprint-changes and pushing to it anything but a fast-forward. The store shrinks, when it has to, only through ordinary commits or by moving pages to another ref, never by rewriting its history. blueprint:changes:pull measures the store's full history on disk after fetching it and prints a warning, without failing, when it exceeds 50 MB.",
+  "alternatives": [
+    {
+      "option": "Measure the fetch time instead of the size",
+      "reason": "The fetch time is dominated by network round trips at this size and varies with the build machine, so a time threshold would warn on noise; the size is stable and is what the full fetch actually transfers."
+    },
+    {
+      "option": "Write the threshold down without anything that measures it",
+      "reason": "Nobody would measure the store until the build was already slow, which is the silent failure the threshold exists to prevent."
+    },
+    {
+      "option": "Fail the build past the threshold",
+      "reason": "A large store slows deploys without breaking them, so failing would turn a prompt to plan retention into an outage."
+    }
+  ],
+  "consequences": [
+    "Converting every page to a new format (ADR-0079) is done with ordinary commits on top of the store, never by rebuilding the branch.",
+    "Rewriting the store's history requires lifting the ruleset first, as an explicit decision."
+  ],
+  "revisitTriggers": [
+    "blueprint:changes:pull warns that the store's history exceeds 50 MB."
+  ],
+  "originChange": "blueprint-contract-guardrails"
+}

@@ -25,7 +25,7 @@
     "A design mockup outlives its Change only by promotion to the Design System or a Feature, when it becomes a lasting rule."
   ],
   "revisitTriggers": [
-    "The store branch grows large enough to slow the build's fetch.",
+    "The store branch warns that it has outgrown the threshold ADR-0081 sets.",
     "A gate is reviewed by someone who cannot run the Blueprint locally."
   ],
   "originChange": "two-gate-workflow"

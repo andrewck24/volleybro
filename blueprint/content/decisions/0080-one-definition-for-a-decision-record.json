@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "id": "0080",
+  "title": "A decision record has one definition, the zod schema its parser runs",
+  "capabilities": ["platform/blueprint"],
+  "context": "A decision record was defined three times: a JSON Schema file that no code loaded and that only editors read through each record's $schema field, a hand-written TypeScript type, and a hand-written validator joined to that type by a cast. Any two could drift without a check noticing, and the validator's only error named the record, not the field that failed, while DecisionTimeline shows that error on the Feature page. Records are written by agents during Discuss, which validate through the parser and the tree test rather than an editor.",
+  "decision": "The zod schema in blueprint/src/lib/decision-record.ts is the only definition of a decision record. Parsing runs that schema, the DecisionRecord type is inferred from it, and unknown keys are rejected. No JSON Schema file is kept or generated, and records carry no $schema field.",
+  "alternatives": [
+    {
+      "option": "Generate the JSON Schema from the zod schema and lock the committed file with a test",
+      "reason": "It keeps editor validation, but once no record points at the file nothing reads it, and a generated artifact that nothing reads is maintenance with no consumer."
+    },
+    {
+      "option": "Keep the JSON Schema and the hand-written validator, and validate records against both with shared fixtures",
+      "reason": "Drift is caught only where a fixture happens to exercise the difference, and it adds ajv as a dependency to police a redundancy that does not have to exist."
+    },
+    {
+      "option": "Keep the hand-written validator as the only definition",
+      "reason": "It removes the JSON Schema but leaves the type and the validator as two definitions joined by a cast, and keeps an error message that does not say which field failed."
+    }
+  ],
+  "consequences": [
+    "zod reaches the Blueprint's client bundle, because DecisionTimeline parses records in the browser.",
+    "Editors no longer validate a record as it is typed; the tree test and the parser catch the same errors before a commit lands.",
+    "A parse failure names the field path and the rule it broke."
+  ],
+  "revisitTriggers": [
+    "A consumer outside the Blueprint needs to validate records without running TypeScript, which would argue for generating a JSON Schema from the zod schema."
+  ],
+  "originChange": "blueprint-contract-guardrails"
+}
