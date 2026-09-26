@@ -1,25 +1,25 @@
 import { z } from "zod";
 
-const text = z.string().min(1);
+const nonEmptyText = z.string().min(1);
 const decisionId = z.string().regex(/^[0-9]{4}$/);
 
 const decisionRecordSchema = z.strictObject({
   schemaVersion: z.literal(2),
   id: decisionId,
-  title: text,
+  title: nonEmptyText,
   capabilities: z
     .array(z.string().regex(/^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/))
     .min(1)
     .refine((items) => new Set(items).size === items.length, {
       message: "must not repeat a capability",
     }),
-  decision: text,
-  context: text.optional(),
+  decision: nonEmptyText,
+  context: nonEmptyText.optional(),
   alternatives: z
-    .array(z.strictObject({ option: text, reason: text }))
+    .array(z.strictObject({ option: nonEmptyText, reason: nonEmptyText }))
     .optional(),
-  consequences: z.array(text).min(1).optional(),
-  revisitTriggers: z.array(text).min(1).optional(),
+  consequences: z.array(nonEmptyText).min(1).optional(),
+  revisitTriggers: z.array(nonEmptyText).min(1).optional(),
   originChange: z
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
