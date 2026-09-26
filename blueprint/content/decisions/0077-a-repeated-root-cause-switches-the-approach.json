@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0077",
   "title": "A root cause found in two rounds in a row switches the approach",

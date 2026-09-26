@@ -44,4 +44,16 @@ describe("parseDecisionRecord", () => {
       "Invalid decision record",
     );
   });
+
+  it("names a key the definition does not hold", () => {
+    expect(() =>
+      parseDecisionRecord({ ...decision, $schema: "../schema.json" }),
+    ).toThrow(/\$schema/);
+  });
+
+  it("names the path of the field that fails", () => {
+    expect(() =>
+      parseDecisionRecord({ ...decision, capabilities: ["platform"] }),
+    ).toThrow(/capabilities\.0/);
+  });
 });

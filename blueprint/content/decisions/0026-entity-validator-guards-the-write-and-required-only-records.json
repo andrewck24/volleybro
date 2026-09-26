@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0026",
   "title": "寫入守衛是 entities 層的獨立 validator，Mongoose 的 required 只是欄位必要性的紀錄",

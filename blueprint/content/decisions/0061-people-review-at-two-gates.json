@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0061",
   "title": "People review a Change at two gates, and nothing stops between them",

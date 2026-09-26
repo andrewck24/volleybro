@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0014",
   "title": "Persistence sits behind a small client-side port whose signature is asynchronous from the first day",

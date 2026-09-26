@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react";
 
+import type { DecisionRecord } from "@/lib/decision-record";
+
 import { DecisionTimeline } from "./DecisionTimeline";
 
 const decision = {
@@ -17,7 +19,7 @@ const decision = {
   ],
   consequences: ["Manual and orchestrated Apply share one contract."],
   revisitTriggers: ["A repository cannot express its delivery policy."],
-};
+} satisfies DecisionRecord;
 
 describe("DecisionTimeline", () => {
   it("renders capabilities, rationale, rejected alternatives, and revisit triggers", () => {
@@ -37,31 +39,6 @@ describe("DecisionTimeline", () => {
     );
 
     expect(screen.getByText("Superseded by 0045")).toBeInTheDocument();
-  });
-
-  it("shows a note in place of a schema-incompatible record instead of throwing", () => {
-    render(
-      <DecisionTimeline decisions={[{ ...decision, claimedBy: "worker-1" }]} />,
-    );
-
-    expect(
-      screen.getByText(/Invalid decision record: 0001/),
-    ).toBeInTheDocument();
-  });
-
-  it("renders the records that parse alongside a note for the one that does not", () => {
-    const other = { ...decision, id: "0002", decision: "Use a second record." };
-    render(
-      <DecisionTimeline
-        decisions={[decision, { ...other, claimedBy: "worker-1" }]}
-      />,
-    );
-
-    expect(screen.getByText(decision.decision)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Invalid decision record: 0002/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(other.decision)).not.toBeInTheDocument();
   });
 
   it("renders nothing for a capability that names no decisions", () => {

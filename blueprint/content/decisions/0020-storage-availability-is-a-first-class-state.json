@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0020",
   "title": "本機儲存可用性升為指示器的第一級狀態，並在開機時就探測",

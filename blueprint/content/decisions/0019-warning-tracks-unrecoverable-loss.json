@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0019",
   "title": "警告語氣改掛「不可重試」，per-rally 標記一併收窄",

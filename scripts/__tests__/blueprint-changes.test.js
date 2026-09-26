@@ -134,6 +134,19 @@ test("pull adds missing slugs", async (t) => {
   );
 });
 
+test("pull warns only when the store history passes the threshold", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const warnings = t.mock.method(console, "warn", () => {});
+
+  await withRemote(bare, () => pull(work));
+  assert.equal(warnings.mock.callCount(), 0);
+
+  await withRemote(bare, () => pull(work, { historyWarnBytes: 1 }));
+  assert.equal(warnings.mock.callCount(), 1);
+  assert.match(warnings.mock.calls[0].arguments[0], /ADR-0082/);
+  assert.equal(process.exitCode ?? 0, 0);
+});
+
 test("pull keeps a never-pulled local slug", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const alphaDir = path.join(work, "blueprint", "content", "changes", "alpha");

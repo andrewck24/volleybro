@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0064",
   "title": "Slices are tracker sub-issues, and a one-session Change has none",
