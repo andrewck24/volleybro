@@ -1,0 +1,203 @@
+---
+title: Spectra Knowledge Promotion
+description: legacy-change-conversion 的第二個 shard：Spectra change 仍成立的行為提升到 Features，沒做完的列給開發者決定。
+capabilities: ["platform/blueprint"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "every requirement in the specs of the Spectra Changes in scope",
+    when: "this shard is delivered",
+    then: "each one is stated in a Features page at its current behavior, already stated there or in docs/design-system.md, or listed for the developer as not built",
+  },
+  {
+    id: "S2",
+    given: "a statement this shard adds to a Features page",
+    when: "a reviewer looks for its evidence",
+    then: "the Review tab names a test or code location that shows the statement holds today",
+  },
+  {
+    id: "S3",
+    given: "the updated Features pages",
+    when: "Blueprint builds and a reader opens them",
+    then: "the build passes and each page renders the added statements",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+這是 Migration Change `legacy-change-conversion` 的第二個 shard，範圍取自它在 G1 通過的 Proposal，跳過 G1、直接到 G2。
+
+<TLDR>
+  範圍內的 Spectra change 的行為規格只存在舊頁的 `specs/` 裡，從沒提升到
+  Features。這個 shard 逐條對照現行程式碼：仍成立的照現行行為寫進對應的 Features
+  頁，沒做完的不寫入，列給開發者決定。
+</TLDR>
+
+## 範圍
+
+1. Spectra change（`api-objectid-guards`、`apple-splash-dynamic`、`contextual-edit-pages`、`elevation-depth-system`、`entry-ui`、`team-routes-clean-architecture`）的每條 requirement 對照現行程式碼：
+   - 有程式碼或測試證據的，以 Features 現有格式寫進對應 capability；證據列在 Review tab，不寫進 Features 本文。
+   - 被後續 change 改掉的，照現行行為寫。
+   - 沒做完的，不寫入，列在 Review tab 的 `ActionItems` 由開發者決定。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "把不再成立的行為寫進 Features",
+      severity: "warning",
+      mitigation:
+        "每條都要有測試或程式碼證據；證據由獨立 context 逐條核對後才寫入。",
+    },
+    {
+      name: "Features 寫進過細的實作細節",
+      severity: "info",
+      mitigation: "沿用各頁既有的抽象層級，只寫讀者需要知道的行為。",
+    },
+  ]}
+/>
+
+</Proposal>
+<Review>
+
+<ActionItems>
+
+以下是規格寫了、但現行程式碼沒有做到的部分，依規則沒有寫進 Features。每一項請決定：寫進該頁的 Known gaps、另開 issue，或丟棄。
+
+1. **Summary drawer 的最後一筆規則**（`entry-ui`）：規格要求最後一筆可以刪除或退回，這條規則已寫成純函式（`src/components/game/entry/last-entry-rule.ts`），但畫面只提供編輯，刪除與退回沒有接上；程式碼註記是在等 `sync-recording` 的 reducer。
+2. **Summary drawer 的列展開**（`entry-ui`）：展開後只顯示動作，沒有規格要求的記錄者與時間；左滑與點擊展開也沒有互斥，一列左滑時另一列可以同時是點開的。
+3. **陣容 dialog 沒有草稿**（`contextual-edit-pages`）：team 與 player 表單都有草稿與放棄確認，陣容沒有，關閉時不會詢問。
+4. **Drawer 不符合共用的 overlay 結構**（`elevation-depth-system`）：Dialog 與 AlertDialog 有 Header、Body、Footer 三段，且只有 Body 捲動；Drawer 沒有 Body，也沒有 `srOnly`。Summary drawer 沒有 `DrawerDescription`，Radix 可能因此警告。
+5. **移除球員時，漏掉被當成替換（`sub`）的位置**（核對時發現的既有缺陷，不在規格內）：`removePlayerFromLineups` 只拿掉球員本身在陣容清單裡的項目，沒有比對各項目裡的 `sub.playerId`，所以只以 `sub` 出現的球員會留在陣容裡；後面的位置也會往前移，而不是留下空位。
+6. **個人檔案的 `activeTeamId` 沒有檢查 ObjectId 格式**（核對時發現，不在規格內）：其他 request schema 都用共用的 `objectId` 驗證，只有這個欄位接受任何字串。為了不讓 Current behavior 那句說得比程式碼還廣，這項已先記在 `platform/error-handling` 的 Known gaps；要改成開 issue 或直接修正，請告訴我。
+
+這次沒有要你親自執行的測試，全部由 agent 完成。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `game-recording/rally-recording`：新增的輸入流程與 summary drawer 行為是這次寫得最多、也最接近 UI 的部分，請確認抽象層級合適。
+2. `team-management/membership`：不存在的 team 回 403 而不是 404。這是現行行為，但也等於把「team 是否存在」和「是不是成員」混成同一個答案。
+3. `platform/clean-architecture` 與 `game-recording/persistence`：player 在 repository 以上叫 `id`、在儲存層叫 `playerId`；substitution entry 是例外，player 是字串而不是 `{ id }` 物件。
+
+</ReviewFocus>
+
+<Deviations>
+
+無。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    {
+      id: "S1",
+      result: "pass",
+      evidence:
+        "獨立 context 逐條核對全部規格，每條都有結論：寫入、已寫、改寫為現行行為，或列入 ActionItems；對照表見下方 ReviewDetails",
+    },
+    {
+      id: "S2",
+      result: "pass",
+      evidence: "ReviewDetails 的對照表為每條新增的陳述列出測試或程式碼位置",
+    },
+    {
+      id: "S3",
+      result: "pass",
+      evidence:
+        "Blueprint build 通過；dev server 上開啟每個更新過的 Features 頁，新增內容都有渲染，console 沒有 error",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "每條規格的現況",
+      method: "分批交給獨立 context，各自對照規格、程式碼與測試",
+      executor: "agent",
+      environment: "本機 dev 分支",
+      result: "pass",
+    },
+    {
+      id: "T2",
+      checks: "Features 頁可建置並渲染",
+      method: "blueprint `next build`，並在 dev server 開啟每個更新過的頁面",
+      executor: "agent",
+      environment: "本機",
+      result: "pass",
+    },
+    {
+      id: "T3",
+      checks: "全部 gate",
+      method: "`pnpm verify:all`",
+      executor: "agent",
+      environment: "本機",
+      result: "pass",
+    },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 逐條結論與證據
+
+| 規格                                                     | 結論                                                            | 寫到哪裡                                                    | 證據                                                                                                                                              |
+| -------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ObjectId path 參數在任何處理之前驗證，失敗回 400         | 成立，寫入                                                      | `platform/error-handling`                                   | `src/lib/api/__tests__/guards.test.ts`、`src/lib/api/__tests__/wrappers.test.ts`                                                                  |
+| body 裡的 ObjectId 欄位同一格式                          | 成立，寫入；`activeTeamId` 例外記在 Known gaps                  | `platform/error-handling`、ActionItems 第 6 項              | `src/interface/validations/object-id.ts`、`src/interface/validations/profile.ts`                                                                  |
+| 套用的 route 範圍                                        | 已改變：除 `users/[userId]/players` 外每個有 id 的 route 都驗證 | `platform/error-handling`                                   | `src/app/api/users/[userId]/players/route.ts`                                                                                                     |
+| iOS 啟動畫面依尺寸產生                                   | 已改變：加上 wordmark，mark 取自共用的品牌路徑                  | `platform/pwa`                                              | `src/app/apple-splash/__tests__/route.test.ts`                                                                                                    |
+| 不支援的尺寸回 404                                       | 成立，寫入                                                      | `platform/pwa`                                              | `src/app/apple-splash/__tests__/route.test.ts`                                                                                                    |
+| 啟動畫面 URL 與裝置清單                                  | 成立，已寫                                                      | `platform/pwa`                                              | `src/app/apple-splash/__tests__/devices.test.ts`                                                                                                  |
+| 三層 elevation token、overlay 用 `--card`、不用裝飾 ring | 成立，已寫                                                      | `docs/design-system.md`                                     | `src/components/ui/__tests__/alert-dialog.test.tsx`                                                                                               |
+| Dialog 控制鍵位置                                        | 已改變，已寫                                                    | `platform/design-system/overlays`                           | `src/components/ui/__tests__/dialog.test.tsx`                                                                                                     |
+| AlertDialog 不能以 Esc 或點外面關閉，沒有關閉鈕          | 成立，寫入                                                      | `platform/design-system/overlays`                           | `src/components/ui/__tests__/alert-dialog.test.tsx`                                                                                               |
+| `srOnly` 標題與描述                                      | Dialog、AlertDialog 成立，寫入；Drawer 沒有                     | `platform/design-system/overlays`                           | `src/components/ui/__tests__/dialog.test.tsx`                                                                                                     |
+| 共用三段結構                                             | Dialog、AlertDialog 成立；Drawer 沒有                           | ActionItems 第 4 項                                         | `src/components/ui/drawer.tsx`                                                                                                                    |
+| 直接開啟 edit URL 得到 workspace 全頁                    | 成立，寫入                                                      | `platform/design-system/overlays`                           | `src/app/(workspace)/team/[teamId]/edit/page.tsx`                                                                                                 |
+| slot 的 `default.tsx` 什麼都不渲染，硬重新整理不會 404   | 成立，寫入                                                      | `platform/design-system/overlays`                           | `src/app/(tabs)/@modal/default.tsx`                                                                                                               |
+| header 不縮、只有 body 捲動                              | 成立，寫入                                                      | `platform/design-system/overlays`                           | `src/components/ui/dialog.tsx`                                                                                                                    |
+| 放大與 dirty 關閉確認                                    | 已改變，已寫                                                    | `platform/design-system/overlays`                           | `src/components/layout/__tests__/edit-dialog-container.test.tsx`                                                                                  |
+| dirty 時放大只抑制一次離開警告                           | 成立，寫入                                                      | `platform/forms`                                            | `src/hooks/__tests__/use-leave-page-warning.test.ts`                                                                                              |
+| 表單草稿存於 sessionStorage                              | team、player 成立，寫入；陣容沒有                               | `platform/forms`、ActionItems 第 3 項                       | `src/hooks/__tests__/use-form-draft.test.ts`                                                                                                      |
+| 不存在的 team 回 404                                     | 已改變：回 403，寫入                                            | `team-management/membership`                                | 只有程式碼：`src/applications/usecases/team/get-team.usecase.ts`。route 測試裡的 404 是 mock 掉 controller 後才走得到的路徑，實際請求會先得到 403 |
+| 改隊名與暱稱僅限 owner、admin，不接受其他欄位            | 成立，寫入                                                      | `team-management/roles`                                     | 僅限 admin：`src/app/api/teams/[teamId]/route.ts`；不接受其他欄位：`src/app/api/teams/[teamId]/__tests__/route.test.ts`                           |
+| 陣容讀寫需成員資格                                       | 成立，寫入                                                      | `team-management/membership`                                | `src/app/api/teams/[teamId]/lineups/__tests__/route.test.ts`                                                                                      |
+| 移除球員時從陣容拿掉                                     | 部分：拿掉本人的項目，但漏掉 `sub`；寫入成立的部分              | `team-management/membership`、ActionItems 第 5 項           | `src/applications/usecases/player/__tests__/remove-player.usecase.test.ts`、`src/infrastructure/db/repositories/team.repository.mongo.ts`         |
+| player 對外 `id`、儲存 `playerId`；substitution 用字串   | 成立，寫入                                                      | `platform/clean-architecture`、`game-recording/persistence` | `src/infrastructure/db/repositories/__tests__/team.repository.test.ts`、`src/infrastructure/db/repositories/__tests__/game.repository.test.ts`    |
+| 三步輸入流程與前一步未完成時的鎖定                       | 成立，寫入                                                      | `game-recording/rally-recording`                            | `src/components/game/panel/__tests__/progress-bar.test.tsx`、`src/components/game/panel/__tests__/entry-progress.test.ts`                         |
+| 鎖定的控制用 `aria-disabled`；swipe 會取消誤觸的點擊     | 成立，不寫：屬元件的實作細節，由測試守住                        | 不寫                                                        | `src/components/game/panel/__tests__/progress-bar.test.tsx`                                                                                       |
+| 切換步驟時面板同步、依方向滑動；caption 是唯一的步驟標示 | 成立，寫入                                                      | `game-recording/rally-recording`                            | 同步：`src/components/game/panel/__tests__/index.test.tsx`；方向滑動只有程式碼：`src/components/game/panel/moves/index.tsx`                       |
+| Preview 是送出控制                                       | 成立，寫入                                                      | `game-recording/rally-recording`                            | `src/components/game/__tests__/preview.test.tsx`                                                                                                  |
+| 送出失敗的處理                                           | 已改變：改為佇列，已寫                                          | `game-recording/rally-recording`                            | `src/components/game/panel/moves/__tests__/oppo.test.tsx`                                                                                         |
+| Summary drawer 的 peek、展開、排序                       | 成立，寫入                                                      | `game-recording/rally-recording`                            | `src/components/game/__tests__/summary-drawer.test.tsx`                                                                                           |
+| Summary drawer 無邊框、每列外框一致                      | 成立，不寫：屬樣式，由元件與 Design System 決定                 | 不寫                                                        | `src/components/game/summary-drawer.tsx`                                                                                                          |
+| 最後一筆的刪除與退回                                     | 沒做完                                                          | ActionItems 第 1 項                                         | `src/components/game/entry/last-entry-rule.ts`、`src/components/game/entry/__tests__/entry-row.test.tsx`                                          |
+| 列展開的內容與互斥                                       | 部分                                                            | ActionItems 第 2 項                                         | `src/components/game/entry/__tests__/entry-row.test.tsx`、`src/components/game/__tests__/summary-drawer.test.tsx`                                 |
+| 資料遷移腳本                                             | 一次性，屬歷史                                                  | 不寫                                                        | `docs/changes/archive/2026-06-16-team-routes-clean-architecture/scripts/`                                                                         |
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    {
+      name: "少數新增陳述只有程式碼證據、沒有測試",
+      severity: "info",
+      mitigation:
+        "「選擇對手動作只暫存」、「單一畫面的版面」、「切換步驟時依方向滑動」與「不存在的 team 回 403」沒有測試斷言；日後改動不會被測試擋下。",
+    },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
+</ChangeTabs>
