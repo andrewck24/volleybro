@@ -63,7 +63,7 @@ describe("the decision record tree", () => {
   });
 });
 
-describe("the version 2 record format", () => {
+describe("the decision record format", () => {
   const minimal = {
     schemaVersion: 2,
     id: "0001",
@@ -76,7 +76,7 @@ describe("the version 2 record format", () => {
     expect(parseDecisionRecord(minimal)).toEqual(minimal);
   });
 
-  it("rejects a record the new format does not allow", () => {
+  it("rejects a record the format does not allow", () => {
     expect(() => parseDecisionRecord({ ...minimal, consequences: [] })).toThrow(
       "Invalid decision record",
     );

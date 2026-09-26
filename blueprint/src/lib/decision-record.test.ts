@@ -30,6 +30,7 @@ describe("parseDecisionRecord", () => {
   it.each([
     { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
+    { ...decision, schemaVersion: 3 },
     {
       ...decision,
       capabilities: ["platform/delivery", "platform/delivery"],
