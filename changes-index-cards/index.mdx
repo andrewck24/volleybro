@@ -77,4 +77,75 @@ export const scenarios = [
 />
 
 </Proposal>
+<Review>
+
+<ActionItems>
+
+1. 接受 ADR-0078 的 `decision` 內文修改：G1 之後，`startedAt` 從「第一次 publish」改為「第一個 commit，還沒有 commit 時才用第一次 publish」。S4 已經你授權走 Ingest 改寫；依 ADR-0077，G1 之後改動 decision 內文仍要在這裡列出。
+2. 確認下方「與 Proposal 的偏差」第 2 項（第 3 輪 review 前換了做法）。這次沒有要你親自執行的測試，全部由 agent 完成。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/change-page.js` 的 `changeFacts`：`startedAt` 取第一個 commit 的 author date，沒有 commit 時退回第一次 publish；`archivedAt` 取落地 commit 的時間。
+2. `blueprint/src/lib/changes-index.ts`：兩種格式放在同一條時間軸，依 `archivedAt ?? startedAt` 由新到舊排序，沒有日期的草稿排在最後。
+3. `blueprint/src/app/page.tsx` 與 `ChangeCard.tsx`：新首頁與卡片的呈現。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **`startedAt` 改為第一個 commit。** 重新 publish 時發現，store 分支的 commit 時間曾被整批匯入與 rebase 改寫：照原本的定義，`two-gate-workflow` 會在它合併之後才開始，`triage-state-mapping` 也會早了兩天。S4 經你授權走 Ingest 改寫，ADR-0078 的內文同步修改。squash 合併的 Change 只剩 squash commit，所以開始時間等於完成時間，和它的 commit 數無法得知是同一個原因。
+2. **第 3 輪 review 前換了做法。** 第 1 輪兩軸都發現 Features 頁與註解還寫著舊定義，第 2 輪又找到過時的註解與測試。三者的 root cause 相同：`startedAt` 改了定義，卻沒有同步到每一處提到它的地方。於是不再照 reviewer 點名逐一修補，改為把所有提到 `startedAt` 與 first publish 的地方全部找出來，逐一核對。換做法之後的第 3 輪回到全範圍審查。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "`ChangeCard` 測試檢查標題、描述、狀態、日期與 capability；瀏覽器中 `/changes` 列出 32 張卡片" },
+    { id: "S2", result: "pass", evidence: "`changes-index` 測試：兩種格式混排，由新到舊" },
+    { id: "S3", result: "pass", evidence: "`changes-index` 測試：沒落地的依 `startedAt` 排序；未完成的 `record-flows`、`sync-recording` 在頁面上以開始日期排入" },
+    { id: "S4", result: "pass", evidence: "`blueprint-changes` 測試：commit 早於 publish、沒有 commit、squash、已合併與未合併五種情況；10 個單頁 Change 重新 publish 後的日期都合理" },
+    { id: "S5", result: "pass", evidence: "瀏覽器：`/` 回應 200，含介紹與 Features、Changes、Design System 三個連結" },
+    { id: "S6", result: "pass", evidence: "瀏覽器 375px 寬：`/` 與 `/changes` 的 scrollWidth 都等於視窗寬度" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "facts 的日期推導", method: "`pnpm test:workflow`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T2", checks: "索引排序、卡片、gate 標籤", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T3", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T4", checks: "首頁與索引在桌面與手機寬度", method: "dev server 上讀取 `/` 與 `/changes`，在 375px 寬量 scrollWidth 並截圖", executor: "agent", environment: "本機 dev server", result: "pass" },
+  ]}
+/>
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+<RiskTable
+  risks={[
+    { name: "startedAt 的新定義沒有同步到每一處", severity: "warning", mitigation: "第 1、2 輪陸續發現 Features 頁、註解、測試仍是舊定義；第 2 輪後依 ADR-0077 改為全面核對，第 3 輪只剩一個參數名與一行 assertion，照審查逐字修正。" },
+    { name: "S4 的新規則沒有測試區分", severity: "warning", mitigation: "補上三個測試：commit 早於第一次 publish、沒有 commit 時退回、squash 的開始時間。" },
+    { name: "資料層 import UI 元件取得 gate 標籤", severity: "info", mitigation: "gate 標籤移到中立的 `change-gate.ts`；`change-meta` 是 server-only，無法放在那裡。" },
+    { name: "狀態顏色與 legacy 層重複；可點擊卡片外殼重複", severity: "info", mitigation: "不處理：legacy 層預定在之後的 Change 刪除，重複會隨之消失；卡片外殼目前只有兩處。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "舊格式的日期只有日，新格式有時間", severity: "info", mitigation: "同一天內的先後可能不精確；卡片只顯示到日。" },
+    { name: "合併後忘了重新 publish", severity: "warning", mitigation: "已寫進 WORKFLOW 合併後的收尾；漏掉時卡片退回用 startedAt 排序，不會消失。" },
+    { name: "squash 合併的 Change 開始時間等於完成時間", severity: "info", mitigation: "記錄在 ADR-0078；squash 把原本的 commit 壓掉了，無法推回。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
 </ChangeTabs>
