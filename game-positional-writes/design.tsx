@@ -11,6 +11,7 @@ import { RiskTable } from "@/components/RiskTable";
 import { Scenario } from "@/components/Scenario";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import type { DecisionRecord } from "@/lib/decision-record";
 import { cn } from "@/lib/utils";
 
 import entriesAsSourceOfTruth from "../../decisions/0004-entries-as-source-of-truth.json";
@@ -1306,12 +1307,14 @@ export default function Design() {
           </table>
         </div>
         <DecisionTimeline
-          decisions={[
-            entriesAsSourceOfTruth,
-            domainOperationRepository,
-            sharedDomainFunctions,
-            explicitSetCompletion,
-          ]}
+          decisions={
+            [
+              entriesAsSourceOfTruth,
+              domainOperationRepository,
+              sharedDomainFunctions,
+              explicitSetCompletion,
+            ] as DecisionRecord[]
+          }
         />
       </section>
 
