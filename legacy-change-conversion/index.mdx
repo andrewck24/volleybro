@@ -121,4 +121,99 @@ export const scenarios = [
 />
 
 </Proposal>
+<Review>
+
+<ActionItems>
+
+無。上一輪要你決定的四件事都已在 G2 回覆，處理方式列在「與 Proposal 的偏差」第 9 項。
+
+這次沒有要你親自執行的測試，全部由 agent 完成。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `blueprint/src/lib/decision-record.ts`：拿掉 version 1 的解析分支之後，只接受 version 2。舊版 fixture 改成 version 2，拒絕 version 1 的測試仍在。
+2. `scripts/check-workflow.js` 的 `isConverted`：原本靠「有 `change.json`」跳過舊頁，改成看 `facts.json` 的 `converted: true`。重新 publish 的頁面會失去這個標記，這是刻意的，因為那表示頁面重寫過了。
+3. 轉換腳本（已在 `chore(migrations): remove the spent legacy conversion script` 刪除，原文見 `chore(migrations): convert old-format Change pages to the single page`）：逐段比對的規則、D 編號對應全域編號的方式，以及草稿決策改成靜態文字時的跳脫處理。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **Spectra 快照的規則是收窄，不是改寫。** `WORKFLOW.md` 與 `artifact-lifecycle.md` 說 Spectra／OpenSpec 產物是不可變的快照；那兩句也涵蓋 `docs/specs/` 與 `docs/changes/archive/`，Shard 2 正要依這條規則從那裡提升仍然成立的知識。所以我把範圍收窄到 `docs/`，另外寫明 store 分支上的 Change 頁依 ADR-0079 轉換。
+2. **多刪了三處只為舊格式存在的程式碼。** `decision-record.ts` 的 version 1 解析、Change 頁元件表裡的 `DecisionTimeline`、Design System 頁的 `FileTour` 展示，都只為舊頁存在。另外把 ADR-0050 標為被取代，你已在 G2 確認。
+3. **跳過舊頁的方式改了。** `check:workflow` 原本以 `change.json` 判斷，改由轉換腳本在 `facts.json` 寫入 `converted: true`。
+4. **`game-positional-writes` 的名詞說明改成定義清單。** 它的 mockup 用 `FileTour` 呈現一份名詞說明。直接丟棄會留下空的段落和沒用到的資料，所以改成一般的定義清單，內容照舊。
+5. **草稿在索引上標為 draft。** 兩份草稿沒有 gate，原本會顯示成「G1 Proposal」，看起來像在等 G1。
+6. **三頁沒有 PR 連結。** `api-objectid-guards`、`entry-ui`、`team-routes-clean-architecture` 早於 PR 流程，找不到合併它們的 PR；`team-routes-clean-architecture` 也沒有舊的 Review 頁，所以沒有 Review tab。
+7. **第 3 輪 review 前換了做法（ADR-0077）。** 標準軸前兩輪都找到刪除後殘留的過時引用：註解、名稱、Design System 的對照表。root cause 相同：刪了程式碼，卻沒有回頭重讀提到它的地方。於是改為一次搜尋所有被刪的名稱與舊格式用語，逐一處理。第 3 輪回到全範圍審查。
+8. **順手修了一行 Features。** `platform/delivery-workflow` 還寫著 Change 的審查頁是 `proposal.mdx` 與 `review.mdx`，和 `platform/blueprint` 矛盾，改為單頁。兩頁格式殘留的程式碼另開後續處理，不在本 Change。
+9. **G2 第一輪的要求。** 你在 G2 回覆：
+   - 接受 ADR-0050 由 ADR-0079 取代。
+   - 不保留舊 Change 的 `implementation.mdx`。
+   - 修正 Proposal 裡「`team-membership-authorization` 的決策遺失」的錯誤陳述：四份決策本來就在（ADR-0041 到 ADR-0044）。TLDR、頁面描述與 Shard 2 的「補回決策」一項都已拿掉，並依你的同意重新發布 G1 版本。
+   - `next dev` 的記憶體問題維持現狀，列為殘留風險；成因已查明，見殘留風險。
+   - 拿掉拒絕 version 1 記錄的測試案例，因為已經沒有、也不會再產生 version 1 記錄。
+   - 側欄上每個 Change 仍顯示展開箭頭，交給兩頁格式清理的後續工作一併處理，不在本 Change。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "store 分支上搜尋 change.json、slice JSON、implementation.mdx、review.mdx、tasks.mdx，結果為零：`git ls-tree -r --name-only origin/blueprint-changes`" },
+    { id: "S2", result: "pass", evidence: "`blueprint/src` 沒有 `legacy` 目錄，也沒有 FileTour、TaskProgress、WorkflowBlastRadius、WorkflowLifecycleFlowchart 的定義或引用" },
+    { id: "S3", result: "pass", evidence: "腳本對每頁逐段比對，漏段即以非零結束並印出該段；對全部舊頁執行通過" },
+    { id: "S4", result: "pass", evidence: "`next build` 產生全部靜態頁，沒有 prerender error，也沒有頁面顯示無法渲染；索引列出 store 上每一個 Change" },
+    { id: "S5", result: "pass", evidence: "Playwright 在 dev mode 逐頁開啟每個 Change 頁：零 error 級 console 訊息，每個 tab 都有內容。因 dev server 的記憶體問題，分批進行，每批重啟 server" },
+    { id: "S6", result: "pass", evidence: "兩份草稿只有 Proposal tab；`record-flows` 的三份決策以文字呈現，`sync-recording` 的決策留在 mockup 內；決策目錄沒有它們" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "轉換沒有漏段", method: "轉換腳本的逐段比對", executor: "agent", environment: "本機，從 store 重新 pull 的副本", result: "pass" },
+    { id: "T2", checks: "Blueprint 單元測試與型別", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T3", checks: "workflow 腳本", method: "`pnpm test:workflow`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T4", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T5", checks: "轉換後的頁面全部可建置", method: "blueprint `next build`", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T6", checks: "每個 Change 頁在 dev mode 沒有 console error、tab 有內容", method: "Playwright 逐頁開啟、切換 Review tab、展開 ReviewDetails", executor: "agent", environment: "本機 dev server，分批重啟", result: "pass" },
+    { id: "T7", checks: "三頁實讀", method: "截圖閱讀 `dialog-close-ownership`、`entry-ui`、`sync-recording`：頁首註記、決策卡、Review 內容、mockup", executor: "agent", environment: "本機 dev server", result: "pass" },
+  ]}
+/>
+
+<AfterRelease>
+
+合併後重新 publish 本頁，記下 `archivedAt`，然後開始 Shard 2。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+<RiskTable
+  risks={[
+    { name: "刪除後殘留的過時註解與名稱", severity: "warning", mitigation: "第 1、2 輪陸續發現；第 3 輪前改為全面搜尋並一次處理（偏差第 7 項）。" },
+    { name: "Design System 的 PR-writeup 對照表仍用舊格式用語", severity: "warning", mitigation: "改寫成 Proposal、Review tab 與其中的區塊。" },
+    { name: "publish 會蓋掉轉換頁的 facts.json", severity: "info", mitigation: "不改：上傳 store 不經 publish；之後重新 publish 代表頁面重寫過，拿掉標記是對的。已寫進註解。" },
+    { name: "草稿在索引上顯示成等待 G1", severity: "info", mitigation: "改為 draft。" },
+    { name: "game-positional-writes 的名詞說明被清空，資料未使用而 lint 失敗", severity: "warning", mitigation: "改為定義清單（偏差第 4 項）。" },
+    { name: "record-flows 的決策文字含 `<Substitutes>`，MDX 無法編譯", severity: "warning", mitigation: "build 時發現；腳本在 code span 以外跳脫角括號與大括號。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "next dev 在單次 session 開啟很多轉換頁後記憶體耗盡", severity: "warning", mitigation: "成因是 dev 模式的 source map：每個開過的頁面都會解析並保留一份 source map，轉換後單頁變大，開十多到三十頁就會用滿 heap。以 `--disable-source-maps` 啟動可避免；平常不會開這麼多頁，依你的決定維持現狀。production 是靜態檔案，不受影響。" },
+    { name: "轉換頁被重新 publish 會失去 converted 標記", severity: "info", mitigation: "之後會開始受頁面規則檢查；這正是重寫後應有的行為。" },
+  ]}
+/>
+
+</ReviewDetails>
+
+</Review>
 </ChangeTabs>
