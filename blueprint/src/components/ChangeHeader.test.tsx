@@ -35,7 +35,9 @@ describe("ChangeHeader", () => {
       />,
     );
 
-    expect(screen.getByText("2 commits，8 scenarios")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["2 commits", "8 scenarios"]);
   });
 
   it("uses the singular for a figure of one", () => {
@@ -48,7 +50,7 @@ describe("ChangeHeader", () => {
     );
 
     expect(
-      screen.getByText("1 commit，1 file，1 scenario"),
-    ).toBeInTheDocument();
+      screen.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["1 commit", "1 file", "1 scenario"]);
   });
 });

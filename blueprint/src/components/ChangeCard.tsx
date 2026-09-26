@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FigureBadges } from "@/components/FigureBadges";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -49,6 +50,11 @@ export function ChangeCard({ change }: { change: ChangeSummary }) {
             </CardDescription>
           )}
         </CardHeader>
+        {change.facts && (
+          <CardContent className="px-4">
+            <FigureBadges facts={change.facts} />
+          </CardContent>
+        )}
         {change.capabilities.length > 0 && (
           <CardContent className="flex flex-wrap gap-1.5 px-4">
             {shown.map((capability) => (

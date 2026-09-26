@@ -4,7 +4,11 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 import { GATE_LABEL } from "@/lib/change-gate";
-import { readCapabilities, readFacts } from "@/lib/change-meta";
+import {
+  type ChangeFacts,
+  readCapabilities,
+  readFacts,
+} from "@/lib/change-meta";
 import { source } from "@/lib/source";
 import { CHANGES_ROOT, isLegacySlug } from "@/legacy/change-catalog";
 import { SLUG_PATTERN, parseChangeMetadata } from "@/legacy/change-metadata";
@@ -19,6 +23,7 @@ export type ChangeSummary = {
   state: { label: string; status: ChangeStatus };
   date?: { kind: "archived" | "started"; value: string };
   capabilities: string[];
+  facts?: ChangeFacts;
 };
 
 type Dated = ChangeSummary & { order: string };
@@ -82,6 +87,7 @@ function singlePageChanges(): Dated[] {
             },
         date,
         capabilities: readCapabilities(slug),
+        facts,
         order: date?.value ?? "",
       };
     });
