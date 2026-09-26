@@ -24,7 +24,7 @@ The archived branch describes the intended post-merge canonical state. It become
 
 Change pages are durable review history again: publishing them to the `blueprint-changes` store branch keeps every Proposal and Review tab browsable after merge, without making them a second lifecycle authority — Features, decision records, and commit bodies remain canonical current knowledge.
 
-Historical Spectra/OpenSpec artifacts are immutable snapshots. Migration work promotes only still-current knowledge into its canonical authority and leaves obsolete or superseded material in place as history. Remove Spectra skills, workflows, and CLI configuration only in a later cleanup after that promotion has been verified.
+Historical Spectra/OpenSpec artifacts under `docs/` are immutable snapshots; Change pages on the store branch are not, and are converted whenever the page format changes (ADR-0079). Migration work promotes only still-current knowledge into its canonical authority and leaves obsolete or superseded material in place as history. Remove Spectra skills, workflows, and CLI configuration only in a later cleanup after that promotion has been verified.
 
 ## Research and working notes
 
