@@ -120,7 +120,7 @@ export const scenarios = [
 <ActionItems>
 
 1. **ADR-0081 的 `decision` 內文在 G1 之後改了。** Ingest 時你同意拆分：ADR-0081 只留 ruleset 與「不得改寫歷史」，50 MB 門檻移到新的 ADR-0082。ADR-0080 的 `context` 與 `consequences` 也改寫了（不是 `decision` 內文），說明 record 壞掉時是 build 失敗，以及 zod 為何仍進入前端 bundle。
-2. **Ingest 第 1 點沒有交付，請確認維持現狀。** `DecisionTimeline` 仍在瀏覽器端解析並保留 fallback，理由見 Deviations。
+2. **推翻了 `standalone-decision-records` 的 S11**，你在 G2 已同意：`DecisionTimeline` 不再逐筆解析、也不再以註記取代壞掉的 record，見 Deviations 第 1 點。
 3. **S7 的 given 在 G2 前經 Ingest 改寫**，你已同意：從「publish 之後才 push」改成「publish 之後 preview 重建」，理由見 Deviations 第 3 點。
 4. **PR body 的 preview 連結在開 PR 時加上**：S7 的前半（preview 頁面）已在 G2 前驗證，後半要等 PR 存在。
 5. **review 走了四輪**，超過三輪；merge 之後會請你跑 `retro`。
@@ -137,9 +137,8 @@ export const scenarios = [
 
 <Deviations>
 
-1. **範圍第 1 點「`DecisionTimeline` 改收 server 已解析的 `DecisionRecord[]`」沒有交付。** 實作後 Blueprint build 的型別檢查失敗：store 上 `game-positional-writes` 的 design mockup 直接把頁內寫死的 record 傳給 `DecisionTimeline`，而逐筆 fallback 正是 `standalone-decision-records` 驗收過的行為（它的 S11）。根本原因是 Ingest 假設 `DecisionTimeline` 只從 server 拿 record。已還原，瀏覽器端解析是正確的邊界。
-2. **Proposal 風險表少了「zod 進入 Blueprint 的前端 bundle」。** 因為第 1 點沒有交付，這個風險仍然存在；ADR-0080 的第一條 consequence 已照實寫明。
-3. **範圍第 6 點的 push 順序規則改寫了。** 原本寫「最後一次 push 在最後一次 publish 之後」，但 `check:workflow --gate` 要求 publish 前分支已 push，照做只能在 publish 後再 commit，而 `facts.json` 在 publish 時量測，頁首數字因此落後一個 commit（在 preview 上逐節閱讀時發現）。`WORKFLOW.md` 改為：最後一次 publish 之後確認 preview 顯示已 publish 的頁面，否則手動重跑 branch build。
+1. **推翻 `standalone-decision-records` 的 S11（一筆 record 解析失敗時以註記取代、其餘照常渲染）。** 範圍第 1 點要求 `DecisionTimeline` 只收已解析的 record；唯一傳入未解析資料的是 store 上 `game-positional-writes` 的 design mockup，它 import 的是 repo 裡已由 tree test 驗證的 0004–0007，現在以 `as DecisionRecord[]` 轉型並重新 publish 該頁。S11 寫成時 Feature 頁仍傳入未解析的 record；隔天起 index 在 build 時就先解析，S11 只剩這個 mockup 在用。第一次實作時型別檢查被這個 mockup 擋下而還原，G2 時你決定推翻 S11 後重做。
+2. **範圍第 6 點的 push 順序規則改寫了。** 原本寫「最後一次 push 在最後一次 publish 之後」，但 `check:workflow --gate` 要求 publish 前分支已 push，照做只能在 publish 後再 commit，而 `facts.json` 在 publish 時量測，頁首數字因此落後一個 commit（在 preview 上逐節閱讀時發現）。`WORKFLOW.md` 改為：最後一次 publish 之後確認 preview 顯示已 publish 的頁面，否則手動重跑 branch build。
 
 </Deviations>
 
@@ -227,6 +226,22 @@ export const scenarios = [
       result: "pass",
     },
     {
+      id: "T7",
+      checks: "`z.config(z.locales.en())` 被刪除時會被抓到",
+      method: "`decision-record.locale.test.ts` 先清空 zod 的 locale；刪掉那一行後測試失敗",
+      executor: "agent",
+      environment: "本機",
+      result: "pass",
+    },
+    {
+      id: "T8",
+      checks: "zod 不在前端 bundle",
+      method: "blueprint build 後在 `out/_next/static/chunks` 搜尋 zod 的訊息字串，之前 1 個 chunk、被 58 頁載入，現在 0 個",
+      executor: "agent",
+      environment: "本機",
+      result: "pass",
+    },
+    {
       id: "T6",
       checks: "全部 gate",
       method: "`pnpm verify:all`",
@@ -241,7 +256,7 @@ export const scenarios = [
 
 ### Code review
 
-兩軸獨立 review，四輪達到 fixed point；第一輪之後每輪只看上一輪之後的改動。第三、四輪是 Archive 之後的改動重開的。
+兩軸獨立 review，五輪達到 fixed point；第一輪之後每輪只看上一輪之後的改動。第三、四輪是 Archive 之後的改動重開的，第五輪審 G2 時你要求的兩項修改。
 
 | 輪次 | 軸        | Finding                                              | 處理                                               |
 | ---- | --------- | ---------------------------------------------------- | -------------------------------------------------- |
@@ -256,12 +271,12 @@ export const scenarios = [
 | 3    | Spec      | build 裡錯誤訊息只有 `Invalid input`，未說出規則     | bundle 丟掉 zod locale；補上 `z.config`，以 build 實測 |
 | 3    | Spec      | push 順序規則與 S7 的 given 互相矛盾                 | 改寫規則；S7 經 Ingest 改寫                        |
 | 4    | 兩軸      | 無新 finding                                         | —                                                  |
+| 5    | 兩軸      | 無新 finding；Spec 提醒 mockup 頁須先於分支 push 重新 publish | 已先 publish `game-positional-writes`               |
 
 ### 殘餘風險
 
 - git 2.31 以前沒有 `rev-list --disk-usage`，量測會靜默略過；Cloudflare build 的 git 版本無法確認，但本機 dev 一定會量到（ADR-0082 已記下）。
-- zod 仍在 Blueprint 的前端 bundle 中（ADR-0080）。
-- `z.config(z.locales.en())` 沒有測試守住：Node 與 jest 本來就載入英文訊息，只有 build 會暴露它被刪掉。
+- `blueprint:changes:publish` 無法保留舊格式轉換頁的 `facts.json`：重新 publish `game-positional-writes` 時 `converted` 與原本的日期被重算，已在 store 以一般 commit 還原，並另開票處理 script。
 - 改寫 store 歷史必須先解除 ruleset `Blueprint store cannot be deleted or rewritten`。
 
 </ReviewDetails>
