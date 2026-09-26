@@ -1,0 +1,32 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0079",
+  "title": "A Change page format change converts every existing page",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "The Change page format changed twice, from four pages to two and from two to one, and both times the old pages were kept readable through a compatibility layer to be converted later. The result was 22 old pages in three source structures, a legacy directory in the Blueprint source, and a rule calling Spectra and OpenSpec pages immutable snapshots. Converting them afterwards cost a separate migration because each structure needed its own mapping.",
+  "decision": "When the Change page format changes, the same Change converts every existing page on the store branch to the new format mechanically, with a one-off script, and keeps no compatibility layer. A converted page keeps its original text and drops what the new format has no place for; durable knowledge lives in Features and decision records, not in old pages.",
+  "alternatives": [
+    {
+      "option": "Keep old pages as immutable snapshots behind a compatibility layer",
+      "reason": "Each format change adds another source structure the site must keep rendering, so the layer only grows, and its removal is deferred work that becomes harder the more structures pile up."
+    },
+    {
+      "option": "Delete old pages once their knowledge is promoted",
+      "reason": "Removes the layer at no conversion cost, but loses the browsable review history the store branch exists to keep."
+    },
+    {
+      "option": "Rewrite each old page by hand in the new format",
+      "reason": "Produces the best pages but costs one authoring and review pass per page, and reconstructing content the old format never held, such as acceptance scenarios, invents history."
+    }
+  ],
+  "consequences": [
+    "A format-changing Change is larger: it carries the conversion script and republishes every page.",
+    "Converted pages never pass a gate, so they may lack sections the gate requires of new pages.",
+    "Old sources are dropped where the new format has no place for them; the store branch's git history still holds them."
+  ],
+  "revisitTriggers": [
+    "The store holds enough pages that republishing all of them in one Change becomes slow or risky."
+  ],
+  "originChange": "legacy-change-conversion"
+}
