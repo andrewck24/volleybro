@@ -148,6 +148,8 @@ The same-commit rule applies once this contract exists on the branch's base. Whe
 
 Verification failures remain inside Apply. Diagnose whether the implementation is wrong or the accepted Proposal is no longer viable. Fix implementation defects without creating a separate stage. Do not silently change accepted behavior, scope, architecture, or acceptance criteria.
 
+A deviation that redefines a term — a field, a date, a state, anything the Proposal or a decision record names — is swept before the next review round, not after two: find every mention of the term in prose, comments, identifiers, tests and acceptance scenarios, and bring each one to the new definition or say why it stays. A redefinition leaves stale mentions wherever the old meaning was written, so waiting for review to find them one round at a time only delays the approach switch ADR-0077 forces after two rounds. A mention in a decision record's `decision` text is also listed in `ActionItems` for G2, and one in an acceptance scenario is frozen at G1 and goes through Ingest.
+
 A deletion beyond the requested scope is a judgement, not cleanup. When knip, a dead-code audit, or the agent's own analysis flags files outside the Change, list them with a per-file rationale and ask at the next gate; delete none of them until the developer answers. Being unreferenced in the import graph is not evidence on its own: a file may be a documented API contract, an alias of a live database collection, or reserved for planned work.
 
 #### Optional Ingest action
@@ -188,7 +190,7 @@ Archive runs automatically after Pre-PR code review reaches its fixed point, bef
 4. read `docs/agents/blueprint.md`, generate the Review tab, read every section rendered in a browser as the developer will, publish it with `pnpm blueprint:changes:publish <slug>` and confirm with `pnpm check:workflow --gate <slug>`, then notify the developer and stop for acceptance (G2). Reading the source is not reading the page: a stale count, a column that does not line up, an unreadable snippet are all invisible in the file that produces them;
 5. once accepted, verify tracker neutrality, workflow conformance, and the Features build.
 
-Acceptance of the Review tab is the last human gate. It authorizes opening the pull request without asking again: open it with the exported Review summary in the body, then wait for CI and for whatever the developer said about merging. If optional human PR feedback arrives and changes durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun the applicable gates on the same branch. Merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical snapshots. A later low-priority migration promotes only knowledge that is still current; it does not rewrite the remaining snapshots.
+Acceptance of the Review tab is the last human gate. Acceptance that comes with requests — something to add, change or drop — is not acceptance yet: build the requests, rerun every check and browser reading they affect, review them to a fixed point, list them as deviations, republish, and stop for G2 again. A round of requests is not the gate sending the Change back, so it does not trigger a retro by itself. Unconditional acceptance authorizes opening the pull request without asking again: open it with the exported Review summary in the body, then wait for CI and for whatever the developer said about merging. If optional human PR feedback arrives and changes durable knowledge, amend the promoted Features and reopen the branch to fix it, then rerun the applicable gates on the same branch. Merge performs no second knowledge sync. Historical Spectra/OpenSpec artifacts remain historical snapshots. A later low-priority migration promotes only knowledge that is still current; it does not rewrite the remaining snapshots.
 
 After merge, move the operational issue and its sub-issues to Done, then update every issue whose description tracks this Change: close a parent once all its children are done, and record on an epic or related issue what shipped and what remains. Then clean up the local checkout from outside the Change's worktree, in this order — GitHub already deleted the remote branch:
 
@@ -198,7 +200,7 @@ After merge, move the operational issue and its sub-issues to Done, then update 
 4. `git branch -d <branch>`, which succeeds only after step 2 makes the merge visible locally; a squash-merged Fix-path branch is never an ancestor of `dev`, so it needs `git branch -D`.
 5. for a Change, `pnpm blueprint:changes:pull` and then `pnpm blueprint:changes:publish <slug>` from the updated `dev`: the page was last published at G2, before the merge, so this publish is what records its `archivedAt` (ADR-0078).
 
-Then look back when the Change was hard going: if either gate sent the Change back, or Pre-PR code review took more than three rounds to reach its fixed point, the agent asks the developer to run the `retro` playbook on the Change's sessions — it runs only when a person invokes it. The developer decides which suggestions to adopt, and each adopted one becomes a tracker issue.
+Then look back when the Change was hard going: if either gate sent the Change back, or Pre-PR code review took more than three rounds to reach its fixed point, the agent asks the developer to run the `retro` playbook on the Change's sessions — it runs only when a person invokes it. The developer decides which suggestions to adopt. An adopted one that fits the Fix path may be fixed in the same session with no tracker issue; any other becomes a tracker issue.
 
 ## Implementation-slice contract
 
@@ -313,6 +315,8 @@ Proposal and Review tabs are written under gitignored `blueprint/content/changes
 What each tab holds, in what order, and where its figures come from (ADR-0074) is in `docs/agents/blueprint.md`.
 
 Provider-native subagents remain within one root session and Change workspace. They never poll or claim the external queue, arm unattended execution, reprioritize intake, or create a parallel lifecycle authority.
+
+Unless a slice is handed off under the Implementation-slice contract, implementation stays in the root session, which holds the discussion and the developer's feedback. In any stage, work whose result is a verdict or a list rather than code goes to a subagent by default, so its screenshots, search output and command logs stay out of the root session's context: a browser or device check, a repository-wide sweep such as a redefinition sweep, and a batch of mechanical operations such as republishing pages. Its brief names what to check or find and asks for the verdict with `file:line` evidence, not the raw output.
 
 ### Presentation
 
