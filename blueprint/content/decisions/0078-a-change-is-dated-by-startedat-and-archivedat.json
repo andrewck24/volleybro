@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schemas/decision-record.schema.json",
+  "schemaVersion": 2,
+  "id": "0078",
+  "title": "Every Change is dated by startedAt and archivedAt",
+  "capabilities": ["platform/blueprint"],
+  "context": "Old-format Changes carry startedAt and archivedAt in change.json; single-page Changes carried publishedAt and mergedAt in facts.json. The Changes index has to sort both formats on one timeline, and two pairs of names for the same two moments are harder to read than one.",
+  "decision": "Every Change is dated by startedAt, when its first commit was made (its first publish while it has no commit yet), and archivedAt, when it landed on dev; a Change that has not landed has no archivedAt. facts.json uses these names, publish derives both, and the Changes index sorts on archivedAt, falling back to startedAt.",
+  "alternatives": [
+    {
+      "option": "Keep mergedAt for single-page Changes",
+      "reason": "It names the moment precisely, but leaves two vocabularies for one timeline, and the developer finds startedAt and archivedAt easier to read."
+    },
+    {
+      "option": "Start a Change at its first publish, from the page store's history",
+      "reason": "Bulk imports and rebased publishes rewrote the store's commit dates, which dated some Changes after they had landed; a commit's author date survives a rebase."
+    }
+  ],
+  "consequences": [
+    "archivedAt is not the time of WORKFLOW's Archive step, which runs before the pull request opens; it is when the Change landed on dev.",
+    "facts.json is last written at G2, before the merge, so the post-merge cleanup republishes the page to record archivedAt.",
+    "A squash-merged Change keeps only its squash commit, so it starts when it landed, for the same reason its commit count is unknown."
+  ],
+  "originChange": "changes-index-cards"
+}

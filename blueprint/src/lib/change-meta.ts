@@ -8,7 +8,8 @@ const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
 export type ChangeFacts = {
   gate?: "G1" | "G2";
   publishedAt?: string;
-  mergedAt?: string | null;
+  startedAt?: string;
+  archivedAt?: string | null;
   commits?: number | null;
   filesChanged?: number | null;
   insertions?: number | null;

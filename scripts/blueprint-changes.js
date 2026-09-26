@@ -269,13 +269,30 @@ async function applyChange(tmpDir, slug, localSlugDir) {
   return true;
 }
 
+// The fallback start for a Change with no commit yet: its first publish,
+// or undefined before that first publish.
+async function firstPublishedAt(repoRoot, slug) {
+  try {
+    const { stdout } = await runGit(
+      ["log", "--reverse", "--format=%cI", REMOTE_REF, "--", slug],
+      { cwd: repoRoot },
+    );
+    const [first] = stdout.trim().split("\n");
+    return first ? new Date(first).toISOString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function writeFacts(repoRoot, slugDir) {
   if (!isSinglePageDir(await readdir(slugDir))) return;
   const content = await readFile(path.join(slugDir, "index.mdx"), "utf8");
+  const slug = path.basename(slugDir);
   let facts;
   try {
     facts = await changeFacts(repoRoot, content, {
-      slug: path.basename(slugDir),
+      slug,
+      firstPublishedAt: await firstPublishedAt(repoRoot, slug),
     });
   } catch (error) {
     throw new Error(

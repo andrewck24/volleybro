@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { source } from "@/lib/source";
 import { listChanges } from "@/lib/changes-index";
@@ -12,6 +11,7 @@ import { Scenario } from "@/components/Scenario";
 import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { FileTour } from "@/components/FileTour";
+import { ChangeCardList } from "@/components/ChangeCard";
 import { ChangeHeader } from "@/components/ChangeHeader";
 import { ChangeTabs, Proposal, Review } from "@/components/ChangeTabs";
 import { DecisionCards } from "@/components/DecisionCards";
@@ -143,13 +143,7 @@ function ChangesIndex() {
             <code>pnpm blueprint:changes:pull</code>.
           </p>
         ) : (
-          <ul>
-            {changes.map((change) => (
-              <li key={change.slug}>
-                <Link href={change.href}>{change.title}</Link>
-              </li>
-            ))}
-          </ul>
+          <ChangeCardList changes={changes} />
         )}
       </DocsBody>
     </DocsPage>

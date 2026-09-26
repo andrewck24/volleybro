@@ -227,7 +227,7 @@ export async function landingOf(root, base, slug) {
     base,
   ]);
   for (const record of log.split("\x1e")) {
-    const [hash, parents = "", mergedAt, body = ""] = record
+    const [hash, parents = "", archivedAt, body = ""] = record
       .trim()
       .split("\x1f");
     const [first, second] = parents.split(" ");
@@ -237,11 +237,11 @@ export async function landingOf(root, base, slug) {
         from: first,
         to: hash,
         commitRange: `${first}..${second}`,
-        mergedAt,
+        archivedAt,
       };
     }
     if (first && !second && trailer.test(body)) {
-      return { from: first, to: hash, commitRange: null, mergedAt };
+      return { from: first, to: hash, commitRange: null, archivedAt };
     }
   }
   return null;
@@ -253,7 +253,7 @@ export async function landingOf(root, base, slug) {
 export async function changeFacts(
   root,
   content,
-  { slug, now = new Date() } = {},
+  { slug, firstPublishedAt, now = new Date() } = {},
 ) {
   const base = await resolveScopeBase(root);
   const landing = slug ? await orNull(() => landingOf(root, base, slug)) : null;
@@ -262,10 +262,24 @@ export async function changeFacts(
     parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
   );
   const commitRange = landing ? landing.commitRange : `${base}..HEAD`;
+  // ADR-0078: a Change starts at its first commit.
+  const firstCommitAt = await orNull(async () => {
+    const [first] = (
+      await git(root, [
+        "log",
+        "--reverse",
+        "--format=%aI",
+        commitRange ?? `${landing.from}..${landing.to}`,
+      ])
+    ).split("\n");
+    return first ? new Date(first).toISOString() : null;
+  });
+  const started = firstCommitAt ?? firstPublishedAt ?? now.toISOString();
   return {
     gate: hasReview(content) ? "G2" : "G1",
     publishedAt: now.toISOString(),
-    mergedAt: landing ? new Date(landing.mergedAt).toISOString() : null,
+    startedAt: started,
+    archivedAt: landing ? new Date(landing.archivedAt).toISOString() : null,
     commits: commitRange
       ? await orNull(async () =>
           Number(await git(root, ["rev-list", "--count", commitRange])),
