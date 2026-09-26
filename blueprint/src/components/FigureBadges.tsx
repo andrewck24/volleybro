@@ -25,16 +25,14 @@ const plural = (value: number, unit: string) =>
   `${value} ${unit}${value === 1 ? "" : "s"}`;
 
 // Each figure carries its own icon, so its colour is a cue rather than the
-// only thing telling additions from deletions. The status tones are too
-// light for small text in the light theme, so the text mixes in foreground.
+// only thing telling additions from deletions.
 const figuresOf = (facts: ChangeFacts): Figure[] => [
   {
     key: "commits",
     value: facts.commits,
     text: (value) => plural(value, "commit"),
     Icon: GitCommitHorizontal,
-    className:
-      "border-info/40 bg-info/10 text-[color-mix(in_oklch,var(--info)_65%,var(--foreground))]",
+    className: "border-info/40 bg-info/10 text-info-text",
   },
   {
     key: "files",
@@ -49,8 +47,7 @@ const figuresOf = (facts: ChangeFacts): Figure[] => [
     text: (value) => `${value}`,
     Icon: Plus,
     srLabel: "lines added",
-    className:
-      "border-success/40 bg-success/10 text-[color-mix(in_oklch,var(--success)_65%,var(--foreground))]",
+    className: "border-success/40 bg-success/10 text-success-text",
   },
   {
     key: "deletions",
@@ -58,16 +55,14 @@ const figuresOf = (facts: ChangeFacts): Figure[] => [
     text: (value) => `${value}`,
     Icon: Minus,
     srLabel: "lines removed",
-    className:
-      "border-destructive/40 bg-destructive/10 text-[color-mix(in_oklch,var(--destructive)_65%,var(--foreground))]",
+    className: "border-destructive/40 bg-destructive/10 text-destructive-text",
   },
   {
     key: "src",
     value: facts.srcFilesChanged,
     text: (value) => plural(value, "src file"),
     Icon: Code,
-    className:
-      "border-warning/40 bg-warning/10 text-[color-mix(in_oklch,var(--warning)_65%,var(--foreground))]",
+    className: "border-warning/40 bg-warning/10 text-warning-text",
   },
   {
     key: "scenarios",
@@ -78,19 +73,13 @@ const figuresOf = (facts: ChangeFacts): Figure[] => [
   },
 ];
 
-export function FigureBadges({
-  facts,
-  className,
-}: {
-  facts: ChangeFacts;
-  className?: string;
-}) {
+export function FigureBadges({ facts }: { facts: ChangeFacts }) {
   const shown = figuresOf(facts).filter((figure) => figure.value);
   if (shown.length === 0) return null;
   return (
     <ul
       aria-label="Change figures"
-      className={cn("m-0 flex list-none flex-wrap gap-1.5 p-0", className)}
+      className="m-0 flex list-none flex-wrap gap-1.5 p-0"
     >
       {shown.map(({ key, value, text, Icon, className: tone, srLabel }) => (
         <li key={key} className="m-0 p-0">

@@ -6,7 +6,7 @@
 
 #### Infrastructure
 
-- The Blueprint has a home page with entries to Features, Changes and the Design System and the latest Changes
+- The Blueprint has a home page with entries to Features, Changes and the Design System, followed by the latest Changes
 - A Change's figures show as badges, insertions and deletions apart, on its page and its card
 
 ### Changed

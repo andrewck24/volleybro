@@ -14,6 +14,7 @@ describe("ChangeCard", () => {
           state: { label: "archived", status: "archived" },
           date: { kind: "archived", value: "2026-09-25T10:00:00.000Z" },
           capabilities: ["one", "two", "three"],
+          facts: { commits: 3, insertions: 10 },
         }}
       />,
     );
@@ -24,6 +25,9 @@ describe("ChangeCard", () => {
     expect(screen.getByText("archived")).toBeInTheDocument();
     expect(screen.getByText("2026-09-25")).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Change figures" }),
+    ).toHaveTextContent("3 commits");
     expect(screen.queryByText("three")).not.toBeInTheDocument();
   });
 });

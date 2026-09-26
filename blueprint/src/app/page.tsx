@@ -37,9 +37,10 @@ function Tile({ href, title, description, figure, Icon }: Section) {
 
 export default function Home() {
   const changes = listChanges();
+  // Every Feature page is a capability or a sub-capability.
   const capabilities = featuresSource
     .getPages()
-    .filter((page) => page.slugs.length === 1).length;
+    .filter((page) => page.slugs.length > 0).length;
 
   const sections: Section[] = [
     {

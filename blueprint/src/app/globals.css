@@ -142,6 +142,24 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-note: var(--note);
+  /* Status tones as small text: pulled toward foreground, which keeps 4.5:1
+     on cards in both themes where the raw tone is too light. */
+  --color-info-text: color-mix(in oklch, var(--info) 65%, var(--foreground));
+  --color-success-text: color-mix(
+    in oklch,
+    var(--success) 65%,
+    var(--foreground)
+  );
+  --color-destructive-text: color-mix(
+    in oklch,
+    var(--destructive) 65%,
+    var(--foreground)
+  );
+  --color-warning-text: color-mix(
+    in oklch,
+    var(--warning) 65%,
+    var(--foreground)
+  );
 
   --font-sans: var(--font-saira), var(--font-noto-sans-tc), sans-serif;
   --font-heading: var(--font-sans);
