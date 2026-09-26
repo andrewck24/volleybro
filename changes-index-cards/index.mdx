@@ -82,7 +82,10 @@ export const scenarios = [
 <ActionItems>
 
 1. 接受 ADR-0078 的 `decision` 內文修改：G1 之後，`startedAt` 從「第一次 publish」改為「第一個 commit，還沒有 commit 時才用第一次 publish」。S4 已經你授權走 Ingest 改寫；依 ADR-0077，G1 之後改動 decision 內文仍要在這裡列出。
-2. 確認下方「與 Proposal 的偏差」第 2 項（第 3 輪 review 前換了做法）。這次沒有要你親自執行的測試，全部由 agent 完成。
+2. 確認下方「與 Proposal 的偏差」第 2 項（第 3 輪 review 前換了做法）。
+3. 決定首頁的兩項附加內容要保留或拿掉：Features 與 Changes 入口上的即時數字，以及入口下方的「最近的 Change」。這兩項是重新設計時我依設計建議加上的，你只要求了重新設計（偏差第 3 項）。
+
+這次沒有要你親自執行的測試，全部由 agent 完成。
 
 </ActionItems>
 
@@ -99,6 +102,10 @@ export const scenarios = [
 1. **`startedAt` 改為第一個 commit。** 重新 publish 時發現，store 分支的 commit 時間曾被整批匯入與 rebase 改寫：照原本的定義，`two-gate-workflow` 會在它合併之後才開始，`triage-state-mapping` 也會早了兩天。S4 經你授權走 Ingest 改寫，ADR-0078 的內文同步修改。squash 合併的 Change 只剩 squash commit，所以開始時間等於完成時間，和它的 commit 數無法得知是同一個原因。
 2. **第 3 輪 review 前換了做法。** 第 1 輪兩軸都發現 Features 頁與註解還寫著舊定義，第 2 輪又找到過時的註解與測試。三者的 root cause 相同：`startedAt` 改了定義，卻沒有同步到每一處提到它的地方。於是不再照 reviewer 點名逐一修補，改為把所有提到 `startedAt` 與 first publish 的地方全部找出來，逐一核對。換做法之後的第 3 輪回到全範圍審查。
 
+3. **G2 時追加的兩項。** 你在 G2 接受 Review 時，另外要求：
+   - Change 的數字改用不同顏色的徽章，新增與刪除分開，頁首與卡片都要有；之後依你的意見，`+`／`−` 只用圖示表示，並替螢幕閱讀器補上「lines added／removed」的隱藏文字。文字色往前景色混合，深淺兩種模式的對比都在 4.5 以上，這幾個色調成為 Blueprint 的 theme token（`info-text` 等）。
+   - 用 `ui-ux-pro-max` 重新設計首頁：Swiss 極簡、靠左對齊的網格，三個入口磁磚各有圖示，標題只在空白處換行。我另外加上 Features、Changes 的即時數字與「最近的 Change」，請見「需要你決定」第 3 項。
+
 </Deviations>
 
 <ScenarioResults
@@ -108,8 +115,8 @@ export const scenarios = [
     { id: "S2", result: "pass", evidence: "`changes-index` 測試：兩種格式混排，由新到舊" },
     { id: "S3", result: "pass", evidence: "`changes-index` 測試：沒落地的依 `startedAt` 排序；未完成的 `record-flows`、`sync-recording` 在頁面上以開始日期排入" },
     { id: "S4", result: "pass", evidence: "`blueprint-changes` 測試：commit 早於 publish、沒有 commit、squash、已合併與未合併五種情況；10 個單頁 Change 重新 publish 後的日期都合理" },
-    { id: "S5", result: "pass", evidence: "瀏覽器：`/` 回應 200，含介紹與 Features、Changes、Design System 三個連結" },
-    { id: "S6", result: "pass", evidence: "瀏覽器 375px 寬：`/` 與 `/changes` 的 scrollWidth 都等於視窗寬度" },
+    { id: "S5", result: "pass", evidence: "瀏覽器（首頁改版後重測）：`/` 回應 200，含介紹與 Features、Changes、Design System 三個連結" },
+    { id: "S6", result: "pass", evidence: "瀏覽器 375px 寬（加上徽章與改版後重測）：`/` 與 `/changes` 的 scrollWidth 都是 375" },
   ]}
 />
 
@@ -119,6 +126,7 @@ export const scenarios = [
     { id: "T2", checks: "索引排序、卡片、gate 標籤", method: "blueprint 的 jest 與 `tsc --noEmit`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T3", checks: "全部 gate", method: "`pnpm verify:all`", executor: "agent", environment: "本機", result: "pass" },
     { id: "T4", checks: "首頁與索引在桌面與手機寬度", method: "dev server 上讀取 `/` 與 `/changes`，在 375px 寬量 scrollWidth 並截圖", executor: "agent", environment: "本機 dev server", result: "pass" },
+    { id: "T5", checks: "數字徽章的文字對比", method: "在深淺兩種主題下，量每個徽章文字對卡片底色的對比", executor: "agent", environment: "本機 dev server", result: "pass", evidence: "深色 6.16–14.46，淺色 5.89–20.29" },
   ]}
 />
 
@@ -132,6 +140,8 @@ export const scenarios = [
     { name: "S4 的新規則沒有測試區分", severity: "warning", mitigation: "補上三個測試：commit 早於第一次 publish、沒有 commit 時退回、squash 的開始時間。" },
     { name: "資料層 import UI 元件取得 gate 標籤", severity: "info", mitigation: "gate 標籤移到中立的 `change-gate.ts`；`change-meta` 是 server-only，無法放在那裡。" },
     { name: "狀態顏色與 legacy 層重複；可點擊卡片外殼重複", severity: "info", mitigation: "不處理：legacy 層預定在之後的 Change 刪除，重複會隨之消失；卡片外殼目前只有兩處。" },
+    { name: "G2 追加內容：Features 頁說每個入口都有即時數字，但 Design System 是固定字串；capability 數字只算到頂層", severity: "warning", mitigation: "第 4 輪發現：Features 頁改為只說兩個即時數字；capability 改算所有 Feature 頁。" },
+    { name: "commit 徽章在深色模式、增刪徽章在淺色模式的文字對比不足", severity: "warning", mitigation: "實測發現；文字色往前景色混合，並抽成 theme token。" },
   ]}
 />
 
