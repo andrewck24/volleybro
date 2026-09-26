@@ -5,8 +5,6 @@ function page(slug: string): Item {
   return { type: "page", name: slug, url: `/changes/${slug}` };
 }
 
-// A Change directory holds index.mdx beside facts.json and design.tsx, so
-// the source tree makes it a folder whose only page is its index.
 function change(slug: string): Folder {
   return { type: "folder", name: slug, index: page(slug), children: [] };
 }

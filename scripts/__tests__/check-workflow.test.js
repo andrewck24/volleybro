@@ -333,7 +333,7 @@ test("reports a page whose Proposal has no TLDR", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/index.mdx": singlePage({ proposal: "" }),
+        "blueprint/content/changes/c/index.mdx": changePage({ proposal: "" }),
       })
     ).join("\n"),
     /c\/index\.mdx.*blueprint-proposal/i,
@@ -366,7 +366,7 @@ test("skips Changes converted from an earlier format", async () => {
 test("accepts a page with a TLDR and a scenario", async () => {
   assert.deepEqual(
     await messages({
-      "blueprint/content/changes/c/index.mdx": singlePage(),
+      "blueprint/content/changes/c/index.mdx": changePage(),
     }),
     [],
   );
@@ -666,7 +666,7 @@ test("the CLI exits 0 with a decision-length warning when that is the only gate 
     async (repoRoot) => {
       await writeFiles(repoRoot, {
         ...REPOSITORY_FILES,
-        "blueprint/content/changes/c/index.mdx": singlePage(),
+        "blueprint/content/changes/c/index.mdx": changePage(),
       });
       await addSkillBridge(repoRoot);
 
@@ -725,7 +725,7 @@ test("checkDecisionRecordLength ignores a record that only changed", async () =>
 
 const noop = async () => {};
 
-function singlePage({
+function changePage({
   title = "Sample",
   proposal = "<TLDR>x</TLDR>",
   review,
@@ -752,16 +752,16 @@ async function pageGate(content) {
 }
 
 test("page gate accepts a complete G1 page", async () => {
-  assert.equal(await pageGate(singlePage()), "");
+  assert.equal(await pageGate(changePage()), "");
 });
 
 test("page gate accepts a complete G2 page", async () => {
-  assert.equal(await pageGate(singlePage({ review: FULL_REVIEW })), "");
+  assert.equal(await pageGate(changePage({ review: FULL_REVIEW })), "");
 });
 
 test("page gate reports a title that is only a tab name", async () => {
   assert.match(
-    await pageGate(singlePage({ title: "Proposal" })),
+    await pageGate(changePage({ title: "Proposal" })),
     /index\.mdx.*gate-title/is,
   );
 });
@@ -772,7 +772,7 @@ test("page gate names a scenario with no result", async () => {
     "",
   );
   assert.match(
-    await pageGate(singlePage({ review })),
+    await pageGate(changePage({ review })),
     /gate-scenario-results.*S2/is,
   );
 });
@@ -783,13 +783,13 @@ test("page gate reports a missing required Review section", async () => {
     "",
   );
   assert.match(
-    await pageGate(singlePage({ review })),
+    await pageGate(changePage({ review })),
     /gate-review-sections.*ReviewFocus/is,
   );
 });
 
 test("page gate reports a scenario with no id", async () => {
-  const page = singlePage().replace('{ id: "S2", given', "{ given");
+  const page = changePage().replace('{ id: "S2", given', "{ given");
   assert.match(await pageGate(page), /gate-scenario-shape/i);
 });
 
@@ -824,23 +824,23 @@ async function withStoreHistory(root, g1Page) {
 }
 
 test("page gate passes a G2 page whose Proposal matches G1", async () => {
-  const page = singlePage({ review: FULL_REVIEW });
+  const page = changePage({ review: FULL_REVIEW });
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": page,
   });
-  await withStoreHistory(root, singlePage());
+  await withStoreHistory(root, changePage());
   assert.deepEqual(await checkChangePageGate(root, "c", { refresh: noop }), []);
 });
 
 test("page gate fails a G2 page whose Proposal changed after G1", async () => {
-  const page = singlePage({
+  const page = changePage({
     proposal: "<TLDR>rewritten</TLDR>",
     review: FULL_REVIEW,
   });
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": page,
   });
-  await withStoreHistory(root, singlePage());
+  await withStoreHistory(root, changePage());
   assert.match(
     (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
     /gate-proposal-frozen/i,
@@ -848,7 +848,7 @@ test("page gate fails a G2 page whose Proposal changed after G1", async () => {
 });
 
 test("page gate skips the freeze check without a G1 publish", async () => {
-  const page = singlePage({
+  const page = changePage({
     proposal: "<TLDR>rewritten</TLDR>",
     review: FULL_REVIEW,
   });
@@ -860,7 +860,7 @@ test("page gate skips the freeze check without a G1 publish", async () => {
 
 test("page gate fails a G2 page when the store branch cannot be fetched", async () => {
   const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": singlePage({
+    "blueprint/content/changes/c/index.mdx": changePage({
       review: FULL_REVIEW,
     }),
   });
@@ -879,27 +879,27 @@ test("page gate reports a Review section written on one line", async () => {
     "<Deviations>無</Deviations>",
   );
   assert.match(
-    await pageGate(singlePage({ review })),
+    await pageGate(changePage({ review })),
     /gate-review-sections.*Deviations.*own lines/is,
   );
 });
 
 test("page gate reports a page that is not valid MDX", async () => {
   assert.match(
-    await pageGate(singlePage({ proposal: "<TLDR>unclosed" })),
+    await pageGate(changePage({ proposal: "<TLDR>unclosed" })),
     /gate-mdx/i,
   );
 });
 
 test("page gate fails a G2 page whose scenarios changed after G1", async () => {
-  const page = singlePage({ review: FULL_REVIEW }).replace(
+  const page = changePage({ review: FULL_REVIEW }).replace(
     'then: "c"',
     'then: "rewritten"',
   );
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": page,
   });
-  await withStoreHistory(root, singlePage());
+  await withStoreHistory(root, changePage());
   assert.match(
     (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
     /gate-proposal-frozen/i,

@@ -7,8 +7,8 @@ function nodeUrl(node: Node) {
 }
 
 // A Change is one page, but its directory makes it a folder whose only page
-// is its index; it lists as that page, so the sidebar shows no chevron. The
-// Changes are ordered by `hrefs`, the /changes index order (ADR-0078).
+// is its index; it lists as that page, so the sidebar shows no chevron.
+// ADR-0078 sets the order.
 export function createChangesTree(sourceTree: Root, hrefs: string[]): Root {
   const rank = (node: Node) => {
     const index = hrefs.indexOf(nodeUrl(node) ?? "");

@@ -481,18 +481,26 @@ function orUndefined(read) {
   }
 }
 
+async function readChangePage(directory) {
+  const indexPath = path.join(directory, "index.mdx");
+  return (await exists(indexPath)) ? readFile(indexPath, "utf8") : undefined;
+}
+
+function scenarioCount(content) {
+  return orUndefined(() => scenarioIds(content).length) ?? 0;
+}
+
 async function validateChangePages(directories) {
   const diagnostics = [];
 
   for (const directory of directories) {
-    const filePath = path.join(directory, "index.mdx");
-    if (!(await exists(filePath))) continue;
+    const content = await readChangePage(directory);
+    if (content === undefined) continue;
 
-    const content = await readFile(filePath, "utf8");
-    const complete =
+    const isComplete =
       orUndefined(() => proposalPart(content).includes("<TLDR")) &&
-      orUndefined(() => scenarioIds(content).length) > 0;
-    if (!complete) {
+      scenarioCount(content) > 0;
+    if (!isComplete) {
       diagnostics.push(
         `${BLUEPRINT_CHANGES}/${path.basename(directory)}/index.mdx [blueprint-proposal]: the Proposal tab must contain a TLDR and the page must export at least one scenario`,
       );
@@ -582,13 +590,12 @@ async function checkChangeSizeWarnings(root) {
   for (const directory of await changeDirectories(root)) {
     const slug = path.basename(directory);
 
-    const filePath = path.join(directory, "index.mdx");
-    if (!(await exists(filePath))) continue;
-    const content = await readFile(filePath, "utf8");
-    const scenarioCount = orUndefined(() => scenarioIds(content).length) ?? 0;
-    if (scenarioCount > SCENARIO_COUNT_SOFT_LIMIT) {
+    const content = await readChangePage(directory);
+    if (content === undefined) continue;
+    const count = scenarioCount(content);
+    if (count > SCENARIO_COUNT_SOFT_LIMIT) {
       diagnostics.push(
-        `${BLUEPRINT_CHANGES}/${slug}/index.mdx [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+        `${BLUEPRINT_CHANGES}/${slug}/index.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
       );
     }
   }
@@ -740,11 +747,10 @@ export async function checkChangePageGate(
   { refresh = refreshStore } = {},
 ) {
   const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
-  const indexPath = path.join(changeDir, "index.mdx");
-  if (!(await exists(indexPath))) return [];
+  const content = await readChangePage(changeDir);
+  if (content === undefined) return [];
 
   const where = `${BLUEPRINT_CHANGES}/${slug}/index.mdx`;
-  const content = await readFile(indexPath, "utf8");
   const diagnostics = [];
 
   const title = frontmatterTitle(content);

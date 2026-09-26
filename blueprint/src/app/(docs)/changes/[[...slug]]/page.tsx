@@ -73,8 +73,6 @@ const mdxComponents = {
   InteractiveFlowchart,
 };
 
-const changesBreadcrumbTree = createChangesBreadcrumbTree(changesTree());
-
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
 }
@@ -145,7 +143,7 @@ function ChangePage({ slug }: { slug: string }) {
     DesignMockup: () => (Design ? <MockupFrame Mockup={Design} /> : null),
   };
   return (
-    <TreeContextProvider tree={changesBreadcrumbTree}>
+    <TreeContextProvider tree={createChangesBreadcrumbTree(changesTree())}>
       <DocsPage
         toc={page.data.toc}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
