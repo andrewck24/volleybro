@@ -27,7 +27,7 @@ export const scenarios = [
     id: "S4",
     given: "a single-page Change",
     when: "it is published",
-    then: "facts.json records startedAt as its first publish and archivedAt as when it landed on dev, or null before it lands",
+    then: "facts.json records startedAt as its first commit, or its first publish while it has no commit, and archivedAt as when it landed on dev, or null before it lands",
   },
   {
     id: "S5",
@@ -53,14 +53,14 @@ export const scenarios = [
 | | 現在 | 之後 |
 | --- | --- | --- |
 | `/changes` | 標題連結清單，單頁格式依 slug 排序，舊格式另外排在後面 | 卡片：標題、描述、狀態、日期、capability；兩種格式混排，由新到舊 |
-| 單頁格式的日期 | `publishedAt`、`mergedAt`；`mergedAt` 在合併前 publish 後一直是 null | `startedAt`（第一次 publish）、`archivedAt`（落地 `dev`）；合併後重新 publish 一次 |
+| 單頁格式的日期 | `publishedAt`、`mergedAt`；`mergedAt` 在合併前 publish 後一直是 null | `startedAt`（第一個 commit）、`archivedAt`（落地 `dev`）；合併後重新 publish 一次 |
 | `/` | 轉址到 `/changes`，回應 307 | 首頁：簡短介紹與 Features、Changes、Design System 三個入口，回應 200 |
 
 <DecisionCards ids={["0078"]} />
 
 ## 範圍
 
-1. `facts.json` 改用 `startedAt` 與 `archivedAt`：`startedAt` 取這個 slug 在 store 分支上第一次 publish 的時間，`archivedAt` 取代 `mergedAt`。
+1. `facts.json` 改用 `startedAt` 與 `archivedAt`：`startedAt` 取這個 Change 第一個 commit 的時間，還沒有 commit 時取第一次 publish；`archivedAt` 取代 `mergedAt`。store 分支的 commit 時間曾被整批匯入與 rebase 改寫，所以不採用。
 2. `WORKFLOW.md` 合併後的收尾加上一步：從 `dev` 重新 publish 這個 Change，讓 `archivedAt` 寫進 `facts.json`。已合併但還沒有 `archivedAt` 的 Change 在本 Change 內補發。
 3. `/changes` 以卡片呈現，兩種格式依 `archivedAt ?? startedAt` 由新到舊排序。
 4. Blueprint 首頁 `/`。
