@@ -20,7 +20,7 @@
     }
   ],
   "consequences": [
-    "Feature pages hand DecisionTimeline records the server already parsed, so the parser, and zod with it, stays out of the Blueprint's client bundle.",
+    "zod reaches the Blueprint's client bundle, because DecisionTimeline parses what it is given in the browser: a Change page's design mockup can hand it records written inline, and one that fails must not blank the others.",
     "Editors no longer validate a record as it is typed; the tree test and the parser catch the same errors before a commit lands.",
     "A malformed record fails the Blueprint build with an error that names the field path and the rule it broke."
   ],
