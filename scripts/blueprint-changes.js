@@ -292,7 +292,7 @@ async function writeFacts(repoRoot, slugDir) {
   try {
     facts = await changeFacts(repoRoot, content, {
       slug,
-      startedAt: await firstPublishedAt(repoRoot, slug),
+      firstPublishedAt: await firstPublishedAt(repoRoot, slug),
     });
   } catch (error) {
     throw new Error(

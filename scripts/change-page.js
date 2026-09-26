@@ -253,7 +253,7 @@ export async function landingOf(root, base, slug) {
 export async function changeFacts(
   root,
   content,
-  { slug, startedAt, now = new Date() } = {},
+  { slug, firstPublishedAt, now = new Date() } = {},
 ) {
   const base = await resolveScopeBase(root);
   const landing = slug ? await orNull(() => landingOf(root, base, slug)) : null;
@@ -274,7 +274,7 @@ export async function changeFacts(
     ).split("\n");
     return first ? new Date(first).toISOString() : null;
   });
-  const started = firstCommitAt ?? startedAt ?? now.toISOString();
+  const started = firstCommitAt ?? firstPublishedAt ?? now.toISOString();
   return {
     gate: hasReview(content) ? "G2" : "G1",
     publishedAt: now.toISOString(),

@@ -618,4 +618,5 @@ test("a Change with no commit yet starts at its first publish and keeps that sta
     gap < 5000,
     `startedAt ${second.startedAt} is not the first publish`,
   );
+  assert.notEqual(second.publishedAt, first.publishedAt);
 });
