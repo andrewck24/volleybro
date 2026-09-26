@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
+import { useReplacePosition } from "@/lib/features/team/hooks/use-replace-position";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import type { LineupView } from "@/lib/features/team/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -46,27 +47,8 @@ const Lineup = ({ teamId }: { teamId: string }) => {
   };
 
   const { lineups, status } = useAppSelector((state) => state.lineup);
-  const liberoReplaceMode =
-    lineups[status.lineupIndex]?.options.liberoReplaceMode;
-  const liberoReplacePosition =
-    lineups[status.lineupIndex]?.options.liberoReplacePosition;
-  const hasPairedSwitchPosition = Boolean(
-    liberoReplaceMode === 0 ||
-    (liberoReplacePosition === "OP"
-      ? lineups[status.lineupIndex]?.starting.some(
-          (player) => player.id && player.position === "OP",
-        )
-      : lineups[status.lineupIndex]?.starting.some((player, index) => {
-          const oppositeIndex = index >= 3 ? index - 3 : index + 3;
-          return (
-            player.id &&
-            player.position === liberoReplacePosition &&
-            lineups[status.lineupIndex]?.starting[oppositeIndex]?.id &&
-            lineups[status.lineupIndex]?.starting[oppositeIndex]?.position ===
-              liberoReplacePosition
-          );
-        })),
-  );
+  const { hasPairedReplacePosition } = useReplacePosition();
+  const hasPairedSwitchPosition = Boolean(hasPairedReplacePosition);
 
   useEffect(() => {
     if (team && team.lineups) dispatch(lineupActions.initialize(team.lineups));
