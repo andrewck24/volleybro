@@ -38,6 +38,8 @@ const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
 // source.config.ts only globs `**/meta.json`, so this never becomes a page.
 const STORE_FILE = ".store-state.json";
 const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
+// ADR-0081: past this, the store's retention needs revisiting.
+export const HISTORY_WARN_BYTES = 50 * 1024 * 1024;
 
 function runGit(args, options) {
   return execFileAsync("git", args, options);
@@ -159,7 +161,32 @@ function isRequired() {
   return Boolean(process.env.CI || process.env.WORKERS_CI);
 }
 
-export async function pull(cwd, { force = false } = {}) {
+// Measured, not assumed: a full fetch transfers the whole history, so that is
+// the size a build pays for.
+async function warnIfHistoryTooLarge(repoRoot, limit) {
+  let bytes;
+  try {
+    const { stdout } = await runGit(
+      ["rev-list", "--objects", "--disk-usage", REMOTE_REF],
+      { cwd: repoRoot },
+    );
+    bytes = Number(stdout.trim());
+  } catch {
+    // An old git without --disk-usage must not block the pull.
+    return;
+  }
+  if (bytes > limit) {
+    const mb = (bytes / 1024 / 1024).toFixed(1);
+    console.warn(
+      `blueprint-changes pull: the ${BRANCH} history is ${mb} MB, past the ${limit / 1024 / 1024} MB threshold; revisit its retention (ADR-0081)`,
+    );
+  }
+}
+
+export async function pull(
+  cwd,
+  { force = false, historyWarnBytes = HISTORY_WARN_BYTES } = {},
+) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
   const remote = await resolveRemote(repoRoot);
@@ -177,6 +204,7 @@ export async function pull(cwd, { force = false } = {}) {
     return;
   }
 
+  await warnIfHistoryTooLarge(repoRoot, historyWarnBytes);
   await mkdir(changesDir, { recursive: true });
   const store = await readStore(changesDir);
   const { stdout } = await runGit(
