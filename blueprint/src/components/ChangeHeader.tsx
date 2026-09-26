@@ -1,9 +1,8 @@
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { GATE_LABEL } from "@/lib/change-gate";
 import type { ChangeFacts } from "@/lib/change-meta";
-
-export const GATE_LABEL = { G1: "G1 Proposal", G2: "G2 Review" } as const;
 
 function figures(facts: ChangeFacts): string[] {
   const shown: string[] = [];

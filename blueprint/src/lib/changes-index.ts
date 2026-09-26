@@ -3,7 +3,7 @@ import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { GATE_LABEL } from "@/components/ChangeHeader";
+import { GATE_LABEL } from "@/lib/change-gate";
 import { readCapabilities, readFacts } from "@/lib/change-meta";
 import { source } from "@/lib/source";
 import { CHANGES_ROOT, isLegacySlug } from "@/legacy/change-catalog";

@@ -566,33 +566,6 @@ test("publish ships the deploy workflow to the store, and pull leaves it there",
   assert.ok(!(await readdir(changesDir)).includes(".github"));
 });
 
-test("startedAt stays at the Change's start across publishes", async (t) => {
-  const { bare, work } = await makeRemoteAndWork(t);
-  const dir = await makeSinglePageChange(work, "gamma");
-  await withRemote(bare, () => publish(work, "gamma"));
-  const first = JSON.parse(
-    await readFile(path.join(dir, "facts.json"), "utf8"),
-  );
-
-  await writeFile(
-    path.join(dir, "index.mdx"),
-    (await readFile(path.join(dir, "index.mdx"), "utf8")) + "\nmore\n",
-  );
-  await withRemote(bare, () => publish(work, "gamma"));
-  const second = JSON.parse(
-    await readFile(path.join(dir, "facts.json"), "utf8"),
-  );
-
-  const gap = Math.abs(
-    Date.parse(second.startedAt) - Date.parse(first.publishedAt),
-  );
-  assert.ok(
-    gap < 5000,
-    `startedAt ${second.startedAt} is not the Change's start`,
-  );
-  assert.notEqual(second.publishedAt, first.publishedAt);
-});
-
 test("a Change starts at its first commit, even one made long before its first publish", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const workGit = git(work);

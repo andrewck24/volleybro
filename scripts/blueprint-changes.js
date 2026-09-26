@@ -270,7 +270,7 @@ async function applyChange(tmpDir, slug, localSlugDir) {
 }
 
 // The fallback start for a Change with no commit yet: its first publish,
-// or now when this is that first publish.
+// or undefined before that first publish.
 async function firstPublishedAt(repoRoot, slug) {
   try {
     const { stdout } = await runGit(
