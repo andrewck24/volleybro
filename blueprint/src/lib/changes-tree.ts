@@ -19,8 +19,7 @@ function withNavigableFolders(folder: Folder): Folder {
     child.type === "folder" ? withNavigableFolders(child) : child,
   );
 
-  // A folder with at most one page (a Change that has published only one of
-  // proposal/review, or a one-page legacy subfolder) must keep that page as its own child rather than
+  // A folder with at most one page must keep that page as its own child rather than
   // being collapsed into `index`. Fumadocs' breadcrumb drops a folder when
   // it is immediately followed by its own index page in the path, so
   // collapsing here would read "Changes > <page>" and lose the change-name

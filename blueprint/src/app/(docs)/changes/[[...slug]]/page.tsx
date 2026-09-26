@@ -10,7 +10,6 @@ import { TLDR } from "@/components/TLDR";
 import { Scenario } from "@/components/Scenario";
 import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
-import { FileTour } from "@/components/FileTour";
 import { ChangeCardList } from "@/components/ChangeCard";
 import { ChangeHeader } from "@/components/ChangeHeader";
 import { ChangeTabs, Proposal, Review } from "@/components/ChangeTabs";
@@ -36,13 +35,6 @@ import {
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { MockupFrame } from "@/components/MockupFrame";
-import { isLegacySlug, loadChangeMetadata } from "@/legacy/change-catalog";
-import { changeArtifacts } from "@/legacy/change-artifacts";
-import { loadImplementationPlan } from "@/legacy/implementation-plan-loader";
-import { ChangeOverview } from "@/legacy/ChangeOverview";
-import { ImplementationSlices } from "@/legacy/ImplementationSlices";
-import { designMockups } from "@/legacy/design-mockups";
-import { LegacyDecisionsProvider } from "@/legacy/legacy-decisions-context";
 
 // A superseded card links to its replacement: on this page when the page
 // cites it too, otherwise on the Feature page of its first capability.
@@ -71,7 +63,6 @@ const mdxComponents = {
   Scenario,
   RiskTable,
   AnnotatedDiff,
-  FileTour,
   DecisionTimeline,
   DecisionCards: ChangeDecisionCards,
   ChangeTabs,
@@ -150,106 +141,6 @@ function ChangesIndex() {
   );
 }
 
-// Old-format Change pages (a directory with change.json) route through here
-// instead of the two-gate proposal/delivery shell below. Every legacy page is
-// wrapped in LegacyDecisionsProvider so a DecisionTimeline it renders (direct
-// MDX import or design.tsx import, both bypass mdxComponents) tolerates the
-// old decision records' `status` field.
-async function LegacyPage({ slug }: { slug: string[] }) {
-  const page = source.getPage(slug);
-
-  if (slug.length === 1) {
-    assertPage(page);
-    const Mdx = page.data.body;
-    const change = await loadChangeMetadata(slug[0]);
-    return (
-      <LegacyShell page={page}>
-        <ChangeOverview
-          date={change.startedAt}
-          lifecycle={change.lifecycle}
-          artifacts={changeArtifacts(source.pageTree, page.url)}
-        />
-        {renderChangeBody(Mdx, page.data.title)}
-      </LegacyShell>
-    );
-  }
-
-  if (slug.length === 2 && slug[1] === "implementation") {
-    assertPage(page);
-    const Mdx = page.data.body;
-    const slices = await loadImplementationPlan(slug[0]);
-    return (
-      <LegacyShell page={page}>
-        {renderChangeBody(Mdx, page.data.title)}
-        <ImplementationSlices slices={slices} />
-      </LegacyShell>
-    );
-  }
-
-  if (slug.length === 2 && slug[1] === "design") {
-    const mockup = designMockups[slug[0]];
-    if (!page && !mockup) notFound();
-    if (mockup) {
-      // Isolated by MockupFrame rather than renderChangeBody: a mockup is
-      // pulled from the store branch like any other Change page and carries
-      // the same staleness, but every one of them holds hooks, so it cannot
-      // be called as a plain function.
-      const { default: Design, toc } = mockup;
-      return (
-        <LegacyShell
-          page={page}
-          toc={toc ?? page?.data.toc ?? []}
-          title={page?.data.title ?? "Design"}
-        >
-          <MockupFrame Mockup={Design} />
-        </LegacyShell>
-      );
-    }
-    assertPage(page);
-    const Mdx = page.data.body;
-    return (
-      <LegacyShell page={page}>
-        {renderChangeBody(Mdx, page.data.title)}
-      </LegacyShell>
-    );
-  }
-
-  // review.mdx, tasks.mdx, specs/**, and anything else render as plain MDX.
-  assertPage(page);
-  const Mdx = page.data.body;
-  return (
-    <LegacyShell page={page}>
-      {renderChangeBody(Mdx, page.data.title)}
-    </LegacyShell>
-  );
-}
-
-function LegacyShell({
-  page,
-  toc = page?.data.toc,
-  title = page?.data.title,
-  children,
-}: {
-  page: SourcePage;
-  toc?: React.ComponentProps<typeof DocsPage>["toc"];
-  title?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <TreeContextProvider tree={changesBreadcrumbTree}>
-      <DocsPage
-        toc={toc}
-        breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
-      >
-        <DocsBody>
-          <h1>{title}</h1>
-          <LegacyDecisionsProvider>{children}</LegacyDecisionsProvider>
-        </DocsBody>
-      </DocsPage>
-    </TreeContextProvider>
-  );
-}
-
 function SinglePageChange({ slug }: { slug: string }) {
   const page = source.getPage([slug]);
   assertPage(page);
@@ -283,10 +174,6 @@ export default async function Page({ params }: PageProps) {
 
   if (!slug || slug.length === 0) {
     return <ChangesIndex />;
-  }
-
-  if (isLegacySlug(slug[0])) {
-    return <LegacyPage slug={slug} />;
   }
 
   if (slug.length === 1 && isSinglePageChange(slug[0])) {

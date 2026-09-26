@@ -2,7 +2,6 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { parseDecisionRecord } from "./decision-record";
-import { upconvertLegacyDecisionRecord } from "@/legacy/legacy-decision-record";
 
 const CONTENT = path.join(__dirname, "..", "..", "content");
 const DECISIONS = path.join(CONTENT, "decisions");
@@ -85,30 +84,5 @@ describe("the version 2 record format", () => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",
     );
-  });
-});
-
-describe("records published on the store branch", () => {
-  const version1 = {
-    schemaVersion: 1,
-    id: "D1",
-    title: "Open state lives with the dialog root",
-    status: "implemented",
-    targets: ["platform/design-system/overlays"],
-    context: "Four parents owned open state differently.",
-    decision: "Every dialog carrying an action is controlled.",
-    alternatives: [{ option: "Stay uncontrolled", reason: "Bypasses Radix." }],
-    consequences: ["The holder decides when the dialog closes."],
-    revisitTriggers: ["Radix changes its controlled contract."],
-    originChange: "dialog-close-ownership",
-    originDecision: "D1",
-  };
-
-  it("reads a version 1 record's targets as capabilities", () => {
-    const record = parseDecisionRecord(upconvertLegacyDecisionRecord(version1));
-    expect(record.capabilities).toEqual(["platform/design-system/overlays"]);
-    expect(record).not.toHaveProperty("targets");
-    expect(record).not.toHaveProperty("status");
-    expect(record).not.toHaveProperty("originDecision");
   });
 });

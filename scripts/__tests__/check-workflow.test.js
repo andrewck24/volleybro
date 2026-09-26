@@ -354,14 +354,12 @@ test("reports a Proposal missing a TLDR", async () => {
   );
 });
 
-test("skips old-format Changes from the page store", async () => {
+test("skips Changes converted from an earlier format", async () => {
   assert.deepEqual(
     await messages({
-      "blueprint/content/changes/old/change.json": "{}\n",
-      "blueprint/content/changes/old/proposal.mdx":
-        "---\ntitle: Old\n---\n\nNo components.\n",
-      "blueprint/content/changes/old/review.mdx":
-        "---\ntitle: Review\n---\n\n<FileTour files={[{ code={`a\nb`} }]} />\n",
+      "blueprint/content/changes/old/facts.json": '{ "converted": true }\n',
+      "blueprint/content/changes/old/index.mdx":
+        "---\ntitle: Old\n---\n\n<AnnotatedDiff code={`a\nb`} />\n",
     }),
     [],
   );
@@ -882,15 +880,12 @@ test("single-page gate reports a scenario with no id", async () => {
   assert.match(await singlePageGate(page), /gate-scenario-shape/i);
 });
 
-test("single-page gate ignores two-page and old-format Changes", async () => {
+test("single-page gate ignores two-page Changes", async () => {
   const root = await makeRepository({
     "blueprint/content/changes/c/proposal.mdx":
       "---\ntitle: A — Proposal\n---\n",
-    "blueprint/content/changes/d/index.mdx": "---\ntitle: Proposal\n---\n",
-    "blueprint/content/changes/d/change.json": "{}",
   });
   assert.deepEqual(await checkSinglePageGate(root, "c", { refresh: noop }), []);
-  assert.deepEqual(await checkSinglePageGate(root, "d", { refresh: noop }), []);
 });
 
 // A store branch holding a G1 publish and then a G2 publish of slug c,

@@ -13,8 +13,6 @@ import {
   parseDecisionRecord,
   type DecisionRecord,
 } from "@/lib/decision-record";
-import { useIsLegacyDecisions } from "@/legacy/legacy-decisions-context";
-import { upconvertLegacyDecisionRecord } from "@/legacy/legacy-decision-record";
 
 // A decision id is unique within its Change, not within a capability. Once
 // Archive promotes records from several Changes into one Feature page, two of
@@ -33,17 +31,11 @@ type DecisionEntry =
 // Proposal, a scratch draft) — one bad record must not blank the whole
 // timeline, so each is parsed on its own and a failure becomes an entry
 // instead of a throw.
-function parseEntry(
-  decision: unknown,
-  isLegacy: boolean,
-  index: number,
-): DecisionEntry {
+function parseEntry(decision: unknown, index: number): DecisionEntry {
   try {
     return {
       ok: true,
-      record: parseDecisionRecord(
-        isLegacy ? upconvertLegacyDecisionRecord(decision) : decision,
-      ),
+      record: parseDecisionRecord(decision),
     };
   } catch (error) {
     return {
@@ -65,10 +57,9 @@ function useScrollToDecisionAnchor() {
 }
 
 export function DecisionTimeline({ decisions }: { decisions?: unknown[] }) {
-  const isLegacy = useIsLegacyDecisions();
   useScrollToDecisionAnchor();
   const entries = (decisions ?? []).map((decision, index) =>
-    parseEntry(decision, isLegacy, index),
+    parseEntry(decision, index),
   );
 
   if (entries.length === 0) return null;

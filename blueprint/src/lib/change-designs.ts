@@ -13,8 +13,6 @@ type WebpackRequire = {
 // content/changes is gitignored and usually absent on a fresh checkout, and
 // require.context fails the build ("Module not found") when the directory is
 // missing, so `dev`/`build` in package.json `mkdir -p` it first.
-// Old-format directories carry a design.tsx too, but only single-page slugs
-// are looked up here.
 const designs = (require as unknown as WebpackRequire).context(
   "../../content/changes",
   true,

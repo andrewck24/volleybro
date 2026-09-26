@@ -20,11 +20,7 @@ export type ChangeFacts = {
 };
 
 export function isSinglePageChange(slug: string, root = CHANGES_ROOT) {
-  const dir = path.join(root, slug);
-  return (
-    existsSync(path.join(dir, "index.mdx")) &&
-    !existsSync(path.join(dir, "change.json"))
-  );
+  return existsSync(path.join(root, slug, "index.mdx"));
 }
 
 // The frontmatter schema strips unknown keys, so capabilities are read from
