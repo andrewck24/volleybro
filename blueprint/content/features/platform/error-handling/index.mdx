@@ -12,6 +12,8 @@ An error is asked about twice. The server answers what happened, and its answer 
 - A validation failure sends field paths and nothing else. The auto-generated English message, and the `expected` / `minimum` / `origin` fields that describe the schema rather than the failure, are dropped.
 - Every user-facing error string lives in `src/lib/api/error-messages.ts` as a `title` and a `description`. Keys are either a reason constant or one of four class-level constants — `SESSION_EXPIRED`, `NETWORK_TIMEOUT`, `SERVER_ERROR`, `UNKNOWN`.
 - `resolveErrorDisplay` is a total function. Every input resolves to an entry, an unrecognised key returns `UNKNOWN`, and no caller branches on the result. Toasts wrap it; confirmation dialogs hold the resolved message and render both halves.
+- A malformed ObjectId in a URL path is refused with a 400 `VALIDATION` / `INVALID_INPUT` before any database, use case or authorization work runs. `assertObjectId` (`src/lib/api/guards.ts`) does this for every API route with an id segment, after the session check where the route has one; `users/[userId]/players` instead compares the id with the signed-in user.
+- Request schemas check ObjectId fields in a body against the same format through the shared `objectId` validator (`src/interface/validations/object-id.ts`).
 - A constraint the client can evaluate for itself is not sent. The form's own schema decides what each field says; the server's schema decides whether the request is admissible.
 
 ## Constraints
@@ -24,6 +26,7 @@ An error is asked about twice. The server answers what happened, and its answer 
 
 ## Known gaps
 
+- The profile update's `activeTeamId` is stored as an ObjectId but its request schema accepts any string, so it is the one body field the shared `objectId` validator does not check.
 - Correlating one client-side report with one server log entry is not possible from the response alone. The answer is a request correlation id rather than free text; it waits for an error-tracking consumer to exist.
 - One reason still carries more than one failure: `PLAYER_NOT_FOUND` covers both a missing player and a player record with no `teamId`. The second is a broken data invariant whose remedy is not something a user can act on, so it deliberately shares the generic copy rather than gaining its own.
 - The catalogue lives in `src/lib/api/` while having no API concern. A presentational component importing from `@/lib/api/` reads as a layering violation, and the comparable `ROLE_LABELS` sits in `lib/constants/`. The move waits on the wider question of what else in that directory belongs where.
