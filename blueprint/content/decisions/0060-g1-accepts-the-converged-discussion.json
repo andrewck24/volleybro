@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0060",
   "title": "G1 accepts the converged discussion; the Proposal page is its record",

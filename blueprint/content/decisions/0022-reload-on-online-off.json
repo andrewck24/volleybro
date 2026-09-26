@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0022",
   "title": "Turn reloadOnOnline off app-wide instead of scoping it away from recording",

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0003",
   "title": "Keep ADRs Change-scoped until verified Archive promotion",

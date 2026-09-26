@@ -49,6 +49,16 @@ describe("DecisionTimeline", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the failing field in the note", () => {
+    render(
+      <DecisionTimeline
+        decisions={[{ ...decision, capabilities: ["platform"] }]}
+      />,
+    );
+
+    expect(screen.getByText(/capabilities\.0/)).toBeInTheDocument();
+  });
+
   it("renders the records that parse alongside a note for the one that does not", () => {
     const other = { ...decision, id: "0002", decision: "Use a second record." };
     render(

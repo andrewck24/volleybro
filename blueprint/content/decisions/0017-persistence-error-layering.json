@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0017",
   "title": "The adapter reports storage failures honestly; the decision to swallow them stays in the listener",

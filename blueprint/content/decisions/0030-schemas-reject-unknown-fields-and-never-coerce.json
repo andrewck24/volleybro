@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0030",
   "title": "所有 request schema 拒絕未宣告欄位，且一律不做型別轉換",

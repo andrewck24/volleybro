@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0005",
   "title": "Express game writes as domain operations, not whole-document overwrite",

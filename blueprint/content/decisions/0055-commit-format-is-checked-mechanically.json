@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0055",
   "title": "Commit format is checked mechanically, and scope stays open",
