@@ -146,11 +146,32 @@ export class TeamRepositoryImpl implements ITeamRepository {
   ): Promise<void> {
     try {
       const objectId = new Types.ObjectId(playerId);
+      // A starting slot is a court position, so it empties in place; liberos
+      // and substitutes are plain lists. One update cannot $set and $pull the
+      // same array, hence two; both are idempotent.
+      await TeamModel.updateOne(
+        { _id: teamId },
+        {
+          $set: {
+            "lineups.$[].starting.$[slot].playerId": null,
+            "lineups.$[].starting.$[startingSub].sub.playerId": null,
+            "lineups.$[].liberos.$[liberoSub].sub.playerId": null,
+            "lineups.$[].substitutes.$[benchSub].sub.playerId": null,
+          },
+        },
+        {
+          arrayFilters: [
+            { "slot.playerId": objectId },
+            { "startingSub.sub.playerId": objectId },
+            { "liberoSub.sub.playerId": objectId },
+            { "benchSub.sub.playerId": objectId },
+          ],
+        },
+      );
       await TeamModel.updateOne(
         { _id: teamId },
         {
           $pull: {
-            "lineups.$[].starting": { playerId: objectId },
             "lineups.$[].liberos": { playerId: objectId },
             "lineups.$[].substitutes": { playerId: objectId },
           },
