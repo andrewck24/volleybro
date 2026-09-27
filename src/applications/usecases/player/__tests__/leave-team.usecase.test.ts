@@ -64,6 +64,9 @@ describe("LeaveTeamUseCase", () => {
         email: undefined,
         role: undefined,
       });
+      expect(
+        mockTeamRepository.removePlayerFromLineups.mock.invocationCallOrder[0],
+      ).toBeLessThan(mockPlayerRepository.update.mock.invocationCallOrder[0]!);
     });
 
     it("should not clear activeTeamId if it points to a different team", async () => {

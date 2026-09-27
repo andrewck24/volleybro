@@ -21,6 +21,7 @@ describe("removing a player from a team's lineups", () => {
     starting[3] = { ...starting[3]!, sub: { id: removed, entryIndex: {} } };
     const lineup: Lineup = {
       ...lineupFor(ids),
+      options: { ...lineupFor(ids).options, liberoReplaceMode: 2 },
       starting,
       liberos: [
         { id: removed, position: Position.L },
@@ -70,5 +71,25 @@ describe("removing a player from a team's lineups", () => {
 
     expect(liberos.map((player) => player.id)).toEqual([libero]);
     expect(substitutes.map((player) => player.id)).toEqual([benchA, benchB]);
+  });
+
+  it("lowers the libero replacement mode when fewer liberos remain", async () => {
+    const { options, liberos } = await read();
+
+    expect(liberos).toHaveLength(1);
+    expect(options.liberoReplaceMode).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("creating a team with lineups", () => {
+  it("stores the lineup's players", async () => {
+    const ids = Array.from({ length: 6 }, oid);
+    const team = await repo().create({
+      name: "Seeded Team",
+      lineups: [lineupFor(ids)],
+    });
+
+    const [lineup] = (await repo().findById(team.id))!.lineups;
+    expect(lineup!.starting.map((player) => player.id)).toEqual(ids);
   });
 });

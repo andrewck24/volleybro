@@ -90,7 +90,10 @@ export class TeamRepositoryImpl implements ITeamRepository {
     data: Omit<Team, "id" | "createdAt" | "updatedAt">,
   ): Promise<Team> {
     try {
-      const doc = await TeamModel.create(data);
+      const doc = await TeamModel.create({
+        ...data,
+        lineups: data.lineups.map((lineup) => this.toLineupDoc(lineup)),
+      });
       return this.toTeam(doc);
     } catch (error) {
       throw translateRepositoryError(error);
@@ -148,35 +151,77 @@ export class TeamRepositoryImpl implements ITeamRepository {
       const objectId = new Types.ObjectId(playerId);
       // A starting slot is a court position, so it empties in place; liberos
       // and substitutes are plain lists. One update cannot $set and $pull the
-      // same array, hence two; both are idempotent.
-      await TeamModel.updateOne(
-        { _id: teamId },
+      // same array, hence separate operations in one ordered bulk write.
+      await TeamModel.bulkWrite([
         {
-          $set: {
-            "lineups.$[].starting.$[slot].playerId": null,
-            "lineups.$[].starting.$[startingSub].sub.playerId": null,
-            "lineups.$[].liberos.$[liberoSub].sub.playerId": null,
-            "lineups.$[].substitutes.$[benchSub].sub.playerId": null,
+          updateOne: {
+            filter: { _id: teamId },
+            update: {
+              $set: {
+                "lineups.$[].starting.$[slot].playerId": null,
+                "lineups.$[].starting.$[startingSub].sub.playerId": null,
+                "lineups.$[].liberos.$[liberoSub].sub.playerId": null,
+                "lineups.$[].substitutes.$[benchSub].sub.playerId": null,
+              },
+            },
+            arrayFilters: [
+              { "slot.playerId": objectId },
+              { "startingSub.sub.playerId": objectId },
+              { "liberoSub.sub.playerId": objectId },
+              { "benchSub.sub.playerId": objectId },
+            ],
           },
         },
         {
-          arrayFilters: [
-            { "slot.playerId": objectId },
-            { "startingSub.sub.playerId": objectId },
-            { "liberoSub.sub.playerId": objectId },
-            { "benchSub.sub.playerId": objectId },
-          ],
-        },
-      );
-      await TeamModel.updateOne(
-        { _id: teamId },
-        {
-          $pull: {
-            "lineups.$[].liberos": { playerId: objectId },
-            "lineups.$[].substitutes": { playerId: objectId },
+          updateOne: {
+            filter: { _id: teamId },
+            update: {
+              $pull: {
+                "lineups.$[].liberos": { playerId: objectId },
+                "lineups.$[].substitutes": { playerId: objectId },
+              },
+            },
           },
         },
-      );
+        {
+          // The mode counts liberos, the same bound the lineup editor keeps;
+          // comparing two fields needs a pipeline update.
+          updateOne: {
+            filter: { _id: teamId },
+            update: [
+              {
+                $set: {
+                  lineups: {
+                    $map: {
+                      input: "$lineups",
+                      in: {
+                        $mergeObjects: [
+                          "$$this",
+                          {
+                            options: {
+                              $mergeObjects: [
+                                "$$this.options",
+                                {
+                                  liberoReplaceMode: {
+                                    $min: [
+                                      "$$this.options.liberoReplaceMode",
+                                      { $size: "$$this.liberos" },
+                                    ],
+                                  },
+                                },
+                              ],
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ]);
     } catch (error) {
       throw translateRepositoryError(error);
     }
