@@ -25,7 +25,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${saira.variable} ${notoSansTC.variable}`}
     >
       <body>
-        <RootProvider>{children}</RootProvider>
+        <RootProvider search={{ options: { type: "static" } }}>
+          {children}
+        </RootProvider>
       </body>
     </html>
   );
