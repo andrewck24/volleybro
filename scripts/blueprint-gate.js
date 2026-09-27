@@ -21,8 +21,7 @@ const CHECK_WORKFLOW = fileURLToPath(
   new URL("./check-workflow.js", import.meta.url),
 );
 
-// Cloudflare names a branch preview after the branch, folding every run of
-// other characters into one hyphen so it fits a DNS label.
+// Cloudflare's branch-preview host label.
 export function previewUrl(branch, slug) {
   const label = branch
     .toLowerCase()
@@ -65,8 +64,7 @@ export async function runGate(
   const slugDir = path.join(root, "blueprint", "content", "changes", slug);
   const pagePath = path.join(slugDir, "index.mdx");
   const content = await readFile(pagePath, "utf8");
-  // The frozen-Proposal check compares against the latest G1 publish, so a new
-  // baseline is a publish of the Proposal alone.
+  // The frozen-Proposal check reads the latest G1 publish (ADR-0075).
   if (g1 && hasReview(content)) {
     await writeFile(pagePath, withoutReview(content));
     try {

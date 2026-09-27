@@ -20,7 +20,7 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 - Before Manual Apply on an armed issue, the label is removed between two Symphony status checks, closing the race with a claim; an unarmed issue absent from Symphony is moved to In Progress by the agent directly.
 - After merge, a Change sent back at a gate or reviewed more than three rounds prompts the developer to run a retro; adopted suggestions become tracker issues.
 - Commit messages are checked before a commit exists: a `commit-msg` hook runs commitlint and a `pre-commit` hook formats and lints staged files only. CI re-runs commitlint over every commit of a pull request into `dev`, so the hook is feedback and CI is the authority.
-- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug, or it is rejected.
+- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug.
 
 ## Constraints
 
