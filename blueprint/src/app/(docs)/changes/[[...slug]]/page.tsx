@@ -144,8 +144,9 @@ function ChangePage({ slug }: { slug: string }) {
   };
   return (
     <TreeContextProvider tree={createChangesBreadcrumbTree(changesTree())}>
+      {/* One TOC cannot follow two tabs, and only the open tab is rendered. */}
       <DocsPage
-        toc={page.data.toc}
+        tableOfContent={{ enabled: false }}
         breadcrumb={{ includeRoot: { url: "/changes" }, includePage: true }}
       >
         <DocsBody>
