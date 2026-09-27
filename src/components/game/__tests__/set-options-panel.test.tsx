@@ -84,7 +84,8 @@ describe("Options (set-options panel) submitting state", () => {
 
     await user.click(btn);
 
-    expect(btn).toBeDisabled();
+    // handleSubmit validates asynchronously before the submit handler runs.
+    await waitFor(() => expect(btn).toBeDisabled());
     expect(screen.getByTestId("spinner")).toBeInTheDocument();
 
     resolveApi({ sets: [], teams: { home: { players: [] } } });
