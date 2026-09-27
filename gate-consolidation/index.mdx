@@ -107,9 +107,9 @@ export const scenarios = [
 
 <ActionItems>
 
-1. **ADR-0083 要不要擴及產品程式碼的 Feature？** 全文掃描時看到 `platform/clean-architecture`、`platform/error-handling` 也描述了測試會擋下什麼（例如「A test walks `src/` and fails on…」）。那是產品架構的約束，不是交付流程的 gate，這次沒有動；ADR-0083 的字面範圍是「a mechanical check」，是否適用請你決定。
+1. **ADR-0083 的 `decision` 內文在 G1 之後改了**，依你在 G2 的決定：它只適用於交付流程的檢查（`scripts/`、git hook、CI 對 workflow、Blueprint 與文件的檢查），產品程式碼的檢查不在範圍內；ADR 不跨越產品與流程的界線，這條也寫進了 `docs/agents/blueprint.md` 的 decision record 寫作規則。是否以新 ADR 把同類規則套用到產品，已另開票討論。
 2. **沒有採納 `--gate G1` 改名為 `--g1` 的建議。** 這個旗標寫在 G1 凍結的 S6 與 ADR-0084，改名需要 Ingest。
-3. **review 走了三輪**，第二輪同一根本原因連續出現，依 ADR-0077 換了做法，見 Deviations 第 2 點。
+3. **review 走了四輪**，第二輪同一根本原因連續出現，依 ADR-0077 換了做法，見 Deviations 第 2 點。
 
 </ActionItems>
 
@@ -126,6 +126,7 @@ export const scenarios = [
 1. **範圍第 3 點「`SUPPORTED_ADAPTERS` 只留實際需要的 binding」改為整個刪除。** `REQUIRED_BINDINGS` 已經要求每個 capability 綁定特定 adapter，留下的清單只會與它重複；錯誤的 adapter 現在以 `volleybro-binding` 失敗並指名 capability（S2）。
 2. **第三輪 review 換了做法（ADR-0077）。** 根本原因：改寫文件時只把步驟換成指令，卻留下周圍描述檢查行為的文字。第一輪修了被點名的幾處，第二輪在 Feature 又找到一處，於是改由獨立 agent 逐行讀完所有交付流程文件，再逐條判斷；只剩那一處屬於重述，其餘是第三方工具、平台行為或 ADR 定義的能力。
 3. **超出範圍列舉的文件也一併修正**：`WORKFLOW.md` 的 Fix path 分支規則與 Change scope 段落、delivery-workflow Feature 的 commitlint 與 `AGENTS.md` 條目。它們都是 ADR-0083 所說的重述，不修就留下同一類矛盾。
+4. **G2 的修改要求**：ADR-0083 限縮到交付流程，`docs/agents/blueprint.md` 新增「一筆 record 只管產品或交付流程其中之一」。
 
 </Deviations>
 
@@ -219,7 +220,7 @@ export const scenarios = [
 
 ### Code review
 
-兩軸獨立 review，三輪達到 fixed point；第一輪之後每輪只看上一輪之後的改動。
+兩軸獨立 review，四輪達到 fixed point；第四輪審 G2 的修改要求；第一輪之後每輪只看上一輪之後的改動。
 
 | 輪次 | 軸        | Finding                                                        | 處理                                         |
 | ---- | --------- | -------------------------------------------------------------- | -------------------------------------------- |
@@ -228,6 +229,7 @@ export const scenarios = [
 | 1    | Spec      | `SUPPORTED_ADAPTERS` 被整個刪除而非精簡                         | 列為 Deviation 第 1 點                       |
 | 2    | Standards | Feature 仍有「or it is rejected」                               | 同一根本原因連續出現，換成逐行閱讀           |
 | 3    | 兩軸      | 無新 finding；新增註解依「default to none」再精簡               | —                                            |
+| 4    | 兩軸      | 無新 finding；ADR 的舉例移到 context、Feature 寫明 gate check    | 依逐字指定修改                               |
 
 ### 殘餘風險
 
