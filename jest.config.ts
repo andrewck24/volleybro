@@ -6,6 +6,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { pathToFileURL } from "node:url";
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
@@ -16,7 +17,9 @@ import nextJest from "next/jest.js";
 // workers via NODE_OPTIONS (covers the default parallel runner).
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
-const preload = `${process.cwd()}/jest.preload.integration.js`;
+const preload = pathToFileURL(
+  `${process.cwd()}/jest.preload.integration.js`,
+).href;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
     `${process.env.NODE_OPTIONS ?? ""} --import ${preload}`.trim();

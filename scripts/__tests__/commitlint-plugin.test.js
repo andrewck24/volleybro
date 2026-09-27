@@ -13,7 +13,7 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 function runCommitlint(message, branch, envOverrides = {}) {
   try {
-    execFileSync("node_modules/.bin/commitlint", [], {
+    execFileSync(process.execPath, ["node_modules/@commitlint/cli/cli.js"], {
       cwd: repoRoot,
       input: message,
       env: {

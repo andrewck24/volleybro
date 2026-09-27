@@ -52,18 +52,21 @@ if (candidates.length > 1) {
   }
 }
 
+// Both pnpm calls go through a shell: on Windows pnpm is a .cmd shim, which spawn cannot run.
 if (!existsSync(join(target, "node_modules"))) {
   console.log(`Installing dependencies in ${target} ...`);
-  const install = spawnSync("pnpm", ["install"], {
+  const install = spawnSync("pnpm install", {
     cwd: target,
+    shell: true,
     stdio: "inherit",
   });
   if (install.status !== 0) process.exit(install.status ?? 1);
 }
 
 console.log(`blueprint @ ${target} → pnpm ${cmd.join(" ")}`);
-const result = spawnSync("pnpm", cmd, {
+const result = spawnSync(`pnpm ${cmd.join(" ")}`, {
   cwd: join(target, "blueprint"),
+  shell: true,
   stdio: "inherit",
 });
 process.exit(result.status ?? 0);

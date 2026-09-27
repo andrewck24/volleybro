@@ -68,8 +68,15 @@ export async function resolveRemote(cwd) {
 
 function archiveExtract(ref, slug, repoRoot, destDir) {
   return new Promise((resolve, reject) => {
-    const archive = spawn("git", ["archive", ref, slug], { cwd: repoRoot });
-    const tar = spawn("tar", ["-x", "-C", destDir], {
+    // No eol conversion: pages land byte-for-byte as stored, so their hashes match.
+    const archive = spawn(
+      "git",
+      ["-c", "core.autocrlf=false", "-c", "core.eol=lf", "archive", ref, slug],
+      { cwd: repoRoot },
+    );
+    // cwd, not -C: Git for Windows' tar reads "C:\..." as a remote host.
+    const tar = spawn("tar", ["-x"], {
+      cwd: destDir,
       stdio: ["pipe", "inherit", "inherit"],
     });
     archive.stdout.pipe(tar.stdin);
@@ -208,6 +215,8 @@ export async function pull(
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
   const remote = await resolveRemote(repoRoot);
+  // Created before the fetch so a build that could not fetch still finds it.
+  await mkdir(changesDir, { recursive: true });
 
   try {
     await fetchChanges(remote, repoRoot);
@@ -223,7 +232,6 @@ export async function pull(
   }
 
   await warnIfHistoryTooLarge(repoRoot, historyWarnBytes);
-  await mkdir(changesDir, { recursive: true });
   const store = await readStore(changesDir);
   const { stdout } = await runGit(
     ["ls-tree", "-d", "--name-only", REMOTE_REF],

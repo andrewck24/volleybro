@@ -146,9 +146,12 @@ function prefixLines(laneName, stream) {
 }
 
 function runCommand(command, laneName, children) {
-  const [cmd, ...args] = command.split(" ");
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    // Through a shell: on Windows pnpm is a .cmd shim, which spawn cannot run.
+    const child = spawn(command, {
+      shell: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     children.add(child);
     const out = prefixLines(laneName, process.stdout);
     const err = prefixLines(laneName, process.stderr);
