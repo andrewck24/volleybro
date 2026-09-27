@@ -155,6 +155,17 @@ export function assertValidMdx(content) {
   parse(content);
 }
 
+// The page as G1 accepted it: everything but the Review tab.
+export function withoutReview(content) {
+  const [review] = elements(parse(content), "Review");
+  if (!review) return content;
+  const end = review.position.end.offset;
+  return (
+    content.slice(0, review.position.start.offset) +
+    content.slice(content[end] === "\n" ? end + 1 : end)
+  );
+}
+
 export function hasReview(content) {
   return elements(parse(content), "Review").length > 0;
 }
