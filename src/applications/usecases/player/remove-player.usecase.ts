@@ -59,6 +59,9 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
       userId,
     );
 
+    // Lineups first: a failed delete leaves a player that can be removed again.
+    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
+
     const deleted = await this.playerRepository.delete(playerId);
     if (!deleted) {
       throw new UnexpectedError(
@@ -66,8 +69,6 @@ export class RemovePlayerUseCase implements IRemovePlayerUseCase {
         "Failed to delete player",
       );
     }
-
-    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     if (isTeamMember(player))
       await clearActiveTeam(
