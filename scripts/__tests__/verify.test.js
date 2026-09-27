@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { LANE_AFTER, LANE_NAMES, planLanes } from "../verify.js";
+import { LANE_NAMES, laneStages, planLanes } from "../verify.js";
 
 test("full run requested runs every lane", () => {
   const plan = planLanes(["src/foo.ts"], { all: true, full: true });
@@ -85,11 +85,16 @@ test("root config patterns and shared directories widen to every lane", () => {
   );
 });
 
-test("a lane's prerequisite is started before it", () => {
-  for (const [lane, before] of Object.entries(LANE_AFTER)) {
-    assert.ok(
-      LANE_NAMES.indexOf(before) < LANE_NAMES.indexOf(lane),
-      `${before} must precede ${lane}`,
-    );
-  }
+test("app-test runs alone, after every other lane", () => {
+  const full = planLanes(["package.json"], { all: true });
+  assert.deepEqual(laneStages(full), [
+    ["static", "app-build", "blueprint"],
+    ["app-test"],
+  ]);
+
+  const byDefault = planLanes([]);
+  assert.deepEqual(laneStages(byDefault), [["static"], ["app-test"]]);
+
+  const docsOnly = planLanes(["blueprint/x.mdx"], { all: true });
+  assert.deepEqual(laneStages(docsOnly), [["static", "blueprint"]]);
 });

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 // Any change to root configuration runs every lane, because those files feed
-// all of them; app-test starts only after app-build so the two do not compete
-// for CPU and time out each other's waits.
+// all of them.
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -19,7 +18,10 @@ const LANE_COMMANDS = {
 };
 
 export const LANE_NAMES = Object.keys(LANE_COMMANDS);
-export const LANE_AFTER = { "app-test": "app-build" };
+// The component tests wait on real timers with Jest's five-second timeout, so a
+// CPU shared with any other lane times them out; CI gives them a runner of
+// their own.
+const SOLO_LANE = "app-test";
 
 const EVERY_LANE_EXACT = new Set([
   "package.json",
@@ -90,6 +92,13 @@ export function planLanes(changedPaths, { all = false, full = false } = {}) {
       ? { run: true, reason: `${blueprintPath} changed` }
       : { run: false, reason: "no blueprint/ changes" },
   };
+}
+
+export function laneStages(plan) {
+  const running = LANE_NAMES.filter((lane) => plan[lane].run);
+  const together = running.filter((lane) => lane !== SOLO_LANE);
+  const alone = running.filter((lane) => lane === SOLO_LANE);
+  return [together, alone].filter((stage) => stage.length > 0);
 }
 
 function git(args) {
@@ -218,14 +227,12 @@ async function main() {
   };
   process.on("SIGINT", onSigint);
 
-  const running = {};
-  for (const lane of LANE_NAMES.filter((lane) => plan[lane].run)) {
-    const after = running[LANE_AFTER[lane]];
-    running[lane] = after
-      ? after.then(() => runLane(lane, children))
-      : runLane(lane, children);
+  const results = [];
+  for (const stage of laneStages(plan)) {
+    results.push(
+      ...(await Promise.all(stage.map((lane) => runLane(lane, children)))),
+    );
   }
-  const results = await Promise.all(Object.values(running));
   process.off("SIGINT", onSigint);
 
   const skipped = LANE_NAMES.filter((lane) => !plan[lane].run).map((lane) => ({
