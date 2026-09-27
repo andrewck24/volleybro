@@ -20,12 +20,13 @@ A comment is justified only for what the code cannot say by itself:
 A comment never restates what the line does, and never re-argues a decision a decision record already owns. It cites the record instead of copying it, or the two drift apart:
 
 ```ts
-// Same judgement as the indicator's warning tone (ADR-NNNN).
+// Deliberately the same judgement as the indicator's warning tone.
+// See ADR-NNNN.
 ```
 
 Fitting one of those reasons is necessary, not sufficient. For every comment a diff adds, review names the mistake the next reader would make without it; a comment for which no such mistake can be named is deleted, however true it is.
 
-What survives stays short. One line is the norm; a doc comment longer than the code it describes means the rationale belongs in a decision record or the commit body, not the file.
+What survives stays short. One or two lines is the norm; a doc comment longer than the code it describes means the rationale belongs in a decision record or the commit body, not the file.
 
 ## No volatile references in source
 
