@@ -32,15 +32,18 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
+// Pasted, not typed: a render per keystroke can outlast Jest's timeout under load.
+async function fill(field: HTMLElement, text: string) {
+  await userEvent.click(field);
+  await userEvent.paste(text);
+}
+
 async function setup({ email }: { email?: string } = {}) {
   render(<CreateForm teamId={TEAM_ID} />);
   const nameField = await screen.findByPlaceholderText("輸入姓名");
-  await userEvent.type(nameField, "New Player");
+  await fill(nameField, "New Player");
   if (email) {
-    await userEvent.type(
-      screen.getByPlaceholderText("user@example.com"),
-      email,
-    );
+    await fill(screen.getByPlaceholderText("user@example.com"), email);
   }
   await userEvent.click(screen.getByRole("button", { name: /新增球員/ }));
 }
@@ -65,7 +68,7 @@ describe("CreateForm", () => {
     await screen.findByPlaceholderText("輸入姓名");
     expect(screen.queryByText("角色")).not.toBeInTheDocument();
 
-    await userEvent.type(
+    await fill(
       screen.getByPlaceholderText("user@example.com"),
       "invitee@example.com",
     );
@@ -90,9 +93,9 @@ describe("CreateForm", () => {
     render(<CreateForm teamId={TEAM_ID} />);
 
     const nameField = await screen.findByPlaceholderText("輸入姓名");
-    await userEvent.type(nameField, "New Player");
+    await fill(nameField, "New Player");
     const emailField = screen.getByPlaceholderText("user@example.com");
-    await userEvent.type(emailField, "invitee@example.com");
+    await fill(emailField, "invitee@example.com");
     await screen.findByText("角色");
     await userEvent.clear(emailField);
     expect(screen.queryByText("角色")).not.toBeInTheDocument();
