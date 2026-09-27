@@ -204,9 +204,7 @@ test("pull --force <slug> replaces that local slug", async (t) => {
   await mkdir(alphaDir, { recursive: true });
   await writeFile(path.join(alphaDir, "local.txt"), "mine\n");
 
-  await withRemote(bare, () =>
-    pull(work, { force: true, forceSlugs: ["alpha"] }),
-  );
+  await withRemote(bare, () => pull(work, { force: ["alpha"] }));
 
   assert.deepEqual(await readdir(alphaDir), ["index.mdx"]);
 });
@@ -525,6 +523,19 @@ test("publish keeps the facts of a page converted from an earlier format", async
     { cwd: bare },
   );
   assert.deepEqual(JSON.parse(stdout), converted);
+});
+
+test("publish rewrites an unreadable facts.json instead of stopping", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  await writeFile(path.join(dir, "facts.json"), "not json\n");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
 });
 
 test("publish records G2 once the page has a Review tab", async (t) => {

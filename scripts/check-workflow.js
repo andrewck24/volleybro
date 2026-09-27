@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   fetchChanges,
   hashDir,
+  isConverted,
   readStore,
   REMOTE_REF,
   resolveRemote,
@@ -440,17 +441,6 @@ async function validateInternalLinks(root) {
   }
 
   return diagnostics;
-}
-
-async function isConverted(directory) {
-  try {
-    const facts = JSON.parse(
-      await readFile(path.join(directory, "facts.json"), "utf8"),
-    );
-    return facts.converted === true;
-  } catch {
-    return false;
-  }
 }
 
 async function changeDirectories(root) {
