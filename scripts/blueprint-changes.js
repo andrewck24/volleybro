@@ -4,7 +4,7 @@
  * `blueprint-changes` branch that holds published Blueprint Change pages.
  *
  * Usage:
- *   node scripts/blueprint-changes.js pull [--force]
+ *   node scripts/blueprint-changes.js pull [--force [slug...]]
  *   node scripts/blueprint-changes.js publish <slug> [--dry-run]
  */
 import { execFile, spawn } from "node:child_process";
@@ -181,6 +181,26 @@ async function warnIfHistoryTooLarge(repoRoot, limit) {
   }
 }
 
+// A page differs from what was last pulled or published only through local
+// edits, and pages are gitignored, so those edits exist nowhere else.
+function isEditedLocally(store, slug, currentHash) {
+  return store[slug] !== currentHash;
+}
+
+// ADR-0079 exempts a converted page from the gates; its facts.json carries the
+// mark. An unreadable facts.json is treated as unmarked.
+export async function isConverted(slugDir) {
+  try {
+    const facts = JSON.parse(
+      await readFile(path.join(slugDir, "facts.json"), "utf8"),
+    );
+    return facts.converted === true;
+  } catch {
+    return false;
+  }
+}
+
+// `force` is true to overwrite every page, or the slugs to overwrite.
 export async function pull(
   cwd,
   { force = false, historyWarnBytes = HISTORY_WARN_BYTES } = {},
@@ -215,6 +235,33 @@ export async function pull(
     // Dot-directories hold store plumbing such as the deploy workflow.
     .filter((name) => name && !name.startsWith("."));
 
+  if (Array.isArray(force)) {
+    const unknown = force.filter((slug) => !slugs.includes(slug));
+    if (unknown.length > 0) {
+      console.warn(
+        `blueprint-changes pull: --force names slugs the store does not hold: ${unknown.join(", ")}`,
+      );
+    }
+  } else if (force) {
+    const edited = [];
+    for (const slug of slugs) {
+      const destDir = path.join(changesDir, slug);
+      if (
+        existsSync(destDir) &&
+        isEditedLocally(store, slug, await hashDir(destDir))
+      ) {
+        edited.push(slug);
+      }
+    }
+    if (edited.length > 0) {
+      console.error(
+        `blueprint-changes pull: --force would overwrite unpublished edits in ${edited.join(", ")}; name the slugs to overwrite: --force <slug>...`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   const scratchParent = await mkdtemp(
     path.join(os.tmpdir(), "blueprint-changes-pull-"),
   );
@@ -238,7 +285,7 @@ export async function pull(
         continue;
       }
 
-      if (force) {
+      if (force === true || (Array.isArray(force) && force.includes(slug))) {
         await replaceDir(destDir, scratchDir);
         store[slug] = remoteHash;
         refreshed += 1;
@@ -246,8 +293,7 @@ export async function pull(
       }
 
       const currentHash = await hashDir(destDir);
-      const recordedHash = store[slug];
-      if (recordedHash && recordedHash === currentHash) {
+      if (!isEditedLocally(store, slug, currentHash)) {
         if (remoteHash !== currentHash) {
           await replaceDir(destDir, scratchDir);
           store[slug] = remoteHash;
@@ -313,6 +359,9 @@ async function firstPublishedAt(repoRoot, slug) {
 async function writeFacts(repoRoot, slugDir) {
   const indexPath = path.join(slugDir, "index.mdx");
   if (!existsSync(indexPath)) return;
+  // A converted page's facts come from its earlier format, which git cannot
+  // rebuild, so republishing it keeps them.
+  if (await isConverted(slugDir)) return;
   const content = await readFile(indexPath, "utf8");
   const slug = path.basename(slugDir);
   let facts;
@@ -450,7 +499,9 @@ async function main() {
   const cwd = process.cwd();
 
   if (command === "pull") {
-    await pull(cwd, { force: flags.has("--force") });
+    const force =
+      flags.has("--force") && (positional.length > 0 ? positional : true);
+    await pull(cwd, { force });
     return;
   }
 

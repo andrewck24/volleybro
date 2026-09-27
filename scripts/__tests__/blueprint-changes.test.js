@@ -198,15 +198,40 @@ test("pull keeps a slug that was edited locally after being pulled", async (t) =
   assert.equal(await readFile(alphaFile, "utf8"), "# alpha edited locally\n");
 });
 
-test("pull --force replaces an existing local slug", async (t) => {
+test("pull --force <slug> replaces that local slug", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const alphaDir = path.join(work, "blueprint", "content", "changes", "alpha");
   await mkdir(alphaDir, { recursive: true });
   await writeFile(path.join(alphaDir, "local.txt"), "mine\n");
 
-  await withRemote(bare, () => pull(work, { force: true }));
+  await withRemote(bare, () => pull(work, { force: ["alpha"] }));
 
   assert.deepEqual(await readdir(alphaDir), ["index.mdx"]);
+});
+
+test("pull --force with no slug refuses to overwrite an unpublished edit", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  await withRemote(bare, () => pull(work));
+  const alphaFile = path.join(
+    work,
+    "blueprint",
+    "content",
+    "changes",
+    "alpha",
+    "index.mdx",
+  );
+  await writeFile(alphaFile, "# alpha, not yet published\n");
+  const errors = t.mock.method(console, "error", () => {});
+
+  await withRemote(bare, () => pull(work, { force: true }));
+
+  assert.equal(
+    await readFile(alphaFile, "utf8"),
+    "# alpha, not yet published\n",
+  );
+  assert.match(errors.mock.calls[0].arguments[0], /alpha/);
+  assert.equal(process.exitCode, 1);
+  process.exitCode = 0;
 });
 
 test("pull leaves the repository unshallow", async (t) => {
@@ -473,6 +498,44 @@ test("publish writes facts.json for a Change and ships it", async (t) => {
     { cwd: bare },
   );
   assert.equal(JSON.parse(stdout).gate, "G1");
+});
+
+test("publish keeps the facts of a page converted from an earlier format", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  const converted = {
+    converted: true,
+    gate: "G2",
+    startedAt: "2026-08-08T00:00:00.000Z",
+    archivedAt: "2026-08-16T00:00:00.000Z",
+    decisions: ["0004"],
+  };
+  await writeFile(
+    path.join(dir, "facts.json"),
+    `${JSON.stringify(converted, null, 2)}\n`,
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:gamma/facts.json"],
+    { cwd: bare },
+  );
+  assert.deepEqual(JSON.parse(stdout), converted);
+});
+
+test("publish rewrites an unreadable facts.json instead of stopping", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  await writeFile(path.join(dir, "facts.json"), "not json\n");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
 });
 
 test("publish records G2 once the page has a Review tab", async (t) => {
