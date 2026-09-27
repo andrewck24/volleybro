@@ -26,7 +26,6 @@ An error is asked about twice. The server answers what happened, and its answer 
 
 ## Known gaps
 
-- The profile update's `activeTeamId` is stored as an ObjectId but its request schema accepts any string, so it is the one body field the shared `objectId` validator does not check.
 - Correlating one client-side report with one server log entry is not possible from the response alone. The answer is a request correlation id rather than free text; it waits for an error-tracking consumer to exist.
 - One reason still carries more than one failure: `PLAYER_NOT_FOUND` covers both a missing player and a player record with no `teamId`. The second is a broken data invariant whose remedy is not something a user can act on, so it deliberately shares the generic copy rather than gaining its own.
 - The catalogue lives in `src/lib/api/` while having no API concern. A presentational component importing from `@/lib/api/` reads as a layering violation, and the comparable `ROLE_LABELS` sits in `lib/constants/`. The move waits on the wider question of what else in that directory belongs where.
