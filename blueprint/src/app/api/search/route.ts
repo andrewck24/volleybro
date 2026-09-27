@@ -21,8 +21,7 @@ const pageIndex = (page: Page, withText: boolean): AdvancedIndex => ({
     : { headings: page.data.structuredData.headings, contents: [] },
 });
 
-// The whole index downloads on the first search; Change pages' full text alone
-// would make it megabytes, so they are found by title and headings.
+// Change pages' full text would make the one-download index megabytes.
 const pageIndexes = [
   ...source.getPages().map((page) => pageIndex(page, false)),
   ...featuresSource.getPages().map((page) => pageIndex(page, true)),

@@ -39,13 +39,17 @@ describe("the decision record tree", () => {
     expect(ids).toEqual([...new Set(ids)]);
   });
 
-  it("names only capabilities that exist", () => {
+  it("names only capabilities whose page renders the timeline", () => {
     for (const name of decisionFiles()) {
       const record = parseDecisionRecord(
         JSON.parse(readFileSync(path.join(DECISIONS, name), "utf8")),
       );
       for (const capability of record.capabilities) {
-        expect(existsSync(path.join(FEATURES, capability))).toBe(true);
+        const page = path.join(FEATURES, capability, "index.mdx");
+        expect(existsSync(page)).toBe(true);
+        expect(`${capability}: ${readFileSync(page, "utf8")}`).toContain(
+          "<DecisionTimeline />",
+        );
       }
     }
   });
