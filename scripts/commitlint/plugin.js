@@ -36,6 +36,10 @@ const CHANGE_BRANCH = new RegExp(
   `^(${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`,
 );
 
+export function changeSlugOf(branchName) {
+  return branchName.match(CHANGE_BRANCH)?.[2];
+}
+
 function fixPathSuffix(prefix, slug) {
   return `Fix-path work belongs on hotfix/${slug} instead, not ${prefix}/${slug}.`;
 }
