@@ -96,15 +96,10 @@ test("the gate publishes, runs the check, and names the preview to compare", asy
 
   assert.equal((await storeLog(bare)).length, 1);
   assert.deepEqual(checked, ["gamma"]);
-  const printed = console.log.mock.calls.map((call) => call.arguments[0]);
-  assert.ok(
-    printed.some((line) =>
-      line.includes(
-        "https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma",
-      ),
-    ),
+  assert.equal(
+    console.log.mock.calls.at(-1).arguments[0],
+    "Branch preview: https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma is current once its header shows 1 commits; rerun the branch build if it does not.",
   );
-  assert.ok(printed.some((line) => /1 commits?/.test(line)));
 });
 
 test("--gate G1 publishes the Proposal alone before the whole page", async (t) => {
