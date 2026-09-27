@@ -7,7 +7,7 @@ jest.mock("node:fs", () => {
     ...actual,
     readdirSync: (_dir: string) => Object.keys(mockFiles),
     readFileSync: (target: string) => {
-      const name = target.split("/").pop() as string;
+      const name = jest.requireActual("node:path").basename(target);
       return JSON.stringify(mockFiles[name]);
     },
   };

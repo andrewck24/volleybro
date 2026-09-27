@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
+import { lstat, readFile, readdir, readlink, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -147,8 +147,9 @@ async function validateSharedSkills(root) {
 }
 
 async function exists(filePath) {
+  // stat, not access: on Windows access succeeds on a dangling symlink.
   try {
-    await access(filePath);
+    await stat(filePath);
     return true;
   } catch {
     return false;
