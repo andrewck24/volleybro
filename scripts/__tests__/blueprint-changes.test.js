@@ -676,11 +676,12 @@ test("a Change with no commit yet starts at its first publish and keeps that sta
     await readFile(path.join(dir, "facts.json"), "utf8"),
   );
 
-  const gap = Math.abs(
-    Date.parse(second.startedAt) - Date.parse(first.publishedAt),
-  );
+  // The start is the first store commit's date: whole seconds, and taken after
+  // the first facts were written, so it matches neither publishedAt exactly.
+  const startedAt = Date.parse(second.startedAt);
   assert.ok(
-    gap < 5000,
+    startedAt >= Math.floor(Date.parse(first.publishedAt) / 1000) * 1000 &&
+      startedAt < Date.parse(second.publishedAt),
     `startedAt ${second.startedAt} is not the first publish`,
   );
   assert.notEqual(second.publishedAt, first.publishedAt);
