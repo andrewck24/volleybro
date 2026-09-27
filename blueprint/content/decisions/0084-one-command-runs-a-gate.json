@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "id": "0084",
+  "title": "One command runs a gate, and it owns the order of the gate's steps",
+  "capabilities": ["platform/delivery-workflow", "platform/blueprint"],
+  "context": "A gate was run as a sequence written in WORKFLOW.md: push the branch, publish the page, run the gate check, then check the branch preview. The order was a rule only the prose held, and the check that the branch is pushed before publishing lived in code, so the two could contradict each other. Re-baselining G1 during Ingest, when the page already had a Review tab, meant cutting the tab out by hand, publishing, and pasting it back.",
+  "decision": "pnpm blueprint:gate <slug> runs a gate: it refuses an unpushed branch, publishes the page, runs the gate check, and prints the branch preview URL with the figure to compare on it. With --gate G1 it first publishes the Proposal alone, so a page that already has a Review tab gets a new G1 baseline, then publishes the whole page. WORKFLOW.md tells each gate to run the command.",
+  "alternatives": [
+    {
+      "option": "Keep the steps in WORKFLOW.md and add a check for each ordering rule",
+      "reason": "Every new rule would be written in prose and in a check, which is the duplication ADR-0083 removes."
+    }
+  ],
+  "consequences": [
+    "The after-merge publish that records archivedAt stays a plain publish, since it is not a gate."
+  ],
+  "originChange": "gate-consolidation"
+}

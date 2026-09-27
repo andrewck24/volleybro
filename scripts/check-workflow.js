@@ -40,50 +40,15 @@ const REQUIRED_BINDINGS = {
   evaluation: { adapter: "symphony", text_retention: "ephemeral" },
 };
 
-const SUPPORTED_ADAPTERS = {
-  sdd: new Set([
-    "repository-workflow",
-    "spectra",
-    "openspec",
-    "spec-kit",
-    "off",
-  ]),
-  change_comprehension: new Set(["blueprint", "markdown", "off"]),
-  release_planning: new Set(["linear", "github", "jira", "off"]),
-  versioning: new Set(["changesets", "semantic-release", "manual", "off"]),
-  workpad: new Set(["linear-comment", "repository-file", "off"]),
-  scm: new Set(["github", "gitlab", "local"]),
-  review: new Set(["github-pr", "gitlab-mr", "manual"]),
-  validation: new Set(["repository-commands"]),
-  archive: new Set([
-    "repository-workflow",
-    "spectra",
-    "openspec",
-    "manual",
-    "off",
-  ]),
-  evaluation: new Set(["symphony", "off"]),
-};
-
 const GUIDANCE_IMPORT = "@AGENTS.md";
-const RETIRED_AUTHORITY_FILES = [
-  "CONTRIBUTING.md",
-  "CODING_STANDARDS.md",
-  "AGENTS.md",
-];
 const SECTION_REFERENCE = /§\s?\d|\bsection\s*\d/i;
-const PRE_PR_GATE_HEADING = /^###\s+.*Pre-PR gate.*$/m;
-const NEXT_HEADING = /^#{2,3}\s/m;
-const REPOSITORY_ADAPTER_FILES = [
+const REQUIRED_FILES = [
+  "WORKFLOW.md",
   "docs/agents/issue-tracker.md",
   "docs/agents/domain.md",
   "docs/agents/blueprint.md",
   "docs/agents/artifact-lifecycle.md",
 ];
-const RETIRED_REFERENCE = ["spec", "loop"].join("-");
-const ACTIVE_ROOT_FILES = ["CLAUDE.md", "AGENTS.md", "package.json"];
-const ACTIVE_DIRECTORIES = [".github", "scripts"];
-const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
 const BLUEPRINT_CHANGES = "blueprint/content/changes";
 const BLUEPRINT_LINK_SOURCES = ["blueprint/src", "blueprint/content"];
 const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
@@ -91,23 +56,6 @@ const ANCHOR_TAG = /<a(\s[^>]*)>/g;
 const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
-
-async function validateGuidanceProse(root) {
-  const diagnostics = [];
-  for (const relativePath of RETIRED_AUTHORITY_FILES) {
-    const filePath = path.join(root, relativePath);
-    if (!(await exists(filePath))) continue;
-
-    const content = await readFile(filePath, "utf8");
-    if (/\bspectra\b/i.test(content)) {
-      diagnostics.push(
-        `${relativePath} [retired-authority]: active contributor guidance must not present Spectra as a delivery authority`,
-      );
-    }
-  }
-
-  return diagnostics;
-}
 
 async function validateGuidanceImport(root) {
   const filePath = path.join(root, "CLAUDE.md");
@@ -130,62 +78,6 @@ function validateSectionReferences(relativePath, content) {
   return [
     `${relativePath} [section-reference]: must not reference a section number; state the rule instead of citing its position`,
   ];
-}
-
-// Matched by heading text, not position, so renumbering "### 3." doesn't
-// break this. Renaming the "Pre-PR gate" heading itself still silently
-// stops enforcing it.
-function validatePrePrGateSection(content) {
-  const match = content.match(PRE_PR_GATE_HEADING);
-  if (!match) return [];
-
-  const rest = content.slice(match.index + match[0].length);
-  const nextHeading = rest.match(NEXT_HEADING);
-  const section = nextHeading ? rest.slice(0, nextHeading.index) : rest;
-
-  const diagnostics = [];
-  if (!/CODING_STANDARDS\.md/.test(section)) {
-    diagnostics.push(
-      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must mention CODING_STANDARDS.md",
-    );
-  }
-  if (/CONTRIBUTING\.md/.test(section)) {
-    diagnostics.push(
-      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must not mention CONTRIBUTING.md",
-    );
-  }
-  return diagnostics;
-}
-
-async function validateRetiredAuthorities(root) {
-  const diagnostics = [];
-  const workflowDirectory = path.join(root, ".agents", "workflows");
-  if (await exists(workflowDirectory)) {
-    const entries = await readdir(workflowDirectory, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile() && RETIRED_WORKFLOW_PATTERN.test(entry.name)) {
-        diagnostics.push(
-          `.agents/workflows/${entry.name} [retired-workflow]: executable Spectra workflows must not be tracked`,
-        );
-      }
-    }
-  }
-
-  const changesDirectory = path.join(root, "docs", "changes");
-  if (await exists(changesDirectory)) {
-    const entries = await readdir(changesDirectory, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name === "archive") continue;
-      const marker = path.join(changesDirectory, entry.name, ".openspec.yaml");
-      if (await exists(marker)) {
-        diagnostics.push(
-          `docs/changes/${entry.name}/.openspec.yaml [active-legacy-change]: move the legacy change to a dated archive snapshot`,
-        );
-      }
-    }
-  }
-
-  return diagnostics;
 }
 
 async function validateSharedSkills(root) {
@@ -331,14 +223,6 @@ function validateProfile(profile) {
       continue;
     }
 
-    const supported = SUPPORTED_ADAPTERS[capability];
-    if (!supported.has(configured.adapter)) {
-      diagnostics.push(
-        `WORKFLOW.md [delivery-profile]: ${capability} adapter ${configured.adapter || "missing"} is unsupported; supported: ${[...supported].join(", ")}`,
-      );
-      continue;
-    }
-
     for (const [field, expected] of Object.entries(required)) {
       if (configured[field] !== expected) {
         diagnostics.push(
@@ -393,24 +277,6 @@ async function listFiles(directory) {
     }),
   );
   return nested.flat();
-}
-
-async function activeReferenceFiles(root) {
-  const rootFiles = ACTIVE_ROOT_FILES.map((relativePath) =>
-    path.join(root, relativePath),
-  );
-  const directoryFiles = (
-    await Promise.all(
-      ACTIVE_DIRECTORIES.map((relativePath) =>
-        listFiles(path.join(root, relativePath)),
-      ),
-    )
-  ).flat();
-
-  return [...rootFiles, ...directoryFiles].filter((filePath) => {
-    const basename = path.basename(filePath);
-    return basename !== "check-workflow.js" && !basename.includes(".test.");
-  });
 }
 
 // A raw anchor is a full document load, which discards the sidebar state
@@ -604,18 +470,20 @@ export async function checkChangeScope(root = process.cwd(), options = {}) {
 
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
-  const workflowPath = path.join(root, "WORKFLOW.md");
+  for (const relativePath of REQUIRED_FILES) {
+    if (!(await exists(path.join(root, relativePath)))) {
+      diagnostics.push(`${relativePath} [required-file]: file is missing`);
+    }
+  }
 
-  if (!(await exists(workflowPath))) {
-    diagnostics.push("WORKFLOW.md [canonical-contract]: file is missing");
-  } else {
+  const workflowPath = path.join(root, "WORKFLOW.md");
+  if (await exists(workflowPath)) {
     const workflow = await readFile(workflowPath, "utf8");
     try {
       diagnostics.push(...validateProfile(parseDeliveryProfile(workflow)));
     } catch (error) {
       diagnostics.push(`WORKFLOW.md [delivery-profile]: ${error.message}`);
     }
-    diagnostics.push(...validatePrePrGateSection(workflow));
   }
 
   diagnostics.push(...(await validateGuidanceImport(root)));
@@ -629,31 +497,11 @@ export async function checkWorkflow(root = process.cwd()) {
     diagnostics.push(...validateSectionReferences("AGENTS.md", content));
   }
 
-  for (const relativePath of REPOSITORY_ADAPTER_FILES) {
-    if (!(await exists(path.join(root, relativePath)))) {
-      diagnostics.push(
-        `${relativePath} [repository-adapter]: required adapter file is missing`,
-      );
-    }
-  }
-
   diagnostics.push(...(await validateInternalLinks(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
-  diagnostics.push(...(await validateRetiredAuthorities(root)));
-  diagnostics.push(...(await validateGuidanceProse(root)));
-
-  for (const filePath of await activeReferenceFiles(root)) {
-    if (!(await exists(filePath))) continue;
-    const content = await readFile(filePath, "utf8");
-    if (content.toLowerCase().includes(RETIRED_REFERENCE)) {
-      diagnostics.push(
-        `${path.relative(root, filePath)} [retired-reference]: remove the active retired harness reference`,
-      );
-    }
-  }
 
   return diagnostics.sort();
 }

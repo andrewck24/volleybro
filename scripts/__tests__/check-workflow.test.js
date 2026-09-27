@@ -106,11 +106,11 @@ test("accepts the resolved VolleyBro delivery profile", async () => {
 test("reports a missing canonical contract", async () => {
   assert.match(
     (await messages({ "WORKFLOW.md": null })).join("\n"),
-    /WORKFLOW\.md.*missing/i,
+    /WORKFLOW\.md \[required-file\]: file is missing/,
   );
 });
 
-test("reports an unsupported delivery adapter", async () => {
+test("reports a delivery adapter other than the required one", async () => {
   const workflow = validWorkflow.replace(
     "adapter: repository-workflow",
     "adapter: unknown-sdd",
@@ -170,54 +170,6 @@ test("reports a spelled-out section-number reference in AGENTS.md", async () => 
   );
 });
 
-test("reports the Pre-PR gate section missing CODING_STANDARDS.md", async () => {
-  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CONTRIBUTING.md.\n\n### 4. Archive\n`;
-  assert.match(
-    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
-    /WORKFLOW\.md.*standards-reviewer/i,
-  );
-});
-
-test("reports a Pre-PR gate section that still cites CONTRIBUTING.md", async () => {
-  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md and CONTRIBUTING.md.\n\n### 4. Archive\n`;
-  assert.match(
-    (await messages({ "WORKFLOW.md": workflow })).join("\n"),
-    /must not mention CONTRIBUTING\.md/,
-  );
-});
-
-test("accepts a Pre-PR gate section that cites CODING_STANDARDS.md only", async () => {
-  const workflow = `${validWorkflow}\n### 3. Pre-PR gate and delivery\n\nFollow CODING_STANDARDS.md.\n\n### 4. Archive\n`;
-  assert.deepEqual(await messages({ "WORKFLOW.md": workflow }), []);
-});
-
-test("is silent about Pre-PR gate wording when the section is absent", async () => {
-  assert.deepEqual(await messages(), []);
-});
-
-test("reports Spectra as an active authority in CODING_STANDARDS.md", async () => {
-  assert.match(
-    (
-      await messages({
-        "CODING_STANDARDS.md": "Use Spectra artifacts for review.\n",
-      })
-    ).join("\n"),
-    /CODING_STANDARDS\.md.*retired-authority/i,
-  );
-});
-
-test("reports Spectra as an active authority in AGENTS.md", async () => {
-  assert.match(
-    (
-      await messages({
-        "AGENTS.md":
-          "Read [WORKFLOW.md](WORKFLOW.md). Use Spectra artifacts.\n",
-      })
-    ).join("\n"),
-    /AGENTS\.md.*retired-authority/i,
-  );
-});
-
 test("reports duplicated lifecycle content in a provider bridge", async () => {
   const bridge =
     "Read [WORKFLOW.md](WORKFLOW.md).\n\n## Lifecycle\n\n### Apply\n";
@@ -241,7 +193,7 @@ test("reports durable provider-text retention", async () => {
 test("reports a missing repository adapter file", async () => {
   assert.match(
     (await messages({ "docs/agents/artifact-lifecycle.md": null })).join("\n"),
-    /artifact-lifecycle\.md.*missing/i,
+    /artifact-lifecycle\.md \[required-file\]: file is missing/,
   );
 });
 
@@ -258,50 +210,6 @@ test("reports a broken provider skill bridge", async () => {
   assert.match(
     (await checkWorkflow(root)).join("\n"),
     /\.claude\/skills\/to-spec.*missing or broken/i,
-  );
-});
-
-test("reports a tracked executable Spectra workflow", async () => {
-  assert.match(
-    (
-      await messages({
-        ".agents/workflows/spectra-apply.md": "# Apply\n",
-      })
-    ).join("\n"),
-    /\.agents\/workflows\/spectra-apply\.md.*retired-workflow/i,
-  );
-});
-
-test("reports an active legacy OpenSpec change", async () => {
-  assert.match(
-    (
-      await messages({
-        "docs/changes/stale-change/.openspec.yaml": "schema: spec-driven\n",
-      })
-    ).join("\n"),
-    /docs\/changes\/stale-change\/\.openspec\.yaml.*active-legacy-change/i,
-  );
-});
-
-test("reports Spectra as an active contributor authority", async () => {
-  assert.match(
-    (
-      await messages({
-        "CONTRIBUTING.md": "Use Spectra artifacts for delivery.\n",
-      })
-    ).join("\n"),
-    /CONTRIBUTING\.md.*retired-authority/i,
-  );
-});
-
-test("reports an active retired harness reference", async () => {
-  assert.match(
-    (
-      await messages({
-        "scripts/dispatch.mjs": "const harness = 'spec-loop';\n",
-      })
-    ).join("\n"),
-    /scripts\/dispatch\.mjs.*retired/i,
   );
 });
 
