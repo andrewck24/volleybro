@@ -98,6 +98,6 @@ Rules that bind every page:
 
 ## Writing a decision record
 
-A record holds one decision. Write one only when the decision is hard to reverse, would surprise a reader without its context, and came out of a real trade-off; an easily reversed or obvious choice needs no record.
+A record holds one decision, and governs either the product or the delivery process — the workflow, the Blueprint, tooling and documents — never both. Write one only when the decision is hard to reverse, would surprise a reader without its context, and came out of a real trade-off; an easily reversed or obvious choice needs no record.
 
 The `decision` field states the decision itself in a few sentences; supporting detail belongs in `context` or `consequences`. A `decision` stays under 1000 characters; past that, split a record that bundles several decisions, or move detail out of a single decision's `decision` field. When neither applies, keep the record and put it to the developer at the gate with the reason.
