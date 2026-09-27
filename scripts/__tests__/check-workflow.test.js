@@ -494,13 +494,15 @@ test("checkChangeScope ignores a Migration mention outside the trailer block", a
   assert.match(warnings[0], /change-scope/i);
 });
 
-test("checkChangeScope warns past the soft scenario-count target", async () => {
-  const scenarios = Array.from(
-    { length: 9 },
+const scenarioPage = (count) =>
+  `---\ntitle: Sample\n---\n\nexport const scenarios = [\n${Array.from(
+    { length: count },
     (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
-  ).join("\n");
+  ).join("\n")}\n];\n`;
+
+test("checkChangeScope warns past the soft scenario-count target", async () => {
   const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": `---\ntitle: Sample\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
+    "blueprint/content/changes/c/index.mdx": scenarioPage(9),
   });
   const warnings = await checkChangeScope(root, { gateSlug: "c" });
   assert.equal(warnings.length, 1);
@@ -509,12 +511,8 @@ test("checkChangeScope warns past the soft scenario-count target", async () => {
 });
 
 test("checkChangeScope leaves the scenario count of another Change alone", async () => {
-  const scenarios = Array.from(
-    { length: 9 },
-    (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
-  ).join("\n");
   const root = await makeRepository({
-    "blueprint/content/changes/other/index.mdx": `---\ntitle: Other\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
+    "blueprint/content/changes/other/index.mdx": scenarioPage(9),
   });
   assert.deepEqual(await checkChangeScope(root, { gateSlug: "c" }), []);
   assert.deepEqual(await checkChangeScope(root), []);
@@ -522,16 +520,12 @@ test("checkChangeScope leaves the scenario count of another Change alone", async
 
 test("checkChangeScope reads the Change from a Change branch's name", async () => {
   const root = await makeScopeRepository(1);
-  const scenarios = Array.from(
-    { length: 9 },
-    (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
-  ).join("\n");
   await mkdir(path.join(root, "blueprint/content/changes/scope-test"), {
     recursive: true,
   });
   await writeFile(
     path.join(root, "blueprint/content/changes/scope-test/index.mdx"),
-    `---\ntitle: Scope\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
+    scenarioPage(9),
   );
   const warnings = await checkChangeScope(root);
   assert.equal(warnings.length, 1);

@@ -24,7 +24,7 @@ import {
   reviewSections,
   scenarioIds,
 } from "./change-page.js";
-import { CHANGE_BRANCH_PREFIXES } from "./commitlint/plugin.js";
+import { changeSlugOf } from "./commitlint/plugin.js";
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -598,11 +598,7 @@ async function checkChangeSizeWarnings(root, slug) {
 // ADR-0057: a Change branch is known by its name.
 async function changeSlugFromBranch(root) {
   try {
-    const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
-    const match = branch.match(
-      new RegExp(`^(?:${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`),
-    );
-    return match?.[1];
+    return changeSlugOf(await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]));
   } catch {
     return undefined;
   }
