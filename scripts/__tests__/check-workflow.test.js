@@ -502,10 +502,40 @@ test("checkChangeScope warns past the soft scenario-count target", async () => {
   const root = await makeRepository({
     "blueprint/content/changes/c/index.mdx": `---\ntitle: Sample\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
   });
-  const warnings = await checkChangeScope(root);
+  const warnings = await checkChangeScope(root, { gateSlug: "c" });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /change-scope/i);
   assert.match(warnings[0], /9 acceptance scenarios/);
+});
+
+test("checkChangeScope leaves the scenario count of another Change alone", async () => {
+  const scenarios = Array.from(
+    { length: 9 },
+    (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
+  ).join("\n");
+  const root = await makeRepository({
+    "blueprint/content/changes/other/index.mdx": `---\ntitle: Other\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
+  });
+  assert.deepEqual(await checkChangeScope(root, { gateSlug: "c" }), []);
+  assert.deepEqual(await checkChangeScope(root), []);
+});
+
+test("checkChangeScope reads the Change from a Change branch's name", async () => {
+  const root = await makeScopeRepository(1);
+  const scenarios = Array.from(
+    { length: 9 },
+    (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
+  ).join("\n");
+  await mkdir(path.join(root, "blueprint/content/changes/scope-test"), {
+    recursive: true,
+  });
+  await writeFile(
+    path.join(root, "blueprint/content/changes/scope-test/index.mdx"),
+    `---\ntitle: Scope\n---\n\nexport const scenarios = [\n${scenarios}\n];\n`,
+  );
+  const warnings = await checkChangeScope(root);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /scope-test.*9 acceptance scenarios/);
 });
 
 test("checkChangeScope never fails the process, even when it warns", async () => {

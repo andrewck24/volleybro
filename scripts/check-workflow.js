@@ -24,6 +24,7 @@ import {
   reviewSections,
   scenarioIds,
 } from "./change-page.js";
+import { CHANGE_BRANCH_PREFIXES } from "./commitlint/plugin.js";
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -579,34 +580,39 @@ async function checkFileCountScope(root, options) {
   ];
 }
 
-// Proposal scenarios are the other ADR-0065 soft target checked here,
-// read straight off whatever Change directories exist locally, independent
-// of the src/ file-count check above. Slice count is also a soft target
-// (WORKFLOW.md's Change scope section), but slices are Linear sub-issues
-// now, so it is a written target only and not checked here.
-async function checkChangeSizeWarnings(root) {
-  const diagnostics = [];
+// Proposal scenarios are the other ADR-0065 soft target. Only the Change in
+// hand is measured: every other page is already past its gates, and warning on
+// it again on every run teaches people to ignore the warning.
+async function checkChangeSizeWarnings(root, slug) {
+  if (!slug) return [];
+  const directory = path.join(root, BLUEPRINT_CHANGES, slug);
+  const content = await readChangePage(directory);
+  if (content === undefined) return [];
+  const count = scenarioCount(content);
+  if (count <= SCENARIO_COUNT_SOFT_LIMIT) return [];
+  return [
+    `${BLUEPRINT_CHANGES}/${slug}/index.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+  ];
+}
 
-  for (const directory of await changeDirectories(root)) {
-    const slug = path.basename(directory);
-
-    const content = await readChangePage(directory);
-    if (content === undefined) continue;
-    const count = scenarioCount(content);
-    if (count > SCENARIO_COUNT_SOFT_LIMIT) {
-      diagnostics.push(
-        `${BLUEPRINT_CHANGES}/${slug}/index.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
-      );
-    }
+// ADR-0057: a Change branch is known by its name.
+async function changeSlugFromBranch(root) {
+  try {
+    const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
+    const match = branch.match(
+      new RegExp(`^(?:${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`),
+    );
+    return match?.[1];
+  } catch {
+    return undefined;
   }
-
-  return diagnostics;
 }
 
 export async function checkChangeScope(root = process.cwd(), options = {}) {
+  const slug = options.gateSlug ?? (await changeSlugFromBranch(root));
   return [
     ...(await checkFileCountScope(root, options)),
-    ...(await checkChangeSizeWarnings(root)),
+    ...(await checkChangeSizeWarnings(root, slug)),
   ];
 }
 
@@ -946,6 +952,7 @@ async function main() {
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
   const warnings = await checkChangeScope(process.cwd(), {
     migrationSlug: flagValue(process.argv.slice(2), "--migration"),
+    gateSlug,
   });
   if (gateSlug) {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
