@@ -93,14 +93,15 @@ describe("RemovePlayerUseCase", () => {
       },
     );
 
-    it("clears the lineups before deleting, so a failed delete can be retried", async () => {
+    it("has cleared the lineups when the delete fails, so the removal can be retried", async () => {
       mockPlayerRepository.findById.mockResolvedValue(targets.member);
+      mockPlayerRepository.delete.mockRejectedValue(new Error("db down"));
 
-      await remove();
-
-      expect(
-        mockTeamRepository.removePlayerFromLineups.mock.invocationCallOrder[0],
-      ).toBeLessThan(mockPlayerRepository.delete.mock.invocationCallOrder[0]!);
+      await expect(remove()).rejects.toThrow("db down");
+      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
+        "team-1",
+        "target",
+      );
     });
 
     it("refuses the owner, who can only hand ownership over", async () => {

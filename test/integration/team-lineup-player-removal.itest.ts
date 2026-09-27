@@ -1,7 +1,10 @@
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import { Position, type Lineup } from "@/entities/team";
 import { container } from "@/infrastructure/di/inversify.config";
+import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TYPES } from "@/infrastructure/di/types";
+import { Types } from "mongoose";
+
 import { lineupFor, oid } from "./support/seed";
 
 const repo = () => container.get<ITeamRepository>(TYPES.TeamRepository);
@@ -78,6 +81,31 @@ describe("removing a player from a team's lineups", () => {
 
     expect(liberos).toHaveLength(1);
     expect(options.liberoReplaceMode).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("removing a player from a lineup stored without a libero mode", () => {
+  it("leaves the mode at none rather than raising it to the libero count", async () => {
+    const [removed, libero] = [oid(), oid()];
+    const team = await repo().create({ name: "Legacy Team", lineups: [] });
+    await repo().updateLineups(team.id, [
+      {
+        ...lineupFor(Array.from({ length: 6 }, oid)),
+        liberos: [
+          { id: removed, position: Position.L },
+          { id: libero, position: Position.L },
+        ],
+      },
+    ]);
+    await TeamModel.collection.updateOne(
+      { _id: new Types.ObjectId(team.id) },
+      { $unset: { "lineups.0.options.liberoReplaceMode": "" } },
+    );
+
+    await repo().removePlayerFromLineups(team.id, removed);
+
+    const [lineup] = (await repo().findById(team.id))!.lineups;
+    expect(lineup!.options.liberoReplaceMode).toBe(0);
   });
 });
 

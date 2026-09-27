@@ -184,8 +184,7 @@ export class TeamRepositoryImpl implements ITeamRepository {
           },
         },
         {
-          // The mode counts liberos, the same bound the lineup editor keeps;
-          // comparing two fields needs a pipeline update.
+          // Pipeline, since the bound is another field: the editor's libero-count cap.
           updateOne: {
             filter: { _id: teamId },
             update: [
@@ -204,8 +203,17 @@ export class TeamRepositoryImpl implements ITeamRepository {
                                 {
                                   liberoReplaceMode: {
                                     $min: [
-                                      "$$this.options.liberoReplaceMode",
-                                      { $size: "$$this.liberos" },
+                                      {
+                                        $ifNull: [
+                                          "$$this.options.liberoReplaceMode",
+                                          0,
+                                        ],
+                                      },
+                                      {
+                                        $size: {
+                                          $ifNull: ["$$this.liberos", []],
+                                        },
+                                      },
                                     ],
                                   },
                                 },
