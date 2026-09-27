@@ -2,6 +2,7 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
     branches:
       - dev
       - main
@@ -115,6 +116,10 @@ jobs:
         if: github.base_ref == 'dev'
         env:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
+      - run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
+        if: github.base_ref == 'dev'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
 
   # The branch rulesets require a check named exactly "Verify". Renaming the
   # jobs without this would leave that context permanently unreported and
