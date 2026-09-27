@@ -4,7 +4,7 @@
  * `blueprint-changes` branch that holds published Blueprint Change pages.
  *
  * Usage:
- *   node scripts/blueprint-changes.js pull [--force]
+ *   node scripts/blueprint-changes.js pull [--force [slug...]]
  *   node scripts/blueprint-changes.js publish <slug> [--dry-run]
  */
 import { execFile, spawn } from "node:child_process";
@@ -183,7 +183,11 @@ async function warnIfHistoryTooLarge(repoRoot, limit) {
 
 export async function pull(
   cwd,
-  { force = false, historyWarnBytes = HISTORY_WARN_BYTES } = {},
+  {
+    force = false,
+    forceSlugs = [],
+    historyWarnBytes = HISTORY_WARN_BYTES,
+  } = {},
 ) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
@@ -215,6 +219,26 @@ export async function pull(
     // Dot-directories hold store plumbing such as the deploy workflow.
     .filter((name) => name && !name.startsWith("."));
 
+  // A page whose content differs from its last pull or publish holds edits
+  // nothing else has, and pages are gitignored, so a blanket --force would
+  // lose them for good. Only a slug named after --force may be overwritten.
+  if (force && forceSlugs.length === 0) {
+    const unpublished = [];
+    for (const slug of slugs) {
+      const destDir = path.join(changesDir, slug);
+      if (existsSync(destDir) && store[slug] !== (await hashDir(destDir))) {
+        unpublished.push(slug);
+      }
+    }
+    if (unpublished.length > 0) {
+      console.error(
+        `blueprint-changes pull: --force would overwrite unpublished edits in ${unpublished.join(", ")}; name the slugs to overwrite: --force <slug>...`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   const scratchParent = await mkdtemp(
     path.join(os.tmpdir(), "blueprint-changes-pull-"),
   );
@@ -238,7 +262,7 @@ export async function pull(
         continue;
       }
 
-      if (force) {
+      if (force && (forceSlugs.length === 0 || forceSlugs.includes(slug))) {
         await replaceDir(destDir, scratchDir);
         store[slug] = remoteHash;
         refreshed += 1;
@@ -313,6 +337,15 @@ async function firstPublishedAt(repoRoot, slug) {
 async function writeFacts(repoRoot, slugDir) {
   const indexPath = path.join(slugDir, "index.mdx");
   if (!existsSync(indexPath)) return;
+  // A converted page's facts come from its earlier format, which git cannot
+  // rebuild, and ADR-0079 exempts it from the gates the mark tells apart.
+  const factsPath = path.join(slugDir, "facts.json");
+  if (
+    existsSync(factsPath) &&
+    JSON.parse(await readFile(factsPath, "utf8")).converted === true
+  ) {
+    return;
+  }
   const content = await readFile(indexPath, "utf8");
   const slug = path.basename(slugDir);
   let facts;
@@ -450,7 +483,7 @@ async function main() {
   const cwd = process.cwd();
 
   if (command === "pull") {
-    await pull(cwd, { force: flags.has("--force") });
+    await pull(cwd, { force: flags.has("--force"), forceSlugs: positional });
     return;
   }
 
