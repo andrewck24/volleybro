@@ -7,32 +7,30 @@ import { lineupFor, oid } from "./support/seed";
 const repo = () => container.get<ITeamRepository>(TYPES.TeamRepository);
 
 describe("removing a player from a team's lineups", () => {
-  let teamId: string;
+  const removed = oid();
+  const libero = oid();
+  const benchA = oid();
+  const benchB = oid();
   let ids: string[];
-  let removed: string;
+  let teamId: string;
 
   beforeEach(async () => {
-    ids = Array.from({ length: 10 }, oid);
-    removed = oid();
-    const base = lineupFor(ids);
+    ids = Array.from({ length: 6 }, oid);
+    const starting = lineupFor(ids).starting;
+    starting[1] = { ...starting[1]!, id: removed };
+    starting[3] = { ...starting[3]!, sub: { id: removed, entryIndex: {} } };
     const lineup: Lineup = {
-      ...base,
-      starting: base.starting.map((player, i) =>
-        i === 1
-          ? { ...player, id: removed }
-          : i === 3
-            ? { ...player, sub: { id: removed, entryIndex: {} } }
-            : player,
-      ),
+      ...lineupFor(ids),
+      starting,
       liberos: [
         { id: removed, position: Position.L },
         {
-          id: ids[6],
+          id: libero,
           position: Position.L,
           sub: { id: removed, entryIndex: {} },
         },
       ],
-      substitutes: [{ id: ids[7] }, { id: removed }, { id: ids[8] }],
+      substitutes: [{ id: benchA }, { id: removed }, { id: benchB }],
     };
     const team = await repo().create({ name: "Lineup Team", lineups: [] });
     teamId = team.id;
@@ -63,14 +61,14 @@ describe("removing a player from a team's lineups", () => {
     expect(starting[3]!.id).toBe(ids[3]);
     expect(starting[3]!.sub?.id ?? null).toBeNull();
     expect(
-      liberos.find((player) => player.id === ids[6])!.sub?.id ?? null,
+      liberos.find((player) => player.id === libero)!.sub?.id ?? null,
     ).toBeNull();
   });
 
   it("drops the player from the libero and substitute lists, which have no fixed slots", async () => {
     const { liberos, substitutes } = await read();
 
-    expect(liberos.map((player) => player.id)).toEqual([ids[6]]);
-    expect(substitutes.map((player) => player.id)).toEqual([ids[7], ids[8]]);
+    expect(liberos.map((player) => player.id)).toEqual([libero]);
+    expect(substitutes.map((player) => player.id)).toEqual([benchA, benchB]);
   });
 });
