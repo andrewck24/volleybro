@@ -382,6 +382,7 @@ async function writeFacts(repoRoot, slugDir, { proposalOnly }) {
     facts = await changeFacts(repoRoot, page, {
       slug,
       firstPublishedAt: await firstPublishedAt(repoRoot, slug),
+      gate: proposalOnly ? "G1" : undefined,
     });
   } catch (error) {
     throw new Error(

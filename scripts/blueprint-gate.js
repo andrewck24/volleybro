@@ -87,7 +87,6 @@ function previewTrigger(triggers) {
   );
 }
 
-// ADR-0097.
 export async function rebuildPreview(root, branch, { cf = runCf } = {}) {
   try {
     const name = await workerName(root);

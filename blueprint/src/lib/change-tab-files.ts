@@ -4,7 +4,6 @@ import { changeTabs } from "../../.source/server";
 
 import type { TabBody } from "@/components/ChangeTabs";
 
-// ADR-0094.
 const TAB_FILE = /^([^/]+)\/(proposal|review)(?:-s([1-9]\d*))?\.mdx$/;
 
 export type ChangeTabFiles = {

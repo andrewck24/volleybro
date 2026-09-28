@@ -656,6 +656,24 @@ test("publish measures a Migration shard by shard and totals the shards", async 
   assert.equal(facts.archivedAt, null);
 });
 
+test("a proposal-only publish records G1 even on a later shard's branch", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", "feat/gamma-s2"]);
+  const dir = await writeChangePage(work, "gamma", { shards: 2 });
+  await writeFile(
+    path.join(dir, "review-s1.mdx"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
+
 test("a failed publish after a proposal-only one leaves the Reviews to the next pull", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const dir = await makeChange(work, "gamma", { review: true });

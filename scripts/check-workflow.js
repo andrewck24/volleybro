@@ -543,11 +543,8 @@ function frontmatterTitle(content) {
   return quoted ? quoted[2] : title;
 }
 
-// ADR-0095: what a gate accepted is compared, file by file, with the store
-// branch's most recent commit of the page that matches — a publish, or a
-// conversion that rewrote the page's files without its facts. None there means
-// nothing to compare; one that predates the split layout is reported, not
-// passed.
+// Searched by directory, not facts.json: a conversion rewrites a page's files
+// without its facts (ADR-0095).
 async function acceptedFiles(root, slug, isAccepted, files) {
   let shas;
   try {

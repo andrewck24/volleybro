@@ -353,7 +353,7 @@ async function pushedShard(root, slug, shard) {
       "for-each-ref",
       "--format=%(refname)",
       ...CHANGE_BRANCH_PREFIXES.map(
-        (prefix) => `refs/remotes/origin/${prefix}/${slug}-s${shard}`,
+        (prefix) => `refs/remotes/*/${prefix}/${slug}-s${shard}`,
       ),
     ]),
   );
@@ -362,10 +362,11 @@ async function pushedShard(root, slug, shard) {
 
 // ADR-0074: every figure a page shows comes from here, never from the writer.
 // ADR-0096: a Migration is measured shard by shard, then totalled.
+// `gate` is set by a proposal-only publish, which is a G1 whatever the shard.
 export async function changeFacts(
   root,
   page,
-  { slug, firstPublishedAt, now = new Date() } = {},
+  { slug, firstPublishedAt, now = new Date(), gate } = {},
 ) {
   const base = await resolveScopeBase(root);
   const parts = [
@@ -387,7 +388,7 @@ export async function changeFacts(
       : null;
     const figures = await measure(root, base, landing);
     return {
-      gate: page.reviews.length > 0 ? "G2" : "G1",
+      gate: gate ?? (page.reviews.length > 0 ? "G2" : "G1"),
       ...common,
       ...figures,
       startedAt: figures.startedAt ?? firstPublishedAt ?? now.toISOString(),
@@ -423,7 +424,9 @@ export async function changeFacts(
     .filter(Boolean)
     .sort();
   return {
-    gate: current ? gateOf(current) : reviewed.size > 0 ? "G2" : "G1",
+    gate:
+      gate ??
+      (current ? gateOf(current) : reviewed.size > 0 ? "G2" : undefined),
     ...common,
     startedAt: started[0] ?? firstPublishedAt ?? now.toISOString(),
     archivedAt:
