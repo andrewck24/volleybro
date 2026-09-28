@@ -1,0 +1,119 @@
+---
+title: Migration Single Page
+description: Migration Change 改為一頁，每個 shard 一個 Review tab；Change 頁拆成每個 tab 一個檔案；gate 在 publish 後以 cf 重建分支預覽。
+capabilities: ["platform/blueprint", "platform/delivery-workflow"]
+---
+
+export const scenarios = [
+  {
+    id: "S1",
+    given: "a Migration page with two shards",
+    when: "it is opened in Blueprint",
+    then: "it shows one Proposal tab and one Review tab per shard, and the sidebar lists it as one page with no chevron",
+  },
+  {
+    id: "S2",
+    given: "a branch named <prefix>/<slug>-s2",
+    when: "a commit is checked by commitlint",
+    then: "Blueprint-Change: <slug> with Shard: 2 is accepted, and a mismatched slug or shard is rejected",
+  },
+  {
+    id: "S3",
+    given: "a Migration whose first shard has merged and whose second is on its branch",
+    when: "the page is published",
+    then: "facts.json holds each shard's own figures and their totals, and the header shows the current shard, its gate, the merged count and the totals",
+  },
+  {
+    id: "S4",
+    given: "proposal.mdx, or the review file of a shard that passed G2, edited after its gate",
+    when: "check:workflow --gate runs",
+    then: "it fails and names the file",
+  },
+  {
+    id: "S5",
+    given: "a shard at G2",
+    when: "check:workflow --gate runs",
+    then: "it requires a result for every scenario assigned to that shard and for no other",
+  },
+  {
+    id: "S6",
+    given: "every page on the store branch after conversion",
+    when: "Blueprint builds",
+    then: "the build passes, every page renders its tabs, and spectra-knowledge-promotion exists only as the second shard of legacy-change-conversion",
+  },
+  {
+    id: "S7",
+    given: "the gate after publishing",
+    when: "cf is signed in, or cf is unavailable",
+    then: "it starts a branch-preview build and reads its result once, or it prints the manual rebuild instruction and does not fail",
+  },
+];
+
+<ChangeTabs>
+<Proposal>
+
+<TLDR>
+  Migration Change 的每個 shard 都有自己的頁面與 slug，讀的人要跨好幾頁拼湊一個遷移；Change
+  頁是單一檔案，Review 越多，agent 每次都要讀寫整份大檔，凍結檢查也得解析 MDX
+  切出分頁；分支預覽在 publish 前就 build 完，每次 gate 都要到 Cloudflare 後台手動重建。這個
+  Change 讓一個 Migration 只有一頁、每個 shard 一個 Review tab，把 Change 頁拆成每個 tab
+  一個檔案、凍結改成比對檔案，並讓 gate 以 `cf` 重建分支預覽。
+</TLDR>
+
+|                      | 現在                                             | 之後                                                                          |
+| -------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| 一個 Migration       | 每個 shard 一頁、一個 slug，靠 `Migration` trailer 連回 | 一頁：一個 Proposal、每個 shard 一個 Review tab；分支 `<prefix>/<slug>-s<N>` |
+| Change 頁的檔案      | 一個 `index.mdx` 裝所有 tab                      | `index.mdx` 只有 frontmatter，`proposal.mdx`、`review.mdx` 或 `review-s<N>.mdx` |
+| 凍結                 | 只有 Proposal，靠解析 MDX 切出來比對              | Proposal 與每個已接受的 shard Review，逐檔比對                                 |
+| 頁首數字             | 一條分支的數字                                    | 目前 shard 與 gate、已合併幾個、加總；每個 Review tab 顯示自己的數字            |
+| gate 後的分支預覽     | 到 Cloudflare 後台手動重建                        | gate 以 `cf` 重建並讀一次結果，失敗時印出手動指示                               |
+
+<DecisionCards ids={["0093", "0094", "0095", "0096", "0097"]} />
+
+## 範圍
+
+1. Migration 一頁（ADR-0093）：
+   - frontmatter 以 `shards` 寫明 shard 數；每個 scenario 以 `shard` 欄位寫明由哪個 shard 證明。
+   - commitlint 接受 `<prefix>/<slug>-s<N>` 分支帶 `Blueprint-Change: <slug>` 與 `Shard: <N>`，拒絕 slug 或 shard 不符；`Migration` trailer 不再使用，改以分支後綴判斷 Migration。
+   - gate 在 shard 的 G2 只要求該 shard 的 scenario 都有結果。
+2. 拆檔（ADR-0094）：publish 依目錄中的檔案產生 `index.mdx` 的本文；`source.config.ts` 只收錄 `index.mdx`；每個 tab 在自己的呼叫堆疊上渲染，一個 tab 出錯不影響其他 tab。
+3. 逐檔凍結（ADR-0095）：`check:workflow --gate` 比對 `proposal.mdx`、`index.mdx` 的 frontmatter 與已接受的 `review-s<N>.mdx`。
+4. 依 shard 計算數字（ADR-0096）：`facts.json`、頁首、Review tab 開頭與 Changes 索引卡片。
+5. gate 以 `cf` 重建分支預覽（ADR-0097），並在 `docs/maintenance-policy.md` 補上每個 cycle 檢查 major 升級與 pre-release 套件 API 變化。
+6. 轉換（ADR-0079）：以一次性腳本把 store 上每一頁轉成拆檔結構；`legacy-change-conversion` 與 `spectra-knowledge-promotion` 合併成一個 Migration 頁，後者的 Proposal 與 scenario 原文保留在 shard 2 Review 的 `ReviewDetails`，再從 store 刪除後者。
+7. 文件：`WORKFLOW.md` 的 Migration Change 與 commit trailer、`docs/agents/blueprint.md` 的頁面結構、`CONTRIBUTING.md` 提到 trailer 的地方。
+
+### 不在範圍內
+
+- Blueprint 改用 Astro 的評估。
+- `testing-tiers` 的內容：它在本 Change 合併後，以新格式重新 publish 並接續 Shard 1。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "轉換時漏掉或改動頁面原文",
+      severity: "warning",
+      mitigation: "轉換腳本只搬移原文、不改寫；轉換前後逐頁比對渲染出的文字，S6 以完整 build 與逐頁開啟驗證。",
+    },
+    {
+      name: "產生的 index.mdx 與作者寫的 frontmatter 不同步",
+      severity: "warning",
+      mitigation: "publish 每次都重新產生本文並保留 frontmatter；凍結檢查只比對 frontmatter。",
+    },
+    {
+      name: "cf 仍是 beta，指令或登入方式改變",
+      severity: "info",
+      mitigation: "失敗時退回手動指示、不擋 gate；每個 cycle 的套件更新檢查 pre-release 的 API 變化。",
+    },
+    {
+      name: "舊網址 /changes/spectra-knowledge-promotion 失效",
+      severity: "info",
+      mitigation: "repo 內沒有任何連結指向它；合併後的頁面在 legacy-change-conversion 的 shard 2 tab。",
+    },
+  ]}
+/>
+
+</Proposal>
+</ChangeTabs>
