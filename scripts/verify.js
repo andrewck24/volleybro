@@ -13,7 +13,7 @@ const LANE_COMMANDS = {
     "pnpm lint",
   ],
   "app-build": ["pnpm build", "node scripts/assert-sw.js"],
-  "app-test": ["pnpm test"],
+  "app-test": ["pnpm test --coverage=false"],
   blueprint: ["pnpm --filter blueprint test", "pnpm --filter blueprint build"],
 };
 
