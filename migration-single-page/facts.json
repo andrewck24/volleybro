@@ -1,6 +1,6 @@
 {
   "gate": "G2",
-  "publishedAt": "2026-09-28T21:19:43.329Z",
+  "publishedAt": "2026-09-28T21:36:21.247Z",
   "scenarios": 7,
   "decisions": [
     "0093",
@@ -10,7 +10,7 @@
     "0097"
   ],
   "startedAt": "2026-09-28T19:49:23.000Z",
-  "archivedAt": null,
+  "archivedAt": "2026-09-28T21:27:36.000Z",
   "commits": 5,
   "filesChanged": 35,
   "insertions": 1810,
