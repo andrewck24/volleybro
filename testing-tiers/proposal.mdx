@@ -1,48 +1,56 @@
 export const scenarios = [
   {
     id: "S1",
+    shard: 1,
     given: "the migration is complete",
     when: "the test files under test/integration are listed",
     then: "every one is an .itest.ts file under api/ or persistence/, and the file-name check fails on a test file whose suffix does not match its directory",
   },
   {
     id: "S2",
+    shard: 1,
     given: "an integration test starts a MongoDB transaction",
     when: "it commits two writes and reads them back",
     then: "both writes are stored, because the tier runs an in-memory replica set",
   },
   {
     id: "S3",
+    shard: 1,
     given: "the tests under test/integration/api",
     when: "their imports are searched",
     then: "none imports mongoose, the Mongo driver, a Mongoose schema, or a helper that writes through the driver",
   },
   {
     id: "S4",
+    shard: 1,
     given: "a request-schema rejection that an integration test used to assert",
     when: "the route unit tests run",
     then: "a case in that route's route.test.ts asserts the 400 VALIDATION response and that the next layer was not called",
   },
   {
     id: "S5",
+    shard: 1,
     given: "the API route directories under src/app/api",
     when: "their unit test files are listed",
     then: "each route has exactly one, named __tests__/route.test.ts",
   },
   {
     id: "S6",
+    shard: 2,
     given: "the backend unit test setup and the repositories",
     when: "the setup is read and integration coverage is measured",
     then: "no global mongoose or mongodb mock remains, and every repository method with a production caller runs in a persistence test",
   },
   {
     id: "S7",
+    shard: 4,
     given: "the frontend unit tests",
     when: "their mocks are searched",
     then: "none mocks apiClient, fetch, or a module under src/components or src/hooks, except where a comment names the jsdom limitation that forces it",
   },
   {
     id: "S8",
+    shard: 1,
     given: "a branch whose diff touches only a decision record",
     when: "pnpm verify:all plans its lanes",
     then: "it plans no Blueprint build and no integration tests, and a diff touching backend src plans the integration tests",
@@ -69,9 +77,9 @@ export const scenarios = [
 
 ## 範圍
 
-四個 shard 依序進行，每個是各自的 pull request。Shard 1 就是本頁，以本頁的 Review tab 過 G2；Shard 2 到 4 跳過 G1，各以自己的 Change 頁直接到 G2。
+四個 shard 依序進行，每個是各自的 pull request，分支為 `refactor/testing-tiers-s<N>`，都在本頁過 G2：Shard 1 的分支承接本 Migration 的 G1，每個 shard 以本頁自己的 Review 分頁過 G2。
 
-### Shard 1：基礎與整合測試整理（`testing-tiers`）
+### Shard 1：基礎與整合測試整理（`refactor/testing-tiers-s1`）
 
 1. 改寫 `docs/testing-strategy.md`，依 ADR-0085 到 ADR-0091 描述四種測試、各自可替換什麼、放在哪裡；end-to-end 與 API smoke 只寫定義。
 2. Jest 設定檔除 `jest.config.ts` 外搬進 `test/setup/`；整合測試改用 `MongoMemoryReplSet`。
@@ -83,26 +91,26 @@ export const scenarios = [
 7. 新增測試檔名與目錄一致的檢查。
 8. `scripts/verify.js` 與 `WORKFLOW.md` 的 section gate、final gate 改依 ADR-0092：整合測試依 diff 跑、流程工具測試依 diff 跑、本機不 build 文件站；`blueprint:gate` 讀一次分支預覽 build 的結果；`knip --production` 的位置留給死碼分流完成後啟用。
 
-### Shard 2：repository 在真實資料庫上證明（`repository-tests-real-db`）
+### Shard 2：repository 在真實資料庫上證明（`refactor/testing-tiers-s2`）
 
 1. 開始前以 `knip --production` 檢查 repository 層：沒有正式呼叫端的方法列為刪除候選，逐項附理由，由開發者在 G2 決定。
 2. 其餘每個 repository 方法至少有一個 `persistence/` 測試，錯誤分支除外。
 3. 文件與 entity 的對應、資料庫錯誤的轉換抽成純函式，以不需要 driver 的單元測試涵蓋。
 4. 刪除 pass-through CRUD 單元測試，移除 backend 測試設定中的全域 mongoose 與 mongodb stub，依賴它的測試改為自行 mock 所需。
 
-### Shard 3：元件測試改在網路邊界替換，第一批（`component-tests-msw`）
+### Shard 3：元件測試改在網路邊界替換，第一批（`refactor/testing-tiers-s3`）
 
 1. 建立 MSW 的測試基礎設施，移除 shared setup 對 `fetch` 的全域替換。
 2. 依目錄改寫第一批元件與 hook 測試：不再 mock `apiClient`、自己的子元件與 hook；jsdom 無法執行而必須 mock 自己程式碼的地方，在測試檔中註明原因。
 3. `set-options-panel` 的測試保留「等表單的非同步驗證完成才斷言按鈕停用」的等待，否則競態會再出現。
 
-### Shard 4：元件測試改在網路邊界替換，第二批（`component-tests-msw-completion`）
+### Shard 4：元件測試改在網路邊界替換，第二批（`refactor/testing-tiers-s4`）
 
 1. 改寫其餘的元件與 hook 測試，完成後 S7 成立。
 
 ### 每個 shard 的證明
 
-每個 shard 在自己的 Review tab 交出三項：
+每個 shard 在自己的 Review 分頁交出三項：
 
 1. `pnpm verify:all` 與 `pnpm test:integration` 全部通過。
 2. 單元與整合測試合併量測 `src/` 的覆蓋率，以獨立一次執行與 shard 開始前逐檔比較；下降的檔案逐一列出原因。
