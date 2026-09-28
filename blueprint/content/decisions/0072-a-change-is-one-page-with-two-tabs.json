@@ -20,5 +20,6 @@
     "The six Changes already on the two-page format move to one page in single-page-rollout; the old two-page routes stay until then.",
     "check:workflow --gate checks a title of the shape <name> instead of <name> — Proposal or <name> — Review."
   ],
-  "originChange": "single-page-change"
+  "originChange": "single-page-change",
+  "supersededBy": "0094"
 }

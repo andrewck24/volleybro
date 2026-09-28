@@ -459,15 +459,26 @@ async function makeChange(work, slug, { review = false } = {}) {
   await workGit(["add", "-A"]);
   await workGit(["commit", "-q", "-m", "feat: add a"]);
 
+  return writeChangePage(work, slug, { review });
+}
+
+async function writeChangePage(work, slug, { review = false, shards } = {}) {
   const dir = path.join(work, "blueprint", "content", "changes", slug);
   await mkdir(dir, { recursive: true });
-  const reviewTab = review
-    ? "<Review>\n<ActionItems>無</ActionItems>\n</Review>\n"
-    : "";
   await writeFile(
     path.join(dir, "index.mdx"),
-    `---\ntitle: ${slug}\n---\n\nexport const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\n<ChangeTabs>\n<Proposal>\n<DecisionCards ids={["0072"]} />\n</Proposal>\n${reviewTab}</ChangeTabs>\n`,
+    `---\ntitle: ${slug}\n${shards ? `shards: ${shards}\n` : ""}---\n`,
   );
+  await writeFile(
+    path.join(dir, "proposal.mdx"),
+    'export const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\n<DecisionCards ids={["0072"]} />\n',
+  );
+  if (review) {
+    await writeFile(
+      path.join(dir, "review.mdx"),
+      "<ActionItems>\n\n無\n\n</ActionItems>\n",
+    );
+  }
   return dir;
 }
 
@@ -559,7 +570,9 @@ async function landAndBranchOff(work, slug, { squash }) {
       "commit",
       "-q",
       "-m",
-      `feat: ${slug}\n\nBlueprint-Change: ${slug}`,
+      // A body line that only looks like a Shard trailer must not make this
+      // squash commit read as a Migration shard.
+      `feat: ${slug}\n\nThe body wraps onto a line that starts\nShard: 2 as prose.\n\nBlueprint-Change: ${slug}`,
     ]);
   } else {
     await workGit([
@@ -576,6 +589,125 @@ async function landAndBranchOff(work, slug, { squash }) {
   await workGit(["add", "-A"]);
   await workGit(["commit", "-q", "-m", "feat: add b"]);
 }
+
+test("publish measures a Migration shard by shard and totals the shards", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  const commit = async (branch, file, lines, shard) => {
+    await workGit(["checkout", "-q", "-b", branch]);
+    await mkdir(path.join(work, "src"), { recursive: true });
+    await writeFile(path.join(work, "src", file), lines);
+    await workGit(["add", "-A"]);
+    await workGit([
+      "commit",
+      "-q",
+      "-m",
+      `feat: ${file}\n\nBlueprint-Change: gamma\nShard: ${shard}`,
+    ]);
+  };
+  await commit("feat/gamma-s1", "a.ts", "one\ntwo\n", 1);
+  await workGit(["checkout", "-q", "dev"]);
+  await workGit([
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "Merge pull request #1 from owner/feat/gamma-s1",
+    "feat/gamma-s1",
+  ]);
+  await commit("feat/gamma-s2", "b.ts", "x\ny\nz\n", 2);
+  // Shard 2 is pushed but not merged; shard 3 is the branch being published.
+  await workGit(["update-ref", "refs/remotes/origin/feat/gamma-s2", "HEAD"]);
+  await workGit(["checkout", "-q", "dev"]);
+  await commit("feat/gamma-s3", "c.ts", "q\n", 3);
+  const dir = await writeChangePage(work, "gamma", { shards: 3 });
+  await writeFile(
+    path.join(dir, "review-s1.mdx"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  // A shard after the first is at no gate until its G2, so this publish can
+  // never stand for the Proposal's G1.
+  assert.equal(facts.gate, undefined);
+  assert.deepEqual(
+    { ...facts.shards, items: undefined },
+    { count: 3, current: 3, merged: 1, items: undefined },
+  );
+  assert.deepEqual(
+    facts.shards.items.map(({ shard, gate, commits, insertions }) => [
+      shard,
+      gate,
+      commits,
+      insertions,
+    ]),
+    [
+      [1, "G2", 1, 2],
+      [2, undefined, 1, 3],
+      [3, undefined, 1, 1],
+    ],
+  );
+  assert.equal(facts.commits, 3);
+  assert.equal(facts.insertions, 6);
+  assert.equal(facts.archivedAt, null);
+});
+
+test("a proposal-only publish records G1 even on a later shard's branch", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", "feat/gamma-s2"]);
+  const dir = await writeChangePage(work, "gamma", { shards: 2 });
+  await writeFile(
+    path.join(dir, "review-s1.mdx"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
+
+test("a failed publish after a proposal-only one leaves the Reviews to the next pull", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+  await withRemote(bare, () => pull(work));
+
+  assert.equal(
+    await readFile(path.join(dir, "review.mdx"), "utf8"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+});
+
+test("publish without its Review files ships the Proposal alone", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["ls-tree", "--name-only", "blueprint-changes", "gamma/"],
+    { cwd: bare },
+  );
+  assert.deepEqual(stdout.trim().split("\n").sort(), [
+    "gamma/facts.json",
+    "gamma/index.mdx",
+    "gamma/proposal.mdx",
+  ]);
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
 
 test("publish measures a merged Change by the merge commit that landed it", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);

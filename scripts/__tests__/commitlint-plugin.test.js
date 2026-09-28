@@ -81,6 +81,45 @@ test("fix/ and refactor/ branches are Change branches too", () => {
   );
 });
 
+test("a shard branch needs the Migration's slug and its own shard number", () => {
+  const body = "refactor(x): subject\n\nbody.\n\n";
+  assert.deepEqual(
+    evaluateChangeBranchTrailer(
+      "refactor/my-slug-s2",
+      `${body}Blueprint-Change: my-slug\nShard: 2`,
+    ),
+    { ok: true },
+  );
+  const wrongSlug = evaluateChangeBranchTrailer(
+    "refactor/my-slug-s2",
+    `${body}Blueprint-Change: my-slug-s2\nShard: 2`,
+  );
+  assert.equal(wrongSlug.ok, false);
+  assert.match(wrongSlug.message, /needs "Blueprint-Change: my-slug"/);
+  const wrongShard = evaluateChangeBranchTrailer(
+    "refactor/my-slug-s2",
+    `${body}Blueprint-Change: my-slug\nShard: 1`,
+  );
+  assert.equal(wrongShard.ok, false);
+  assert.match(wrongShard.message, /needs a "Shard: 2" trailer/);
+  assert.match(
+    evaluateChangeBranchTrailer(
+      "refactor/my-slug-s2",
+      `${body}Blueprint-Change: my-slug`,
+    ).message,
+    /carries none/,
+  );
+});
+
+test("a Shard trailer on an ordinary Change branch is rejected", () => {
+  const verdict = evaluateChangeBranchTrailer(
+    "refactor/my-slug",
+    "refactor(x): subject\n\nbody.\n\nBlueprint-Change: my-slug\nShard: 2",
+  );
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.message, /not a Migration shard branch/);
+});
+
 test("no trailer on dev, hotfix/*, or any other non-Change branch passes", () => {
   const message = "chore(x): subject\n\nbody.";
   for (const branch of [

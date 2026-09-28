@@ -12,7 +12,7 @@ import { RiskTable } from "@/components/RiskTable";
 import { AnnotatedDiff } from "@/components/AnnotatedDiff";
 import { ChangeCardList } from "@/components/ChangeCard";
 import { ChangeHeader } from "@/components/ChangeHeader";
-import { ChangeTabs, Proposal, Review } from "@/components/ChangeTabs";
+import { ChangeTabs } from "@/components/ChangeTabs";
 import { DecisionCards } from "@/components/DecisionCards";
 import {
   ActionItems,
@@ -27,6 +27,7 @@ import {
   TestPlan,
 } from "@/components/ScenarioCards";
 import { hasChangePage, readCapabilities, readFacts } from "@/lib/change-meta";
+import { changeTabFiles } from "@/lib/change-tab-files";
 import { decisionsById } from "@/lib/decisions-index";
 import { InteractiveFlowchart } from "@/components/InteractiveFlowchart";
 import { MockupFrame } from "@/components/MockupFrame";
@@ -59,9 +60,6 @@ const mdxComponents = {
   RiskTable,
   AnnotatedDiff,
   DecisionCards: ChangeDecisionCards,
-  ChangeTabs,
-  Proposal,
-  Review,
   Scenarios,
   ScenarioResults,
   TestPlan,
@@ -79,39 +77,8 @@ interface PageProps {
 
 type SourcePage = ReturnType<typeof source.getPage>;
 
-// Shared by every branch below that renders a page's MDX body directly:
-// 404s when the page is missing. An assertion function rather than one
-// that returns the body itself, so `Mdx` stays a plain `page.data.body`
-// property read at each call site — react-hooks/static-components flags a
-// component read through an extra function call as "created during
-// render", even though this one is as stable as the property it wraps.
 function assertPage(page: SourcePage): asserts page is NonNullable<SourcePage> {
   if (!page) notFound();
-}
-
-// A Change page's body is MDX pulled from the shared `blueprint-changes` store
-// branch, published at its own gate — so it can reference a record, prop or
-// schema this checkout does not have. A React error boundary does not catch
-// that: under `output: "export"` the export worker treats any throw as fatal to
-// the route, and `getDerivedStateFromError` never runs. Calling the compiled
-// body as a function puts its render on this call stack, where a try/catch can
-// reach it.
-function renderChangeBody(
-  Mdx: NonNullable<NonNullable<SourcePage>["data"]["body"]>,
-  title: string,
-  components: typeof mdxComponents = mdxComponents,
-) {
-  try {
-    return Mdx({ components });
-  } catch (error) {
-    console.error(`Change page "${title}" failed to render:`, error);
-    return (
-      <p className="text-sm text-destructive">
-        此頁面（{title}）在此 checkout 中無法顯示：
-        {error instanceof Error ? error.message : String(error)}
-      </p>
-    );
-  }
 }
 
 function ChangesIndex() {
@@ -136,12 +103,16 @@ function ChangesIndex() {
 function ChangePage({ slug }: { slug: string }) {
   const page = source.getPage([slug]);
   assertPage(page);
-  const Mdx = page.data.body;
   const Design = changeDesigns[slug];
   const components = {
     ...mdxComponents,
     DesignMockup: () => (Design ? <MockupFrame Mockup={Design} /> : null),
   };
+  const facts = readFacts(slug);
+  const { Proposal, reviews } = changeTabFiles(slug);
+  const shardFacts = new Map(
+    (facts.shards?.items ?? []).map((item) => [item.shard, item]),
+  );
   return (
     <TreeContextProvider tree={createChangesBreadcrumbTree(changesTree())}>
       {/* One TOC cannot follow two tabs, and only the open tab is rendered. */}
@@ -153,9 +124,19 @@ function ChangePage({ slug }: { slug: string }) {
           <ChangeHeader
             title={page.data.title}
             capabilities={readCapabilities(slug)}
-            facts={readFacts(slug)}
+            facts={facts}
           />
-          {renderChangeBody(Mdx, page.data.title, components)}
+          <ChangeTabs
+            Proposal={Proposal}
+            reviews={reviews.map((review) => ({
+              ...review,
+              facts:
+                review.shard === undefined
+                  ? undefined
+                  : shardFacts.get(review.shard),
+            }))}
+            components={components}
+          />
         </DocsBody>
       </DocsPage>
     </TreeContextProvider>

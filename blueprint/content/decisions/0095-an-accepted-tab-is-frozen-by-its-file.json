@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "id": "0095",
+  "title": "What a gate accepted is frozen file by file",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Only the Proposal was frozen after G1. A Migration page is republished at every shard's G2, which would let an earlier shard's accepted Review change unnoticed.",
+  "decision": "At a gate, check:workflow --gate compares proposal.mdx and the frontmatter of index.mdx with their versions at the latest G1 publish, and each review-s<N>.mdx of an earlier shard with its version at that shard's latest G2 publish, all taken from the store branch's history, and fails naming the file that differs. Changing an accepted file means passing its gate again.",
+  "alternatives": [
+    {
+      "option": "Freeze only the Proposal",
+      "reason": "An accepted shard Review is a record of what the developer accepted, and editing it afterwards erases that record."
+    },
+    {
+      "option": "Move accepted Reviews into files the page assembles",
+      "reason": "It adds a file layout and assembly logic for what a byte comparison already covers."
+    }
+  ],
+  "consequences": [
+    "The check compares files byte for byte and no longer parses MDX to find a tab."
+  ],
+  "originChange": "migration-single-page"
+}

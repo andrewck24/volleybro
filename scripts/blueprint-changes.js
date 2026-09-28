@@ -25,7 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { changeFacts } from "./change-page.js";
+import { changeFacts, isReviewFile, readChangeDir } from "./change-page.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -334,10 +334,15 @@ async function syncDeployWorkflow(tmpDir, repoRoot) {
   await cp(source, workflow);
 }
 
-async function applyChange(tmpDir, slug, localSlugDir) {
+async function applyChange(tmpDir, slug, localSlugDir, { proposalOnly }) {
   const targetDir = path.join(tmpDir, slug);
   await rm(targetDir, { recursive: true, force: true });
   await cp(localSlugDir, targetDir, { recursive: true });
+  if (proposalOnly) {
+    for (const name of await readdir(targetDir)) {
+      if (isReviewFile(name)) await rm(path.join(targetDir, name));
+    }
+  }
   await runGit(["add", "-A"], { cwd: tmpDir });
   const { stdout } = await runGit(["status", "--porcelain"], {
     cwd: tmpDir,
@@ -364,23 +369,24 @@ async function firstPublishedAt(repoRoot, slug) {
   }
 }
 
-async function writeFacts(repoRoot, slugDir) {
-  const indexPath = path.join(slugDir, "index.mdx");
-  if (!existsSync(indexPath)) return;
+async function writeFacts(repoRoot, slugDir, { proposalOnly }) {
+  if (!existsSync(path.join(slugDir, "index.mdx"))) return;
   // A converted page's facts come from its earlier format, which git cannot
   // rebuild, so republishing it keeps them.
   if (await isConverted(slugDir)) return;
-  const content = await readFile(indexPath, "utf8");
+  const page = await readChangeDir(slugDir);
+  if (proposalOnly) page.reviews = [];
   const slug = path.basename(slugDir);
   let facts;
   try {
-    facts = await changeFacts(repoRoot, content, {
+    facts = await changeFacts(repoRoot, page, {
       slug,
       firstPublishedAt: await firstPublishedAt(repoRoot, slug),
+      gate: proposalOnly ? "G1" : undefined,
     });
   } catch (error) {
     throw new Error(
-      `${path.basename(slugDir)}/index.mdx is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
+      `${slug} is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
     );
   }
   await writeFile(
@@ -415,7 +421,13 @@ function isNonFastForwardRejection(error) {
   );
 }
 
-export async function publish(cwd, slug, { dryRun = false } = {}) {
+// proposalOnly publishes the page without its Review files: the G1 baseline
+// of a page that already has one (ADR-0095).
+export async function publish(
+  cwd,
+  slug,
+  { dryRun = false, proposalOnly = false } = {},
+) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
@@ -430,7 +442,7 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
 
   // After the fetch: a commitless Change's start is its first publish, which
   // firstPublishedAt reads from the fetched store.
-  if (!dryRun) await writeFacts(repoRoot, localSlugDir);
+  if (!dryRun) await writeFacts(repoRoot, localSlugDir, { proposalOnly });
 
   const tmpParent = await mkdtemp(path.join(os.tmpdir(), "blueprint-changes-"));
   const tmpDir = path.join(tmpParent, "worktree");
@@ -456,10 +468,15 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     // second rejection in a row is a real problem, not the race.
     for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
       await syncDeployWorkflow(tmpDir, repoRoot);
-      const changed = await applyChange(tmpDir, slug, localSlugDir);
+      const changed = await applyChange(tmpDir, slug, localSlugDir, {
+        proposalOnly,
+      });
+      // The store holds less than the directory after a proposal-only
+      // publish, so recording its hash would let a pull overwrite the Reviews.
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       }
 
@@ -475,7 +492,8 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
         await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
           cwd: tmpDir,
         });
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       } catch (error) {
         if (

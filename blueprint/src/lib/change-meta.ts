@@ -5,6 +5,18 @@ import path from "node:path";
 
 const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
 
+export type ShardFacts = {
+  shard: number;
+  gate?: "G1" | "G2";
+  startedAt?: string;
+  archivedAt?: string | null;
+  commits?: number | null;
+  filesChanged?: number | null;
+  insertions?: number | null;
+  deletions?: number | null;
+  srcFilesChanged?: number | null;
+};
+
 export type ChangeFacts = {
   converted?: boolean;
   gate?: "G1" | "G2";
@@ -18,6 +30,12 @@ export type ChangeFacts = {
   srcFilesChanged?: number | null;
   scenarios?: number | null;
   decisions?: string[];
+  shards?: {
+    count: number;
+    current?: number;
+    merged: number;
+    items: ShardFacts[];
+  };
 };
 
 export function hasChangePage(slug: string, root = CHANGES_ROOT) {
