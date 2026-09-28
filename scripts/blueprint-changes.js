@@ -419,8 +419,6 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
-  if (!dryRun) await writeFacts(repoRoot, localSlugDir);
-
   const remote = await resolveRemote(repoRoot);
 
   let branchExists = true;
@@ -429,6 +427,10 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   } catch {
     branchExists = false;
   }
+
+  // After the fetch: a commitless Change's start is its first publish, which
+  // firstPublishedAt reads from the fetched store.
+  if (!dryRun) await writeFacts(repoRoot, localSlugDir);
 
   const tmpParent = await mkdtemp(path.join(os.tmpdir(), "blueprint-changes-"));
   const tmpDir = path.join(tmpParent, "worktree");
