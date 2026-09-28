@@ -1,4 +1,4 @@
-import "./jest.setup.shared";
+import "./shared";
 
 function createMockObjectId() {
   return jest.fn().mockImplementation((id) => ({

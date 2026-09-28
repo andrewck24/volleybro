@@ -1,4 +1,5 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { randomUUID } from "node:crypto";
+
 import mongoose from "mongoose";
 
 // The DI container eagerly imports the real AuthenticationService, which pulls in
@@ -12,20 +13,17 @@ jest.mock("next/headers", () => ({
   headers: jest.fn(async () => new Headers()),
 }));
 
-// Real in-memory MongoDB per Jest worker file: each file gets its own server on
-// a random port, so parallel workers never share state. This is the seam the
-// mongoose-mocked `backend` project cannot exercise (route -> usecase -> repo -> DB).
-let mongod: MongoMemoryServer;
-
 // Modules imported by the DI container (Better Auth's Mongo adapter) read
-// MONGODB_URI at import time; give them a placeholder before the real server
-// starts. The placeholder client is lazy and never connects — auth is stubbed.
+// MONGODB_URI at import time; give them a placeholder before connecting. The
+// placeholder client is lazy and never connects — auth is stubbed.
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/integration-placeholder";
 
+// Each test file gets a database of its own on the run's replica set, so
+// parallel workers never share state.
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
-  process.env.MONGODB_URI = mongod.getUri();
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.INTEGRATION_MONGODB_URI!, {
+    dbName: `itest-${randomUUID()}`,
+  });
 }, 60_000);
 
 afterEach(async () => {
@@ -34,6 +32,6 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+  await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
-  await mongod?.stop();
 });

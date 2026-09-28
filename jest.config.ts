@@ -18,7 +18,7 @@ import nextJest from "next/jest.js";
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
 const preload = pathToFileURL(
-  `${process.cwd()}/jest.preload.integration.js`,
+  `${process.cwd()}/test/setup/integration.preload.js`,
 ).href;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
@@ -56,7 +56,7 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "backend",
     testEnvironment: "node",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.backend.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/setup/backend.ts"],
     testMatch: [
       "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
@@ -72,7 +72,7 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "frontend",
     testEnvironment: "jsdom",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.frontend.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testMatch: [
       "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
@@ -85,8 +85,9 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "integration",
     testEnvironment: "node",
-    globalSetup: "<rootDir>/jest.global-setup.integration.ts",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
+    globalSetup: "<rootDir>/test/setup/integration.global.ts",
+    globalTeardown: "<rootDir>/test/setup/integration.teardown.ts",
+    setupFilesAfterEnv: ["<rootDir>/test/setup/integration.ts"],
     testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
   };
 

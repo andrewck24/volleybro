@@ -4,7 +4,7 @@ import type { ImageProps } from "next/image";
 import type { LinkProps as NextLinkProps } from "next/link";
 import React from "react";
 
-import "./jest.setup.shared";
+import "./shared";
 
 expect.extend(toHaveNoViolations);
 

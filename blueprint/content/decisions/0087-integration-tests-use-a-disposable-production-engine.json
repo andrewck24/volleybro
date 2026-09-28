@@ -4,7 +4,7 @@
   "title": "Integration tests run against a disposable local instance of the production database engine and topology",
   "capabilities": ["platform/testing"],
   "context": "The integration tier ran a standalone in-memory MongoDB, which has no transactions, while production Atlas is a replica set. A fix that makes team creation atomic would have no way to be proven.",
-  "decision": "Integration tests run against a local, disposable instance of the same database engine and topology as production, started for each test file and discarded after it. For MongoDB Atlas that is an in-memory replica set (MongoMemoryReplSet). Hosted databases are used only by end-to-end and API smoke tests. Auth services stay DI doubles in this tier.",
+  "decision": "Integration tests run against a local, disposable instance of the same database engine and topology as production: one started for each test run and discarded after it, with a fresh database for each test file. For MongoDB Atlas that is an in-memory replica set (MongoMemoryReplSet). Hosted databases are used only by end-to-end and API smoke tests. Auth services stay DI doubles in this tier.",
   "alternatives": [
     {
       "option": "Keep the standalone in-memory server",
@@ -16,7 +16,7 @@
     }
   ],
   "consequences": [
-    "Starting each integration test file takes a few seconds longer."
+    "The replica set starts in Jest's global setup, outside the test environment, where the driver can complete the handshake that initiates it; one server per run instead of one per file also shortens the run."
   ],
   "revisitTriggers": [
     "The production database changes engine or topology: the principle stands, and a new record replaces the tool."
