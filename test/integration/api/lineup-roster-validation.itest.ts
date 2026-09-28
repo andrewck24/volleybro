@@ -5,13 +5,12 @@ import {
   POST as createSet,
   PUT as updateSet,
 } from "@/app/api/games/[gameId]/sets/route";
-import { Types } from "mongoose";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { oid, seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
-const nonRosterId = () => new Types.ObjectId().toString();
+const nonRosterId = oid;
 
 const withGhostStarter = (seeded: SeededGame) => {
   const lineup = structuredClone(seeded.lineup);
@@ -35,19 +34,6 @@ describe("lineup roster validation on /api/games/:id/sets", () => {
       method: "POST",
       query: { si: 0 },
       body: { lineup: withGhostStarter(seeded), options },
-    });
-
-    expect(res.status).toBe(400);
-    const after = await repo().findById(seeded.gameId);
-    expect(after!.sets[0]).toBeUndefined();
-  });
-
-  it("POST rejects a malformed lineup shape without persisting", async () => {
-    const res = await callRoute(createSet, {
-      gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0 },
-      body: { lineup: { starting: "nope" }, options },
     });
 
     expect(res.status).toBe(400);

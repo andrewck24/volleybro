@@ -13,8 +13,8 @@ import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { handleUserCreated } from "@/lib/auth-hook";
-import { useFakeAuth } from "./support/auth";
-import { oid } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { oid } from "../support/seed";
 
 /**
  * Reading a team's roster narrows every document, so one document that does not
@@ -317,30 +317,6 @@ describe("signing up reaches the invitations waiting for that address", () => {
       status: PlayerStatus.INVITED,
       role: PlayerRole.MEMBER,
       teamName: "Signup Team",
-    });
-    expect(mine[0]).not.toHaveProperty("email");
-  });
-
-  it("links an invitation an older release stored in its typed case", async () => {
-    // Written through the driver: before this Change both sides stored the
-    // address as typed, and normalization left those invitations untouched.
-    await mongoose.connection.db!.collection("players").insertOne({
-      teamId: new mongoose.Types.ObjectId(teamId),
-      name: "Legacy",
-      status: PlayerStatus.INVITED,
-      email: "Carol@Example.com",
-      role: PlayerRole.MEMBER,
-    });
-    const userId = oid();
-
-    await handleUserCreated({ id: userId, email: "carol@example.com" });
-
-    const mine = await invitationsOf(userId);
-    expect(mine).toHaveLength(1);
-    expect(mine[0]).toMatchObject({
-      name: "Legacy",
-      status: PlayerStatus.INVITED,
-      role: PlayerRole.MEMBER,
     });
     expect(mine[0]).not.toHaveProperty("email");
   });

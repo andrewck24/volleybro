@@ -5,9 +5,9 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { seedGame, type SeededGame } from "../support/seed";
 
 const rally = {
   id: "entry-1",

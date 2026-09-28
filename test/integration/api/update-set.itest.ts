@@ -6,9 +6,9 @@ import {
   POST as createSet,
   PUT as updateSet,
 } from "@/app/api/games/[gameId]/sets/route";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 

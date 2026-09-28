@@ -6,9 +6,9 @@ import { TYPES } from "@/infrastructure/di/types";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { POST as createSubstitution } from "@/app/api/games/[gameId]/sets/substitutions/route";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { lineupFor, seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { lineupFor, seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 

@@ -1,13 +1,13 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { MoveType } from "@/entities/game";
-import { Game as GameModel } from "@/infrastructure/db/mongoose/schemas/game";
+import { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
@@ -125,14 +125,11 @@ describe("set and match completion", () => {
     });
     expect(created.status).toBe(201);
 
-    // Force only the set-completion write to fail. upsertEntry uses
-    // bulkWrite, so the entry write below still goes through a real
-    // findOneAndUpdate-free path against the in-memory database.
-    const findOneAndUpdate = jest
-      .spyOn(GameModel, "findOneAndUpdate")
-      .mockImplementationOnce(() => {
-        throw new Error("simulated set-result write failure");
-      });
+    // Force only the set-completion write to fail; the entry write still
+    // reaches the in-memory database.
+    const completeSet = jest
+      .spyOn(GameRepositoryImpl.prototype, "completeSet")
+      .mockRejectedValueOnce(new Error("simulated set-result write failure"));
 
     try {
       const res = await callRoute(createRally, {
@@ -148,7 +145,7 @@ describe("set and match completion", () => {
       });
       expect((res.json as { entries: unknown[] }).entries).toHaveLength(1);
     } finally {
-      findOneAndUpdate.mockRestore();
+      completeSet.mockRestore();
     }
 
     // The entry survived in the real database even though completeSet threw.

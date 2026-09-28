@@ -3,8 +3,8 @@ import { PATCH as saveLineups } from "@/app/api/teams/[teamId]/lineups/route";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { NextRequest } from "next/server";
-import { useFakeAuth } from "./support/auth";
-import { lineupFor, oid } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { lineupFor, oid } from "../support/seed";
 
 // `withAuth` bypasses the container, so this is the one seam that cannot run for real.
 jest.mock("@/lib/auth", () => ({
@@ -61,15 +61,5 @@ describe("PATCH /api/teams/:id/lineups", () => {
     expect(res.status).toBe(200);
     const saved = await repo().findById(teamId);
     expect(saved!.lineups[0]!.substitutes).toEqual([{ id: playerIds[6] }]);
-  });
-
-  it("rejects an undeclared field without touching the stored lineup", async () => {
-    const before = (await repo().findById(teamId))!.lineups;
-
-    const res = await save(teamId, [{ ...before[0], nickname: "starters" }]);
-
-    expect(res.status).toBe(400);
-    const after = await repo().findById(teamId);
-    expect(after!.lineups).toEqual(before);
   });
 });

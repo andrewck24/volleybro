@@ -5,9 +5,9 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { CreateSetSchema } from "@/interface/validations/game";
 import { UpdateLineupsSchema } from "@/interface/validations/team";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { lineupFor, oid, seedGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { lineupFor, oid, seedGame } from "../support/seed";
 
 const asTheClientWouldSendItBack = (read: unknown) =>
   JSON.parse(JSON.stringify(read));

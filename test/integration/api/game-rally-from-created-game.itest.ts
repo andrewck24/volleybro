@@ -6,9 +6,9 @@ import { POST as createGame } from "@/app/api/games/route";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
 import { NextRequest } from "next/server";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { lineupFor, oid } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { lineupFor, oid } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 

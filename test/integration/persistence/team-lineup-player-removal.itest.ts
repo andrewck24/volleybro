@@ -5,7 +5,7 @@ import { Team as TeamModel } from "@/infrastructure/db/mongoose/schemas/team";
 import { TYPES } from "@/infrastructure/di/types";
 import { Types } from "mongoose";
 
-import { lineupFor, oid } from "./support/seed";
+import { lineupFor, oid } from "../support/seed";
 
 const repo = () => container.get<ITeamRepository>(TYPES.TeamRepository);
 

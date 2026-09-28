@@ -3,9 +3,9 @@ import { EntryType, MoveType, type Entry } from "@/entities/game";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createSet } from "@/app/api/games/[gameId]/sets/route";
-import { useFakeAuth } from "./support/auth";
-import { callRoute } from "./support/request";
-import { seedGame, type SeededGame } from "./support/seed";
+import { useFakeAuth } from "../support/auth";
+import { callRoute } from "../support/request";
+import { seedGame, type SeededGame } from "../support/seed";
 import mongoose from "mongoose";
 
 const rally = (
@@ -29,7 +29,7 @@ const rally = (
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
 
-describe("entries written before identities existed", () => {
+describe("a write whose entry carries no identity", () => {
   let seeded: SeededGame;
   const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
 
