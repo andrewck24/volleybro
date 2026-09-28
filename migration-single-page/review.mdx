@@ -1,0 +1,143 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+1. **兩份 decision record 的 `decision` 內文在 G1 之後改了**，都是實作找到更簡單或更省資源的做法，見 Deviations 第 1、2 點：
+   - ADR-0094：分頁檔改由獨立的 fumadocs collection 收錄、route 直接組成分頁，不再由 publish 產生 `index.mdx` 的 import。
+   - ADR-0097：`cf` 改用 `pnpm dlx` 取用，不列為 devDependency。
+2. **請確認合併前後正式站的空窗可以接受**（見 AfterRelease）：從這次 G2 publish 起到合併為止，正式站的 Blueprint build 會失敗，Cloudflare 繼續提供上一次成功的版本；合併後到轉換腳本推上 store 之間的幾分鐘，舊格式頁面的分頁會是空的。
+3. **合併後我會執行轉換腳本**，再以 Fix path 刪除這支一次性腳本。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/check-workflow.js` 的 `checkChangePageGate` 與 `acceptedFiles`：逐檔凍結、shard 的情境結果、基準早於拆檔時的回報。review 在這裡找出最多問題。
+2. `scripts/change-page.js` 的 `changeFacts`：每個 shard 的 gate、數字來源（合併點、目前分支、已 push 的分支）與加總。
+3. `scripts/migrations/split-change-pages.js`：原文逐字搬移、Review 需要的 export 改為從 `proposal.mdx` import，以及兩頁合併時 `facts.json` 的組成。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **分頁檔由 collection 收錄，而非 publish 產生 import。** Proposal 寫的是「publish 依目錄中的檔案產生 `index.mdx` 的本文」。改用第二個 fumadocs collection 收錄 `proposal.mdx` 與 `review*.mdx`、由 route 渲染，作者不寫任何 import，本機開發伺服器也不需要先 publish 才能讀到草稿；每個分頁仍在自己的呼叫堆疊上渲染，一個分頁出錯不影響其他分頁。
+2. **`cf` 以 `pnpm dlx` 取用。** Proposal 與 ADR-0097 原寫 devDependency。實際安裝時 `cf` 帶進約 100 MB 的 `workerd` 執行檔與上千行 lockfile 變動，CI 與每次部署都會下載；改成只在 gate 需要時下載並快取，版本範圍仍是 `^1.0.0-beta.5`。
+3. **`cf` 需要先以 Worker 名稱查出 tag。** `builds triggers list` 必須帶 `--external-script-id`，gate 先讀 `blueprint/wrangler.toml` 的 Worker 名稱，再以 `workers scripts search` 取得 tag。
+4. **轉換腳本在合併後才推上 store。** 範圍第 6 點的轉換照做，但 store 的每次 push 都會以 `dev` 的舊程式建置正式站，舊程式把 `proposal.mdx` 當成缺 title 的頁面而失敗，所以本機以 `--local` 轉換並驗證，store 在合併後轉換。
+5. **G1 基準重新 publish 一次。** store 上本頁的 G1 publish 是拆檔前的單一 `index.mdx`，新的凍結檢查無從比對，所以以 `--gate G1` 用拆檔後的檔案重新記錄；`proposal.mdx` 是 G1 內容的逐字搬移，未改一字。
+6. **`CONTRIBUTING.md` 沒有修改。** 範圍第 7 點列了它，但它從未提到 `Migration` trailer，trailer 規則只寫在 `WORKFLOW.md`。
+7. **review 走了三輪。** 第一輪的發現分屬不同根本原因，沒有連續兩輪同一根本原因，未換做法。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    {
+      id: "S1",
+      result: "pass",
+      evidence: "本機轉換後完整 build：`legacy-change-conversion` 顯示 Proposal、Shard 1、Shard 2 三個分頁，`#review-s2` 開啟 Shard 2，側邊欄只有一個項目；`ChangeTabs.test.tsx` 的 shard 分頁測試",
+    },
+    {
+      id: "S2",
+      result: "pass",
+      evidence: "`commitlint-plugin.test.js`：shard 分支接受 slug 與 Shard 相符的 commit，拒絕 slug 不符、shard 不符、缺 Shard，也拒絕一般分支上的 Shard",
+    },
+    {
+      id: "S3",
+      result: "pass",
+      evidence: "`blueprint-changes.test.js`「publish measures a Migration shard by shard and totals the shards」：已合併、已 push、目前分支三種 shard 各自的數字與加總；`ChangeHeader.test.tsx` 的 shard 進度標籤",
+    },
+    {
+      id: "S4",
+      result: "pass",
+      evidence: "`check-workflow.test.js`：G1 後改 `proposal.mdx` 或 frontmatter、改或刪除已過 G2 的 `review-s1.mdx`，gate 都失敗並指名檔案",
+    },
+    {
+      id: "S5",
+      result: "pass",
+      evidence: "`check-workflow.test.js`：shard 1 的 G2 只要求 S1 的結果即通過，shard 2 缺自己的結果時指名該情境",
+    },
+    {
+      id: "S6",
+      result: "pass",
+      evidence: "`split-change-pages.js --local` 轉換 store 上全部頁面後 `next build` 通過，73 頁無渲染錯誤；逐頁檢查分頁數與 Review 檔一致；`spectra-knowledge-promotion` 只剩 shard 2 分頁",
+    },
+    {
+      id: "S7",
+      result: "pass",
+      evidence: "以真實帳號執行：查到 Worker tag、選中非 `dev` 的預覽 trigger、建立 build 並讀回狀態 initializing；`blueprint-gate.test.js` 涵蓋 cf 失敗時退回手動指示",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "流程工具測試",
+      method: "`pnpm test:workflow`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+    },
+    {
+      id: "T2",
+      checks: "Blueprint 元件測試與型別",
+      method: "`pnpm --filter blueprint test`、`tsc --noEmit`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+    },
+    {
+      id: "T3",
+      checks: "Final gate",
+      method: "`pnpm verify:all`，static 各步驟另於最終版本單獨重跑",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "static 在 verify:all 中只因本機 pull 回舊格式的 `spectra-knowledge-promotion` 而失敗，這個副本在 store 轉換後消失；單獨重跑 format、test:workflow、check:workflow、typecheck:strict、lint 全部通過",
+    },
+    {
+      id: "T4",
+      checks: "轉換後每一頁在瀏覽器中的顯示",
+      method: "本機靜態 build 逐頁開啟：分頁、design mockup、合併頁的 shard 數字與收合的原 Proposal",
+      executor: "agent",
+      environment: "Chromium，本機靜態 build",
+      result: "pass",
+    },
+    {
+      id: "T5",
+      checks: "gate 以 cf 重建分支預覽",
+      method: "開發者登入 cf 後，以真實帳號建立一次分支預覽 build",
+      executor: "agent",
+      environment: "Cloudflare Workers Builds",
+      result: "pass",
+    },
+  ]}
+/>
+
+<AfterRelease>
+
+1. 合併後立即執行 `node scripts/migrations/split-change-pages.js`：把 store 上每一頁轉成拆檔結構，合併兩頁並刪除 `spectra-knowledge-promotion`，推上 store 後正式站重新建置。
+2. 本機 `pnpm blueprint:changes:pull` 不會刪除 store 上已不存在的頁面，已經 pull 過的 checkout 請手動刪除 `blueprint/content/changes/spectra-knowledge-promotion`。
+3. 以 Fix path 刪除 `scripts/migrations/split-change-pages.js`。
+4. 以 `pnpm blueprint:changes:publish migration-single-page` 記錄本頁的 `archivedAt`。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+### Code review
+
+三輪兩軸 review，最後一輪確認前一輪的修正：
+
+- 第一輪：凍結在基準早於拆檔、shard 被刪除時失效；後續 shard 在 G2 前記成 G1，可能蓋掉 Proposal 的基準；proposal-only publish 記錄了整個目錄的雜湊，後續 publish 失敗時 pull 可能刪掉 Review；未合併也非目前分支的 shard 沒有數字；一般分支接受 Shard trailer；卡片沒有顯示已合併數。皆已修正並補測試。
+- 第二輪：前一輪修正讓後續 shard 無法重新通過 G1，改由 proposal-only publish 一律記為 G1；另收斂三則註解。
+
+### 殘留風險
+
+- Windows 上 `cf` 逾時時只結束 node，`pnpm dlx` 的子程序可能殘留；gate 仍會回報退回手動指示。
+- `cf` 仍是 beta，指令或輸出可能改變；每個 cycle 的套件更新檢查 pre-release 的 API 變化，失敗時 gate 退回手動指示。
+
+</ReviewDetails>
