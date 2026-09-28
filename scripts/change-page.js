@@ -1,5 +1,10 @@
-import { CHANGE_BRANCH_PREFIXES } from "./commitlint/plugin.js";
+import {
+  CHANGE_BRANCH_PREFIXES,
+  parseChangeBranch,
+} from "./commitlint/plugin.js";
 import { execFile } from "node:child_process";
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
 import { promisify } from "node:util";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
@@ -24,7 +29,7 @@ export const REQUIRED_REVIEW_SECTIONS = REVIEW_SECTIONS.filter(
 
 const FRONTMATTER = /^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/;
 
-function frontmatterOf(content) {
+export function frontmatterOf(content) {
   return content.match(FRONTMATTER)?.[0] ?? "";
 }
 
@@ -71,6 +76,14 @@ function stringOf(value) {
   return undefined;
 }
 
+// A scenario's shard is the one number an entry carries (ADR-0093).
+function valueOf(value) {
+  if (value?.type === "Literal" && typeof value.value === "number") {
+    return value.value;
+  }
+  return stringOf(value);
+}
+
 // An entry's own string fields, keyed; a key it lacks reads as undefined.
 // An element that is not an object literal (a spread, a variable) reads as an
 // entry with no id, so the gate reports it instead of skipping it.
@@ -80,7 +93,7 @@ function entriesOf(arrayExpression) {
       ? Object.fromEntries(
           element.properties
             .filter((property) => property.type === "Property")
-            .map((property) => [keyOf(property), stringOf(property.value)]),
+            .map((property) => [keyOf(property), valueOf(property.value)]),
         )
       : {},
   );
@@ -93,18 +106,10 @@ function findScenariosExport(tree) {
       const declarator = statement.declaration?.declarations?.find(
         (candidate) => candidate.id?.name === "scenarios",
       );
-      if (declarator) return { statement, declarator };
+      if (declarator) return declarator;
     }
   }
   return undefined;
-}
-
-function scenarioEntries(tree) {
-  const found = findScenariosExport(tree);
-  if (!found) return [];
-  return found.declarator.init?.type === "ArrayExpression"
-    ? entriesOf(found.declarator.init)
-    : [{}];
 }
 
 function attributeArray(element, name) {
@@ -114,8 +119,16 @@ function attributeArray(element, name) {
   return attribute?.value?.data?.estree?.body[0]?.expression;
 }
 
+export function scenarios(content) {
+  const declarator = findScenariosExport(parse(content));
+  if (!declarator) return [];
+  return declarator.init?.type === "ArrayExpression"
+    ? entriesOf(declarator.init)
+    : [{}];
+}
+
 export function scenarioIds(content) {
-  return scenarioEntries(parse(content)).map((entry) => entry.id);
+  return scenarios(content).map((entry) => entry.id);
 }
 
 export function resultIds(content) {
@@ -131,48 +144,12 @@ export function decisionIds(content) {
   );
 }
 
-export function proposalPart(content) {
-  const [proposal] = elements(parse(content), "Proposal");
-  return proposal ? sourceOf(content, proposal) : "";
-}
-
-function sourceOf(content, node) {
-  return content.slice(node.position.start.offset, node.position.end.offset);
-}
-
-// See ADR-0075.
-export function frozenPart(content) {
-  const tree = parse(content);
-  const statement = findScenariosExport(tree)?.statement;
-  return [
-    frontmatterOf(content),
-    statement ? content.slice(statement.start, statement.end) : "",
-    ...elements(tree, "Proposal").map((node) => sourceOf(content, node)),
-  ].join("\n");
-}
-
 export function assertValidMdx(content) {
   parse(content);
 }
 
-export function withoutReview(content) {
-  const [review] = elements(parse(content), "Review");
-  if (!review) return content;
-  const end = review.position.end.offset;
-  return (
-    content.slice(0, review.position.start.offset) +
-    content.slice(content[end] === "\n" ? end + 1 : end)
-  );
-}
-
-export function hasReview(content) {
-  return elements(parse(content), "Review").length > 0;
-}
-
 function reviewNames(content, type) {
-  const [review] = elements(parse(content), "Review");
-  if (!review) return [];
-  const found = [...walk(review)]
+  const found = [...walk(parse(content))]
     .filter((node) => node.type === type && REVIEW_SECTIONS.includes(node.name))
     .map((node) => node.name);
   return found.filter((name, index) => found.indexOf(name) === index);
@@ -186,6 +163,45 @@ export function reviewSections(content) {
 // the Review cannot put it in order.
 export function inlineReviewSections(content) {
   return reviewNames(content, "mdxJsxTextElement");
+}
+
+// ADR-0094: a Change directory holds index.mdx (frontmatter only),
+// proposal.mdx, and review.mdx or one review-s<N>.mdx per Migration shard.
+const REVIEW_FILE = /^review(?:-s([1-9]\d*))?\.mdx$/;
+
+export function reviewFile(shard) {
+  return shard === undefined ? "review.mdx" : `review-s${shard}.mdx`;
+}
+
+export function isReviewFile(name) {
+  return REVIEW_FILE.test(name);
+}
+
+export async function readChangeDir(dir) {
+  const read = (name) =>
+    readFile(path.join(dir, name), "utf8").catch(() => undefined);
+  const reviews = [];
+  for (const name of await readdir(dir).catch(() => [])) {
+    const match = name.match(REVIEW_FILE);
+    if (!match) continue;
+    reviews.push({
+      shard: match[1] ? Number(match[1]) : undefined,
+      file: name,
+      content: await read(name),
+    });
+  }
+  reviews.sort((a, b) => (a.shard ?? 0) - (b.shard ?? 0));
+  return {
+    index: await read("index.mdx"),
+    proposal: await read("proposal.mdx"),
+    reviews,
+  };
+}
+
+// A Migration states its shard count in the frontmatter (ADR-0093).
+export function shardCount(index) {
+  const match = frontmatterOf(index ?? "").match(/^shards:\s*(\d+)\s*$/m);
+  return match ? Number(match[1]) : undefined;
 }
 
 export function parseShortstat(line) {
@@ -218,26 +234,34 @@ async function orNull(read) {
   }
 }
 
-// The commit on dev's first-parent line that landed the Change: a merge commit
-// whose subject names its branch, or a squash commit carrying its trailer.
-export async function landingOf(root, base, slug) {
-  const name = slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// The commit on dev's first-parent line that landed the Change, or one shard
+// of it: a merge commit whose subject names its branch, or a squash commit
+// carrying its trailers.
+export async function landingOf(root, base, slug, shard) {
+  const name = escapeRegExp(shard === undefined ? slug : `${slug}-s${shard}`);
   const branch = new RegExp(
     `(?:^|[\\s/'])(?:${CHANGE_BRANCH_PREFIXES.join("|")})/${name}(?:$|[\\s'])`,
   );
-  const trailer = new RegExp(`^Blueprint-Change: ${name}$`, "m");
+  // git parses the trailers, so a body line that merely starts with "Shard:"
+  // is not taken for one.
   const log = await git(root, [
     "log",
     "--first-parent",
-    "--format=%H%x1f%P%x1f%cI%x1f%B%x1e",
+    "--format=%H%x1f%P%x1f%cI%x1f%s%x1f%(trailers:key=Blueprint-Change,valueonly,separator=%x1d)%x1f%(trailers:key=Shard,valueonly,separator=%x1d)%x1e",
     base,
   ]);
   for (const record of log.split("\x1e")) {
-    const [hash, parents = "", archivedAt, body = ""] = record
-      .trim()
-      .split("\x1f");
+    const [
+      hash,
+      parents = "",
+      archivedAt,
+      subject = "",
+      change = "",
+      shards = "",
+    ] = record.trim().split("\x1f");
     const [first, second] = parents.split(" ");
-    const subject = body.split("\n")[0];
     if (second && branch.test(subject)) {
       return {
         from: first,
@@ -246,30 +270,32 @@ export async function landingOf(root, base, slug) {
         archivedAt,
       };
     }
-    if (first && !second && trailer.test(body)) {
+    const values = (text) => text.split("\x1d").filter(Boolean);
+    const shardValues = values(shards);
+    if (
+      first &&
+      !second &&
+      values(change).includes(slug) &&
+      (shard === undefined
+        ? shardValues.length === 0
+        : shardValues.includes(String(shard)))
+    ) {
       return { from: first, to: hash, commitRange: null, archivedAt };
     }
   }
   return null;
 }
 
-// ADR-0074: every figure a page shows comes from here, never from the writer.
 // A merged Change is measured by what landed it, so republishing it from
 // another branch cannot pick up that branch's diff.
-export async function changeFacts(
-  root,
-  content,
-  { slug, firstPublishedAt, now = new Date() } = {},
-) {
-  const base = await resolveScopeBase(root);
-  const landing = slug ? await orNull(() => landingOf(root, base, slug)) : null;
+async function measure(root, base, landing) {
   const range = landing ? [landing.from, landing.to] : [`${base}...HEAD`];
   const stat = await orNull(async () =>
     parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
   );
   const commitRange = landing ? landing.commitRange : `${base}..HEAD`;
   // ADR-0078: a Change starts at its first commit.
-  const firstCommitAt = await orNull(async () => {
+  const startedAt = await orNull(async () => {
     const [first] = (
       await git(root, [
         "log",
@@ -280,11 +306,8 @@ export async function changeFacts(
     ).split("\n");
     return first ? new Date(first).toISOString() : null;
   });
-  const started = firstCommitAt ?? firstPublishedAt ?? now.toISOString();
   return {
-    gate: hasReview(content) ? "G2" : "G1",
-    publishedAt: now.toISOString(),
-    startedAt: started,
+    startedAt: startedAt ?? undefined,
     archivedAt: landing ? new Date(landing.archivedAt).toISOString() : null,
     commits: commitRange
       ? await orNull(async () =>
@@ -304,7 +327,93 @@ export async function changeFacts(
       ]);
       return output ? output.split("\n").length : 0;
     }),
-    scenarios: scenarioIds(content).length,
-    decisions: decisionIds(content),
+  };
+}
+
+const FIGURES = [
+  "commits",
+  "filesChanged",
+  "insertions",
+  "deletions",
+  "srcFilesChanged",
+];
+
+function totals(items) {
+  return Object.fromEntries(
+    FIGURES.map((key) => {
+      const values = items.map((item) => item[key]).filter((v) => v != null);
+      return [key, values.length ? values.reduce((a, b) => a + b, 0) : null];
+    }),
+  );
+}
+
+// ADR-0074: every figure a page shows comes from here, never from the writer.
+// ADR-0096: a Migration is measured shard by shard, then totalled.
+export async function changeFacts(
+  root,
+  page,
+  { slug, firstPublishedAt, now = new Date() } = {},
+) {
+  const base = await resolveScopeBase(root);
+  const parts = [
+    page.proposal,
+    ...page.reviews.map((review) => review.content),
+  ];
+  const common = {
+    publishedAt: now.toISOString(),
+    scenarios: scenarioIds(page.proposal ?? "").length,
+    decisions: [
+      ...new Set(parts.flatMap((content) => decisionIds(content ?? ""))),
+    ],
+  };
+  const count = shardCount(page.index);
+
+  if (count === undefined) {
+    const landing = slug
+      ? await orNull(() => landingOf(root, base, slug))
+      : null;
+    const figures = await measure(root, base, landing);
+    return {
+      gate: page.reviews.length > 0 ? "G2" : "G1",
+      ...common,
+      ...figures,
+      startedAt: figures.startedAt ?? firstPublishedAt ?? now.toISOString(),
+    };
+  }
+
+  const branch = parseChangeBranch(
+    await orNull(() => git(root, ["rev-parse", "--abbrev-ref", "HEAD"])),
+  );
+  const current = branch?.slug === slug ? branch.shard : undefined;
+  const reviewed = new Set(page.reviews.map((review) => review.shard));
+  const items = [];
+  for (let shard = 1; shard <= count; shard += 1) {
+    const landing = await orNull(() => landingOf(root, base, slug, shard));
+    if (!landing && shard !== current) continue;
+    items.push({
+      shard,
+      gate: reviewed.has(shard) ? "G2" : "G1",
+      ...(await measure(root, base, landing)),
+    });
+  }
+  const merged = items.filter((item) => item.archivedAt);
+  const started = items
+    .map((item) => item.startedAt)
+    .filter(Boolean)
+    .sort();
+  const hasReview = current ? reviewed.has(current) : reviewed.size > 0;
+  return {
+    gate: hasReview ? "G2" : "G1",
+    ...common,
+    startedAt: started[0] ?? firstPublishedAt ?? now.toISOString(),
+    archivedAt:
+      merged.length === count
+        ? merged
+            .map((item) => item.archivedAt)
+            .sort()
+            .at(-1)
+        : null,
+    ...totals(items),
+    shards: { count, current, merged: merged.length, items },
   };
 }

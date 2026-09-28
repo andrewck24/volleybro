@@ -1,16 +1,20 @@
 import assert from "node:assert/strict";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import {
   decisionIds,
-  hasReview,
   inlineReviewSections,
   parseShortstat,
-  frozenPart,
-  proposalPart,
+  readChangeDir,
   resultIds,
+  reviewFile,
   reviewSections,
   scenarioIds,
+  scenarios,
+  shardCount,
 } from "../change-page.js";
 
 const PAGE = `---
@@ -84,17 +88,6 @@ test("decisionIds reads the ids passed to DecisionCards", () => {
   assert.deepEqual(decisionIds(PAGE), ["0072", "0073"]);
 });
 
-test("proposalPart is the text between the Proposal tags", () => {
-  const part = proposalPart(PAGE);
-  assert.match(part, /<TLDR>Why and what\.<\/TLDR>/);
-  assert.doesNotMatch(part, /ActionItems/);
-});
-
-test("hasReview is true only when a Review tab exists", () => {
-  assert.equal(hasReview(PAGE), true);
-  assert.equal(hasReview(PAGE.replace(/<Review>[\s\S]*<\/Review>/, "")), false);
-});
-
 test("reviewSections lists the Review sections in the order they appear", () => {
   assert.deepEqual(reviewSections(PAGE), [
     "ActionItems",
@@ -123,30 +116,6 @@ test("parseShortstat reads files, insertions and deletions", () => {
   });
 });
 
-test("hasReview accepts a Review tag with whitespace before its end", () => {
-  assert.equal(hasReview(PAGE.replace("<Review>", "<Review >")), true);
-  assert.equal(hasReview(PAGE.replace("<Review>", "<Review\n>")), true);
-});
-
-test("tags inside fenced code do not count", () => {
-  const page = [
-    "<ChangeTabs>",
-    "<Proposal>",
-    "before",
-    "",
-    "```mdx",
-    "</Proposal>",
-    "<Review>",
-    "```",
-    "",
-    "after",
-    "</Proposal>",
-    "</ChangeTabs>",
-  ].join("\n");
-  assert.match(proposalPart(page), /after/);
-  assert.equal(hasReview(page), false);
-});
-
 test("scenario and result ids accept quoted keys and ignore look-alikes in text", () => {
   const page = PAGE.replace(
     '{ id: "S1", given',
@@ -167,26 +136,19 @@ test("a pending result does not count as a result", () => {
   assert.deepEqual(resultIds(page), []);
 });
 
-test("inline code, tilde and indented fences do not count as tags", () => {
-  const page = [
-    "<ChangeTabs>",
-    "<Proposal>",
-    "Tabs are written `<Review>` and `</Proposal>` in the page.",
+test("sections in inline code or fences do not count", () => {
+  const review = [
+    "Sections are written `<ActionItems>` in the file.",
     "",
     "~~~mdx",
-    "</Proposal>",
+    "<ReviewFocus>",
     "~~~",
     "",
-    "  ```",
-    "  <Review>",
-    "  ```",
-    "",
-    "after",
-    "</Proposal>",
-    "</ChangeTabs>",
+    "```mdx",
+    "<Deviations>",
+    "```",
   ].join("\n");
-  assert.match(proposalPart(page), /after/);
-  assert.equal(hasReview(page), false);
+  assert.deepEqual(reviewSections(review), []);
 });
 
 test("entry keys may come in any order", () => {
@@ -218,14 +180,6 @@ test("backtick and multi-line template values are read like any string", () => {
   assert.deepEqual(resultIds(page), []);
 });
 
-test("an apostrophe in prose does not hide a tag", () => {
-  const page = PAGE.replace(
-    "<Review>",
-    "Don't miss it, it isn't hidden.\n\n<Review>",
-  );
-  assert.equal(hasReview(page), true);
-});
-
 test("only an entry's own id counts, not one nested inside it", () => {
   const page = PAGE.replace(
     '{ id: "S2", given: "d", when: "e", then: "f" }',
@@ -251,15 +205,6 @@ test("a Review section written on one line is reported as inline", () => {
   assert.equal(reviewSections(page).includes("Deviations"), false);
 });
 
-test("frozenPart covers the frontmatter and the scenarios, not only the Proposal tab", () => {
-  const edited = PAGE.replace('then: "c"', 'then: "changed"');
-  assert.notEqual(frozenPart(edited), frozenPart(PAGE));
-  const retitled = PAGE.replace("title: Sample", "title: Renamed");
-  assert.notEqual(frozenPart(retitled), frozenPart(PAGE));
-  const reviewEdited = PAGE.replace("- one", "- two");
-  assert.equal(frozenPart(reviewEdited), frozenPart(PAGE));
-});
-
 test("only pass and fail count as results", () => {
   for (const value of ['"todo"', "status", "`${s}`"]) {
     const page = PAGE.replace('result: "pass"', `result: ${value}`);
@@ -283,32 +228,48 @@ test("scenarios built by spread or from a variable read as malformed", () => {
 });
 
 test("frontmatter is not parsed as MDX, whatever it contains", () => {
-  const withoutReview = PAGE.replace(/<Review>[\s\S]*<\/Review>\n/, "");
-  const page = withoutReview.replace(
+  const page = PAGE.replace(
     "title: Sample",
     "title: <name>\ndescription: 用 <Review> tab 呈現 {x}",
   );
   assert.doesNotThrow(() => scenarioIds(page));
-  assert.equal(hasReview(page), false);
 });
 
-test("frontmatter stays frozen with trailing spaces or CRLF line ends", () => {
-  const spaced = PAGE.replace("---\ntitle", "--- \ntitle");
-  assert.notEqual(
-    frozenPart(spaced),
-    frozenPart(spaced.replace("title: Sample", "title: Renamed")),
-  );
-  const crlf = PAGE.replace(/\n/g, "\r\n");
-  assert.notEqual(
-    frozenPart(crlf),
-    frozenPart(crlf.replace("title: Sample", "title: Renamed")),
+test("a scenario's shard is read as a number", () => {
+  const proposal =
+    'export const scenarios = [\n  { id: "S1", shard: 2, given: "a", when: "b", then: "c" },\n];\n';
+  assert.deepEqual(
+    scenarios(proposal).map(({ id, shard }) => [id, shard]),
+    [["S1", 2]],
   );
 });
 
-test("only the scenarios export is frozen, not an unrelated export", () => {
-  const added = PAGE.replace(
-    "export const scenarios",
-    "export const note = 1;\nexport const scenarios",
+test("shardCount reads a Migration's shard count from the frontmatter", () => {
+  assert.equal(shardCount("---\ntitle: M\nshards: 4\n---\n"), 4);
+  assert.equal(shardCount("---\ntitle: C\n---\n"), undefined);
+  assert.equal(shardCount(undefined), undefined);
+});
+
+test("readChangeDir reads the index, the Proposal and every Review in shard order", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "change-dir-"));
+  for (const [name, content] of [
+    ["index.mdx", "---\ntitle: M\nshards: 2\n---\n"],
+    ["proposal.mdx", "p"],
+    [reviewFile(2), "second"],
+    [reviewFile(1), "first"],
+    ["facts.json", "{}"],
+    ["design.tsx", "export {}"],
+  ]) {
+    await writeFile(path.join(dir, name), content);
+  }
+  const page = await readChangeDir(dir);
+  assert.equal(page.proposal, "p");
+  assert.deepEqual(
+    page.reviews.map(({ shard, file, content }) => [shard, file, content]),
+    [
+      [1, "review-s1.mdx", "first"],
+      [2, "review-s2.mdx", "second"],
+    ],
   );
-  assert.equal(frozenPart(added), frozenPart(PAGE));
+  assert.equal(reviewFile(undefined), "review.mdx");
 });

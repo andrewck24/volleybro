@@ -35,9 +35,21 @@ export const CHANGE_BRANCH_PREFIXES = ["feat", "fix", "refactor"];
 const CHANGE_BRANCH = new RegExp(
   `^(${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`,
 );
+// ADR-0093: a -s<N> suffix always names a Migration shard.
+const SHARD_SUFFIX = /^(.+)-s([1-9]\d*)$/;
+
+export function parseChangeBranch(branchName) {
+  const match = branchName?.match(CHANGE_BRANCH);
+  if (!match) return undefined;
+  const [, prefix, name] = match;
+  const shard = name.match(SHARD_SUFFIX);
+  return shard
+    ? { prefix, slug: shard[1], shard: Number(shard[2]) }
+    : { prefix, slug: name, shard: undefined };
+}
 
 export function changeSlugOf(branchName) {
-  return branchName.match(CHANGE_BRANCH)?.[2];
+  return parseChangeBranch(branchName)?.slug;
 }
 
 function fixPathSuffix(prefix, slug) {
@@ -47,11 +59,12 @@ function fixPathSuffix(prefix, slug) {
 export function evaluateChangeBranchTrailer(branchName, message) {
   if (!branchName) return { ok: true }; // detached HEAD (e.g. rebase reword): skip silently
 
-  const match = branchName.match(CHANGE_BRANCH);
-  if (!match) return { ok: true };
-  const [, prefix, slug] = match;
+  const branch = parseChangeBranch(branchName);
+  if (!branch) return { ok: true };
+  const { prefix, slug, shard } = branch;
 
-  const value = parseTrailers(message).get("blueprint-change")?.[0];
+  const trailers = parseTrailers(message);
+  const value = trailers.get("blueprint-change")?.[0];
   if (value === undefined) {
     return {
       ok: false,
@@ -62,6 +75,15 @@ export function evaluateChangeBranchTrailer(branchName, message) {
     return {
       ok: false,
       message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fixPathSuffix(prefix, slug)}`,
+    };
+  }
+  if (shard === undefined) return { ok: true };
+
+  const shardValue = trailers.get("shard")?.[0];
+  if (shardValue !== String(shard)) {
+    return {
+      ok: false,
+      message: `branch "${branchName}" is shard ${shard} of Migration "${slug}" and needs a "Shard: ${shard}" trailer, but the commit carries ${shardValue === undefined ? "none" : `"Shard: ${shardValue}"`}.`,
     };
   }
   return { ok: true };

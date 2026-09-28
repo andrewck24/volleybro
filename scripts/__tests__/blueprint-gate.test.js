@@ -6,14 +6,19 @@ import path from "node:path";
 import test from "node:test";
 import { promisify } from "node:util";
 
-import { previewUrl, runGate } from "../blueprint-gate.js";
+import { previewUrl, rebuildPreview, runGate } from "../blueprint-gate.js";
 
 const execFileAsync = promisify(execFile);
 
 const git = (cwd) => (args) => execFileAsync("git", args, { cwd });
 
-const page = (review) =>
-  `---\ntitle: gamma\n---\n\nexport const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\n<ChangeTabs>\n<Proposal>\nThe proposal.\n</Proposal>\n${review ? "<Review>\n<ActionItems>無</ActionItems>\n</Review>\n" : ""}</ChangeTabs>\n`;
+const PAGE_FILES = {
+  "index.mdx": "---\ntitle: gamma\n---\n",
+  "proposal.mdx":
+    'export const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\nThe proposal.\n',
+};
+const REVIEW_FILE = "<ActionItems>\n\n無\n\n</ActionItems>\n";
+const noRebuild = async () => "rebuild skipped";
 
 // One bare remote serves both the Change branch and the page store, the way
 // origin does in the repository.
@@ -41,14 +46,17 @@ async function makeGateRepository(t, { review = false } = {}) {
 
   const dir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, "index.mdx"), page(review));
+  for (const [name, content] of Object.entries(PAGE_FILES)) {
+    await writeFile(path.join(dir, name), content);
+  }
+  if (review) await writeFile(path.join(dir, "review.mdx"), REVIEW_FILE);
   return { bare, work, workGit };
 }
 
 async function storeLog(bare) {
   const { stdout } = await execFileAsync(
     "git",
-    ["log", "--format=%H", "blueprint-changes", "--", "gamma/index.mdx"],
+    ["log", "--format=%H", "blueprint-changes", "--", "gamma/facts.json"],
     { cwd: bare },
   );
   return stdout.trim().split("\n").filter(Boolean);
@@ -92,13 +100,17 @@ test("the gate publishes, runs the check, and names the preview to compare", asy
       checked.push(slug);
       return true;
     },
+    rebuild: noRebuild,
   });
 
   assert.equal((await storeLog(bare)).length, 1);
   assert.deepEqual(checked, ["gamma"]);
-  assert.equal(
-    console.log.mock.calls.at(-1).arguments[0],
-    "Branch preview: https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma is current once its header shows 1 commits; rerun the branch build if it does not.",
+  assert.deepEqual(
+    console.log.mock.calls.slice(-2).map((call) => call.arguments[0]),
+    [
+      "Branch preview: https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma is current once its header shows 1 commits.",
+      "rebuild skipped",
+    ],
   );
 });
 
@@ -109,18 +121,48 @@ test("--gate G1 publishes the Proposal alone before the whole page", async (t) =
   await runGate(work, "gamma", {
     g1: true,
     runCheck: async () => true,
+    rebuild: noRebuild,
   });
 
   const [whole, proposalOnly] = await storeLog(bare);
-  assert.doesNotMatch(
-    await storeFile(bare, proposalOnly, "index.mdx"),
-    /<Review>/,
-  );
+  await assert.rejects(storeFile(bare, proposalOnly, "review.mdx"));
   assert.equal(
     JSON.parse(await storeFile(bare, proposalOnly, "facts.json")).gate,
     "G1",
   );
-  assert.match(await storeFile(bare, whole, "index.mdx"), /<Review>/);
+  assert.equal(await storeFile(bare, whole, "review.mdx"), REVIEW_FILE);
+});
+
+test("the preview rebuild starts a build on the preview trigger and reads it once", async () => {
+  const calls = [];
+  const cf = async (_root, args) => {
+    calls.push(args.slice(0, 3).join(" "));
+    if (args[1] === "triggers") {
+      return [
+        { trigger_uuid: "prod", branch_includes: ["dev"] },
+        { trigger_uuid: "preview", branch_includes: ["*"] },
+      ];
+    }
+    if (args[1] === "create") return { build_uuid: "b1" };
+    return { status: "queued" };
+  };
+  const message = await rebuildPreview("/repo", "feat/gamma", { cf });
+  assert.deepEqual(calls, [
+    "builds triggers list",
+    "builds create preview",
+    "builds get b1",
+  ]);
+  assert.match(message, /build b1 started \(queued\)/);
+});
+
+test("the preview rebuild falls back to the manual instruction when cf fails", async () => {
+  const cf = async () => {
+    throw new Error("Not logged in");
+  };
+  assert.match(
+    await rebuildPreview("/repo", "feat/gamma", { cf }),
+    /Not logged in.*auth login.*Cloudflare dashboard/,
+  );
 });
 
 test("a preview URL folds the branch name into one DNS label", () => {

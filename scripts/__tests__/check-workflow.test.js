@@ -239,12 +239,8 @@ test("accepts external links and in-page anchors", async () => {
 
 test("reports a page whose Proposal has no TLDR", async () => {
   assert.match(
-    (
-      await messages({
-        "blueprint/content/changes/c/index.mdx": changePage({ proposal: "" }),
-      })
-    ).join("\n"),
-    /c\/index\.mdx.*blueprint-proposal/i,
+    (await messages(inChange("c", changePage({ proposal: "" })))).join("\n"),
+    /c\/proposal\.mdx.*blueprint-proposal/i,
   );
 });
 
@@ -252,11 +248,11 @@ test("reports a page that exports no scenario", async () => {
   assert.match(
     (
       await messages({
-        "blueprint/content/changes/c/index.mdx":
-          "---\ntitle: Sample\n---\n\n<ChangeTabs>\n<Proposal>\n<TLDR>x</TLDR>\n</Proposal>\n</ChangeTabs>\n",
+        "blueprint/content/changes/c/index.mdx": "---\ntitle: Sample\n---\n",
+        "blueprint/content/changes/c/proposal.mdx": "<TLDR>x</TLDR>\n",
       })
     ).join("\n"),
-    /c\/index\.mdx.*blueprint-proposal/i,
+    /c\/proposal\.mdx.*blueprint-proposal/i,
   );
 });
 
@@ -272,12 +268,7 @@ test("skips Changes converted from an earlier format", async () => {
 });
 
 test("accepts a page with a TLDR and a scenario", async () => {
-  assert.deepEqual(
-    await messages({
-      "blueprint/content/changes/c/index.mdx": changePage(),
-    }),
-    [],
-  );
+  assert.deepEqual(await messages(inChange("c", changePage())), []);
 });
 
 // MDX eats the indentation of a multi-line template literal in an attribute.
@@ -376,11 +367,8 @@ test("checkChangeScope warns past the soft file-count target", async () => {
   assert.match(warnings[0], /31 files changed/);
 });
 
-test("checkChangeScope accepts a Migration trailer in the commit log", async () => {
-  const root = await makeScopeRepository(31, [
-    "-m",
-    "Migration: two-gate-workflow",
-  ]);
+test("checkChangeScope accepts a Shard trailer in the commit log", async () => {
+  const root = await makeScopeRepository(31, ["-m", "Shard: 2"]);
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
@@ -392,26 +380,26 @@ test("checkChangeScope accepts a --migration slug", async () => {
   );
 });
 
-test("checkChangeScope ignores a Migration mention outside the trailer block", async () => {
+test("checkChangeScope ignores a Shard mention outside the trailer block", async () => {
   const root = await makeScopeRepository(31, [
     "-m",
-    "This work touches Migration: two-gate-workflow in prose, not a trailer.",
+    "This work mentions Shard: 2 in prose, not a trailer.",
   ]);
   const warnings = await checkChangeScope(root);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /change-scope/i);
 });
 
-const scenarioPage = (count) =>
-  `---\ntitle: Sample\n---\n\nexport const scenarios = [\n${Array.from(
+const scenarioPage = (slug, count) => ({
+  [`blueprint/content/changes/${slug}/index.mdx`]: "---\ntitle: Sample\n---\n",
+  [`blueprint/content/changes/${slug}/proposal.mdx`]: `export const scenarios = [\n${Array.from(
     { length: count },
     (_, i) => `  { id: "S${i}", given: "g", when: "w", then: "t" },`,
-  ).join("\n")}\n];\n`;
+  ).join("\n")}\n];\n`,
+});
 
 test("checkChangeScope warns past the soft scenario-count target", async () => {
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": scenarioPage(9),
-  });
+  const root = await makeRepository(scenarioPage("c", 9));
   const warnings = await checkChangeScope(root, { gateSlug: "c" });
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /change-scope/i);
@@ -419,22 +407,14 @@ test("checkChangeScope warns past the soft scenario-count target", async () => {
 });
 
 test("checkChangeScope leaves the scenario count of another Change alone", async () => {
-  const root = await makeRepository({
-    "blueprint/content/changes/other/index.mdx": scenarioPage(9),
-  });
+  const root = await makeRepository(scenarioPage("other", 9));
   assert.deepEqual(await checkChangeScope(root, { gateSlug: "c" }), []);
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
 test("checkChangeScope reads the Change from a Change branch's name", async () => {
   const root = await makeScopeRepository(1);
-  await mkdir(path.join(root, "blueprint/content/changes/scope-test"), {
-    recursive: true,
-  });
-  await writeFile(
-    path.join(root, "blueprint/content/changes/scope-test/index.mdx"),
-    scenarioPage(9),
-  );
+  await writeFiles(root, scenarioPage("scope-test", 9));
   const warnings = await checkChangeScope(root);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /scope-test.*9 acceptance scenarios/);
@@ -598,7 +578,7 @@ test("the CLI exits 0 with a decision-length warning when that is the only gate 
     async (repoRoot) => {
       await writeFiles(repoRoot, {
         ...REPOSITORY_FILES,
-        "blueprint/content/changes/c/index.mdx": changePage(),
+        ...inChange("c", changePage()),
       });
       await addSkillBridge(repoRoot);
 
@@ -657,30 +637,55 @@ test("checkDecisionRecordLength ignores a record that only changed", async () =>
 
 const noop = async () => {};
 
+// A Change directory's files (ADR-0094), keyed by name.
 function changePage({
   title = "Sample",
   proposal = "<TLDR>x</TLDR>",
   review,
+  shards,
+  reviews = {},
+  scenarioShards = [1, 2],
 } = {}) {
-  const reviewTab =
-    review === undefined ? "" : `<Review>\n${review}\n</Review>\n`;
-  return `---\ntitle: ${title}\n---\n\nexport const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n  { id: "S2", given: "d", when: "e", then: "f" },\n];\n\n<ChangeTabs>\n<Proposal>\n${proposal}\n<Scenarios items={scenarios} />\n</Proposal>\n${reviewTab}</ChangeTabs>\n`;
+  const shard = (i) => (shards ? `shard: ${scenarioShards[i]}, ` : "");
+  return {
+    "index.mdx": `---\ntitle: ${title}\n${shards ? `shards: ${shards}\n` : ""}---\n`,
+    "proposal.mdx": `export const scenarios = [\n  { id: "S1", ${shard(0)}given: "a", when: "b", then: "c" },\n  { id: "S2", ${shard(1)}given: "d", when: "e", then: "f" },\n];\n\n${proposal}\n\n<Scenarios items={scenarios} />\n`,
+    ...(review === undefined ? {} : { "review.mdx": review }),
+    ...Object.fromEntries(
+      Object.entries(reviews).map(([n, content]) => [
+        `review-s${n}.mdx`,
+        content,
+      ]),
+    ),
+  };
 }
 
-const FULL_REVIEW = [
-  "<ActionItems>\n\n無\n\n</ActionItems>",
-  "<ReviewFocus>\n\n- a\n\n</ReviewFocus>",
-  "<Deviations>\n\n無\n\n</Deviations>",
-  '<ScenarioResults scenarios={scenarios} results={[{ id: "S1", result: "pass", evidence: "t" }, { id: "S2", result: "pass", evidence: "t" }]} />',
-  "<TestPlan items={[]} />",
-  "<ReviewDetails>\n\nd\n\n</ReviewDetails>",
-].join("\n\n");
+function inChange(slug, files) {
+  return Object.fromEntries(
+    Object.entries(files).map(([name, content]) => [
+      `blueprint/content/changes/${slug}/${name}`,
+      content,
+    ]),
+  );
+}
 
-async function pageGate(content) {
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": content,
-  });
-  return (await checkChangePageGate(root, "c", { refresh: noop })).join("\n");
+const reviewWithResults = (...ids) =>
+  [
+    "<ActionItems>\n\n無\n\n</ActionItems>",
+    "<ReviewFocus>\n\n- a\n\n</ReviewFocus>",
+    "<Deviations>\n\n無\n\n</Deviations>",
+    `<ScenarioResults results={[${ids.map((id) => `{ id: "${id}", result: "pass", evidence: "t" }`).join(", ")}]} />`,
+    "<TestPlan items={[]} />",
+    "<ReviewDetails>\n\nd\n\n</ReviewDetails>",
+  ].join("\n\n") + "\n";
+
+const FULL_REVIEW = reviewWithResults("S1", "S2");
+
+async function pageGate(files, options = {}) {
+  const root = await makeRepository(inChange("c", files));
+  return (
+    await checkChangePageGate(root, "c", { refresh: noop, ...options })
+  ).join("\n");
 }
 
 test("page gate accepts a complete G1 page", async () => {
@@ -699,13 +704,9 @@ test("page gate reports a title that is only a tab name", async () => {
 });
 
 test("page gate names a scenario with no result", async () => {
-  const review = FULL_REVIEW.replace(
-    ', { id: "S2", result: "pass", evidence: "t" }',
-    "",
-  );
   assert.match(
-    await pageGate(changePage({ review })),
-    /gate-scenario-results.*S2/is,
+    await pageGate(changePage({ review: reviewWithResults("S1") })),
+    /review\.mdx.*gate-scenario-results.*S2/is,
   );
 });
 
@@ -721,32 +722,70 @@ test("page gate reports a missing required Review section", async () => {
 });
 
 test("page gate reports a scenario with no id", async () => {
-  const page = changePage().replace('{ id: "S2", given', "{ given");
-  assert.match(await pageGate(page), /gate-scenario-shape/i);
+  const files = changePage();
+  files["proposal.mdx"] = files["proposal.mdx"].replace(
+    '{ id: "S2", given',
+    "{ given",
+  );
+  assert.match(await pageGate(files), /gate-scenario-shape/i);
 });
 
-// A store branch holding a G1 publish and then a G2 publish of slug c,
-// fetched into the checkout under the ref the publish script uses.
-async function withStoreHistory(root, g1Page) {
+test("a Migration shard's G2 needs results only for its own scenarios", async () => {
+  const files = changePage({
+    shards: 2,
+    reviews: { 1: reviewWithResults("S1") },
+  });
+  assert.equal(await pageGate(files, { branch: "refactor/c-s1" }), "");
+});
+
+test("a Migration shard's G2 names its own scenario with no result", async () => {
+  const files = changePage({ shards: 2, reviews: { 2: reviewWithResults() } });
+  assert.match(
+    await pageGate(files, { branch: "refactor/c-s2" }),
+    /review-s2\.mdx.*gate-scenario-results.*S2/is,
+  );
+});
+
+test("a Migration scenario needs a shard within the shard count", async () => {
+  const files = changePage({ shards: 2, scenarioShards: [1, 3] });
+  assert.match(
+    await pageGate(files, { branch: "refactor/c-s1" }),
+    /gate-scenario-shape.*S2 needs a shard from 1 to 2/is,
+  );
+});
+
+test("a Migration's gate runs on one of its shard branches", async () => {
+  assert.match(
+    await pageGate(changePage({ shards: 2 }), { branch: "refactor/c" }),
+    /gate-branch-state.*c-s<N>/is,
+  );
+});
+
+test("a Review file must match the kind of Change", async () => {
+  assert.match(
+    await pageGate(changePage({ reviews: { 1: FULL_REVIEW } })),
+    /review-s1\.mdx.*gate-review-file/is,
+  );
+});
+
+// A store branch holding a publish per entry, oldest first, fetched into the
+// checkout under the ref the publish script uses.
+async function withStoreHistory(root, publishes) {
   const store = await mkdtemp(path.join(os.tmpdir(), "store-"));
   const run = (args, cwd) => execFileAsync("git", args, { cwd });
   await run(["init", "-q", "-b", "blueprint-changes"], store);
   await run(["config", "user.email", "t@example.com"], store);
   await run(["config", "user.name", "T"], store);
-  await mkdir(path.join(store, "c"), { recursive: true });
-  await writeFile(path.join(store, "c/index.mdx"), g1Page);
-  await writeFile(
-    path.join(store, "c/facts.json"),
-    JSON.stringify({ gate: "G1" }),
-  );
-  await run(["add", "-A"], store);
-  await run(["commit", "-q", "-m", "publish c"], store);
-  await writeFile(
-    path.join(store, "c/facts.json"),
-    JSON.stringify({ gate: "G2" }),
-  );
-  await run(["add", "-A"], store);
-  await run(["commit", "-q", "-m", "publish c"], store);
+  for (const { files, facts } of publishes) {
+    await writeFiles(store, {
+      ...Object.fromEntries(
+        Object.entries(files).map(([name, content]) => [`c/${name}`, content]),
+      ),
+      "c/facts.json": JSON.stringify(facts),
+    });
+    await run(["add", "-A"], store);
+    await run(["commit", "-q", "-m", "publish c"], store);
+  }
 
   await run(["init", "-q"], root);
   await run(
@@ -755,53 +794,92 @@ async function withStoreHistory(root, g1Page) {
   );
 }
 
+const G1_THEN_G2 = [
+  { files: changePage(), facts: { gate: "G1" } },
+  { files: changePage({ review: FULL_REVIEW }), facts: { gate: "G2" } },
+];
+
 test("page gate passes a G2 page whose Proposal matches G1", async () => {
-  const page = changePage({ review: FULL_REVIEW });
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": page,
-  });
-  await withStoreHistory(root, changePage());
+  const root = await makeRepository(
+    inChange("c", changePage({ review: FULL_REVIEW })),
+  );
+  await withStoreHistory(root, G1_THEN_G2);
   assert.deepEqual(await checkChangePageGate(root, "c", { refresh: noop }), []);
 });
 
 test("page gate fails a G2 page whose Proposal changed after G1", async () => {
-  const page = changePage({
-    proposal: "<TLDR>rewritten</TLDR>",
-    review: FULL_REVIEW,
-  });
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": page,
-  });
-  await withStoreHistory(root, changePage());
+  const root = await makeRepository(
+    inChange(
+      "c",
+      changePage({ proposal: "<TLDR>rewritten</TLDR>", review: FULL_REVIEW }),
+    ),
+  );
+  await withStoreHistory(root, G1_THEN_G2);
   assert.match(
     (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
-    /gate-proposal-frozen/i,
+    /proposal\.mdx.*gate-frozen/is,
+  );
+});
+
+test("page gate fails a G2 page whose frontmatter changed after G1", async () => {
+  const root = await makeRepository(
+    inChange("c", changePage({ title: "Renamed", review: FULL_REVIEW })),
+  );
+  await withStoreHistory(root, G1_THEN_G2);
+  assert.match(
+    (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
+    /index\.mdx.*gate-frozen/is,
   );
 });
 
 test("page gate skips the freeze check without a G1 publish", async () => {
-  const page = changePage({
-    proposal: "<TLDR>rewritten</TLDR>",
-    review: FULL_REVIEW,
-  });
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": page,
-  });
-  assert.deepEqual(await checkChangePageGate(root, "c", { refresh: noop }), []);
+  assert.equal(
+    await pageGate(
+      changePage({ proposal: "<TLDR>rewritten</TLDR>", review: FULL_REVIEW }),
+    ),
+    "",
+  );
 });
 
 test("page gate fails a G2 page when the store branch cannot be fetched", async () => {
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": changePage({
-      review: FULL_REVIEW,
-    }),
-  });
   const refresh = async () => {
     throw new Error("fatal: could not read from remote");
   };
   assert.match(
-    (await checkChangePageGate(root, "c", { refresh })).join("\n"),
-    /gate-proposal-frozen.*could not fetch/is,
+    await pageGate(changePage({ review: FULL_REVIEW }), { refresh }),
+    /gate-frozen.*could not fetch/is,
+  );
+});
+
+test("an earlier shard's accepted Review is frozen at its G2", async () => {
+  const shardOne = reviewWithResults("S1");
+  const root = await makeRepository(
+    inChange(
+      "c",
+      changePage({
+        shards: 2,
+        reviews: {
+          1: shardOne.replace("- a", "- edited"),
+          2: reviewWithResults("S2"),
+        },
+      }),
+    ),
+  );
+  await withStoreHistory(root, [
+    { files: changePage({ shards: 2 }), facts: { gate: "G1" } },
+    {
+      files: changePage({ shards: 2, reviews: { 1: shardOne } }),
+      facts: { gate: "G2", shards: { current: 1 } },
+    },
+  ]);
+  assert.match(
+    (
+      await checkChangePageGate(root, "c", {
+        refresh: noop,
+        branch: "refactor/c-s2",
+      })
+    ).join("\n"),
+    /review-s1\.mdx.*gate-frozen.*shard 1/is,
   );
 });
 
@@ -816,33 +894,17 @@ test("page gate reports a Review section written on one line", async () => {
   );
 });
 
-test("page gate reports a page that is not valid MDX", async () => {
+test("page gate reports a file that is not valid MDX", async () => {
   assert.match(
     await pageGate(changePage({ proposal: "<TLDR>unclosed" })),
-    /gate-mdx/i,
-  );
-});
-
-test("page gate fails a G2 page whose scenarios changed after G1", async () => {
-  const page = changePage({ review: FULL_REVIEW }).replace(
-    'then: "c"',
-    'then: "rewritten"',
-  );
-  const root = await makeRepository({
-    "blueprint/content/changes/c/index.mdx": page,
-  });
-  await withStoreHistory(root, changePage());
-  assert.match(
-    (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
-    /gate-proposal-frozen/i,
+    /proposal\.mdx.*gate-mdx/is,
   );
 });
 
 async function makeG2Repository(files) {
   const { root, git } = await makeDecisionRepository();
   await writeFiles(root, {
-    "blueprint/content/changes/c/index.mdx":
-      "---\ntitle: C\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n<Review>\n\ny\n\n</Review>\n</ChangeTabs>\n",
+    ...inChange("c", changePage({ review: FULL_REVIEW })),
     ...files,
   });
   await git(["add", "-A"]);

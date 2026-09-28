@@ -14,18 +14,20 @@ import {
 } from "./blueprint-changes.js";
 import {
   assertValidMdx,
-  frozenPart,
+  frontmatterOf,
   git,
-  hasReview,
   inlineReviewSections,
-  proposalPart,
+  readChangeDir,
   REQUIRED_REVIEW_SECTIONS,
   resolveScopeBase,
   resultIds,
+  reviewFile,
   reviewSections,
   scenarioIds,
+  scenarios,
+  shardCount,
 } from "./change-page.js";
-import { changeSlugOf } from "./commitlint/plugin.js";
+import { changeSlugOf, parseChangeBranch } from "./commitlint/plugin.js";
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -339,28 +341,22 @@ function orUndefined(read) {
   }
 }
 
-async function readChangePage(directory) {
-  const indexPath = path.join(directory, "index.mdx");
-  return (await exists(indexPath)) ? readFile(indexPath, "utf8") : undefined;
-}
-
-function scenarioCount(content) {
-  return orUndefined(() => scenarioIds(content).length) ?? 0;
+function scenarioCount(proposal) {
+  return orUndefined(() => scenarioIds(proposal ?? "").length) ?? 0;
 }
 
 async function validateChangePages(directories) {
   const diagnostics = [];
 
   for (const directory of directories) {
-    const content = await readChangePage(directory);
-    if (content === undefined) continue;
+    const page = await readChangeDir(directory);
+    if (page.index === undefined) continue;
 
     const isComplete =
-      orUndefined(() => proposalPart(content).includes("<TLDR")) &&
-      scenarioCount(content) > 0;
+      page.proposal?.includes("<TLDR") && scenarioCount(page.proposal) > 0;
     if (!isComplete) {
       diagnostics.push(
-        `${BLUEPRINT_CHANGES}/${path.basename(directory)}/index.mdx [blueprint-proposal]: the Proposal tab must contain a TLDR and the page must export at least one scenario`,
+        `${BLUEPRINT_CHANGES}/${path.basename(directory)}/proposal.mdx [blueprint-proposal]: the Proposal must contain a TLDR and export at least one scenario`,
       );
     }
   }
@@ -396,12 +392,12 @@ async function validateSnippetLiterals(root, directories) {
   return diagnostics;
 }
 
-async function hasMigrationTrailer(root, base) {
+async function hasShardTrailer(root, base) {
   try {
     const trailers = await git(root, [
       "log",
       `${base}..HEAD`,
-      "--format=%(trailers:key=Migration,valueonly)",
+      "--format=%(trailers:key=Shard,valueonly)",
     ]);
     return trailers.length > 0;
   } catch {
@@ -409,8 +405,8 @@ async function hasMigrationTrailer(root, base) {
   }
 }
 
-// ADR-0065: soft target, never a hard failure -- a Migration
-// Change (commit trailer or --migration) is the only escape hatch.
+// ADR-0065: soft target, never a hard failure -- a Migration shard (its
+// Shard trailer, ADR-0093, or --migration) is the only escape hatch.
 async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
 
@@ -430,10 +426,10 @@ async function checkFileCountScope(root, options) {
 
   if (changedFiles.length <= CHANGE_SCOPE_SOFT_LIMIT) return [];
   if (options.migrationSlug) return [];
-  if (await hasMigrationTrailer(root, base)) return [];
+  if (await hasShardTrailer(root, base)) return [];
 
   return [
-    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; reference a Migration Proposal slug (commit trailer "Migration: <slug>" or --migration <slug>) or split the Change`,
+    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; deliver it as a Migration shard (branch <prefix>/<slug>-s<N>, commits carrying "Shard: <N>", or --migration <slug>) or split the Change`,
   ];
 }
 
@@ -442,13 +438,12 @@ async function checkFileCountScope(root, options) {
 // it again on every run teaches people to ignore the warning.
 async function checkChangeSizeWarnings(root, slug) {
   if (!slug) return [];
-  const directory = path.join(root, BLUEPRINT_CHANGES, slug);
-  const content = await readChangePage(directory);
-  if (content === undefined) return [];
-  const count = scenarioCount(content);
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.index === undefined) return [];
+  const count = scenarioCount(page.proposal);
   if (count <= SCENARIO_COUNT_SOFT_LIMIT) return [];
   return [
-    `${BLUEPRINT_CHANGES}/${slug}/index.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+    `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
   ];
 }
 
@@ -548,9 +543,10 @@ function frontmatterTitle(content) {
   return quoted ? quoted[2] : title;
 }
 
-// ADR-0075: what G1 accepted is compared with the most recent G1
-// publish on the store branch; no G1 publish there means nothing to compare.
-async function g1Frozen(root, slug) {
+// ADR-0095: what a gate accepted is compared, file by file, with the store
+// branch's most recent publish that matches; none there means nothing to
+// compare.
+async function acceptedFiles(root, slug, isAccepted, files) {
   let shas;
   try {
     const output = await git(root, [
@@ -569,8 +565,12 @@ async function g1Frozen(root, slug) {
       const facts = JSON.parse(
         await git(root, ["show", `${sha}:${slug}/facts.json`]),
       );
-      if (facts.gate !== "G1") continue;
-      return frozenPart(await git(root, ["show", `${sha}:${slug}/index.mdx`]));
+      if (!isAccepted(facts)) continue;
+      const accepted = {};
+      for (const file of files) {
+        accepted[file] = await git(root, ["show", `${sha}:${slug}/${file}`]);
+      }
+      return accepted;
     } catch {
       continue;
     }
@@ -582,64 +582,115 @@ async function refreshStore(root) {
   await fetchChanges(await resolveRemote(root), root);
 }
 
+async function currentBranch(root) {
+  return git(root, ["rev-parse", "--abbrev-ref", "HEAD"]).catch(() => "");
+}
+
 export async function checkChangePageGate(
   root,
   slug,
-  { refresh = refreshStore } = {},
+  { refresh = refreshStore, branch } = {},
 ) {
-  const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
-  const content = await readChangePage(changeDir);
-  if (content === undefined) return [];
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.index === undefined) return [];
 
-  const where = `${BLUEPRINT_CHANGES}/${slug}/index.mdx`;
+  const where = (file) => `${BLUEPRINT_CHANGES}/${slug}/${file}`;
   const diagnostics = [];
 
-  const title = frontmatterTitle(content);
+  const title = frontmatterTitle(page.index);
   if (!title || TAB_NAMES.has(title)) {
     diagnostics.push(
-      `${where} [gate-title]: title must be the Change's name, not empty or a tab name`,
+      `${where("index.mdx")} [gate-title]: title must be the Change's name, not empty or a tab name`,
     );
   }
 
-  try {
-    assertValidMdx(content);
-  } catch (error) {
+  const files = [
+    ["proposal.mdx", page.proposal],
+    ...page.reviews.map((review) => [review.file, review.content]),
+  ];
+  for (const [file, content] of files) {
+    if (content === undefined) continue;
+    try {
+      assertValidMdx(content);
+    } catch (error) {
+      diagnostics.push(
+        `${where(file)} [gate-mdx]: the file is not valid MDX — ${error.message.split("\n")[0]}`,
+      );
+    }
+  }
+  if (diagnostics.some((diagnostic) => diagnostic.includes("[gate-mdx]"))) {
+    return diagnostics;
+  }
+  if (page.proposal === undefined) {
     diagnostics.push(
-      `${where} [gate-mdx]: the page is not valid MDX — ${error.message.split("\n")[0]}`,
+      `${where("proposal.mdx")} [gate-proposal]: file is missing`,
     );
     return diagnostics;
   }
 
-  if (scenarioIds(content).some((id) => !id)) {
+  const count = shardCount(page.index);
+  const entries = scenarios(page.proposal);
+  if (entries.some((entry) => !entry.id)) {
     diagnostics.push(
-      `${where} [gate-scenario-shape]: every entry in scenarios needs an id`,
+      `${where("proposal.mdx")} [gate-scenario-shape]: every entry in scenarios needs an id`,
     );
   }
-
-  if (!hasReview(content)) return diagnostics;
-
-  const results = new Set(resultIds(content));
-  for (const id of scenarioIds(content)) {
-    if (!results.has(id)) {
+  if (count !== undefined) {
+    for (const entry of entries) {
+      if (
+        Number.isInteger(entry.shard) &&
+        entry.shard >= 1 &&
+        entry.shard <= count
+      ) {
+        continue;
+      }
       diagnostics.push(
-        `${where} [gate-scenario-results]: scenario ${id} has no result in ScenarioResults`,
+        `${where("proposal.mdx")} [gate-scenario-shape]: scenario ${entry.id} needs a shard from 1 to ${count}`,
       );
     }
   }
 
-  const sections = reviewSections(content);
+  const onBranch = parseChangeBranch(branch ?? (await currentBranch(root)));
+  const shard =
+    count !== undefined && onBranch?.slug === slug ? onBranch.shard : undefined;
+  if (count !== undefined && shard === undefined) {
+    diagnostics.push(
+      `${where("index.mdx")} [gate-branch-state]: a Migration's gate runs on a shard branch, <prefix>/${slug}-s<N>`,
+    );
+    return diagnostics;
+  }
+  for (const review of page.reviews) {
+    if ((review.shard === undefined) === (count === undefined)) continue;
+    diagnostics.push(
+      `${where(review.file)} [gate-review-file]: ${count === undefined ? "an ordinary Change's Review is review.mdx" : "a Migration's Reviews are review-s<N>.mdx"}`,
+    );
+  }
+
+  const review = page.reviews.find((candidate) => candidate.shard === shard);
+  if (!review) return diagnostics;
+
+  const results = new Set(resultIds(review.content));
+  for (const entry of entries) {
+    if (count !== undefined && entry.shard !== shard) continue;
+    if (results.has(entry.id)) continue;
+    diagnostics.push(
+      `${where(review.file)} [gate-scenario-results]: scenario ${entry.id} has no result in ScenarioResults`,
+    );
+  }
+
+  const sections = reviewSections(review.content);
   const missing = REQUIRED_REVIEW_SECTIONS.filter(
     (section) => !sections.includes(section),
   );
   if (missing.length > 0) {
     diagnostics.push(
-      `${where} [gate-review-sections]: the Review tab is missing ${missing.join(", ")}`,
+      `${where(review.file)} [gate-review-sections]: the Review is missing ${missing.join(", ")}`,
     );
   }
-  const inline = inlineReviewSections(content);
+  const inline = inlineReviewSections(review.content);
   if (inline.length > 0) {
     diagnostics.push(
-      `${where} [gate-review-sections]: write ${inline.join(", ")} with the opening and closing tags on their own lines`,
+      `${where(review.file)} [gate-review-sections]: write ${inline.join(", ")} with the opening and closing tags on their own lines`,
     );
   }
 
@@ -647,18 +698,41 @@ export async function checkChangePageGate(
     await refresh(root);
   } catch (error) {
     diagnostics.push(
-      `${where} [gate-proposal-frozen]: could not fetch the store branch to compare the Proposal with its G1 publish — ${error.message.split("\n")[0]}`,
+      `${where(review.file)} [gate-frozen]: could not fetch the store branch to compare accepted files with their publishes — ${error.message.split("\n")[0]}`,
     );
     return diagnostics;
   }
-  const accepted = await g1Frozen(root, slug);
+
+  const atG1 = await acceptedFiles(root, slug, (facts) => facts.gate === "G1", [
+    "index.mdx",
+    "proposal.mdx",
+  ]);
+  if (atG1 && atG1["proposal.mdx"].trim() !== page.proposal.trim()) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-frozen]: differs from the version published at G1; change it only by passing G1 again`,
+    );
+  }
   if (
-    accepted !== undefined &&
-    accepted.trim() !== frozenPart(content).trim()
+    atG1 &&
+    frontmatterOf(atG1["index.mdx"]).trim() !== frontmatterOf(page.index).trim()
   ) {
     diagnostics.push(
-      `${where} [gate-proposal-frozen]: the Proposal differs from the version published at G1; change it only by passing G1 again`,
+      `${where("index.mdx")} [gate-frozen]: the frontmatter differs from the version published at G1; change it only by passing G1 again`,
     );
+  }
+  for (const earlier of page.reviews) {
+    if (earlier.shard === undefined || earlier.shard === shard) continue;
+    const accepted = await acceptedFiles(
+      root,
+      slug,
+      (facts) => facts.gate === "G2" && facts.shards?.current === earlier.shard,
+      [reviewFile(earlier.shard)],
+    );
+    if (accepted && accepted[earlier.file].trim() !== earlier.content.trim()) {
+      diagnostics.push(
+        `${where(earlier.file)} [gate-frozen]: differs from the version shard ${earlier.shard} passed G2 with; change it only by passing that G2 again`,
+      );
+    }
   }
 
   return diagnostics;
@@ -747,16 +821,8 @@ export async function checkDecisionRecordLength(root) {
 // WORKFLOW's Pre-PR step 2 settles the Changeset before code review; a
 // Changeset written after review reopens the review loop.
 export async function checkChangesetAtG2(root, slug) {
-  let content;
-  try {
-    content = await readFile(
-      path.join(root, "blueprint/content/changes", slug, "index.mdx"),
-      "utf8",
-    );
-  } catch {
-    return [];
-  }
-  if (!hasReview(content)) return [];
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.reviews.length === 0) return [];
 
   const base = await resolveScopeBase(root);
   let changed;
