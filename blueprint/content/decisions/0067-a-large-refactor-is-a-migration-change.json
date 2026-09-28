@@ -8,5 +8,6 @@
   "consequences": [
     "A Migration trailer suppresses the src-file-count warning for its shards."
   ],
-  "originChange": "two-gate-workflow"
+  "originChange": "two-gate-workflow",
+  "supersededBy": "0093"
 }

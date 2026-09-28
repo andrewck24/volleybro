@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "0097",
+  "title": "The gate rebuilds the branch preview through the cf CLI and reads its result once",
+  "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
+  "context": "Pushing a Change branch starts its Cloudflare branch-preview build before the gate publishes the page, so the preview never shows the page just published and had to be rebuilt by hand from the Cloudflare dashboard.",
+  "decision": "After publishing, pnpm blueprint:gate starts a branch-preview build of the Blueprint Worker for the current branch through the cf CLI, then reads that build's status once and reports it, without polling. When cf is not signed in or the call fails, the gate prints the manual rebuild instruction instead and does not fail. cf is a devDependency with a caret range, not pinned.",
+  "alternatives": [
+    {
+      "option": "Call the Workers Builds REST API directly",
+      "reason": "It needs a user-scoped API token created, stored and rotated by hand, where cf signs in once through OAuth."
+    },
+    {
+      "option": "Keep rebuilding by hand",
+      "reason": "Every gate would still need a trip to the Cloudflare dashboard."
+    }
+  ],
+  "consequences": [
+    "Each Linear cycle's package update checks for major bumps and for visible API changes in pre-release packages such as cf (docs/maintenance-policy.md)."
+  ],
+  "revisitTriggers": [
+    "cf leaves beta: confirm its build commands are unchanged before taking the release."
+  ],
+  "originChange": "migration-single-page"
+}

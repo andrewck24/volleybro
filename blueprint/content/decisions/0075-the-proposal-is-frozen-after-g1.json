@@ -15,5 +15,6 @@
     "A Change with no G1 publish in the store history, such as an old-format page, is skipped rather than failed.",
     "facts.json is outside the comparison, since it is regenerated at every publish."
   ],
-  "originChange": "single-page-change"
+  "originChange": "single-page-change",
+  "supersededBy": "0095"
 }

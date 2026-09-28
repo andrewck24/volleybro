@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "id": "0096",
+  "title": "Figures are measured per shard, and the header shows the migration's progress",
+  "capabilities": ["platform/blueprint"],
+  "context": "Every figure on a Change page is measured from one branch against dev, or from the commit that landed it. A Migration's shards land through several branches and pull requests.",
+  "decision": "facts.json of a Migration holds each shard's own figures, measured from its branch or from the commit that landed it, together with their totals. The page header shows which shard is current, its gate, how many shards have merged out of how many, and the totals; each Review tab opens with its own shard's figures. The Changes index card shows the same progress. A Migration starts at its first shard's first commit and is archived only when its last shard lands.",
+  "alternatives": [
+    {
+      "option": "Show only the totals",
+      "reason": "The first thing a reader asks of a migration, which shard it is on and what waits for them, would not be answered."
+    },
+    {
+      "option": "Show only the latest shard",
+      "reason": "The size of the migration so far would be invisible."
+    }
+  ],
+  "consequences": [
+    "The ordering of ADR-0078 is unchanged: a Migration sorts by its start, then by its archive once every shard has landed."
+  ],
+  "originChange": "migration-single-page"
+}

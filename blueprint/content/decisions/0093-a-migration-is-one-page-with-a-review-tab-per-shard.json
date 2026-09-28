@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "0093",
+  "title": "A Migration Change is one page with a Review tab per shard",
+  "capabilities": ["platform/delivery-workflow", "platform/blueprint"],
+  "context": "Each shard of a Migration was its own Change with its own slug and page, so following one migration meant reading several pages and the shard pages repeated the Migration's Proposal. The acceptance scenarios of the whole migration could not be checked at any single shard's G2.",
+  "decision": "A Migration Change is one page: one Proposal, accepted once at G1, and one Review tab per shard, each accepted at that shard's own G2. A shard has no slug of its own: its branch is <prefix>/<migration-slug>-s<N>, the first shard included, and its commits carry Blueprint-Change: <migration-slug> and Shard: <N>. The frontmatter states the number of shards. Every acceptance scenario names the shard that proves it, and a shard's G2 requires a result for each of its own scenarios and no others.",
+  "alternatives": [
+    {
+      "option": "Keep one Change page per shard",
+      "reason": "A reader pieces the migration together from several pages, and each shard page repeats the Proposal."
+    },
+    {
+      "option": "Keep a slug per shard and list the shard pages on the Migration page",
+      "reason": "A mapping from shard slugs to their Migration would have to be maintained by hand."
+    },
+    {
+      "option": "Let a scenario wait for a later shard without naming it",
+      "reason": "Which shard owes a scenario would stay unknown until the last G2."
+    }
+  ],
+  "consequences": [
+    "The Migration commit trailer is no longer used; a shard is known by its branch suffix and its Shard trailer.",
+    "An ordinary Change keeps its unsuffixed branch and a single Review tab."
+  ],
+  "originChange": "migration-single-page"
+}
