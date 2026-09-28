@@ -18,7 +18,9 @@ export function ChangeHeader({
     <header className="not-prose mb-6 flex flex-col gap-3">
       <h1 className="text-3xl font-semibold">{title}</h1>
       <div className="flex flex-wrap items-center gap-2">
-        {facts.gate && <Badge>{gateLabel(facts)}</Badge>}
+        {(facts.gate || facts.shards?.current) && (
+          <Badge>{gateLabel(facts)}</Badge>
+        )}
         {mergedLabel(facts) && (
           <Badge variant="secondary">{mergedLabel(facts)}</Badge>
         )}

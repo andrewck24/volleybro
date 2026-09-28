@@ -544,8 +544,10 @@ function frontmatterTitle(content) {
 }
 
 // ADR-0095: what a gate accepted is compared, file by file, with the store
-// branch's most recent publish that matches; none there means nothing to
-// compare.
+// branch's most recent commit of the page that matches — a publish, or a
+// conversion that rewrote the page's files without its facts. None there means
+// nothing to compare; one that predates the split layout is reported, not
+// passed.
 async function acceptedFiles(root, slug, isAccepted, files) {
   let shas;
   try {
@@ -554,29 +556,37 @@ async function acceptedFiles(root, slug, isAccepted, files) {
       "--format=%H",
       REMOTE_REF,
       "--",
-      `${slug}/facts.json`,
+      `${slug}/`,
     ]);
     shas = output ? output.split("\n") : [];
   } catch {
     return undefined;
   }
   for (const sha of shas) {
+    let facts;
     try {
-      const facts = JSON.parse(
+      facts = JSON.parse(
         await git(root, ["show", `${sha}:${slug}/facts.json`]),
       );
-      if (!isAccepted(facts)) continue;
-      const accepted = {};
-      for (const file of files) {
-        accepted[file] = await git(root, ["show", `${sha}:${slug}/${file}`]);
-      }
-      return accepted;
     } catch {
       continue;
     }
+    if (!isAccepted(facts)) continue;
+    const accepted = {};
+    for (const file of files) {
+      try {
+        accepted[file] = await git(root, ["show", `${sha}:${slug}/${file}`]);
+      } catch {
+        return { predatesSplit: true };
+      }
+    }
+    return accepted;
   }
   return undefined;
 }
+
+const PREDATES_SPLIT =
+  "was accepted before pages were split into a file per tab, so there is nothing to compare; publish it again at its gate to record a comparable version";
 
 async function refreshStore(root) {
   await fetchChanges(await resolveRemote(root), root);
@@ -707,30 +717,42 @@ export async function checkChangePageGate(
     "index.mdx",
     "proposal.mdx",
   ]);
-  if (atG1 && atG1["proposal.mdx"].trim() !== page.proposal.trim()) {
+  if (atG1?.predatesSplit) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-frozen]: ${PREDATES_SPLIT}`,
+    );
+  } else if (atG1 && atG1["proposal.mdx"].trim() !== page.proposal.trim()) {
     diagnostics.push(
       `${where("proposal.mdx")} [gate-frozen]: differs from the version published at G1; change it only by passing G1 again`,
     );
   }
   if (
     atG1 &&
+    !atG1.predatesSplit &&
     frontmatterOf(atG1["index.mdx"]).trim() !== frontmatterOf(page.index).trim()
   ) {
     diagnostics.push(
       `${where("index.mdx")} [gate-frozen]: the frontmatter differs from the version published at G1; change it only by passing G1 again`,
     );
   }
-  for (const earlier of page.reviews) {
-    if (earlier.shard === undefined || earlier.shard === shard) continue;
+  for (let earlier = 1; earlier <= (count ?? 0); earlier += 1) {
+    if (earlier === shard) continue;
+    const file = reviewFile(earlier);
     const accepted = await acceptedFiles(
       root,
       slug,
-      (facts) => facts.gate === "G2" && facts.shards?.current === earlier.shard,
-      [reviewFile(earlier.shard)],
+      (facts) => facts.gate === "G2" && facts.shards?.current === earlier,
+      [file],
     );
-    if (accepted && accepted[earlier.file].trim() !== earlier.content.trim()) {
+    if (!accepted || accepted.predatesSplit) continue;
+    const local = page.reviews.find((review) => review.shard === earlier);
+    if (!local) {
       diagnostics.push(
-        `${where(earlier.file)} [gate-frozen]: differs from the version shard ${earlier.shard} passed G2 with; change it only by passing that G2 again`,
+        `${where(file)} [gate-frozen]: shard ${earlier} passed G2 with this file, which is now missing; restore it`,
+      );
+    } else if (accepted[file].trim() !== local.content.trim()) {
+      diagnostics.push(
+        `${where(file)} [gate-frozen]: differs from the version shard ${earlier} passed G2 with; change it only by passing that G2 again`,
       );
     }
   }

@@ -34,6 +34,18 @@ describe("ChangeHeader", () => {
     expect(screen.getByText("1/4 merged")).toBeInTheDocument();
   });
 
+  it("shows a later shard with no Review yet without a gate", () => {
+    render(
+      <ChangeHeader
+        title="Testing Tiers"
+        capabilities={[]}
+        facts={{ shards: { count: 4, current: 2, merged: 1, items: [] } }}
+      />,
+    );
+
+    expect(screen.getByText("Shard 2/4")).toBeInTheDocument();
+  });
+
   it("hides figures that are null or zero", () => {
     render(
       <ChangeHeader

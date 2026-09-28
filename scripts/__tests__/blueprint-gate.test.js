@@ -133,10 +133,23 @@ test("--gate G1 publishes the Proposal alone before the whole page", async (t) =
   assert.equal(await storeFile(bare, whole, "review.mdx"), REVIEW_FILE);
 });
 
-test("the preview rebuild starts a build on the preview trigger and reads it once", async () => {
+test("the preview rebuild starts a build on the preview trigger and reads it once", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "rebuild-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "blueprint"));
+  await writeFile(
+    path.join(root, "blueprint", "wrangler.toml"),
+    'name = "docs-site"\n',
+  );
   const calls = [];
   const cf = async (_root, args) => {
-    calls.push(args.slice(0, 3).join(" "));
+    calls.push(args.join(" "));
+    if (args[0] === "workers") {
+      return [
+        { id: "other", script_name: "docs-site-old" },
+        { id: "tag1", script_name: "docs-site" },
+      ];
+    }
     if (args[1] === "triggers") {
       return [
         { trigger_uuid: "prod", branch_includes: ["dev"] },
@@ -146,10 +159,11 @@ test("the preview rebuild starts a build on the preview trigger and reads it onc
     if (args[1] === "create") return { build_uuid: "b1" };
     return { status: "queued" };
   };
-  const message = await rebuildPreview("/repo", "feat/gamma", { cf });
+  const message = await rebuildPreview(root, "feat/gamma", { cf });
   assert.deepEqual(calls, [
-    "builds triggers list",
-    "builds create preview",
+    "workers scripts search --name docs-site",
+    "builds triggers list --external-script-id tag1",
+    'builds create preview --body {"branch":"feat/gamma"}',
     "builds get b1",
   ]);
   assert.match(message, /build b1 started \(queued\)/);
@@ -161,7 +175,7 @@ test("the preview rebuild falls back to the manual instruction when cf fails", a
   };
   assert.match(
     await rebuildPreview("/repo", "feat/gamma", { cf }),
-    /Not logged in.*auth login.*Cloudflare dashboard/,
+    /through cf: .*auth login.*Cloudflare dashboard/,
   );
 });
 

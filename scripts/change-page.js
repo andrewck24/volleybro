@@ -76,7 +76,6 @@ function stringOf(value) {
   return undefined;
 }
 
-// A scenario's shard is the one number an entry carries (ADR-0093).
 function valueOf(value) {
   if (value?.type === "Literal" && typeof value.value === "number") {
     return value.value;
@@ -288,12 +287,12 @@ export async function landingOf(root, base, slug, shard) {
 
 // A merged Change is measured by what landed it, so republishing it from
 // another branch cannot pick up that branch's diff.
-async function measure(root, base, landing) {
-  const range = landing ? [landing.from, landing.to] : [`${base}...HEAD`];
+async function measure(root, base, landing, head = "HEAD") {
+  const range = landing ? [landing.from, landing.to] : [`${base}...${head}`];
   const stat = await orNull(async () =>
     parseShortstat(await git(root, ["diff", "--shortstat", ...range])),
   );
-  const commitRange = landing ? landing.commitRange : `${base}..HEAD`;
+  const commitRange = landing ? landing.commitRange : `${base}..${head}`;
   // ADR-0078: a Change starts at its first commit.
   const startedAt = await orNull(async () => {
     const [first] = (
@@ -347,6 +346,20 @@ function totals(items) {
   );
 }
 
+// A shard neither landed nor checked out is measured from its pushed branch.
+async function pushedShard(root, slug, shard) {
+  const refs = await orNull(() =>
+    git(root, [
+      "for-each-ref",
+      "--format=%(refname)",
+      ...CHANGE_BRANCH_PREFIXES.map(
+        (prefix) => `refs/remotes/origin/${prefix}/${slug}-s${shard}`,
+      ),
+    ]),
+  );
+  return refs?.split("\n").find(Boolean);
+}
+
 // ADR-0074: every figure a page shows comes from here, never from the writer.
 // ADR-0096: a Migration is measured shard by shard, then totalled.
 export async function changeFacts(
@@ -387,13 +400,21 @@ export async function changeFacts(
   const current = branch?.slug === slug ? branch.shard : undefined;
   const reviewed = new Set(page.reviews.map((review) => review.shard));
   const items = [];
+  // Only the first shard carries G1; a later one is at no gate until its G2,
+  // so its publishes never become the Proposal's baseline (ADR-0095).
+  const gateOf = (shard) =>
+    reviewed.has(shard) ? "G2" : shard === 1 ? "G1" : undefined;
   for (let shard = 1; shard <= count; shard += 1) {
     const landing = await orNull(() => landingOf(root, base, slug, shard));
-    if (!landing && shard !== current) continue;
+    const head =
+      landing || shard === current
+        ? "HEAD"
+        : await pushedShard(root, slug, shard);
+    if (!head) continue;
     items.push({
       shard,
-      gate: reviewed.has(shard) ? "G2" : "G1",
-      ...(await measure(root, base, landing)),
+      gate: gateOf(shard),
+      ...(await measure(root, base, landing, head)),
     });
   }
   const merged = items.filter((item) => item.archivedAt);
@@ -401,9 +422,8 @@ export async function changeFacts(
     .map((item) => item.startedAt)
     .filter(Boolean)
     .sort();
-  const hasReview = current ? reviewed.has(current) : reviewed.size > 0;
   return {
-    gate: hasReview ? "G2" : "G1",
+    gate: current ? gateOf(current) : reviewed.size > 0 ? "G2" : "G1",
     ...common,
     startedAt: started[0] ?? firstPublishedAt ?? now.toISOString(),
     archivedAt:

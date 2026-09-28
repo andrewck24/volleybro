@@ -883,6 +883,50 @@ test("an earlier shard's accepted Review is frozen at its G2", async () => {
   );
 });
 
+test("an earlier shard's accepted Review that went missing is reported", async () => {
+  const root = await makeRepository(
+    inChange(
+      "c",
+      changePage({ shards: 2, reviews: { 2: reviewWithResults("S2") } }),
+    ),
+  );
+  await withStoreHistory(root, [
+    { files: changePage({ shards: 2 }), facts: { gate: "G1" } },
+    {
+      files: changePage({
+        shards: 2,
+        reviews: { 1: reviewWithResults("S1") },
+      }),
+      facts: { gate: "G2", shards: { current: 1 } },
+    },
+  ]);
+  assert.match(
+    (
+      await checkChangePageGate(root, "c", {
+        refresh: noop,
+        branch: "refactor/c-s2",
+      })
+    ).join("\n"),
+    /review-s1\.mdx.*gate-frozen.*now missing/is,
+  );
+});
+
+test("a G1 publish from before pages were split is reported, not passed", async () => {
+  const root = await makeRepository(
+    inChange("c", changePage({ review: FULL_REVIEW })),
+  );
+  await withStoreHistory(root, [
+    {
+      files: { "index.mdx": "---\ntitle: Sample\n---\n\nold single page\n" },
+      facts: { gate: "G1" },
+    },
+  ]);
+  assert.match(
+    (await checkChangePageGate(root, "c", { refresh: noop })).join("\n"),
+    /proposal\.mdx.*gate-frozen.*before pages were split/is,
+  );
+});
+
 test("page gate reports a Review section written on one line", async () => {
   const review = FULL_REVIEW.replace(
     "<Deviations>\n\n無\n\n</Deviations>",

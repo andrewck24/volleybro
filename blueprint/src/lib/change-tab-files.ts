@@ -4,8 +4,7 @@ import { changeTabs } from "../../.source/server";
 
 import type { TabBody } from "@/components/ChangeTabs";
 
-// ADR-0094: proposal.mdx, then review.mdx for an ordinary Change or
-// review-s<N>.mdx for each shard of a Migration.
+// ADR-0094.
 const TAB_FILE = /^([^/]+)\/(proposal|review)(?:-s([1-9]\d*))?\.mdx$/;
 
 export type ChangeTabFiles = {

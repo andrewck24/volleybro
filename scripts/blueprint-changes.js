@@ -470,9 +470,12 @@ export async function publish(
       const changed = await applyChange(tmpDir, slug, localSlugDir, {
         proposalOnly,
       });
+      // The store holds less than the directory after a proposal-only
+      // publish, so recording its hash would let a pull overwrite the Reviews.
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       }
 
@@ -488,7 +491,8 @@ export async function publish(
         await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
           cwd: tmpDir,
         });
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       } catch (error) {
         if (

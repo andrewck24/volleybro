@@ -228,7 +228,7 @@ A Change targets soft limits before it needs splitting: at most 5 slices, at mos
 
 A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the existing test suite plus a dependency-direction check) or a **behavior** change, never both.
 
-The escape hatch is a **Migration Change**: one page and one Proposal, accepted once at G1, covering the whole migration — its shard list, order, per-shard proof of behavior preservation, and completion criteria, with every acceptance scenario naming the shard that proves it (ADR-0093). Each shard is its own pull request on a `<prefix>/<migration-slug>-s<N>` branch, the first included; it skips G1 and passes G2 on its own Review tab, which asks for results only for its own scenarios. A single Linear tracking issue links every shard. The Migration's decision record is written once, when the migration decision is made; the shards do not repeat it.
+The escape hatch is a **Migration Change**: one page and one Proposal, accepted once at G1, covering the whole migration — its shard list, order, per-shard proof of behavior preservation, and completion criteria, with every acceptance scenario naming the shard that proves it (ADR-0093). Each shard is its own pull request on a `<prefix>/<migration-slug>-s<N>` branch, the first included. The first shard's branch carries the Migration's G1; every shard passes G2 on its own Review tab, which asks for results only for its own scenarios. A single Linear tracking issue links every shard. The Migration's decision record is written once, when the migration decision is made; the shards do not repeat it.
 
 ### Fix path
 

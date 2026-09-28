@@ -122,6 +122,56 @@ function shardTwoReview(shard) {
   return `${shard.esm}\n\n${review.trim()}\n\n<ReviewDetails>\n\n### 原為獨立 Change 頁時的 Proposal\n\n由舊格式機械轉換：這個 shard 原本是 \`${SHARD}\` 自己的 Change 頁，以下是它當時的 Proposal 原文。\n\n${proposal}\n\n</ReviewDetails>\n`;
 }
 
+const FIGURES = [
+  "commits",
+  "filesChanged",
+  "insertions",
+  "deletions",
+  "srcFilesChanged",
+];
+
+async function foldShard(store, shard) {
+  const migrationDir = path.join(store, MIGRATION);
+  await writeFile(
+    path.join(migrationDir, "review-s2.mdx"),
+    shardTwoReview(shard),
+  );
+  const [first, second] = await Promise.all(
+    [MIGRATION, SHARD].map(async (slug) =>
+      JSON.parse(await readFile(path.join(store, slug, "facts.json"), "utf8")),
+    ),
+  );
+  const item = (number, facts) => ({
+    shard: number,
+    gate: "G2",
+    startedAt: facts.startedAt,
+    archivedAt: facts.archivedAt,
+    ...Object.fromEntries(FIGURES.map((key) => [key, facts[key] ?? null])),
+  });
+  const items = [item(1, first), item(2, second)];
+  await writeFile(
+    path.join(migrationDir, "facts.json"),
+    `${JSON.stringify(
+      {
+        ...first,
+        converted: true,
+        ...Object.fromEntries(
+          FIGURES.map((key) => [
+            key,
+            items.reduce((sum, i) => sum + (i[key] ?? 0), 0),
+          ]),
+        ),
+        archivedAt: [first.archivedAt, second.archivedAt].sort().at(-1),
+        decisions: [...new Set([...first.decisions, ...second.decisions])],
+        shards: { count: 2, merged: 2, items },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  await rm(path.join(store, SHARD), { recursive: true });
+}
+
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const local = process.argv.includes("--local");
@@ -169,54 +219,8 @@ async function main() {
       }
     }
 
-    const migrationDir = path.join(store, MIGRATION);
-    await writeFile(
-      path.join(migrationDir, "review-s2.mdx"),
-      shardTwoReview(split[SHARD]),
-    );
-    const [first, second] = await Promise.all(
-      [MIGRATION, SHARD].map(async (slug) =>
-        JSON.parse(
-          await readFile(path.join(store, slug, "facts.json"), "utf8"),
-        ),
-      ),
-    );
-    const figures = [
-      "commits",
-      "filesChanged",
-      "insertions",
-      "deletions",
-      "srcFilesChanged",
-    ];
-    const item = (shard, facts) => ({
-      shard,
-      gate: "G2",
-      startedAt: facts.startedAt,
-      archivedAt: facts.archivedAt,
-      ...Object.fromEntries(figures.map((key) => [key, facts[key] ?? null])),
-    });
-    const items = [item(1, first), item(2, second)];
-    await writeFile(
-      path.join(migrationDir, "facts.json"),
-      `${JSON.stringify(
-        {
-          ...first,
-          converted: true,
-          ...Object.fromEntries(
-            figures.map((key) => [
-              key,
-              items.reduce((sum, i) => sum + (i[key] ?? 0), 0),
-            ]),
-          ),
-          archivedAt: [first.archivedAt, second.archivedAt].sort().at(-1),
-          decisions: [...new Set([...first.decisions, ...second.decisions])],
-          shards: { count: 2, merged: 2, items },
-        },
-        null,
-        2,
-      )}\n`,
-    );
-    await rm(path.join(store, SHARD), { recursive: true });
+    if (split[SHARD]) await foldShard(store, split[SHARD]);
+    else console.log(`${SHARD} is already folded into ${MIGRATION}`);
     if (local) return;
 
     await git(store, ["add", "-A"]);

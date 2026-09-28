@@ -5,7 +5,6 @@ import path from "node:path";
 
 const CHANGES_ROOT = path.join(process.cwd(), "content", "changes");
 
-// ADR-0096: one shard of a Migration, measured on its own.
 export type ShardFacts = {
   shard: number;
   gate?: "G1" | "G2";

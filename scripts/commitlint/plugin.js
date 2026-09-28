@@ -77,9 +77,16 @@ export function evaluateChangeBranchTrailer(branchName, message) {
       message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fixPathSuffix(prefix, slug)}`,
     };
   }
-  if (shard === undefined) return { ok: true };
-
   const shardValue = trailers.get("shard")?.[0];
+  if (shard === undefined) {
+    return shardValue === undefined
+      ? { ok: true }
+      : {
+          ok: false,
+          message: `branch "${branchName}" is not a Migration shard branch, so the commit must not carry "Shard: ${shardValue}"; a shard branch ends in -s<N>.`,
+        };
+  }
+
   if (shardValue !== String(shard)) {
     return {
       ok: false,

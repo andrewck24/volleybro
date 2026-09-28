@@ -111,6 +111,15 @@ test("a shard branch needs the Migration's slug and its own shard number", () =>
   );
 });
 
+test("a Shard trailer on an ordinary Change branch is rejected", () => {
+  const verdict = evaluateChangeBranchTrailer(
+    "refactor/my-slug",
+    "refactor(x): subject\n\nbody.\n\nBlueprint-Change: my-slug\nShard: 2",
+  );
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.message, /not a Migration shard branch/);
+});
+
 test("no trailer on dev, hotfix/*, or any other non-Change branch passes", () => {
   const message = "chore(x): subject\n\nbody.";
   for (const branch of [

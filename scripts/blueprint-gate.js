@@ -52,23 +52,34 @@ async function runCheckWorkflow(root, slug) {
 const CF = "cf@^1.0.0-beta.5";
 
 // Through pnpm's own entry script, which the gate's pnpm run sets, because
-// Windows cannot spawn the pnpm shim without a shell. cf prints JSON; it runs
-// from blueprint/, whose wrangler.toml names the Worker.
+// Windows cannot spawn the pnpm shim without a shell.
 async function runCf(root, args) {
   const pnpm = process.env.npm_execpath;
   if (!pnpm) throw new Error("run the gate through pnpm blueprint:gate");
   const { stdout } = await execFileAsync(
     process.execPath,
     [pnpm, "dlx", CF, ...args],
-    { cwd: path.join(root, "blueprint") },
+    { cwd: path.join(root, "blueprint"), timeout: 120_000 },
   );
   return JSON.parse(stdout.slice(stdout.search(/[[{]/)));
 }
 
+const listOf = (value) =>
+  Array.isArray(value) ? value : (value?.result ?? []);
+
+async function workerName(root) {
+  const config = await readFile(
+    path.join(root, "blueprint", "wrangler.toml"),
+    "utf8",
+  );
+  const name = config.match(/^name\s*=\s*"([^"]+)"/m)?.[1];
+  if (!name) throw new Error("blueprint/wrangler.toml names no Worker");
+  return name;
+}
+
 // The preview trigger is the one that does not build the production branch.
 function previewTrigger(triggers) {
-  const list = Array.isArray(triggers) ? triggers : (triggers?.result ?? []);
-  return list.find(
+  return listOf(triggers).find(
     (trigger) =>
       !(trigger.branch_includes ?? []).some((branch) =>
         ["dev", "main"].includes(branch),
@@ -76,12 +87,22 @@ function previewTrigger(triggers) {
   );
 }
 
-// ADR-0097: the push that preceded the publish built the preview without the
-// page, so the gate starts one more build and reads its status once.
+// ADR-0097.
 export async function rebuildPreview(root, branch, { cf = runCf } = {}) {
   try {
+    const name = await workerName(root);
+    const worker = listOf(
+      await cf(root, ["workers", "scripts", "search", "--name", name]),
+    ).find((script) => script.script_name === name);
+    if (!worker) throw new Error(`no Worker named ${name}`);
     const trigger = previewTrigger(
-      await cf(root, ["builds", "triggers", "list"]),
+      await cf(root, [
+        "builds",
+        "triggers",
+        "list",
+        "--external-script-id",
+        worker.id,
+      ]),
     );
     if (!trigger) throw new Error("no branch-preview trigger found");
     const started = await cf(root, [
@@ -96,7 +117,7 @@ export async function rebuildPreview(root, branch, { cf = runCf } = {}) {
     const status = build.status ?? build.result?.status ?? "unknown";
     return `Branch preview build ${uuid} started (${status}); read it again with \`pnpm dlx ${CF} builds get ${uuid}\` before handing the gate over.`;
   } catch (error) {
-    return `Could not start a branch preview build through cf (${error.message.split("\n")[0]}); sign in with \`pnpm dlx ${CF} auth login\`, or rerun the branch build from the Cloudflare dashboard.`;
+    return `Could not start a branch preview build through cf: ${error.message.split("\n")[0]}. If cf is not signed in, run \`pnpm dlx ${CF} auth login\`; otherwise rerun the branch build from the Cloudflare dashboard.`;
   }
 }
 

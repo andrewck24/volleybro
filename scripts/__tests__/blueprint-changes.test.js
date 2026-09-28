@@ -616,6 +616,10 @@ test("publish measures a Migration shard by shard and totals the shards", async 
     "feat/gamma-s1",
   ]);
   await commit("feat/gamma-s2", "b.ts", "x\ny\nz\n", 2);
+  // Shard 2 is pushed but not merged; shard 3 is the branch being published.
+  await workGit(["update-ref", "refs/remotes/origin/feat/gamma-s2", "HEAD"]);
+  await workGit(["checkout", "-q", "dev"]);
+  await commit("feat/gamma-s3", "c.ts", "q\n", 3);
   const dir = await writeChangePage(work, "gamma", { shards: 3 });
   await writeFile(
     path.join(dir, "review-s1.mdx"),
@@ -627,10 +631,12 @@ test("publish measures a Migration shard by shard and totals the shards", async 
   const facts = JSON.parse(
     await readFile(path.join(dir, "facts.json"), "utf8"),
   );
-  assert.equal(facts.gate, "G1");
+  // A shard after the first is at no gate until its G2, so this publish can
+  // never stand for the Proposal's G1.
+  assert.equal(facts.gate, undefined);
   assert.deepEqual(
     { ...facts.shards, items: undefined },
-    { count: 3, current: 2, merged: 1, items: undefined },
+    { count: 3, current: 3, merged: 1, items: undefined },
   );
   assert.deepEqual(
     facts.shards.items.map(({ shard, gate, commits, insertions }) => [
@@ -641,12 +647,26 @@ test("publish measures a Migration shard by shard and totals the shards", async 
     ]),
     [
       [1, "G2", 1, 2],
-      [2, "G1", 1, 3],
+      [2, undefined, 1, 3],
+      [3, undefined, 1, 1],
     ],
   );
-  assert.equal(facts.commits, 2);
-  assert.equal(facts.insertions, 5);
+  assert.equal(facts.commits, 3);
+  assert.equal(facts.insertions, 6);
   assert.equal(facts.archivedAt, null);
+});
+
+test("a failed publish after a proposal-only one leaves the Reviews to the next pull", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+  await withRemote(bare, () => pull(work));
+
+  assert.equal(
+    await readFile(path.join(dir, "review.mdx"), "utf8"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
 });
 
 test("publish without its Review files ships the Proposal alone", async (t) => {
