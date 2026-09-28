@@ -18,6 +18,22 @@ describe("ChangeHeader", () => {
     expect(screen.getByText("G2 Review")).toBeInTheDocument();
   });
 
+  it("shows a Migration's current shard, its gate and how many have merged", () => {
+    render(
+      <ChangeHeader
+        title="Testing Tiers"
+        capabilities={[]}
+        facts={{
+          gate: "G2",
+          shards: { count: 4, current: 2, merged: 1, items: [] },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Shard 2/4 · G2 Review")).toBeInTheDocument();
+    expect(screen.getByText("1/4 merged")).toBeInTheDocument();
+  });
+
   it("hides figures that are null or zero", () => {
     render(
       <ChangeHeader

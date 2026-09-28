@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GATE_LABEL } from "@/lib/change-gate";
+import { gateLabel } from "@/lib/change-gate";
 import {
   type ChangeFacts,
   readCapabilities,
@@ -36,7 +36,7 @@ function changeState(facts: ChangeFacts): ChangeSummary["state"] {
   if (facts.converted && !facts.gate) {
     return { label: "draft", status: "draft" };
   }
-  return { label: GATE_LABEL[facts.gate ?? "G1"], status: "in-progress" };
+  return { label: gateLabel(facts), status: "in-progress" };
 }
 
 function changePages(): Dated[] {

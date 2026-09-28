@@ -27,6 +27,15 @@ When upgrading any package to a new major version:
 
 ---
 
+## Each Cycle's Package Update
+
+Every Linear cycle's package update checks two things before merging:
+
+- **Major bumps**, handled as above.
+- **Pre-release packages**, such as `cf` at `1.0.0-beta`: a caret range takes every later pre-release of the same version, and a pre-release may change commands or output without a major bump. Read its changelog and run what the repository calls it for; for `cf`, that is `pnpm blueprint:gate` on a Change branch (ADR-0097).
+
+---
+
 ## Constraints an Upgrade Adds to Existing Data
 
 A dependency that owns a schema can introduce a **constraint** in a minor version, and apply it to data written long before it existed. Better Auth 1.7 added a unique index over `(issuer, accountId)` on the accounts collection; its Mongo adapter creates that index **lazily, on the first write** rather than at install time. Records from the previous auth library carried neither indexed field, so every one of them presented the key `(null, null)`, the index could never build, and the failure was returned to whichever write happened to trigger it. Nobody could sign in — including users whose own records were entirely current.

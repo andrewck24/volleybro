@@ -32,21 +32,21 @@ This file is VolleyBro's canonical provider-neutral delivery contract. A develop
 
 ## Repository profile
 
-| Responsibility                         | VolleyBro binding                                                                                                                                                                     |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Integration branch and default PR base | `dev`                                                                                                                                                                                 |
-| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                                                     |
-| Fix path branch                        | `hotfix/<slug>`, whatever the commit type                                                                                                                                             |
-| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                                                     |
-| Section gate                           | `pnpm verify`                                                                                                                                                                         |
-| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                                         |
-| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                                                |
-| Change review surface                  | `blueprint/content/changes/<slug>/index.mdx`, one page with Proposal and Review tabs; gitignored on the Change branch, published to the `blueprint-changes` store branch at each gate |
-| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                                         |
-| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change                                                                                                          |
-| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                                                      |
-| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                                           |
-| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                                                |
+| Responsibility                         | VolleyBro binding                                                                                                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integration branch and default PR base | `dev`                                                                                                                                                                                                           |
+| Change branches                        | `feat/<slug>`, `fix/<slug>`, or `refactor/<slug>`                                                                                                                                                               |
+| Fix path branch                        | `hotfix/<slug>`, whatever the commit type                                                                                                                                                                       |
+| Targeted repository gate               | Narrowest applicable tests, lint, and type checks                                                                                                                                                               |
+| Section gate                           | `pnpm verify`                                                                                                                                                                                                   |
+| Final gate                             | `pnpm verify:all` — lanes scoped to the diff against `dev`; `--full` runs all                                                                                                                                   |
+| Intake and active work                 | Linear issues, statuses, relations, dependencies, priority, milestones                                                                                                                                          |
+| Change review surface                  | `blueprint/content/changes/<slug>/`, one page with a Proposal tab and a Review tab per shard, one file per tab; gitignored on the Change branch, published to the `blueprint-changes` store branch at each gate |
+| Canonical current capability knowledge | `blueprint/content/features/`                                                                                                                                                                                   |
+| Execution plan                         | Linear sub-issues under the Change's issue; skipped for a one-session Change                                                                                                                                    |
+| Version and changelog evidence         | `.changeset/` through Changesets                                                                                                                                                                                |
+| Provider-neutral workpad               | One persistent Linear comment, kept only by unattended runs                                                                                                                                                     |
+| Optional orchestration                 | Symphony run evidence with `ephemeral_text` processing                                                                                                                                                          |
 
 The delivery profile selects responsibilities, not a fixed skill suite. Matt Pocock skills are the current engineering playbooks; a future compatible skill may replace them without changing the artifact authority or human gates defined here.
 
@@ -211,7 +211,9 @@ A slice handed to a subagent travels as a brief of four parts: the slice sub-iss
 ```text
 blueprint/content/changes/<slug>/       gitignored on the Change branch; published to the
                                          blueprint-changes store branch at each gate
-├── index.mdx                           one page: a Proposal tab, and a Review tab from G2
+├── index.mdx                           the page: frontmatter only (shards: <N> for a Migration)
+├── proposal.mdx                        the Proposal tab; exports the scenarios
+├── review.mdx                          the Review tab from G2; review-s<N>.mdx per Migration shard
 ├── facts.json                          written by blueprint:changes:publish, never by hand
 └── design.tsx                          optional interactive design mockup
 
@@ -226,7 +228,7 @@ A Change targets soft limits before it needs splitting: at most 5 slices, at mos
 
 A Change is either a **structure** change (a behavior-preserving refactor, whose acceptance is the existing test suite plus a dependency-direction check) or a **behavior** change, never both.
 
-The escape hatch is a **Migration Change**: one Proposal, accepted once at G1, covering the whole migration — its shard list, order, per-shard proof of behavior preservation, and completion criteria. Each shard afterward is its own Change and pull request, references the Migration Proposal's slug, skips G1, and goes straight to G2. A single Linear tracking issue links every shard. The Migration Proposal's decision record is written once, when the migration decision is made; the remaining shards do not repeat it. Each shard carries a `Migration: <migration-slug>` commit trailer, not a PR-body reference.
+The escape hatch is a **Migration Change**: one page and one Proposal, accepted once at G1, covering the whole migration — its shard list, order, per-shard proof of behavior preservation, and completion criteria, with every acceptance scenario naming the shard that proves it (ADR-0093). Each shard is its own pull request on a `<prefix>/<migration-slug>-s<N>` branch, the first included; it skips G1 and passes G2 on its own Review tab, which asks for results only for its own scenarios. A single Linear tracking issue links every shard. The Migration's decision record is written once, when the migration decision is made; the shards do not repeat it.
 
 ### Fix path
 
@@ -258,7 +260,7 @@ A Change page on the `blueprint-changes` store branch cites records by id and ho
 
 One Change uses one integration branch from the first slice commit through delivery. Each completed slice is a separate reviewable commit; use temporary slice branches only when truly independent work must run in parallel, then integrate them back into the Change branch before final verification.
 
-Every commit on a Change branch carries a `Blueprint-Change: <slug>` trailer naming that Change; a slice commit also carries `Implements: S0X`, the ID of its Linear sub-issue, and a one-session Change's commits carry `Blueprint-Change` alone. A Migration shard adds `Migration: <migration-slug>` (see Change scope), and a Fix-path commit carries its own trailers instead (see Fix path). `CONTRIBUTING.md` covers how to write a trailer so git parses it.
+Every commit on a Change branch carries a `Blueprint-Change: <slug>` trailer naming that Change; a slice commit also carries `Implements: S0X`, the ID of its Linear sub-issue, and a one-session Change's commits carry `Blueprint-Change` alone. A Migration shard's commits name the Migration's slug in `Blueprint-Change` and add `Shard: <N>` (see Change scope), and a Fix-path commit carries its own trailers instead (see Fix path). `CONTRIBUTING.md` covers how to write a trailer so git parses it.
 
 Change-page content never enters the Change branch — it lives only in the regenerated, gitignored Change directory and is published to the `blueprint-changes` store branch at each gate. Push the Change branch when another session or Symphony must resume it.
 

@@ -1,4 +1,9 @@
-import { defineDocs, defineConfig } from "fumadocs-mdx/config";
+import {
+  defineCollections,
+  defineDocs,
+  defineConfig,
+} from "fumadocs-mdx/config";
+import { z } from "zod";
 
 // A meta collection matches every JSON under its directory by default, which
 // would index each decision and implementation-slice record as navigation
@@ -12,10 +17,19 @@ const metaFiles = { files: ["**/meta.json"] };
 // to carry becomes a page and fails the whole build on its missing frontmatter.
 const mdxOnly = { files: ["**/*.mdx"] };
 
+// ADR-0094: a Change is one page, index.mdx; its tabs are files of their own,
+// compiled here without becoming pages, so the sidebar keeps one entry.
 export const { docs, meta } = defineDocs({
   dir: "content/changes",
-  docs: mdxOnly,
+  docs: { files: ["**/index.mdx"] },
   meta: metaFiles,
+});
+
+export const changeTabs = defineCollections({
+  type: "doc",
+  dir: "content/changes",
+  files: ["**/proposal.mdx", "**/review.mdx", "**/review-s*.mdx"],
+  schema: z.object({}),
 });
 
 export const { docs: featureDocs, meta: featureMeta } = defineDocs({

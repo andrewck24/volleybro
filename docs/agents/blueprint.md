@@ -4,7 +4,7 @@ Blueprint is the repository-owned human comprehension and review surface. It doe
 
 ## Change review surfaces
 
-Every Change is one page, `index.mdx`, with a Proposal tab and, from G2, a Review tab (ADR-0072), plus an optional design mockup `design.tsx`. The page is written under `blueprint/content/changes/<slug>/`, gitignored on the Change branch. At each gate the agent runs `pnpm blueprint:gate <slug>` (ADR-0084), which publishes the page to the orphan `blueprint-changes` branch — the durable store of every Change page, old and new, that never merges into other branches — and runs the gate check. `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, copying every published Change into `blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the store cannot be fetched. A ruleset forbids deleting the store branch or pushing anything but a fast-forward to it, so it shrinks through ordinary commits or another ref, never a history rewrite (ADR-0081), and the pull warns once the store's history passes 50 MB (ADR-0082). Decision records live at `blueprint/content/decisions/<nnnn>-<slug>.json`, follow the one definition in `blueprint/src/lib/decision-record.ts` (ADR-0080), and belong to the repository rather than to any Change. A Proposal tab is published at a gate before its own records merge, so it names the records it wants by id and `DecisionCards` resolves whichever ones this checkout has, skipping the rest; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a second editable source.
+Every Change is one page with a Proposal tab and, from G2, a Review tab; a Migration has a Review tab per shard (ADR-0093). Each tab is a file of its own (ADR-0094): `index.mdx` holds only the frontmatter, `proposal.mdx` the Proposal and the exported scenarios, and `review.mdx`, or `review-s<N>.mdx` for shard N, the Review; `design.tsx` is an optional design mockup. The page is written under `blueprint/content/changes/<slug>/`, gitignored on the Change branch. At each gate the agent runs `pnpm blueprint:gate <slug>` (ADR-0084), which publishes the page to the orphan `blueprint-changes` branch — the durable store of every Change page, old and new, that never merges into other branches — and runs the gate check. `pnpm --filter blueprint dev` and `build` first run `pnpm blueprint:changes:pull`, copying every published Change into `blueprint/content/changes/` without overwriting local drafts, so every deploy carries all published Changes plus Features and the Design System from the deployed branch; deploys fail loudly if the store cannot be fetched. A ruleset forbids deleting the store branch or pushing anything but a fast-forward to it, so it shrinks through ordinary commits or another ref, never a history rewrite (ADR-0081), and the pull warns once the store's history passes 50 MB (ADR-0082). Decision records live at `blueprint/content/decisions/<nnnn>-<slug>.json`, follow the one definition in `blueprint/src/lib/decision-record.ts` (ADR-0080), and belong to the repository rather than to any Change. A Proposal tab is published at a gate before its own records merge, so it names the records it wants by id and `DecisionCards` resolves whichever ones this checkout has, skipping the rest; new Changes must not maintain a parallel hard-coded `DECISIONS` array as a second editable source.
 
 Because those pages come from the store branch, any one of them can reference something this checkout lacks, and a Change page that cannot render must not take the build with it. The Change route calls a page body as a function and renders the thrown message in its place. A design mockup holds hooks, so it cannot be called that way; it renders in the browser behind an error boundary instead. Neither a boundary nor `error.tsx` helps during prerender — under `output: "export"` a throw there ends the build before React can catch it.
 
@@ -42,25 +42,24 @@ Blueprint pages exist to be read by a person, so structure a reader can scan is 
 | A result per scenario                             | `ScenarioResults`      |
 | What was tested, how, by whom, with what result   | `TestPlan`             |
 
-The page's shape, with `scenarios` exported once at the top so both tabs read the same data:
+The page's shape, one file per tab; the route renders each file as its tab, so no file imports another to be shown:
 
 ```text
+index.mdx
 ---
 title: <name>
 description: <one line>
 capabilities: ["<capability id>"]
+shards: 2                      a Migration only
 ---
 
-export const scenarios = [{ id: "S1", given: "…", when: "…", then: "…" }];
+proposal.mdx
+export const scenarios = [{ id: "S1", shard: 1, given: "…", when: "…", then: "…" }];
 
-<ChangeTabs>
-<Proposal>
-
+<TLDR>…</TLDR>
 …
 
-</Proposal>
-<Review>
-
+review.mdx, or review-s1.mdx for shard 1
 <ActionItems>
 
 …
@@ -68,12 +67,9 @@ export const scenarios = [{ id: "S1", given: "…", when: "…", then: "…" }];
 </ActionItems>
 
 …
-
-</Review>
-</ChangeTabs>
 ```
 
-Every tab and section puts its opening and closing tags on lines of their own: written on one line, MDX treats it as inline text and it renders inside a paragraph.
+A scenario carries `shard` only on a Migration. A Review file that shows the scenarios imports them with `import { scenarios } from "./proposal.mdx";`. Every section puts its opening and closing tags on lines of their own: written on one line, MDX treats it as inline text and it renders inside a paragraph.
 
 The Proposal tab is the summary the developer confirmed at G1, taken verbatim: `TLDR` stating the problem and the solution; for a behavior Change, a before/after table of two to four rows showing what changes for the reader; `DecisionCards` for the decision records; the scope; `<Scenarios items={scenarios} />`; and the risks through `RiskTable`. It adds an `InteractiveFlowchart` when the Change alters a process, `<DesignMockup />` (rendering `design.tsx`) when it answers a design question, and a `## References` section when research backs a decision, and needs no other narrative. The page shell renders the header — gate, capability badges, figures — so the page does not write it.
 
@@ -91,7 +87,7 @@ Rules that bind every page:
 - Use an ordered list wherever items are referred to by number elsewhere on the page.
 - The frontmatter `title` is the Change's name, for people; it may differ from the slug, and it is never empty or only a tab name.
 - Prose never hand-copies a count (ADR-0074). A figure `facts.json` holds is left to the header; any other number is replaced by a qualitative statement, or stands beside the command that produced it so a reviewer can rerun it.
-- What G1 accepted is frozen (ADR-0075): the Proposal tab, the frontmatter and the exported scenarios change only by passing G1 again, even for layout.
+- What a gate accepted is frozen file by file (ADR-0095): `proposal.mdx` and the frontmatter of `index.mdx` change only by passing G1 again, and an earlier shard's `review-s<N>.mdx` only by passing that shard's G2 again, even for layout.
 - Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown. Flowchart node and edge labels are drawn in SVG and stay plain text entirely.
 - Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
 - Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.

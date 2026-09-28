@@ -4,11 +4,15 @@
   "title": "The gate rebuilds the branch preview through the cf CLI and reads its result once",
   "capabilities": ["platform/blueprint", "platform/delivery-workflow"],
   "context": "Pushing a Change branch starts its Cloudflare branch-preview build before the gate publishes the page, so the preview never shows the page just published and had to be rebuilt by hand from the Cloudflare dashboard.",
-  "decision": "After publishing, pnpm blueprint:gate starts a branch-preview build of the Blueprint Worker for the current branch through the cf CLI, then reads that build's status once and reports it, without polling. When cf is not signed in or the call fails, the gate prints the manual rebuild instruction instead and does not fail. cf is a devDependency with a caret range, not pinned.",
+  "decision": "After publishing, pnpm blueprint:gate starts a branch-preview build of the Blueprint Worker for the current branch through the cf CLI, reads that build's status once and prints it with the command that reads it again, without polling. When cf is not signed in or the call fails, the gate prints the manual rebuild instruction instead and does not fail. cf runs through pnpm dlx with a caret range, not pinned and not installed.",
   "alternatives": [
     {
       "option": "Call the Workers Builds REST API directly",
       "reason": "It needs a user-scoped API token created, stored and rotated by hand, where cf signs in once through OAuth."
+    },
+    {
+      "option": "Install cf as a devDependency",
+      "reason": "cf pulls in the workerd runtime, about 100 MB that every CI job and deploy would download for a command only a gate uses."
     },
     {
       "option": "Keep rebuilding by hand",

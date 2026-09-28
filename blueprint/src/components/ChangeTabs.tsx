@@ -1,6 +1,14 @@
-import { Children, isValidElement, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  isValidElement,
+  type ComponentType,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 
+import { FigureBadges } from "@/components/FigureBadges";
 import {
   ActionItems,
   AfterRelease,
@@ -9,6 +17,7 @@ import {
   ReviewFocus,
 } from "@/components/ReviewSections";
 import { ScenarioResults, TestPlan } from "@/components/ScenarioCards";
+import type { ChangeFacts } from "@/lib/change-meta";
 
 const REVIEW_ORDER: unknown[] = [
   ActionItems,
@@ -27,20 +36,21 @@ const FRAME_CLASS =
   "rounded-none border-0 bg-transparent [&>[role=tablist]]:px-0";
 const PANEL_CLASS = "px-0 bg-transparent";
 
+export type TabBody = ComponentType<{ components?: Record<string, unknown> }>;
+
+export type ReviewTab = {
+  shard?: number;
+  Body: TabBody;
+  facts?: ChangeFacts;
+};
+
 function orderOf(child: ReactNode) {
   const index = isValidElement(child) ? REVIEW_ORDER.indexOf(child.type) : -1;
   return index === -1 ? REVIEW_ORDER.length : index;
 }
 
-export function Proposal({ children }: { children: ReactNode }) {
-  return (
-    <Tab value="Proposal" id="proposal" className={PANEL_CLASS}>
-      {children}
-    </Tab>
-  );
-}
-
-export function Review({ children }: { children: ReactNode }) {
+// Sections sort into the order ADR-0073 sets; anything else keeps its place.
+function inReviewOrder(children: ReactNode) {
   const nodes = Children.toArray(children);
   const slots = nodes.flatMap((node, index) =>
     orderOf(node) < REVIEW_ORDER.length ? [index] : [],
@@ -51,26 +61,74 @@ export function Review({ children }: { children: ReactNode }) {
   slots.forEach((slot, i) => {
     nodes[slot] = sections[i];
   });
-  return (
-    <Tab value="Review" id="review" className={PANEL_CLASS}>
-      {nodes}
-    </Tab>
-  );
+  return nodes;
 }
 
-// Server-rendered, so the children still carry the component types to inspect.
-export function ChangeTabs({ children }: { children: ReactNode }) {
-  const hasReview = Children.toArray(children).some(
-    (child) => isValidElement(child) && child.type === Review,
-  );
+// A tab comes from the store branch and can reference something this checkout
+// lacks. Calling it as a function keeps its throw on this call stack, where it
+// becomes a message in that tab alone (ADR-0094); a React error boundary would
+// not run during static export.
+function renderTab(
+  Body: TabBody,
+  components: Record<string, unknown>,
+  label: string,
+) {
+  try {
+    const rendered = (Body as (props: object) => ReactElement)({ components });
+    // Unwrap the fragment an MDX file renders, so the Review can order its
+    // sections.
+    return isValidElement<{ children?: ReactNode }>(rendered) &&
+      rendered.type === Fragment
+      ? rendered.props.children
+      : rendered;
+  } catch (error) {
+    console.error(`Change tab "${label}" failed to render:`, error);
+    return (
+      <p className="text-sm text-destructive">
+        此分頁（{label}）在此 checkout 中無法顯示：
+        {error instanceof Error ? error.message : String(error)}
+      </p>
+    );
+  }
+}
+
+export function reviewLabel(shard: number | undefined) {
+  return shard === undefined ? "Review" : `Shard ${shard}`;
+}
+
+export function ChangeTabs({
+  Proposal,
+  reviews,
+  components,
+}: {
+  Proposal?: TabBody;
+  reviews: ReviewTab[];
+  components: Record<string, unknown>;
+}) {
+  const labels = ["Proposal", ...reviews.map((tab) => reviewLabel(tab.shard))];
   return (
-    <Tabs
-      className={FRAME_CLASS}
-      items={hasReview ? ["Proposal", "Review"] : ["Proposal"]}
-      defaultIndex={0}
-      updateAnchor
-    >
-      {children}
+    <Tabs className={FRAME_CLASS} items={labels} defaultIndex={0} updateAnchor>
+      <Tab value="Proposal" id="proposal" className={PANEL_CLASS}>
+        {Proposal ? renderTab(Proposal, components, "Proposal") : null}
+      </Tab>
+      {reviews.map(({ shard, Body, facts }) => {
+        const label = reviewLabel(shard);
+        return (
+          <Tab
+            key={label}
+            value={label}
+            id={shard === undefined ? "review" : `review-s${shard}`}
+            className={PANEL_CLASS}
+          >
+            {facts && (
+              <div className="not-prose mb-4">
+                <FigureBadges facts={facts} />
+              </div>
+            )}
+            {inReviewOrder(renderTab(Body, components, label))}
+          </Tab>
+        );
+      })}
     </Tabs>
   );
 }
