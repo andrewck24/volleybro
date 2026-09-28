@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "id": "0089",
+  "title": "Each API route has one unit test file, route.test.ts",
+  "capabilities": ["platform/testing"],
+  "context": "Route unit tests were split across route.test.ts, request-schema.test.ts and files named after an action, so the same kind of case lived in different files for different routes.",
+  "decision": "Each API route has exactly one unit test file, __tests__/route.test.ts beside its route.ts, holding every unit case for that route, request-schema rejections included. Cases moved out of integration tests are merged into it, and the existing request-schema.test.ts and action-named files are merged into it too.",
+  "alternatives": [
+    {
+      "option": "A separate request-schema.test.ts for validation cases",
+      "reason": "Which file a case belongs in would be a judgement the one-file rule removes."
+    }
+  ],
+  "consequences": ["Some route test files grow to a few hundred lines."],
+  "originChange": "testing-tiers"
+}

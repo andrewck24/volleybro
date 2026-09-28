@@ -1,0 +1,18 @@
+---
+title: Testing
+description: Which tier a test belongs to, what it may replace, and where each tier runs.
+---
+
+A test is only as useful as what it refuses to fake. These are the tiers the repository runs, what each one keeps real, and which gate runs it; `docs/testing-strategy.md` holds how to write each kind.
+
+## Current behavior
+
+- Three Jest projects run the automated tests: `backend` and `frontend` for unit tests under `src/`, and `integration` for `*.itest.ts` under `test/integration/`.
+- Backend unit tests run against a global mongoose and mongodb stub. Frontend unit tests run under jsdom.
+- Integration tests run each test file against its own in-memory MongoDB, with auth services swapped for DI doubles. Most enter through a route handler; some enter through a repository or a use case.
+- CI runs unit, integration, static and Blueprint checks on every pull request into `dev`. Integration tests run in no local gate.
+- End-to-end tests and API smoke tests do not exist yet.
+
+## Implemented decisions
+
+<DecisionTimeline />

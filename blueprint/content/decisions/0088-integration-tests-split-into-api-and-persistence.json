@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "0088",
+  "title": "Integration tests split by what they prove: api/ through the request path, persistence/ at the database",
+  "capabilities": ["platform/testing"],
+  "context": "Route-entry tests proved request mapping and round trips; repository-entry tests proved MongoDB semantics such as arrayFilters and $pull, or how stored documents read back. Several route tests asserted only a schema rejection that happens before the database is reached.",
+  "decision": "test/integration/api/ holds tests whose assertions depend on a real database read or write reached through a route; they arrange and read data only through routes and repository interfaces, never through the driver. test/integration/persistence/ holds tests of database behaviour itself, entering at a repository or use case, and may use the driver directly. A route test whose assertion does not depend on the database is a route unit test instead. Request validation completes before any use case runs, so a unit test showing the next layer was not called also shows nothing was written.",
+  "alternatives": [
+    {
+      "option": "No access rule",
+      "reason": "A database change would force a rewrite of every integration test instead of persistence/ alone."
+    },
+    {
+      "option": "Route and repository access only, everywhere",
+      "reason": "Whether a field really left the stored document could not be proven."
+    }
+  ],
+  "consequences": [
+    "A database change concentrates its test rewrite in persistence/, alongside the repository implementations."
+  ],
+  "revisitTriggers": [
+    "Acceptance tests that enter at the use case are adopted: a third directory may be needed."
+  ],
+  "originChange": "testing-tiers"
+}

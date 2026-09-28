@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "id": "0091",
+  "title": "A test file's name states its tier, and a check enforces it",
+  "capabilities": ["platform/testing"],
+  "context": "Jest collected integration tests only from test/integration/**/*.itest.ts, so a file there named .test.ts was silently never run.",
+  "decision": "Unit tests are *.test.ts under src/, integration tests *.itest.ts under test/integration/, and end-to-end tests *.e2e.ts under test/e2e/. A check fails on a test file whose suffix does not match its directory. Jest setup files live under test/setup/; only jest.config.ts stays at the repository root.",
+  "alternatives": [
+    {
+      "option": "Let the directory alone set the tier",
+      "reason": "The tier would no longer show in the file name, which search and review rely on."
+    }
+  ],
+  "originChange": "testing-tiers"
+}
