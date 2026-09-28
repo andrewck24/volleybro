@@ -1,9 +1,3 @@
----
-title: Spectra Knowledge Promotion
-description: legacy-change-conversion 的第二個 shard：Spectra change 仍成立的行為提升到 Features，沒做完的列給開發者決定。
-capabilities: ["platform/blueprint"]
----
-
 export const scenarios = [
   {
     id: "S1",
@@ -24,45 +18,6 @@ export const scenarios = [
     then: "the build passes and each page renders the added statements",
   },
 ];
-
-<ChangeTabs>
-<Proposal>
-
-這是 Migration Change `legacy-change-conversion` 的第二個 shard，範圍取自它在 G1 通過的 Proposal，跳過 G1、直接到 G2。
-
-<TLDR>
-  範圍內的 Spectra change 的行為規格只存在舊頁的 `specs/` 裡，從沒提升到
-  Features。這個 shard 逐條對照現行程式碼：仍成立的照現行行為寫進對應的 Features
-  頁，沒做完的不寫入，列給開發者決定。
-</TLDR>
-
-## 範圍
-
-1. Spectra change（`api-objectid-guards`、`apple-splash-dynamic`、`contextual-edit-pages`、`elevation-depth-system`、`entry-ui`、`team-routes-clean-architecture`）的每條 requirement 對照現行程式碼：
-   - 有程式碼或測試證據的，以 Features 現有格式寫進對應 capability；證據列在 Review tab，不寫進 Features 本文。
-   - 被後續 change 改掉的，照現行行為寫。
-   - 沒做完的，不寫入，列在 Review tab 的 `ActionItems` 由開發者決定。
-
-<Scenarios items={scenarios} />
-
-<RiskTable
-  risks={[
-    {
-      name: "把不再成立的行為寫進 Features",
-      severity: "warning",
-      mitigation:
-        "每條都要有測試或程式碼證據；證據由獨立 context 逐條核對後才寫入。",
-    },
-    {
-      name: "Features 寫進過細的實作細節",
-      severity: "info",
-      mitigation: "沿用各頁既有的抽象層級，只寫讀者需要知道的行為。",
-    },
-  ]}
-/>
-
-</Proposal>
-<Review>
 
 <ActionItems>
 
@@ -203,5 +158,43 @@ export const scenarios = [
 
 </ReviewDetails>
 
-</Review>
-</ChangeTabs>
+<ReviewDetails>
+
+### 原為獨立 Change 頁時的 Proposal
+
+由舊格式機械轉換：這個 shard 原本是 `spectra-knowledge-promotion` 自己的 Change 頁，以下是它當時的 Proposal 原文。
+
+這是 Migration Change `legacy-change-conversion` 的第二個 shard，範圍取自它在 G1 通過的 Proposal，跳過 G1、直接到 G2。
+
+<TLDR>
+  範圍內的 Spectra change 的行為規格只存在舊頁的 `specs/` 裡，從沒提升到
+  Features。這個 shard 逐條對照現行程式碼：仍成立的照現行行為寫進對應的 Features
+  頁，沒做完的不寫入，列給開發者決定。
+</TLDR>
+
+## 範圍
+
+1. Spectra change（`api-objectid-guards`、`apple-splash-dynamic`、`contextual-edit-pages`、`elevation-depth-system`、`entry-ui`、`team-routes-clean-architecture`）的每條 requirement 對照現行程式碼：
+   - 有程式碼或測試證據的，以 Features 現有格式寫進對應 capability；證據列在 Review tab，不寫進 Features 本文。
+   - 被後續 change 改掉的，照現行行為寫。
+   - 沒做完的，不寫入，列在 Review tab 的 `ActionItems` 由開發者決定。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "把不再成立的行為寫進 Features",
+      severity: "warning",
+      mitigation:
+        "每條都要有測試或程式碼證據；證據由獨立 context 逐條核對後才寫入。",
+    },
+    {
+      name: "Features 寫進過細的實作細節",
+      severity: "info",
+      mitigation: "沿用各頁既有的抽象層級，只寫讀者需要知道的行為。",
+    },
+  ]}
+/>
+
+</ReviewDetails>

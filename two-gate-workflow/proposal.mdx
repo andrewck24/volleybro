@@ -1,0 +1,136 @@
+export const scenarios = [
+  { id: "S1", given: "a Change directory has been deleted", when: "Blueprint builds", then: "the build succeeds and the Changes tab stays unlisted rather than disappearing" },
+  { id: "S2", given: "a Change has only a proposal.tsx mockup", when: "its Proposal route renders", then: "the mockup renders with no proposal.mdx present" },
+  { id: "S3", given: "a Proposal page is missing a TLDR or a Scenario", when: "check:workflow runs", then: "it fails with a blueprint-proposal diagnostic naming the missing component" },
+  { id: "S4", given: "a Review page is missing a TLDR or a markdown table", when: "check:workflow runs", then: "it fails with a blueprint-review diagnostic naming the missing component" },
+  { id: "S5", given: "a Change changes more than 30 src files or states more than 8 acceptance scenarios", when: "check:workflow runs", then: "it warns and never fails the check" },
+  { id: "S6", given: "a Change carries a Migration: trailer on its last commit", when: "check:workflow runs", then: "the src-file-count warning is silenced, but the same word appearing only in a commit body does not silence it" },
+  { id: "S7", given: "every Feature ADR under blueprint/content/features", when: "validated against the decision-record schema", then: "every record conforms" },
+  { id: "S8", given: "the Change branch has been built", when: "git tracks blueprint/content/changes/", then: "no file under that directory is tracked" },
+];
+
+> Written after delivery: this Change bootstrapped the workflow it defines, so no Proposal page existed at G1. Reconstructed from the Review page's own record so the promoted ADR can name its origin. The goals, baseline and references below are not reconstruction — they come from the plan the developer approved on 2026-09-17, before implementation. The failure modes and testing strategy a live Proposal would argue are still left out on purpose: the Review page reports what was actually delivered and verified, and arguing them now would be reasoning invented after the fact.
+
+<TLDR>
+The delivery workflow stops for a human at two gates only: a Proposal page before implementation and a Review page before the pull request. Change pages are gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate instead of being committed. Slice plans, per-round review pages, a `change.json` lifecycle, and the Archive reconcile step are gone; a Change's slices, when it needs any, are Linear sub-issues under its issue, and a Change that fits one session skips slices and implements directly.
+</TLDR>
+
+## Goals and baseline
+
+Three goals, approved on 2026-09-17: a human intervenes at two points and the agent drives everything between them; Blueprint serves those two points only; the pull-request diff carries code, tests and durable knowledge, nothing else.
+
+The baseline is the `team-membership-authorization` Change (PR #410), audited from that session's own transcripts.
+
+| Measure | team-membership-authorization | Target |
+| --- | --- | --- |
+| Human gates hit | 28 | ≤ 4 — one per gate, plus clarifications |
+| Blueprint-only commits | 24 of 50 | 0 |
+| Post-gate documentation re-sync commits | 13 | 0 |
+| Blueprint artifacts per Change | 4 pages + 10 slice JSON + 4 ADR JSON | 2 pages + ADR JSON |
+| Blueprint write obligations in WORKFLOW.md | 11, two of them repeated every review round | 2, each once |
+
+Two findings from the same audit shaped the design more than those counts did. Blueprint took roughly a fifth of the session — ~17% of assistant messages and ~18% of output tokens, attributing each message to the paths its tool calls touched — so its cost was real but never dominant. And of six Blueprint retry loops, **none was an MDX compile error or a schema violation**: one `check-workflow` content rule, one Prettier reformat, one component that silently rendered wrong, and three edit-script misses. The expensive part was not pages failing, it was keeping them true — 13 of the 24 Blueprint-only commits are post-review corrections to stale numbers and superseded assumptions. That is the argument for making the pages throwaway review surfaces rather than for building better tooling around them.
+
+These numbers are a dated decision input, not a baseline to re-measure against. They come from one session's transcripts under one attribution method, so a later count would differ by method as much as by workflow. The comparison that matters is the coarse one: whether a human still gets pulled in twenty-eight times.
+
+## The two gates
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "discuss", label: "Discuss", sublabel: "boundaries", x: 90, y: 40 },
+    { id: "proposal", label: "Proposal page", sublabel: "G1", x: 260, y: 40, shape: "diamond", w: 150, h: 60 },
+    { id: "apply", label: "Apply", sublabel: "slices, TDD", x: 440, y: 40 },
+    { id: "review", label: "Code review", sublabel: "to a fixed point", x: 610, y: 40 },
+    { id: "archive", label: "Archive", sublabel: "promote, export", x: 610, y: 140 },
+    { id: "gate2", label: "Review page", sublabel: "G2", x: 440, y: 140, shape: "diamond", w: 150, h: 60 },
+    { id: "pr", label: "Pull request", sublabel: "CI, merge", x: 260, y: 140 },
+  ]}
+  edges={[
+    { from: "discuss", to: "proposal" },
+    { from: "proposal", to: "apply", label: "accepted" },
+    { from: "apply", to: "review" },
+    { from: "review", to: "archive" },
+    { from: "archive", to: "gate2" },
+    { from: "gate2", to: "pr", label: "accepted" },
+    { from: "gate2", to: "proposal", label: "design no longer viable", dashed: true },
+  ]}
+  details={{
+    proposal: {
+      title: "G1 — Proposal page",
+      body: "The developer reads boundaries, the behaviour contract as scenarios, the ADRs, any design mockup and the risks. Acceptance authorises everything up to G2 without stopping again.",
+    },
+    apply: {
+      title: "Apply",
+      body: "Slices are Linear sub-issues, or none at all when the Change fits one session. The first slice turns the accepted scenarios into executable acceptance tests.",
+    },
+    review: {
+      title: "Pre-PR code review",
+      body: "Two axes, standards and spec, in an independent context, repeated until both reach a fixed point. This is the agent's own review, not a human gate.",
+    },
+    archive: {
+      title: "Archive",
+      body: "Promotes ADRs and behaviour to Features, reconciles CONTEXT.md vocabulary, and exports a Review summary of at most 40 lines for the pull-request body.",
+    },
+    gate2: {
+      title: "G2 — Review page",
+      body: "The developer reads acceptance results, verification, findings and residual risks. Acceptance authorises opening the pull request without asking again.",
+    },
+  }}
+/>
+
+## Change boundaries
+
+- Replace the four committed Change pages (Overview, Design, Implementation, Review) and their `change.json` lifecycle with two gitignored pages, `proposal.mdx` and `review.mdx`, published to the orphan `blueprint-changes` store branch at each gate.
+- Move slice tracking off Blueprint JSON entirely: slices are Linear sub-issues under the Change's issue, in both manual and Symphony execution; a Change that fits one session skips slices and implements directly.
+- Replace the ADR `candidate → accepted → implemented` status field with directory placement: proposed under a Change's `proposal/decisions/`, adopted once copied into `blueprint/content/features/`; `supersededBy` names a replacement.
+- Add soft Change-size targets (5 slices, 30 changed `src` files, 8 acceptance scenarios, a 40-line PR summary) that warn rather than fail, plus a Migration Change escape hatch for large refactors.
+- Add a Fix path for small, urgent corrections that carries no new behaviour contract: no Proposal or Review page, no publish step, and a pull request with a `Refs:` trailer as the only gate.
+- Out of scope: converting the 22 old-format Change directories already on the store branch; they keep rendering through a temporary compatibility layer until a later migration.
+- Out of scope: a remote preview of Change pages; both gates happen on the developer's machine, so the local Blueprint dev server is enough for now.
+
+## Behaviour contract
+
+<Scenarios items={scenarios} />
+
+## Risks
+
+<RiskTable
+  risks={[
+    { name: "Proposal mockups regressed after the route rewrite to a shared proposal/review shell", severity: "critical", mitigation: "Route mockups through webpack require.context and create the gitignored Change directory before build and dev run." },
+    { name: "Retired lifecycle states and components stay deployed after the four-page shell is dropped", severity: "critical", mitigation: "Delete the lifecycle components and rewrite the two platform Feature pages in the same Change." },
+    { name: "A single-page Change's breadcrumb could drop the middle <change> level", severity: "warning", mitigation: "Keep a folder's lone page as its own child instead of collapsing it into the folder's index." },
+    { name: "Old-format Changes with a leftover proposal.mdx could list twice on /changes", severity: "warning", mitigation: "Skip a slug from the two-gate index when its directory carries a change.json; the legacy index still lists it once." },
+    { name: "The 22 old-format Change directories need somewhere to live besides deletion", severity: "info", mitigation: "Move them to the store branch and render them through a temporary compatibility layer until a later migration converts them." },
+  ]}
+/>
+
+## Decisions
+
+<DecisionCards ids={["0045"]} />
+
+## References
+
+The empirical claims behind D1's gate placement and D4's soft targets, collected on 2026-09-17. **A reference records what was true the day it was read**, so each row states its own strength and what it is allowed to support — the direction of a decision, not a standing fact.
+
+### Change size is a soft norm everywhere, and everywhere exempts refactors
+
+| Source | Supports | Strength |
+| --- | --- | --- |
+| [Google eng-practices, "Small CLs"](https://google.github.io/eng-practices/review/developer/small-cls.html) | The norm is "one self-contained change", with ~100 lines reasonable and ~1000 too large — and the same page exempts changes "generated by an automatic refactoring tool that you trust completely". A soft target with a named exemption, which is what D4 adopts. | **High**. First-party published guidance. |
+| [Google SWE book ch.22, "Large-Scale Changes"](https://abseil.io/resources/swe-book/html/ch22.html) and the [Chromium LSC process](https://chromium.googlesource.com/chromium/src.git/+/main/docs/process/lsc/large_scale_changes.md) | A change too large to land atomically is approved once as a proposal, then sharded; each shard's reviewer judges "does this match the plan", and a global approver sees the set. This is the Migration Change escape hatch, borrowed whole. | **High**. Both first-party process documents. |
+| [Shopify Engineering, "Great Code Reviews"](https://shopify.engineering/great-code-reviews) | A real team's number: "around 200-300 lines of code affected. If we go above this threshold, we almost always break up the work." | **Medium**. Engineering blog, no data published behind the number. |
+| [SmartBear / Cisco study (Cohen et al., 2005–06)](https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/) | Defect-detection rate collapses past ~200–400 LOC per review — the closest thing to a measured reason the norm exists at all. | **Medium**. 2,500 reviews and 3.2M LOC, but the case-study PDF was not text-extractable here; figures cross-checked against a secondary summary. |
+| Fowler on [Strangler Fig](https://martinfowler.com/bliki/StranglerFigApplication.html), [Branch by Abstraction](https://martinfowler.com/bliki/BranchByAbstraction.html) and [Parallel Change](https://martinfowler.com/bliki/ParallelChange.html); Beck on [structure versus behaviour](https://newsletter.kentbeck.com/p/structure-and-behavior) | Large migrations run incrementally and stay releasable between steps, and structure changes belong in their own change. This is D4's other hard rule: a Change is structure or behaviour, never both. | **High**. First-party writing by the authors of the patterns. |
+
+No organisation surveyed enforces a hard rejecting cap, and none treats a size limit as a reason to do a big-bang instead. Netflix and Stripe publish no numeric guidance at all.
+
+### Humans belong at the ends, not in the middle
+
+| Source | Supports | Strength |
+| --- | --- | --- |
+| [OpenAI Symphony SPEC](https://github.com/openai/symphony/blob/main/SPEC.md) and its [announcement](https://openai.com/index/open-source-codex-orchestration-symphony/) | Humans write the ticket and read a review packet at a workflow-defined handoff state; CI watching, rebasing and retries are the daemon's work. Two ends, nothing in between — the shape G1 and G2 take. | **High**. First-party specification. |
+| [unclebob/swarm-forge](https://github.com/unclebob/swarm-forge) | The human operator's role is stated as: start work, inspect, handle approval gates, answer clarifications, stop the swarm. Not reviewing each step. | **High**. First-party repository. |
+| Robert C. Martin, 2026 posts on X ([one](https://x.com/unclebobmartin/status/2080257779395154409), [two](https://x.com/unclebobmartin/status/2044114698451476492)) | He reviews the Gherkin acceptance tests and QA procedures and not the unit tests or the implementation, on the argument that "humans are slow at code". This is why G1 accepts scenarios rather than a slice plan. | **Low**. X returns 402/403 to fetch; every quote here comes from search-result previews and secondary articles. If his actual position differs, D1 loses this row but keeps the two above it. |
+| [mattpocock/skills](https://github.com/mattpocock/skills/blob/main/skills/engineering/README.md) | Specs are published to the issue tracker rather than committed, tickets are one file each in the tracker or `.scratch/` and never one combined document, and a slice is sized to one fresh context window. This is where slices go once they leave Blueprint JSON. | **High**. First-party README and skill definitions. |
+
+One dissent, recorded because it is the strongest argument against D1: Grady Booch, replying to Martin, reviews all generated code — metrics give confidence about functionality but say nothing about vulnerabilities, dead code eroding understandability, or missed factorisations with a performance cost. The two gates answer this only partly. G2 puts a rendered diff of the boundary-relevant changes in front of the developer; it does not put the whole diff there.

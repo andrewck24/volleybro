@@ -2,14 +2,43 @@
   "gate": "G2",
   "publishedAt": "2026-09-26T10:05:28.185Z",
   "startedAt": "2026-09-26T06:58:06.000Z",
-  "archivedAt": "2026-09-26T10:02:43.000Z",
-  "commits": 11,
-  "filesChanged": 45,
-  "insertions": 160,
-  "deletions": 1849,
+  "archivedAt": "2026-09-26T10:39:10.000Z",
+  "commits": 16,
+  "filesChanged": 54,
+  "insertions": 181,
+  "deletions": 1852,
   "srcFilesChanged": 0,
   "scenarios": 6,
   "decisions": [
     "0079"
-  ]
+  ],
+  "converted": true,
+  "shards": {
+    "count": 2,
+    "merged": 2,
+    "items": [
+      {
+        "shard": 1,
+        "gate": "G2",
+        "startedAt": "2026-09-26T06:58:06.000Z",
+        "archivedAt": "2026-09-26T10:02:43.000Z",
+        "commits": 11,
+        "filesChanged": 45,
+        "insertions": 160,
+        "deletions": 1849,
+        "srcFilesChanged": 0
+      },
+      {
+        "shard": 2,
+        "gate": "G2",
+        "startedAt": "2026-09-26T10:07:47.000Z",
+        "archivedAt": "2026-09-26T10:39:10.000Z",
+        "commits": 5,
+        "filesChanged": 9,
+        "insertions": 21,
+        "deletions": 3,
+        "srcFilesChanged": 0
+      }
+    ]
+  }
 }

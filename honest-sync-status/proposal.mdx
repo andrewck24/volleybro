@@ -1,0 +1,326 @@
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
+
+<TLDR>
+  離線記球時指示器全程轉圈，看起來像卡住了。追下去發現轉圈只是症狀：指示器會說三種不同的假話——spinner
+  承諾了它兌現不了的進度，警告色掛在會自己好的情況上，而「已保存」在
+  localStorage 不可寫時根本是謊話。本 Change
+  讓它說的每一句話都是真的：狀態改由實測失敗判定，navigator.onLine
+  退為純文案訊號，警告語氣改掛不可重試，並新增一個本機儲存不可用的第一級狀態。
+</TLDR>
+
+
+## Context
+
+`retryable-queue-persistence` 交付後的 iOS PWA 人工驗證，結論是持久化本身通過：飛航模式下記球、強制關閉、重開後球都在，恢復連線後未經手動介入即自行送出，資料庫比對顯示每筆一份、無重複。
+
+但驗證過程中，整段離線期間指示器都顯示轉圈的「同步中」。**`retryable-queue-persistence` 讓資料變安全了，UI 卻沒有任何狀態把這個保證說出口。**
+
+這張 Change 從「離線時別轉圈」開始，收斂後變成一個更大的命題：**指示器說的每一句話都必須是真的。** 目前有三句不是。
+
+第一句是 spinner。`deriveSyncStatus` 以 `pending.some((p) => p.nextAttemptAt !== null)` 判定 syncing，而 `enqueued` 每次入列都設 `nextAttemptAt: Date.now()`——離線時每記一球就把整組重置回 syncing。值得說清楚的是：**「等待下一次重試」確實屬於重試生命週期，這個判斷本身不算錯。** 錯的是 spinner 隱含的「稍等即可」——線上時那是真的，兩百毫秒後就成功了；離線時它在重新連上網之前永遠不會兌現。
+
+第二句是警告色。`unsynced` 配 warning 色與驚嘆號，觸發條件是「退避表用盡」。但那類 entry 會自己好——下一顆球的 flush 或 `online` 事件都會帶它送出。真正會遺失的是不可重試的那一類（4xx），而它們今天跟前者共用同一個狀態。
+
+第三句還沒被說出口，是這張 Change 自己造出來的。今天 UI 說「N 筆未同步」，即使 `localStorage` 壞掉那句話仍為真；本 Change 要把它升級成「已保存」，**而那句話在 store 不可寫時是假的**。`retryable-queue-persistence` 的 D4 已經把這條記為 residual risk，並寫下「誠實的做法最終是告訴他們，只是要說出來，得先有一個地方可以說」。這張 Change 造出了那個地方，也造出了非說不可的理由。
+
+還有一件事值得記下來：`retryable-entry-writes` 的 D2 在否決「只靠 piggyback、不做背景退避」時，已經預言過這個失效模式——「一個宣稱同步仍在進行中的指示器會是不真實的」。它用退避表把時間上界壓到約二十二秒。**沒被預見的是連續記球會不斷把那個上界重設，所以它在真實節奏下從未生效。** 這不是沒人想過的疏漏，是一個被想過、被設了上界、而上界在真實使用節奏下失效的案例。
+
+## Goals
+
+- 指示器在每一種狀態下所呈現的圖示、顏色與文字，都與系統當下的真實處境一致。
+- 使用者在離線時知道自己的紀錄是安全的，而不只是知道它「還沒同步」。
+- 警告語氣只出現在使用者真的需要做點什麼的時候。
+- 「網路顯示已連線但到不了伺服器」與飛航模式獲得同等對待——前者在球場上更常發生。
+- 本機儲存不可用這個既有的 residual risk 第一次對使用者可見，且在他還有選擇的時候可見。
+
+## Non-goals
+
+- **不做 outbox、跨場比賽可見性、衝突重放。** 那是 `offline-recording`。
+- **不改重試政策。** `isRetryableStatus`（`status >= 500`）維持為唯一標準，不開第二套判斷。
+- **不新增慢速輪詢。** 讓「會自動送出」在連線異常時也成真需要一個不終止的重試機制，那是 outbox 的定義。理由與代價見 D4。
+- **不做不可重試 entry 的導航與刪除。** 已獨立登記為後續工作「不可重試 entry 的導向與刪除」，並以本 Change 為前置。
+- **不改重試狀態的形狀。** 群組化屬後續工作「重試狀態改以 (game, set) 群組為單位」，本 Change 先於它——理由見下方排序。
+- **不改儲存選型。** `localStorage` 對 IndexedDB 的取捨由 `retryable-queue-persistence` 的 D1 決定，本 Change 不重開；理由見 D3。
+- **不偵測私密瀏覽。** 那是隱私功能，瀏覽器會主動封鎖偵測手法。代價是私密瀏覽下不會有警告——見 D3 與 Design 的 residual risk。
+
+## Change boundaries
+
+- **一定在內**：`deriveSyncStatus` 的五條有序條件、`hasFailedWrite` 的判準、`SyncIndicator` 的圖示／文案／版面／重試按鈕、一個讀取 `navigator.onLine` 的 hook。
+- **在內**：`pendingWrites` slice 新增一個表示本機儲存不可用的布林欄位，以及開機時設定它的探測。這是本 Change 唯一新增的狀態，且它有兩個寫入者——開機探測與既有的 listener catch。
+- **在內**：移除 `flushingGameIds`。它今天活著的唯一理由是舊的 `deriveSyncStatus` 要讀它；新模型不讀，它就成了本 Change 自己造成的孤兒。**這個移除是狀態模型改變的證據**：舊模型需要知道「有沒有 request 在飛」，新模型不需要。
+- **在內（討論中浮現）**：`retryable-entry-writes` 的 S08 所建立的 per-rally 失敗標記收窄。它與指示器必須讀同一個判準，否則兩個表面會對同一批 entry 給出矛盾的語氣。
+- **不在內**：佇列的送出、重試、退避、過期行為。`enqueued`、`flushSucceeded`、`flushFailed`、`retryRequested`、`rehydrated`、`hasExpired`、`nextAttemptDelayMs` 的語意全部不動。
+- **不在內**：rally 端點、repository、SWR 設定、Entry List 的互動（只有標記的觸發條件改變，控制項本身不動）。
+
+## Impact
+
+Affected capabilities：`game-recording/rally-recording`、`game-recording/persistence`。兩者都不新增 sub-capability——本 Change 改變的是既有能力對自己處境的陳述，不是能力本身。
+
+`game-recording/rally-recording` 的行為契約不變——記球的手勢、樂觀推進、送出的時機全部照舊。改變的是**系統對自己處境的陳述**：同一組佇列事實，被投影成一組不再說謊的狀態。
+
+`game-recording/persistence` 第一次獲得一個對使用者可見的可用性契約。在此之前，「本機儲存是否可用」只存在於 console warning 裡；此後它是一個會出現在畫面上的狀態，而且在第一顆球被記錄之前就會出現。
+
+Affected code，逐檔與各自的理由：
+
+
+不在影響範圍內：rally 端點、repository、Mongoose schema、SWR 設定、Entry List 的互動控制項（只有標記的觸發條件改變，控制項本身不動）、以及 port 既有三個方法的簽章與語意。
+
+## Alternatives considered
+
+Design 頁完整記錄各組替代方案與否決理由。Overview 層級只記結論方向：
+
+- **新增一個由 `navigator.onLine` 驅動的 offline 狀態**（原始票的方向）——只修好飛航模式。裝置連上網路卻到不了伺服器時它回報 `true`，指示器落回 syncing 繼續轉圈。它挑了比較好偵測的情境，不是比較常發生的。
+- **把 syncing 收窄為「真的有 request 在飛」**——離線期間會在退避空檔與嘗試瞬間之間反覆切換，反而製造抖動；退避用盡後仍落到警告語氣，語氣依舊不對。
+- **以計時器實作抖動門檻**（Notion 用三十秒）——需要一個 `setTimeout` 在門檻到期時強制 re-render。次數門檻用既有的 dispatch 推動狀態，效果相同而無新機制。而三十秒對在球與球之間抬頭掃一眼的記錄員過長。
+- **偵測並封鎖私密瀏覽**——瀏覽器廠商持續封鎖偵測手法，且 app 在私密瀏覽下完全可用，失去的只是一個降級的保證。直接測「寫得進去嗎」涵蓋所有當下就失敗的成因；「現在可用、之後消失」的那幾種偵測不到。
+- **改用 IndexedDB**——五個成因只解掉配額一項；且它的非同步 transaction 在「app 被回收」時可能尚未 commit，那正是持久化要存活的情境。
+- **加一道慢速輪詢讓兩種情境的承諾都成真**——動到重試機制，並帶進「輪詢什麼時候停」這個新的生命週期問題。那是 outbox 要回答的。
+- **兩種情境都顯示或都不顯示重試按鈕**——都顯示會給出一顆必定失敗的按鈕；都不顯示則讓連線異常的使用者完全沒有出路。Google Docs 與 Notion 不提供這顆按鈕，是因為它們的背景重試永不終止，那是我們沒有的前提。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁的 `DecisionTimeline` 呈現。
+
+| ID  | 問題                             | 結論                                                          |
+| --- | -------------------------------- | ------------------------------------------------------------- |
+| D1  | 狀態由什麼訊號判定               | 實測失敗（`attempts`）；`navigator.onLine` 只選文案           |
+| D2  | 警告語氣掛在什麼條件上           | 不可重試，per-rally 標記一併收窄                              |
+| D3  | 本機儲存不可用時誰說、什麼時候說 | 升為第一級狀態，開機就探測                                    |
+| D4  | 誰負責偵測「伺服器恢復」         | 暫時交給使用者的手指，期限記在 `offline-recording` 的驗收條件 |
+
+## 排序
+
+**先於「重試狀態群組化」。** 該後續工作將重試狀態改以 `(game, set)` 群組為單位，會改變 `attempts` 與 `lastError` 的持有位置，而本 Change 的狀態模型全部讀這兩個欄位。先做本 Change，「重試狀態群組化」 面對的是一個已移除死欄位、狀態語意已釐清的 slice；反過來則須先在一個已知錯誤的狀態模型上建群組化，再重做指示器。
+
+## Revisit triggers
+
+- **重試狀態群組化落地**：`attempts >= 2` 的門檻語意由「單一 entry」變為「群組」，`deriveSyncStatus` 的條件式須重新檢視。
+- **「不可重試 entry 的導向與刪除」交付**：警告狀態自此有可執行的動作，其語氣與文案應一併重估。
+- **`offline-recording` 的持久重播上線**：終局狀態消失，手動重試按鈕失去存在理由，應移除而非留著成為第二條路徑。同時 D3 的儲存不可用會從降級模式升級為功能無法運作的理由。
+- **rally 端點補上 request schema**：400 大量增加，「不可重試」從罕見變成常態，呈現密度與七天過期規則都要重估。
+- **`navigator.storage.persist()` 在 iOS PWA 的授予條件被實地確認**：確認可靠則可關閉兩條 residual risk；確認不可靠則該移除它，而不是留著假裝有用。
+- **現場出現三秒門檻過短或過長的證據**：過短表現為打嗝仍造成圖示閃動，過長表現為使用者在門檻成立前就已經開始擔心。
+
+## Design
+
+<TLDR>
+  一道由上而下的關卡，第一個命中者勝出。風險最高的排最前面，最樂觀的排最後面——所以任何一種不確定都不可能被說成「同步中」。`navigator.onLine`
+  站在關卡之外，只在其中一關決定要用哪一種措辭。
+</TLDR>
+
+## Adopted shape
+
+指示器不儲存任何狀態，它是佇列事實加上一個儲存可用性旗標的投影。判斷是一道有序關卡：**由最壞的可能性往最好的可能性走**，因為每一關代表的風險都比下一關高，而一個被誤判為樂觀的狀態正是本 Change 要消除的東西。
+
+<svg
+  viewBox="0 0 1160 552"
+  role="img"
+  aria-label="SyncIndicator 的狀態判斷流程。輸入是這場比賽的待送佇列與一個本機儲存可用性旗標。五道關卡由上而下依序判斷，第一個命中者勝出，每一關同時標示其判斷式與該狀態實際顯示的文案。一：storageUnavailable 為真時顯示警告的本機空間已滿，並依是否有其他比賽尚未同步分岔為兩種建議。二：佇列為空時隱藏。三：有 entry 的 lastError 不可重試時顯示警告的 N 筆送不出去，並請使用者到紀錄列表查看。四：有 entry 的 attempts 達到二時顯示中性的待送，此時再依 navigator.onLine 分岔為離線中或連線有問題兩種文案，前者不提供重試按鈕。五：其餘顯示同步中的轉圈，沒有補充文案。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 552", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker
+      id="hss-arrow"
+      viewBox="0 0 10 10"
+      refX="9"
+      refY="5"
+      markerWidth="7"
+      markerHeight="7"
+      orient="auto-start-reverse"
+    >
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <rect x="40" y="24" width="1080" height="42" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="580" y="50" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">輸入：pending（已以 p.gameId === gameId 過濾）　＋　state.storageUnavailable</text>
+
+    <text x="185" y="86" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">關卡與判斷式</text>
+    <text x="465" y="86" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">狀態</text>
+    <text x="616" y="86" fontSize="10" fill="var(--muted-foreground)">實際顯示的文案</text>
+
+    <rect x="14" y="96" width="18" height="396" rx="6" fill="var(--muted)" />
+    <text x="23" y="294" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)" transform="rotate(-90 23 294)">風險由高到低</text>
+
+    <rect x="40" y="96" width="290" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="54" y="116" fontSize="11" fill="var(--muted-foreground)">1</text>
+    <text x="185" y="118" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">本機儲存寫不進去</text>
+    <text x="185" y="140" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">state.storageUnavailable</text>
+    <line x1="330" y1="128" x2="356" y2="128" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="96" width="190" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="465" y="120" textAnchor="middle" fontSize="12.5" fill="var(--warning)">無法保存　⚠</text>
+    <text x="465" y="140" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">警告・不看佇列</text>
+    <line x1="560" y1="128" x2="586" y2="128" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="96" width="520" height="64" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="116" fontSize="12.5" fill="var(--foreground)">本機空間已滿</text>
+    <text x="616" y="134" fontSize="10.5" fill="var(--muted-foreground)">有其他比賽待送：請回到其他尚未同步的比賽完成同步，以釋出空間</text>
+    <text x="616" y="150" fontSize="10.5" fill="var(--muted-foreground)">沒有：未送出的紀錄無法保存，請清除瀏覽器的網站資料或改用其他裝置</text>
+
+    <rect x="40" y="176" width="290" height="48" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="54" y="196" fontSize="11" fill="var(--muted-foreground)">2</text>
+    <text x="185" y="196" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">佇列為空</text>
+    <text x="185" y="214" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">pending.length === 0</text>
+    <line x1="330" y1="200" x2="356" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="176" width="190" height="48" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="465" y="205" textAnchor="middle" fontSize="12.5" fill="var(--muted-foreground)">隱藏</text>
+    <line x1="560" y1="200" x2="586" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="176" width="520" height="48" rx="8" fill="var(--background)" stroke="var(--border)" strokeDasharray="4 4" />
+    <text x="616" y="205" fontSize="10.5" fill="var(--muted-foreground)">沒有文案。佔位保留 24px，上方的排球標記才不會位移</text>
+
+    <rect x="40" y="240" width="290" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="54" y="260" fontSize="11" fill="var(--muted-foreground)">3</text>
+    <text x="185" y="262" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">有 entry 不可重試</text>
+    <text x="185" y="284" textAnchor="middle" fontSize="9" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">some((p) =&gt; !mayBeAttemptedAgain(p.lastError))</text>
+    <line x1="330" y1="272" x2="356" y2="272" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="240" width="190" height="64" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="465" y="264" textAnchor="middle" fontSize="12.5" fill="var(--warning)">送不出去　⚠</text>
+    <text x="465" y="284" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">警告・帶數字角標</text>
+    <line x1="560" y1="272" x2="586" y2="272" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="240" width="520" height="64" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="264" fontSize="12.5" fill="var(--foreground)">N 筆送不出去</text>
+    <text x="616" y="286" fontSize="10.5" fill="var(--muted-foreground)">請在紀錄列表中查看這幾筆　·　無重試按鈕</text>
+
+    <rect x="40" y="320" width="290" height="104" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="54" y="340" fontSize="11" fill="var(--muted-foreground)">4</text>
+    <text x="185" y="358" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">有 entry 實測失敗達兩次</text>
+    <text x="185" y="380" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">some((p) =&gt; p.attempts &gt;= 2)</text>
+    <text x="185" y="400" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">約三秒，濾掉自己會好的打嗝</text>
+    <line x1="330" y1="372" x2="356" y2="372" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="320" width="190" height="104" rx="8" fill="var(--background)" stroke="var(--muted-foreground)" />
+    <text x="465" y="360" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">待送　☁</text>
+    <text x="465" y="380" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">中性・靜態圖示</text>
+    <text x="465" y="398" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">帶數字角標</text>
+    <line x1="560" y1="372" x2="586" y2="372" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <text x="592" y="336" fontSize="9" fill="var(--muted-foreground)" transform="rotate(-90 592 336)">onLine</text>
+    <rect x="600" y="320" width="520" height="48" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="340" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">navigator.onLine === false</text>
+    <text x="616" y="358" fontSize="12.5" fill="var(--foreground)">離線中　—　<tspan fontSize="10.5" fill="var(--muted-foreground)">N 筆已保存，恢復連線後自動送出　·　無重試按鈕</tspan></text>
+    <rect x="600" y="376" width="520" height="48" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="396" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">navigator.onLine === true</text>
+    <text x="616" y="414" fontSize="12.5" fill="var(--foreground)">連線有問題　—　<tspan fontSize="10.5" fill="var(--muted-foreground)">N 筆已保存，會持續嘗試送出　·　有重試按鈕</tspan></text>
+
+    <rect x="40" y="440" width="290" height="52" rx="8" fill="var(--background)" stroke="var(--border)" />
+    <text x="54" y="460" fontSize="11" fill="var(--muted-foreground)">5</text>
+    <text x="185" y="462" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">其餘</text>
+    <text x="185" y="480" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">剛入列，或正在飛</text>
+    <line x1="330" y1="466" x2="356" y2="466" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="370" y="440" width="190" height="52" rx="8" fill="var(--background)" stroke="var(--success)" />
+    <text x="465" y="463" textAnchor="middle" fontSize="12.5" fill="var(--success)">同步中　◌</text>
+    <text x="465" y="481" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">中性・轉圈</text>
+    <line x1="560" y1="466" x2="586" y2="466" stroke="var(--muted-foreground)" strokeWidth="1.5" strokeOpacity="0.7" markerEnd="url(#hss-arrow)" />
+    <rect x="600" y="440" width="520" height="52" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="616" y="463" fontSize="12.5" fill="var(--foreground)">同步中</text>
+    <text x="616" y="481" fontSize="10.5" fill="var(--muted-foreground)">沒有補充文案——它要兌現的承諾在幾百毫秒內就會兌現</text>
+
+    <text x="580" y="522" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">navigator.onLine 只出現在關卡 4 命中之後，決定措辭與按鈕；它不參與上面任何一關的判斷</text>
+
+  </g>
+</svg>
+
+順序不是任意的。關卡 1 排在關卡 2 之前，是因為「隱藏」的原意是**沒有任何風險**，而不是佇列為空——store 不可寫時即使一球未記，風險已經存在。關卡 1 排在關卡 3 之前，是因為前者危及整個佇列而後者只危及特定幾筆；被壓下去的資訊不會消失，Entry List 上的 per-rally 標記獨立於這道優先序呈現。而 spinner 被放到最後一關，正是因為它是最樂觀的陳述，任何一種已知的不確定都應該在抵達它之前被攔下來。
+
+## Contracts
+
+判斷式與文案都畫在上圖裡，因為那是規格本身而不是規格的插圖。這一節只講圖上看不出來的三件事。
+
+**`navigator.onLine` 不在判斷裡。** 它在關卡 4 命中之後才被讀取，而那時「送不出去」已經是既定事實。兩種措辭因此都是真話：`false` 是它唯一可靠的方向；`true` 時「送不出去」的依據是失敗紀錄，不是它。
+
+**`attempts` 是實測，不是推測。** 它記錄的是真的發出過請求、真的收到失敗。這使得「飛航模式」與「連上網路卻到不了伺服器」走同一條路——後者在球場上更常發生。門檻用次數而非時間：`attempts` 遞增本身就是一次 dispatch，狀態會自己翻，不需要任何 `setTimeout` 與其清理責任。
+
+**同一個判準供兩個表面使用。** `hasFailedWrite` 改讀關卡 3 的判斷式，使指示器與 Entry List 的 per-row 標記不可能對同一筆 entry 給出矛盾的語氣。這**收窄了 `retryable-entry-writes` 的 S08 已驗收行為**——該切片的判準是「嘗試用盡」，此後只有不可重試者被標記。被收窄掉的那一類會自己好，不需要使用者做任何事。
+
+`flushingGameIds` 在此模型下失去唯一的消費者，連同 `flushStarted` 一併移除。它是本 Change 改變狀態模型的證據：舊模型需要知道「有沒有 request 在飛」，新模型不需要。
+
+## Failure modes
+
+
+
+
+
+
+
+## Testing strategy
+
+判斷式是純函式，五道關卡與其邊界（尤其是門檻的 1 與 2、以及「不可重試」與「退避用盡」的區隔）在 `deriveSyncStatus` 的單元測試中窮舉，不需要渲染。
+
+呈現層的測試針對可觀察的結果而非實作：狀態 4 不得渲染 `Spinner`、狀態 1 在佇列為空時仍須渲染、重試按鈕只在單一分支出現、`aria-label` 帶完整句子。`useIsOnline` 以派送 `online` / `offline` 事件驅動。
+
+移除 `flushingGameIds` 是行為中性的，其現有測試連同被移除的 action 一併刪除——保留它們會是在測一個不再存在的概念。
+
+`navigator.storage.persist()` 只驗證「被呼叫一次」。它的實際效果無法在測試中觀察，宣稱能觀察就是本 Change 正在消除的那種假話。
+
+真實裝置上的觀感屬 developer acceptance，不由自動化測試承擔。
+
+## Risks
+
+前兩條是本 Change 選擇不關閉的缺口，兩者都有指定的關閉者（「不可重試 entry 的導向與刪除」與 `offline-recording`）而非留在原地；第三條是它縮小但關不掉的。其餘四條是取捨的代價，記在這裡是為了讓推翻它們的證據出現時有東西可以對照。
+
+<RiskTable
+  risks={[
+    {
+      name: "警告狀態在本 Change 內沒有出口",
+      severity: "warning",
+      mitigation:
+        "關卡 3 的 popover 不提供動作——重試對 4xx 必定再次失敗。Entry List 上 S08 的 per-row 重試控制仍然存在並仍然標記它們，缺的只是從指示器過去的路。該後續工作已獨立登記，並以本 Change 為前置。這是已知缺口，不是靜默的。",
+    },
+    {
+      name: "手動重試把機制的責任交給使用者的手指",
+      severity: "warning",
+      mitigation:
+        "退避表約二十二秒後終止，而 onLine 恆真時沒有任何機制偵測伺服器恢復。這是有意識、有期限的妥協，期限記在 `offline-recording` 的驗收條件上——持久重播上線後移除該按鈕。",
+    },
+    {
+      name: "「現在可用、之後消失」的儲存偵測不到",
+      severity: "warning",
+      mitigation:
+        "私密瀏覽、iOS ITP 的長期無互動清除、磁碟壓力回收，三者都不拋錯——探測只能回答「現在寫得進去嗎」。persist() 是後兩者唯一的槓桿且效果無法驗證；私密瀏覽連槓桿都沒有，而偵測私密瀏覽本身是 D3 明確否決的事。unwritable 唯一可觸及的成因是配額用盡：站台資料被封鎖雖然探測得到，但 Cookie 一被封鎖登入就先失敗，沒有人到得了會顯示它的畫面。",
+    },
+    {
+      name: "persist() 帶進一個無法驗證的東西",
+      severity: "info",
+      mitigation:
+        "回傳 true 只代表請求被接受。驗收條件因此收窄為「開機呼叫一次、結果記錄於 log、不顯示於 UI」，不附加任何保證。iOS PWA 的授予條件待實地確認；若確認不可靠，應移除而非留著假裝有用。",
+    },
+    {
+      name: "三秒門檻沒有量測依據",
+      severity: "info",
+      mitigation:
+        "取自退避表的第一格（兩秒）加上一次請求，是一個可調的常數。Notion 用三十秒，但其使用者在寫文件；記錄員在球與球之間抬頭掃一眼，三十秒足以讓他經歷好幾球的焦慮。",
+    },
+    {
+      name: "指示器不再是佇列的純投影",
+      severity: "info",
+      mitigation:
+        "它多了一個不來自佇列內容的輸入。`sync-indicator.tsx` 檔頭那句「pure projection of the pending-write queue」必須在同一輪更新，否則它會變成一句過時的斷言。",
+    },
+    {
+      name: "重試狀態群組化會改變本模型讀取的欄位",
+      severity: "info",
+      mitigation:
+        "attempts 與 lastError 的持有位置將由 entry 移至 (game, set) 群組。本 Change 排在它之前，使該後續工作面對的是一個已釐清的狀態模型；門檻語意屆時須重新檢視，已登記為 revisit trigger。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionCards ids={["0018", "0019", "0020", "0021"]} />
+
+## References
+
+D1 與 D4 的兩處經驗性主張——「其他 local-first 產品怎麼講離線」與「它們不提供手動重試」——的出處記在這裡，連同各自的證據強度。**兩者都是二手來源的歸納，不是對那些產品的實地稽核**，因此它們支撐的是決策的方向，不足以支撐更強的宣稱。
+
+| 來源                                                                                                                                                                                  | 支撐了什麼                                                                                                                                                                                                                                                 | 證據強度                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [Google Drive 社群討論串](https://support.google.com/drive/thread/173911234/working-offline-looks-like-you-re-offline-changes-are-saved-to-this-device-now-and-will-save-to-dr?hl=en) | Google Docs 離線提示的實際字串：`Working offline — Looks like you're offline. Changes are saved to this device now, and will save to Drive…`。結構是短標題加一句完整的話，且那句話同時講「已存在裝置上」與「之後會存回雲端」——與本 Change 的兩行文案同形。 | **中**。字串來自使用者張貼的畫面內容，非 Google 官方文件。 |
+| [Google Workspace Updates：新的儲存狀態與離線指示器](https://workspaceupdates.googleblog.com/2020/06/new-save-status-online-offline-google-docs.html)                                 | 常駐層只有一個小灰色 icon，完整說明點開才出現——即分層揭露。                                                                                                                                                                                                | **中**。官方來源，但只描述行為，未逐字引用 UI 字串。       |
+| [Local-First Content：Caching、Offline Modes 與 UX](https://pavilion.network/blog/local-first-content-caching-offline-ux)                                                             | 以不張揚的 sync badge 隱藏同步複雜度，用顏色與 microcopy 傳達風險程度。                                                                                                                                                                                    | **低**。二手綜述。                                         |
+| [KoruUX：設計狀態指示器的五個最佳實務](https://www.koruux.com/blog/ux-best-practices-designing-status-indicators/)                                                                    | 狀態指示器需要簡潔的 microcopy 說明等待的原因，以及使用者能否做點什麼。                                                                                                                                                                                    | **低**。二手綜述。                                         |
+| [Expensify `OFFLINE_UX.md`](https://github.com/Em01/App/blob/main/contributingGuides/OFFLINE_UX.md)                                                                                   | 一份真實產品的離線 UX 契約：樂觀推進、待送項目以視覺標記呈現、重試自動發生而非要求使用者觸發。                                                                                                                                                             | **中**。一手工程文件，但屬他人專案的內部約定。             |
+
+兩件**未經一手確認**、但影響了決策的事，記在這裡以免日後被當成已驗證的事實：
+
+- **Notion 在連不到伺服器約三十秒後才顯示離線**，判準是伺服器可達性而非 `navigator.onLine`。這在 D1 中被當作「不信任該訊號」的旁證。來源為二手綜述，未在 Notion 官方文件中確認。
+- **Google Docs、Notion、Linear 皆不提供手動重試按鈕**，因其背景重試永不終止。這是 D4 全部論證的前提——按鈕之所以存在，是因為我們有一個它們沒有的終局狀態。若這個前提被推翻（例如其中之一其實有這顆按鈕，或其重試其實會終止），D4 應重新檢視。

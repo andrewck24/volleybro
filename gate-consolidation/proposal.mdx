@@ -1,0 +1,94 @@
+export const scenarios = [
+  {
+    id: "S1",
+    given: "the repository after this Change",
+    when: "`pnpm check:workflow` runs",
+    then: "no rule named `retired-workflow`, `active-legacy-change`, `retired-authority`, `retired-reference` or `standards-reviewer` exists, and the check passes",
+  },
+  {
+    id: "S2",
+    given: "a WORKFLOW.md whose delivery profile binds a capability to an adapter other than the required one",
+    when: "`pnpm check:workflow` runs",
+    then: "it fails naming that capability",
+  },
+  {
+    id: "S3",
+    given: "a repository missing WORKFLOW.md or one of the `docs/agents/` adapter files",
+    when: "`pnpm check:workflow` runs",
+    then: "it fails naming the missing file",
+  },
+  {
+    id: "S4",
+    given: "a Change branch with commits not pushed to its upstream",
+    when: "`pnpm blueprint:gate <slug>` runs",
+    then: "it fails before publishing anything",
+  },
+  {
+    id: "S5",
+    given: "a pushed Change branch and its page",
+    when: "`pnpm blueprint:gate <slug>` runs",
+    then: "it publishes the page, runs the gate check, and prints the branch preview URL and the commit count to compare on it",
+  },
+  {
+    id: "S6",
+    given: "a page that already has a Review tab and a Proposal edited through Ingest",
+    when: "`pnpm blueprint:gate <slug> --gate G1` runs",
+    then: "the store gains a G1 publish of the Proposal alone followed by the whole page, and the frozen-Proposal check passes against the new baseline",
+  },
+  {
+    id: "S7",
+    given: "WORKFLOW.md and the delivery-workflow Feature after this Change",
+    when: "a reader looks for what a gate checks",
+    then: "the gate steps name `pnpm blueprint:gate`, and neither document lists the checks it runs",
+  },
+];
+
+<TLDR>
+  `check-workflow.js` 幾乎每個 Change 都在加規則，而每條規則的行為同時寫在程式碼、WORKFLOW.md
+  與 Feature 三處，改一處就可能與另一處矛盾。這個 Change 刪掉已無作用或只綁住文字的檢查，讓檢查的行為只寫在它自己的失敗訊息裡，並把
+  gate 的步驟順序收進 `pnpm blueprint:gate` 一個指令。
+</TLDR>
+
+|                        | 現在                                                             | 之後                                                         |
+| ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| 一條檢查做什麼         | 寫在程式碼、WORKFLOW.md、delivery-workflow Feature 三處          | 只寫在失敗訊息與測試裡                                       |
+| gate 的步驟順序        | WORKFLOW.md 的文字，可能與檢查矛盾                               | `pnpm blueprint:gate <slug>` 依序執行                         |
+| Ingest 重設 G1 基準    | 手動剪掉 Review tab、publish、再貼回                              | `pnpm blueprint:gate <slug> --gate G1`                        |
+| Spectra 時期的檢查     | 4 條仍在跑，防止已不存在的東西回來                                | 刪除                                                         |
+
+<DecisionCards ids={["0083", "0084"]} />
+
+## 範圍
+
+1. **刪除**：`retired-workflow`、`active-legacy-change`、`retired-authority`、`retired-reference` 四條 Spectra 時期的檢查；`standards-reviewer`（要求 WORKFLOW 的 Pre-PR 段落提到或不提到某個檔名）。
+2. **保留**：`guidance-import`、`workflow-bridge`、`section-reference`、`shared-skills`、`internal-link`、snippet 檢查——各自擋住真實會發生的退化。
+3. **精簡**：`delivery-profile` 的 `SUPPORTED_ADAPTERS` 只留實際需要的 binding；`canonical-contract` 與 `repository-adapter` 兩個檔案存在性檢查合併。
+4. **新增** `pnpm blueprint:gate <slug> [--gate G1]`：拒絕未 push 的分支、publish、跑 gate check、印出 branch preview 網址與要比對的 commit 數；`--gate G1` 先只發布 Proposal 再發布整頁。
+5. **文件**：WORKFLOW.md 的 G1、Ingest、Archive 與 G2 段落改為執行此指令；刪除 delivery-workflow Feature 的檢查清單；`docs/agents/blueprint.md` 同步。
+
+### 不在範圍內
+
+- Fix path 的邊界（流程規則、小型行為變更、只修措辭的 scenario）：另一個 Change，排在這個之後。
+- 在 `platform/blueprint` 畫生命週期流程圖：另案，這個 Change 之後依新指令繪製。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "刪掉的檢查其實還在擋某種退化",
+      severity: "warning",
+      mitigation: "每條刪除都在 Review 附上它守的東西為何已不存在；保留的規則照舊有測試。",
+    },
+    {
+      name: "WORKFLOW 讀者看不到 gate 檢查的完整清單",
+      severity: "info",
+      mitigation: "這是 ADR-0083 接受的代價：跑指令或讀失敗訊息即可得知。",
+    },
+    {
+      name: "preview 網址的格式由 Cloudflare 決定",
+      severity: "info",
+      mitigation: "指令印出網址時依既有 PR 留言中的格式組成；格式改變時只影響印出的提示，不影響 gate 結果。",
+    },
+  ]}
+/>

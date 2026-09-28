@@ -1,0 +1,244 @@
+由舊格式機械轉換，未經 G1／G2；持久知識見 Features 與決策記錄。
+
+<TLDR>
+  記下的球會從畫面上消失。它們沒有遺失——待送佇列好好地存在磁碟上，SyncIndicator
+  也誠實地說有幾筆還沒送出——但畫面上看不到，記錄員找不到是哪幾顆。原因是記球時把球寫進了
+  SWR 的快取，那格資料屬於伺服器，SWR 隨時會拿伺服器的版本整包換掉它。本 Change
+  改成在讀出來的時候才把待送的球疊上去。
+</TLDR>
+
+
+## Context
+
+記一顆球會做兩件事（`src/components/game/panel/moves/oppo.tsx`）：
+
+```ts
+mutate(updatedGame, { revalidate: false }); // 寫進 SWR 快取
+enqueue(entry); // 進待送佇列
+```
+
+第一行把球放進 SWR 的快取。問題是那一格從來不屬於我們：SWR 是一個會自己重新抓資料的伺服器快取，它對每個 key 的假設是「這裡面是伺服器的資料，我隨時可以整包換掉」。`revalidate: false` 只擋住這一次，擋不住之後任何一次重新驗證。
+
+`useGame` 沒有關掉 `revalidateOnFocus` 與 `revalidateOnReconnect`，兩者的 SWR 預設都是開啟。四種情況會踩到，其中三種完全不需要離線：
+
+| 情況                      | 為什麼                                                                                                                           |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| app 被系統回收後重開      | 冷啟動時 `revalidateOnMount` 為 true，一定會抓伺服器版本。佇列已經從磁碟還原，畫面上卻沒有那些球。這個不是機率問題，每次都會發生 |
+| 恢復連線                  | `revalidateOnReconnect` 和佇列的 `online` flush 同時觸發，誰先回來誰決定畫面                                                     |
+| 離開 app 超過五分鐘再回來 | `dedupingInterval` 是五分鐘，過了就不再擋住 focus 觸發的重新驗證。一局打超過五分鐘是常態                                         |
+| flush 還在飛的時候記球    | 同時只有一趟 flush，中途入列的球要搭下一班。那趟 flush 回來時用伺服器版本整批覆蓋該局的 entries，中途記的球就被抹掉了            |
+
+球本身沒有風險，`retryable-queue-persistence` 已經讓它們安全落盤。遺失的是畫面。
+
+不過這比單純的顯示問題再深一層。`summary-drawer` 上的失敗標記是從佇列算出來的，列卻是從伺服器資料渲染的。列被蓋掉之後，佇列裡那筆有標記、卻沒有列可以掛——記錄員看得到指示器說有幾筆未同步，找不到是哪一顆，也沒得逐筆重試。`retryable-entry-writes` 剛交付的逐列重試 UI，在這個情境下按不到。
+
+## Goals
+
+- 未送出的球在畫面上看得見，包含冷啟動之後的第一次繪製。
+- 失敗標記掛得到對應的列，讓 `retryable-entry-writes` 的逐列重試在這個情境下重新可用。
+- 畫面上的比分包含未送出的球。
+
+## Non-goals
+
+- **不關掉重新驗證。** 關掉只能擋住四種情況裡的兩種——冷啟動的 `revalidateOnMount` 是必經路徑，flush 覆蓋跟重新驗證無關——而且會放棄拿到伺服器上的其他更新。
+- **不改佇列的行為。** 入列、重試、退避、落盤全部維持原樣。這張 Change 只改資料讀出來的樣子。
+- **不動局結果的推導。** client 的 `processGamePhase` 和 server 的 `deriveSetCompletion` 是同一條規則的兩份實作，而且已經對不上：編輯中間某一顆球時，client 判定這局還在進行中而把局結果清掉，伺服器判定早就結束而根本不寫。那是既有缺陷，已登記為後續 Change，排在本票之後——兩票都要動 `rally.helper`，順序反過來要改兩次同一段。
+- **不做丟棄手勢。** 合併之後，永久失敗的球會留在畫面與比分上直到七天過期。佇列沒有讓記錄員主動丟掉一顆球的路徑，補上它是新的使用者操作，另開一票。
+
+## Change boundaries
+
+- **一定在內**：`useGame` 的回傳值、合併函式、記一顆球的寫入路徑（`oppo.tsx` 與 `rally.helper.ts`）、四處讀 `set.win` 算大比分的地方。
+- **不在內**：`usePendingWrites` 的 flush 與重試邏輯、`pending-writes-slice` 的 reducer、SWR 的任何設定值、伺服器端的任何檔案。
+
+## Impact
+
+受影響的能力是 `game-recording/rally-recording` 與 `game-recording/persistence`：記錄畫面的資料來源，從「伺服器快取」改為「伺服器快取疊上這場比賽還沒送出的球」。`platform/clean-architecture` 也被觸及——`useGame` 從純資料 hook 變成會讀 Redux 的 hook。
+
+
+## Alternatives considered
+
+Design 的 D1、D2 記錄完整的評估與否決理由，這裡只列結論方向：
+
+- **另開一個 `useGameView`，讓 `useGame` 不碰 Redux**——二十一個呼叫端要逐一判定該用哪一個，漏掉任何一個就是靜默留著這個 bug。
+- **關掉 `revalidateOnFocus` 與 `revalidateOnReconnect`**——只修好一半的情況，代價是放棄伺服器上的其他更新。
+- **等 SWR 換成 RTK Query 再一起做**——換過去這個問題不會消失。RTK Query 的 optimistic update 一樣會被重新抓的資料蓋掉，它也沒有提供待送佇列。
+- **拿掉樂觀寫入，畫面完全靠合併**——`set.win` 的重算沒有地方可以放，而且 flush 成功那一刻畫面的資料來源會切換，切換前後必須完全一樣才不會閃。
+
+## Decisions
+
+結構化 ADR 位於 `design/decisions/`，由 Design 頁呈現。
+
+| ID  | 問題                                                | 結論                                                                            |
+| --- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| D1  | 未送出的球要在哪裡疊回畫面上                        | `useGame` 的回傳值，寫入路徑改成只碰未合併的快取                                |
+| D2  | 同一顆球在兩邊都有時聽誰的，疊上去之後 `win` 怎麼辦 | 依 id 覆蓋、依 seq 排序，跟伺服器同一套規則；合併完全不碰 `win`，大比分改用推導 |
+
+## Revisit triggers
+
+- SWR 換成 RTK Query：合併會變成一個 selector，寫入端改用 `updateQueryData`。形狀一樣，落點要重寫。
+- 佇列開始裝 rally 以外的 entry（換人、暫停、挑戰）：合併目前只疊 entries，新型別若需要更多欄位，職責邊界要重看。
+- 丟棄手勢上線：屆時要重新決定，永久失敗的球還該不該疊在畫面上。
+
+## Design
+
+<TLDR>
+  一條規則：寫入只碰快取，合併發生在讀出來的時候。SWR
+  照樣可以隨時把快取整包換掉，換掉也不損失什麼，因為待送的球不在裡面。
+</TLDR>
+
+## Adopted shape
+
+<svg
+  viewBox="0 0 1160 420"
+  role="img"
+  aria-label="讀寫分離的資料流。左欄是兩條寫入路徑：記一顆球時以 mutate 的 function form 把結果寫進 SWR cache，同一顆球以 enqueue 進入 Redux 的待送佇列。中欄是兩個獨立的 store：SWR cache 存伺服器擁有的原始資料，隨時可能被 reconnect、focus 或 mount 觸發的 revalidation 整包覆蓋；Redux 的 pendingWrites 是會落盤的 outbox。右側 mergeGame 是純函式，讀入這兩者，依 entry id upsert、依 seq 排序，輸出 useGame 的回傳值，即 read model。所有消費端——summary drawer、entry list、preview、stats、header——都從那一個回傳值取資料，二十一個呼叫端一行不改。關鍵在於寫入的箭頭只指向 raw cache，從不指向合併結果。"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "1160 / 420", width: "100%", height: "auto" }}
+>
+  <defs>
+    <marker id="orp-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--muted-foreground)" />
+    </marker>
+    <marker id="orp-arrow-warn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warning)" />
+    </marker>
+  </defs>
+
+  <g fontFamily="ui-sans-serif, system-ui, sans-serif">
+    <text x="455" y="26" textAnchor="middle" fontSize="11" fill="var(--warning)">revalidation：reconnect · focus · mount</text>
+    <line x1="455" y1="34" x2="455" y2="64" stroke="var(--warning)" strokeWidth="1.5" markerEnd="url(#orp-arrow-warn)" />
+
+    <text x="145" y="58" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">寫入路徑</text>
+
+    <rect x="40" y="70" width="210" height="72" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="145" y="98" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">記一顆球</text>
+    <text x="145" y="120" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">mutate((raw) =&gt; …)</text>
+
+    <rect x="330" y="70" width="250" height="72" rx="8" fill="var(--background)" stroke="var(--warning)" />
+    <text x="455" y="98" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">SWR cache</text>
+    <text x="455" y="120" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">伺服器擁有 · raw · 隨時被整包換掉</text>
+
+    <rect x="40" y="230" width="210" height="72" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="145" y="258" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">同一顆球</text>
+    <text x="145" y="280" textAnchor="middle" fontSize="9.5" fontFamily="ui-monospace, monospace" fill="var(--muted-foreground)">enqueue(entry)</text>
+
+    <rect x="330" y="230" width="250" height="72" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="455" y="258" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">Redux pendingWrites</text>
+    <text x="455" y="280" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">outbox · 落盤 · 活過重啟</text>
+
+    <line x1="250" y1="106" x2="322" y2="106" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#orp-arrow)" />
+    <line x1="250" y1="266" x2="322" y2="266" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#orp-arrow)" />
+    <line x1="580" y1="112" x2="642" y2="172" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#orp-arrow)" />
+    <line x1="580" y1="260" x2="642" y2="200" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#orp-arrow)" />
+
+    <rect x="650" y="150" width="180" height="72" rx="8" fill="var(--card)" stroke="var(--border)" />
+    <text x="740" y="178" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">mergeGame</text>
+    <text x="740" y="199" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">依 id upsert · 依 seq 排序</text>
+
+    <line x1="830" y1="186" x2="882" y2="186" stroke="var(--muted-foreground)" strokeWidth="1.5" markerEnd="url(#orp-arrow)" />
+
+    <rect x="890" y="150" width="230" height="72" rx="8" fill="var(--background)" stroke="var(--primary)" />
+    <text x="1005" y="178" textAnchor="middle" fontSize="12.5" fill="var(--foreground)">useGame 的回傳</text>
+    <text x="1005" y="199" textAnchor="middle" fontSize="9.5" fill="var(--muted-foreground)">read model</text>
+
+    <text x="1005" y="248" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">drawer · entry list · preview</text>
+    <text x="1005" y="264" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">stats · header</text>
+    <text x="1005" y="284" textAnchor="middle" fontSize="10" fill="var(--muted-foreground)">二十一個呼叫端一行不改</text>
+
+    <rect x="40" y="344" width="1080" height="44" rx="8" fill="var(--muted)" />
+    <text x="580" y="371" textAnchor="middle" fontSize="12" fill="var(--foreground)">寫入的箭頭只指向 raw，從不指向合併結果——這是唯一需要記住的規則</text>
+
+  </g>
+</svg>
+
+左邊兩條寫入路徑各自進自己的地方，右邊一個函式把兩者疊起來。SWR 那格照樣屬於伺服器，照樣隨時被換掉。
+
+### 合併做什麼
+
+`mergeGame` 收兩份資料：伺服器回來的比賽，和佇列裡屬於這場比賽的球。輸出一份新的比賽資料。它做三件事：
+
+1. 把佇列依 `setIndex` 分組，一局一局處理。
+2. 佇列裡的球，如果該局的 entries 已經有同一個 `entry.id`，用佇列的版本覆蓋掉。
+3. 沒有的，依 `seq` 放進它該在的位置。
+
+舉例：伺服器回來的第一局有 A、B 兩顆球，佇列裡有 B（記錄員改過）和 C。合併後是 A、改過的 B、C。
+
+這三條規則不是新發明的。伺服器的 `IGameRepository.upsertEntry` 早就這樣做了——它的契約寫著「依 identity 寫入或覆寫每一筆 entry，並依 sequence order 回傳該局的 entries，與到達順序無關」。合併只是把同一套規則複述到讀取端，兩邊才不會對同一批球排出不同順序。
+
+`mergeGame` 不認識排球規則，只疊 entries，不碰 `win`。
+
+### 寫入路徑為什麼要跟著改
+
+目前 `useGame` 回傳的 `game` 就是快取裡那個物件本身，不是複製品。`createRallyHelper` 直接改它，再把同一個物件交回 `mutate`——那一行只是通知 SWR 重新繪製，物件其實已經改好了。
+
+合併之後，`useGame` 回傳的是一份新做出來的資料。這時候如果寫入路徑不動，記一顆球就會把**合併過的內容寫回快取**，下次讀取再疊一次，同一顆球出現兩次、比分翻倍。
+
+所以寫入改成 `mutate` 的函式形式，函式拿到的參數是還沒合併的快取：
+
+```ts
+const phase = deriveEntryPhase(game, setIndex, entryIndex, entry); // 吃合併過的
+mutate((raw) => applyEntry(raw, setIndex, entry, phase), {
+  revalidate: false,
+}); // 寫沒合併的
+```
+
+算 phase 吃合併過的資料，因為它要看得到待送的球。記一顆新球時看不出差別——`deriveSetPhase` 往回掃第一個撞到的就是這顆球自己，不管底下的陣列多短。編輯一顆舊球時就會錯：那顆球在快取裡的位置比在畫面上前面，往回掃會先撞到排在它後面、seq 更大的球，phase 用錯的那一顆算出來，然後寫進 Redux 推進記錄狀態。
+
+寫入則不能用陣列位置定位。記錄流程的 `entryIndex` 是數合併後那個陣列來的，快取底下的陣列短了幾顆，同一個數字在兩邊指的不是同一個位置——照著寫會在快取裡留下空洞，下一次合併走到那個洞就整個畫面 throw。所以 `applyEntry` 收的是 entry 本身而不是 index，依 `id` 覆蓋、依 `seq` 插入，跟讀取端和 repository 的 `upsertEntry` 用同一條規則。三條路徑共用 `entities/game` 的 `upsertEntries`。
+
+`usePendingWrites` 的 flush 和 `useUnconfirmedSetCompletion` 的 retry 本來就用函式形式，不用改。
+
+## Contracts
+
+三條在實作與後續維護時不能破的規則：
+
+- **合併結果不可以進快取。** 任何把合併結果交給 `mutate` 的路徑都會造成重複疊加。
+- **`pending` 陣列依入列時間排序。** 目前是這樣，但沒有寫下來也沒有測試守著。合併的「同 id 取最後一筆」和 flush 送出時的去重都靠它，`rehydrated` 把還原的項目放最前面也是同一個時間序。這張 Change 把它變成明文契約並補上測試。
+- **寫入依 entry 身分定位，不依陣列位置。** 記錄流程的 index 是數合併後的陣列來的，快取的陣列可能更短。
+- **`runFlush` 裡 `mutate` 要在 `dispatch(flushSucceeded)` 之前。** 反過來會有一幀是「佇列已經放手、快取還沒收到」，畫面閃一下。順序對的時候也有一幀是兩邊都有，但依 id 覆蓋讓它看不出來。
+
+## Testing strategy
+
+兩個 seam。
+
+**`use-game-merge.test.tsx`——合併本身。** Overview 列的四種情況，斷言起來是同一件事：快取被伺服器版本換掉之後，`useGame` 回傳的資料裡還有那些球。用 `renderHook` 搭一個裝了待送項目的 Redux store 和受控的 fetcher 就能驅動，不用在元件層各自製造冷啟動、reconnect、focus 和 flush 窗口。同一個檔案再守四條：記兩顆球每顆只出現一次（重複疊加的回歸）、依 seq 排序、對縮短過的快取記球不留空洞、冷啟動還原的球在資料載入後看得到。同 id 取最後一筆與其他純合併規則在 `pending-writes.test.ts`。
+
+**`summary-drawer-merge.test.tsx`——失敗標記掛得到列。** 這條得在元件層，因為它證的是兩個不同來源對上了：標記從佇列算，列從 `useGame` 的資料渲染。在 `use-data` 那一層只看得到球還在，看不到標記跟列接上了。
+
+`use-pending-writes.test.tsx` 把 `useGame` 換成假的 `{ game: undefined, mutate }`，這張 Change 不動 flush，那個檔案不受影響。
+
+## Risks
+
+<RiskTable
+  risks={[
+    {
+      name: "資料層開始讀 Redux",
+      severity: "warning",
+      mitigation:
+        "`platform/clean-architecture` 的分層靠 review 維持，沒有工具擋。這裡的相依是刻意的：要把兩邊的資料疊起來，就得同時看得到兩邊。若該分層約束因此需要調整，那是一份新的 ADR。",
+    },
+    {
+      name: "永久失敗的球會留在畫面與比分上",
+      severity: "warning",
+      mitigation:
+        "要等七天過期才會消失，佇列沒有主動丟棄的路徑。合併刻意包含它們，否則失敗標記永遠掛不到列，逐列重試還是按不到。丟棄手勢已另開一票。",
+    },
+    {
+      name: "畫面比分和伺服器暫時對不上",
+      severity: "info",
+      mitigation:
+        "刻意的取捨。記錄員看到的比分就該是他記的那個，對不上會在球送出去那一刻自己消失。",
+    },
+  ]}
+/>
+
+## Decisions
+
+<DecisionCards ids={["0023", "0024"]} />
+
+## References
+
+- `IGameRepository.upsertEntry` 的契約敘述——合併的三條規則出自這裡
+- `retryable-queue-persistence`：讓待送的球安全落盤，這張 Change 讓它們看得見
+- `retryable-entry-writes`：逐列重試 UI，這張 Change 讓它在被覆蓋的情境下按得到
+- `honest-sync-status`：指示器說真話，這張 Change 讓畫面跟上
