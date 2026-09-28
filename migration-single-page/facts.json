@@ -1,13 +1,6 @@
 {
   "gate": "G1",
-  "publishedAt": "2026-09-28T19:49:39.325Z",
-  "startedAt": "2026-09-28T19:49:23.000Z",
-  "archivedAt": null,
-  "commits": 1,
-  "filesChanged": 8,
-  "insertions": 125,
-  "deletions": 3,
-  "srcFilesChanged": 0,
+  "publishedAt": "2026-09-28T21:19:07.641Z",
   "scenarios": 7,
   "decisions": [
     "0093",
@@ -15,5 +8,12 @@
     "0095",
     "0096",
     "0097"
-  ]
+  ],
+  "startedAt": "2026-09-28T19:49:23.000Z",
+  "archivedAt": null,
+  "commits": 5,
+  "filesChanged": 35,
+  "insertions": 1810,
+  "deletions": 547,
+  "srcFilesChanged": 0
 }
