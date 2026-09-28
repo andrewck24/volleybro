@@ -1,77 +1,82 @@
-import { createPlayer } from "@/__tests__/helpers";
-import { PlayerRole } from "@/entities/player";
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("@/infrastructure/di/inversify.config");
-jest.mock("@/lib/auth-client");
+const mockTransferOwnership = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
 
-describe("Ownership API Route - /api/teams/[teamId]/ownership", () => {
-  beforeEach(() => {
+jest.mock("@/interface/controllers/player/ownership.controller", () => ({
+  transferOwnership: mockTransferOwnership,
+}));
+
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
+
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const NEW_OWNER_ID = "507f1f77bcf86cd799439012";
+const SESSION = { user: { id: "user-1" } };
+
+type RouteResponse = { status: number; json: () => Promise<unknown> };
+
+let POST: (
+  req: never,
+  props: { params: Promise<{ teamId: string }> },
+) => Promise<RouteResponse>;
+
+describe("POST /api/teams/[teamId]/ownership", () => {
+  beforeEach(async () => {
+    jest.resetModules();
     jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ POST } = await import("../route"));
   });
 
-  describe("POST - Transfer ownership", () => {
-    it("should transfer ownership to specified player", () => {
-      const body = { newOwnerId: "player_456" };
-      const player = createPlayer({
-        id: "player_456",
-        name: "New Owner",
-        role: PlayerRole.OWNER,
-        teamId: "team_789",
-      });
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
+      "POST",
+      { newOwnerId: NEW_OWNER_ID, confirm: true },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-      const response = {
-        status: 200,
-        data: player,
-      };
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-      expect(body.newOwnerId).toBeDefined();
-      expect(response.status).toBe(200);
-      expect(response.data.role).toBe(PlayerRole.OWNER);
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockTransferOwnership).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 
-    it("should require newOwnerId in body", () => {
-      const validBody = { newOwnerId: "player_456" };
-      const invalidBody = {};
+  // The exact body handleTransferOwnership sends (src/components/team/players/membership-section.tsx):
+  it("returns 200 for the payload the transfer-ownership control actually sends", async () => {
+    const updated = {
+      id: NEW_OWNER_ID,
+      name: "New Owner",
+      status: PlayerStatus.JOINED,
+      role: PlayerRole.OWNER,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mockTransferOwnership.mockResolvedValue(updated);
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/ownership`,
+      "POST",
+      { newOwnerId: NEW_OWNER_ID },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-      expect(validBody.newOwnerId).toBeDefined();
-      expect(
-        (invalidBody as Record<string, unknown>).newOwnerId,
-      ).toBeUndefined();
-    });
+    const res = await POST(req as never, props);
+    const body = await res.json();
 
-    it("should return 401 if not authenticated", () => {
-      const response = { status: 401, error: "Unauthorized" };
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 403 if user is not current owner", () => {
-      const response = {
-        status: 403,
-        error: "Only current owner can transfer ownership",
-      };
-      expect(response.status).toBe(403);
-    });
-
-    it("should return 404 if player not found", () => {
-      const response = { status: 404, error: "Player not found" };
-      expect(response.status).toBe(404);
-    });
-
-    it("should return 404 if current owner not found in team", () => {
-      const response = {
-        status: 404,
-        error: "Current owner not found in team",
-      };
-      expect(response.status).toBe(404);
-    });
-
-    it("should return 400 if players not in same team", () => {
-      const response = {
-        status: 400,
-        error: "Players must be in same team",
-      };
-      expect(response.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(body).toEqual(updated);
+    expect(mockTransferOwnership).toHaveBeenCalledWith({
+      teamId: VALID_OBJECT_ID,
+      newOwnerId: NEW_OWNER_ID,
+      userId: SESSION.user.id,
     });
   });
 });

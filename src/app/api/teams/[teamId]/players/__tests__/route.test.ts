@@ -1,165 +1,129 @@
-/**
- * POST /api/teams/{teamId}/players - Create Invitation Integration Tests
- *
- * Tests for inviting members to a team via email with role assignment
- * These are contract/behavior tests, not full integration tests
- */
+import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
+import { PlayerRole, PlayerStatus, Position } from "@/entities/player";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-import { createPlayer } from "@/__tests__/helpers";
-import { PlayerRole } from "@/entities/player";
+const mockCreatePlayer = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetTeamPlayers = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
 
-jest.mock("@/infrastructure/di/inversify.config");
-jest.mock("@/lib/auth-client");
+jest.mock("@/interface/controllers/player/player.controller", () => ({
+  createPlayer: mockCreatePlayer,
+  getTeamPlayers: mockGetTeamPlayers,
+}));
 
-describe("Teams Players API Route", () => {
-  describe("POST - Create invitation", () => {
-    it("should validate email format", () => {
-      const validEmail = "test@example.com";
-      const invalidEmail = "invalid-email";
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      expect(emailRegex.test(validEmail)).toBe(true);
-      expect(emailRegex.test(invalidEmail)).toBe(false);
-    });
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const SESSION = { user: { id: "user-1" } };
 
-    it("should validate role enum values", () => {
-      const validRoles = [PlayerRole.MEMBER, PlayerRole.ADMIN];
-      const testRole = PlayerRole.ADMIN;
-      const invalidRole = "INVALID";
+type RouteResponse = { status: number; json: () => Promise<unknown> };
 
-      expect(validRoles).toContain(testRole);
-      expect(validRoles).not.toContain(invalidRole);
-    });
+let POST: (
+  req: never,
+  props: { params: Promise<{ teamId: string }> },
+) => Promise<RouteResponse>;
 
-    it("should lowercase email before processing", () => {
-      const email = "Test@Example.COM";
-      const lowercased = email.toLowerCase();
-
-      expect(lowercased).toBe("test@example.com");
-    });
-
-    it("should require authentication", () => {
-      const sessionNull = null;
-      const sessionValid = { user: { id: "user-1" } };
-
-      expect(sessionNull).toBeNull();
-      expect(sessionValid.user.id).toBeDefined();
-    });
-
-    it("should validate required request fields", () => {
-      const validBody = { email: "test@example.com", role: PlayerRole.ADMIN };
-      const missingEmail: Partial<typeof validBody> = {
-        role: PlayerRole.ADMIN,
-      };
-      const missingRole: Partial<typeof validBody> = {
-        email: "test@example.com",
-      };
-
-      expect(validBody.email).toBeDefined();
-      expect(validBody.role).toBeDefined();
-      expect(missingEmail.email).toBeUndefined();
-      expect(missingRole.role).toBeUndefined();
-    });
-
-    it("should return proper status codes", () => {
-      const successStatus = 201;
-      const unauthorizedStatus = 401;
-      const forbiddenStatus = 403;
-      const conflictStatus = 409;
-
-      expect(successStatus).toBe(201);
-      expect(unauthorizedStatus).toBe(401);
-      expect(forbiddenStatus).toBe(403);
-      expect(conflictStatus).toBe(409);
-    });
-
-    it("should include playerId in success response", () => {
-      const responseBody = { playerId: "player-123" };
-
-      expect(responseBody).toHaveProperty("playerId");
-      expect(typeof responseBody.playerId).toBe("string");
-    });
-
-    it("should include error message in error response", () => {
-      const errorResponse = { error: "User is not admin of the team" };
-
-      expect(errorResponse).toHaveProperty("error");
-      expect(typeof errorResponse.error).toBe("string");
-    });
+describe("POST /api/teams/[teamId]/players", () => {
+  beforeEach(async () => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ POST } = await import("../route"));
   });
 
-  describe("GET - List team players", () => {
-    it("should return array of players", () => {
-      const players = [
-        createPlayer({
-          id: "p1",
-          name: "Player 1",
-          teamId: "team-1",
-          role: PlayerRole.ADMIN,
-        }),
-        createPlayer({
-          id: "p2",
-          name: "Player 2",
-          teamId: "team-1",
-          role: PlayerRole.MEMBER,
-        }),
-      ];
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
+        name: "陳大文",
+        list: "starting",
+      },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-      expect(Array.isArray(players)).toBe(true);
-      expect(players.length).toBe(2);
-      expect(players[0]!.teamId).toBe("team-1");
-    });
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-    it("should handle empty team", () => {
-      const players: ReturnType<typeof createPlayer>[] = [];
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 
-      expect(Array.isArray(players)).toBe(true);
-      expect(players.length).toBe(0);
-    });
+  it("returns 400 for a role without an email to invite", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", role: PlayerRole.ADMIN },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-    it("should validate response structure", () => {
-      const player = createPlayer({
-        id: "player-1",
-        name: "Test User",
-        teamId: "team-1",
-        userId: "user-1",
-        role: PlayerRole.ADMIN,
-      });
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-      expect(player).toHaveProperty("id");
-      expect(player).toHaveProperty("name");
-      expect(player).toHaveProperty("teamId");
-      expect(player).toHaveProperty("role");
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 
-    it("should require authentication", () => {
-      const authenticated = { user: { id: "user-1" } };
-      const notAuthenticated: null = null;
+  it("returns 400 for OWNER, which only a transfer can grant", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      { name: "陳大文", email: "chen@example.com", role: PlayerRole.OWNER },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-      expect(authenticated.user.id).toBeDefined();
-      expect(notAuthenticated).toBeNull();
-    });
+    const res = await POST(req as never, props);
 
-    it("should filter players by teamId", () => {
-      const allPlayers = [
-        createPlayer({ id: "p1", teamId: "team-1", name: "P1" }),
-        createPlayer({ id: "p2", teamId: "team-2", name: "P2" }),
-        createPlayer({ id: "p3", teamId: "team-1", name: "P3" }),
-      ];
+    expect(res.status).toBe(400);
+    expect(mockCreatePlayer).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 
-      const team1Players = allPlayers.filter((p) => p.teamId === "team-1");
-      expect(team1Players.length).toBe(2);
-      expect(team1Players.every((p) => p.teamId === "team-1")).toBe(true);
-    });
+  // The exact body CreateForm's handleSubmit sends (src/components/team/players/create-form.tsx):
+  it("returns 201 for the payload the create-player form actually sends", async () => {
+    const created = {
+      id: "player-1",
+      name: "陳大文",
+      number: 5,
+      position: Position.MB,
+      status: PlayerStatus.NONE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mockCreatePlayer.mockResolvedValue(created);
+    const req = routeRequest(
+      `http://localhost/api/teams/${VALID_OBJECT_ID}/players`,
+      "POST",
+      {
+        name: "陳大文",
+        number: 5,
+        position: Position.MB,
+      },
+    );
+    const props = { params: Promise.resolve({ teamId: VALID_OBJECT_ID }) };
 
-    it("should return 200 status on success", () => {
-      const successStatus = 200;
-      expect(successStatus).toBe(200);
-    });
+    const res = await POST(req as never, props);
+    const body = await res.json();
 
-    it("should return 401 when not authenticated", () => {
-      const unauthorizedStatus = 401;
-      expect(unauthorizedStatus).toBe(401);
+    expect(res.status).toBe(201);
+    expect(body).toEqual(created);
+    expect(mockCreatePlayer).toHaveBeenCalledWith({
+      teamId: VALID_OBJECT_ID,
+      data: {
+        name: "陳大文",
+        number: 5,
+        position: Position.MB,
+      },
+      userId: SESSION.user.id,
     });
   });
 });
