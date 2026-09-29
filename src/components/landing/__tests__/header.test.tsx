@@ -1,4 +1,5 @@
 import { Header } from "@/components/landing/header";
+import { WINDOWS, setUserAgent } from "@test/support/dom/user-agent";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const scrollTo = (scrollY: number) => {
@@ -9,18 +10,15 @@ const scrollTo = (scrollY: number) => {
   fireEvent.scroll(window);
 };
 
-// The frosted-glass backdrop is the only visible effect of scrolling.
+// jsdom loads no stylesheet, so a computed style shows nothing; the class the
+// scroll handler toggles is the only trace of the frosted bar.
 const isFrosted = () =>
   screen
     .getByTestId("header-glassmorphism-container")
     .className.includes("backdrop-blur-sm");
 
 beforeEach(() => {
-  jest
-    .spyOn(window.navigator, "userAgent", "get")
-    .mockReturnValue(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    );
+  setUserAgent(WINDOWS);
 });
 
 afterEach(() => {
@@ -53,11 +51,15 @@ describe("Header", () => {
   });
 
   it("stops listening for scroll after unmount", () => {
+    const add = jest.spyOn(window, "addEventListener");
     const remove = jest.spyOn(window, "removeEventListener");
     const { unmount } = render(<Header />);
+    const [, onScroll] = add.mock.calls.find(
+      ([type]) => (type as string) === "scroll",
+    )!;
 
     unmount();
 
-    expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
+    expect(remove).toHaveBeenCalledWith("scroll", onScroll);
   });
 });

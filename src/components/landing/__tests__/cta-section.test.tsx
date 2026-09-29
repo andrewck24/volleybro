@@ -1,13 +1,10 @@
 import { CTASection } from "@/components/landing/cta-section";
 import { render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
+import { WINDOWS, setUserAgent } from "@test/support/dom/user-agent";
 
 beforeEach(() => {
-  jest
-    .spyOn(window.navigator, "userAgent", "get")
-    .mockReturnValue(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    );
+  setUserAgent(WINDOWS);
 });
 
 afterEach(() => {

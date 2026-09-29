@@ -2,17 +2,14 @@ import { CTAButton } from "@/components/landing/cta-button";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
-
-const WINDOWS = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
-const MAC =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36";
-const LINUX = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36";
-const ANDROID = "Mozilla/5.0 (Linux; Android 10; SM-G975F) AppleWebKit/537.36";
-const iosUserAgent = (version: number) =>
-  `Mozilla/5.0 (iPhone; CPU iPhone OS ${version}_0 like Mac OS X) AppleWebKit/605.1.15 Version/${version}.0`;
-
-const setUserAgent = (userAgent: string) =>
-  jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue(userAgent);
+import {
+  ANDROID,
+  LINUX,
+  MAC,
+  WINDOWS,
+  iosUserAgent,
+  setUserAgent,
+} from "@test/support/dom/user-agent";
 
 const firePrompt = (prompt: () => Promise<void>) => {
   const event = new Event("beforeinstallprompt", { cancelable: true });

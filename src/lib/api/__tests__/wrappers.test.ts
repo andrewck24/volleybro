@@ -7,7 +7,6 @@ import {
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
 import { z } from "zod";
 
-// Mock Better Auth session
 jest.mock("@/lib/auth", () => ({
   auth: {
     api: {
@@ -16,7 +15,6 @@ jest.mock("@/lib/auth", () => ({
   },
 }));
 
-// Mock next/headers
 jest.mock("next/headers", () => ({
   headers: jest.fn().mockResolvedValue(new Headers()),
 }));
