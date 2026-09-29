@@ -1,0 +1,265 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+要決定的只有一件事：**兩組刻意沒有 keeper 的刪除。** 它們都是只能靠 CSS class 觀察的 contract，jsdom 看不到，依 `docs/testing-strategy.md` 這類斷言歸 Chromatic：
+
+1. `sync-indicator` 的「警告色 vs 中性色」（原本斷言 `ring-warning`、`text-warning`）。現在以 `aria-label` 與文字區分狀態，色調本身沒有測試。
+2. `summary-drawer` 的 backdrop（「覆蓋整個 viewport」、「idle 時透明且不可互動」）。「展開時點擊收合」的 handler 行為仍保留。
+
+同意就無需動作；不同意，需要為它們在 Storybook 補畫面。
+
+本 shard 沒有 decision record 的 `decision` 文字在 G1 後改變。開了三張後續 issue，都是 shard 3 改寫測試時發現、不屬於本 Migration 範圍的事：新增賽事表單在球隊資料未快取時主場隊名為空（疑似缺陷）；待寫入佇列不依 entry id 去重與 summary-drawer 的 selector 警告，加上兩處冗餘程式碼候選（刪除前要你決定）；`use-lineup`、`use-substitutes`、`court`、`players-list` 補專屬測試。細節見 ReviewDetails 的殘留風險。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `test/setup/frontend.ts` 與 `test/msw/server.ts`：MSW 伺服器的整個生命週期。重點是 `onUnhandledFrame: "error"`（沒有 handler 回答的請求會讓測試失敗），以及補上 Node 的 `setImmediate`。第一版寫成 `onUnhandledRequest`，MSW 3 沒有這個選項，於是無聲失效，只警告不失敗；review 時才發現並修正，現在有一個暫時的測試證明未回答的請求真的會失敗。
+2. ReviewDetails 的 mutation 表。覆蓋率只證明程式被執行；改寫後的測試能不能放心，靠每一列：正式程式碼被刻意改壞後，是哪個測試變紅。兩組沒變紅的 mutation（本 shard 沒新增測試去守它們）列在殘留風險。
+3. `src/components/game/__tests__/gesture-integration.test.tsx`：原本 mock 掉每個子元件，現在渲染真的 `Game`，改變最大。它證明的是 Game、drawer 與 preview 之間的接線；drawer 與 preview 各自的行為由自己的測試守護。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **「第一批」的範圍由本 shard 決定。** Proposal 只說「依目錄改寫第一批」，沒有指定哪些。本 shard 取「在網路邊界上 mock 了 `apiClient`、`fetch`、SWR，或為此 mock 了自己的 hook 與元件」的測試，因為移除 `fetch` 全域替換之後，這批最先需要 MSW。`landing/*`、`use-editing-guard`、`use-pull-to-refresh`、`use-active-team-id` 與其他不碰網路但 mock 自己程式碼的測試留給 shard 4。分 lane 仍依目錄（app 與 layout、team 與 user、game 兩組、hooks 與 lib）。
+2. **新增兩個 devDependency：`msw` 與 `jest-fixed-jsdom`。** MSW 3 只出 ESM，Jest 要轉譯它與五個相依套件，`jest.config.ts` 的 `transformIgnorePatterns` 因此多列了 `msw`、`@mswjs`、`rettime`、`until-async`、`@open-draft` 與 `cookie`；reviewer 逐一拿掉其餘候選驗證，只留下必要的。
+3. **`api-client` 的逾時案例保留一個 `fetch` spy。** Node 的 fetch 中止時丟出的 `DOMException` 與 jsdom 的不是同一個 class，正式碼的 `instanceof` 在 jsdom 下不成立；瀏覽器不受影響，所以不為此改正式碼。測試檔內已寫明這個 jsdom 限制。
+4. **只改測試，新增兩個測試 helper。** 相對 `dev`，沒有任何正式程式碼變動。`src/test-utils/swr-isolation.tsx` 給每個測試獨立的 SWR cache，`src/test-utils/editing-game.ts` 是三個 dialog 測試原本逐字重複的 game fixture。
+5. **本 shard 沒有自己的 scenario。** Proposal 的 S7 屬於 shard 4，所以下面的 `ScenarioResults` 是空的。本 shard 的證明是 TestPlan 的五項。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 3)}
+  results={[]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "Final gate",
+      method: "`pnpm verify:all`（動到 `jest.config.ts` 與 `package.json`，所以跑全部 lane）",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "static、workflow、integration、app-build、blueprint、app-test 六個 lane 全部 pass；code review 修正之後重跑一次，仍全部 pass",
+    },
+    {
+      id: "T2",
+      checks: "整合測試",
+      method: "`pnpm test:integration`（由 `verify:all` 的 integration lane 執行）",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "integration lane pass；本 shard 沒有改動任何整合測試或 backend 程式",
+    },
+    {
+      id: "T3",
+      checks: "逐檔覆蓋率不下降",
+      method: "在 shard 開始前的 `dev`（`7b5622c8`）與 HEAD 各跑一次 `jest --coverage`（全部三個 project），逐檔比較 `src/` 的 lines、branches、functions、statements",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "沒有任何檔案的 lines 或 statements 下降；9 個檔案的 branch 或 function 百分比下降，逐一說明在 ReviewDetails：6 個檔案是原本被 mock 掉而沒被量測（0/0），現在真的執行後才量到；3 個檔案的未覆蓋數不變",
+    },
+    {
+      id: "T4",
+      checks: "刪除對照表與保存審查",
+      method: "每個 lane 的 executor 逐宣告標記，並對每個被刪、被併、或斷言被改寫的 contract，把正式程式碼刻意改壞、確認 keeper 變紅、再逐位元還原（每次還原後 `git diff` 為空）；我在提交前確認整個 branch 相對 `dev` 沒有任何正式程式碼變動",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "每個被刪或被併的 contract 都有 keeper 變紅，除了 ActionItems 的兩組 CSS class 與 `oppo` 兩個本來就不可能失敗的空斷言；沒變紅的 mutation 列在殘留風險",
+    },
+    {
+      id: "T5",
+      checks: "沒有 handler 的請求會讓測試失敗",
+      method: "暫時的測試 `fetch('/api/nobody-handles-this')` 期待 reject，跑完即刪",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "設定 `onUnhandledFrame: \"error\"` 後該請求 reject；改設定之前，這個保證無聲失效",
+    },
+    {
+      id: "T6",
+      checks: "重複執行不 flaky",
+      method: "`pnpm exec jest --selectProjects backend frontend --coverage=false` 連跑五次；`use-pending-writes.test.tsx` 另外連跑八次",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "每次都全部通過。開發過程中曾出現一次 `use-pending-writes` 的失敗，當時有數個 agent 同時對同一個正式檔做 mutation 並跑 jest，之後在安靜狀態下無法重現",
+    },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 逐檔覆蓋率
+
+以同一條指令 `jest --coverage`（三個 project）在 `7b5622c8`（shard 2 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。總行覆蓋率 88.07% → 88.06%，總 branch 89.17% → 88.61%。
+
+| 檔案 | covered/total branch 之前 | 之後 | 原因 |
+| --- | --- | --- | --- |
+| `use-lineup.ts` | 0/0（顯示 100%） | 16/37 | 原本被測試 mock 掉，沒被載入量測；現在真的執行，未覆蓋的 branch 從來沒有專屬測試 |
+| `use-substitutes.ts` | 0/0（顯示 100%） | 15/20 | 同上；`getEditingModeSubstitutes` 沒有測試呼叫 |
+| `court.tsx` | 0/0（顯示 100%） | 4/6 | 同上 |
+| `players-list.tsx` | 1/1（顯示 100%） | 3/7 | 舊的 `new-game-form` 測試 mock 了資料 hook 且用空的隊伍，這個檔案只被量到一個 branch；現在量得到更多 |
+| `substitutes/index.tsx`（branch） | 4/5 | 5/7 | covered 沒有減少，被量到的區塊變多；function 2/3 → 2/4 同理 |
+| `options/index.tsx` | 4/5 | 3/4 | 未覆蓋數不變（都是 1），covered 與 total 各少 1 |
+| `team/form.tsx` | 31/33 | 30/32 | 未覆蓋數不變（都是 2），covered 與 total 各少 1 |
+| `membership-section.tsx` | 16/19 | 15/18 | 未覆蓋數不變（都是 3），covered 與 total 各少 1 |
+
+- 前四列不是覆蓋率下降：程式碼第一次被真的執行，covered 的 branch 數是上升的。缺的是專屬測試，已開 issue。
+- 後三列的正式程式碼沒有變動；推測是 V8 只回報有被執行的區塊，未另行驗證。
+- 逐檔的 lines 與 statements 沒有任何下降。
+
+### 刪除對照表
+
+由每個 lane 的 executor 逐宣告標記產生。R 保留、F 保留但修正（mock 換成 MSW handler，斷言改為請求內容或畫面）、C 併入指名的擁有者、D 刪除。全部 R 與 F 的宣告不逐條列出，列的是被併、被刪、或被改寫成不同斷言的：
+
+| 原測試 | 處理 | 現在由誰接手，或為何不再需要 |
+| --- | --- | --- |
+| `swr-provider`：calls showErrorToast for all errors incl. 401 | C | 拆成「請求失敗時顯示錯誤 toast」（500）與下一列的 401 測試；改為以真的 Toaster 斷言 |
+| `swr-provider`：does NOT call handle401Redirect from onError | C | 併入 redirects to sign-in once, with a session-expired toast, on a 401 response：一個真的 401 同時觸發 onError 與事件，`push` 只被呼叫一次就證明 onError 沒有轉址 |
+| `membership-section-loading`：re-enables confirm button after remove error | D | alert-dialog 的 retry 測試：按鈕沒有重新啟用就不可能送出第二次請求 |
+| `membership-section-loading`：re-enables confirm button after transfer error | D | alert-dialog 的 transfer 測試，現在斷言 `toBeEnabled` |
+| `invitations`：re-enables buttons after processing completes | D | 「disables all buttons… and re-enables them after」，結尾的 enabled 斷言 |
+| `invitations`：shows the team name without calling useTeam | C | 改名為 shows the team name of each invitation；`useTeam` spy 斷言拿掉，隊名來自 players 的回應 |
+| `summary-drawer`：overlay covers viewport（`inset-0`） | D | 只斷言 CSS class，無 keeper（見 ActionItems） |
+| `summary-drawer`：idle overlay transparent, non-interactive | D | 只斷言 CSS class，無 keeper |
+| `summary-drawer`：draft is the pulsing Preview, not a separate row | D | 它斷言的 `summary-drawer-draft-row` test id 在正式程式碼裡不存在；Preview bar 測試與新的 draft Preview 測試涵蓋真正的行為 |
+| `summary-drawer`：expanded overlay tap collapses | C | class 斷言拿掉，保留點擊收合的 handler 行為 |
+| `preview`：send affordance 測試的 `animate-pulse` 斷言 | D | class 斷言；該測試現在斷言 draft 有顯示（`#7`）且沒有送出圖示 |
+| `sync-indicator`：shows count while syncing | C | 併入 stops spinning…：該測試現在斷言按鈕名稱「同步中」與 spinner |
+| `sync-indicator`：offers no retry while offline | C | 併入 promises automatic send only while offline |
+| `sync-indicator`：warning tone（`ring-warning`、`text-warning`） | D | class 斷言拿掉，無 keeper（見 ActionItems）；狀態仍由 `aria-label` 與文字區分 |
+| `options/__tests__/index`：no longer renders Summary tab | D | 它 mock 的元件 `GameOptions` 已不 import；keeper 是 exposes only overview and settings tabs，現在斷言分頁名稱 |
+| `oppo`：two `not.toHaveBeenCalled()` on the toast | D | 空斷言：`oppo.tsx` 與 `use-pending-writes.ts` 沒有 toast 路徑，無從 mutation |
+| `oppo`：`mutate` toHaveBeenCalledTimes | D | 打 SWR 呼叫形狀；由可觀察的 cache 與佇列斷言涵蓋 |
+| `use-pending-writes`：records set-completion present / absent | C | 一個 `it.each` 兩列 |
+| `use-pending-writes`：flushes entries left behind by a previous set | D | every-pending-set 測試同時從 set 1 的 hook 送出 set 0 的 `e0` |
+| `use-unconfirmed-set-completion`：not unconfirmed when in progress + cold start | C | 兩者輸入與斷言相同，併成 detects a cold start |
+| `use-unconfirmed-set-completion`：unrelated game / different set | C | 一個 `it.each` 兩列 |
+| `use-unconfirmed-set-completion`：retry defaults to confirmed when the response omits the field | D | 前一個測試同輸入同斷言；把 `?? true` 改成 `?? false` 會讓它變紅 |
+| `use-data`：八個以 SWR key 為斷言的測試 | C | 以真的 SWR 與 MSW 的 `describe.each`（`useTeam`、`useTeamPlayers`）：空字串與 undefined 各斷言零個請求、安全預設值與沒有 error；真的 id 斷言請求路徑與回傳資料 |
+| `gesture-integration`：四個測試 | R | 沒有刪除。改成渲染真的 `Game`，keeper 是 summary-drawer 與 preview 各自的測試加上這個接線測試 |
+
+### Mutation
+
+每次都在正式程式碼上改一處、跑指名的 keeper、再逐位元還原；還原後 `git diff` 皆為空。
+
+**app、layout、auth、custom**
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `team/[teamId]/edit/page.tsx` | 拿掉 `globalMutate` | sends the edited team, refetches it and closes |
+| 同上 | PATCH body 只剩 `name` | 同上 |
+| 同上 | 拿掉 `router.back()` | 同上 |
+| `team/new/page.tsx` | 拿掉 `mutate` 種入快取 | creates the team, opens its page |
+| 同上 | `?tab=about` 改 `?tab=members` | 同上 |
+| `use-data.ts` | `isLoading = false` | notifications 的 loading 測試 |
+| 同上 | JOINED 篩選永遠為 false | notifications 的 joined-team 測試 |
+| `swr-provider.tsx` | onError 也呼叫 `handle401Redirect` | 401 測試與 500 toast 測試 |
+| 同上 | 拿掉 `redirecting` 保護 | dedup 測試 |
+| 同上 | 拿掉 listener cleanup | stops listening on unmount 與 401 測試 |
+| 同上 | onError 改成 no-op | shows an error toast when a request fails |
+| `edit-dialog-container.tsx` | 拿掉 `suppressLeaveWarning()` | maximize lets the full-page navigation through |
+| `sign-in/form.tsx` | 拿掉 `loading={isSubmitting}` | busy-state 測試 |
+| `server-error-state.tsx` | 拿掉 `onClick={onRetry}` | retry 測試 |
+
+**team 與 user**
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `membership-section.tsx` | 拿掉 `setIsRemoving(false)` | alert-dialog：retry succeeds |
+| 同上 | 拿掉 `setIsTransferring(false)` | alert-dialog：transfer |
+| 同上 | remove 失敗時同時彈 toast | remove 錯誤與 retry 測試（同一段文字出現兩次） |
+| `invitations/index.tsx` | 拿掉 `setProcessingId(null)` | re-enables them after 與 marks only the clicked invitation's buttons |
+| 同上 | accept 按鈕永遠不 `loading` | marks only the clicked invitation's buttons as loading |
+| `create-form.tsx` | 拿掉 role 欄位的 `shouldUnregister` | submits no role when the email is cleared again（舊版在這個 mutation 下仍會通過） |
+| 同上 | `replace` 改 `push` | replaces with the new player's page |
+| `team/info/index.tsx` | `teamError` 時丟出 | info 測試 |
+| `team/form.tsx` | 拿掉 skeleton 分支 | renders loading skeleton（舊版在這個 mutation 下仍會通過） |
+| `edit-form.tsx` | 永遠呼叫 `router.replace` | calls onSuccess and does not push |
+
+**game：表單、drawer、dialog**
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `set-options/panel/options.tsx` | `loading` 固定 false | set-options 測試 1 |
+| 同上 | toast 文字改成 "x" | 測試 1 |
+| 同上 | `si` 加 1 | 測試 1 |
+| 同上 | 拿掉 `setIsSubmitting(false)` | 兩個 set-options 測試 |
+| 同上 | 拿掉 `router.push` | 測試 1 |
+| 同上 | 拿掉 `showErrorToast` | 測試 2 |
+| `new/index.tsx` | `lineups[lineupIndex]` 改 `lineups[0]` | new-game-form |
+| `use-unconfirmed-set-completion.ts` | 送出 `lastRally`（含 `type`）而非 `pendingEntry` | retry resends the last rally |
+| `unconfirmed-set-dialog.tsx` | 拿掉 `defaultOpen` 與 escape、outside handler | stays open on escape and outside click |
+| 同上 | 拿掉 `useLeavePageWarning` | beforeunload 測試 |
+| 同上 | `AlertDialogAction` 的 `onClick` 改 `cancelLeave` | leaves once confirmed |
+| `flush-pending-writes.ts` | body 用 `entries.slice(1)` | preview 的 retry 測試 |
+| `summary-drawer.tsx` | 拿掉 handle 的 `onClick` | Card 的 clicking the handle 與 container toggle |
+| 同上 | Escape handler 拿掉 `onToggle` | container toggle |
+| 同上 | 拿掉 `setEditingEntryStatus` dispatch | edit bridge |
+| 同上 | `preview={undefined}` | container 的 draft Preview |
+| `preview.tsx` | 拿掉 `if (!isEditing) onExpand?.()` | preview 的 expands the drawer on tap while idle |
+| `game/index.tsx` | 拿掉 `onToggle={toggleDrawer}` | 三個 gesture 測試 |
+| 同上 | 拿掉 `onSubmit={submitEntryDraft}` | gesture 的 complete steps submits |
+
+**game：sync indicator、options、panel**
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `sync-indicator.tsx` | syncing 標題「同步中」改「同步」 | stops spinning |
+| 同上 | 拿掉 retry 按鈕的 `online &&` | promises automatic send only offline |
+| 同上 | slot div 改成 `return null` | renders no control, keeps slot |
+| `flush-pending-writes.ts` | `si=${setIndex}` 改 `si=0` | counts and clears entries from every pending set |
+| `options/index.tsx` | 多加一個「紀錄」分頁 | exposes only overview and settings tabs |
+| 同上、`sets/edit.tsx` | 各拿掉 `onEscapeKeyDown`、`onInteractOutside`、`onCloseAutoFocus` | 對應的 guard-wiring 測試（各三個 mutation） |
+| `options/edit/index.tsx` | 拿掉 `disabled={writing}` | back disabled while writing |
+| 同上 | 拿掉 `onClick={leaveEditing}` | back leaves editing mode on tap while idle |
+| `oppo.tsx` | 拿掉 `update` 裡的 `enqueue` | 失敗與成功兩個測試 |
+| 同上 | 拿掉 `setGameMode("general")` | 成功測試 |
+| 同上 | 拿掉快取的 `mutate` | no gap in cache |
+| 同上 | 拿掉 `assertRallyAt` | throws when entry is not a rally |
+| `substitutes/index.tsx` | 拿掉 `showErrorToast` | substitutes toast 測試 |
+
+**hooks 與 lib**
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `use-unconfirmed-set-completion.ts` | `coldStartUnconfirmed \|\|` 改 `false \|\|` | cold start |
+| 同上 | `?? true` 改 `?? false` | closes after a successful retry |
+| 同上 | 未關聯的條件改為只看 `noSessionSignalYet` | 兩個未關聯 entry 的列與 closes once the flush succeeds |
+| 同上 | 拿掉 `p.setIndex === setIndex` | different-set 列 |
+| `use-pending-writes.ts` | `runFlush` 也篩 `p.setIndex !== setIndex` | every-pending-set、per-set failure reason、other-set background retry |
+| 同上 | context 自己掛一個 `usePendingWrites` | single owner |
+| 同上 | `if (!inFlight.current)` 改 `if (true)` | dedupe 與兩個 backoff 測試 |
+| 同上 | `mutate` 用 `setTimeout` 延後 | flush ordering |
+| 同上 | 拿掉 set-completion 的 `!== undefined` 保護並改 `?? false` | leaves set-completion untouched when absent（只改其中一處不會變紅，因為 `toBe(undefined)` 也符合缺少 key） |
+| `flush-pending-writes.ts` | `si` 固定為 0、PUT 改 POST、`isRetryable` 恆真 | 單一 PUT、五個 PUT 測試、4xx 測試 |
+| `create-substitution.ts` | `ei` 固定為 0、拿掉 `entries` 賦值、加 `.catch(() => [])` | 各對應一個測試 |
+| `pending-writes-slice.ts` | `flushSucceeded` 清空整個佇列 | flush-in-flight |
+| `use-data.ts` | `useTeam` 永遠建 key、`useTeamPlayers` 路徑改 `/player` | no-request 兩個案例與真實 URL 案例 |
+
+### Code review
+
+兩軸 review，修正後由同一位 standards reviewer 只審修正的 diff，到達 fixed point。
+
+- **標準軸第一輪**：一項硬性：`sign-in-form.test.tsx` mock 了自己的 `@/lib/auth-client`，檔內沒有寫明 jsdom 限制，已補；一批只重述程式碼的註解，已刪；`jest.config.ts` 的轉譯清單多列了八個不必要的套件（reviewer 逐一拿掉驗證），已縮減；三個測試逐字重複的 game fixture，已抽成 `editing-game.ts`；`use-unconfirmed-set-completion` 的 `si` 斷言寫在 MSW handler 裡，失敗時只會變成 fetch 錯誤，已改成 handler 記錄、測試斷言。
+- **規格軸**：沒有正式程式碼變動；每個刪除都有 keeper 或明說沒有的理由；`set-options-panel` 的等待仍在，而且等的是真實狀態（POST 被 gate 攔住，disabled 只有在驗證完成之後才會出現）。
+- **第二輪**：沒有新違規，第一輪的每一項都已解決。同根因：只重述程式碼的註解，來自把工具鏈的作法當旁白寫下來，沒有先問「拿掉之後，下一位讀者會犯什麼錯」；這一輪沒有再出現。
+
+### 殘留風險（flag，未修）
+
+- 兩個刻意沒有 keeper 的 CSS class 刪除，見 ActionItems。
+- 三個 mutation 沒有變紅，因為它們守的行為原本就沒有測試：`new/index.tsx` 的 `onSuccess()`、重試 hook 的 `flushSucceeded`，以及 `preview.tsx` 的 idle 點擊展開在 `gesture-integration` 裡沒變紅（該 contract 由 `preview` 自己的測試守護，mutation 在那邊變紅）。`summary-drawer.tsx` 拿掉整個 `onEscapeKeyDown` 也沒讓 gesture 測試變紅，因為 Radix 自己的 Escape 也會呼叫 `onOpenChange` 而觸發 toggle；那個 contract 由 drawer 的 toggle 測試守護。
+- 「gesture 的 incomplete tap does nothing」沒有任何會變紅的 mutation：它只斷言 drawer 維持 idle 與沒有送出 PUT，守護它的 `preview.tsx` 的 `handleClick` 沒有被反向改壞驗證。
+- 補上專屬測試（`use-lineup`、`use-substitutes`、`court`、`players-list`）、新增賽事表單主場隊名為空（`new/index.tsx` 的 `useState` 只在掛載時計算一次）、待寫入佇列不依 entry id 去重與 `summary-drawer` 的 selector 每次回傳新 `Set`、`SetEdit` 仍渲染 `GameOptionsSummary`、`unconfirmed-set-dialog` 兩個沒有效果的 `preventDefault`：都已開 issue，本 shard 不改正式程式碼。
+- 各測試檔仍各自有 `serve` 與 `serveRallies` 這類 MSW handler helper。它們形狀不同，reviewer 判斷合併不會更小，所以沒有抽共用。
+- shard 4 尚待：`landing/*`、`use-editing-guard`、`use-pull-to-refresh`、`use-active-team-id`，以及其餘 mock 自己程式碼但不碰網路的測試。
+
+</ReviewDetails>
