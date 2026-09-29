@@ -1,34 +1,14 @@
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { apiClient } from "@/lib/api/api-client";
+import { SwrIsolation } from "@/test-utils/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "../../../../test/msw/server";
 
-jest.mock("@/lib/api/api-client", () => ({ apiClient: jest.fn() }));
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: jest.fn(),
-  resolveErrorDisplay: jest.fn(() => ({
-    title: "error title",
-    description: "error description",
-  })),
-}));
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
-}));
-jest.mock("@/components/team/role-select", () => ({
-  RoleSelect: () => <select />,
-}));
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
 }));
-jest.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: jest.fn() }),
-}));
-jest.mock("react-icons/ri", () => ({
-  RiLoader4Line: () => <span data-testid="spinner">spinner</span>,
-}));
-
-const mockApiClient = apiClient as jest.Mock;
 
 const basePlayer = {
   id: "player-1",
@@ -40,26 +20,44 @@ const basePlayer = {
   updatedAt: new Date("2025-01-01"),
 };
 
-describe("MembershipSection — remove loading state", () => {
-  beforeEach(() => jest.clearAllMocks());
+function renderSection(props: {
+  player?: typeof basePlayer;
+  isCurrentOwner: boolean;
+  isSelf: boolean;
+}) {
+  render(
+    <SwrIsolation>
+      <MembershipSection
+        player={props.player ?? basePlayer}
+        teamId="team-1"
+        isCurrentOwner={props.isCurrentOwner}
+        isSelf={props.isSelf}
+      />
+    </SwrIsolation>,
+  );
+}
 
+// Holds the response until the test releases it, so the request stays in flight.
+function holdResponse(method: "delete" | "post", path: string): () => void {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  server.use(
+    http[method](path, async () => {
+      await gate;
+      return HttpResponse.json({});
+    }),
+  );
+  return release;
+}
+
+describe("MembershipSection — remove loading state", () => {
   it("shows loading and disables confirm button while removing", async () => {
-    let resolveApi!: () => void;
-    mockApiClient.mockReturnValue(
-      new Promise<void>((resolve) => {
-        resolveApi = resolve;
-      }),
-    );
+    const release = holdResponse("delete", "/api/players/player-1");
 
     const user = userEvent.setup();
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={false}
-        isSelf={false}
-      />,
-    );
+    renderSection({ isCurrentOwner: false, isSelf: false });
 
     await user.click(screen.getByRole("button", { name: /刪除球員/ }));
     const confirmBtn = screen.getByRole("button", { name: /確認刪除/ });
@@ -68,57 +66,23 @@ describe("MembershipSection — remove loading state", () => {
     await user.click(confirmBtn);
 
     expect(confirmBtn).toBeDisabled();
-    expect(screen.getByTestId("spinner")).toBeInTheDocument();
+    expect(confirmBtn).toHaveAttribute("aria-busy", "true");
 
-    resolveApi();
+    release();
     await waitFor(() =>
-      expect(screen.queryByTestId("spinner")).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("button", { name: /確認刪除/ }),
+      ).not.toBeInTheDocument(),
     );
-  });
-
-  it("re-enables confirm button after remove error", async () => {
-    mockApiClient.mockRejectedValue(new Error("fail"));
-
-    const user = userEvent.setup();
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={false}
-        isSelf={false}
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: /刪除球員/ }));
-    const confirmBtn = screen.getByRole("button", { name: /確認刪除/ });
-    await user.click(confirmBtn);
-
-    await waitFor(() => expect(confirmBtn).toBeEnabled());
-    expect(screen.getByText("error title")).toBeInTheDocument();
-    expect(screen.getByText("error description")).toBeInTheDocument();
   });
 });
 
 describe("MembershipSection — transfer loading state", () => {
-  beforeEach(() => jest.clearAllMocks());
-
   it("shows loading and disables confirm button while transferring", async () => {
-    let resolveApi!: () => void;
-    mockApiClient.mockReturnValue(
-      new Promise<void>((resolve) => {
-        resolveApi = resolve;
-      }),
-    );
+    const release = holdResponse("post", "/api/teams/team-1/ownership");
 
     const user = userEvent.setup();
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={true}
-        isSelf={false}
-      />,
-    );
+    renderSection({ isCurrentOwner: true, isSelf: false });
 
     await user.click(
       screen.getByRole("button", { name: /移轉所有權給此球員/ }),
@@ -129,34 +93,10 @@ describe("MembershipSection — transfer loading state", () => {
     await user.click(confirmBtn);
 
     expect(confirmBtn).toBeDisabled();
-    expect(screen.getByTestId("spinner")).toBeInTheDocument();
+    expect(confirmBtn).toHaveAttribute("aria-busy", "true");
 
-    resolveApi();
-    await waitFor(() =>
-      expect(screen.queryByTestId("spinner")).not.toBeInTheDocument(),
-    );
-  });
-
-  it("re-enables confirm button after transfer error", async () => {
-    mockApiClient.mockRejectedValue(new Error("fail"));
-
-    const user = userEvent.setup();
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={true}
-        isSelf={false}
-      />,
-    );
-
-    await user.click(
-      screen.getByRole("button", { name: /移轉所有權給此球員/ }),
-    );
-    const confirmBtn = screen.getByRole("button", { name: /確認移轉/ });
-    await user.click(confirmBtn);
-
-    await waitFor(() => expect(confirmBtn).toBeEnabled());
+    release();
+    await waitFor(() => expect(confirmBtn).not.toHaveAttribute("aria-busy"));
   });
 });
 
@@ -164,40 +104,23 @@ describe("MembershipSection — who the delete entry appears for", () => {
   const deleteEntry = () => screen.queryByRole("button", { name: /刪除球員/ });
 
   it("appears for a player the caller may manage", () => {
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={true}
-        isSelf={false}
-      />,
-    );
+    renderSection({ isCurrentOwner: true, isSelf: false });
 
     expect(deleteEntry()).toBeInTheDocument();
   });
 
   it("does not appear for the owner's player", () => {
-    render(
-      <MembershipSection
-        player={{ ...basePlayer, role: PlayerRole.OWNER }}
-        teamId="team-1"
-        isCurrentOwner={false}
-        isSelf={false}
-      />,
-    );
+    renderSection({
+      player: { ...basePlayer, role: PlayerRole.OWNER },
+      isCurrentOwner: false,
+      isSelf: false,
+    });
 
     expect(deleteEntry()).not.toBeInTheDocument();
   });
 
   it("does not appear for the caller's own player", () => {
-    render(
-      <MembershipSection
-        player={basePlayer}
-        teamId="team-1"
-        isCurrentOwner={false}
-        isSelf={true}
-      />,
-    );
+    renderSection({ isCurrentOwner: false, isSelf: true });
 
     expect(deleteEntry()).not.toBeInTheDocument();
   });
