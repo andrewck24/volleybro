@@ -3,12 +3,12 @@ import {
   ApiClientError,
   apiClient,
 } from "@/lib/api/api-client";
+import { http, HttpResponse } from "msw";
 
-const makeFetchResponse = (status: number, body: object) => ({
-  ok: status >= 200 && status < 300,
-  status,
-  json: () => Promise.resolve(body),
-});
+import { server } from "../../../../test/msw/server";
+
+const respond = (status: number, body: object) =>
+  server.use(http.get("/api/test", () => HttpResponse.json(body, { status })));
 
 describe("apiClient", () => {
   let dispatchSpy: jest.SpyInstance;
@@ -23,13 +23,11 @@ describe("apiClient", () => {
 
   describe("on 401 response", () => {
     beforeEach(() => {
-      jest.spyOn(global, "fetch").mockResolvedValue(
-        makeFetchResponse(401, {
-          code: "AUTHENTICATION",
-          reason: "SESSION_REQUIRED",
-          detail: "Authentication is required",
-        }) as unknown as Response,
-      );
+      respond(401, {
+        code: "AUTHENTICATION",
+        reason: "SESSION_REQUIRED",
+        detail: "Authentication is required",
+      });
     });
 
     it("dispatches api:unauthorized CustomEvent", async () => {
@@ -65,13 +63,11 @@ describe("apiClient", () => {
 
   describe("on non-401 error response", () => {
     it("does NOT dispatch api:unauthorized for 409", async () => {
-      jest.spyOn(global, "fetch").mockResolvedValue(
-        makeFetchResponse(409, {
-          code: "CONFLICT",
-          reason: "ALREADY_EXISTS",
-          detail: "Already exists",
-        }) as unknown as Response,
-      );
+      respond(409, {
+        code: "CONFLICT",
+        reason: "ALREADY_EXISTS",
+        detail: "Already exists",
+      });
 
       await expect(apiClient("/api/test")).rejects.toThrow(ApiClientError);
       const unauthorizedCalls = dispatchSpy.mock.calls.filter(
@@ -83,11 +79,7 @@ describe("apiClient", () => {
 
   describe("on success response", () => {
     it("returns parsed JSON and does not dispatch any event", async () => {
-      jest
-        .spyOn(global, "fetch")
-        .mockResolvedValue(
-          makeFetchResponse(200, { id: "123" }) as unknown as Response,
-        );
+      respond(200, { id: "123" });
 
       const result = await apiClient<{ id: string }>("/api/test");
       expect(result).toEqual({ id: "123" });
@@ -100,10 +92,13 @@ describe("apiClient", () => {
 
   describe("on timeout", () => {
     it("aborts via AbortSignal.timeout and rejects with a TRANSIENT ApiClientError", async () => {
-      jest.spyOn(global, "fetch").mockImplementation(() => {
-        const err = new DOMException("The signal timed out", "TimeoutError");
-        return Promise.reject(err);
-      });
+      // jsdom's DOMException is not the class Node's fetch throws on abort, so
+      // the timeout is simulated by rejecting fetch with jsdom's own instance.
+      jest
+        .spyOn(global, "fetch")
+        .mockRejectedValue(
+          new DOMException("The signal timed out", "TimeoutError"),
+        );
 
       let caught: unknown;
       try {
@@ -122,9 +117,7 @@ describe("apiClient", () => {
 
   describe("on network failure", () => {
     it("normalises a fetch rejection into the same ApiClientError shape as an HTTP failure", async () => {
-      jest
-        .spyOn(global, "fetch")
-        .mockRejectedValue(new TypeError("Failed to fetch"));
+      server.use(http.get("/api/test", () => HttpResponse.error()));
 
       let caught: unknown;
       try {
