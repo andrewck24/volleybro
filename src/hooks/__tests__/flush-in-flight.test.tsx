@@ -1,18 +1,15 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { delay, http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
-import { SWRConfig } from "swr";
 import { useGame } from "@/hooks/use-data";
 import { usePendingWrites } from "@/hooks/use-pending-writes";
-import * as apiClientModule from "@/lib/api/api-client";
+import { EntryType } from "@/entities/game";
 import { applyEntry } from "@/lib/features/game/helpers/optimistic/rally.helper";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { SwrIsolation } from "@/test-utils/swr-isolation";
 
-jest.mock("@/lib/api/api-client", () => ({
-  ...jest.requireActual("@/lib/api/api-client"),
-  apiClient: jest.fn(),
-}));
-const apiClient = apiClientModule.apiClient as jest.Mock;
+import { server } from "../../../test/msw/server";
 
 const entry = (id: string, seq: number) =>
   ({
@@ -23,58 +20,54 @@ const entry = (id: string, seq: number) =>
     away: { score: 0 },
   }) as unknown as PendingEntry["entry"];
 
-const serverGame = (seqs: number[]): GameView =>
+const storedRally = (id: string, seq: number) => ({
+  type: EntryType.RALLY,
+  id,
+  seq,
+});
+
+const serverGame = () =>
   ({
     id: "game-1",
     win: null,
     info: { scoring: { setCount: 5, decidingSetPoints: 15 } },
-    sets: [
-      {
-        win: null,
-        entries: seqs.map((seq) => ({ type: "rally", id: `s${seq}`, seq })),
-      },
-    ],
-  }) as never;
+    sets: [{ win: null, entries: [storedRally("s0", 0)] }],
+  }) as unknown as GameView;
 
 let store: AppStore;
-// usePendingWrites calls useGame on the same key, so the cache is seeded
-// rather than fetched: whichever fetcher SWR registers first would win.
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <Provider store={store}>
-    <SWRConfig
-      value={{
-        provider: () =>
-          new Map([["/api/games/game-1", { data: serverGame([0]) }]]) as never,
-      }}
-    >
-      {children}
-    </SWRConfig>
+    <SwrIsolation>{children}</SwrIsolation>
   </Provider>
 );
 
 beforeEach(() => {
   store = makeStore();
-  apiClient.mockReset();
 });
 
-// Mocks neither SWR nor Redux, against the Component row of
-// docs/testing-strategy.md: the timing under test spans both. The flush
-// replaces the set's entries with the server's answer, which cannot include a
-// rally recorded after that request went out.
+// The flush replaces the set's entries with the server's answer, which cannot
+// include a rally recorded after that request went out.
 it("keeps a rally recorded while a flush was already in flight", async () => {
-  let settle!: (value: { entries: unknown[] }) => void;
-  // Enqueuing schedules a background flush for the next macrotask, so a second
-  // request goes out mid-test. Only the first is answered: replaying its answer
-  // to the second would let a stale response decide what is on screen.
-  let calls = 0;
-  apiClient.mockImplementation(() => {
-    calls += 1;
-    return calls === 1
-      ? new Promise((resolve) => {
-          settle = resolve;
-        })
-      : new Promise(() => {});
+  let settle!: () => void;
+  const firstAnswer = new Promise<void>((resolve) => {
+    settle = resolve;
   });
+  const sent: string[][] = [];
+  server.use(
+    http.get("/api/games/game-1", () => HttpResponse.json(serverGame())),
+    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      sent.push(((await request.json()) as { id: string }[]).map((r) => r.id));
+      // Enqueuing schedules a background flush for the next macrotask, so a
+      // second request goes out mid-test. Only the first is answered:
+      // replaying its answer to the second would let a stale response decide
+      // what is on screen.
+      if (sent.length > 1) await delay("infinite");
+      await firstAnswer;
+      return HttpResponse.json({
+        entries: [storedRally("s0", 0), storedRally("q1", 1)],
+      });
+    }),
+  );
 
   const { result } = renderHook(
     () => ({
@@ -101,6 +94,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
   act(() => {
     flushed = result.current.queue.flush();
   });
+  await waitFor(() => expect(sent).toHaveLength(1));
 
   const second = entry("q2", 2);
   await act(async () => {
@@ -116,12 +110,7 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
   act(() => result.current.queue.enqueue(second));
 
   await act(async () => {
-    settle({
-      entries: [
-        { type: "rally", id: "s0", seq: 0 },
-        { type: "rally", id: "q1", seq: 1 },
-      ],
-    });
+    settle();
     await flushed;
   });
 
@@ -133,10 +122,5 @@ it("keeps a rally recorded while a flush was already in flight", async () => {
       ["s0", "q1", "q2"],
     ),
   );
-  const [, firstRequest] = apiClient.mock.calls[0] as [
-    string,
-    { body: string },
-  ];
-  const sent = JSON.parse(firstRequest.body) as { id: string }[];
-  expect(sent.map((r) => r.id)).toEqual(["q1"]);
+  expect(sent[0]).toEqual(["q1"]);
 });

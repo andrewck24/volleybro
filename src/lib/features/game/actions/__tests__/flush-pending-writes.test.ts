@@ -1,4 +1,4 @@
-import * as apiClientModule from "@/lib/api/api-client";
+import { http, HttpResponse } from "msw";
 import { ApiClientError } from "@/lib/api/api-client";
 import {
   flushPendingWrites,
@@ -7,13 +7,10 @@ import {
 import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import type { PendingEntry } from "@/lib/features/game/types";
 
-jest.mock("@/lib/api/api-client", () => ({
-  ...jest.requireActual("@/lib/api/api-client"),
-  apiClient: jest.fn(),
-}));
+import { server } from "../../../../../../test/msw/server";
 
-const apiClient = apiClientModule.apiClient as jest.Mock;
 const entries = [{ id: "e1", seq: 0 }] as unknown as PendingEntry["entry"][];
+const confirmed = { entries: [{ id: "e1" }] };
 
 const transientError = () =>
   new ApiClientError("boom", {
@@ -22,46 +19,62 @@ const transientError = () =>
     status: 503,
   });
 
-beforeEach(() => {
-  jest.useFakeTimers();
-});
+const unavailable = () =>
+  HttpResponse.json(
+    { code: "TRANSIENT", reason: "NETWORK_ERROR" },
+    { status: 503 },
+  );
 
-afterEach(() => {
-  jest.useRealTimers();
-  jest.resetAllMocks();
-});
+/** Answers each successive PUT with the next responder and records what was sent. */
+const answerRallies = (
+  ...responders: (() => Response | Promise<Response>)[]
+) => {
+  const requests: { si: string | null; body: unknown }[] = [];
+  server.use(
+    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      requests.push({
+        si: new URL(request.url).searchParams.get("si"),
+        body: await request.json(),
+      });
+      const respond =
+        responders[Math.min(requests.length, responders.length) - 1]!;
+      return respond();
+    }),
+  );
+  return requests;
+};
 
 describe("flushPendingWrites", () => {
+  beforeEach(() => {
+    // With process.nextTick faked, fetch never settles under MSW.
+    jest.useFakeTimers({ doNotFake: ["nextTick"] });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("sends the whole batch in a single PUT to the rally endpoint", async () => {
-    apiClient.mockResolvedValue({ entries: [{ id: "e1" }] });
+    const requests = answerRallies(() => HttpResponse.json(confirmed));
 
-    await flushPendingWrites("game-1", 0, entries);
+    await flushPendingWrites("game-1", 3, entries);
 
-    expect(apiClient).toHaveBeenCalledWith(
-      "/api/games/game-1/sets/rallies?si=0",
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify(entries),
-      }),
-    );
+    expect(requests).toEqual([{ si: "3", body: entries }]);
   });
 
   it("succeeds without retrying when the first attempt succeeds", async () => {
-    const response = { entries: [{ id: "e1" }] };
-    apiClient.mockResolvedValue(response);
+    const requests = answerRallies(() => HttpResponse.json(confirmed));
 
     const result = await flushPendingWrites("game-1", 0, entries);
 
-    expect(result).toEqual({ ok: true, value: response });
-    expect(apiClient).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ok: true, value: confirmed });
+    expect(requests).toHaveLength(1);
   });
 
   it("retries a retryable failure inline, then succeeds", async () => {
-    const response = { entries: [{ id: "e1" }] };
-    apiClient
-      .mockRejectedValueOnce(transientError())
-      .mockRejectedValueOnce(transientError())
-      .mockResolvedValueOnce(response);
+    const requests = answerRallies(unavailable, unavailable, () =>
+      HttpResponse.json(confirmed),
+    );
 
     const promise = flushPendingWrites("game-1", 0, entries);
     for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
@@ -69,12 +82,12 @@ describe("flushPendingWrites", () => {
     }
     const result = await promise;
 
-    expect(result).toEqual({ ok: true, value: response });
-    expect(apiClient).toHaveBeenCalledTimes(3);
+    expect(result).toEqual({ ok: true, value: confirmed });
+    expect(requests).toHaveLength(3);
   });
 
   it("reports a retryable failure once the inline attempts are exhausted", async () => {
-    apiClient.mockRejectedValue(transientError());
+    const requests = answerRallies(unavailable);
 
     const promise = flushPendingWrites("game-1", 0, entries);
     for (const delay of PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS) {
@@ -83,23 +96,23 @@ describe("flushPendingWrites", () => {
     const result = await promise;
 
     expect(result).toMatchObject({ ok: false, retryable: true });
-    expect(apiClient).toHaveBeenCalledTimes(
+    expect(requests).toHaveLength(
       PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS.length + 1,
     );
   });
 
   it("does not retry a 4xx at all", async () => {
-    const error = new ApiClientError("bad", {
-      code: "VALIDATION",
-      reason: "INVALID_INPUT",
-      status: 400,
-    });
-    apiClient.mockRejectedValue(error);
+    const requests = answerRallies(() =>
+      HttpResponse.json(
+        { code: "VALIDATION", reason: "INVALID_INPUT" },
+        { status: 400 },
+      ),
+    );
 
     const result = await flushPendingWrites("game-1", 0, entries);
 
     expect(result).toMatchObject({ ok: false, retryable: false });
-    expect(apiClient).toHaveBeenCalledTimes(1);
+    expect(requests).toHaveLength(1);
   });
 });
 

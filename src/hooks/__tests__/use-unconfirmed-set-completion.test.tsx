@@ -1,25 +1,14 @@
 import { act, renderHook } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
+import { SWRConfig } from "swr";
 import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-completion";
-import { ApiClientError } from "@/lib/api/api-client";
-import * as apiClientModule from "@/lib/api/api-client";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { GameView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 
-jest.mock("@/lib/api/api-client", () => ({
-  ...jest.requireActual("@/lib/api/api-client"),
-  apiClient: jest.fn(),
-}));
-
-const apiClient = apiClientModule.apiClient as jest.Mock;
-
-const mutate = jest.fn();
-let mockGame: GameView | undefined;
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: mockGame, mutate }),
-}));
+import { server } from "../../../test/msw/server";
 
 const lastRally = {
   type: "Rally",
@@ -37,298 +26,193 @@ const gameWithSet = (win: boolean | null): GameView =>
   }) as never;
 
 let store: AppStore;
+let cachedGame: GameView;
+// The game is seeded into the SWR cache: this hook reads it, and what the
+// tests vary is the game's stored result, not how it is fetched.
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <Provider store={store}>{children}</Provider>
+  <Provider store={store}>
+    <SWRConfig
+      value={{
+        provider: () =>
+          new Map([["/api/games/game-1", { data: cachedGame }]]) as never,
+      }}
+    >
+      {children}
+    </SWRConfig>
+  </Provider>
 );
+
+const renderUnconfirmed = (win: boolean | null) => {
+  cachedGame = gameWithSet(win);
+  return renderHook(() => useUnconfirmedSetCompletion("game-1", 0), {
+    wrapper,
+  });
+};
+
+const enqueue = (id: string, gameId: string, setIndex: number) =>
+  store.dispatch(
+    pendingWritesActions.enqueued({
+      entry: { id } as never,
+      gameId,
+      setIndex,
+    }),
+  );
+
+const recordCompletion = (confirmed: boolean) =>
+  store.dispatch(
+    setCompletionActions.recorded({
+      gameId: "game-1",
+      setIndex: 0,
+      confirmed,
+    }),
+  );
+
+/** Answers the rally endpoint and records the body of each PUT. */
+const serveRallies = (respond: () => Response) => {
+  const bodies: unknown[] = [];
+  server.use(
+    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      expect(new URL(request.url).searchParams.get("si")).toBe("0");
+      bodies.push(await request.json());
+      return respond();
+    }),
+  );
+  return bodies;
+};
 
 beforeEach(() => {
   store = makeStore();
-  mockGame = undefined;
-  mutate.mockClear();
-});
-
-afterEach(() => {
-  jest.resetAllMocks();
 });
 
 describe("useUnconfirmedSetCompletion", () => {
-  it("is not unconfirmed when the set is still in progress (win null, no session signal, nothing in flight)", () => {
-    mockGame = gameWithSet(null);
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+  // Callers only invoke this once Interval has established the set is over,
+  // so a fetched win still null with no session signal is a set whose result
+  // was never saved.
+  it("detects a cold start with no extra persisted state: fetched win still null", () => {
+    const { result } = renderUnconfirmed(null);
 
-    // Cold start alone cannot distinguish "still in progress" from "never
-    // confirmed" -- callers only invoke this once Interval has already
-    // established the set is over. Absent that gate, win===null plus no
-    // session signal reads as unconfirmed by this hook's own rule.
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(false);
   });
 
   it("is unconfirmed and attempting while the initial flush is in flight", () => {
-    mockGame = gameWithSet(true); // optimistic write already applied
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "e1" } as never,
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    enqueue("e1", "game-1", 0);
+    const { result } = renderUnconfirmed(true); // optimistic write already applied
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(true);
   });
 
-  it("is not unconfirmed when a flush for an unrelated game/set is in flight", () => {
-    // Regression: a flush triggered by an entry belonging to a different
-    // set must not raise the unconfirmed dialog over a set whose result
-    // already landed.
-    mockGame = gameWithSet(true); // stored result already landed correctly
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "other" } as never,
-        gameId: "game-2",
-        setIndex: 3,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+  // A flush covers every pending set of one game, so game identity alone is
+  // not enough: an entry queued for another game, or for a different set of
+  // this game, must not read as this set's attempt and raise the dialog over
+  // a set whose result already landed.
+  it.each([
+    ["a different game", "game-2", 3],
+    ["a different set of the same game", "game-1", 5],
+  ])(
+    "is not unconfirmed when the queued entry belongs to %s",
+    (_name, gameId, setIndex) => {
+      enqueue("other", gameId, setIndex);
+      const { result } = renderUnconfirmed(true);
 
-    expect(result.current.unconfirmed).toBe(false);
-    expect(result.current.attempting).toBe(false);
-  });
+      expect(result.current.unconfirmed).toBe(false);
+      expect(result.current.attempting).toBe(false);
+    },
+  );
 
-  // Defect regression: a scheduled background-retry attempt must read as
-  // attempting even with no request literally on the wire, or the dialog
-  // disappears for the whole backoff window between the failed attempt and
-  // the next flush -- exactly the flicker this hook must not reproduce.
+  // A scheduled background-retry attempt must read as attempting even with no
+  // request on the wire, or the dialog disappears for the whole backoff
+  // window between a failed attempt and the next flush.
   it("is attempting during the background backoff window, with no flush in flight", () => {
-    mockGame = gameWithSet(true); // optimistic write already applied
+    enqueue("e1", "game-1", 0);
     store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "e1" } as never,
-        gameId: "game-1",
-        setIndex: 0,
-      }),
+      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: true }),
     );
-    // A retryable failure schedules nextAttemptAt in the future, so this
-    // window has no request on the wire at all.
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        ids: ["e1"],
-        retryable: true,
-      }),
-    );
-
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(true);
   });
 
-  // The whole point of this dialog is that the next set cannot start on a
-  // result that was never saved. Once the retry budget runs out the entry
-  // stops being "attempting", and the optimistic write has already put
-  // `win` on the cached set -- so if the queue is not consulted, every
-  // signal says confirmed and the dialog closes over an unsent result.
+  // The optimistic write has already put `win` on the cached set, so once the
+  // retry budget runs out the queue is the only evidence the result was never
+  // saved; without it every signal says confirmed over an unsent result.
   it("stays unconfirmed, no longer attempting, once the queued entry has exhausted its backoff", () => {
-    mockGame = gameWithSet(true); // optimistic write already applied
+    enqueue("e1", "game-1", 0);
+    // retryable: false spends the budget outright: nothing will send this
+    // entry again without a manual retry.
     store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "e1" } as never,
-        gameId: "game-1",
-        setIndex: 0,
-      }),
+      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
     );
-    // retryable: false spends the budget outright -- nextAttemptAt becomes
-    // null and nothing will send this entry again without a manual retry.
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
-
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(false);
   });
 
-  // The queue term must not outlive its purpose: once the flush lands, the
-  // entry leaves the queue and the dialog has nothing left to cover.
+  // The queue term must not outlive its purpose: once a flush lands without
+  // reporting a completion result, the entry has left the queue and the
+  // dialog has nothing left to cover.
   it("closes once the flush succeeds and the entry leaves the queue", () => {
-    mockGame = gameWithSet(true);
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "e1" } as never,
-        gameId: "game-1",
-        setIndex: 0,
-      }),
-    );
+    enqueue("e1", "game-1", 0);
     store.dispatch(pendingWritesActions.flushSucceeded({ ids: ["e1"] }));
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: true,
-      }),
-    );
-
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(false);
-  });
-
-  // The set-dimension counterpart of the game-scoping test above: a flush
-  // covers every pending set of one game, so game identity alone is not
-  // enough -- an entry queued for a different set of this same game must
-  // not be read as this set's own attempt.
-  it("is not attempting when the queued entry belongs to a different set of the same game", () => {
-    mockGame = gameWithSet(true); // optimistic write already applied
-    store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "other" } as never,
-        gameId: "game-1",
-        setIndex: 5,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
-
-    expect(result.current.unconfirmed).toBe(false);
-    expect(result.current.attempting).toBe(false);
   });
 
   it("is hidden once the session signal confirms the set result", () => {
-    mockGame = gameWithSet(true);
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: true,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    recordCompletion(true);
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(false);
   });
 
   it("shows the exhausted state (not attempting) once the session signal reports failure", () => {
-    mockGame = gameWithSet(true);
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: false,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
-
-    expect(result.current.unconfirmed).toBe(true);
-    expect(result.current.attempting).toBe(false);
-  });
-
-  it("detects a cold start with no extra persisted state: fetched win still null after entries imply the set is over", () => {
-    mockGame = gameWithSet(null);
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    recordCompletion(false);
+    const { result } = renderUnconfirmed(true);
 
     expect(result.current.unconfirmed).toBe(true);
     expect(result.current.attempting).toBe(false);
   });
 
   it("retry resends the last rally entry and records success", async () => {
-    mockGame = gameWithSet(true);
-    apiClient.mockResolvedValue({
-      entries: [lastRally],
-      setCompletionConfirmed: true,
-    });
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: false,
-      }),
+    const bodies = serveRallies(() =>
+      HttpResponse.json({ entries: [lastRally], setCompletionConfirmed: true }),
     );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    recordCompletion(false);
+    const { result } = renderUnconfirmed(true);
 
     await act(async () => {
       await result.current.retry();
     });
 
-    expect(apiClient).toHaveBeenCalledWith(
-      expect.stringContaining("si=0"),
-      expect.objectContaining({
-        body: JSON.stringify([
-          {
-            id: "e1",
-            seq: 0,
-            win: true,
-            home: lastRally.home,
-            away: lastRally.away,
-          },
-        ]),
-      }),
-    );
+    expect(bodies).toEqual([
+      [
+        {
+          id: "e1",
+          seq: 0,
+          win: true,
+          home: lastRally.home,
+          away: lastRally.away,
+        },
+      ],
+    ]);
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
   });
 
-  // The manual retry bypasses the queue -- it sends the entry itself rather
-  // than going through flush -- so nothing removes the entry from the queue
-  // on its way out. If the dialog consults the queue, a successful retry
-  // must still close it.
-  it("closes after a successful retry even though the entry is still queued", async () => {
-    mockGame = gameWithSet(true);
-    apiClient.mockResolvedValue({ entries: [lastRally] });
+  // The manual retry bypasses the queue: it sends the entry itself, so
+  // nothing removes the entry on its way out. A successful retry must still
+  // close the dialog, and a response that omits the field means a different
+  // attempt already matched the derived result, which is a confirmation.
+  it("closes after a successful retry even though the entry is still queued and the response omits the field", async () => {
+    serveRallies(() => HttpResponse.json({ entries: [lastRally] }));
+    enqueue("e1", "game-1", 0);
     store.dispatch(
-      pendingWritesActions.enqueued({
-        entry: { id: "e1" } as never,
-        gameId: "game-1",
-        setIndex: 0,
-      }),
+      pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
     );
-    store.dispatch(
-      pendingWritesActions.flushFailed({
-        ids: ["e1"],
-        retryable: false,
-      }),
-    );
-
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    const { result } = renderUnconfirmed(true);
     expect(result.current.unconfirmed).toBe(true);
 
     await act(async () => {
@@ -337,53 +221,20 @@ describe("useUnconfirmedSetCompletion", () => {
 
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
     expect(result.current.unconfirmed).toBe(false);
-    // Nothing else takes the entry out: an entry left behind would keep the
-    // sync indicator reporting it unsent for the rest of the session.
+    // An entry left behind would keep the sync indicator reporting it unsent
+    // for the rest of the session.
     expect(store.getState().pendingWrites.pending).toHaveLength(0);
   });
 
-  it("retry defaults to confirmed when the response omits the field", async () => {
-    mockGame = gameWithSet(true);
-    apiClient.mockResolvedValue({ entries: [lastRally] });
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: false,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
-
-    await act(async () => {
-      await result.current.retry();
-    });
-
-    expect(store.getState().setCompletion["game-1:0"]).toBe(true);
-  });
-
   it("retry leaves the session signal untouched on failure", async () => {
-    mockGame = gameWithSet(true);
-    apiClient.mockRejectedValue(
-      new ApiClientError("invalid", {
-        code: "VALIDATION",
-        reason: "INVALID_INPUT",
-        status: 400,
-      }),
+    serveRallies(() =>
+      HttpResponse.json(
+        { code: "VALIDATION", reason: "INVALID_INPUT" },
+        { status: 400 },
+      ),
     );
-    store.dispatch(
-      setCompletionActions.recorded({
-        gameId: "game-1",
-        setIndex: 0,
-        confirmed: false,
-      }),
-    );
-    const { result } = renderHook(
-      () => useUnconfirmedSetCompletion("game-1", 0),
-      { wrapper },
-    );
+    recordCompletion(false);
+    const { result } = renderUnconfirmed(true);
 
     await act(async () => {
       await result.current.retry();
