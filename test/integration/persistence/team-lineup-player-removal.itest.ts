@@ -80,7 +80,7 @@ describe("removing a player from a team's lineups", () => {
     const { options, liberos } = await read();
 
     expect(liberos).toHaveLength(1);
-    expect(options.liberoReplaceMode).toBeLessThanOrEqual(1);
+    expect(options.liberoReplaceMode).toBe(1);
   });
 });
 
