@@ -13,8 +13,8 @@ jest.mock("better-auth/next-js", () => ({
   toNextJsHandler: mockToNextJsHandler,
 }));
 
-// Better Auth owns every path under /api/auth; the route only hands it the
-// app's configured instance.
+// Better Auth ships ESM that Jest does not transform, so its handler factory
+// is replaced; what the route owns is handing it the app's instance.
 describe("/api/auth/[...all]", () => {
   it("serves GET and POST with Better Auth's handlers for the app's instance", async () => {
     const route = await import("../route");

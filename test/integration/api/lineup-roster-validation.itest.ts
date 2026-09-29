@@ -1,4 +1,4 @@
-import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import {
@@ -10,11 +10,10 @@ import { callRoute } from "../support/request";
 import { oid, seedGame, type SeededGame } from "../support/seed";
 
 const options = { serve: "home", time: { start: "10:00", end: "" } };
-const nonRosterId = oid;
 
 const withGhostStarter = (seeded: SeededGame) => {
   const lineup = structuredClone(seeded.lineup);
-  lineup.starting[0]!.id = nonRosterId();
+  lineup.starting[0]!.id = oid();
   return lineup;
 };
 
@@ -26,7 +25,7 @@ describe("lineup roster validation on /api/games/:id/sets", () => {
     seeded = await seedGame();
   });
 
-  const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
+  const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
 
   it("POST rejects a lineup referencing a non-roster player", async () => {
     const res = await callRoute(createSet, {

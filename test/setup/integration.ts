@@ -18,8 +18,6 @@ jest.mock("next/headers", () => ({
 // placeholder client is lazy and never connects — auth is stubbed.
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/integration-placeholder";
 
-// Each test file gets a database of its own on the run's replica set, so
-// parallel workers never share state.
 beforeAll(async () => {
   await mongoose.connect(process.env.INTEGRATION_MONGODB_URI!, {
     dbName: `itest-${randomUUID()}`,

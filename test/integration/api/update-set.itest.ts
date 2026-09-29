@@ -1,5 +1,5 @@
 import { Position } from "@/entities/team";
-import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import {
@@ -20,7 +20,7 @@ describe("PUT /api/games/:id/sets", () => {
     seeded = await seedGame();
   });
 
-  const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
+  const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
 
   it("persists an edited lineup, not just the options", async () => {
     await callRoute(createSet, {

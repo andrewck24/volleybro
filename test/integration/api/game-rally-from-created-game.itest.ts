@@ -1,5 +1,5 @@
 import { MoveType } from "@/entities/game";
-import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { POST as createGame } from "@/app/api/games/route";
@@ -44,7 +44,7 @@ const newGameBody = (teamId: string, playerIds: string[]) => ({
 describe("real recording flow: create game -> create set 0 -> first rally", () => {
   beforeEach(() => useFakeAuth());
 
-  const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
+  const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
 
   it("records the first rally of a game created through POST /api/games", async () => {
     const teamId = oid();

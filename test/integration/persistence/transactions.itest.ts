@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 
-// ADR-0087: the tier runs a replica set, as production does, so a write that
-// must be atomic can be proven here. Each test uses collections of its own:
-// the cleanup between tests empties only the models' collections.
+// Each test uses collections of its own: the cleanup between tests empties
+// only the models' collections.
 describe("transactions", () => {
   it("commits two writes together and reads both back", async () => {
     const db = mongoose.connection.db!;

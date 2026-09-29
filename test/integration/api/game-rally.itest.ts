@@ -1,6 +1,6 @@
 import { MoveType } from "@/entities/game";
 import { GameReason } from "@/entities/errors";
-import type { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
+import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
@@ -29,7 +29,7 @@ describe("PUT /api/games/:id/sets/rallies", () => {
     seeded = await seedGame({ includeNullIdPlayer: true });
   });
 
-  const repo = () => container.get<GameRepositoryImpl>(TYPES.GameRepository);
+  const repo = () => container.get<IGameRepository>(TYPES.GameRepository);
 
   it("creates the first set, persists it, then records a rally", async () => {
     const created = await callRoute(createSet, {

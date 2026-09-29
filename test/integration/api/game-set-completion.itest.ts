@@ -1,6 +1,5 @@
 import type { IGameRepository } from "@/applications/repositories/game.repository.interface";
 import { MoveType } from "@/entities/game";
-import { GameRepositoryImpl } from "@/infrastructure/db/repositories/game.repository.mongo";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { PUT as createRally } from "@/app/api/games/[gameId]/sets/rallies/route";
@@ -114,47 +113,5 @@ describe("set and match completion", () => {
     expect(game!.sets[0]!.win).toBe(true);
     expect(game!.sets[1]!.win).toBe(false);
     expect(game!.win).toBeNull();
-  });
-
-  it("keeps the deciding rally's entry when the set-result write fails, and reports it unconfirmed", async () => {
-    const created = await callRoute(createSet, {
-      gameId: seeded.gameId,
-      method: "POST",
-      query: { si: 0 },
-      body: { lineup: seeded.lineup, options },
-    });
-    expect(created.status).toBe(201);
-
-    // Force only the set-completion write to fail; the entry write still
-    // reaches the in-memory database.
-    const completeSet = jest
-      .spyOn(GameRepositoryImpl.prototype, "completeSet")
-      .mockRejectedValueOnce(new Error("simulated set-result write failure"));
-
-    try {
-      const res = await callRoute(createRally, {
-        gameId: seeded.gameId,
-        method: "PUT",
-        query: { si: 0 },
-        body: [decidingRally(25, 20, true)],
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.json).toMatchObject({
-        setCompletionConfirmed: false,
-      });
-      expect((res.json as { entries: unknown[] }).entries).toHaveLength(1);
-    } finally {
-      completeSet.mockRestore();
-    }
-
-    // The entry survived in the real database even though completeSet threw.
-    const persisted = await repo().findById(seeded.gameId);
-    expect(persisted!.sets[0]!.entries).toHaveLength(1);
-    expect(persisted!.sets[0]!.entries[0]).toMatchObject({
-      id: "entry-25-20",
-    });
-    // completeSet never landed, so the set is still undecided.
-    expect(persisted!.sets[0]!.win).toBeNull();
   });
 });

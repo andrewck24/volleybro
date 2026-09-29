@@ -12,7 +12,7 @@ A test's tier follows from what it touches, not from its folder or its entry poi
 
 | Tier        | What it touches                                                                             | File                                                         | Runs with                                            |
 | ----------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| Unit        | One process, no I/O, however many real collaborators                                        | `*.test.ts(x)` beside the code in `src/`                     | `pnpm test` (Jest `backend` and `frontend` projects) |
+| Unit        | One process, no I/O, however many real collaborators                                        | `*.test.ts(x)` or `*.spec.ts(x)` beside the code in `src/`   | `pnpm test` (Jest `backend` and `frontend` projects) |
 | Integration | At least one real out-of-process dependency, the database here, and proving it is the point | `*.itest.ts` under `test/integration/api/` or `persistence/` | `pnpm test:integration` (Jest `integration` project) |
 | End-to-end  | A real client, the web app in a browser or a mobile app, against a deployed backend         | `*.e2e.ts` under `test/e2e/`                                 | Not built yet                                        |
 | API smoke   | A deployed backend with no client: real sign-in, HTTP handling, the hosted database         | —                                                            | Not built yet                                        |
@@ -65,7 +65,7 @@ A unit test replaces only what is out of process — the network and the databas
 
 Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
 
-Existing tests are being brought to these rules by the testing-tiers Migration. Until Shard 2 lands, `test/setup/backend.ts` still stubs `mongoose` and `mongodb` for every backend test; until Shard 3 sets up MSW, `test/setup/shared.ts` replaces `fetch` globally; until Shard 4, some component tests still mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
+Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/backend.ts` stubs `mongoose` and `mongodb` for every backend test, `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
 
 ### API routes
 
@@ -126,8 +126,8 @@ Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the re
 
 | File                                 | What it does                                                                                                                                                               | Used by               |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `test/setup/shared.ts`               | Replaces global `fetch` until Shard 3; silences known third-party warnings                                                                                                 | backend, frontend     |
-| `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs, until testing-tiers Shard 2 removes them                                                                             | backend               |
+| `test/setup/shared.ts`               | Replaces global `fetch`; silences known third-party warnings                                                                                                               | backend, frontend     |
+| `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs                                                                                                                       | backend               |
 | `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture); `jest-dom` and `jest-axe`                                              | frontend              |
 | `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                       | integration           |
 | `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                      | integration           |
@@ -163,7 +163,7 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 
 ## Where Tests Run
 
-CI runs every check on every pull request and is the authority (ADR-0092). Locally, `pnpm verify` runs format, lint, type checks, workflow conformance and unit tests. `pnpm verify:all` adds the app build, and runs the workflow tests, integration tests and Blueprint tests only when the diff against `dev` reaches them; `pnpm verify:all --full` runs everything. The integration tests download a `mongodb-memory-server` binary on first run.
+CI runs every check on every pull request and is the authority (ADR-0092). Locally, `pnpm verify` runs format, lint, type checks, workflow conformance and unit tests. `pnpm verify:all` runs each other lane — the app build and unit tests, the workflow tests, the integration tests, the Blueprint tests — only when the diff against `dev` reaches it, and every lane when root configuration changed; `pnpm verify:all --full` runs everything. No local gate builds the Blueprint site. `knip --production` joins every gate once its findings are triaged. The integration tests download a `mongodb-memory-server` binary on first run.
 
 ---
 

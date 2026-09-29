@@ -12,7 +12,7 @@ A test is only as useful as what it refuses to fake. These are the tiers the rep
 - Each API route has one unit test file, `__tests__/route.test.ts`, which holds its request-schema rejections.
 - Backend unit tests run against a global mongoose and mongodb stub. Frontend unit tests run under jsdom.
 - Integration tests run against one in-memory replica set per run, with a database of its own for each test file, so transactions can be proven; auth services are DI doubles. Tests under `api/` arrange and read data only through routes and repository interfaces; tests under `persistence/` prove database behaviour and may use the driver.
-- CI runs every check on every pull request into `dev`. `pnpm verify` runs static checks and unit tests; `pnpm verify:all` adds the app build and runs the workflow, integration and Blueprint tests only when the diff reaches them. No local gate builds the Blueprint site.
+- CI runs every check on every pull request into `dev`. `pnpm verify` runs static checks and unit tests; `pnpm verify:all` adds the app build and the unit, workflow, integration and Blueprint tests, each only when the diff reaches it. No local gate builds the Blueprint site.
 - End-to-end tests and API smoke tests do not exist yet.
 
 ## Implemented decisions

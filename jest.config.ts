@@ -2,7 +2,7 @@
  * Jest configuration with three projects:
  * - backend: node environment, mongoose mocked, for entities/applications/infrastructure/interface/API-route unit tests
  * - frontend: jsdom environment for components and lib
- * - integration: node environment against a real in-memory MongoDB (no mongoose mock)
+ * - integration: node environment against a real in-memory MongoDB replica set (no mongoose mock)
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";

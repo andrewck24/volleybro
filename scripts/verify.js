@@ -51,8 +51,6 @@ const APP_SCRIPTS = new Set([
   "scripts/assert-sw.js",
   "scripts/generate-icons.js",
 ]);
-// What an integration test runs: the backend layers, the route handlers and
-// the helpers they share, plus the tier's own tests and setup.
 const INTEGRATION_PATTERNS = [
   /^src\/(entities|applications|infrastructure|interface|lib)\//,
   /^src\/app\/api\//,

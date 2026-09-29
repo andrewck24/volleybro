@@ -464,11 +464,7 @@ export async function checkChangeScope(root = process.cwd(), options = {}) {
   ];
 }
 
-// ADR-0091: a test's suffix names its tier, and each tier has one home, so a
-// runner's file pattern can never pick up another tier's file. Unit tests
-// (.test) live beside the code in src/, integration tests (.itest) in
-// test/integration/api or test/integration/persistence, and end-to-end tests
-// (.e2e) in test/e2e. Helpers under test/ carry no tier suffix.
+// See ADR-0091.
 const TEST_TIER_SUFFIX = /\.(test|spec|itest|e2e)\.[cm]?[jt]sx?$/;
 const TEST_TIER_HOMES = {
   itest: {
