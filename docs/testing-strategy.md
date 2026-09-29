@@ -44,6 +44,23 @@ flowchart TB
 
 ---
 
+## Test Value
+
+A test earns its maintenance cost only by protecting observable behaviour, a credible regression, or an independent contract. The `test-audit` skill (`.agents/skills/test-audit/`) holds the method; this section is the rule it serves.
+
+**Before writing a test,** answer four questions; a missing answer means the test is not written yet:
+
+1. What observable behaviour, invariant, or contract does it protect?
+2. What credible regression makes it fail?
+3. Why does existing coverage not catch that failure already? Each contract has one owner test at the tier this document assigns; another tier needs a risk of its own.
+4. Does it need a production seam — an export, flag, or hook — that no production caller needs? Then test at the real boundary instead.
+
+A test that asserts values it built itself, restates the implementation, or would break under a behaviour-preserving refactor fails the gate. A regression test must fail on the code before the fix.
+
+**Before deleting or moving a test,** record what it can detect, which test now owns that contract (the keeper), or why no contract exists. A Migration that deletes or moves tests follows the skill's campaign: a per-test ledger, a keeper per contract, and a preservation review in which each contract left to its keeper is proven by one deliberate mutation of the production code that turns the keeper red. The ledger becomes the Review tab's deletion table. Per-file coverage shows code still runs; only the mutation shows a broken contract is still caught.
+
+---
+
 ## Unit Tests
 
 ### What a unit test may replace
