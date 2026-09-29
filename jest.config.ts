@@ -45,6 +45,9 @@ export default async function jestConfig() {
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+    // verify:all runs the integration tests beside the app build, which
+    // rewrites .next/ while Jest's module map is reading it.
+    modulePathIgnorePatterns: ["<rootDir>/.next/"],
     collectCoverageFrom: [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
