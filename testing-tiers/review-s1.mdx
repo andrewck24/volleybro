@@ -1,0 +1,169 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+1. **ADR-0087 的 `decision` 內文在 G1 之後改了**（Deviations 第 1 點）：由「每個測試檔各自啟動」改為「每次執行啟動一個 replica set、每個測試檔一個新資料庫」，並新增一條 consequence 說明為何在 global setup 啟動。
+2. **ADR-0089 經 Ingest 修改，G1 已重新通過**（Deviations 第 2 點）：範圍限於 handler 由 repository 撰寫的 route；從未執行自己 route 的測試檔刪除而不合併；handler 完全由函式庫產生的 route（Better Auth catch-all）不寫單元測試。G1 之後 review 又調整了欄位安排，規則不變：`decision` 只寫規則，理由移到 `context` 與兩個新的 `alternatives`，title 改用同樣的範圍措辭，並新增一條 consequence：catch-all 在 end-to-end 或 API smoke 建立前沒有任何自動化測試。
+3. 其餘偏差都是做法上的調整，列在 Deviations，不需要另外決定。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `test/setup/integration.global.ts` 與 `test/setup/integration.ts`：整個執行共用一個 replica set、每個測試檔以自己的資料庫與 `appName` 連線。平行 worker 之間的隔離靠這兩點。
+2. `test/integration/persistence/set-completion-write-failure.itest.ts`：以 MongoDB `failCommand` failpoint 讓 set 結果的寫入失敗。failpoint 是整台伺服器共用的，只靠 `appName` 過濾限定在本檔的連線上。
+3. `scripts/verify.js` 的 `planLanes`：哪些路徑觸發哪個 lane，特別是 `scripts/` 中只有 app build 用到的兩支腳本會觸發 app lane。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **Replica set 在 Jest 的 global setup 啟動，每次執行一個。** ADR-0087 原寫每個測試檔各自啟動。`MongoMemoryReplSet` 在 Jest 的 test environment 中無法完成 driver 初始化 replica set 的 handshake，同樣的程式在一般 Node 中可以，所以改在 global setup 啟動，並讓每個測試檔使用自己的資料庫。整合測試因此從約 85 秒降到約 17 秒。另外兩點調整：mongod 的啟動等待時間放寬到 60 秒，因為 `verify:all` 會與 app build 同時執行；並開啟 test commands，供 failpoint 使用。
+2. **S5 與 ADR-0089 經 Ingest 修改。** 實作中發現兩件原規則沒預料到的事：
+   - 8 個 route 測試檔從未 import 自己的 route，只斷言測試自建的值，合併進 `route.test.ts` 不會多證明任何事；
+   - Better Auth 的 catch-all route 在 mock 掉函式庫後什麼也不剩，測試只能證明接線。
+   
+   兩者都改寫進規則，G2 前重新通過 G1：這 8 個檔案（77 個案例）刪除，catch-all 的測試也刪除。另外 5 個 `request-schema.test.ts` 都已逐案改名為 `route.test.ts`。
+3. **set 結果寫入失敗的案例從 `api/` 移到 `persistence/`。** 原本在 `api/` 中以 `jest.spyOn` 替換 repository 自己的 `completeSet`，這違反 ADR-0086 的替換界線。現在改由 use case 進入，以 `failCommand` failpoint 讓 `findAndModify` 失敗；entry 寫入走 `bulkWrite`，不受影響。`game-entry-writes` 從 repository 進入，也一併移入 `persistence/`。
+4. **`.spec` 檔名一律回報，Jest 也只收 `.test`。** ADR-0091 只命名 `.test`。check 原本把 `.spec` 視同 `.test`，review 指出 config、check 與文件三者不一致，現在三者都只認 `.test`。repository 中沒有 `.spec` 檔。
+5. **`blueprint:gate` 讀一次預覽 build 的結果，由上一個 Change 完成。** 範圍第 8 點的這一項在 `migration-single-page` 已實作並有測試，本 shard 沒有修改 `scripts/blueprint-gate.js`。
+6. **`knip --production` 的位置只記在 ADR-0092。** 文件描述的是現況，不寫將來的計畫；死碼分流完成後，由那個 Change 把它加進 gate。
+7. **Testing Feature 在本分支更新。** 這是 Archive 的一步，內容描述本 shard 合併後的現況。
+8. **Jest 的模組索引略過 `.next/`。** ADR-0092 讓整合測試與 app build 同時執行後，`verify:all` 出現一次整合測試失敗：Jest 的 haste map 讀到 build 正在改寫的 `.next/build/package.json`。`jest.config.ts` 加上 `modulePathIgnorePatterns` 後，這個衝突不再發生。
+9. **review 走了七輪。** 第二輪起的發現都針對前一輪的修正；第五到七輪審查 Ingest 與 Jest 設定的修正。註解與決策紀錄重複（根本原因 B）連續兩輪出現後，改用刪除該註解的做法，不再改寫。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    {
+      id: "S1",
+      result: "pass",
+      evidence: "`test/integration/` 下 15 個測試檔都是 `api/` 或 `persistence/` 中的 `.itest.ts`；`check-workflow.test.js` 的「reports a test whose suffix does not match its directory」對 `.test`、`.itest`、`.e2e`、`.spec` 放錯位置各自回報",
+    },
+    {
+      id: "S2",
+      result: "pass",
+      evidence: "`persistence/transactions.itest.ts`：一個 transaction 寫入兩個 collection 後都讀得回來，abort 的 transaction 不留下任何寫入",
+    },
+    {
+      id: "S3",
+      result: "pass",
+      evidence: "`test/integration/api/` 與它 import 的 `support/` helper 都不 import mongoose、driver 或 Mongoose schema；repository 以 `IGameRepository` 介面取得",
+    },
+    {
+      id: "S4",
+      result: "pass",
+      evidence: "每個被刪除的 schema 拒絕案例都在該 route 的 `route.test.ts` 中斷言 400 VALIDATION，且 controller 未被呼叫，見 ReviewDetails 的刪除對照表",
+    },
+    {
+      id: "S5",
+      result: "pass",
+      evidence: "`src/app/api` 下 handler 由 repository 撰寫的 16 條 route 各有一個 `__tests__/route.test.ts`，沒有其他測試檔（新增 `games/[gameId]` 與 `users`）；Better Auth 的 `auth/[...all]` 沒有測試",
+    },
+    {
+      id: "S8",
+      result: "pass",
+      evidence: "`verify.test.js`：只動到 decision record 的 diff 不排整合測試、也不 build Blueprint（blueprint lane 只跑測試）；動到 backend `src/` 的 diff 會排整合測試",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "Final gate",
+      method: "`pnpm verify:all`（改到 `jest.config.ts`，所以跑全部 lane）",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+    },
+    {
+      id: "T2",
+      checks: "單元與整合測試",
+      method: "`pnpm test`、`pnpm test:integration`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "單元 1096 個、整合 50 個，全部通過；整合測試約 17 秒，shard 開始前約 85 秒",
+    },
+    {
+      id: "T3",
+      checks: "逐檔覆蓋率不下降",
+      method: "以 shard 開始前同一條指令 `jest --selectProjects backend frontend integration --coverage` 獨立執行，逐檔比較 `src/`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "總行覆蓋率 87.77% → 87.79%。`game.repository.mongo.ts` 與 `entities/game.ts` 的 branch 百分比下降，但以原始碼位置逐一比對，shard 開始前覆蓋到的 branch 現在都仍覆蓋，而且兩檔各多覆蓋了 14 與 23 個；百分比下降來自 instrumentation 計入的 branch 總數增加",
+    },
+    {
+      id: "T4",
+      checks: "流程工具測試",
+      method: "`pnpm test:workflow`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+    },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 刪除與搬移對照表
+
+| 原測試                                                                                       | 處理 | 現在由誰接手，或為何不再需要                                                                                       |
+| -------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------ |
+| `game-legacy-weather`：讀回帶舊 weather 欄位的比賽                                           | 刪除 | `test` 資料庫中沒有這種文件，上線前的資料轉換也不需要（範圍第 4 點）                                               |
+| `game-stale-stored-stats`：stats 與 entries 不一致時由 entries 推算                          | 刪除 | 同上                                                                                                               |
+| `team-membership-writes`：連結舊版以原始大小寫儲存的邀請                                     | 刪除 | 同上                                                                                                               |
+| `rally-validation`：沒有 move type、move type 超出 enum、沒有 win，各回 400                  | 移動 | `rallies/__tests__/route.test.ts` 的 it.each，斷言 400 VALIDATION 且 controller 未被呼叫                           |
+| `rally-validation`：欄位都在範圍內的 rally 會被記錄                                          | 刪除 | `api/game-rally` 的每個記錄案例                                                                                    |
+| `game-request-schema-boundary`：五條寫入 route 拒絕未宣告欄位                                | 移動 | `games`、`sets`（POST 與 PUT）、`substitutions` 的「returns 400 for a body with an undeclared field」，以及 rallies it.each 的 nested player 案例 |
+| `lineup-roster-validation`：POST 拒絕格式錯誤的 lineup                                       | 刪除 | `sets/__tests__/route.test.ts` it.each 的「non-array starting」                                                    |
+| `team-lineup-editing`：拒絕未宣告欄位                                                        | 刪除 | `lineups/__tests__/route.test.ts`「returns 400 for a lineup with an undeclared field」                             |
+| `smoke`：連得上 in-memory Mongo、container 解析出真實 repository、seed 的比賽讀得回來        | 刪除 | 每個整合測試都依賴這三件事，任何一個壞掉都會全部失敗                                                               |
+| `smoke`：測試之間清空 collection                                                             | 改名 | `persistence/test-isolation`                                                                                       |
+| `legacy-entry-guard`                                                                         | 改名 | `persistence/entry-write-requires-identity`：它保護的是現行寫入邏輯                                                |
+| `game-set-completion`：set 結果寫入失敗時保留 entry                                          | 移動 | `persistence/set-completion-write-failure`，改用 failpoint                                                         |
+| `game-entry-writes`                                                                          | 移動 | `persistence/game-entry-writes`，內容不變                                                                          |
+| 其餘 8 個整合測試檔                                                                          | 移動 | `api/` 或 `persistence/`，內容不變或只改 import                                                                    |
+| 8 個 route 測試檔共 77 案例（players 的 invitations、memberships、route、update-info；teams 的 ownership、create-player、get-route、players route） | 刪除 | 從未 import route 或正式程式碼，只斷言測試自建的值（ADR-0089）                                           |
+| `auth/[...all]` 在本 shard 新增的 route 測試 | 刪除 | handler 由 Better Auth 整個產生，mock 後沒有程式可跑（ADR-0089）；行為待 end-to-end 與 API smoke 證明 |
+| 5 個 `request-schema.test.ts`                                                                | 改名 | 同目錄的 `route.test.ts`，案例不變                                                                                 |
+
+### Code review
+
+七輪兩軸 review。第四輪只剩兩項判斷，我都不採納；之後的 Ingest 與 Jest 設定由第五到七輪審查：
+
+- **第一輪**
+  - 標準軸指出新測試違反本分支寫下的分層規則：以 spy 替換 repository、從 repository 進入的測試放在 `api/`。
+  - 標準軸也指出，有註解重複決策紀錄，文件也與 `planLanes` 不一致。
+  - 規格軸指出 `api/` 以具體類別取得 repository，以及 knip 的位置沒有記錄。
+  - 以上皆已修正。
+- **第二輪**
+  - 兩軸都指出 failpoint 作用於整台伺服器，可能讓其他平行測試檔的 `findAndModify` 失敗。已改為以 `appName` 限定。
+  - `.spec` 改依 ADR-0091 處理。
+- **第三輪**
+  - `jest.config.ts` 仍收 `.spec`，已收斂。
+  - `seed.ts` 的註解連續兩輪說不出會避免的錯誤，改為刪除。
+- **第四輪**
+  - 建議在 `appName` 缺漏時拋錯，不採納：`integration.ts` 一定會設定它。
+  - 建議為 S3 加註解或 import 檢查，不採納：註解已兩輪說不出理由，import 檢查超出本 shard。
+
+- **第五輪**
+  - 兩軸確認 Ingest 的實作符合新的 S5。
+  - 標準軸指出 ADR-0089 的 `decision` 夾帶理由、兩處刪除標準說法不一，且 `alternatives` 沒有記下這次的取捨；規格軸指出 title 仍是舊範圍。皆已修正。
+- **第六輪**
+  - 只剩 title 的措辭，依 review 給的文字逐字修改。
+- **第七輪**
+  - 兩軸確認 `modulePathIgnorePatterns` 的修正與註解，沒有新發現。
+
+### 殘留風險
+
+- 整合測試共用一個 replica set。將來若有測試改變伺服器層級的狀態，卻沒有像 failpoint 這樣限定連線，就可能影響平行執行的其他測試檔。
+- S3 沒有自動檢查；`api/` 測試日後若 import 了 driver，要靠 review 發現。
+- `src/app/(tabs)/@modal/(...)team/` 下的兩個 page 測試在 `dev` 上就從未被 Jest 收集，frontend project 的 `testMatch` 對不上這兩條路徑。這不在本 Change 範圍內，已另開任務處理。
+
+</ReviewDetails>
