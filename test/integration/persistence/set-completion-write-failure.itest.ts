@@ -20,7 +20,7 @@ const failFindAndModify = (mode: "alwaysOn" | "off") =>
     data: {
       failCommands: ["findAndModify"],
       errorCode: 2,
-      appName: mongoose.connection.db!.databaseName,
+      appName: mongoose.connection.getClient().options.appName,
     },
   });
 

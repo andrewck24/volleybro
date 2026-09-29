@@ -58,13 +58,13 @@ export default async function jestConfig() {
     testEnvironment: "node",
     setupFilesAfterEnv: ["<rootDir>/test/setup/backend.ts"],
     testMatch: [
-      "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/entities/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/applications/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/infrastructure/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/interface/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/api/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/apple-splash/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -74,10 +74,10 @@ export default async function jestConfig() {
     testEnvironment: "jsdom",
     setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testMatch: [
-      "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/hooks/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/\\(tabs\\)/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/hooks/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/\\(tabs\\)/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 
