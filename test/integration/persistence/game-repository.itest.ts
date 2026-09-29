@@ -84,10 +84,10 @@ describe("game reads and writes", () => {
         null,
       ]);
       const [rally, substitution] = written!.entries as unknown as [
-        { home: { player: { id: string } } },
+        { home: { player: { id: string; zone: number } } },
         { players: { in: string; out: string } },
       ];
-      expect(rally.home.player.id).toBe(scorer);
+      expect(rally.home.player).toEqual({ id: scorer, zone: 4 });
       expect(substitution.players).toEqual({ in: incoming, out: outgoing });
     }
   });
