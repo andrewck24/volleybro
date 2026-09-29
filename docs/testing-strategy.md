@@ -82,7 +82,7 @@ A unit test replaces only what is out of process — the network and the databas
 
 Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
 
-Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/backend.ts` stubs `mongoose` and `mongodb` for every backend test, `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
+Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
 
 ### API routes
 
