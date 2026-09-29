@@ -41,7 +41,7 @@ export default async function jestConfig() {
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!.*(inversify|@inversifyjs)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@msw|@mswjs|rettime|until-async|headers-polyfill|outvariant|is-node-process|@open-draft)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
@@ -74,7 +74,8 @@ export default async function jestConfig() {
   const frontendProject: Config = {
     ...sharedConfig,
     displayName: "frontend",
-    testEnvironment: "jsdom",
+    // jsdom hides Node's fetch, Request and Response, which MSW intercepts.
+    testEnvironment: "jest-fixed-jsdom",
     setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testMatch: [
       "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",

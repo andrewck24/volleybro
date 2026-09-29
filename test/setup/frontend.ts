@@ -4,9 +4,15 @@ import type { ImageProps } from "next/image";
 import type { LinkProps as NextLinkProps } from "next/link";
 import React from "react";
 
+import { server } from "../msw/server";
 import "./shared";
 
 expect.extend(toHaveNoViolations);
+
+// A request no handler answers fails the test instead of reaching the network.
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 global.IntersectionObserver = jest
   .fn()
