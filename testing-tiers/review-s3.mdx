@@ -27,7 +27,7 @@ import { scenarios } from "./proposal.mdx";
 2. **新增兩個 devDependency：`msw` 與 `jest-fixed-jsdom`。** MSW 3 只出 ESM，Jest 要轉譯它與五個相依套件，`jest.config.ts` 的 `transformIgnorePatterns` 因此多列了 `msw`、`@mswjs`、`rettime`、`until-async`、`@open-draft` 與 `cookie`；reviewer 逐一拿掉其餘候選驗證，只留下必要的。
 3. **`api-client` 的逾時案例保留一個 `fetch` spy。** Node 的 fetch 中止時丟出的 `DOMException` 與 jsdom 的不是同一個 class，正式碼的 `instanceof` 在 jsdom 下不成立；瀏覽器不受影響，所以不為此改正式碼。測試檔內已寫明這個 jsdom 限制。
 4. **只改測試，新增兩個測試 helper。** 相對 `dev`，沒有任何正式程式碼變動。`src/test-utils/swr-isolation.tsx` 給每個測試獨立的 SWR cache，`src/test-utils/editing-game.ts` 是三個 dialog 測試原本逐字重複的 game fixture。
-5. **本 shard 沒有自己的 scenario。** Proposal 的 S7 屬於 shard 4，所以下面的 `ScenarioResults` 是空的。本 shard 的證明是 TestPlan 的五項。
+5. **本 shard 沒有自己的 scenario。** Proposal 的 S7 屬於 shard 4，所以下面的 `ScenarioResults` 是空的。本 shard 的證明是 TestPlan 的六項。
 
 </Deviations>
 
