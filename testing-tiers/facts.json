@@ -1,6 +1,6 @@
 {
   "gate": "G2",
-  "publishedAt": "2026-09-29T19:47:56.946Z",
+  "publishedAt": "2026-09-29T20:05:54.110Z",
   "scenarios": 8,
   "decisions": [
     "0085",
@@ -21,8 +21,7 @@
   "srcFilesChanged": 128,
   "shards": {
     "count": 4,
-    "current": 3,
-    "merged": 2,
+    "merged": 3,
     "items": [
       {
         "shard": 1,
@@ -50,7 +49,7 @@
         "shard": 3,
         "gate": "G2",
         "startedAt": "2026-09-29T18:10:24.000Z",
-        "archivedAt": null,
+        "archivedAt": "2026-09-29T20:04:39.000Z",
         "commits": 13,
         "filesChanged": 107,
         "insertions": 2830,
