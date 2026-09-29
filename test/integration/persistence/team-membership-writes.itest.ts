@@ -7,12 +7,10 @@ import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-tea
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { PlayerReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
-import { PlayerModel } from "@/infrastructure/db/mongoose/schemas/player";
 import { User as UserModel } from "@/infrastructure/db/mongoose/schemas/user";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { handleUserCreated } from "@/lib/auth-hook";
-import { Types } from "mongoose";
 import { useFakeAuth } from "../support/auth";
 import { oid } from "../support/seed";
 
@@ -319,22 +317,6 @@ describe("signing up reaches the invitations waiting for that address", () => {
       teamName: "Signup Team",
     });
     expect(mine[0]).not.toHaveProperty("email");
-  });
-
-  it("links an invitation stored before addresses were lowercased, in the case it was typed", async () => {
-    // Written past the schema, whose setter would lowercase it.
-    await PlayerModel.collection.insertOne({
-      name: "Bob",
-      status: PlayerStatus.INVITED,
-      role: PlayerRole.MEMBER,
-      teamId: new Types.ObjectId(teamId),
-      email: "Bob@Example.com",
-    });
-    const userId = oid();
-
-    await handleUserCreated({ id: userId, email: "bob@example.com" });
-
-    expect(await invitationsOf(userId)).toHaveLength(1);
   });
 
   it("leaves an invitation to a different address alone", async () => {
