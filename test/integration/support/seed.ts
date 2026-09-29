@@ -6,7 +6,8 @@ import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { randomBytes } from "node:crypto";
 
-// Not mongoose's Types.ObjectId: tests under api/ must not load the driver.
+// Not mongoose's Types.ObjectId: api/ tests import this file and import
+// nothing from mongoose themselves.
 export const oid = () => randomBytes(12).toString("hex");
 
 const emptyTeam = (

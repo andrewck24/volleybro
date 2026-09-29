@@ -257,12 +257,14 @@ test("reports a test whose suffix does not match its directory", async () => {
       "test/integration/game-rally.itest.ts": "",
       "src/entities/game.itest.ts": "",
       "test/integration/api/record-a-rally.e2e.ts": "",
+      "src/entities/game.spec.ts": "",
     })
   ).join("\n");
   assert.match(report, /api\/game-rally\.test\.ts \[test-tier\]/);
   assert.match(report, /integration\/game-rally\.itest\.ts \[test-tier\]/);
   assert.match(report, /src\/entities\/game\.itest\.ts \[test-tier\]/);
   assert.match(report, /api\/record-a-rally\.e2e\.ts \[test-tier\]/);
+  assert.match(report, /game\.spec\.ts \[test-tier\]/);
 });
 
 test("reports a page whose Proposal has no TLDR", async () => {

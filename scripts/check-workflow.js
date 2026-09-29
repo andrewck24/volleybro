@@ -487,6 +487,12 @@ async function validateTestTiers(root) {
   for (const relativePath of files) {
     const suffix = relativePath.match(TEST_TIER_SUFFIX)?.[1];
     if (!suffix) continue;
+    if (suffix === "spec") {
+      diagnostics.push(
+        `${relativePath} [test-tier]: name a unit test .test, not .spec`,
+      );
+      continue;
+    }
     const home = TEST_TIER_HOMES[suffix];
     const misplaced = home
       ? !home.pattern.test(relativePath)

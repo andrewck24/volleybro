@@ -19,8 +19,11 @@ jest.mock("next/headers", () => ({
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/integration-placeholder";
 
 beforeAll(async () => {
+  const name = `itest-${randomUUID()}`;
+  // appName lets a failpoint target this file's connection alone.
   await mongoose.connect(process.env.INTEGRATION_MONGODB_URI!, {
-    dbName: `itest-${randomUUID()}`,
+    dbName: name,
+    appName: name,
   });
 }, 60_000);
 

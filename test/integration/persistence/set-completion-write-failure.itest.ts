@@ -11,12 +11,17 @@ import { callRoute } from "../support/request";
 import { seedGame } from "../support/seed";
 
 // completeSet writes with findAndModify and the entry write with bulkWrite, so
-// failing that one command fails only the set result.
+// failing that one command fails only the set result. The failpoint is
+// server-wide; appName keeps it off other test files' connections.
 const failFindAndModify = (mode: "alwaysOn" | "off") =>
   mongoose.connection.db!.admin().command({
     configureFailPoint: "failCommand",
     mode,
-    data: { failCommands: ["findAndModify"], errorCode: 2 },
+    data: {
+      failCommands: ["findAndModify"],
+      errorCode: 2,
+      appName: mongoose.connection.db!.databaseName,
+    },
   });
 
 describe("a set-result write that fails after the deciding rally is stored", () => {
