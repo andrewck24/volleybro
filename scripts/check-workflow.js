@@ -464,6 +464,46 @@ export async function checkChangeScope(root = process.cwd(), options = {}) {
   ];
 }
 
+// ADR-0091: a test's suffix names its tier, and each tier has one home, so a
+// runner's file pattern can never pick up another tier's file. Unit tests
+// (.test) live beside the code in src/, integration tests (.itest) in
+// test/integration/api or test/integration/persistence, and end-to-end tests
+// (.e2e) in test/e2e. Helpers under test/ carry no tier suffix.
+const TEST_TIER_SUFFIX = /\.(test|spec|itest|e2e)\.[cm]?[jt]sx?$/;
+const TEST_TIER_HOMES = {
+  itest: {
+    pattern: /^test\/integration\/(api|persistence)\//,
+    name: "under test/integration/api/ or test/integration/persistence/",
+  },
+  e2e: { pattern: /^test\/e2e\//, name: "under test/e2e/" },
+};
+
+async function validateTestTiers(root) {
+  const files = (
+    await Promise.all(
+      ["src", "test"].map((dir) => listFiles(path.join(root, dir))),
+    )
+  )
+    .flat()
+    .map((filePath) => path.relative(root, filePath).split(path.sep).join("/"));
+
+  const diagnostics = [];
+  for (const relativePath of files) {
+    const suffix = relativePath.match(TEST_TIER_SUFFIX)?.[1];
+    if (!suffix) continue;
+    const home = TEST_TIER_HOMES[suffix];
+    const misplaced = home
+      ? !home.pattern.test(relativePath)
+      : relativePath.startsWith("test/");
+    if (misplaced) {
+      diagnostics.push(
+        `${relativePath} [test-tier]: a .${suffix} file belongs ${home?.name ?? "beside its code in src/"}`,
+      );
+    }
+  }
+  return diagnostics;
+}
+
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
   for (const relativePath of REQUIRED_FILES) {
@@ -494,6 +534,7 @@ export async function checkWorkflow(root = process.cwd()) {
   }
 
   diagnostics.push(...(await validateInternalLinks(root)));
+  diagnostics.push(...(await validateTestTiers(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));
