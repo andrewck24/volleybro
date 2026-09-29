@@ -8,6 +8,6 @@ export const ANDROID =
 export const iosUserAgent = (version: number) =>
   `Mozilla/5.0 (iPhone; CPU iPhone OS ${version}_0 like Mac OS X) AppleWebKit/605.1.15 Version/${version}.0`;
 
-/** jsdom's default user agent is read as a phone, so a test that needs another platform sets it. */
+/** jsdom's user agent varies with the host OS, so platform detection needs it pinned. */
 export const setUserAgent = (userAgent: string) =>
   jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue(userAgent);
