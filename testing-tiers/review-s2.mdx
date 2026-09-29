@@ -1,0 +1,269 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+1. **`linkUserToInvitations` 的 collation 與它的註解要不要留**（`src/infrastructure/db/repositories/player.repository.mongo.ts`）。對這個 codebase 現在能寫出的任何文件，它都不起作用：Mongoose 會把 filter 與寫入的 email 都轉成小寫。只有 setter 出現之前就以大寫儲存的 email 才用得到它，repository 內沒有任何東西證實這種資料存在。沒有任何測試守護它：拿掉 collation 後所有 persistence 測試仍然通過（M1，見 ReviewDetails）。
+   - **刪掉 collation 與註解**（消除例外的做法）：代價是一個正式程式碼的變更，超出本 shard 範圍；若上線資料裡真的有大寫儲存的邀請，這些邀請不再連得到註冊帳號，而且沒有測試會發現。做之前要先查 production 資料庫有沒有這種文件。
+   - **保留**：代價是一段無法證明的正式程式碼，加上一段沒有任何東西能證實的註解，將來每個讀的人都得再判斷一次。
+2. **ReviewDetails 殘留風險列出的相鄰問題，要不要另開任務。** 這些都是本 shard 看到、但依範圍沒有修的；由你決定哪些值得開票。
+3. 其餘偏差都是做法上的調整，列在 Deviations，不需要另外決定。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `src/infrastructure/db/repositories/` 下三個 `*.mapping.mongo.ts` 純函式模組，對照 `test/integration/persistence/` 的 keeper：哪些 contract 由不需要 driver 的單元測試守護（寫入形態、`$unset`），哪些只有真實資料庫才看得見（讀回的 id 與 `zone`）。分界線在 `game.mapping.test.ts` 與 `game-repository.itest.ts`，重複的 id 斷言就是為了這條線而移除。
+2. ReviewDetails 的保存審查表。覆蓋率只證明程式被執行；被刪的單元宣告能不能放心刪，靠的是這張表的每一列：正式程式碼被刻意改壞後，是哪個測試變紅。M1 是唯一刻意沒有證明的一列，請看理由。
+3. `test/setup/backend.ts`：全域的 `mongodb`、`mongoose`、`bson` mock 整段移除，只留 `next/server` 與 `next/headers`。原本依賴這些 stub 的測試，有些只是打到 stub 才會過；`jest.config.ts` 也跟著調整。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **`knip --production` 無法回報 class 成員。** 計畫的第 1 點要用它找出沒有正式呼叫端的 repository 方法。knip 6.32.3 與 6.38.0 都拒絕 `classMembers` 這個 issue type，所以改用逐方法 grep 正式程式碼的呼叫端。五個沒有呼叫端的方法（`game.delete`、`team.delete`、`player.findByEmail`、`player.countByTeamId`、`player.existsInvitation`）由此找出，開發者已核准刪除（commit `8025209a`）。
+2. **Ingest 的文件 commit 先於本 shard 的程式碼。** `7bf982a5` 把 Test Value 規則（新測試與測試的刪除都要說明它證明了什麼）寫進文件，之後才開始改測試，campaign 依這條規則標記。
+3. **相鄰的問題只旗標不修。** 見 ReviewDetails 的殘留風險。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 2)}
+  results={[
+    {
+      id: "S6",
+      result: "pass",
+      evidence: "`test/setup/backend.ts` 不再 mock `mongoose`、`mongodb` 或 `bson`，只留 `next/server` 與 `next/headers`；每個有正式呼叫端的 repository 方法都在至少一個 `persistence/` 測試中執行（ReviewDetails 的方法對照表）；對 S6 點名的四個方法各加 `throw new Error(\"PROBE\")` 探針，各有 1 到 10 個 persistence 測試變紅",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "Final gate",
+      method: "`pnpm verify:all`（動到 `jest.config.ts` 與 backend `src/`，所以跑全部 lane）",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "static、workflow、integration、app-build、blueprint、app-test 六個 lane 全部 pass",
+    },
+    {
+      id: "T2",
+      checks: "整合測試",
+      method: "`pnpm test:integration`",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "21 個 suite、76 個測試全部通過，約 15 秒",
+    },
+    {
+      id: "T3",
+      checks: "逐檔覆蓋率不下降",
+      method: "在 shard 開始前的 `7bf982a5` 與 HEAD 各跑一次 `jest --selectProjects backend frontend integration --coverage`，逐檔比較 `src/` 的 lines、branches、functions、statements",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "沒有任何 `src/` 檔案的任何一項百分比下降。總行覆蓋率 87.87% → 88.07%，總 branch 88.58% → 89.17%。逐檔表在 ReviewDetails",
+    },
+    {
+      id: "T4",
+      checks: "刪除對照表與保存審查",
+      method: "由 campaign 標記表逐宣告產生刪除對照表；26 個 mutation 加上 rally `zone` 一項，逐一對正式程式碼改壞、跑 keeper、再逐位元還原（每次還原後 `git diff` 為空）",
+      executor: "agent",
+      environment: "Windows 本機",
+      result: "pass",
+      evidence: "除 M1 外每個 mutation 都有 keeper 變紅；M1 刻意不證明，見 ReviewDetails 與 ActionItems 第 1 點",
+    },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 逐檔覆蓋率
+
+以同一條指令 `jest --selectProjects backend frontend integration --coverage` 在 `7bf982a5` 與 HEAD 各量測一次。搬到 mapping 模組的程式與新模組合併計算。
+
+| 檔案 | 行覆蓋 之前 | 行覆蓋 之後 | branch 之前 | branch 之後 |
+| --- | --- | --- | --- | --- |
+| `error-translation.mongo.ts` | 66/66 (100.0%) | 66/66 (100.0%) | 16/16 (100.0%) | 18/18 (100.0%) |
+| game（repository + mapping） | 631/653 (96.63%) | 630/644 (97.83%) | 104/138 (75.36%) | 113/142 (79.58%) |
+| player（repository + mapping） | 158/178 (88.76%) | 160/174 (91.95%) | 34/45 (75.56%) | 32/40 (80.0%) |
+| `profile.repository.mongo.ts` | 40/74 (54.05%) | 68/74 (91.89%) | 3/7 (42.86%) | 13/16 (81.25%) |
+| team（repository + mapping） | 229/237 (96.62%) | 235/239 (98.33%) | 35/41 (85.37%) | 33/36 (91.67%) |
+| `user.repository.mongo.ts` | 44/50 (88.0%) | 44/50 (88.0%) | 9/12 (75.0%) | 9/12 (75.0%) |
+| `index.ts` | 13/13 (100.0%) | 13/13 (100.0%) | 0/0 | 0/0 |
+
+- player 與 team 的 branch 覆蓋數（34 到 32、35 到 33）下降，只因為已刪的死方法與重複的 branch 離開了分母，兩者的百分比都上升。
+- 檔案集合的差異只有：移除 `src/__tests__/helpers/mock-mongoose.ts`，新增三個 mapping 模組。
+- 尚未覆蓋的 repository 行多半是重新拋出翻譯後錯誤的 `catch`。
+
+### 刪除對照表
+
+由 campaign 的標記表產生：R 保留、F 保留但修正或改指向斷言、C 併入指名的擁有者、D 刪除。舊行號是 `7bf982a5` 的 `it(`，接手者的行號是 HEAD。
+
+59 個單元宣告 = 6 R + 4 F + 18 C + 31 D。四個檔案整檔刪除（game、team、user、player 的 repository 單元測試）；`error-translation.test.ts` 留下，兩個網路錯誤名稱併成一個 `it.each`。34 個 persistence 宣告全部保留，其中兩個修正斷言：`team-lineup-player-removal.itest.ts` 的 libero 測試由 `toBeLessThanOrEqual(1)` 改為 `toBe(1)`，`team-membership-writes.itest.ts` 的 owner 測試改名為它實際讀的東西。
+
+| 原測試 | 處理 | 現在由誰接手，或為何不再需要 |
+| --- | --- | --- |
+| `error-translation.test.ts:12` CastError on _id -> NotFoundError | R | kept; real driver shape now also in game-repository.itest.ts:21 and team-repository.itest.ts:15 |
+| `error-translation.test.ts:21` CastError other path -> ValidationError | R | kept (error-translation.test.ts:21); real path in game-entry-writes.itest.ts:133 |
+| `error-translation.test.ts:33` 11000 -> ConflictError | R | kept (error-translation.test.ts:33); real E11000 now in player-repository.itest.ts:36 |
+| `error-translation.test.ts:44` MongoNetworkError -> TransientError | R | kept, now an it.each row (error-translation.test.ts:44) that also asserts retryable |
+| `error-translation.test.ts:53` MongoNetworkTimeoutError -> TransientError | C | merged into the it.each at error-translation.test.ts:44 |
+| `error-translation.test.ts:64` unknown Error -> UnexpectedError | R | kept (error-translation.test.ts:57) |
+| `error-translation.test.ts:71` non-Error -> UnexpectedError | R | kept (error-translation.test.ts:64); the false `as unknown as Error` cast is gone and originalError is asserted |
+| `user.repository.test.ts:31` findById found | D | user-repository.itest.ts:10 (real read, second of two users) |
+| `user.repository.test.ts:41` findById null | D | user-repository.itest.ts:26 |
+| `user.repository.test.ts:51` findByEmail found | D | user-repository.itest.ts:30 (mock ignored the filter; keeper has two users) |
+| `user.repository.test.ts:61` findByEmail null | D | user-repository.itest.ts:30 |
+| `team.repository.test.ts:37` findById found | D | team-lineup-player-removal.itest.ts (findById reads), team-repository.itest.ts:21 |
+| `team.repository.test.ts:47` findById null | C | team-repository.itest.ts:11 |
+| `team.repository.test.ts:57` create | D | every persistence beforeEach creates through the real create; team-lineup-player-removal.itest.ts (creating a team stores lineup players) |
+| `team.repository.test.ts:72` update found | D | team-repository.itest.ts:21 (real, first test of team.update) |
+| `team.repository.test.ts:84` update NotFound | C | team-repository.itest.ts:30 |
+| `team.repository.test.ts:107` updateLineups round trip | F | team.mapping.test.ts:18 and :40 (pure), team-repository.itest.ts:39 (real) |
+| `team.repository.test.ts:146` updateLineups NotFound | C | team-repository.itest.ts:30 |
+| `team.repository.test.ts:158` delete true | D | method deleted (no production caller) |
+| `team.repository.test.ts:168` delete false | D | method deleted (no production caller) |
+| `player.repository.test.ts:32` findById found | D | team-membership-writes.itest.ts (reads by id after every write) |
+| `player.repository.test.ts:44` findById null | C | player-repository.itest.ts:14 |
+| `player.repository.test.ts:55` findByTeamId found | D | team-membership-writes.itest.ts roster() |
+| `player.repository.test.ts:68` findByTeamId empty | D | trivial pass-through of []; no contract |
+| `player.repository.test.ts:79` findByUserId | D | team-membership-writes.itest.ts invitationsOf |
+| `player.repository.test.ts:93` findByEmail | D | method deleted (no production caller) |
+| `player.repository.test.ts:109` findInvitedByTeamIdAndEmail found | D | team-membership-writes.itest.ts (invitation link, roster conflicts) |
+| `player.repository.test.ts:127` findInvitedByTeamIdAndEmail null | D | team-membership-writes.itest.ts (first invite of each case) |
+| `player.repository.test.ts:141` create | D | every persistence beforeEach creates through the real create |
+| `player.repository.test.ts:165` linkUserToInvitations links | D | team-membership-writes.itest.ts:305 (lowercased invitation linked to a mixed-case account); the collation itself is deliberately unproven, see M1 |
+| `player.repository.test.ts:184` linkUserToInvitations returns 0 | D | team-membership-writes.itest.ts (leaves an invitation to a different address alone) |
+| `player.repository.test.ts:197` update role | C | player.mapping.test.ts:44 (it.each row: sets defined fields) |
+| `player.repository.test.ts:216` update $unset undefined | F | player.mapping.test.ts:44 (unset and both rows); team-membership-writes.itest.ts (leave team clears role and email) |
+| `player.repository.test.ts:243` update NotFound | C | player-repository.itest.ts:18 |
+| `player.repository.test.ts:256` delete true | D | player-repository.itest.ts:24 (real delete, then findById null) |
+| `player.repository.test.ts:268` delete false | C | player-repository.itest.ts:24 |
+| `player.repository.test.ts:281` countByTeamId | D | method deleted (no production caller) |
+| `player.repository.test.ts:297` existsInvitation true | D | method deleted (no production caller) |
+| `player.repository.test.ts:311` existsInvitation false | D | method deleted (no production caller) |
+| `player.repository.test.ts:342` narrows unlinked | C | src/entities/__tests__/player.test.ts:33 (narrowPlayer owner) |
+| `player.repository.test.ts:348` narrows invitee | C | src/entities/__tests__/player.test.ts:37 |
+| `player.repository.test.ts:359` narrows member | C | src/entities/__tests__/player.test.ts:61 |
+| `player.repository.test.ts:365` rejects no status | C | src/entities/__tests__/player.test.ts:73 |
+| `player.repository.test.ts:369` rejects NONE with role | C | src/entities/__tests__/player.test.ts:85 |
+| `player.repository.test.ts:375` rejects invitee userId+email | C | src/entities/__tests__/player.test.ts:114 |
+| `game.repository.test.ts:62` findById found | D | game-entry-writes.itest.ts (every test reads through findById) |
+| `game.repository.test.ts:75` findById null | C | game-repository.itest.ts:17 |
+| `game.repository.test.ts:85` create | D | seedGame (support/seed.ts) writes through the real create |
+| `game.repository.test.ts:109` update found | D | game-repository.itest.ts:33 and :95 |
+| `game.repository.test.ts:121` update NotFound | C | game-repository.itest.ts:27 |
+| `game.repository.test.ts:133` delete true | D | method deleted (no production caller) |
+| `game.repository.test.ts:143` delete false | D | method deleted (no production caller) |
+| `game.repository.test.ts:159` toGame exposes nested player ids | F | game.mapping.test.ts:15 (pure toGame); game-repository.itest.ts:33 (real) |
+| `game.repository.test.ts:259` toGameDoc persists client ids as playerId | F | game.mapping.test.ts:92 (pure toGameDoc); game-repository.itest.ts:33 (real) |
+| `game.repository.test.ts:375` findGameSummaries paginated | D | game-summaries.itest.ts:41 and :62 (expected value was the mock's own) |
+| `game.repository.test.ts:390` findGameSummaries hasMore | C | game-summaries.itest.ts:62 and :88 |
+| `game.repository.test.ts:407` findGameSummaries cursor filter | D | game-summaries.itest.ts:62 (real paging by cursor) |
+| `game.repository.test.ts:421` findGameSummaries empty keeps lastId | C | game-summaries.itest.ts:62 (beyond-the-end page echoes the cursor) |
+| `game.repository.test.ts:434` aggregate game data to GameSummary | D | game-summaries.itest.ts:41 (real aggregation of scores and set wins) |
+| `mongoose/schemas/__tests__/player.test.ts` (10 declarations) | D | assertion-free probes of a stubbed model (three failed without the stubs); real schema behaviour is in team-membership-writes.itest.ts and player-repository.itest.ts:36 (unique index) |
+
+### 保存審查
+
+每個原本由被刪測試保護、現在只剩 keeper 守護的 contract，各對正式程式碼做一次刻意的 mutation，跑指名的測試（`pnpm exec jest --selectProjects <project> --coverage=false <files>`），確認 keeper 變紅後逐位元還原，`git diff` 為空才算完成。M9 一開始仍然全綠，暴露 keeper 缺口，補強後表中是重跑的結果。
+
+| # | 保護的 contract | 對正式程式碼做的 mutation | 變紅的測試 |
+| --- | --- | --- | --- |
+| M1 | case-insensitive invite link (legacy-cased stored address) | `'.collation({ locale: "en", strength: 2 })' -> ''` in `src/infrastructure/db/repositories/player.repository.mongo.ts` | 沒有：所有 persistence 測試維持通過（刻意不證明，見下） |
+| M2 | user lookup collation | `'.collation({ locale: "en", strength: 2 })' -> ''` in `src/infrastructure/db/repositories/user.repository.mongo.ts` | `invitations reach the account behind the address › creates a linked invitee straight from create-player` (+2 more); Tests: 3 failed, 11 passed, 14 total |
+| M3 | player $unset for undefined | `'if (value === undefined) {' -> 'if (value === undefined && false) {'` in `src/infrastructure/db/repositories/player.mapping.mongo.ts` | `player writes leave the roster readable › clears role and email when a member leaves the team` (+2 more); Tests: 3 failed, 17 passed, 20 total |
+| M4 | game.update not found | `'guard before "The game to update was not found": (!doc)' -> '(false as boolean)'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game reads and writes › refuses to update a game that does not exist`; Tests: 1 failed, 4 passed, 5 total |
+| M5 | team.update not found | `'guard before "The team to update was not found": (!doc)' -> '(false as boolean)'` in `src/infrastructure/db/repositories/team.repository.mongo.ts` | `team reads and writes › refuses to update a team that does not exist`; Tests: 1 failed, 4 passed, 5 total |
+| M6 | team.updateLineups not found | `'guard before "The team to update lineups was not found": (!doc)' -> '(false as boolean)'` in `src/infrastructure/db/repositories/team.repository.mongo.ts` | `team reads and writes › refuses to update a team that does not exist`; Tests: 1 failed, 4 passed, 5 total |
+| M7 | player.update not found | `'guard before "The player to update was not found": (!updated)' -> '(false as boolean)'` in `src/infrastructure/db/repositories/player.repository.mongo.ts` | `player reads and writes › refuses to update a player that does not exist`; Tests: 1 failed, 3 passed, 4 total |
+| M8 | profile.update not found | `'guard before "The profile to update was not found": (!doc)' -> '(false as boolean)'` in `src/infrastructure/db/repositories/profile.repository.mongo.ts` | `profile reads and writes › refuses to update a profile that does not exist`; Tests: 1 failed, 5 passed, 6 total |
+| M9 | summary hasMore | `'const hasMore = results.length > limit;' -> 'const hasMore = results.length >= limit;'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game summaries › reports no further page when the page holds exactly the games left`; Tests: 1 failed, 2 passed, 3 total |
+| M10 | summary cursor direction | `'matchFilter._id = { $lt:' -> 'matchFilter._id = { $gt:'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game summaries › lists the team's games newest first, one page at a time`; Tests: 1 failed, 1 passed, 2 total |
+| M11 | summary final score of a set | `'in: { $arrayElemAt: ["$$rallies", -1] },' -> 'in: { $arrayElemAt: ["$$rallies", 0] },'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game summaries › reads each set's final score and counts the sets each side won`; Tests: 1 failed, 1 passed, 2 total |
+| M12 | summary limited to the team | `'{ teamId: teamObjectId };' -> '{};'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game summaries › lists the team's games newest first, one page at a time`; Tests: 1 failed, 1 passed, 2 total |
+| M13 | game read id mapping | `'id: p?.playerId?.toString() ?? null,' -> 'id: (p?.playerId as unknown as string) ?? null,'` in `src/infrastructure/db/repositories/game.mapping.mongo.ts` | `game reads and writes › stores the sets an update writes with every player id readable as a string` (+3 api tests: substitutions, lineup roster validation); Tests: 4 failed, 489 passed, 493 total |
+| M14 | game write empty id collapse | `'return id // null;' -> 'return id ?? null;'` in `src/infrastructure/db/repositories/game.mapping.mongo.ts` | `game document mapping › toGameDoc stores client ids as playerId and drops the entity id`; Tests: 1 failed, 16 passed, 17 total |
+| M15 | libero clamp | `'$min: [' -> '$max: ['` in `src/infrastructure/db/repositories/team.repository.mongo.ts` | `removing a player from a lineup stored without a libero mode › leaves the mode at none rather than raising it to the libero count` (+1 more); Tests: 2 failed, 4 passed, 6 total |
+| M16 | duplicate key translation | `'.code === 11000' -> '.code === 11001'` in `src/infrastructure/db/repositories/error-translation.mongo.ts` | `Repository error translation › MongoServerError 11000 → ConflictError › translates duplicate key error (11000) to ConflictError` (+1 more); Tests: 2 failed, 9 passed, 11 total |
+| M17 | malformed id is not found | `'.path === "_id"' -> '.path === "_x"'` in `src/infrastructure/db/repositories/error-translation.mongo.ts` | `Repository error translation › CastError › translates a CastError on _id to NotFoundError` (+2 more); Tests: 3 failed, 14 passed, 17 total |
+| M18 | player.delete result | `'return !!result;' -> 'return true;'` in `src/infrastructure/db/repositories/player.repository.mongo.ts` | `player reads and writes › removes a player, and reports whether there was one to remove`; Tests: 1 failed, 3 passed, 4 total |
+| M19 | team.update persists | `'findByIdAndUpdate(id, updates, {' -> 'findByIdAndUpdate(id, {}, {'` in `src/infrastructure/db/repositories/team.repository.mongo.ts` | `team reads and writes › persists the fields an update changes and returns the stored team`; Tests: 1 failed, 4 passed, 5 total |
+| M20 | profile.update persists | `'findByIdAndUpdate(id, updates, {' -> 'findByIdAndUpdate(id, {}, {'` in `src/infrastructure/db/repositories/profile.repository.mongo.ts` | `profile reads and writes › persists the fields an update changes`; Tests: 1 failed, 5 passed, 6 total |
+| M21 | profile active team set | `': { $set: { activeTeamId } };' -> ': { $set: {} };'` in `src/infrastructure/db/repositories/profile.repository.mongo.ts` | `profile reads and writes › sets the active team, and clears it when given null`; Tests: 1 failed, 5 passed, 6 total |
+| M22 | user.findByEmail filter | `'UserModel.findOne({ email })' -> 'UserModel.findOne({})'` in `src/infrastructure/db/repositories/user.repository.mongo.ts` | `user lookups › finds the user holding an address exactly, and none for another`; Tests: 1 failed, 2 passed, 3 total |
+| M23 | user.findById filter | `'UserModel.findById(id)' -> 'UserModel.findOne()'` in `src/infrastructure/db/repositories/user.repository.mongo.ts` | `user lookups › reads a stored user with its id as a string`; Tests: 1 failed, 2 passed, 3 total |
+| M24 | game.update writes | `'{ $set: toGameDoc(data) }' -> '{ $set: {} }'` in `src/infrastructure/db/repositories/game.repository.mongo.ts` | `game reads and writes › leaves what an update does not name as it was` (+1 more); Tests: 2 failed, 3 passed, 5 total |
+| M25 | team lineup write ids | `'{ lineups: lineups.map((lineup) => toLineupDoc(lineup)) }' -> '{ lineups: [] }'` in `src/infrastructure/db/repositories/team.repository.mongo.ts` | `team reads and writes › stores a lineup's player ids and keeps an empty slot as a slot`; Tests: 1 failed, 4 passed, 5 total |
+| M26 | team lineup id mapping | `'id: p.playerId?.toString() ?? null,' -> 'id: (p.playerId as unknown as string) ?? null,'` in `src/infrastructure/db/repositories/team.mapping.mongo.ts` | `team document mapping › reads stored ids back to the domain id and an empty slot to a null id` (+1 more); Tests: 2 failed, 6 passed, 8 total |
+| M3-zone | rally player 的 zone 讀回 | `zone: detail.player.zone,` 整行移除，位於 `src/infrastructure/db/repositories/game.mapping.mongo.ts` | verifier 發現時沒有任何測試變紅；`2b356b61` 之後由 `game-repository.itest.ts` 的 `stores the sets an update writes with every player id readable as a string` 守護 |
+
+- **M1 刻意不證明。** 證明 M1 的測試（以原本輸入的大小寫寫入一筆邀請）已刪除：shard 1 的計畫刻意刪除同一個測試，因為 `test` 資料庫中不存在這種文件。拿掉 collation 後所有 persistence 測試維持通過（`jest --selectProjects integration test/integration/persistence`）。混合大小寫的註冊測試仍然通過，因為 Mongoose 在查詢前就用 schema 的 `lowercase: true` setter 轉換 filter 的值，collation 對任何經過 schema 寫入的文件都沒有貢獻。
+- **M3-zone 由 verifier 找到。** 讀回 mapping 逐欄列出 rally player 的欄位，漏掉 `zone` 會讓讀回的值變成 `undefined`。移除重複的 id 斷言（`d932e817`）之後，沒有任何測試守護這個欄位；`2b356b61` 讓 `game-repository.itest.ts` 直接斷言整個 `{ id, zone }`。
+
+### Repository 方法對照表
+
+每個 `persistence/` 檔案各跑一次 `jest --selectProjects integration --coverage`，`collectCoverageFrom` 限定 `*.repository.mongo.ts`，函式計數大於零就算執行。檔名省略 `.itest.ts`。
+
+| 方法 | 執行它的 persistence 測試 |
+| --- | --- |
+| game.findById | game-repository、game-entry-writes、entry-write-requires-identity、set-completion-write-failure |
+| game.create | game-repository、game-entry-writes、game-summaries、entry-write-requires-identity、set-completion-write-failure、test-isolation |
+| game.update | game-repository、game-entry-writes、entry-write-requires-identity、set-completion-write-failure |
+| game.upsertEntry | game-entry-writes、entry-write-requires-identity、set-completion-write-failure |
+| game.completeSet | set-completion-write-failure |
+| game.findGameSummaries | game-summaries |
+| player.findById | player-repository、team-membership-writes |
+| player.findByTeamId | team-membership-writes |
+| player.findByUserId | team-membership-writes |
+| player.findInvitedByTeamIdAndEmail | team-membership-writes |
+| player.findByTeamIdAndUserId | team-membership-writes |
+| player.create | player-repository、team-membership-writes |
+| player.update | player-repository、team-membership-writes |
+| player.delete | player-repository |
+| player.linkUserToInvitations | team-membership-writes |
+| profile.findByUserId | profile-repository、team-membership-writes |
+| profile.create | profile-repository、team-membership-writes |
+| profile.update | profile-repository |
+| profile.updateActiveTeamId | profile-repository |
+| team.findById | team-repository、team-lineup-player-removal、team-membership-writes |
+| team.create | team-repository、team-lineup-player-removal、team-membership-writes |
+| team.update | team-repository |
+| team.updateLineups | team-repository、team-lineup-player-removal |
+| team.removePlayerFromLineups | team-lineup-player-removal、team-membership-writes |
+| user.findById | user-repository |
+| user.findByEmail | user-repository |
+| user.findAllByEmailInsensitive | team-membership-writes |
+
+執行不等於守護，所以 S6 點名的四個方法另外以 `throw new Error("PROBE")` 當第一個敘述探測（還原後 `git diff` 為空），跑整個 `test/integration/persistence`：
+
+| 方法 | 變紅的測試數 |
+| --- | --- |
+| player.findInvitedByTeamIdAndEmail | 5 |
+| player.findByTeamIdAndUserId | 5 |
+| user.findAllByEmailInsensitive | 10 |
+| player.linkUserToInvitations | 1（見 M1 與殘留風險） |
+
+### Code review
+
+兩軸 review，修正後由一位新的 verifier 重新檢查，到達 fixed point。
+
+- **標準軸**：三個 mapping 模組有只重述程式碼的註解，已在 `77b16932` 移除。
+- **規格軸**：`team-membership-writes` 重新加回的舊資料測試（邀請以原本大小寫儲存）與 shard 1 的決定矛盾，已在 `d932e817` 移除；並要求補上方法對照表，已補。
+- **Verifier**：rally player 的 `zone` 讀回 mapping 沒有任何測試守護（重複的 id 斷言移除之後才出現），已在 `2b356b61` 修正。這一輪修正由另一位新的 verifier 重新檢查，沒有新的發現。
+
+### 殘留風險（旗標，未修）
+
+- `handleUserCreated` 會吞掉 `linkUserToInvitations` 的失敗；讓後者拋錯的探針下只有 1 個測試變紅。
+- `IPlayerRepository.update` 的型別是 `Promise<Player | null>`，實作永遠不回傳 null。
+- `toProfile` 回傳的物件帶有 `activeTeamId: undefined` 這個 key。
+- Mongoose 對 `{ new: true }` 顯示 deprecation 警告，應改用 `returnDocument: 'after'`。
+- `user.findByEmail` 區分大小寫，而 `search-user` 沒有先轉小寫。
+- `docs/specs/error-handling/spec.md` 的第 443、827 行仍列出已刪除的測試檔。
+- `knip.json` 設定了 `classMembers` 規則，knip 會忽略它並在每次執行時警告。
+- repository 路徑含有 `.claude` 時，jest 什麼都收不到。
+
+</ReviewDetails>
