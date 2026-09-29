@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "id": "0092",
+  "title": "CI runs every check; a local gate runs what the diff can affect",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "The local final gate always ran the workflow-tool tests and a full Blueprint build, even for a change that could not affect them, yet never ran integration tests, while CI ran everything on every pull request.",
+  "decision": "CI runs every check on every pull request and is the authority. pnpm verify runs format, lint, type checks, unit tests and check:workflow. pnpm verify:all also runs the app build, and adds only what the diff can affect: test:workflow for scripts/ or .github/, integration tests for backend src/ or test/integration/, Blueprint tests for blueprint/. No local gate builds the Blueprint site: CI and the branch-preview build do, and blueprint:gate reads the preview build's result once at G1 and G2 without polling. knip --production joins every gate once its findings are triaged.",
+  "alternatives": [
+    {
+      "option": "Mirror CI locally",
+      "reason": "Most of the time would go on checks the diff cannot affect."
+    },
+    {
+      "option": "Build the Blueprint locally only when Features change",
+      "reason": "The branch-preview build already builds it on Linux for every push."
+    }
+  ],
+  "consequences": [
+    "A Fix-path change has no gate, so an MDX error in a Feature page is caught by CI before merge."
+  ],
+  "originChange": "testing-tiers"
+}

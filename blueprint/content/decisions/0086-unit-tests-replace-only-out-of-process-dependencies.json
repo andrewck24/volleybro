@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "0086",
+  "title": "A unit test replaces only out-of-process dependencies and runtime its environment lacks",
+  "capabilities": ["platform/testing"],
+  "context": "Many component test files mocked the repository's own child components and hooks, so a changed hook or child interface still passed. The strategy called the component tier classical while those files were written London-style.",
+  "decision": "A unit test replaces only what is out of process, the network and the database, and framework runtime its environment cannot run, such as the Next router under jsdom. Frontend tests intercept HTTP with MSW rather than mocking apiClient or fetch, and keep the repository's own components, hooks and Redux store real. Use-case tests replace repository ports. Controller tests are the one exception: they replace use cases, because a controller today only forwards to one.",
+  "alternatives": [
+    {
+      "option": "Keep mocking apiClient and stop mocking only the repository's own components and hooks",
+      "reason": "apiClient, SWR and error handling would stay untested between the component and the network."
+    },
+    {
+      "option": "Test controllers through real use cases now",
+      "reason": "Controllers hold no logic yet, so those tests would repeat the use-case tests."
+    }
+  ],
+  "consequences": [
+    "A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens."
+  ],
+  "revisitTriggers": [
+    "Controllers become interface adapters and take over request parsing and mapping (api-route-restructure): controller tests then run real use cases and replace only repositories."
+  ],
+  "originChange": "testing-tiers"
+}

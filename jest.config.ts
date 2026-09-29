@@ -2,7 +2,7 @@
  * Jest configuration with three projects:
  * - backend: node environment, mongoose mocked, for entities/applications/infrastructure/interface/API-route unit tests
  * - frontend: jsdom environment for components and lib
- * - integration: node environment against a real in-memory MongoDB (no mongoose mock)
+ * - integration: node environment against a real in-memory MongoDB replica set (no mongoose mock)
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -18,7 +18,7 @@ import nextJest from "next/jest.js";
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
 const preload = pathToFileURL(
-  `${process.cwd()}/jest.preload.integration.js`,
+  `${process.cwd()}/test/setup/integration.preload.js`,
 ).href;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
@@ -45,6 +45,9 @@ export default async function jestConfig() {
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+    // verify:all runs the integration tests beside the app build, which
+    // rewrites .next/ while Jest's module map is reading it.
+    modulePathIgnorePatterns: ["<rootDir>/.next/"],
     collectCoverageFrom: [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
@@ -56,15 +59,15 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "backend",
     testEnvironment: "node",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.backend.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/setup/backend.ts"],
     testMatch: [
-      "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/entities/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/applications/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/infrastructure/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/interface/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/api/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/apple-splash/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -72,12 +75,12 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "frontend",
     testEnvironment: "jsdom",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.frontend.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testMatch: [
-      "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/hooks/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/\\(tabs\\)/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/hooks/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/\\(tabs\\)/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -85,8 +88,9 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "integration",
     testEnvironment: "node",
-    globalSetup: "<rootDir>/jest.global-setup.integration.ts",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
+    globalSetup: "<rootDir>/test/setup/integration.global.ts",
+    globalTeardown: "<rootDir>/test/setup/integration.teardown.ts",
+    setupFilesAfterEnv: ["<rootDir>/test/setup/integration.ts"],
     testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
   };
 

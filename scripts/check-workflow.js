@@ -464,6 +464,48 @@ export async function checkChangeScope(root = process.cwd(), options = {}) {
   ];
 }
 
+// See ADR-0091.
+const TEST_TIER_SUFFIX = /\.(test|spec|itest|e2e)\.[cm]?[jt]sx?$/;
+const TEST_TIER_HOMES = {
+  itest: {
+    pattern: /^test\/integration\/(api|persistence)\//,
+    name: "under test/integration/api/ or test/integration/persistence/",
+  },
+  e2e: { pattern: /^test\/e2e\//, name: "under test/e2e/" },
+};
+
+async function validateTestTiers(root) {
+  const files = (
+    await Promise.all(
+      ["src", "test"].map((dir) => listFiles(path.join(root, dir))),
+    )
+  )
+    .flat()
+    .map((filePath) => path.relative(root, filePath).split(path.sep).join("/"));
+
+  const diagnostics = [];
+  for (const relativePath of files) {
+    const suffix = relativePath.match(TEST_TIER_SUFFIX)?.[1];
+    if (!suffix) continue;
+    if (suffix === "spec") {
+      diagnostics.push(
+        `${relativePath} [test-tier]: name a unit test .test, not .spec`,
+      );
+      continue;
+    }
+    const home = TEST_TIER_HOMES[suffix];
+    const misplaced = home
+      ? !home.pattern.test(relativePath)
+      : relativePath.startsWith("test/");
+    if (misplaced) {
+      diagnostics.push(
+        `${relativePath} [test-tier]: a .${suffix} file belongs ${home?.name ?? "beside its code in src/"}`,
+      );
+    }
+  }
+  return diagnostics;
+}
+
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
   for (const relativePath of REQUIRED_FILES) {
@@ -494,6 +536,7 @@ export async function checkWorkflow(root = process.cwd()) {
   }
 
   diagnostics.push(...(await validateInternalLinks(root)));
+  diagnostics.push(...(await validateTestTiers(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));

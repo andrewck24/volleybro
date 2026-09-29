@@ -1,0 +1,20 @@
+---
+title: Testing
+description: Which tier a test belongs to, what it may replace, and where each tier runs.
+---
+
+A test is only as useful as what it refuses to fake. These are the tiers the repository runs, what each one keeps real, and which gate runs it; `docs/testing-strategy.md` holds how to write each kind.
+
+## Current behavior
+
+- A test's file name states its tier: unit tests are `*.test.ts` under `src/`, integration tests `*.itest.ts` under `test/integration/api/` or `test/integration/persistence/`, and end-to-end tests `*.e2e.ts` under `test/e2e/`. `pnpm check:workflow` fails on a test file whose suffix does not match its directory.
+- Three Jest projects run the automated tests: `backend` and `frontend` for unit tests, and `integration`. Their setup files live under `test/setup/`.
+- Each API route whose handler the repository writes has one unit test file, `__tests__/route.test.ts`, which holds its request-schema rejections. The Better Auth catch-all, whose handler the library generates whole, has none.
+- Backend unit tests run against a global mongoose and mongodb stub. Frontend unit tests run under jsdom.
+- Integration tests run against one in-memory replica set per run, with a database of its own for each test file, so transactions can be proven; auth services are DI doubles. Tests under `api/` arrange and read data only through routes and repository interfaces; tests under `persistence/` prove database behaviour and may use the driver.
+- CI runs every check on every pull request into `dev`. `pnpm verify` runs static checks and unit tests; `pnpm verify:all` adds the app build and the unit, workflow, integration and Blueprint tests, each only when the diff reaches it. No local gate builds the Blueprint site.
+- End-to-end tests and API smoke tests do not exist yet.
+
+## Implemented decisions
+
+<DecisionTimeline />

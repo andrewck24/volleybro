@@ -1,37 +1,23 @@
 # Testing Strategy
 
-This document defines how tests are written across each Clean Architecture layer in VolleyBro. Consult it before writing a new test file.
+This document defines which tier a test belongs to, what it may replace, and where it lives. Consult it before writing a new test file. The decisions behind it are ADR-0085 to ADR-0092 in `blueprint/content/decisions/`.
 
 See also: [Architecture Overview](./architecture.md) · [Maintenance Policy](./maintenance-policy.md)
 
 ---
 
-## Layer Testing Table
+## Test Tiers
 
-Each layer has a designated testing school and defined mock boundaries.
+A test's tier follows from what it touches, not from its folder or its entry point (ADR-0085). The file name states the tier, and `pnpm check:workflow` fails on a test file whose suffix does not match its directory (ADR-0091).
 
-| Layer                                     | School    | What to mock                                                     | What stays real                                    | Example                                 |
-| ----------------------------------------- | --------- | ---------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
-| Entity (`src/entities/`)                  | Classical | Nothing                                                          | Everything                                         | Pure logic, validation                  |
-| UseCase (`src/applications/`)             | Classical | Repository & service interfaces                                  | Entity logic, use case orchestration               | Inject mock repo, verify output         |
-| Infrastructure (`src/infrastructure/`)    | Classical | Mongoose/`mongodb` (fully stubbed by `jest.setup.backend.ts`)    | Repository mapping logic                           | No DB; assert on driver call shapes     |
-| Controller (`src/interface/controllers/`) | London    | UseCase classes                                                  | Controller orchestration                           | Stub use case, verify delegation        |
-| Component (`src/components/`)             | Classical | API calls, custom hooks (SWR/Redux)                              | Rendering, user interaction, DOM                   | Mock `fetch`/hooks, test behavior       |
-| Integration (`test/integration/`)         | Classical | Auth services (DI doubles); `next/headers`, `@/lib/auth` imports | Route → controller → use case → repo → **real DB** | Real route handler against memory Mongo |
+| Tier        | What it touches                                                                             | File                                                         | Runs with                                            |
+| ----------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| Unit        | One process, no I/O, however many real collaborators                                        | `*.test.ts(x)` beside the code in `src/`                     | `pnpm test` (Jest `backend` and `frontend` projects) |
+| Integration | At least one real out-of-process dependency, the database here, and proving it is the point | `*.itest.ts` under `test/integration/api/` or `persistence/` | `pnpm test:integration` (Jest `integration` project) |
+| End-to-end  | A real client, the web app in a browser or a mobile app, against a deployed backend         | `*.e2e.ts` under `test/e2e/`                                 | Not built yet                                        |
+| API smoke   | A deployed backend with no client: real sign-in, HTTP handling, the hosted database         | —                                                            | Not built yet                                        |
 
-### School Emphasis
-
-**Classical (state verification)** — Assert on the _output_ or _resulting state_ after exercising the SUT with real collaborators. Catches integration issues but tests may be slower, and failures may span multiple collaborators, making root causes harder to isolate. This is the default school for all layers except Controller.
-
-**London (behavior verification)** — Assert that the SUT _called the right collaborators with the right arguments_. Provides precise failure messages but couples tests to implementation details. Used only for Controller, where testing through real use cases would duplicate application-layer coverage.
-
----
-
-## Test Tiers Across the Request Stack
-
-The unit tiers above each isolate a single layer. The **integration tier** wires the whole request stack together against a real database — the seam the mongoose-stubbed backend project cannot reach. Deferred tiers (staging smoke via Bruno, end-to-end via Playwright) are planned but not yet implemented.
-
-**What needs a real sign-in.** Only rendered auth-gated pages do. Server behaviour runs through `test/integration/` with `useFakeAuth`, which rebinds the auth services in the container; client logic runs in the jsdom `frontend` project. For real-device acceptance, deploy the working tree to the unprotected `volleybro-test` project with `git status --short && pnpm dlx vercel --prod --yes`; the CLI is already authenticated and needs no global install. Hand out `https://volleybro-test.vercel.app`, never the org-suffixed alias, which redirects to SSO.
+End-to-end tests cover critical paths only, one suite per client. API smoke proves once, for every client, what only a deployed backend can show. Both wait on a test-only sign-in path that must never reach production.
 
 ```mermaid
 flowchart TB
@@ -43,40 +29,69 @@ flowchart TB
         U["UseCase<br/>(src/applications/usecases)"]
         Repo["Repository<br/>(src/infrastructure/db)"]
         DB[("MongoDB")]
-        Auth["Auth services<br/>(authentication / authorization)"]
         P --> R --> C --> U --> Repo --> DB
-        U -. "resolved via DI" .-> Auth
     end
 
-    frontend["frontend-unit<br/>Jest + RTL"] -.->|"cuts at"| P
-    backend["backend-unit<br/>Jest, mongoose = jest.fn() stub"] -.->|"cuts at"| U
-    backend -.->|"driver mocked"| Repo
-    integration["integration<br/>real memory Mongo + auth DI doubles"] ==>|"covers full seam"| R
-    integration ==> DB
+    unit["unit<br/>Jest, no I/O"] -.->|"one layer at a time"| stack
+    api["integration api/<br/>through a route"] ==> R
+    api ==> DB
+    persistence["integration persistence/<br/>at a repository or use case"] ==> Repo
+    persistence ==> DB
     visual["visual<br/>Storybook / Chromatic"] -.->|"pixels of"| P
-    smoke["staging-smoke<br/>Bruno (deferred)"] -.-> R
-    e2e["e2e<br/>Playwright (deferred)"] -.-> P
+    smoke["API smoke<br/>(not built)"] -.-> R
+    e2e["end-to-end<br/>(not built)"] -.-> P
 ```
 
-Per-layer reality under each tier:
+---
 
-| Layer        | frontend-unit | backend-unit         | integration               | visual   |
-| ------------ | ------------- | -------------------- | ------------------------- | -------- |
-| Presentation | **real**      | —                    | —                         | **real** |
-| API Route    | —             | real (driver mocked) | **real**                  | —        |
-| Controller   | —             | real / test-double   | **real**                  | —        |
-| UseCase      | —             | **real**             | **real**                  | —        |
-| Repository   | —             | real (mongoose stub) | **real**                  | —        |
-| Database     | —             | **mocked** (jest.fn) | **real** (memory Mongo)   | —        |
-| Auth         | —             | test-double          | **DI double** (fake user) | —        |
+## Unit Tests
 
-The integration tier is what closes the previously-uncovered **route ↔ usecase ↔ repository ↔ DB** persistence seam: it drives a real `NextRequest` through the exported route handler so route-layer request mapping (`si`/`ei` params, JSON body, forwarded fields) is exercised end to end against a real Mongoose write/read round-trip.
+### What a unit test may replace
 
-**Where it runs:** `.github/workflows/ci.yml` runs it as its own job, separate from `pnpm test` (which covers only the `backend` and `frontend` projects). Run it locally before opening a PR too, since it is slower and network-dependent (it downloads and boots a real `mongodb-memory-server` binary):
+A unit test replaces only what is out of process — the network and the database — and framework runtime its environment cannot run, such as the Next router under jsdom (ADR-0086). Everything else stays real.
 
-```bash
-pnpm test:integration
-```
+| Layer                                     | School    | What to replace                                   | What stays real                              |
+| ----------------------------------------- | --------- | ------------------------------------------------- | -------------------------------------------- |
+| Entity (`src/entities/`)                  | Classical | Nothing                                           | Everything                                   |
+| UseCase (`src/applications/`)             | Classical | Repository and service ports                      | Entity logic, use-case orchestration         |
+| Infrastructure (`src/infrastructure/`)    | Classical | Nothing: mapping and error translation are pure   | Mapping between documents and entities       |
+| Controller (`src/interface/controllers/`) | London    | Use cases                                         | Controller orchestration                     |
+| API route (`src/app/api/`)                | Classical | Controllers, the database connection, the session | Request parsing, validation, error responses |
+| Component and hook (`src/components/`)    | Classical | HTTP, intercepted with MSW; `next/navigation`     | Child components, hooks, the Redux store     |
+
+**Classical (state verification)** asserts on the output or resulting state after exercising the code with real collaborators. It is the default.
+
+**London (behaviour verification)** asserts that the code called the right collaborator with the right arguments. Controllers are the one exception that uses it, because a controller today only forwards to one use case; they move to real use cases when controllers take over request parsing and mapping.
+
+Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
+
+Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/backend.ts` stubs `mongoose` and `mongodb` for every backend test, `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
+
+### API routes
+
+Each API route whose handler the repository writes has exactly one unit test file, `__tests__/route.test.ts` beside its `route.ts`, holding every unit case for that route (ADR-0089). Request-schema rejections belong there: validation completes before any use case runs, so a case asserting the 400 `VALIDATION` response and that the controller was not called also shows nothing was written.
+
+A route whose handler a library generates whole, such as the Better Auth catch-all, has no unit test (ADR-0089).
+
+Mock the controller module, `@/infrastructure/db/mongoose/connect-to-mongodb`, and `@/lib/auth` for routes behind `withAuth`; build requests with `routeRequest` from `@/test-utils/route-request`. After `jest.resetModules()`, import error classes again alongside the route, or `instanceof` in the error handler will not recognise them.
+
+---
+
+## Integration Tests
+
+Integration tests run against a disposable instance of the production database engine and topology (ADR-0087): one in-memory replica set (`MongoMemoryReplSet`) for each test run, with a fresh database for each test file. The replica set supports transactions, so a write that must be atomic can be proven here. Auth services stay DI doubles: `useFakeAuth` from `test/integration/support/auth.ts` rebinds them in the container.
+
+The directory says what a test proves (ADR-0088):
+
+- **`test/integration/api/`** — assertions that depend on a real database read or write reached through a route. Arrange and read data only through routes and repository interfaces, never through the driver, a Mongoose schema, or a helper that writes through them.
+- **`test/integration/persistence/`** — database behaviour itself, entering at a repository or use case. These tests may use the driver directly.
+- **`test/integration/support/`** — helpers, with no tier suffix.
+
+A route test whose assertion does not depend on the database is a route unit test instead.
+
+Collections the models own are emptied after each test. A test that writes to a collection no model owns uses a name of its own.
+
+**What needs a real sign-in.** Only rendered auth-gated pages do. Server behaviour runs through `test/integration/` with `useFakeAuth`; client logic runs in the jsdom `frontend` project. For real-device acceptance, deploy the working tree to the unprotected `volleybro-test` project with `git status --short && pnpm dlx vercel --prod --yes`; the CLI is already authenticated and needs no global install. Hand out `https://volleybro-test.vercel.app`, never the org-suffixed alias, which redirects to SSO.
 
 ---
 
@@ -109,21 +124,27 @@ Defines what belongs in shared setup files versus inline per-test mocks.
 
 ### Setup Files
 
-| File                        | What it does                                                                                                                                             | Used by                                                       |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `jest.setup.backend.ts`     | Replaces `mongoose`/`mongodb`/`bson` with `jest.fn()` stubs — no database is contacted                                                                   | Backend project (`jest.config.ts` `projects.backend`)         |
-| `jest.setup.frontend.ts`    | Browser APIs (`matchMedia`, `ResizeObserver`, `IntersectionObserver`)                                                                                    | Frontend project (`jest.config.ts` `projects.frontend`)       |
-| `jest.setup.integration.ts` | Starts a real in-memory MongoDB, connects mongoose, clears collections between tests; stubs `@/lib/auth` + `next/headers` so the container is importable | Integration project (`jest.config.ts` `projects.integration`) |
+Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the repository root (ADR-0091).
 
-The integration project deliberately does **not** load `jest.setup.backend.ts`: it needs the real Mongoose driver, not the stub. `jest.config.ts` also exposes `globalThis.AsyncLocalStorage` (and forwards it to workers via `jest.preload.integration.js`) because Next's server modules — pulled in when real route handlers are imported — capture it at load time.
+| File                                 | What it does                                                                                                                                                               | Used by               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `test/setup/shared.ts`               | Replaces global `fetch`; silences known third-party warnings                                                                                                               | backend, frontend     |
+| `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs                                                                                                                       | backend               |
+| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture); `jest-dom` and `jest-axe`                                              | frontend              |
+| `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                       | integration           |
+| `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                      | integration           |
+| `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable | integration           |
+| `test/setup/integration.preload.js`  | Exposes `globalThis.AsyncLocalStorage` before any module loads, because Next's server modules capture it at import time                                                    | integration (preload) |
 
-**Rule:** A mock belongs in a setup file when _every_ test in that project needs it to run at all. Browser API stubs and DB connection setup qualify. Business-logic fakes do not.
+The replica set starts in global setup because the driver that initiates it cannot complete its handshake inside a Jest test environment; one server per run also keeps the run short. The integration project does **not** load `backend.ts`: it needs the real driver.
+
+**Rule:** A mock belongs in a setup file when _every_ test in that project needs it to run at all. Browser API stubs and database connection setup qualify. Business-logic fakes do not.
 
 ### Inline Mocks (per test or per file)
 
-- Repository interfaces (UseCase tests)
-- UseCase classes (Controller tests)
-- `fetch` / SWR hooks / Redux store (Component tests)
+- Repository ports (use-case tests)
+- Use cases (controller tests)
+- Controllers and the session (route tests)
 - Any mock whose behavior varies between test cases
 
 **Rule:** If the mock's return value changes between tests, keep it inline. Do not reach into setup files to configure per-test behavior — it makes tests order-dependent and hard to read.
@@ -142,19 +163,27 @@ New components in `ui/` and `custom/` must include a Storybook story before the 
 
 ---
 
+## Where Tests Run
+
+CI runs every check on every pull request and is the authority (ADR-0092). Locally, `pnpm verify` runs format, lint, type checks, workflow conformance and unit tests. `pnpm verify:all` runs each other lane — the app build and unit tests, the workflow tests, the integration tests, the Blueprint tests — only when the diff against `dev` reaches it, and every lane when root configuration changed; `pnpm verify:all --full` runs everything. No local gate builds the Blueprint site. The integration tests download a `mongodb-memory-server` binary on first run.
+
+---
+
 ## Quick Reference
 
-| I am writing a…                  | Use                                 | School    | Mock                            |
-| -------------------------------- | ----------------------------------- | --------- | ------------------------------- |
-| Entity (pure logic)              | Jest                                | Classical | Nothing                         |
-| Use case                         | Jest                                | Classical | Repository / service interfaces |
-| Repository (infrastructure)      | Jest                                | Classical | DB driver (global setup)        |
-| API controller                   | Jest                                | London    | Use case classes                |
-| React component (behavior)       | Jest + RTL                          | Classical | `fetch`, SWR hooks, Redux store |
-| Full request stack + persistence | Jest (`*.itest.ts`, real memory DB) | Classical | Auth services (DI doubles)      |
-| React component (visual)         | Storybook story                     | —         | —                               |
-| New `ui/` or `custom/` component | Story **required**                  | —         | —                               |
-| New domain component             | Story optional (Jest is sufficient) | —         | —                               |
+| I am writing a…                          | File                                        | School    | Replace                         |
+| ---------------------------------------- | ------------------------------------------- | --------- | ------------------------------- |
+| Entity (pure logic)                      | `*.test.ts` in `src/entities/`              | Classical | Nothing                         |
+| Use case                                 | `*.test.ts` in `src/applications/`          | Classical | Repository and service ports    |
+| Document ↔ entity mapping                | `*.test.ts` in `src/infrastructure/`        | Classical | Nothing                         |
+| Controller                               | `*.test.ts` in `src/interface/controllers/` | London    | Use cases                       |
+| API route request handling               | `__tests__/route.test.ts` beside `route.ts` | Classical | Controller, connection, session |
+| React component or hook (behavior)       | `*.test.tsx` beside the component           | Classical | HTTP (MSW), `next/navigation`   |
+| A database read or write through a route | `test/integration/api/*.itest.ts`           | Classical | Auth services (DI doubles)      |
+| Repository or transaction behaviour      | `test/integration/persistence/*.itest.ts`   | Classical | Auth services (DI doubles)      |
+| React component (visual)                 | Storybook story                             | —         | —                               |
+| New `ui/` or `custom/` component         | Story **required**                          | —         | —                               |
+| New domain component                     | Story optional (Jest is sufficient)         | —         | —                               |
 
 **Do:** Assert on rendered output and resulting state.  
 **Don't:** Assert on CSS class names or implementation call order (unless Controller layer).

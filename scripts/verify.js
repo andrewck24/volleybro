@@ -4,17 +4,20 @@
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const LANE_COMMANDS = {
+export const LANE_COMMANDS = {
   static: [
     "pnpm format:check",
-    "pnpm test:workflow",
     "pnpm check:workflow",
     "pnpm typecheck:strict",
     "pnpm lint",
   ],
+  workflow: ["pnpm test:workflow"],
+  integration: ["pnpm test:integration --coverage=false"],
   "app-build": ["pnpm build", "node scripts/assert-sw.js"],
   "app-test": ["pnpm test --coverage=false"],
-  blueprint: ["pnpm --filter blueprint test", "pnpm --filter blueprint build"],
+  // No local gate builds the Blueprint site: CI and the branch-preview build
+  // do (ADR-0092).
+  blueprint: ["pnpm --filter blueprint test"],
 };
 
 export const LANE_NAMES = Object.keys(LANE_COMMANDS);
@@ -43,10 +46,20 @@ const EVERY_LANE_PATTERNS = [
   /^tailwind\.config\./,
 ];
 
+// The scripts the app build runs; every other script is workflow tooling.
+const APP_SCRIPTS = new Set([
+  "scripts/assert-sw.js",
+  "scripts/generate-icons.js",
+]);
+const INTEGRATION_PATTERNS = [
+  /^src\/(entities|applications|infrastructure|interface|lib)\//,
+  /^src\/app\/api\//,
+  /^test\/integration\//,
+  /^test\/setup\/integration\./,
+];
+
 function affectsEveryLane(changedPath) {
   if (EVERY_LANE_EXACT.has(changedPath)) return true;
-  if (changedPath.startsWith("scripts/")) return true;
-  if (changedPath.startsWith(".github/")) return true;
   if (changedPath.includes("/")) return false;
   return EVERY_LANE_PATTERNS.some((pattern) => pattern.test(changedPath));
 }
@@ -64,6 +77,24 @@ function isDocsOnly(changedPath) {
   );
 }
 
+function isWorkflowTooling(changedPath) {
+  if (changedPath.startsWith(".github/")) return true;
+  return changedPath.startsWith("scripts/") && !APP_SCRIPTS.has(changedPath);
+}
+
+function isIntegrationOnly(changedPath) {
+  return (
+    changedPath.startsWith("test/integration/") ||
+    changedPath.startsWith("test/setup/integration.")
+  );
+}
+
+function laneFor(changedPath, reasonWhenNone) {
+  return changedPath
+    ? { run: true, reason: `${changedPath} changed` }
+    : { run: false, reason: reasonWhenNone };
+}
+
 export function planLanes(changedPaths, { all = false, full = false } = {}) {
   if (!all) {
     const plan = allLanes(false, "not part of default verify");
@@ -78,19 +109,28 @@ export function planLanes(changedPaths, { all = false, full = false } = {}) {
   const widening = changedPaths.find(affectsEveryLane);
   if (widening) return allLanes(true, `${widening} changed`);
 
-  const blueprintPath = changedPaths.find((p) => p.startsWith("blueprint/"));
-  const appPath = changedPaths.find((p) => !isDocsOnly(p));
-  const appLane = appPath
-    ? { run: true, reason: `${appPath} changed` }
-    : { run: false, reason: "no non-docs, non-blueprint changes" };
+  const code = changedPaths.filter((p) => !isDocsOnly(p));
+  const appLane = laneFor(
+    code.find((p) => !isWorkflowTooling(p) && !isIntegrationOnly(p)),
+    "no app changes",
+  );
 
   return {
     static: { run: true, reason: "static analysis always runs" },
+    workflow: laneFor(
+      code.find(isWorkflowTooling),
+      "no scripts/ or .github/ changes",
+    ),
+    integration: laneFor(
+      code.find((p) => INTEGRATION_PATTERNS.some((re) => re.test(p))),
+      "no backend or integration-test changes",
+    ),
     "app-build": appLane,
     "app-test": appLane,
-    blueprint: blueprintPath
-      ? { run: true, reason: `${blueprintPath} changed` }
-      : { run: false, reason: "no blueprint/ changes" },
+    blueprint: laneFor(
+      changedPaths.find((p) => p.startsWith("blueprint/")),
+      "no blueprint/ changes",
+    ),
   };
 }
 
