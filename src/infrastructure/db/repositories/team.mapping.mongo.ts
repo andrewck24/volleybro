@@ -55,7 +55,6 @@ export function toLineupDoc(lineup: Lineup) {
   };
 }
 
-/** Maps the plain object of a stored team (`doc.toObject()`) to the entity. */
 export function toTeam(obj: RawTeam): Team {
   return {
     ...obj,

@@ -15,7 +15,6 @@ const rally = (seq: number, home: number, away: number) => ({
   away: { score: away, type: MoveType.ATTACK, num: 1, player: { id: null } },
 });
 
-/** A finished set: two rallies, so only the last one carries the final score. */
 const finishedSet = (win: boolean, home: number, away: number) => ({
   win,
   entries: [rally(0, 1, 0), rally(1, home, away)],

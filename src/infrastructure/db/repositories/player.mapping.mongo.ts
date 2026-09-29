@@ -11,11 +11,8 @@ export type RawPlayer = Omit<PlayerFields, "id" | "teamId" | "userId"> & {
   userId?: Types.ObjectId | null;
 };
 
-/** Maps the plain object of a stored player (`doc.toObject()`) to the entity. */
 export function toPlayer(raw: RawPlayer): Player {
   const { _id, teamId, userId, ...rest } = raw;
-  // Absent links are left out rather than set to undefined, so the narrowed
-  // player carries exactly the fields its shape declares.
   return narrowPlayer({
     ...rest,
     id: _id.toString(),
@@ -24,10 +21,7 @@ export function toPlayer(raw: RawPlayer): Player {
   });
 }
 
-/**
- * A field patched to `undefined` is removed from the document; every other
- * field is written.
- */
+/** `undefined` removes the field from the document; it does not skip it. */
 export function toPlayerUpdateOps(updates: Partial<PlayerFields>) {
   const $set: Record<string, unknown> = {};
   const $unset: Record<string, string> = {};

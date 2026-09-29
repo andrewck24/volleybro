@@ -1,7 +1,6 @@
 import { EntryType, type Game } from "@/entities/game";
 import type { Types } from "mongoose";
 
-/** Raw (persisted) shapes returned by `doc.toObject()`, before id mapping. */
 type RawRef = Types.ObjectId | null | undefined;
 type RawLineupPlayer = {
   playerId?: RawRef;
@@ -33,8 +32,6 @@ export type RawSet = {
   lineups?: { home?: RawLineup; away?: RawLineup };
   entries?: RawEntry[];
 } & Record<string, unknown>;
-
-// --- read mapping: persisted playerId -> domain id ---
 
 function mapLineupPlayerRead(p: RawLineupPlayer) {
   return {
@@ -127,7 +124,6 @@ export type RawGame = {
   sets?: RawSet[];
 } & Record<string, unknown>;
 
-/** Maps the plain object of a stored game (`doc.toObject()`) to the entity. */
 export function toGame(obj: RawGame): Game {
   return {
     ...obj,
@@ -140,8 +136,6 @@ export function toGame(obj: RawGame): Game {
     sets: (obj.sets ?? []).map((s) => mapSetRead(s)),
   } as unknown as Game;
 }
-
-// --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
 
 /** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
 function toPlayerRef(id: string | null | undefined) {
@@ -245,8 +239,6 @@ export function mapEntryWrite(
       away: mapRallyDetailWrite(entry.away),
     };
   }
-  // Substitution keeps the `players.in/out` field names; only the ids need
-  // the same empty-string collapse as every other ObjectId path.
   if (entry?.type === EntryType.SUBSTITUTION) {
     const players = entry.players as
       { in?: string | null; out?: string | null } | undefined;
