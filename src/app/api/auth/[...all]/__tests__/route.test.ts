@@ -3,7 +3,10 @@ import { describe, expect, it, jest } from "@jest/globals";
 const mockAuth = { handler: jest.fn() };
 const mockGET = jest.fn();
 const mockPOST = jest.fn();
-const mockToNextJsHandler = jest.fn(() => ({ GET: mockGET, POST: mockPOST }));
+const mockToNextJsHandler = jest.fn((_auth: unknown) => ({
+  GET: mockGET,
+  POST: mockPOST,
+}));
 
 jest.mock("@/lib/auth", () => ({ auth: mockAuth }));
 jest.mock("better-auth/next-js", () => ({

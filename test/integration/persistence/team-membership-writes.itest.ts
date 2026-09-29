@@ -1,5 +1,3 @@
-import mongoose from "mongoose";
-
 import type { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import type { ITeamRepository } from "@/applications/repositories/team.repository.interface";
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
