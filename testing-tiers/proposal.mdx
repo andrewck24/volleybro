@@ -93,6 +93,7 @@ export const scenarios = [
 
 ### Shard 2：repository 在真實資料庫上證明（`refactor/testing-tiers-s2`）
 
+0. 以 `test-audit` skill 的 campaign 模式開始：依 repository 分 lane，逐一讀完 lane 內的測試並標記保留、修斷言、合併或刪除，再為每個 contract 指定 keeper。
 1. 開始前以 `knip --production` 檢查 repository 層：沒有正式呼叫端的方法列為刪除候選，逐項附理由，由開發者在 G2 決定。
 2. 其餘每個 repository 方法至少有一個 `persistence/` 測試，錯誤分支除外。
 3. 文件與 entity 的對應、資料庫錯誤的轉換抽成純函式，以不需要 driver 的單元測試涵蓋。
@@ -100,12 +101,14 @@ export const scenarios = [
 
 ### Shard 3：元件測試改在網路邊界替換，第一批（`refactor/testing-tiers-s3`）
 
+0. 以 `test-audit` 的 campaign 模式開始，依元件目錄分 lane 建立標記表與 keeper 計畫。
 1. 建立 MSW 的測試基礎設施，移除 shared setup 對 `fetch` 的全域替換。
 2. 依目錄改寫第一批元件與 hook 測試：不再 mock `apiClient`、自己的子元件與 hook；jsdom 無法執行而必須 mock 自己程式碼的地方，在測試檔中註明原因。
 3. `set-options-panel` 的測試保留「等表單的非同步驗證完成才斷言按鈕停用」的等待，否則競態會再出現。
 
 ### Shard 4：元件測試改在網路邊界替換，第二批（`refactor/testing-tiers-s4`）
 
+0. 同 Shard 3，以 campaign 模式建立其餘目錄的標記表與 keeper 計畫。
 1. 改寫其餘的元件與 hook 測試，完成後 S7 成立。
 
 ### 每個 shard 的證明
@@ -114,7 +117,8 @@ export const scenarios = [
 
 1. `pnpm verify:all` 與 `pnpm test:integration` 全部通過。
 2. 單元與整合測試合併量測 `src/` 的覆蓋率，以獨立一次執行與 shard 開始前逐檔比較；下降的檔案逐一列出原因。
-3. 刪除對照表：每一個刪除或搬移的測試案例，列出現在由哪個測試接手，或為什麼不再需要。
+3. 刪除對照表：每一個刪除或搬移的測試案例，列出現在由哪個測試接手，或為什麼不再需要。Shard 2 起，對照表由 campaign 的標記表產生。
+4. Shard 2 起加上保存審查：每個原本由被刪測試保護、現在只剩 keeper 守護的 contract，各對正式程式碼做一次刻意的 mutation，確認 keeper 失敗後再逐位元還原。覆蓋率只證明程式被執行，mutation 證明改壞時會被抓到。
 
 ### 順序與相依
 
@@ -135,7 +139,7 @@ export const scenarios = [
     {
       name: "刪除或搬移測試時少了保護",
       severity: "warning",
-      mitigation: "每個 shard 的逐檔覆蓋率比較與刪除對照表，由開發者在 G2 逐條確認。",
+      mitigation: "每個 shard 的逐檔覆蓋率比較與刪除對照表，由開發者在 G2 逐條確認；Shard 2 起，對照表由 test-audit 的標記表產生，只剩 keeper 守護的 contract 另以 mutation 證明。",
     },
     {
       name: "記憶體 replica set 讓整合測試變慢或在 CI 不穩定",
