@@ -7,10 +7,12 @@ A test is only as useful as what it refuses to fake. These are the tiers the rep
 
 ## Current behavior
 
-- Three Jest projects run the automated tests: `backend` and `frontend` for unit tests under `src/`, and `integration` for `*.itest.ts` under `test/integration/`.
+- A test's file name states its tier: unit tests are `*.test.ts` under `src/`, integration tests `*.itest.ts` under `test/integration/api/` or `test/integration/persistence/`, and end-to-end tests `*.e2e.ts` under `test/e2e/`. `pnpm check:workflow` fails on a test file whose suffix does not match its directory.
+- Three Jest projects run the automated tests: `backend` and `frontend` for unit tests, and `integration`. Their setup files live under `test/setup/`.
+- Each API route has one unit test file, `__tests__/route.test.ts`, which holds its request-schema rejections.
 - Backend unit tests run against a global mongoose and mongodb stub. Frontend unit tests run under jsdom.
-- Integration tests run each test file against its own in-memory MongoDB, with auth services swapped for DI doubles. Most enter through a route handler; some enter through a repository or a use case.
-- CI runs unit, integration, static and Blueprint checks on every pull request into `dev`. Integration tests run in no local gate.
+- Integration tests run against one in-memory replica set per run, with a database of its own for each test file, so transactions can be proven; auth services are DI doubles. Tests under `api/` arrange and read data only through routes and repository interfaces; tests under `persistence/` prove database behaviour and may use the driver.
+- CI runs every check on every pull request into `dev`. `pnpm verify` runs static checks and unit tests; `pnpm verify:all` adds the app build and runs the workflow, integration and Blueprint tests only when the diff reaches them. No local gate builds the Blueprint site.
 - End-to-end tests and API smoke tests do not exist yet.
 
 ## Implemented decisions
