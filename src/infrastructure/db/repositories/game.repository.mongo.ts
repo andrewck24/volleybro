@@ -19,334 +19,28 @@ import {
   GameDocument,
   Game as GameModel,
 } from "@/infrastructure/db/mongoose/schemas/game";
+import {
+  mapEntryRead,
+  mapEntryWrite,
+  toGame,
+  toGameDoc,
+  toLineupWrite,
+  type RawGame,
+  type RawSet,
+} from "@/infrastructure/db/repositories/game.mapping.mongo";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
-import mongoose, { type Types } from "mongoose";
+import mongoose from "mongoose";
 
-/** Raw (persisted) shapes returned by `doc.toObject()`, before id mapping. */
-type RawRef = Types.ObjectId | null | undefined;
-type RawLineupPlayer = {
-  playerId?: RawRef;
-  position?: string;
-  sub?: { playerId?: RawRef; entryIndex?: { in?: number; out?: number } };
-};
-type RawLineup = {
-  options?: unknown;
-  starting?: RawLineupPlayer[];
-  liberos?: RawLineupPlayer[];
-  substitutes?: RawLineupPlayer[];
-};
-type RawSnapshot = { playerId?: RawRef } & Record<string, unknown>;
-type RawTeam = {
-  players?: RawSnapshot[];
-  staffs?: RawSnapshot[];
-  lineup?: RawLineup;
-} & Record<string, unknown>;
-type RawRallyDetail = {
-  player?: { playerId?: RawRef; zone?: number };
-} & Record<string, unknown>;
-type RawEntry = {
-  type?: EntryType;
-  home?: RawRallyDetail;
-  away?: RawRallyDetail;
-  players?: { in?: RawRef; out?: RawRef };
-} & Record<string, unknown>;
-type RawSet = {
-  lineups?: { home?: RawLineup; away?: RawLineup };
-  entries?: RawEntry[];
-} & Record<string, unknown>;
+const fromDocument = (doc: GameDocument): Game =>
+  toGame(doc.toObject() as RawGame);
 
 export class GameRepositoryImpl implements IGameRepository {
   private readonly model = GameModel;
 
-  // --- read mapping: persisted playerId -> domain id ---
-
-  private mapLineupPlayerRead(p: RawLineupPlayer) {
-    return {
-      id: p?.playerId?.toString() ?? null,
-      position: p?.position,
-      sub: p?.sub
-        ? {
-            id: p.sub.playerId?.toString() ?? null,
-            entryIndex: p.sub.entryIndex ?? {},
-          }
-        : undefined,
-    };
-  }
-
-  private toLineupRead(lineup: RawLineup | undefined) {
-    if (!lineup) return lineup;
-    // The subdocument's own `_id` has no field on `Lineup` and no place in
-    // the request the client builds from this value.
-    return {
-      options: lineup.options,
-      starting: (lineup.starting ?? []).map((p) => this.mapLineupPlayerRead(p)),
-      liberos: (lineup.liberos ?? []).map((p) => this.mapLineupPlayerRead(p)),
-      substitutes: (lineup.substitutes ?? []).map((p) =>
-        this.mapLineupPlayerRead(p),
-      ),
-    };
-  }
-
-  private mapSnapshotRead(snapshot: RawSnapshot) {
-    const { playerId, ...rest } = snapshot;
-    return { ...rest, id: playerId?.toString() ?? null };
-  }
-
-  private mapTeamRead(team: RawTeam | undefined) {
-    if (!team) return team;
-    return {
-      ...team,
-      players: (team.players ?? []).map((p) => this.mapSnapshotRead(p)),
-      staffs: (team.staffs ?? []).map((s) => this.mapSnapshotRead(s)),
-      lineup: team.lineup ? this.toLineupRead(team.lineup) : team.lineup,
-    };
-  }
-
-  private mapRallyDetailRead(detail: RawRallyDetail | undefined) {
-    if (!detail?.player) return detail;
-    return {
-      ...detail,
-      player: {
-        id: detail.player.playerId?.toString() ?? null,
-        zone: detail.player.zone,
-      },
-    };
-  }
-
-  private mapEntryRead(entry: RawEntry) {
-    if (entry?.type === EntryType.RALLY) {
-      return {
-        ...entry,
-        home: this.mapRallyDetailRead(entry.home),
-        away: this.mapRallyDetailRead(entry.away),
-      };
-    }
-    if (entry?.type === EntryType.SUBSTITUTION && entry.players) {
-      return {
-        ...entry,
-        players: {
-          in: entry.players.in?.toString() ?? entry.players.in,
-          out: entry.players.out?.toString() ?? entry.players.out,
-        },
-      };
-    }
-    return entry;
-  }
-
-  private mapSetRead(set: RawSet) {
-    return {
-      ...set,
-      lineups: {
-        home: this.toLineupRead(set.lineups?.home),
-        away: set.lineups?.away
-          ? this.toLineupRead(set.lineups.away)
-          : set.lineups?.away,
-      },
-      entries: (set.entries ?? []).map((e) => this.mapEntryRead(e)),
-    };
-  }
-
-  private toGame(doc: GameDocument): Game {
-    const obj = doc.toObject() as {
-      _id: Types.ObjectId;
-      teamId: Types.ObjectId;
-      teams?: { home?: RawTeam; away?: RawTeam };
-      sets?: RawSet[];
-    } & Record<string, unknown>;
-    return {
-      ...obj,
-      id: obj._id.toString(),
-      teamId: obj.teamId.toString(),
-      teams: {
-        home: this.mapTeamRead(obj.teams?.home),
-        away: this.mapTeamRead(obj.teams?.away),
-      },
-      sets: (obj.sets ?? []).map((s) => this.mapSetRead(s)),
-    } as unknown as Game;
-  }
-
-  // --- write mapping: domain id -> persisted playerId (Mongoose casts) ---
-
-  /** Only `null` casts to an ObjectId ref; absent and empty both mean the same. */
-  private toPlayerRef(id: string | null | undefined) {
-    return id || null;
-  }
-
-  private mapLineupPlayerWrite(p: {
-    id?: string | null;
-    position?: string;
-    sub?: { id?: string; entryIndex?: { in?: number; out?: number } };
-  }) {
-    return {
-      playerId: this.toPlayerRef(p?.id),
-      position: p?.position,
-      sub: p?.sub
-        ? {
-            playerId: this.toPlayerRef(p.sub.id),
-            entryIndex: p.sub.entryIndex,
-          }
-        : undefined,
-    };
-  }
-
-  private toLineupWrite<
-    T extends {
-      starting?: unknown[];
-      liberos?: unknown[];
-      substitutes?: unknown[];
-    },
-  >(lineup: T | undefined) {
-    if (!lineup) return lineup;
-    const map = (arr: unknown[] | undefined) =>
-      (arr ?? []).map((p) =>
-        this.mapLineupPlayerWrite(
-          p as Parameters<typeof this.mapLineupPlayerWrite>[0],
-        ),
-      );
-    return {
-      ...lineup,
-      starting: map(lineup.starting),
-      liberos: map(lineup.liberos),
-      substitutes: map(lineup.substitutes),
-    };
-  }
-
-  private mapSnapshotWrite(
-    snapshot: { id?: string | null } & Record<string, unknown>,
-  ) {
-    const { id, ...rest } = snapshot;
-    return { ...rest, playerId: this.toPlayerRef(id) };
-  }
-
-  private mapTeamWrite(
-    team:
-      | (Record<string, unknown> & {
-          players?: unknown[];
-          staffs?: unknown[];
-          lineup?: {
-            starting?: unknown[];
-            liberos?: unknown[];
-            substitutes?: unknown[];
-          };
-        })
-      | undefined,
-  ) {
-    if (!team) return team;
-    return {
-      ...team,
-      players: (team.players ?? []).map((p) =>
-        this.mapSnapshotWrite(
-          p as { id?: string | null } & Record<string, unknown>,
-        ),
-      ),
-      staffs: (team.staffs ?? []).map((s) =>
-        this.mapSnapshotWrite(
-          s as { id?: string | null } & Record<string, unknown>,
-        ),
-      ),
-      lineup: team.lineup ? this.toLineupWrite(team.lineup) : team.lineup,
-    };
-  }
-
-  private mapRallyDetailWrite(detail: unknown) {
-    const d = detail as
-      | ({ player?: { id?: string | null; zone?: number } } & Record<
-          string,
-          unknown
-        >)
-      | undefined;
-    if (!d?.player) return d;
-    return {
-      ...d,
-      player: {
-        playerId: this.toPlayerRef(d.player.id),
-        zone: d.player.zone,
-      },
-    };
-  }
-
-  private mapEntryWrite(entry: Record<string, unknown> & { type?: EntryType }) {
-    if (entry?.type === EntryType.RALLY) {
-      return {
-        ...entry,
-        home: this.mapRallyDetailWrite(entry.home),
-        away: this.mapRallyDetailWrite(entry.away),
-      };
-    }
-    // Substitution keeps the `players.in/out` field names; only the ids need
-    // the same empty-string collapse as every other ObjectId path.
-    if (entry?.type === EntryType.SUBSTITUTION) {
-      const players = entry.players as
-        { in?: string | null; out?: string | null } | undefined;
-      if (!players) return entry;
-      return {
-        ...entry,
-        players: {
-          in: this.toPlayerRef(players.in),
-          out: this.toPlayerRef(players.out),
-        },
-      };
-    }
-    return entry;
-  }
-
-  private mapSetWrite(
-    set: Record<string, unknown> & {
-      lineups?: {
-        home?: { starting?: unknown[] };
-        away?: { starting?: unknown[] };
-      };
-      entries?: unknown[];
-    },
-  ) {
-    return {
-      ...set,
-      lineups: set.lineups
-        ? {
-            home: this.toLineupWrite(
-              set.lineups.home as Parameters<typeof this.toLineupWrite>[0],
-            ),
-            away: set.lineups.away
-              ? this.toLineupWrite(
-                  set.lineups.away as Parameters<typeof this.toLineupWrite>[0],
-                )
-              : set.lineups.away,
-          }
-        : set.lineups,
-      entries: (set.entries ?? []).map((e) =>
-        this.mapEntryWrite(e as Record<string, unknown> & { type?: EntryType }),
-      ),
-    };
-  }
-
-  private toGameDoc(data: Partial<Game>) {
-    const { id: _id, ...rest } = data;
-    void _id;
-    const doc: Record<string, unknown> = { ...rest };
-    if (data.teams) {
-      doc.teams = {
-        home: this.mapTeamWrite(
-          data.teams.home as unknown as Parameters<typeof this.mapTeamWrite>[0],
-        ),
-        away: this.mapTeamWrite(
-          data.teams.away as unknown as Parameters<typeof this.mapTeamWrite>[0],
-        ),
-      };
-    }
-    if (data.sets) {
-      doc.sets = data.sets.map((s) =>
-        this.mapSetWrite(
-          s as unknown as Parameters<typeof this.mapSetWrite>[0],
-        ),
-      );
-    }
-    return doc;
-  }
-
   async findById(id: string): Promise<Game | null> {
     try {
       const doc = await this.model.findById(id).exec();
-      return doc ? this.toGame(doc) : null;
+      return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -354,8 +48,8 @@ export class GameRepositoryImpl implements IGameRepository {
 
   async create(data: Omit<Game, "id">): Promise<Game> {
     try {
-      const doc = await this.model.create(this.toGameDoc(data) as object);
-      return this.toGame(doc);
+      const doc = await this.model.create(toGameDoc(data) as object);
+      return fromDocument(doc);
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -366,7 +60,7 @@ export class GameRepositoryImpl implements IGameRepository {
       const doc = await this.model
         .findByIdAndUpdate(
           id,
-          { $set: this.toGameDoc(data) },
+          { $set: toGameDoc(data) },
           { returnDocument: "after" },
         )
         .exec();
@@ -375,7 +69,7 @@ export class GameRepositoryImpl implements IGameRepository {
           CommonReason.RESOURCE_NOT_FOUND,
           "The game to update was not found",
         );
-      return this.toGame(doc);
+      return fromDocument(doc);
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -406,7 +100,7 @@ export class GameRepositoryImpl implements IGameRepository {
         const [set] =
           (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
         return (set?.entries ?? []).map((e) =>
-          this.mapEntryRead(e),
+          mapEntryRead(e),
         ) as unknown as Entry[];
       }
       // The guard failed as a whole; one lookup says which half of it did.
@@ -437,8 +131,8 @@ export class GameRepositoryImpl implements IGameRepository {
       ([side, lineup]) =>
         [
           `${path}.lineups.${side}`,
-          this.toLineupWrite(
-            lineup as unknown as Parameters<typeof this.toLineupWrite>[0],
+          toLineupWrite(
+            lineup as unknown as Parameters<typeof toLineupWrite>[0],
           ),
         ] as const,
     );
@@ -459,7 +153,7 @@ export class GameRepositoryImpl implements IGameRepository {
       );
 
     const ops = entries.flatMap((entry) => {
-      const mapped = this.mapEntryWrite(entry);
+      const mapped = mapEntryWrite(entry);
       return [
         {
           updateOne: {
@@ -505,7 +199,7 @@ export class GameRepositoryImpl implements IGameRepository {
       }
       const [set] =
         (doc.toObject() as unknown as { sets?: RawSet[] }).sets ?? [];
-      return (set?.entries ?? []).map((e) => this.mapEntryRead(e)) as Entry[];
+      return (set?.entries ?? []).map((e) => mapEntryRead(e)) as Entry[];
     } catch (error) {
       throw translateRepositoryError(error);
     }
