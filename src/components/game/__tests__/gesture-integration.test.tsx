@@ -3,63 +3,17 @@ import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { act, render, screen } from "@testing-library/react";
+import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
-// Capstone integration test (task group 6): exercises the real `Game`
-// composition (src/components/game/index.tsx) so the gesture split, the
-// onExpand -> drawer rewire, and the onSubmit -> real dispatch wiring are all
-// verified together, not just their presentational pieces in isolation.
-// Heavy sibling components (header/court/options/panel/stats) are stubbed
-// out -- they are unrelated to the Preview<->drawer integration under test.
-jest.mock("@/components/game/header", () => ({ GameHeader: () => null }));
-jest.mock("@/components/game/court", () => ({ GameCourt: () => null }));
-jest.mock("@/components/game/options", () => ({ GameOptions: () => null }));
-jest.mock("@/components/game/options/summary", () => ({
-  GameOptionsSummary: () => null,
+import { server } from "../../../../test/msw/server";
+
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: jest.fn() }),
 }));
-jest.mock("@/components/game/panel", () => ({ GamePanel: () => null }));
-jest.mock("@/components/game/set-options", () => ({ SetOptions: () => null }));
-jest.mock("@/components/game/stats", () => ({ StatsForOneSet: () => null }));
-
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
-}));
-jest.mock("@/lib/api/error-toast", () => ({ showErrorToast: jest.fn() }));
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let currentMockGame: any;
-// Like SWR's local mutate: runs the updater synchronously against the cache
-// and keeps what it returns.
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({
-    game: currentMockGame,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutate: jest.fn((updater?: any) => {
-      currentMockGame =
-        typeof updater === "function" ? updater(currentMockGame) : updater;
-      return currentMockGame;
-    }),
-  }),
-}));
-
-const originalFetch = global.fetch;
-beforeEach(() => {
-  // createRally/updateRally PUT to the API; the helper already mutates the
-  // mock game in place, so the response body is irrelevant -- only `ok` matters.
-  global.fetch = jest.fn(async () => ({
-    ok: true,
-    json: async () => ({ entries: currentMockGame.sets[0].entries }),
-  })) as unknown as typeof fetch;
-});
-
-afterEach(() => {
-  // Restore the real global so this file's fetch stub never leaks into other
-  // suites sharing the worker (e.g. set-options' pending-state test).
-  global.fetch = originalFetch;
-  jest.restoreAllMocks();
-});
 
 const moveStats = () => ({
   [MoveType.SERVING]: { success: 0, error: 0 },
@@ -79,6 +33,14 @@ const makeMockGame = () => ({
     {
       win: null,
       options: { serve: "home" },
+      lineups: {
+        home: {
+          options: { liberoReplaceMode: 0, liberoReplacePosition: "" },
+          starting: ["p1", "p2", "p3", "p4", "p5", "p6"].map((id) => ({ id })),
+          liberos: [],
+          substitutes: [],
+        },
+      },
       entries: [
         {
           type: EntryType.RALLY,
@@ -100,6 +62,12 @@ const makeMockGame = () => ({
       players: [
         { id: "p1", name: "選手一", number: 4, stats: [moveStats()] },
         { id: "p2", name: "選手二", number: 7, stats: [moveStats()] },
+        ...[3, 4, 5, 6].map((n) => ({
+          id: `p${n}`,
+          name: `選手${n}`,
+          number: n + 5,
+          stats: [moveStats()],
+        })),
       ],
       staffs: [],
       stats: [
@@ -132,17 +100,38 @@ const makeMockGame = () => ({
 });
 
 const setUpGame = () => {
-  currentMockGame = makeMockGame();
+  const game = makeMockGame();
+  const puts: { home: { player: { id: string } } }[] = [];
+  server.use(
+    http.get("/api/games/game-1", () => HttpResponse.json(game)),
+    // The server appends what it is sent and answers with the set's entries.
+    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+      const sent = (await request.json()) as typeof puts;
+      puts.push(...sent);
+      game.sets[0]!.entries.push(
+        ...sent.map(
+          (entry) =>
+            ({
+              type: EntryType.RALLY,
+              ...entry,
+            }) as (typeof game.sets)[0]["entries"][0],
+        ),
+      );
+      return HttpResponse.json({ entries: game.sets[0]!.entries });
+    }),
+  );
   const store = makeStore();
   render(
     <Provider store={store}>
-      <Game gameId="game-1" setIndex={0} />
+      <SwrIsolation>
+        <Game gameId="game-1" setIndex={0} />
+      </SwrIsolation>
     </Provider>,
   );
-  return { store };
+  return { store, puts };
 };
 
-describe("Game composition: gesture split integration (`entry-ui` change)", () => {
+describe("Game gesture split, wired through the real composition", () => {
   it("tapping the handle expands the drawer from the idle peek", async () => {
     const user = userEvent.setup();
     setUpGame();
@@ -163,7 +152,7 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
 
   it("in-progress Preview tap with complete steps submits via the real dispatch path and does not expand", async () => {
     const user = userEvent.setup();
-    const { store } = setUpGame();
+    const { store, puts } = setUpGame();
 
     await screen.findByTestId("summary-drawer");
     act(() => {
@@ -184,11 +173,13 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
     expect(rows[0]).toHaveTextContent("7");
     expect(rows[1]).toHaveTextContent("4");
     expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
+    await waitFor(() => expect(puts).toHaveLength(1));
+    expect(puts[0]!.home.player.id).toBe("p2");
   });
 
   it("in-progress Preview tap with incomplete steps does nothing (no submit, no expand)", async () => {
     const user = userEvent.setup();
-    const { store } = setUpGame();
+    const { store, puts } = setUpGame();
 
     await screen.findByTestId("summary-drawer");
     act(() => {
@@ -201,9 +192,10 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       "data-state",
       "idle",
     );
+    expect(puts).toHaveLength(0);
   });
 
-  it("drawer stays expanded showing the pulsing draft Preview while input is in progress, and Escape collapses it", async () => {
+  it("drawer stays expanded showing the draft Preview while input is in progress, and Escape collapses it", async () => {
     const user = userEvent.setup();
     const { store } = setUpGame();
 
@@ -218,13 +210,8 @@ describe("Game composition: gesture split integration (`entry-ui` change)", () =
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
-    expect(await screen.findByTestId("preview-trigger")).toHaveClass(
-      "animate-pulse",
-    );
+    expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
     expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
 
     await user.keyboard("{Escape}");
     expect(screen.getByTestId("summary-drawer")).toHaveAttribute(
