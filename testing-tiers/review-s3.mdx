@@ -17,7 +17,8 @@ import { scenarios } from "./proposal.mdx";
 
 1. `test/setup/frontend.ts` 與 `test/msw/server.ts`：MSW 伺服器的整個生命週期。重點是 `onUnhandledFrame: "error"`（沒有 handler 回答的請求會讓測試失敗），以及補上 Node 的 `setImmediate`。第一版寫成 `onUnhandledRequest`，MSW 3 沒有這個選項，於是無聲失效，只警告不失敗；review 時才發現並修正，現在有一個暫時的測試證明未回答的請求真的會失敗。
 2. ReviewDetails 的 mutation 表。覆蓋率只證明程式被執行；改寫後的測試能不能放心，靠每一列：正式程式碼被刻意改壞後，是哪個測試變紅。兩組沒變紅的 mutation（本 shard 沒新增測試去守它們）列在殘留風險。
-3. `src/components/game/__tests__/gesture-integration.test.tsx`：原本 mock 掉每個子元件，現在渲染真的 `Game`，改變最大。它證明的是 Game、drawer 與 preview 之間的接線；drawer 與 preview 各自的行為由自己的測試守護。
+3. `test/support/` 與 `docs/testing-strategy.md` 的 Test Support Code 一節：本 shard 額外加入、Proposal 沒有的部分。看目錄分類（`fixtures`、`doubles`、`msw`、`react`、`http`、`dom`）與「第二個測試檔需要時才提升」這條規則合不合你的意思，因為它決定 shard 4 會把 helper 放哪裡。
+4. `src/components/game/__tests__/gesture-integration.test.tsx`：原本 mock 掉每個子元件，現在渲染真的 `Game`，改變最大。它證明的是 Game、drawer 與 preview 之間的接線；drawer 與 preview 各自的行為由自己的測試守護。
 
 </ReviewFocus>
 
@@ -26,8 +27,9 @@ import { scenarios } from "./proposal.mdx";
 1. **「第一批」的範圍由本 shard 決定。** Proposal 只說「依目錄改寫第一批」，沒有指定哪些。本 shard 取「在網路邊界上 mock 了 `apiClient`、`fetch`、SWR，或為此 mock 了自己的 hook 與元件」的測試，因為移除 `fetch` 全域替換之後，這批最先需要 MSW。`landing/*`、`use-editing-guard`、`use-pull-to-refresh`、`use-active-team-id` 與其他不碰網路但 mock 自己程式碼的測試留給 shard 4。分 lane 仍依目錄（app 與 layout、team 與 user、game 兩組、hooks 與 lib）。
 2. **新增兩個 devDependency：`msw` 與 `jest-fixed-jsdom`。** MSW 3 只出 ESM，Jest 要轉譯它與五個相依套件，`jest.config.ts` 的 `transformIgnorePatterns` 因此多列了 `msw`、`@mswjs`、`rettime`、`until-async`、`@open-draft` 與 `cookie`；reviewer 逐一拿掉其餘候選驗證，只留下必要的。
 3. **`api-client` 的逾時案例保留一個 `fetch` spy。** Node 的 fetch 中止時丟出的 `DOMException` 與 jsdom 的不是同一個 class，正式碼的 `instanceof` 在 jsdom 下不成立；瀏覽器不受影響，所以不為此改正式碼。測試檔內已寫明這個 jsdom 限制。
-4. **只改測試，新增兩個測試 helper。** 相對 `dev`，沒有任何正式程式碼變動。`src/test-utils/swr-isolation.tsx` 給每個測試獨立的 SWR cache，`src/test-utils/editing-game.ts` 是三個 dialog 測試原本逐字重複的 game fixture。
-5. **本 shard 沒有自己的 scenario。** Proposal 的 S7 屬於 shard 4，所以下面的 `ScenarioResults` 是空的。本 shard 的證明是 TestPlan 的六項。
+4. **測試支援程式碼合併到 `test/support/`（Proposal 沒有）。** 開發者在 review 前指出 `src/__tests__/helpers` 與 `src/test-utils` 並存、helper 的位置取決於誰寫的，要求合併並訂規則以免重工，決定併入本 shard 一次審查。結果：兩個目錄併入 `test/support/`，依「它是什麼」分成 `fixtures`、`doubles`、`msw`、`react`、`http`、`dom`，import 一律用 `@test/support/...`（`tsconfig.json` 與 Jest 各加別名）；`helpers` 的 barrel 移除，每個 importer 改指向具體檔案，約八十個檔案的 import 由腳本改寫。`test/setup/`（Jest 接線）與 `test/integration/support/`（要碰 driver）留在原處。順帶把測試檔各自寫的重複 helper 併起來：四份 rally 端點 handler 成為 `answerRallies`，三份相同的 editing-game harness 成為 `renderEditingGame` 與 `holdEditedWrite`，兩個逐字相同的 dismissal 測試檔併成一個 `describe.each` 表，`editing-game` fixture 改建在 `createGame` 上。Jest 另加 `coveragePathIgnorePatterns` 排除 `test/`，因為 v8 provider 會回報任何被載入的檔案。規則寫進 `docs/testing-strategy.md`（新的 Test Support Code 一節與第五個 Test Value 問題）、`CODING_STANDARDS.md` 與 `test-audit` 的 authoring gate。
+5. **只改測試與測試設定。** 相對 `dev`，沒有任何正式程式碼變動。
+6. **本 shard 沒有自己的 scenario。** Proposal 的 S7 屬於 shard 4，所以下面的 `ScenarioResults` 是空的。本 shard 的證明是 TestPlan 的七項。
 
 </Deviations>
 
@@ -90,7 +92,16 @@ import { scenarios } from "./proposal.mdx";
       executor: "agent",
       environment: "macOS 本機",
       result: "pass",
-      evidence: "每次都全部通過。開發過程中曾出現一次 `use-pending-writes` 的失敗，當時有數個 agent 同時對同一個正式檔做 mutation 並跑 jest，之後在安靜狀態下無法重現",
+      evidence: "每次都全部通過。開發過程中曾出現一次 `use-pending-writes` 的失敗，當時有數個 agent 同時對同一個正式檔做 mutation 並跑 jest，之後在安靜狀態下無法重現。整理 `test/support` 之後，兩次 `verify:all` 的 app-test 在機器負載很高時（各 lane 耗時是平常的兩到三倍）有一個 suite（`create-substitution.usecase`）整個跑不起來，之後九次重跑與一次安靜下的 `verify:all` 都通過，沒有取得錯誤訊息，原因未查明",
+    },
+    {
+      id: "T7",
+      checks: "整理 `test/support` 之後行為不變",
+      method: "import 由腳本改寫後，跑 `tsc --noEmit`、`eslint`、`prettier --check .`、`pnpm verify:all`，再對併檔的 dismissal 測試重做六次 mutation，並重新量測逐檔覆蓋率",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "型別、lint、格式與六條 lane 都通過；六次 mutation 全部變紅，正式程式碼還原後 `git diff` 為空；逐檔覆蓋率與整理前相同的九個檔案下降，沒有新增",
     },
   ]}
 />
@@ -99,7 +110,7 @@ import { scenarios } from "./proposal.mdx";
 
 ### 逐檔覆蓋率
 
-以同一條指令 `jest --coverage`（三個 project）在 `7b5622c8`（shard 2 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。總行覆蓋率 88.07% → 88.06%，總 branch 89.17% → 88.61%。
+以同一條指令 `jest --coverage`（三個 project）在 `7b5622c8`（shard 2 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。以 production `src/`（排除搬離 `src/` 的 helper）計算：行 18252/20787（87.80%）→ 19398/22093（87.80%），branch 1807/2027（89.15%）→ 1937/2187（88.57%）。covered 的行多了一千多行，因為改成真實子元件後，原本被 mock 掉而沒被載入的程式碼現在真的執行
 
 | 檔案 | covered/total branch 之前 | 之後 | 原因 |
 | --- | --- | --- | --- |
@@ -115,6 +126,7 @@ import { scenarios } from "./proposal.mdx";
 - 前四列不是覆蓋率下降：程式碼第一次被真的執行，covered 的 branch 數是上升的。缺的是專屬測試，已開 issue。
 - 後三列的正式程式碼沒有變動；推測是 V8 只回報有被執行的區塊，未另行驗證。
 - 逐檔的 lines 與 statements 沒有任何下降。
+- `src/__tests__/helpers` 與 `src/test-utils` 的六個檔案搬到 `test/support/`，不再屬於 `src/`，也不再列入覆蓋率。
 
 ### 刪除對照表
 
@@ -145,6 +157,8 @@ import { scenarios } from "./proposal.mdx";
 | `use-unconfirmed-set-completion`：unrelated game / different set | C | 一個 `it.each` 兩列 |
 | `use-unconfirmed-set-completion`：retry defaults to confirmed when the response omits the field | D | 前一個測試同輸入同斷言；把 `?? true` 改成 `?? false` 會讓它變紅 |
 | `use-data`：八個以 SWR key 為斷言的測試 | C | 以真的 SWR 與 MSW 的 `describe.each`（`useTeam`、`useTeamPlayers`）：空字串與 undefined 各斷言零個請求、安全預設值與沒有 error；真的 id 斷言請求路徑與回傳資料 |
+| `editing-guard-wiring`：兩個測試（GameOptions） | C | 併入 `editing-dismissal.test.tsx` 的 `describe.each`（GameOptions、SetEdit 兩列）；對兩個 dialog 各拿掉三個 handler 的六次 mutation 都讓它變紅 |
+| `sets/edit`：兩個測試（SetEdit） | C | 同上，逐字相同的測試，只差被測元件 |
 | `gesture-integration`：四個測試 | R | 沒有刪除。改成渲染真的 `Game`，keeper 是 summary-drawer 與 preview 各自的測試加上這個接線測試 |
 
 ### Mutation
@@ -218,7 +232,7 @@ import { scenarios } from "./proposal.mdx";
 | 同上 | slot div 改成 `return null` | renders no control, keeps slot |
 | `flush-pending-writes.ts` | `si=${setIndex}` 改 `si=0` | counts and clears entries from every pending set |
 | `options/index.tsx` | 多加一個「紀錄」分頁 | exposes only overview and settings tabs |
-| 同上、`sets/edit.tsx` | 各拿掉 `onEscapeKeyDown`、`onInteractOutside`、`onCloseAutoFocus` | 對應的 guard-wiring 測試（各三個 mutation） |
+| 同上、`sets/edit.tsx` | 各拿掉 `onEscapeKeyDown`、`onInteractOutside`、`onCloseAutoFocus` | `editing-dismissal` 表測試的對應列（各三個 mutation，併檔之後又重跑，六次皆變紅） |
 | `options/edit/index.tsx` | 拿掉 `disabled={writing}` | back disabled while writing |
 | 同上 | 拿掉 `onClick={leaveEditing}` | back leaves editing mode on tap while idle |
 | `oppo.tsx` | 拿掉 `update` 裡的 `enqueue` | 失敗與成功兩個測試 |
@@ -253,13 +267,17 @@ import { scenarios } from "./proposal.mdx";
 - **規格軸**：沒有正式程式碼變動；每個刪除都有 keeper 或明說沒有的理由；`set-options-panel` 的等待仍在，而且等的是真實狀態（POST 被 gate 攔住，disabled 只有在驗證完成之後才會出現）。
 - **第二輪**：沒有新違規，第一輪的每一項都已解決。同根因：只重述程式碼的註解，來自把工具鏈的作法當旁白寫下來，沒有先問「拿掉之後，下一位讀者會犯什麼錯」；這一輪沒有再出現。
 
+- **第三輪（整理 `test/support` 之後，只審新增的 diff）**：沒有硬性違規。規格軸抓到一項：`holdEditedWrite` 在 `act()` 之外 dispatch，會印 act 警告，而且「入列發生在 render 之後」的順序是隱含的，已包進 `act()`，六次 dismissal mutation 重跑仍全部變紅。標準軸指出：兩個測試各寫了一份 `gameWithSet` 與同一筆 rally，已提升成 `test/support/fixtures/finished-set.ts`（根因：上一輪的掃描依我列出的 helper 名稱，沒有依 fixture 的形狀）；文件說 `test/` 不算覆蓋率的理由不完整（真正原因是 Jest 設定排除它，v8 provider 會回報任何被載入的檔案），已改正。
+
 ### 殘留風險（flag，未修）
 
 - 兩個刻意沒有 keeper 的 CSS class 刪除，見 ActionItems。
 - 三個 mutation 沒有變紅，因為它們守的行為原本就沒有測試：`new/index.tsx` 的 `onSuccess()`、重試 hook 的 `flushSucceeded`，以及 `preview.tsx` 的 idle 點擊展開在 `gesture-integration` 裡沒變紅（該 contract 由 `preview` 自己的測試守護，mutation 在那邊變紅）。`summary-drawer.tsx` 拿掉整個 `onEscapeKeyDown` 也沒讓 gesture 測試變紅，因為 Radix 自己的 Escape 也會呼叫 `onOpenChange` 而觸發 toggle；那個 contract 由 drawer 的 toggle 測試守護。
 - 「gesture 的 incomplete tap does nothing」沒有任何會變紅的 mutation：它只斷言 drawer 維持 idle 與沒有送出 PUT，守護它的 `preview.tsx` 的 `handleClick` 沒有被反向改壞驗證。
 - 補上專屬測試（`use-lineup`、`use-substitutes`、`court`、`players-list`）、新增賽事表單主場隊名為空（`new/index.tsx` 的 `useState` 只在掛載時計算一次）、待寫入佇列不依 entry id 去重與 `summary-drawer` 的 selector 每次回傳新 `Set`、`SetEdit` 仍渲染 `GameOptionsSummary`、`unconfirmed-set-dialog` 兩個沒有效果的 `preventDefault`：都已開 issue，本 shard 不改正式程式碼。
-- 各測試檔仍各自有 `serve` 與 `serveRallies` 這類 MSW handler helper。它們形狀不同，reviewer 判斷合併不會更小，所以沒有抽共用。
+- `serverGame`、`makeGame`、`renderSection` 仍各自定義在多個測試檔，但每份的內容不同，不是同形狀的重複，所以沒有抽共用；`use-pending-writes` 的 `serve` 是 `answerRallies` 加一個 GET 的薄包裝。
+- 搬移時由腳本改寫的 import，順序在少數檔案內不一致（`@test/...` 有時在最前、有時在最後）；沒有工具強制排序，這次沒有逐檔調整。
+- `answerRallies` 寫死 `game-1`，所有呼叫端都用它；shard 4 遇到別的 game id 時再參數化。
 - shard 4 尚待：`landing/*`、`use-editing-guard`、`use-pull-to-refresh`、`use-active-team-id`，以及其餘 mock 自己程式碼但不碰網路的測試。
 
 </ReviewDetails>
