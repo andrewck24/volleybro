@@ -67,17 +67,19 @@ const recordCompletion = (confirmed: boolean) =>
     }),
   );
 
-/** Answers the rally endpoint and records the body of each PUT. */
+/** Answers the rally endpoint and records the set index and body of each PUT. */
 const serveRallies = (respond: () => Response) => {
-  const bodies: unknown[] = [];
+  const requests: { si: string | null; body: unknown }[] = [];
   server.use(
     http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
-      expect(new URL(request.url).searchParams.get("si")).toBe("0");
-      bodies.push(await request.json());
+      requests.push({
+        si: new URL(request.url).searchParams.get("si"),
+        body: await request.json(),
+      });
       return respond();
     }),
   );
-  return bodies;
+  return requests;
 };
 
 beforeEach(() => {
@@ -178,7 +180,7 @@ describe("useUnconfirmedSetCompletion", () => {
   });
 
   it("retry resends the last rally entry and records success", async () => {
-    const bodies = serveRallies(() =>
+    const requests = serveRallies(() =>
       HttpResponse.json({ entries: [lastRally], setCompletionConfirmed: true }),
     );
     recordCompletion(false);
@@ -188,16 +190,19 @@ describe("useUnconfirmedSetCompletion", () => {
       await result.current.retry();
     });
 
-    expect(bodies).toEqual([
-      [
-        {
-          id: "e1",
-          seq: 0,
-          win: true,
-          home: lastRally.home,
-          away: lastRally.away,
-        },
-      ],
+    expect(requests).toEqual([
+      {
+        si: "0",
+        body: [
+          {
+            id: "e1",
+            seq: 0,
+            win: true,
+            home: lastRally.home,
+            away: lastRally.away,
+          },
+        ],
+      },
     ]);
     expect(store.getState().setCompletion["game-1:0"]).toBe(true);
   });

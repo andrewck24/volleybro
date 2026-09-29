@@ -18,7 +18,6 @@ jest.mock("next/navigation", () => ({
 }));
 
 const lineup = {
-  // Manual libero replacement needs no paired position, so submit is enabled.
   options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
   starting: [],
   liberos: [],

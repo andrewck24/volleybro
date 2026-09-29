@@ -41,7 +41,7 @@ export default async function jestConfig() {
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@msw|@mswjs|rettime|until-async|headers-polyfill|outvariant|is-node-process|@open-draft|cookie|tough-cookie|statuses|type-fest|path-to-regexp)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@mswjs|rettime|until-async|@open-draft|cookie)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],

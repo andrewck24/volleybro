@@ -3,6 +3,8 @@ import { authClient } from "@/lib/auth-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+// The Google sign-in redirects the whole window to the OAuth provider, which
+// jsdom cannot follow, so the auth client is replaced.
 jest.mock("@/lib/auth-client", () => ({
   authClient: {
     signIn: {

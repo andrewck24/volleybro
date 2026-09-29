@@ -14,7 +14,6 @@ jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
 }));
 
-// Reads the team the way the destination page does.
 const TeamName = () => {
   const { team } = useTeam(VALID_OBJECT_ID);
   return <p>{team?.name}</p>;

@@ -48,7 +48,6 @@ describe("AlertDialog error state — MembershipSection", () => {
     await user.click(screen.getByRole("button", { name: "刪除球員" }));
     await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
-    // A single match: the message is inline only, not also raised as a toast.
     expect(
       await screen.findByText("移轉擁有者身分需要目前的擁有者操作"),
     ).toBeInTheDocument();
@@ -109,7 +108,6 @@ describe("AlertDialog error state — MembershipSection", () => {
     const confirm = screen.getByRole("button", { name: "確認移轉" });
     await user.click(confirm);
 
-    // A single match: the message is inline only, not also raised as a toast.
     expect(
       await screen.findByText("移轉擁有者身分需要目前的擁有者操作"),
     ).toBeInTheDocument();

@@ -51,7 +51,6 @@ describe("AlertDialog error state — TeamInfo handleLeaveTeam", () => {
 
     await attemptLeave();
 
-    // A single match: the message is inline only, not also raised as a toast.
     expect(
       await screen.findByText("請先把擁有權移轉給其他成員，再離開"),
     ).toBeInTheDocument();
