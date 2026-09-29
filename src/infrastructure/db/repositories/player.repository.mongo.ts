@@ -1,7 +1,6 @@
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { NotFoundError, CommonReason } from "@/entities/errors";
 import {
-  narrowPlayer,
   NewPlayer,
   Player,
   PlayerFields,
@@ -11,25 +10,21 @@ import {
   PlayerModel,
   type PlayerDocument,
 } from "@/infrastructure/db/mongoose/schemas/player";
+import {
+  toPlayer,
+  type RawPlayer,
+  toPlayerUpdateOps,
+} from "@/infrastructure/db/repositories/player.mapping.mongo";
 import { translateRepositoryError } from "@/infrastructure/db/repositories/error-translation.mongo";
 
-export class PlayerRepositoryImpl implements IPlayerRepository {
-  private toPlayer(doc: PlayerDocument): Player {
-    const { _id, teamId, userId, ...rest } = doc.toObject();
-    // Absent links are left out rather than set to undefined, so the narrowed
-    // player carries exactly the fields its shape declares.
-    return narrowPlayer({
-      ...rest,
-      id: _id.toString(),
-      ...(teamId ? { teamId: teamId.toString() } : {}),
-      ...(userId ? { userId: userId.toString() } : {}),
-    });
-  }
+const fromDocument = (doc: PlayerDocument): Player =>
+  toPlayer(doc.toObject() as RawPlayer);
 
+export class PlayerRepositoryImpl implements IPlayerRepository {
   async findById(id: string): Promise<Player | null> {
     try {
       const doc = await PlayerModel.findById(id).exec();
-      return doc ? this.toPlayer(doc) : null;
+      return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -38,7 +33,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
   async findByTeamId(teamId: string): Promise<Player[]> {
     try {
       const docs = await PlayerModel.find({ teamId }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
+      return docs.map((doc) => fromDocument(doc));
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -47,16 +42,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
   async findByUserId(userId: string): Promise<Player[]> {
     try {
       const docs = await PlayerModel.find({ userId }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async findByEmail(email: string): Promise<Player[]> {
-    try {
-      const docs = await PlayerModel.find({ email }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
+      return docs.map((doc) => fromDocument(doc));
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -68,7 +54,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
   ): Promise<Player | null> {
     try {
       const doc = await PlayerModel.findOne({ teamId, email }).exec();
-      return doc ? this.toPlayer(doc) : null;
+      return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -77,27 +63,14 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
   async create(player: NewPlayer): Promise<Player> {
     try {
       const newPlayer = await PlayerModel.create(player);
-      return this.toPlayer(newPlayer);
+      return fromDocument(newPlayer);
     } catch (error) {
       throw translateRepositoryError(error);
     }
   }
 
   async update(id: string, updates: Partial<PlayerFields>): Promise<Player> {
-    const $set: Record<string, unknown> = {};
-    const $unset: Record<string, string> = {};
-
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === undefined) {
-        $unset[key] = "";
-      } else {
-        $set[key] = value;
-      }
-    }
-
-    const updateOps: Record<string, unknown> = {};
-    if (Object.keys($set).length > 0) updateOps.$set = $set;
-    if (Object.keys($unset).length > 0) updateOps.$unset = $unset;
+    const updateOps = toPlayerUpdateOps(updates);
 
     try {
       const updated = await PlayerModel.findByIdAndUpdate(id, updateOps, {
@@ -109,7 +82,7 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
           "The player to update was not found",
         );
       }
-      return this.toPlayer(updated);
+      return fromDocument(updated);
     } catch (error) {
       throw translateRepositoryError(error);
     }
@@ -124,34 +97,13 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async countByTeamId(teamId: string): Promise<number> {
-    try {
-      return await PlayerModel.countDocuments({ teamId }).exec();
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async existsInvitation(teamId: string, email: string): Promise<boolean> {
-    try {
-      const count = await PlayerModel.countDocuments({
-        teamId,
-        email,
-        status: PlayerStatus.INVITED,
-      }).exec();
-      return count > 0;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async findByTeamIdAndUserId(
     teamId: string,
     userId: string,
   ): Promise<Player | null> {
     try {
       const doc = await PlayerModel.findOne({ teamId, userId }).exec();
-      return doc ? this.toPlayer(doc) : null;
+      return doc ? fromDocument(doc) : null;
     } catch (error) {
       throw translateRepositoryError(error);
     }

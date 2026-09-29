@@ -9,13 +9,10 @@ export function createMockPlayerRepository(): jest.Mocked<IPlayerRepository> {
     findById: jest.fn(),
     findByTeamId: jest.fn(),
     findByUserId: jest.fn(),
-    findByEmail: jest.fn(),
     findInvitedByTeamIdAndEmail: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
-    countByTeamId: jest.fn(),
-    existsInvitation: jest.fn(),
     findByTeamIdAndUserId: jest.fn(),
     linkUserToInvitations: jest.fn(),
   };
@@ -27,7 +24,6 @@ export function createMockTeamRepository(): jest.Mocked<ITeamRepository> {
     create: jest.fn(),
     update: jest.fn(),
     updateLineups: jest.fn(),
-    delete: jest.fn(),
     removePlayerFromLineups: jest.fn(),
   };
 }
@@ -39,7 +35,6 @@ export function createMockGameRepository(): jest.Mocked<IGameRepository> {
     update: jest.fn(),
     upsertEntry: jest.fn(),
     completeSet: jest.fn(),
-    delete: jest.fn(),
     findGameSummaries: jest.fn(),
   };
 }

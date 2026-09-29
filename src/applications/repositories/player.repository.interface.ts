@@ -22,11 +22,6 @@ export interface IPlayerRepository {
   findByUserId(userId: string): Promise<Player[]>;
 
   /**
-   * Find players by email (typically invitation status)
-   */
-  findByEmail(email: string): Promise<Player[]>;
-
-  /**
    * Find invited players for a team (email exists, userId doesn't)
    */
   findInvitedByTeamIdAndEmail(
@@ -50,16 +45,6 @@ export interface IPlayerRepository {
    * Delete player by ID
    */
   delete(id: string): Promise<boolean>;
-
-  /**
-   * Count total players in a team
-   */
-  countByTeamId(teamId: string): Promise<number>;
-
-  /**
-   * Check if email invitation already exists in team
-   */
-  existsInvitation(teamId: string, email: string): Promise<boolean>;
 
   /**
    * Find a player by team ID and user ID

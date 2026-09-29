@@ -20,5 +20,3 @@ export {
   createUnlinkedPlayer,
   createUser,
 } from "@/__tests__/helpers/fixtures";
-
-export { mockDoc, mockExec } from "@/__tests__/helpers/mock-mongoose";

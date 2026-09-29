@@ -40,3 +40,5 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 ## Tests
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
+
+Every test the diff adds passes that document's Test Value gate: review names the behaviour it protects and the regression that fails it, and flags a test that asserts values it built itself, restates the implementation, or duplicates a contract another test already owns. Every test the diff deletes or moves names the test that now owns its contract, or why none is needed.
