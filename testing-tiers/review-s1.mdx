@@ -3,7 +3,7 @@ import { scenarios } from "./proposal.mdx";
 <ActionItems>
 
 1. **ADR-0087 的 `decision` 內文在 G1 之後改了**（Deviations 第 1 點）：由「每個測試檔各自啟動」改為「每次執行啟動一個 replica set、每個測試檔一個新資料庫」，並新增一條 consequence 說明為何在 global setup 啟動。
-2. **請確認刪除 8 個不執行任何正式程式碼的 route 測試檔（77 個案例）**（Deviations 第 2 點）。Proposal 範圍第 6 點寫的是「合併」，我改為刪除；逐檔覆蓋率比較顯示沒有任何檔案因此下降。
+2. **ADR-0089 經 Ingest 修改，G1 已重新通過**（Deviations 第 2 點）：範圍限於 handler 由 repository 撰寫的 route；從未執行自己 route 的測試檔刪除而不合併；handler 完全由函式庫產生的 route（Better Auth catch-all）不寫單元測試。G1 之後 review 又調整了欄位安排，規則不變：`decision` 只寫規則，理由移到 `context` 與兩個新的 `alternatives`，title 改用同樣的範圍措辭，並新增一條 consequence：catch-all 在 end-to-end 或 API smoke 建立前沒有任何自動化測試。
 3. 其餘偏差都是做法上的調整，列在 Deviations，不需要另外決定。
 
 </ActionItems>
@@ -19,14 +19,18 @@ import { scenarios } from "./proposal.mdx";
 <Deviations>
 
 1. **Replica set 在 Jest 的 global setup 啟動，每次執行一個。** ADR-0087 原寫每個測試檔各自啟動。`MongoMemoryReplSet` 在 Jest 的 test environment 中無法完成 driver 初始化 replica set 的 handshake，同樣的程式在一般 Node 中可以，所以改在 global setup 啟動，並讓每個測試檔使用自己的資料庫。整合測試因此從約 85 秒降到約 17 秒。另外兩點調整：mongod 的啟動等待時間放寬到 60 秒，因為 `verify:all` 會與 app build 同時執行；並開啟 test commands，供 failpoint 使用。
-2. **8 個 route 測試檔被刪除，而非合併。** 這些檔案只 import `@jest/globals`、測試 helper 與 entity 的 enum，從未 import 它們的 route。它們斷言的是測試自己建出來的值，合併進 `route.test.ts` 不會多證明任何事。另外 5 個 `request-schema.test.ts` 都已逐案改名為 `route.test.ts`。
+2. **S5 與 ADR-0089 經 Ingest 修改。** 實作中發現兩件原規則沒預料到的事：
+   - 8 個 route 測試檔從未 import 自己的 route，只斷言測試自建的值，合併進 `route.test.ts` 不會多證明任何事；
+   - Better Auth 的 catch-all route 在 mock 掉函式庫後什麼也不剩，測試只能證明接線。
+   
+   兩者都改寫進規則，G2 前重新通過 G1：這 8 個檔案（77 個案例）刪除，catch-all 的測試也刪除。另外 5 個 `request-schema.test.ts` 都已逐案改名為 `route.test.ts`。
 3. **set 結果寫入失敗的案例從 `api/` 移到 `persistence/`。** 原本在 `api/` 中以 `jest.spyOn` 替換 repository 自己的 `completeSet`，這違反 ADR-0086 的替換界線。現在改由 use case 進入，以 `failCommand` failpoint 讓 `findAndModify` 失敗；entry 寫入走 `bulkWrite`，不受影響。`game-entry-writes` 從 repository 進入，也一併移入 `persistence/`。
-4. **`/api/auth/[...all]` 的 route 測試替換了 `better-auth/next-js`。** 這條 route 只有一行，把 app 的 auth instance 交給 Better Auth。S5 要求每條 route 都有測試，而 Better Auth 是 Jest 不轉譯的 ESM，屬於 ADR-0086 所說「環境跑不了的 runtime」，所以測試只證明這層接線。
-5. **`.spec` 檔名一律回報，Jest 也只收 `.test`。** ADR-0091 只命名 `.test`。check 原本把 `.spec` 視同 `.test`，review 指出 config、check 與文件三者不一致，現在三者都只認 `.test`。repository 中沒有 `.spec` 檔。
-6. **`blueprint:gate` 讀一次預覽 build 的結果，由上一個 Change 完成。** 範圍第 8 點的這一項在 `migration-single-page` 已實作並有測試，本 shard 沒有修改 `scripts/blueprint-gate.js`。
-7. **`knip --production` 的位置只記在 ADR-0092。** 文件描述的是現況，不寫將來的計畫；死碼分流完成後，由那個 Change 把它加進 gate。
-8. **Testing Feature 在本分支更新。** 這是 Archive 的一步，內容描述本 shard 合併後的現況。
-9. **review 走了四輪。** 第二輪起的發現都針對前一輪的修正。註解與決策紀錄重複（根本原因 B）連續兩輪出現後，改用刪除該註解的做法，不再改寫。
+4. **`.spec` 檔名一律回報，Jest 也只收 `.test`。** ADR-0091 只命名 `.test`。check 原本把 `.spec` 視同 `.test`，review 指出 config、check 與文件三者不一致，現在三者都只認 `.test`。repository 中沒有 `.spec` 檔。
+5. **`blueprint:gate` 讀一次預覽 build 的結果，由上一個 Change 完成。** 範圍第 8 點的這一項在 `migration-single-page` 已實作並有測試，本 shard 沒有修改 `scripts/blueprint-gate.js`。
+6. **`knip --production` 的位置只記在 ADR-0092。** 文件描述的是現況，不寫將來的計畫；死碼分流完成後，由那個 Change 把它加進 gate。
+7. **Testing Feature 在本分支更新。** 這是 Archive 的一步，內容描述本 shard 合併後的現況。
+8. **Jest 的模組索引略過 `.next/`。** ADR-0092 讓整合測試與 app build 同時執行後，`verify:all` 出現一次整合測試失敗：Jest 的 haste map 讀到 build 正在改寫的 `.next/build/package.json`。`jest.config.ts` 加上 `modulePathIgnorePatterns` 後，這個衝突不再發生。
+9. **review 走了七輪。** 第二輪起的發現都針對前一輪的修正；第五到七輪審查 Ingest 與 Jest 設定的修正。註解與決策紀錄重複（根本原因 B）連續兩輪出現後，改用刪除該註解的做法，不再改寫。
 
 </Deviations>
 
@@ -56,7 +60,7 @@ import { scenarios } from "./proposal.mdx";
     {
       id: "S5",
       result: "pass",
-      evidence: "`src/app/api` 下 17 條 route 各有一個 `__tests__/route.test.ts`，沒有其他測試檔；新增 `games/[gameId]`、`users`、`auth/[...all]` 三個",
+      evidence: "`src/app/api` 下 handler 由 repository 撰寫的 16 條 route 各有一個 `__tests__/route.test.ts`，沒有其他測試檔（新增 `games/[gameId]` 與 `users`）；Better Auth 的 `auth/[...all]` 沒有測試",
     },
     {
       id: "S8",
@@ -125,12 +129,13 @@ import { scenarios } from "./proposal.mdx";
 | `game-set-completion`：set 結果寫入失敗時保留 entry                                          | 移動 | `persistence/set-completion-write-failure`，改用 failpoint                                                         |
 | `game-entry-writes`                                                                          | 移動 | `persistence/game-entry-writes`，內容不變                                                                          |
 | 其餘 8 個整合測試檔                                                                          | 移動 | `api/` 或 `persistence/`，內容不變或只改 import                                                                    |
-| 8 個 route 測試檔共 77 案例（players 的 invitations、memberships、route、update-info；teams 的 ownership、create-player、get-route、players route） | 刪除 | 從未 import route 或正式程式碼，只斷言測試自建的值（Deviations 第 2 點）                                           |
+| 8 個 route 測試檔共 77 案例（players 的 invitations、memberships、route、update-info；teams 的 ownership、create-player、get-route、players route） | 刪除 | 從未 import route 或正式程式碼，只斷言測試自建的值（ADR-0089）                                           |
+| `auth/[...all]` 在本 shard 新增的 route 測試 | 刪除 | handler 由 Better Auth 整個產生，mock 後沒有程式可跑（ADR-0089）；行為待 end-to-end 與 API smoke 證明 |
 | 5 個 `request-schema.test.ts`                                                                | 改名 | 同目錄的 `route.test.ts`，案例不變                                                                                 |
 
 ### Code review
 
-四輪兩軸 review，最後一輪只剩兩項判斷，我都不採納：
+七輪兩軸 review。第四輪只剩兩項判斷，我都不採納；之後的 Ingest 與 Jest 設定由第五到七輪審查：
 
 - **第一輪**
   - 標準軸指出新測試違反本分支寫下的分層規則：以 spy 替換 repository、從 repository 進入的測試放在 `api/`。
@@ -147,9 +152,18 @@ import { scenarios } from "./proposal.mdx";
   - 建議在 `appName` 缺漏時拋錯，不採納：`integration.ts` 一定會設定它。
   - 建議為 S3 加註解或 import 檢查，不採納：註解已兩輪說不出理由，import 檢查超出本 shard。
 
+- **第五輪**
+  - 兩軸確認 Ingest 的實作符合新的 S5。
+  - 標準軸指出 ADR-0089 的 `decision` 夾帶理由、兩處刪除標準說法不一，且 `alternatives` 沒有記下這次的取捨；規格軸指出 title 仍是舊範圍。皆已修正。
+- **第六輪**
+  - 只剩 title 的措辭，依 review 給的文字逐字修改。
+- **第七輪**
+  - 兩軸確認 `modulePathIgnorePatterns` 的修正與註解，沒有新發現。
+
 ### 殘留風險
 
 - 整合測試共用一個 replica set。將來若有測試改變伺服器層級的狀態，卻沒有像 failpoint 這樣限定連線，就可能影響平行執行的其他測試檔。
 - S3 沒有自動檢查；`api/` 測試日後若 import 了 driver，要靠 review 發現。
+- `src/app/(tabs)/@modal/(...)team/` 下的兩個 page 測試在 `dev` 上就從未被 Jest 收集，frontend project 的 `testMatch` 對不上這兩條路徑。這不在本 Change 範圍內，已另開任務處理。
 
 </ReviewDetails>
