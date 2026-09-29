@@ -176,6 +176,7 @@ import { scenarios } from "./proposal.mdx";
 
 - **標準軸**：一項硬性：`header.test.tsx` 的 `backdrop-blur-sm` class 斷言，註解只說訪客為什麼在意、沒說為什麼只能斷言 class，已改成寫明 jsdom 不載入樣式表，class 是頁首毛玻璃唯一的痕跡；同一檔案的 unmount 測試只斷言「有個 listener 被移除」，改成比對同一個 handler，兩種 mutation 都變紅。四個 landing 測試各寫了一份相同的 `userAgent` spy，已提升為 `test/support/dom/user-agent.ts`。`wrappers.test.ts` 兩條只重述程式碼的註解已刪。兩個 `react-icons` stub 補上原因說明。根因與 shard 3 相同：上一輪只檢查改動的行，沒有依規則檢查整個專案的重複與未說明的 mock。
 - **規格軸**：S7 成立；兩個 CTA 缺陷經原始碼確認為真；指出 `use-game-merge` 傳 `fetcher` 進 hook 的做法，追查後發現是純測試接縫（ActionItems 第 4 點）；兩個 lib 測試與移除全域 `motion` stub 屬判斷性的額外範圍，已列在 Deviations。
+- **第二輪（只審修正的部分）**：第一輪的每一項都已解決；只多一則不準確的註解：`user-agent.ts` 說 jsdom 的預設 user agent 會被判成手機，實際上依主機作業系統而異（這台 Mac 是 `darwin`，被判成手機；Linux 會被判成桌面），已改成「因主機而異，所以要固定」。根因是註解寫在一個沒有實際驗證過的環境假設上。`use-game-merge` 的轉換經逐一比對，五個測試的斷言都保留。
 - 抽樣約六十個被刪的 `it`：行為性的都有 keeper；沒有 keeper 的兩組在 ActionItems 第 1 點。
 
 ### 殘留風險（flag，未修）
