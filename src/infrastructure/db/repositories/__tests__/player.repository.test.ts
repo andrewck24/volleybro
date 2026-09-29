@@ -89,22 +89,6 @@ describe("PlayerRepository", () => {
     });
   });
 
-  describe("findByEmail", () => {
-    it("should return players by email", async () => {
-      const mockExec = jest
-        .fn()
-        .mockResolvedValue([{ toObject: () => mockPlayerRaw }]);
-      (PlayerModel.find as jest.Mock).mockReturnValue({ exec: mockExec });
-
-      const result = await repository.findByEmail("test@example.com");
-
-      expect(PlayerModel.find).toHaveBeenCalledWith({
-        email: "test@example.com",
-      });
-      expect(result).toHaveLength(1);
-    });
-  });
-
   describe("findInvitedByTeamIdAndEmail", () => {
     it("should return invited player", async () => {
       const mockExec = jest.fn().mockResolvedValue({
@@ -272,52 +256,6 @@ describe("PlayerRepository", () => {
       });
 
       const result = await repository.delete("nonexistent");
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe("countByTeamId", () => {
-    it("should return count of players in team", async () => {
-      const mockExec = jest.fn().mockResolvedValue(5);
-      (PlayerModel.countDocuments as jest.Mock).mockReturnValue({
-        exec: mockExec,
-      });
-
-      const result = await repository.countByTeamId("team-1");
-
-      expect(PlayerModel.countDocuments).toHaveBeenCalledWith({
-        teamId: "team-1",
-      });
-      expect(result).toBe(5);
-    });
-  });
-
-  describe("existsInvitation", () => {
-    it("should return true if invitation exists", async () => {
-      const mockExec = jest.fn().mockResolvedValue(1);
-      (PlayerModel.countDocuments as jest.Mock).mockReturnValue({
-        exec: mockExec,
-      });
-
-      const result = await repository.existsInvitation(
-        "team-1",
-        "test@example.com",
-      );
-
-      expect(result).toBe(true);
-    });
-
-    it("should return false if invitation does not exist", async () => {
-      const mockExec = jest.fn().mockResolvedValue(0);
-      (PlayerModel.countDocuments as jest.Mock).mockReturnValue({
-        exec: mockExec,
-      });
-
-      const result = await repository.existsInvitation(
-        "team-1",
-        "nonexistent@example.com",
-      );
 
       expect(result).toBe(false);
     });

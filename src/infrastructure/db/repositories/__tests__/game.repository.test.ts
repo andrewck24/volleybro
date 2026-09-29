@@ -129,28 +129,6 @@ describe("GameRepositoryImpl", () => {
     });
   });
 
-  describe("delete", () => {
-    it("should return true when deletion is successful", async () => {
-      (GameModel.findByIdAndDelete as jest.Mock).mockReturnValue(
-        mockExec(mockDoc(mockGameData)),
-      );
-
-      const result = await repository.delete(mockGameIdString);
-
-      expect(result).toBe(true);
-    });
-
-    it("should return false when game not found", async () => {
-      (GameModel.findByIdAndDelete as jest.Mock).mockReturnValue(
-        mockExec(null),
-      );
-
-      const result = await repository.delete(nonExistentIdString);
-
-      expect(result).toBe(false);
-    });
-  });
-
   describe("player reference mapping", () => {
     const playerHexId = "64b000000000000000000001";
     const inHexId = "64b000000000000000000002";

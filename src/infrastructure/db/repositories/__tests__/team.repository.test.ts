@@ -153,26 +153,4 @@ describe("TeamRepositoryImpl", () => {
       ).rejects.toThrow(NotFoundError);
     });
   });
-
-  describe("delete", () => {
-    it("should return true when deletion is successful", async () => {
-      (TeamModel.findByIdAndDelete as jest.Mock).mockReturnValue(
-        mockExec(mockDoc(mockTeamData)),
-      );
-
-      const result = await repository.delete(mockTeamIdString);
-
-      expect(result).toBe(true);
-    });
-
-    it("should return false when team not found", async () => {
-      (TeamModel.findByIdAndDelete as jest.Mock).mockReturnValue(
-        mockExec(null),
-      );
-
-      const result = await repository.delete(nonExistentIdString);
-
-      expect(result).toBe(false);
-    });
-  });
 });

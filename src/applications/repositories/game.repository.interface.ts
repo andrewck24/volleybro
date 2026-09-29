@@ -34,7 +34,6 @@ export interface IGameRepository {
     win: boolean | null,
     gameWin?: boolean | null,
   ): Promise<void>;
-  delete(id: string): Promise<boolean>;
   findGameSummaries(
     teamId: string,
     options?: { lastId?: string; limit?: number },

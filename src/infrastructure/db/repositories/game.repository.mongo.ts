@@ -525,15 +525,6 @@ export class GameRepositoryImpl implements IGameRepository {
     });
   }
 
-  async delete(id: string): Promise<boolean> {
-    try {
-      const result = await this.model.findByIdAndDelete(id).exec();
-      return !!result;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async findGameSummaries(
     teamId: string,
     options: { lastId?: string; limit?: number } = {},

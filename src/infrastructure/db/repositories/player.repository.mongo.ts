@@ -53,15 +53,6 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     }
   }
 
-  async findByEmail(email: string): Promise<Player[]> {
-    try {
-      const docs = await PlayerModel.find({ email }).exec();
-      return docs.map((doc) => this.toPlayer(doc));
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
   async findInvitedByTeamIdAndEmail(
     teamId: string,
     email: string,
@@ -119,27 +110,6 @@ export class PlayerRepositoryImpl implements IPlayerRepository {
     try {
       const result = await PlayerModel.findByIdAndDelete(id).exec();
       return !!result;
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async countByTeamId(teamId: string): Promise<number> {
-    try {
-      return await PlayerModel.countDocuments({ teamId }).exec();
-    } catch (error) {
-      throw translateRepositoryError(error);
-    }
-  }
-
-  async existsInvitation(teamId: string, email: string): Promise<boolean> {
-    try {
-      const count = await PlayerModel.countDocuments({
-        teamId,
-        email,
-        status: PlayerStatus.INVITED,
-      }).exec();
-      return count > 0;
     } catch (error) {
       throw translateRepositoryError(error);
     }
