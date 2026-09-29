@@ -26,7 +26,7 @@ document assigns it.
 
 ## Authoring gate
 
-Before adding any test, answer four questions; a missing answer means do not
+Before adding any test, answer five questions; a missing answer means do not
 add it yet:
 
 1. What observable behavior, invariant, or independent contract does it protect?
@@ -38,6 +38,8 @@ add it yet:
    near-duplicate test; consolidate duplicated setup in the same change.
 4. Does it need a production seam (export, flag, wrapper, injection hook) that no
    production caller needs? If yes, move the test to the real boundary instead.
+5. Does a fixture, helper, or handler for it already exist in `test/support/`?
+   Reuse it; a helper a second test file needs moves there, and both copies go.
 
 Then check the test against every [junk pattern](#junk-patterns); a match fails
 the gate unless the [retention bar](#retention-bar) names the contract it
