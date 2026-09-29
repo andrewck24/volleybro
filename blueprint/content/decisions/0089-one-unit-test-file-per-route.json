@@ -4,13 +4,16 @@
   "title": "Each API route has one unit test file, route.test.ts",
   "capabilities": ["platform/testing"],
   "context": "Route unit tests were split across route.test.ts, request-schema.test.ts and files named after an action, so the same kind of case lived in different files for different routes.",
-  "decision": "Each API route has exactly one unit test file, __tests__/route.test.ts beside its route.ts, holding every unit case for that route, request-schema rejections included. Cases moved out of integration tests are merged into it, and the existing request-schema.test.ts and action-named files are merged into it too.",
+  "decision": "Each API route whose handler the repository writes has exactly one unit test file, __tests__/route.test.ts beside its route.ts, holding every unit case for that route, request-schema rejections included. Cases moved out of integration tests, the existing request-schema.test.ts files and action-named files are merged into it; a file that never runs its route is deleted, not merged. A route whose handler a library generates whole, such as the Better Auth catch-all, has no unit test: with the library replaced nothing of the route is left to run, and only end-to-end and API smoke tests can prove it.",
   "alternatives": [
     {
       "option": "A separate request-schema.test.ts for validation cases",
       "reason": "Which file a case belongs in would be a judgement the one-file rule removes."
     }
   ],
-  "consequences": ["Some route test files grow to a few hundred lines."],
+  "consequences": [
+    "Some route test files grow to a few hundred lines.",
+    "A file that asserts only values it built itself is deleted rather than carried into route.test.ts."
+  ],
   "originChange": "testing-tiers"
 }
