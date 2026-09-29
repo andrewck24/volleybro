@@ -2,11 +2,10 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-1. **`linkUserToInvitations` 的 collation 與它的註解要不要留**（`src/infrastructure/db/repositories/player.repository.mongo.ts`）。對這個 codebase 現在能寫出的任何文件，它都不起作用：Mongoose 會把 filter 與寫入的 email 都轉成小寫。只有 setter 出現之前就以大寫儲存的 email 才用得到它，repository 內沒有任何東西證實這種資料存在。沒有任何測試守護它：拿掉 collation 後所有 persistence 測試仍然通過（M1，見 ReviewDetails）。
-   - **刪掉 collation 與註解**（消除例外的做法）：代價是一個正式程式碼的變更，超出本 shard 範圍；若上線資料裡真的有大寫儲存的邀請，這些邀請不再連得到註冊帳號，而且沒有測試會發現。做之前要先查 production 資料庫有沒有這種文件。
-   - **保留**：代價是一段無法證明的正式程式碼，加上一段沒有任何東西能證實的註解，將來每個讀的人都得再判斷一次。
-2. **ReviewDetails 殘留風險列出的相鄰問題，要不要另開任務。** 這些都是本 shard 看到、但依範圍沒有修的；由你決定哪些值得開票。
-3. 其餘偏差都是做法上的調整，列在 Deviations，不需要另外決定。
+無需再決定。審查時已決定的兩件事，都沒有改動本 shard 的內容：
+
+1. **`linkUserToInvitations` 的 collation 與它的註解**：email 依慣例在邊界統一成小寫再存再比；production 資料庫尚未啟用、`test` 資料庫也沒有大寫儲存的邀請，所以 collation 與註解沒有需要相容的資料。移除它們是正式程式碼的變更，超出本 shard 範圍，歸入 ATE-229；在那之前，M1 維持「刻意不證明」（見 ReviewDetails）。
+2. **ReviewDetails 殘留風險列出的相鄰問題**：email 大小寫與 `handleUserCreated` 吞掉失敗歸入 ATE-229，型別與 mapping 的不一致與 Mongoose 棄用警告歸入 ATE-230。其餘兩項（`knip.json` 的 `classMembers` 規則、路徑含 `.claude` 時 jest 收不到測試）與本 shard 無關，未開票。
 
 </ActionItems>
 
@@ -22,7 +21,7 @@ import { scenarios } from "./proposal.mdx";
 
 1. **`knip --production` 無法回報 class 成員。** 計畫的第 1 點要用它找出沒有正式呼叫端的 repository 方法。knip 6.32.3 與 6.38.0 都拒絕 `classMembers` 這個 issue type，所以改用逐方法 grep 正式程式碼的呼叫端。五個沒有呼叫端的方法（`game.delete`、`team.delete`、`player.findByEmail`、`player.countByTeamId`、`player.existsInvitation`）由此找出，開發者已核准刪除（commit `8025209a`）。
 2. **Ingest 的文件 commit 先於本 shard 的程式碼。** `7bf982a5` 把 Test Value 規則（新測試與測試的刪除都要說明它證明了什麼）寫進文件，之後才開始改測試，campaign 依這條規則標記。
-3. **相鄰的問題只旗標不修。** 見 ReviewDetails 的殘留風險。
+3. **相鄰的問題只 flag 不修。** 見 ReviewDetails 的殘留風險，已開票追蹤。
 
 </Deviations>
 
@@ -32,7 +31,7 @@ import { scenarios } from "./proposal.mdx";
     {
       id: "S6",
       result: "pass",
-      evidence: "`test/setup/backend.ts` 不再 mock `mongoose`、`mongodb` 或 `bson`，只留 `next/server` 與 `next/headers`；每個有正式呼叫端的 repository 方法都在至少一個 `persistence/` 測試中執行（ReviewDetails 的方法對照表）；對 S6 點名的四個方法各加 `throw new Error(\"PROBE\")` 探針，各有 1 到 10 個 persistence 測試變紅",
+      evidence: "`test/setup/backend.ts` 不再 mock `mongoose`、`mongodb` 或 `bson`，只留 `next/server` 與 `next/headers`；每個有正式呼叫端的 repository 方法都在至少一個 `persistence/` 測試中執行（ReviewDetails 的方法對照表）；對 S6 點名的四個方法各在方法第一行暫時拋錯（故障注入），各有 1 到 10 個 persistence 測試變紅",
     },
   ]}
 />
@@ -201,7 +200,7 @@ import { scenarios } from "./proposal.mdx";
 | M26 | team lineup id mapping | `'id: p.playerId?.toString() ?? null,' -> 'id: (p.playerId as unknown as string) ?? null,'` in `src/infrastructure/db/repositories/team.mapping.mongo.ts` | `team document mapping › reads stored ids back to the domain id and an empty slot to a null id` (+1 more); Tests: 2 failed, 6 passed, 8 total |
 | M3-zone | rally player 的 zone 讀回 | `zone: detail.player.zone` 改成 `zone: undefined`，位於 `src/infrastructure/db/repositories/game.mapping.mongo.ts` | verifier 發現時沒有任何測試變紅；`2b356b61` 之後由 `game-repository.itest.ts` 的 `stores the sets an update writes with every player id readable as a string` 守護 |
 
-- **M1 刻意不證明。** 證明 M1 的測試（以原本輸入的大小寫寫入一筆邀請）已刪除：shard 1 的計畫刻意刪除同一個測試，因為 `test` 資料庫中不存在這種文件。拿掉 collation 後所有 persistence 測試維持通過（`jest --selectProjects integration test/integration/persistence`）。混合大小寫的註冊測試仍然通過，因為 Mongoose 在查詢前就用 schema 的 `lowercase: true` setter 轉換 filter 的值，collation 對任何經過 schema 寫入的文件都沒有貢獻。
+- **M1 刻意不證明。** 證明 M1 的測試（以原本輸入的大小寫寫入一筆邀請）已刪除：shard 1 的計畫刻意刪除同一個測試，因為 `test` 資料庫中不存在這種文件。拿掉 collation 後所有 persistence 測試維持通過（`jest --selectProjects integration test/integration/persistence`）。混合大小寫的註冊測試仍然通過，因為 Mongoose 在查詢前就用 schema 的 `lowercase: true` setter 轉換 filter 的值，collation 對任何經過 schema 寫入的文件都沒有貢獻。開發者確認 production 資料庫尚未啟用，因此沒有需要證明的舊資料；collation 的移除歸入 ATE-229。
 - **M3-zone 由 verifier 找到。** 讀回 mapping 逐欄列出 rally player 的欄位，漏掉 `zone` 會讓讀回的值變成 `undefined`。移除重複的 id 斷言（`d932e817`）之後，沒有任何測試守護這個欄位；`2b356b61` 讓 `game-repository.itest.ts` 直接斷言整個 `{ id, zone }`。
 
 ### Repository 方法對照表
@@ -238,7 +237,7 @@ import { scenarios } from "./proposal.mdx";
 | user.findByEmail | user-repository |
 | user.findAllByEmailInsensitive | team-membership-writes |
 
-執行不等於守護，所以 S6 點名的四個方法另外以 `throw new Error("PROBE")` 當第一個敘述探測（還原後 `git diff` 為空），跑整個 `test/integration/persistence`：
+執行不等於守護，所以 S6 點名的四個方法另外做故障注入：在方法的第一個敘述暫時加上 `throw`（還原後 `git diff` 為空），跑整個 `test/integration/persistence`：
 
 | 方法 | 變紅的測試數 |
 | --- | --- |
@@ -255,9 +254,11 @@ import { scenarios } from "./proposal.mdx";
 - **規格軸**：`team-membership-writes` 重新加回的舊資料測試（邀請以原本大小寫儲存）與 shard 1 的決定矛盾，已在 `d932e817` 移除；並要求補上方法對照表，已補。
 - **Verifier**：rally player 的 `zone` 讀回 mapping 沒有任何測試守護（重複的 id 斷言移除之後才出現），已在 `2b356b61` 修正。這一輪修正由另一位新的 verifier 重新檢查，沒有新的發現。
 
-### 殘留風險（旗標，未修）
+### 殘留風險（flag，未修）
 
-- `handleUserCreated` 會吞掉 `linkUserToInvitations` 的失敗；讓後者拋錯的探針下只有 1 個測試變紅。
+追蹤：ATE-229（email 大小寫與 `handleUserCreated`）、ATE-230（型別、mapping 與棄用警告）。
+
+- `handleUserCreated` 會吞掉 `linkUserToInvitations` 的失敗；對後者做故障注入時只有 1 個測試變紅。
 - `IPlayerRepository.update` 的型別是 `Promise<Player | null>`，實作永遠不回傳 null。
 - `toProfile` 回傳的物件帶有 `activeTeamId: undefined` 這個 key。
 - Mongoose 對 `{ new: true }` 顯示 deprecation 警告，應改用 `returnDocument: 'after'`。
