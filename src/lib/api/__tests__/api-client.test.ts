@@ -5,7 +5,7 @@ import {
 } from "@/lib/api/api-client";
 import { http, HttpResponse } from "msw";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const respond = (status: number, body: object) =>
   server.use(http.get("/api/test", () => HttpResponse.json(body, { status })));

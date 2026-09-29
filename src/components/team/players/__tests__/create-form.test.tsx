@@ -1,9 +1,9 @@
 import { CreateForm } from "@/components/team/players/create-form";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { server } from "../../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();

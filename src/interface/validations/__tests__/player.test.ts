@@ -1,4 +1,7 @@
-import { createPlayer, createUnlinkedPlayer } from "@/__tests__/helpers";
+import {
+  createPlayer,
+  createUnlinkedPlayer,
+} from "@test/support/fixtures/entities";
 import { PlayerRole, Position } from "@/entities/player";
 import {
   CreatePlayerSchema,

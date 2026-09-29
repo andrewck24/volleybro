@@ -4,13 +4,13 @@ import { Position } from "@/entities/team";
 import { ERROR_MESSAGES } from "@/lib/api/error-messages";
 import { lineupActions } from "@/lib/features/team/lineup-slice";
 import { makeStore } from "@/lib/redux/store";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const mockRouterPush = jest.fn();
 jest.mock("next/navigation", () => ({

@@ -1,8 +1,8 @@
 import TeamInfo from "@/components/team/info";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),

@@ -1,10 +1,9 @@
+import { createGame, createUser } from "@test/support/fixtures/entities";
 import {
-  createGame,
   createMockAuthenticationService,
   createMockAuthorizationService,
-  createMockGameRepository,
-  createUser,
-} from "@/__tests__/helpers";
+} from "@test/support/doubles/services";
+import { createMockGameRepository } from "@test/support/doubles/repositories";
 import { RecordRalliesUseCase } from "@/applications/usecases/game/record-rallies.usecase";
 import { GameReason, NotFoundError } from "@/entities/errors";
 import {

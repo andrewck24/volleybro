@@ -7,9 +7,9 @@ import { EntryType } from "@/entities/game";
 import { applyEntry } from "@/lib/features/game/helpers/optimistic/rally.helper";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
-import { server } from "../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const entry = (id: string, seq: number) =>
   ({

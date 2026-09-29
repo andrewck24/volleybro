@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { SWRConfig } from "swr";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const mockRouterPush = jest.fn();
 

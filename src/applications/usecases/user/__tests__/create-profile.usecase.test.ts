@@ -1,7 +1,5 @@
-import {
-  createMockProfileRepository,
-  createProfile,
-} from "@/__tests__/helpers";
+import { createMockProfileRepository } from "@test/support/doubles/repositories";
+import { createProfile } from "@test/support/fixtures/entities";
 import { CreateProfileUseCase } from "@/applications/usecases/user/profile.usecase";
 
 describe("CreateProfileUseCase", () => {

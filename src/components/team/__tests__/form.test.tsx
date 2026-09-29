@@ -4,8 +4,8 @@ import TeamForm, {
   EditTeamWorkspace,
   NewTeamWorkspace,
 } from "@/components/team/form";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
-import { server } from "../../../../test/msw/server";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
+import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),

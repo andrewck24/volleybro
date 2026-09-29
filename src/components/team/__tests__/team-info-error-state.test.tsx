@@ -1,11 +1,11 @@
-import { createPlayer } from "@/__tests__/helpers";
+import { createPlayer } from "@test/support/fixtures/entities";
 import TeamInfo from "@/components/team/info/index";
 import { Toaster } from "@/components/ui/toaster";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),

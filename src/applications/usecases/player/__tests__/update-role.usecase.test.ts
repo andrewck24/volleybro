@@ -1,9 +1,9 @@
 import {
   createInvitedPlayer,
-  createMockPlayerRepository,
   createPlayer,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import type { IUpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import { UpdateRoleUseCase } from "@/applications/usecases/player/update-role.usecase";
 import {

@@ -1,10 +1,10 @@
 import {
   createInvitedPlayer,
-  createMockAuthorizationService,
-  createMockPlayerRepository,
   createPlayer,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockAuthorizationService } from "@test/support/doubles/services";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import { GetPlayerUseCase } from "@/applications/usecases/player/get-player.usecase";
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";

@@ -2,13 +2,13 @@ import { Substitutes } from "@/components/game/panel/substitutes";
 import { Toaster } from "@/components/ui/toaster";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { makeStore } from "@/lib/redux/store";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
-import { server } from "../../../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const game = {
   id: "game-1",

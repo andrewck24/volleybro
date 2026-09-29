@@ -1,9 +1,9 @@
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
-import { server } from "../../../../../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 import EditTeamModalPage from "../page";
 
 const mockTeamId = "507f1f77bcf86cd799439011";

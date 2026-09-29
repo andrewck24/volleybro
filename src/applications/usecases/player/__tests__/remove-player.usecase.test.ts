@@ -1,12 +1,14 @@
 import {
   createInvitedPlayer,
-  createMockPlayerRepository,
-  createMockProfileRepository,
-  createMockTeamRepository,
   createPlayer,
   createProfile,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import {
+  createMockPlayerRepository,
+  createMockProfileRepository,
+  createMockTeamRepository,
+} from "@test/support/doubles/repositories";
 import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import {

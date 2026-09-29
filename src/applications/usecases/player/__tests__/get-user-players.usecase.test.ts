@@ -1,9 +1,8 @@
 import {
   createMockPlayerRepository,
   createMockTeamRepository,
-  createPlayer,
-  createTeam,
-} from "@/__tests__/helpers";
+} from "@test/support/doubles/repositories";
+import { createPlayer, createTeam } from "@test/support/fixtures/entities";
 import { GetUserPlayersUseCase } from "@/applications/usecases/player/get-user-players.usecase";
 import { PlayerRole, PlayerStatus } from "@/entities/player";
 

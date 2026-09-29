@@ -1,4 +1,4 @@
-import { http, HttpResponse } from "msw";
+import { HttpResponse } from "msw";
 import { ApiClientError } from "@/lib/api/api-client";
 import {
   flushPendingWrites,
@@ -7,7 +7,7 @@ import {
 import { PENDING_WRITE_IMMEDIATE_RETRY_DELAYS_MS } from "@/lib/features/game/pending-writes";
 import type { PendingEntry } from "@/lib/features/game/types";
 
-import { server } from "../../../../../../test/msw/server";
+import { answerRallies } from "@test/support/msw/rallies";
 
 const entries = [{ id: "e1", seq: 0 }] as unknown as PendingEntry["entry"][];
 const confirmed = { entries: [{ id: "e1" }] };
@@ -24,25 +24,6 @@ const unavailable = () =>
     { code: "TRANSIENT", reason: "NETWORK_ERROR" },
     { status: 503 },
   );
-
-/** Answers each successive PUT with the next responder and records what was sent. */
-const answerRallies = (
-  ...responders: (() => Response | Promise<Response>)[]
-) => {
-  const requests: { si: string | null; body: unknown }[] = [];
-  server.use(
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
-      requests.push({
-        si: new URL(request.url).searchParams.get("si"),
-        body: await request.json(),
-      });
-      const respond =
-        responders[Math.min(requests.length, responders.length) - 1]!;
-      return respond();
-    }),
-  );
-  return requests;
-};
 
 describe("flushPendingWrites", () => {
   beforeEach(() => {

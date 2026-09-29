@@ -5,7 +5,7 @@ import { act, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import useSWR from "swr";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const mockPush = jest.fn();
 const mockRouter = { push: mockPush };

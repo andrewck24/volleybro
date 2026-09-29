@@ -36,6 +36,7 @@ export default async function jestConfig() {
     moduleNameMapper: {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
+      "^@test/(.*)$": "<rootDir>/test/$1",
       // The migration scripts run under ts-node/esm, which requires the `.js`
       // specifier the TypeScript source does not have on disk.
       "^(\\.{1,2}/.*)\\.js$": "$1",
@@ -53,6 +54,8 @@ export default async function jestConfig() {
       "!src/**/*.d.ts",
       "!src/types/**/*",
     ],
+    // The v8 provider reports every file a test loads, test code included.
+    coveragePathIgnorePatterns: ["/node_modules/", "<rootDir>/test/"],
   };
 
   const backendProject: Config = {

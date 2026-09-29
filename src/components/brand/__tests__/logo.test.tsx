@@ -14,7 +14,7 @@ import {
   TYPE_LETTERS_SHIFT,
   TYPE_VIEWBOX,
 } from "@/components/brand/logo-type";
-import { collect, type SvgLikeElement } from "@/test-utils/svg-tree";
+import { collect, type SvgLikeElement } from "@test/support/dom/svg-tree";
 
 describe("LogoSymbol", () => {
   it("renders the two v-arm paths in the exported viewBox", () => {

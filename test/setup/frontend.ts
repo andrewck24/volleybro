@@ -8,7 +8,7 @@ import {
   setImmediate as nodeSetImmediate,
 } from "node:timers";
 
-import { server } from "../msw/server";
+import { server } from "../support/msw/server";
 import "./shared";
 
 expect.extend(toHaveNoViolations);

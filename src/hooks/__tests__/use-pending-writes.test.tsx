@@ -15,9 +15,10 @@ import {
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
-import { server } from "../../../test/msw/server";
+import { answerRallies, type RallyPut } from "@test/support/msw/rallies";
+import { server } from "@test/support/msw/server";
 
 const entry = (id: string) =>
   ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];
@@ -48,18 +49,17 @@ const unavailable = () =>
 const serve = (
   respond: (put: { si: number; n: number }) => Response | Promise<Response>,
 ) => {
-  const puts: { si: number; ids: string[] }[] = [];
   server.use(
     http.get("/api/games/game-1", () => HttpResponse.json(storedGame())),
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
-      const si = Number(new URL(request.url).searchParams.get("si"));
-      const body = (await request.json()) as { id: string }[];
-      puts.push({ si, ids: body.map((e) => e.id) });
-      return respond({ si, n: puts.length });
-    }),
   );
-  return puts;
+  return answerRallies(({ si }, n) => respond({ si: Number(si), n }));
 };
+
+const sent = (puts: RallyPut[]) =>
+  puts.map(({ si, body }) => ({
+    si: Number(si),
+    ids: (body as { id: string }[]).map((e) => e.id),
+  }));
 
 // A request settles on real I/O ticks, so under fake timers the clock is
 // stepped with a real pause between steps until the condition holds.
@@ -124,7 +124,7 @@ describe("usePendingWrites", () => {
       await result.current.queue.flush();
     });
 
-    expect(puts).toEqual([{ si: 0, ids: ["e1"] }]);
+    expect(sent(puts)).toEqual([{ si: 0, ids: ["e1"] }]);
     expect(pendingIds()).toEqual([]);
     await waitFor(() =>
       expect(result.current.game.game?.sets[0]?.entries).toEqual([rally("e1")]),
@@ -331,7 +331,7 @@ describe("usePendingWrites", () => {
       await result.current.queue.flush();
     });
 
-    expect(puts).toEqual([
+    expect(sent(puts)).toEqual([
       { si: 0, ids: ["e0"] },
       { si: 1, ids: ["e1"] },
     ]);

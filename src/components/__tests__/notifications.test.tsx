@@ -1,11 +1,11 @@
 import Notifications from "@/components/notifications";
 import { PlayerStatus } from "@/entities/player";
 import { useActiveTeamId } from "@/hooks/use-data";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen } from "@testing-library/react";
 import { delay, http, HttpResponse } from "msw";
 
-import { server } from "../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const GUIDE = "歡迎使用 VolleyBro !";
 

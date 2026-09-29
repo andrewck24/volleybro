@@ -3,7 +3,7 @@ import { ApiClientError } from "@/lib/api/api-client";
 import { createSubstitution } from "@/lib/features/game/actions/create-substitution";
 import type { GameView, SubstitutionView } from "@/lib/features/game/types";
 
-import { server } from "../../../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 describe("createSubstitution", () => {
   const params = { gameId: "game-1", setIndex: 0, entryIndex: 2 };

@@ -10,13 +10,13 @@ import { PENDING_WRITE_UNSENT_ATTEMPTS } from "@/lib/features/game/pending-write
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 
-import { server } from "../../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const entry = (id: string) =>
   ({ id, seq: 0, win: true, home: {}, away: {} }) as PendingEntry["entry"];

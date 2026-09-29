@@ -6,13 +6,14 @@ import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { useSWRConfig } from "swr";
 
-import { server } from "../../../../../../test/msw/server";
+import { answerRallies } from "@test/support/msw/rallies";
+import { server } from "@test/support/msw/server";
 
 const rally = {
   id: "e1",
@@ -50,22 +51,6 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   </SwrIsolation>
 );
-
-type PutRequest = { si: string | null; body: { id: string }[] };
-const answerRallies = (respond: (put: PutRequest) => Response) => {
-  const puts: PutRequest[] = [];
-  server.use(
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
-      const put = {
-        si: new URL(request.url).searchParams.get("si"),
-        body: (await request.json()) as PutRequest["body"],
-      };
-      puts.push(put);
-      return respond(put);
-    }),
-  );
-  return puts;
-};
 
 const editFirstEntry = (game: ReturnType<typeof gameWith>) => {
   store = makeStore();

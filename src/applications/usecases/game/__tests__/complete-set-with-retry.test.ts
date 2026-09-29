@@ -1,4 +1,4 @@
-import { createMockGameRepository } from "@/__tests__/helpers";
+import { createMockGameRepository } from "@test/support/doubles/repositories";
 import {
   COMPLETE_SET_RETRY_DELAYS_MS,
   completeSetWithRetry,

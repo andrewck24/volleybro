@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { http, HttpResponse } from "msw";
+import { HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 import { useUnconfirmedSetCompletion } from "@/hooks/use-unconfirmed-set-completion";
@@ -8,7 +8,7 @@ import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { GameView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 
-import { server } from "../../../test/msw/server";
+import { answerRallies } from "@test/support/msw/rallies";
 
 const lastRally = {
   type: "Rally",
@@ -66,21 +66,6 @@ const recordCompletion = (confirmed: boolean) =>
       confirmed,
     }),
   );
-
-/** Answers the rally endpoint and records the set index and body of each PUT. */
-const serveRallies = (respond: () => Response) => {
-  const requests: { si: string | null; body: unknown }[] = [];
-  server.use(
-    http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
-      requests.push({
-        si: new URL(request.url).searchParams.get("si"),
-        body: await request.json(),
-      });
-      return respond();
-    }),
-  );
-  return requests;
-};
 
 beforeEach(() => {
   store = makeStore();
@@ -180,7 +165,7 @@ describe("useUnconfirmedSetCompletion", () => {
   });
 
   it("retry resends the last rally entry and records success", async () => {
-    const requests = serveRallies(() =>
+    const requests = answerRallies(() =>
       HttpResponse.json({ entries: [lastRally], setCompletionConfirmed: true }),
     );
     recordCompletion(false);
@@ -212,7 +197,7 @@ describe("useUnconfirmedSetCompletion", () => {
   // close the dialog, and a response that omits the field means a different
   // attempt already matched the derived result, which is a confirmation.
   it("closes after a successful retry even though the entry is still queued and the response omits the field", async () => {
-    serveRallies(() => HttpResponse.json({ entries: [lastRally] }));
+    answerRallies(() => HttpResponse.json({ entries: [lastRally] }));
     enqueue("e1", "game-1", 0);
     store.dispatch(
       pendingWritesActions.flushFailed({ ids: ["e1"], retryable: false }),
@@ -232,7 +217,7 @@ describe("useUnconfirmedSetCompletion", () => {
   });
 
   it("retry leaves the session signal untouched on failure", async () => {
-    serveRallies(() =>
+    answerRallies(() =>
       HttpResponse.json(
         { code: "VALIDATION", reason: "INVALID_INPUT" },
         { status: 400 },

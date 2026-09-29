@@ -2,10 +2,12 @@ import {
   createMockPlayerRepository,
   createMockProfileRepository,
   createMockTeamRepository,
+} from "@test/support/doubles/repositories";
+import {
   createPlayer,
   createProfile,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import {

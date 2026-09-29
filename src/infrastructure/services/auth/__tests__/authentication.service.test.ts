@@ -1,4 +1,5 @@
-import { createMockUserRepository, createUser } from "@/__tests__/helpers";
+import { createMockUserRepository } from "@test/support/doubles/repositories";
+import { createUser } from "@test/support/fixtures/entities";
 import { AuthenticationError } from "@/entities/errors";
 import { AuthenticationService } from "@/infrastructure/services/auth/authentication.service";
 

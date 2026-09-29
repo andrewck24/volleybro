@@ -1,9 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
-import { server } from "../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const cases = [
   {

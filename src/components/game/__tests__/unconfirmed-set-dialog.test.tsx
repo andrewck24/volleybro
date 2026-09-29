@@ -10,7 +10,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),

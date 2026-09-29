@@ -14,7 +14,7 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 // GamePreview reads enqueue/flush/retry from context now that `usePendingWrites`
 // mounts once in `Game` -- this harness stands in for that single owner so

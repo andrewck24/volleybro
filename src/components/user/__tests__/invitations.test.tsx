@@ -1,10 +1,10 @@
 import { Invitations } from "@/components/user/invitations/index";
 import { PlayerStatus } from "@/entities/player";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { server } from "../../../../test/msw/server";
+import { server } from "@test/support/msw/server";
 
 const invited = [
   {

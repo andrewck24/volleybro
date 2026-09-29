@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MembershipSection } from "@/components/team/players/membership-section";
 import { Toaster } from "@/components/ui/toaster";
-import { createPlayer } from "@/__tests__/helpers";
-import { SwrIsolation } from "@/test-utils/swr-isolation";
-import { server } from "../../../../test/msw/server";
+import { createPlayer } from "@test/support/fixtures/entities";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
+import { server } from "@test/support/msw/server";
 
 const mockReplace = jest.fn();
 jest.mock("next/navigation", () => ({
