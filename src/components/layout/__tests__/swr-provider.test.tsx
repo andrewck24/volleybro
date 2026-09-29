@@ -1,127 +1,97 @@
-import React from "react";
-import { render, screen, act } from "@testing-library/react";
-import { API_UNAUTHORIZED_EVENT, ApiClientError } from "@/lib/api/api-client";
-import type { ApiError } from "@/lib/api/parse-api-error";
-
-let capturedOnError: ((error: unknown) => void) | undefined;
-
-jest.mock("swr", () => ({
-  SWRConfig: ({
-    value,
-    children,
-  }: {
-    value: { onError: (error: unknown) => void };
-    children: React.ReactNode;
-  }) => {
-    capturedOnError = value.onError;
-    return <>{children}</>;
-  },
-}));
-
-jest.mock("next/navigation", () => ({
-  useRouter: jest.fn(() => ({ push: jest.fn() })),
-}));
-
-const mockHandle401Redirect = jest.fn();
-const mockShowErrorToast = jest.fn();
-
-jest.mock("@/lib/api/error-toast", () => ({
-  handle401Redirect: (...args: unknown[]) => mockHandle401Redirect(...args),
-  showErrorToast: (...args: unknown[]) => mockShowErrorToast(...args),
-}));
-
-const mockToast = jest.fn();
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: mockToast }),
-}));
-
 import { SWRProvider } from "@/components/layout/swr-provider";
+import { Toaster } from "@/components/ui/toaster";
+import { API_UNAUTHORIZED_EVENT, apiClient } from "@/lib/api/api-client";
+import { act, render, screen } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
+import useSWR from "swr";
 
-function makeApiClientError(status: number): ApiClientError {
-  const info: ApiError = {
-    code: "UNEXPECTED",
-    reason: "TEST",
-    status,
-  };
-  return new ApiClientError("test error", info);
-}
+import { server } from "../../../../test/msw/server";
+
+const mockPush = jest.fn();
+const mockRouter = { push: mockPush };
+jest.mock("next/navigation", () => ({
+  useRouter: () => mockRouter,
+}));
+
+// Requests the URL through SWR, so a failure reaches the provider's onError.
+const Probe = () => {
+  useSWR("/api/probe", (url: string) => apiClient(url), {
+    shouldRetryOnError: false,
+  });
+  return null;
+};
+
+const renderProvider = (children: React.ReactNode = <span>child</span>) =>
+  render(
+    <SWRProvider>
+      {children}
+      <Toaster />
+    </SWRProvider>,
+  );
+
+const respondWith = (status: number, body: object) =>
+  server.use(http.get("/api/probe", () => HttpResponse.json(body, { status })));
+
+const fireUnauthorized = () =>
+  act(() => {
+    window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
+  });
 
 describe("SWRProvider", () => {
   beforeEach(() => {
-    capturedOnError = undefined;
-    mockHandle401Redirect.mockClear();
-    mockShowErrorToast.mockClear();
-    mockToast.mockClear();
+    mockPush.mockClear();
   });
 
   it("renders children", () => {
-    render(
-      <SWRProvider>
-        <span>child</span>
-      </SWRProvider>,
-    );
+    renderProvider();
     expect(screen.getByText("child")).toBeInTheDocument();
   });
 
-  describe("onError callback", () => {
-    it("calls showErrorToast for all errors, including 401", () => {
-      render(
-        <SWRProvider>
-          <span />
-        </SWRProvider>,
-      );
-      capturedOnError!(makeApiClientError(401));
-      expect(mockShowErrorToast).toHaveBeenCalledTimes(1);
-    });
+  it("shows an error toast when a request fails", async () => {
+    respondWith(500, { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" });
 
-    it("does NOT call handle401Redirect from onError", () => {
-      render(
-        <SWRProvider>
-          <span />
-        </SWRProvider>,
-      );
-      capturedOnError!(makeApiClientError(401));
-      expect(mockHandle401Redirect).not.toHaveBeenCalled();
-    });
+    renderProvider(<Probe />);
+
+    expect(await screen.findByText("哎呀，發球掛網！")).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("redirects to sign-in once, with a session-expired toast, on a 401 response", async () => {
+    respondWith(401, { code: "AUTHENTICATION", reason: "SESSION_REQUIRED" });
+
+    renderProvider(<Probe />);
+
+    expect(await screen.findByText("登入逾期")).toBeInTheDocument();
+    // The request error and the unauthorized event both fire for this 401.
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith("/auth/sign-in");
   });
 
   describe("api:unauthorized event listener", () => {
-    it("calls handle401Redirect when api:unauthorized event is dispatched", () => {
-      render(
-        <SWRProvider>
-          <span />
-        </SWRProvider>,
-      );
-      act(() => {
-        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
-      });
-      expect(mockHandle401Redirect).toHaveBeenCalledTimes(1);
+    it("redirects to sign-in when the event is dispatched", () => {
+      renderProvider();
+
+      fireUnauthorized();
+
+      expect(mockPush).toHaveBeenCalledWith("/auth/sign-in");
     });
 
-    it("calls handle401Redirect only once when two events fire in quick succession (dedup guard)", () => {
-      render(
-        <SWRProvider>
-          <span />
-        </SWRProvider>,
-      );
-      act(() => {
-        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
-        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
-      });
-      expect(mockHandle401Redirect).toHaveBeenCalledTimes(1);
+    it("redirects only once when two events fire in quick succession", () => {
+      renderProvider();
+
+      fireUnauthorized();
+      fireUnauthorized();
+
+      expect(mockPush).toHaveBeenCalledTimes(1);
     });
 
-    it("removes event listener on unmount", () => {
-      const { unmount } = render(
-        <SWRProvider>
-          <span />
-        </SWRProvider>,
-      );
+    it("stops listening on unmount", () => {
+      const { unmount } = renderProvider();
+
       unmount();
-      act(() => {
-        window.dispatchEvent(new CustomEvent(API_UNAUTHORIZED_EVENT));
-      });
-      expect(mockHandle401Redirect).not.toHaveBeenCalled();
+      fireUnauthorized();
+
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 });

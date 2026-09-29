@@ -15,19 +15,6 @@ jest.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock("react-icons/fc", () => ({
-  FcGoogle: () => <span data-testid="google-icon">G</span>,
-}));
-
-jest.mock("react-icons/ri", () => ({
-  RiAlertLine: () => <span>!</span>,
-  RiLoader4Line: () => <span data-testid="spinner">spinner</span>,
-}));
-
-jest.mock("@/components/custom/logo", () => ({
-  Logo: () => <div>Logo</div>,
-}));
-
 const mockSignIn = authClient.signIn.social as jest.Mock;
 
 describe("SignInForm submitting state", () => {
@@ -35,7 +22,7 @@ describe("SignInForm submitting state", () => {
     jest.clearAllMocks();
   });
 
-  it("disables Google button and shows spinner while signing in", async () => {
+  it("disables Google button and marks it busy while signing in", async () => {
     let resolveSignIn!: () => void;
     mockSignIn.mockReturnValue(
       new Promise<void>((resolve) => {
@@ -52,7 +39,7 @@ describe("SignInForm submitting state", () => {
     await user.click(btn);
 
     expect(btn).toBeDisabled();
-    expect(screen.getByTestId("spinner")).toBeInTheDocument();
+    expect(btn).toHaveAttribute("aria-busy", "true");
 
     resolveSignIn();
     await waitFor(() => expect(btn).toBeEnabled());
