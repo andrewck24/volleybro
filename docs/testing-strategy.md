@@ -82,7 +82,16 @@ A unit test replaces only what is out of process — the network and the databas
 
 Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
 
-Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
+Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: the landing components, `use-editing-guard`, `use-pull-to-refresh` and `use-active-team-id` still mock their own components, hooks or modules. Do not copy any of these into a new test.
+
+### Answering HTTP with MSW
+
+`test/msw/server.ts` is one MSW server for the `frontend` project. A test adds its handlers with `server.use(http.get(...))`, and they are dropped after each test. A request no handler answers fails the test.
+
+- MSW matches a path and ignores its query string; read `new URL(request.url).searchParams` inside the handler to assert it.
+- To hold a request in flight, await a promise in the handler and resolve it from the test; `delay("infinite")` never answers.
+- A test that renders a real SWR hook wraps it in `SwrIsolation` from `@/test-utils/swr-isolation`, so one test's cached response never answers another.
+- `jest.useFakeTimers()` stops MSW from answering; use `jest.useFakeTimers({ doNotFake: ["nextTick"] })`.
 
 ### API routes
 
@@ -145,9 +154,9 @@ Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the re
 
 | File                                 | What it does                                                                                                                                                               | Used by               |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `test/setup/shared.ts`               | Replaces global `fetch`; silences known third-party warnings                                                                                                               | backend, frontend     |
+| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                        | backend, frontend     |
 | `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs                                                                                                                       | backend               |
-| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture); `jest-dom` and `jest-axe`                                              | frontend              |
+| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `jest-dom` and `jest-axe`; starts the MSW server       | frontend              |
 | `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                       | integration           |
 | `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                      | integration           |
 | `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable | integration           |
