@@ -1,4 +1,4 @@
-import { createProfile } from "@/__tests__/helpers";
+import { createProfile } from "@test/support/fixtures/entities";
 import { TransientError, CommonReason } from "@/entities/errors";
 import { handleUserCreated } from "@/lib/auth-hook";
 

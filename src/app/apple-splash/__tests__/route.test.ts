@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { collect } from "@/test-utils/svg-tree";
+import { collect } from "@test/support/dom/svg-tree";
 
 let lastElem: ReactElement | undefined;
 

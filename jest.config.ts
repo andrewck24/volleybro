@@ -36,12 +36,13 @@ export default async function jestConfig() {
     moduleNameMapper: {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
+      "^@test/(.*)$": "<rootDir>/test/$1",
       // The migration scripts run under ts-node/esm, which requires the `.js`
       // specifier the TypeScript source does not have on disk.
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!.*(inversify|@inversifyjs)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@mswjs|rettime|until-async|@open-draft|cookie)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
@@ -53,6 +54,8 @@ export default async function jestConfig() {
       "!src/**/*.d.ts",
       "!src/types/**/*",
     ],
+    // The v8 provider reports every file a test loads, test code included.
+    coveragePathIgnorePatterns: ["/node_modules/", "<rootDir>/test/"],
   };
 
   const backendProject: Config = {
@@ -74,7 +77,8 @@ export default async function jestConfig() {
   const frontendProject: Config = {
     ...sharedConfig,
     displayName: "frontend",
-    testEnvironment: "jsdom",
+    // jsdom hides Node's fetch, Request and Response, which MSW intercepts.
+    testEnvironment: "jest-fixed-jsdom",
     setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
     testMatch: [
       "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",

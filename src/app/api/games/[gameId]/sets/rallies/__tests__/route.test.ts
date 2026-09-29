@@ -1,4 +1,7 @@
-import { routeRequest, silenceConsoleError } from "@/test-utils/route-request";
+import {
+  routeRequest,
+  silenceConsoleError,
+} from "@test/support/http/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 import { MoveType } from "@/entities/game";

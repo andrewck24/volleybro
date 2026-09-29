@@ -1,107 +1,88 @@
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import React from "react";
+import { http, HttpResponse } from "msw";
 
-const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+import { server } from "@test/support/msw/server";
+import EditTeamModalPage from "../page";
 
-// use(props.params) suspends in jsdom — mock it to return synchronously instead.
+const mockTeamId = "507f1f77bcf86cd799439011";
+const mockBack = jest.fn();
+
+// use(props.params) suspends in jsdom — return the params synchronously instead.
 jest.mock("react", () => ({
   ...jest.requireActual<typeof import("react")>("react"),
-  use: jest.fn().mockReturnValue({ teamId: "507f1f77bcf86cd799439011" }),
-}));
-
-const mockBack = jest.fn();
-const mockGlobalMutate = jest.fn();
-const mockMutate = jest.fn();
-const mockApiClient = jest.fn();
-
-jest.mock("@/lib/api/api-client", () => ({
-  apiClient: (...args: unknown[]) => mockApiClient(...args),
-  ApiClientError: class ApiClientError extends Error {
-    info: unknown;
-    constructor(message: string, info: unknown) {
-      super(message);
-      this.name = "ApiClientError";
-      this.info = info;
-    }
-  },
-}));
-
-jest.mock("@/hooks/use-data", () => ({
-  useTeam: jest.fn(() => ({
-    team: { id: VALID_OBJECT_ID, name: "Test Team", nickname: "TT" },
-    mutate: mockMutate,
-  })),
+  use: () => ({ teamId: mockTeamId }),
 }));
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
 }));
 
-jest.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: mockGlobalMutate }),
-}));
-
-jest.mock("@/hooks/use-leave-page-warning", () => ({
-  useLeavePageWarning: jest.fn(),
-  suppressLeaveWarning: jest.fn(),
-}));
-
-jest.mock("@/components/layout/edit-dialog-container", () => ({
-  EditDialogContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dialog">{children}</div>
-  ),
-}));
-
-import EditTeamModalPage from "../page";
+const team = { id: mockTeamId, name: "Test Team", nickname: "TT" };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  mockBack.mockClear();
   sessionStorage.clear();
-  // Restore the use mock since clearAllMocks resets return values.
-  (React.use as jest.Mock).mockReturnValue({ teamId: VALID_OBJECT_ID });
 });
 
 async function setup() {
-  const params = Promise.resolve({ teamId: VALID_OBJECT_ID });
-  render(<EditTeamModalPage params={params} />);
-  return screen.findByPlaceholderText("日本國家男子排球隊");
+  render(
+    <SwrIsolation>
+      <EditTeamModalPage params={Promise.resolve({ teamId: mockTeamId })} />
+    </SwrIsolation>,
+  );
+  const nameField = await screen.findByPlaceholderText("日本國家男子排球隊");
+  await waitFor(() => expect(nameField).toHaveValue(team.name));
+  return nameField;
+}
+
+async function rename(nameField: HTMLElement, name: string) {
+  await userEvent.clear(nameField);
+  await userEvent.type(nameField, name);
+  await userEvent.click(screen.getByRole("button", { name: /儲存修改/i }));
 }
 
 describe("EditTeamModalPage", () => {
-  it("shows root error when apiClient throws", async () => {
-    mockApiClient.mockRejectedValue(new Error("驗證失敗"));
+  it("shows a root error and stays open when the save fails", async () => {
+    server.use(
+      http.get(`/api/teams/${mockTeamId}`, () => HttpResponse.json(team)),
+      http.patch(`/api/teams/${mockTeamId}`, () =>
+        HttpResponse.json(
+          { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
     const nameField = await setup();
 
-    await userEvent.clear(nameField);
-    await userEvent.type(nameField, "New Name");
-    await userEvent.click(screen.getByRole("button", { name: /儲存修改/i }));
+    await rename(nameField, "New Name");
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
-      ).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText("伺服器暫時無法處理你的請求，請稍後再試一次"),
+    ).toBeInTheDocument();
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("updates SWR cache and calls router.back on success", async () => {
-    const updatedTeam = {
-      id: VALID_OBJECT_ID,
-      name: "New Name",
-      nickname: "TT",
-    };
-    mockApiClient.mockResolvedValue(updatedTeam);
+  it("sends the edited team, refetches it and closes on success", async () => {
+    let patchBody: unknown;
+    let teamFetches = 0;
+    server.use(
+      http.get(`/api/teams/${mockTeamId}`, () => {
+        teamFetches += 1;
+        return HttpResponse.json(team);
+      }),
+      http.patch(`/api/teams/${mockTeamId}`, async ({ request }) => {
+        patchBody = await request.json();
+        return HttpResponse.json({ ...team, name: "New Name" });
+      }),
+    );
     const nameField = await setup();
 
-    await userEvent.clear(nameField);
-    await userEvent.type(nameField, "New Name");
-    await userEvent.click(screen.getByRole("button", { name: /儲存修改/i }));
+    await rename(nameField, "New Name");
 
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalled();
-      expect(mockGlobalMutate).toHaveBeenCalled();
-      expect(mockBack).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
+    expect(patchBody).toEqual({ name: "New Name", nickname: "TT" });
+    await waitFor(() => expect(teamFetches).toBe(2));
   });
 });

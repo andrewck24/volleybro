@@ -5,7 +5,7 @@
  * These are contract/behavior tests, not full integration tests
  */
 
-import { createPlayer } from "@/__tests__/helpers";
+import { createPlayer } from "@test/support/fixtures/entities";
 import { PlayerRole } from "@/entities/player";
 
 jest.mock("@/infrastructure/di/inversify.config");

@@ -1,87 +1,87 @@
+import { useTeam } from "@/hooks/use-data";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+
+import { server } from "@test/support/msw/server";
 import NewTeamModalPage from "../page";
 
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
 const mockReplace = jest.fn();
-const mockMutate = jest.fn();
-const mockApiClient = jest.fn();
-
-jest.mock("@/lib/api/api-client", () => ({
-  apiClient: (...args: unknown[]) => mockApiClient(...args),
-  ApiClientError: class ApiClientError extends Error {
-    info: unknown;
-    constructor(message: string, info: unknown) {
-      super(message);
-      this.name = "ApiClientError";
-      this.info = info;
-    }
-  },
-}));
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mockReplace }),
 }));
 
-jest.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: mockMutate }),
-}));
+const TeamName = () => {
+  const { team } = useTeam(VALID_OBJECT_ID);
+  return <p>{team?.name}</p>;
+};
 
-jest.mock("@/hooks/use-leave-page-warning", () => ({
-  useLeavePageWarning: jest.fn(),
-  suppressLeaveWarning: jest.fn(),
-}));
-
-jest.mock("@/components/layout/edit-dialog-container", () => ({
-  EditDialogContainer: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="dialog">{children}</div>
-  ),
-}));
-
-const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const Tree = ({ showTeam = false }: { showTeam?: boolean }) => (
+  <SwrIsolation>
+    <NewTeamModalPage />
+    {showTeam && <TeamName />}
+  </SwrIsolation>
+);
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  mockReplace.mockClear();
   sessionStorage.clear();
 });
 
-async function setup() {
-  render(<NewTeamModalPage />);
-  return screen.findByPlaceholderText("日本國家男子排球隊");
+async function fillAndSubmit() {
+  const nameField = await screen.findByPlaceholderText("日本國家男子排球隊");
+  await userEvent.type(nameField, "My Team");
+  await userEvent.click(screen.getByRole("button", { name: /建立隊伍/i }));
 }
 
 describe("NewTeamModalPage", () => {
-  it("shows root error when apiClient throws", async () => {
-    mockApiClient.mockRejectedValue(new Error("伺服器錯誤"));
-    const nameField = await setup();
+  it("shows a root error and stays open when creation fails", async () => {
+    server.use(
+      http.post("/api/teams", () =>
+        HttpResponse.json(
+          { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" },
+          { status: 500 },
+        ),
+      ),
+    );
+    render(<Tree />);
 
-    await userEvent.type(nameField, "My Team");
-    await userEvent.click(screen.getByRole("button", { name: /建立隊伍/i }));
+    await fillAndSubmit();
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("請重新整理頁面後再試一次，若問題持續請聯繫我們"),
-      ).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText("伺服器暫時無法處理你的請求，請稍後再試一次"),
+    ).toBeInTheDocument();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it("navigates to team page and updates SWR cache on success", async () => {
-    const newTeam = { id: VALID_OBJECT_ID, name: "My Team", nickname: "" };
-    mockApiClient.mockResolvedValue(newTeam);
-    const nameField = await setup();
+  it("creates the team, opens its page and has the team ready without refetching", async () => {
+    let postBody: unknown;
+    server.use(
+      http.post("/api/teams", async ({ request }) => {
+        postBody = await request.json();
+        return HttpResponse.json({
+          id: VALID_OBJECT_ID,
+          name: "My Team",
+          nickname: "",
+        });
+      }),
+    );
+    const { rerender } = render(<Tree />);
 
-    await userEvent.type(nameField, "My Team");
-    await userEvent.click(screen.getByRole("button", { name: /建立隊伍/i }));
+    await fillAndSubmit();
 
-    await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith(
-        `/api/teams/${VALID_OBJECT_ID}`,
-        newTeam,
-        false,
-      );
+    await waitFor(() =>
       expect(mockReplace).toHaveBeenCalledWith(
         `/team/${VALID_OBJECT_ID}?tab=about`,
-      );
-    });
+      ),
+    );
+    expect(postBody).toEqual({ name: "My Team", nickname: "" });
+
+    // No GET handler is registered: a refetch would fail the test.
+    rerender(<Tree showTeam />);
+    expect(screen.getByText("My Team")).toBeInTheDocument();
   });
 });

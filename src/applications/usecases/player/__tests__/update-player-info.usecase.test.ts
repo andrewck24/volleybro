@@ -1,8 +1,6 @@
-import {
-  createMockAuthorizationService,
-  createMockPlayerRepository,
-  createPlayer,
-} from "@/__tests__/helpers";
+import { createMockAuthorizationService } from "@test/support/doubles/services";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
+import { createPlayer } from "@test/support/fixtures/entities";
 import type { IUpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
 import { UpdatePlayerInfoUseCase } from "@/applications/usecases/player/update-player-info.usecase";
 import { NotFoundError } from "@/entities/errors";

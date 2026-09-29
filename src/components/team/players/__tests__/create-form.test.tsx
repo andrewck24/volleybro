@@ -1,35 +1,34 @@
 import { CreateForm } from "@/components/team/players/create-form";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { server } from "@test/support/msw/server";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
-const mockGlobalMutate = jest.fn();
-const mockApiClient = jest.fn();
-
-jest.mock("@/lib/api/api-client", () => ({
-  ...jest.requireActual("@/lib/api/api-client"),
-  apiClient: (...args: unknown[]) => mockApiClient(...args),
-}));
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }));
 
-jest.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: mockGlobalMutate }),
-}));
-
-jest.mock("@/hooks/use-leave-page-warning", () => ({
-  useLeavePageWarning: jest.fn(),
-  suppressLeaveWarning: jest.fn(),
-}));
-
 const TEAM_ID = "507f1f77bcf86cd799439011";
+
+let submittedBodies: Record<string, unknown>[];
+
+// jsdom does not implement scrollIntoView, which Radix Select calls on open.
+Element.prototype.scrollIntoView = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
   sessionStorage.clear();
+  submittedBodies = [];
+  server.use(
+    http.post(`/api/teams/${TEAM_ID}/players`, async ({ request }) => {
+      submittedBodies.push((await request.json()) as Record<string, unknown>);
+      return HttpResponse.json({ id: "player-1" });
+    }),
+  );
 });
 
 // Pasted, not typed: a render per keystroke can outlast Jest's timeout under load.
@@ -39,7 +38,11 @@ async function fill(field: HTMLElement, text: string) {
 }
 
 async function setup({ email }: { email?: string } = {}) {
-  render(<CreateForm teamId={TEAM_ID} />);
+  render(
+    <SwrIsolation>
+      <CreateForm teamId={TEAM_ID} />
+    </SwrIsolation>,
+  );
   const nameField = await screen.findByPlaceholderText("輸入姓名");
   await fill(nameField, "New Player");
   if (email) {
@@ -50,8 +53,6 @@ async function setup({ email }: { email?: string } = {}) {
 
 describe("CreateForm", () => {
   it("replaces with the new player's page on success", async () => {
-    mockApiClient.mockResolvedValue({ id: "player-1" });
-
     await setup();
 
     await waitFor(() =>
@@ -63,7 +64,11 @@ describe("CreateForm", () => {
   });
 
   it("offers the role field only once an email makes it an invitation", async () => {
-    render(<CreateForm teamId={TEAM_ID} />);
+    render(
+      <SwrIsolation>
+        <CreateForm teamId={TEAM_ID} />
+      </SwrIsolation>,
+    );
 
     await screen.findByPlaceholderText("輸入姓名");
     expect(screen.queryByText("角色")).not.toBeInTheDocument();
@@ -77,34 +82,33 @@ describe("CreateForm", () => {
   });
 
   it("submits no role when no email was filled in", async () => {
-    mockApiClient.mockResolvedValue({ id: "player-1" });
-
     await setup();
 
-    await waitFor(() => expect(mockApiClient).toHaveBeenCalled());
-    const body = JSON.parse(
-      (mockApiClient.mock.calls[0]![1] as { body: string }).body,
-    ) as Record<string, unknown>;
-    expect(body).not.toHaveProperty("role");
+    await waitFor(() => expect(submittedBodies).toHaveLength(1));
+    expect(submittedBodies[0]).not.toHaveProperty("role");
   });
 
   it("submits no role when the email is cleared again", async () => {
-    mockApiClient.mockResolvedValue({ id: "player-1" });
-    render(<CreateForm teamId={TEAM_ID} />);
+    render(
+      <SwrIsolation>
+        <CreateForm teamId={TEAM_ID} />
+      </SwrIsolation>,
+    );
 
     const nameField = await screen.findByPlaceholderText("輸入姓名");
     await fill(nameField, "New Player");
     const emailField = screen.getByPlaceholderText("user@example.com");
     await fill(emailField, "invitee@example.com");
     await screen.findByText("角色");
+    await userEvent.click(screen.getByRole("combobox", { name: "角色" }));
+    await userEvent.click(
+      await screen.findByRole("option", { name: "管理員" }),
+    );
     await userEvent.clear(emailField);
     expect(screen.queryByText("角色")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /新增球員/ }));
 
-    await waitFor(() => expect(mockApiClient).toHaveBeenCalled());
-    const body = JSON.parse(
-      (mockApiClient.mock.calls[0]![1] as { body: string }).body,
-    ) as Record<string, unknown>;
-    expect(body).not.toHaveProperty("role");
+    await waitFor(() => expect(submittedBodies).toHaveLength(1));
+    expect(submittedBodies[0]).not.toHaveProperty("role");
   });
 });

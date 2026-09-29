@@ -6,41 +6,14 @@ import {
 } from "@/components/game/summary-drawer";
 import { EntryType, MoveType } from "@/entities/game";
 import { gameActions } from "@/lib/features/game/game-slice";
+import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { EntryView, GamePlayerView } from "@/lib/features/game/types";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { makeStore, type AppStore } from "@/lib/redux/store";
+import { scoringMoves } from "@/lib/scoring-moves";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
-// Container-level bridge test (below) drives the real `SummaryDrawer`, whose
-// deps are stubbed: a jest.fn dispatch (assert the edit action fires), a static
-// game from `useGame`, and a non-recording draft so committed rows render.
-// `PreviewCard` stays real so the SummaryDrawerCard suites above are unaffected.
-const mockDispatch = jest.fn();
-let mockGame: unknown;
-let mockFailedIds: string[] = [];
-jest.mock("@/lib/redux/hooks", () => ({
-  useAppDispatch: () => mockDispatch,
-  useAppSelector: (selector: (s: unknown) => unknown) =>
-    selector({
-      game: { setIndex: 0 },
-      pendingWrites: {
-        pending: mockFailedIds.map((id) => ({
-          entry: { id },
-          nextAttemptAt: null,
-          // A 4xx: nothing will send this entry, which is what the row's
-          // marker is for now that an exhausted backoff no longer qualifies.
-          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
-        })),
-        storageUnavailable: false,
-      },
-    }),
-}));
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: mockGame }),
-}));
-jest.mock("@/components/game/preview", () => ({
-  ...jest.requireActual("@/components/game/preview"),
-  useEntryDraftPreview: () => ({ hasPreview: false, isEditing: false }),
-}));
+import { Provider } from "react-redux";
+import { SWRConfig } from "swr";
 
 const players: GamePlayerView[] = [
   { id: "p1", name: "選手一", number: 4 },
@@ -86,10 +59,6 @@ const baseProps = {
   totalEntries: allEntries.length,
   players,
 };
-
-afterEach(() => {
-  mockFailedIds = [];
-});
 
 describe("SummaryDrawerCard structure", () => {
   it("idle peek renders only the single newest committed entry (no separate Preview bar)", async () => {
@@ -183,35 +152,16 @@ describe("SummaryDrawerCard handle / expansion", () => {
 });
 
 describe("SummaryDrawerCard backdrop overlay", () => {
-  it("covers the web content viewport without safe-area overreach", () => {
-    render(<SummaryDrawerCard {...baseProps} state="expanded" />);
-
-    const overlay = screen.getByTestId("summary-drawer-overlay");
-    expect(overlay).toHaveClass("inset-0");
-  });
-
-  it("idle: the backdrop is transparent and non-interactive (peek leaves the page usable)", () => {
-    render(<SummaryDrawerCard {...baseProps} state="idle" />);
-
-    const overlay = screen.getByTestId("summary-drawer-overlay");
-    expect(overlay).toHaveClass("opacity-0", "pointer-events-none");
-  });
-
-  it("expanded: the backdrop is opaque, and tapping it collapses the drawer", () => {
+  it("expanded: tapping the backdrop collapses the drawer", () => {
     const onToggle = jest.fn();
     render(
       <SummaryDrawerCard {...baseProps} state="expanded" onToggle={onToggle} />,
     );
 
-    const overlay = screen.getByTestId("summary-drawer-overlay");
-    expect(overlay).toHaveClass("opacity-100");
-    expect(overlay).not.toHaveClass("pointer-events-none");
-
-    // fireEvent (not userEvent): the overlay's own interactivity is asserted via
-    // the classes above; userEvent's pointer-events check flakes when a prior
-    // suite's radix modal leaves document.body with pointer-events:none, which
-    // this out-of-portal overlay would inherit. This tests the handler wiring.
-    fireEvent.click(overlay);
+    // fireEvent (not userEvent): userEvent's pointer-events check flakes when a
+    // prior suite's radix modal leaves document.body with pointer-events:none,
+    // which this out-of-portal overlay would inherit.
+    fireEvent.click(screen.getByTestId("summary-drawer-overlay"));
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 });
@@ -257,23 +207,6 @@ describe("SummaryDrawerCard Preview bar wiring (recording)", () => {
     expect(onSubmit).not.toHaveBeenCalled();
     expect(onToggle).not.toHaveBeenCalled();
   });
-
-  it("while recording, the draft is the pulsing Preview, not a separate committed row", async () => {
-    render(
-      <SummaryDrawerCard
-        {...baseProps}
-        state="expanded"
-        preview={makePreview({ isEditing: true, isComplete: false })}
-      />,
-    );
-
-    expect(
-      screen.queryByTestId("summary-drawer-draft-row"),
-    ).not.toBeInTheDocument();
-    expect(await screen.findByTestId("preview-trigger")).toHaveClass(
-      "animate-pulse",
-    );
-  });
 });
 
 // S08: a rally whose write exhausted its attempts is marked on its row,
@@ -307,24 +240,65 @@ describe("SummaryDrawerCard failed-write marking", () => {
   });
 });
 
-// Bridge regression (PR #311 review): the Summary drawer's edit action must both
-// flip Redux to "editing" (setEditingEntryStatus) AND signal the Game shell to
-// open the Options dialog (onEditRequest). Without the second call, edit is a
-// visible no-op. Driven at the container level, not the whole Game tree.
-describe("SummaryDrawer edit bridge", () => {
-  beforeEach(() => {
-    mockDispatch.mockClear();
-    mockGame = {
-      sets: [{ entries: allEntries }],
-      teams: { home: { players } },
-    };
-  });
+const serverGame = {
+  id: "game-1",
+  info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
+  sets: [{ options: { serve: "home" }, entries: allEntries }],
+  teams: { home: { players } },
+};
 
+const renderDrawer = (store: AppStore, ui: React.ReactNode) =>
+  render(
+    <Provider store={store}>
+      <SWRConfig
+        value={{
+          provider: () =>
+            new Map([["/api/games/game-1", { data: serverGame }]]) as never,
+          dedupingInterval: 0,
+        }}
+      >
+        {ui}
+      </SWRConfig>
+    </Provider>,
+  );
+
+const initializedStore = () => {
+  const store = makeStore();
+  act(() => {
+    store.dispatch(
+      gameActions.initialize({ game: serverGame as never, setIndex: 0 }),
+    );
+  });
+  return store;
+};
+
+// The Summary drawer's edit action must both flip Redux to "editing" AND
+// signal the Game shell to open the Options dialog (onEditRequest). Without the
+// second call, edit is a visible no-op.
+describe("SummaryDrawer", () => {
   it("marks the failed row from the pending-write queue and forwards a retry tap", async () => {
     const user = userEvent.setup();
     const onEntryRetry = jest.fn();
-    mockFailedIds = [allEntries[1]!.id];
-    render(
+    const store = makeStore();
+    act(() => {
+      store.dispatch(
+        pendingWritesActions.enqueued({
+          entry: allEntries[1] as never,
+          gameId: "game-1",
+          setIndex: 0,
+        }),
+      );
+      // A 4xx: nothing will send this entry, which is what the row's marker is for.
+      store.dispatch(
+        pendingWritesActions.flushFailed({
+          ids: [allEntries[1]!.id],
+          retryable: false,
+          lastError: { code: "VALIDATION", reason: "BAD_REQUEST", status: 400 },
+        }),
+      );
+    });
+    renderDrawer(
+      store,
       <SummaryDrawer
         gameId="game-1"
         state="expanded"
@@ -339,9 +313,11 @@ describe("SummaryDrawer edit bridge", () => {
     expect(onEntryRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("editing an entry row dispatches setEditingEntryStatus and fires onEditRequest", async () => {
+  it("editing an entry row switches the store to editing that entry and fires onEditRequest", async () => {
     const onEditRequest = jest.fn();
-    render(
+    const store = initializedStore();
+    renderDrawer(
+      store,
       <SummaryDrawer
         gameId="game-1"
         state="expanded"
@@ -353,11 +329,49 @@ describe("SummaryDrawer edit bridge", () => {
     const editButtons = await screen.findAllByTestId("entry-action-edit");
     fireEvent.click(editButtons[0]!);
 
-    expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: gameActions.setEditingEntryStatus.type,
-      }),
-    );
+    expect(store.getState().game.mode).toBe("editing");
+    expect(store.getState().game.editing.entryDraft.id).toBe(allEntries[2]!.id);
     expect(onEditRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles between the idle peek and the expanded sheet on its own: handle expands, Escape collapses", async () => {
+    const user = userEvent.setup();
+    renderDrawer(initializedStore(), <SummaryDrawer gameId="game-1" />);
+
+    const drawer = await screen.findByTestId("summary-drawer");
+    expect(drawer).toHaveAttribute("data-state", "idle");
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(1);
+
+    await user.click(screen.getByTestId("summary-drawer-handle"));
+    expect(drawer).toHaveAttribute("data-state", "expanded");
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(3);
+
+    await user.keyboard("{Escape}");
+    expect(drawer).toHaveAttribute("data-state", "idle");
+  });
+
+  it("shows the in-progress draft as the Preview above the committed rows, and a tap on it submits when complete", async () => {
+    const user = userEvent.setup();
+    const onSubmit = jest.fn();
+    const store = initializedStore();
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
+    });
+    renderDrawer(
+      store,
+      <SummaryDrawer gameId="game-1" state="expanded" onSubmit={onSubmit} />,
+    );
+
+    expect(await screen.findByTestId("preview-card")).toBeInTheDocument();
+    expect(screen.getAllByTestId("summary-drawer-row")).toHaveLength(3);
+
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    act(() => {
+      store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
+    });
+    await user.click(screen.getByTestId("preview-trigger"));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 });

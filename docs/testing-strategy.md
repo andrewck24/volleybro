@@ -48,12 +48,13 @@ flowchart TB
 
 A test earns its maintenance cost only by protecting observable behaviour, a credible regression, or an independent contract. The `test-audit` skill (`.agents/skills/test-audit/`) holds the method; this section is the rule it serves.
 
-**Before writing a test,** answer four questions; a missing answer means the test is not written yet:
+**Before writing a test,** answer five questions; a missing answer means the test is not written yet:
 
 1. What observable behaviour, invariant, or contract does it protect?
 2. What credible regression makes it fail?
 3. Why does existing coverage not catch that failure already? Each contract has one owner test at the tier this document assigns; another tier needs a risk of its own.
 4. Does it need a production seam — an export, flag, or hook — that no production caller needs? Then test at the real boundary instead.
+5. Does a fixture, helper, or handler for it already exist in `test/support/`? Reuse it.
 
 A test that asserts values it built itself, restates the implementation, or would break under a behaviour-preserving refactor fails the gate. A regression test must fail on the code before the fix.
 
@@ -82,7 +83,16 @@ A unit test replaces only what is out of process — the network and the databas
 
 Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
 
-Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: `test/setup/shared.ts` replaces `fetch` globally, and some component tests mock `apiClient`, `fetch` or their own hooks. Do not copy any of these into a new test.
+Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: the landing components, `use-editing-guard`, `use-pull-to-refresh` and `use-active-team-id` still mock their own components, hooks or modules. Do not copy any of these into a new test.
+
+### Answering HTTP with MSW
+
+`test/support/msw/server.ts` is one MSW server for the `frontend` project. A test adds its handlers with `server.use(http.get(...))`, and they are dropped after each test. A request no handler answers fails the test.
+
+- MSW matches a path and ignores its query string; read `new URL(request.url).searchParams` inside the handler to assert it.
+- To hold a request in flight, await a promise in the handler and resolve it from the test; `delay("infinite")` never answers.
+- A test that renders a real SWR hook wraps it in `SwrIsolation` from `@test/support/react/swr-isolation`, so one test's cached response never answers another.
+- `jest.useFakeTimers()` stops MSW from answering; use `jest.useFakeTimers({ doNotFake: ["nextTick"] })`.
 
 ### API routes
 
@@ -90,7 +100,7 @@ Each API route whose handler the repository writes has exactly one unit test fil
 
 A route whose handler a library generates whole, such as the Better Auth catch-all, has no unit test (ADR-0089).
 
-Mock the controller module, `@/infrastructure/db/mongoose/connect-to-mongodb`, and `@/lib/auth` for routes behind `withAuth`; build requests with `routeRequest` from `@/test-utils/route-request`. After `jest.resetModules()`, import error classes again alongside the route, or `instanceof` in the error handler will not recognise them.
+Mock the controller module, `@/infrastructure/db/mongoose/connect-to-mongodb`, and `@/lib/auth` for routes behind `withAuth`; build requests with `routeRequest` from `@test/support/http/route-request`. After `jest.resetModules()`, import error classes again alongside the route, or `instanceof` in the error handler will not recognise them.
 
 ---
 
@@ -135,6 +145,25 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 ---
 
+## Test Support Code
+
+Shared test code lives under `test/support/`, outside `src/`, so production tooling ignores it, and `jest.config.ts` leaves `test/` out of coverage. Import it as `@test/support/...`. It is sorted by what a helper is, not by which test uses it:
+
+| Directory   | Holds                                                      | Example                             |
+| ----------- | ---------------------------------------------------------- | ----------------------------------- |
+| `fixtures/` | Builders that return domain data, `createX(overrides?)`    | `createGame`                        |
+| `doubles/`  | Mock repositories and services for use-case tests          | `createMockTeamRepository`          |
+| `msw/`      | The MSW server and handlers for this application's own API | `answerRallies`                     |
+| `react/`    | Render wrappers and providers                              | `SwrIsolation`, `renderEditingGame` |
+| `http/`     | Request builders for route tests                           | `routeRequest`                      |
+| `dom/`      | Walkers over rendered output                               | `collect`                           |
+
+`test/setup/` wires Jest and no test imports it. `test/integration/support/` needs the database driver, so only integration tests import it.
+
+A helper starts inside the test file that needs it. When a second test file needs the same one, move it into `test/support/` and delete both copies; never copy it. Look in `test/support/` before writing any helper.
+
+---
+
 ## Mock Boundaries
 
 Defines what belongs in shared setup files versus inline per-test mocks.
@@ -145,9 +174,9 @@ Jest setup files live under `test/setup/`; only `jest.config.ts` stays at the re
 
 | File                                 | What it does                                                                                                                                                               | Used by               |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `test/setup/shared.ts`               | Replaces global `fetch`; silences known third-party warnings                                                                                                               | backend, frontend     |
+| `test/setup/shared.ts`               | Silences known third-party warnings                                                                                                                                        | backend, frontend     |
 | `test/setup/backend.ts`              | Replaces `mongoose`, `mongodb` and `bson` with stubs                                                                                                                       | backend               |
-| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture); `jest-dom` and `jest-axe`                                              | frontend              |
+| `test/setup/frontend.ts`             | Browser APIs jsdom lacks (`matchMedia`, `ResizeObserver`, `IntersectionObserver`, pointer capture, `setImmediate`); `jest-dom` and `jest-axe`; starts the MSW server       | frontend              |
 | `test/setup/integration.global.ts`   | Starts the run's replica set in Jest's own process and passes its URI to the workers                                                                                       | integration           |
 | `test/setup/integration.teardown.ts` | Stops the replica set                                                                                                                                                      | integration           |
 | `test/setup/integration.ts`          | Connects each test file to a database of its own, empties model collections between tests, drops the database at the end; makes `@/lib/auth` and `next/headers` importable | integration           |

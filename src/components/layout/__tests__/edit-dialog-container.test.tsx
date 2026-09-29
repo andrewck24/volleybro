@@ -1,15 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditDialogContainer } from "@/components/layout/edit-dialog-container";
-import { suppressLeaveWarning } from "@/hooks/use-leave-page-warning";
+import { useLeavePageWarning } from "@/hooks/use-leave-page-warning";
 
 const mockBack = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ back: mockBack }),
-}));
-
-jest.mock("@/hooks/use-leave-page-warning", () => ({
-  suppressLeaveWarning: jest.fn(),
 }));
 
 beforeEach(() => {
@@ -98,7 +94,11 @@ describe("EditDialogContainer", () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it("maximize suppresses the leave warning before navigation", () => {
+  it("maximize lets the full-page navigation through the leave warning", () => {
+    const DirtyForm = () => {
+      useLeavePageWarning(true);
+      return <div>form</div>;
+    };
     render(
       <EditDialogContainer
         title="編輯球隊"
@@ -106,12 +106,20 @@ describe("EditDialogContainer", () => {
         isDirty={true}
         clearDraft={clearDraft}
       >
-        <div>form</div>
+        <DirtyForm />
       </EditDialogContainer>,
     );
+    const unload = () => new Event("beforeunload", { cancelable: true });
+
+    const beforeExpand = unload();
+    window.dispatchEvent(beforeExpand);
+    expect(beforeExpand.defaultPrevented).toBe(true);
+
     fireEvent.click(screen.getByRole("button", { name: "全頁模式" }));
 
-    expect(suppressLeaveWarning).toHaveBeenCalledTimes(1);
+    const duringExpand = unload();
+    window.dispatchEvent(duringExpand);
+    expect(duringExpand.defaultPrevented).toBe(false);
   });
 
   it("links dialog to an srOnly description (no Radix Missing Description warning)", () => {

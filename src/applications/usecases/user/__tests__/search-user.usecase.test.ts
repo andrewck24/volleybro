@@ -1,4 +1,5 @@
-import { createMockUserRepository, createUser } from "@/__tests__/helpers";
+import { createMockUserRepository } from "@test/support/doubles/repositories";
+import { createUser } from "@test/support/fixtures/entities";
 import { SearchUserUseCase } from "@/applications/usecases/user/search-user.usecase";
 import { NotFoundError, ValidationError } from "@/entities/errors";
 

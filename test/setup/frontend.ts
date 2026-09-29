@@ -3,10 +3,23 @@ import { toHaveNoViolations } from "jest-axe";
 import type { ImageProps } from "next/image";
 import type { LinkProps as NextLinkProps } from "next/link";
 import React from "react";
+import {
+  clearImmediate as nodeClearImmediate,
+  setImmediate as nodeSetImmediate,
+} from "node:timers";
 
+import { server } from "../support/msw/server";
 import "./shared";
 
 expect.extend(toHaveNoViolations);
+
+// Node's fetch schedules its work with setImmediate, which jsdom hides.
+globalThis.setImmediate ??= nodeSetImmediate as typeof setImmediate;
+globalThis.clearImmediate ??= nodeClearImmediate;
+
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 
 global.IntersectionObserver = jest
   .fn()
