@@ -7,17 +7,6 @@ import {
 import { withAuth, withErrorHandler } from "@/lib/api/wrappers";
 import { z } from "zod";
 
-// Mock next/server to avoid Request/Response polyfill issues in jsdom
-jest.mock("next/server", () => ({
-  NextResponse: {
-    json: jest.fn((body: unknown, init?: ResponseInit) => ({
-      _body: body,
-      status: init?.status ?? 200,
-      json: async () => body,
-    })),
-  },
-}));
-
 // Mock Better Auth session
 jest.mock("@/lib/auth", () => ({
   auth: {
