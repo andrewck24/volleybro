@@ -2,11 +2,6 @@ import { Hero } from "@/components/landing/hero";
 import { act, render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
 
-// The global motion stub has no AnimatePresence, which FlipWords needs; motion
-// itself runs fine in jsdom, so use the real library here.
-jest.mock("motion/react", () => jest.requireActual("motion/react"));
-jest.mock("motion/react-m", () => jest.requireActual("motion/react-m"));
-
 beforeEach(() => {
   jest
     .spyOn(window.navigator, "userAgent", "get")

@@ -2,10 +2,6 @@ import { Highlights } from "@/components/landing/highlights";
 import { render, screen, within } from "@testing-library/react";
 import { axe } from "jest-axe";
 
-// Run the real motion library instead of the global stub, which has no scroll hooks.
-jest.unmock("motion/react");
-jest.unmock("motion/react-m");
-
 describe("Highlights", () => {
   const expectedHighlights = [
     {

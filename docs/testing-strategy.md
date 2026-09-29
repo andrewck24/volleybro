@@ -83,8 +83,6 @@ A unit test replaces only what is out of process — the network and the databas
 
 Repository query and write behaviour is proven in `persistence/` integration tests, not against a stubbed driver (ADR-0090). A jsdom limitation that forces a mock of the repository's own code is named in the test file where it happens.
 
-Some existing tests predate these rules and are being brought to them by the testing-tiers Migration: the landing components, `use-editing-guard`, `use-pull-to-refresh` and `use-active-team-id` still mock their own components, hooks or modules. Do not copy any of these into a new test.
-
 ### Answering HTTP with MSW
 
 `test/support/msw/server.ts` is one MSW server for the `frontend` project. A test adds its handlers with `server.use(http.get(...))`, and they are dropped after each test. A request no handler answers fails the test.
