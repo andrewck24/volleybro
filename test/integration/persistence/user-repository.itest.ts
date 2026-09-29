@@ -8,17 +8,18 @@ const users = () => container.get<IUserRepository>(TYPES.UserRepository);
 
 describe("user lookups", () => {
   it("reads a stored user with its id as a string", async () => {
+    await UserModel.create({ name: "Alice", email: "alice@example.com" });
     const stored = await UserModel.create({
-      name: "Alice",
-      email: "alice@example.com",
+      name: "Bob",
+      email: "bob@example.com",
     });
 
     const found = await users().findById(stored._id.toString());
 
     expect(found).toMatchObject({
       id: stored._id.toString(),
-      name: "Alice",
-      email: "alice@example.com",
+      name: "Bob",
+      email: "bob@example.com",
     });
   });
 

@@ -84,4 +84,14 @@ describe("game summaries", () => {
     expect(beyond.data).toEqual([]);
     expect(beyond.lastId).toBe(lastPage.lastId);
   });
+
+  it("reports no further page when the page holds exactly the games left", async () => {
+    await createGame(teamId, "First");
+    await createGame(teamId, "Second");
+
+    const page = await games().findGameSummaries(teamId, { limit: 2 });
+
+    expect(page.data).toHaveLength(2);
+    expect(page.hasMore).toBe(false);
+  });
 });
