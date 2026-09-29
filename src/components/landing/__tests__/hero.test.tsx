@@ -1,208 +1,79 @@
 import { Hero } from "@/components/landing/hero";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { axe } from "jest-axe";
-import type { ReactNode } from "react";
 
-// Mock dependencies
-jest.mock("@/components/landing/cta-button", () => ({
-  CTAButton: ({
-    className,
-  }: {
-    className?: string;
-    [key: string]: unknown;
-  }) => (
-    <button data-testid="cta-button" className={className}>
-      開始使用
-    </button>
-  ),
-}));
+// The global motion stub has no AnimatePresence, which FlipWords needs; motion
+// itself runs fine in jsdom, so use the real library here.
+jest.mock("motion/react", () => jest.requireActual("motion/react"));
+jest.mock("motion/react-m", () => jest.requireActual("motion/react-m"));
 
-jest.mock("@/components/ui/badge", () => ({
-  Badge: ({
-    children,
-    className,
-  }: {
-    children?: ReactNode;
-    className?: string;
-  }) => (
-    <div data-testid="badge" className={className}>
-      {children}
-    </div>
-  ),
-}));
+beforeEach(() => {
+  jest
+    .spyOn(window.navigator, "userAgent", "get")
+    .mockReturnValue(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    );
+});
 
-jest.mock("@/components/landing/flip-words", () => ({
-  FlipWords: ({
-    words,
-    className,
-  }: {
-    words: string[];
-    className?: string;
-  }) => (
-    <span data-testid="flip-words" className={className}>
-      {words[0]}
-    </span>
-  ),
-}));
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
 
-describe("Hero Component", () => {
-  describe("Component Structure", () => {
-    it("should render all main sections", () => {
-      render(<Hero />);
+describe("Hero", () => {
+  it("introduces the product with a headline and description", () => {
+    render(<Hero />);
 
-      // Main heading
-      expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-
-      // CTA Button
-      expect(screen.getByTestId("cta-button")).toBeInTheDocument();
-
-      // Hero Image
-      expect(screen.getByRole("img")).toBeInTheDocument();
-    });
-
-    it("should render correct main heading text", () => {
-      render(<Hero />);
-
-      const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading).toHaveTextContent("讓排球賽事記錄");
-      expect(heading).toHaveTextContent("更加");
-    });
-
-    it("should render description text", () => {
-      render(<Hero />);
-
-      const description =
-        screen.getByText(/專為排球教練與管理者設計的數位化解決方案/);
-      expect(description).toBeInTheDocument();
-      expect(description).toHaveTextContent(
-        "讓您告別紙筆記錄，擁抱智慧化團隊管理",
-      );
-    });
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent("讓排球賽事記錄");
+    expect(heading).toHaveTextContent("更加");
+    expect(
+      screen.getByText(/專為排球教練與管理者設計的數位化解決方案/),
+    ).toBeInTheDocument();
   });
 
-  describe("Interactive Elements", () => {
-    it("should render FlipWords component with correct words", () => {
-      render(<Hero />);
+  it("starts the headline on the first rotating word and moves on to the next", () => {
+    jest.useFakeTimers();
+    render(<Hero />);
 
-      const flipWords = screen.getByTestId("flip-words");
-      expect(flipWords).toBeInTheDocument();
-      expect(flipWords).toHaveTextContent("簡單"); // Should show first word
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading).toHaveTextContent("簡單");
+
+    act(() => {
+      jest.advanceTimersByTime(2500);
     });
 
-    it("should render status indicators", () => {
-      render(<Hero />);
-
-      const statusContainer = screen.getByTestId("status-indicators");
-      expect(statusContainer).toBeInTheDocument();
-
-      expect(screen.getByText("即時同步")).toBeInTheDocument();
-      expect(screen.getByText("跨平台支援")).toBeInTheDocument();
-      expect(screen.getByText("快速紀錄")).toBeInTheDocument();
-    });
-
-    it("should render CTA button with correct styling", () => {
-      render(<Hero />);
-
-      const ctaButton = screen.getByTestId("cta-button");
-      expect(ctaButton).toHaveClass("h-12", "w-full", "px-8", "text-lg");
-      expect(ctaButton).toHaveClass("shadow-2xl");
-    });
+    expect(heading).toHaveTextContent("快速");
   });
 
-  describe("Hero Image", () => {
-    it("should render hero image with correct attributes", () => {
-      render(<Hero />);
+  it("lists the product's selling points", () => {
+    render(<Hero />);
 
-      const heroImage = screen.getByRole("img");
-      expect(heroImage).toHaveAttribute("src", "/landing/hero.svg");
-      expect(heroImage).toHaveAttribute("alt", "VolleyBro App Interface");
-    });
-
-    it("should have correct image styling classes", () => {
-      render(<Hero />);
-
-      const heroImage = screen.getByRole("img");
-      expect(heroImage).toHaveClass(
-        "object-contain",
-        "object-center",
-        "dark:invert",
-      );
-    });
+    for (const label of ["快速紀錄", "即時同步", "跨平台支援"]) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
   });
 
-  describe("Layout and Styling", () => {
-    it("should have correct hero section classes", () => {
-      render(<Hero />);
+  it("offers a call to action that leads into the app", () => {
+    render(<Hero />);
 
-      const heroSection = screen.getByTestId("hero-section");
-      expect(heroSection).toBeInTheDocument();
-      expect(heroSection).toHaveClass(
-        "relative",
-        "flex",
-        "h-[calc(100vh-3.25rem)]",
-      );
-    });
+    expect(screen.getByRole("link", { name: "開始使用" })).toHaveAttribute(
+      "href",
+      "/home",
+    );
   });
 
-  describe("Accessibility", () => {
-    it("should have no accessibility violations", async () => {
-      const { container } = render(<Hero />);
+  it("shows the app interface image", () => {
+    render(<Hero />);
 
-      const results = await axe(container);
-      expect(results).toHaveNoViolations();
-    });
-
-    it("should have proper heading hierarchy", () => {
-      render(<Hero />);
-
-      const h1 = screen.getByRole("heading", { level: 1 });
-      expect(h1).toBeInTheDocument();
-      expect(h1).toHaveAccessibleName();
-    });
-
-    it("should have accessible image alt text", () => {
-      render(<Hero />);
-
-      const heroImage = screen.getByRole("img");
-      expect(heroImage).toHaveAccessibleName("VolleyBro App Interface");
-    });
-
-    it("should have accessible button", () => {
-      render(<Hero />);
-
-      const ctaButton = screen.getByRole("button");
-      expect(ctaButton).toBeInTheDocument();
-      expect(ctaButton).toHaveTextContent("開始使用");
-    });
+    expect(
+      screen.getByRole("img", { name: "VolleyBro App Interface" }),
+    ).toHaveAttribute("src", "/landing/hero.svg");
   });
 
-  describe("Responsive Design", () => {
-    it("should have responsive classes for different screen sizes", () => {
-      render(<Hero />);
+  it("has no accessibility violations", async () => {
+    const { container } = render(<Hero />);
 
-      const heading = screen.getByRole("heading", { level: 1 });
-      expect(heading).toHaveClass("text-5xl", "lg:text-6xl", "xl:text-7xl");
-
-      const description = screen.getByText(/專為排球教練與管理者設計/);
-      expect(description).toHaveClass("text-xl");
-
-      const ctaButton = screen.getByTestId("cta-button");
-      expect(ctaButton).toHaveClass("h-12", "w-full");
-    });
-  });
-
-  describe("Performance Optimizations", () => {
-    it("should render background elements separately", () => {
-      render(<Hero />);
-
-      // Background decorations should be present
-      const backgroundDecorations = screen.getByTestId(
-        "background-decorations",
-      );
-      const heroImageContainer = screen.getByTestId("hero-image-container");
-
-      expect(backgroundDecorations).toBeInTheDocument();
-      expect(heroImageContainer).toBeInTheDocument();
-    });
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
