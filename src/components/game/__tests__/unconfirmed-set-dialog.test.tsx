@@ -10,24 +10,16 @@ import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
 import { SWRConfig } from "swr";
 
+import {
+  gameWithSet,
+  lastRally,
+  pendingRally,
+} from "@test/support/fixtures/finished-set";
 import { server } from "@test/support/msw/server";
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
-
-const { type: _type, ...pendingRally } = {
-  type: "Rally",
-  id: "e1",
-  seq: 0,
-  win: true,
-  home: { score: 25, type: 2, num: 0 },
-  away: { score: 20, type: 2, num: 0 },
-};
-const lastRally = { type: "Rally", ...pendingRally };
-
-const gameWithSet = (win: boolean | null): GameView =>
-  ({ id: "game-1", sets: [{ win, entries: [lastRally] }] }) as never;
 
 let store: AppStore;
 const renderDialog = (game: GameView) =>

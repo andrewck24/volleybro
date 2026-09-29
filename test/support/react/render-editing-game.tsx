@@ -5,7 +5,7 @@ import {
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { delay, http, HttpResponse } from "msw";
 import type { ReactNode } from "react";
 import { Provider } from "react-redux";
@@ -44,11 +44,13 @@ export function holdEditedWrite(store: AppStore) {
   server.use(
     http.put("/api/games/game-1/sets/rallies", () => delay("infinite")),
   );
-  store.dispatch(
-    pendingWritesActions.enqueued({
-      entry: rally as never,
-      gameId: "game-1",
-      setIndex: 0,
-    }),
-  );
+  act(() => {
+    store.dispatch(
+      pendingWritesActions.enqueued({
+        entry: rally as never,
+        gameId: "game-1",
+        setIndex: 0,
+      }),
+    );
+  });
 }

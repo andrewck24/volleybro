@@ -147,7 +147,7 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 ## Test Support Code
 
-Shared test code lives under `test/support/`, outside `src/`, so coverage does not count it and production tooling ignores it. Import it as `@test/support/...`. It is sorted by what a helper is, not by which test uses it:
+Shared test code lives under `test/support/`, outside `src/`, so production tooling ignores it, and `jest.config.ts` leaves `test/` out of coverage. Import it as `@test/support/...`. It is sorted by what a helper is, not by which test uses it:
 
 | Directory   | Holds                                                      | Example                             |
 | ----------- | ---------------------------------------------------------- | ----------------------------------- |

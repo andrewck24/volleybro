@@ -8,22 +8,8 @@ import { setCompletionActions } from "@/lib/features/game/set-completion-slice";
 import type { GameView } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
 
+import { gameWithSet, lastRally } from "@test/support/fixtures/finished-set";
 import { answerRallies } from "@test/support/msw/rallies";
-
-const lastRally = {
-  type: "Rally",
-  id: "e1",
-  seq: 0,
-  win: true,
-  home: { score: 25, type: 2, num: 0 },
-  away: { score: 20, type: 2, num: 0 },
-};
-
-const gameWithSet = (win: boolean | null): GameView =>
-  ({
-    id: "game-1",
-    sets: [{ win, entries: [lastRally] }],
-  }) as never;
 
 let store: AppStore;
 let cachedGame: GameView;
