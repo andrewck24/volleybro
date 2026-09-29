@@ -32,7 +32,7 @@ export const scenarios = [
     shard: 1,
     given: "the API route directories under src/app/api",
     when: "their unit test files are listed",
-    then: "each route has exactly one, named __tests__/route.test.ts",
+    then: "each route whose handler the repository writes has exactly one, named __tests__/route.test.ts, and a route whose handler a library generates whole, such as the Better Auth catch-all, has none",
   },
   {
     id: "S6",
@@ -87,7 +87,7 @@ export const scenarios = [
 4. 刪除三個只保護舊資料的測試：讀取帶舊 weather 欄位的比賽、stats 欄位與 entries 不一致的比賽，以及 `team-membership-writes` 中以原始大小寫儲存邀請的案例。`test`
    資料庫中這三種文件都不存在，上線前的資料轉換也不需要它們。
 5. `smoke` 只保留「測試之間清空 collection」一案，改名 `test-isolation`；`legacy-entry-guard` 保護的是現行寫入邏輯，改名後移入 `persistence/`。
-6. 只斷言 schema 拒絕的整合測試案例移回 route 單元測試；每條 route 的單元測試合併成一個 `route.test.ts`。
+6. 只斷言 schema 拒絕的整合測試案例移回 route 單元測試；每條 route 的單元測試合併成一個 `route.test.ts`。從未執行自己 route 的測試檔直接刪除，不合併；handler 完全由函式庫產生的 route（Better Auth 的 catch-all）不寫單元測試，它的行為只有 end-to-end 與 API smoke 能證明。
 7. 新增測試檔名與目錄一致的檢查。
 8. `scripts/verify.js` 與 `WORKFLOW.md` 的 section gate、final gate 改依 ADR-0092：整合測試依 diff 跑、流程工具測試依 diff 跑、本機不 build 文件站；`blueprint:gate` 讀一次分支預覽 build 的結果；`knip --production` 的位置留給死碼分流完成後啟用。
 
