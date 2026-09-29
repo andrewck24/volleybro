@@ -1,0 +1,190 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+要決定或處理的有四件：
+
+1. **一批只讀 Tailwind class 字串的斷言沒有 keeper。** landing 六個測試檔（`cta-button`、`cta-section`、`header`、`hero`、`features`、`highlights`）原本大量斷言 aspect ratio、gap、gradient、sticky 等 class 字串，以及 mock 出來的元件的 test id 與捲動 handler 的呼叫形狀。它們在 class 改名時就壞、卻不顯示訪客看得到的東西，依 `docs/testing-strategy.md` 這類斷言歸 Chromatic，所以刪除、沒有替代。另外有兩組刪除沒有 keeper：header 的 rAF throttling 測試（只有效能上的 contract）與 `CTAButton` 的 `className`、`variant` 透傳測試（prop 轉發，沒有呼叫端會用）。同意就無需動作。`header.test.tsx` 保留唯一一個 class 斷言（`backdrop-blur-sm`），因為捲動後頁首變毛玻璃只有這個效果看得到，檔內有註解。
+2. **CTA 按鈕有兩個缺陷，改用真實元件之後才露出。** 測試現在只斷言目前的行為。
+   - 桌面與 PWA 分支的連結寫死「開始使用」並忽略 `children`，所以 CTA 區塊傳入的「立即開始使用」與 `data-testid` 都沒有出現。修法明確（`children ?? "開始使用"`），我會依 Fix path 另開一個 PR 修，不併進本 shard。
+   - Android 手機在瀏覽器沒有觸發 `beforeinstallprompt` 時，頁首、hero、CTA 區塊都不顯示任何按鈕。這可能是刻意的，**需要你決定**訪客該看到什麼。
+3. **`wrappers.test.ts` 與 `auth-hook.test.ts` 測的是只在 server 執行的程式，卻跑在 jsdom 的 frontend project**（auth-hook 在 jsdom 下還會印 Mongoose 的環境警告）。它們應該屬於 `backend` project，但這要改 `jest.config.ts` 的分派，且 backend 的 setup 全域替換了 `next/server`，`wrappers` 的斷言搬過去要重新確認，所以本 shard 沒有動；已開後續 issue。
+
+4. **`use-data.ts` 八個 hook 的 `fetcher` 與 `options` 參數是純測試接縫，移除待你決定。** `useUser`、`useProfile`、`useUserPlayers`、`useTeam`、`useTeamPlayers`、`usePlayer`、`useGame`、`useGameSummaries` 都接受 `fetcher` 與 `options`，但正式程式碼沒有任何呼叫端會傳；唯一傳 `fetcher` 的是 `use-game-merge.test.tsx`，本 shard 已改成用 MSW 回應。`CAMPAIGN.md` 的 cutover 步驟要求移除 lane 解鎖的注入參數，所以建議移除（淨減少正式程式碼、不改行為），但這是正式程式碼的變動、超出本 shard 只改測試的範圍，依 `WORKFLOW.md` 列出等你決定，我沒有動。你同意的話，我另開一個小 PR。
+
+本 shard 沒有 decision record 的 `decision` 文字在 G1 後改變。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `src/components/landing/__tests__/cta-button.test.tsx`：改變最大，也是找到兩個缺陷的地方。原本的測試自己渲染一個 `<button>` 再斷言它，現在改成真的 Radix dialog 開啟與關閉、真的 install prompt 被提供與使用；看每個平台（Windows、macOS、Linux、舊版 iOS 走桌面連結）的斷言是否對得上你期待的行為。
+2. `src/lib/__tests__/auth-hook.test.ts`：原本 mock 掉整個 DI container 並斷言自己的 use case 的呼叫形狀，現在跑真的 container 與 use case，把 repository 換成 double，斷言落在 repository 邊界（`profileRepository.create`、`playerRepository.linkUserToInvitations`）。看這個邊界是不是這條 contract 該被證明的地方。
+3. `test/setup/frontend.ts`：全域的 `motion` stub 整段移除。它只被 landing 的測試用到，兩個測試檔還得 `unmock` 它；拿掉之後整個 frontend 測試在真實的 motion 上都通過。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **兩個 lib 測試不是「元件與 hook 測試」。** Proposal 只寫「其餘的元件與 hook 測試」。`wrappers.test.ts` 與 `auth-hook.test.ts` 在 `src/lib` 之下、跑在 frontend project，mock 了自己的 DI container 與 `next/server`，依 ADR-0086 一起處理。`next/server` 的 mock 是多餘的（`jest-fixed-jsdom` 已提供真的 `NextResponse`）；DI container 的 mock 換成真 container 加 repository double。session 提供者（`@/lib/auth`）與 `next/headers` 依 `docs/testing-strategy.md` 本來就允許替換，保留。
+2. **移除全域 `motion` stub。** Proposal 沒有提，但它在 shard 3 就是「兩個測試得 `unmock` 才能用真的」，本 shard 證明整個 frontend 沒有測試需要它。
+3. **新增一個 `test/support` 檔案：`dom/user-agent.ts`。** 四個 landing 測試各自 spy `navigator.userAgent`，第二次使用就依規則提升；jsdom 預設的 user agent 會被判成手機，所以各測試要自己設定。
+4. **`use-game-merge.test.tsx` 也改了。** 它把 `jest.fn` 當 fetcher 傳進 `useGame`，是唯一使用那個注入參數的測試（見 ActionItems 第 4 點），改成 MSW 回應 `GET /api/games/game-1`。
+5. **`react-icons` 的 mock 保留在兩個測試，並補上說明。** `button.test.tsx` 與 `pull-refresh-indicator.test.tsx` 替換第三方 icon 元件只為了拿到 test id；icon 是第三方程式，不是 ADR-0086 與 S7 管的自己的程式碼；兩處都加了一行註解寫明為什麼需要 stub。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 4)}
+  results={[
+    {
+      id: "S7",
+      result: "pass",
+      evidence: "在所有 frontend 測試搜尋 `jest.mock`、`jest.unmock`、`spyOn(global` 與 `apiClient`：沒有測試 mock `apiClient`、SWR、`src/components` 或 `src/hooks` 下的模組；剩下的是 Next runtime（`next/navigation`、`next/headers`）、session 提供者 `@/lib/auth`、OAuth 轉址 `@/lib/auth-client`（檔內註明 jsdom 跟不了轉址）、`react` 的 `use`（檔內註明 jsdom 中會 suspend）、兩個第三方 icon 庫，以及 `api-client` 逾時案例的 `fetch` spy（檔內註明 jsdom 的 `DOMException` 不是 Node fetch 丟出的那個 class）",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "Final gate",
+      method: "`pnpm verify:all`（依 diff 規劃 lane：static、integration、app-build、app-test 執行，workflow 與 blueprint 沒有被這個 diff 涉及而跳過，依 ADR-0092）",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "四條執行的 lane 全部 pass，輸出完整保存在 log",
+    },
+    {
+      id: "T2",
+      checks: "整合測試",
+      method: "`pnpm test:integration`（由 `verify:all` 的 integration lane 執行）",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "integration lane pass；本 shard 沒有改動任何整合測試或 backend 程式",
+    },
+    {
+      id: "T3",
+      checks: "逐檔覆蓋率不下降",
+      method: "在 shard 開始前的 `dev`（`908ad2e2`）與 HEAD 各跑一次 `jest --coverage`，逐檔比較 `src/` 的 lines、branches、functions、statements",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "沒有任何檔案的 lines、statements、functions 百分比下降；兩個檔案的 branch 百分比下降，都是原本被 mock 掉而沒被量測（0/0 或 1/1），真實元件執行後才量到，covered 數是上升的；逐檔在 ReviewDetails",
+    },
+    {
+      id: "T4",
+      checks: "刪除對照表與保存審查",
+      method: "每個 lane 的 executor 逐宣告標記，並對被刪、被併、或斷言被改寫的 contract，把正式程式碼刻意改壞、確認 keeper 變紅、再逐位元還原（每次還原後 `git diff` 為空）；我在提交前確認整個 branch 相對 `dev` 沒有任何正式程式碼變動",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "每個被併或被改寫的 contract 都有 keeper 變紅；只讀 class 字串與 stub test id 的斷言沒有 keeper，見 ActionItems 第 1 點",
+    },
+    {
+      id: "T5",
+      checks: "S7：沒有測試 mock 自己的元件、hook、`apiClient` 或 `fetch`",
+      method: "`grep -rnE 'jest\\.(mock|unmock)\\(|spyOn\\(global|apiClient|fetch' src --include='*.test.ts' --include='*.test.tsx'`，逐一分類",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "見 ScenarioResults 的 S7",
+    },
+    {
+      id: "T6",
+      checks: "重複執行不 flaky",
+      method: "`pnpm exec jest --selectProjects backend frontend --coverage=false` 連跑五次，每次的完整輸出都保存",
+      executor: "agent",
+      environment: "macOS 本機",
+      result: "pass",
+      evidence: "五次中四次全部通過；一次有一個 suite（`previous-scores.helper`）沒跑起來，log 顯示 `A jest worker process was terminated by another process: signal=SIGSEGV`，是 Jest worker 行程本身崩潰，不是測試失敗，也不是這個 shard 的程式碼。shard 3 有兩次類似的失敗（當時沒保存訊息）發生在別的 suite，包含一個沒有用到 MSW 的 backend suite，所以不是特定測試。重跑即過；原因在 Node 或原生層，未查",
+    },
+  ]}
+/>
+
+<ReviewDetails>
+
+### 逐檔覆蓋率
+
+以同一條指令 `jest --coverage`（三個 project）在 `908ad2e2`（shard 3 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。production `src/` 合計：行 19398/22093（87.80%）→ 19846/22726（87.33%），branch 1937/2187（88.57%）→ 1969/2238（87.98%），function 528/650（81.23%）→ 541/659（82.09%）。covered 的行、branch、function 都增加，因為改成真實子元件後，原本被 mock 掉而沒被載入的程式碼現在真的執行。
+
+| 檔案 | covered/total branch 之前 | 之後 | 原因 |
+| --- | --- | --- | --- |
+| `custom/stats/figures.tsx` | 1/1（顯示 100%） | 3/7 | landing 的 features 測試改成渲染真的 Points 卡片，這個檔案第一次被執行；未覆蓋的 branch 從來沒有專屬測試 |
+| `game/stats/teams-stats/item.tsx` | 0/0（顯示 100%） | 4/9 | 同上 |
+
+### 刪除對照表
+
+由每個 lane 的 executor 逐宣告標記產生。R 保留、F 保留但修正（mock 換成真的元件或 hook）、C 併入指名的擁有者、D 刪除。全部 R 與 F 的宣告不逐條列出，列的是被併、被刪、或被改寫成不同斷言的：
+
+| 原測試 | 處理 | 現在由誰接手，或為何不再需要 |
+| --- | --- | --- |
+| `cta-button`：Desktop 渲染連結、macOS／Linux／舊版 iOS 視為桌面 | C | 一個 `describe.each`，四種 user agent 都連到 app（`href` 改壞會讓八個測試變紅） |
+| `cta-button`：iOS 的 dialog 與內容、dialog 的 ARIA | C | opens the add-to-home-screen instructions and closes them again：真的 Radix dialog，以 role、名稱與文字斷言 |
+| `cta-button`：call prompt on click、installation failure | F | 原本渲染自己的 `<button>` 再斷言它，等於測試自己；現在驅動真的元件（prompt 呼叫被改成別的、失敗時沒清狀態，各讓一個測試變紅） |
+| `cta-button`：beforeinstallprompt 顯示 install 按鈕 | F | 原本沒有任何斷言；現在斷言提供 prompt 後出現按鈕、使用後消失 |
+| `cta-button`：className／props passthrough、variant、accessible text | D | 只斷言 class 與 mock 元件的屬性；按鈕文字與連結 role 由上面的 keeper 涵蓋 |
+| `cta-section`：layout、spacing、responsive、背景、floating、LazyMotion、container | D | 只斷言 class 與 test id，沒有訪客看得到的行為 |
+| `cta-section`：CTA 按鈕的 `data-size`、class、文字 | F | offers a call to action that leads into the app：真的連結指到 `/home`；按鈕文字斷言拿掉，因為真實桌面連結顯示「開始使用」而不是區塊傳入的「立即開始使用」（見 ActionItems 第 2 點） |
+| `hero`：FlipWords 有正確的字 | F | 真的 FlipWords 在 fake timers 下，2500ms 後從「簡單」換到「快速」（把 2500 改成 2600 會變紅） |
+| `hero`：圖片 class、section、responsive、背景元素 | D | 只斷言 class 與 test id |
+| `header`：glassmorphism、不在頂端、門檻、行動版捲動 | C | frosts the bar once the page is scrolled and clears it back at the top：真的 `fireEvent.scroll` 與 rAF（把門檻比較方向改反會變紅） |
+| `header`：rAF throttling 呼叫、`addEventListener` 呼叫形狀 | D | 斷言捲動 handler 的呼叫形狀；上一列的行為測試涵蓋 |
+| `header`：初始透明、theme、transition、flex、行動版尺寸、viewport 寬度 | D | class 或 `innerWidth` 斷言，沒有行為在後面 |
+| `features`：70vh、flex、gradient、aspect ratio、左右圖片版面、design-system 一致性、`lg:` 斷點 | D | 只斷言 class 字串 |
+| `features`：Points 卡片、radar 卡片 | R | 原本斷言 mock 出的 test id；現在真的 Points 顯示「ATTACK」（拿掉 `Points` 會變紅），radar 只保留容器，因為 recharts 的 ResponsiveContainer 在 jsdom 沒有版面、不渲染內容 |
+| `highlights`：結構、八張卡片各自的標題與描述 | C | 兩個測試，斷言不變 |
+| `highlights`：icon 與 badge | R | 原本斷言 mock 出的 `ri-*` test id；現在每個 badge 必須有渲染出來的內容（拿掉 icon 會變紅） |
+| `highlights`：grid、gap、aspect、字級、gradient、sticky、will-change | D | 只斷言 class 字串 |
+| `highlights`：useScroll／useTransform／useSpring 有被呼叫 | D | 斷言第三方 mock 的呼叫形狀；真的 motion 現在執行這些 hook，壞了每個 render 測試都會失敗 |
+| `use-editing-guard`：三個涉及 toast 的測試 | F | 真的 `useToast` 加上渲染的 `Toaster`，斷言使用者看到的 toast 文字（`if (failed)` 改成 `if (false)` 會變紅） |
+| `use-pull-to-refresh`：standalone 判斷 | F | 真的 `isStandalone`，測試設定 `window.matchMedia` 而不是 mock 自己的 `@/lib/pwa`（把 `isStandalone` 恆設為真，非 standalone 的測試會變紅） |
+| `use-active-team-id`：三個測試 | F | 真的 SWR 與真的 `useUser`、`useProfile`、`useUserPlayers`，MSW 回應三個端點（joined 篩選改壞會變紅） |
+| `use-game-merge`：五個測試 | F | 原本把 `jest.fn` 當 fetcher 傳進 `useGame`；現在 MSW 回應 `GET /api/games/game-1`，重新驗證的次數改成計算請求數 |
+| `header`：stops listening for scroll after unmount | F | 原本只斷言「某個」scroll listener 被移除，移錯 handler 也會過；現在比對加入的與移除的是同一個 handler |
+| `wrappers`：全部測試 | C | 只移除多餘的 `next/server` mock，斷言不變；`status` 改成 200 會讓五個測試變紅，證明真的 `NextResponse` 帶著狀態碼 |
+| `auth-hook`：四個測試 | C | 真的 container 與 use case，斷言由「呼叫自己的 use case 的 `execute`」移到 repository 邊界；重試判斷、失敗後 `return`、link 的 email 與 userId 互換各讓對應的測試變紅 |
+
+### Mutation
+
+每次都在正式程式碼上改一處、跑指名的 keeper、再逐位元還原；還原後 `git diff` 皆為空。
+
+| 正式程式碼 | 改壞什麼 | 變紅的測試 |
+| --- | --- | --- |
+| `landing/header.tsx` | `> SCROLL_THRESHOLD` 改成 `<` | frosts the bar once the page is scrolled |
+| 同上 | 拿掉捲動 listener 的 cleanup，或改成移除別的 handler | stops listening for scroll after unmount（兩種都變紅） |
+| `landing/cta-button.tsx` | `href="/home"` 改成 `/homex` | 四個檔案共八個測試 |
+| 同上 | catch 分支拿掉 `setDeferredPrompt(null)` 與 `setIsInstallable(false)` | hides the install button and logs when the prompt fails |
+| 同上 | `deferredPrompt.prompt()` 換成 `userChoice` | 兩個測試（點擊與失敗） |
+| 同上 | iOS 版本的正規表示式改壞 | iOS dialog 測試 |
+| `landing/hero.tsx` | flip 間隔 2500 改成 2600 | 輪播測試 |
+| `landing/highlights.tsx` | 拿掉 `{Icon && <Icon />}` | renders an icon inside each feature badge |
+| `landing/features/analytics.tsx` | 拿掉 `<Points />` | should render Points component in first analytics card |
+| `hooks/use-editing-guard.ts` | `if (failed)` 改成 `if (false)` | reports failed once attempts are exhausted |
+| `lib/pwa.ts` | `isStandalone` 恆為真 | 非 standalone 的 gating 測試 |
+| `hooks/use-data.ts` | `isStillJoined = false && …` | uses activeTeamId when the user is still a member |
+| `lib/api/wrappers.ts` | `status: error.httpStatus` 改成 `200` | 五個測試 |
+| `lib/auth-hook.ts` | `firstError instanceof TransientError` 改成 `false` | 兩個測試 |
+| 同上 | 拿掉 profile 建立失敗後的 `return` | 一個測試 |
+| 同上 | link 呼叫的 email 與 userId 互換 | 一個測試 |
+
+### Code review
+
+兩軸 review，修正後重新驗證。
+
+- **標準軸**：一項硬性：`header.test.tsx` 的 `backdrop-blur-sm` class 斷言，註解只說訪客為什麼在意、沒說為什麼只能斷言 class，已改成寫明 jsdom 不載入樣式表，class 是頁首毛玻璃唯一的痕跡；同一檔案的 unmount 測試只斷言「有個 listener 被移除」，改成比對同一個 handler，兩種 mutation 都變紅。四個 landing 測試各寫了一份相同的 `userAgent` spy，已提升為 `test/support/dom/user-agent.ts`。`wrappers.test.ts` 兩條只重述程式碼的註解已刪。兩個 `react-icons` stub 補上原因說明。根因與 shard 3 相同：上一輪只檢查改動的行，沒有依規則檢查整個專案的重複與未說明的 mock。
+- **規格軸**：S7 成立；兩個 CTA 缺陷經原始碼確認為真；指出 `use-game-merge` 傳 `fetcher` 進 hook 的做法，追查後發現是純測試接縫（ActionItems 第 4 點）；兩個 lib 測試與移除全域 `motion` stub 屬判斷性的額外範圍，已列在 Deviations。
+- 抽樣約六十個被刪的 `it`：行為性的都有 keeper；沒有 keeper 的兩組在 ActionItems 第 1 點。
+
+### 殘留風險（flag，未修）
+
+- 沒有任何 mutation 保護的部分：`use-editing-guard` 改寫了三個涉及 toast 的測試，只對其中「失敗」那一個做了 mutation；「寫入中不顯示 toast」與「閒置時靜默離開」兩個是反向斷言，靠真實 toast 出現在畫面上才會失敗。
+- `features.test.tsx` 仍有一批只斷言 test id 存在的檢查，`highlights.test.tsx` 的「八張卡片」數量與「badge 非空」也是弱斷言；它們不顯示訪客看得到的行為，但便宜且穩定，本 shard 只處理 mock，沒有動。
+- `pull-refresh-indicator.test.tsx` 有斷言 `animate-spin` 這類 class 的舊測試，早於這個 Migration，沒有動。
+- `auth-hook.test.ts` 在 `beforeAll` 把 repository 重新綁定卻沒有還原；Jest 對每個檔案隔離模組，所以不會外洩到別的檔案。
+- Jest worker 偶爾 SIGSEGV（T6）：一個 suite 沒跑起來，重跑即過。可能的緩解（減少 worker、換 Node patch 版本）尚未嘗試，也沒有改 `jest.config.ts`。
+- 後續 issue：新增賽事表單主場隊名、補專屬測試（含這次新增的兩個 stats 檔案）、待寫入佇列去重與冗餘程式碼、import 排序、兩個 server-only 測試搬到 backend project。
+
+</ReviewDetails>
