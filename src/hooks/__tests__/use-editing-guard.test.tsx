@@ -2,17 +2,17 @@ import { useEditingGuard } from "@/hooks/use-editing-guard";
 import { gameActions } from "@/lib/features/game/game-slice";
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import { makeStore, type AppStore } from "@/lib/redux/store";
-import { act, renderHook } from "@testing-library/react";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
+import { act, renderHook, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
-
-const mockToast = jest.fn();
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: mockToast }),
-}));
 
 let store: AppStore;
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <Provider store={store}>{children}</Provider>
+  <Provider store={store}>
+    {children}
+    <Toaster />
+  </Provider>
 );
 
 const enterEditing = (entryId: string) => {
@@ -43,7 +43,12 @@ const enterEditing = (entryId: string) => {
 
 beforeEach(() => {
   store = makeStore();
-  mockToast.mockClear();
+});
+
+// The toast store is module-level, so a toast would outlive its test.
+afterEach(() => {
+  const { result } = renderHook(() => useToast());
+  act(() => result.current.dismiss());
 });
 
 describe("useEditingGuard", () => {
@@ -81,7 +86,7 @@ describe("useEditingGuard", () => {
     // The back control does nothing while writing either.
     act(() => result.current.leaveEditing());
     expect(store.getState().game.mode).toBe("editing");
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 
   it("reports failed once attempts are exhausted, allows dismissal, and tells the recorder on leave", () => {
@@ -115,10 +120,7 @@ describe("useEditingGuard", () => {
 
     act(() => result.current.leaveEditing());
     expect(store.getState().game.mode).toBe("general");
-    expect(mockToast).toHaveBeenCalledTimes(1);
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
+    expect(screen.getByText("編輯未儲存")).toBeInTheDocument();
   });
 
   it("leaves silently once idle (no failed write)", () => {
@@ -128,6 +130,6 @@ describe("useEditingGuard", () => {
     act(() => result.current.leaveEditing());
 
     expect(store.getState().game.mode).toBe("general");
-    expect(mockToast).not.toHaveBeenCalled();
+    expect(screen.queryByText("編輯未儲存")).not.toBeInTheDocument();
   });
 });
