@@ -2,15 +2,16 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-要決定或處理的有四件：
+要決定的只有一件：
 
-1. **一批只讀 Tailwind class 字串的斷言沒有 keeper。** landing 六個測試檔（`cta-button`、`cta-section`、`header`、`hero`、`features`、`highlights`）原本大量斷言 aspect ratio、gap、gradient、sticky 等 class 字串，以及 mock 出來的元件的 test id 與捲動 handler 的呼叫形狀。它們在 class 改名時就壞、卻不顯示訪客看得到的東西，依 `docs/testing-strategy.md` 這類斷言歸 Chromatic，所以刪除、沒有替代。另外有兩組刪除沒有 keeper：header 的 rAF throttling 測試（只有效能上的 contract）與 `CTAButton` 的 `className`、`variant` 透傳測試（prop 轉發，沒有呼叫端會用）。同意就無需動作。`header.test.tsx` 保留唯一一個 class 斷言（`backdrop-blur-sm`），因為捲動後頁首變毛玻璃只有這個效果看得到，檔內有註解。
-2. **CTA 按鈕有兩個缺陷，改用真實元件之後才露出。** 測試現在只斷言目前的行為。
-   - 桌面與 PWA 分支的連結寫死「開始使用」並忽略 `children`，所以 CTA 區塊傳入的「立即開始使用」與 `data-testid` 都沒有出現。修法明確（`children ?? "開始使用"`），我會依 Fix path 另開一個 PR 修，不併進本 shard。
-   - Android 手機在瀏覽器沒有觸發 `beforeinstallprompt` 時，頁首、hero、CTA 區塊都不顯示任何按鈕。這可能是刻意的，**需要你決定**訪客該看到什麼。
-3. **`wrappers.test.ts` 與 `auth-hook.test.ts` 測的是只在 server 執行的程式，卻跑在 jsdom 的 frontend project**（auth-hook 在 jsdom 下還會印 Mongoose 的環境警告）。它們應該屬於 `backend` project，但這要改 `jest.config.ts` 的分派，且 backend 的 setup 全域替換了 `next/server`，`wrappers` 的斷言搬過去要重新確認，所以本 shard 沒有動；已開後續 issue。
+1. **一批只讀 Tailwind class 字串的斷言沒有 keeper。** landing 六個測試檔（`cta-button`、`cta-section`、`header`、`hero`、`features`、`highlights`）原本大量斷言 aspect ratio、gap、gradient、sticky 等 class 字串，以及 mock 出來的元件的 test id 與捲動 handler 的呼叫形狀。它們在 class 改名時就壞、卻不顯示訪客看得到的東西，依 `docs/testing-strategy.md` 這類斷言歸 Chromatic，所以刪除、沒有替代。另外有兩組刪除沒有 keeper：header 的 rAF throttling 測試（只有效能上的 contract）與 `CTAButton` 的 `className`、`variant` 透傳測試（prop 轉發，沒有呼叫端會用）。同意就無需動作。`header.test.tsx` 保留唯一一個 class 斷言（`backdrop-blur-sm`），因為 jsdom 不載入樣式表，那個 class 是捲動後頁首變毛玻璃唯一的痕跡，檔內有註解。
 
-4. **`use-data.ts` 八個 hook 的 `fetcher` 與 `options` 參數是純測試接縫，移除待你決定。** `useUser`、`useProfile`、`useUserPlayers`、`useTeam`、`useTeamPlayers`、`usePlayer`、`useGame`、`useGameSummaries` 都接受 `fetcher` 與 `options`，但正式程式碼沒有任何呼叫端會傳；唯一傳 `fetcher` 的是 `use-game-merge.test.tsx`，本 shard 已改成用 MSW 回應。`CAMPAIGN.md` 的 cutover 步驟要求移除 lane 解鎖的注入參數，所以建議移除（淨減少正式程式碼、不改行為），但這是正式程式碼的變動、超出本 shard 只改測試的範圍，依 `WORKFLOW.md` 列出等你決定，我沒有動。你同意的話，我另開一個小 PR。
+已依你在對話中的決定處理，不需要再動作：
+
+- **`use-data.ts` 八個 hook 的 `fetcher` 與 `options` 參數**（正式碼沒有任何呼叫端會傳，唯一使用者是 `use-game-merge.test.tsx`）已移除，是本 shard 唯一的正式程式碼變動，淨減少 29 行，行為不變，見 Deviations 第 6 點。
+- **`wrappers.test.ts` 與 `auth-hook.test.ts`** 原本跑在 jsdom 的 frontend project，已改由 `backend` project 執行，見 Deviations 第 7 點。
+- **CTA 按鈕的兩個缺陷**（桌面與 PWA 連結忽略 `children`；Android 沒有 install prompt 時完全不顯示按鈕，你確認不是刻意設計）走 Fix path，等本 shard 合併後從最新的 `dev` 開分支修，因為兩個 PR 會改到同一批測試檔；已有 issue 追蹤。這兩個缺陷是改用真實元件之後才看得到，本 shard 的測試只斷言目前的行為。
+- **Jest worker 偶發 SIGSEGV** 已查出根因是 Node 24.15.0 的 V8 崩潰，見 TestPlan T6；確認與緩解已開 issue，不在本 shard 內處理。
 
 本 shard 沒有 decision record 的 `decision` 文字在 G1 後改變。
 
@@ -18,19 +19,22 @@ import { scenarios } from "./proposal.mdx";
 
 <ReviewFocus>
 
-1. `src/components/landing/__tests__/cta-button.test.tsx`：改變最大，也是找到兩個缺陷的地方。原本的測試自己渲染一個 `<button>` 再斷言它，現在改成真的 Radix dialog 開啟與關閉、真的 install prompt 被提供與使用；看每個平台（Windows、macOS、Linux、舊版 iOS 走桌面連結）的斷言是否對得上你期待的行為。
-2. `src/lib/__tests__/auth-hook.test.ts`：原本 mock 掉整個 DI container 並斷言自己的 use case 的呼叫形狀，現在跑真的 container 與 use case，把 repository 換成 double，斷言落在 repository 邊界（`profileRepository.create`、`playerRepository.linkUserToInvitations`）。看這個邊界是不是這條 contract 該被證明的地方。
-3. `test/setup/frontend.ts`：全域的 `motion` stub 整段移除。它只被 landing 的測試用到，兩個測試檔還得 `unmock` 它；拿掉之後整個 frontend 測試在真實的 motion 上都通過。
+1. `src/hooks/use-data.ts`：本 shard 唯一的正式程式碼變動，八個 hook 拿掉沒有人傳的 `fetcher` 與 `options`；看每個 hook 是否仍用同一個 fetcher 與同一組 SWR 設定。
+2. `src/components/landing/__tests__/cta-button.test.tsx`：改變最大，也是找到兩個缺陷的地方。原本的測試自己渲染一個 `<button>` 再斷言它，現在改成真的 Radix dialog 開啟與關閉、真的 install prompt 被提供與使用；看每個平台（Windows、macOS、Linux、舊版 iOS 走桌面連結）的斷言是否對得上你期待的行為。
+3. `src/lib/__tests__/auth-hook.test.ts`：原本 mock 掉整個 DI container 並斷言自己的 use case 的呼叫形狀，現在跑真的 container 與 use case，把 repository 換成 double，斷言落在 repository 邊界（`profileRepository.create`、`playerRepository.linkUserToInvitations`）。看這個邊界是不是這條 contract 該被證明的地方。
+4. `test/setup/frontend.ts`：全域的 `motion` stub 整段移除。它只被 landing 的測試用到，兩個測試檔還得 `unmock` 它；拿掉之後整個 frontend 測試在真實的 motion 上都通過。
 
 </ReviewFocus>
 
 <Deviations>
 
-1. **兩個 lib 測試不是「元件與 hook 測試」。** Proposal 只寫「其餘的元件與 hook 測試」。`wrappers.test.ts` 與 `auth-hook.test.ts` 在 `src/lib` 之下、跑在 frontend project，mock 了自己的 DI container 與 `next/server`，依 ADR-0086 一起處理。`next/server` 的 mock 是多餘的（`jest-fixed-jsdom` 已提供真的 `NextResponse`）；DI container 的 mock 換成真 container 加 repository double。session 提供者（`@/lib/auth`）與 `next/headers` 依 `docs/testing-strategy.md` 本來就允許替換，保留。
+1. **兩個 lib 測試不是「元件與 hook 測試」。** Proposal 只寫「其餘的元件與 hook 測試」。`wrappers.test.ts` 與 `auth-hook.test.ts` 在 `src/lib` 之下，mock 了自己的 DI container 與 `next/server`，依 ADR-0086 一起處理。`next/server` 的 mock 是多餘的（`jest-fixed-jsdom` 已提供真的 `NextResponse`）；DI container 的 mock 換成真 container 加 repository double。session 提供者（`@/lib/auth`）與 `next/headers` 依 `docs/testing-strategy.md` 本來就允許替換，保留。
 2. **移除全域 `motion` stub。** Proposal 沒有提，但它在 shard 3 就是「兩個測試得 `unmock` 才能用真的」，本 shard 證明整個 frontend 沒有測試需要它。
 3. **新增一個 `test/support` 檔案：`dom/user-agent.ts`。** 四個 landing 測試各自 spy `navigator.userAgent`，第二次使用就依規則提升；jsdom 預設的 user agent 會被判成手機，所以各測試要自己設定。
 4. **`use-game-merge.test.tsx` 也改了。** 它把 `jest.fn` 當 fetcher 傳進 `useGame`，是唯一使用那個注入參數的測試（見 ActionItems 第 4 點），改成 MSW 回應 `GET /api/games/game-1`。
 5. **`react-icons` 的 mock 保留在兩個測試，並補上說明。** `button.test.tsx` 與 `pull-refresh-indicator.test.tsx` 替換第三方 icon 元件只為了拿到 test id；icon 是第三方程式，不是 ADR-0086 與 S7 管的自己的程式碼；兩處都加了一行註解寫明為什麼需要 stub。
+6. **移除 `use-data.ts` 八個 hook 的 `fetcher` 與 `options` 參數（正式程式碼，Proposal 沒有）。** `CAMPAIGN.md` 的 cutover 步驟要求移除 lane 解鎖的測試專用注入參數；正式程式碼沒有任何呼叫端傳這兩個參數，`use-game-merge` 改用 MSW 之後也沒有測試再傳。這是超出「只改測試」的正式程式碼變動，我原本列給你決定，你在對話中同意後才做。每個 hook 仍用同一個 fetcher（`apiClient`）與同一組 SWR 設定，只是參數與 `...options` 展開消失；`tsc` 乾淨、全部測試通過。
+7. **`wrappers.test.ts` 與 `auth-hook.test.ts` 改由 `backend` project 執行（`jest.config.ts`，Proposal 沒有）。** 兩者測的是只在 server 執行的程式，原本被 frontend project 的 `src/lib` 樣式撈到、在 jsdom 執行（`auth-hook` 還會印 Mongoose 的環境警告）。backend 的 `testMatch` 加上這兩個檔案，frontend 的 `testPathIgnorePatterns` 排除它們，每個只跑一次；`--listTests` 已確認。backend 的 setup 全域替換 `next/server`，`wrappers` 的斷言（狀態碼與錯誤內容）由 stub 原樣帶過，沒有變成空斷言。
 
 </Deviations>
 
@@ -77,7 +81,7 @@ import { scenarios } from "./proposal.mdx";
     {
       id: "T4",
       checks: "刪除對照表與保存審查",
-      method: "每個 lane 的 executor 逐宣告標記，並對被刪、被併、或斷言被改寫的 contract，把正式程式碼刻意改壞、確認 keeper 變紅、再逐位元還原（每次還原後 `git diff` 為空）；我在提交前確認整個 branch 相對 `dev` 沒有任何正式程式碼變動",
+      method: "每個 lane 的 executor 逐宣告標記，並對被刪、被併、或斷言被改寫的 contract，把正式程式碼刻意改壞、確認 keeper 變紅、再逐位元還原（每次還原後 `git diff` 為空）；整個 branch 相對 `dev` 只有一個正式程式碼檔案改動（`use-data.ts`，見 Deviations 第 6 點）",
       executor: "agent",
       environment: "macOS 本機",
       result: "pass",
@@ -99,7 +103,7 @@ import { scenarios } from "./proposal.mdx";
       executor: "agent",
       environment: "macOS 本機",
       result: "pass",
-      evidence: "五次中四次全部通過；一次有一個 suite（`previous-scores.helper`）沒跑起來，log 顯示 `A jest worker process was terminated by another process: signal=SIGSEGV`，是 Jest worker 行程本身崩潰，不是測試失敗，也不是這個 shard 的程式碼。shard 3 有兩次類似的失敗（當時沒保存訊息）發生在別的 suite，包含一個沒有用到 MSW 的 backend suite，所以不是特定測試。重跑即過；原因在 Node 或原生層，未查",
+      evidence: "五次中四次全部通過；一次有一個 suite（`previous-scores.helper`）沒跑起來，log 顯示 `A jest worker process was terminated by another process: signal=SIGSEGV`。調查結果：macOS 崩潰報告（pid 與失敗的 worker 相同）顯示崩潰發生在 node 執行檔內，是 V8 的 full GC 掃描 root 時撞到損毀的 heap，載入的原生模組沒有 SWC 或 jsdom，所以是 Node v24.15.0 的 V8 問題，不是測試、SWC、jsdom、MSW 或 undici，也與開發者的 Windows 流程修改無關；最可能對應 nodejs/node#64841（Maglev，影響 24.15.0 到 24.18.1，24.14.1 不受影響），但該回報是 Linux 且崩潰在 Maglev 編譯執行緒，是否同一個 bug 尚未證實。shard 3 的兩次類似失敗也是不同的 suite，包含沒有用到 MSW 的 backend suite。重跑即過；確認與緩解（升級或固定 Node 版本，或暫時加 `--no-maglev`）已開 issue",
     },
   ]}
 />
@@ -108,7 +112,7 @@ import { scenarios } from "./proposal.mdx";
 
 ### 逐檔覆蓋率
 
-以同一條指令 `jest --coverage`（三個 project）在 `908ad2e2`（shard 3 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。production `src/` 合計：行 19398/22093（87.80%）→ 19846/22726（87.33%），branch 1937/2187（88.57%）→ 1969/2238（87.98%），function 528/650（81.23%）→ 541/659（82.09%）。covered 的行、branch、function 都增加，因為改成真實子元件後，原本被 mock 掉而沒被載入的程式碼現在真的執行。
+以同一條指令 `jest --coverage`（三個 project）在 `908ad2e2`（shard 3 合併後的 `dev`）與 HEAD 各量測一次。沒有列出的 `src/` 檔案，四項百分比都沒有下降。production `src/` 合計：行 19398/22093（87.80%）→ 19822/22695（87.34%），branch 1937/2187（88.57%）→ 1969/2238（87.98%），function 528/650（81.23%）→ 541/659（82.09%）。covered 的行、branch、function 都增加，因為改成真實子元件後，原本被 mock 掉而沒被載入的程式碼現在真的執行。
 
 | 檔案 | covered/total branch 之前 | 之後 | 原因 |
 | --- | --- | --- | --- |
@@ -177,6 +181,7 @@ import { scenarios } from "./proposal.mdx";
 - **標準軸**：一項硬性：`header.test.tsx` 的 `backdrop-blur-sm` class 斷言，註解只說訪客為什麼在意、沒說為什麼只能斷言 class，已改成寫明 jsdom 不載入樣式表，class 是頁首毛玻璃唯一的痕跡；同一檔案的 unmount 測試只斷言「有個 listener 被移除」，改成比對同一個 handler，兩種 mutation 都變紅。四個 landing 測試各寫了一份相同的 `userAgent` spy，已提升為 `test/support/dom/user-agent.ts`。`wrappers.test.ts` 兩條只重述程式碼的註解已刪。兩個 `react-icons` stub 補上原因說明。根因與 shard 3 相同：上一輪只檢查改動的行，沒有依規則檢查整個專案的重複與未說明的 mock。
 - **規格軸**：S7 成立；兩個 CTA 缺陷經原始碼確認為真；指出 `use-game-merge` 傳 `fetcher` 進 hook 的做法，追查後發現是純測試接縫（ActionItems 第 4 點）；兩個 lib 測試與移除全域 `motion` stub 屬判斷性的額外範圍，已列在 Deviations。
 - **第二輪（只審修正的部分）**：第一輪的每一項都已解決；只多一則不準確的註解：`user-agent.ts` 說 jsdom 的預設 user agent 會被判成手機，實際上依主機作業系統而異（這台 Mac 是 `darwin`，被判成手機；Linux 會被判成桌面），已改成「因主機而異，所以要固定」。根因是註解寫在一個沒有實際驗證過的環境假設上。`use-game-merge` 的轉換經逐一比對，五個測試的斷言都保留。
+- **第三輪（審新增的兩個 commit）**：兩軸都沒有硬性違規。`use-data.ts` 的移除經逐 hook 比對是保持行為的（同一個 fetcher、同一組 SWR 設定），`useGameSummaries` 留下一個只展開單一物件的 `{ ...SWR_CONFIG.INFINITE }`，已改成直接傳入；Jest 設定的兩個檔案各只跑一次，`wrappers` 在 backend stub 下不是空斷言。
 - 抽樣約六十個被刪的 `it`：行為性的都有 keeper；沒有 keeper 的兩組在 ActionItems 第 1 點。
 
 ### 殘留風險（flag，未修）
@@ -185,7 +190,7 @@ import { scenarios } from "./proposal.mdx";
 - `features.test.tsx` 仍有一批只斷言 test id 存在的檢查，`highlights.test.tsx` 的「八張卡片」數量與「badge 非空」也是弱斷言；它們不顯示訪客看得到的行為，但便宜且穩定，本 shard 只處理 mock，沒有動。
 - `pull-refresh-indicator.test.tsx` 有斷言 `animate-spin` 這類 class 的舊測試，早於這個 Migration，沒有動。
 - `auth-hook.test.ts` 在 `beforeAll` 把 repository 重新綁定卻沒有還原；Jest 對每個檔案隔離模組，所以不會外洩到別的檔案。
-- Jest worker 偶爾 SIGSEGV（T6）：一個 suite 沒跑起來，重跑即過。可能的緩解（減少 worker、換 Node patch 版本）尚未嘗試，也沒有改 `jest.config.ts`。
-- 後續 issue：新增賽事表單主場隊名、補專屬測試（含這次新增的兩個 stats 檔案）、待寫入佇列去重與冗餘程式碼、import 排序、兩個 server-only 測試搬到 backend project。
+- Jest worker 偶爾 SIGSEGV（T6）：根因在 Node 24.15.0 的 V8，一個 suite 沒跑起來，重跑即過；確認實驗與 Node 版本的處理是開發者環境的決定，已開 issue，這個 shard 沒有動 `jest.config.ts` 或 Node 版本。
+- 後續 issue：新增賽事表單主場隊名、補專屬測試（含這次新增的兩個 stats 檔案與幾個沒被 mutation 保護的 keeper）、待寫入佇列去重與冗餘程式碼、import 排序、測試整理（弱斷言、舊 class 斷言、重複 helper）、CTA 兩個缺陷（Fix path，等本 shard 合併後處理）、Node 24.15.0 的 V8 崩潰。
 
 </ReviewDetails>
