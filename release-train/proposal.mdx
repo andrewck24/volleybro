@@ -106,17 +106,23 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 
 <figure>
 <div style={{ width: "100%", overflowX: "auto" }}>
-<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block", color: "var(--foreground)" }} role="img" aria-labelledby="git-delivery-title git-delivery-desc">
-<title id="git-delivery-title">一般交付與 Sharded Change</title>
-<desc id="git-delivery-desc">一般 Change、Fix path 和同一 Sharded Change 的兩個 shard 分別交付 main；共享 Proposal 不代表共享 branch。</desc>
+<svg viewBox="0 0 1280 720" style={{ width: "100%", minWidth: 1280, display: "block", color: "var(--foreground)" }} role="img" aria-labelledby="git-delivery-title git-delivery-desc">
+<title id="git-delivery-title">一般交付、Sharded Change 與 rolling version PR</title>
+<desc id="git-delivery-desc">一般 Change、Fix 和各 shard 合併 main 後，bot 持續更新同一 release branch 與 version PR；授權合併固定 SHA，後續新 changesets 才重建。</desc>
 <text x="40" y="48" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">一般交付：所有合併內容必須可發布；main merge 不直接部署 production</text>
 <rect x="532" y="204" width="368" height="304" rx="8" fill="none" stroke="var(--chart-5)" strokeDasharray="6 5" />
 <text x="552" y="232" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">Sharded Change · 同一 parent／Proposal／G1</text>
-<path d="M 184 160 H 920" fill="none" stroke="var(--chart-1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 184 160 H 1240" fill="none" stroke="var(--chart-1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 <path d="M 184 160 Q 208 160 208 184 V 232 Q 208 256 232 256 H 304 Q 328 256 328 232 V 184 Q 328 160 352 160" fill="none" stroke="var(--chart-3)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 <path d="M 352 160 Q 376 160 376 184 V 328 Q 376 352 400 352 H 472 Q 496 352 496 328 V 184 Q 496 160 520 160" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 <path d="M 520 160 Q 544 160 544 184 V 280 Q 544 304 568 304 H 640 Q 664 304 664 280 V 184 Q 664 160 688 160" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 <path d="M 688 160 Q 712 160 712 184 V 400 Q 712 424 736 424 H 808 Q 832 424 832 400 V 184 Q 832 160 856 160" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 184 160 Q 208 160 208 136 V 120 Q 208 96 232 96 H 1040 Q 1064 96 1064 120 V 136 Q 1064 160 1088 160" fill="none" stroke="var(--color-warning-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 352 152 V 128 Q 352 120 360 120 H 432 Q 440 120 440 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 520 152 V 128 Q 520 120 528 120 H 608 Q 616 120 616 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 688 152 V 128 Q 688 120 696 120 H 784 Q 792 120 792 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 856 152 V 128 Q 856 120 864 120 H 960 Q 968 120 968 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 1184 160 Q 1208 160 1208 136 V 120 Q 1208 96 1232 96 H 1240" fill="none" stroke="var(--color-warning-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 <circle cx="184" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
 <circle cx="352" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
 <circle cx="520" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
@@ -135,54 +141,29 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <text x="600" y="356" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
 <text x="768" y="452" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s2 · Shard 2"}</text>
 <text x="768" y="476" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
-<text x="552" y="104" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">可獨立發布的 shard 才逐張合併</text>
-<text x="552" y="128" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">不可分割時：同一 branch／PR 一起交付</text>
-<line x1="40" y1="536" x2="920" y2="536" stroke="var(--border)" />
-<text x="40" y="564" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">圓點＝commit · 支線回 main＝PR merge · 虛線框＝同一 Sharded Change 的從屬範圍</text>
+<line x1="40" y1="656" x2="1240" y2="656" stroke="var(--border)" />
+<text x="40" y="684" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">圓點＝commit · 支線回 main＝PR merge · 虛線框＝同一 Sharded Change 的從屬範圍</text>
+<circle cx="1088" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="1184" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="280" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<circle cx="440" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<circle cx="616" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<circle cx="792" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<circle cx="968" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<circle cx="1232" cy="96" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
+<text x="232" y="64" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--color-warning-text)">changeset-release/main · 同一 branch／同一 version PR</text>
+<text x="232" y="80" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">初次建立 → bot 持續納入 main 新 changesets、更新版本／changelog 並重跑 CI</text>
+<text x="1088" y="196" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 merge</text>
+<text x="1088" y="220" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">固定 release SHA</text>
+<text x="1184" y="280" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">下一批 Change</text>
+<text x="1184" y="304" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">新 changesets</text>
+<text x="1008" y="368" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--color-warning-text)">合併後：有新 changesets</text>
+<text x="1008" y="392" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--color-warning-text)">才重建下一張 version PR</text>
+<text x="40" y="584" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--color-warning-text)">上方 release branch：不是獨立功能開發線，而是 bot 維護的 rolling 發布準備分支</text>
+<text x="40" y="608" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">虛線箭徑：將 main 新 changesets 納入同一 version PR；授權合併後，新的 main 內容不替換既定部署候選</text>
 </svg>
 </div>
-<figcaption>Sharded Change 是共享 Proposal 的工作群組，不是額外的永久分支；各 shard 可獨立發布才分開 PR，不可分割的內容留同一 branch 一起交付。</figcaption>
-</figure>
-
-<figure>
-<div style={{ width: "100%", overflowX: "auto" }}>
-<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block", color: "var(--foreground)" }} role="img" aria-labelledby="git-version-title git-version-desc">
-<title id="git-version-title">Bot 持續維護同一條 version branch</title>
-<desc id="git-version-desc">尚未合併的 version PR 隨 main 上新 changesets 持續更新；合併後僅在再次出現待發布 changesets 時重建。</desc>
-<text x="40" y="48" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Changesets bot：持續維護同一 version PR，不為每筆 Change 開新的 version PR</text>
-<path d="M 184 160 H 920" fill="none" stroke="var(--chart-1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 184 160 Q 208 160 208 184 V 296 Q 208 320 232 320 H 640 Q 688 320 688 272 V 184 Q 688 160 712 160" fill="none" stroke="var(--color-warning-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 360 168 V 248 Q 360 272 384 272 H 416 Q 440 272 440 296 V 312" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 536 168 V 248 Q 536 272 560 272 H 592 Q 616 272 616 296 V 312" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 856 160 Q 880 160 880 184 V 440 Q 880 464 904 464 H 920" fill="none" stroke="var(--color-warning-text)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<circle cx="184" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="360" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="536" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="712" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="856" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="280" cy="320" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
-<circle cx="440" cy="320" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
-<circle cx="616" cy="320" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
-<circle cx="904" cy="464" r="7" fill="var(--background)" stroke="var(--color-warning-text)" strokeWidth="3" />
-<text x="40" y="164" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-1)">main</text>
-<text x="184" y="128" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Change A</text>
-<text x="360" y="128" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Change B</text>
-<text x="536" y="128" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Change C</text>
-<text x="712" y="128" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 merge</text>
-<text x="856" y="128" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">下一批 Change</text>
-<text x="280" y="352" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">初次 version commit</text>
-<text x="440" y="352" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Bot 更新版本／changelog</text>
-<text x="616" y="352" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">Bot 再更新＋重跑 CI</text>
-<text x="232" y="400" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--color-warning-text)">changeset-release/main</text>
-<text x="232" y="424" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">同一 branch／同一 PR · release: update versions</text>
-<text x="40" y="240" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">main 有新的 changesets</text>
-<text x="40" y="264" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">虛線：bot 納入新整合內容</text>
-<text x="488" y="480" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">新 changesets 才重建 branch／PR；沒有則不開</text>
-<line x1="40" y1="536" x2="920" y2="536" stroke="var(--border)" />
-<text x="40" y="564" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">合併授權當下固定 SHA · 後續 main commits 不替換部署候選 · 每次 bot push 都重跑驗證</text>
-</svg>
-</div>
-<figcaption>Bot 在 version PR 未合併前持續更新同一 branch 與 PR；合併後不是無條件重建，只有新的 non-empty changesets 才準備下一批版本。</figcaption>
+<figcaption>Change／Fix／shards 逐批合併 main 後，bot 持續更新同一 changeset-release/main 與 version PR。Sharded Change 的虛線框表示共同 parent／Proposal，不是 Git branch；不可分割的 shards 才留同一 branch／PR 一起交付。Version PR 授權合併時固定發布 SHA，之後有新的 changesets 才重建下一批。</figcaption>
 </figure>
 <figure>
 <div style={{ width: "100%", overflowX: "auto" }}>
