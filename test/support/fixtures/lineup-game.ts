@@ -38,7 +38,7 @@ export const homeRally = (win: boolean, seq: number) => ({
 /**
  * A one-set game whose home roster is p1-p6 (numbers 1-6), libero l1 (10) and
  * substitutes s1 (11) and s2 (12). `starting` overrides the stored slot at a
- * given index; the default slots are p1..p6 at MB, OH, OP, S, MB, OH.
+ * given index; `numberless` lists roster players that have no shirt number; the default slots are p1..p6 at MB, OH, OP, S, MB, OH.
  */
 export const createLineupGame = ({
   starting = {},
@@ -46,6 +46,7 @@ export const createLineupGame = ({
   entries = [],
   liberoReplacePosition = Position.NONE,
   serve = "home",
+  numberless = [],
 }: {
   starting?: Record<number, Slot>;
   liberos?: Slot[];
@@ -53,11 +54,23 @@ export const createLineupGame = ({
   liberoReplacePosition?:
     Position.NONE | Position.OH | Position.MB | Position.OP;
   serve?: "home" | "away";
+  numberless?: string[];
 } = {}) => {
   const base = createGame();
   const [firstSet] = base.sets;
   return createGame({
-    teams: { ...base.teams, home: { ...base.teams.home, players: roster } },
+    teams: {
+      ...base.teams,
+      home: {
+        ...base.teams.home,
+        // The served player view may omit a number that the entity type requires.
+        players: roster.map((player) =>
+          numberless.includes(player.id)
+            ? { ...player, number: undefined }
+            : player,
+        ) as never,
+      },
+    },
     sets: [
       {
         ...firstSet!,

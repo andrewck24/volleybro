@@ -1,3 +1,4 @@
+import type { Game } from "@/entities/game";
 import { Position } from "@/entities/player";
 import { useLineup } from "@/lib/features/game/hooks/use-lineup";
 import type { ReduxStatus } from "@/lib/features/game/types";
@@ -5,10 +6,7 @@ import {
   createLineupGame,
   homeRally,
 } from "@test/support/fixtures/lineup-game";
-import {
-  gameServed,
-  renderGameHook,
-} from "@test/support/react/render-game-hook";
+import { renderGameHook } from "@test/support/react/render-game";
 import { waitFor } from "@testing-library/react";
 
 type Court = ReturnType<typeof useLineup>;
@@ -16,7 +14,7 @@ type Court = ReturnType<typeof useLineup>;
 const numbers = (players: Court["starting"]) => players.map((p) => p.number);
 
 const renderLineup = (
-  game: ReturnType<typeof createLineupGame>,
+  game: Game,
   {
     editingEntryIndex,
     status: override,
@@ -50,19 +48,21 @@ describe("useLineup", () => {
     });
 
     it("is empty once the set is over", async () => {
-      const { result } = renderLineup(createLineupGame(), {
+      const { result, gameLoaded } = renderLineup(createLineupGame(), {
         status: { isSetInProgress: false },
       });
 
-      await gameServed();
+      await gameLoaded();
 
       expect(result.current).toEqual({ starting: [], liberos: [] });
     });
 
     it("is empty for a set the game does not have", async () => {
-      const { result } = renderLineup(createLineupGame(), { setIndex: 5 });
+      const { result, gameLoaded } = renderLineup(createLineupGame(), {
+        setIndex: 5,
+      });
 
-      await gameServed();
+      await gameLoaded();
 
       expect(result.current).toEqual({ starting: [], liberos: [] });
     });

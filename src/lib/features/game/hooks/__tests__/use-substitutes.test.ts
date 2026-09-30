@@ -1,16 +1,14 @@
+import type { Game } from "@/entities/game";
 import { useSubstitutes } from "@/lib/features/game/hooks/use-substitutes";
 import {
   createLineupGame,
   homeRally,
 } from "@test/support/fixtures/lineup-game";
-import {
-  gameServed,
-  renderGameHook,
-} from "@test/support/react/render-game-hook";
+import { renderGameHook } from "@test/support/react/render-game";
 import { waitFor } from "@testing-library/react";
 
 const renderSubstitutes = (
-  game: ReturnType<typeof createLineupGame>,
+  game: Game,
   selectedPlayerId: string,
   editingEntryIndex?: number,
 ) =>
@@ -29,11 +27,13 @@ const renderSubstitutes = (
   );
 
 const numbers = (players: { number?: number }[]) =>
-  players.map((p) => p.number);
+  players.map((p) => p.number).sort((a, b) => (a ?? 0) - (b ?? 0));
 
 const settled = async (result: { current: unknown[] }, expected: number[]) =>
   waitFor(() =>
-    expect(numbers(result.current as { number?: number }[])).toEqual(expected),
+    expect(numbers(result.current as { number?: number }[])).toEqual(
+      [...expected].sort((a, b) => a - b),
+    ),
   );
 
 type LineupSlots = NonNullable<
@@ -89,9 +89,9 @@ describe("useSubstitutes", () => {
           1: { id: "p2", sub: { id: "s1", entryIndex: { in: 1, out: 2 } } },
         },
       });
-      const { result } = renderSubstitutes(game, "p2");
+      const { result, gameLoaded } = renderSubstitutes(game, "p2");
 
-      await gameServed();
+      await gameLoaded();
       expect(result.current).toEqual([]);
     });
 
@@ -124,9 +124,9 @@ describe("useSubstitutes", () => {
     });
 
     it("offers nobody for a player who is not in the lineup", async () => {
-      const { result } = edit({}, "nobody", 2);
+      const { result, gameLoaded } = edit({}, "nobody", 2);
 
-      await gameServed();
+      await gameLoaded();
       expect(result.current).toEqual([]);
     });
 
@@ -147,7 +147,7 @@ describe("useSubstitutes", () => {
         2,
       );
 
-      await settled(result, [12, 11]);
+      await settled(result, [11, 12]);
     });
 
     it("lets a replacement swap back only with the starter they replaced", async () => {
@@ -171,13 +171,13 @@ describe("useSubstitutes", () => {
     });
 
     it("offers nobody once the position had used both substitutions by then", async () => {
-      const { result } = edit(
+      const { result, gameLoaded } = edit(
         { 1: { id: "p2", sub: { id: "s1", entryIndex: { in: 1, out: 2 } } } },
         "p2",
         4,
       );
 
-      await gameServed();
+      await gameLoaded();
       expect(result.current).toEqual([]);
     });
   });

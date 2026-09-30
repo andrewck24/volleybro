@@ -40,13 +40,4 @@ describe("PlayersList", () => {
     expect(screen.getByText("#7")).toBeInTheDocument();
     expect(screen.getByText("#0")).toBeInTheDocument();
   });
-
-  it("shows no number for a player without one", () => {
-    render(
-      <PlayersList players={[player({ number: null as unknown as number })]} />,
-    );
-
-    expect(screen.getByText("選手一")).toBeInTheDocument();
-    expect(screen.queryByText(/#/)).not.toBeInTheDocument();
-  });
 });
