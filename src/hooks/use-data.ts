@@ -17,7 +17,7 @@ import useSWRInfinite from "swr/infinite";
 export { ApiClientError };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const defaultFetcher = (url: string) => apiClient<any>(url);
+const fetcher = (url: string) => apiClient<any>(url);
 
 const useHasCache = (key: string) => {
   const { cache } = useSWRConfig();
@@ -42,34 +42,30 @@ const SWR_CONFIG = {
   },
 } as const;
 
-export const useUser = (fetcher = defaultFetcher, options = {}) => {
+export const useUser = () => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     User,
     ApiClientError
-  >("/api/users", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
+  >("/api/users", fetcher, SWR_CONFIG.DEFAULT);
 
   return { user: data, error, isLoading, isValidating, mutate };
 };
 
-export const useProfile = (fetcher = defaultFetcher, options = {}) => {
+export const useProfile = () => {
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     Profile,
     ApiClientError
-  >("/api/profiles", fetcher, { ...SWR_CONFIG.DEFAULT, ...options });
+  >("/api/profiles", fetcher, SWR_CONFIG.DEFAULT);
 
   return { profile: data, error, isLoading, isValidating, mutate };
 };
 
-export const useUserPlayers = (
-  userId: string | undefined,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const useUserPlayers = (userId: string | undefined) => {
   const key = userId ? `/api/users/${userId}/players` : null;
   const { data, error, isLoading, isValidating, mutate } = useSWR<
     UserPlayerView[],
     ApiClientError
-  >(key, fetcher, { ...SWR_CONFIG.LIST, ...options });
+  >(key, fetcher, SWR_CONFIG.LIST);
 
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
@@ -116,11 +112,7 @@ export const useActiveTeamId = () => {
   return { teamId, isLoading, error, mutate };
 };
 
-export const useTeam = (
-  teamId: string,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const useTeam = (teamId: string) => {
   const key = teamId ? `/api/teams/${teamId}` : null;
   const hasCache = useHasCache(key ?? "");
   const { data, error, isLoading, isValidating, mutate } = useSWR<
@@ -129,17 +121,12 @@ export const useTeam = (
   >(key, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
-    ...options,
   });
 
   return { team: data, error, isLoading, isValidating, mutate };
 };
 
-export const useTeamPlayers = (
-  teamId: string,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const useTeamPlayers = (teamId: string) => {
   const key = teamId ? `/api/teams/${teamId}/players` : null;
   const hasCache = useHasCache(key ?? "");
   const { data, error, isLoading, isValidating, mutate } = useSWR<
@@ -148,17 +135,12 @@ export const useTeamPlayers = (
   >(key, fetcher, {
     ...SWR_CONFIG.LIST,
     revalidateOnMount: !hasCache,
-    ...options,
   });
 
   return { players: data, error, isLoading, isValidating, mutate };
 };
 
-export const usePlayer = (
-  playerId: string,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const usePlayer = (playerId: string) => {
   const key = `/api/players/${playerId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
@@ -167,17 +149,12 @@ export const usePlayer = (
   >(playerId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
-    ...options,
   });
 
   return { player: data, error, isLoading, isValidating, mutate };
 };
 
-export const useGame = (
-  gameId: string,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const useGame = (gameId: string) => {
   const key = `/api/games/${gameId}`;
   const hasCache = useHasCache(key);
   const { data, error, isLoading, isValidating, mutate } = useSWR<
@@ -186,7 +163,6 @@ export const useGame = (
   >(gameId ? key : null, fetcher, {
     ...SWR_CONFIG.DEFAULT,
     revalidateOnMount: !hasCache,
-    ...options,
   });
 
   const pending = useAppSelector((state) => state.pendingWrites.pending);
@@ -198,11 +174,7 @@ export const useGame = (
   return { game, error, isLoading, isValidating, mutate };
 };
 
-export const useGameSummaries = (
-  teamId: string | undefined,
-  fetcher = defaultFetcher,
-  options = {},
-) => {
+export const useGameSummaries = (teamId: string | undefined) => {
   const getKey = (
     pageIndex: number,
     previousPageData: { hasMore: boolean; lastId: string } | null,
@@ -220,7 +192,6 @@ export const useGameSummaries = (
       lastId: string;
     }>(getKey, fetcher, {
       ...SWR_CONFIG.INFINITE,
-      ...options,
     });
 
   const gameSummaries = data
