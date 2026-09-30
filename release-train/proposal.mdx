@@ -167,7 +167,7 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 </div>
 <figcaption>Change／Fix／shards 逐批合併 main 後，bot 持續更新同一 changeset-release/main 與 version PR。Sharded Change 的虛線框表示共同 parent／Proposal，不是 Git branch；不可分割的 shards 才留同一 branch／PR 一起交付。Version PR 授權合併時固定發布 SHA，之後有新的 changesets 才重建下一批。</figcaption>
 </figure>
-<style>{`.release-train-decision > div { flex-direction: column; } .release-train-decision > div > div:last-child { width: 100%; }`}</style>
+<style>{`.release-train-decision > div { flex-direction: column; align-items: stretch; } .release-train-decision > div > div:last-child { width: 100%; }`}</style>
 
 ### 正式發布 gate
 
