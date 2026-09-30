@@ -167,16 +167,16 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 </div>
 <figcaption>Change／Fix／shards 逐批合併 main 後，bot 持續更新同一 changeset-release/main 與 version PR。Sharded Change 的虛線框表示共同 parent／Proposal，不是 Git branch；不可分割的 shards 才留同一 branch／PR 一起交付。Version PR 授權合併時固定發布 SHA，之後有新的 changesets 才重建下一批。</figcaption>
 </figure>
+<style>{`.release-train-decision > div { flex-direction: column; } .release-train-decision > div > div:last-child { width: 100%; }`}</style>
+
 ### 正式發布 gate
 
-<div style={{ width: "100%", overflowX: "auto" }}>
-<div style={{ minWidth: 1104 }}>
+<div className="release-train-decision">
 <InteractiveFlowchart
-  nodes={[{"id":"version","label":"Version PR 最新驗證","x":360,"y":48,"w":224,"h":64,"shape":"box"},{"id":"authorize","label":"授權 merge → 固定 SHA","x":360,"y":168,"w":224,"h":64,"shape":"box"},{"id":"candidate","label":"候選／必要驗收通過？","x":360,"y":288,"w":224,"h":64,"shape":"diamond"},{"id":"stop","label":"停止／等待／通知","x":80,"y":288,"w":224,"h":64,"shape":"box"},{"id":"promote","label":"鎖內核對基準 → promote","x":360,"y":408,"w":224,"h":64,"shape":"box"},{"id":"smoke","label":"Production smoke 通過？","x":360,"y":528,"w":224,"h":64,"shape":"diamond"},{"id":"rollback","label":"相容才 rollback／通知","x":640,"y":528,"w":224,"h":64,"shape":"box"},{"id":"record","label":"成功才建 tag／Release","x":360,"y":648,"w":224,"h":64,"shape":"box"}]}
+  nodes={[{"id":"version","label":"Version PR 驗證","x":240,"y":48,"w":160,"h":64,"shape":"box"},{"id":"authorize","label":"授權 merge／固定 SHA","x":240,"y":168,"w":160,"h":64,"shape":"box"},{"id":"candidate","label":"候選驗收通過？","x":240,"y":288,"w":160,"h":64,"shape":"diamond"},{"id":"stop","label":"停止／等待／通知","x":32,"y":288,"w":160,"h":64,"shape":"box"},{"id":"promote","label":"基準核對 → promote","x":240,"y":408,"w":160,"h":64,"shape":"box"},{"id":"smoke","label":"Production smoke？","x":240,"y":528,"w":160,"h":64,"shape":"diamond"},{"id":"rollback","label":"相容才 rollback","x":448,"y":528,"w":160,"h":64,"shape":"box"},{"id":"record","label":"建立 tag／Release","x":240,"y":648,"w":160,"h":64,"shape":"box"}]}
   edges={[{"from":"version","to":"authorize"},{"from":"authorize","to":"candidate"},{"from":"candidate","to":"stop","label":"未通過"},{"from":"candidate","to":"promote","label":"通過"},{"from":"promote","to":"smoke"},{"from":"smoke","to":"rollback","label":"失敗","dashed":true},{"from":"smoke","to":"record","label":"通過"}]}
   details={{"version":{"title":"同一 rolling version PR","body":"bot 的每次 push 重跑 required checks。授權前核對 latest revision 與可信 bot identity；main 新 changesets 會持續更新此 PR，詳見上方 branch graph。"},"authorize":{"title":"一次發布授權，固定 release SHA","body":"由你合併，或明確授權 Agent 合併。包括截至所選 Change／Fix 的所有未發布整合內容；後續 main commits 不替換候選。"},"candidate":{"title":"以 production 設定驗證候選","body":"使用固定 SHA 和 production config 建立尚未切正式 alias 的 candidate。必要 smoke／人工登入 fallback 未完成就等待；失敗不 promote，不建成功 tag。"},"stop":{"title":"不繞過失敗或等待","body":"停止／通知或等待必要人工驗收。不能以 CI 綠燈冒充 production 成功；promote 結果不明時先查實際 deployment。"},"promote":{"title":"序列化發布並重查 production 基準","body":"promotion／rollback／hotfix 共用發布鎖。基準已被 hotfix 改變時拒絕舊候選，待 merge-back、重新驗證並重新授權。"},"smoke":{"title":"部署成功後仍需 production 驗證","body":"驗證公開頁與可安全自動化的核心登入後路徑；尚無安全 session 時保留人工 fallback。只有真實通過才記錄發布成功。"},"rollback":{"title":"只回退相容 deployment，不回退資料","body":"只有證明舊 deployment 與目前 DB 相容才 rollback，之後再驗證與通知。DB 相容性未知或不相容則停止／通知，不 reset 或回退資料。"},"record":{"title":"成功的版本證據","body":"以固定 release SHA 建立 idempotent tag 與 GitHub Release；重試不移動既有 tag。之後有新的 non-empty changesets 才重建下一張 version PR。"}}}
 />
-</div>
 </div>
 
 點選節點查看 gate 細節。Version PR 合併是授權，不等於 production 已成功發布；失敗分支由 production smoke 出發。
@@ -223,14 +223,12 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 
 ### Dependabot 分流
 
-<div style={{ width: "100%", overflowX: "auto" }}>
-<div style={{ minWidth: 1104 }}>
+<div className="release-train-decision">
 <InteractiveFlowchart
-  nodes={[{"id":"schedule","label":"Weekly／security 事件","x":360,"y":48,"w":224,"h":64,"shape":"box"},{"id":"pr","label":"Dependabot PR ＋ CI","x":360,"y":168,"w":224,"h":64,"shape":"box"},{"id":"policy","label":"符合狹窄 auto-merge 規則？","x":360,"y":288,"w":224,"h":64,"shape":"diamond"},{"id":"manual","label":"人工 review／按需 Agent","x":80,"y":288,"w":224,"h":64,"shape":"box"},{"id":"auto","label":"Auto-merge main","x":360,"y":408,"w":224,"h":64,"shape":"box"},{"id":"decision","label":"安全實作 PR／需決策 issue","x":80,"y":408,"w":224,"h":64,"shape":"box"}]}
+  nodes={[{"id":"schedule","label":"排程／security 事件","x":240,"y":48,"w":160,"h":64,"shape":"box"},{"id":"pr","label":"Dependency PR ＋ CI","x":240,"y":168,"w":160,"h":64,"shape":"box"},{"id":"policy","label":"符合 auto-merge？","x":240,"y":288,"w":160,"h":64,"shape":"diamond"},{"id":"manual","label":"人工／按需 Agent","x":32,"y":288,"w":160,"h":64,"shape":"box"},{"id":"auto","label":"Auto-merge main","x":240,"y":408,"w":160,"h":64,"shape":"box"},{"id":"decision","label":"修正 PR／決策 issue","x":32,"y":408,"w":160,"h":64,"shape":"box"}]}
   edges={[{"from":"schedule","to":"pr"},{"from":"pr","to":"policy"},{"from":"policy","to":"manual","label":"不符合"},{"from":"policy","to":"auto","label":"符合"},{"from":"manual","to":"decision"}]}
   details={{"schedule":{"title":"兩種更新來源","body":"每週二 09:00 Asia/Taipei 執行 npm ecosystem（pnpm）與 GitHub Actions version checks；security updates 由漏洞事件觸發，不等週報。不以 Gmail digest 送達時間觸發。"},"pr":{"title":"原生 Dependabot branch／PR","body":"開 PR 後跑 required CI。保留 Dependabot 原生 branch 命名，不直接部署 production，也不自動派工 Agent。"},"policy":{"title":"全部成立才允許自動合併","body":"可信 Dependabot；單一 allowlisted 非敏感 direct devDependency patch；只改 package／lockfile；無 scripts／config／runtime 擴張；最新 required checks 全綠。清單經 Shard 4 G2 核准後才啟用。"},"manual":{"title":"人決定需不需要 Agent","body":"Major、minor、敏感、未知、多套件、CI 失敗或超出 diff 邊界皆人工判斷；不要只用 SemVer 推論風險，也不在有 write 權限／production secrets 的 runner 執行 untrusted code。"},"auto":{"title":"只更新 integration，不直接發布","body":"合併 main 後由正常 changesets version PR 納入 release；不代表 production 已修好。重大 production bug／緊急漏洞另走 deployed-base hotfix。"},"decision":{"title":"可安全完成就 PR，需新決策才 issue","body":"Agent 可修相容問題並在 PR body 說明風險／驗證，但重大更新不自動合併。無法安全實作或需產品決策才開 issue，放入當期 cycle 追蹤，未完成不阻擋正常 release。"}}}
 />
-</div>
 </div>
 
 點選判定節點查看完整條件。一般更新與 security 更新都會開 PR；自動合併 main、啟動 Agent、production 發布是三個不同動作。
