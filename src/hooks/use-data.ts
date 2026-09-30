@@ -190,9 +190,7 @@ export const useGameSummaries = (teamId: string | undefined) => {
       gameSummaries: GameSummaryView[];
       hasMore: boolean;
       lastId: string;
-    }>(getKey, fetcher, {
-      ...SWR_CONFIG.INFINITE,
-    });
+    }>(getKey, fetcher, SWR_CONFIG.INFINITE);
 
   const gameSummaries = data
     ? data.flatMap((page) => page.gameSummaries || [])
