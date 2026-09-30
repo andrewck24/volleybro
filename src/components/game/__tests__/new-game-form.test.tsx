@@ -1,7 +1,9 @@
 import { ActionButton } from "@/components/layout/nav/action-button";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { useEffect } from "react";
+import { useSWRConfig } from "swr";
 
 import { server } from "@test/support/msw/server";
 import { SwrIsolation } from "@test/support/react/swr-isolation";
@@ -23,6 +25,15 @@ const team = {
   id: "team-1",
   name: "測試隊伍",
   lineups: [emptyLineup, secondLineup],
+};
+
+let revalidateTeam: () => Promise<unknown>;
+const RevalidateTeam = () => {
+  const { mutate } = useSWRConfig();
+  useEffect(() => {
+    revalidateTeam = () => mutate("/api/teams/team-1");
+  }, [mutate]);
+  return null;
 };
 
 beforeEach(() => {
@@ -48,6 +59,7 @@ describe("ActionButton / NewGameForm home team name", () => {
     render(
       <SwrIsolation>
         <ActionButton teamId="team-1" />
+        <RevalidateTeam />
       </SwrIsolation>,
     );
     await user.click(screen.getByRole("button", { name: "新增賽事" }));
@@ -83,6 +95,43 @@ describe("ActionButton / NewGameForm home team name", () => {
     );
 
     await waitFor(() => expect(createBody?.teams.home.name).toBe("自訂隊名"));
+  });
+
+  describe("when the team is renamed while the info form is open", () => {
+    const renameTeamAndRevalidate = async () => {
+      server.use(
+        http.get("/api/teams/team-1", () =>
+          HttpResponse.json({ ...team, name: "新隊名" }),
+        ),
+      );
+      await act(() => revalidateTeam());
+    };
+
+    it("keeps a home team name the user is typing", async () => {
+      const { user, dialog } = await openDialog();
+
+      await user.click(await within(dialog).findByText("編輯資訊"));
+      const field = await within(dialog).findByLabelText("我方名稱");
+      await user.clear(field);
+      await user.type(field, "自訂隊名");
+      await renameTeamAndRevalidate();
+
+      expect(field).toHaveValue("自訂隊名");
+    });
+
+    it("keeps another field the user is typing while the untouched home team name follows the rename", async () => {
+      const { user, dialog } = await openDialog();
+
+      await user.click(await within(dialog).findByText("編輯資訊"));
+      const opponent = await within(dialog).findByLabelText("對手名稱");
+      await user.type(opponent, "對手隊");
+      await renameTeamAndRevalidate();
+
+      await waitFor(() =>
+        expect(within(dialog).getByLabelText("我方名稱")).toHaveValue("新隊名"),
+      );
+      expect(opponent).toHaveValue("對手隊");
+    });
   });
 });
 
