@@ -3,7 +3,7 @@ import { scenarios } from "./proposal.mdx";
 <ActionItems>
 
 1. 確認 `CONTEXT.md` 的新詞條：依你的決定加入「目前隊伍（Active team）」，放在新的「使用中的隊伍」小節，位於名單動作與比賽紀錄之間。它與資料庫的 `profile.activeTeamId` 是兩件事，後者由下一個 Change 移除。
-2. 確認偏差第 1 項：team tab 的根路由維持「只決定一次」，沒有改成跟著目前隊伍變動。
+2. 確認偏差第 1 項：team tab 沒有新增入口更新邏輯，切換隊伍後的行為沿用既有機制。
 
 這次沒有要你親自執行的測試，全部由 agent 完成。
 
@@ -19,7 +19,7 @@ import { scenarios } from "./proposal.mdx";
 
 <Deviations>
 
-1. **team tab 的根路由沒有改成跟隨目前隊伍。** Proposal 的 S3 寫著根路由是解析後那一隊的。實作中途曾改成跟隨，後來因為只有「已驗證」的隊伍才會交給畫面，根路由本來就不會先指向一個被拒絕的隊伍，於是還原成原本只決定一次的做法，`tab-container.tsx` 與 `origin/dev` 相同。S3 由測試在 tab 上驗證。
+1. **team tab 沒有新增「跟著目前隊伍更新入口」的邏輯。** Proposal 的 S3 與範圍寫著根路由要隨解析結果更新。實作中途曾加上，後來因為只有已驗證的隊伍才會交給畫面，驗證完成前 `teamId` 是 `undefined`、入口是 `/team`，不會指到被拒絕的隊伍，於是還原，`tab-container.tsx` 與 `origin/dev` 相同。既有行為本來就涵蓋切換：切換器存入新偏好並導到新隊伍，tab 記住的路徑與點選已在 team tab 時用的即時 `teamId` 都會是新隊伍。S3 與 S6 由測試驗證。
 2. **登出時多丟掉整份 SWR 快取。** Proposal 只寫「登出清除偏好」。若不丟掉快取，同一個分頁換人登入時，前一位使用者的隊伍資料仍在記憶體裡，而偏好的驗證只保證「偏好屬於誰」，不涵蓋快取，所以 `handleSignOut` 一併清除。
 3. **第 4 輪 review 換了做法（ADR-0077）。** 前幾輪的發現（H1 未驗證的 id 造成錯誤畫面、H2 別人的偏好看到該隊比賽、F1 已驗證的隊伍在之後的重新驗證失敗時被換掉、F2 登出後偏好被寫回、E1 請求失敗時備援結果蓋掉偏好）看似各自獨立，root cause 相同：「顯示哪一隊」與「偏好怎麼處理」由散在多個 hook 的條件各自判斷。於是不再逐一修補，改為把這兩件事拆成兩個純函式，其中只有一處決定。換做法之後的第 5 輪回到 `origin/dev` 的全範圍審查。
 4. **分支歷史整理成四個 commit。** 開發途中先做過「快取 TeamView」的版本，G1 之後依你的決定改為本地偏好，原有的十八個 commit 依序包含被放棄的做法。最終內容不變，以 `git diff` 對整理前的 HEAD 比對為空，再分成 decision、interface 與 persistence、行為與測試、Features 四個 commit。
