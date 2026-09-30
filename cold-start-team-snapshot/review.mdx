@@ -2,7 +2,7 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-1. 決定是否把「目前隊伍（Active team）」寫進 `CONTEXT.md`：這台裝置上、以本地偏好記住的「App 目前顯示哪一隊」，與資料庫的 `profile.activeTeamId` 是兩件事，後者由下一個 Change 移除。我沒有動 `CONTEXT.md`，你同意詞條與定義後再由 domain-modeling 寫入。
+1. 確認 `CONTEXT.md` 的新詞條：依你的決定加入「目前隊伍（Active team）」，放在新的「使用中的隊伍」小節，位於名單動作與比賽紀錄之間。它與資料庫的 `profile.activeTeamId` 是兩件事，後者由下一個 Change 移除。
 2. 確認偏差第 1 項：team tab 的根路由維持「只決定一次」，沒有改成跟著目前隊伍變動。
 
 這次沒有要你親自執行的測試，全部由 agent 完成。
