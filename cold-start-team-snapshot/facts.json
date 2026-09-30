@@ -1,0 +1,16 @@
+{
+  "gate": "G1",
+  "publishedAt": "2026-09-30T10:33:41.328Z",
+  "scenarios": 8,
+  "decisions": [
+    "0098",
+    "0099"
+  ],
+  "startedAt": "2026-09-30T10:25:34.000Z",
+  "archivedAt": null,
+  "commits": 1,
+  "filesChanged": 2,
+  "insertions": 54,
+  "deletions": 0,
+  "srcFilesChanged": 0
+}

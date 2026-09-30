@@ -1,0 +1,317 @@
+export const scenarios = [
+  {
+    id: "S1",
+    given: "a snapshot written for the current user is in storage and the team requests have not answered yet",
+    when: "the app cold-starts and the team switcher renders",
+    then: "the switcher shows the snapshot's team name instead of a skeleton, and the new Game dialog opened in that state already shows that name as the home team name",
+  },
+  {
+    id: "S2",
+    given: "no snapshot is in storage",
+    when: "the app cold-starts",
+    then: "the team switcher shows a skeleton until the requests answer, exactly as it does before this Change",
+  },
+  {
+    id: "S3",
+    given: "a snapshot is shown and the revalidation answers with a different team name",
+    when: "the answers arrive",
+    then: "the team switcher shows the new name and the stored snapshot holds the new name",
+  },
+  {
+    id: "S4",
+    given: "a snapshot written for user A is in storage",
+    when: "useUser answers with user B",
+    then: "the snapshot is discarded and cleared, nothing from it is shown afterwards, and user B's own data is used",
+  },
+  {
+    id: "S5",
+    given: "a snapshot is in storage",
+    when: "the user signs out",
+    then: "the snapshot is no longer in storage",
+  },
+  {
+    id: "S6",
+    given: "the storage throws on read or write",
+    when: "the app cold-starts and the requests answer",
+    then: "the app behaves as it does with no snapshot and no error reaches the user",
+  },
+  {
+    id: "S7",
+    given: "the stored snapshot is not valid JSON or carries an unknown version",
+    when: "the app cold-starts",
+    then: "the snapshot is discarded, removed from storage, and treated as absent",
+  },
+  {
+    id: "S8",
+    given: "the TeamSnapshotStorage interface backed by its localStorage implementation",
+    when: "a snapshot is saved, loaded and cleared through the interface",
+    then: "load returns what was saved, load returns nothing after clear, and no source file other than the implementation reads or writes the snapshot key",
+  },
+];
+
+<TLDR>
+  冷啟動時，team tab、球隊切換器與新增比賽的 dialog 都要等 `useUser`、`useUserPlayers`、`useProfile` 依序回來，才知道 active team 是誰，再等 `useTeam` 才有隊名，期間是空白或 skeleton。這個 Change 把最後一次的 active `teamId` 與它的 `TeamView` 存成 localStorage 快照，冷啟動時先用它畫出隊名，再照常重新驗證；快照綁定 `userId`、登出時清除，儲存分成 interface 與 persistence 兩層。
+</TLDR>
+
+|                            | 現在                                                                   | 之後                                                       |
+| -------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 冷啟動時的球隊切換器       | 等 user、players、profile 回來再等 `useTeam`，期間是 skeleton          | 先以快照顯示隊名，背景照常重新驗證                         |
+| 新增比賽表單的主場隊名     | 由 `team` 衍生，但冷啟動時仍要等 `useTeam` 回來才有                    | 冷啟動時就能立即帶出                                       |
+| 本機留下的球隊資料         | 沒有；每次冷啟動都從空白開始                                           | 一份綁定 `userId` 的快照，登出時清除                       |
+
+<DecisionCards ids={["0098", "0099"]} />
+
+## 資料流
+
+冷啟動與登出時，快照怎麼被讀、被驗證、被覆寫或清除。快照永遠只決定「先畫什麼」，不決定權限：驗證與最新資料仍由既有的請求負責。
+
+<svg
+  viewBox="0 0 960 640"
+  role="img"
+  aria-labelledby="sn-flow-title sn-flow-desc"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "960 / 640", width: "100%", height: "auto" }}
+>
+  <title id="sn-flow-title">冷啟動時的快照資料流</title>
+  <desc id="sn-flow-desc">流程圖：冷啟動先判斷有沒有可用快照，有就先以快照顯示並等待 useUser 驗證 userId，相符就更新畫面並覆寫快照，不符就清除快照後改用最新資料；沒有快照則等待網路請求後更新畫面。登出時同樣清除快照。</desc>
+  <style>{`
+    .sn-paper{fill:var(--background)}
+    .sn-ink{fill:var(--foreground)}
+    .sn-muted{fill:var(--muted-foreground)}
+    .sn-accent{fill:var(--primary)}
+    .sn-node{fill:var(--card);stroke:var(--foreground);stroke-width:1}
+    .sn-focal{fill:color-mix(in srgb,var(--primary) 8%,var(--card));stroke:var(--primary);stroke-width:1}
+    .sn-ext{fill:color-mix(in srgb,var(--foreground) 3%,var(--card));stroke:color-mix(in srgb,var(--foreground) 30%,transparent);stroke-width:1}
+    .sn-wire{stroke:var(--muted-foreground);fill:none;stroke-width:1.2}
+    .sn-head{fill:var(--muted-foreground)}
+    .sn-rule{stroke:var(--border)}
+    .sn-zone{fill:color-mix(in srgb,var(--foreground) 2%,transparent);stroke:var(--border);stroke-width:1}
+    .sn-mask{fill:var(--background)}
+    .sn-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  `}</style>
+  <defs>
+    <marker id="sn-flow-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon className="sn-head" points="0 0, 8 3, 0 6" />
+    </marker>
+  </defs>
+
+  <rect className="sn-paper" width="960" height="640" rx="8" />
+
+  <line className="sn-wire" x1="200" y1="80" x2="200" y2="124" markerEnd="url(#sn-flow-arrow)" />
+
+  <line className="sn-wire" x1="300" y1="170" x2="420" y2="170" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="350" y="146" width="20" height="16" rx="2" />
+  <text className="sn-muted" x="360" y="159" fontSize="12" textAnchor="middle">有</text>
+
+  <line className="sn-wire" x1="200" y1="216" x2="200" y2="276" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="208" y="238" width="20" height="16" rx="2" />
+  <text className="sn-muted" x="218" y="251" fontSize="12" textAnchor="middle">無</text>
+
+  <line className="sn-wire" x1="520" y1="198" x2="520" y2="260" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="528" y="220" width="56" height="16" rx="2" />
+  <text className="sn-muted" x="556" y="233" fontSize="12" textAnchor="middle">等待驗證</text>
+
+  <path className="sn-wire" d="M520,348 V492 Q520,500 512,500 H480" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="528" y="404" width="32" height="16" rx="2" />
+  <text className="sn-muted" x="544" y="417" fontSize="12" textAnchor="middle">相符</text>
+
+  <path className="sn-wire" d="M200,332 V492 Q200,500 208,500 H280" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="208" y="404" width="48" height="16" rx="2" />
+  <text className="sn-muted" x="232" y="417" fontSize="12" textAnchor="middle">回應後</text>
+
+  <line className="sn-wire" x1="620" y1="304" x2="700" y2="304" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="644" y="280" width="32" height="16" rx="2" />
+  <text className="sn-muted" x="660" y="293" fontSize="12" textAnchor="middle">不符</text>
+
+  <path className="sn-wire" d="M790,332 V560 Q790,568 782,568 H388 Q380,568 380,560 V528" markerEnd="url(#sn-flow-arrow)" />
+  <rect className="sn-mask" x="545" y="546" width="80" height="16" rx="2" />
+  <text className="sn-muted" x="585" y="559" fontSize="12" textAnchor="middle">改用最新資料</text>
+
+  <rect className="sn-node" x="120" y="40" width="160" height="40" rx="20" />
+  <text className="sn-ink" x="200" y="65" fontSize="13" fontWeight="600" textAnchor="middle">冷啟動</text>
+
+  <polygon className="sn-node" points="200,124 300,170 200,216 100,170" />
+  <text className="sn-ink" x="200" y="166" fontSize="13" fontWeight="600" textAnchor="middle">有可用快照？</text>
+  <text className="sn-muted sn-mono" x="200" y="184" fontSize="10" textAnchor="middle">load()</text>
+
+  <rect className="sn-focal" x="420" y="142" width="200" height="56" rx="6" />
+  <text className="sn-ink" x="520" y="166" fontSize="13" fontWeight="600" textAnchor="middle">先以快照顯示</text>
+  <text className="sn-muted sn-mono" x="520" y="184" fontSize="10" textAnchor="middle">teamId · TeamView</text>
+
+  <rect className="sn-node" x="100" y="276" width="200" height="56" rx="6" />
+  <text className="sn-ink" x="200" y="300" fontSize="13" fontWeight="600" textAnchor="middle">等待網路請求</text>
+  <text className="sn-muted sn-mono" x="200" y="318" fontSize="10" textAnchor="middle">useUser · useTeam</text>
+
+  <polygon className="sn-node" points="520,260 620,304 520,348 420,304" />
+  <text className="sn-ink" x="520" y="308" fontSize="13" fontWeight="600" textAnchor="middle">回應的 userId 相符？</text>
+
+  <rect className="sn-node" x="700" y="276" width="180" height="56" rx="6" />
+  <text className="sn-ink" x="790" y="300" fontSize="13" fontWeight="600" textAnchor="middle">清除快照</text>
+  <text className="sn-muted sn-mono" x="790" y="318" fontSize="10" textAnchor="middle">clear()</text>
+  <text className="sn-muted" x="790" y="264" fontSize="12" textAnchor="middle">登出時同樣呼叫</text>
+
+  <rect className="sn-node" x="280" y="472" width="200" height="56" rx="28" />
+  <text className="sn-ink" x="380" y="497" fontSize="13" fontWeight="600" textAnchor="middle">更新畫面並覆寫快照</text>
+  <text className="sn-muted sn-mono" x="380" y="515" fontSize="10" textAnchor="middle">save()</text>
+
+  <line className="sn-rule" x1="30" y1="596" x2="930" y2="596" strokeWidth="0.8" />
+  <text className="sn-muted sn-mono" x="30" y="620" fontSize="8" letterSpacing="1.1">LEGEND</text>
+  <rect className="sn-node" x="110" y="610" width="24" height="12" rx="6" />
+  <text className="sn-muted" x="142" y="620" fontSize="12">起訖</text>
+  <rect className="sn-node" x="200" y="610" width="24" height="12" rx="3" />
+  <text className="sn-muted" x="232" y="620" fontSize="12">步驟</text>
+  <polygon className="sn-node" points="300,616 310,610 320,616 310,622" />
+  <text className="sn-muted" x="328" y="620" fontSize="12">判斷</text>
+  <rect className="sn-focal" x="392" y="610" width="12" height="12" rx="2" />
+  <text className="sn-muted" x="412" y="620" fontSize="12">先畫出來的內容</text>
+</svg>
+
+## 架構關係
+
+React 元件只認得 hook；hook 只依賴 interface 層的 `TeamSnapshotStorage`；只有 persistence 層碰 `localStorage`。依賴永遠指向 interface，實作反過來依賴它。這與既有的 `pending-writes-storage` 是同一種切法。
+
+<svg
+  viewBox="0 0 960 620"
+  role="img"
+  aria-labelledby="sn-arch-title sn-arch-desc"
+  preserveAspectRatio="xMidYMid meet"
+  style={{ aspectRatio: "960 / 620", width: "100%", height: "auto" }}
+>
+  <title id="sn-arch-title">球隊快照的兩層架構</title>
+  <desc id="sn-arch-desc">架構圖：React 元件層的使用端元件呼叫 useActiveTeamId 與 useTeam，再透過 interface 層的 TeamSnapshotStorage 讀寫快照；登出處理直接呼叫它的 clear；persistence 層的 localStorage 實作以虛線指向並實作該介面，並讀寫瀏覽器的 localStorage；hook 另外經 SWR 向 API 請求資料。</desc>
+  <style>{`
+    .sn-paper{fill:var(--background)}
+    .sn-ink{fill:var(--foreground)}
+    .sn-muted{fill:var(--muted-foreground)}
+    .sn-accent{fill:var(--primary)}
+    .sn-node{fill:var(--card);stroke:var(--foreground);stroke-width:1}
+    .sn-focal{fill:color-mix(in srgb,var(--primary) 8%,var(--card));stroke:var(--primary);stroke-width:1}
+    .sn-ext{fill:color-mix(in srgb,var(--foreground) 3%,var(--card));stroke:color-mix(in srgb,var(--foreground) 30%,transparent);stroke-width:1}
+    .sn-wire{stroke:var(--muted-foreground);fill:none;stroke-width:1.2}
+    .sn-wire-dash{stroke:var(--muted-foreground);fill:none;stroke-width:1;stroke-dasharray:4 3}
+    .sn-head{fill:var(--muted-foreground)}
+    .sn-rule{stroke:var(--border)}
+    .sn-zone{fill:color-mix(in srgb,var(--foreground) 2%,transparent);stroke:var(--border);stroke-width:1}
+    .sn-mask{fill:var(--background)}
+    .sn-mask-zone{fill:color-mix(in srgb,var(--foreground) 2%,var(--background))}
+    .sn-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  `}</style>
+  <defs>
+    <marker id="sn-arch-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon className="sn-head" points="0 0, 8 3, 0 6" />
+    </marker>
+  </defs>
+
+  <rect className="sn-paper" width="960" height="620" rx="8" />
+
+  <rect className="sn-zone" x="40" y="40" width="584" height="210" rx="8" />
+  <text className="sn-muted" x="56" y="58" fontSize="12" fontWeight="500">React 元件</text>
+  <rect className="sn-zone" x="40" y="290" width="584" height="110" rx="8" />
+  <text className="sn-muted" x="56" y="308" fontSize="12" fontWeight="500">interface 層</text>
+  <rect className="sn-zone" x="40" y="440" width="584" height="108" rx="8" />
+  <text className="sn-muted" x="56" y="458" fontSize="12" fontWeight="500">persistence 層</text>
+
+  <line className="sn-wire" x1="464" y1="144" x2="464" y2="176" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask-zone" x="472" y="152" width="32" height="16" rx="2" />
+  <text className="sn-muted" x="488" y="165" fontSize="12" textAnchor="middle">使用</text>
+
+  <line className="sn-wire" x1="464" y1="232" x2="464" y2="328" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask" x="472" y="262" width="72" height="16" rx="2" />
+  <text className="sn-muted sn-mono" x="508" y="273" fontSize="8" letterSpacing="0.6" textAnchor="middle">LOAD · SAVE</text>
+
+  <path className="sn-wire" d="M184,144 V348 Q184,356 192,356 H344" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask-zone" x="192" y="196" width="52" height="16" rx="2" />
+  <text className="sn-muted sn-mono" x="218" y="207" fontSize="8" letterSpacing="0.6" textAnchor="middle">CLEAR()</text>
+
+  <line className="sn-wire-dash" x1="464" y1="476" x2="464" y2="384" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask" x="472" y="412" width="76" height="16" rx="2" />
+  <text className="sn-muted sn-mono" x="510" y="423" fontSize="8" letterSpacing="0.6" textAnchor="middle">IMPLEMENTS</text>
+
+  <line className="sn-wire" x1="584" y1="204" x2="700" y2="204" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask" x="630" y="180" width="48" height="16" rx="2" />
+  <text className="sn-muted sn-mono" x="654" y="191" fontSize="8" letterSpacing="0.6" textAnchor="middle">FETCH</text>
+
+  <line className="sn-wire" x1="584" y1="504" x2="700" y2="504" markerEnd="url(#sn-arch-arrow)" />
+  <rect className="sn-mask" x="628" y="480" width="68" height="16" rx="2" />
+  <text className="sn-muted sn-mono" x="662" y="491" fontSize="8" letterSpacing="0.3" textAnchor="middle">READ · WRITE</text>
+
+  <rect className="sn-node" x="64" y="80" width="240" height="64" rx="6" />
+  <text className="sn-ink" x="184" y="106" fontSize="13" fontWeight="600" textAnchor="middle">登出</text>
+  <text className="sn-muted sn-mono" x="184" y="126" fontSize="10" textAnchor="middle">components/user/index.tsx</text>
+
+  <rect className="sn-node" x="344" y="80" width="240" height="64" rx="6" />
+  <text className="sn-ink" x="464" y="100" fontSize="13" fontWeight="600" textAnchor="middle">使用端元件</text>
+  <text className="sn-muted sn-mono" x="464" y="116" fontSize="10" textAnchor="middle">home · nav · tab-container</text>
+  <text className="sn-muted sn-mono" x="464" y="130" fontSize="10" textAnchor="middle">team-switcher · notifications</text>
+
+  <rect className="sn-node" x="344" y="176" width="240" height="56" rx="6" />
+  <text className="sn-ink" x="464" y="200" fontSize="13" fontWeight="600" textAnchor="middle">取得目前球隊的 hook</text>
+  <text className="sn-muted sn-mono" x="464" y="218" fontSize="10" textAnchor="middle">useActiveTeamId · useTeam</text>
+
+  <rect className="sn-focal" x="344" y="328" width="240" height="56" rx="6" />
+  <text className="sn-ink" x="464" y="352" fontSize="13" fontWeight="600" textAnchor="middle">TeamSnapshotStorage</text>
+  <text className="sn-muted sn-mono" x="464" y="370" fontSize="10" textAnchor="middle">load · save · clear</text>
+
+  <rect className="sn-node" x="344" y="476" width="240" height="56" rx="6" />
+  <text className="sn-ink" x="464" y="500" fontSize="13" fontWeight="600" textAnchor="middle">localStorage 實作</text>
+  <text className="sn-muted sn-mono" x="464" y="518" fontSize="10" textAnchor="middle">team-snapshot-storage.ts</text>
+
+  <rect className="sn-ext" x="700" y="176" width="200" height="56" rx="6" />
+  <text className="sn-ink" x="800" y="200" fontSize="13" fontWeight="600" textAnchor="middle">SWR + API</text>
+  <text className="sn-muted sn-mono" x="800" y="218" fontSize="10" textAnchor="middle">/api/users · /api/teams/:id</text>
+
+  <rect className="sn-ext" x="700" y="476" width="200" height="56" rx="6" />
+  <text className="sn-ink" x="800" y="500" fontSize="13" fontWeight="600" textAnchor="middle">localStorage</text>
+  <text className="sn-muted sn-mono" x="800" y="518" fontSize="10" textAnchor="middle">browser storage</text>
+
+  <line className="sn-rule" x1="30" y1="572" x2="930" y2="572" strokeWidth="0.8" />
+  <text className="sn-muted sn-mono" x="30" y="596" fontSize="8" letterSpacing="1.1">LEGEND</text>
+  <line className="sn-wire" x1="110" y1="592" x2="140" y2="592" markerEnd="url(#sn-arch-arrow)" />
+  <text className="sn-muted" x="150" y="596" fontSize="12">呼叫</text>
+  <line className="sn-wire-dash" x1="212" y1="592" x2="242" y2="592" markerEnd="url(#sn-arch-arrow)" />
+  <text className="sn-muted" x="252" y="596" fontSize="12">實作（依賴向內）</text>
+  <rect className="sn-focal" x="392" y="586" width="12" height="12" rx="2" />
+  <text className="sn-muted" x="412" y="596" fontSize="12">兩層的接縫</text>
+</svg>
+
+## 範圍
+
+1. **存什麼、用在哪：** 最後一次的 active `teamId` 與該球隊的 `TeamView`。冷啟動時作為 `useActiveTeamId` 與 `useTeam` 的初始值，之後照常重新驗證。只有這兩個 hook 改變，所有使用 `useActiveTeamId` 的元件不必改。
+2. **身分綁定：** 快照帶 `userId`；`useUser` 回來後不符就丟棄並清除；登出時清除。
+3. **兩層：** interface 層是 `TeamSnapshotStorage` 型別（`load`、`save`、`clear`）與 hook 端的使用，放在 `src/lib/features/team/`；persistence 層是 localStorage 實作，獨立成一個檔案，是唯一碰 `localStorage` 的地方，可注入以利測試，版本號放在快照內，做法照 `pending-writes-storage` 的先例。
+4. **寫入時機與過期：** 每次 `useTeam`、`useActiveTeamId` 成功後覆寫；不設 TTL，因為每次掛載都會重新驗證，正確性從不靠快照。
+5. **儲存失敗：** 私密模式、容量已滿、資料損壞一律當作沒有快照，退回現在的行為。這與 `pending-writes` 不同：那是不能丟資料的佇列，所以不吞錯；這裡只是快取，可以吞。
+
+**不在範圍內：** 球員名單、比賽列表等其他資料的快取；service worker 的快取策略；新增比賽表單既有的預設隊名衍生邏輯（冷啟動沒有快照的第一次使用仍走那條路）。
+
+<Scenarios items={scenarios} />
+
+<RiskTable
+  risks={[
+    {
+      name: "未正常登出就換人時，短暫顯示前一位使用者的球隊",
+      severity: "warning",
+      mitigation: "快照綁 `userId`，`useUser` 回來不符即丟棄並清除；登出一律清除；快照只含隊名與陣容。此暴露已在決策 0099 明確接受。",
+    },
+    {
+      name: "登出流程在清除快照之前就離開頁面",
+      severity: "warning",
+      mitigation: "登出處理在導頁之前先呼叫 `clear()`，並由 S5 證明。",
+    },
+    {
+      name: "被移出球隊後，重新驗證完成前短暫顯示舊球隊",
+      severity: "info",
+      mitigation: "`useActiveTeamId` 既有的 `isStillJoined` 判斷在 players 回來後接手；快照從不決定權限，只決定先畫什麼。",
+    },
+    {
+      name: "快照的版本或內容與現行程式不符",
+      severity: "info",
+      mitigation: "版本號放在快照內；無法辨識就丟棄並清除，退回沒有快照的行為（S7）。",
+    },
+    {
+      name: "iOS PWA 的 localStorage 在兩次啟動之間被清掉",
+      severity: "info",
+      mitigation: "失敗時行為與現在相同，不影響正確性；重新檢討的條件已記在決策 0098。",
+    },
+  ]}
+/>
