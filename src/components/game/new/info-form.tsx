@@ -57,7 +57,7 @@ export const MatchInfoForm = ({
   };
 
   useEffect(() => {
-    form.reset({ ...info });
+    form.reset({ ...info }, { keepDirtyValues: true });
   }, [info, form]);
 
   return (
