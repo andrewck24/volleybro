@@ -38,7 +38,7 @@ export const scenarios = [
 | --- | --- | --- |
 | 1 · Delivery contract | Sharded Change、intake 分類與升級、可發布批次、G1 頁面完成後才停、risk-first test-audit、Archive 知識判定 | WORKFLOW.md、CONTEXT.md、CONTRIBUTING.md；docs/agents/blueprint.md、artifact-lifecycle.md、issue-tracker.md；scripts/check-workflow.js、commitlint/plugin.js、change-page.js 與 owner tests；writing-changesets skill、test-audit skill／CAMPAIGN.md、docs/testing-strategy.md |
 | 2 · Trunk 與正常 release | main default／integration、正常 version PR、固定 SHA 候選／promote／smoke／安全 rollback／success tag、安全移除 dev | ci.yml、changesets.yml、chromatic.yml；.changeset/config.json、package.json；verify.js、change-page.js、blueprint-gate.js 與相關 tests；README 的 active baseline；writing-changesets README；GitHub default／rulesets／required checks；Vercel projects／Git deployment／aliases／environment／OAuth；Blueprint hosting production branch／deploy hook；必要時 vercel.json、.env.example |
-| 3 · Hotfix 與 recovery | deployed-base hotfix、dispatch 授權、共用 production controls、merge-back reconciliation、旧正常候選失效 | 共用 release workflow／scripts 的 hotfix 入口、production lock、rollback／notification 與 owner tests；發布／回復 runbook |
+| 3 · Hotfix 與 recovery | deployed-base hotfix、dispatch 授權、共用 production controls、merge-back reconciliation、舊正常候選失效 | 共用 release workflow／scripts 的 hotfix 入口、production lock、rollback／notification 與 owner tests；發布／回復 runbook |
 | 4 · Dependency maintenance | pnpm＋Actions version／security updates、allowlist policy 與真實 auto-merge | .github/dependabot.yml、trusted-bot auto-merge workflow／policy／owner tests、docs/maintenance-policy.md；GitHub security settings |
 | 各批 Archive | current capability 與本批交付一致，判定是否需提升／修正 | blueprint Features 的 platform/delivery-workflow、platform/blueprint、platform/testing；必要的 ADR successor，不改寫歷史推理 |
 
@@ -55,7 +55,7 @@ export const scenarios = [
 
 ### 環境與 DB
 
-| 程式来源／用途 | 網址 | v1.0.0 前 DB | v1.0.0 起 DB | 原則 |
+| 程式來源／用途 | 網址 | v1.0.0 前 DB | v1.0.0 起 DB | 原則 |
 | --- | --- | --- | --- | --- |
 | PR Preview | 各 PR Preview URL | test | test | 合併前驗證，不 reset Atlas 整庫 |
 | 固定人工／裝置驗收 | volleybro-test.vercel.app | test | test | 人工頻率低，接受互相覆蓋；安全 Preview session 完成後才評估移除 |
@@ -80,7 +80,7 @@ Shard 2 的首次正式發布預期為 v0.16.0：既有未發布 dev 交付加�
 
 先準備可回復流程，解除 main merge 直接上 production 的連動，再保留 dev 必要歷史並整合新流程；成功發布且無活引用後才移除 dev。不得改其他裝置／活 worktrees，或遺失唯一歷史。平台設定以 live inventory／read-back 驗證，repo 文件不能替代其證據。
 
-緊急重大 production bug／重大漏洞走 deployed-base hotfix，獨立修補與 patch version，dispatch 明確授權 reviewed SHA。Urgency 不豁免 Change gate。發布成功後 merge-back main，核對版本、changelog、已消耗／仍 pending changesets；不 rebase main。衝突無法安全處理就停。hotfix 後暫停／拒絕旧正常候選，同步後重建候選、重驗證並重新授權。
+緊急重大 production bug／重大漏洞走 deployed-base hotfix，獨立修補與 patch version，dispatch 明確授權 reviewed SHA。Urgency 不豁免 Change gate。發布成功後 merge-back main，核對版本、changelog、已消耗／仍 pending changesets；不 rebase main。衝突無法安全處理就停。hotfix 後暫停／拒絕舊正常候選，同步後重建候選、重驗證並重新授權。
 
 ### Dependency 與 cycle 節奏
 
@@ -88,13 +88,13 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 
 只允許可信 Dependabot 的單一 allowlisted 非敏感 direct devDependency patch、限制 package／lockfile diff、無 scripts／config／runtime 擴張、最新 checks 全綠後 auto-merge main。major、minor、敏感、未知、多套件、CI 失敗全部人工。具體清單於 Shard 4 Review 提出，G2 接受前不啟用；空清單可安全過渡，但最終須演練核准套件的自動路徑。不把 untrusted PR code 放到有 write permission／production secrets 的 runner。
 
-人或開發者自行决定需不需要 Agent；major／高影響能安全完成就留 PR review，無法安全實作或需新決策才開 issue。Auto-merge 不等於 production 發布。下一 cycle 承諾、下下 cycle 候選；估點只計可執行 leaf issues，不重複算 parent。容量依完整週期實績與 token 資源校正，不沿用半週外推的暫估上限作硬規則。
+人或開發者自行決定需不需要 Agent；major／高影響能安全完成就留 PR review，無法安全實作或需新決策才開 issue。Auto-merge 不等於 production 發布。下一 cycle 承諾、下下 cycle 候選；估點只計可執行 leaf issues，不重複算 parent。容量依完整週期實績與 token 資源校正，不沿用半週外推的暫估上限作硬規則。
 
 ### 不包含與既有工作歸屬
 
 不包含 Symphony unattended execution、完整 E2E／agent harness、test-pr DB、長期 production／maintenance branch、monorepo split 實作、完整 error tracker／source maps、未指定 v1 資料搬移。
 
-現有 main→dev sync／App bypass 工作在舊 sync 移除驗收後以需求被取代處置，不冒充已實作 App；version PR body cosmetic 留原工作，必要 pipeline 相容調整若同時解決才附證據。安全 session 与完整 observability 保持獨立。
+現有 main→dev sync／App bypass 工作在舊 sync 移除驗收後以需求被取代處置，不冒充已實作 App；version PR body cosmetic 留原工作，必要 pipeline 相容調整若同時解決才附證據。安全 session 與完整 observability 保持獨立。
 
 ## Flows
 
