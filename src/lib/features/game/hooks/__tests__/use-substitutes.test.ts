@@ -82,6 +82,16 @@ describe("useSubstitutes", () => {
       await settled(result, [2]);
     });
 
+    it("lets a replacement who entered at the set's first entry swap back only with the starter", async () => {
+      const game = createLineupGame({
+        entries: rallies(2),
+        starting: { 1: { id: "s1", sub: { id: "p2", entryIndex: { in: 0 } } } },
+      });
+      const { result } = renderSubstitutes(game, "s1");
+
+      await settled(result, [2]);
+    });
+
     it("offers nobody once the position has used both substitutions", async () => {
       const game = createLineupGame({
         entries: rallies(2),
@@ -145,6 +155,16 @@ describe("useSubstitutes", () => {
         { 1: { id: "s1", sub: { id: "p2", entryIndex: { in: 4 } } } },
         "p2",
         2,
+      );
+
+      await settled(result, [11, 12]);
+    });
+
+    it("lets the starter come back on when editing the first entry, where the replacement arrived", async () => {
+      const { result } = edit(
+        { 1: { id: "s1", sub: { id: "p2", entryIndex: { in: 0 } } } },
+        "p2",
+        0,
       );
 
       await settled(result, [11, 12]);

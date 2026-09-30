@@ -12,14 +12,14 @@ export const useSubstitutes = (
 
   const substitutes =
     entryIndex === game.sets[setIndex]?.entries.length
-      ? gerGeneralModeSubstitutes(game, entryDraft, setIndex)
+      ? getGeneralModeSubstitutes(game, entryDraft, setIndex)
       : getEditingModeSubstitutes(game, entryDraft, setIndex, entryIndex);
 
   return substitutes.filter((s): s is NonNullable<typeof s> => s != null);
 };
 
 // 取得一般模式下的替補球員清單
-const gerGeneralModeSubstitutes = (
+const getGeneralModeSubstitutes = (
   game: GameView,
   entryDraft: ReduxEntryDraft,
   setIndex: number,
@@ -35,7 +35,7 @@ const gerGeneralModeSubstitutes = (
   if (player?.sub?.entryIndex?.out) return [];
 
   // 若是替補球員，只能與原本的球員互換
-  if (player?.sub?.entryIndex?.in) {
+  if (player?.sub?.entryIndex?.in !== undefined) {
     return [players.find((p) => p.id === player.sub?.id)];
   }
 
@@ -93,7 +93,7 @@ const getEditingModeSubstitutes = (
     .filter((sub) => !usedIds.has(sub.id))
     .map((s) => s.id);
 
-  if (sub?.entryIndex?.in) availablePlayers.push(player.id);
+  if (sub?.entryIndex?.in !== undefined) availablePlayers.push(player.id);
 
   return availablePlayers.map((id) => players.find((p) => p.id === id));
 };
