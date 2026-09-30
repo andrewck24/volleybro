@@ -5,6 +5,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "@test/support/msw/server";
+import {
+  storedActiveTeamPreference,
+  storedPreferenceOf,
+} from "@test/support/storage/active-team-preference";
+import { deferred } from "@test/support/gates";
 
 const invited = [
   {
@@ -36,14 +41,11 @@ function renderInvitations() {
 // Holds the response until the test releases it, so the request stays in flight.
 function holdInvitationResponse(playerId: string) {
   const requests: { body: unknown }[] = [];
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
+  const { promise, release } = deferred();
   server.use(
     http.patch(`/api/players/${playerId}/invitations`, async ({ request }) => {
       requests.push({ body: await request.json() });
-      await gate;
+      await promise;
       return HttpResponse.json({});
     }),
   );
@@ -108,6 +110,31 @@ describe("Invitations processingId state", () => {
     release();
     await waitFor(() =>
       expect(acceptButtons[0]).not.toHaveAttribute("aria-busy"),
+    );
+  });
+});
+
+describe("Invitations acceptance", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("S7: accepting an invitation stores the joined team as the preference", async () => {
+    server.use(
+      http.patch("/api/players/player-2/invitations", () =>
+        HttpResponse.json({}),
+      ),
+    );
+    const user = userEvent.setup();
+    renderInvitations();
+
+    const acceptButtons = await screen.findAllByRole("button", {
+      name: /接受邀請/,
+    });
+    await user.click(acceptButtons[1]!);
+
+    await waitFor(() =>
+      expect(storedActiveTeamPreference()).toEqual(
+        storedPreferenceOf("user-1", "team-2"),
+      ),
     );
   });
 });

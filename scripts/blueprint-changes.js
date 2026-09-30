@@ -320,8 +320,7 @@ export async function pull(
   await writeStore(changesDir, store);
   console.log(
     `blueprint-changes pull: ${added} added, ${refreshed} refreshed, ${upToDate} up to date, ${keptLocal.length} kept local` +
-      (keptLocal.length > 0 ? ` (${keptLocal.join(", ")})` : "") +
-      ` in ${changesDir}`,
+      (keptLocal.length > 0 ? ` (${keptLocal.join(", ")})` : ""),
   );
 }
 

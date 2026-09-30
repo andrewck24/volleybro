@@ -10,8 +10,15 @@ import type {
   UserPlayerView,
 } from "@/lib/features/team/types";
 import { useAppSelector } from "@/lib/redux/hooks";
-import { useCallback, useMemo } from "react";
-import useSWR, { useSWRConfig } from "swr";
+import { useActiveTeamPreference } from "@/hooks/use-active-team-preference";
+import {
+  decidePreferenceAction,
+  resolveActiveTeam,
+  type PreferenceAction,
+  type PreferenceState,
+} from "@/lib/features/team/active-team-preference";
+import { useCallback, useEffect, useMemo } from "react";
+import useSWR, { useSWRConfig, type SWRConfiguration } from "swr";
 import useSWRInfinite from "swr/infinite";
 
 export { ApiClientError };
@@ -70,13 +77,60 @@ export const useUserPlayers = (userId: string | undefined) => {
   return { players: data ?? [], error, isLoading, isValidating, mutate };
 };
 
-/**
- * The active team: `profile.activeTeamId` when the user is still a member of
- * that team, otherwise the first team they have joined, otherwise none. The
- * server never picks a replacement, so a stale `activeTeamId` (a membership
- * that ended after it was set) is resolved here, from data already being
- * fetched for other reasons.
- */
+// Only a refusal says the user is not a member; a network failure or timeout
+// says nothing, so it must not discard the preference.
+const isTeamRefusal = (error: ApiClientError | undefined) =>
+  error?.code === "AUTHORIZATION" || error?.code === "NOT_FOUND";
+
+const useTeamRequest = (
+  teamId: string,
+  onError?: SWRConfiguration<TeamView, ApiClientError>["onError"],
+) => {
+  const key = teamId ? `/api/teams/${teamId}` : null;
+  const hasCache = useHasCache(key ?? "");
+  return useSWR<TeamView, ApiClientError>(key, fetcher, {
+    ...SWR_CONFIG.DEFAULT,
+    revalidateOnMount: !hasCache,
+    // An explicit `undefined` would override the global error handler and drop the toast for `useTeam`.
+    ...(onError && { onError }),
+  });
+};
+
+// Its refusal is an expected answer, so it must not reach the global error toast.
+const usePreferredTeam = (teamId: string | undefined) => {
+  const swrConfig = useSWRConfig();
+  const { data, error } = useTeamRequest(teamId ?? "", (err, key) => {
+    if (!isTeamRefusal(err)) swrConfig.onError?.(err, key, swrConfig);
+  });
+  return { team: data, error };
+};
+
+const usePersistActiveTeam = (preferenceAction: PreferenceAction) => {
+  const { save, clear } = useActiveTeamPreference();
+
+  useEffect(() => {
+    if (preferenceAction.type === "discard") clear();
+    if (preferenceAction.type === "store") {
+      save({
+        userId: preferenceAction.userId,
+        teamId: preferenceAction.teamId,
+      });
+    }
+  }, [preferenceAction, save, clear]);
+};
+
+// Loads the players list the new Game dialog needs, so it opens without a skeleton.
+const usePreloadTeamPlayers = (teamId: string | undefined) => {
+  const { cache, mutate } = useSWRConfig();
+  const key = teamId ? `/api/teams/${teamId}/players` : null;
+
+  useEffect(() => {
+    if (!key || cache.get(key) !== undefined) return;
+    mutate(key, fetcher(key), { revalidate: false }).catch(() => {});
+  }, [key, cache, mutate]);
+};
+
+/** The verified preference, else the full resolution. See ADR-0098 and ADR-0099. */
 export const useActiveTeamId = () => {
   const {
     user,
@@ -91,37 +145,58 @@ export const useActiveTeamId = () => {
     mutate: mutateProfile,
   } = useProfile();
   const { players, isLoading: playersLoading } = useUserPlayers(user?.id);
+  const { preference } = useActiveTeamPreference();
+  const { team: preferredTeam, error: preferredTeamError } = usePreferredTeam(
+    preference?.teamId,
+  );
 
-  const isLoading = userLoading || profileLoading || playersLoading;
+  const isUserUnavailable = !!userError && !user;
+  const preferredTeamStatus = isTeamRefusal(preferredTeamError)
+    ? "refused"
+    : isUserUnavailable || (!preferredTeam && preferredTeamError)
+      ? "failed"
+      : preferredTeam
+        ? "confirmed"
+        : "pending";
+  const joinedTeamIds = players
+    .filter((p) => p.status === PlayerStatus.JOINED && p.teamId)
+    .map((p) => p.teamId!);
+  const preferenceState: PreferenceState = {
+    preference,
+    userId: user?.id,
+    preferredTeamStatus,
+  };
+  const { teamId, verification } = resolveActiveTeam({
+    ...preferenceState,
+    profileActiveTeamId: profile?.activeTeamId,
+    joinedTeamIds,
+  });
+  const { team } = useTeam(teamId ?? "");
+  usePersistActiveTeam(
+    decidePreferenceAction({
+      ...preferenceState,
+      teamId,
+      loadedTeamId: team ? teamId : undefined,
+    }),
+  );
+  usePreloadTeamPlayers(preference?.teamId);
+
+  const isLoading =
+    verification === "pending" ||
+    (verification === "unused" &&
+      (userLoading || profileLoading || playersLoading));
   const error = userError ?? profileError;
   const mutate = useCallback(
     () => Promise.all([mutateUser(), mutateProfile()]),
     [mutateUser, mutateProfile],
   );
 
-  const joinedPlayers = players.filter(
-    (p) => p.status === PlayerStatus.JOINED && p.teamId,
-  );
-  const isStillJoined = joinedPlayers.some(
-    (p) => p.teamId === profile?.activeTeamId,
-  );
-  const teamId = isStillJoined
-    ? profile?.activeTeamId
-    : joinedPlayers[0]?.teamId;
-
   return { teamId, isLoading, error, mutate };
 };
 
 export const useTeam = (teamId: string) => {
-  const key = teamId ? `/api/teams/${teamId}` : null;
-  const hasCache = useHasCache(key ?? "");
-  const { data, error, isLoading, isValidating, mutate } = useSWR<
-    TeamView,
-    ApiClientError
-  >(key, fetcher, {
-    ...SWR_CONFIG.DEFAULT,
-    revalidateOnMount: !hasCache,
-  });
+  const { data, error, isLoading, isValidating, mutate } =
+    useTeamRequest(teamId);
 
   return { team: data, error, isLoading, isValidating, mutate };
 };

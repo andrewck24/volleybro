@@ -17,7 +17,6 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
 import {
   useActiveTeamId,
@@ -25,8 +24,7 @@ import {
   useUser,
   useUserPlayers,
 } from "@/hooks/use-data";
-import { apiClient } from "@/lib/api/api-client";
-import { showErrorToast } from "@/lib/api/error-toast";
+import { useActiveTeamPreference } from "@/hooks/use-active-team-preference";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RiArrowDownWideLine, RiGroupLine } from "react-icons/ri";
@@ -69,32 +67,23 @@ function TeamList({
 }) {
   const router = useRouter();
   const { user } = useUser();
-  const { teamId: currentActiveTeamId, mutate: mutateActiveTeamId } =
-    useActiveTeamId();
+  const { teamId: currentActiveTeamId } = useActiveTeamId();
+  const { save } = useActiveTeamPreference();
   const { players } = useUserPlayers(user?.id);
-  const { toast } = useToast();
 
   const joinedPlayers = players.filter(
     (p) => p.status === PlayerStatus.JOINED && p.teamId,
   );
 
-  const handleSwitch = async (newTeamId: string) => {
-    if (newTeamId === activeTeamId) {
-      onSelect();
-      return;
-    }
-    try {
-      await apiClient("/api/profiles", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeTeamId: newTeamId }),
+  const handleSwitch = (newTeamId: string) => {
+    if (user && newTeamId !== activeTeamId) {
+      save({
+        userId: user.id,
+        teamId: newTeamId,
       });
-      await mutateActiveTeamId();
-      onSelect();
       router.replace(`/team/${newTeamId}`);
-    } catch (err) {
-      showErrorToast(err, toast);
     }
+    onSelect();
   };
 
   return (
