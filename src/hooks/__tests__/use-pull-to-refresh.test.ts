@@ -4,12 +4,16 @@ import {
 } from "@/hooks/use-pull-to-refresh";
 import { act, renderHook } from "@testing-library/react";
 
-jest.mock("@/lib/pwa", () => ({
-  isStandalone: jest.fn(),
-}));
-
-import { isStandalone } from "@/lib/pwa";
-const mockIsStandalone = isStandalone as jest.Mock;
+// jsdom has no matchMedia; the installed-app display mode is the environment.
+const setStandalone = (standalone: boolean) => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: standalone && query === "(display-mode: standalone)",
+    }),
+  });
+};
 
 function makeTouchEvent(type: string, clientY: number): TouchEvent {
   return new TouchEvent(type, {
@@ -28,7 +32,7 @@ describe("usePullToRefresh", () => {
     el = document.createElement("div");
     document.body.appendChild(el);
     ref = { current: el };
-    mockIsStandalone.mockReturnValue(true);
+    setStandalone(true);
   });
 
   afterEach(() => {
@@ -38,7 +42,7 @@ describe("usePullToRefresh", () => {
 
   describe("PWA gating", () => {
     it("returns zero-state and registers no listeners in non-standalone mode", () => {
-      mockIsStandalone.mockReturnValue(false);
+      setStandalone(false);
       const addEventListenerSpy = jest.spyOn(el, "addEventListener");
 
       const { result } = renderHook(() => usePullToRefresh(ref, jest.fn()));

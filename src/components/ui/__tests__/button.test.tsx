@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { render, screen } from "@testing-library/react";
 
+// The spinner is an svg with no role, so the stub carries the test id that finds it.
 jest.mock("react-icons/ri", () => ({
   RiLoader4Line: () => <span data-testid="spinner-icon">spinner</span>,
 }));

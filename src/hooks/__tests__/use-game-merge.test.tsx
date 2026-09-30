@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
-import { SWRConfig } from "swr";
 import { useGame } from "@/hooks/use-data";
 import {
   applyEntry,
@@ -9,6 +9,8 @@ import {
 import { pendingWritesActions } from "@/lib/features/game/pending-writes-slice";
 import type { GameView, PendingEntry } from "@/lib/features/game/types";
 import { makeStore, type AppStore } from "@/lib/redux/store";
+import { server } from "@test/support/msw/server";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 const serverGame = (seqs: number[]): GameView =>
   ({
@@ -29,11 +31,21 @@ const entry = (id: string, seq: number) =>
 let store: AppStore;
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <Provider store={store}>
-    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      {children}
-    </SWRConfig>
+    <SwrIsolation>{children}</SwrIsolation>
   </Provider>
 );
+
+/** Serves the game with these rally seqs and returns how many times it was requested. */
+const serveGame = (seqs: number[]) => {
+  let requests = 0;
+  server.use(
+    http.get("/api/games/game-1", () => {
+      requests += 1;
+      return HttpResponse.json(serverGame(seqs));
+    }),
+  );
+  return () => requests;
+};
 
 const enqueue = (id: string, seq: number) =>
   act(() => {
@@ -51,8 +63,8 @@ beforeEach(() => {
 });
 
 it("keeps queued rallies on screen across a revalidation", async () => {
-  const fetcher = jest.fn(async () => serverGame([0]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  const requests = serveGame([0]);
+  const { result } = renderHook(() => useGame("game-1"), { wrapper });
 
   await waitFor(() => expect(result.current.game).toBeDefined());
   enqueue("q1", 1);
@@ -65,7 +77,7 @@ it("keeps queued rallies on screen across a revalidation", async () => {
     await result.current.mutate();
   });
 
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(requests()).toBe(2);
   expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([
     "s0",
     "q1",
@@ -73,8 +85,8 @@ it("keeps queued rallies on screen across a revalidation", async () => {
 });
 
 it("orders a queued rally by its seq, not by arrival", async () => {
-  const fetcher = jest.fn(async () => serverGame([0, 2]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  serveGame([0, 2]);
+  const { result } = renderHook(() => useGame("game-1"), { wrapper });
 
   await waitFor(() => expect(result.current.game).toBeDefined());
   enqueue("q1", 1);
@@ -87,8 +99,8 @@ it("orders a queued rally by its seq, not by arrival", async () => {
 });
 
 it("records two rallies without either landing in the cache twice", async () => {
-  const fetcher = jest.fn(async () => serverGame([0]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  serveGame([0]);
+  const { result } = renderHook(() => useGame("game-1"), { wrapper });
   await waitFor(() => expect(result.current.game).toBeDefined());
 
   const record = async (id: string, entryIndex: number) => {
@@ -131,8 +143,8 @@ it("records two rallies without either landing in the cache twice", async () => 
 });
 
 it("records onto a cache the server has cut back, without leaving a gap", async () => {
-  const fetcher = jest.fn(async () => serverGame([0]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  serveGame([0]);
+  const { result } = renderHook(() => useGame("game-1"), { wrapper });
   await waitFor(() => expect(result.current.game).toBeDefined());
 
   enqueue("q1", 1);
@@ -188,8 +200,8 @@ it("shows rallies restored from disk once the game loads", async () => {
     );
   });
 
-  const fetcher = jest.fn(async () => serverGame([0]));
-  const { result } = renderHook(() => useGame("game-1", fetcher), { wrapper });
+  serveGame([0]);
+  const { result } = renderHook(() => useGame("game-1"), { wrapper });
 
   await waitFor(() => expect(result.current.game).toBeDefined());
   expect(result.current.game?.sets[0]?.entries.map((e) => e.id)).toEqual([

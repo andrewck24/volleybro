@@ -71,6 +71,10 @@ export default async function jestConfig() {
       "<rootDir>/src/app/api/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/app/apple-splash/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}",
+      // Server-only code under src/lib, which the frontend project's src/lib
+      // pattern would otherwise run in jsdom.
+      "<rootDir>/src/lib/api/__tests__/wrappers.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/__tests__/auth-hook.test.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -80,6 +84,11 @@ export default async function jestConfig() {
     // jsdom hides Node's fetch, Request and Response, which MSW intercepts.
     testEnvironment: "jest-fixed-jsdom",
     setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
+    testPathIgnorePatterns: [
+      ...(sharedConfig.testPathIgnorePatterns ?? []),
+      "<rootDir>/src/lib/api/__tests__/wrappers.test",
+      "<rootDir>/src/lib/__tests__/auth-hook.test",
+    ],
     testMatch: [
       "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",
       "<rootDir>/src/lib/**/*.test.{js,jsx,ts,tsx}",
