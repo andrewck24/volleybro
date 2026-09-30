@@ -1,0 +1,36 @@
+{
+  "gate": "G1",
+  "publishedAt": "2026-09-30T21:24:53.228Z",
+  "scenarios": 8,
+  "decisions": [
+    "0100",
+    "0101",
+    "0102",
+    "0103"
+  ],
+  "startedAt": "2026-09-30T21:24:30.000Z",
+  "archivedAt": null,
+  "commits": 1,
+  "filesChanged": 4,
+  "insertions": 79,
+  "deletions": 0,
+  "srcFilesChanged": 0,
+  "shards": {
+    "count": 4,
+    "current": 1,
+    "merged": 0,
+    "items": [
+      {
+        "shard": 1,
+        "gate": "G1",
+        "startedAt": "2026-09-30T21:24:30.000Z",
+        "archivedAt": null,
+        "commits": 1,
+        "filesChanged": 4,
+        "insertions": 79,
+        "deletions": 0,
+        "srcFilesChanged": 0
+      }
+    ]
+  }
+}

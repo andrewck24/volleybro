@@ -1,0 +1,321 @@
+export const scenarios = [
+  { id: "S1", shard: 1, given: "A new issue or material scope expansion", when: "Intake selects a delivery mode and completes discussion", then: "Fix path, Change and Sharded Change have consistent scope rules; inseparable batches stay together; a published and browser-verified Proposal precedes human G1; material accepted-scope changes require Ingest and renewed G1." },
+  { id: "S2", shard: 1, given: "Existing evidence covers the risk or durable capability knowledge is unchanged", when: "Apply and Archive assess evidence and knowledge", then: "No gratuitous new test or Feature rewrite is required; real gaps receive owner-boundary evidence and test-audit; Review records the promotion decision and verification." },
+  { id: "S3", shard: 2, given: "An inventoried and rehearsed platform cutover", when: "Integration moves to main", then: "Main is default and daily merges deploy only test integration; unique dev history is preserved; retired-dev references, required checks and Blueprint hosting are aligned before safe cleanup." },
+  { id: "S4", shard: 2, given: "A trusted version PR with latest required checks is authorized and merged", when: "The normal release pipeline runs or retries", then: "The fixed release SHA supplies production configuration; failed or pending candidate checks prevent promotion; proven compatible rollback is serialized and verified on post-deploy failure; unknown compatibility stops without data rollback; only success creates an idempotent exact-SHA tag and Release." },
+  { id: "S5", shard: 3, given: "Main contains unreleased work", when: "A reviewed deployed-base hotfix SHA is authorized by dispatch and synchronized", then: "Only the isolated repair is released; a merge-back PR reconciles version and changelog metadata while retaining pending changesets, or stops on unsafe conflict; shared main is never rebased and synchronization does not redeploy the hotfix." },
+  { id: "S6", shard: 3, given: "A normal candidate and hotfix overlap", when: "Production state changes", then: "Promotion and rollback share one lock; stale normal candidates are rejected after hotfix until merge-back, fresh verification and renewed authorization; safe rollback verifies and notifies, while incompatible or unknown database state stops without data reversal." },
+  { id: "S7", shard: 4, given: "Dependency PRs with trusted and adversarial identities, versions and diffs", when: "The auto-merge policy evaluates them", then: "Only a single allowlisted non-sensitive direct devDependency patch with latest required checks passes; impersonation, unknown, major, minor, sensitive, multiple-package, expanded-diff and failed-check cases remain manual; untrusted code never receives production secrets or write privileges." },
+  { id: "S8", shard: 4, given: "Weekly version maintenance and security events", when: "Dependabot opens PRs", then: "Npm/pnpm and GitHub Actions version checks use Tuesday 09:00 Asia/Taipei; security updates are event-driven; opening PRs neither dispatches Agents nor deploys production, and urgent production repairs use hotfix rather than the normal train." }
+];
+
+<TLDR>
+
+目前 dev／main 將整合與正式部署綁在不同 branch，發布後還需同步；Fix path 的 hotfix 命名也混淆了小型修補與 production 緊急發布。本 Change 改為 main 整合、Changesets version PR 授權固定版本，再驗證與 promote production，並交付隔離 hotfix 和保守的依賴更新自動合併。
+
+這是待整體 G1 驗收的目標設計，不代表平台或 canonical 規則已遷移。這次只製作並發布 Proposal；未取得 G1 前，不開始實作、移除 dev 或發布應用版本。
+
+</TLDR>
+
+| 面向 | 現況 | 交付後 |
+| --- | --- | --- |
+| 日常整合 | default／PR base 是 dev，main 對應 production | main 為 integration trunk；每日 merge 只更新 test 整合環境 |
+| 正式發布 | dev → main；finalize 依沒有 changesets 判斷，tag 追隨 main | rolling version PR 合併授權；固定 SHA → production candidate → 驗證 → promote → smoke → tag／Release |
+| 修補 | Fix path 使用 hotfix 名稱但回 dev | patch/* 是小型正常修補；hotfix/* 從部署點隔離緊急修補，發布後 merge-back main |
+| 討論與交付 | 摘要確認後才製作頁面；Migration 專用多批模式 | 範圍收斂後完成／發布頁面，再停 G1；通用 Sharded Change 保留每批 Review／G2 |
+
+## Decisions
+
+<DecisionCards ids={["0100", "0101", "0102", "0103"]} />
+
+## Scope
+
+### Shards 與 repository 範圍
+
+下表是直接相關的 owner 清單，不是要求每個檔案都修改。只更新真正承載活規則的部分；歷史 Changes、migration 紀錄與舊 changelog 不全域替換。現有 AGENTS／CLAUDE 是導航，不為涵蓋範圍而新增重複 policy。
+
+| Shard | 交付內容 | 直接相關 repo／平台 owner |
+| --- | --- | --- |
+| 1 · Delivery contract | Sharded Change、intake 分類與升級、可發布批次、G1 頁面完成後才停、risk-first test-audit、Archive 知識判定 | WORKFLOW.md、CONTEXT.md、CONTRIBUTING.md；docs/agents/blueprint.md、artifact-lifecycle.md、issue-tracker.md；scripts/check-workflow.js、commitlint/plugin.js、change-page.js 與 owner tests；writing-changesets skill、test-audit skill／CAMPAIGN.md、docs/testing-strategy.md |
+| 2 · Trunk 與正常 release | main default／integration、正常 version PR、固定 SHA 候選／promote／smoke／安全 rollback／success tag、安全移除 dev | ci.yml、changesets.yml、chromatic.yml；.changeset/config.json、package.json；verify.js、change-page.js、blueprint-gate.js 與相關 tests；README 的 active baseline；writing-changesets README；GitHub default／rulesets／required checks；Vercel projects／Git deployment／aliases／environment／OAuth；Blueprint hosting production branch／deploy hook；必要時 vercel.json、.env.example |
+| 3 · Hotfix 與 recovery | deployed-base hotfix、dispatch 授權、共用 production controls、merge-back reconciliation、旧正常候選失效 | 共用 release workflow／scripts 的 hotfix 入口、production lock、rollback／notification 與 owner tests；發布／回復 runbook |
+| 4 · Dependency maintenance | pnpm＋Actions version／security updates、allowlist policy 與真實 auto-merge | .github/dependabot.yml、trusted-bot auto-merge workflow／policy／owner tests、docs/maintenance-policy.md；GitHub security settings |
+| 各批 Archive | current capability 與本批交付一致，判定是否需提升／修正 | blueprint Features 的 platform/delivery-workflow、platform/blueprint、platform/testing；必要的 ADR successor，不改寫歷史推理 |
+
+既有 hooks 由 commitlint 承載分支政策，不新增 pre-push hook。切換前的文件與檢查仍如實描述 dev 現況；Shard 2 才切 main。受影響的 Migration CLI 選項、診斷與測試一起處理兼容性，不只替換名詞。
+
+### 討論與可發布邊界
+
+- Intake 依契約與交付批次分類為 Fix path／Change／Sharded Change；新增內容擴大規模時重新分類。所有大型 migration 都用 Sharded Change。不同目標或仍需獨立架構決策則分成不同 Changes。
+- Sharded Change 共用 slug、Proposal／整體 G1；逐 shard branch、Review／G2／PR。不可分割的 shards 合成同一交付批次，內部 slices 仍可追蹤；不得先把需要下一批救回來的半成品合進 main。
+- wayfinder 適用跨 session 或尚不清楚的決策路線，尤其大型 Sharded Change；不是每個 shard 的必跑步驟。已收斂內容不補建無用途的 map。grill-with-docs 用於有待人類判斷的選項；可查事實由 research/search 處理，可行性或具體設計不明才用 prototype。repo 不要求名為 search 的 skill，等價查詢方式即可。
+- 討論完成前清點文件、規則、腳本、平台邊界與測試證據；收斂後製作並發布 Proposal、實際讀取 rendered page，下一個停止點才是 G1。不得用「已 grill 完」掩蓋未清點內容，再於頁面前逐項補問。必要權限或會使剩餘工作無效的新分歧，仍保留既有安全停止例外。
+- 「用哪些證據證明可發布」先辨識風險與既有 coverage，不等於每個 Change 新增測試。bug regression 修正前失敗／修正後通過；測試維持 owner boundary、重用 test/support、不製造 test-only production seam。test-audit 仍需實際執行。
+- Archive 先判定 durable knowledge 是否改變，必要時更新最窄 Features，Review 說明結果；不增加人工 gate。writing-changesets 保留有效 body-format，刪除失效 dev→main→sync、舊 artifact／script／skip-review 指引，引用 canonical workflow；每個有版本影響的交付批次攜帶對應 changeset。
+
+### 環境與 DB
+
+| 程式来源／用途 | 網址 | v1.0.0 前 DB | v1.0.0 起 DB | 原則 |
+| --- | --- | --- | --- | --- |
+| PR Preview | 各 PR Preview URL | test | test | 合併前驗證，不 reset Atlas 整庫 |
+| 固定人工／裝置驗收 | volleybro-test.vercel.app | test | test | 人工頻率低，接受互相覆蓋；安全 Preview session 完成後才評估移除 |
+| main 合併後整合 | 固定 integration alias，在 Shard 2 Review 提出 | test | test | 不等於 production；不另建常態 production branch |
+| 選定 release／hotfix revision | production 候選 → volleybro.vercel.app | test | production | production 設定 build，不是把 test Preview 換 alias |
+| 本機／CI integration tests | 無公開網址 | 一次性本機 DB | 一次性本機 DB | mongodb-memory-server replica set，與 Atlas 分離 |
+
+Production 在首個 stable release 才由乾淨資料開始，只保留使用者明確指定資料；本 Change 不清空 test、不複製整庫、不新增 test-pr。新 E2E DB 等其工作另議。
+
+既有 integration tests 直接驗證 route handler／DB 邊界，auth 使用 test doubles，不代表 Google OAuth／真實 session 已驗證。首頁、登入能力／session、登入後 team 唯讀檢查是 smoke 核心；已有 session 不等於完整 OAuth 測試。安全 session 策略保持獨立，實作前 security review，不新增 production login bypass。自動 session 未完成時，候選與上線後必要人工驗收放 Review 的 TestPlan／ActionItems；未完成不得 promote／標成功，等待不是失敗。
+
+### 正常 release、首次切換與 hotfix
+
+1. main 累積具版本影響的 changesets，bot 持續更新 changeset-release/main，title 固定 release: update versions。Monorepo 不同 packages 的 changesets 共用正常 version PR，由版本策略決定各 package bump；本期不實作 monorepo split。
+2. PR push 即跑驗證；授權 merge 前必須是 latest revision 的 required checks。aggregate Verify 包含 static／unit／integration／Blueprint／commitlint；部署 build check 驗證 integration，不冒充 production smoke。固定 title 例外只允許可驗證 bot identity＋head＋內容，不泛跳過 main 檢查。
+3. 合併是正式發布授權，固定 release commit，不以「沒有 changesets」推論任何 main push 都可發布。之後 main 新內容不替換候選；所選版本含截至該 Change／Fix 的所有尚未發布整合內容。
+4. production-config candidate 驗證與必要人工 fallback → 發布鎖內重查基準 → promote → production smoke → 成功才建固定 SHA tag／GitHub Release。不用二次 release 授權，但不能宣稱有人工 fallback 的第一版完全自動化。
+5. 候選失敗不 promote；promote 結果不明先查實際 deployment。上線後失敗只回退到已確認與 DB 相容的舊 deployment，再驗證／通知；不相容或未知停止／通知，不回退資料。正常 release 在 Shard 2 就有這些控制，Shard 3 重用。
+6. Bot 在之後有 non-empty changesets 才重建／更新 version PR，不是發布完成後無條件重建。重試 idempotent，已建立 tag 不移動。
+
+Shard 2 的首次正式發布預期為 v0.16.0：既有未發布 dev 交付加已整合的本 Change Shard 1／2。切換前重新核對 refs、PRs、worktrees、Changesets 實際版本與範圍；不是嚴格只含原 Cycle 1，不硬覆寫版本。G2 前演練，正式發布結果放 AfterRelease，不提前假稱已驗收上線；不必等待 Shard 3／4。
+
+先準備可回復流程，解除 main merge 直接上 production 的連動，再保留 dev 必要歷史並整合新流程；成功發布且無活引用後才移除 dev。不得改其他裝置／活 worktrees，或遺失唯一歷史。平台設定以 live inventory／read-back 驗證，repo 文件不能替代其證據。
+
+緊急重大 production bug／重大漏洞走 deployed-base hotfix，獨立修補與 patch version，dispatch 明確授權 reviewed SHA。Urgency 不豁免 Change gate。發布成功後 merge-back main，核對版本、changelog、已消耗／仍 pending changesets；不 rebase main。衝突無法安全處理就停。hotfix 後暫停／拒絕旧正常候選，同步後重建候選、重驗證並重新授權。
+
+### Dependency 與 cycle 節奏
+
+Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHub Actions weekly version updates 都納入。每週二 09:00 Asia/Taipei 掃描；不承諾精確完成分鐘，Gmail digest 不當觸發條件。週二 13:00 人工 intake、18:00 planning cutoff，週三 09:00 bot 準備／檢查，13:00–15:00 release owner merge／hold；cutoff 不凍結 rolling main snapshot。Security updates 依漏洞事件執行，不等週三緊急修補。
+
+只允許可信 Dependabot 的單一 allowlisted 非敏感 direct devDependency patch、限制 package／lockfile diff、無 scripts／config／runtime 擴張、最新 checks 全綠後 auto-merge main。major、minor、敏感、未知、多套件、CI 失敗全部人工。具體清單於 Shard 4 Review 提出，G2 接受前不啟用；空清單可安全過渡，但最終須演練核准套件的自動路徑。不把 untrusted PR code 放到有 write permission／production secrets 的 runner。
+
+人或開發者自行决定需不需要 Agent；major／高影響能安全完成就留 PR review，無法安全實作或需新決策才開 issue。Auto-merge 不等於 production 發布。下一 cycle 承諾、下下 cycle 候選；估點只計可執行 leaf issues，不重複算 parent。容量依完整週期實績與 token 資源校正，不沿用半週外推的暫估上限作硬規則。
+
+### 不包含與既有工作歸屬
+
+不包含 Symphony unattended execution、完整 E2E／agent harness、test-pr DB、長期 production／maintenance branch、monorepo split 實作、完整 error tracker／source maps、未指定 v1 資料搬移。
+
+現有 main→dev sync／App bypass 工作在舊 sync 移除驗收後以需求被取代處置，不冒充已實作 App；version PR body cosmetic 留原工作，必要 pipeline 相容調整若同時解決才附證據。安全 session 与完整 observability 保持獨立。
+
+## Flows
+
+以下為目標架構，branch graphs 的橫軸是 commit 順序而非時間。方框流程圖只用於發布 gate 和依賴判定。
+
+<figure>
+<div style={{ width: "100%", overflowX: "auto" }}>
+<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="git-delivery-title git-delivery-desc">
+<title id="git-delivery-title">一般 Change／Fix path／Sharded Change 的 branch graph</title>
+<desc id="git-delivery-desc">各批通過 gates 後合回 main；migration 走 Sharded，不可分割批次留同一 branch 一起交付。</desc>
+<rect width="960" height="600" fill="#f2f2f6" />
+<g fill="none" stroke="#626262" strokeWidth="1.2">
+<path d="M 176 240 H 896" stroke="#10687e" />
+<path d="M 176 240 H 216 Q 224 240 224 232 V 136 Q 224 128 232 128 H 336 Q 344 128 344 136 V 232 Q 344 240 352 240" />
+<path d="M 352 240 H 392 Q 400 240 400 248 V 344 Q 400 352 408 352 H 528 Q 536 352 536 344 V 248 Q 536 240 544 240" />
+<path d="M 544 240 H 560 Q 568 240 568 248 V 456 Q 568 464 576 464 H 656 Q 664 464 664 456 V 248 Q 664 240 672 240" />
+<path d="M 672 240 H 688 Q 696 240 696 248 V 456 Q 696 464 704 464 H 784 Q 792 464 792 456 V 248 Q 792 240 800 240" />
+<path d="M 800 240 H 816 Q 824 240 824 232 V 136 Q 824 128 832 128 H 896" strokeDasharray="5 4" />
+</g>
+<g fill="#f2f2f6" stroke="#10687e" strokeWidth="2">
+<circle cx="176" cy="240" r="6" />
+<circle cx="352" cy="240" r="6" />
+<circle cx="544" cy="240" r="6" />
+<circle cx="672" cy="240" r="6" />
+<circle cx="800" cy="240" r="6" />
+<circle cx="280" cy="128" r="6" />
+<circle cx="448" cy="352" r="6" />
+<circle cx="608" cy="464" r="6" />
+<circle cx="736" cy="464" r="6" />
+</g>
+<g fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fontSize="12" fill="#000000">
+<text x="40" y="244">main</text>
+<text x="224" y="96">一般 Change：Proposal G1 → Review G2 → PR</text>
+<text x="384" y="384">{"patch/*：適用小型 Fix path"}</text>
+<text x="568" y="500">{"*-s1"}</text>
+<text x="704" y="500">{"*-s2"}</text>
+<text x="568" y="524">共同 Proposal／G1；逐 shard Review／G2／PR</text>
+<text x="744" y="96">changeset-release/main</text>
+<text x="688" y="284">可發布整合內容</text>
+<text x="40" y="48">目標：main 是整合 trunk，daily merge 不上 production</text>
+</g>
+<line x1="40" y1="540" x2="920" y2="540" stroke="#dddee5" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">左 → 右：commit 順序（非時間比例）・圓點：commit・支線回主線：PR merge</text>
+</svg>
+</div>
+<figcaption>一般 Change／Fix path／Sharded Change 的 branch graph：各批通過 gates 後合回 main；migration 走 Sharded，不可分割批次留同一 branch 一起交付。</figcaption>
+</figure>
+<figure>
+<div style={{ width: "100%", overflowX: "auto" }}>
+<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="release-title release-desc">
+<title id="release-title">Changesets 與正式發布</title>
+<desc id="release-desc">Version PR 合併授權固定 SHA，必要驗證完成才 promote；失敗不能標記 release 成功。</desc>
+<defs>
+<marker id="release-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#626262" /></marker>
+<marker id="release-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#10687e" /></marker>
+<marker id="release-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#267fd9" /></marker>
+</defs>
+<rect width="960" height="600" fill="#f2f2f6" />
+<path d="M 280 72 H 360" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 600 72 H 680" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 800 100 V 184" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 680 212 H 600" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 360 212 H 280" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 480 248 V 328" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 480 384 V 456" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
+<path d="M 600 356 H 680" fill="none" stroke="#626262" strokeWidth="1.2" strokeDasharray="5 4" markerEnd="url(#release-arrow)" />
+<rect x="276" y="184" width="88" height="16" rx="2" fill="#f2f2f6" /><text x="320" y="196" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">未通過</text>
+<rect x="488" y="280" width="88" height="16" rx="2" fill="#f2f2f6" /><text x="532" y="292" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">通過</text>
+<rect x="596" y="328" width="88" height="16" rx="2" fill="#f2f2f6" /><text x="640" y="340" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">上線失敗</text>
+<rect x="40" y="44" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="160" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">main 的 changesets 持續累積</text>
+<text x="160" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">packages share one version PR</text>
+<rect x="360" y="44" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="480" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">Bot 更新 version PR</text>
+<text x="480" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">release: update versions</text>
+<rect x="680" y="44" width="240" height="56" rx="6" fill="#e0eaed" stroke="#10687e" />
+<text x="800" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">最新 required checks ＋合併授權</text>
+<text x="800" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">human / authorized Agent</text>
+<rect x="680" y="184" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="800" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">固定 release SHA 的候選</text>
+<text x="800" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">production config / no alias</text>
+<polygon points="480,176 600,212 480,248 360,212" fill="#fbfbfb" stroke="#10687e" />
+<text x="480" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">候選與必要驗收完成？</text>
+<text x="480" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">auth fallback waits if needed</text>
+<rect x="40" y="184" width="240" height="56" rx="20" fill="#fbfbfb" stroke="#000000" />
+<text x="160" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">停止／等待／通知</text>
+<text x="160" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">no promote / no tag</text>
+<rect x="360" y="328" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="480" y="354" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">鎖內檢查基準 → promote</text>
+<text x="480" y="372" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">reject stale candidate</text>
+<rect x="360" y="456" width="240" height="56" rx="20" fill="#fbfbfb" stroke="#000000" />
+<text x="480" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">Production smoke 通過</text>
+<text x="480" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">success → exact-SHA tag / Release</text>
+<rect x="680" y="328" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="800" y="354" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">相容才 rollback ＋驗證／通知</text>
+<text x="800" y="372" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">unknown DB → stop / no data reset</text>
+<line x1="40" y1="540" x2="920" y2="540" stroke="#dddee5" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">目標流程・實線為正常路徑，虛線為例外／同步；發布不等於合併</text>
+</svg>
+</div>
+<figcaption>Changesets 與正式發布：Version PR 合併授權固定 SHA，必要驗證完成才 promote；失敗不能標記 release 成功。</figcaption>
+</figure>
+
+<figure>
+<div style={{ width: "100%", overflowX: "auto" }}>
+<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="git-hotfix-title git-hotfix-desc">
+<title id="git-hotfix-title">隔離 hotfix 與 merge-back 的 branch graph</title>
+<desc id="git-hotfix-desc">從部署點切 hotfix，而不是 main HEAD；發布修補後同步回 main，保留未發布 changesets 並重新準備正常版本。</desc>
+<rect width="960" height="600" fill="#f2f2f6" />
+<g fill="none" stroke="#626262" strokeWidth="1.2">
+<path d="M 176 192 H 896" stroke="#10687e" />
+<path d="M 280 192 H 304 Q 312 192 312 200 V 352 Q 312 360 320 360 H 744 Q 752 360 752 352 V 200 Q 752 192 760 192" />
+<path d="M 448 360 V 432 Q 448 440 456 440 H 592 Q 600 440 600 448 V 484" strokeDasharray="5 4" />
+<path d="M 760 192 H 792 Q 800 192 800 200 V 264 Q 800 272 808 272 H 896" strokeDasharray="5 4" />
+</g>
+<g fill="#f2f2f6" stroke="#10687e" strokeWidth="2">
+<circle cx="176" cy="192" r="6" />
+<circle cx="280" cy="192" r="6" />
+<circle cx="448" cy="192" r="6" />
+<circle cx="624" cy="192" r="6" />
+<circle cx="760" cy="192" r="6" />
+<circle cx="448" cy="360" r="6" />
+<circle cx="600" cy="484" r="6" />
+</g>
+<g fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fontSize="12" fill="#000000">
+<text x="40" y="196">main</text>
+<text x="40" y="364">{"hotfix/*"}</text>
+<text x="208" y="160">已部署版本</text>
+<text x="392" y="160">尚未發布的 Change</text>
+<text x="576" y="160">更多整合內容</text>
+<text x="376" y="328">隔離修補＋版本紀錄</text>
+<text x="644" y="224">同步 PR：merge，不 rebase</text>
+<text x="472" y="520">授權 SHA → 共用 pipeline → production</text>
+<text x="784" y="304">新 version PR</text>
+<text x="40" y="48">Hotfix 適用重大 production bug／緊急安全漏洞</text>
+<text x="40" y="80">Hotfix 改變基準後，先拒絕舊正常候選，再驗證與授權新候選</text>
+</g>
+<line x1="40" y1="540" x2="920" y2="540" stroke="#dddee5" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">左 → 右：commit 順序（非時間比例）・圓點：commit・支線回主線：PR merge</text>
+</svg>
+</div>
+<figcaption>隔離 hotfix 與 merge-back 的 branch graph：從部署點切 hotfix，而不是 main HEAD；發布修補後同步回 main，保留未發布 changesets 並重新準備正常版本。</figcaption>
+</figure>
+
+<figure>
+<div style={{ width: "100%", overflowX: "auto" }}>
+<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="dependencies-title dependencies-desc">
+<title id="dependencies-title">Dependabot 與套件維護</title>
+<desc id="dependencies-desc">Weekly version 與 security updates 都可開 PR；只允許狹窄 patch 自動合併，Agent 由人決定。</desc>
+<defs>
+<marker id="dependencies-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#626262" /></marker>
+<marker id="dependencies-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#10687e" /></marker>
+<marker id="dependencies-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#267fd9" /></marker>
+</defs>
+<rect width="960" height="600" fill="#f2f2f6" />
+<path d="M 160 100 V 132 Q 160 140 168 140 H 432 Q 440 140 440 148 V 184" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<path d="M 800 100 V 132 Q 800 140 792 140 H 528 Q 520 140 520 148 V 184" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<path d="M 480 240 V 304" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<path d="M 360 340 H 280" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<path d="M 480 376 V 456" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<path d="M 160 368 V 456" fill="none" stroke="#626262" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
+<rect x="276" y="312" width="88" height="16" rx="2" fill="#f2f2f6" /><text x="320" y="324" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">不符合</text>
+<rect x="488" y="404" width="88" height="16" rx="2" fill="#f2f2f6" /><text x="532" y="416" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">符合</text>
+<rect x="40" y="44" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="160" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">每週二 version check</text>
+<text x="160" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">09:00 Asia/Taipei / npm + Actions</text>
+<rect x="680" y="44" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="800" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">漏洞事件 security updates</text>
+<text x="800" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">independent of email / weekly</text>
+<rect x="360" y="184" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="480" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">Dependabot PR ＋ required CI</text>
+<text x="480" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">native bot branch</text>
+<polygon points="480,304 600,340 480,376 360,340" fill="#fbfbfb" stroke="#10687e" />
+<text x="480" y="338" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">單一允許套件 patch／全綠？</text>
+<text x="480" y="356" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">direct non-sensitive devDependency</text>
+<rect x="40" y="312" width="240" height="56" rx="6" fill="#fbfbfb" stroke="#000000" />
+<text x="160" y="338" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">人工分流／按需啟動 Agent</text>
+<text x="160" y="356" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">major / sensitive / unknown</text>
+<rect x="360" y="456" width="240" height="56" rx="6" fill="#e0eaed" stroke="#10687e" />
+<text x="480" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">Auto-merge main</text>
+<text x="480" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">integration only</text>
+<rect x="40" y="456" width="240" height="56" rx="20" fill="#fbfbfb" stroke="#000000" />
+<text x="160" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#000000">Review PR／需決策則 issue</text>
+<text x="160" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="#626262">normal train or urgent hotfix</text>
+<line x1="40" y1="540" x2="920" y2="540" stroke="#dddee5" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="#626262">目標流程・實線為正常路徑，虛線為例外／同步；發布不等於合併</text>
+</svg>
+</div>
+<figcaption>Dependabot 與套件維護：Weekly version 與 security updates 都可開 PR；只允許狹窄 patch 自動合併，Agent 由人決定。</figcaption>
+</figure>
+
+
+既有可開啟節點的元件只補充討論工具如何收斂，不取代上面的 branch graph：
+
+<InteractiveFlowchart
+  nodes={[{id:"discuss",label:"Grill / Wayfinder",x:160,y:48,w:240},{id:"facts",label:"Research / Prototype",x:160,y:144,w:240},{id:"page",label:"Published Proposal → G1",x:160,y:240,w:240}]}
+  edges={[{from:"discuss",to:"facts"},{from:"facts",to:"page"}]}
+  details={{discuss:{title:"完成共同理解",body:"由人決定取捨；跨 session 的決策路線才建立 wayfinder map，不把 shards 當成未解決問題。"},facts:{title:"自行補齊可查事實",body:"必要 research／prototype 支援既定目的；沒有不確定性就略過。已指定到後續 G2 的操作項保留，不於頁面前重複詢問。"},page:{title:"下一個人類停止點",body:"完成範圍、ADRs、驗收與流程圖，發布並讀取 rendered Proposal 後才停 G1。發布不等於人類已接受。"}}}
+/>
+
+## Acceptance scenarios
+
+<Scenarios items={scenarios} />
+
+S3／S4 的平台正式切換與首次發布結果於 Shard 2 AfterRelease 更新；G2 前以配置 read-back／隔離演練驗證安全控制，不在 live production 製造未授權故障。真人登入／裝置結果屬 TestPlan，不能偽稱 Agent 自行完成。
+
+## Risks
+
+<RiskTable risks={[
+ {name:"dev 唯一歷史或進行中工作遺失",severity:"critical",mitigation:"切換前重新 inventory refs／PR／worktrees，保留必要 history；路徑驗證完成且無活引用才刪 dev。"},
+ {name:"平台切換誤發布或錯 DB／OAuth",severity:"critical",mitigation:"先解除 main auto-production，核對 project／aliases／env／callback；production-config candidate 不可用 test Preview 代替。"},
+ {name:"舊候選覆蓋 hotfix／不安全 rollback",severity:"critical",mitigation:"共用 promotion lock、基準檢查與 stale 拒絕；rollback 只限相容 deployment，不撤回資料。"},
+ {name:"依賴 auto-merge 權限或判定越界",severity:"critical",mitigation:"可信身份＋明確 allowlist＋限制 diff＋latest required checks；未知一律人工，隔離 untrusted code／secrets。"},
+ {name:"登入自動化尚未交付",severity:"warning",mitigation:"必要人工 fallback 是 gate，不假稱全自動；安全 session 保持獨立 review。"},
+ {name:"Changesets Action 與 CLI major 不相容",severity:"warning",mitigation:"Shard 2 核對相容組合與 rolling PR 行為；版本紀錄 reconciliation 演練正常／衝突與 retries。"}
+]} />
+
+平台 alias、必要 credentials、具體 dependency allowlist 是已限定的後續 Review 操作項，不是尚未決定的主架構；任何付費、權限擴大、資料搬移仍需必要授權。本次下一個停止點僅為整體 G1；G1 接受後才進 Apply，不能跳過逐批 G2／Pre-PR review。
+
+## References
+
+- [Changesets automation](https://changesets.dev/guide/automating)：版本內容持續累積與 version PR 是官方常見路徑；production deployment gate 是本 repo 的應用部署責任。
+- [Changesets Action](https://github.com/changesets/action)：版本 PR 與 CLI 的相容 major 須確認；不假設無 changesets 的任意 push 是授權。
+- [Changesets backporting](https://changesets.dev/guide/backporting-changes)：隔離 release 基準的版本工作，不代表自動解決 main metadata 衝突。
+- [Vercel deploy](https://vercel.com/docs/cli/deploy)／[promote](https://vercel.com/docs/cli/promote)：CLI 支援 production-config staged deployment 與 promote；platform 認證／環境須 live 確認。
+- [Git rebasing](https://git-scm.com/book/en/v2/Git-Branching-Rebasing)：不 rewrite 已共用 main；透過 merge-back 留下修補與整合紀錄。
+- [Chromium release branches](https://new.chromium.org/developers/how-tos/get-the-code/working-with-release-branches/)：成熟團隊也會區分 trunk 與 release 修補；其 branch 管理不同，不把本設計說成 Google 唯一做法。
+- [Dependabot options](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference)：npm ecosystem 支援 pnpm，weekly schedule 與 security events 是不同來源。
