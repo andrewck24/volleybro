@@ -110,41 +110,41 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <title id="git-delivery-title">一般交付、Sharded Change 與 rolling version PR</title>
 <desc id="git-delivery-desc">一般 Change、Fix 和各 shard 合併 main 後，bot 持續更新同一 release branch 與 version PR；授權合併固定 SHA，後續新 changesets 才重建。</desc>
 <text x="40" y="48" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">一般交付：所有合併內容必須可發布；main merge 不直接部署 production</text>
-<rect x="532" y="204" width="368" height="304" rx="8" fill="none" stroke="var(--chart-5)" strokeDasharray="6 5" />
-<text x="552" y="232" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">Sharded Change · 同一 parent／Proposal／G1</text>
-<path d="M 184 160 H 1240" fill="none" stroke="var(--chart-1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 184 160 Q 208 160 208 184 V 232 Q 208 256 232 256 H 304 Q 328 256 328 232 V 184 Q 328 160 352 160" fill="none" stroke="var(--chart-3)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 352 160 Q 376 160 376 184 V 328 Q 376 352 400 352 H 472 Q 496 352 496 328 V 184 Q 496 160 520 160" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 520 160 Q 544 160 544 184 V 280 Q 544 304 568 304 H 640 Q 664 304 664 280 V 184 Q 664 160 688 160" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 688 160 Q 712 160 712 184 V 400 Q 712 424 736 424 H 808 Q 832 424 832 400 V 184 Q 832 160 856 160" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 184 160 Q 208 160 208 136 V 120 Q 208 96 232 96 H 1040 Q 1064 96 1064 120 V 136 Q 1064 160 1088 160" fill="none" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<path d="M 352 152 V 128 Q 352 120 360 120 H 432 Q 440 120 440 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 520 152 V 128 Q 520 120 528 120 H 608 Q 616 120 616 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 688 152 V 128 Q 688 120 696 120 H 784 Q 792 120 792 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 856 152 V 128 Q 856 120 864 120 H 960 Q 968 120 968 112 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
-<path d="M 1184 160 Q 1208 160 1208 136 V 120 Q 1208 96 1232 96 H 1240" fill="none" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-<circle cx="184" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="352" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="520" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="688" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="856" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="264" cy="256" r="7" fill="var(--background)" stroke="var(--chart-3)" strokeWidth="3" />
+<rect x="532" y="272" width="368" height="192" rx="8" fill="none" stroke="var(--chart-5)" strokeDasharray="6 5" />
+<text x="552" y="488" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">Sharded Change · 同一 parent／Proposal／G1</text>
+<path d="M 184 224 H 1240" fill="none" stroke="var(--chart-1)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 184 224 Q 208 224 208 248 V 328 Q 208 352 232 352 H 304 Q 328 352 328 328 V 248 Q 328 224 352 224" fill="none" stroke="var(--chart-3)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 352 224 Q 376 224 376 248 V 328 Q 376 352 400 352 H 472 Q 496 352 496 328 V 248 Q 496 224 520 224" fill="none" stroke="var(--success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 520 224 Q 544 224 544 248 V 328 Q 544 352 568 352 H 640 Q 664 352 664 328 V 248 Q 664 224 688 224" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 688 224 Q 712 224 712 248 V 328 Q 712 352 736 352 H 808 Q 832 352 832 328 V 248 Q 832 224 856 224" fill="none" stroke="var(--chart-5)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 184 224 Q 208 224 208 200 V 120 Q 208 96 232 96 H 1040 Q 1064 96 1064 120 V 200 Q 1064 224 1088 224" fill="none" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 352 216 V 152 Q 352 144 360 144 H 432 Q 440 144 440 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 520 216 V 152 Q 520 144 528 144 H 608 Q 616 144 616 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 688 216 V 152 Q 688 144 696 144 H 784 Q 792 144 792 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 856 216 V 152 Q 856 144 864 144 H 960 Q 968 144 968 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
+<path d="M 1184 224 Q 1208 224 1208 200 V 120 Q 1208 96 1232 96 H 1240" fill="none" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<circle cx="184" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="352" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="520" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="688" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="856" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="264" cy="352" r="7" fill="var(--background)" stroke="var(--chart-3)" strokeWidth="3" />
 <circle cx="432" cy="352" r="7" fill="var(--background)" stroke="var(--success)" strokeWidth="3" />
-<circle cx="600" cy="304" r="7" fill="var(--background)" stroke="var(--chart-5)" strokeWidth="3" />
-<circle cx="768" cy="424" r="7" fill="var(--background)" stroke="var(--chart-5)" strokeWidth="3" />
-<text x="40" y="164" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-1)">main</text>
-<text x="264" y="284" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-3)">feat / fix / refactor</text>
-<text x="264" y="308" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">一般 Change · G1 → G2 → PR</text>
+<circle cx="600" cy="352" r="7" fill="var(--background)" stroke="var(--chart-5)" strokeWidth="3" />
+<circle cx="768" cy="352" r="7" fill="var(--background)" stroke="var(--chart-5)" strokeWidth="3" />
+<text x="40" y="228" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-1)">main</text>
+<text x="264" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-3)">feat / fix / refactor</text>
+<text x="264" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">一般 Change · G1／G2</text>
 <text x="432" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--success)">{"patch/* · Fix path"}</text>
-<text x="432" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">小型修正 → 驗證／review → PR</text>
-<text x="600" y="332" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s1 · Shard 1"}</text>
-<text x="600" y="356" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
-<text x="768" y="452" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s2 · Shard 2"}</text>
-<text x="768" y="476" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
+<text x="432" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">驗證／review → PR</text>
+<text x="600" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s1 · Shard 1"}</text>
+<text x="600" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
+<text x="768" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s2 · Shard 2"}</text>
+<text x="768" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
 <line x1="40" y1="656" x2="1240" y2="656" stroke="var(--border)" />
 <text x="40" y="684" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">圓點＝commit · 支線回 main＝PR merge · 虛線框＝同一 Sharded Change 的從屬範圍</text>
-<circle cx="1088" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
-<circle cx="1184" cy="160" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="1088" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
+<circle cx="1184" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
 <circle cx="280" cy="96" r="7" fill="var(--background)" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" />
 <circle cx="440" cy="96" r="7" fill="var(--background)" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" />
 <circle cx="616" cy="96" r="7" fill="var(--background)" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" />
@@ -153,8 +153,8 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <circle cx="1232" cy="96" r="7" fill="var(--background)" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" />
 <text x="232" y="64" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">changeset-release/main · 同一 branch／同一 version PR</text>
 <text x="232" y="80" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">初次建立 → bot 持續納入 main 新 changesets、更新版本／changelog 並重跑 CI</text>
-<text x="1088" y="196" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 merge</text>
-<text x="1088" y="220" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">固定 release SHA</text>
+<text x="1088" y="260" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 merge</text>
+<text x="1088" y="284" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">固定 release SHA</text>
 <text x="1184" y="280" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">下一批 Change</text>
 <text x="1184" y="304" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">新 changesets</text>
 <text x="1008" y="368" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">合併後：有新 changesets</text>
@@ -165,60 +165,20 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 </div>
 <figcaption>Change／Fix／shards 逐批合併 main 後，bot 持續更新同一 changeset-release/main 與 version PR。Sharded Change 的虛線框表示共同 parent／Proposal，不是 Git branch；不可分割的 shards 才留同一 branch／PR 一起交付。Version PR 授權合併時固定發布 SHA，之後有新的 changesets 才重建下一批。</figcaption>
 </figure>
-<figure>
-<div style={{ width: "100%", overflowX: "auto" }}>
-<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="release-title release-desc">
-<title id="release-title">Changesets 與正式發布</title>
-<desc id="release-desc">Version PR 合併授權固定 SHA，必要驗證完成才 promote；失敗不能標記 release 成功。</desc>
-<defs>
-<marker id="release-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted-foreground)" /></marker>
-<marker id="release-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--chart-1)" /></marker>
-<marker id="release-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#267fd9" /></marker>
-</defs>
+### 正式發布 gate
 
-<path d="M 280 72 H 360" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 600 72 H 680" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 800 100 V 184" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 680 212 H 600" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 360 212 H 280" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 480 248 V 328" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 480 384 V 456" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#release-arrow)" />
-<path d="M 600 484 H 792 Q 800 484 800 476 V 384" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" strokeDasharray="5 4" markerEnd="url(#release-arrow)" />
-<rect x="276" y="184" width="88" height="16" rx="2" fill="var(--background)" /><text x="320" y="196" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">未通過</text>
-<rect x="488" y="280" width="88" height="16" rx="2" fill="var(--background)" /><text x="532" y="292" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">通過</text>
-<rect x="808" y="428" width="88" height="16" rx="2" fill="var(--background)" /><text x="852" y="440" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">smoke 失敗</text>
-<rect x="40" y="44" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="160" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">main 的 changesets 持續累積</text>
-<text x="160" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">packages share one version PR</text>
-<rect x="360" y="44" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="480" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">Bot 更新 version PR</text>
-<text x="480" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">release: update versions</text>
-<rect x="680" y="44" width="240" height="56" rx="6" fill="var(--secondary)" stroke="var(--chart-1)" />
-<text x="800" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">最新 required checks ＋合併授權</text>
-<text x="800" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">human / authorized Agent</text>
-<rect x="680" y="184" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="800" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">固定 release SHA 的候選</text>
-<text x="800" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">production config / no alias</text>
-<polygon points="480,176 600,212 480,248 360,212" fill="var(--card)" stroke="var(--chart-1)" />
-<text x="480" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">候選與必要驗收完成？</text>
-<text x="480" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">auth fallback waits if needed</text>
-<rect x="40" y="184" width="240" height="56" rx="20" fill="var(--card)" stroke="var(--foreground)" />
-<text x="160" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">停止／等待／通知</text>
-<text x="160" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">no promote / no tag</text>
-<rect x="360" y="328" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="480" y="354" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">鎖內檢查基準 → promote</text>
-<text x="480" y="372" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">reject stale candidate</text>
-<rect x="360" y="456" width="240" height="56" rx="20" fill="var(--card)" stroke="var(--foreground)" />
-<text x="480" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">Production smoke／成功才記錄</text>
-<text x="480" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">success → exact-SHA tag / Release</text>
-<rect x="680" y="328" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="800" y="354" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">相容才 rollback ＋驗證／通知</text>
-<text x="800" y="372" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">unknown DB → stop / no data reset</text>
-<line x1="40" y1="540" x2="920" y2="540" stroke="var(--border)" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">目標流程・實線為正常路徑，虛線為例外／同步；發布不等於合併</text>
-</svg>
+<div style={{ width: "100%", overflowX: "auto" }}>
+<div style={{ minWidth: 1104 }}>
+<InteractiveFlowchart
+  nodes={[{"id":"version","label":"Version PR 最新驗證","x":360,"y":48,"w":224,"h":64,"shape":"box"},{"id":"authorize","label":"授權 merge → 固定 SHA","x":360,"y":168,"w":224,"h":64,"shape":"box"},{"id":"candidate","label":"候選／必要驗收通過？","x":360,"y":288,"w":224,"h":64,"shape":"diamond"},{"id":"stop","label":"停止／等待／通知","x":80,"y":288,"w":224,"h":64,"shape":"box"},{"id":"promote","label":"鎖內核對基準 → promote","x":360,"y":408,"w":224,"h":64,"shape":"box"},{"id":"smoke","label":"Production smoke 通過？","x":360,"y":528,"w":224,"h":64,"shape":"diamond"},{"id":"rollback","label":"相容才 rollback／通知","x":640,"y":528,"w":224,"h":64,"shape":"box"},{"id":"record","label":"成功才建 tag／Release","x":360,"y":648,"w":224,"h":64,"shape":"box"}]}
+  edges={[{"from":"version","to":"authorize"},{"from":"authorize","to":"candidate"},{"from":"candidate","to":"stop","label":"未通過"},{"from":"candidate","to":"promote","label":"通過"},{"from":"promote","to":"smoke"},{"from":"smoke","to":"rollback","label":"失敗","dashed":true},{"from":"smoke","to":"record","label":"通過"}]}
+  details={{"version":{"title":"同一 rolling version PR","body":"bot 的每次 push 重跑 required checks。授權前核對 latest revision 與可信 bot identity；main 新 changesets 會持續更新此 PR，詳見上方 branch graph。"},"authorize":{"title":"一次發布授權，固定 release SHA","body":"由你合併，或明確授權 Agent 合併。包括截至所選 Change／Fix 的所有未發布整合內容；後續 main commits 不替換候選。"},"candidate":{"title":"以 production 設定驗證候選","body":"使用固定 SHA 和 production config 建立尚未切正式 alias 的 candidate。必要 smoke／人工登入 fallback 未完成就等待；失敗不 promote，不建成功 tag。"},"stop":{"title":"不繞過失敗或等待","body":"停止／通知或等待必要人工驗收。不能以 CI 綠燈冒充 production 成功；promote 結果不明時先查實際 deployment。"},"promote":{"title":"序列化發布並重查 production 基準","body":"promotion／rollback／hotfix 共用發布鎖。基準已被 hotfix 改變時拒絕舊候選，待 merge-back、重新驗證並重新授權。"},"smoke":{"title":"部署成功後仍需 production 驗證","body":"驗證公開頁與可安全自動化的核心登入後路徑；尚無安全 session 時保留人工 fallback。只有真實通過才記錄發布成功。"},"rollback":{"title":"只回退相容 deployment，不回退資料","body":"只有證明舊 deployment 與目前 DB 相容才 rollback，之後再驗證與通知。DB 相容性未知或不相容則停止／通知，不 reset 或回退資料。"},"record":{"title":"成功的版本證據","body":"以固定 release SHA 建立 idempotent tag 與 GitHub Release；重試不移動既有 tag。之後有新的 non-empty changesets 才重建下一張 version PR。"}}}
+/>
 </div>
-<figcaption>Changesets 與正式發布：Version PR 合併授權固定 SHA，必要驗證完成才 promote；失敗不能標記 release 成功。</figcaption>
-</figure>
+</div>
+
+點選節點查看 gate 細節。Version PR 合併是授權，不等於 production 已成功發布；失敗分支由 production smoke 出發。
+
 
 <figure>
 <div style={{ width: "100%", overflowX: "auto" }}>
@@ -248,7 +208,7 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <text x="360" y="284" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">隔離修補＋patch version</text>
 <text x="488" y="360" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">成功發布後同步 main；不 rebase</text>
 <text x="520" y="492" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 SHA → 共用 pipeline → production</text>
-<text x="824" y="284" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">重建／更新正常 version PR</text>
+<text x="824" y="344" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">重建／更新正常 version PR</text>
 <text x="744" y="404" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">保留 pending changesets</text>
 <text x="744" y="428" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">處理版本／changelog 衝突</text>
 <text x="744" y="452" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">重新驗證、重新授權</text>
@@ -259,54 +219,25 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <figcaption>隔離 hotfix 與 merge-back 的 branch graph：從部署點切 hotfix，而不是 main HEAD；發布修補後同步回 main，保留未發布 changesets 並重新準備正常版本。</figcaption>
 </figure>
 
-<figure>
+### Dependabot 分流
+
 <div style={{ width: "100%", overflowX: "auto" }}>
-<svg viewBox="0 0 960 600" style={{ width: "100%", minWidth: 960, display: "block" }} role="img" aria-labelledby="dependencies-title dependencies-desc">
-<title id="dependencies-title">Dependabot 與套件維護</title>
-<desc id="dependencies-desc">Weekly version 與 security updates 都可開 PR；只允許狹窄 patch 自動合併，Agent 由人決定。</desc>
-<defs>
-<marker id="dependencies-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted-foreground)" /></marker>
-<marker id="dependencies-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--chart-1)" /></marker>
-<marker id="dependencies-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#267fd9" /></marker>
-</defs>
-
-<path d="M 160 100 V 132 Q 160 140 168 140 H 432 Q 440 140 440 148 V 184" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<path d="M 800 100 V 132 Q 800 140 792 140 H 528 Q 520 140 520 148 V 184" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<path d="M 480 240 V 304" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<path d="M 360 340 H 280" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<path d="M 480 376 V 456" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<path d="M 160 368 V 456" fill="none" stroke="var(--muted-foreground)" strokeWidth="1.2" markerEnd="url(#dependencies-arrow)" />
-<rect x="276" y="312" width="88" height="16" rx="2" fill="var(--background)" /><text x="320" y="324" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">不符合</text>
-<rect x="488" y="404" width="88" height="16" rx="2" fill="var(--background)" /><text x="532" y="416" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">符合</text>
-<rect x="40" y="44" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="160" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">每週二 version check</text>
-<text x="160" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">09:00 Asia/Taipei / npm + Actions</text>
-<rect x="680" y="44" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="800" y="70" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">漏洞事件 security updates</text>
-<text x="800" y="88" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">independent of email / weekly</text>
-<rect x="360" y="184" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="480" y="210" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">Dependabot PR ＋ required CI</text>
-<text x="480" y="228" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">native bot branch</text>
-<polygon points="480,304 600,340 480,376 360,340" fill="var(--card)" stroke="var(--chart-1)" />
-<text x="480" y="338" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">單一允許套件 patch／全綠？</text>
-<text x="480" y="356" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">direct non-sensitive devDependency</text>
-<rect x="40" y="312" width="240" height="56" rx="6" fill="var(--card)" stroke="var(--foreground)" />
-<text x="160" y="338" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">人工分流／按需啟動 Agent</text>
-<text x="160" y="356" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">major / sensitive / unknown</text>
-<rect x="360" y="456" width="240" height="56" rx="6" fill="var(--secondary)" stroke="var(--chart-1)" />
-<text x="480" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">Auto-merge main</text>
-<text x="480" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">integration only</text>
-<rect x="40" y="456" width="240" height="56" rx="20" fill="var(--card)" stroke="var(--foreground)" />
-<text x="160" y="482" textAnchor="middle" fontSize="12" fontWeight="600" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--foreground)">Review PR／需決策則 issue</text>
-<text x="160" y="500" textAnchor="middle" fontSize="9" fontFamily="'Geist Mono', monospace" fill="var(--muted-foreground)">normal train or urgent hotfix</text>
-<line x1="40" y1="540" x2="920" y2="540" stroke="var(--border)" /><text x="40" y="564" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">目標流程・實線為正常路徑，虛線為例外／同步；發布不等於合併</text>
-</svg>
+<div style={{ minWidth: 1104 }}>
+<InteractiveFlowchart
+  nodes={[{"id":"schedule","label":"Weekly／security 事件","x":360,"y":48,"w":224,"h":64,"shape":"box"},{"id":"pr","label":"Dependabot PR ＋ CI","x":360,"y":168,"w":224,"h":64,"shape":"box"},{"id":"policy","label":"符合狹窄 auto-merge 規則？","x":360,"y":288,"w":224,"h":64,"shape":"diamond"},{"id":"manual","label":"人工 review／按需 Agent","x":80,"y":288,"w":224,"h":64,"shape":"box"},{"id":"auto","label":"Auto-merge main","x":360,"y":408,"w":224,"h":64,"shape":"box"},{"id":"decision","label":"安全實作 PR／需決策 issue","x":80,"y":408,"w":224,"h":64,"shape":"box"}]}
+  edges={[{"from":"schedule","to":"pr"},{"from":"pr","to":"policy"},{"from":"policy","to":"manual","label":"不符合"},{"from":"policy","to":"auto","label":"符合"},{"from":"manual","to":"decision"}]}
+  details={{"schedule":{"title":"兩種更新來源","body":"每週二 09:00 Asia/Taipei 執行 npm ecosystem（pnpm）與 GitHub Actions version checks；security updates 由漏洞事件觸發，不等週報。不以 Gmail digest 送達時間觸發。"},"pr":{"title":"原生 Dependabot branch／PR","body":"開 PR 後跑 required CI。保留 Dependabot 原生 branch 命名，不直接部署 production，也不自動派工 Agent。"},"policy":{"title":"全部成立才允許自動合併","body":"可信 Dependabot；單一 allowlisted 非敏感 direct devDependency patch；只改 package／lockfile；無 scripts／config／runtime 擴張；最新 required checks 全綠。清單經 Shard 4 G2 核准後才啟用。"},"manual":{"title":"人決定需不需要 Agent","body":"Major、minor、敏感、未知、多套件、CI 失敗或超出 diff 邊界皆人工判斷；不要只用 SemVer 推論風險，也不在有 write 權限／production secrets 的 runner 執行 untrusted code。"},"auto":{"title":"只更新 integration，不直接發布","body":"合併 main 後由正常 changesets version PR 納入 release；不代表 production 已修好。重大 production bug／緊急漏洞另走 deployed-base hotfix。"},"decision":{"title":"可安全完成就 PR，需新決策才 issue","body":"Agent 可修相容問題並在 PR body 說明風險／驗證，但重大更新不自動合併。無法安全實作或需產品決策才開 issue，放入當期 cycle 追蹤，未完成不阻擋正常 release。"}}}
+/>
 </div>
-<figcaption>Dependabot 與套件維護：Weekly version 與 security updates 都可開 PR；只允許狹窄 patch 自動合併，Agent 由人決定。</figcaption>
-</figure>
+</div>
+
+點選判定節點查看完整條件。一般更新與 security 更新都會開 PR；自動合併 main、啟動 Agent、production 發布是三個不同動作。
 
 
-既有可開啟節點的元件只補充討論工具如何收斂，不取代上面的 branch graph：
+
+### 討論工具與 G1
+
+此圖補充討論工具如何收斂；Git branch 關係仍由上方 branch graphs 呈現：
 
 <InteractiveFlowchart
   nodes={[{id:"discuss",label:"Grill / Wayfinder",x:160,y:48,w:240},{id:"facts",label:"Research / Prototype",x:160,y:144,w:240},{id:"page",label:"Published Proposal → G1",x:160,y:240,w:240}]}
