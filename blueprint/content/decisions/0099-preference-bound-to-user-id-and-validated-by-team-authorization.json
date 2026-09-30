@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "0099",
+  "title": "The preference is bound to a user id and validated by the team request's own authorization",
+  "capabilities": ["team-management/membership", "platform/pwa"],
+  "context": "The user id is unknown at cold start, because it comes from a request the preference exists to avoid waiting for. GET /api/teams/:id already requires the caller to be a member of that team, so asking for the preferred team also asks the server whether the user still belongs to it.",
+  "decision": "The preference stores the user id it was written for and is used at once as the team to request. A successful team request confirms membership. When the request is refused, or useUser answers with a different user id, the preference is discarded and the existing full resolution runs and its result is stored. Sign-out always clears it. Before verification only a team id is sent, and no team data is shown.",
+  "alternatives": [
+    {
+      "option": "Wait for useUser before using the preference",
+      "reason": "It puts back the round trip the preference exists to remove, to guard against exposing a team id that the server refuses to answer for a non-member anyway."
+    },
+    {
+      "option": "Verify membership from the players list before requesting the team",
+      "reason": "That list needs the user id first, which rebuilds the dependent chain."
+    }
+  ],
+  "consequences": [
+    "A preference that points at a team the user has left costs one refused request before the fallback.",
+    "The sign-out handler in src/components/user/index.tsx must clear the preference before it navigates away.",
+    "The team tab's root route must follow the resolved team, because it is currently decided once."
+  ],
+  "revisitTriggers": ["The preference starts to hold more than a team id."],
+  "originChange": "cold-start-team-snapshot"
+}

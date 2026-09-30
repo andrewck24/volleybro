@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "id": "0098",
+  "title": "The active team is a device-local preference, and no server data is cached to speed up a cold start",
+  "capabilities": ["team-management/membership", "platform/pwa"],
+  "context": "A cold start resolves the active team through useUser, then useUserPlayers and useProfile, before useTeam can start, so the team tab and the new Game dialog wait several round trips. The server only writes and clears profile.activeTeamId; nothing on the server reads it for authorization or queries, and only useActiveTeamId reads it on the client.",
+  "decision": "Which team the app shows is stored on the device as a preference, read synchronously, so a cold start requests that team at once and preloads what the new Game dialog needs. No TeamView or other server response is cached, so what is shown and what is written is always the server's answer. The service worker's apis cache stays NetworkFirst.",
+  "alternatives": [
+    {
+      "option": "Cache the last TeamView locally and show it while the request is in flight",
+      "reason": "It removes the last round trip but lets stale data reach navigation and write paths, for example a Game created from an outdated roster freezes that roster into the Game player snapshots, and a fetch error keeps the stale data on screen."
+    },
+    {
+      "option": "Make the service worker answer /api/teams from its cache first (stale-while-revalidate)",
+      "reason": "After a write, mutate() refetches and the worker would answer with the stale copy; SWR is never told when the worker's background refresh finishes; the cache is keyed by URL and not by user; and the worker must wake before it can answer."
+    },
+    {
+      "option": "Keep the active team on the server and mirror it locally",
+      "reason": "The device would hold a copy of server state that can be stale, which is the cost the cached TeamView had. No cross-device follow is needed, so the server copy buys nothing."
+    }
+  ],
+  "consequences": [
+    "The cold start waits one request for the team, not a chain of dependent ones, and preloading can hide that request behind the time the user takes to tap.",
+    "A device does not follow a team switch made on another device.",
+    "With no usable preference the existing resolution runs unchanged, so first launches and cleared storage behave as before.",
+    "The server still writes and clears profile.activeTeamId until a follow-up Change removes it."
+  ],
+  "revisitTriggers": [
+    "Measured cold-start time on venue networks is still too slow with one request and preloading: consider display-only caching, never for data that feeds a write.",
+    "A preference appears that must follow the user across devices: profile.preferences already exists for that."
+  ],
+  "originChange": "cold-start-team-snapshot"
+}
