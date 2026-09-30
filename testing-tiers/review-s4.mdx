@@ -31,7 +31,7 @@ import { scenarios } from "./proposal.mdx";
 1. **兩個 lib 測試不是「元件與 hook 測試」。** Proposal 只寫「其餘的元件與 hook 測試」。`wrappers.test.ts` 與 `auth-hook.test.ts` 在 `src/lib` 之下，mock 了自己的 DI container 與 `next/server`，依 ADR-0086 一起處理。`next/server` 的 mock 是多餘的（`jest-fixed-jsdom` 已提供真的 `NextResponse`）；DI container 的 mock 換成真 container 加 repository double。session 提供者（`@/lib/auth`）與 `next/headers` 依 `docs/testing-strategy.md` 本來就允許替換，保留。
 2. **移除全域 `motion` stub。** Proposal 沒有提，但它在 shard 3 就是「兩個測試得 `unmock` 才能用真的」，本 shard 證明整個 frontend 沒有測試需要它。
 3. **新增一個 `test/support` 檔案：`dom/user-agent.ts`。** 四個 landing 測試各自 spy `navigator.userAgent`，第二次使用就依規則提升；jsdom 預設的 user agent 會被判成手機，所以各測試要自己設定。
-4. **`use-game-merge.test.tsx` 也改了。** 它把 `jest.fn` 當 fetcher 傳進 `useGame`，是唯一使用那個注入參數的測試（見 ActionItems 第 4 點），改成 MSW 回應 `GET /api/games/game-1`。
+4. **`use-game-merge.test.tsx` 也改了。** 它把 `jest.fn` 當 fetcher 傳進 `useGame`，是唯一使用那個注入參數的測試（見 Deviations 第 6 點），改成 MSW 回應 `GET /api/games/game-1`。
 5. **`react-icons` 的 mock 保留在兩個測試，並補上說明。** `button.test.tsx` 與 `pull-refresh-indicator.test.tsx` 替換第三方 icon 元件只為了拿到 test id；icon 是第三方程式，不是 ADR-0086 與 S7 管的自己的程式碼；兩處都加了一行註解寫明為什麼需要 stub。
 6. **移除 `use-data.ts` 八個 hook 的 `fetcher` 與 `options` 參數（正式程式碼，Proposal 沒有）。** `CAMPAIGN.md` 的 cutover 步驟要求移除 lane 解鎖的測試專用注入參數；正式程式碼沒有任何呼叫端傳這兩個參數，`use-game-merge` 改用 MSW 之後也沒有測試再傳。這是超出「只改測試」的正式程式碼變動，我原本列給你決定，你在對話中同意後才做。每個 hook 仍用同一個 fetcher（`apiClient`）與同一組 SWR 設定，只是參數與 `...options` 展開消失；`tsc` 乾淨、全部測試通過。
 7. **`wrappers.test.ts` 與 `auth-hook.test.ts` 改由 `backend` project 執行（`jest.config.ts`，Proposal 沒有）。** 兩者測的是只在 server 執行的程式，原本被 frontend project 的 `src/lib` 樣式撈到、在 jsdom 執行（`auth-hook` 還會印 Mongoose 的環境警告）。backend 的 `testMatch` 加上這兩個檔案，frontend 的 `testPathIgnorePatterns` 排除它們，每個只跑一次；`--listTests` 已確認。backend 的 setup 全域替換 `next/server`，`wrappers` 的斷言（狀態碼與錯誤內容）由 stub 原樣帶過，沒有變成空斷言。
@@ -131,7 +131,7 @@ import { scenarios } from "./proposal.mdx";
 | `cta-button`：beforeinstallprompt 顯示 install 按鈕 | F | 原本沒有任何斷言；現在斷言提供 prompt 後出現按鈕、使用後消失 |
 | `cta-button`：className／props passthrough、variant、accessible text | D | 只斷言 class 與 mock 元件的屬性；按鈕文字與連結 role 由上面的 keeper 涵蓋 |
 | `cta-section`：layout、spacing、responsive、背景、floating、LazyMotion、container | D | 只斷言 class 與 test id，沒有訪客看得到的行為 |
-| `cta-section`：CTA 按鈕的 `data-size`、class、文字 | F | offers a call to action that leads into the app：真的連結指到 `/home`；按鈕文字斷言拿掉，因為真實桌面連結顯示「開始使用」而不是區塊傳入的「立即開始使用」（見 ActionItems 第 2 點） |
+| `cta-section`：CTA 按鈕的 `data-size`、class、文字 | F | offers a call to action that leads into the app：真的連結指到 `/home`；按鈕文字斷言拿掉，因為真實桌面連結顯示「開始使用」而不是區塊傳入的「立即開始使用」（見 ActionItems 的 CTA 缺陷） |
 | `hero`：FlipWords 有正確的字 | F | 真的 FlipWords 在 fake timers 下，2500ms 後從「簡單」換到「快速」（把 2500 改成 2600 會變紅） |
 | `hero`：圖片 class、section、responsive、背景元素 | D | 只斷言 class 與 test id |
 | `header`：glassmorphism、不在頂端、門檻、行動版捲動 | C | frosts the bar once the page is scrolled and clears it back at the top：真的 `fireEvent.scroll` 與 rAF（把門檻比較方向改反會變紅） |
@@ -179,7 +179,7 @@ import { scenarios } from "./proposal.mdx";
 兩軸 review，修正後重新驗證。
 
 - **標準軸**：一項硬性：`header.test.tsx` 的 `backdrop-blur-sm` class 斷言，註解只說訪客為什麼在意、沒說為什麼只能斷言 class，已改成寫明 jsdom 不載入樣式表，class 是頁首毛玻璃唯一的痕跡；同一檔案的 unmount 測試只斷言「有個 listener 被移除」，改成比對同一個 handler，兩種 mutation 都變紅。四個 landing 測試各寫了一份相同的 `userAgent` spy，已提升為 `test/support/dom/user-agent.ts`。`wrappers.test.ts` 兩條只重述程式碼的註解已刪。兩個 `react-icons` stub 補上原因說明。根因與 shard 3 相同：上一輪只檢查改動的行，沒有依規則檢查整個專案的重複與未說明的 mock。
-- **規格軸**：S7 成立；兩個 CTA 缺陷經原始碼確認為真；指出 `use-game-merge` 傳 `fetcher` 進 hook 的做法，追查後發現是純測試接縫（ActionItems 第 4 點）；兩個 lib 測試與移除全域 `motion` stub 屬判斷性的額外範圍，已列在 Deviations。
+- **規格軸**：S7 成立；兩個 CTA 缺陷經原始碼確認為真；指出 `use-game-merge` 傳 `fetcher` 進 hook 的做法，追查後發現是純測試接縫（Deviations 第 6 點）；兩個 lib 測試與移除全域 `motion` stub 屬判斷性的額外範圍，已列在 Deviations。
 - **第二輪（只審修正的部分）**：第一輪的每一項都已解決；只多一則不準確的註解：`user-agent.ts` 說 jsdom 的預設 user agent 會被判成手機，實際上依主機作業系統而異（這台 Mac 是 `darwin`，被判成手機；Linux 會被判成桌面），已改成「因主機而異，所以要固定」。根因是註解寫在一個沒有實際驗證過的環境假設上。`use-game-merge` 的轉換經逐一比對，五個測試的斷言都保留。
 - **第三輪（審新增的兩個 commit）**：兩軸都沒有硬性違規。`use-data.ts` 的移除經逐 hook 比對是保持行為的（同一個 fetcher、同一組 SWR 設定），`useGameSummaries` 留下一個只展開單一物件的 `{ ...SWR_CONFIG.INFINITE }`，已改成直接傳入；Jest 設定的兩個檔案各只跑一次，`wrappers` 在 backend stub 下不是空斷言。
 - 抽樣約六十個被刪的 `it`：行為性的都有 keeper；沒有 keeper 的兩組在 ActionItems 第 1 點。
