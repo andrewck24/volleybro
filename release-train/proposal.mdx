@@ -123,6 +123,8 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <path d="M 688 216 V 152 Q 688 144 696 144 H 784 Q 792 144 792 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
 <path d="M 856 216 V 152 Q 856 144 864 144 H 960 Q 968 144 968 136 V 104" fill="none" stroke="var(--muted-foreground)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 5" />
 <path d="M 1184 224 Q 1208 224 1208 200 V 120 Q 1208 96 1232 96 H 1240" fill="none" stroke="color-mix(in oklch, var(--warning) 65%, var(--foreground))" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<path d="M 1088 224 Q 1104 224 1104 240 V 336 Q 1104 352 1120 352 H 1152 Q 1168 352 1168 336 V 240 Q 1168 224 1184 224" fill="none" stroke="var(--chart-3)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+<circle cx="1136" cy="352" r="7" fill="var(--background)" stroke="var(--chart-3)" strokeWidth="3" />
 <circle cx="184" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
 <circle cx="352" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
 <circle cx="520" cy="224" r="7" fill="var(--background)" stroke="var(--chart-1)" strokeWidth="3" />
@@ -155,10 +157,10 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <text x="232" y="80" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">初次建立 → bot 持續納入 main 新 changesets、更新版本／changelog 並重跑 CI</text>
 <text x="1088" y="260" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">授權 merge</text>
 <text x="1088" y="284" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">固定 release SHA</text>
-<text x="1184" y="280" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">下一批 Change</text>
-<text x="1184" y="304" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">新 changesets</text>
-<text x="1008" y="368" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">合併後：有新 changesets</text>
-<text x="1008" y="392" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">才重建下一張 version PR</text>
+<text x="1136" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-3)">feat / fix / patch</text>
+<text x="1136" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">下一批 Change → PR merge</text>
+<text x="1008" y="456" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">合併後：有新 changesets</text>
+<text x="1008" y="480" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">才重建下一張 version PR</text>
 <text x="40" y="584" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="color-mix(in oklch, var(--warning) 65%, var(--foreground))">上方 release branch：不是獨立功能開發線，而是 bot 維護的 rolling 發布準備分支</text>
 <text x="40" y="608" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--muted-foreground)">虛線箭徑：將 main 新 changesets 納入同一 version PR；授權合併後，新的 main 內容不替換既定部署候選</text>
 </svg>
