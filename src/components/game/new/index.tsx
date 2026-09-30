@@ -56,6 +56,7 @@ export const NewGameForm = ({
   };
 
   const [edited, setInfo] = useState<TMatchInfoForm>();
+  // Memoised: the defaults hold a new Date, and MatchInfoForm resets its fields whenever `info` changes.
   const defaults = useMemo(() => newGameFormDefaults(team?.name), [team?.name]);
   const info = edited ?? defaults;
 

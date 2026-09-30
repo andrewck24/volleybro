@@ -2,9 +2,9 @@ import { ActionButton } from "@/components/layout/nav/action-button";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
-import { SWRConfig } from "swr";
 
 import { server } from "@test/support/msw/server";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
 const mockRouterPush = jest.fn();
 
@@ -25,11 +25,9 @@ const team = {
   lineups: [emptyLineup, secondLineup],
 };
 
-const ColdCache = ({ children }: { children: React.ReactNode }) => (
-  <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-    {children}
-  </SWRConfig>
-);
+beforeEach(() => {
+  server.use(http.get("/api/teams/team-1", () => HttpResponse.json(team)));
+});
 
 describe("ActionButton / NewGameForm home team name", () => {
   let createBody: { teams: { home: { name: string } } } | undefined;
@@ -37,7 +35,6 @@ describe("ActionButton / NewGameForm home team name", () => {
   beforeEach(() => {
     createBody = undefined;
     server.use(
-      http.get("/api/teams/team-1", () => HttpResponse.json(team)),
       http.get("/api/teams/team-1/players", () => HttpResponse.json([])),
       http.post("/api/games", async ({ request }) => {
         createBody = (await request.json()) as typeof createBody;
@@ -49,9 +46,9 @@ describe("ActionButton / NewGameForm home team name", () => {
   const openDialog = async () => {
     const user = userEvent.setup();
     render(
-      <ColdCache>
+      <SwrIsolation>
         <ActionButton teamId="team-1" />
-      </ColdCache>,
+      </SwrIsolation>,
     );
     await user.click(screen.getByRole("button", { name: "新增賽事" }));
     const dialog = await screen.findByRole("dialog");
@@ -97,7 +94,6 @@ describe("ActionButton / NewGameForm creation failure", () => {
   it("keeps the dialog open and the match info filled after a failed creation", async () => {
     let createBody: unknown;
     server.use(
-      http.get("/api/teams/team-1", () => HttpResponse.json(team)),
       http.get("/api/teams/team-1/players", () =>
         HttpResponse.json([
           { id: "p1", name: "選手一", number: 4, status: "Joined" },
@@ -114,9 +110,9 @@ describe("ActionButton / NewGameForm creation failure", () => {
 
     const user = userEvent.setup();
     render(
-      <ColdCache>
+      <SwrIsolation>
         <ActionButton teamId="team-1" />
-      </ColdCache>,
+      </SwrIsolation>,
     );
 
     await user.click(screen.getByRole("button", { name: "新增賽事" }));
