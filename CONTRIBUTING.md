@@ -41,6 +41,7 @@ git log -1 --format='%(trailers:only,unfold)'
 
 - Reference another Change by its kebab-case slug (`` `type-decoupling` change ``), never by a letter label.
 - Never hard-wrap prose you write or edit, in Markdown or in pull-request bodies. Nothing reflows it for you — `MD013` is off and Prettier leaves prose alone (`proseWrap` defaults to `preserve`) — so manual breaks survive and turn every later edit into a reflow diff. Commit bodies are the exception: commitlint limits their lines to 100 characters.
+- Before adding text to a document, look for the passage it belongs with and merge or shorten that instead of appending; delete text the change makes obsolete.
 - Blueprint pages and decision records have their own writing rules in [`docs/agents/blueprint.md`](./docs/agents/blueprint.md).
 
 ---
@@ -69,11 +70,9 @@ The gates that must pass before a pull request are listed in `WORKFLOW.md`'s Rep
 
 ### Working in a git worktree
 
-A worktree starts without `node_modules`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject.
+A worktree starts without `node_modules` or `.env.local`. Run `pnpm install --frozen-lockfile --prefer-offline` in it rather than symlinking the main checkout's `node_modules`, which pnpm's dependency check and Turbopack both reject. The same install sets up the commit hooks, so a worktree without it commits unchecked. `.worktreeinclude` lists `.env.local`, so agent tooling that reads it copies the file for you; a worktree made with plain `git worktree add` gets none, so copy `.env.local` before `pnpm build` or `pnpm dev`.
 
-`.worktreeinclude` lists `.env.local`, so agent tooling that reads that file copies it into each worktree it creates. A worktree made with plain `git worktree add`, or by a tool that ignores the file, gets no copy: copy `.env.local` yourself before running `pnpm build` or `pnpm dev`.
-
-Remove a worktree that still holds symlinks with `git worktree remove --force <path>`.
+The dev-server preview tool serves the checkout its session was opened in, not the worktree. A Change page is gitignored and exists only where it was written, so preview it with `pnpm --filter blueprint dev` started from the worktree. A `missing param … generateStaticParams` error for a slug that exists means the server is running in the wrong checkout.
 
 ---
 
