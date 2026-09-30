@@ -1,5 +1,5 @@
 ---
-title: Cold-start Team Snapshot
-description: 冷啟動時先以 localStorage 快照顯示最後一次的 active team，再照常重新驗證；快照綁定 userId、登出時清除，儲存分成 interface 與 persistence 兩層。
+title: Cold-start Active Team
+description: 把目前看哪一隊改為這台裝置的本地偏好，冷啟動時直接請求該隊並預載新增比賽需要的資料；不快取任何伺服器資料，偏好綁定 userId，儲存分成 interface 與 persistence 兩層。
 capabilities: ["team-management/membership", "platform/pwa"]
 ---
