@@ -33,10 +33,9 @@ describe("Header", () => {
     expect(screen.getByRole("banner")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "VolleyBro" })).toBeInTheDocument();
     expect(screen.getByText("Preview")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "開始使用" })).toHaveAttribute(
-      "href",
-      "/home",
-    );
+    const link = screen.getByRole("link", { name: "開始使用" });
+    expect(link).toHaveAttribute("href", "/home");
+    expect(screen.getByTestId("cta-button")).toBe(link);
   });
 
   it("frosts the bar once the page is scrolled and clears it back at the top", async () => {

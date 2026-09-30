@@ -49,6 +49,16 @@ describe("CTAButton", () => {
     });
   });
 
+  it("shows the label and props it is given on the link into the app", () => {
+    setUserAgent(WINDOWS);
+
+    render(<CTAButton data-testid="cta">立即開始使用</CTAButton>);
+
+    const link = screen.getByRole("link", { name: "立即開始使用" });
+    expect(link).toHaveAttribute("href", "/home");
+    expect(screen.getByTestId("cta")).toBe(link);
+  });
+
   it("links straight to the app when already installed as a PWA", () => {
     setUserAgent(iosUserAgent(15));
     Object.defineProperty(window.navigator, "standalone", {
@@ -66,6 +76,14 @@ describe("CTAButton", () => {
 
   describe("on iOS 15+", () => {
     beforeEach(() => setUserAgent(iosUserAgent(15)));
+
+    it("shows the label and props it is given on the button that opens the instructions", () => {
+      render(<CTAButton data-testid="cta">立即開始使用</CTAButton>);
+
+      expect(screen.getByTestId("cta")).toBe(
+        screen.getByRole("button", { name: "立即開始使用" }),
+      );
+    });
 
     it("opens the add-to-home-screen instructions and closes them again", async () => {
       const user = userEvent.setup();
@@ -90,10 +108,13 @@ describe("CTAButton", () => {
   describe("on Android", () => {
     beforeEach(() => setUserAgent(ANDROID));
 
-    it("shows nothing until the browser offers an install prompt", () => {
+    it("links to the app until the browser offers an install prompt", () => {
       render(<CTAButton />);
 
-      expect(screen.queryByRole("link")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "開始使用" })).toHaveAttribute(
+        "href",
+        "/home",
+      );
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
     });
 
@@ -111,6 +132,10 @@ describe("CTAButton", () => {
       expect(
         screen.queryByRole("button", { name: "安裝應用程式" }),
       ).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "開始使用" })).toHaveAttribute(
+        "href",
+        "/home",
+      );
     });
 
     it("hides the install button and logs when the prompt fails", async () => {
@@ -133,6 +158,10 @@ describe("CTAButton", () => {
       expect(
         screen.queryByRole("button", { name: "安裝應用程式" }),
       ).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "開始使用" })).toHaveAttribute(
+        "href",
+        "/home",
+      );
     });
   });
 

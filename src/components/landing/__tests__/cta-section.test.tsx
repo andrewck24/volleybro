@@ -33,10 +33,9 @@ describe("CTASection", () => {
   it("offers a call to action that leads into the app", () => {
     render(<CTASection />);
 
-    expect(screen.getByRole("link", { name: /開始使用/ })).toHaveAttribute(
-      "href",
-      "/home",
-    );
+    const link = screen.getByRole("link", { name: "立即開始使用" });
+    expect(link).toHaveAttribute("href", "/home");
+    expect(screen.getByTestId("cta-section-button")).toBe(link);
   });
 
   it("has no accessibility violations", async () => {
