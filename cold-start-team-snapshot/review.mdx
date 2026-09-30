@@ -1,0 +1,80 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+1. 決定是否把「目前隊伍（Active team）」寫進 `CONTEXT.md`：這台裝置上、以本地偏好記住的「App 目前顯示哪一隊」，與資料庫的 `profile.activeTeamId` 是兩件事，後者由下一個 Change 移除。我沒有動 `CONTEXT.md`，你同意詞條與定義後再由 domain-modeling 寫入。
+2. 確認偏差第 1 項：team tab 的根路由維持「只決定一次」，沒有改成跟著目前隊伍變動。
+
+這次沒有要你親自執行的測試，全部由 agent 完成。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `src/lib/features/team/active-team-preference.ts`：兩個純函式，`resolveActiveTeam` 決定顯示哪一隊與是否已驗證，`decidePreferenceAction` 決定偏好要保留、丟棄或寫入。偏好在被驗證之前不會被當成目前隊伍交給任何畫面。
+2. `src/hooks/use-data.ts` 的 `useActiveTeamId`：只呼叫解析函式與決定函式各一次，`usePersistActiveTeam` 只執行決定，`usePreloadTeamPlayers` 只預載。
+3. `src/components/user/index.tsx` 的 `handleSignOut`：先丟掉 SWR 快取、清偏好，再登出並導頁。順序反過來會在登出途中把偏好寫回去。
+
+</ReviewFocus>
+
+<Deviations>
+
+1. **team tab 的根路由沒有改成跟隨目前隊伍。** Proposal 的 S3 寫著根路由是解析後那一隊的。實作中途曾改成跟隨，後來因為只有「已驗證」的隊伍才會交給畫面，根路由本來就不會先指向一個被拒絕的隊伍，於是還原成原本只決定一次的做法，`tab-container.tsx` 與 `origin/dev` 相同。S3 由測試在 tab 上驗證。
+2. **登出時多丟掉整份 SWR 快取。** Proposal 只寫「登出清除偏好」。若不丟掉快取，同一個分頁換人登入時，前一位使用者的隊伍資料仍在記憶體裡，而偏好的驗證只保證「偏好屬於誰」，不涵蓋快取，所以 `handleSignOut` 一併清除。
+3. **第 4 輪 review 換了做法（ADR-0077）。** 前幾輪的發現（H1 未驗證的 id 造成錯誤畫面、H2 別人的偏好看到該隊比賽、F1 已驗證的隊伍在之後的重新驗證失敗時被換掉、F2 登出後偏好被寫回、E1 請求失敗時備援結果蓋掉偏好）看似各自獨立，root cause 相同：「顯示哪一隊」與「偏好怎麼處理」由散在多個 hook 的條件各自判斷。於是不再逐一修補，改為把這兩件事拆成兩個純函式，其中只有一處決定。換做法之後的第 5 輪回到 `origin/dev` 的全範圍審查。
+4. **分支歷史整理成四個 commit。** 開發途中先做過「快取 TeamView」的版本，G1 之後依你的決定改為本地偏好，原有的十八個 commit 依序包含被放棄的做法。最終內容不變，以 `git diff` 對整理前的 HEAD 比對為空，再分成 decision、interface 與 persistence、行為與測試、Features 四個 commit。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "`cold-start-team-preference.test.tsx` 讓 user、profile、players 三個請求維持未回應，斷言隊伍請求已送出，且在它回應前畫面沒有任何隊伍資料；把「驗證之前就交給畫面」改進去，這個測試與 Home、tab 的測試都轉紅" },
+    { id: "S2", result: "pass", evidence: "同一個測試檔：預載回應後打開新增比賽 dialog，沒有 skeleton；移除預載，測試轉紅" },
+    { id: "S3", result: "pass", evidence: "Home、tab、cold-start 三處測試：請求被拒後偏好被清除、備援結果被寫入，畫面不出現錯誤或 toast。另有一個測試確認失敗（非拒絕）時偏好保持原樣" },
+    { id: "S4", result: "pass", evidence: "Home 與 cold-start 的 S4：別人的偏好，即使該使用者也屬於那一隊，仍被丟棄並改寫成自己的隊伍；拿掉 userId 比對，兩個測試與兩個單元測試轉紅" },
+    { id: "S5", result: "pass", evidence: "解析函式的單元測試與 persistence 測試：偏好不存在、storage 丟例外、值無法辨識時，行為與改動前相同並在載入後寫入" },
+    { id: "S6", result: "pass", evidence: "`team-switcher.test.tsx`：切換後偏好指向所選隊伍，沒有任何 `PATCH /api/profiles` 請求" },
+    { id: "S7", result: "pass", evidence: "`invitations.test.tsx`：接受邀請成功後偏好指向加入的隊伍；請求進行中不會提前寫入" },
+    { id: "S8", result: "pass", evidence: "`sign-out.test.tsx`：登出後 storage 沒有偏好，登出進行中也不會被寫回" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "全部 gate", method: "`pnpm verify:all`，最後一次程式碼提交之後執行", executor: "agent", environment: "本機", result: "pass" },
+    { id: "T2", checks: "frontend jest 的穩定性", method: "`pnpm exec jest --selectProjects frontend` 連跑五次", executor: "agent", environment: "本機", result: "pass", evidence: "五次都通過；歷史上約每十五到二十次會有一個 suite 因原生 worker 崩潰而「failed to run」，這五次沒有出現" },
+    { id: "T3", checks: "每個驗收條件都有會失敗的測試", method: "對每個關鍵行為做變異：驗證前交出偏好、拿掉 userId 比對、寫入覆蓋既有偏好、丟棄不執行、任何錯誤都當拒絕、拿掉預載", executor: "agent", environment: "本機", result: "pass", evidence: "六項變異各有一到六個測試轉紅，之後全部還原，`git status` 乾淨" },
+    { id: "T4", checks: "commit 格式", method: "`pnpm exec commitlint --from origin/dev --to HEAD`", executor: "agent", environment: "本機", result: "pass" },
+  ]}
+/>
+
+<ReviewDetails>
+
+### Code review 的發現與處置
+
+兩軸各自在獨立的 context 執行，共五輪。前三輪找到未驗證的 id 造成的錯誤畫面與別人偏好的洩漏（H1、H2）、驗證後被重新驗證失敗換掉的隊伍（F1）、登出後偏好被寫回（F2）；第四輪依 ADR-0077 換做法，把決定集中到兩個純函式；第五輪在整條分支上確認兩軸都到達不動點，Spec 對每個輸入組合比對新舊函式，沒有任何組合結果不同。
+
+<RiskTable
+  risks={[
+    { name: "偏好在驗證之前就被當成目前隊伍，造成錯誤畫面與別人的隊伍資料（H1、H2）", severity: "critical", mitigation: "已修。偏好只作為要請求的隊伍 id；請求成功且 userId 相符後才交給畫面，兩項條件各有測試會轉紅。" },
+    { name: "已驗證的隊伍在之後重新驗證失敗時被換掉（F1）", severity: "warning", mitigation: "已修。只有授權或找不到才算拒絕，暫時性、驗證與格式錯誤都保留偏好與隊伍。" },
+    { name: "登出途中偏好被寫回（F2）", severity: "warning", mitigation: "已修。`handleSignOut` 先丟快取、再清偏好、再登出；登出進行中的測試確認不會被寫回。" },
+    { name: "請求失敗時備援結果蓋掉偏好（E1）", severity: "warning", mitigation: "已修，由第四輪換做法一併解決。失敗時決定函式回傳保留，不寫入。" },
+    { name: "同一份決定散在多個 hook，需要第二次以 loadedTeamId 呼叫解析函式（隱藏的時序耦合）", severity: "info", mitigation: "已修。拆成 `resolveActiveTeam` 與 `decidePreferenceAction`，各呼叫一次。" },
+    { name: "Standards 第五輪的三項小意見：`usePreferredTeam` 註解的「Its」指涉不明、預載註解可更具體、`sign-out.test.tsx` 的 `afterEach` 沒有說明", severity: "info", mitigation: "不採納。reviewer 標為不阻擋，也沒有帶來任何行為差異；照它們改只會多一輪審查。" },
+  ]}
+/>
+
+### 殘留風險
+
+<RiskTable
+  risks={[
+    { name: "偏好指向已離開的隊伍時，多一次被拒的請求才走備援", severity: "info", mitigation: "ADR-0099 已寫明這個代價。預載讓一般情況下請求與使用者操作重疊，被拒時只是慢一次。" },
+    { name: "另一台裝置切換隊伍後，這台不會跟隨", severity: "info", mitigation: "ADR-0098 已寫明並經你決定不做跨裝置同步。" },
+    { name: "伺服器仍寫入與清除 `profile.activeTeamId`，用戶端備援路徑仍讀它", severity: "info", mitigation: "由下一個 Change 移除，包含資料庫欄位、PATCH、邀請 controller 的寫入、`clearActiveTeam` 與用戶端備援讀取。" },
+    { name: "真實場館網路上的冷啟動時間沒有量測", severity: "info", mitigation: "ADR-0098 的重新檢視條件：量測後仍太慢才考慮只用於顯示的快取，且不用在會寫入的資料上。" },
+  ]}
+/>
+
+</ReviewDetails>
