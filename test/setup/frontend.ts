@@ -8,6 +8,7 @@ import {
   setImmediate as nodeSetImmediate,
 } from "node:timers";
 
+import { releaseGates } from "../support/gates";
 import { server } from "../support/msw/server";
 import "./shared";
 
@@ -18,7 +19,10 @@ globalThis.setImmediate ??= nodeSetImmediate as typeof setImmediate;
 globalThis.clearImmediate ??= nodeClearImmediate;
 
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  releaseGates();
+  server.resetHandlers();
+});
 afterAll(() => server.close());
 
 global.IntersectionObserver = jest

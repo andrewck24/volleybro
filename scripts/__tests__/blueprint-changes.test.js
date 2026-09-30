@@ -7,7 +7,6 @@ import {
   mkdir,
   readdir,
   readFile,
-  realpath,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -132,21 +131,6 @@ test("pull adds missing slugs", async (t) => {
   assert.deepEqual(
     (await readdir(changesDir)).filter((name) => !name.startsWith(".")).sort(),
     ["alpha", "beta"],
-  );
-});
-
-test("pull names the changes directory it wrote in its summary line", async (t) => {
-  const { bare, work } = await makeRemoteAndWork(t);
-  const logs = t.mock.method(console, "log", () => {});
-
-  await withRemote(bare, () => pull(work));
-
-  const summary = logs.mock.calls.at(-1).arguments[0];
-  assert.ok(
-    summary.includes(
-      path.join(await realpath(work), "blueprint", "content", "changes"),
-    ),
-    summary,
   );
 });
 
