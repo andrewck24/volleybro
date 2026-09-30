@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "0100",
+  "title": "Main integration is not production release",
+  "capabilities": ["platform/delivery-workflow"],
+  "context": "The permanent dev branch supplied an integration preview, but a fixed main test deployment can provide it without a second integration history or routine release sync. Once main integrates unreleased work, an urgent production repair cannot safely deploy main HEAD. Separating integration from the deployed revision removes the extra integration branch while preserving an isolated emergency repair route.",
+  "decision": "Use main as the sole permanent integration trunk, with production release independent of daily merging. Normal releases deploy an explicitly authorized, immutable revision of the integrated content. Emergency repairs branch from the deployed revision, release only the repair, and merge back into main without rewriting shared history. Integration and production retain distinct deployment configuration; no permanent production branch is added.",
+  "alternatives": [
+    {
+      "option": "Keep dev and main as integration and production branches",
+      "reason": "Adds routine synchronization and conflates merging with deployment."
+    },
+    {
+      "option": "Make every main merge a production release",
+      "reason": "Does not provide the deliberate release cadence and pre-production verification the owner needs."
+    },
+    {
+      "option": "Use current main for every emergency repair",
+      "reason": "Can release unrelated changes that have not yet been authorized for production."
+    }
+  ],
+  "consequences": [
+    "Maintainers must preserve a reliable mapping from production to its deployed revision, not infer production state from a moving branch.",
+    "Emergency fixes need reconciliation with the integration line before later normal releases can safely supersede them.",
+    "WORKFLOW.md owns current delivery policy, while platform configuration and scripts implement and verify it; this record preserves the architectural trade-off rather than duplicating operational steps."
+  ],
+  "originChange": "release-train"
+}
