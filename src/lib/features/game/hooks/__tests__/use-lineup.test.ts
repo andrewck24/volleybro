@@ -190,6 +190,46 @@ describe("useLineup", () => {
       expect(numbers(result.current.starting)).toEqual([2, 3, 4, 5, 6, 1]);
     });
 
+    it("matches recording at the same point when the edited entry is not the last", async () => {
+      const played = homeRally(false, 0);
+      const edited = homeRally(false, 1);
+      const { result: recording } = renderLineup(
+        createLineupGame({ entries: [played] }),
+      );
+      await loaded(recording);
+      const { result: editing } = renderLineup(
+        createLineupGame({ entries: [played, edited] }),
+        { editingEntryIndex: 1 },
+      );
+      await loaded(editing);
+
+      expect(numbers(editing.current.starting)).toEqual(
+        numbers(recording.current.starting),
+      );
+    });
+
+    // Home serves first and plays lose, lose, win, win, win. editingEntryIndex is
+    // the entry being edited, so the rally named in a row is the one just before it.
+    it.each([
+      ["serving and losing", 1, [1, 2, 3, 4, 5, 6]],
+      ["receiving and losing", 2, [1, 2, 3, 4, 5, 6]],
+      ["receiving and winning", 3, [2, 3, 4, 5, 6, 1]],
+      ["serving and winning", 4, [2, 3, 4, 5, 6, 1]],
+    ])(
+      "editing the entry after home played a rally while %s shows the lineup the rules give at that point",
+      async (_rally, editingEntryIndex, expected) => {
+        const game = createLineupGame({
+          entries: [false, false, true, true, true].map((win, seq) =>
+            homeRally(win, seq),
+          ),
+        });
+        const { result } = renderLineup(game, { editingEntryIndex });
+        await loaded(result);
+
+        expect(numbers(result.current.starting)).toEqual(expected);
+      },
+    );
+
     it("shows the starter at a point before their replacement came on", async () => {
       const game = createLineupGame({
         entries: rallies,

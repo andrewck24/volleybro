@@ -1,4 +1,4 @@
-import { EntryType, deriveSetStats } from "@/entities/game";
+import { deriveSetStats } from "@/entities/game";
 import { useGame } from "@/hooks/use-data";
 import type { GameView, ReduxStatus } from "@/lib/features/game/types";
 import type { LineupView } from "@/lib/features/team/types";
@@ -93,19 +93,11 @@ const getEditingModeLineup = (
   // called only after useLineup confirms the set exists
   const set = game.sets[setIndex]!;
 
-  // Calculate serving and rotation
-  const { rotation } = set.entries.slice(0, entryIndex).reduce(
-    (acc, entry) => {
-      if (entry.type === EntryType.RALLY && entry.win !== acc.isServing) {
-        return {
-          isServing: !acc.isServing,
-          rotation: (acc.rotation + 1) % 6,
-        };
-      }
-      return acc;
-    },
-    { isServing: set.options.serve === "home", rotation: 0 },
-  );
+  const { rotation: usedRotation } = deriveSetStats(
+    set.entries.slice(0, entryIndex),
+    { options: set.options },
+  ).home;
+  const rotation = usedRotation % 6;
 
   const { starting, liberos } = structuredClone(set.lineups.home);
 
