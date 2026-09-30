@@ -25,6 +25,70 @@ const team = {
   lineups: [emptyLineup, secondLineup],
 };
 
+const ColdCache = ({ children }: { children: React.ReactNode }) => (
+  <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+    {children}
+  </SWRConfig>
+);
+
+describe("ActionButton / NewGameForm home team name", () => {
+  let createBody: { teams: { home: { name: string } } } | undefined;
+
+  beforeEach(() => {
+    createBody = undefined;
+    server.use(
+      http.get("/api/teams/team-1", () => HttpResponse.json(team)),
+      http.get("/api/teams/team-1/players", () => HttpResponse.json([])),
+      http.post("/api/games", async ({ request }) => {
+        createBody = (await request.json()) as typeof createBody;
+        return HttpResponse.json({ id: "game-1" });
+      }),
+    );
+  });
+
+  const openDialog = async () => {
+    const user = userEvent.setup();
+    render(
+      <ColdCache>
+        <ActionButton teamId="team-1" />
+      </ColdCache>,
+    );
+    await user.click(screen.getByRole("button", { name: "新增賽事" }));
+    const dialog = await screen.findByRole("dialog");
+    return { user, dialog };
+  };
+
+  it("shows and submits the team name when the team was not cached before the dialog opened", async () => {
+    const { user, dialog } = await openDialog();
+
+    await user.click(await within(dialog).findByText("編輯資訊"));
+    expect(await within(dialog).findByLabelText("我方名稱")).toHaveValue(
+      "測試隊伍",
+    );
+
+    await user.click(within(dialog).getByRole("button", { name: "確認" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: /創建賽事紀錄/ }),
+    );
+    await waitFor(() => expect(createBody?.teams.home.name).toBe("測試隊伍"));
+  });
+
+  it("keeps a home team name the user typed", async () => {
+    const { user, dialog } = await openDialog();
+
+    await user.click(await within(dialog).findByText("編輯資訊"));
+    const field = await within(dialog).findByLabelText("我方名稱");
+    await user.clear(field);
+    await user.type(field, "自訂隊名");
+    await user.click(within(dialog).getByRole("button", { name: "確認" }));
+    await user.click(
+      within(dialog).getByRole("button", { name: /創建賽事紀錄/ }),
+    );
+
+    await waitFor(() => expect(createBody?.teams.home.name).toBe("自訂隊名"));
+  });
+});
+
 describe("ActionButton / NewGameForm creation failure", () => {
   beforeEach(() => {
     mockRouterPush.mockClear();
@@ -33,6 +97,7 @@ describe("ActionButton / NewGameForm creation failure", () => {
   it("keeps the dialog open and the match info filled after a failed creation", async () => {
     let createBody: unknown;
     server.use(
+      http.get("/api/teams/team-1", () => HttpResponse.json(team)),
       http.get("/api/teams/team-1/players", () =>
         HttpResponse.json([
           { id: "p1", name: "選手一", number: 4, status: "Joined" },
@@ -49,17 +114,9 @@ describe("ActionButton / NewGameForm creation failure", () => {
 
     const user = userEvent.setup();
     render(
-      // The form seeds the home team name from the team when it mounts, so the
-      // team is already cached, as it is once the page has loaded it.
-      <SWRConfig
-        value={{
-          provider: () =>
-            new Map([["/api/teams/team-1", { data: team }]]) as never,
-          dedupingInterval: 0,
-        }}
-      >
+      <ColdCache>
         <ActionButton teamId="team-1" />
-      </SWRConfig>,
+      </ColdCache>,
     );
 
     await user.click(screen.getByRole("button", { name: "新增賽事" }));
