@@ -1,0 +1,88 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+請驗收本批 isolated hotfix、merge-back 與已接受的 Fast-path policy。G2 接受後才開本批 PR；尚未執行 production 發布或 main cutover。
+
+1. Hotfix dispatch 指定 `main` workflow、PR number 與完整 reviewed SHA。實作要求該 SHA 的 current GitHub approval，reviewer 須具有 write／maintain／admin 權限；dispatch 不取代 review。GitHub 不允許作者核准自己的 PR，因此修補 PR 需由 bot／另一位作者與可信 reviewer 配合。
+2. 既有 Shard 2 的平台切換、project-scoped CI credentials、required reviewers 與候選／上線後 authenticated QA 仍須完成。Production deployment 的 source SHA 與 remote version tag 必須一致，否則 hotfix 停止。沿用原授權範圍，不擴大權限、不新增 login bypass。
+3. Hotfix 發布成功後，merge-back PR 仍由人檢視及合併；若衝突或 metadata 無法安全處理，workflow 通知停止，不自行丟棄變更。同步失敗不代表已完成的 production publication 被撤銷，重試前先核對 deployment／tag／artifacts。
+
+本批沒有改写既有 ADR 的 `decision`；ADR-0063 只新增 `supersededBy`，由已接受 Ingest 的 ADR-0101 取代。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `authorize-hotfix`：same-repo active PR、exact-SHA current review／trusted reviewer／latest checks、deployed source／remote tag，以及不夾帶未發布 integration history 的檢查。
+2. `production-release.yml`：先從可信 integration revision 複製 controller，通過授權後才 checkout 修補及執行 toolchain；共用 lock、candidate QA、promote／smoke、rollback receipt 與 finalize。
+3. `merge-back`：普通 merge commit 保留 repair parent、main 變更與 pending changesets；只安全調和版本／changelog，未知衝突停止，不 auto-merge、不 rebase、不重新部署。
+
+</ReviewFocus>
+
+<Deviations>
+
+無 scope 或架構偏離。Fast path 與 pnpm prerequisite 已經 Ingest／renewed G1；沿用同一 shared Proposal，不另建 toolchain Blueprint。原 Shard 1／2 Reviews 與 adopted ADR text 保留。
+
+Archive 判定 hotfix 與 Fast-path delivery capability 改變，僅更新 `platform/delivery-workflow`。沒有因此完成安全 session、完整 E2E 或 live cutover，不改寫其 Features。本批攜帶 contributor-visible minor Changeset，不重複 pnpm prerequisite 的 patch entry。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 3)}
+  results={[
+    { id: "S5", result: "pass", evidence: "實際 CLI／隔離 Git remote 驗證 deployed tag、active reviewed head、可信 reviewer、latest checks、patch metadata 及不夾帶 main 未發布 history；merge-back 保留 security dependency 修補、main 變更、pending changesets 與 repair parent，未知衝突停止且不推分支。Workflow 只讓 version PR close 或受限 hotfix dispatch 發布，同步 PR 不觸發發布。" },
+    { id: "S6", result: "pass", evidence: "獨立 review 確認 normal／hotfix 共用 production-release concurrency lock 及 trusted controller；CLI 驗證 baseline identity／SHA、stale candidate、缺少 deployed repair ancestry、run-bound rollback receipt 與 rollback 後 health check。沒有在 live production 製造故障；authenticated QA 保持 protected gate。" },
+    { id: "S9", result: "pass", evidence: "pnpm prerequisite 已合併 integration：frozen install、完整 gate、Linux GitHub Actions Verify、Vercel 與 Cloudflare 實際 hosted builds 通過。cf owner cases 驗證 installed command、missing-command-only fallback 與 native／JS pnpm entrypoint。Fast-path eligibility／fast/*／升級規則及 ADR successor 已交付，commitlint owner tests 通過。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "Final repository gate", method: "pnpm verify:all --full", executor: "agent", environment: "macOS primary Change checkout", result: "pass", evidence: "全部六 lanes pass；workflow 193／193，integration 21 suites／76 tests，app 153 suites／1057 tests，Blueprint 19 suites／78 tests。App production build 通過；另執行 Blueprint build，所有 Change pages 可 prerender。" },
+    { id: "T2", checks: "Public CLI owner／isolation regression", method: "node --test scripts/__tests__/release-controls.test.js", executor: "agent", environment: "隔離 Git remote 與外部 transport fixtures", result: "pass", evidence: "11／11 通過。新增 integration-history regression 在修正前實際誤授權而失敗，修正後依指定理由拒絕。沒有新增 test-only production export，沒有實際部署、DB reset 或平台 mutation。" },
+    { id: "T3", checks: "Independent two-axis fixed point", method: "Standards／Spec review，修正後 delta review", executor: "agent", environment: "兩個獨立 review contexts", result: "pass", evidence: "Spec 發現 deployed ancestry 不足以隔離未發布 main history，已修正並補 regression；兩軸最終皆無未處理 finding。最後 failure summary 修正也通過 delta review，不把 publication 後同步失敗誤稱未發布。" },
+    { id: "T4", checks: "Real candidate／production authenticated QA", method: "既有 protected candidate 及 postdeploy gate", executor: "developer", environment: "固定 production-config candidate／正式 alias", result: "pending", evidence: "本批沒有 live hotfix candidate；平台 cutover、source/tag read-back 與首頁／Google session／team 唯讀 QA 沿用 Shard 2 的操作項。未完成時不 promote／finalize，不宣稱完全自動化。" },
+  ]}
+/>
+
+<AfterRelease>
+
+本節指本批 tooling PR 合併後，不代表 app 已上線。
+
+1. 沿用 Shard 2 的 cutover 順序，核對 CI credential scopes、protected environment、aliases／OAuth 與實際 production source／tag。完成 rehearsal 才啟用 automation；不刪除仍有活引用的 dev。
+2. 首次正常 version PR 應包含已合併 pnpm prerequisite；實際版本由 Changesets 計算，不硬指定 v0.16.0。成功發布與 QA 後才記錄 production 交付。
+3. 緊急 production bug／security repair 從 deployed tag 切 `hotfix/*`，準備 patch metadata、PR／checks／review，再 dispatch exact SHA；成功後檢視 merge-back PR，正常候選重新驗證／授權。
+4. Dependency auto-merge 與 Dependabot 設定仍屬下一批；本批沒有提前啟用，也不關閉整個 tracking parent。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+## Findings 與修正
+
+- Root review 發現以 main 的整份 package.json 覆寫 merge 結果會丟失 hotfix 依賴修補：改用 Git three-way merge，只正規化 root version；fixture 確認雙方變更保留。
+- Spec review 發現 deployed-descendant 條件仍可能納入未發布 main history：檢查所有共同祖先是否屬於 deployed baseline，新增真實 CLI 舊失敗／新通過 regression。
+- GitHub review 狀態以每位 reviewer 的最新決定為準，撤銷或 changes-requested 不沿用舊 approval；review 須綁 head SHA 與 collaborator 權限。
+- Controller SHA 從可信 integration revision 取得並傳到後續 jobs，修補分支不能提供自己的 authorization／promote／rollback／finalize controller。
+- failure summary 明確區分 publication 與同步結果；同步失敗時不自動重發或回退資料。
+
+## 替代與保留
+
+| 原路徑 | 本批處理 | 保留證據 |
+| --- | --- | --- |
+| 每個 job 自行推算 release parent controller | 綁定並沿用可信 controller SHA | 獨立 workflow review／CLI proof |
+| 重複的 required-check 判定 | 共用原 owner helper，normal 行為保留 | 正反 CLI authorization cases |
+| fix-only shortcut 活規則 | 已接受的 Fast path 取代；舊 ADR decision 不改寫 | policy owner checks／ADR successor |
+
+## 邊界與殘餘風險
+
+Workflow-wide lock 刻意讓整個發布包含 QA 等待都串行，可能延後排隊中的 hotfix；此版不以額外 lock engine 換取平行度。需要加急時由 owner 先處理既有等待 run，不繞過 QA。
+
+Git merge-file 對文字相鄰、不能乾淨合併的 package metadata 保守停止，即使人可能判斷其實互不衝突；不新增通用 JSON reconciliation engine。Main version／changelog 已經另外發布或未知時也停止，由人處理，不悄悄選一側。
+
+Production 基準缺少可信 source SHA、remote tag 不一致、reviewer 無適當權限、candidate QA 未完成，皆 fail closed。Semantic 上哪些 edits 屬於修補仍由 exact-SHA trusted review 判斷，Git history check 不冒充內容審查。
+
+沒有 live production 操作、DB reset／搬移、credential 複製或權限擴大。自動 smoke 仍只證明首頁回應，完整 Google OAuth／登入後 session 驗證沒有在本批被虛構為已完成。
+
+</ReviewDetails>
