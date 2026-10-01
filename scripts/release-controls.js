@@ -1076,11 +1076,13 @@ async function prepareMergeBack() {
     const body = [
       `Merge the deployed hotfix commit \`${repair}\` into main without rebasing.`,
       "",
-      "The generated merge commit preserves current main work and pending changesets. This pull request is never auto-merged.",
+      "The generated merge commit preserves current main work and pending changesets. This pull request is never auto-merged; an explicitly authorized agent handles review, conflict resolution and merge first.",
+      "",
+      `Deployed baseline: \`${baseline}\`. Prepared against main: \`${main}\`. Follow WORKFLOW.md's hotfix synchronization procedure; recheck the deployed tag and latest main, preserve both histories and pending changesets, and do not rerun publication to resolve synchronization. Merge requires explicit authorization and latest required checks.`,
       "",
       "## 中文摘要",
       "",
-      "將已部署的 hotfix 以 merge commit 同步回 main，保留 main 現有工作與 pending changesets，並等待人工合併。",
+      "優先交由 Agent 檢視、處理衝突與同步；保留 main 工作與 pending changesets，依 WORKFLOW.md 的 hotfix 同步流程驗證。取得明確合併授權且最新 checks 通過後，以 merge commit 合併；需要新決策或無法安全解決才交回開發者，不自動派工或 auto-merge。",
     ].join("\n");
     const url = await command("gh", [
       "pr",
@@ -1097,7 +1099,7 @@ async function prepareMergeBack() {
       body,
     ]);
     await appendSummary(
-      `### Hotfix merge-back\n\nOpened ${url} for deployed SHA \`${repair}\`. Review and merge it manually.`,
+      `### Hotfix merge-back\n\nOpened ${url} for deployed SHA \`${repair}\`. Start an agent with this PR and the accepted release state; follow WORKFLOW.md's hotfix synchronization procedure. No unattended dispatch or auto-merge; merging requires explicit authorization and latest required checks.`,
     );
     process.stdout.write(`${JSON.stringify({ branch, merge, url })}\n`);
   } catch (error) {

@@ -411,4 +411,5 @@ jobs:
             echo '### Production release stopped'
             echo
             echo "A guarded release or merge-back job failed. Inspect the actual production deployment, tag and immutable artifacts before retrying; publication may have succeeded before synchronization failed: $RUN_URL"
+            echo 'For synchronization failure, start an agent with this run and the accepted release-state artifact. Follow WORKFLOW.md hotfix synchronization; preserve both histories and pending changesets. Do not rerun publication or bypass checks to resolve merge-back.'
           } >> "$GITHUB_STEP_SUMMARY"

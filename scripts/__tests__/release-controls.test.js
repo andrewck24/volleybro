@@ -660,6 +660,15 @@ test("merge-back preserves pending changesets and the hotfix parent without reba
   result = run(f, "merge-back", { RELEASE_SHA: f.hotfix });
   assert.equal(result.status, 0, result.stderr);
   const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  const created = api.calls.find(
+    (args) => args[0] === "pr" && args[1] === "create",
+  );
+  const body = created[created.indexOf("--body") + 1];
+  assert.ok(body.includes(f.deployed), "Handoff identifies deployed baseline");
+  assert.ok(body.includes(f.hotfix), "Handoff identifies published repair");
+  assert.match(body, /WORKFLOW\.md/);
+  assert.match(body, /agent handles review, conflict resolution and merge/);
+  assert.match(body, /Merge requires explicit authorization/);
   assert.equal(
     api.calls.filter((args) => args[0] === "pr" && args[1] === "create").length,
     1,
