@@ -62,8 +62,6 @@ Archive 判定 hotfix 與 Fast-path delivery capability 改變，僅更新 `plat
 
 ## Findings 與修正
 
-- G2 接受後的 GitHub CodeQL 指出跨 job controller ref 可能導致不可信程式執行與 cache poisoning：移除 release cache，保留正常 merge 的 first-parent controller；在 candidate checkout 前封存可信 controller，各後續 jobs 只讀同 run 的 immutable artifact。沒有 suppression 或放寬授權。兩軸 delta review 達 fixed point，193 個 workflow tests 通過，最新 CodeQL／Verify／Vercel 全綠。
-
 - Root review 發現以 main 的整份 package.json 覆寫 merge 結果會丟失 hotfix 依賴修補：改用 Git three-way merge，只正規化 root version；fixture 確認雙方變更保留。
 - Spec review 發現 deployed-descendant 條件仍可能納入未發布 main history：檢查所有共同祖先是否屬於 deployed baseline，新增真實 CLI 舊失敗／新通過 regression。
 - GitHub review 狀態以每位 reviewer 的最新決定為準，撤銷或 changes-requested 不沿用舊 approval；review 須綁 head SHA 與 collaborator 權限。

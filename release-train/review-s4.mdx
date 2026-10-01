@@ -61,6 +61,8 @@ pnpm prerequisite 的原生雙文件 lockfile 在 GitHub static dependency graph
 
 ## Findings 與實際修正
 
+- 前批 G2 後的 CodeQL 修正已合併：release controller 在 candidate checkout 前由可信 first-parent 封存為 same-run immutable artifact，移除 release cache；後續 privileged jobs 不再 checkout candidate-derived controller ref。保留原批凍結 Review，這項後續證據放在本批與 Git／PR 歷史，不覆寫過去的人類驗收。
+
 - Standards 發現 read-only inspect 缺少 Check Runs／Statuses API 權限；補 `checks: read`／`statuses: read`，沒有增加 production access。
 - Spec 發現 Vercel context 同名不等於可信來源。Live status API 確認 bot creator，共用 helper 以 id／login／type 綁定；回歸證明舊 controller 誤接受冒名來源，新 owner 拒絕。
 - test-audit 確認 primary owner 是公開 tooling CLI：原生 pnpm 產生及評估雙文件 fixture，gh fixture 只提供外部 transport 資料，不實作 admission predicate。沒有刪測試或引入 test-only exports。
