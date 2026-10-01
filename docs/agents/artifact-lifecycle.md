@@ -13,7 +13,7 @@ Classify every workflow output before storing it.
 Archive runs automatically after Pre-PR code review reaches its fixed point and before the pull request opens:
 
 1. require all slices complete or explicitly superseded, full verification, Changeset assessment, and independent code-review/fix rounds at a fixed point;
-2. promote implemented behavior and durable constraints to the narrowest affected sub-capability; Archive does not promote, reconcile, or renumber decision records — a decision record already lives at its permanent `blueprint/content/decisions/` path from the moment it was written;
+2. assess whether verified behavior or durable capability knowledge changed; promote or correct only the narrowest affected Features when needed, otherwise leave them untouched. Record the assessment and its reason in Review. Decision records already live at their permanent paths and are not promoted or renumbered;
 3. reconcile `CONTEXT.md` only for stable domain vocabulary resolved during the Change;
 4. export the Review summary for the pull-request body, as `WORKFLOW.md`'s Archive section defines it;
 5. exclude tracker IDs, claim state, retries, workspace paths, temporary research, and transcript text from durable Blueprint content;

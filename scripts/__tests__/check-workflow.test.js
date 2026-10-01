@@ -402,7 +402,15 @@ test("checkChangeScope accepts a Shard trailer in the commit log", async () => {
   assert.deepEqual(await checkChangeScope(root), []);
 });
 
-test("checkChangeScope accepts a --migration slug", async () => {
+test("checkChangeScope accepts a Sharded Change slug", async () => {
+  const root = await makeScopeRepository(31);
+  assert.deepEqual(
+    await checkChangeScope(root, { shardedChangeSlug: "two-gate-workflow" }),
+    [],
+  );
+});
+
+test("checkChangeScope keeps the migration option as a compatible alias", async () => {
   const root = await makeScopeRepository(31);
   assert.deepEqual(
     await checkChangeScope(root, { migrationSlug: "two-gate-workflow" }),
@@ -459,6 +467,21 @@ test("checkChangeScope never fails the process, even when it warns", async () =>
 
   assert.equal(result.code ?? 0, 0);
   assert.match(result.stderr, /Warning:.*change-scope/is);
+});
+
+test("the CLI accepts --sharded-change for a large delivery batch", async () => {
+  const root = await makeScopeRepository(31, [], {
+    seedWorkflowFiles: true,
+  });
+
+  const result = await execFileAsync(
+    "node",
+    [CHECK_WORKFLOW_SCRIPT, "--sharded-change", "two-gate-workflow"],
+    { cwd: root },
+  ).catch((error) => error);
+
+  assert.equal(result.code ?? 0, 0);
+  assert.doesNotMatch(result.stderr, /Warning:.*change-scope/is);
 });
 
 test("the gate check passes when the local pages match what was published", async () => {
@@ -760,7 +783,7 @@ test("page gate reports a scenario with no id", async () => {
   assert.match(await pageGate(files), /gate-scenario-shape/i);
 });
 
-test("a Migration shard's G2 needs results only for its own scenarios", async () => {
+test("a Sharded Change's G2 needs results only for its own shard", async () => {
   const files = changePage({
     shards: 2,
     reviews: { 1: reviewWithResults("S1") },
@@ -768,7 +791,7 @@ test("a Migration shard's G2 needs results only for its own scenarios", async ()
   assert.equal(await pageGate(files, { branch: "refactor/c-s1" }), "");
 });
 
-test("a Migration shard's G2 names its own scenario with no result", async () => {
+test("a Sharded Change's G2 names its own scenario with no result", async () => {
   const files = changePage({ shards: 2, reviews: { 2: reviewWithResults() } });
   assert.match(
     await pageGate(files, { branch: "refactor/c-s2" }),
@@ -776,7 +799,7 @@ test("a Migration shard's G2 names its own scenario with no result", async () =>
   );
 });
 
-test("a Migration scenario needs a shard within the shard count", async () => {
+test("a Sharded Change scenario needs a shard within the shard count", async () => {
   const files = changePage({ shards: 2, scenarioShards: [1, 3] });
   assert.match(
     await pageGate(files, { branch: "refactor/c-s1" }),
@@ -784,7 +807,7 @@ test("a Migration scenario needs a shard within the shard count", async () => {
   );
 });
 
-test("a Migration's gate runs on one of its shard branches", async () => {
+test("a Sharded Change gate runs on one of its shard branches", async () => {
   assert.match(
     await pageGate(changePage({ shards: 2 }), { branch: "refactor/c" }),
     /gate-branch-state.*c-s<N>/is,

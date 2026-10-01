@@ -6,6 +6,18 @@ VolleyBro 管理排球隊伍與比賽紀錄。本文件是專案的共用詞彙�
 
 ## Language
 
+### Delivery
+
+**Change**：一份共同設計與整體完成條件；一般 Change 由一張 PR 交付。
+
+**Sharded Change**：共同設計需要分批交付的 Change，包括大型 migration；各批共用 Proposal 與整體 G1，不是各自獨立的 Change。
+
+**Shard**：可安全交付的一批，對應 branch、Review、G2 與一張 PR；不可分割的工作屬同一批。
+
+**Slice**：一批內的實作步驟，不代表獨立可合併的交付。
+
+**Fix path**：恢復已定義行為或小型無行為變更的簡化交付模式；與 production 緊急發布的 hotfix 是不同維度。
+
 ### 隊伍與名單
 
 **球員（Player）**：隊伍名單上的一格，可能對應一個使用者帳號，也可能沒有。一位使用者在同一支隊伍中至多對應一位球員。 _Avoid_: 隊員、成員（泛指名單時）

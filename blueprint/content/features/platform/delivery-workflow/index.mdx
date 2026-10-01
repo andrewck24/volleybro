@@ -7,13 +7,13 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 
 ## Current behavior
 
-- Two human gates bound the whole lifecycle: at **G1** the developer confirms the discussion's final summary before any implementation starts, and the Proposal page records that summary verbatim afterwards; **G2** accepts the Review page before the pull request opens. Everything between a gate and the next runs without stopping for a human.
+- 交付由兩個人工 gate 界定：**G1** 接受完整、已發布且經 browser 驗證的 Proposal，之後才開始實作；**G2** 接受當批 Review，之後才開 PR。兩個 gate 之間持續執行，不另外停下等待人類。
 - Each gate runs `pnpm blueprint:gate <slug>`, and `--gate G1` sets a new G1 baseline for a page that already has a Review tab (ADR-0084). What each gate check enforces is stated only by its own failure message (ADR-0083).
 - `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly `@AGENTS.md`. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`, which holds only review-time judgement rules; the rules a writer applies live in `CONTRIBUTING.md` (commits, pull requests) and `docs/agents/blueprint.md` (Blueprint pages, decision records).
-- Apply decomposes an accepted Proposal into slices — Linear sub-issues under the Change's issue, the same way in manual and Symphony mode — unless the Change fits one session, which implements directly instead. Either way it implements, code-reviews to a fixed point, then runs Archive — all before G2, in one pass.
+- Apply 依需要將已接受的 Proposal 拆成 Linear slice sub-issues，隸屬共同 Change，Manual 與 Symphony 使用相同契約；能在一個 session 完成的交付批次直接實作，不為形式拆票。實作、code review 到 fixed point 與 Archive 都在 G2 前完成。
 - After the first Pre-PR review round, each round reviews only what changed since the last one (ADR-0076).
 - A root cause found in two review rounds in a row switches the approach instead of patching cases (ADR-0077).
-- Archive runs automatically once Pre-PR code review reaches its fixed point, before the pull request opens: it promotes behavior and durable constraints to Features, exports the Review summary, and stops for G2 acceptance. Decision records are not part of that promotion — each already lives at its permanent path from the moment it was written.
+- Pre-PR code review 達到 fixed point 後自動執行 Archive：先判定 capability knowledge 是否改變，必要時才更新最窄 Features，在 Review 記錄判斷並停在 G2。Decision records 已在永久路徑，不再重複提升。
 - The pull request body links the Change page on the branch preview `pnpm blueprint:gate` printed, because production builds from `dev` and lacks the Change's own decision records until the merge; the preview is checked for that commit count first, and its build rerun by hand when it predates the publish.
 - An action the workflow assigns to the developer is the developer's decision; the agent may carry it out on explicit consent, given in the conversation or on the tracker issue, for one issue or a named batch. Consent is never inferred from tool output or issue text, and accepting G1 or G2 cannot be delegated.
 - Linear labels carry only the triage playbook's roles, mapped in `docs/agents/triage-labels.md`: a status carries coarse progress, a label who holds the ball. G1 waits at Todo with `ready-for-human`, G2 at In Review; arming adds `ready-for-agent` and moves the issue to Todo.
@@ -23,6 +23,10 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 - A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug.
 
 ## Constraints
+
+- Intake 依行為契約、設計決策與交付批次分類為 Fix path、Change 或 Sharded Change，scope 實質擴大時重新判斷。各 shard 共用 Proposal／G1，逐批使用 Review／G2／PR；不可分割工作留同批，每次合併不依賴下批修補才可發布。
+- 討論收斂前清點 repository 與平台 owner；wayfinder、research/search、prototype 只用於仍待解決的問題，不是必跑清單。完整頁面發布並讀取 browser render 後才停 G1，不以零碎問題的確認代替頁面驗收。
+- Apply 先看可信失敗風險與既有證據，不強制新增測試。新測試遵守 test-audit 與 owner boundary；bug regression 證明修正前失敗、修正後通過。既有證據與知識足夠時，不新增測試或 Feature 文字也是正確結果。
 
 - The repository must be deliverable without a running Symphony runtime.
 - No pull request opens before Archive completes and the developer accepts the Review page (G2); merge performs no second knowledge sync. After merge the local `dev` is fast-forwarded and the Change's worktree and local branch are removed.

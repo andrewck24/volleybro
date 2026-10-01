@@ -58,7 +58,7 @@ A test earns its maintenance cost only by protecting observable behaviour, a cre
 
 A test that asserts values it built itself, restates the implementation, or would break under a behaviour-preserving refactor fails the gate. A regression test must fail on the code before the fix.
 
-**Before deleting or moving a test,** record what it can detect, which test now owns that contract (the keeper), or why no contract exists. A Migration that deletes or moves tests follows the skill's campaign: a per-test ledger, a keeper per contract, and a preservation review in which each contract left to its keeper is proven by one deliberate mutation of the production code that turns the keeper red. The ledger becomes the Review tab's deletion table. Per-file coverage shows code still runs; only the mutation shows a broken contract is still caught.
+**Before deleting or moving a test,** record what it can detect, which test now owns that contract (the keeper), or why no contract exists. A Sharded Change batch that deletes or moves tests follows the skill's campaign: a per-test ledger, a keeper per contract, and a preservation review in which each contract left to its keeper is proven by one deliberate mutation of the production code that turns the keeper red. The ledger becomes the Review tab's deletion table. Per-file coverage shows code still runs; only the mutation shows a broken contract is still caught.
 
 ---
 

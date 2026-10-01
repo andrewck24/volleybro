@@ -81,7 +81,7 @@ test("fix/ and refactor/ branches are Change branches too", () => {
   );
 });
 
-test("a shard branch needs the Migration's slug and its own shard number", () => {
+test("a Sharded Change branch needs the parent slug and its own shard number", () => {
   const body = "refactor(x): subject\n\nbody.\n\n";
   assert.deepEqual(
     evaluateChangeBranchTrailer(
@@ -117,7 +117,7 @@ test("a Shard trailer on an ordinary Change branch is rejected", () => {
     "refactor(x): subject\n\nbody.\n\nBlueprint-Change: my-slug\nShard: 2",
   );
   assert.equal(verdict.ok, false);
-  assert.match(verdict.message, /not a Migration shard branch/);
+  assert.match(verdict.message, /not a Sharded Change branch/);
 });
 
 test("no trailer on dev, hotfix/*, or any other non-Change branch passes", () => {

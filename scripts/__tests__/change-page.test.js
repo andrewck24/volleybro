@@ -244,7 +244,7 @@ test("a scenario's shard is read as a number", () => {
   );
 });
 
-test("shardCount reads a Migration's shard count from the frontmatter", () => {
+test("shardCount reads a Sharded Change's shard count from the frontmatter", () => {
   assert.equal(shardCount("---\ntitle: M\nshards: 4\n---\n"), 4);
   assert.equal(shardCount("---\ntitle: C\n---\n"), undefined);
   assert.equal(shardCount(undefined), undefined);
