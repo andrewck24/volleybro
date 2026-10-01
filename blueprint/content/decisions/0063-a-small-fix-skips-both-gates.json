@@ -8,6 +8,5 @@
   "consequences": [
     "A Fix-path change has no Proposal or Review page and no publish step."
   ],
-  "originChange": "two-gate-workflow",
-  "supersededBy": "0101"
+  "originChange": "two-gate-workflow"
 }

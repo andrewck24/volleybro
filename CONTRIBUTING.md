@@ -31,7 +31,7 @@ style(components): apply prettier formatting to team directory
 
 Write commit messages in English. The body explains _why_; what changed is supporting context the diff already shows. Review never sees a commit body, so this is the only place the rule is applied — and a body fixed after the fact means rewriting history.
 
-Which trailers a commit carries depends on the branch and is defined in `WORKFLOW.md` (Branch and commit strategy, and Fast path). Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
+Which trailers a commit carries depends on the branch and is defined in `WORKFLOW.md` (Branch and commit strategy, and Fix path). Keep each trailer on one line, or indent continuation lines with a space: an unindented wrapped line stops git parsing the whole trailer block, while `git log --grep` still matches and hides the breakage. After committing, confirm with:
 
 ```bash
 git log -1 --format='%(trailers:only,unfold)'
