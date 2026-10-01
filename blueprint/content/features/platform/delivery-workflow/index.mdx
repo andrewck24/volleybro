@@ -24,6 +24,9 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 
 ## Constraints
 
+- Dependency 維護使用 pnpm 原生雙文件 lockfile 與 split SPDX submission；weekly version 與 event-driven security 是不同觸發來源。狹窄 allowlisted devDependency patch 只合併 main integration，不發布 production，也不自動啟動 Agent。執行規則由 `scripts/dependency-controls.js` 持有，啟用與平台驗證依 `docs/release-activation.md`。
+- Archive 等待 G2 時，跨 shards 尚未緩解且可採取行動的風險依 root cause 合併到既有 tracker owner，沒有 owner 才開 related follow-up；已緩解的取捨不轉成虛構 bug。完整啟用仍未驗證時不關閉 tracking parent。
+
 - Release-train tooling 將 `main` integration 與 production 分離：每日整合部署到 Preview alias，可信 rolling version PR 授權固定 revision，native main Git deployment 停用。平台 cutover 與 automation 啟用是明確的 G2 後操作，repo 設定不能代替執行證據。
 - Candidate 驗證、protected QA fallback、串行 promote 與 production smoke 通過後，才建立 exact-SHA tag。候選失敗不得 promote；rollback 需要已確認 DB 相容的證據，永不回退資料。操作步驟由 `WORKFLOW.md` 維護，本頁不重複列命令。
 - 緊急 production bug 或安全修補使用 deployed-base `hotfix/*` 與明確 reviewed SHA，重用相同發布控制；成功後開一般 merge-back PR，優先交由 Agent 解衝突、驗證並在明確授權後合併，操作規則由 `WORKFLOW.md` 持有。不自動派工或 auto-merge，保留未發布 changesets、不 rebase main，也不因同步再次部署。正常 release 必須包含已上線修補，舊候選不能沿用。

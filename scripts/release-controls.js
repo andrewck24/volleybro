@@ -95,7 +95,7 @@ function deploymentSourceSha(value, label) {
   return candidates[0];
 }
 
-function validateRequiredChecks(sha, checkRuns, statuses) {
+export function validateRequiredChecks(sha, checkRuns, statuses) {
   const latestVerify = checkRuns
     .filter((run) => run.name === "Verify")
     .sort(

@@ -29,6 +29,16 @@ When upgrading any package to a new major version:
 
 ## Each Cycle's Package Update
 
+Dependabot checks the npm ecosystem (including pnpm) and GitHub Actions every Tuesday at 09:00 Asia/Taipei. Security alerts and security updates are event-driven, not gated by the weekly digest email. Initial version-update limits are zero until [release activation](./release-activation.md) is accepted and rehearsed.
+
+Dependency PRs target the repository default integration branch. They run CI but never deploy production or dispatch an Agent. A developer decides whether to start an Agent for compatibility analysis, migration, failed CI or sensitive updates; the Agent delivers a reviewed PR when safe, or a decision issue when implementation cannot proceed safely. Urgent production vulnerabilities and severe bugs use the isolated hotfix route in `WORKFLOW.md`.
+
+The executable auto-merge policy is `scripts/dependency-controls.js`, used by `dependency-auto-merge.yml`. Its initial allowlist is only `@types/jest-axe`, pending final G2 acceptance. It admits one signed native Dependabot commit, a single stable direct devDependency patch, bounded package/lockfile edits, unchanged package-manager environment, native regenerated lockfile and unchanged other resolved packages. Required checks must pass on the exact head; native branch protection and head matching still apply. Minor, major, runtime, sensitive, unknown and expanded updates stay manual. Auto-merge has its own disabled-by-default variable and only integrates into main; Changesets release authorization remains human-controlled.
+
+Keep pnpm's default environment/project multi-document lockfile and version management. Generate project dependency submissions with native `pnpm sbom --lockfile-only --split`; separate root and Blueprint submissions use their package.json manifest paths so the environment lockfile graph is not replaced. No custom lockfile parser or `pmOnFail: ignore` workaround. After activation, verify GitHub graph coverage and alert visibility against the generated SBOM; a successful upload alone does not prove alerts or updater compatibility. Before adding another workspace, add its native split submission and verify coverage.
+
+For a manual assessment with the same policy, use `node scripts/dependency-controls.js validate-files <payload.json>`; the JSON contains `before` (base package.json, pnpm-lock.yaml, pnpm-workspace.yaml, blueprint/package.json text) and `after` (candidate package.json and lockfile text). This does not grant merge permission.
+
 Every Linear cycle's package update checks two things before merging:
 
 - **Major bumps**, handled as above.
