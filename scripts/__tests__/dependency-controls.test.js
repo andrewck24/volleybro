@@ -145,7 +145,14 @@ test("native dual-document patch assessment rejects expanded or tampered depende
         started_at: "2026-10-02T00:00:00Z",
       },
     ],
-    statuses: [{ context: "Vercel", sha, state: "success" }],
+    statuses: [
+      {
+        context: "Vercel",
+        sha,
+        state: "success",
+        creator: { id: 35613825, login: "vercel[bot]", type: "Bot" },
+      },
+    ],
     required: [{ bucket: "pass" }],
     view: { mergeStateStatus: "CLEAN", headRefOid: sha },
     before,
@@ -202,6 +209,12 @@ process.stdout.write(JSON.stringify(value));
   assert.equal(eligible.status, 0, eligible.stderr);
   assert.equal(eligible.output, `number=7\nsha=${sha}\n`);
   for (const [alter, reason] of [
+    [
+      (s) => {
+        s.statuses[0].creator.id = 123;
+      },
+      /Latest Vercel/,
+    ],
     [
       (s) => {
         s.pr.user.id = 123;

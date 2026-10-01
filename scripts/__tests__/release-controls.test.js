@@ -147,6 +147,7 @@ async function fixture(t) {
       statuses: [
         {
           context: "Vercel",
+          creator: { id: 35613825, login: "vercel[bot]", type: "Bot" },
           sha: head,
           state: "success",
           updated_at: "2026-10-01T00:00:00Z",

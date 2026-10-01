@@ -60,7 +60,6 @@ function packageUrls(directory) {
     .sort();
 }
 
-// Native regeneration checks lockfile integrity as well as its dependency graph.
 function validateFiles(before, after) {
   const oldManifest = JSON.parse(before["package.json"]);
   const newManifest = JSON.parse(after["package.json"]);
