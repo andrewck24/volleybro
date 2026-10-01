@@ -1,0 +1,81 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+現在驗收的是最後一批 tooling，不是批准任何尚未通過 QA 的 app 發布。G2 接受後才開本批 PR；production、default branch、DB 與自動合併目前都尚未切換。
+
+1. 請確認初始自動合併 allowlist 只含 `@types/jest-axe`，且只有 stable patch 可通過。其他 minor／major、runtime／敏感／未知更新都保留人工 PR；是否啟動 Agent 由你或當次開發者決定。
+2. 接受 G2 後先交付本批 PR，再依 `docs/release-activation.md` 的完整順序執行平台 inventory、cutover 演練、credentials／reviewer、dependency graph／updater read-back 與首次 Changesets 發布。PR limits 暫為零，submission／auto-merge flags 保持 false；不能把 tooling 合併視為已完成啟用。
+3. 真正發布時，你仍需在 Actions Summary 提供的 immutable candidate URL 完成首頁、Google login／session、team 唯讀檢查，再於正式站重做必要 QA。安全自動 session 尚未交付，HTTP 首頁成功不取代登入驗證；候選可能有 deployment protection／OAuth callback 限制，失敗不能借用舊正式站結果。
+
+本批沒有新增 ADR，也沒有修改任何 adopted ADR 的 `decision` 或已接受的早期 shard Review。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/dependency-controls.js`：trusted native bot／signed commit、狹窄 manifest patch、bounded diff、environment document 不變、原生 lockfile regeneration 與其他 resolved packages 不變；native branch protection 與 exact head 仍是最後合併邊界。
+2. `dependency-auto-merge.yml`／`dependency-submission.yml`：只從可信 workflow revision 執行 controller，不 checkout PR code；read-only inspect 與 write-only native merge 分 job，沒有 production secrets；SBOM 用 pnpm 原生 split SPDX 與固定 upstream action revision。
+3. `docs/release-activation.md`／`WORKFLOW.md`：整套工具的合併與平台啟用分開；保留 dev 歷史，確認 alias／DB／OAuth／reviewer 後才啟用；等待 G2 時把跨 shards 尚未緩解風險交給 tracker owner。
+
+</ReviewFocus>
+
+<Deviations>
+
+pnpm prerequisite 的原生雙文件 lockfile 在 GitHub static dependency graph 中缺少部分實際 app 依賴。依你確認的方向，保留 pnpm 預設行為，用原生 split SPDX submission 補交 root／Blueprint graph；不採用 `pmOnFail: ignore`、不另外寫 YAML parser，也不宣稱 upstream updater／alerts 已完成端到端驗證。這是既有 dependency-maintenance 範圍內的相容性修正。
+
+獨立審查發現共用 Vercel status 檢查沒有綁定 provider 身分，已在原 owner 修正，normal release／hotfix 同時重用；沒有另複製一套 dependency checks。首次啟用的 version PR 可由 main-only Changesets manual dispatch 準備，不必產生空 commit；不增加發布授權。Archive 只更新 `platform/delivery-workflow` 的 verified tooling capability 與限制，不把安全 session／完整 E2E 或 live cutover 寫成已完成。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 4)}
+  results={[
+    { id: "S7", result: "pass", evidence: "公開 CLI 跑原生 pnpm 雙文件 fixture，合格 patch 產生固定 PR/head admission；冒名 bot／fork／unsigned commit／擴大 diff／major／minor／多套件／runtime／script／environment／integrity tampering／冒名 check provider／最新失敗 check／stale head 都拒絕。Workflow controller 不來自 PR，write job 只執行 native exact-head merge，沒有 production secrets。Live auto-merge 留待啟用驗證，未冒稱已在 GitHub 發生。" },
+    { id: "S8", result: "pass", evidence: "Dependabot 原生 npm/pnpm＋Actions weekly 設定為 Tuesday 09:00 Asia/Taipei；security updates 與 weekly email 分離，啟用清單明確要求 event-driven security settings。PR events 只導向 CI／狹窄 merge policy，不自動派工或部署；緊急 production bug／security 仍走 isolated hotfix。原生 split SBOM 已可讀實際 root／Blueprint dependencies；未提前開啟 provider settings。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "Final repository gate", method: "pnpm verify:all", executor: "agent", environment: "macOS Change checkout", result: "pass", evidence: "適用 static／workflow／Blueprint lanes 通過；diff planner 跳過未受影響的 app-build／app-test／DB integration，沒有宣稱跑過。另由 branch-preview build 證明 Blueprint build／page render。" },
+    { id: "T2", checks: "Native patch and trust boundary", method: "node --test scripts/__tests__/dependency-controls.test.js；既有 release-controls CLI owner cases", executor: "agent", environment: "真實 native pnpm lockfile／SBOM＋外部 gh transport fixture", result: "pass", evidence: "實際原生 fixture 證明 package／lock integrity 判斷；Vercel impersonation regression 修正前错误 admission、修正後拒絕，normal／hotfix 原 owner cases 仍通過。沒有 install PR code、test-only predicate export 或新增 parser dependency。" },
+    { id: "T3", checks: "Independent fixed point", method: "Standards／Spec two-axis review，修正後 delta review", executor: "agent", environment: "兩個獨立 review contexts", result: "pass", evidence: "修正 missing checks/statuses read permission 與 Vercel provider identity；受影響檢查重跑，兩軸確認沒有未處理 finding。" },
+    { id: "T4", checks: "Live dependency provider proof", method: "Dependency submission／GitHub graph read-back／Dependabot update logs 與真實 PR", executor: "agent", environment: "最終 G2＋tooling merge 後的 main／GitHub", result: "pending", evidence: "目前 flags false、version PR limits zero、security updates 尚未啟用。本地 native SBOM 可讀不代表 GitHub 已完成 graph／alerts／updater；未完成 proof 前不啟用自動合併，沒有刻意引入漏洞來製造成功。" },
+    { id: "T5", checks: "Candidate and production authenticated QA", method: "Exact candidate source／immutable URL＋Google login/session／team 唯讀＋DB compatibility evidence", executor: "developer", environment: "首次實際 production-config candidate 與正式 deployment", result: "pending", evidence: "沿用 protected review gate；安全 session 工作與完整 smoke automation 有獨立 tracker owner，人工 fallback 尚未取消。確認 deployed source SHA／tag／baseline，未知 DB compatibility 不授權 rollback。" },
+  ]}
+/>
+
+<AfterRelease>
+
+本批 PR 合併後，依 `docs/release-activation.md` 執行，不再回頭修改已接受的早期 Reviews：
+
+1. Agent 重新 inventory 並保留 dev/main 的全部有效歷史；先解除舊直接 production 路徑，再整合及切換 default／checks／Blueprint hosting。固定 integration 是 `volleybro-integration.vercel.app`，正式 alias 維持 `volleybro.vercel.app`；設定 read-back 後才宣稱可用。
+2. 完成原生 graph／updater 證據，再開啟 version updates／security updates；初始 allowlist 與 native protection 通過後才開 auto-merge。沒有真正 eligible patch 時保持其 flag false，第一個受控事件再驗證，不拿 fixture 代替 live success。
+3. 由 Changesets 計算首次版本，納入原 Cycle 交付與 pnpm prerequisite；預期 v0.16.0 不硬編碼。你核對 latest version PR 並授權 merge，固定 SHA candidate → 必要 QA → promote → 上線後 QA → exact-SHA tag／Release。
+4. 保留 test DB；clean production DB 啟用與指定資料保留屬 stable launch 的獨立授權，沒有 PR DB reset。成功發布且 dev 已無活引用才清理；activation／remaining proofs 未完成時 tracking parent 不關閉。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+## Findings 與實際修正
+
+- Standards 發現 read-only inspect 缺少 Check Runs／Statuses API 權限；補 `checks: read`／`statuses: read`，沒有增加 production access。
+- Spec 發現 Vercel context 同名不等於可信來源。Live status API 確認 bot creator，共用 helper 以 id／login／type 綁定；回歸證明舊 controller 誤接受冒名來源，新 owner 拒絕。
+- test-audit 確認 primary owner 是公開 tooling CLI：原生 pnpm 產生及評估雙文件 fixture，gh fixture 只提供外部 transport 資料，不實作 admission predicate。沒有刪測試或引入 test-only exports。
+- 舊 namespace／ADR／accepted Proposal 沒有改寫；沒有新依賴或手寫 pnpm lock parser。
+
+## 殘餘風險與 ownership
+
+跨 shards 的 actionable 未緩解項目已在 Linear 依 root cause 合併或建立 follow-up：live platform activation／baseline／provider proof 保留在 shared operational issue；safe browser session、OAuth public activation、production observability 各回原 owner；完整 authenticated smoke gate 自動化另外追蹤，不把全部測試工程塞進本 Change。舊 sync retirement 只在成功切換後關閉，既有 Jest worker crash 不另造重複 bug。
+
+Native SPDX submission 不保證 GitHub alerts／Dependabot updater 已端到端正常，亦不包含所有 package-manager environment dependencies；activation 時比較 root／Blueprint 與既有 environment graph，coverage 缺口不能被上傳成功掩蓋。新增 workspace 時需要對應 split submission 與 read-back。
+
+Auto-merge 刻意只允許 manifest range 有 stable patch 變化、single signed bot commit 與小 diff；lock-only security updates／Dependabot rebased multi-commit／原生 regeneration 有任何其他差異時保持人工。這是可見且 fail-closed 的容量限制，不是漏洞修補已完成的宣稱。
+
+Production 串行鎖會把 QA 等待算在內，急件先由 owner 處理目前等待 run，不繞過 gate。未知 DB compatibility／Git merge metadata conflict 都停止，Agent-first 不表示自動派工或自動獲得合併授權。
+
+候選學習題目已記錄在 operational issue：pnpm environment/project 單雙文件模式、npm package-lock／hidden lockfile、version pin 與 scanner/dependency submission 的差異。這只是候選，不是排入 Cycle 的承諾；先前完整候選清單位置沒有得到可驗證結果，沒有另造一份重複名單。
+
+</ReviewDetails>
