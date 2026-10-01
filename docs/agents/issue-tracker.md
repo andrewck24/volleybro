@@ -4,7 +4,7 @@ Linear is VolleyBro's operational issue tracker for intake, active status, prior
 
 Matt Pocock playbooks use these adaptations:
 
-- At intake and material scope expansion, apply `WORKFLOW.md`'s Fix path／Change／Sharded Change classification and upgrade rules. Shared-design shards stay under one tracking issue; independently decided goals become separate Changes. A G1-accepted scope change requires Ingest, not silently enlarged execution. Use no new classification labels.
+- At intake and material scope expansion, apply `WORKFLOW.md`'s Fast path／Change／Sharded Change classification and upgrade rules. Shared-design shards stay under one tracking issue; independently decided goals become separate Changes. A G1-accepted scope change requires Ingest, not silently enlarged execution. Use no new classification labels.
 
 - `to-spec` may maintain an operational issue projection, but the Blueprint Proposal page is the repository-owned Change specification.
 - `to-tickets` does not publish durable implementation issues beyond slices. A Change's slices, when it needs any, are Linear sub-issues under its operational issue, the same way in manual and Symphony mode; a Change that fits one session skips slices and implements directly. Each sub-issue carries a stable ID, capability references, dependencies, outcome, acceptance criteria, verification, and status (`pending` or `completed`); runtime state such as `claimed`, `running`, executor identity, and retry count does not belong on it.

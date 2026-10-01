@@ -32,24 +32,36 @@ async function fixture(t) {
   await mkdir(path.join(repo, ".changeset"));
   await writeFile(
     path.join(repo, "package.json"),
-    '{"name":"fixture","version":"1.0.0"}',
+    `${JSON.stringify(
+      { name: "fixture", version: "1.0.0", dependencies: { secure: "1.0.0" } },
+      null,
+      2,
+    )}\n`,
   );
   await writeFile(path.join(repo, "CHANGELOG.md"), "# Changes\\n");
+  git(["add", "."]);
+  git(["commit", "-m", "deployed"]);
+  const deployed = git(["rev-parse", "HEAD"]);
+  git(["tag", "v1.0.0", deployed]);
   await writeFile(
     path.join(repo, ".changeset", "one.md"),
     "---\\nfixture: patch\\n---\\n",
   );
-  git(["add", "."]);
-  git(["commit", "-m", "base"]);
+  git(["add", ".changeset/one.md"]);
+  git(["commit", "-m", "integrated change"]);
   const base = git(["rev-parse", "HEAD"]);
   git(["checkout", "-b", "changeset-release/main"]);
   await writeFile(
     path.join(repo, "package.json"),
-    '{"name":"fixture","version":"1.0.1"}',
+    `${JSON.stringify(
+      { name: "fixture", version: "1.0.1", dependencies: { secure: "1.0.0" } },
+      null,
+      2,
+    )}\n`,
   );
   await writeFile(
     path.join(repo, "CHANGELOG.md"),
-    "# Changes\\n\\n## 1.0.1\\n",
+    "# Changes\\n\\n## [1.0.1]\\n\\n- Release changes\\n",
   );
   await rm(path.join(repo, ".changeset", "one.md"));
   git(["add", "-A"]);
@@ -58,9 +70,35 @@ async function fixture(t) {
   git(["checkout", "main"]);
   git(["merge", "--no-ff", "changeset-release/main", "-m", "merge"]);
   const merge = git(["rev-parse", "HEAD"]);
+  git(["checkout", "-b", "hotfix/urgent", deployed]);
+  await writeFile(
+    path.join(repo, "package.json"),
+    `${JSON.stringify(
+      { name: "fixture", version: "1.0.1", dependencies: { secure: "2.0.0" } },
+      null,
+      2,
+    )}\n`,
+  );
+  await writeFile(
+    path.join(repo, "CHANGELOG.md"),
+    "# Changes\\n\\n## [1.0.1]\\n\\n- Release changes\\n",
+  );
+  await writeFile(path.join(repo, "repair.js"), "export const fixed = true;\n");
+  git(["add", "."]);
+  git(["commit", "-m", "security repair"]);
+  const hotfix = git(["rev-parse", "HEAD"]);
+  git(["checkout", "main"]);
   const remote = path.join(root, "origin.git");
   execFileSync("git", ["init", "--bare", remote]);
   git(["remote", "add", "origin", remote]);
+  git([
+    "push",
+    "origin",
+    "main",
+    "changeset-release/main",
+    "hotfix/urgent",
+    "--tags",
+  ]);
   const eventPath = path.join(root, "event.json");
   await writeFile(
     eventPath,
@@ -80,6 +118,7 @@ async function fixture(t) {
     JSON.stringify({
       alias: "dpl_base",
       updatedAt: "1",
+      baselineSha: deployed,
       calls: [],
       pr: {
         number: 1,
@@ -113,6 +152,16 @@ async function fixture(t) {
           updated_at: "2026-10-01T00:00:00Z",
         },
       ],
+      reviews: [
+        {
+          id: 1,
+          state: "APPROVED",
+          commit_id: hotfix,
+          submitted_at: "2026-10-01T00:00:00Z",
+          user: { login: "trusted-reviewer" },
+        },
+      ],
+      permissions: { "trusted-reviewer": "write" },
     }),
   );
   const stub = async (name, code) => {
@@ -126,18 +175,21 @@ async function fixture(t) {
   );
   await stub(
     "gh",
-    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result=s.environment||{protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
+    "const fs=require('fs'),cp=require('child_process'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/reviews?'))result=s.reviews||[];else if(route.includes('/collaborators/')){const login=decodeURIComponent(route.split('/').at(-2));result={permission:(s.permissions||{})[login]||'read'};}else if(route.includes('/pulls?'))result=s.mergeBackPr?[s.mergeBackPr]:[];else if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result=s.environment||{protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[0]==='release'&&a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[0]==='release'&&a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else if(a[0]==='pr'&&a[1]==='create'){const branch=a[a.indexOf('--head')+1],sha=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();s.calls.push(a);s.mergeBackPr={state:'open',merged_at:null,html_url:'https://example.test/pull/2',base:{ref:'main',repo:{full_name:'owner/repo'}},head:{ref:branch,sha,repo:{full_name:'owner/repo'}}};fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));console.log(s.mergeBackPr.html_url);return;}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
   );
   const preload = path.join(root, "preload.mjs");
   await writeFile(
     preload,
-    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE));if(String(u).includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(String(u).includes('/v13/deployments/'))return Response.json({id:'dpl_cand',readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});return new Response('',{status:s.healthStatus||200})};",
+    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE)),url=String(u);if(url.includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(url.includes('/v13/deployments/')){const id=url.split('/').at(-1).split('?')[0];if(id==='dpl_cand')return Response.json({id,readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});return Response.json({id,meta:{releaseSha:(s.deploymentShas||{})[id]||s.baselineSha}});}return new Response('',{status:s.healthStatus||200})};",
   );
   return {
     root,
     repo,
+    remote,
+    deployed,
     merge,
     head,
+    hotfix,
     git,
     eventPath,
     statePath,
@@ -146,6 +198,7 @@ async function fixture(t) {
       PATH: bin + ":" + process.env.PATH,
       API_STATE: statePath,
       RELEASE_SHA: merge,
+      CONTROLLER_SHA: deployed,
       GITHUB_SHA: merge,
       VERCEL_TOKEN: "test",
       VERCEL_PROJECT: "test",
@@ -178,6 +231,7 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
   assert.deepEqual(recorded.baseline, {
     deploymentId: "dpl_base",
     updatedAt: "1",
+    sha: f.deployed,
   });
   for (const candidate of [
     { id: "dpl_other" },
@@ -234,6 +288,176 @@ async function updateApi(f, values) {
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   await writeFile(f.statePath, JSON.stringify({ ...current, ...values }));
 }
+
+function hotfixAuthorization(f, current) {
+  return {
+    pr: {
+      number: 2,
+      state: "open",
+      merged: false,
+      draft: false,
+      title: "fix: repair production",
+      base: {
+        ref: "main",
+        sha: f.merge,
+        repo: { full_name: "owner/repo" },
+      },
+      head: {
+        ref: "hotfix/urgent",
+        sha: f.hotfix,
+        repo: { full_name: "owner/repo" },
+      },
+    },
+    checks: [
+      {
+        ...current.checks[0],
+        head_sha: f.hotfix,
+      },
+    ],
+    statuses: [
+      {
+        ...current.statuses[0],
+        sha: f.hotfix,
+      },
+    ],
+    reviews: current.reviews,
+    permissions: current.permissions,
+    alias: "dpl_base",
+    baselineSha: f.deployed,
+  };
+}
+
+test("hotfix authorization binds an active reviewed same-repository PR to deployed source", async (t) => {
+  const f = await fixture(t);
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  const valid = { ...current, ...hotfixAuthorization(f, current) };
+  await writeFile(f.statePath, JSON.stringify(valid));
+  const env = { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.hotfix };
+  let result = run(f, "authorize-hotfix", env);
+  assert.equal(result.status, 0, result.stderr);
+
+  const failures = [
+    {
+      name: "wrong explicit SHA",
+      env: { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.head },
+    },
+    { name: "no review", state: { reviews: [] } },
+    {
+      name: "superseded approval",
+      state: {
+        reviews: [
+          ...valid.reviews,
+          {
+            id: 2,
+            state: "CHANGES_REQUESTED",
+            commit_id: f.hotfix,
+            submitted_at: "2026-10-02T00:00:00Z",
+            user: { login: "trusted-reviewer" },
+          },
+        ],
+      },
+    },
+    {
+      name: "outsider approval",
+      state: { permissions: { "trusted-reviewer": "read" } },
+    },
+    {
+      name: "fork head",
+      state: {
+        pr: {
+          ...valid.pr,
+          head: {
+            ...valid.pr.head,
+            repo: { full_name: "outside/repo" },
+          },
+        },
+      },
+    },
+    {
+      name: "closed PR",
+      state: { pr: { ...valid.pr, state: "closed" } },
+    },
+    {
+      name: "check from wrong SHA",
+      state: { checks: [{ ...valid.checks[0], head_sha: f.merge }] },
+    },
+    {
+      name: "newer failed check",
+      state: {
+        checks: [
+          ...valid.checks,
+          {
+            ...valid.checks[0],
+            conclusion: "failure",
+            started_at: "2026-10-02T00:00:00Z",
+          },
+        ],
+      },
+    },
+    {
+      name: "repair from wrong deployed base",
+      state: { baselineSha: f.head },
+    },
+    {
+      name: "head includes unreleased integration history",
+      env: { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.merge },
+      state: {
+        pr: { ...valid.pr, head: { ...valid.pr.head, sha: f.merge } },
+        checks: [{ ...valid.checks[0], head_sha: f.merge }],
+        statuses: [{ ...valid.statuses[0], sha: f.merge }],
+        reviews: [{ ...valid.reviews[0], commit_id: f.merge }],
+      },
+      reason: /unreleased integration history/,
+    },
+  ];
+  for (const failure of failures) {
+    await writeFile(
+      f.statePath,
+      JSON.stringify({ ...valid, ...(failure.state || {}) }),
+    );
+    result = run(f, "authorize-hotfix", failure.env || env);
+    assert.notEqual(result.status, 0, failure.name);
+    if (failure.reason) assert.match(result.stderr, failure.reason);
+  }
+});
+
+test("hotfix authorization rejects a non-patch version", async (t) => {
+  const f = await fixture(t);
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  f.git(["checkout", "-b", "hotfix/wrong-version", f.deployed]);
+  await writeFile(
+    path.join(f.repo, "package.json"),
+    `${JSON.stringify({ name: "fixture", version: "1.1.0" }, null, 2)}\n`,
+  );
+  await writeFile(
+    path.join(f.repo, "CHANGELOG.md"),
+    "# Changes\\n\\n## [1.1.0]\\n\\n- Wrong bump\\n",
+  );
+  f.git(["add", "package.json", "CHANGELOG.md"]);
+  f.git(["commit", "-m", "wrong version"]);
+  const wrong = f.git(["rev-parse", "HEAD"]);
+  f.git(["checkout", "main"]);
+  const state = hotfixAuthorization(f, current);
+  state.pr = {
+    ...state.pr,
+    head: { ...state.pr.head, ref: "hotfix/wrong-version", sha: wrong },
+  };
+  state.checks = [{ ...state.checks[0], head_sha: wrong }];
+  state.statuses = [{ ...state.statuses[0], sha: wrong }];
+  state.reviews = [
+    {
+      ...state.reviews[0],
+      commit_id: wrong,
+    },
+  ];
+  await updateApi(f, state);
+  const result = run(f, "authorize-hotfix", {
+    HOTFIX_PR_NUMBER: "2",
+    RELEASE_SHA: wrong,
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /one patch above/);
+});
 
 test("authorize validates the real PR, exact check sources and metadata through CLI", async (t) => {
   const f = await fixture(t);
@@ -339,6 +563,145 @@ test("promotion blocks stale baselines and pending candidates before calling Ver
   assert.equal(run(f, "promote").status, 0);
   state = JSON.parse(await readFile(f.statePath, "utf8"));
   assert.equal(state.alias, "dpl_cand");
+});
+
+test("normal staging rejects a candidate that omits the deployed hotfix ancestry", async (t) => {
+  const f = await fixture(t);
+  await updateApi(f, {
+    alias: "dpl_hotfix",
+    baselineSha: f.hotfix,
+    deploymentShas: { dpl_hotfix: f.hotfix },
+  });
+  const result = run(f, "stage");
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
+    /does not contain the deployed production source/,
+  );
+});
+
+async function prepareMergeBackFixture(f, { conflict = false } = {}) {
+  const packageJson = JSON.parse(
+    await readFile(path.join(f.repo, "package.json"), "utf8"),
+  );
+  await writeFile(
+    path.join(f.repo, "package.json"),
+    `${JSON.stringify({ mainOnly: true, ...packageJson }, null, 2)}\n`,
+  );
+  await mkdir(path.join(f.repo, ".changeset"), { recursive: true });
+  await writeFile(
+    path.join(f.repo, ".changeset", "pending.md"),
+    "---\\nfixture: minor\\n---\\n",
+  );
+  if (conflict)
+    await writeFile(
+      path.join(f.repo, "repair.js"),
+      "export const fixed = false;\n",
+    );
+  f.git(["add", "."]);
+  f.git([
+    "commit",
+    "-m",
+    conflict ? "conflicting main work" : "pending main work",
+  ]);
+  f.git(["push", "origin", "main"]);
+  await writeFile(
+    f.env.RELEASE_STATE_FILE,
+    `${JSON.stringify({
+      sha: f.hotfix,
+      candidateId: "dpl_hotfix",
+      baseline: {
+        deploymentId: "dpl_base",
+        updatedAt: "1",
+        sha: f.deployed,
+      },
+    })}\n`,
+  );
+}
+
+test("merge-back preserves pending changesets and the hotfix parent without rebasing", async (t) => {
+  const f = await fixture(t);
+  await prepareMergeBackFixture(f);
+  let result = run(f, "merge-back", { RELEASE_SHA: f.hotfix });
+  assert.equal(result.status, 0, result.stderr);
+  const branch = `hotfix-merge-back/${f.hotfix}`;
+  const merge = execFileSync(
+    "git",
+    ["--git-dir", f.remote, "rev-parse", `refs/heads/${branch}`],
+    { encoding: "utf8" },
+  ).trim();
+  const parents = execFileSync(
+    "git",
+    ["--git-dir", f.remote, "show", "-s", "--format=%P", merge],
+    { encoding: "utf8" },
+  )
+    .trim()
+    .split(" ");
+  assert.equal(parents.length, 2);
+  assert.equal(parents[1], f.hotfix);
+  assert.equal(
+    execFileSync(
+      "git",
+      ["--git-dir", f.remote, "show", `${merge}:.changeset/pending.md`],
+      { encoding: "utf8" },
+    ),
+    "---\\nfixture: minor\\n---\\n",
+  );
+  const mergedPackage = JSON.parse(
+    execFileSync(
+      "git",
+      ["--git-dir", f.remote, "show", `${merge}:package.json`],
+      { encoding: "utf8" },
+    ),
+  );
+  assert.equal(mergedPackage.version, "1.0.1");
+  assert.equal(mergedPackage.mainOnly, true);
+  assert.equal(mergedPackage.dependencies.secure, "2.0.0");
+  result = run(f, "merge-back", { RELEASE_SHA: f.hotfix });
+  assert.equal(result.status, 0, result.stderr);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  const created = api.calls.find(
+    (args) => args[0] === "pr" && args[1] === "create",
+  );
+  const body = created[created.indexOf("--body") + 1];
+  assert.ok(body.includes(f.deployed), "Handoff identifies deployed baseline");
+  assert.ok(body.includes(f.hotfix), "Handoff identifies published repair");
+  assert.match(body, /WORKFLOW\.md/);
+  assert.match(body, /agent handles review, conflict resolution and merge/);
+  assert.match(body, /Merge requires explicit authorization/);
+  assert.equal(
+    api.calls.filter((args) => args[0] === "pr" && args[1] === "create").length,
+    1,
+  );
+});
+
+test("merge-back aborts unsupported conflicts and preserves the main checkout", async (t) => {
+  const f = await fixture(t);
+  await prepareMergeBackFixture(f, { conflict: true });
+  const main = f.git(["rev-parse", "main"]);
+  const result = run(f, "merge-back", { RELEASE_SHA: f.hotfix });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /unsupported conflicts: repair\.js/);
+  assert.equal(f.git(["branch", "--show-current"]), "main");
+  assert.equal(f.git(["rev-parse", "HEAD"]), main);
+  assert.equal(f.git(["status", "--porcelain"]), "");
+  assert.equal(
+    await readFile(path.join(f.repo, ".changeset", "pending.md"), "utf8"),
+    "---\\nfixture: minor\\n---\\n",
+  );
+  assert.equal(
+    await readFile(path.join(f.repo, "repair.js"), "utf8"),
+    "export const fixed = false;\n",
+  );
+  assert.equal(
+    f.git([
+      "ls-remote",
+      "--heads",
+      "origin",
+      `refs/heads/hotfix-merge-back/${f.hotfix}`,
+    ]),
+    "",
+  );
 });
 
 test("finalize tags only the promoted exact SHA and repeats without duplicate Release", async (t) => {
