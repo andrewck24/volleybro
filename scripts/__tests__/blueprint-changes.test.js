@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { pull, publish } from "../blueprint-changes.js";
+import { resolveScopeBase } from "../change-page.js";
 
 const execFileAsync = promisify(execFile);
 const SCRIPT = fileURLToPath(
@@ -38,13 +39,37 @@ async function mkScratch(t, prefix) {
 async function initWork(dir) {
   await mkdir(dir, { recursive: true });
   const workGit = git(dir);
-  await workGit(["init", "-q", "-b", "dev"]);
+  await workGit(["init", "-q", "-b", "main"]);
   await workGit(["config", "user.email", "test@example.com"]);
   await workGit(["config", "user.name", "Test"]);
   await writeFile(path.join(dir, "README.md"), "init\n");
   await workGit(["add", "-A"]);
   await workGit(["commit", "-q", "-m", "init"]);
 }
+
+test("scope follows the remote default through cutover and falls back to main", async (t) => {
+  const dir = await mkScratch(t, "scope-base-");
+  await initWork(dir);
+  const workGit = git(dir);
+  await workGit(["update-ref", "refs/remotes/origin/dev", "HEAD"]);
+  await workGit(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+  await workGit([
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/dev",
+  ]);
+  assert.equal(await resolveScopeBase(dir), "origin/dev");
+  await workGit([
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/main",
+  ]);
+  assert.equal(await resolveScopeBase(dir), "origin/main");
+  await workGit(["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+  assert.equal(await resolveScopeBase(dir), "origin/main");
+  await workGit(["update-ref", "-d", "refs/remotes/origin/main"]);
+  assert.equal(await resolveScopeBase(dir), "main");
+});
 
 // A bare "origin" seeded with a blueprint-changes branch holding two slugs,
 // plus a work repo cloned from it whose BLUEPRINT_CHANGES_REMOTE points back
@@ -563,7 +588,7 @@ test("publish records G2 once the page has a Review tab", async (t) => {
 
 async function landAndBranchOff(work, slug, { squash }) {
   const workGit = git(work);
-  await workGit(["checkout", "-q", "dev"]);
+  await workGit(["checkout", "-q", "main"]);
   if (squash) {
     await workGit(["merge", "-q", "--squash", `feat/${slug}`]);
     await workGit([
@@ -590,9 +615,10 @@ async function landAndBranchOff(work, slug, { squash }) {
   await workGit(["commit", "-q", "-m", "feat: add b"]);
 }
 
-test("publish measures a Migration shard by shard and totals the shards", async (t) => {
+test("publish preserves batch facts through a conventional merge and trunk cutover", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const workGit = git(work);
+  const oldMain = (await workGit(["rev-parse", "HEAD"])).stdout.trim();
   const commit = async (branch, file, lines, shard) => {
     await workGit(["checkout", "-q", "-b", branch]);
     await mkdir(path.join(work, "src"), { recursive: true });
@@ -606,19 +632,35 @@ test("publish measures a Migration shard by shard and totals the shards", async 
     ]);
   };
   await commit("feat/gamma-s1", "a.ts", "one\ntwo\n", 1);
-  await workGit(["checkout", "-q", "dev"]);
+  await workGit(["checkout", "-q", "main"]);
   await workGit([
     "merge",
     "-q",
     "--no-ff",
     "-m",
-    "Merge pull request #1 from owner/feat/gamma-s1",
+    "feat(tooling): deliver first batch (#1)",
     "feat/gamma-s1",
+  ]);
+  await writeFile(
+    path.join(work, "unrelated.md"),
+    "Existing integration work\n",
+  );
+  await workGit(["add", "unrelated.md"]);
+  await workGit(["commit", "-q", "-m", "docs: existing integration work"]);
+  await workGit(["branch", "-m", "main", "dev"]);
+  await workGit(["checkout", "-q", "-b", "main", oldMain]);
+  await workGit([
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "chore: integrate trunk",
+    "dev",
   ]);
   await commit("feat/gamma-s2", "b.ts", "x\ny\nz\n", 2);
   // Shard 2 is pushed but not merged; shard 3 is the branch being published.
   await workGit(["update-ref", "refs/remotes/origin/feat/gamma-s2", "HEAD"]);
-  await workGit(["checkout", "-q", "dev"]);
+  await workGit(["checkout", "-q", "main"]);
   await commit("feat/gamma-s3", "c.ts", "q\n", 3);
   const dir = await writeChangePage(work, "gamma", { shards: 3 });
   await writeFile(

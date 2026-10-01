@@ -1,0 +1,287 @@
+name: Production release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    if: github.event.pull_request.merged == true && vars.RELEASE_AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: read
+      statuses: read
+      pull-requests: read
+      actions: read
+    outputs:
+      candidate_id: ${{ steps.stage.outputs.candidate_id }}
+      candidate_url: ${{ steps.stage.outputs.candidate_url }}
+      baseline: ${{ steps.stage.outputs.baseline }}
+      sha: ${{ steps.stage.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Verify release authorization
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+        run: |
+          git show "$RELEASE_SHA^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          node "$RUNNER_TEMP/release-controls.js" authorize
+      - id: stage
+        name: Stage exact SHA with production configuration
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+        run: |
+          git show "$RELEASE_SHA^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          node "$RUNNER_TEMP/release-controls.js" stage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-release-state
+          path: ${{ runner.temp }}/release-state.json
+          if-no-files-found: error
+          retention-days: 1
+
+  candidate-summary:
+    needs: candidate
+    runs-on: ubuntu-latest
+    outputs:
+      rollback_binding: ${{ steps.bind.outputs.rollback_binding }}
+      rollback_evidence: ${{ steps.bind.outputs.rollback_evidence }}
+    permissions:
+      contents: read
+    steps:
+      - name: Bind human candidate acceptance to this immutable deployment
+        id: bind
+        env:
+          CANDIDATE_ID: ${{ needs.candidate.outputs.candidate_id }}
+          CANDIDATE_URL: ${{ needs.candidate.outputs.candidate_url }}
+          BASELINE: ${{ needs.candidate.outputs.baseline }}
+          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
+          ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
+          ROLLBACK_EVIDENCE: ${{ vars.RELEASE_ROLLBACK_EVIDENCE }}
+        run: |
+          binding="$BASELINE:$CANDIDATE_ID:$RELEASE_SHA"
+          if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
+            echo "rollback_binding=$binding" >> "$GITHUB_OUTPUT"
+            echo "rollback_evidence=$ROLLBACK_EVIDENCE" >> "$GITHUB_OUTPUT"
+          fi
+          {
+            echo '### Production candidate acceptance'
+            echo "- Candidate: \`$CANDIDATE_ID\` ($CANDIDATE_URL)"
+            echo "- Authorized source SHA: \`$RELEASE_SHA\`"
+            echo "- Production baseline: \`$BASELINE\`"
+            if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
+              echo "- Optional rollback compatibility assertion: $binding"
+              echo "- Compatibility source evidence: $ROLLBACK_EVIDENCE"
+              echo 'Approve this optional assertion only after inspecting its source evidence.'
+            else
+              echo 'No rollback compatibility assertion is eligible; failures require human-led recovery.'
+            fi
+            echo 'The protected environment reviewer must verify this exact candidate (including sign-in/session and core read-only team flow) before approving this job. The approval records candidate QA evidence; the merged version PR remains the release authorization.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  candidate-acceptance:
+    needs: [candidate, candidate-summary]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    environment:
+      name: production-release-review
+      url: ${{ needs.candidate.outputs.candidate_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-state
+          path: ${{ runner.temp }}/staged
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Record reviewer-approved compatibility evidence
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
+          RELEASE_ACCEPTED_STATE_FILE: ${{ runner.temp }}/release-state.json
+          RELEASE_ROLLBACK_COMPATIBILITY: ${{ needs.candidate-summary.outputs.rollback_binding }}
+          RELEASE_ROLLBACK_EVIDENCE: ${{ needs.candidate-summary.outputs.rollback_evidence }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+        run: node scripts/release-controls.js record-compatibility
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}/release-state.json
+          if-no-files-found: error
+          retention-days: 7
+
+  promote-and-smoke:
+    needs: [candidate, candidate-acceptance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Recheck baseline and promote candidate
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+        run: |
+          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          node "$RUNNER_TEMP/release-controls.js" promote
+      - name: Smoke production
+        id: smoke
+        continue-on-error: true
+        env:
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+        run: curl --fail --show-error --silent --retry 5 --retry-delay 3 "https://$PRODUCTION_ALIAS/" >/dev/null
+      - name: Roll back only with explicit compatibility evidence
+        if: steps.smoke.outcome == 'failure'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
+      - name: Fail after smoke failure
+        if: steps.smoke.outcome == 'failure'
+        run: exit 1
+
+  postdeploy-summary:
+    needs: [candidate, promote-and-smoke]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Bind live authentication smoke to the promoted candidate
+        env:
+          CANDIDATE_ID: ${{ needs.candidate.outputs.candidate_id }}
+          BASELINE: ${{ needs.candidate.outputs.baseline }}
+          RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+        run: |
+          {
+            echo '### Production post-deployment acceptance'
+            echo "- Promoted candidate: \`$CANDIDATE_ID\`"
+            echo "- Authorized source SHA: \`$RELEASE_SHA\`"
+            echo "- Previous production baseline: \`$BASELINE\`"
+            echo "- Live alias: https://$PRODUCTION_ALIAS"
+            echo 'The automated smoke verified only that the production homepage responds. The protected reviewer must verify sign-in/session and the core read-only team flow on this live alias before the release is tagged.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  postdeploy-acceptance:
+    needs: [candidate, postdeploy-summary]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: production-release-review
+      url: https://${{ vars.PRODUCTION_ALIAS }}
+    steps:
+      - run: echo "Production QA approved for ${{ needs.candidate.outputs.candidate_id }} at ${{ needs.candidate.outputs.sha }}"
+
+  recover-after-production-qa-failure:
+    needs: [candidate, postdeploy-acceptance]
+    if: always() && needs.candidate.result == 'success' && needs.postdeploy-acceptance.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Roll back only with explicit compatibility evidence
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
+
+  finalize-release:
+    needs: [candidate, postdeploy-acceptance]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}
+      - name: Tag exact SHA and create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+        run: |
+          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          node "$RUNNER_TEMP/release-controls.js" finalize

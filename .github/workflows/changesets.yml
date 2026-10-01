@@ -18,13 +18,14 @@ env:
 
 jobs:
   release:
+    if: vars.RELEASE_AUTOMATION_ENABLED == 'true'
     name: Release
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       # RELEASE_TOKEN (a PAT/App token, not the default GITHUB_TOKEN) so the
-      # version PR and the sync PR are authored by a real identity — that is what
-      # lets their `Verify` checks trigger and pass, which the default
+      # version PR is authored by a real identity — that is what lets its
+      # `Verify` checks trigger and pass, which the default
       # GITHUB_TOKEN cannot do (GitHub suppresses workflows on bot-authored PRs).
       - uses: actions/checkout@v4
         with:
@@ -42,7 +43,7 @@ jobs:
       # Version phase only: when changesets are pending, open/refresh the
       # "release: update versions" PR (bump + CHANGELOG + changeset deletions).
       # A human reviews and merges it — the changesets-recommended gate.
-      - uses: changesets/action@v1
+      - uses: changesets/action@v2
         id: changesets
         with:
           version: pnpm run release:version
@@ -54,52 +55,3 @@ jobs:
           title: "release: update versions"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-      # Finalize phase: reached when no changesets remain (i.e. the version PR
-      # just merged). `changeset tag`'s publish detection never fires for this
-      # repo's single private package + `v<version>` tag scheme, so finalize is
-      # explicit and idempotent instead of relying on the action's `published`.
-      - name: Finalize release (tag, GitHub Release, sync back to dev)
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: |
-          set -euo pipefail
-          version=$(node -p "require('./package.json').version")
-          tag="v${version}"
-
-          # Idempotent: nothing to do if this version is already released.
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Release $tag already exists; skipping finalize."
-            exit 0
-          fi
-
-          # Release notes = this version's CHANGELOG section (body only).
-          # index()==1 is an exact prefix match, so version dots stay literal.
-          notes=$(awk -v ver="$version" '
-            index($0, "## [" ver "]") == 1 { f=1; next }
-            f && index($0, "## [") == 1 { exit }
-            f { print }
-          ' CHANGELOG.md)
-
-          if [ -n "$notes" ]; then
-            gh release create "$tag" --target main --title "$tag" --notes "$notes"
-          else
-            echo "::warning::No CHANGELOG section for ${tag}; using generated notes."
-            gh release create "$tag" --target main --title "$tag" --generate-notes
-          fi
-
-          # Sync the release commit (bump + CHANGELOG + changeset deletions) back
-          # to dev. The PR is RELEASE_TOKEN-authored, so Verify runs and
-          # auto-merge can complete once it passes — no ruleset bypass needed.
-          # Throwaway head, never main: the repo auto-deletes merged PR heads.
-          sync_branch="sync/${tag}"
-          if git push origin "HEAD:refs/heads/${sync_branch}" \
-            && pr_url=$(gh pr create --base dev --head "$sync_branch" \
-            --title "chore: sync ${tag} release back to dev" \
-            --body "Automated sync of the ${tag} release commit (version bump, CHANGELOG entry, consumed changeset deletions) from main back into dev."); then
-            gh pr merge "$pr_url" --auto --merge \
-              || echo "::warning::Could not enable auto-merge on the sync PR; merge it manually: $pr_url"
-          else
-            echo "::warning::Could not push ${sync_branch} or open the sync PR (possibly already open, or nothing to sync)."
-          fi

@@ -3,6 +3,7 @@
 // all of them.
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { resolveScopeBase } from "./change-page.js";
 
 export const LANE_COMMANDS = {
   static: [
@@ -103,7 +104,7 @@ export function planLanes(changedPaths, { all = false, full = false } = {}) {
     return plan;
   }
 
-  if (changedPaths === null) return allLanes(true, "no merge-base with dev");
+  if (changedPaths === null) return allLanes(true, "no integration merge-base");
   if (full) return allLanes(true, "full run requested");
 
   const widening = changedPaths.find(affectsEveryLane);
@@ -147,10 +148,14 @@ function git(args) {
   });
 }
 
-function getChangedPaths() {
+async function getChangedPaths() {
   let mergeBase;
   try {
-    mergeBase = git(["merge-base", "HEAD", "dev"]).trim();
+    mergeBase = git([
+      "merge-base",
+      "HEAD",
+      await resolveScopeBase(process.cwd()),
+    ]).trim();
   } catch {
     return null;
   }
@@ -254,7 +259,7 @@ function printSummary(results) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const changedPaths = options.all ? getChangedPaths() : [];
+  const changedPaths = options.all ? await getChangedPaths() : [];
   const plan = planLanes(changedPaths, options);
 
   printPlan(plan);

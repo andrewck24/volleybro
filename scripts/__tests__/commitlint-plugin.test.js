@@ -29,13 +29,13 @@ function runCommitlint(message, branch, envOverrides = {}) {
   }
 }
 
-test("missing trailer on a Change branch is rejected, naming hotfix/<slug>", () => {
+test("missing trailer on a Change branch is rejected, naming patch/<slug>", () => {
   const verdict = evaluateChangeBranchTrailer(
     "feat/my-slug",
     "feat(x): subject\n\nbody.",
   );
   assert.equal(verdict.ok, false);
-  assert.match(verdict.message, /hotfix\/my-slug/);
+  assert.match(verdict.message, /patch\/my-slug/);
 });
 
 test("a trailer naming a different slug is rejected, distinct from a missing one", () => {
@@ -120,10 +120,11 @@ test("a Shard trailer on an ordinary Change branch is rejected", () => {
   assert.match(verdict.message, /not a Sharded Change branch/);
 });
 
-test("no trailer on dev, hotfix/*, or any other non-Change branch passes", () => {
+test("no trailer on main, patch/*, hotfix/*, or any other non-Change branch passes", () => {
   const message = "chore(x): subject\n\nbody.";
   for (const branch of [
-    "dev",
+    "main",
+    "patch/my-slug",
     "hotfix/my-slug",
     "chore/tidy",
     "docs/notes",

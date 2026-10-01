@@ -11,7 +11,7 @@
 
 [![CI][ci-badge]][ci-url] [![Version][version-badge]][changelog-url]
 
-[**Live App**](https://volleybro.vercel.app/) · [**Blueprint**][blueprint-url] · [**Component Library**](https://dev--67bbfeabbc72894ce5eb92db.chromatic.com) · [**Report a Bug**][issues-url] · [**Discussions**][discussions-url]
+[**Live App**](https://volleybro.vercel.app/) · [**Blueprint**][blueprint-url] · [**Component Library**](https://main--67bbfeabbc72894ce5eb92db.chromatic.com) · [**Report a Bug**][issues-url] · [**Discussions**][discussions-url]
 
 📖 **[繁體中文](./README.zh-TW.md)**
 

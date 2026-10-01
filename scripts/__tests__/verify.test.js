@@ -15,7 +15,7 @@ test("unresolved merge-base runs every lane", () => {
   const plan = planLanes(null, { all: true });
   for (const lane of Object.keys(plan)) {
     assert.equal(plan[lane].run, true);
-    assert.equal(plan[lane].reason, "no merge-base with dev");
+    assert.equal(plan[lane].reason, "no integration merge-base");
   }
 });
 

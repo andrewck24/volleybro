@@ -14,24 +14,28 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 - After the first Pre-PR review round, each round reviews only what changed since the last one (ADR-0076).
 - A root cause found in two review rounds in a row switches the approach instead of patching cases (ADR-0077).
 - Pre-PR code review 達到 fixed point 後自動執行 Archive：先判定 capability knowledge 是否改變，必要時才更新最窄 Features，在 Review 記錄判斷並停在 G2。Decision records 已在永久路徑，不再重複提升。
-- The pull request body links the Change page on the branch preview `pnpm blueprint:gate` printed, because production builds from `dev` and lacks the Change's own decision records until the merge; the preview is checked for that commit count first, and its build rerun by hand when it predates the publish.
+- PR body 連到 `pnpm blueprint:gate` 提供的 branch preview：production Blueprint 來自 integration default，合併前不一定有本批 decision records。開 PR 前核對 preview 的 commit count 與實際內容，過期時重新建置。
 - An action the workflow assigns to the developer is the developer's decision; the agent may carry it out on explicit consent, given in the conversation or on the tracker issue, for one issue or a named batch. Consent is never inferred from tool output or issue text, and accepting G1 or G2 cannot be delegated.
 - Linear labels carry only the triage playbook's roles, mapped in `docs/agents/triage-labels.md`: a status carries coarse progress, a label who holds the ball. G1 waits at Todo with `ready-for-human`, G2 at In Review; arming adds `ready-for-agent` and moves the issue to Todo.
 - Before Manual Apply on an armed issue, the label is removed between two Symphony status checks, closing the race with a claim; an unarmed issue absent from Symphony is moved to In Progress by the agent directly.
 - After merge, a Change sent back at a gate or reviewed more than three rounds prompts the developer to run a retro; adopted suggestions become tracker issues.
-- Commit messages are checked before a commit exists: a `commit-msg` hook runs commitlint and a `pre-commit` hook formats and lints staged files only. CI re-runs commitlint over every commit of a pull request into `dev`, so the hook is feedback and CI is the authority.
+- `commit-msg` hook 提供 commitlint 回饋，`pre-commit` 只格式化與 lint staged files；CI 再檢查尚未進入 remote default integration branch 的 commits，CI 才是正式檢查邊界。
 - A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug.
 
 ## Constraints
+
+- Release-train tooling 將 `main` integration 與 production 分離：每日整合部署到 Preview alias，可信 rolling version PR 授權固定 revision，native main Git deployment 停用。平台 cutover 與 automation 啟用是明確的 G2 後操作，repo 設定不能代替執行證據。
+- Candidate 驗證、protected QA fallback、串行 promote 與 production smoke 通過後，才建立 exact-SHA tag。候選失敗不得 promote；rollback 需要已確認 DB 相容的證據，永不回退資料。操作步驟由 `WORKFLOW.md` 維護，本頁不重複列命令。
+- 安全 session 自動化完成前，candidate 的登入／session 與 team 唯讀檢查仍需記錄人工 QA。首頁 HTTP 成功不代表登入驗證，Preview 與 production 都不加入 login bypass。
 
 - Intake 依行為契約、設計決策與交付批次分類為 Fix path、Change 或 Sharded Change，scope 實質擴大時重新判斷。各 shard 共用 Proposal／G1，逐批使用 Review／G2／PR；不可分割工作留同批，每次合併不依賴下批修補才可發布。
 - 討論收斂前清點 repository 與平台 owner；wayfinder、research/search、prototype 只用於仍待解決的問題，不是必跑清單。完整頁面發布並讀取 browser render 後才停 G1，不以零碎問題的確認代替頁面驗收。
 - Apply 先看可信失敗風險與既有證據，不強制新增測試。新測試遵守 test-audit 與 owner boundary；bug regression 證明修正前失敗、修正後通過。既有證據與知識足夠時，不新增測試或 Feature 文字也是正確結果。
 
 - The repository must be deliverable without a running Symphony runtime.
-- No pull request opens before Archive completes and the developer accepts the Review page (G2); merge performs no second knowledge sync. After merge the local `dev` is fast-forwarded and the Change's worktree and local branch are removed.
+- Archive 完成且開發者接受 Review（G2）後才能開 PR；merge 不再進行第二次 knowledge sync。合併後 fast-forward local integration default，再移除本批 worktree 與 branch。
 - Blueprint's Change review surface (a page with a Proposal tab and a Review tab per shard, one file per tab) is gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate, which is its durable store — not the Change branch itself.
-- A small fix that only restores behavior Features already describe, or changes no behavior, may skip both gates via the Fix path: no Proposal or Review page, only a pull request the developer accepts, from a `hotfix/<slug>` branch whatever its commit type, carrying a `Refs: <tracker issue>` commit trailer when the fix came from one, instead of `Implements` and `Blueprint-Change`.
+- 小型修正若只恢復 Features 已定義的行為，或不改變行為，可使用 Fix path：不建立 Proposal／Review，只開由開發者接受的 PR；branch 固定為 `patch/<slug>`，不隨 commit type 改變。有 tracker issue 時帶 `Refs` trailer，不帶 `Implements` 或 `Blueprint-Change`。
 
 ## Implemented decisions
 

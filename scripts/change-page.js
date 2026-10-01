@@ -217,12 +217,14 @@ export async function git(root, args) {
 }
 
 export async function resolveScopeBase(root) {
-  try {
-    await git(root, ["rev-parse", "--verify", "origin/dev"]);
-    return "origin/dev";
-  } catch {
-    return "dev";
+  const remoteDefault = await orNull(() =>
+    git(root, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]),
+  );
+  for (const ref of [remoteDefault, "origin/main", "main"].filter(Boolean)) {
+    if (await orNull(() => git(root, ["rev-parse", "--verify", ref])))
+      return ref;
   }
+  return "main";
 }
 
 async function orNull(read) {
@@ -235,9 +237,7 @@ async function orNull(read) {
 
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// The commit on dev's first-parent line that landed the Change, or one shard
-// of it: a merge commit whose subject names its branch, or a squash commit
-// carrying its trailers.
+// Integration cutovers may carry earlier batch merges through a second parent.
 export async function landingOf(root, base, slug, shard) {
   const name = escapeRegExp(shard === undefined ? slug : `${slug}-s${shard}`);
   const branch = new RegExp(
@@ -247,7 +247,6 @@ export async function landingOf(root, base, slug, shard) {
   // is not taken for one.
   const log = await git(root, [
     "log",
-    "--first-parent",
     "--format=%H%x1f%P%x1f%cI%x1f%s%x1f%(trailers:key=Blueprint-Change,valueonly,separator=%x1d)%x1f%(trailers:key=Shard,valueonly,separator=%x1d)%x1e",
     base,
   ]);
@@ -261,7 +260,26 @@ export async function landingOf(root, base, slug, shard) {
       shards = "",
     ] = record.trim().split("\x1f");
     const [first, second] = parents.split(" ");
-    if (second && branch.test(subject)) {
+    let isBatchMerge = second && branch.test(subject);
+    if (second && !isBatchMerge) {
+      const trailers = await git(root, [
+        "log",
+        "--no-merges",
+        "--format=%(trailers:key=Blueprint-Change,valueonly)%x1f%(trailers:key=Shard,valueonly)%x1e",
+        `${first}..${second}`,
+      ]);
+      const entries = trailers.split("\x1e").filter((entry) => entry.trim());
+      isBatchMerge =
+        entries.length > 0 &&
+        entries.every((entry) => {
+          const [change, batch] = entry.trim().split("\x1f");
+          return (
+            change?.trim() === slug &&
+            batch?.trim() === (shard === undefined ? "" : String(shard))
+          );
+        });
+    }
+    if (isBatchMerge) {
       return {
         from: first,
         to: hash,
