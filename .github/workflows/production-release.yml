@@ -49,18 +49,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.workflow_sha }}
           fetch-depth: 0
       - id: controller
         name: Copy trusted release controller before candidate checkout
         env:
           EVENT_NAME: ${{ github.event_name }}
         run: |
+          controller_sha=$(git rev-parse HEAD)
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
-            controller_sha=$(git rev-parse HEAD)
             mode=hotfix
           else
-            controller_sha=$(git rev-parse HEAD^1)
             mode=normal
           fi
           git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
@@ -172,7 +171,7 @@ jobs:
           path: ${{ runner.temp }}/staged
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.controller_sha }}
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
       - name: Copy trusted release controller
@@ -202,7 +201,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.controller_sha }}
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
       - name: Copy trusted release controller
@@ -293,7 +292,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.controller_sha }}
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
       - name: Copy trusted release controller
@@ -329,7 +328,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.controller_sha }}
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
       - name: Copy trusted release controller
@@ -363,7 +362,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.controller_sha }}
+          ref: ${{ github.workflow_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
       - name: Copy trusted release controller
