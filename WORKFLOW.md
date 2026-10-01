@@ -109,7 +109,7 @@ A developer-owned row follows the consent rule above. A run that needs the devel
 
 ## Lifecycle
 
-Every Change has a stable kebab-case slug and one integration branch. Human-facing titles may change without changing the slug. Two human gates bound the whole lifecycle: **G1** accepts the converged discussion before any implementation, and **G2** accepts the Review tab before the pull request opens. Everything between a gate and the next runs without stopping for a human: collect judgement questions and ask them at the next gate alongside the finished work, and stop early only when a different answer would make the remaining work useless.
+Every Change has a stable kebab-case slug; each delivery batch has one integration branch. Human-facing titles may change without changing the slug. Two human gates bound delivery: **G1** accepts the complete, published and browser-verified Proposal before any implementation, and **G2** accepts each batch's Review before its pull request opens. Everything between a gate and the next runs without stopping for a human: collect judgement questions and ask them at the next gate alongside the finished work, and stop early only for missing authority or when a different answer would make the remaining work useless.
 
 ### 1. Discuss and propose
 
@@ -164,7 +164,7 @@ Ingest is the corrective, developer-authorized step from the former Spectra life
 3. clarify the changed decision, using `grill-with-docs` when needed;
 4. update the affected ADRs and the summary;
 5. preserve completed slices and their evidence;
-6. return the updated summary to G1 for confirmation, then regenerate the Proposal tab and run `pnpm blueprint:gate <slug> --gate G1`;
+6. regenerate and publish the updated Proposal with `pnpm blueprint:gate <slug> --gate G1`, verify the rendered page, then return it to the developer for renewed G1 acceptance;
 7. once accepted, resume Apply from where it paused.
 
 ### 3. Pre-PR gate and delivery

@@ -20,7 +20,7 @@ Blueprint Features describe the current and planned capability tree:
 - place reusable UI/UX rules in the Design System rather than duplicating them across Features;
 - represent product direction as roadmap state without copying operational scheduling from the configured tracker.
 
-A Feature page holds no decision file of its own: a record names its capabilities and every page they name renders it, so one decision governing several capabilities stays one file. Archive promotes behavior and durable constraints to Features and leaves the records where they are.
+A Feature page holds no decision file of its own: a record names its capabilities and every page they name renders it, so one decision governing several capabilities stays one file. Archive first assesses whether durable capability knowledge changed, updates only the affected Features when needed, records the assessment in Review and leaves decision records where they are.
 
 Code and tests remain the behavioral authority. Feature prose must agree with their observable behavior, while Changesets remain the authority for semantic version and changelog evidence.
 

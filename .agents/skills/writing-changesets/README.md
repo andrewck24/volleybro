@@ -15,7 +15,7 @@ Documentation-only work, pure internal refactors, tests and formatting generally
 ## Toolchain
 
 - `.changeset/config.json` configures packages, versions and the formatter.
-- `.changeset/changelog-fn.cjs` returns the authored body verbatim.
+- `.changeset/changelog-fn.js` returns the authored body verbatim.
 - `.changeset/changelog-postprocess.js` normalizes version headings and merges duplicate category headings.
 - `pnpm changeset status --verbose` reports pending entries and projected versions.
 - `pnpm release:version` runs version preparation and postprocessing, consuming pending changesets. It is not a manual shortcut around release authorization, validation or deployment.
