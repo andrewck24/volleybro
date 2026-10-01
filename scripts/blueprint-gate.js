@@ -51,16 +51,23 @@ async function runCheckWorkflow(root, slug) {
 // which every CI job and deploy would otherwise download (ADR-0097).
 const CF = "cf@^1.0.0-beta.5";
 
-// Through pnpm's own entry script, which the gate's pnpm run sets, because
-// Windows cannot spawn the pnpm shim without a shell.
 async function runCf(root, args) {
-  const pnpm = process.env.npm_execpath;
-  if (!pnpm) throw new Error("run the gate through pnpm blueprint:gate");
-  const { stdout } = await execFileAsync(
-    process.execPath,
-    [pnpm, "dlx", CF, ...args],
-    { cwd: path.join(root, "blueprint"), timeout: 120_000 },
-  );
+  const options = { cwd: path.join(root, "blueprint"), timeout: 120_000 };
+  let result;
+  try {
+    result = await execFileAsync("cf", args, options);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    const pnpm = process.env.npm_execpath;
+    if (!pnpm) throw new Error("run the gate through pnpm blueprint:gate");
+    const isScript = /\.[cm]?js$/i.test(pnpm);
+    result = await execFileAsync(
+      isScript ? process.execPath : pnpm,
+      [...(isScript ? [pnpm] : []), "dlx", CF, ...args],
+      options,
+    );
+  }
+  const { stdout } = result;
   return JSON.parse(stdout.slice(stdout.search(/[[{]/)));
 }
 

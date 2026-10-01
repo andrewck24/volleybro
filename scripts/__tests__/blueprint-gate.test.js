@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -186,4 +186,68 @@ test("a preview URL folds the branch name into one DNS label", () => {
     previewUrl("hotfix/single-page-change-leftovers", "x"),
     "https://hotfix-single-page-change-leftovers-volleybro-blueprint.andrewck24.workers.dev/changes/x",
   );
+});
+
+test("preview CLI prefers installed cf and falls back only when absent", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "preview-cli-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "blueprint"));
+  await writeFile(
+    path.join(root, "blueprint", "wrangler.toml"),
+    'name = "docs-site"\n',
+  );
+  const moduleUrl = new URL("../blueprint-gate.js", import.meta.url).href;
+  const output = `if (process.argv.includes("search")) console.log(JSON.stringify([{id:"id",script_name:"docs-site"}]));
+else if (process.argv.includes("triggers")) console.log(JSON.stringify([{trigger_uuid:"trigger",branch_includes:["*"]}]));
+else if (process.argv.includes("create")) console.log(JSON.stringify({build_uuid:"build"}));
+else console.log(JSON.stringify({status:"queued"}));`;
+  for (const [name, globalCf, launcher, success] of [
+    ["installed", output, "missing", true],
+    [
+      "auth failure",
+      'console.error("Not logged in"); process.exit(1);',
+      "native",
+      false,
+    ],
+    ["invalid JSON", 'console.log("invalid JSON");', "native", false],
+    ["native fallback", null, "native", true],
+    ["JS fallback", null, "JS", true],
+  ]) {
+    await t.test(name, async () => {
+      const bin = path.join(root, name.replaceAll(" ", "-"));
+      await mkdir(bin);
+      const executable = async (file, source) => {
+        await writeFile(file, `#!${process.execPath}\n${source}\n`);
+        await chmod(file, 0o755);
+      };
+      if (globalCf !== null) await executable(path.join(bin, "cf"), globalCf);
+      const pnpm = path.join(bin, launcher === "JS" ? "pnpm.cjs" : "pnpm");
+      if (launcher !== "missing") {
+        await executable(path.join(bin, "pnpm.cjs"), output);
+        if (launcher === "native") {
+          await writeFile(
+            pnpm,
+            `#!/bin/sh\nexec '${process.execPath}' '${path.join(bin, "pnpm.cjs")}' "$@"\n`,
+          );
+          await chmod(pnpm, 0o755);
+        }
+      }
+      const { stdout } = await execFileAsync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `
+        import { rebuildPreview } from ${JSON.stringify(moduleUrl)};
+        console.log(await rebuildPreview(${JSON.stringify(root)}, "feat/example"));
+      `,
+        ],
+        { env: { ...process.env, PATH: bin, npm_execpath: pnpm } },
+      );
+      assert.match(
+        stdout,
+        success ? /build build started \(queued\)/ : /Could not start/,
+      );
+    });
+  }
 });
