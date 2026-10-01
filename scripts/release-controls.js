@@ -379,7 +379,7 @@ async function stage() {
     fail("Vercel deploy output did not include candidate identity");
   const candidate = await deployment(candidateId);
   if (!candidate.id) fail("Staged deployment did not return an ID");
-  validateCandidate(candidate, candidate.id, sha);
+  validateCandidate(candidate, candidateId, sha);
   const output = {
     candidateId: candidate.id,
     candidateUrl: `https://${candidateUrl.replace(/^https?:\/\//, "")}`,

@@ -126,12 +126,12 @@ async function fixture(t) {
   );
   await stub(
     "gh",
-    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result={protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
+    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result=s.environment||{protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
   );
   const preload = path.join(root, "preload.mjs");
   await writeFile(
     preload,
-    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE));if(String(u).includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(String(u).includes('/v13/deployments/'))return Response.json({id:'dpl_cand',readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[]});return new Response('',{status:s.healthStatus||200})};",
+    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE));if(String(u).includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(String(u).includes('/v13/deployments/'))return Response.json({id:'dpl_cand',readyState:s.readiness||'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[],...s.candidate});return new Response('',{status:s.healthStatus||200})};",
   );
   return {
     root,
@@ -179,6 +179,17 @@ test("stage runs the real CLI and records exact checkout SHA, baseline, and cand
     deploymentId: "dpl_base",
     updatedAt: "1",
   });
+  for (const candidate of [
+    { id: "dpl_other" },
+    { target: "preview" },
+    { meta: { releaseSha: "wrong-sha" } },
+    { alias: ["app.test"] },
+    { readyState: "BUILDING" },
+  ]) {
+    await updateApi(f, { candidate });
+    const invalid = run(f, "stage");
+    assert.notEqual(invalid.status, 0, JSON.stringify(candidate));
+  }
 });
 
 test("rollback requires accepted run-bound evidence, not mutable environment values", async (t) => {
@@ -230,6 +241,7 @@ test("authorize validates the real PR, exact check sources and metadata through 
   assert.equal(valid.status, 0, valid.stderr);
   const original = JSON.parse(await readFile(f.statePath, "utf8"));
   for (const override of [
+    { environment: { protection_rules: [] } },
     { checks: [] },
     { checks: [{ ...original.checks[0], app: { id: 999 } }] },
     { checks: [{ ...original.checks[0], head_sha: f.merge }] },
@@ -262,10 +274,10 @@ test("authorize validates the real PR, exact check sources and metadata through 
     },
     { pr: { ...original.pr, user: { login: "impostor" } } },
   ]) {
-    await updateApi(f, { ...original, ...override });
+    await updateApi(f, { ...original, environment: undefined, ...override });
     assert.notEqual(run(f, "authorize").status, 0, JSON.stringify(override));
   }
-  await updateApi(f, original);
+  await updateApi(f, { ...original, environment: undefined });
   await writeFile(
     path.join(f.repo, "runtime.js"),
     "export const changed = true;\n",
