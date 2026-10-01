@@ -4,6 +4,16 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Reviewed same-repository hotfix pull request number
+        required: true
+        type: string
+      sha:
+        description: Exact reviewed hotfix commit SHA
+        required: true
+        type: string
 
 permissions: {}
 
@@ -13,7 +23,14 @@ concurrency:
 
 jobs:
   candidate:
-    if: github.event.pull_request.merged == true && vars.RELEASE_AUTOMATION_ENABLED == 'true'
+    if: >-
+      vars.RELEASE_AUTOMATION_ENABLED == 'true' &&
+      ((github.event_name == 'pull_request' &&
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.head.ref == 'changeset-release/main' &&
+        github.event.pull_request.title == 'release: update versions') ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/main'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -27,27 +44,57 @@ jobs:
       candidate_url: ${{ steps.stage.outputs.candidate_url }}
       baseline: ${{ steps.stage.outputs.baseline }}
       sha: ${{ steps.stage.outputs.sha }}
+      controller_sha: ${{ steps.controller.outputs.controller_sha }}
+      mode: ${{ steps.controller.outputs.mode }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - id: controller
+        name: Copy trusted release controller before candidate checkout
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            controller_sha=$(git rev-parse HEAD)
+            mode=hotfix
+          else
+            controller_sha=$(git rev-parse HEAD^1)
+            mode=normal
+          fi
+          git show "$controller_sha:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
+          echo "controller_sha=$controller_sha" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+      - name: Verify release authorization
+        id: authorize
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || github.event.pull_request.merge_commit_sha }}
+          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+          HOTFIX_PR_NUMBER: ${{ inputs.pull_request }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
+          MODE: ${{ steps.controller.outputs.mode }}
+        run: |
+          if [ "$MODE" = hotfix ]; then
+            node "$RUNNER_TEMP/release-controls.js" authorize-hotfix
+          else
+            node "$RUNNER_TEMP/release-controls.js" authorize
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.authorize.outputs.sha }}
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - name: Verify release authorization
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          GITHUB_EVENT_PATH: ${{ github.event_path }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
-        run: |
-          git show "$RELEASE_SHA^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
-          node "$RUNNER_TEMP/release-controls.js" authorize
       - id: stage
         name: Stage exact SHA with production configuration
         env:
@@ -56,11 +103,13 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
-          RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          RELEASE_SHA: ${{ steps.authorize.outputs.sha }}
+          CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
+          EXPECTED_BASELINE_DEPLOYMENT: ${{ steps.authorize.outputs.baseline_deployment }}
+          EXPECTED_BASELINE_UPDATED_AT: ${{ steps.authorize.outputs.baseline_updated_at }}
+          EXPECTED_BASELINE_SHA: ${{ steps.authorize.outputs.baseline_sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-        run: |
-          git show "$RELEASE_SHA^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
-          node "$RUNNER_TEMP/release-controls.js" stage
+        run: node "$RUNNER_TEMP/release-controls.js" stage
       - uses: actions/upload-artifact@v4
         with:
           name: production-release-state
@@ -84,6 +133,7 @@ jobs:
           CANDIDATE_URL: ${{ needs.candidate.outputs.candidate_url }}
           BASELINE: ${{ needs.candidate.outputs.baseline }}
           RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
+          RELEASE_MODE: ${{ needs.candidate.outputs.mode }}
           ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
           ROLLBACK_EVIDENCE: ${{ vars.RELEASE_ROLLBACK_EVIDENCE }}
         run: |
@@ -104,7 +154,7 @@ jobs:
             else
               echo 'No rollback compatibility assertion is eligible; failures require human-led recovery.'
             fi
-            echo 'The protected environment reviewer must verify this exact candidate (including sign-in/session and core read-only team flow) before approving this job. The approval records candidate QA evidence; the merged version PR remains the release authorization.'
+            echo "The protected environment reviewer must verify this exact candidate (including sign-in/session and core read-only team flow) before approving this job. The approval records candidate QA evidence; the exact $RELEASE_MODE source remains the release authorization."
           } >> "$GITHUB_STEP_SUMMARY"
 
   candidate-acceptance:
@@ -123,9 +173,11 @@ jobs:
           path: ${{ runner.temp }}/staged
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.candidate.outputs.sha }}
+          ref: ${{ needs.candidate.outputs.controller_sha }}
           sparse-checkout: scripts/release-controls.js
           fetch-depth: 0
+      - name: Copy trusted release controller
+        run: cp scripts/release-controls.js "$RUNNER_TEMP/release-controls.js"
       - name: Record reviewer-approved compatibility evidence
         env:
           RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
@@ -134,7 +186,7 @@ jobs:
           RELEASE_ROLLBACK_EVIDENCE: ${{ needs.candidate-summary.outputs.rollback_evidence }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
-        run: node scripts/release-controls.js record-compatibility
+        run: node "$RUNNER_TEMP/release-controls.js" record-compatibility
       - uses: actions/upload-artifact@v4
         with:
           name: production-release-accepted-state
@@ -149,6 +201,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.controller_sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Copy trusted release controller
+        run: cp scripts/release-controls.js "$RUNNER_TEMP/release-controls.js"
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.candidate.outputs.sha }}
@@ -170,9 +229,7 @@ jobs:
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-        run: |
-          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
-          node "$RUNNER_TEMP/release-controls.js" promote
+        run: node "$RUNNER_TEMP/release-controls.js" promote
       - name: Smoke production
         id: smoke
         continue-on-error: true
@@ -237,6 +294,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.candidate.outputs.controller_sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Copy trusted release controller
+        run: cp scripts/release-controls.js "$RUNNER_TEMP/release-controls.js"
+      - uses: actions/checkout@v4
+        with:
           ref: ${{ needs.candidate.outputs.sha }}
           fetch-depth: 0
       - uses: actions/download-artifact@v4
@@ -255,9 +319,7 @@ jobs:
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
           GITHUB_RUN_ID: ${{ github.run_id }}
-        run: |
-          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
-          node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
+        run: node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
 
   finalize-release:
     needs: [candidate, postdeploy-acceptance]
@@ -266,6 +328,13 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.controller_sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Copy trusted release controller
+        run: cp scripts/release-controls.js "$RUNNER_TEMP/release-controls.js"
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.candidate.outputs.sha }}
@@ -282,6 +351,64 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
+        run: node "$RUNNER_TEMP/release-controls.js" finalize
+
+  merge-back:
+    needs: [candidate, finalize-release]
+    if: needs.candidate.outputs.mode == 'hotfix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.controller_sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Copy trusted release controller
+        run: cp scripts/release-controls.js "$RUNNER_TEMP/release-controls.js"
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}
+      - name: Prepare ordinary hotfix merge-back pull request
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+          RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
         run: |
-          git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
-          node "$RUNNER_TEMP/release-controls.js" finalize
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          node "$RUNNER_TEMP/release-controls.js" merge-back
+
+  failure-summary:
+    needs:
+      - candidate
+      - candidate-acceptance
+      - promote-and-smoke
+      - postdeploy-acceptance
+      - recover-after-production-qa-failure
+      - finalize-release
+      - merge-back
+    if: always() && contains(needs.*.result, 'failure')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Record release failure
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo '### Production release stopped'
+            echo
+            echo "A guarded release or merge-back job failed. Inspect the actual production deployment, tag and immutable artifacts before retrying; publication may have succeeded before synchronization failed: $RUN_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
