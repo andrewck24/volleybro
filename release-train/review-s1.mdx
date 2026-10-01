@@ -1,0 +1,104 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+請驗收本批 Delivery contract。G2 接受後才能開本批 PR；其餘 shards 尚未實作。
+
+1. ADR-0060 的 `decision` 已改為完整 Proposal 先發布並經 browser 驗證，再由人接受 G1；保留原本為何需要 durable specification 的歷史理由，操作順序只由 `WORKFLOW.md` 維護。
+2. ADR-0093 的 `decision` 已從 Migration-only 通用化為 Sharded Change；保留當初拒絕各 shard 各自建立 Change 頁面的理由，不再重複維護 branch／trailer／gate 規則。這兩份 record 的變更是 Proposal 已列入的本批工作，依契約在此揭露 G1 後的文字修改；ADR-0100 未再修改。
+
+本批不需開發者操作 GitHub、Vercel、DB 或手動測試 app。`dev` 與現行 Fix-path `hotfix/*` 仍保留，真正的 integration／production 切換由後續批次交付。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `WORKFLOW.md` 的 Intake、Lifecycle 與 Ingest：scope 擴大時重新分類，Sharded Change 共用設計與 G1，各批獨立可發布；不可分割內容留同批，不把半成品合進整合線。
+2. Apply／Archive：先判定可信風險與已有證據，真正缺口才補測試；先判定 capability knowledge 是否改變，必要時才更新 Features。沒有新增測試或 Feature 文字可以是正確結果，但必須有理由。
+3. `scripts/check-workflow.js` 與 Changeset authoring：正式入口改為 `--sharded-change`，舊 `--migration` 仍相容；各 batch 的 changeset 隨自己的 PR 交付，舊 skill README 的重複 release runbook、過期檔案路徑與危險手動 fallback 已移除。
+
+</ReviewFocus>
+
+<Deviations>
+
+無產品、scope 或驗收契約偏離。CLI 保留 `--migration` 相容入口，既有呼叫者不因術語通用化中斷；沒有新增 framework、測試資料庫或重複 ADR。
+
+本批可在同一 session 直接完成，未建立形式性的 implementation slices；branch commits 與共同 `Blueprint-Change`／`Shard` trailers 保存交付證據。Archive 判定 delivery-workflow、Blueprint 與 testing 的 current knowledge 確實改變，已更新相應 Features；未變動的其他能力不重寫。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios.filter((scenario) => scenario.shard === 1)}
+  results={[
+    {
+      id: "S1",
+      result: "pass",
+      evidence: "Intake 分類與 scope 升級、共同 G1／逐批 G2、不可分割交付、頁面先發布與 Ingest 順序已對齊；既有 shard branch／scenario／trailer 正反案例通過，新 CLI 在舊實作失敗、修正後通過。Spec independent review 已確認本批符合 Proposal。",
+    },
+    {
+      id: "S2",
+      result: "pass",
+      evidence: "Apply 不再強制第一個 slice 新增 acceptance test，Archive 先判斷再必要提升；test-audit authoring gate 實際檢查新 CLI case 的公開 process boundary，重用既有 fixture，無 test-only production seam、無新增純 prose grep tests。",
+    },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    {
+      id: "T1",
+      checks: "Scoped final gate",
+      method: "pnpm verify:all",
+      executor: "agent",
+      environment: "macOS Change worktree",
+      result: "pass",
+      evidence: "static、workflow、blueprint lanes 全部 pass；workflow 輸出 ℹ pass 175／ℹ fail 0；Blueprint Tests: 78 passed, 78 total。integration、app-build、app-test 因本批沒有相關改動而由既有 planner 跳過，不宣稱已執行。",
+    },
+    {
+      id: "T2",
+      checks: "CLI regression 與相容性",
+      method: "node --test scripts/__tests__/check-workflow.test.js scripts/__tests__/commitlint-plugin.test.js scripts/__tests__/change-page.test.js",
+      executor: "agent",
+      environment: "隔離 Git fixture／真實 Node CLI",
+      result: "pass",
+      evidence: "ℹ pass 122／ℹ fail 0；新的 --sharded-change CLI case 在基線因仍出現 change-scope warning 而失敗，實作後通過；舊 alias 與逐批 gate 正反例仍通過。",
+    },
+    {
+      id: "T3",
+      checks: "Independent review fixed point",
+      method: "code-review：Standards 與 Spec 獨立 review，修正後 delta review",
+      executor: "agent",
+      environment: "兩個獨立 review contexts",
+      result: "pass",
+      evidence: "首輪 stale Lifecycle 總則與 Feature 語言 findings 已修正；連同 Ingest 順序、Archive 條件與 formatter 路徑一併核對，第二輪兩軸無未處理 findings。",
+    },
+  ]}
+/>
+
+<AfterRelease>
+
+本批合併後才讓新的 Delivery contract 成為 default branch 上的現行規則；之後再從最新整合線執行 trunk 與 normal release 批次。此次沒有 app release、平台 cutover 或刪除 `dev`，不把 Proposal 的目標圖當作已部署架構。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+## 驗證與保存
+
+- `pnpm verify:all` 依 diff 執行 static、workflow、Blueprint；保留原 planner 的範圍判定，沒有為文件改動強迫跑 app／DB tests。
+- `git diff --check` 通過。公開 CLI case 跑真的 command，不比對 source 字串；preview-output test 只保護正確 URL 與 commit count，不鎖死提示整句。
+- 沒有刪除或移動 test；保留原 owner suites 的 shard／trailer／scenario 正反案例。Skill README 刪減的是重複及過期 release 步驟，canonical workflow 與目前 CI 行為仍可查。
+- Current Features 已反映本批驗證後的交付規則；只有本批修改的 prose 翻為 zh-TW，不全域重寫歷史頁面。
+- G1 的 browser reading 和人類接受不能由 Git／CI 自動證明；gate output 明確要求看最新內容與圖稿，header count 相同不足以證明頁面新鮮。沒有新增假的「已人工驗收」旗標。
+
+## Review findings 與修正
+
+1. Spec 首輪發現 Lifecycle 總則仍寫摘要即 G1／整個 Change 一條 branch。已改為每 delivery batch branch 與 published-page G1；同根因的 Ingest 舊順序也完成 sweep。
+2. Standards 首輪發現本批 Feature prose 仍為 English。只翻譯本批新增及修改段落，保留不在範圍的歷史內容；第二輪確認符合規則。
+3. 作者 read-back 修正 Changesets formatter 的舊 `.cjs` 路徑，實際 owner 是 `.js`。既有嚴格提示文字斷言改為穩定 CLI 輸出契約，完整 gate 重跑通過。
+
+## 殘餘風險
+
+本批只改交付規則與工具提示，沒有提前搬移 default branch／production deployment。後續平台切換仍須 live inventory、設定 read-back 與各批 G2；production hotfix、Dependabot auto-merge 與 session smoke 尚非本批已完成能力。
+
+</ReviewDetails>
