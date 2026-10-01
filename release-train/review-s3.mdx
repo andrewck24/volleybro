@@ -2,13 +2,12 @@ import { scenarios } from "./proposal.mdx";
 
 <ActionItems>
 
-請驗收本批 isolated hotfix、merge-back 與已接受的 Fast-path policy。G2 接受後才開本批 PR；尚未執行 production 發布或 main cutover。
+現在只需驗收本批 G2：isolated hotfix、Agent-first merge-back 與已接受的 Fast-path policy。接受後由 Agent 開 PR、確認 CI，依合併授權交付工具；不會因此發布 app。
 
-1. Hotfix dispatch 指定 `main` workflow、PR number 與完整 reviewed SHA。實作要求該 SHA 的 current GitHub approval，reviewer 須具有 write／maintain／admin 權限；dispatch 不取代 review。GitHub 不允許作者核准自己的 PR，因此修補 PR 需由 bot／另一位作者與可信 reviewer 配合。
-2. 既有 Shard 2 的平台切換、project-scoped CI credentials、required reviewers 與候選／上線後 authenticated QA 仍須完成。Production deployment 的 source SHA 與 remote version tag 必須一致，否則 hotfix 停止。沿用原授權範圍，不擴大權限、不新增 login bypass。
-3. Hotfix 發布成功後，merge-back PR 仍由人檢視及合併；若衝突或 metadata 無法安全處理，workflow 通知停止，不自行丟棄變更。同步失敗不代表已完成的 production publication 被撤銷，重試前先核對 deployment／tag／artifacts。
+1. 同步優先交由你啟動的 Agent 檢視、解衝突、驗證，取得明確授權後合併；需要新決策、缺少權限或無法安全處理才交回你。Workflow 不自動派工，也不 auto-merge。
+2. 本批合併前／後都不要求你現在設定 credentials、切換平台或做 production 登入 QA。這些啟用工作集中於 Shard 4 的完整步驟，整套工具接受並合併後才執行；不是取消安全關卡。
 
-本批沒有改写既有 ADR 的 `decision`；ADR-0063 只新增 `supersededBy`，由已接受 Ingest 的 ADR-0101 取代。
+本批沒有改寫既有 ADR 的 `decision`；ADR-0063 只新增 `supersededBy`，由已接受 Ingest 的 ADR-0101 取代。
 
 </ActionItems>
 
@@ -16,13 +15,15 @@ import { scenarios } from "./proposal.mdx";
 
 1. `authorize-hotfix`：same-repo active PR、exact-SHA current review／trusted reviewer／latest checks、deployed source／remote tag，以及不夾帶未發布 integration history 的檢查。
 2. `production-release.yml`：先從可信 integration revision 複製 controller，通過授權後才 checkout 修補及執行 toolchain；共用 lock、candidate QA、promote／smoke、rollback receipt 與 finalize。
-3. `merge-back`：普通 merge commit 保留 repair parent、main 變更與 pending changesets；只安全調和版本／changelog，未知衝突停止，不 auto-merge、不 rebase、不重新部署。
+3. `merge-back`：普通 merge commit 保留 repair parent、main 變更與 pending changesets；機械程序只安全調和 metadata，其他衝突交 Agent 依 `WORKFLOW.md` 處理。PR body 帶基準／repair 與授權邊界，不 auto-merge、不 rebase、不重新部署。
 
 </ReviewFocus>
 
 <Deviations>
 
-無 scope 或架構偏離。Fast path 與 pnpm prerequisite 已經 Ingest／renewed G1；沿用同一 shared Proposal，不另建 toolchain Blueprint。原 Shard 1／2 Reviews 與 adopted ADR text 保留。
+依本次 G2 回饋，merge-back 從預設人工操作改為 Agent-first；發布與資料安全邊界不變。首次平台啟用改為整套工具交付後執行，操作清單集中於 Shard 4，不在各 shard 重複要求。原 Shard 1／2 Reviews 與 adopted ADR text 保留，不回寫歷史驗收。
+
+Fast path 與 pnpm prerequisite 已經 Ingest／renewed G1；沿用同一 shared Proposal，不另建 toolchain Blueprint。
 
 Archive 判定 hotfix 與 Fast-path delivery capability 改變，僅更新 `platform/delivery-workflow`。沒有因此完成安全 session、完整 E2E 或 live cutover，不改寫其 Features。本批攜帶 contributor-visible minor Changeset，不重複 pnpm prerequisite 的 patch entry。
 
@@ -40,20 +41,20 @@ Archive 判定 hotfix 與 Fast-path delivery capability 改變，僅更新 `plat
 <TestPlan
   items={[
     { id: "T1", checks: "Final repository gate", method: "pnpm verify:all --full", executor: "agent", environment: "macOS primary Change checkout", result: "pass", evidence: "全部六 lanes pass；workflow 193／193，integration 21 suites／76 tests，app 153 suites／1057 tests，Blueprint 19 suites／78 tests。App production build 通過；另執行 Blueprint build，所有 Change pages 可 prerender。" },
-    { id: "T2", checks: "Public CLI owner／isolation regression", method: "node --test scripts/__tests__/release-controls.test.js", executor: "agent", environment: "隔離 Git remote 與外部 transport fixtures", result: "pass", evidence: "11／11 通過。新增 integration-history regression 在修正前實際誤授權而失敗，修正後依指定理由拒絕。沒有新增 test-only production export，沒有實際部署、DB reset 或平台 mutation。" },
-    { id: "T3", checks: "Independent two-axis fixed point", method: "Standards／Spec review，修正後 delta review", executor: "agent", environment: "兩個獨立 review contexts", result: "pass", evidence: "Spec 發現 deployed ancestry 不足以隔離未發布 main history，已修正並補 regression；兩軸最終皆無未處理 finding。最後 failure summary 修正也通過 delta review，不把 publication 後同步失敗誤稱未發布。" },
-    { id: "T4", checks: "Real candidate／production authenticated QA", method: "既有 protected candidate 及 postdeploy gate", executor: "developer", environment: "固定 production-config candidate／正式 alias", result: "pending", evidence: "本批沒有 live hotfix candidate；平台 cutover、source/tag read-back 與首頁／Google session／team 唯讀 QA 沿用 Shard 2 的操作項。未完成時不 promote／finalize，不宣稱完全自動化。" },
+    { id: "T2", checks: "Public CLI owner／isolation regression", method: "node --test scripts/__tests__/release-controls.test.js", executor: "agent", environment: "隔離 Git remote 與外部 transport fixtures", result: "pass", evidence: "11／11 通過。Integration-history regression 舊誤授權／新拒絕；Agent handoff regression 舊缺少 deployed baseline 而失敗，新生成 PR 提供基準／repair／操作規則／合併授權要求。沒有新增 test-only production export，沒有實際部署、DB reset 或平台 mutation。" },
+    { id: "T3", checks: "Independent two-axis fixed point", method: "Standards／Spec review，修正後 delta review", executor: "agent", environment: "兩個獨立 review contexts", result: "pass", evidence: "Spec 發現 deployed ancestry 不足以隔離未發布 main history，已修正並補 regression；兩軸皆無未處理 finding。本次 G2 回饋的 Agent-first handoff／集中最終啟用清單 delta，也經兩軸獨立 review 確認 fixed point，未移除安全 gate。" },
   ]}
 />
 
 <AfterRelease>
 
-本節指本批 tooling PR 合併後，不代表 app 已上線。
+本批 tooling PR 合併後，沒有立即要你執行的部署作業。以下是整套工具完成後的啟用／使用限制，完整操作清單由 Shard 4 提出。
 
-1. 沿用 Shard 2 的 cutover 順序，核對 CI credential scopes、protected environment、aliases／OAuth 與實際 production source／tag。完成 rehearsal 才啟用 automation；不刪除仍有活引用的 dev。
+1. Shard 4 列出執行者、操作順序、成功判定及停止／回復方式，整合 Shard 2 的 cutover、credentials、protected environment、aliases／OAuth、reviewer 身分安排與真人 QA；你接受最終 G2 且工具 PR 合併後才開始啟用。不刪除仍有活引用的 dev。
 2. 首次正常 version PR 應包含已合併 pnpm prerequisite；實際版本由 Changesets 計算，不硬指定 v0.16.0。成功發布與 QA 後才記錄 production 交付。
-3. 緊急 production bug／security repair 從 deployed tag 切 `hotfix/*`，準備 patch metadata、PR／checks／review，再 dispatch exact SHA；成功後檢視 merge-back PR，正常候選重新驗證／授權。
-4. Dependency auto-merge 與 Dependabot 設定仍屬下一批；本批沒有提前啟用，也不關閉整個 tracking parent。
+3. 實際發布時，候選及正式站仍必須通過首頁／登入 session／team 唯讀驗收。安全登入自動化未完成前由你做 protected QA，不以首頁 HTTP 回應冒充登入成功。Hotfix 仍要求 exact-SHA current GitHub approval；PR 作者不能核准自己，dispatch 不取代 review，啟用前須確認可用的 reviewer 身分。
+4. 真正發生 hotfix 才依 `WORKFLOW.md` 的同步流程交 Agent 接手；同步失敗先核對 publication，不重新發版。正常候選在同步後重新驗證／授權。
+5. Dependency auto-merge 與 Dependabot 設定仍屬下一批；本批沒有提前啟用，也不關閉整個 tracking parent。
 
 </AfterRelease>
 
@@ -79,7 +80,7 @@ Archive 判定 hotfix 與 Fast-path delivery capability 改變，僅更新 `plat
 
 Workflow-wide lock 刻意讓整個發布包含 QA 等待都串行，可能延後排隊中的 hotfix；此版不以額外 lock engine 換取平行度。需要加急時由 owner 先處理既有等待 run，不繞過 QA。
 
-Git merge-file 對文字相鄰、不能乾淨合併的 package metadata 保守停止，即使人可能判斷其實互不衝突；不新增通用 JSON reconciliation engine。Main version／changelog 已經另外發布或未知時也停止，由人處理，不悄悄選一側。
+Git merge-file 對文字相鄰、不能乾淨合併的 package metadata 保守停止；不新增通用 JSON reconciliation engine。Main version／changelog 已經另外發布或未知時也停止，交 Agent 在乾淨 workspace 查明來源與雙方意圖，不能安全解決或需新決策才問開發者，不悄悄選一側。交接不啟動 unattended execution、不授予合併權限。
 
 Production 基準缺少可信 source SHA、remote tag 不一致、reviewer 無適當權限、candidate QA 未完成，皆 fail closed。Semantic 上哪些 edits 屬於修補仍由 exact-SHA trusted review 判斷，Git history check 不冒充內容審查。
 
