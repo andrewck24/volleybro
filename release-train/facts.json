@@ -1,6 +1,5 @@
 {
-  "gate": "G1",
-  "publishedAt": "2026-10-01T20:46:02.278Z",
+  "publishedAt": "2026-10-01T20:46:10.378Z",
   "scenarios": 9,
   "decisions": [
     "0100",
@@ -20,7 +19,7 @@
     "items": [
       {
         "shard": 1,
-        "gate": "G1",
+        "gate": "G2",
         "startedAt": "2026-09-30T21:33:04.000Z",
         "archivedAt": "2026-10-01T07:49:51.000Z",
         "commits": 4,
@@ -31,6 +30,7 @@
       },
       {
         "shard": 2,
+        "gate": "G2",
         "startedAt": "2026-10-01T08:12:18.000Z",
         "archivedAt": "2026-10-01T18:30:34.000Z",
         "commits": 7,
