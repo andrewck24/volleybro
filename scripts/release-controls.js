@@ -522,12 +522,11 @@ async function finalize() {
     ]);
   let remote = await lookupRemoteTag();
   if (!remote) {
-    await command("git", ["tag", tag, state.sha]);
-    try {
-      await command("git", ["push", "origin", `refs/tags/${tag}`]);
-    } catch {
-      remote = await lookupRemoteTag();
-    }
+    if (!local) await command("git", ["tag", tag, state.sha]);
+    await command("git", ["push", "origin", `refs/tags/${tag}`]).catch(
+      () => undefined,
+    );
+    remote = await lookupRemoteTag();
   }
   assertExistingTagSha(remoteTagTarget(remote, tag), state.sha, tag);
   const existing = await command("gh", [

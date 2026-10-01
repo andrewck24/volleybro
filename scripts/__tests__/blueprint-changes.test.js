@@ -615,9 +615,10 @@ async function landAndBranchOff(work, slug, { squash }) {
   await workGit(["commit", "-q", "-m", "feat: add b"]);
 }
 
-test("publish measures shards with a conventional merge subject and totals them", async (t) => {
+test("publish preserves batch facts through a conventional merge and trunk cutover", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const workGit = git(work);
+  const oldMain = (await workGit(["rev-parse", "HEAD"])).stdout.trim();
   const commit = async (branch, file, lines, shard) => {
     await workGit(["checkout", "-q", "-b", branch]);
     await mkdir(path.join(work, "src"), { recursive: true });
@@ -639,6 +640,22 @@ test("publish measures shards with a conventional merge subject and totals them"
     "-m",
     "feat(tooling): deliver first batch (#1)",
     "feat/gamma-s1",
+  ]);
+  await writeFile(
+    path.join(work, "unrelated.md"),
+    "Existing integration work\n",
+  );
+  await workGit(["add", "unrelated.md"]);
+  await workGit(["commit", "-q", "-m", "docs: existing integration work"]);
+  await workGit(["branch", "-m", "main", "dev"]);
+  await workGit(["checkout", "-q", "-b", "main", oldMain]);
+  await workGit([
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "chore: integrate trunk",
+    "dev",
   ]);
   await commit("feat/gamma-s2", "b.ts", "x\ny\nz\n", 2);
   // Shard 2 is pushed but not merged; shard 3 is the branch being published.
