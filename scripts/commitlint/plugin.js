@@ -52,8 +52,8 @@ export function changeSlugOf(branchName) {
   return parseChangeBranch(branchName)?.slug;
 }
 
-function fixPathSuffix(prefix, slug) {
-  return `Fix-path work belongs on patch/${slug} instead, not ${prefix}/${slug}.`;
+function fastPathSuffix(prefix, slug) {
+  return `Fast-path work belongs on fast/${slug} instead, not ${prefix}/${slug}.`;
 }
 
 export function evaluateChangeBranchTrailer(branchName, message) {
@@ -68,13 +68,13 @@ export function evaluateChangeBranchTrailer(branchName, message) {
   if (value === undefined) {
     return {
       ok: false,
-      message: `branch "${branchName}" is a Change branch (slug "${slug}") and needs a "Blueprint-Change: ${slug}" trailer, but the commit has none. ${fixPathSuffix(prefix, slug)}`,
+      message: `branch "${branchName}" is a Change branch (slug "${slug}") and needs a "Blueprint-Change: ${slug}" trailer, but the commit has none. ${fastPathSuffix(prefix, slug)}`,
     };
   }
   if (value !== slug) {
     return {
       ok: false,
-      message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fixPathSuffix(prefix, slug)}`,
+      message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fastPathSuffix(prefix, slug)}`,
     };
   }
   const shardValue = trailers.get("shard")?.[0];
