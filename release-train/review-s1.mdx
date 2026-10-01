@@ -96,6 +96,7 @@ import { scenarios } from "./proposal.mdx";
 1. Spec 首輪發現 Lifecycle 總則仍寫摘要即 G1／整個 Change 一條 branch。已改為每 delivery batch branch 與 published-page G1；同根因的 Ingest 舊順序也完成 sweep。
 2. Standards 首輪發現本批 Feature prose 仍為 English。只翻譯本批新增及修改段落，保留不在範圍的歷史內容；第二輪確認符合規則。
 3. 作者 read-back 修正 Changesets formatter 的舊 `.cjs` 路徑，實際 owner 是 `.js`。既有嚴格提示文字斷言改為穩定 CLI 輸出契約，完整 gate 重跑通過。
+4. G2 接受後，PR 的 CodeQL 對 URL 子字串斷言提出警報。已按獨立 reviewer 指定改為完整 URL token 相等與完整 commit count，不再接受前後污染；沒有 runtime／ADR／驗收範圍變更。適用 final gate 已重新通過；合併仍等待最新 PR checks。
 
 ## 殘餘風險
 
