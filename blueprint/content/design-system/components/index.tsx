@@ -21,7 +21,7 @@ const flowchartNodes = [
     label: "Merge",
     x: 90,
     y: 450,
-    sublabel: "squash → dev",
+    sublabel: "PR → main (integration)",
   },
   { id: "ship", label: "Ship", x: 90, y: 580 },
 ];
@@ -30,7 +30,7 @@ const flowchartEdges = [
   { from: "propose", to: "review", label: "open PR" },
   { from: "review", to: "gate" },
   { from: "gate", to: "merge", label: "yes" },
-  { from: "merge", to: "ship", label: "release" },
+  { from: "merge", to: "ship", label: "version PR + release gates" },
   { from: "gate", to: "propose", label: "changes", dashed: true },
 ];
 
@@ -49,11 +49,11 @@ const flowchartDetails: Record<string, { title: string; body: string }> = {
   },
   merge: {
     title: "Merge",
-    body: "Once approved, the change is squashed and merged into the dev branch.",
+    body: "Once approved, the delivery batch merges into main; integration does not deploy production.",
   },
   ship: {
     title: "Ship",
-    body: "The merged change is bundled into the next release and shipped.",
+    body: "An authorized version PR fixes the release revision; candidate checks, promotion and production smoke precede successful release.",
   },
 };
 

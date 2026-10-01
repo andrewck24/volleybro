@@ -27,17 +27,17 @@ async function makeGateRepository(t, { review = false } = {}) {
   t.after(() => rm(tmp, { recursive: true, force: true }));
   const bare = path.join(tmp, "origin.git");
   const work = path.join(tmp, "work");
-  await execFileAsync("git", ["init", "-q", "--bare", "-b", "dev", bare]);
+  await execFileAsync("git", ["init", "-q", "--bare", "-b", "main", bare]);
   await mkdir(work);
   const workGit = git(work);
-  await workGit(["init", "-q", "-b", "dev"]);
+  await workGit(["init", "-q", "-b", "main"]);
   await workGit(["config", "user.email", "test@example.com"]);
   await workGit(["config", "user.name", "Test"]);
   await workGit(["remote", "add", "origin", bare]);
   await writeFile(path.join(work, "README.md"), "init\n");
   await workGit(["add", "-A"]);
   await workGit(["commit", "-q", "-m", "init"]);
-  await workGit(["push", "-q", "origin", "dev"]);
+  await workGit(["push", "-q", "origin", "main"]);
   await workGit(["checkout", "-q", "-b", "feat/gamma"]);
   await writeFile(path.join(work, "a.txt"), "a\n");
   await workGit(["add", "-A"]);
@@ -154,7 +154,7 @@ test("the preview rebuild starts a build on the preview trigger and reads it onc
     }
     if (args[1] === "triggers") {
       return [
-        { trigger_uuid: "prod", branch_includes: ["dev"] },
+        { trigger_uuid: "prod", branch_includes: ["main"] },
         { trigger_uuid: "preview", branch_includes: ["*"] },
       ];
     }

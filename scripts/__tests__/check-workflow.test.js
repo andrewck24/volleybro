@@ -358,7 +358,7 @@ async function initGitRepository(prefix, branch, seed) {
   return { root, git };
 }
 
-// A minimal repo for checkChangeScope: a `dev` base commit, then a feature
+// A minimal repo for checkChangeScope: a `main` base commit, then a feature
 // branch with a given number of src/ files changed against it. `commitArgs`
 // lets a test add a trailer via an extra -m. `seedWorkflowFiles` also lays
 // down a valid checkWorkflow() repository, for a test that runs the CLI.
@@ -366,7 +366,7 @@ async function makeScopeRepository(fileCount, commitArgs = [], options = {}) {
   const { seedWorkflowFiles = false } = options;
   const { root, git } = await initGitRepository(
     "change-scope",
-    "dev",
+    "main",
     seedWorkflowFiles
       ? async (repoRoot) => {
           await writeFiles(repoRoot, REPOSITORY_FILES);
@@ -584,11 +584,11 @@ test("checkGateBranchState accepts a clean branch matching its upstream", async 
   assert.deepEqual(await checkGateBranchState(root), []);
 });
 
-// checkDecisionRecordLength reuses resolveScopeBase's `dev` base, so these
+// checkDecisionRecordLength reuses resolveScopeBase's `main` base, so these
 // repos follow makeScopeRepository's shape but change decision records
 // instead of src/ files.
 async function makeDecisionRepository() {
-  const { root, git } = await initGitRepository("decision-length", "dev");
+  const { root, git } = await initGitRepository("decision-length", "main");
   await git(["checkout", "-q", "-b", "feat/decision-test"]);
   await mkdir(path.join(root, "blueprint/content/decisions"), {
     recursive: true,
@@ -627,7 +627,7 @@ test("checkDecisionRecordLength ignores records within the soft target", async (
 test("the CLI exits 0 with a decision-length warning when that is the only gate issue", async () => {
   const { root, git } = await initGitRepository(
     "decision-cli",
-    "dev",
+    "main",
     async (repoRoot) => {
       await writeFiles(repoRoot, {
         ...REPOSITORY_FILES,
@@ -642,7 +642,7 @@ test("the CLI exits 0 with a decision-length warning when that is the only gate 
       );
     },
   );
-  await addBareRemote(git, "dev");
+  await addBareRemote(git, "main");
 
   await git(["checkout", "-q", "-b", "feat/decision-warn"]);
   await mkdir(path.join(root, "blueprint/content/decisions"), {
@@ -675,7 +675,7 @@ test("checkDecisionRecordLength ignores a record that only changed", async () =>
   );
   await git(["add", "-A"]);
   await git(["commit", "-q", "-m", "add decision"]);
-  await git(["checkout", "-q", "dev"]);
+  await git(["checkout", "-q", "main"]);
   await git(["merge", "-q", "feat/decision-test"]);
   await git(["checkout", "-q", "-b", "feat/modify-test"]);
   await writeFile(

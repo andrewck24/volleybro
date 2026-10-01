@@ -3,9 +3,6 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
-    branches:
-      - dev
-      - main
   workflow_dispatch:
 
 permissions:
@@ -92,34 +89,41 @@ jobs:
       - run: pnpm --filter blueprint test
       - run: pnpm --filter blueprint build
 
-  # Pull requests into dev only; see ADR-0055.
   commitlint:
     name: Commit messages
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-        if: github.base_ref == 'dev'
         with:
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-        if: github.base_ref == 'dev'
       - uses: actions/setup-node@v4
-        if: github.base_ref == 'dev'
         with:
           node-version-file: .nvmrc
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-        if: github.base_ref == 'dev'
 
-      - run: pnpm exec commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
-        if: github.base_ref == 'dev'
+      - name: Lint commits not already on the integration default
+        run: |
+          BASE=$(git merge-base "$PR_HEAD" "origin/$DEFAULT_BRANCH")
+          pnpm exec commitlint --from "$BASE" --to "$PR_HEAD"
         env:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
-      - run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
-        if: github.base_ref == 'dev'
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      - name: Validate PR title
+        run: |
+          if [ "$PR_TITLE" = "release: update versions" ]; then
+            node scripts/release-controls.js validate-version-pr
+          else
+            printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --config commitlint.title.config.js
+          fi
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
 
   # The branch rulesets require a check named exactly "Verify". Renaming the
   # jobs without this would leave that context permanently unreported and
@@ -139,6 +143,6 @@ jobs:
           echo "integration=${{ needs.integration.result }}"
           echo "blueprint=${{ needs.blueprint.result }}"
           echo "commitlint=${{ needs.commitlint.result }}"
-          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || (github.event_name == 'pull_request' && needs.commitlint.result != 'success') }}" = "true" ]; then
             exit 1
           fi

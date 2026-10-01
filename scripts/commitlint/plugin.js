@@ -53,7 +53,7 @@ export function changeSlugOf(branchName) {
 }
 
 function fixPathSuffix(prefix, slug) {
-  return `Fix-path work belongs on hotfix/${slug} instead, not ${prefix}/${slug}.`;
+  return `Fix-path work belongs on patch/${slug} instead, not ${prefix}/${slug}.`;
 }
 
 export function evaluateChangeBranchTrailer(branchName, message) {
