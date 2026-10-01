@@ -1,6 +1,6 @@
 # Test-pruning campaign
 
-Campaign mode is the shape for a Migration shard that deletes or moves tests:
+Campaign mode is the shape for a Sharded Change batch that deletes or moves tests:
 it prunes one subsystem's whole test surface in one change, such as one
 production owner area under `src/` or one `test/integration` suite family. The
 value bar, retention bar, candidate evidence, and validation in

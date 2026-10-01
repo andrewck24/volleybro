@@ -405,8 +405,8 @@ async function hasShardTrailer(root, base) {
   }
 }
 
-// ADR-0065: soft target, never a hard failure -- a Migration shard (its
-// Shard trailer, ADR-0093, or --migration) is the only escape hatch.
+// ADR-0065: soft target, never a hard failure -- a Sharded Change (its
+// Shard trailer, ADR-0093, or --sharded-change) is the only escape hatch.
 async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
 
@@ -425,11 +425,11 @@ async function checkFileCountScope(root, options) {
   }
 
   if (changedFiles.length <= CHANGE_SCOPE_SOFT_LIMIT) return [];
-  if (options.migrationSlug) return [];
+  if (options.shardedChangeSlug ?? options.migrationSlug) return [];
   if (await hasShardTrailer(root, base)) return [];
 
   return [
-    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; deliver it as a Migration shard (branch <prefix>/<slug>-s<N>, commits carrying "Shard: <N>", or --migration <slug>) or split the Change`,
+    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; deliver it as a Sharded Change (branch <prefix>/<slug>-s<N>, commits carrying "Shard: <N>", or --sharded-change <slug>) or split the Change`,
   ];
 }
 
@@ -705,14 +705,14 @@ export async function checkChangePageGate(
     count !== undefined && onBranch?.slug === slug ? onBranch.shard : undefined;
   if (count !== undefined && shard === undefined) {
     diagnostics.push(
-      `${where("index.mdx")} [gate-branch-state]: a Migration's gate runs on a shard branch, <prefix>/${slug}-s<N>`,
+      `${where("index.mdx")} [gate-branch-state]: a Sharded Change gate runs on a shard branch, <prefix>/${slug}-s<N>`,
     );
     return diagnostics;
   }
   for (const review of page.reviews) {
     if ((review.shard === undefined) === (count === undefined)) continue;
     diagnostics.push(
-      `${where(review.file)} [gate-review-file]: ${count === undefined ? "an ordinary Change's Review is review.mdx" : "a Migration's Reviews are review-s<N>.mdx"}`,
+      `${where(review.file)} [gate-review-file]: ${count === undefined ? "an ordinary Change's Review is review.mdx" : "a Sharded Change's Reviews are review-s<N>.mdx"}`,
     );
   }
 
@@ -914,7 +914,9 @@ async function main() {
   const diagnostics = await checkWorkflow();
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
   const warnings = await checkChangeScope(process.cwd(), {
-    migrationSlug: flagValue(process.argv.slice(2), "--migration"),
+    shardedChangeSlug:
+      flagValue(process.argv.slice(2), "--sharded-change") ??
+      flagValue(process.argv.slice(2), "--migration"),
     gateSlug,
   });
   if (gateSlug) {

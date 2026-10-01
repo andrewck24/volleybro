@@ -155,7 +155,7 @@ export async function runGate(
   );
   const branch = await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]);
   console.log(
-    `Branch preview: ${previewUrl(branch, slug)} is current once its header shows ${facts.commits} commits.`,
+    `Branch preview: ${previewUrl(branch, slug)} should show ${facts.commits} commits; verify the latest rendered content and diagrams before human acceptance. A matching header alone does not prove freshness.`,
   );
   console.log(await rebuild(root, branch));
 }

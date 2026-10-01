@@ -18,13 +18,13 @@ This project uses `@changesets/cli` with a custom verbatim formatter and a postp
 
 ## When to Create a Changeset
 
-Create ONE changeset per change, in the SAME feat/fix branch and PR to `dev` as the change itself — never deferred to release time:
+Assess Changeset applicability during Archive for each delivery batch, including each Sharded Change shard. Include the applicable changeset in that batch's branch and pull request to the current integration branch defined in `WORKFLOW.md`, never deferred to release time:
 
 ```
-implement -> pnpm changeset -> commit (same branch) -> PR to dev (carries the changeset)
+implement -> Archive assessment -> pnpm changeset when applicable -> same batch PR
 ```
 
-**Every PR to `dev` with user-visible impact MUST include its changeset.** Batching changesets onto `dev` right before the release is a last-resort fallback (see README FAQ), not the normal flow — it loses per-change context and risks a missed entry.
+Every delivery batch with user-visible or contributor-setup impact carries its own changeset. A tracking parent receives no extra changeset just for grouping its shards. Do not duplicate earlier batches' entries. Lifecycle, human gates, integration branch and release authorization are owned by `WORKFLOW.md`, not this skill.
 
 Skip the changeset only if the change has zero user-visible impact (pure refactor, tests only, docs only); use `pnpm changeset --empty` if CI requires a file.
 
@@ -35,7 +35,7 @@ Skip the changeset only if the change has zero user-visible impact (pure refacto
 | `pnpm changeset`         | After archive, on feat branch                            | Interactive: pick bump type, write body                          |
 | `pnpm changeset --empty` | CI requires changeset but no user impact                 | Creates empty changeset                                          |
 | `pnpm changeset status`  | Anytime                                                  | Shows pending changesets                                         |
-| `pnpm release:version`   | Run by CI (changesets.yml) on main; manual fallback only | Bumps version, updates CHANGELOG.md, deletes consumed changesets |
+| `pnpm release:version`   | Authorized version preparation, not deployment | Bumps version, updates CHANGELOG.md, deletes consumed changesets |
 
 **`commit` is `false`** -- all commands leave changes unstaged. You must `git add && git commit` manually.
 
@@ -54,7 +54,7 @@ When in doubt, prefer `minor` for features, `patch` for fixes.
 When writing the body at Archive, pull from the Change's own artifacts:
 
 1. Read the Proposal page for scope and motivation
-2. Read the branch's commits for what was actually implemented — `git log dev..HEAD`, whose bodies carry the outcome and verification per slice
+2. Read the batch's commits against the current integration base for what was actually implemented; their bodies carry the outcome and verification per slice
 3. Map each user-visible change to a bullet under the correct `###` heading (see `body-format.md`)
 4. Ignore internal work (refactors, test infra, CI plumbing) unless it affects contributors
 

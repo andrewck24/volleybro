@@ -165,7 +165,7 @@ export function inlineReviewSections(content) {
 }
 
 // ADR-0094: a Change directory holds index.mdx (frontmatter only),
-// proposal.mdx, and review.mdx or one review-s<N>.mdx per Migration shard.
+// proposal.mdx, and review.mdx or one review-s<N>.mdx per Sharded Change.
 const REVIEW_FILE = /^review(?:-s([1-9]\d*))?\.mdx$/;
 
 export function reviewFile(shard) {
@@ -197,7 +197,7 @@ export async function readChangeDir(dir) {
   };
 }
 
-// A Migration states its shard count in the frontmatter (ADR-0093).
+// A Sharded Change states its shard count in the frontmatter (ADR-0093).
 export function shardCount(index) {
   const match = frontmatterOf(index ?? "").match(/^shards:\s*(\d+)\s*$/m);
   return match ? Number(match[1]) : undefined;
@@ -361,7 +361,7 @@ async function pushedShard(root, slug, shard) {
 }
 
 // ADR-0074: every figure a page shows comes from here, never from the writer.
-// ADR-0096: a Migration is measured shard by shard, then totalled.
+// ADR-0096: a Sharded Change is measured shard by shard, then totalled.
 // `gate` is set by a proposal-only publish, which is a G1 whatever the shard.
 export async function changeFacts(
   root,

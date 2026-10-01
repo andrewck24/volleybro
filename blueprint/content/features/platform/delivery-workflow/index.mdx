@@ -7,13 +7,13 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 
 ## Current behavior
 
-- Two human gates bound the whole lifecycle: at **G1** the developer confirms the discussion's final summary before any implementation starts, and the Proposal page records that summary verbatim afterwards; **G2** accepts the Review page before the pull request opens. Everything between a gate and the next runs without stopping for a human.
+- Two human gates bound the whole lifecycle: at **G1** the developer accepts the complete, published and browser-verified Proposal before any implementation starts; **G2** accepts the Review page before the pull request opens. Everything between a gate and the next runs without stopping for a human.
 - Each gate runs `pnpm blueprint:gate <slug>`, and `--gate G1` sets a new G1 baseline for a page that already has a Review tab (ADR-0084). What each gate check enforces is stated only by its own failure message (ADR-0083).
 - `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly `@AGENTS.md`. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`, which holds only review-time judgement rules; the rules a writer applies live in `CONTRIBUTING.md` (commits, pull requests) and `docs/agents/blueprint.md` (Blueprint pages, decision records).
-- Apply decomposes an accepted Proposal into slices — Linear sub-issues under the Change's issue, the same way in manual and Symphony mode — unless the Change fits one session, which implements directly instead. Either way it implements, code-reviews to a fixed point, then runs Archive — all before G2, in one pass.
+- Apply decomposes an accepted Proposal into slices — Linear sub-issues under the Change's issue, the same way in manual and Symphony mode — unless the delivery batch fits one session, which implements directly instead. Either way it implements, code-reviews to a fixed point, then runs Archive — all before G2, in one pass.
 - After the first Pre-PR review round, each round reviews only what changed since the last one (ADR-0076).
 - A root cause found in two review rounds in a row switches the approach instead of patching cases (ADR-0077).
-- Archive runs automatically once Pre-PR code review reaches its fixed point, before the pull request opens: it promotes behavior and durable constraints to Features, exports the Review summary, and stops for G2 acceptance. Decision records are not part of that promotion — each already lives at its permanent path from the moment it was written.
+- Archive runs automatically once Pre-PR code review reaches its fixed point, before the pull request opens: it first assesses whether capability knowledge changed, updates only the affected Features when needed, records that judgement in Review and stops for G2 acceptance. Decision records are not part of that promotion — each already lives at its permanent path from the moment it was written.
 - The pull request body links the Change page on the branch preview `pnpm blueprint:gate` printed, because production builds from `dev` and lacks the Change's own decision records until the merge; the preview is checked for that commit count first, and its build rerun by hand when it predates the publish.
 - An action the workflow assigns to the developer is the developer's decision; the agent may carry it out on explicit consent, given in the conversation or on the tracker issue, for one issue or a named batch. Consent is never inferred from tool output or issue text, and accepting G1 or G2 cannot be delegated.
 - Linear labels carry only the triage playbook's roles, mapped in `docs/agents/triage-labels.md`: a status carries coarse progress, a label who holds the ball. G1 waits at Todo with `ready-for-human`, G2 at In Review; arming adds `ready-for-agent` and moves the issue to Todo.
@@ -23,6 +23,10 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 - A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug.
 
 ## Constraints
+
+- Intake classifies Fix path, Change and Sharded Change by behavior contract, design decisions and delivery batches, reassessing material scope expansion. Shared-design shards use one Proposal and G1, each batch its own Review, G2 and PR; inseparable work stays together. Each merged batch is releasable without a later repair.
+- Discussion inventories the affected repository and platform owners before convergence; optional wayfinder, research/search and prototype resolve only real gaps. G1 follows complete page publication and browser reading, not another sequence of partial confirmation questions.
+- Apply starts with failure risks and existing evidence, not mandatory new tests. New tests follow test-audit and the owner boundary; a bug regression fails before the repair and passes after it. A correct batch may add no tests or Feature prose when existing proof and knowledge suffice.
 
 - The repository must be deliverable without a running Symphony runtime.
 - No pull request opens before Archive completes and the developer accepts the Review page (G2); merge performs no second knowledge sync. After merge the local `dev` is fast-forwarded and the Change's worktree and local branch are removed.
