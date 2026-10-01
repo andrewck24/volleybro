@@ -108,12 +108,11 @@ test("the gate publishes, runs the check, and names the preview to compare", asy
   const messages = console.log.mock.calls
     .slice(-2)
     .map((call) => call.arguments[0]);
-  assert.ok(
-    messages[0].includes(
-      "https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma",
-    ),
+  assert.equal(
+    messages[0].match(/(?:^|\s)(https:\/\/\S+)(?=\s|$)/)?.[1],
+    "https://feat-gamma-volleybro-blueprint.andrewck24.workers.dev/changes/gamma",
   );
-  assert.match(messages[0], /1 commits/);
+  assert.match(messages[0], /\b1 commits\b/);
   assert.equal(messages[1], "rebuild skipped");
 });
 
