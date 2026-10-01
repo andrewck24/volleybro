@@ -1,25 +1,26 @@
 {
-  "gate": "G2",
-  "publishedAt": "2026-10-01T20:26:17.489Z",
-  "scenarios": 8,
+  "gate": "G1",
+  "publishedAt": "2026-10-01T20:46:02.278Z",
+  "scenarios": 9,
   "decisions": [
     "0100",
     "0101"
   ],
   "startedAt": "2026-09-30T21:33:04.000Z",
   "archivedAt": null,
-  "commits": 11,
-  "filesChanged": 47,
-  "insertions": 1647,
-  "deletions": 374,
+  "commits": 12,
+  "filesChanged": 56,
+  "insertions": 1692,
+  "deletions": 406,
   "srcFilesChanged": 0,
   "shards": {
     "count": 4,
+    "current": 3,
     "merged": 2,
     "items": [
       {
         "shard": 1,
-        "gate": "G2",
+        "gate": "G1",
         "startedAt": "2026-09-30T21:33:04.000Z",
         "archivedAt": "2026-10-01T07:49:51.000Z",
         "commits": 4,
@@ -30,13 +31,22 @@
       },
       {
         "shard": 2,
-        "gate": "G2",
         "startedAt": "2026-10-01T08:12:18.000Z",
         "archivedAt": "2026-10-01T18:30:34.000Z",
         "commits": 7,
         "filesChanged": 22,
         "insertions": 1468,
         "deletions": 136,
+        "srcFilesChanged": 0
+      },
+      {
+        "shard": 3,
+        "startedAt": "2026-10-01T20:45:49.000Z",
+        "archivedAt": null,
+        "commits": 1,
+        "filesChanged": 9,
+        "insertions": 45,
+        "deletions": 32,
         "srcFilesChanged": 0
       }
     ]

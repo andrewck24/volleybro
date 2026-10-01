@@ -6,7 +6,8 @@ export const scenarios = [
   { id: "S5", shard: 3, given: "Main contains unreleased work", when: "A reviewed deployed-base hotfix SHA is authorized by dispatch and synchronized", then: "Only the isolated repair is released; a merge-back PR reconciles version and changelog metadata while retaining pending changesets, or stops on unsafe conflict; shared main is never rebased and synchronization does not redeploy the hotfix." },
   { id: "S6", shard: 3, given: "A normal candidate and hotfix overlap", when: "Production state changes", then: "Promotion and rollback share one lock; stale normal candidates are rejected after hotfix until merge-back, fresh verification and renewed authorization; safe rollback verifies and notifies, while incompatible or unknown database state stops without data reversal." },
   { id: "S7", shard: 4, given: "Dependency PRs with trusted and adversarial identities, versions and diffs", when: "The auto-merge policy evaluates them", then: "Only a single allowlisted non-sensitive direct devDependency patch with latest required checks passes; impersonation, unknown, major, minor, sensitive, multiple-package, expanded-diff and failed-check cases remain manual; untrusted code never receives production secrets or write privileges." },
-  { id: "S8", shard: 4, given: "Weekly version maintenance and security events", when: "Dependabot opens PRs", then: "Npm/pnpm and GitHub Actions version checks use Tuesday 09:00 Asia/Taipei; security updates are event-driven; opening PRs neither dispatches Agents nor deploys production, and urgent production repairs use hotfix rather than the normal train." }
+  { id: "S8", shard: 4, given: "Weekly version maintenance and security events", when: "Dependabot opens PRs", then: "Npm/pnpm and GitHub Actions version checks use Tuesday 09:00 Asia/Taipei; security updates are event-driven; opening PRs neither dispatches Agents nor deploys production, and urgent production repairs use hotfix rather than the normal train." },
+  { id: "S9", shard: 3, given: "A fully specified, bounded pnpm major upgrade and work that still needs a product or architecture decision", when: "Intake chooses a delivery route", then: "The former can use fast/* with migration verification and independent review; the latter requires Change gates. The pnpm toolchain prerequisite lands before the first release authorization, with frozen install and hosted build proof; cf falls back to pinned dlx only when its executable is missing." }
 ];
 
 <TLDR>
@@ -28,7 +29,7 @@ export const scenarios = [
 
 <DecisionCards ids={["0100", "0101"]} />
 
-本 ADR 只保留分支／部署架構的原因與替代方案。Sharded Change 分類、G1 順序、release／hotfix 的操作步驟由 WORKFLOW.md 持有活規則，腳本負責執行與驗證；不另外維護重複的 ADR。Shard 1 同步校正既有 ADR-0060 的 G1 舊順序與 ADR-0093 的 Migration 活規則／引用，保留歷史原因，讓過期敘述不再被當成現行契約；不為此新增重複 ADR。
+ADR-0100 保留分支／部署架構的原因與替代方案；本次 Ingest 的 ADR-0101 取代 fix-only shortcut，以已釐清的決策風險判定 Fast path。Sharded Change 分類、G1 順序、release／hotfix 與 Fast path 的操作步驟由 WORKFLOW.md 持有活規則，腳本負責執行與驗證，不另外維護重複的操作規則。Shard 1 的 ADR-0060／0093 與既有 Reviews 保留原始交付紀錄，本次不改寫其歷史推理。
 
 ## Scope
 
@@ -39,6 +40,8 @@ export const scenarios = [
 先以 `fast/pnpm12-upgrade`、`chore(deps): upgrade pnpm to v12` 交付 pnpm 12.8.1，再執行 Shard 3、4。此工作屬本 Change 的 dependency-maintenance 前置，不另建 Proposal／G1，不改四個 shards 的編號或已完成 Reviews。首次預期 v0.16.0 version PR 的授權內容須包含此工作；實際版本仍由 Changesets 計算。
 
 Fast path 依清楚需求、可控範圍／風險、無新產品／架構決策及單張 PR 可獨立驗收判定，不依 commit type 或 SemVer major 判定。使用 `fast/*`；保留 migration-guide 評估、完整適用驗證、獨立 review 與 contributor-impact Changeset。新決策或無法獨立交付時升級為 Change／Sharded Change。
+
+Fast path 的規則與 ADR successor 在 Shard 3 的正常 Change 中交付，toolchain PR 不混入政策採用。新增情境屬同一 delivery／dependency-maintenance 設計的 Ingest，沿用既有批次，不另拆獨立 Change；S1 保留 Shard 1 初次交付的 Fix-path 歷史驗收，現行 eligibility 由 S9 驗證。
 
 驗收涵蓋 repo pin、frozen lockfile、CI／GitHub Actions、Vercel 與 Blueprint build。既有 package dependencies 與 build-script allowlist 不順帶升級。Blueprint gate 優先執行 PATH 上的 `cf`；僅找不到 executable 時使用原 pinned `pnpm dlx cf`，支援 native／JavaScript pnpm entrypoint。登入、API、timeout、非零 exit 或解析失敗直接回報，不改用另一版重試。完成記錄在同一 Proposal 與 PR 中；不為這個前置另建 shard。
 
