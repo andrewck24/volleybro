@@ -13,7 +13,7 @@ export const scenarios = [
 
 目前 dev／main 將整合與正式部署綁在不同 branch，發布後還需同步；Fix path 的 hotfix 命名也混淆了小型修補與 production 緊急發布。本 Change 改為 main 整合、Changesets version PR 授權固定版本，再驗證與 promote production，並交付隔離 hotfix 和保守的依賴更新自動合併。
 
-這是待整體 G1 驗收的目標設計，不代表平台或 canonical 規則已遷移。這次只製作並發布 Proposal；未取得 G1 前，不開始實作、移除 dev 或發布應用版本。
+這是目標設計，不代表平台已全部遷移。已交付的 Shard 1／2 保留原始 Reviews；本次 Ingest 納入 Fast path 與 pnpm 12 前置工作，並已由開發者接受更新版 G1。移除 dev 與應用發布仍須滿足既有 cutover／release 條件。
 
 </TLDR>
 
@@ -21,18 +21,26 @@ export const scenarios = [
 | --- | --- | --- |
 | 日常整合 | default／PR base 是 dev，main 對應 production | main 為 integration trunk；每日 merge 只更新 test 整合環境 |
 | 正式發布 | dev → main；finalize 依沒有 changesets 判斷，tag 追隨 main | rolling version PR 合併授權；固定 SHA → production candidate → 驗證 → promote → smoke → tag／Release |
-| 修補 | Fix path 使用 hotfix 名稱但回 dev | patch/* 是小型正常修補；hotfix/* 從部署點隔離緊急修補，發布後 merge-back main |
+| 修補 | Fix path 使用 hotfix 名稱但回 dev | fast/* 是明確且有界的快速交付；hotfix/* 從部署點隔離緊急修補，發布後 merge-back main |
 | 討論與交付 | 摘要確認後才製作頁面；Migration 專用多批模式 | 範圍收斂後完成／發布頁面，再停 G1；通用 Sharded Change 保留每批 Review／G2 |
 
 ## Decisions
 
-<DecisionCards ids={["0100"]} />
+<DecisionCards ids={["0100", "0101"]} />
 
 本 ADR 只保留分支／部署架構的原因與替代方案。Sharded Change 分類、G1 順序、release／hotfix 的操作步驟由 WORKFLOW.md 持有活規則，腳本負責執行與驗證；不另外維護重複的 ADR。Shard 1 同步校正既有 ADR-0060 的 G1 舊順序與 ADR-0093 的 Migration 活規則／引用，保留歷史原因，讓過期敘述不再被當成現行契約；不為此新增重複 ADR。
 
 ## Scope
 
 ### Shards 與 repository 範圍
+
+### 已批准的 toolchain 前置工作
+
+先以 `fast/pnpm12-upgrade`、`chore(deps): upgrade pnpm to v12` 交付 pnpm 12.8.1，再執行 Shard 3、4。此工作屬本 Change 的 dependency-maintenance 前置，不另建 Proposal／G1，不改四個 shards 的編號或已完成 Reviews。首次預期 v0.16.0 version PR 的授權內容須包含此工作；實際版本仍由 Changesets 計算。
+
+Fast path 依清楚需求、可控範圍／風險、無新產品／架構決策及單張 PR 可獨立驗收判定，不依 commit type 或 SemVer major 判定。使用 `fast/*`；保留 migration-guide 評估、完整適用驗證、獨立 review 與 contributor-impact Changeset。新決策或無法獨立交付時升級為 Change／Sharded Change。
+
+驗收涵蓋 repo pin、frozen lockfile、CI／GitHub Actions、Vercel 與 Blueprint build。既有 package dependencies 與 build-script allowlist 不順帶升級。Blueprint gate 優先執行 PATH 上的 `cf`；僅找不到 executable 時使用原 pinned `pnpm dlx cf`，支援 native／JavaScript pnpm entrypoint。登入、API、timeout、非零 exit 或解析失敗直接回報，不改用另一版重試。完成記錄在同一 Proposal 與 PR 中；不為這個前置另建 shard。
 
 下表是直接相關的 owner 清單，不是要求每個檔案都修改。只更新真正承載活規則的部分；歷史 Changes、migration 紀錄與舊 changelog 不全域替換。現有 AGENTS／CLAUDE 是導航，不為涵蓋範圍而新增重複 policy。
 
@@ -50,7 +58,7 @@ Shard 2 也涵蓋 blueprint/content/design-system/components/index.tsx 的活範
 
 ### 討論與可發布邊界
 
-- Intake 依契約與交付批次分類為 Fix path／Change／Sharded Change；新增內容擴大規模時重新分類。所有大型 migration 都用 Sharded Change。不同目標或仍需獨立架構決策則分成不同 Changes。
+- Intake 依需求清晰度、風險與交付批次分類為 Fast path／Change／Sharded Change；新增內容擴大規模時重新分類。所有大型 migration 都用 Sharded Change。不同目標或仍需獨立架構決策則分成不同 Changes。
 - Sharded Change 共用 slug、Proposal／整體 G1；逐 shard branch、Review／G2／PR。不可分割的 shards 合成同一交付批次，內部 slices 仍可追蹤；不得先把需要下一批救回來的半成品合進 main。
 - wayfinder 適用跨 session 或尚不清楚的決策路線，尤其大型 Sharded Change；不是每個 shard 的必跑步驟。已收斂內容不補建無用途的 map。grill-with-docs 用於有待人類判斷的選項；可查事實由 research/search 處理，可行性或具體設計不明才用 prototype。repo 不要求名為 search 的 skill，等價查詢方式即可。
 - 討論完成前清點文件、規則、腳本、平台邊界與測試證據；收斂後製作並發布 Proposal、實際讀取 rendered page，下一個停止點才是 G1。不得用「已 grill 完」掩蓋未清點內容，再於頁面前逐項補問。必要權限或會使剩餘工作無效的新分歧，仍保留既有安全停止例外。
@@ -137,7 +145,7 @@ Dependabot graph／alerts／security updates 與 npm ecosystem（pnpm）／GitHu
 <text x="40" y="228" textAnchor="start" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-1)">main</text>
 <text x="264" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-3)">feat / fix / refactor</text>
 <text x="264" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">一般 Change · G1／G2</text>
-<text x="432" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--success)">{"patch/* · Fix path"}</text>
+<text x="432" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--success)">{"fast/* · Fast path"}</text>
 <text x="432" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">驗證／review → PR</text>
 <text x="600" y="380" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="var(--chart-5)">{"*-s1 · Shard 1"}</text>
 <text x="600" y="404" textAnchor="middle" fontSize="12" fontFamily="'Geist', 'Noto Sans TC', 'PingFang TC', sans-serif" fill="currentColor">獨立 Review／G2／PR</text>
