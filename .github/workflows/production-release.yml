@@ -19,6 +19,7 @@ jobs:
     permissions:
       contents: read
       checks: read
+      statuses: read
       pull-requests: read
       actions: read
     outputs:
@@ -44,7 +45,6 @@ jobs:
           GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           RELEASE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
-          RELEASE_REQUIRED_CHECKS: ${{ vars.RELEASE_REQUIRED_CHECKS }}
         run: |
           git show "$RELEASE_SHA^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
           node "$RUNNER_TEMP/release-controls.js" authorize

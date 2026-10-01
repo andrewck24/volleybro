@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertBaseline,
+  assertExistingTagSha,
+  assertHealthySmoke,
   assertRollbackEvidence,
   assertTagSha,
   remoteTagTarget,
@@ -37,19 +39,37 @@ function authorization(overrides = {}) {
       repo: { full_name: "owner/repo" },
     },
   };
-  const checkRuns = ["Verify", "Vercel"].map((name) => ({
-    name,
-    status: "completed",
-    conclusion: "success",
-    started_at: "2026-10-01T00:00:00Z",
-  }));
+  const checkRuns = [
+    {
+      name: "Verify",
+      head_sha: "head-sha",
+      app: { id: 15368 },
+      status: "completed",
+      conclusion: "success",
+      started_at: "2026-10-01T00:00:00Z",
+    },
+  ];
+  const statuses = [
+    {
+      context: "Vercel",
+      state: "success",
+      sha: "head-sha",
+      updated_at: "2026-10-01T00:00:00Z",
+    },
+    {
+      context: "Vercel Preview Comments",
+      state: "success",
+      sha: "head-sha",
+      updated_at: "2026-10-01T00:01:00Z",
+    },
+  ];
   return {
     event,
     pr,
     expectedAuthor: "andrewck24",
     repository: "owner/repo",
-    requiredChecks: ["Verify", "Vercel"],
     checkRuns,
+    statuses,
     ...overrides,
   };
 }
@@ -87,6 +107,7 @@ test("rejects an impersonating author, fork head, title change, or failed latest
     (input) => {
       input.checkRuns.push({
         name: "Verify",
+        app: { id: 15368 },
         status: "completed",
         conclusion: "failure",
         started_at: "2026-10-02T00:00:00Z",
@@ -98,6 +119,54 @@ test("rejects an impersonating author, fork head, title change, or failed latest
     mutate(input);
     assert.throws(() => validateAuthorization(input));
   }
+});
+
+test("release requires the latest authentic Verify run and exact Vercel status on the head SHA", () => {
+  const failures = [
+    (input) => {
+      input.checkRuns = [];
+    },
+    (input) => {
+      input.checkRuns[0].app.id = 999;
+    },
+    (input) => {
+      input.checkRuns[0].status = "in_progress";
+    },
+    (input) => {
+      input.checkRuns[0].head_sha = "stale-sha";
+    },
+    (input) => {
+      input.statuses = [];
+    },
+    (input) => {
+      input.statuses[0].state = "pending";
+    },
+    (input) => {
+      input.statuses[0].state = "failure";
+    },
+    (input) => {
+      input.statuses = [input.statuses[1]];
+    },
+    (input) => {
+      input.statuses[0].sha = "stale-sha";
+    },
+  ];
+  for (const mutate of failures) {
+    const input = authorization();
+    mutate(input);
+    assert.throws(() => validateAuthorization(input));
+  }
+  const newerPending = authorization();
+  newerPending.statuses.push({
+    context: "Vercel",
+    state: "pending",
+    sha: "head-sha",
+    updated_at: "2026-10-02T00:00:00Z",
+  });
+  assert.throws(
+    () => validateAuthorization(newerPending),
+    /Vercel commit status/,
+  );
 });
 
 test("candidate must remain the ready production deployment for the exact SHA with no alias", () => {
@@ -199,6 +268,16 @@ test("tag retry is idempotent at the authorized SHA and rejects a moved tag", ()
     ),
     "sha-1",
   );
+  assert.throws(
+    () => assertExistingTagSha("", "sha-1", "v1.0.0"),
+    /verify remote target/,
+  );
+  assert.doesNotThrow(() => assertExistingTagSha("sha-1", "sha-1", "v1.0.0"));
+});
+
+test("rollback verification requires a healthy baseline homepage response", () => {
+  assert.doesNotThrow(() => assertHealthySmoke(200, "baseline"));
+  assert.throws(() => assertHealthySmoke(503, "baseline"), /HTTP 503/);
 });
 
 test("metadata diff accepts version/changelog/consumed changeset only and rejects runtime changes", async () => {

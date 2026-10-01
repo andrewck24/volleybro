@@ -69,8 +69,8 @@ export function validateAuthorization({
   pr,
   expectedAuthor,
   repository,
-  requiredChecks,
   checkRuns,
+  statuses,
 }) {
   const mergeSha = event.pull_request?.merge_commit_sha;
   if (
@@ -83,22 +83,37 @@ export function validateAuthorization({
   validateVersionPr(pr, expectedAuthor, repository);
   if (pr.state !== "closed" || !pr.merged || pr.merge_commit_sha !== mergeSha)
     fail("Version PR must be merged at this exact commit");
+  const latestVerify = checkRuns
+    .filter((run) => run.name === "Verify")
+    .sort(
+      (a, b) =>
+        Date.parse(b.started_at || b.created_at || "") -
+        Date.parse(a.started_at || a.created_at || ""),
+    )[0];
   if (
-    !requiredChecks.includes("Verify") ||
-    !requiredChecks.some((name) => name.toLowerCase().includes("vercel"))
+    !latestVerify ||
+    (latestVerify.head_sha && latestVerify.head_sha !== pr.head.sha) ||
+    Number(latestVerify.app?.id) !== 15368 ||
+    latestVerify.status !== "completed" ||
+    latestVerify.conclusion !== "success"
   ) {
-    fail("Required checks must name Verify and the Vercel deployment check");
+    fail(
+      "Latest Verify check on the PR head is not a successful run from GitHub Actions",
+    );
   }
-  for (const name of requiredChecks) {
-    const latest = checkRuns
-      .filter((run) => run.name === name)
-      .sort((a, b) => Date.parse(b.started_at) - Date.parse(a.started_at))[0];
-    if (
-      !latest ||
-      latest.status !== "completed" ||
-      latest.conclusion !== "success"
-    )
-      fail(`Latest required check is not successful: ${name}`);
+  const latestVercel = statuses
+    .filter((status) => status.context === "Vercel")
+    .sort(
+      (a, b) =>
+        Date.parse(b.updated_at || b.created_at || "") -
+        Date.parse(a.updated_at || a.created_at || ""),
+    )[0];
+  if (
+    !latestVercel ||
+    (latestVercel.sha && latestVercel.sha !== pr.head.sha) ||
+    latestVercel.state !== "success"
+  ) {
+    fail("Latest Vercel commit status on the PR head is not successful");
   }
   return mergeSha;
 }
@@ -158,6 +173,16 @@ export function assertRollbackEvidence(value, state) {
 export function assertTagSha(actual, expected, tag) {
   if (actual && actual !== expected)
     fail(`${tag} already points at a different commit`);
+}
+
+export function assertExistingTagSha(actual, expected, tag) {
+  if (!actual) fail(`Could not verify remote target for ${tag}`);
+  assertTagSha(actual, expected, tag);
+}
+
+export function assertHealthySmoke(status, target) {
+  if (status < 200 || status >= 300)
+    fail(`${target} health check returned HTTP ${status}`);
 }
 
 export function validateReviewEnvironment(environment) {
@@ -249,18 +274,17 @@ async function authorize() {
     fail("Only the exact merged pull request commit can authorize a release");
   const pr = await github(`pulls/${prNumber}`);
   const expectedAuthor = required("RELEASE_BOT_LOGIN");
-  const checkNames = required("RELEASE_REQUIRED_CHECKS")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
-  const checks = await github(`commits/${pr.head.sha}/check-runs?per_page=100`);
+  const [checks, statuses] = await Promise.all([
+    github(`commits/${pr.head.sha}/check-runs?per_page=100`),
+    github(`commits/${pr.head.sha}/statuses?per_page=100`),
+  ]);
   const authorizedSha = validateAuthorization({
     event,
     pr,
     expectedAuthor,
     repository: required("GITHUB_REPOSITORY"),
-    requiredChecks: checkNames,
     checkRuns: checks.check_runs,
+    statuses,
   });
   if (authorizedSha !== required("GITHUB_SHA"))
     fail("Workflow checkout does not match the merged SHA");
@@ -437,6 +461,10 @@ async function rollbackIfCompatible() {
         ? `Rollback failed and production alias is unchanged or unknown: ${rollbackError.message}`
         : "Rollback result is uncertain; production alias does not point to the recorded baseline",
     );
+  const response = await fetch(`https://${required("PRODUCTION_ALIAS")}/`, {
+    signal: AbortSignal.timeout(15_000),
+  });
+  assertHealthySmoke(response.status, "Rolled-back production baseline");
 }
 
 async function finalize() {
@@ -464,16 +492,15 @@ async function finalize() {
       `refs/tags/${tag}^{}`,
     ]);
   let remote = await lookupRemoteTag();
-  if (remote) assertTagSha(remoteTagTarget(remote, tag), state.sha, tag);
-  else {
+  if (!remote) {
     await command("git", ["tag", tag, state.sha]);
     try {
       await command("git", ["push", "origin", `refs/tags/${tag}`]);
     } catch {
       remote = await lookupRemoteTag();
-      assertTagSha(remoteTagTarget(remote, tag), state.sha, tag);
     }
   }
+  assertExistingTagSha(remoteTagTarget(remote, tag), state.sha, tag);
   const existing = await command("gh", [
     "release",
     "view",
