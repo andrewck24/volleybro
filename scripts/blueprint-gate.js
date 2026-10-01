@@ -77,7 +77,6 @@ async function workerName(root) {
   return name;
 }
 
-// The preview trigger is the one that does not build the production branch.
 function previewTrigger(triggers) {
   return listOf(triggers).find((trigger) =>
     (trigger.branch_includes ?? []).includes("*"),

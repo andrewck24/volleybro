@@ -2,8 +2,10 @@
 "volleybro": minor
 ---
 
-feat(release): separate integration from guarded production release
+### Added
 
-- Prepare main-based integration without automatically deploying each merge to production.
-- Authorize a fixed release revision through the trusted Changesets version PR, with candidate QA and production smoke before success-only tagging.
-- Keep production promotion and compatible rollback serialized, and reject stale candidates or tags pointing at another revision.
+- Add a guarded production release workflow that selects a fixed revision through the version PR, requires candidate QA and production smoke, and records a release only after success.
+
+### Changed
+
+- Prepare main-based integration with a separate test URL so daily merges no longer automatically deploy production after cutover.
