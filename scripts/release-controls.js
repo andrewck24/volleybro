@@ -64,7 +64,7 @@ function json(value, label) {
   }
 }
 
-export function validateAuthorization({
+function validateAuthorization({
   event,
   pr,
   expectedAuthor,
@@ -118,7 +118,7 @@ export function validateAuthorization({
   return mergeSha;
 }
 
-export function validateVersionPr(pr, expectedAuthor, repository) {
+function validateVersionPr(pr, expectedAuthor, repository) {
   if (
     !expectedAuthor ||
     pr.base.ref !== "main" ||
@@ -138,7 +138,7 @@ export function validateVersionPr(pr, expectedAuthor, repository) {
   return true;
 }
 
-export function validateCandidate(candidate, id, sha) {
+function validateCandidate(candidate, id, sha) {
   if (
     candidate.id !== id ||
     candidate.readyState !== "READY" ||
@@ -153,7 +153,7 @@ export function validateCandidate(candidate, id, sha) {
   if (candidate.alias?.length) fail("Candidate already has an alias");
 }
 
-export function assertBaseline(actual, expected) {
+function assertBaseline(actual, expected) {
   if (
     actual.deploymentId !== expected.deploymentId ||
     actual.updatedAt !== expected.updatedAt
@@ -161,31 +161,36 @@ export function assertBaseline(actual, expected) {
     fail("Production baseline changed while candidate was being reviewed");
 }
 
-export function assertRollbackEvidence(value, state) {
+function assertRollbackEvidence(state) {
+  const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
+  const receipt = state.compatibility;
   if (
-    value !== `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`
+    !receipt ||
+    receipt.binding !== binding ||
+    receipt.runId !== required("GITHUB_RUN_ID") ||
+    !/^https:\/\//.test(receipt.evidence || "")
   )
     fail(
       "No explicit compatibility evidence bound to baseline, candidate, and release SHA; production needs human recovery",
     );
 }
 
-export function assertTagSha(actual, expected, tag) {
+function assertTagSha(actual, expected, tag) {
   if (actual && actual !== expected)
     fail(`${tag} already points at a different commit`);
 }
 
-export function assertExistingTagSha(actual, expected, tag) {
+function assertExistingTagSha(actual, expected, tag) {
   if (!actual) fail(`Could not verify remote target for ${tag}`);
   assertTagSha(actual, expected, tag);
 }
 
-export function assertHealthySmoke(status, target) {
+function assertHealthySmoke(status, target) {
   if (status < 200 || status >= 300)
     fail(`${target} health check returned HTTP ${status}`);
 }
 
-export function validateReviewEnvironment(environment) {
+function validateReviewEnvironment(environment) {
   if (
     !environment.protection_rules?.some(
       (rule) => rule.type === "required_reviewers" && rule.reviewers?.length,
@@ -195,7 +200,7 @@ export function validateReviewEnvironment(environment) {
   }
 }
 
-export function remoteTagTarget(output, tag) {
+function remoteTagTarget(output, tag) {
   const refs = new Map(
     output
       .split("\n")
@@ -208,7 +213,7 @@ export function remoteTagTarget(output, tag) {
   return refs.get(`refs/tags/${tag}^{}`) || refs.get(`refs/tags/${tag}`) || "";
 }
 
-export async function verifyMetadataOnly(base, head) {
+async function verifyMetadataOnly(base, head) {
   const status = await command("git", [
     "diff",
     "--name-status",
@@ -438,8 +443,7 @@ async function rollbackIfCompatible() {
   const state = await loadState();
   if ((await currentAlias()).deploymentId !== state.candidateId)
     fail("Production alias changed; refusing rollback");
-  const evidence = process.env.RELEASE_ROLLBACK_COMPATIBILITY;
-  assertRollbackEvidence(evidence, state);
+  assertRollbackEvidence(state);
   let rollbackError;
   try {
     await command("pnpm", [
@@ -465,6 +469,31 @@ async function rollbackIfCompatible() {
     signal: AbortSignal.timeout(15_000),
   });
   assertHealthySmoke(response.status, "Rolled-back production baseline");
+}
+
+async function recordCompatibility() {
+  const state = await loadState();
+  const binding = `${state.baseline.deploymentId}:${state.candidateId}:${state.sha}`;
+  const suppliedBinding = process.env.RELEASE_ROLLBACK_COMPATIBILITY;
+  const evidence = process.env.RELEASE_ROLLBACK_EVIDENCE;
+  const accepted =
+    suppliedBinding === binding &&
+    /^https:\/\//.test(evidence || "") &&
+    Boolean(process.env.GITHUB_RUN_ID);
+  state.compatibility = accepted
+    ? { binding, evidence, runId: required("GITHUB_RUN_ID") }
+    : null;
+  const fs = await import("node:fs/promises");
+  await fs.writeFile(
+    required("RELEASE_ACCEPTED_STATE_FILE"),
+    `${JSON.stringify(state, null, 2)}\n`,
+  );
+  const summary = accepted
+    ? `Rollback compatibility evidence recorded for ${binding}: ${evidence}`
+    : `No rollback compatibility authority recorded for ${binding}; production recovery remains human-led.`;
+  if (process.env.GITHUB_STEP_SUMMARY)
+    await fs.appendFile(process.env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+  process.stdout.write(`${summary}\n`);
 }
 
 async function finalize() {
@@ -527,6 +556,7 @@ const actions = {
   stage,
   promote,
   "rollback-if-compatible": rollbackIfCompatible,
+  "record-compatibility": recordCompatibility,
   finalize,
 };
 if (

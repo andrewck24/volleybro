@@ -71,21 +71,39 @@ jobs:
   candidate-summary:
     needs: candidate
     runs-on: ubuntu-latest
+    outputs:
+      rollback_binding: ${{ steps.bind.outputs.rollback_binding }}
+      rollback_evidence: ${{ steps.bind.outputs.rollback_evidence }}
     permissions:
       contents: read
     steps:
       - name: Bind human candidate acceptance to this immutable deployment
+        id: bind
         env:
           CANDIDATE_ID: ${{ needs.candidate.outputs.candidate_id }}
           CANDIDATE_URL: ${{ needs.candidate.outputs.candidate_url }}
           BASELINE: ${{ needs.candidate.outputs.baseline }}
           RELEASE_SHA: ${{ needs.candidate.outputs.sha }}
+          ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
+          ROLLBACK_EVIDENCE: ${{ vars.RELEASE_ROLLBACK_EVIDENCE }}
         run: |
+          binding="$BASELINE:$CANDIDATE_ID:$RELEASE_SHA"
+          if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
+            echo "rollback_binding=$binding" >> "$GITHUB_OUTPUT"
+            echo "rollback_evidence=$ROLLBACK_EVIDENCE" >> "$GITHUB_OUTPUT"
+          fi
           {
             echo '### Production candidate acceptance'
             echo "- Candidate: \`$CANDIDATE_ID\` ($CANDIDATE_URL)"
             echo "- Authorized source SHA: \`$RELEASE_SHA\`"
             echo "- Production baseline: \`$BASELINE\`"
+            if [ "$ROLLBACK_COMPATIBILITY" = "$binding" ] && [ -n "$ROLLBACK_EVIDENCE" ]; then
+              echo "- Optional rollback compatibility assertion: $binding"
+              echo "- Compatibility source evidence: $ROLLBACK_EVIDENCE"
+              echo 'Approve this optional assertion only after inspecting its source evidence.'
+            else
+              echo 'No rollback compatibility assertion is eligible; failures require human-led recovery.'
+            fi
             echo 'The protected environment reviewer must verify this exact candidate (including sign-in/session and core read-only team flow) before approving this job. The approval records candidate QA evidence; the merged version PR remains the release authorization.'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -94,11 +112,35 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     environment:
       name: production-release-review
       url: ${{ needs.candidate.outputs.candidate_url }}
     steps:
-      - run: echo "Candidate review approved for ${{ needs.candidate.outputs.candidate_id }} at ${{ needs.candidate.outputs.sha }}"
+      - uses: actions/download-artifact@v4
+        with:
+          name: production-release-state
+          path: ${{ runner.temp }}/staged
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.candidate.outputs.sha }}
+          sparse-checkout: scripts/release-controls.js
+          fetch-depth: 0
+      - name: Record reviewer-approved compatibility evidence
+        env:
+          RELEASE_STATE_FILE: ${{ runner.temp }}/staged/release-state.json
+          RELEASE_ACCEPTED_STATE_FILE: ${{ runner.temp }}/release-state.json
+          RELEASE_ROLLBACK_COMPATIBILITY: ${{ needs.candidate-summary.outputs.rollback_binding }}
+          RELEASE_ROLLBACK_EVIDENCE: ${{ needs.candidate-summary.outputs.rollback_evidence }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_STEP_SUMMARY: ${{ github.step_summary }}
+        run: node scripts/release-controls.js record-compatibility
+      - uses: actions/upload-artifact@v4
+        with:
+          name: production-release-accepted-state
+          path: ${{ runner.temp }}/release-state.json
+          if-no-files-found: error
+          retention-days: 7
 
   promote-and-smoke:
     needs: [candidate, candidate-acceptance]
@@ -113,7 +155,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: production-release-state
+          name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -146,7 +188,7 @@ jobs:
           VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-          RELEASE_ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
       - name: Fail after smoke failure
         if: steps.smoke.outcome == 'failure'
@@ -199,7 +241,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: production-release-state
+          name: production-release-accepted-state
           path: ${{ runner.temp }}
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -212,7 +254,7 @@ jobs:
           VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_STATE_FILE: ${{ runner.temp }}/release-state.json
-          RELEASE_ROLLBACK_COMPATIBILITY: ${{ vars.RELEASE_ROLLBACK_COMPATIBILITY }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           git show "${{ needs.candidate.outputs.sha }}^1:scripts/release-controls.js" > "$RUNNER_TEMP/release-controls.js"
           node "$RUNNER_TEMP/release-controls.js" rollback-if-compatible
@@ -230,7 +272,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
-          name: production-release-state
+          name: production-release-accepted-state
           path: ${{ runner.temp }}
       - name: Tag exact SHA and create GitHub Release
         env:

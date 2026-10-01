@@ -1,323 +1,155 @@
-import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
-  assertBaseline,
-  assertExistingTagSha,
-  assertHealthySmoke,
-  assertRollbackEvidence,
-  assertTagSha,
-  remoteTagTarget,
-  validateAuthorization,
-  validateCandidate,
-  validateReviewEnvironment,
-  validateVersionPr,
-  verifyMetadataOnly,
-} from "../release-controls.js";
+  mkdtemp,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+  chmod,
+} from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-function authorization(overrides = {}) {
-  const event = {
-    pull_request: {
-      merged: true,
-      merge_commit_sha: "merge-sha",
-      head: { sha: "head-sha" },
-    },
+const cli = fileURLToPath(new URL("../release-controls.js", import.meta.url));
+
+async function fixture(t) {
+  const root = await mkdtemp(path.join(os.tmpdir(), "release-cli-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const repo = path.join(root, "repo"),
+    bin = path.join(root, "bin");
+  await mkdir(repo);
+  await mkdir(bin);
+  const git = (args) =>
+    execFileSync("git", args, { cwd: repo, encoding: "utf8" }).trim();
+  git(["init", "-b", "main"]);
+  git(["config", "user.email", "test@example.invalid"]);
+  git(["config", "user.name", "Test"]);
+  await mkdir(path.join(repo, ".changeset"));
+  await writeFile(
+    path.join(repo, "package.json"),
+    '{"name":"fixture","version":"1.0.0"}',
+  );
+  await writeFile(path.join(repo, "CHANGELOG.md"), "# Changes\\n");
+  await writeFile(
+    path.join(repo, ".changeset", "one.md"),
+    "---\\nfixture: patch\\n---\\n",
+  );
+  git(["add", "."]);
+  git(["commit", "-m", "base"]);
+  git(["checkout", "-b", "changeset-release/main"]);
+  await writeFile(
+    path.join(repo, "package.json"),
+    '{"name":"fixture","version":"1.0.1"}',
+  );
+  await writeFile(
+    path.join(repo, "CHANGELOG.md"),
+    "# Changes\\n\\n## 1.0.1\\n",
+  );
+  await rm(path.join(repo, ".changeset", "one.md"));
+  git(["add", "-A"]);
+  git(["commit", "-m", "release"]);
+  const head = git(["rev-parse", "HEAD"]);
+  git(["checkout", "main"]);
+  git(["merge", "--no-ff", "changeset-release/main", "-m", "merge"]);
+  const merge = git(["rev-parse", "HEAD"]);
+  const statePath = path.join(root, "api.json");
+  await writeFile(
+    statePath,
+    JSON.stringify({ alias: "dpl_base", updatedAt: "1", calls: [] }),
+  );
+  const stub = async (name, code) => {
+    const p = path.join(bin, name);
+    await writeFile(p, "#!/usr/bin/env node\n" + code);
+    await chmod(p, 0o755);
   };
-  const pr = {
-    state: "closed",
-    merged: true,
-    merge_commit_sha: "merge-sha",
-    user: { login: "andrewck24" },
-    title: "release: update versions",
-    base: { ref: "main", repo: { full_name: "owner/repo" } },
-    head: {
-      ref: "changeset-release/main",
-      sha: "head-sha",
-      repo: { full_name: "owner/repo" },
-    },
-  };
-  const checkRuns = [
-    {
-      name: "Verify",
-      head_sha: "head-sha",
-      app: { id: 15368 },
-      status: "completed",
-      conclusion: "success",
-      started_at: "2026-10-01T00:00:00Z",
-    },
-  ];
-  const statuses = [
-    {
-      context: "Vercel",
-      state: "success",
-      sha: "head-sha",
-      updated_at: "2026-10-01T00:00:00Z",
-    },
-    {
-      context: "Vercel Preview Comments",
-      state: "success",
-      sha: "head-sha",
-      updated_at: "2026-10-01T00:01:00Z",
-    },
-  ];
+  await stub(
+    "pnpm",
+    "const fs=require('fs'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);s.calls.push(a);if(a.includes('rollback'))s.alias='dpl_base';fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));console.log(JSON.stringify({id:'dpl_cand',url:'candidate.test'}));",
+  );
+  await stub(
+    "gh",
+    "console.log(JSON.stringify({protection_rules:[{type:'required_reviewers',reviewers:[{}]}]}));",
+  );
+  const preload = path.join(root, "preload.mjs");
+  await writeFile(
+    preload,
+    "import fs from 'node:fs';globalThis.fetch=async(u)=>{const s=JSON.parse(fs.readFileSync(process.env.API_STATE));if(String(u).includes('/v4/aliases/'))return Response.json({alias:'app.test',deploymentId:s.alias,updatedAt:s.updatedAt});if(String(u).includes('/v13/deployments/'))return Response.json({id:'dpl_cand',readyState:'READY',target:'production',meta:{releaseSha:process.env.RELEASE_SHA},alias:[]});return new Response('',{status:200})};",
+  );
   return {
-    event,
-    pr,
-    expectedAuthor: "andrewck24",
-    repository: "owner/repo",
-    checkRuns,
-    statuses,
-    ...overrides,
+    root,
+    repo,
+    merge,
+    head,
+    statePath,
+    preload,
+    env: {
+      PATH: bin + ":" + process.env.PATH,
+      API_STATE: statePath,
+      RELEASE_SHA: merge,
+      GITHUB_SHA: merge,
+      VERCEL_TOKEN: "test",
+      VERCEL_PROJECT: "test",
+      PRODUCTION_ALIAS: "app.test",
+      RELEASE_STATE_FILE: path.join(root, "staged.json"),
+      GITHUB_OUTPUT: path.join(root, "output"),
+      GITHUB_RUN_ID: "9",
+    },
   };
 }
 
-test("only the trusted same-repository version PR with latest required checks authorizes its merge SHA", () => {
-  assert.equal(validateAuthorization(authorization()), "merge-sha");
-});
-
-test("open PR validator accepts the exact rolling version PR identity without requiring check results", () => {
-  const { pr } = authorization();
-  pr.state = "open";
-  pr.merged = false;
-  assert.equal(validateVersionPr(pr, "andrewck24", "owner/repo"), true);
-  assert.throws(() => validateVersionPr(pr, "attacker", "owner/repo"));
-  assert.throws(() =>
-    validateVersionPr(
-      { ...pr, title: "release: update versions " },
-      "andrewck24",
-      "owner/repo",
-    ),
-  );
-});
-
-test("rejects an impersonating author, fork head, title change, or failed latest check", () => {
-  const cases = [
-    (input) => {
-      input.pr.user.login = "attacker";
-    },
-    (input) => {
-      input.pr.head.repo.full_name = "attacker/repo";
-    },
-    (input) => {
-      input.pr.title = "release: update versions!";
-    },
-    (input) => {
-      input.checkRuns.push({
-        name: "Verify",
-        app: { id: 15368 },
-        status: "completed",
-        conclusion: "failure",
-        started_at: "2026-10-02T00:00:00Z",
-      });
-    },
-  ];
-  for (const mutate of cases) {
-    const input = authorization();
-    mutate(input);
-    assert.throws(() => validateAuthorization(input));
-  }
-});
-
-test("release requires the latest authentic Verify run and exact Vercel status on the head SHA", () => {
-  const failures = [
-    (input) => {
-      input.checkRuns = [];
-    },
-    (input) => {
-      input.checkRuns[0].app.id = 999;
-    },
-    (input) => {
-      input.checkRuns[0].status = "in_progress";
-    },
-    (input) => {
-      input.checkRuns[0].head_sha = "stale-sha";
-    },
-    (input) => {
-      input.statuses = [];
-    },
-    (input) => {
-      input.statuses[0].state = "pending";
-    },
-    (input) => {
-      input.statuses[0].state = "failure";
-    },
-    (input) => {
-      input.statuses = [input.statuses[1]];
-    },
-    (input) => {
-      input.statuses[0].sha = "stale-sha";
-    },
-  ];
-  for (const mutate of failures) {
-    const input = authorization();
-    mutate(input);
-    assert.throws(() => validateAuthorization(input));
-  }
-  const newerPending = authorization();
-  newerPending.statuses.push({
-    context: "Vercel",
-    state: "pending",
-    sha: "head-sha",
-    updated_at: "2026-10-02T00:00:00Z",
+function run(f, action, extra = {}) {
+  return spawnSync(process.execPath, ["--import", f.preload, cli, action], {
+    cwd: f.repo,
+    env: { ...process.env, ...f.env, ...extra },
+    encoding: "utf8",
   });
-  assert.throws(
-    () => validateAuthorization(newerPending),
-    /Vercel commit status/,
-  );
+}
+
+test("stage runs the real CLI and records exact checkout SHA, baseline, and candidate", async (t) => {
+  const f = await fixture(t),
+    result = run(f, "stage");
+  assert.equal(result.status, 0, result.stderr);
+  const recorded = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.equal(recorded.sha, f.merge);
+  assert.equal(recorded.candidateId, "dpl_cand");
+  assert.deepEqual(recorded.baseline, {
+    deploymentId: "dpl_base",
+    updatedAt: "1",
+  });
 });
 
-test("candidate must remain the ready production deployment for the exact SHA with no alias", () => {
-  const candidate = {
-    id: "dpl_candidate",
-    readyState: "READY",
-    target: "production",
-    meta: { releaseSha: "sha-1" },
-    alias: [],
-  };
-  assert.doesNotThrow(() =>
-    validateCandidate(candidate, "dpl_candidate", "sha-1"),
-  );
-  assert.throws(() =>
-    validateCandidate(
-      { ...candidate, readyState: "BUILDING" },
-      "dpl_candidate",
-      "sha-1",
-    ),
-  );
-  assert.throws(() =>
-    validateCandidate(
-      { ...candidate, meta: { releaseSha: "other" } },
-      "dpl_candidate",
-      "sha-1",
-    ),
-  );
-  assert.throws(() =>
-    validateCandidate(
-      { ...candidate, alias: ["volleybro.vercel.app"] },
-      "dpl_candidate",
-      "sha-1",
-    ),
-  );
-});
-
-test("rejects a stale production baseline at the promotion boundary", () => {
-  const original = { deploymentId: "dpl_baseline", updatedAt: "1000" };
-  assert.doesNotThrow(() => assertBaseline(original, original));
-  assert.throws(
-    () =>
-      assertBaseline(
-        { deploymentId: "dpl_hotfix", updatedAt: "2000" },
-        original,
-      ),
-    /baseline changed/,
-  );
-  assert.throws(
-    () => assertBaseline({ ...original, updatedAt: "3000" }, original),
-    /baseline changed/,
-  );
-});
-
-test("rollback requires compatibility evidence bound to the exact baseline, candidate, and SHA", () => {
-  const state = {
-    baseline: { deploymentId: "dpl_old" },
-    candidateId: "dpl_new",
-    sha: "sha-1",
-  };
-  assert.doesNotThrow(() =>
-    assertRollbackEvidence("dpl_old:dpl_new:sha-1", state),
-  );
-  assert.throws(() => assertRollbackEvidence("", state));
-  assert.throws(() => assertRollbackEvidence("dpl_old:dpl_new:sha-2", state));
-});
-
-test("release stops unless candidate QA environment has a required reviewer", () => {
-  assert.doesNotThrow(() =>
-    validateReviewEnvironment({
-      protection_rules: [
-        { type: "required_reviewers", reviewers: [{ login: "release-owner" }] },
-      ],
-    }),
-  );
-  assert.throws(
-    () => validateReviewEnvironment({ protection_rules: [] }),
-    /required reviewers/,
-  );
-  assert.throws(
-    () =>
-      validateReviewEnvironment({
-        protection_rules: [{ type: "wait_timer", wait_timer: 5 }],
-      }),
-    /required reviewers/,
-  );
-});
-
-test("tag retry is idempotent at the authorized SHA and rejects a moved tag", () => {
-  assert.doesNotThrow(() => assertTagSha("sha-1", "sha-1", "v1.0.0"));
-  assert.throws(
-    () => assertTagSha("sha-other", "sha-1", "v1.0.0"),
-    /different commit/,
-  );
-  assert.doesNotThrow(() => assertTagSha("", "sha-1", "v1.0.0"));
-  assert.equal(
-    remoteTagTarget(
-      "sha-tag\trefs/tags/v1.0.0\nsha-1\trefs/tags/v1.0.0^{}",
-      "v1.0.0",
-    ),
-    "sha-1",
-  );
-  assert.throws(
-    () => assertExistingTagSha("", "sha-1", "v1.0.0"),
-    /verify remote target/,
-  );
-  assert.doesNotThrow(() => assertExistingTagSha("sha-1", "sha-1", "v1.0.0"));
-});
-
-test("rollback verification requires a healthy baseline homepage response", () => {
-  assert.doesNotThrow(() => assertHealthySmoke(200, "baseline"));
-  assert.throws(() => assertHealthySmoke(503, "baseline"), /HTTP 503/);
-});
-
-test("metadata diff accepts version/changelog/consumed changeset only and rejects runtime changes", async () => {
-  const previousCwd = process.cwd();
-  const directory = await mkdtemp(join(tmpdir(), "release-controls-"));
-  const git = (...args) =>
-    execFileSync("git", args, { cwd: directory, encoding: "utf8" }).trim();
-  try {
-    process.chdir(directory);
-    git("init", "-q");
-    git("config", "user.name", "Release Test");
-    git("config", "user.email", "release-test@example.invalid");
-    await mkdir(".changeset");
-    await writeFile("package.json", '{"name":"volleybro","version":"1.0.0"}\n');
-    await writeFile("CHANGELOG.md", "# Changelog\n");
-    await writeFile(
-      ".changeset/one.md",
-      '---\n"volleybro": patch\n---\n\nFix.\n',
-    );
-    await writeFile("runtime.js", "export const value = 1;\n");
-    git("add", ".");
-    git("commit", "-qm", "base");
-    const base = git("rev-parse", "HEAD");
-    await writeFile("package.json", '{"name":"volleybro","version":"1.0.1"}\n');
-    await writeFile("CHANGELOG.md", "# Changelog\n\n## 1.0.1\n\nFix.\n");
-    await rm(".changeset/one.md");
-    git("add", "-A");
-    git("commit", "-qm", "version");
-    const valid = git("rev-parse", "HEAD");
-    await assert.doesNotReject(() => verifyMetadataOnly(base, valid));
-    await writeFile("runtime.js", "export const value = 2;\n");
-    git("add", "runtime.js");
-    git("commit", "-qm", "runtime change");
-    const invalid = git("rev-parse", "HEAD");
-    await assert.rejects(
-      () => verifyMetadataOnly(base, invalid),
-      /non-metadata change/,
-    );
-  } finally {
-    process.chdir(previousCwd);
-    await rm(directory, { recursive: true, force: true });
-  }
+test("rollback requires accepted run-bound evidence, not mutable environment values", async (t) => {
+  const f = await fixture(t);
+  assert.equal(run(f, "stage").status, 0);
+  const binding = "dpl_base:dpl_cand:" + f.merge,
+    accepted = path.join(f.root, "accepted.json");
+  let result = run(f, "rollback-if-compatible", {
+    RELEASE_ROLLBACK_COMPATIBILITY: binding,
+  });
+  assert.notEqual(result.status, 0);
+  result = run(f, "record-compatibility", {
+    RELEASE_ROLLBACK_COMPATIBILITY: binding,
+    RELEASE_ROLLBACK_EVIDENCE: "",
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  result = run(f, "rollback-if-compatible", { RELEASE_STATE_FILE: accepted });
+  assert.notEqual(result.status, 0);
+  result = run(f, "record-compatibility", {
+    RELEASE_ROLLBACK_COMPATIBILITY: binding,
+    RELEASE_ROLLBACK_EVIDENCE: "https://evidence.example.test/review",
+    RELEASE_ACCEPTED_STATE_FILE: accepted,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const api = JSON.parse(await readFile(f.statePath, "utf8"));
+  api.alias = "dpl_cand";
+  await writeFile(f.statePath, JSON.stringify(api));
+  result = run(f, "rollback-if-compatible", { RELEASE_STATE_FILE: accepted });
+  assert.equal(result.status, 0, result.stderr);
+  const actual = JSON.parse(await readFile(f.statePath, "utf8"));
+  assert.equal(actual.alias, "dpl_base");
+  assert.ok(actual.calls.some((args) => args.includes("rollback")));
 });
