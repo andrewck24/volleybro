@@ -1,0 +1,66 @@
+export const scenarios = [
+  { id: "S1", given: "The existing workspace manifests and committed lockfile", when: "pnpm 12.8.1 installs with frozen lockfile in a clean checkout", then: "Both workspaces install without dependency upgrades or lockfile changes; existing build approvals remain enforced." },
+  { id: "S2", given: "The upgraded toolchain and existing application", when: "Full repository validation, integration tests and Blueprint build run", then: "All required lanes pass under the pinned version without changing application behavior." },
+  { id: "S3", given: "An executable cf on PATH", when: "Blueprint gate requests a preview build", then: "The installed cf executes; authentication, command, parsing and transport failures are reported without retrying dlx." },
+  { id: "S4", given: "No cf executable on PATH and a pnpm-run environment", when: "Blueprint gate requests a preview build", then: "The existing pinned cf package runs through pnpm dlx, supporting native pnpm and the existing JavaScript launcher without passing a native executable to Node." },
+  { id: "S5", given: "The migration branch and its pinned package manager", when: "GitHub CI and the actual Vercel and Cloudflare branch builds run", then: "The package manager and hosted installation are verified, with correct rendered previews and no production alias change." }
+];
+
+<TLDR>
+
+將 VolleyBro 的 contributor／CI toolchain 升到 `pnpm@12.8.1`，在首次預期 v0.16.0 發布前交付。保留 lockfile、dependencies 與 build-script 權限；修正 native pnpm launcher 相容性，讓 `blueprint:gate` 優先使用 PATH 上的 `cf`，僅缺少指令時使用既有 pinned `pnpm dlx cf`。這是獨立 Change，不改寫 `release-train` 已接受的 Proposal／Review，也不代表 app 已發布。
+
+</TLDR>
+
+## Before / after
+
+| 項目 | 目前 | 交付後 |
+| --- | --- | --- |
+| Repo toolchain | pnpm 11.24.0 | 明確 pin pnpm 12.8.1；CI／託管建置實際驗證 |
+| Blueprint CLI | 一律 dlx，透過 Node 執行 npm_execpath | 優先本機 cf；找不到才 dlx；識別 native／JS launcher |
+| 安全控制 | 既有 allowBuilds、受檢查 PR、G1/G2 | 全部保留，不為成功安裝放寬政策 |
+
+## Decisions
+
+<DecisionCards />
+
+版本 pin 與 CLI 選擇可由後續受檢查 PR 回復，不新增 ADR；不改寫既有 decision records。
+
+## Scope
+
+1. 更新 packageManager 與必要 contributor 設定；只在真實相容性問題需要時修改 workflows／hosted build 設定。保留 action-setup 與 Node runtime，避免為升級而重寫 CI。
+2. 保留現有 dependency resolution 與 lockfile；若 frozen install 不相容，停下來釐清，而不是順便升級全部套件。維持 allowBuilds，禁止 blanket approve。
+3. `blueprint:gate` 採 global cf 優先、缺少 executable 才 fallback。非零 exit、登入、API、timeout 或 JSON 失敗不切換另一版重試。fallback 保留既有 cf package pin；不把最新版 beta 自動納入 repo。
+4. 用 real executable fixtures 驗證 CLI 選擇與 native／JS pnpm 邊界，覆蓋既有 Windows shim 支援；避免只 grep source。其餘 proof 重用現有 full validation、integration lane 與 hosted builds。
+5. Changeset 記錄 contributor toolchain 影響，不直接將 package.json version 改成 0.16.0。合併時以真實 remote default 為 base，必須先於 `release-train` 首次 version PR 的授權範圍。
+
+本機 standalone pnpm、授權全域套件清理與 CLI 安裝已執行，與 repo delivery 分開記錄。OAuth 登入由開發者執行，不複製本機登入 token 到 CI。DB、正式網址、release credentials、hotfix 與 dependency automation 均不在本 Change；不將 Changesets 替換為 pnpm 內建 versioning。
+
+## CLI selection
+
+<InteractiveFlowchart
+  nodes={[{id:"global",label:"PATH 上有 cf？",x:160,y:40,w:220},{id:"run",label:"執行本機 cf",x:20,y:140,w:180},{id:"dlx",label:"pnpm dlx pinned cf",x:240,y:140,w:220},{id:"result",label:"解析結果／回報失敗",x:160,y:240,w:220}]}
+  edges={[{from:"global",to:"run",label:"有"},{from:"global",to:"dlx",label:"沒有"},{from:"run",to:"result"},{from:"dlx",to:"result"}]}
+  details={{global:{title:"只依 executable 可用性分流",body:"不是依是否登入、版本號或執行成功判斷；不得以更換 CLI 掩蓋失敗。"},run:{title:"使用開發者已安裝版本",body:"由開發者管理全域更新，CI 不依賴個人全域工具。"},dlx:{title:"保留可重現 fallback",body:"維持既有 package pin；支援 native 與 JS pnpm，不使用不受控 shell 字串。"},result:{title:"失敗保留原始原因",body:"登入由開發者操作；不得在 production 部署或 token 權限上放寬驗證。"}}}
+/>
+
+## Acceptance scenarios
+
+<Scenarios items={scenarios} />
+
+## Risks
+
+<RiskTable risks={[
+  {name:"託管平台未支援 native pnpm",severity:"critical",mitigation:"實際 branch build 驗證 install 與 build；必要設定經確認才修改，不由本機 CLI 推論平台支援。"},
+  {name:"新版 launcher 破壞 dlx 或 Windows",severity:"warning",mitigation:"針對 real executable 邊界驗證 native／JS 路徑與缺少 cf 的 fallback；保留既有支援範圍。"},
+  {name:"最新版 cf beta 改變 API／output",severity:"warning",mitigation:"global cf failure 直接回報；fallback 維持既有 pin。實際 preview build 驗證，不因 beta 版本號而宣稱安全。"},
+  {name:"重建 node_modules 或 cache 增加容量",severity:"info",mitigation:"使用共享 store；只清理已授權未引用內容，不刪除 active worktree 或 user data。"}
+]} />
+
+## References
+
+- [pnpm 12 differences](https://pnpm.io/blog/whats-different-in-pnpm-12)
+- [pnpm installation](https://pnpm.io/installation)
+- [pnpm action-setup](https://github.com/pnpm/action-setup)
+- [Vercel package managers](https://vercel.com/docs/package-managers)
+- [Cloudflare Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/)
