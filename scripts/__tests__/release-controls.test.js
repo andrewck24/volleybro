@@ -203,7 +203,7 @@ async function fixture(t) {
       RELEASE_OWNER_LOGIN: "release-owner",
       GITHUB_ACTOR: "release-owner",
       GITHUB_TRIGGERING_ACTOR: "release-owner",
-      GITHUB_EVENT_NAME: "workflow_dispatch",
+      GITHUB_EVENT_NAME: "pull_request",
       GITHUB_REF: "refs/heads/main",
     },
   };
@@ -434,6 +434,53 @@ test("hotfix authorization binds owner dispatch to an exact isolated PR without 
   }
 });
 
+test("hotfix state rejects partial reruns by another actor before any release write", async (t) => {
+  const f = await fixture(t);
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, hotfixAuthorization(f, current));
+  const env = {
+    HOTFIX_PR_NUMBER: "2",
+    RELEASE_SHA: f.hotfix,
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+  };
+  const authorized = run(f, "authorize-hotfix", env);
+  assert.equal(authorized.status, 0, authorized.stderr);
+  const authorization = JSON.parse(authorized.stdout).authorization;
+  f.git(["checkout", f.hotfix]);
+  const missing = run(f, "stage", env);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /authorization does not match/);
+  assert.deepEqual(JSON.parse(await readFile(f.statePath, "utf8")).calls, []);
+  const staged = run(f, "stage", {
+    ...env,
+    HOTFIX_AUTHORIZATION: JSON.stringify(authorization),
+  });
+  assert.equal(staged.status, 0, staged.stderr);
+  const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.deepEqual(state.authorization, authorization);
+  const calls = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+  for (const action of [
+    "record-compatibility",
+    "promote",
+    "rollback-if-compatible",
+    "finalize",
+    "merge-back",
+  ]) {
+    const denied = run(f, action, {
+      ...env,
+      GITHUB_TRIGGERING_ACTOR: "outsider",
+    });
+    assert.notEqual(denied.status, 0, action);
+    assert.match(denied.stderr, /release owner dispatch/);
+    assert.deepEqual(
+      JSON.parse(await readFile(f.statePath, "utf8")).calls,
+      calls,
+    );
+  }
+  const promoted = run(f, "promote", env);
+  assert.equal(promoted.status, 0, promoted.stderr);
+});
+
 test("hotfix authorization rejects a non-patch version", async (t) => {
   const f = await fixture(t);
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
@@ -461,6 +508,7 @@ test("hotfix authorization rejects a non-patch version", async (t) => {
   const result = run(f, "authorize-hotfix", {
     HOTFIX_PR_NUMBER: "2",
     RELEASE_SHA: wrong,
+    GITHUB_EVENT_NAME: "workflow_dispatch",
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /one patch above/);
