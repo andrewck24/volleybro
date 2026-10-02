@@ -1,0 +1,188 @@
+/* PROTOTYPE (throwaway). Scrub = CSS scroll-driven animation (transform/opacity
+   only, no JS per frame). The 400svh section is the view-timeline subject;
+   `contain 0%..100%` spans section-top-at-viewport-top .. section-bottom-at-
+   viewport-bottom, i.e. step 0..3. Component state does NOT follow this
+   timeline: it changes at step boundaries from IntersectionObserver. */
+.section {
+  position: relative;
+  height: 400svh;
+  view-timeline: --steps block;
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  pointer-events: none;
+}
+
+.stage > * {
+  pointer-events: auto;
+}
+
+.frame {
+  width: min(22rem, calc(100vw - 2rem));
+  height: min(40rem, calc(100svh - 9rem));
+}
+
+.rails {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.rail {
+  height: 100svh;
+  scroll-snap-align: start;
+}
+
+/* snap points just outside the section so mandatory snap never traps the
+   reader at either edge; snap itself is only on while the section is in view */
+.snapBefore,
+.snapAfter {
+  position: absolute;
+  inset-inline: 0;
+  height: 0;
+  scroll-snap-align: start;
+  pointer-events: none;
+}
+.snapBefore {
+  top: calc(-100svh - 2px);
+}
+.snapAfter {
+  top: calc(100% + 2px);
+}
+
+.captions {
+  position: relative;
+  width: min(22rem, calc(100vw - 2rem));
+  height: 4.5rem;
+  text-align: center;
+}
+
+.caption {
+  position: absolute;
+  inset: 0;
+}
+
+.progress {
+  width: min(22rem, calc(100vw - 2rem));
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: color-mix(in oklab, currentColor 15%, transparent);
+}
+.bar {
+  height: 100%;
+  width: 100%;
+  transform-origin: left;
+  background: currentColor;
+}
+
+/* fallback (no animation-timeline): IntersectionObserver writes data-step on
+   the section and the layers transition to that step's value */
+.layer {
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
+  opacity: var(--v0);
+}
+.scale {
+  opacity: 1;
+  transform: scaleX(var(--v0));
+}
+.section[data-step="1"] .layer {
+  opacity: var(--v1);
+}
+.section[data-step="2"] .layer {
+  opacity: var(--v2);
+}
+.section[data-step="3"] .layer {
+  opacity: var(--v3);
+}
+.section[data-step="1"] .scale {
+  opacity: 1;
+  transform: scaleX(var(--v1));
+}
+.section[data-step="2"] .scale {
+  opacity: 1;
+  transform: scaleX(var(--v2));
+}
+.section[data-step="3"] .scale {
+  opacity: 1;
+  transform: scaleX(var(--v3));
+}
+
+@keyframes fade {
+  0% {
+    opacity: var(--v0);
+  }
+  33.333% {
+    opacity: var(--v1);
+  }
+  66.667% {
+    opacity: var(--v2);
+  }
+  100% {
+    opacity: var(--v3);
+  }
+}
+
+@keyframes grow {
+  0% {
+    transform: scaleX(var(--v0));
+  }
+  33.333% {
+    transform: scaleX(var(--v1));
+  }
+  66.667% {
+    transform: scaleX(var(--v2));
+  }
+  100% {
+    transform: scaleX(var(--v3));
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .layer {
+    transition: none;
+    animation: fade linear both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .scale {
+    animation-name: grow;
+  }
+  /* reduced motion: hold each keyframe value until the next = instant swaps */
+  @media (prefers-reduced-motion: reduce) {
+    .layer {
+      animation-timing-function: step-end;
+    }
+  }
+}
+
+/* the real components carry their own enter animations and transitions;
+   reduced motion turns those into instant swaps too */
+@media (prefers-reduced-motion: reduce) {
+  .frame *,
+  .frame *::before,
+  .frame *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.stats {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 4rem 1rem;
+}

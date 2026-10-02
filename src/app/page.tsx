@@ -4,7 +4,9 @@ import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
 import { Highlights } from "@/components/landing/highlights";
+import { RecordDemoGate } from "@/components/landing/record-demo";
 import "@/styles/landing.css";
+import { Suspense } from "react";
 
 const LandingPage = () => {
   return (
@@ -12,6 +14,9 @@ const LandingPage = () => {
       <Header />
       <Hero />
       <Highlights />
+      <Suspense>
+        <RecordDemoGate />
+      </Suspense>
       <Features />
       <CTASection />
       <Footer />
