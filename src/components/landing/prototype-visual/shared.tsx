@@ -1,4 +1,6 @@
+import { LogoType } from "@/components/brand";
 import { Figures } from "@/components/custom/stats/figures";
+import { DarkMode } from "@/components/landing/footer/dark-mode";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -19,6 +21,8 @@ export const COPY = {
   kitLead: "建隊、邀請、排陣容，全部在同一支手機上完成。",
   ctaTitle: "下一場比賽就開始用",
   ctaLead: "先建好球隊，開賽哨聲一響就能記。",
+  /** hero = title + this one sentence, with the rally word in the middle */
+  heroDesc: ["讓每一次", "都變成數據。"],
 };
 
 export const STEPS = [
@@ -28,20 +32,32 @@ export const STEPS = [
   { title: "預覽送出", body: "確認這一球，送出後立刻記下一球。" },
 ];
 
-export const STATS = [
+export type Feature = { title: string; body: string; dev?: boolean };
+
+export const STATS: Feature[] = [
   {
     title: "技術類別統計",
     body: "發球、攻擊、攔網、接發、防守，各自累計得失分。",
   },
   { title: "每局比分", body: "每一局打到幾比幾，局末自動結算。" },
   { title: "逐球時間軸", body: "每一分怎麼來的，照順序一球一球排好。" },
+  {
+    title: "球員數據與進階圖表",
+    body: "跨場次累計每位球員的各項技術數據，並畫成進階圖表。",
+    dev: true,
+  },
 ];
 
-export const KIT = [
+export const KIT: Feature[] = [
   { title: "建立球隊", body: "填隊名就建好。" },
-  { title: "邀請隊友", body: "傳連結，隊友加入就能一起看。" },
+  { title: "邀請隊友", body: "搜尋使用者，直接邀請加入球隊。" },
   { title: "排陣容", body: "背號、位置、自由球員一次排好。" },
   { title: "安裝到主畫面", body: "像 App 一樣從主畫面打開。" },
+  {
+    title: "多裝置同時記錄",
+    body: "多支手機一起記同一場；成員以上的隊友可開唯讀即時頁面跟著看。",
+    dev: true,
+  },
 ];
 
 export const LINKS = {
@@ -62,29 +78,6 @@ export const SET_SCORES = [
   { set: 2, home: 23, away: 25 },
   { set: 3, home: 15, away: 12 },
 ];
-
-/** CSS-only rotating word; reduced motion freezes on the first word. */
-export const RotatingWord = ({
-  words = SKILL_WORDS,
-  className,
-}: {
-  words?: string[];
-  className?: string;
-}) => (
-  <span className={cn("inline-grid align-bottom", className)}>
-    <span className="sr-only">{words.join("、")}</span>
-    {words.map((w, i) => (
-      <span
-        key={w}
-        aria-hidden
-        className="proto-word"
-        style={{ animationDelay: `${i * 2.2}s` }}
-      >
-        {w}
-      </span>
-    ))}
-  </span>
-);
 
 /** Theme-aware app screenshot. */
 export const Shot = ({
@@ -125,6 +118,20 @@ export const SkillFigures = ({ className }: { className?: string }) => (
   </div>
 );
 
+/** Feature title; a planned feature only adds the 開發中 badge. */
+export const FeatureTitle = ({
+  f,
+  className,
+}: {
+  f: Feature;
+  className?: string;
+}) => (
+  <h3 className={cn("flex flex-wrap items-center gap-2", className)}>
+    {f.title}
+    {f.dev && <DevBadge />}
+  </h3>
+);
+
 export const DevBadge = ({ className }: { className?: string }) => (
   <span
     className={cn(
@@ -135,3 +142,47 @@ export const DevBadge = ({ className }: { className?: string }) => (
     開發中
   </span>
 );
+
+/** Footer shared by the round-2 variants: logo flush left, links, theme toggle. */
+export const ProtoFooter = ({ year }: { year: number }) => (
+  <footer className="bg-background px-4 pt-16 pb-28 md:px-8">
+    <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col items-start gap-4">
+        <LogoType className="h-7 w-auto self-start" />
+        <p className="text-sm text-muted-foreground">
+          © {year} VolleyBro · Made by{" "}
+          <a
+            href={LINKS.author}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-foreground hover:underline"
+          >
+            Andrew Tseng
+          </a>
+        </p>
+        <p className="flex gap-6 text-sm font-bold">
+          <a
+            href={LINKS.github}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-chart-1"
+          >
+            GitHub
+          </a>
+          <a
+            href={LINKS.feedback}
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-chart-1"
+          >
+            意見回饋
+          </a>
+        </p>
+      </div>
+      <DarkMode />
+    </div>
+  </footer>
+);
+
+/** Section spacing reference: round-1 B's ending CTA. */
+export const SECTION = "mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32";

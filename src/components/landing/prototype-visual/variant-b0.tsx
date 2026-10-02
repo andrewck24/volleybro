@@ -1,35 +1,34 @@
 import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
 import { DarkMode } from "@/components/landing/footer/dark-mode";
-import { HeroEntryList } from "@/components/landing/prototype-visual/hero-entry-list";
+import {
+  EntryRows,
+  RallyProvider,
+  RallyWord,
+} from "@/components/landing/prototype-visual/rally";
 import {
   COPY,
-  DevBadge,
+  FeatureTitle,
   KIT,
   LINKS,
-  RotatingWord,
   SET_SCORES,
   STATS,
   STEPS,
   Shot,
   SkillFigures,
 } from "@/components/landing/prototype-visual/shared";
-import { Barlow_Condensed } from "next/font/google";
 
 // PROTOTYPE variant B — 「賽點」: bold & block-based. Full-bleed colour blocks
-// (teal hero, coral ending), heavy CJK type, scoreboard numerals in Barlow
+// (teal hero, coral ending), heavy CJK type, scoreboard numerals (now Saira)
 // Condensed. Ending CTA keeps decorative shapes: solid (no blur), CSS-only
 // drift, static under reduced motion.
 
-const numerals = Barlow_Condensed({
-  weight: ["700", "800"],
-  subsets: ["latin"],
-  display: "swap",
-});
+// round 2: Barlow Condensed dropped — numerals use the app font (Saira)
+const numerals = { className: "font-sans" };
 
 const CORAL = "bg-[#FC7A56] text-neutral-950";
 
-export const VariantB = ({ year }: { year: number }) => (
+export const VariantB0 = ({ year }: { year: number }) => (
   <main className="min-h-full w-full bg-background text-foreground select-text">
     <header className="sticky top-0 z-50 bg-primary text-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
@@ -46,37 +45,39 @@ export const VariantB = ({ year }: { year: number }) => (
     </header>
 
     {/* Hero — full-bleed teal block in both themes */}
-    <section className="bg-primary text-white">
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 pt-12 pb-16 md:px-8 md:pt-20 md:pb-24 lg:grid-cols-[1.25fr_1fr] lg:items-center">
-        <div className="flex flex-col gap-8">
-          <h1 className="text-4xl leading-[1.05] font-black tracking-tight md:text-7xl xl:text-8xl">
-            {COPY.heroTitle[0]}
-            <br />
-            {COPY.heroTitle[1]}
-          </h1>
-          <p className="text-2xl font-black md:text-3xl">
-            讓每一次
-            <RotatingWord className={`mx-2 rounded-md px-2 ${CORAL}`} />
-            都變成數據
-          </p>
-          <p className="max-w-lg text-base leading-relaxed text-white/80 md:text-lg">
-            {COPY.heroLead}
-          </p>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
-            <CTAButton
-              size="lg"
-              className={`h-14 px-10 text-lg font-black hover:bg-[#FC7A56]/90 ${CORAL}`}
-            >
-              開始記錄
-            </CTAButton>
-            <p className="text-sm text-white/70">{COPY.heroNote}</p>
+    <RallyProvider className="bg-primary text-white">
+      <section>
+        <div className="mx-auto grid max-w-7xl gap-12 px-4 pt-12 pb-16 md:px-8 md:pt-20 md:pb-24 lg:grid-cols-[1.25fr_1fr] lg:items-center">
+          <div className="flex flex-col gap-8">
+            <h1 className="text-4xl leading-[1.05] font-black tracking-tight md:text-7xl xl:text-8xl">
+              {COPY.heroTitle[0]}
+              <br />
+              {COPY.heroTitle[1]}
+            </h1>
+            <p className="text-2xl font-black md:text-3xl">
+              讓每一次
+              <RallyWord className={`mx-2 rounded-md px-2 ${CORAL}`} />
+              都變成數據
+            </p>
+            <p className="max-w-lg text-base leading-relaxed text-white/80 md:text-lg">
+              {COPY.heroLead}
+            </p>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-5">
+              <CTAButton
+                size="lg"
+                className={`h-14 px-10 text-lg font-black hover:bg-[#FC7A56]/90 ${CORAL}`}
+              >
+                開始記錄
+              </CTAButton>
+              <p className="text-sm text-white/70">{COPY.heroNote}</p>
+            </div>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <EntryRows />
           </div>
         </div>
-        <div className="flex justify-center lg:justify-end">
-          <HeroEntryList />
-        </div>
-      </div>
-    </section>
+      </section>
+    </RallyProvider>
 
     {/* 記錄怎麼做 — scoreboard step strip */}
     <section className="mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
@@ -162,14 +163,10 @@ export const VariantB = ({ year }: { year: number }) => (
           <ul className="flex flex-col gap-6">
             {STATS.map((s) => (
               <li key={s.title} className="flex flex-col gap-1">
-                <h3 className="text-2xl font-black">{s.title}</h3>
+                <FeatureTitle f={s} className="text-2xl font-black" />
                 <p className="opacity-75">{s.body}</p>
               </li>
             ))}
-            <li className="flex flex-wrap items-center gap-2">
-              <h3 className="text-2xl font-black opacity-60">球員個人分析</h3>
-              <DevBadge />
-            </li>
           </ul>
         </div>
       </div>
@@ -181,20 +178,16 @@ export const VariantB = ({ year }: { year: number }) => (
         <h2 className="text-3xl font-black md:text-5xl">{COPY.kitTitle}</h2>
         <p className="text-lg text-muted-foreground">{COPY.kitLead}</p>
       </div>
-      <ul className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <ul className="mt-10 grid grid-cols-2 gap-3 lg:grid-cols-3">
         {KIT.map((k) => (
           <li
             key={k.title}
             className="flex flex-col gap-1 rounded-lg border-l-4 border-primary bg-card p-4"
           >
-            <h3 className="font-black">{k.title}</h3>
+            <FeatureTitle f={k} className="font-black" />
             <p className="text-sm text-muted-foreground">{k.body}</p>
           </li>
         ))}
-        <li className="col-span-2 flex flex-col items-start gap-2 rounded-lg border-l-4 border-muted-foreground/30 bg-card p-4 lg:col-span-1">
-          <h3 className="font-black text-muted-foreground">多裝置同步</h3>
-          <DevBadge />
-        </li>
       </ul>
     </section>
 
