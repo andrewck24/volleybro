@@ -7,7 +7,7 @@ updates:
       day: tuesday
       time: "09:00"
       timezone: Asia/Taipei
-    open-pull-requests-limit: 0 # Enable after the consolidated activation rehearsal.
+    open-pull-requests-limit: 5
     commit-message:
       prefix: chore
       include: scope
@@ -18,7 +18,7 @@ updates:
       day: tuesday
       time: "09:00"
       timezone: Asia/Taipei
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 5
     commit-message:
       prefix: chore
       include: scope
