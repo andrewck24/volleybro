@@ -14,7 +14,7 @@ const LandingPage = async ({
   searchParams: Promise<{ variant?: string }>;
 }) => {
   const { variant } = await searchParams;
-  if (variant && ["A1", "A2", "B1", "B2"].includes(variant)) {
+  if (variant && ["A1", "A2", "B1", "B2", "B3", "B4"].includes(variant)) {
     return <PrototypeScrollSteps searchParams={searchParams} />;
   }
   return (

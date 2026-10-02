@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import {
   motion,
@@ -21,17 +22,17 @@ import {
   type MotionValue,
 } from "motion/react";
 
-const STEPS = [
+export const STEPS = [
   { t: "選球員", d: "點場上的球員，決定這一球是誰的。" },
   { t: "我方動作", d: "從動作面板挑一個：發球、攻擊、攔網……" },
   { t: "對方回應", d: "面板換成對方的結果，再點一次。" },
   { t: "預覽送出", d: "確認這一球的摘要，送出即記錄完成。" },
 ];
-const N = STEPS.length;
+export const N = STEPS.length;
 const AT = STEPS.map((_, i) => i);
 
 // value of each layer at step 0..3. "y" kind: 1 = fully hidden below, 0 = shown.
-const S = {
+export const S = {
   ring: [1, 1, 1, 0.4],
   own: [1, 0, 1, 1],
   opp: [1, 1, 0, 1],
@@ -39,9 +40,9 @@ const S = {
   oppSel: [0, 0, 1, 1],
   card: [0, 0, 0, 1],
 };
-const one = (i: number) => AT.map((j) => (i === j ? 1 : 0));
+export const one = (i: number) => AT.map((j) => (i === j ? 1 : 0));
 
-type LayerProps = {
+export type LayerProps = {
   vals: number[];
   kind: "y" | "o";
   className?: string;
@@ -100,7 +101,14 @@ const PANELS = [
   },
 ] as const;
 
-function Screen({ L }: { L: (p: LayerProps) => ReactNode }) {
+export function Screen({
+  L,
+  flat = false,
+}: {
+  L: (p: LayerProps) => ReactNode;
+  flat?: boolean;
+}) {
+  const sh = flat ? "" : "shadow-md";
   return (
     <div className="relative aspect-[9/17] w-[min(46vw,260px)] overflow-hidden rounded-[2rem] bg-card shadow-lg">
       <div className="px-4 pt-8 text-center text-[10px] text-muted-foreground">
@@ -133,7 +141,7 @@ function Screen({ L }: { L: (p: LayerProps) => ReactNode }) {
           key={p.k}
           vals={S[p.k]}
           kind="y"
-          className="absolute inset-x-0 bottom-0 rounded-t-xl bg-popover p-3 shadow-md"
+          className={`absolute inset-x-0 bottom-0 rounded-t-xl bg-popover p-3 ${sh}`}
         >
           <div className="mb-2 text-[10px] text-muted-foreground">
             {p.title}
@@ -164,7 +172,7 @@ function Screen({ L }: { L: (p: LayerProps) => ReactNode }) {
       <L
         vals={S.card}
         kind="o"
-        className="absolute inset-x-3 top-1/3 rounded-xl bg-popover p-4 shadow-md"
+        className={`absolute inset-x-3 top-1/3 rounded-xl bg-popover p-4 ${sh}`}
       >
         <div className="text-xs text-muted-foreground">本球摘要</div>
         <div className="mt-1 text-sm font-medium">#5 攻擊 → 被接起</div>
@@ -176,7 +184,13 @@ function Screen({ L }: { L: (p: LayerProps) => ReactNode }) {
   );
 }
 
-const Block = ({ snap, children }: { snap: boolean; children: ReactNode }) => (
+export const Block = ({
+  snap,
+  children,
+}: {
+  snap: boolean;
+  children: ReactNode;
+}) => (
   <div
     className={`flex h-svh items-center justify-center bg-background text-muted-foreground ${snap ? "snap-start" : ""}`}
   >
@@ -184,69 +198,26 @@ const Block = ({ snap, children }: { snap: boolean; children: ReactNode }) => (
   </div>
 );
 
-export function PrototypeSteps({
-  scrub,
+export function Stage({
+  L,
   snap,
+  boxRef,
+  flat,
+  sectionClass = "",
 }: {
-  scrub: boolean;
+  L: (p: LayerProps) => ReactNode;
   snap: boolean;
+  boxRef: RefObject<HTMLElement | null>;
+  flat?: boolean;
+  sectionClass?: string;
 }) {
-  const box = useRef<HTMLElement>(null);
-  const out = useRef<HTMLSpanElement>(null);
-  const reduce = useReducedMotion();
-  const [step, setStep] = useState(0);
-
-  const { scrollYProgress } = useScroll({
-    target: box,
-    offset: ["start start", "end end"],
-  });
-  // reduced motion: scrub degrades to instant swaps at step boundaries
-  const p = useTransform(scrollYProgress, (v) => {
-    const x = v * (N - 1);
-    return reduce ? Math.round(x) : x;
-  });
-  useMotionValueEvent(p, "change", (v) => {
-    if (scrub && out.current) out.current.textContent = `p = ${v.toFixed(2)}`;
-  });
-
-  useEffect(() => {
-    if (!snap) return;
-    // ponytail: document-level snap; spacer blocks are 100svh snap targets so mandatory can't trap content
-    const el = document.documentElement;
-    el.style.scrollSnapType = "y mandatory";
-    return () => {
-      el.style.scrollSnapType = "";
-    };
-  }, [snap]);
-
-  useEffect(() => {
-    if (scrub || !box.current) return;
-    // step flips when a track crosses the viewport midline
-    const io = new IntersectionObserver(
-      (es) =>
-        es.forEach((e) => {
-          if (e.isIntersecting)
-            setStep(Number((e.target as HTMLElement).dataset.i));
-        }),
-      { rootMargin: "-50% 0px -50% 0px" },
-    );
-    box.current.querySelectorAll("[data-i]").forEach((n) => io.observe(n));
-    return () => io.disconnect();
-  }, [scrub]);
-
-  useEffect(() => {
-    if (!scrub && out.current)
-      out.current.textContent = `step = ${step + 1}/${N}`;
-  }, [scrub, step]);
-
-  const L = scrub ? LayerScrub : LayerCss;
-  const body = (
+  return (
     <>
       <Block snap={snap}>上方內容 1（hero 占位）</Block>
       <Block snap={snap}>上方內容 2</Block>
-      <section ref={box} className="relative">
+      <section ref={boxRef} className={`relative ${sectionClass}`}>
         <div className="sticky top-0 flex h-svh flex-col items-center justify-center gap-6 bg-background px-4 md:flex-row md:gap-16">
-          <Screen L={L} />
+          <Screen L={L} flat={flat} />
           <div className="grid w-full max-w-xs">
             {STEPS.map((s, i) => (
               <L
@@ -278,13 +249,76 @@ export function PrototypeSteps({
       <Block snap={snap}>下方內容 2</Block>
     </>
   );
+}
+
+export function useDocSnap(snap: boolean) {
+  useEffect(() => {
+    if (!snap) return;
+    // ponytail: document-level snap; spacer blocks are 100svh snap targets so mandatory can't trap content
+    const el = document.documentElement;
+    el.style.scrollSnapType = "y mandatory";
+    return () => {
+      el.style.scrollSnapType = "";
+    };
+  }, [snap]);
+}
+
+export const READOUT =
+  "fixed top-3 left-3 z-50 rounded bg-foreground px-2 py-1 font-mono text-xs text-background";
+
+export function PrototypeSteps({
+  scrub,
+  snap,
+}: {
+  scrub: boolean;
+  snap: boolean;
+}) {
+  const box = useRef<HTMLElement>(null);
+  const out = useRef<HTMLSpanElement>(null);
+  const reduce = useReducedMotion();
+  const [step, setStep] = useState(0);
+
+  const { scrollYProgress } = useScroll({
+    target: box,
+    offset: ["start start", "end end"],
+  });
+  // reduced motion: scrub degrades to instant swaps at step boundaries
+  const p = useTransform(scrollYProgress, (v) => {
+    const x = v * (N - 1);
+    return reduce ? Math.round(x) : x;
+  });
+  useMotionValueEvent(p, "change", (v) => {
+    if (scrub && out.current) out.current.textContent = `p = ${v.toFixed(2)}`;
+  });
+
+  useDocSnap(snap);
+
+  useEffect(() => {
+    if (scrub || !box.current) return;
+    // step flips when a track crosses the viewport midline
+    const io = new IntersectionObserver(
+      (es) =>
+        es.forEach((e) => {
+          if (e.isIntersecting)
+            setStep(Number((e.target as HTMLElement).dataset.i));
+        }),
+      { rootMargin: "-50% 0px -50% 0px" },
+    );
+    box.current.querySelectorAll("[data-i]").forEach((n) => io.observe(n));
+    return () => io.disconnect();
+  }, [scrub]);
+
+  useEffect(() => {
+    if (!scrub && out.current)
+      out.current.textContent = `step = ${step + 1}/${N}`;
+  }, [scrub, step]);
+
+  const L = scrub ? LayerScrub : LayerCss;
+  const body = <Stage L={L} snap={snap} boxRef={box} />;
 
   return (
     <>
-      <span
-        ref={out}
-        className="fixed top-3 left-3 z-50 rounded bg-foreground px-2 py-1 font-mono text-xs text-background"
-      />
+      <span ref={out} className={READOUT} />
       {scrub ? (
         <PCtx value={p}>{body}</PCtx>
       ) : (

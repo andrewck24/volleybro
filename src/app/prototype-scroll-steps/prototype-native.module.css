@@ -1,0 +1,67 @@
+/* B3: scroll-driven animations. Section (400svh) is the view-timeline subject;
+   `contain 0%..100%` = section top at viewport top .. section bottom at viewport bottom,
+   i.e. the same 0..3 progress range as useScroll's "start start".."end end".
+   Layer values come from --v0..--v3 (resolved per element inside the shared keyframes). */
+.section {
+  view-timeline: --steps block;
+}
+
+/* fallback (no animation-timeline): A1 behaviour, inline style driven by IntersectionObserver step */
+.layer {
+  transition:
+    transform 0.5s ease-out,
+    opacity 0.5s ease-out;
+}
+
+@keyframes y {
+  0% {
+    transform: translateY(var(--v0));
+  }
+  33.333% {
+    transform: translateY(var(--v1));
+  }
+  66.667% {
+    transform: translateY(var(--v2));
+  }
+  100% {
+    transform: translateY(var(--v3));
+  }
+}
+
+@keyframes o {
+  0% {
+    opacity: var(--v0);
+  }
+  33.333% {
+    opacity: var(--v1);
+  }
+  66.667% {
+    opacity: var(--v2);
+  }
+  100% {
+    opacity: var(--v3);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .layer {
+    transition: none;
+    animation-duration: auto;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .y {
+    animation-name: y;
+  }
+  .o {
+    animation-name: o;
+  }
+  /* reduced motion: hold each keyframe value until the next one = instant step swaps */
+  @media (prefers-reduced-motion: reduce) {
+    .layer {
+      animation-timing-function: step-end;
+    }
+  }
+}
