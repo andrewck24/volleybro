@@ -1,0 +1,76 @@
+export const scenarios = [
+  { id: "S1", given: "A same-repository open hotfix PR descends from the deployed source and has green trusted checks", when: "The configured release owner dispatches from trusted main with the exact PR head SHA", then: "Authorization succeeds without a second human PR approval and records the owner, run, PR and SHA" },
+  { id: "S2", given: "A hotfix dispatch is missing its configured owner, has a different actor or rerun actor, or uses an untrusted workflow ref", when: "The controller validates authorization", then: "Authorization fails before candidate deployment" },
+  { id: "S3", given: "A hotfix PR is stale, merged, draft, from a fork, outside hotfix/*, lacks trusted green checks or includes unrelated integration work", when: "Even the configured owner dispatches it", then: "Authorization fails and production remains unchanged" },
+  { id: "S4", given: "An owner-authorized hotfix has been staged", when: "Candidate QA or production QA is pending, or the baseline changes", then: "Existing protected QA, baseline, deployment lock and success-tag rules remain enforced" },
+];
+
+<TLDR>
+
+目前 hotfix 要求另一個 GitHub 身分 approve exact SHA，單人 repo 因無法 approve 自己的 PR 而被擋住。本 Change 改成指定 release owner 明確 dispatch PR number 與 exact SHA，保留 fresh-context Agent review、可信 CI 與真人部署 QA。不建立第二個自己的帳號，不使用 admin bypass。
+
+</TLDR>
+
+| 邊界 | 目前 | 本次交付 |
+| --- | --- | --- |
+| Hotfix 發布授權 | 另一位 collaborator 的 exact-SHA PR approval | 指定 release owner 的 exact-SHA manual dispatch，核對原始 actor／rerun actor／可信 main ref |
+| 開發審查 | Repository Pre-PR independent review | 保留並在 ready PR／交付證據說明；不宣稱 controller 能從 dispatch 推知 Agent review 已完成 |
+| 部署 QA | Required reviewer 檢查 candidate 與 production | 保留；owner 可自行驗收，不要求 Prevent self-review |
+| GitHub credentials | 發布驗證與寫入共用 PAT | 授權檢查優先使用 job-scoped read-only GITHUB_TOKEN；版本 PR／需要觸發 CI 的寫入保留 PAT |
+
+## Scope
+
+單張 PR 交付，屬於 `release-train` 的啟用前置修正。既有 Proposal、各 shard Review 與 adopted ADR 保留，不重寫已完成歷史。此授權規則可直接回復，活規則由 WORKFLOW 持有，不另外增加重複 ADR。
+
+1. `WORKFLOW.md`：指定 `RELEASE_OWNER_LOGIN` 為 hotfix dispatch owner；只有 trusted main manual dispatch 可授權 exact PR/head。缺值、非 owner、rerun 身分不符、ref／事件錯誤全部拒絕。每次 head 變更需重新驗證與授權。
+2. `.github/workflows/production-release.yml` 與 `scripts/release-controls.js`：由 GitHub event／context 傳遞 actor、triggering actor、ref 與 event name，不接受 PR 內容替代身分。在任何 candidate stage 前檢查；移除強制獨立人類 approval 及僅為此要求存在的 API 判斷。不更動 PR 的 same-repository／open／isolated deployed-base／trusted checks 規則。
+3. 使用原生 job-scoped token 執行 read-only 發布授權檢查；保留 PAT 的 Changesets branch／PR 與 merge-back 操作。優先重用既有 permission 與 controller，不建立新 credential framework。
+4. 依 test-audit 延伸 `scripts/__tests__/release-controls.test.js` 的公開 CLI owner cases，證明單人授權可用且上述拒絕條件有效，不新增 test-only export。必要時延伸原生 workflow transport proof。
+5. 更新 `docs/release-runbook.md` 與最窄 delivery-workflow Feature；與 canonical WORKFLOW 一致，不複製整套操作規則。評估 contributor-facing Changeset。
+
+不包含正式部署、default branch 切換、刪除 dev、DB／OAuth 改動或取消 deployment QA。`RELEASE_OWNER_LOGIN` 實際設定與 environment reviewer 在 G2 接受／合併後核對。平台啟用沿用 `release-train` 的一次性 checklist，只有已被新規則取代的獨立人類 approval 不再作為前置。
+
+## Flow
+
+<InteractiveFlowchart
+  nodes={[
+    { id: "prepare", label: "隔離 hotfix PR", sublabel: "deployed SHA + repair", x: 130, y: 45, w: 220 },
+    { id: "review", label: "CI + 獨立 Agent review", x: 130, y: 125, w: 220 },
+    { id: "dispatch", label: "Owner 授權 exact SHA", x: 130, y: 205, w: 220 },
+    { id: "verify", label: "驗證 actor / ref / head", x: 130, y: 285, w: 220 },
+    { id: "qa", label: "Candidate + production QA", x: 130, y: 365, w: 220 },
+    { id: "finish", label: "成功 tag / merge-back", x: 130, y: 445, w: 220 },
+  ]}
+  edges={[
+    { from: "prepare", to: "review" },
+    { from: "review", to: "dispatch" },
+    { from: "dispatch", to: "verify" },
+    { from: "verify", to: "qa" },
+    { from: "qa", to: "finish" },
+  ]}
+  details={{
+    prepare: { title: "從實際部署點隔離", body: "PR 指向 main，但不需要先合併；不可帶入未發布的 integration 內容。" },
+    review: { title: "開發證據", body: "必要測試與 fresh-context independent review 完成後交給 owner；這是 repository 交付 gate，不偽造 GitHub approval。" },
+    dispatch: { title: "人類授權", body: "Owner 指定 PR number 與 exact head SHA；Agent 不因完成修補就自行獲得發布權限。" },
+    verify: { title: "機械安全邊界", body: "檢查可信 main、manual event、原始與 rerun actor、目前 head 與 CI provider；任一不符停止。" },
+    qa: { title: "發布控制不變", body: "固定候選的 authenticated QA、baseline recheck、production lock、promote 後 QA 與 DB-compatible rollback 不省略。" },
+    finish: { title: "成功後才收尾", body: "驗收通過才 exact-SHA tag／Release；同步 main 優先交 Agent 處理，保留 pending changesets、不 rebase 或重發。" },
+  }}
+/>
+
+## Acceptance
+
+<Scenarios items={scenarios} />
+
+## Risks
+
+<RiskTable risks={[
+  { name: "少了第二位人類審查", severity: "warning", mitigation: "明確接受單人模式；fresh-context Agent review 與 owner exact-SHA 授權仍必要，Agent review 不冒充第二位人類。" },
+  { name: "冒名、rerun 或 stale SHA", severity: "critical", mitigation: "GitHub context 身分／可信 main／manual event 與目前 PR head 全部驗證；missing owner fail closed。" },
+  { name: "正常 release 或 hotfix 放寬其他安全 gate", severity: "critical", mitigation: "共用公開 CLI 正反例證明 CI、deployed ancestry、QA、baseline、lock 與 success tag 沒有被省略。" },
+]}/>
+
+## References
+
+- [GitHub deployment review](https://docs.github.com/en/actions/how-tos/managing-workflow-runs-and-deployments/managing-deployments/reviewing-deployments)：部署 approval 與 PR review 分離；Prevent self-review 是額外設定，不是 GitHub 強制要求。
+- [GITHUB_TOKEN](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token)：原生 job-scoped 最小權限，用於 read-only 檢查；需觸發 CI 的 PAT 寫入保留。
