@@ -89,7 +89,7 @@ Rules that bind every page:
 - Prose never hand-copies a count (ADR-0074). A figure `facts.json` holds is left to the header; any other number is replaced by a qualitative statement, or stands beside the command that produced it so a reviewer can rerun it.
 - What a gate accepted is frozen file by file (ADR-0095): `proposal.mdx` and the frontmatter of `index.mdx` change only by passing G1 again, and an earlier shard's `review-s<N>.mdx` only by passing that shard's G2 again, even for layout.
 - Component string props render a backtick-quoted span as inline code and everything else as plain text: no bold, links, or other markdown. Flowchart node and edge labels are drawn in SVG and stay plain text entirely.
-- Prose is written in zh-tw, keeping technical terms and proper nouns in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
+- A Change page's prose is written in zh-tw, keeping technical terms and proper nouns in en; Feature and Design System pages are written in en. What an agent reads stays in en: `Scenario` strings, decision records, and code. Commit and pull-request language is in `CONTRIBUTING.md`.
 - Referencing other Changes and wrapping prose follow the Writing section of `CONTRIBUTING.md`.
 
 ## Writing a decision record
