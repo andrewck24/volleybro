@@ -1,6 +1,7 @@
 "use client";
 import { CTAButton } from "@/components/landing/cta-button";
 import { FlipWords } from "@/components/landing/flip-words";
+import { HeroEntryMotion } from "@/components/landing/prototype-entry/hero-entry-motion";
 import Image from "next/image";
 import { useRef } from "react";
 import { RiDeviceLine, RiGlobalLine, RiSpeedLine } from "react-icons/ri";
@@ -28,7 +29,9 @@ export const Hero = () => {
             <HeroFeatures />
           </div>
         </div>
-        <HeroImage />
+        <HeroEntryMotion>
+          <HeroImage />
+        </HeroEntryMotion>
       </div>
     </section>
   );
