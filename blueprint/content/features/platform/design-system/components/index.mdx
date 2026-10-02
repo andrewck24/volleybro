@@ -5,11 +5,11 @@ description: Which folder a component belongs in, how list rows are composed, an
 
 Components live in three layers under `src/components/`, told apart by how much of the app they know about.
 
-| Layer       | Location                          | Domain knowledge                                  | Examples                       |
-| ----------- | --------------------------------- | ------------------------------------------------- | ------------------------------ |
-| `ui/`       | `src/components/ui/`              | None                                              | Button, Card, Dialog, Item     |
-| `custom/`   | `src/components/custom/`          | App-specific: error copy, brand, volleyball court | Court, Panel, ServerErrorState |
-| `{domain}/` | `src/components/{team,game,...}/` | Full domain context                               | LineupPanel, InvitationList    |
+| Layer       | Location                          | Domain knowledge                                | Examples                       |
+| ----------- | --------------------------------- | ----------------------------------------------- | ------------------------------ |
+| `ui/`       | `src/components/ui/`              | None                                            | Button, Card, Dialog, Item     |
+| `custom/`   | `src/components/custom/`          | App-specific, e.g. error copy, brand, the court | Court, Panel, ServerErrorState |
+| `{domain}/` | `src/components/{team,game,...}/` | Full domain context                             | LineupPanel, InvitationList    |
 
 ## Current behavior
 
@@ -28,7 +28,7 @@ Components live in three layers under `src/components/`, told apart by how much 
 ## Known gaps
 
 - No production row uses the overlay-link form at present; `src/stories/ui/item.stories.tsx` keeps the reference. The invitation row's `ItemFooter` still carries the `relative z-10` it needed when it had one.
-- The invitation skeleton and `MatchSkeleton` in `src/components/home/game-history.tsx` keep the row's `hover:bg-muted/50` instead of `hover:bg-transparent`.
+- The invitation skeleton sets `hover:bg-muted/50`, and `MatchSkeleton` in `src/components/home/game-history.tsx` keeps `Item`'s default hover; neither sets `hover:bg-transparent`.
 - The court's skeletons, `LoadingCard` and `LoadingCourt` in `src/components/custom/court/index.tsx`, predate the `*Skeleton` naming.
 - The team form reports a missing team with an `Alert` rather than `Empty`.
 
