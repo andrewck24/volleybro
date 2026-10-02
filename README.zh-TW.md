@@ -164,7 +164,7 @@ src/
 └── hooks/            # 共用 React hooks
 ```
 
-延伸閱讀：[`docs/architecture.md`](./docs/architecture.md) · [`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
+延伸閱讀：[`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
 
 <p align="right">(<a href="#readme-top">回到頂端</a>)</p>
 

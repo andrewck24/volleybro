@@ -1,4 +1,4 @@
 {
   "title": "Design System",
-  "pages": ["index", "overlays"]
+  "pages": ["index", "components", "overlays"]
 }
