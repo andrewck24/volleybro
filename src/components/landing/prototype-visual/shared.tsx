@@ -149,12 +149,14 @@ export const HEADER_OPTIONS = [
 /** `&ctaLayout=` — closing-CTA arrangement below lg (lg+ is always side by side). */
 export const CTA_LAYOUTS = [
   { key: "1", name: "文字在上、圖在下" },
-  { key: "2", name: "圖鋪底、文字疊上" },
+  { key: "2", name: "圖當整塊文字的背景" },
   { key: "3", name: "圖夾在說明與按鈕間" },
 ];
 
 /** `&curve=` — diff line shape. */
 export const CURVES = [
   { key: "sharp", name: "折線" },
+  { key: "soft", name: "小圓角（4px fillet）" },
+  { key: "tension", name: "低張力（cardinal 0.7）" },
   { key: "round", name: "圓滑（monotone cubic）" },
 ];

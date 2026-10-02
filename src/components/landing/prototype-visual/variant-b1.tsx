@@ -1,9 +1,6 @@
 import { CTAButton } from "@/components/landing/cta-button";
 import { ClosingCta } from "@/components/landing/prototype-visual/closing-cta";
-import {
-  AnimatedTeamsStats,
-  MatchScoreboard,
-} from "@/components/landing/prototype-visual/game-bits";
+import { AnimatedTeamsStats } from "@/components/landing/prototype-visual/game-bits";
 import { ProtoHeader } from "@/components/landing/prototype-visual/headers";
 import {
   EntryRows,
@@ -99,7 +96,6 @@ export const VariantB1 = ({
       </div>
       <div className="mt-16 grid grid-cols-1 gap-16 lg:grid-cols-[1.1fr_1fr] lg:gap-24">
         <div className="flex flex-col gap-8 rounded-xl bg-card p-6 shadow-sm md:p-10">
-          <MatchScoreboard />
           <AnimatedTeamsStats />
         </div>
         <ul className="flex flex-col gap-10">

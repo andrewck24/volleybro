@@ -11,8 +11,12 @@ import { cn } from "@/lib/utils";
 // lg+: text left, chart right (like the hero) with a left-edge fade mask.
 // Below lg, `&ctaLayout=`:
 //   1 — stacked: copy, then a full-bleed chart band under the button
-//   2 — backdrop: chart fills the lower part of the section behind the copy,
-//       fading out upward so text never sits on the line
+//   2 — background: chart fills the whole section behind heading, copy and
+//       button. Wide left fade, capped at 50% opacity: the worst case (copy in
+//       foreground over a full-strength line pixel at the cap) still measures
+//       7.9:1 light / 5.8:1 dark, so AA holds anywhere the line passes. The
+//       button has its own opaque ground. Copy must stay `foreground` here —
+//       muted-foreground would drop under 4.5:1 over the line.
 //   3 — inline band: chart between the description and the button
 
 const FADE_LEFT =
@@ -39,16 +43,11 @@ export const ClosingCta = ({
       {layout === "2" && (
         <DiffChart
           curve={curve}
-          className="absolute inset-x-0 bottom-0 h-3/5 [mask-image:linear-gradient(to_top,black_45%,transparent)] lg:hidden"
+          className="absolute inset-0 [mask-image:linear-gradient(to_right,transparent_25%,rgb(0_0_0/0.5))] lg:hidden"
         />
       )}
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 items-center gap-12 px-4 py-24 md:px-8 md:py-32 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
-        <div
-          className={cn(
-            "flex flex-col items-start gap-8",
-            layout === "2" && "max-lg:pb-48",
-          )}
-        >
+        <div className="flex flex-col items-start gap-8">
           <h2 className="text-4xl leading-[1.05] font-black md:text-7xl">
             下一場比賽
             <br />
