@@ -23,6 +23,7 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_TEAM_ID }}
+      VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
       INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
       SOURCE_SHA: ${{ github.sha }}
     steps:
@@ -40,7 +41,8 @@ jobs:
           test -n "$VERCEL_TOKEN"
           test -n "$VERCEL_PROJECT_ID"
           test -n "$VERCEL_ORG_ID"
+          test -n "$VERCEL_TEAM_SLUG"
           test -n "$INTEGRATION_ALIAS"
           URL=$(pnpm dlx vercel@61.1.0 deploy --target preview --yes --token "$VERCEL_TOKEN" --meta "githubCommitSha=$SOURCE_SHA")
-          pnpm dlx vercel@61.1.0 alias set "$URL" "$INTEGRATION_ALIAS" --token "$VERCEL_TOKEN"
+          pnpm dlx vercel@61.1.0 alias set "$URL" "$INTEGRATION_ALIAS" --scope "$VERCEL_TEAM_SLUG" --token "$VERCEL_TOKEN"
           printf 'Integration revision `%s`: %s\n' "$SOURCE_SHA" "$URL" >> "$GITHUB_STEP_SUMMARY"

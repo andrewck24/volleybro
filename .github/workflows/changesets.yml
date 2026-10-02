@@ -47,12 +47,13 @@ jobs:
       - uses: changesets/action@v2
         id: changesets
         with:
-          version: pnpm run release:version
-          commit: |
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          version-script: pnpm run release:version
+          commit-message: |
             chore(release): update versions
 
             Automated version bump: package.json version, CHANGELOG.md entries, and
             consumed changeset deletions, from the pending changesets in .changeset/.
-          title: "release: update versions"
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          pr-title: "release: update versions"
+          create-github-releases: false
+          push-git-tags: false
