@@ -1,4 +1,4 @@
-import { createInvitedPlayer } from "@/__tests__/helpers";
+import { createInvitedPlayer } from "@test/support/fixtures/entities";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
 import { acceptInvitation } from "@/interface/controllers/player/invitation.controller";

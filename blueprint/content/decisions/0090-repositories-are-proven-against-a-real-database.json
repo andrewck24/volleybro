@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "id": "0090",
+  "title": "Repository behaviour is proven against a real database, not a stubbed driver",
+  "capabilities": ["platform/testing"],
+  "context": "Repository unit tests ran against a global mongoose stub. Most asserted that a mocked result was passed through, which holds even when the query is wrong; a stubbed arrayFilters call looked right and was wrong on a real database.",
+  "decision": "Repository query and write behaviour is tested in persistence/ integration tests, and pass-through CRUD unit tests are deleted. Mapping between documents and entities, and the translation of database errors, become pure functions with unit tests that need no driver. The global mongoose and mongodb stubs are removed from the backend test setup. Before a repository method loses its unit tests it has at least one persistence/ test, error branches aside; a method with no production caller is proposed for deletion instead of being covered.",
+  "alternatives": [
+    {
+      "option": "Cover only methods with non-trivial queries",
+      "reason": "Which query counts as non-trivial is a judgement the next person cannot repeat."
+    },
+    {
+      "option": "Delete first and add tests when bugs appear",
+      "reason": "Repositories would be left with no test at all in between."
+    }
+  ],
+  "consequences": [
+    "A test that relied on the global stub mocks what it needs itself."
+  ],
+  "originChange": "testing-tiers"
+}

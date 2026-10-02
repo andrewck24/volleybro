@@ -1,14 +1,33 @@
 #!/usr/bin/env node
 
-import { access, lstat, readFile, readdir, readlink } from "node:fs/promises";
-import { execFile } from "node:child_process";
+import { lstat, readFile, readdir, readlink, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hashDir, readStore } from "./blueprint-changes.js";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import {
+  fetchChanges,
+  hashDir,
+  isConverted,
+  readStore,
+  REMOTE_REF,
+  resolveRemote,
+} from "./blueprint-changes.js";
+import {
+  assertValidMdx,
+  frontmatterOf,
+  git,
+  inlineReviewSections,
+  readChangeDir,
+  REQUIRED_REVIEW_SECTIONS,
+  resolveScopeBase,
+  resultIds,
+  reviewFile,
+  reviewSections,
+  scenarioIds,
+  scenarios,
+  shardCount,
+} from "./change-page.js";
+import { changeSlugOf, parseChangeBranch } from "./commitlint/plugin.js";
 
 const REQUIRED_BINDINGS = {
   sdd: { adapter: "repository-workflow" },
@@ -23,50 +42,15 @@ const REQUIRED_BINDINGS = {
   evaluation: { adapter: "symphony", text_retention: "ephemeral" },
 };
 
-const SUPPORTED_ADAPTERS = {
-  sdd: new Set([
-    "repository-workflow",
-    "spectra",
-    "openspec",
-    "spec-kit",
-    "off",
-  ]),
-  change_comprehension: new Set(["blueprint", "markdown", "off"]),
-  release_planning: new Set(["linear", "github", "jira", "off"]),
-  versioning: new Set(["changesets", "semantic-release", "manual", "off"]),
-  workpad: new Set(["linear-comment", "repository-file", "off"]),
-  scm: new Set(["github", "gitlab", "local"]),
-  review: new Set(["github-pr", "gitlab-mr", "manual"]),
-  validation: new Set(["repository-commands"]),
-  archive: new Set([
-    "repository-workflow",
-    "spectra",
-    "openspec",
-    "manual",
-    "off",
-  ]),
-  evaluation: new Set(["symphony", "off"]),
-};
-
 const GUIDANCE_IMPORT = "@AGENTS.md";
-const RETIRED_AUTHORITY_FILES = [
-  "CONTRIBUTING.md",
-  "CODING_STANDARDS.md",
-  "AGENTS.md",
-];
 const SECTION_REFERENCE = /§\s?\d|\bsection\s*\d/i;
-const PRE_PR_GATE_HEADING = /^###\s+.*Pre-PR gate.*$/m;
-const NEXT_HEADING = /^#{2,3}\s/m;
-const REPOSITORY_ADAPTER_FILES = [
+const REQUIRED_FILES = [
+  "WORKFLOW.md",
   "docs/agents/issue-tracker.md",
   "docs/agents/domain.md",
   "docs/agents/blueprint.md",
   "docs/agents/artifact-lifecycle.md",
 ];
-const RETIRED_REFERENCE = ["spec", "loop"].join("-");
-const ACTIVE_ROOT_FILES = ["CLAUDE.md", "AGENTS.md", "package.json"];
-const ACTIVE_DIRECTORIES = [".github", "scripts"];
-const RETIRED_WORKFLOW_PATTERN = /^spectra-.*\.md$/;
 const BLUEPRINT_CHANGES = "blueprint/content/changes";
 const BLUEPRINT_LINK_SOURCES = ["blueprint/src", "blueprint/content"];
 const BLUEPRINT_LINK_EXTENSIONS = new Set([".tsx", ".mdx"]);
@@ -74,23 +58,6 @@ const ANCHOR_TAG = /<a(\s[^>]*)>/g;
 const EXTERNAL_HREF = /href=["'](?:#|https?:|mailto:|tel:)/;
 const CHANGE_SCOPE_SOFT_LIMIT = 30;
 const SCENARIO_COUNT_SOFT_LIMIT = 8;
-
-async function validateGuidanceProse(root) {
-  const diagnostics = [];
-  for (const relativePath of RETIRED_AUTHORITY_FILES) {
-    const filePath = path.join(root, relativePath);
-    if (!(await exists(filePath))) continue;
-
-    const content = await readFile(filePath, "utf8");
-    if (/\bspectra\b/i.test(content)) {
-      diagnostics.push(
-        `${relativePath} [retired-authority]: active contributor guidance must not present Spectra as a delivery authority`,
-      );
-    }
-  }
-
-  return diagnostics;
-}
 
 async function validateGuidanceImport(root) {
   const filePath = path.join(root, "CLAUDE.md");
@@ -113,62 +80,6 @@ function validateSectionReferences(relativePath, content) {
   return [
     `${relativePath} [section-reference]: must not reference a section number; state the rule instead of citing its position`,
   ];
-}
-
-// Matched by heading text, not position, so renumbering "### 3." doesn't
-// break this. Renaming the "Pre-PR gate" heading itself still silently
-// stops enforcing it.
-function validatePrePrGateSection(content) {
-  const match = content.match(PRE_PR_GATE_HEADING);
-  if (!match) return [];
-
-  const rest = content.slice(match.index + match[0].length);
-  const nextHeading = rest.match(NEXT_HEADING);
-  const section = nextHeading ? rest.slice(0, nextHeading.index) : rest;
-
-  const diagnostics = [];
-  if (!/CODING_STANDARDS\.md/.test(section)) {
-    diagnostics.push(
-      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must mention CODING_STANDARDS.md",
-    );
-  }
-  if (/CONTRIBUTING\.md/.test(section)) {
-    diagnostics.push(
-      "WORKFLOW.md [standards-reviewer]: the Pre-PR gate section must not mention CONTRIBUTING.md",
-    );
-  }
-  return diagnostics;
-}
-
-async function validateRetiredAuthorities(root) {
-  const diagnostics = [];
-  const workflowDirectory = path.join(root, ".agents", "workflows");
-  if (await exists(workflowDirectory)) {
-    const entries = await readdir(workflowDirectory, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile() && RETIRED_WORKFLOW_PATTERN.test(entry.name)) {
-        diagnostics.push(
-          `.agents/workflows/${entry.name} [retired-workflow]: executable Spectra workflows must not be tracked`,
-        );
-      }
-    }
-  }
-
-  const changesDirectory = path.join(root, "docs", "changes");
-  if (await exists(changesDirectory)) {
-    const entries = await readdir(changesDirectory, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name === "archive") continue;
-      const marker = path.join(changesDirectory, entry.name, ".openspec.yaml");
-      if (await exists(marker)) {
-        diagnostics.push(
-          `docs/changes/${entry.name}/.openspec.yaml [active-legacy-change]: move the legacy change to a dated archive snapshot`,
-        );
-      }
-    }
-  }
-
-  return diagnostics;
 }
 
 async function validateSharedSkills(root) {
@@ -238,8 +149,9 @@ async function validateSharedSkills(root) {
 }
 
 async function exists(filePath) {
+  // stat, not access: on Windows access succeeds on a dangling symlink.
   try {
-    await access(filePath);
+    await stat(filePath);
     return true;
   } catch {
     return false;
@@ -314,14 +226,6 @@ function validateProfile(profile) {
       continue;
     }
 
-    const supported = SUPPORTED_ADAPTERS[capability];
-    if (!supported.has(configured.adapter)) {
-      diagnostics.push(
-        `WORKFLOW.md [delivery-profile]: ${capability} adapter ${configured.adapter || "missing"} is unsupported; supported: ${[...supported].join(", ")}`,
-      );
-      continue;
-    }
-
     for (const [field, expected] of Object.entries(required)) {
       if (configured[field] !== expected) {
         diagnostics.push(
@@ -378,24 +282,6 @@ async function listFiles(directory) {
   return nested.flat();
 }
 
-async function activeReferenceFiles(root) {
-  const rootFiles = ACTIVE_ROOT_FILES.map((relativePath) =>
-    path.join(root, relativePath),
-  );
-  const directoryFiles = (
-    await Promise.all(
-      ACTIVE_DIRECTORIES.map((relativePath) =>
-        listFiles(path.join(root, relativePath)),
-      ),
-    )
-  ).flat();
-
-  return [...rootFiles, ...directoryFiles].filter((filePath) => {
-    const basename = path.basename(filePath);
-    return basename !== "check-workflow.js" && !basename.includes(".test.");
-  });
-}
-
 // A raw anchor is a full document load, which discards the sidebar state
 // fumadocs keeps in React state. Internal links have to route through next/link.
 async function validateInternalLinks(root) {
@@ -431,51 +317,47 @@ async function changeDirectories(root) {
   const changesRoot = path.join(root, BLUEPRINT_CHANGES);
   if (!(await exists(changesRoot))) return [];
 
-  // Old-format Changes (they carry change.json) are frozen history from the
-  // store branch and predate every page rule below.
+  // Pages converted from an earlier format (ADR-0079) never pass a gate and
+  // predate every page rule below; their facts.json marks them, and
+  // republishing one keeps the mark.
   const entries = await readdir(changesRoot, { withFileTypes: true });
   const directories = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.join(changesRoot, entry.name));
   const current = [];
   for (const directory of directories) {
-    if (!(await exists(path.join(directory, "change.json")))) {
-      current.push(directory);
-    }
+    if (!(await isConverted(directory))) current.push(directory);
   }
   return current;
 }
 
-const CHANGE_PAGE_MARKDOWN_TABLE = /^\s*\|.*\|\s*$/m;
-const CHANGE_PAGE_RULES = [
-  {
-    file: "proposal.mdx",
-    requires: (content) =>
-      content.includes("<TLDR") && content.includes("<Scenario"),
-    message: (slug) =>
-      `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [blueprint-proposal]: must contain a TLDR and at least one Scenario`,
-  },
-  {
-    file: "review.mdx",
-    requires: (content) =>
-      content.includes("<TLDR") && CHANGE_PAGE_MARKDOWN_TABLE.test(content),
-    message: (slug) =>
-      `${BLUEPRINT_CHANGES}/${slug}/review.mdx [blueprint-review]: must contain a TLDR and a markdown table`,
-  },
-];
+// A page that is not valid MDX fails the gate with the parser's message;
+// outside the gate it only fails the rules that need its structure.
+function orUndefined(read) {
+  try {
+    return read();
+  } catch {
+    return undefined;
+  }
+}
+
+function scenarioCount(proposal) {
+  return orUndefined(() => scenarioIds(proposal ?? "").length) ?? 0;
+}
 
 async function validateChangePages(directories) {
   const diagnostics = [];
 
   for (const directory of directories) {
-    const slug = path.basename(directory);
+    const page = await readChangeDir(directory);
+    if (page.index === undefined) continue;
 
-    for (const rule of CHANGE_PAGE_RULES) {
-      const filePath = path.join(directory, rule.file);
-      if (!(await exists(filePath))) continue;
-
-      const content = await readFile(filePath, "utf8");
-      if (!rule.requires(content)) diagnostics.push(rule.message(slug));
+    const isComplete =
+      page.proposal?.includes("<TLDR") && scenarioCount(page.proposal) > 0;
+    if (!isComplete) {
+      diagnostics.push(
+        `${BLUEPRINT_CHANGES}/${path.basename(directory)}/proposal.mdx [blueprint-proposal]: the Proposal must contain a TLDR and export at least one scenario`,
+      );
     }
   }
 
@@ -510,25 +392,12 @@ async function validateSnippetLiterals(root, directories) {
   return diagnostics;
 }
 
-async function git(root, args) {
-  return (await execFileAsync("git", args, { cwd: root })).stdout.trim();
-}
-
-async function resolveScopeBase(root) {
-  try {
-    await git(root, ["rev-parse", "--verify", "origin/dev"]);
-    return "origin/dev";
-  } catch {
-    return "dev";
-  }
-}
-
-async function hasMigrationTrailer(root, base) {
+async function hasShardTrailer(root, base) {
   try {
     const trailers = await git(root, [
       "log",
       `${base}..HEAD`,
-      "--format=%(trailers:key=Migration,valueonly)",
+      "--format=%(trailers:key=Shard,valueonly)",
     ]);
     return trailers.length > 0;
   } catch {
@@ -536,8 +405,8 @@ async function hasMigrationTrailer(root, base) {
   }
 }
 
-// ADR-0065: soft target, never a hard failure -- a Migration
-// Change (commit trailer or --migration) is the only escape hatch.
+// ADR-0065: soft target, never a hard failure -- a Sharded Change (its
+// Shard trailer, ADR-0093, or --sharded-change) is the only escape hatch.
 async function checkFileCountScope(root, options) {
   const base = await resolveScopeBase(root);
 
@@ -556,61 +425,103 @@ async function checkFileCountScope(root, options) {
   }
 
   if (changedFiles.length <= CHANGE_SCOPE_SOFT_LIMIT) return [];
-  if (options.migrationSlug) return [];
-  if (await hasMigrationTrailer(root, base)) return [];
+  if (options.shardedChangeSlug ?? options.migrationSlug) return [];
+  if (await hasShardTrailer(root, base)) return [];
 
   return [
-    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; reference a Migration Proposal slug (commit trailer "Migration: <slug>" or --migration <slug>) or split the Change`,
+    `src [change-scope]: ${changedFiles.length} files changed against ${base} exceeds the soft target of ${CHANGE_SCOPE_SOFT_LIMIT}; deliver it as a Sharded Change (branch <prefix>/<slug>-s<N>, commits carrying "Shard: <N>", or --sharded-change <slug>) or split the Change`,
   ];
 }
 
-// Proposal scenarios are the other ADR-0065 soft target checked here,
-// read straight off whatever Change directories exist locally, independent
-// of the src/ file-count check above. Slice count is also a soft target
-// (WORKFLOW.md's Change scope section), but slices are Linear sub-issues
-// now, so it is a written target only and not checked here.
-async function checkChangeSizeWarnings(root) {
-  const diagnostics = [];
+// Proposal scenarios are the other ADR-0065 soft target. Only the Change in
+// hand is measured: every other page is already past its gates, and warning on
+// it again on every run teaches people to ignore the warning.
+async function checkChangeSizeWarnings(root, slug) {
+  if (!slug) return [];
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.index === undefined) return [];
+  const count = scenarioCount(page.proposal);
+  if (count <= SCENARIO_COUNT_SOFT_LIMIT) return [];
+  return [
+    `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${count} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
+  ];
+}
 
-  for (const directory of await changeDirectories(root)) {
-    const slug = path.basename(directory);
-
-    const proposalPath = path.join(directory, "proposal.mdx");
-    if (await exists(proposalPath)) {
-      const content = await readFile(proposalPath, "utf8");
-      const scenarioCount = (content.match(/<Scenario\b/g) ?? []).length;
-      if (scenarioCount > SCENARIO_COUNT_SOFT_LIMIT) {
-        diagnostics.push(
-          `${BLUEPRINT_CHANGES}/${slug}/proposal.mdx [change-scope]: ${scenarioCount} acceptance scenarios exceeds the soft target of ${SCENARIO_COUNT_SOFT_LIMIT}; split the Change`,
-        );
-      }
-    }
+// ADR-0057: a Change branch is known by its name.
+async function changeSlugFromBranch(root) {
+  try {
+    return changeSlugOf(await git(root, ["rev-parse", "--abbrev-ref", "HEAD"]));
+  } catch {
+    return undefined;
   }
-
-  return diagnostics;
 }
 
 export async function checkChangeScope(root = process.cwd(), options = {}) {
+  const slug = options.gateSlug ?? (await changeSlugFromBranch(root));
   return [
     ...(await checkFileCountScope(root, options)),
-    ...(await checkChangeSizeWarnings(root)),
+    ...(await checkChangeSizeWarnings(root, slug)),
   ];
+}
+
+// See ADR-0091.
+const TEST_TIER_SUFFIX = /\.(test|spec|itest|e2e)\.[cm]?[jt]sx?$/;
+const TEST_TIER_HOMES = {
+  itest: {
+    pattern: /^test\/integration\/(api|persistence)\//,
+    name: "under test/integration/api/ or test/integration/persistence/",
+  },
+  e2e: { pattern: /^test\/e2e\//, name: "under test/e2e/" },
+};
+
+async function validateTestTiers(root) {
+  const files = (
+    await Promise.all(
+      ["src", "test"].map((dir) => listFiles(path.join(root, dir))),
+    )
+  )
+    .flat()
+    .map((filePath) => path.relative(root, filePath).split(path.sep).join("/"));
+
+  const diagnostics = [];
+  for (const relativePath of files) {
+    const suffix = relativePath.match(TEST_TIER_SUFFIX)?.[1];
+    if (!suffix) continue;
+    if (suffix === "spec") {
+      diagnostics.push(
+        `${relativePath} [test-tier]: name a unit test .test, not .spec`,
+      );
+      continue;
+    }
+    const home = TEST_TIER_HOMES[suffix];
+    const misplaced = home
+      ? !home.pattern.test(relativePath)
+      : relativePath.startsWith("test/");
+    if (misplaced) {
+      diagnostics.push(
+        `${relativePath} [test-tier]: a .${suffix} file belongs ${home?.name ?? "beside its code in src/"}`,
+      );
+    }
+  }
+  return diagnostics;
 }
 
 export async function checkWorkflow(root = process.cwd()) {
   const diagnostics = [];
-  const workflowPath = path.join(root, "WORKFLOW.md");
+  for (const relativePath of REQUIRED_FILES) {
+    if (!(await exists(path.join(root, relativePath)))) {
+      diagnostics.push(`${relativePath} [required-file]: file is missing`);
+    }
+  }
 
-  if (!(await exists(workflowPath))) {
-    diagnostics.push("WORKFLOW.md [canonical-contract]: file is missing");
-  } else {
+  const workflowPath = path.join(root, "WORKFLOW.md");
+  if (await exists(workflowPath)) {
     const workflow = await readFile(workflowPath, "utf8");
     try {
       diagnostics.push(...validateProfile(parseDeliveryProfile(workflow)));
     } catch (error) {
       diagnostics.push(`WORKFLOW.md [delivery-profile]: ${error.message}`);
     }
-    diagnostics.push(...validatePrePrGateSection(workflow));
   }
 
   diagnostics.push(...(await validateGuidanceImport(root)));
@@ -624,31 +535,12 @@ export async function checkWorkflow(root = process.cwd()) {
     diagnostics.push(...validateSectionReferences("AGENTS.md", content));
   }
 
-  for (const relativePath of REPOSITORY_ADAPTER_FILES) {
-    if (!(await exists(path.join(root, relativePath)))) {
-      diagnostics.push(
-        `${relativePath} [repository-adapter]: required adapter file is missing`,
-      );
-    }
-  }
-
   diagnostics.push(...(await validateInternalLinks(root)));
+  diagnostics.push(...(await validateTestTiers(root)));
   const directories = await changeDirectories(root);
   diagnostics.push(...(await validateChangePages(directories)));
   diagnostics.push(...(await validateSnippetLiterals(root, directories)));
   diagnostics.push(...(await validateSharedSkills(root)));
-  diagnostics.push(...(await validateRetiredAuthorities(root)));
-  diagnostics.push(...(await validateGuidanceProse(root)));
-
-  for (const filePath of await activeReferenceFiles(root)) {
-    if (!(await exists(filePath))) continue;
-    const content = await readFile(filePath, "utf8");
-    if (content.toLowerCase().includes(RETIRED_REFERENCE)) {
-      diagnostics.push(
-        `${path.relative(root, filePath)} [retired-reference]: remove the active retired harness reference`,
-      );
-    }
-  }
 
   return diagnostics.sort();
 }
@@ -685,31 +577,222 @@ export async function checkPublished(root, slug) {
   } — run \`pnpm blueprint:changes:publish ${slug}\` before the gate`;
 }
 
-const GATE_PAGE_SUFFIXES = {
-  "proposal.mdx": "Proposal",
-  "review.mdx": "Review",
-};
-const GATE_PAGE_NAMES = new Set(Object.values(GATE_PAGE_SUFFIXES));
+const TAB_NAMES = new Set(["Proposal", "Review"]);
 
-export async function checkGateTitles(root, slug) {
+function frontmatterTitle(content) {
+  const titleMatch = content.match(/^title:\s*(.*)$/m);
+  const title = titleMatch ? titleMatch[1].trim() : "";
+  const quoted = title.match(/^(["'])(.*)\1$/);
+  return quoted ? quoted[2] : title;
+}
+
+// Searched by directory, not facts.json: a conversion rewrites a page's files
+// without its facts (ADR-0095).
+async function acceptedFiles(root, slug, isAccepted, files) {
+  let shas;
+  try {
+    const output = await git(root, [
+      "log",
+      "--format=%H",
+      REMOTE_REF,
+      "--",
+      `${slug}/`,
+    ]);
+    shas = output ? output.split("\n") : [];
+  } catch {
+    return undefined;
+  }
+  for (const sha of shas) {
+    let facts;
+    try {
+      facts = JSON.parse(
+        await git(root, ["show", `${sha}:${slug}/facts.json`]),
+      );
+    } catch {
+      continue;
+    }
+    if (!isAccepted(facts)) continue;
+    const accepted = {};
+    for (const file of files) {
+      try {
+        accepted[file] = await git(root, ["show", `${sha}:${slug}/${file}`]);
+      } catch {
+        return { predatesSplit: true };
+      }
+    }
+    return accepted;
+  }
+  return undefined;
+}
+
+const PREDATES_SPLIT =
+  "was accepted before pages were split into a file per tab, so there is nothing to compare; publish it again at its gate to record a comparable version";
+
+async function refreshStore(root) {
+  await fetchChanges(await resolveRemote(root), root);
+}
+
+async function currentBranch(root) {
+  return git(root, ["rev-parse", "--abbrev-ref", "HEAD"]).catch(() => "");
+}
+
+export async function checkChangePageGate(
+  root,
+  slug,
+  { refresh = refreshStore, branch } = {},
+) {
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.index === undefined) return [];
+
+  const where = (file) => `${BLUEPRINT_CHANGES}/${slug}/${file}`;
   const diagnostics = [];
-  const changeDir = path.join(root, BLUEPRINT_CHANGES, slug);
 
-  for (const [file, suffix] of Object.entries(GATE_PAGE_SUFFIXES)) {
-    const filePath = path.join(changeDir, file);
-    if (!(await exists(filePath))) continue;
+  const title = frontmatterTitle(page.index);
+  if (!title || TAB_NAMES.has(title)) {
+    diagnostics.push(
+      `${where("index.mdx")} [gate-title]: title must be the Change's name, not empty or a tab name`,
+    );
+  }
 
-    const content = await readFile(filePath, "utf8");
-    const titleMatch = content.match(/^title:\s*(.*)$/m);
-    let title = titleMatch ? titleMatch[1].trim() : "";
-    const quoted = title.match(/^(["'])(.*)\1$/);
-    if (quoted) title = quoted[2];
-    const nameMatch = title.match(new RegExp(`^(.+) — ${suffix}$`));
-    const name = nameMatch ? nameMatch[1].trim() : "";
-
-    if (!name || GATE_PAGE_NAMES.has(name)) {
+  const files = [
+    ["proposal.mdx", page.proposal],
+    ...page.reviews.map((review) => [review.file, review.content]),
+  ];
+  for (const [file, content] of files) {
+    if (content === undefined) continue;
+    try {
+      assertValidMdx(content);
+    } catch (error) {
       diagnostics.push(
-        `${BLUEPRINT_CHANGES}/${slug}/${file} [gate-title]: title must be "<name> — ${suffix}" with a non-empty name`,
+        `${where(file)} [gate-mdx]: the file is not valid MDX — ${error.message.split("\n")[0]}`,
+      );
+    }
+  }
+  if (diagnostics.some((diagnostic) => diagnostic.includes("[gate-mdx]"))) {
+    return diagnostics;
+  }
+  if (page.proposal === undefined) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-proposal]: file is missing`,
+    );
+    return diagnostics;
+  }
+
+  const count = shardCount(page.index);
+  const entries = scenarios(page.proposal);
+  if (entries.some((entry) => !entry.id)) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-scenario-shape]: every entry in scenarios needs an id`,
+    );
+  }
+  if (count !== undefined) {
+    for (const entry of entries) {
+      if (
+        Number.isInteger(entry.shard) &&
+        entry.shard >= 1 &&
+        entry.shard <= count
+      ) {
+        continue;
+      }
+      diagnostics.push(
+        `${where("proposal.mdx")} [gate-scenario-shape]: scenario ${entry.id} needs a shard from 1 to ${count}`,
+      );
+    }
+  }
+
+  const onBranch = parseChangeBranch(branch ?? (await currentBranch(root)));
+  const shard =
+    count !== undefined && onBranch?.slug === slug ? onBranch.shard : undefined;
+  if (count !== undefined && shard === undefined) {
+    diagnostics.push(
+      `${where("index.mdx")} [gate-branch-state]: a Sharded Change gate runs on a shard branch, <prefix>/${slug}-s<N>`,
+    );
+    return diagnostics;
+  }
+  for (const review of page.reviews) {
+    if ((review.shard === undefined) === (count === undefined)) continue;
+    diagnostics.push(
+      `${where(review.file)} [gate-review-file]: ${count === undefined ? "an ordinary Change's Review is review.mdx" : "a Sharded Change's Reviews are review-s<N>.mdx"}`,
+    );
+  }
+
+  const review = page.reviews.find((candidate) => candidate.shard === shard);
+  if (!review) return diagnostics;
+
+  const results = new Set(resultIds(review.content));
+  for (const entry of entries) {
+    if (count !== undefined && entry.shard !== shard) continue;
+    if (results.has(entry.id)) continue;
+    diagnostics.push(
+      `${where(review.file)} [gate-scenario-results]: scenario ${entry.id} has no result in ScenarioResults`,
+    );
+  }
+
+  const sections = reviewSections(review.content);
+  const missing = REQUIRED_REVIEW_SECTIONS.filter(
+    (section) => !sections.includes(section),
+  );
+  if (missing.length > 0) {
+    diagnostics.push(
+      `${where(review.file)} [gate-review-sections]: the Review is missing ${missing.join(", ")}`,
+    );
+  }
+  const inline = inlineReviewSections(review.content);
+  if (inline.length > 0) {
+    diagnostics.push(
+      `${where(review.file)} [gate-review-sections]: write ${inline.join(", ")} with the opening and closing tags on their own lines`,
+    );
+  }
+
+  try {
+    await refresh(root);
+  } catch (error) {
+    diagnostics.push(
+      `${where(review.file)} [gate-frozen]: could not fetch the store branch to compare accepted files with their publishes — ${error.message.split("\n")[0]}`,
+    );
+    return diagnostics;
+  }
+
+  const atG1 = await acceptedFiles(root, slug, (facts) => facts.gate === "G1", [
+    "index.mdx",
+    "proposal.mdx",
+  ]);
+  if (atG1?.predatesSplit) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-frozen]: ${PREDATES_SPLIT}`,
+    );
+  } else if (atG1 && atG1["proposal.mdx"].trim() !== page.proposal.trim()) {
+    diagnostics.push(
+      `${where("proposal.mdx")} [gate-frozen]: differs from the version published at G1; change it only by passing G1 again`,
+    );
+  }
+  if (
+    atG1 &&
+    !atG1.predatesSplit &&
+    frontmatterOf(atG1["index.mdx"]).trim() !== frontmatterOf(page.index).trim()
+  ) {
+    diagnostics.push(
+      `${where("index.mdx")} [gate-frozen]: the frontmatter differs from the version published at G1; change it only by passing G1 again`,
+    );
+  }
+  for (let earlier = 1; earlier <= (count ?? 0); earlier += 1) {
+    if (earlier === shard) continue;
+    const file = reviewFile(earlier);
+    const accepted = await acceptedFiles(
+      root,
+      slug,
+      (facts) => facts.gate === "G2" && facts.shards?.current === earlier,
+      [file],
+    );
+    if (!accepted || accepted.predatesSplit) continue;
+    const local = page.reviews.find((review) => review.shard === earlier);
+    if (!local) {
+      diagnostics.push(
+        `${where(file)} [gate-frozen]: shard ${earlier} passed G2 with this file, which is now missing; restore it`,
+      );
+    } else if (accepted[file].trim() !== local.content.trim()) {
+      diagnostics.push(
+        `${where(file)} [gate-frozen]: differs from the version shard ${earlier} passed G2 with; change it only by passing that G2 again`,
       );
     }
   }
@@ -797,18 +880,52 @@ export async function checkDecisionRecordLength(root) {
   return diagnostics;
 }
 
+// WORKFLOW's Pre-PR step 2 settles the Changeset before code review; a
+// Changeset written after review reopens the review loop.
+export async function checkChangesetAtG2(root, slug) {
+  const page = await readChangeDir(path.join(root, BLUEPRINT_CHANGES, slug));
+  if (page.reviews.length === 0) return [];
+
+  const base = await resolveScopeBase(root);
+  let changed;
+  try {
+    changed = await git(root, [
+      "diff",
+      "--name-only",
+      "--diff-filter=A",
+      `${base}...HEAD`,
+      "--",
+      ".changeset",
+    ]);
+  } catch {
+    return [];
+  }
+  const hasChangeset = changed
+    .split("\n")
+    .some((file) => file.endsWith(".md") && !file.endsWith("README.md"));
+  return hasChangeset
+    ? []
+    : [
+        `${slug} [changeset]: the branch has no Changeset at G2; write one before code review, or state in the Review tab why none applies`,
+      ];
+}
+
 async function main() {
   const diagnostics = await checkWorkflow();
   const gateSlug = flagValue(process.argv.slice(2), "--gate");
   const warnings = await checkChangeScope(process.cwd(), {
-    migrationSlug: flagValue(process.argv.slice(2), "--migration"),
+    shardedChangeSlug:
+      flagValue(process.argv.slice(2), "--sharded-change") ??
+      flagValue(process.argv.slice(2), "--migration"),
+    gateSlug,
   });
   if (gateSlug) {
     const unpublished = await checkPublished(process.cwd(), gateSlug);
     if (unpublished) diagnostics.push(unpublished);
-    diagnostics.push(...(await checkGateTitles(process.cwd(), gateSlug)));
+    diagnostics.push(...(await checkChangePageGate(process.cwd(), gateSlug)));
     diagnostics.push(...(await checkGateBranchState(process.cwd())));
     warnings.push(...(await checkDecisionRecordLength(process.cwd())));
+    warnings.push(...(await checkChangesetAtG2(process.cwd(), gateSlug)));
   }
 
   for (const warning of warnings) console.warn(`Warning: ${warning}`);

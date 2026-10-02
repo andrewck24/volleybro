@@ -132,8 +132,8 @@ export const SyncIndicator = ({ gameId }: { gameId: string }) => {
   const pendingCount = pending.length;
 
   const { icon, warning, showsCount } = STATUS_STYLE[status];
-  // The queue is the only thing this app puts in localStorage, and it is not
-  // scoped per game while sending is -- so a full store is usually unsent
+  // The queue is by far the largest thing this app puts in localStorage, and it
+  // is not scoped per game while sending is -- so a full store is usually unsent
   // rallies from a game nobody has reopened. Only say so when there are some.
   const othersPending = pendingWrites.pending.some((p) => p.gameId !== gameId);
   const { title, detail } = copyFor(

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0024",
   "title": "合併沿用伺服器的 upsert 規則，且完全不碰 win",

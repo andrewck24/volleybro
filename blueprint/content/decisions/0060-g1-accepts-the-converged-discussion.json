@@ -1,11 +1,10 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0060",
-  "title": "G1 accepts the converged discussion; the Proposal page is its record",
+  "title": "G1 accepts the complete published Proposal",
   "capabilities": ["platform/delivery-workflow"],
   "context": "ADR-0045 had G1 review the rendered Proposal page, and ADR-0046 narrowed that review to boundaries, the behaviour contract and acceptance scenarios. By the end of Discuss the developer has already confirmed each decision and the acceptance scenarios one by one in the conversation, so reading them again as a composed page repeats the review, and composing narrative and diagrams around them is the cost. The page still has readers who never saw the conversation: Apply resuming in another session or under Symphony, the Pre-PR spec reviewer, the Review page reporting against the scenarios, and anyone browsing history — and transcripts are ephemeral by contract.",
-  "decision": "G1 is the developer confirming, in the conversation, the final summary of the discussion: decisions, scope, acceptance scenarios and risks. The Proposal page is that summary's durable record, taken verbatim from it, then published and gate-checked; the developer need not read it again. A Change that alters a process still shows the process as a flowchart, and a Change with a design question still carries a mockup; otherwise the page needs no diagram or narrative beyond the summary. G2 is unchanged: the developer accepts the rendered Review page before the pull request opens.",
+  "decision": "G1 accepts the complete, published and browser-verified Proposal before implementation. Convergence in discussion alone is not acceptance. WORKFLOW.md owns the preparation and human-gate sequence; this record retains the rationale for a durable repository-owned specification rather than ephemeral transcripts. G2 remains acceptance of the rendered Review before a pull request opens.",
   "alternatives": [
     {
       "option": "Keep reviewing the rendered Proposal page at G1",
@@ -17,7 +16,8 @@
     }
   ],
   "consequences": [
-    "A page that drifts from the confirmed summary is caught by the spec reviewer at Pre-PR, which reads the page against the code."
+    "A page that drifts from the confirmed summary is caught by the spec reviewer at Pre-PR, which reads the page against the code.",
+    "The original summary-first sequence is replaced by release-train; repository rules own the live sequence, without requiring a second decision record for the same steps."
   ],
   "revisitTriggers": [
     "A Pre-PR spec review finds the Proposal page disagreeing with what the developer confirmed."

@@ -1,5 +1,5 @@
 "use client";
-import { Button, Link, type ButtonProps } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Dialog,
   DialogBody,
@@ -14,6 +14,7 @@ import {
 import { useHydrated } from "@/hooks/use-hydrated";
 import { isStandalone } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
+import NextLink from "next/link";
 import { useEffect, useState } from "react";
 import {
   RiAddBoxLine,
@@ -29,7 +30,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-export const CTAButton = ({ className, ...props }: ButtonProps) => {
+export const CTAButton = ({ className, children, ...props }: ButtonProps) => {
+  const label = children ?? "開始使用";
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
@@ -83,23 +85,30 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
         className={cn("border-0 bg-primary-foreground text-primary", className)}
         disabled
       >
-        開始使用
+        {label}
         <RiArrowRightLine />
       </Button>
     );
   }
 
-  // 如果已經以 PWA 模式運行，不顯示安裝按鈕
-  if (isPwa || platform === "desktop") {
+  // 已經以 PWA 模式運行、桌面，或瀏覽器還沒提供安裝提示時，直接進入應用程式
+  if (
+    isPwa ||
+    platform === "desktop" ||
+    (platform === "mobile" && !isInstallable)
+  ) {
     return (
-      <Link
-        href="/home"
+      <Button
+        asChild
+        {...props}
         variant="outline"
         className={cn("border-0 bg-primary-foreground text-primary", className)}
       >
-        開始使用
-        <RiArrowRightLine />
-      </Link>
+        <NextLink href="/home">
+          {label}
+          <RiArrowRightLine />
+        </NextLink>
+      </Button>
     );
   }
 
@@ -116,7 +125,7 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
               className,
             )}
           >
-            開始使用
+            {label}
             <RiArrowRightLine />
           </Button>
         </DialogTrigger>
@@ -127,21 +136,14 @@ export const CTAButton = ({ className, ...props }: ButtonProps) => {
 
   // 其他平台的安裝按鈕
   return (
-    <>
-      {isInstallable && (
-        <Button
-          {...props}
-          variant="outline"
-          onClick={handleInstallClick}
-          className={cn(
-            "border-0 bg-primary-foreground text-primary",
-            className,
-          )}
-        >
-          安裝應用程式
-        </Button>
-      )}
-    </>
+    <Button
+      {...props}
+      variant="outline"
+      onClick={handleInstallClick}
+      className={cn("border-0 bg-primary-foreground text-primary", className)}
+    >
+      安裝應用程式
+    </Button>
   );
 };
 

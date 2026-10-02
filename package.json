@@ -3,7 +3,7 @@
   "version": "0.15.0",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.24.0",
+  "packageManager": "pnpm@12.8.1",
   "engines": {
     "node": "24.x"
   },
@@ -38,6 +38,7 @@
     "blueprint": "node scripts/blueprint.js",
     "blueprint:changes:pull": "node scripts/blueprint-changes.js pull",
     "blueprint:changes:publish": "node scripts/blueprint-changes.js publish",
+    "blueprint:gate": "node scripts/blueprint-gate.js",
     "generate-icons": "node scripts/generate-icons.js",
     "check:workflow": "node scripts/check-workflow.js",
     "prepare": "husky"
@@ -115,9 +116,14 @@
     "jest-axe": "^11.0.0",
     "jest-environment-jsdom": "^30.4.1",
     "jest-environment-node": "^30.4.1",
+    "jest-fixed-jsdom": "^0.0.11",
     "knip": "^6.32.3",
     "lint-staged": "^17.5.1",
+    "mdast-util-from-markdown": "^2.0.3",
+    "mdast-util-mdx": "^3.0.0",
+    "micromark-extension-mdxjs": "^3.0.0",
     "mongodb-memory-server": "^11.2.0",
+    "msw": "^3.0.0",
     "next-themes": "^0.4.6",
     "png-to-ico": "^3.0.2",
     "postcss": "^8.5.26",

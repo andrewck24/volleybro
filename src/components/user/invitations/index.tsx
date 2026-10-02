@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { PlayerStatus } from "@/entities/player";
+import { useActiveTeamPreference } from "@/hooks/use-active-team-preference";
 import { useUser, useUserPlayers } from "@/hooks/use-data";
 import { apiClient } from "@/lib/api/api-client";
 import { showErrorToast } from "@/lib/api/error-toast";
@@ -52,6 +53,7 @@ export const Invitations = ({ className }: { className?: string }) => {
 function InvitationList({ userId }: { userId?: string }) {
   const { players, isLoading, mutate } = useUserPlayers(userId);
   const { toast } = useToast();
+  const { save } = useActiveTeamPreference();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const invitedPlayers = players.filter(
     (p) => p.status === PlayerStatus.INVITED,
@@ -74,6 +76,13 @@ function InvitationList({ userId }: { userId?: string }) {
           ? { title: "邀請已接受", description: "您已加入隊伍" }
           : { title: "邀請已拒絕" },
       );
+      const joined = players.find((p) => p.id === playerId);
+      if (action === "accept" && userId && joined?.teamId) {
+        save({
+          userId,
+          teamId: joined.teamId,
+        });
+      }
       mutate();
     } catch (err) {
       showErrorToast(err, toast);

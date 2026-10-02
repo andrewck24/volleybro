@@ -64,6 +64,14 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
       );
     }
 
+    if (!player.teamId)
+      throw new NotFoundError(
+        PlayerReason.PLAYER_NOT_FOUND,
+        "Player has no team",
+      );
+    // Lineups first: a failed update leaves a member who can leave again.
+    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
+
     const updated = await this.playerRepository.update(playerId, {
       status: PlayerStatus.NONE,
       userId: undefined,
@@ -76,13 +84,6 @@ export class LeaveTeamUseCase implements ILeaveTeamUseCase {
         "Failed to leave team",
       );
     }
-
-    if (!player.teamId)
-      throw new NotFoundError(
-        PlayerReason.PLAYER_NOT_FOUND,
-        "Player has no team",
-      );
-    await this.teamRepository.removePlayerFromLineups(player.teamId, playerId);
 
     await clearActiveTeam(this.profileRepository, userId, player.teamId);
 

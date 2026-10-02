@@ -24,6 +24,8 @@ A comment never restates what the line does, and never re-argues a decision a de
 // See ADR-NNNN.
 ```
 
+Fitting one of those reasons is necessary, not sufficient. For every comment a diff adds, review names the mistake the next reader would make without it; a comment for which no such mistake can be named is deleted, however true it is.
+
 What survives stays short. One or two lines is the norm; a doc comment longer than the code it describes means the rationale belongs in a decision record or the commit body, not the file.
 
 ## No volatile references in source
@@ -38,3 +40,5 @@ Issue IDs and ticket numbers belong in commit trailers and pull-request bodies, 
 ## Tests
 
 A test sits at the layer [`docs/testing-strategy.md`](./docs/testing-strategy.md) assigns it, mocking only what that layer's school says to mock.
+
+Every test the diff adds passes that document's Test Value gate: review names the behaviour it protects and the regression that fails it, and flags a test that asserts values it built itself, restates the implementation, or duplicates a contract another test already owns. It also flags a fixture, helper, or handler that is defined in more than one test file with the same shape, or that repeats one already in `test/support/` ([`docs/testing-strategy.md`](./docs/testing-strategy.md), Test Support Code). Every test the diff deletes or moves names the test that now owns its contract, or why none is needed.

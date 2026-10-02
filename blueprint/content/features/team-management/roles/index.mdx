@@ -8,6 +8,7 @@ A member's role ranks OWNER above ADMIN above MEMBER. Only a member holds a role
 ## Current behavior
 
 - `hasTeamRole` in `src/entities/player.ts` compares a member's role against a required rank; `canManageTeam` is `hasTeamRole` at ADMIN or above.
+- Only the owner and admins may rename a team or change its nickname; the request may carry no other field.
 - The owner and admins may change or delete an admin, a regular member, an invitee or an unlinked player. A regular member may manage no one.
 - The owner is nobody's target for a role change or deletion. Ownership leaves the OWNER role only through transfer, which is a two-step, non-atomic pair of writes — the new owner is promoted, then the outgoing owner is demoted to ADMIN — and a mid-failure can leave two owners. Transferring ownership to the current owner is refused, since the same document would otherwise be promoted and then immediately demoted, leaving the team with no owner.
 - Nobody may target their own player for a role change or deletion; leaving the team is the path for that instead, and it keeps the roster row as an unlinked player rather than removing it.

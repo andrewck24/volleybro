@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "id": "0094",
+  "title": "A Change page is split into a file per tab, and only its index is a page",
+  "capabilities": ["platform/blueprint"],
+  "context": "A Change page was one index.mdx holding the Proposal and the Review. With a Review tab per shard it would grow past a thousand lines, and an agent must read a whole file before editing any part of it; the frozen check had to parse MDX to cut the Proposal out.",
+  "decision": "A Change directory holds index.mdx, carrying only the frontmatter; proposal.mdx, which also exports the scenarios; review.mdx for an ordinary Change, or review-s<N>.mdx for each shard of a Migration; and the optional design.tsx. Only index.mdx is collected as a page, so the sidebar still lists a Change as one page; the tab files are compiled as a collection of their own, and the Change route renders each one as its tab.",
+  "alternatives": [
+    {
+      "option": "Keep one index.mdx and cut each Review section out when checking it",
+      "reason": "Every edit reads the whole page, and the frozen check keeps parsing MDX to find tab boundaries."
+    },
+    {
+      "option": "Import the tab files from a body of index.mdx that publishing generates",
+      "reason": "A generated body has to be regenerated before a draft can be read in the dev server, and the imports must pass the MDX components through by hand."
+    }
+  ],
+  "consequences": [
+    "Each tab renders its file on its own call stack, so a tab that cannot render shows its error in place and leaves the other tabs readable.",
+    "Every page on the store branch is converted to this layout (ADR-0079)."
+  ],
+  "originChange": "migration-single-page"
+}

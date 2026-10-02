@@ -1,8 +1,8 @@
 import {
   createInvitedPlayer,
-  createMockPlayerRepository,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import { RejectInvitationUseCase } from "@/applications/usecases/player/reject-invitation.usecase";
 import { AuthorizationError, NotFoundError } from "@/entities/errors";
 import { PlayerRole, PlayerStatus } from "@/entities/player";

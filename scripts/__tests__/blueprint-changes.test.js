@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 import { pull, publish } from "../blueprint-changes.js";
+import { resolveScopeBase } from "../change-page.js";
 
 const execFileAsync = promisify(execFile);
 const SCRIPT = fileURLToPath(
@@ -38,13 +39,37 @@ async function mkScratch(t, prefix) {
 async function initWork(dir) {
   await mkdir(dir, { recursive: true });
   const workGit = git(dir);
-  await workGit(["init", "-q", "-b", "dev"]);
+  await workGit(["init", "-q", "-b", "main"]);
   await workGit(["config", "user.email", "test@example.com"]);
   await workGit(["config", "user.name", "Test"]);
   await writeFile(path.join(dir, "README.md"), "init\n");
   await workGit(["add", "-A"]);
   await workGit(["commit", "-q", "-m", "init"]);
 }
+
+test("scope follows the remote default through cutover and falls back to main", async (t) => {
+  const dir = await mkScratch(t, "scope-base-");
+  await initWork(dir);
+  const workGit = git(dir);
+  await workGit(["update-ref", "refs/remotes/origin/dev", "HEAD"]);
+  await workGit(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+  await workGit([
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/dev",
+  ]);
+  assert.equal(await resolveScopeBase(dir), "origin/dev");
+  await workGit([
+    "symbolic-ref",
+    "refs/remotes/origin/HEAD",
+    "refs/remotes/origin/main",
+  ]);
+  assert.equal(await resolveScopeBase(dir), "origin/main");
+  await workGit(["symbolic-ref", "--delete", "refs/remotes/origin/HEAD"]);
+  assert.equal(await resolveScopeBase(dir), "origin/main");
+  await workGit(["update-ref", "-d", "refs/remotes/origin/main"]);
+  assert.equal(await resolveScopeBase(dir), "main");
+});
 
 // A bare "origin" seeded with a blueprint-changes branch holding two slugs,
 // plus a work repo cloned from it whose BLUEPRINT_CHANGES_REMOTE points back
@@ -66,7 +91,7 @@ async function makeRemoteAndWork(t, options = {}) {
     await seedGit(["config", "user.name", "Test"]);
     for (const slug of ["alpha", "beta"]) {
       await mkdir(path.join(seed, slug), { recursive: true });
-      await writeFile(path.join(seed, slug, "proposal.mdx"), `# ${slug}\n`);
+      await writeFile(path.join(seed, slug, "index.mdx"), `# ${slug}\n`);
     }
     await seedGit(["add", "-A"]);
     await seedGit(["commit", "-q", "-m", "seed"]);
@@ -101,7 +126,7 @@ async function pushRemoteUpdate(t, bare, slug, content) {
   const remoteGit = git(tmp);
   await remoteGit(["config", "user.email", "test@example.com"]);
   await remoteGit(["config", "user.name", "Test"]);
-  await writeFile(path.join(tmp, slug, "proposal.mdx"), content);
+  await writeFile(path.join(tmp, slug, "index.mdx"), content);
   await remoteGit(["add", "-A"]);
   await remoteGit(["commit", "-q", "-m", "update"]);
   await remoteGit(["push", "origin", "blueprint-changes"]);
@@ -134,6 +159,19 @@ test("pull adds missing slugs", async (t) => {
   );
 });
 
+test("pull warns only when the store history passes the threshold", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const warnings = t.mock.method(console, "warn", () => {});
+
+  await withRemote(bare, () => pull(work));
+  assert.equal(warnings.mock.callCount(), 0);
+
+  await withRemote(bare, () => pull(work, { historyWarnBytes: 1 }));
+  assert.equal(warnings.mock.callCount(), 1);
+  assert.match(warnings.mock.calls[0].arguments[0], /ADR-0082/);
+  assert.equal(process.exitCode ?? 0, 0);
+});
+
 test("pull keeps a never-pulled local slug", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const alphaDir = path.join(work, "blueprint", "content", "changes", "alpha");
@@ -153,7 +191,7 @@ test("pull refreshes an untouched slug after the remote changes", async (t) => {
     "content",
     "changes",
     "alpha",
-    "proposal.mdx",
+    "index.mdx",
   );
 
   await withRemote(bare, () => pull(work));
@@ -173,7 +211,7 @@ test("pull keeps a slug that was edited locally after being pulled", async (t) =
     "content",
     "changes",
     "alpha",
-    "proposal.mdx",
+    "index.mdx",
   );
 
   await withRemote(bare, () => pull(work));
@@ -185,15 +223,40 @@ test("pull keeps a slug that was edited locally after being pulled", async (t) =
   assert.equal(await readFile(alphaFile, "utf8"), "# alpha edited locally\n");
 });
 
-test("pull --force replaces an existing local slug", async (t) => {
+test("pull --force <slug> replaces that local slug", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const alphaDir = path.join(work, "blueprint", "content", "changes", "alpha");
   await mkdir(alphaDir, { recursive: true });
   await writeFile(path.join(alphaDir, "local.txt"), "mine\n");
 
+  await withRemote(bare, () => pull(work, { force: ["alpha"] }));
+
+  assert.deepEqual(await readdir(alphaDir), ["index.mdx"]);
+});
+
+test("pull --force with no slug refuses to overwrite an unpublished edit", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  await withRemote(bare, () => pull(work));
+  const alphaFile = path.join(
+    work,
+    "blueprint",
+    "content",
+    "changes",
+    "alpha",
+    "index.mdx",
+  );
+  await writeFile(alphaFile, "# alpha, not yet published\n");
+  const errors = t.mock.method(console, "error", () => {});
+
   await withRemote(bare, () => pull(work, { force: true }));
 
-  assert.deepEqual(await readdir(alphaDir), ["proposal.mdx"]);
+  assert.equal(
+    await readFile(alphaFile, "utf8"),
+    "# alpha, not yet published\n",
+  );
+  assert.match(errors.mock.calls[0].arguments[0], /alpha/);
+  assert.equal(process.exitCode, 1);
+  process.exitCode = 0;
 });
 
 test("pull leaves the repository unshallow", async (t) => {
@@ -257,7 +320,7 @@ test("publish pushes a commit containing the local slug", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "index.mdx"), "# gamma\n");
 
   await withRemote(bare, () => publish(work, "gamma"));
 
@@ -266,14 +329,14 @@ test("publish pushes a commit containing the local slug", async (t) => {
     ["archive", "blueprint-changes", "gamma"],
     { cwd: bare },
   );
-  assert.match(stdout, /proposal\.mdx/);
+  assert.match(stdout, /index\.mdx/);
 });
 
 test("publish records the hash so a later pull of the same content is a no-op", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "index.mdx"), "# gamma\n");
 
   await withRemote(bare, () => publish(work, "gamma"));
 
@@ -290,7 +353,7 @@ test("publish records the hash so a later pull of the same content is a no-op", 
   await withRemote(bare, () => pull(work));
 
   assert.equal(
-    await readFile(path.join(gammaDir, "proposal.mdx"), "utf8"),
+    await readFile(path.join(gammaDir, "index.mdx"), "utf8"),
     "# gamma\n",
   );
   const storeAfter = JSON.parse(await readFile(storePath, "utf8"));
@@ -301,7 +364,7 @@ test("publish with no changes: records the hash and commits nothing", async (t) 
   const { bare, work } = await makeRemoteAndWork(t);
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "design.tsx"), "// gamma\n");
 
   await withRemote(bare, () => publish(work, "gamma"));
   const tipAfterFirst = await execFileAsync(
@@ -336,7 +399,7 @@ test("publish --dry-run does not change the remote", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t);
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "index.mdx"), "# gamma\n");
 
   const before = await execFileAsync(
     "git",
@@ -356,7 +419,7 @@ test("publish to a remote without the branch creates it", async (t) => {
   const { bare, work } = await makeRemoteAndWork(t, { seedBranch: false });
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "index.mdx"), "# gamma\n");
 
   await withRemote(bare, () => publish(work, "gamma"));
 
@@ -365,7 +428,7 @@ test("publish to a remote without the branch creates it", async (t) => {
     ["archive", "blueprint-changes", "gamma"],
     { cwd: bare },
   );
-  assert.match(stdout, /proposal\.mdx/);
+  assert.match(stdout, /index\.mdx/);
 });
 
 test("concurrent publishes of different slugs both land on the store branch", async (t) => {
@@ -378,7 +441,7 @@ test("concurrent publishes of different slugs both land on the store branch", as
   ]) {
     const gammaDir = path.join(dir, "blueprint", "content", "changes", "gamma");
     await mkdir(gammaDir, { recursive: true });
-    await writeFile(path.join(gammaDir, "proposal.mdx"), content);
+    await writeFile(path.join(gammaDir, "index.mdx"), content);
   }
 
   // Both publishers fetch the same starting tip and race to push; git
@@ -405,10 +468,395 @@ test("publish rethrows a push failure that is not a race (pre-receive hook rejec
 
   const gammaDir = path.join(work, "blueprint", "content", "changes", "gamma");
   await mkdir(gammaDir, { recursive: true });
-  await writeFile(path.join(gammaDir, "proposal.mdx"), "# gamma\n");
+  await writeFile(path.join(gammaDir, "index.mdx"), "# gamma\n");
 
   await assert.rejects(
     withRemote(bare, () => publish(work, "gamma")),
     /blocked by policy/,
   );
+});
+
+async function makeChange(work, slug, { review = false } = {}) {
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", `feat/${slug}`]);
+  await mkdir(path.join(work, "src"), { recursive: true });
+  await writeFile(path.join(work, "src", "a.ts"), "one\ntwo\n");
+  await workGit(["add", "-A"]);
+  await workGit(["commit", "-q", "-m", "feat: add a"]);
+
+  return writeChangePage(work, slug, { review });
+}
+
+async function writeChangePage(work, slug, { review = false, shards } = {}) {
+  const dir = path.join(work, "blueprint", "content", "changes", slug);
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    path.join(dir, "index.mdx"),
+    `---\ntitle: ${slug}\n${shards ? `shards: ${shards}\n` : ""}---\n`,
+  );
+  await writeFile(
+    path.join(dir, "proposal.mdx"),
+    'export const scenarios = [\n  { id: "S1", given: "a", when: "b", then: "c" },\n];\n\n<DecisionCards ids={["0072"]} />\n',
+  );
+  if (review) {
+    await writeFile(
+      path.join(dir, "review.mdx"),
+      "<ActionItems>\n\n無\n\n</ActionItems>\n",
+    );
+  }
+  return dir;
+}
+
+test("publish writes facts.json for a Change and ships it", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+  assert.ok(!Number.isNaN(Date.parse(facts.publishedAt)));
+  assert.equal(facts.commits, 1);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.equal(facts.deletions, 0);
+  assert.equal(facts.srcFilesChanged, 1);
+  assert.equal(facts.scenarios, 1);
+  assert.deepEqual(facts.decisions, ["0072"]);
+  assert.equal(facts.archivedAt, null);
+  assert.ok(!Number.isNaN(Date.parse(facts.startedAt)));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:gamma/facts.json"],
+    { cwd: bare },
+  );
+  assert.equal(JSON.parse(stdout).gate, "G1");
+});
+
+test("publish keeps the facts of a page converted from an earlier format", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  const converted = {
+    converted: true,
+    gate: "G2",
+    startedAt: "2026-08-08T00:00:00.000Z",
+    archivedAt: "2026-08-16T00:00:00.000Z",
+    decisions: ["0004"],
+  };
+  await writeFile(
+    path.join(dir, "facts.json"),
+    `${JSON.stringify(converted, null, 2)}\n`,
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:gamma/facts.json"],
+    { cwd: bare },
+  );
+  assert.deepEqual(JSON.parse(stdout), converted);
+});
+
+test("publish rewrites an unreadable facts.json instead of stopping", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  await writeFile(path.join(dir, "facts.json"), "not json\n");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
+
+test("publish records G2 once the page has a Review tab", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G2");
+});
+
+async function landAndBranchOff(work, slug, { squash }) {
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "main"]);
+  if (squash) {
+    await workGit(["merge", "-q", "--squash", `feat/${slug}`]);
+    await workGit([
+      "commit",
+      "-q",
+      "-m",
+      // A body line that only looks like a Shard trailer must not make this
+      // squash commit read as a Migration shard.
+      `feat: ${slug}\n\nThe body wraps onto a line that starts\nShard: 2 as prose.\n\nBlueprint-Change: ${slug}`,
+    ]);
+  } else {
+    await workGit([
+      "merge",
+      "-q",
+      "--no-ff",
+      "-m",
+      `Merge pull request #1 from owner/feat/${slug}`,
+      `feat/${slug}`,
+    ]);
+  }
+  await workGit(["checkout", "-q", "-b", "feat/later"]);
+  await writeFile(path.join(work, "src", "b.ts"), "x\ny\nz\n");
+  await workGit(["add", "-A"]);
+  await workGit(["commit", "-q", "-m", "feat: add b"]);
+}
+
+test("publish preserves batch facts through a conventional merge and trunk cutover", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  const oldMain = (await workGit(["rev-parse", "HEAD"])).stdout.trim();
+  const commit = async (branch, file, lines, shard) => {
+    await workGit(["checkout", "-q", "-b", branch]);
+    await mkdir(path.join(work, "src"), { recursive: true });
+    await writeFile(path.join(work, "src", file), lines);
+    await workGit(["add", "-A"]);
+    await workGit([
+      "commit",
+      "-q",
+      "-m",
+      `feat: ${file}\n\nBlueprint-Change: gamma\nShard: ${shard}`,
+    ]);
+  };
+  await commit("feat/gamma-s1", "a.ts", "one\ntwo\n", 1);
+  await workGit(["checkout", "-q", "main"]);
+  await workGit([
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "feat(tooling): deliver first batch (#1)",
+    "feat/gamma-s1",
+  ]);
+  await writeFile(
+    path.join(work, "unrelated.md"),
+    "Existing integration work\n",
+  );
+  await workGit(["add", "unrelated.md"]);
+  await workGit(["commit", "-q", "-m", "docs: existing integration work"]);
+  await workGit(["branch", "-m", "main", "dev"]);
+  await workGit(["checkout", "-q", "-b", "main", oldMain]);
+  await workGit([
+    "merge",
+    "-q",
+    "--no-ff",
+    "-m",
+    "chore: integrate trunk",
+    "dev",
+  ]);
+  await commit("feat/gamma-s2", "b.ts", "x\ny\nz\n", 2);
+  // Shard 2 is pushed but not merged; shard 3 is the branch being published.
+  await workGit(["update-ref", "refs/remotes/origin/feat/gamma-s2", "HEAD"]);
+  await workGit(["checkout", "-q", "main"]);
+  await commit("feat/gamma-s3", "c.ts", "q\n", 3);
+  const dir = await writeChangePage(work, "gamma", { shards: 3 });
+  await writeFile(
+    path.join(dir, "review-s1.mdx"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  // A shard after the first is at no gate until its G2, so this publish can
+  // never stand for the Proposal's G1.
+  assert.equal(facts.gate, undefined);
+  assert.deepEqual(
+    { ...facts.shards, items: undefined },
+    { count: 3, current: 3, merged: 1, items: undefined },
+  );
+  assert.deepEqual(
+    facts.shards.items.map(({ shard, gate, commits, insertions }) => [
+      shard,
+      gate,
+      commits,
+      insertions,
+    ]),
+    [
+      [1, "G2", 1, 2],
+      [2, undefined, 1, 3],
+      [3, undefined, 1, 1],
+    ],
+  );
+  assert.equal(facts.commits, 3);
+  assert.equal(facts.insertions, 6);
+  assert.equal(facts.archivedAt, null);
+});
+
+test("a proposal-only publish records G1 even on a later shard's branch", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", "feat/gamma-s2"]);
+  const dir = await writeChangePage(work, "gamma", { shards: 2 });
+  await writeFile(
+    path.join(dir, "review-s1.mdx"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
+
+test("a failed publish after a proposal-only one leaves the Reviews to the next pull", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+  await withRemote(bare, () => pull(work));
+
+  assert.equal(
+    await readFile(path.join(dir, "review.mdx"), "utf8"),
+    "<ActionItems>\n\n無\n\n</ActionItems>\n",
+  );
+});
+
+test("publish without its Review files ships the Proposal alone", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma", { review: true });
+
+  await withRemote(bare, () => publish(work, "gamma", { proposalOnly: true }));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["ls-tree", "--name-only", "blueprint-changes", "gamma/"],
+    { cwd: bare },
+  );
+  assert.deepEqual(stdout.trim().split("\n").sort(), [
+    "gamma/facts.json",
+    "gamma/index.mdx",
+    "gamma/proposal.mdx",
+  ]);
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.gate, "G1");
+});
+
+test("publish measures a merged Change by the merge commit that landed it", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  await landAndBranchOff(work, "gamma", { squash: false });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.commits, 1);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.ok(!Number.isNaN(Date.parse(facts.archivedAt)));
+});
+
+test("publish leaves the commit count unknown for a squash-merged Change", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const dir = await makeChange(work, "gamma");
+  await landAndBranchOff(work, "gamma", { squash: true });
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.commits, null);
+  assert.equal(facts.startedAt, facts.archivedAt);
+  assert.equal(facts.filesChanged, 1);
+  assert.equal(facts.insertions, 2);
+  assert.ok(!Number.isNaN(Date.parse(facts.archivedAt)));
+});
+
+test("publish ships the deploy workflow to the store, and pull leaves it there", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workflowDir = path.join(work, ".github", "workflows");
+  await mkdir(workflowDir, { recursive: true });
+  await writeFile(path.join(workflowDir, "blueprint-deploy.yml"), "name: x\n");
+  await makeChange(work, "gamma");
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const { stdout } = await execFileAsync(
+    "git",
+    ["show", "blueprint-changes:.github/workflows/blueprint-deploy.yml"],
+    { cwd: bare },
+  );
+  assert.equal(stdout, "name: x\n");
+
+  await withRemote(bare, () => pull(work));
+  const changesDir = path.join(work, "blueprint", "content", "changes");
+  assert.ok(!(await readdir(changesDir)).includes(".github"));
+});
+
+test("a Change starts at its first commit, even one made long before its first publish", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  const workGit = git(work);
+  await workGit(["checkout", "-q", "-b", "feat/gamma"]);
+  await mkdir(path.join(work, "src"), { recursive: true });
+  await writeFile(path.join(work, "src", "old.ts"), "x\n");
+  await workGit(["add", "-A"]);
+  await execFileAsync("git", ["commit", "-q", "-m", "feat: old"], {
+    cwd: work,
+    env: { ...process.env, GIT_AUTHOR_DATE: "2020-01-02T03:04:05Z" },
+  });
+  const dir = path.join(work, "blueprint", "content", "changes", "gamma");
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    path.join(dir, "index.mdx"),
+    "---\ntitle: gamma\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n</ChangeTabs>\n",
+  );
+
+  await withRemote(bare, () => publish(work, "gamma"));
+
+  const facts = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+  assert.equal(facts.startedAt, "2020-01-02T03:04:05.000Z");
+});
+
+test("a Change with no commit yet starts at its first publish and keeps that start", async (t) => {
+  const { bare, work } = await makeRemoteAndWork(t);
+  await git(work)(["checkout", "-q", "-b", "feat/gamma"]);
+  const dir = path.join(work, "blueprint", "content", "changes", "gamma");
+  await mkdir(dir, { recursive: true });
+  const page =
+    "---\ntitle: gamma\n---\n\n<ChangeTabs>\n<Proposal>\n\nx\n\n</Proposal>\n</ChangeTabs>\n";
+  await writeFile(path.join(dir, "index.mdx"), page);
+  await withRemote(bare, () => publish(work, "gamma"));
+  const first = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  await writeFile(path.join(dir, "index.mdx"), `${page}\nmore\n`);
+  await withRemote(bare, () => publish(work, "gamma"));
+  const second = JSON.parse(
+    await readFile(path.join(dir, "facts.json"), "utf8"),
+  );
+
+  // The start is the first store commit's date: whole seconds, and taken after
+  // the first facts were written, so it matches neither publishedAt exactly.
+  const startedAt = Date.parse(second.startedAt);
+  assert.ok(
+    startedAt >= Math.floor(Date.parse(first.publishedAt) / 1000) * 1000 &&
+      startedAt < Date.parse(second.publishedAt),
+    `startedAt ${second.startedAt} is not the first publish`,
+  );
+  assert.notEqual(second.publishedAt, first.publishedAt);
 });

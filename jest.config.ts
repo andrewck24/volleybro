@@ -1,11 +1,12 @@
 /**
  * Jest configuration with three projects:
- * - backend: node environment, mongoose mocked, for entities/applications/infrastructure/interface/API-route unit tests
+ * - backend: node environment, no database, for entities/applications/infrastructure/interface/API-route unit tests
  * - frontend: jsdom environment for components and lib
- * - integration: node environment against a real in-memory MongoDB (no mongoose mock)
+ * - integration: node environment against a real in-memory MongoDB replica set
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import { pathToFileURL } from "node:url";
 import type { Config } from "jest";
 import nextJest from "next/jest.js";
 
@@ -16,7 +17,9 @@ import nextJest from "next/jest.js";
 // workers via NODE_OPTIONS (covers the default parallel runner).
 (globalThis as { AsyncLocalStorage?: unknown }).AsyncLocalStorage ??=
   AsyncLocalStorage;
-const preload = `${process.cwd()}/jest.preload.integration.js`;
+const preload = pathToFileURL(
+  `${process.cwd()}/test/setup/integration.preload.js`,
+).href;
 if (!process.env.NODE_OPTIONS?.includes(preload)) {
   process.env.NODE_OPTIONS =
     `${process.env.NODE_OPTIONS ?? ""} --import ${preload}`.trim();
@@ -33,48 +36,64 @@ export default async function jestConfig() {
     moduleNameMapper: {
       ...nextResolved.moduleNameMapper,
       "^@/(.*)$": "<rootDir>/src/$1",
+      "^@test/(.*)$": "<rootDir>/test/$1",
       // The migration scripts run under ts-node/esm, which requires the `.js`
       // specifier the TypeScript source does not have on disk.
       "^(\\.{1,2}/.*)\\.js$": "$1",
     },
     transformIgnorePatterns: [
-      "/node_modules/(?!.*(inversify|@inversifyjs)/)",
+      "/node_modules/(?!.*(inversify|@inversifyjs|msw|@mswjs|rettime|until-async|@open-draft|cookie)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
+    // verify:all runs the integration tests beside the app build, which
+    // rewrites .next/ while Jest's module map is reading it.
+    modulePathIgnorePatterns: ["<rootDir>/.next/"],
     collectCoverageFrom: [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
       "!src/types/**/*",
     ],
+    // The v8 provider reports every file a test loads, test code included.
+    coveragePathIgnorePatterns: ["/node_modules/", "<rootDir>/test/"],
   };
 
   const backendProject: Config = {
     ...sharedConfig,
     displayName: "backend",
     testEnvironment: "node",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.backend.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/setup/backend.ts"],
     testMatch: [
-      "<rootDir>/src/entities/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/applications/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/infrastructure/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/interface/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/api/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/apple-splash/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/__tests__/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/entities/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/applications/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/infrastructure/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/interface/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/api/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/apple-splash/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/__tests__/**/*.test.{js,jsx,ts,tsx}",
+      // Server-only code under src/lib, which the frontend project's src/lib
+      // pattern would otherwise run in jsdom.
+      "<rootDir>/src/lib/api/__tests__/wrappers.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/__tests__/auth-hook.test.{js,jsx,ts,tsx}",
     ],
   };
 
   const frontendProject: Config = {
     ...sharedConfig,
     displayName: "frontend",
-    testEnvironment: "jsdom",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.frontend.ts"],
+    // jsdom hides Node's fetch, Request and Response, which MSW intercepts.
+    testEnvironment: "jest-fixed-jsdom",
+    setupFilesAfterEnv: ["<rootDir>/test/setup/frontend.ts"],
+    testPathIgnorePatterns: [
+      ...(sharedConfig.testPathIgnorePatterns ?? []),
+      "<rootDir>/src/lib/api/__tests__/wrappers.test",
+      "<rootDir>/src/lib/__tests__/auth-hook.test",
+    ],
     testMatch: [
-      "<rootDir>/src/components/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/lib/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/hooks/**/*.{spec,test}.{js,jsx,ts,tsx}",
-      "<rootDir>/src/app/\\(tabs\\)/**/*.{spec,test}.{js,jsx,ts,tsx}",
+      "<rootDir>/src/components/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/lib/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/hooks/**/*.test.{js,jsx,ts,tsx}",
+      "<rootDir>/src/app/[(]tabs[)]/**/*.test.{js,jsx,ts,tsx}",
     ],
   };
 
@@ -82,8 +101,9 @@ export default async function jestConfig() {
     ...sharedConfig,
     displayName: "integration",
     testEnvironment: "node",
-    globalSetup: "<rootDir>/jest.global-setup.integration.ts",
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.integration.ts"],
+    globalSetup: "<rootDir>/test/setup/integration.global.ts",
+    globalTeardown: "<rootDir>/test/setup/integration.teardown.ts",
+    setupFilesAfterEnv: ["<rootDir>/test/setup/integration.ts"],
     testMatch: ["<rootDir>/test/integration/**/*.itest.{js,jsx,ts,tsx}"],
   };
 

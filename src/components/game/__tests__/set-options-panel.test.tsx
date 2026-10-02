@@ -1,125 +1,122 @@
 import { Options } from "@/components/game/set-options/panel/options";
-import { apiClient } from "@/lib/api/api-client";
-import { render, screen, waitFor } from "@testing-library/react";
+import { Toaster } from "@/components/ui/toaster";
+import { Position } from "@/entities/team";
+import { ERROR_MESSAGES } from "@/lib/api/error-messages";
+import { lineupActions } from "@/lib/features/team/lineup-slice";
+import { makeStore } from "@/lib/redux/store";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
+import { Provider } from "react-redux";
 
-const mockMutate = jest.fn();
+import { server } from "@test/support/msw/server";
+
 const mockRouterPush = jest.fn();
-const mockToast = jest.fn();
-
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockRouterPush }),
 }));
 
-const mockGame = {
-  sets: [],
-  teams: { home: { players: [] } },
+const lineup = {
+  options: { liberoReplaceMode: 0, liberoReplacePosition: Position.NONE },
+  starting: [],
+  liberos: [],
+  substitutes: [],
 };
 
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({
-    game: mockGame,
-    mutate: mockMutate,
-  }),
-}));
+// No sets yet, so the panel is starting a new one.
+const game = {
+  id: "rec-1",
+  win: null,
+  teamId: "team-1",
+  teams: {
+    home: { id: "team-1", name: "Home", players: [] },
+    away: { name: "Away", players: [] },
+  },
+  sets: [],
+};
 
-jest.mock("@/lib/api/api-client", () => ({
-  apiClient: jest.fn(),
-}));
-
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: jest.fn(),
-}));
-
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: mockToast }),
-}));
-
-jest.mock("@/lib/redux/hooks", () => ({
-  useAppSelector: (selector: (s: unknown) => unknown) =>
-    selector({
-      lineup: { lineups: [{ substitutes: [], liberos: [] }] },
-      game: { setIndex: 0 },
-    }),
-  useAppDispatch: () => jest.fn(),
-}));
-
-jest.mock("@/lib/features/team/hooks/use-replace-position", () => ({
-  useReplacePosition: () => ({ hasPairedReplacePosition: true }),
-}));
-
-jest.mock("@/components/team/lineup/panel/options/libero-replace", () => ({
-  LiberoReplaceTrigger: () => null,
-  LiberoReplaceDialog: () => null,
-}));
-
-jest.mock("react-icons/ri", () => ({
-  RiArrowRightLine: () => <span>→</span>,
-  RiSaveLine: () => <span>save</span>,
-  RiUserLine: () => <span>user</span>,
-  RiLoader4Line: () => <span data-testid="spinner">spinner</span>,
-}));
-
-const mockApiClient = apiClient as jest.Mock;
+const setUp = async () => {
+  const store = makeStore();
+  act(() => {
+    store.dispatch(lineupActions.initialize([lineup] as never));
+  });
+  render(
+    <Provider store={store}>
+      <SwrIsolation>
+        <Options gameId="rec-1" />
+        <Toaster />
+      </SwrIsolation>
+    </Provider>,
+  );
+  // The label flips from "儲存設定" once the game loads and this is a new set.
+  const button = await screen.findByRole("button", { name: "開始新一局" });
+  return { button, user: userEvent.setup() };
+};
 
 describe("Options (set-options panel) submitting state", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockMutate.mockResolvedValue(undefined);
+    mockRouterPush.mockClear();
+    server.use(http.get("/api/games/rec-1", () => HttpResponse.json(game)));
   });
 
-  it("disables submit button and shows spinner while saving", async () => {
-    let resolveApi!: (v: unknown) => void;
-    mockApiClient.mockReturnValue(
-      new Promise((resolve) => {
-        resolveApi = resolve;
+  it("disables the submit button and shows progress while saving, then posts the set and moves on", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let body: unknown;
+    let url!: URL;
+    server.use(
+      http.post("/api/games/rec-1/sets", async ({ request }) => {
+        url = new URL(request.url);
+        body = await request.json();
+        await gate;
+        return HttpResponse.json({
+          ...game,
+          sets: [{ win: null, options: { serve: "away" }, entries: [] }],
+        });
       }),
     );
 
-    const user = userEvent.setup();
-    render(<Options gameId="rec-1" />);
+    const { button, user } = await setUp();
+    expect(button).toBeEnabled();
 
-    const btn = screen.getByRole("button", { name: /開始新一局|儲存設定/ });
-    expect(btn).toBeEnabled();
+    await user.click(button);
 
-    await user.click(btn);
+    // handleSubmit validates asynchronously before the submit handler runs, so
+    // the disabled state only appears once that validation has settled.
+    await waitFor(() => expect(button).toBeDisabled());
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(button).toHaveTextContent("開始中");
 
-    expect(btn).toBeDisabled();
-    expect(screen.getByTestId("spinner")).toBeInTheDocument();
+    release();
+    await waitFor(() => expect(button).toBeEnabled());
 
-    resolveApi({ sets: [], teams: { home: { players: [] } } });
-    await waitFor(() => expect(btn).toBeEnabled());
-  });
-
-  it("re-enables button after API error", async () => {
-    mockApiClient.mockRejectedValue(new Error("network error"));
-
-    const user = userEvent.setup();
-    render(<Options gameId="rec-1" />);
-
-    const btn = screen.getByRole("button", { name: /開始新一局|儲存設定/ });
-    await user.click(btn);
-
-    await waitFor(() => expect(btn).toBeEnabled());
-  });
-
-  it("fires a success toast after a successful save", async () => {
-    mockApiClient.mockResolvedValue({
-      sets: [],
-      teams: { home: { players: [] } },
+    expect(url.searchParams.get("si")).toBe("0");
+    expect(body).toEqual({
+      lineup,
+      options: { serve: "away", time: expect.any(Object) },
     });
+    expect(await screen.findByText("新一局已開始")).toBeInTheDocument();
+    expect(mockRouterPush).toHaveBeenCalledWith("/game/rec-1/sets/0/entry");
+  });
 
-    const user = userEvent.setup();
-    render(<Options gameId="rec-1" />);
-
-    await user.click(
-      screen.getByRole("button", { name: /開始新一局|儲存設定/ }),
-    );
-
-    await waitFor(() =>
-      expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "成功" }),
+  it("re-enables the button and reports the error after a failed save", async () => {
+    server.use(
+      http.post("/api/games/rec-1/sets", () =>
+        HttpResponse.json(
+          { code: "UNEXPECTED", reason: "UNEXPECTED" },
+          { status: 500 },
+        ),
       ),
     );
+
+    const { button, user } = await setUp();
+    await user.click(button);
+
+    expect(
+      await screen.findByText(ERROR_MESSAGES.SERVER_ERROR.title),
+    ).toBeInTheDocument();
+    expect(button).toBeEnabled();
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 });

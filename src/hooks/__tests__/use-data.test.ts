@@ -1,85 +1,75 @@
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
+import { http, HttpResponse } from "msw";
 import { useTeam, useTeamPlayers } from "@/hooks/use-data";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
 
-const capturedKeys: unknown[] = [];
+import { server } from "@test/support/msw/server";
 
-jest.mock("swr", () => {
-  const mockUseSWR = jest.fn((key: unknown) => {
-    capturedKeys.push(key);
-    return {
-      data: undefined,
-      error: undefined,
-      isLoading: false,
-      isValidating: false,
-      mutate: jest.fn(),
-    };
-  });
-  const useSWRConfig = jest.fn(() => ({ cache: new Map() }));
-  return {
-    __esModule: true,
-    default: mockUseSWR,
-    useSWRConfig,
+const cases = [
+  {
+    name: "useTeam",
+    path: (id: string) => `/api/teams/${id}`,
+    body: { id: "team-123" },
+    run: (id: string) => {
+      const { result } = renderHook(() => useTeam(id), {
+        wrapper: SwrIsolation,
+      });
+      return {
+        read: () => result.current.team,
+        state: () => result.current,
+      };
+    },
+  },
+  {
+    name: "useTeamPlayers",
+    path: (id: string) => `/api/teams/${id}/players`,
+    body: [{ id: "p1" }],
+    run: (id: string) => {
+      const { result } = renderHook(() => useTeamPlayers(id), {
+        wrapper: SwrIsolation,
+      });
+      return {
+        read: () => result.current.players,
+        state: () => result.current,
+      };
+    },
+  },
+];
+
+describe.each(cases)("$name", (hook) => {
+  const recordRequests = () => {
+    const paths: string[] = [];
+    server.use(
+      http.get(/\/api\/teams\/.*/, ({ request }) => {
+        paths.push(new URL(request.url).pathname);
+        return HttpResponse.json(hook.body);
+      }),
+    );
+    return paths;
   };
-});
 
-describe("useTeam", () => {
-  beforeEach(() => {
-    capturedKeys.length = 0;
+  it.each([
+    ["an empty string", ""],
+    ["undefined", undefined as unknown as string],
+  ])("sends no request when the team id is %s", async (_label, id) => {
+    const paths = recordRequests();
+
+    const rendered = hook.run(id);
+    // Give a request, if one were made, time to reach the handler.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(paths).toEqual([]);
+    expect(rendered.read()).toBeUndefined();
+    expect(rendered.state().error).toBeUndefined();
+    expect(rendered.state().isLoading).toBe(false);
   });
 
-  it("does NOT fetch when teamId is empty string", () => {
-    renderHook(() => useTeam(""));
-    expect(capturedKeys).not.toContain("/api/teams/");
-    expect(capturedKeys).not.toContain("/api/teams/undefined");
-    expect(capturedKeys.every((k) => k === null)).toBe(true);
-  });
+  it("requests the team's own URL and returns the response", async () => {
+    const paths = recordRequests();
 
-  it("does NOT fetch when teamId is undefined", () => {
-    renderHook(() => useTeam(undefined as unknown as string));
-    expect(capturedKeys).not.toContain("/api/teams/undefined");
-    expect(capturedKeys.every((k) => k === null)).toBe(true);
-  });
+    const rendered = hook.run("team-123");
 
-  it("returns safe defaults when teamId is falsy", () => {
-    const { result } = renderHook(() => useTeam(""));
-    expect(result.current.team).toBeUndefined();
-    expect(result.current.error).toBeUndefined();
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("fetches normally when teamId is provided", () => {
-    renderHook(() => useTeam("team-123"));
-    expect(capturedKeys).toContain("/api/teams/team-123");
-  });
-});
-
-describe("useTeamPlayers", () => {
-  beforeEach(() => {
-    capturedKeys.length = 0;
-  });
-
-  it("does NOT fetch when teamId is empty string", () => {
-    renderHook(() => useTeamPlayers(""));
-    expect(capturedKeys).not.toContain("/api/teams//players");
-    expect(capturedKeys).not.toContain("/api/teams/undefined/players");
-    expect(capturedKeys.every((k) => k === null)).toBe(true);
-  });
-
-  it("does NOT fetch when teamId is undefined", () => {
-    renderHook(() => useTeamPlayers(undefined as unknown as string));
-    expect(capturedKeys).not.toContain("/api/teams/undefined/players");
-    expect(capturedKeys.every((k) => k === null)).toBe(true);
-  });
-
-  it("returns safe defaults when teamId is falsy", () => {
-    const { result } = renderHook(() => useTeamPlayers(""));
-    expect(result.current.players).toBeUndefined();
-    expect(result.current.error).toBeUndefined();
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it("fetches normally when teamId is provided", () => {
-    renderHook(() => useTeamPlayers("team-123"));
-    expect(capturedKeys).toContain("/api/teams/team-123/players");
+    await waitFor(() => expect(rendered.read()).toEqual(hook.body));
+    expect(paths).toEqual([hook.path("team-123")]);
   });
 });

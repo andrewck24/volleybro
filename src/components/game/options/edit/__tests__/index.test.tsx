@@ -1,59 +1,36 @@
 import { EntriesEdit } from "@/components/game/options/edit";
 import { Dialog } from "@/components/ui/dialog";
-import { render, screen } from "@testing-library/react";
+import {
+  holdEditedWrite,
+  renderEditingGame,
+} from "@test/support/react/render-editing-game";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-jest.mock("@/components/game/court", () => ({
-  GameCourt: () => <div data-testid="court-marker" />,
-}));
-jest.mock("@/components/game/preview", () => ({
-  GamePreview: () => <div data-testid="preview-marker" />,
-}));
-jest.mock("@/components/game/panel", () => ({
-  GamePanel: () => <div data-testid="panel-marker" />,
-}));
-
-const guardDismiss = jest.fn();
-let leaveEditing = jest.fn();
-let writing = false;
-jest.mock("@/hooks/use-editing-guard", () => ({
-  useEditingGuard: () => ({
-    writing,
-    failed: false,
-    guardDismiss,
-    leaveEditing,
-  }),
-}));
+const renderEntriesEdit = () =>
+  renderEditingGame(
+    <Dialog open>
+      <EntriesEdit gameId="game-1" />
+    </Dialog>,
+  );
 
 describe("EntriesEdit back control", () => {
-  beforeEach(() => {
-    writing = false;
-    leaveEditing = jest.fn();
-  });
-
-  it("calls leaveEditing on tap while idle", async () => {
+  it("leaves editing mode on tap while idle", async () => {
     const user = userEvent.setup();
-    render(
-      <Dialog open>
-        <EntriesEdit gameId="game-1" />
-      </Dialog>,
-    );
+    const { store } = renderEntriesEdit();
 
-    const back = screen.getByRole("button", { name: "back" });
+    const back = await screen.findByRole("button", { name: "back" });
     expect(back).toBeEnabled();
 
     await user.click(back);
-    expect(leaveEditing).toHaveBeenCalledTimes(1);
+
+    expect(store.getState().game.mode).toBe("general");
   });
 
-  it("is disabled while a write is in flight, so it cannot be tapped away", () => {
-    writing = true;
-    render(
-      <Dialog open>
-        <EntriesEdit gameId="game-1" />
-      </Dialog>,
-    );
+  it("is disabled while a write is in flight, so it cannot be tapped away", async () => {
+    const { store } = renderEntriesEdit();
+    holdEditedWrite(store);
 
-    expect(screen.getByRole("button", { name: "back" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "back" })).toBeDisabled();
   });
 });

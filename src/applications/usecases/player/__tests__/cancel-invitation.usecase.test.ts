@@ -1,9 +1,9 @@
 import {
   createInvitedPlayer,
-  createMockAuthorizationService,
-  createMockPlayerRepository,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockAuthorizationService } from "@test/support/doubles/services";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import type { ICancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { CancelInvitationUseCase } from "@/applications/usecases/player/cancel-invitation.usecase";
 import { NotFoundError, UnexpectedError } from "@/entities/errors";

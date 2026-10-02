@@ -2,10 +2,12 @@ import {
   createMockPlayerRepository,
   createMockProfileRepository,
   createMockTeamRepository,
+} from "@test/support/doubles/repositories";
+import {
   createPlayer,
   createProfile,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
 import type { ILeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import { LeaveTeamUseCase } from "@/applications/usecases/player/leave-team.usecase";
 import {
@@ -64,6 +66,27 @@ describe("LeaveTeamUseCase", () => {
         email: undefined,
         role: undefined,
       });
+    });
+
+    it("has cleared the lineups when unlinking fails, so leaving can be retried", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(
+        createPlayer({
+          id: "player_123",
+          teamId: "team_789",
+          status: PlayerStatus.JOINED,
+          userId: "user_456",
+        }),
+      );
+      mockPlayerRepository.update.mockRejectedValue(new Error("db down"));
+      mockTeamRepository.removePlayerFromLineups.mockResolvedValue();
+
+      await expect(
+        useCase.execute({ playerId: "player_123", userId: "user_456" }),
+      ).rejects.toThrow("db down");
+      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
+        "team_789",
+        "player_123",
+      );
     });
 
     it("should not clear activeTeamId if it points to a different team", async () => {

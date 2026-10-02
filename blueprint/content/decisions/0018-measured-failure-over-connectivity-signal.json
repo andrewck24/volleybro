@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0018",
   "title": "狀態由實測失敗判定，navigator.onLine 只選文案",

@@ -1,12 +1,14 @@
 import {
   createInvitedPlayer,
-  createMockAuthorizationService,
-  createMockPlayerRepository,
-  createMockUserRepository,
   createPlayer,
   createUnlinkedPlayer,
   createUser,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockAuthorizationService } from "@test/support/doubles/services";
+import {
+  createMockPlayerRepository,
+  createMockUserRepository,
+} from "@test/support/doubles/repositories";
 import type { ICreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import { CreateInvitationUseCase } from "@/applications/usecases/player/create-invitation.usecase";
 import {

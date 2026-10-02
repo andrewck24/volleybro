@@ -2,9 +2,8 @@ import {
   createMockPlayerRepository,
   createMockProfileRepository,
   createMockTeamRepository,
-  createPlayer,
-  createTeam,
-} from "@/__tests__/helpers";
+} from "@test/support/doubles/repositories";
+import { createPlayer, createTeam } from "@test/support/fixtures/entities";
 import { IPlayerRepository } from "@/applications/repositories/player.repository.interface";
 import { IProfileRepository } from "@/applications/repositories/profile.repository.interface";
 import { ITeamRepository } from "@/applications/repositories/team.repository.interface";

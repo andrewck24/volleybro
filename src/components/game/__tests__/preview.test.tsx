@@ -10,7 +10,11 @@ import { makeStore } from "@/lib/redux/store";
 import { scoringMoves } from "@/lib/scoring-moves";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { Provider } from "react-redux";
+import { SWRConfig } from "swr";
+
+import { server } from "@test/support/msw/server";
 
 // GamePreview reads enqueue/flush/retry from context now that `usePendingWrites`
 // mounts once in `Game` -- this harness stands in for that single owner so
@@ -32,16 +36,9 @@ const PendingWritesTestHarness = ({
   );
 };
 
-// Only the editing-write-status suite below exercises a real flush (via
-// usePendingWrites -> GamePreview's retry); every other suite in this file
-// never enqueues anything, so the queue stays empty and apiClient is unused.
-jest.mock("@/lib/api/api-client", () => ({
-  ...jest.requireActual("@/lib/api/api-client"),
-  apiClient: jest.fn().mockResolvedValue({ entries: [{ id: "e1" }] }),
-}));
-
 // The previous (already committed) entry: home player #4 scored, 1-0.
 const mockGame = {
+  id: "game-1",
   info: { scoring: { setCount: 3, decidingSetPoints: 15 } },
   teams: {
     home: {
@@ -73,60 +70,77 @@ const mockGame = {
   ],
 };
 
-// Mutable override so a single test can swap in a different game (e.g. the
-// empty-entries case) without disturbing the shared mockGame the rest use.
-let mockGameOverride: typeof mockGame | null = null;
-
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: mockGameOverride ?? mockGame, mutate: jest.fn() }),
-}));
-
-afterEach(() => {
-  mockGameOverride = null;
-});
+const emptyGame = {
+  ...mockGame,
+  sets: [{ entries: [], options: { serve: "home" } }],
+};
 
 const SEND_LABEL = "送出";
+
+// The game is served from the SWR cache, as it is once the page has loaded it.
+const renderPreview = (
+  store: ReturnType<typeof makeStore>,
+  ui: React.ReactNode,
+  game: unknown = mockGame,
+) =>
+  render(
+    <Provider store={store}>
+      <SWRConfig
+        value={{
+          provider: () =>
+            new Map([["/api/games/game-1", { data: game }]]) as never,
+          dedupingInterval: 0,
+        }}
+      >
+        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
+          {ui}
+        </PendingWritesTestHarness>
+      </SWRConfig>
+    </Provider>,
+  );
+
+const initializedStore = (game: unknown = mockGame) => {
+  const store = makeStore();
+  act(() => {
+    store.dispatch(
+      gameActions.initialize({ game: game as never, setIndex: 0 }),
+    );
+  });
+  return store;
+};
 
 const setUpPreview = (
   onSubmit = jest.fn(),
   onExpandDrawer: (() => void) | undefined = jest.fn(),
 ) => {
-  const store = makeStore();
-  act(() => {
-    store.dispatch(
-      gameActions.initialize({ game: mockGame as never, setIndex: 0 }),
-    );
-  });
-  render(
-    <Provider store={store}>
-      <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-        <GamePreview
-          gameId="game-1"
-          mode="general"
-          onSubmit={onSubmit}
-          onExpandDrawer={onExpandDrawer}
-        />
-      </PendingWritesTestHarness>
-    </Provider>,
+  const store = initializedStore();
+  renderPreview(
+    store,
+    <GamePreview
+      gameId="game-1"
+      mode="general"
+      onSubmit={onSubmit}
+      onExpandDrawer={onExpandDrawer}
+    />,
   );
   return { store, onSubmit, onExpandDrawer };
 };
 
 describe("GamePreview send affordance", () => {
-  it("does not show the ring/send icon while a step is incomplete", () => {
+  it("does not show the send icon while a step is incomplete", () => {
     const { store } = setUpPreview();
 
     act(() => {
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
     });
 
+    expect(screen.getByText("7")).toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: SEND_LABEL }),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("preview-trigger")).toHaveClass("animate-pulse");
   });
 
-  it("shows the ring/send icon once every step is complete", () => {
+  it("shows the send icon once every step is complete", () => {
     const { store } = setUpPreview();
 
     act(() => {
@@ -170,26 +184,10 @@ describe("GamePreview submission", () => {
 // renders nothing instead of handing an undefined entry to <Entry>.
 describe("GamePreview empty-entries guard", () => {
   it("renders nothing when the entry would be undefined (entryIndex 0, no draft)", () => {
-    mockGameOverride = {
-      ...mockGame,
-      sets: [{ entries: [], options: { serve: "home" } }],
-    } as unknown as typeof mockGame;
-    const store = makeStore();
-    act(() => {
-      store.dispatch(
-        gameActions.initialize({
-          game: mockGameOverride as never,
-          setIndex: 0,
-        }),
-      );
-    });
-
-    render(
-      <Provider store={store}>
-        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-          <GamePreview gameId="game-1" mode="general" />
-        </PendingWritesTestHarness>
-      </Provider>,
+    renderPreview(
+      initializedStore(emptyGame),
+      <GamePreview gameId="game-1" mode="general" />,
+      emptyGame,
     );
 
     expect(screen.queryByTestId("preview-card")).not.toBeInTheDocument();
@@ -201,30 +199,18 @@ describe("GamePreview empty-entries guard", () => {
   // draft entry itself (previousEntry ?? entry) rather than feed undefined to
   // <Entry> and white-screen the Game tree.
   it("does not throw when freezing the first entry (no previous entry)", async () => {
-    mockGameOverride = {
-      ...mockGame,
-      sets: [{ entries: [], options: { serve: "home" } }],
-    } as unknown as typeof mockGame;
     const user = userEvent.setup();
-    const store = makeStore();
+    const store = initializedStore(emptyGame);
     act(() => {
-      store.dispatch(
-        gameActions.initialize({
-          game: mockGameOverride as never,
-          setIndex: 0,
-        }),
-      );
       store.dispatch(gameActions.setEntryDraftPlayer({ id: "p2", zone: 1 }));
       store.dispatch(gameActions.setEntryDraftHomeMove(scoringMoves[3]!));
     });
 
     const onSubmit = jest.fn();
-    render(
-      <Provider store={store}>
-        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-          <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />
-        </PendingWritesTestHarness>
-      </Provider>,
+    renderPreview(
+      store,
+      <GamePreview gameId="game-1" mode="general" onSubmit={onSubmit} />,
+      emptyGame,
     );
 
     await user.click(screen.getByTestId("preview-trigger"));
@@ -239,11 +225,13 @@ describe("GamePreview empty-entries guard", () => {
   });
 });
 
-// S08: the update path doesn't advance optimistically, so unlike create it
-// keeps showing progress and failure on this card -- pure projections of the
-// same pending-write queue SyncIndicator reads, scoped to the edited entry's
+// The update path doesn't advance optimistically, so unlike create it keeps
+// showing progress and failure on this card -- pure projections of the same
+// pending-write queue SyncIndicator reads, scoped to the edited entry's
 // identity (e1, from mockGame).
 describe("GamePreview editing write status", () => {
+  const queuedEntry = { id: "e1", seq: 0, win: true, home: {}, away: {} };
+
   const setUpEditing = () => {
     const store = makeStore();
     act(() => {
@@ -258,12 +246,9 @@ describe("GamePreview editing write status", () => {
       );
     });
     const onSubmit = jest.fn();
-    render(
-      <Provider store={store}>
-        <PendingWritesTestHarness gameId="game-1" setIndex={0}>
-          <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />
-        </PendingWritesTestHarness>
-      </Provider>,
+    renderPreview(
+      store,
+      <GamePreview gameId="game-1" mode="editing" onSubmit={onSubmit} />,
     );
     return { store, onSubmit };
   };
@@ -275,7 +260,7 @@ describe("GamePreview editing write status", () => {
     act(() => {
       store.dispatch(
         pendingWritesActions.enqueued({
-          entry: { id: "e1", seq: 0, win: true, home: {}, away: {} } as never,
+          entry: queuedEntry as never,
           gameId: "game-1",
           setIndex: 0,
         }),
@@ -300,14 +285,21 @@ describe("GamePreview editing write status", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows the failed ring and a retry control once attempts are exhausted, and retry re-schedules the entry", async () => {
+  it("shows a retry control once the write is refused, and retry resends the entry", async () => {
     const user = userEvent.setup();
+    let sent: unknown;
+    server.use(
+      http.put("/api/games/game-1/sets/rallies", async ({ request }) => {
+        sent = await request.json();
+        return HttpResponse.json({ entries: [queuedEntry] });
+      }),
+    );
     const { store } = setUpEditing();
 
     act(() => {
       store.dispatch(
         pendingWritesActions.enqueued({
-          entry: { id: "e1", seq: 0, win: true, home: {}, away: {} } as never,
+          entry: queuedEntry as never,
           gameId: "game-1",
           setIndex: 0,
         }),
@@ -322,16 +314,13 @@ describe("GamePreview editing write status", () => {
     });
 
     expect(store.getState().pendingWrites.pending[0]!.nextAttemptAt).toBeNull();
-    const retry = screen.getByRole("button", { name: "重試" });
+    await user.click(screen.getByRole("button", { name: "重試" }));
 
-    await user.click(retry);
-
-    // Same mechanism as SyncIndicator's retry: dispatches retryRequested and
-    // flushes -- confirmed here by the queue actually clearing once that
-    // flush succeeds, not by asserting on the dispatch call itself.
+    // The retry resends the entry and the queue clears once that flush succeeds.
     await waitFor(() =>
       expect(store.getState().pendingWrites.pending).toHaveLength(0),
     );
+    expect(sent).toEqual([queuedEntry]);
   });
 });
 

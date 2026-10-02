@@ -1,0 +1,41 @@
+name: Dependency submission
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-submission-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    if: github.ref == 'refs/heads/main' && vars.DEPENDENCY_SUBMISSION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Generate native project SBOMs without installing or running project code
+        run: pnpm sbom --lockfile-only --split --sbom-format spdx --out "$RUNNER_TEMP/%s.spdx.json"
+      - uses: advanced-security/spdx-dependency-submission-action@b009efcf8b9d562a4569d2028c276522232e631f
+        with:
+          filePath: ${{ runner.temp }}
+          filePattern: volleybro.spdx.json
+          manifestPath: package.json
+          correlator: root-project
+      - uses: advanced-security/spdx-dependency-submission-action@b009efcf8b9d562a4569d2028c276522232e631f
+        with:
+          filePath: ${{ runner.temp }}
+          filePattern: blueprint.spdx.json
+          manifestPath: blueprint/package.json
+          correlator: blueprint-project

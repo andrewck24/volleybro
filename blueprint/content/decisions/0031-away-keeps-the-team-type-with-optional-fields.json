@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0031",
   "title": "對手沿用同一個 Team 型別並把欄位改為選填，不拆成獨立的窄型別",

@@ -2,7 +2,7 @@
 
 This document defines how to keep VolleyBro's dependencies and test infrastructure healthy over time. Follow these rules when upgrading any package.
 
-See also: [Testing Strategy](./testing-strategy.md) · [Architecture Overview](./architecture.md) · [Contributing Guide](../CONTRIBUTING.md)
+See also: [Testing Strategy](./testing-strategy.md) · [Contributing Guide](../CONTRIBUTING.md)
 
 ---
 
@@ -13,7 +13,7 @@ When upgrading any package to a new major version:
 1. Create a **dedicated branch** (e.g., `chore/upgrade-jest-30`) — do not mix upgrade work with feature work
 2. Read the package's official **migration guide** and apply all required changes
 3. Run the full test suite and fix all failures before merging
-4. Update any affected setup files (`jest.setup.backend.ts`, `jest.setup.frontend.ts`, config files) if the upgrade changes their API
+4. Update any affected setup files (`test/setup/`, config files) if the upgrade changes their API
 5. Verify the production build still succeeds (`pnpm build`)
 6. Get a second review on the diff — major upgrades are high blast-radius
 
@@ -24,6 +24,35 @@ When upgrading any package to a new major version:
 - `pnpm lint` — no lint errors
 - `pnpm build` — production build succeeds
 - Migration guide steps completed and noted in the PR description
+
+---
+
+## Each Cycle's Package Update
+
+Dependabot checks the npm ecosystem (including pnpm) and GitHub Actions every Tuesday at 09:00 Asia/Taipei. Security alerts and security updates are event-driven, not gated by the weekly digest email. Initial version-update limits are zero until the release-train Shard 4 Review's activation checklist is accepted and rehearsed. Recurring operations follow the [release runbook](./release-runbook.md).
+
+Dependency PRs target the repository default integration branch. They run CI but never deploy production or dispatch an Agent. A developer decides whether to start an Agent for compatibility analysis, migration, failed CI or sensitive updates; the Agent delivers a reviewed PR when safe, or a decision issue when implementation cannot proceed safely. Urgent production vulnerabilities and severe bugs use the isolated hotfix route in `WORKFLOW.md`.
+
+The executable auto-merge policy is `scripts/dependency-controls.js`, used by `dependency-auto-merge.yml`. Its initial allowlist is only `@types/jest-axe`, pending final G2 acceptance. It admits one signed native Dependabot commit, a single stable direct devDependency patch, bounded package/lockfile edits, unchanged package-manager environment, native regenerated lockfile and unchanged other resolved packages. Required checks must pass on the exact head; native branch protection and head matching still apply. Minor, major, runtime, sensitive, unknown and expanded updates stay manual. Auto-merge has its own disabled-by-default variable and only integrates into main; Changesets release authorization remains human-controlled.
+
+Keep pnpm's default environment/project multi-document lockfile and version management. Generate project dependency submissions with native `pnpm sbom --lockfile-only --split`; separate root and Blueprint submissions use their package.json manifest paths so the environment lockfile graph is not replaced. No custom lockfile parser or `pmOnFail: ignore` workaround. After activation, verify GitHub graph coverage and alert visibility against the generated SBOM; a successful upload alone does not prove alerts or updater compatibility. Before adding another workspace, add its native split submission and verify coverage.
+
+For a manual assessment with the same policy, use `node scripts/dependency-controls.js validate-files <payload.json>`; the JSON contains `before` (base package.json, pnpm-lock.yaml, pnpm-workspace.yaml, blueprint/package.json text) and `after` (candidate package.json and lockfile text). This does not grant merge permission.
+
+### Progressive allowlist admission
+
+The long-term operational issue tracks phases and evidence, not a permanently active Cycle commitment. Create bounded executable child issues only for actual evaluations or changes. It does not automatically dispatch Agents or authorize policy changes.
+
+1. First activation: verify live graph, alerts when an advisory applies, native updater compatibility, protection and a genuine eligible patch. Fixtures do not replace provider evidence; no eligible event means automatic merge stays disabled.
+2. Observe the first three enabled Cycles. An Agent reviews real dependency PRs, manual fallback reasons and attributable regressions when the developer requests the maintenance assessment. Elapsed time without real updates is not evidence for expansion.
+3. Propose at most one or two candidates per Cycle, not a quota. Initial candidates are narrowly scoped test declarations/helpers, outside production runtime, auth, DB, bundler, package-manager and release-tooling boundaries. `devDependency` or an `@types/*` name alone does not establish low risk. Each candidate needs a previously human-reviewed real patch, documented impact and meaningful existing verification; use test-audit for an actual uncovered contract, not admission-only test scaffolding.
+4. An Agent may prepare a reviewed PR explaining purpose, risk and evidence and changing the executable allowlist. Existing patch/diff/transitive/provider/head rules remain unchanged; a developer authorizes merge. Minor/major admission or sensitive categories require a separate policy decision, never incidental expansion.
+5. Record successful merges, fallback reasons and defects on the tracker. Remove a candidate after an attributable regression; disable the whole auto-merge flag for a shared admission-boundary defect until repaired and revalidated. There is no goal of admitting every dependency.
+
+Every Linear cycle's package update checks two things before merging:
+
+- **Major bumps**, handled as above.
+- **Pre-release packages**, such as `cf` at `1.0.0-beta`: a caret range takes every later pre-release of the same version, and a pre-release may change commands or output without a major bump. Read its changelog and run what the repository calls it for; for `cf`, that is `pnpm blueprint:gate` on a Change branch (ADR-0097).
 
 ---
 
@@ -74,7 +103,7 @@ Test mocks can silently diverge from the real API they represent. When a mocked 
 3. Update mocks to match the real API before merging the upgrade
 4. Run the layer-specific tests that exercise the mock boundary to confirm they still pass
 
-**Example:** When upgrading MongoDB/Mongoose, review `jest.setup.backend.ts` and any inline repository mocks to verify all mocked methods still exist on the real driver.
+**Example:** When upgrading MongoDB/Mongoose, review `test/setup/backend.ts` and any inline repository mocks to verify all mocked methods still exist on the real driver.
 
 **Rule:** A mock of a removed API passes silently while production code fails. Always verify mock surfaces explicitly after any dependency upgrade that touches a mocked boundary.
 

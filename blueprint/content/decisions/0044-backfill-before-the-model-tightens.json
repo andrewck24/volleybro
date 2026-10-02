@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0044",
   "title": "Normalize existing data before deploy, link accounts only after deploy, and guarantee at most one player per user per team with partial unique indexes",

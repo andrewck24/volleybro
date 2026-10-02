@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "id": "0085",
+  "title": "A test's tier is set by whether it reaches a real out-of-process dependency",
+  "capabilities": ["platform/testing"],
+  "context": "The testing strategy described integration tests as entering through a route, while several of them entered through a repository or a use case, and every use-case and component test already crossed several components. Counting components did not separate the tiers: the fast base of the pyramid would have been left with entity tests alone.",
+  "decision": "A unit test runs in one process and does no I/O, however many real collaborators it uses. An integration test reaches at least one real out-of-process dependency, and proving behaviour that needs it is its purpose. An end-to-end test drives a real client, the web app in a browser or a mobile app, against a deployed backend: one suite per client, covering critical paths only. An API smoke test calls a deployed backend with no client, proving real sign-in, HTTP handling and hosted-database behaviour once for every client. A test's tier follows from what it touches, not from its folder or its entry point.",
+  "alternatives": [
+    {
+      "option": "Call every cross-component test an integration test",
+      "reason": "Use-case and component tests would move up a tier, leaving only entity tests at the base of the pyramid."
+    },
+    {
+      "option": "Tie end-to-end tests to the browser",
+      "reason": "A mobile client shares the same backend and needs the same tier, so the record would be superseded as soon as that client exists."
+    }
+  ],
+  "consequences": [
+    "End-to-end and API smoke tests are defined here but not built: they wait on a test-only sign-in path that must never reach production."
+  ],
+  "revisitTriggers": [
+    "Spec-driven acceptance tests are adopted: they are classified by this same rule, which may call for a directory of their own."
+  ],
+  "originChange": "testing-tiers"
+}

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0063",
   "title": "A small fix skips both gates",
@@ -9,5 +8,6 @@
   "consequences": [
     "A Fix-path change has no Proposal or Review page and no publish step."
   ],
-  "originChange": "two-gate-workflow"
+  "originChange": "two-gate-workflow",
+  "supersededBy": "0101"
 }

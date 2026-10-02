@@ -6,13 +6,14 @@ import test from "node:test";
 import {
   evaluateChangeBranchTrailer,
   evaluateAiAttribution,
+  evaluateFooterLookalike,
 } from "../commitlint/plugin.js";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 function runCommitlint(message, branch, envOverrides = {}) {
   try {
-    execFileSync("node_modules/.bin/commitlint", [], {
+    execFileSync(process.execPath, ["node_modules/@commitlint/cli/cli.js"], {
       cwd: repoRoot,
       input: message,
       env: {
@@ -28,13 +29,13 @@ function runCommitlint(message, branch, envOverrides = {}) {
   }
 }
 
-test("missing trailer on a Change branch is rejected, naming hotfix/<slug>", () => {
+test("missing trailer on a Change branch is rejected, naming fast/<slug>", () => {
   const verdict = evaluateChangeBranchTrailer(
     "feat/my-slug",
     "feat(x): subject\n\nbody.",
   );
   assert.equal(verdict.ok, false);
-  assert.match(verdict.message, /hotfix\/my-slug/);
+  assert.match(verdict.message, /fast\/my-slug/);
 });
 
 test("a trailer naming a different slug is rejected, distinct from a missing one", () => {
@@ -80,10 +81,50 @@ test("fix/ and refactor/ branches are Change branches too", () => {
   );
 });
 
-test("no trailer on dev, hotfix/*, or any other non-Change branch passes", () => {
+test("a Sharded Change branch needs the parent slug and its own shard number", () => {
+  const body = "refactor(x): subject\n\nbody.\n\n";
+  assert.deepEqual(
+    evaluateChangeBranchTrailer(
+      "refactor/my-slug-s2",
+      `${body}Blueprint-Change: my-slug\nShard: 2`,
+    ),
+    { ok: true },
+  );
+  const wrongSlug = evaluateChangeBranchTrailer(
+    "refactor/my-slug-s2",
+    `${body}Blueprint-Change: my-slug-s2\nShard: 2`,
+  );
+  assert.equal(wrongSlug.ok, false);
+  assert.match(wrongSlug.message, /needs "Blueprint-Change: my-slug"/);
+  const wrongShard = evaluateChangeBranchTrailer(
+    "refactor/my-slug-s2",
+    `${body}Blueprint-Change: my-slug\nShard: 1`,
+  );
+  assert.equal(wrongShard.ok, false);
+  assert.match(wrongShard.message, /needs a "Shard: 2" trailer/);
+  assert.match(
+    evaluateChangeBranchTrailer(
+      "refactor/my-slug-s2",
+      `${body}Blueprint-Change: my-slug`,
+    ).message,
+    /carries none/,
+  );
+});
+
+test("a Shard trailer on an ordinary Change branch is rejected", () => {
+  const verdict = evaluateChangeBranchTrailer(
+    "refactor/my-slug",
+    "refactor(x): subject\n\nbody.\n\nBlueprint-Change: my-slug\nShard: 2",
+  );
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.message, /not a Sharded Change branch/);
+});
+
+test("no trailer on main, fast/*, hotfix/*, or any other non-Change branch passes", () => {
   const message = "chore(x): subject\n\nbody.";
   for (const branch of [
-    "dev",
+    "main",
+    "fast/my-slug",
     "hotfix/my-slug",
     "chore/tidy",
     "docs/notes",
@@ -223,4 +264,38 @@ test("an emoji-prefixed 'Generated with' line is rejected", () => {
   const message =
     "feat(x): subject\n\nbody.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)";
   assert.equal(evaluateAiAttribution(message).ok, false);
+});
+
+test("a body line starting with a Word: token is named, since the parser ends the body there", () => {
+  const message =
+    "docs(x): subject\n\nStandards: the helper goes and the\ncomment goes too.\n\nRefs: ATE-1";
+  const verdict = evaluateFooterLookalike(message);
+  assert.equal(verdict.ok, false);
+  assert.match(verdict.message, /"Standards: the helper goes and the"/);
+});
+
+test("a Word: line after the body has started is left to commitlint", () => {
+  const message =
+    "docs(x): subject\n\nWhat changed.\n\nVerification: pnpm test:workflow.\n\nRefs: ATE-1";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});
+
+test("the trailer paragraph, URLs and prose colons pass", () => {
+  const message =
+    "docs(x): subject\n\nSee https://example.com and note this: a colon mid-line.\n\nBlueprint-Change: x\nImplements: S01";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
+});
+
+test("commitlint names the look-alike line instead of reporting an empty body", () => {
+  const result = runCommitlint(
+    "docs(x): subject\n\nStandards: the helper goes.\n\nMore body.\n",
+    "dev",
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.output, /footer-lookalike/);
+});
+
+test("a message of only a subject and trailers is left to body-empty", () => {
+  const message = "docs(x): subject\n\nBlueprint-Change: some-change";
+  assert.deepEqual(evaluateFooterLookalike(message), { ok: true });
 });

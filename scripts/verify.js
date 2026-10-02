@@ -1,25 +1,31 @@
 #!/usr/bin/env node
 // Any change to root configuration runs every lane, because those files feed
-// all of them; app-test starts only after app-build so the two do not compete
-// for CPU and time out each other's waits.
+// all of them.
 import { execFileSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { resolveScopeBase } from "./change-page.js";
 
-const LANE_COMMANDS = {
+export const LANE_COMMANDS = {
   static: [
     "pnpm format:check",
-    "pnpm test:workflow",
     "pnpm check:workflow",
     "pnpm typecheck:strict",
     "pnpm lint",
   ],
+  workflow: ["pnpm test:workflow"],
+  integration: ["pnpm test:integration --coverage=false"],
   "app-build": ["pnpm build", "node scripts/assert-sw.js"],
-  "app-test": ["pnpm test"],
-  blueprint: ["pnpm --filter blueprint test", "pnpm --filter blueprint build"],
+  "app-test": ["pnpm test --coverage=false"],
+  // No local gate builds the Blueprint site: CI and the branch-preview build
+  // do (ADR-0092).
+  blueprint: ["pnpm --filter blueprint test"],
 };
 
 export const LANE_NAMES = Object.keys(LANE_COMMANDS);
-export const LANE_AFTER = { "app-test": "app-build" };
+// The component tests wait on real timers with Jest's five-second timeout, so a
+// CPU shared with any other lane times them out; CI gives them a runner of
+// their own.
+const SOLO_LANE = "app-test";
 
 const EVERY_LANE_EXACT = new Set([
   "package.json",
@@ -41,10 +47,20 @@ const EVERY_LANE_PATTERNS = [
   /^tailwind\.config\./,
 ];
 
+// The scripts the app build runs; every other script is workflow tooling.
+const APP_SCRIPTS = new Set([
+  "scripts/assert-sw.js",
+  "scripts/generate-icons.js",
+]);
+const INTEGRATION_PATTERNS = [
+  /^src\/(entities|applications|infrastructure|interface|lib)\//,
+  /^src\/app\/api\//,
+  /^test\/integration\//,
+  /^test\/setup\/integration\./,
+];
+
 function affectsEveryLane(changedPath) {
   if (EVERY_LANE_EXACT.has(changedPath)) return true;
-  if (changedPath.startsWith("scripts/")) return true;
-  if (changedPath.startsWith(".github/")) return true;
   if (changedPath.includes("/")) return false;
   return EVERY_LANE_PATTERNS.some((pattern) => pattern.test(changedPath));
 }
@@ -62,6 +78,24 @@ function isDocsOnly(changedPath) {
   );
 }
 
+function isWorkflowTooling(changedPath) {
+  if (changedPath.startsWith(".github/")) return true;
+  return changedPath.startsWith("scripts/") && !APP_SCRIPTS.has(changedPath);
+}
+
+function isIntegrationOnly(changedPath) {
+  return (
+    changedPath.startsWith("test/integration/") ||
+    changedPath.startsWith("test/setup/integration.")
+  );
+}
+
+function laneFor(changedPath, reasonWhenNone) {
+  return changedPath
+    ? { run: true, reason: `${changedPath} changed` }
+    : { run: false, reason: reasonWhenNone };
+}
+
 export function planLanes(changedPaths, { all = false, full = false } = {}) {
   if (!all) {
     const plan = allLanes(false, "not part of default verify");
@@ -70,26 +104,42 @@ export function planLanes(changedPaths, { all = false, full = false } = {}) {
     return plan;
   }
 
-  if (changedPaths === null) return allLanes(true, "no merge-base with dev");
+  if (changedPaths === null) return allLanes(true, "no integration merge-base");
   if (full) return allLanes(true, "full run requested");
 
   const widening = changedPaths.find(affectsEveryLane);
   if (widening) return allLanes(true, `${widening} changed`);
 
-  const blueprintPath = changedPaths.find((p) => p.startsWith("blueprint/"));
-  const appPath = changedPaths.find((p) => !isDocsOnly(p));
-  const appLane = appPath
-    ? { run: true, reason: `${appPath} changed` }
-    : { run: false, reason: "no non-docs, non-blueprint changes" };
+  const code = changedPaths.filter((p) => !isDocsOnly(p));
+  const appLane = laneFor(
+    code.find((p) => !isWorkflowTooling(p) && !isIntegrationOnly(p)),
+    "no app changes",
+  );
 
   return {
     static: { run: true, reason: "static analysis always runs" },
+    workflow: laneFor(
+      code.find(isWorkflowTooling),
+      "no scripts/ or .github/ changes",
+    ),
+    integration: laneFor(
+      code.find((p) => INTEGRATION_PATTERNS.some((re) => re.test(p))),
+      "no backend or integration-test changes",
+    ),
     "app-build": appLane,
     "app-test": appLane,
-    blueprint: blueprintPath
-      ? { run: true, reason: `${blueprintPath} changed` }
-      : { run: false, reason: "no blueprint/ changes" },
+    blueprint: laneFor(
+      changedPaths.find((p) => p.startsWith("blueprint/")),
+      "no blueprint/ changes",
+    ),
   };
+}
+
+export function laneStages(plan) {
+  const running = LANE_NAMES.filter((lane) => plan[lane].run);
+  const together = running.filter((lane) => lane !== SOLO_LANE);
+  const alone = running.filter((lane) => lane === SOLO_LANE);
+  return [together, alone].filter((stage) => stage.length > 0);
 }
 
 function git(args) {
@@ -98,10 +148,14 @@ function git(args) {
   });
 }
 
-function getChangedPaths() {
+async function getChangedPaths() {
   let mergeBase;
   try {
-    mergeBase = git(["merge-base", "HEAD", "dev"]).trim();
+    mergeBase = git([
+      "merge-base",
+      "HEAD",
+      await resolveScopeBase(process.cwd()),
+    ]).trim();
   } catch {
     return null;
   }
@@ -146,9 +200,12 @@ function prefixLines(laneName, stream) {
 }
 
 function runCommand(command, laneName, children) {
-  const [cmd, ...args] = command.split(" ");
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    // Through a shell: on Windows pnpm is a .cmd shim, which spawn cannot run.
+    const child = spawn(command, {
+      shell: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     children.add(child);
     const out = prefixLines(laneName, process.stdout);
     const err = prefixLines(laneName, process.stderr);
@@ -202,7 +259,7 @@ function printSummary(results) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const changedPaths = options.all ? getChangedPaths() : [];
+  const changedPaths = options.all ? await getChangedPaths() : [];
   const plan = planLanes(changedPaths, options);
 
   printPlan(plan);
@@ -215,14 +272,12 @@ async function main() {
   };
   process.on("SIGINT", onSigint);
 
-  const running = {};
-  for (const lane of LANE_NAMES.filter((lane) => plan[lane].run)) {
-    const after = running[LANE_AFTER[lane]];
-    running[lane] = after
-      ? after.then(() => runLane(lane, children))
-      : runLane(lane, children);
+  const results = [];
+  for (const stage of laneStages(plan)) {
+    results.push(
+      ...(await Promise.all(stage.map((lane) => runLane(lane, children)))),
+    );
   }
-  const results = await Promise.all(Object.values(running));
   process.off("SIGINT", onSigint);
 
   const skipped = LANE_NAMES.filter((lane) => !plan[lane].run).map((lane) => ({

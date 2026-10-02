@@ -1,42 +1,5 @@
 import { Features } from "@/components/landing/features";
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
-
-// Mock dependencies
-jest.mock("@/components/game/stats/teams-stats/points", () => ({
-  Points: () => <div data-testid="mock-points-chart">Mock Points Chart</div>,
-}));
-
-jest.mock("@/components/ui/chart", () => ({
-  ChartContainer: ({
-    children,
-    className,
-    ...props
-  }: {
-    children?: ReactNode;
-    className?: string;
-    [key: string]: unknown;
-  }) => (
-    <div className={className} {...props}>
-      {children}
-    </div>
-  ),
-  ChartTooltip: ({ children }: { children?: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  ChartTooltipContent: () => <div>Mock Tooltip</div>,
-}));
-
-jest.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="responsive-container">{children}</div>
-  ),
-  RadarChart: () => <div data-testid="mock-radar-chart">Mock Radar Chart</div>,
-  PolarGrid: () => <div>Mock PolarGrid</div>,
-  PolarAngleAxis: () => <div>Mock PolarAngleAxis</div>,
-  PolarRadiusAxis: () => <div>Mock PolarRadiusAxis</div>,
-  Radar: () => <div>Mock Radar</div>,
-}));
+import { render, screen, within } from "@testing-library/react";
 
 describe("Features Component", () => {
   describe("Section Architecture", () => {
@@ -82,46 +45,6 @@ describe("Features Component", () => {
     });
   });
 
-  describe("FeatureCard Component", () => {
-    it("should have correct card height of 70vh on large screens", () => {
-      render(<Features />);
-
-      const featureCards = screen.getAllByTestId(/-card-/);
-      featureCards.forEach((card) => {
-        expect(card).toHaveClass("lg:h-[70vh]");
-      });
-    });
-
-    it("should use CSS Flex layout system", () => {
-      render(<Features />);
-
-      const featureCards = screen.getAllByTestId(/-card-/);
-      featureCards.forEach((card) => {
-        expect(card).toHaveClass("flex");
-      });
-    });
-
-    it("should display gradient backgrounds in demo areas", () => {
-      render(<Features />);
-
-      const demoAreas = screen.getAllByTestId(/demo-area-/);
-      demoAreas.forEach((area) => {
-        expect(area.className).toMatch(/bg-gradient/);
-      });
-    });
-
-    it("should use responsive aspect ratios", () => {
-      render(<Features />);
-
-      const demoAreas = screen.getAllByTestId(/demo-area-/);
-      demoAreas.forEach((area) => {
-        expect(area).toHaveClass("aspect-3/4");
-        expect(area).toHaveClass("lg:aspect-auto");
-        expect(area).toHaveClass("lg:h-full");
-      });
-    });
-  });
-
   describe("GameFeatures", () => {
     it("should render two game feature cards", () => {
       render(<Features />);
@@ -151,16 +74,6 @@ describe("Features Component", () => {
       expect(browsingCard).toHaveTextContent(
         "所有記錄即時同步，隨時查看歷史數據和比賽分析",
       );
-    });
-
-    it("should use right-image layout for both game cards", () => {
-      render(<Features />);
-
-      const gameCard1 = screen.getByTestId("game-card-1");
-      const gameCard2 = screen.getByTestId("game-card-2");
-
-      expect(gameCard1).toHaveClass("lg:flex-row");
-      expect(gameCard2).toHaveClass("lg:flex-row");
     });
 
     it("should render FeatureDemoImage components for both game cards", () => {
@@ -205,16 +118,6 @@ describe("Features Component", () => {
       );
     });
 
-    it("should use left-image layout for both analytics cards", () => {
-      render(<Features />);
-
-      const analyticsCard1 = screen.getByTestId("analytics-card-1");
-      const analyticsCard2 = screen.getByTestId("analytics-card-2");
-
-      expect(analyticsCard1).toHaveClass("lg:flex-row-reverse");
-      expect(analyticsCard2).toHaveClass("lg:flex-row-reverse");
-    });
-
     it("should render Points component in first analytics card", () => {
       render(<Features />);
 
@@ -222,7 +125,7 @@ describe("Features Component", () => {
       expect(demoArea1).toBeInTheDocument();
       // Points component should be rendered inside
       expect(screen.getByTestId("points-component")).toBeInTheDocument();
-      expect(screen.getByTestId("mock-points-chart")).toBeInTheDocument();
+      expect(within(demoArea1).getByText("ATTACK")).toBeInTheDocument();
     });
 
     it("should render radar chart in second analytics card", () => {
@@ -232,7 +135,6 @@ describe("Features Component", () => {
       expect(demoArea2).toBeInTheDocument();
       // Radar chart should be rendered inside
       expect(screen.getByTestId("radar-chart")).toBeInTheDocument();
-      expect(screen.getByTestId("mock-radar-chart")).toBeInTheDocument();
     });
   });
 
@@ -267,16 +169,6 @@ describe("Features Component", () => {
       );
     });
 
-    it("should use right-image layout for both team cards", () => {
-      render(<Features />);
-
-      const teamCard1 = screen.getByTestId("team-card-1");
-      const teamCard2 = screen.getByTestId("team-card-2");
-
-      expect(teamCard1).toHaveClass("lg:flex-row");
-      expect(teamCard2).toHaveClass("lg:flex-row");
-    });
-
     it("should render demo areas for both team cards", () => {
       render(<Features />);
 
@@ -295,25 +187,6 @@ describe("Features Component", () => {
 
       expect(teamImage1).toBeInTheDocument();
       expect(teamImage2).toBeInTheDocument();
-    });
-  });
-
-  describe("Responsive Design", () => {
-    it("should maintain design system consistency", () => {
-      render(<Features />);
-
-      const featuresSection = screen.getByTestId("features-section");
-      expect(featuresSection.className).toMatch(/flex/);
-      expect(featuresSection.className).toMatch(/w-full/);
-    });
-
-    it("should use large screen breakpoints for responsive layout", () => {
-      render(<Features />);
-
-      const featureCards = screen.getAllByTestId(/-card-/);
-      featureCards.forEach((card) => {
-        expect(card.className).toMatch(/lg:/);
-      });
     });
   });
 

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0023",
   "title": "未送出的球在 useGame 的回傳值疊回去，寫入路徑改吃未合併的快取",

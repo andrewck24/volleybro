@@ -1,9 +1,9 @@
 import {
   createInvitedPlayer,
-  createMockPlayerRepository,
   createPlayer,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import type { ITransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import { TransferOwnershipUseCase } from "@/applications/usecases/player/transfer-ownership.usecase";
 import {

@@ -7,16 +7,11 @@
 
 <img src="docs/images/readme-banner.webp" alt="VolleyBro logo beside three phones showing the rally list, the recording court, and the team roster" width="100%">
 
-[![Next.js][nextjs-badge]][nextjs-url]
-[![React][react-badge]][react-url]
-[![TypeScript][typescript-badge]][typescript-url]
-[![MongoDB][mongodb-badge]][mongodb-url]
-[![Tailwind CSS][tailwind-badge]][tailwind-url]
+[![Next.js][nextjs-badge]][nextjs-url] [![React][react-badge]][react-url] [![TypeScript][typescript-badge]][typescript-url] [![MongoDB][mongodb-badge]][mongodb-url] [![Tailwind CSS][tailwind-badge]][tailwind-url]
 
-[![CI][ci-badge]][ci-url]
-[![Version][version-badge]][changelog-url]
+[![CI][ci-badge]][ci-url] [![Version][version-badge]][changelog-url]
 
-[**Live App**](https://volleybro.vercel.app/) · [**Blueprint**][blueprint-url] · [**Component Library**](https://dev--67bbfeabbc72894ce5eb92db.chromatic.com) · [**Report a Bug**][issues-url] · [**Discussions**][discussions-url]
+[**Live App**](https://volleybro.vercel.app/) · [**Blueprint**][blueprint-url] · [**Component Library**](https://main--67bbfeabbc72894ce5eb92db.chromatic.com) · [**Report a Bug**][issues-url] · [**Discussions**][discussions-url]
 
 📖 **[繁體中文](./README.zh-TW.md)**
 
@@ -169,7 +164,7 @@ src/
 └── hooks/            # Shared React hooks
 ```
 
-Further reading: [`docs/architecture.md`](./docs/architecture.md) · [`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
+Further reading: [`docs/design-system.md`](./docs/design-system.md) · [`docs/testing-strategy.md`](./docs/testing-strategy.md)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

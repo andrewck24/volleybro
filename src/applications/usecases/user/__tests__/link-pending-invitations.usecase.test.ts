@@ -1,4 +1,4 @@
-import { createMockPlayerRepository } from "@/__tests__/helpers";
+import { createMockPlayerRepository } from "@test/support/doubles/repositories";
 import { LinkPendingInvitationsUseCase } from "@/applications/usecases/user/link-pending-invitations.usecase";
 
 describe("LinkPendingInvitationsUseCase", () => {

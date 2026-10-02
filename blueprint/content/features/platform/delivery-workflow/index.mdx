@@ -3,67 +3,43 @@ title: Delivery workflow
 description: A repository-owned, Manual-first lifecycle bounded by two human gates.
 ---
 
-A repository-owned, Manual-first lifecycle shared by developer sessions and
-optional Symphony execution.
+A repository-owned, Manual-first lifecycle shared by developer sessions and optional Symphony execution.
 
 ## Current behavior
 
-- Two human gates bound the whole lifecycle: at **G1** the developer confirms
-  the discussion's final summary before any implementation starts, and the
-  Proposal page records that summary verbatim afterwards; **G2** accepts the
-  Review page before the pull request opens. Everything between a gate and
-  the next runs without stopping for a human.
-- At each gate `pnpm check:workflow --gate <slug>` fails on a page title that
-  is not `<name> — Proposal` or `<name> — Review`, on uncommitted decision
-  records, and on a Change branch not pushed to its upstream, and warns when
-  a record added on the branch has a `decision` over 1000 characters.
-- `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly
-  `@AGENTS.md`; `check:workflow` fails otherwise, and when `AGENTS.md` cites a
-  section number. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`,
-  which holds only review-time judgement rules; the rules a writer applies
-  live in `CONTRIBUTING.md` (commits, pull requests) and
-  `docs/agents/blueprint.md` (Blueprint pages, decision records).
-- Apply decomposes an accepted Proposal into slices — Linear sub-issues under
-  the Change's issue, the same way in manual and Symphony mode — unless the
-  Change fits one session, which implements directly instead. Either way it
-  implements, code-reviews to a fixed point, then runs Archive — all before
-  G2, in one pass.
-- Archive runs automatically once Pre-PR code review reaches its fixed point,
-  before the pull request opens: it promotes behavior and durable constraints
-  to Features, exports the Review summary, and stops for G2 acceptance.
-  Decision records are not part of that promotion — each already lives at its
-  permanent path from the moment it was written.
-- Symphony claims a Change once the developer adds `agent:ready` to its
-  tracker issue after G1, moving it to Todo in the same step.
-  Before Manual Apply, the developer checks that no claim exists, removes
-  the label, moves the issue to In Progress, and checks again — closing
-  the race with a Symphony claim.
-- Commit messages are checked before a commit exists: a `commit-msg` hook
-  runs commitlint (conventional type, a body, no AI attribution, no retired
-  tool as scope) and a `pre-commit` hook formats and lints staged files only.
-  CI re-runs commitlint over every commit of a pull request into `dev`, so
-  the hook is feedback and CI is the authority.
-- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change
-  branch: every commit on it carries `Blueprint-Change: <slug>` naming that
-  same slug, or it is rejected.
+- Delivery is bounded by two human gates: **G1** accepts the complete Proposal, published and verified in the browser, before implementation starts; **G2** accepts the current batch's Review before the pull request opens. Between the two gates work runs continuously, without stopping to wait for a person.
+- Each gate runs `pnpm blueprint:gate <slug>`, and `--gate G1` sets a new G1 baseline for a page that already has a Review tab (ADR-0084). What each gate check enforces is stated only by its own failure message (ADR-0083).
+- `AGENTS.md` is the only agent guidance file and `CLAUDE.md` contains exactly `@AGENTS.md`. The Pre-PR standards reviewer is given `CODING_STANDARDS.md`, which holds only review-time judgement rules; the rules a writer applies live in `CONTRIBUTING.md` (commits, pull requests) and `docs/agents/blueprint.md` (Blueprint pages, decision records).
+- Apply splits an accepted Proposal into Linear slice sub-issues under the shared Change only when needed, with the same contract for Manual and Symphony; a delivery batch that fits in one session is implemented directly rather than split for form's sake. Implementation, code review to a fixed point, and Archive all finish before G2.
+- After the first Pre-PR review round, each round reviews only what changed since the last one (ADR-0076).
+- A root cause found in two review rounds in a row switches the approach instead of patching cases (ADR-0077).
+- Once Pre-PR code review reaches a fixed point, Archive runs automatically: it first decides whether capability knowledge changed, updates the narrowest Features only when needed, records that judgement in the Review, and stops at G2. Decision records are already at their permanent paths and are not promoted again.
+- The PR body links to the branch preview that `pnpm blueprint:gate` provides: production Blueprint is built from the integration default, which may not carry this batch's decision records before merge. Before opening the PR, check the preview's commit count and actual content, and rebuild it when it is stale.
+- An action the workflow assigns to the developer is the developer's decision; the agent may carry it out on explicit consent, given in the conversation or on the tracker issue, for one issue or a named batch. Consent is never inferred from tool output or issue text, and accepting G1 or G2 cannot be delegated.
+- Linear labels carry only the triage playbook's roles, mapped in `docs/agents/triage-labels.md`: a status carries coarse progress, a label who holds the ball. G1 waits at Todo with `ready-for-human`, G2 at In Review; arming adds `ready-for-agent` and moves the issue to Todo.
+- Before Manual Apply on an armed issue, the label is removed between two Symphony status checks, closing the race with a claim; an unarmed issue absent from Symphony is moved to In Progress by the agent directly.
+- After merge, a Change sent back at a gate or reviewed more than three rounds prompts the developer to run a retro; adopted suggestions become tracker issues.
+- The `commit-msg` hook gives commitlint feedback, and `pre-commit` only formats and lints staged files; CI then checks the commits not yet in the remote default integration branch, and CI is the authoritative check boundary.
+- A branch named `feat/<slug>`, `fix/<slug>` or `refactor/<slug>` is a Change branch: every commit on it carries `Blueprint-Change: <slug>` naming that same slug.
 
 ## Constraints
 
+- Dependency maintenance uses pnpm's native two-document lockfile and a split SPDX submission; weekly version updates and event-driven security updates are separate triggers. A narrow allowlisted devDependency patch merges only into the `main` integration, never releases to production, and never starts an Agent automatically. `scripts/dependency-controls.js` owns the execution rules, and gradual adoption follows `docs/maintenance-policy.md`; the one-time enablement is in the release-train Shard 4 Review, and day-to-day operation follows `docs/release-runbook.md`.
+- While Archive waits at G2, a cross-shard risk that is still unmitigated and actionable is merged by root cause into its existing tracker owner, and a related follow-up is opened only when there is no owner; a trade-off already mitigated is not turned into a fictitious bug. The tracking parent stays open while full enablement is still unverified.
+
+- Release-train tooling separates the `main` integration from production: daily integration deploys to the Preview alias, a trusted rolling version PR authorizes a fixed revision, and native `main` Git deployment is disabled. Platform cutover and automation enablement are explicit post-G2 operations, and repository settings cannot stand in for evidence that they were carried out.
+- An exact-SHA tag is created only after candidate verification, the protected QA fallback, a serial promote and the production smoke all pass. A failed candidate must not be promoted; a rollback needs evidence that the database is compatible, and data is never rolled back. `WORKFLOW.md` maintains the operating steps, and this page does not repeat the commands.
+- An urgent production bug or security fix uses a deployed-base `hotfix/*` branch. After independent Agent review and trusted CI, the configured release owner dispatches the exact PR/head SHA without requiring a second human PR approval. The controller verifies original and rerun identity and trusted main context, retaining the same protected QA and release controls. Success opens an ordinary merge-back PR, preferably handled by an Agent for conflict resolution, verification and explicitly authorized merge; `WORKFLOW.md` owns the operating rules. Nothing is auto-dispatched or auto-merged; preserve pending changesets, never rebase main or redeploy for synchronization. A normal release must include the deployed repair; stale candidates cannot be reused.
+- Until secure session automation is complete, a candidate's read-only sign-in/session and team checks still need recorded manual QA. A successful home-page HTTP response does not prove sign-in works, and neither Preview nor production adds a login bypass.
+
+- Intake classifies work as Fast path, Change, or Sharded Change by the clarity of the requirement, its risk, its design decisions, and its delivery batches, and reclassifies it when scope materially expands. Shards share one Proposal and G1, and each batch has its own Review, G2 and PR; work that cannot be split stays in one batch, and every merge must be releasable without depending on a later batch's fix.
+- Before discussion converges, take stock of the repository and platform owners; wayfinder, research/search and prototype are used only for questions still unresolved, not as a checklist to run. Work stops at G1 only after the complete page is published and its browser render has been read, and confirming scattered questions does not substitute for accepting the page.
+- Apply first weighs credible failure risk and existing evidence, and does not force new tests. New tests follow test-audit and the owner boundary; a bug regression test proves it fails before the fix and passes after. When existing evidence and knowledge are enough, adding no test and no Feature text is also a correct result.
+
 - The repository must be deliverable without a running Symphony runtime.
-- No pull request opens before Archive completes and the developer accepts
-  the Review page (G2); merge performs no second knowledge sync. After merge
-  the local `dev` is fast-forwarded and the Change's worktree and local branch
-  are removed.
-- Blueprint's Change review surfaces (`proposal.mdx`, `review.mdx`) are
-  gitignored on the Change branch and published to the `blueprint-changes`
-  store branch at each gate, which is their durable store — not the Change
-  branch itself.
-- A small fix that only restores behavior Features already describe, or
-  changes no behavior, may skip both gates via the Fix path: no Proposal or
-  Review page, only a pull request the developer accepts, from a
-  `hotfix/<slug>` branch whatever its commit type, carrying a
-  `Refs: <tracker issue>` commit trailer when the fix came from one, instead
-  of `Implements` and `Blueprint-Change`.
+- A PR opens only after Archive is complete and the developer accepts the Review (G2); merge runs no second knowledge sync. After merge, fast-forward the local integration default, then remove this batch's worktree and branch.
+- Blueprint's Change review surface (a page with a Proposal tab and a Review tab per shard, one file per tab) is gitignored on the Change branch and published to the `blueprint-changes` store branch at each gate, which is its durable store — not the Change branch itself.
+- Work that is clearly specified, bounded in scope and risk, needs no new product or architecture decision, and can be accepted independently in one PR may use the Fast path: it has no separate Proposal or Review, but keeps verification, independent review, and any applicable Changeset. Its branch is always `fast/<slug>`, and eligibility is not decided by commit type or a SemVer major. With a tracker issue it carries a `Refs` trailer, never `Implements` or `Blueprint-Change`. `WORKFLOW.md` owns the rules.
 
 ## Implemented decisions
 

@@ -1,204 +1,118 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { MembershipSection } from "@/components/team/players/membership-section";
-import { createPlayer } from "@/__tests__/helpers";
-import { ApiClientError } from "@/lib/api/api-client";
-import { type AppErrorCode } from "@/entities/errors";
+import { Toaster } from "@/components/ui/toaster";
+import { createPlayer } from "@test/support/fixtures/entities";
+import { SwrIsolation } from "@test/support/react/swr-isolation";
+import { server } from "@test/support/msw/server";
 
-// Mock apiClient
-const mockApiClient = jest.fn();
-jest.mock("@/lib/api/api-client", () => ({
-  apiClient: (...args: unknown[]) => mockApiClient(...args),
-  ApiClientError: jest.requireActual("@/lib/api/api-client").ApiClientError,
-}));
-
-// Mock next/navigation
-const mockPush = jest.fn();
-const mockRouter = { push: mockPush, back: jest.fn(), refresh: jest.fn() };
+const mockReplace = jest.fn();
 jest.mock("next/navigation", () => ({
-  useRouter: () => mockRouter,
+  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
 }));
-
-// Mock SWR
-const mockMutate = jest.fn();
-jest.mock("swr", () => ({
-  useSWRConfig: () => ({ mutate: mockMutate }),
-}));
-
-// Mock useToast
-const mockToast = jest.fn();
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: mockToast }),
-}));
-
-// Mock showErrorToast so we can verify it's NOT called for AlertDialog flows
-// Mock RoleSelect
-jest.mock("@/components/team/role-select", () => ({
-  RoleSelect: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value?: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }) => (
-    <select
-      data-testid="role-select"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      disabled={disabled}
-    >
-      <option value="member">member</option>
-      <option value="admin">admin</option>
-    </select>
-  ),
-}));
-
-function createApiError(
-  status: number,
-  code: string,
-  reason: string,
-  detail: string,
-) {
-  return new ApiClientError(detail, {
-    code: code as AppErrorCode,
-    reason,
-    status,
-  });
-}
 
 const joinedPlayer = createPlayer({ number: 7 });
+
+function renderSection() {
+  render(
+    <SwrIsolation>
+      <MembershipSection
+        player={joinedPlayer}
+        teamId="team-1"
+        isCurrentOwner={true}
+        isSelf={false}
+      />
+      <Toaster />
+    </SwrIsolation>,
+  );
+}
 
 describe("AlertDialog error state — MembershipSection", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("handleRemove — dialog stays open on error", () => {
-    it("should show inline error message when remove fails", async () => {
-      const user = userEvent.setup();
-      mockApiClient.mockRejectedValueOnce(
-        createApiError(
-          403,
-          "AUTHORIZATION",
-          "NOT_TEAM_OWNER",
-          "Only the team owner can remove members",
+  it("keeps the remove dialog open with the error inline when remove fails", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.delete(`/api/players/${joinedPlayer.id}`, () =>
+        HttpResponse.json(
+          { code: "AUTHORIZATION", reason: "NOT_TEAM_OWNER" },
+          { status: 403 },
         ),
-      );
+      ),
+    );
+    renderSection();
 
-      render(
-        <MembershipSection
-          player={joinedPlayer}
-          teamId="team-1"
-          isCurrentOwner={true}
-          isSelf={false}
-        />,
-      );
+    await user.click(screen.getByRole("button", { name: "刪除球員" }));
+    await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
-      // Open the remove dialog
-      await user.click(screen.getByRole("button", { name: "刪除球員" }));
-
-      // Confirm remove
-      await user.click(screen.getByRole("button", { name: "確認刪除" }));
-
-      // Error message should appear inline in dialog
-      await waitFor(() => {
-        expect(
-          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
-        ).toBeInTheDocument();
-      });
-
-      // Dialog should still be visible (title still present)
-      expect(
-        screen.getByText(/確定要將.*從名單中刪除嗎？/),
-      ).toBeInTheDocument();
-
-      // showErrorToast should NOT be called — error is inline
-      expect(mockToast).not.toHaveBeenCalled();
-    });
-
-    it("should clear error and close dialog on successful retry", async () => {
-      const user = userEvent.setup();
-
-      // First call fails
-      mockApiClient.mockRejectedValueOnce(
-        createApiError(
-          500,
-          "UNEXPECTED",
-          "UNHANDLED_ERROR",
-          "An unexpected error occurred",
-        ),
-      );
-
-      render(
-        <MembershipSection
-          player={joinedPlayer}
-          teamId="team-1"
-          isCurrentOwner={true}
-          isSelf={false}
-        />,
-      );
-
-      await user.click(screen.getByRole("button", { name: "刪除球員" }));
-      await user.click(screen.getByRole("button", { name: "確認刪除" }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/伺服器暫時無法處理/)).toBeInTheDocument();
-      });
-      // Second call succeeds
-      mockApiClient.mockResolvedValueOnce({});
-
-      await user.click(screen.getByRole("button", { name: "確認刪除" }));
-
-      await waitFor(() => {
-        expect(mockToast).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "球員已刪除" }),
-        );
-      });
-    });
+    expect(
+      await screen.findByText("移轉擁有者身分需要目前的擁有者操作"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/確定要將.*從名單中刪除嗎？/)).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  describe("handleTransferOwnership — dialog stays open on error", () => {
-    it("should show inline error message when transfer fails", async () => {
-      const user = userEvent.setup();
-      mockApiClient.mockRejectedValueOnce(
-        createApiError(
-          403,
-          "AUTHORIZATION",
-          "NOT_TEAM_OWNER",
-          "Only the current team owner can transfer ownership",
-        ),
-      );
+  it("clears the error and closes the dialog when a retry succeeds", async () => {
+    const user = userEvent.setup();
+    let attempts = 0;
+    server.use(
+      http.delete(`/api/players/${joinedPlayer.id}`, () => {
+        attempts += 1;
+        return attempts === 1
+          ? HttpResponse.json(
+              { code: "UNEXPECTED", reason: "UNHANDLED_ERROR" },
+              { status: 500 },
+            )
+          : HttpResponse.json({});
+      }),
+    );
+    renderSection();
 
-      render(
-        <MembershipSection
-          player={joinedPlayer}
-          teamId="team-1"
-          isCurrentOwner={true}
-          isSelf={false}
-        />,
-      );
+    await user.click(screen.getByRole("button", { name: "刪除球員" }));
+    await user.click(screen.getByRole("button", { name: "確認刪除" }));
+    expect(await screen.findByText(/伺服器暫時無法處理/)).toBeInTheDocument();
 
-      // Open the transfer dialog
-      await user.click(
-        screen.getByRole("button", { name: "移轉所有權給此球員" }),
-      );
+    await user.click(screen.getByRole("button", { name: "確認刪除" }));
 
-      // Confirm transfer
-      await user.click(screen.getByRole("button", { name: "確認移轉" }));
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith("/team/team-1"),
+    );
+    expect(attempts).toBe(2);
+    expect(screen.queryByText(/伺服器暫時無法處理/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/確定要將.*從名單中刪除嗎？/),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByText("球員已刪除").length).toBeGreaterThan(0);
+  });
 
-      // Error message should appear inline in dialog
-      await waitFor(() => {
-        expect(
-          screen.getByText("移轉擁有者身分需要目前的擁有者操作"),
-        ).toBeInTheDocument();
-      });
+  it("keeps the transfer dialog open with the error inline and lets the caller retry", async () => {
+    const user = userEvent.setup();
+    let body: unknown;
+    server.use(
+      http.post("/api/teams/team-1/ownership", async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json(
+          { code: "AUTHORIZATION", reason: "NOT_TEAM_OWNER" },
+          { status: 403 },
+        );
+      }),
+    );
+    renderSection();
 
-      // Dialog should still be visible
-      expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "移轉所有權給此球員" }),
+    );
+    const confirm = screen.getByRole("button", { name: "確認移轉" });
+    await user.click(confirm);
 
-      expect(mockToast).not.toHaveBeenCalled();
-    });
+    expect(
+      await screen.findByText("移轉擁有者身分需要目前的擁有者操作"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/確定要將隊伍所有權移轉給/)).toBeInTheDocument();
+    expect(body).toEqual({ newOwnerId: joinedPlayer.id });
+    await waitFor(() => expect(confirm).toBeEnabled());
   });
 });

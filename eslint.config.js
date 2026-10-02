@@ -68,7 +68,6 @@ const eslintConfig = defineConfig([
     "public/sw.js", // Legacy generated worker; no longer produced but may linger in local checkouts
     "docs/archive/**", // Archived migration scripts
     "docs/changes/archive/**", // Archived Spectra changes (incl. migration scripts)
-    "openspec/changes/archive/**", // Archived change proposals
   ]),
 ]);
 

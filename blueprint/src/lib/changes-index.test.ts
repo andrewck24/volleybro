@@ -5,126 +5,106 @@ jest.mock("@/lib/source", () => ({
   source: { getPages: () => mockGetPages() },
 }));
 
-let mockProposalMockups: Record<string, unknown> = {};
-jest.mock("@/lib/proposal-mockups", () => ({
-  get proposalMockups() {
-    return mockProposalMockups;
-  },
+let mockFacts: Record<string, object> = {};
+jest.mock("@/lib/change-meta", () => ({
+  readFacts: (slug: string) => mockFacts[slug] ?? {},
+  readCapabilities: () => ["platform/blueprint"],
 }));
-
-let mockLegacyDirs: Record<string, unknown> = {};
-jest.mock("node:fs", () => {
-  const actual = jest.requireActual("node:fs");
-  return {
-    ...actual,
-    existsSync: (target: string) => {
-      if (target.endsWith("content/changes")) return true;
-      const slug = target.split("/").slice(-2, -1)[0];
-      return Object.hasOwn(mockLegacyDirs, slug);
-    },
-    readdirSync: (_dir: string, _options: unknown) =>
-      Object.keys(mockLegacyDirs).map((name) => ({
-        name,
-        isDirectory: () => true,
-      })),
-    readFileSync: (target: string) => {
-      const slug = target.split("/").slice(-2, -1)[0];
-      return JSON.stringify(mockLegacyDirs[slug]);
-    },
-  };
-});
 
 import { listChanges } from "./changes-index";
 
 function page(slug: string, title: string) {
-  return { slugs: slug.split("/"), data: { title }, url: `/changes/${slug}` };
+  return {
+    slugs: slug.split("/"),
+    data: { title, description: `${title} in one line` },
+    url: `/changes/${slug}`,
+  };
 }
 
 describe("listChanges", () => {
   beforeEach(() => {
-    mockProposalMockups = {};
-    mockLegacyDirs = {};
+    mockFacts = {};
   });
 
-  it("titles and links from proposal.mdx when both proposal and review exist", () => {
+  it("orders Changes newest first, by archivedAt then startedAt", () => {
     mockGetPages.mockReturnValue([
-      page("a/proposal", "A Proposal"),
-      page("a/review", "A Review"),
+      page("landed", "Landed"),
+      page("open", "Open"),
     ]);
-
-    expect(listChanges()).toEqual([
-      { slug: "a", title: "A Proposal", href: "/changes/a/proposal" },
-    ]);
-  });
-
-  it("falls back to the review title and href when there is no proposal.mdx", () => {
-    mockGetPages.mockReturnValue([page("b/review", "B Review")]);
-
-    expect(listChanges()).toEqual([
-      { slug: "b", title: "B Review", href: "/changes/b/review" },
-    ]);
-  });
-
-  it("falls back to the slug and a proposal href for a proposal.tsx-only mockup", () => {
-    mockGetPages.mockReturnValue([]);
-    mockProposalMockups = { c: () => null };
-
-    expect(listChanges()).toEqual([
-      { slug: "c", title: "c", href: "/changes/c/proposal" },
-    ]);
-  });
-
-  it("lists legacy Changes after two-gate Changes, newest archivedAt/startedAt first", () => {
-    mockGetPages.mockReturnValue([page("a/proposal", "A Proposal")]);
-    mockLegacyDirs = {
-      older: {
-        schemaVersion: 1,
-        slug: "older",
-        title: "Older Legacy",
-        lifecycle: "archived",
-        startedAt: "2026-01-01",
-        archivedAt: "2026-01-05",
-        summary: "s",
-        capabilities: ["platform/x"],
-        tags: ["frontend"],
+    mockFacts = {
+      landed: {
+        gate: "G2",
+        startedAt: "2026-09-20T00:00:00.000Z",
+        archivedAt: "2026-09-25T10:00:00.000Z",
       },
-      newer: {
-        schemaVersion: 1,
-        slug: "newer",
-        title: "Newer Legacy",
-        lifecycle: "proposing",
-        startedAt: "2026-02-01",
-        summary: "s",
-        capabilities: ["platform/x"],
-        tags: ["frontend"],
+      open: {
+        gate: "G1",
+        startedAt: "2026-09-26T08:00:00.000Z",
+        archivedAt: null,
       },
     };
 
-    expect(listChanges()).toEqual([
-      { slug: "a", title: "A Proposal", href: "/changes/a/proposal" },
-      { slug: "newer", title: "Newer Legacy", href: "/changes/newer" },
-      { slug: "older", title: "Older Legacy", href: "/changes/older" },
+    expect(listChanges().map((change) => change.slug)).toEqual([
+      "open",
+      "landed",
     ]);
   });
 
-  it("lists an old-format Change once, even when a leftover proposal.mdx also exists", () => {
-    mockGetPages.mockReturnValue([page("stale/proposal", "Stale Proposal")]);
-    mockLegacyDirs = {
-      stale: {
-        schemaVersion: 1,
-        slug: "stale",
-        title: "Stale Legacy",
-        lifecycle: "archived",
-        startedAt: "2026-01-01",
-        archivedAt: "2026-01-05",
-        summary: "s",
-        capabilities: ["platform/x"],
-        tags: ["frontend"],
+  it("labels a Change by its gate until it lands, then as archived", () => {
+    mockGetPages.mockReturnValue([
+      page("landed", "Landed"),
+      page("open", "Open"),
+    ]);
+    mockFacts = {
+      landed: {
+        gate: "G2",
+        startedAt: "2026-09-20T00:00:00.000Z",
+        archivedAt: "2026-09-25T10:00:00.000Z",
+      },
+      open: {
+        gate: "G2",
+        startedAt: "2026-09-21T00:00:00.000Z",
+        archivedAt: null,
       },
     };
 
-    expect(listChanges()).toEqual([
-      { slug: "stale", title: "Stale Legacy", href: "/changes/stale" },
-    ]);
+    const [landed, open] = listChanges();
+    expect(landed.state).toEqual({ label: "archived", status: "archived" });
+    expect(landed.date).toEqual({
+      kind: "archived",
+      value: "2026-09-25T10:00:00.000Z",
+    });
+    expect(open.state).toEqual({ label: "G2 Review", status: "in-progress" });
+    expect(open.date).toEqual({
+      kind: "started",
+      value: "2026-09-21T00:00:00.000Z",
+    });
+  });
+
+  it("sorts a never-published draft last, with no date", () => {
+    mockGetPages.mockReturnValue([page("draft", "Draft"), page("old", "Old")]);
+    mockFacts = {
+      old: {
+        gate: "G2",
+        startedAt: "2026-06-01T00:00:00.000Z",
+        archivedAt: "2026-06-16T00:00:00.000Z",
+      },
+    };
+
+    const changes = listChanges();
+    expect(changes.map((change) => change.slug)).toEqual(["old", "draft"]);
+    expect(changes[1].date).toBeUndefined();
+  });
+
+  it("labels a converted draft as a draft rather than by a gate", () => {
+    mockGetPages.mockReturnValue([page("idea", "Idea")]);
+    mockFacts = {
+      idea: { converted: true, startedAt: "2026-07-07T00:00:00.000Z" },
+    };
+
+    expect(listChanges()[0].state).toEqual({
+      label: "draft",
+      status: "draft",
+    });
   });
 });

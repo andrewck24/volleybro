@@ -6,20 +6,6 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Provider } from "react-redux";
 
-const mockGame = { id: "game-1", teams: { home: { players: [] } } };
-
-jest.mock("@/hooks/use-data", () => ({
-  useGame: () => ({ game: mockGame, mutate: jest.fn() }),
-}));
-
-jest.mock("@/components/ui/use-toast", () => ({
-  useToast: () => ({ toast: jest.fn() }),
-}));
-
-jest.mock("@/lib/api/error-toast", () => ({
-  showErrorToast: jest.fn(),
-}));
-
 const setUpPanel = () => {
   const reduxStore = makeStore();
   render(

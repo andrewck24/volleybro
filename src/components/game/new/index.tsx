@@ -30,7 +30,7 @@ import type {
 } from "@/lib/features/game/types";
 import type { LineupList } from "@/lib/features/team/types";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RiArrowLeftWideLine, RiArrowRightLine } from "react-icons/ri";
 import { useSWRConfig } from "swr";
 
@@ -55,9 +55,10 @@ export const NewGameForm = ({
     document.startViewTransition(() => setView(view));
   };
 
-  const [info, setInfo] = useState<TMatchInfoForm>(
-    newGameFormDefaults(team?.name),
-  );
+  const [edited, setInfo] = useState<TMatchInfoForm>();
+  // Memoised: the defaults hold a new Date, and MatchInfoForm resets its fields whenever `info` changes.
+  const defaults = useMemo(() => newGameFormDefaults(team?.name), [team?.name]);
+  const info = edited ?? defaults;
 
   const getPlayerData = (list: LineupList): LineupListPlayer[] => {
     if (!team || !teamPlayers) return [];

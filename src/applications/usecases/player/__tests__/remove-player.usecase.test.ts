@@ -1,12 +1,14 @@
 import {
   createInvitedPlayer,
-  createMockPlayerRepository,
-  createMockProfileRepository,
-  createMockTeamRepository,
   createPlayer,
   createProfile,
   createUnlinkedPlayer,
-} from "@/__tests__/helpers";
+} from "@test/support/fixtures/entities";
+import {
+  createMockPlayerRepository,
+  createMockProfileRepository,
+  createMockTeamRepository,
+} from "@test/support/doubles/repositories";
 import type { IRemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import { RemovePlayerUseCase } from "@/applications/usecases/player/remove-player.usecase";
 import {
@@ -92,6 +94,17 @@ describe("RemovePlayerUseCase", () => {
         );
       },
     );
+
+    it("has cleared the lineups when the delete fails, so the removal can be retried", async () => {
+      mockPlayerRepository.findById.mockResolvedValue(targets.member);
+      mockPlayerRepository.delete.mockRejectedValue(new Error("db down"));
+
+      await expect(remove()).rejects.toThrow("db down");
+      expect(mockTeamRepository.removePlayerFromLineups).toHaveBeenCalledWith(
+        "team-1",
+        "target",
+      );
+    });
 
     it("refuses the owner, who can only hand ownership over", async () => {
       mockPlayerRepository.findById.mockResolvedValue(targets.owner);

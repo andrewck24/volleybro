@@ -1,0 +1,46 @@
+name: Integration preview
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-preview
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.RELEASE_AUTOMATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: integration
+    env:
+      HUSKY: 0
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_TEAM_ID }}
+      INTEGRATION_ALIAS: ${{ vars.INTEGRATION_ALIAS }}
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy the fixed integration revision and update its test alias
+        run: |
+          test -n "$VERCEL_TOKEN"
+          test -n "$VERCEL_PROJECT_ID"
+          test -n "$VERCEL_ORG_ID"
+          test -n "$INTEGRATION_ALIAS"
+          URL=$(pnpm dlx vercel@61.1.0 deploy --target preview --yes --token "$VERCEL_TOKEN" --meta "githubCommitSha=$SOURCE_SHA")
+          pnpm dlx vercel@61.1.0 alias set "$URL" "$INTEGRATION_ALIAS" --token "$VERCEL_TOKEN"
+          printf 'Integration revision `%s`: %s\n' "$SOURCE_SHA" "$URL" >> "$GITHUB_STEP_SUMMARY"

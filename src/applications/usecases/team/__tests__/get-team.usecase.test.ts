@@ -1,8 +1,6 @@
-import {
-  createMockAuthorizationService,
-  createMockTeamRepository,
-  createTeam,
-} from "@/__tests__/helpers";
+import { createMockAuthorizationService } from "@test/support/doubles/services";
+import { createMockTeamRepository } from "@test/support/doubles/repositories";
+import { createTeam } from "@test/support/fixtures/entities";
 import { GetTeamUseCase } from "@/applications/usecases/team/get-team.usecase";
 import { AuthorizationError, AuthReason } from "@/entities/errors";
 import { PlayerRole } from "@/entities/player";

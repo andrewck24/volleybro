@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { source, featuresSource } from "@/lib/source";
-import { listChanges } from "@/lib/changes-index";
+import { featuresSource } from "@/lib/source";
+import { changesTree, listChanges } from "@/lib/changes-index";
 import { DocsLayoutShell } from "@/components/DocsLayoutShell";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <DocsLayoutShell
-      changesTree={source.pageTree}
+      changesTree={changesTree()}
       featuresTree={featuresSource.pageTree}
       hasChanges={listChanges().length > 0}
     >

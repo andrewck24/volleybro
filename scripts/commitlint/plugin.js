@@ -31,30 +31,66 @@ function currentBranch() {
   }
 }
 
-const CHANGE_BRANCH = /^(feat|fix|refactor)\/(.+)$/;
+export const CHANGE_BRANCH_PREFIXES = ["feat", "fix", "refactor"];
+const CHANGE_BRANCH = new RegExp(
+  `^(${CHANGE_BRANCH_PREFIXES.join("|")})/(.+)$`,
+);
+// ADR-0093: a -s<N> suffix always names a Sharded Change shard.
+const SHARD_SUFFIX = /^(.+)-s([1-9]\d*)$/;
 
-function fixPathSuffix(prefix, slug) {
-  return `Fix-path work belongs on hotfix/${slug} instead, not ${prefix}/${slug}.`;
+export function parseChangeBranch(branchName) {
+  const match = branchName?.match(CHANGE_BRANCH);
+  if (!match) return undefined;
+  const [, prefix, name] = match;
+  const shard = name.match(SHARD_SUFFIX);
+  return shard
+    ? { prefix, slug: shard[1], shard: Number(shard[2]) }
+    : { prefix, slug: name, shard: undefined };
+}
+
+export function changeSlugOf(branchName) {
+  return parseChangeBranch(branchName)?.slug;
+}
+
+function fastPathSuffix(prefix, slug) {
+  return `Fast-path work belongs on fast/${slug} instead, not ${prefix}/${slug}.`;
 }
 
 export function evaluateChangeBranchTrailer(branchName, message) {
   if (!branchName) return { ok: true }; // detached HEAD (e.g. rebase reword): skip silently
 
-  const match = branchName.match(CHANGE_BRANCH);
-  if (!match) return { ok: true };
-  const [, prefix, slug] = match;
+  const branch = parseChangeBranch(branchName);
+  if (!branch) return { ok: true };
+  const { prefix, slug, shard } = branch;
 
-  const value = parseTrailers(message).get("blueprint-change")?.[0];
+  const trailers = parseTrailers(message);
+  const value = trailers.get("blueprint-change")?.[0];
   if (value === undefined) {
     return {
       ok: false,
-      message: `branch "${branchName}" is a Change branch (slug "${slug}") and needs a "Blueprint-Change: ${slug}" trailer, but the commit has none. ${fixPathSuffix(prefix, slug)}`,
+      message: `branch "${branchName}" is a Change branch (slug "${slug}") and needs a "Blueprint-Change: ${slug}" trailer, but the commit has none. ${fastPathSuffix(prefix, slug)}`,
     };
   }
   if (value !== slug) {
     return {
       ok: false,
-      message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fixPathSuffix(prefix, slug)}`,
+      message: `branch "${branchName}" needs "Blueprint-Change: ${slug}", but the commit carries "Blueprint-Change: ${value}". ${fastPathSuffix(prefix, slug)}`,
+    };
+  }
+  const shardValue = trailers.get("shard")?.[0];
+  if (shard === undefined) {
+    return shardValue === undefined
+      ? { ok: true }
+      : {
+          ok: false,
+          message: `branch "${branchName}" is not a Sharded Change branch, so the commit must not carry "Shard: ${shardValue}"; a shard branch ends in -s<N>.`,
+        };
+  }
+
+  if (shardValue !== String(shard)) {
+    return {
+      ok: false,
+      message: `branch "${branchName}" is shard ${shard} of Sharded Change "${slug}" and needs a "Shard: ${shard}" trailer, but the commit carries ${shardValue === undefined ? "none" : `"Shard: ${shardValue}"`}.`,
     };
   }
   return { ok: true };
@@ -123,6 +159,27 @@ export function evaluateAiAttribution(message) {
   return { ok: true };
 }
 
+// The conventional parser starts the footer at the first line shaped like
+// "Token: value". When the body opens with such a line, the whole body
+// becomes footer and commitlint reports an empty body instead. Only the
+// opening line is flagged: a "Verification: ..." paragraph later in a body
+// is common and parses harmlessly.
+const FOOTER_TOKEN = /^[A-Za-z][\w-]*: \S/;
+
+export function evaluateFooterLookalike(message) {
+  const [, ...paragraphs] = stripDiffAndComments(message ?? "")
+    .trim()
+    .split(/\n\s*\n/);
+  // A lone paragraph after the subject is the trailer block, not a body.
+  const firstLine = paragraphs.length > 1 ? paragraphs[0].split("\n")[0] : "";
+  return FOOTER_TOKEN.test(firstLine)
+    ? {
+        ok: false,
+        message: `the body opens with "${firstLine}", which reads as a footer token, so commitlint sees no body; reword it so it does not start with "${firstLine.split(":")[0]}:".`,
+      }
+    : { ok: true };
+}
+
 function toRuleOutcome(verdict) {
   return verdict.ok ? [true] : [false, verdict.message];
 }
@@ -134,6 +191,8 @@ const plugin = {
       toRuleOutcome(evaluateChangeBranchTrailer(currentBranch(), parsed.raw)),
     "no-ai-attribution": (parsed) =>
       toRuleOutcome(evaluateAiAttribution(parsed.raw)),
+    "footer-lookalike": (parsed) =>
+      toRuleOutcome(evaluateFooterLookalike(parsed.raw)),
   },
 };
 

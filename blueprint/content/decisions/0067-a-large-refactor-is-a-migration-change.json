@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0067",
   "title": "A large refactor is a Migration Change",
@@ -9,5 +8,6 @@
   "consequences": [
     "A Migration trailer suppresses the src-file-count warning for its shards."
   ],
-  "originChange": "two-gate-workflow"
+  "originChange": "two-gate-workflow",
+  "supersededBy": "0093"
 }

@@ -1,5 +1,4 @@
 {
-  "$schema": "../../schemas/decision-record.schema.json",
   "schemaVersion": 2,
   "id": "0021",
   "title": "不新增慢速輪詢；手動重試作為有期限的機制補丁",

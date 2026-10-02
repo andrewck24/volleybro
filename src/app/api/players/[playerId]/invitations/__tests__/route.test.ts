@@ -1,92 +1,97 @@
+import {
+  routeRequest,
+  silenceConsoleError,
+} from "@test/support/http/route-request";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("@/infrastructure/di/inversify.config");
-jest.mock("@/lib/auth-client");
+const mockAcceptInvitation = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockLeaveTeam = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
 
-describe("Invitations API Route - /api/players/[playerId]/invitations", () => {
-  beforeEach(() => {
+jest.mock("@/interface/controllers/player/invitation.controller", () => ({
+  acceptInvitation: mockAcceptInvitation,
+  leaveTeam: mockLeaveTeam,
+}));
+
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
+
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const SESSION = { user: { id: "user-1" } };
+
+type RouteResponse = { status: number; json: () => Promise<unknown> };
+
+let PATCH: (
+  req: never,
+  props: { params: Promise<{ playerId: string }> },
+) => Promise<RouteResponse>;
+
+describe("PATCH /api/players/[playerId]/invitations", () => {
+  beforeEach(async () => {
+    jest.resetModules();
     jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ PATCH } = await import("../route"));
   });
 
-  describe("PATCH - Accept invitation", () => {
-    it("should accept invitation with action=accept", () => {
-      const body = { action: "accept" };
-      const response = {
-        status: 200,
-        data: { success: true, message: "Invitation accepted" },
-      };
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "accept", note: "sounds good" },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-      expect(body.action).toBe("accept");
-      expect(response.status).toBe(200);
-      expect(response.data.success).toBe(true);
-    });
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-    it("should return 401 if not authenticated", () => {
-      const response = { status: 401, error: "Unauthorized" };
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 404 if player not found", () => {
-      const response = { status: 404, error: "Player not found" };
-      expect(response.status).toBe(404);
-    });
-
-    it("should return 409 if player is already joined", () => {
-      const response = {
-        status: 409,
-        error: "Player is already a member",
-      };
-      expect(response.status).toBe(409);
-    });
-
-    it("should return 409 if no invitation exists", () => {
-      const response = {
-        status: 409,
-        error: "No invitation found for player",
-      };
-      expect(response.status).toBe(409);
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockAcceptInvitation).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
-  describe("PATCH - Reject invitation", () => {
-    it("should reject invitation with action=reject", () => {
-      const body = { action: "reject" };
-      const response = {
-        status: 200,
-        data: { success: true, message: "Invitation rejected" },
-      };
+  // The exact body handleInvitation sends (src/components/user/invitations/index.tsx):
+  it("returns 200 for the payload the invitation-response control actually sends", async () => {
+    mockAcceptInvitation.mockResolvedValue(undefined);
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "accept" },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-      expect(body.action).toBe("reject");
-      expect(response.status).toBe(200);
-      expect(response.data.success).toBe(true);
-    });
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { success: boolean };
 
-    it("should return 404 if player not found", () => {
-      const response = { status: 404, error: "Player not found" };
-      expect(response.status).toBe(404);
-    });
-
-    it("should return 409 if no invitation exists", () => {
-      const response = {
-        status: 409,
-        error: "No invitation found for player",
-      };
-      expect(response.status).toBe(409);
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockAcceptInvitation).toHaveBeenCalledWith({
+      playerId: VALID_OBJECT_ID,
+      userId: SESSION.user.id,
     });
   });
 
-  describe("PATCH - Invalid action", () => {
-    it("should return 400 for invalid action", () => {
-      const response = { status: 400, error: "Invalid request data" };
-      expect(response.status).toBe(400);
-    });
+  // The exact body handleLeaveTeam sends (src/components/team/info/index.tsx):
+  it("returns 200 for the payload the leave-team control actually sends", async () => {
+    mockLeaveTeam.mockResolvedValue(undefined);
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/invitations`,
+      "PATCH",
+      { action: "leave" },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-    it("should validate action is accept or reject", () => {
-      const validActions = ["accept", "reject"];
-      expect(validActions).toContain("accept");
-      expect(validActions).toContain("reject");
-      expect(validActions).not.toContain("leave");
-      expect(validActions).not.toContain("cancel");
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { success: boolean };
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockLeaveTeam).toHaveBeenCalledWith({
+      playerId: VALID_OBJECT_ID,
+      userId: SESSION.user.id,
     });
   });
 });

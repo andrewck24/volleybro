@@ -37,6 +37,10 @@ function decisionNumber(record: DecisionRecord): number {
   return Number(record.id);
 }
 
+export function allDecisions(): DecisionRecord[] {
+  return [...records].sort((a, b) => decisionNumber(a) - decisionNumber(b));
+}
+
 export function decisionsFor(capability: string): DecisionRecord[] {
   return records
     .filter((record) => record.capabilities.includes(capability))

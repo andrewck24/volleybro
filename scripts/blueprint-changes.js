@@ -4,7 +4,7 @@
  * `blueprint-changes` branch that holds published Blueprint Change pages.
  *
  * Usage:
- *   node scripts/blueprint-changes.js pull [--force]
+ *   node scripts/blueprint-changes.js pull [--force [slug...]]
  *   node scripts/blueprint-changes.js publish <slug> [--dry-run]
  */
 import { execFile, spawn } from "node:child_process";
@@ -25,16 +25,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
+import { changeFacts, isReviewFile, readChangeDir } from "./change-page.js";
+
 const execFileAsync = promisify(execFile);
 
 const BRANCH = "blueprint-changes";
-const REMOTE_REF = "refs/blueprint-changes/remote";
+export const REMOTE_REF = "refs/blueprint-changes/remote";
 const FETCH_REFSPEC = `+${BRANCH}:${REMOTE_REF}`;
 const DEFAULT_REMOTE = "https://github.com/andrewck24/volleybro.git";
 const CHANGES_DIR_SEGMENTS = ["blueprint", "content", "changes"];
 // Dotfile, not `meta.json` — fumadocs-mdx's meta collection in
 // source.config.ts only globs `**/meta.json`, so this never becomes a page.
 const STORE_FILE = ".store-state.json";
+const DEPLOY_WORKFLOW = [".github", "workflows", "blueprint-deploy.yml"];
+// See ADR-0082.
+const HISTORY_WARN_BYTES = 50_000_000;
 
 function runGit(args, options) {
   return execFileAsync("git", args, options);
@@ -63,8 +68,15 @@ export async function resolveRemote(cwd) {
 
 function archiveExtract(ref, slug, repoRoot, destDir) {
   return new Promise((resolve, reject) => {
-    const archive = spawn("git", ["archive", ref, slug], { cwd: repoRoot });
-    const tar = spawn("tar", ["-x", "-C", destDir], {
+    // No eol conversion: pages land byte-for-byte as stored, so their hashes match.
+    const archive = spawn(
+      "git",
+      ["-c", "core.autocrlf=false", "-c", "core.eol=lf", "archive", ref, slug],
+      { cwd: repoRoot },
+    );
+    // cwd, not -C: Git for Windows' tar reads "C:\..." as a remote host.
+    const tar = spawn("tar", ["-x"], {
+      cwd: destDir,
       stdio: ["pipe", "inherit", "inherit"],
     });
     archive.stdout.pipe(tar.stdin);
@@ -97,7 +109,7 @@ function archiveExtract(ref, slug, repoRoot, destDir) {
 // it, which marks the whole repository shallow and can make a later push to a
 // host refuse the history. The store holds pages, not a large history, so a
 // single-branch fetch is cheap enough to take whole.
-async function fetchChanges(remote, repoRoot) {
+export async function fetchChanges(remote, repoRoot) {
   await runGit(["fetch", remote, FETCH_REFSPEC], { cwd: repoRoot });
 }
 
@@ -156,10 +168,55 @@ function isRequired() {
   return Boolean(process.env.CI || process.env.WORKERS_CI);
 }
 
-export async function pull(cwd, { force = false } = {}) {
+async function warnIfHistoryTooLarge(repoRoot, limit) {
+  let bytes;
+  try {
+    const { stdout } = await runGit(
+      ["rev-list", "--objects", "--disk-usage", REMOTE_REF],
+      { cwd: repoRoot },
+    );
+    bytes = Number(stdout.trim());
+  } catch {
+    // An old git without --disk-usage must not block the pull.
+    return;
+  }
+  if (bytes > limit) {
+    const toMb = (value) => (value / 1_000_000).toFixed(1);
+    console.warn(
+      `blueprint-changes pull: the ${BRANCH} history is ${toMb(bytes)} MB, past the ${toMb(limit)} MB threshold; revisit its retention (ADR-0082)`,
+    );
+  }
+}
+
+// A page differs from what was last pulled or published only through local
+// edits, and pages are gitignored, so those edits exist nowhere else.
+function isEditedLocally(store, slug, currentHash) {
+  return store[slug] !== currentHash;
+}
+
+// ADR-0079 exempts a converted page from the gates; its facts.json carries the
+// mark. An unreadable facts.json is treated as unmarked.
+export async function isConverted(slugDir) {
+  try {
+    const facts = JSON.parse(
+      await readFile(path.join(slugDir, "facts.json"), "utf8"),
+    );
+    return facts.converted === true;
+  } catch {
+    return false;
+  }
+}
+
+// `force` is true to overwrite every page, or the slugs to overwrite.
+export async function pull(
+  cwd,
+  { force = false, historyWarnBytes = HISTORY_WARN_BYTES } = {},
+) {
   const repoRoot = await getRepoRoot(cwd);
   const changesDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS);
   const remote = await resolveRemote(repoRoot);
+  // Created before the fetch so a build that could not fetch still finds it.
+  await mkdir(changesDir, { recursive: true });
 
   try {
     await fetchChanges(remote, repoRoot);
@@ -174,7 +231,7 @@ export async function pull(cwd, { force = false } = {}) {
     return;
   }
 
-  await mkdir(changesDir, { recursive: true });
+  await warnIfHistoryTooLarge(repoRoot, historyWarnBytes);
   const store = await readStore(changesDir);
   const { stdout } = await runGit(
     ["ls-tree", "-d", "--name-only", REMOTE_REF],
@@ -183,7 +240,35 @@ export async function pull(cwd, { force = false } = {}) {
   const slugs = stdout
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    // Dot-directories hold store plumbing such as the deploy workflow.
+    .filter((name) => name && !name.startsWith("."));
+
+  if (Array.isArray(force)) {
+    const unknown = force.filter((slug) => !slugs.includes(slug));
+    if (unknown.length > 0) {
+      console.warn(
+        `blueprint-changes pull: --force names slugs the store does not hold: ${unknown.join(", ")}`,
+      );
+    }
+  } else if (force) {
+    const edited = [];
+    for (const slug of slugs) {
+      const destDir = path.join(changesDir, slug);
+      if (
+        existsSync(destDir) &&
+        isEditedLocally(store, slug, await hashDir(destDir))
+      ) {
+        edited.push(slug);
+      }
+    }
+    if (edited.length > 0) {
+      console.error(
+        `blueprint-changes pull: --force would overwrite unpublished edits in ${edited.join(", ")}; name the slugs to overwrite: --force <slug>...`,
+      );
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   const scratchParent = await mkdtemp(
     path.join(os.tmpdir(), "blueprint-changes-pull-"),
@@ -208,7 +293,7 @@ export async function pull(cwd, { force = false } = {}) {
         continue;
       }
 
-      if (force) {
+      if (force === true || (Array.isArray(force) && force.includes(slug))) {
         await replaceDir(destDir, scratchDir);
         store[slug] = remoteHash;
         refreshed += 1;
@@ -216,8 +301,7 @@ export async function pull(cwd, { force = false } = {}) {
       }
 
       const currentHash = await hashDir(destDir);
-      const recordedHash = store[slug];
-      if (recordedHash && recordedHash === currentHash) {
+      if (!isEditedLocally(store, slug, currentHash)) {
         if (remoteHash !== currentHash) {
           await replaceDir(destDir, scratchDir);
           store[slug] = remoteHash;
@@ -240,10 +324,25 @@ export async function pull(cwd, { force = false } = {}) {
   );
 }
 
-async function applyChange(tmpDir, slug, localSlugDir) {
+// A push runs the workflows of the pushed commit, so the orphan store needs
+// its own copy of the deploy workflow.
+async function syncDeployWorkflow(tmpDir, repoRoot) {
+  const source = path.join(repoRoot, ...DEPLOY_WORKFLOW);
+  if (!existsSync(source)) return;
+  const workflow = path.join(tmpDir, ...DEPLOY_WORKFLOW);
+  await mkdir(path.dirname(workflow), { recursive: true });
+  await cp(source, workflow);
+}
+
+async function applyChange(tmpDir, slug, localSlugDir, { proposalOnly }) {
   const targetDir = path.join(tmpDir, slug);
   await rm(targetDir, { recursive: true, force: true });
   await cp(localSlugDir, targetDir, { recursive: true });
+  if (proposalOnly) {
+    for (const name of await readdir(targetDir)) {
+      if (isReviewFile(name)) await rm(path.join(targetDir, name));
+    }
+  }
   await runGit(["add", "-A"], { cwd: tmpDir });
   const { stdout } = await runGit(["status", "--porcelain"], {
     cwd: tmpDir,
@@ -253,6 +352,47 @@ async function applyChange(tmpDir, slug, localSlugDir) {
     cwd: tmpDir,
   });
   return true;
+}
+
+// The fallback start for a Change with no commit yet: its first publish,
+// or undefined before that first publish.
+async function firstPublishedAt(repoRoot, slug) {
+  try {
+    const { stdout } = await runGit(
+      ["log", "--reverse", "--format=%cI", REMOTE_REF, "--", slug],
+      { cwd: repoRoot },
+    );
+    const [first] = stdout.trim().split("\n");
+    return first ? new Date(first).toISOString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeFacts(repoRoot, slugDir, { proposalOnly }) {
+  if (!existsSync(path.join(slugDir, "index.mdx"))) return;
+  // A converted page's facts come from its earlier format, which git cannot
+  // rebuild, so republishing it keeps them.
+  if (await isConverted(slugDir)) return;
+  const page = await readChangeDir(slugDir);
+  if (proposalOnly) page.reviews = [];
+  const slug = path.basename(slugDir);
+  let facts;
+  try {
+    facts = await changeFacts(repoRoot, page, {
+      slug,
+      firstPublishedAt: await firstPublishedAt(repoRoot, slug),
+      gate: proposalOnly ? "G1" : undefined,
+    });
+  } catch (error) {
+    throw new Error(
+      `${slug} is not valid MDX, so it cannot be published: ${error.message.split("\n")[0]}`,
+    );
+  }
+  await writeFile(
+    path.join(slugDir, "facts.json"),
+    `${JSON.stringify(facts, null, 2)}\n`,
+  );
 }
 
 async function recordPublishedHash(repoRoot, slug, localSlugDir) {
@@ -281,11 +421,16 @@ function isNonFastForwardRejection(error) {
   );
 }
 
-export async function publish(cwd, slug, { dryRun = false } = {}) {
+// proposalOnly publishes the page without its Review files: the G1 baseline
+// of a page that already has one (ADR-0095).
+export async function publish(
+  cwd,
+  slug,
+  { dryRun = false, proposalOnly = false } = {},
+) {
   const repoRoot = await getRepoRoot(cwd);
   const localSlugDir = path.join(repoRoot, ...CHANGES_DIR_SEGMENTS, slug);
   await access(localSlugDir);
-
   const remote = await resolveRemote(repoRoot);
 
   let branchExists = true;
@@ -294,6 +439,10 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
   } catch {
     branchExists = false;
   }
+
+  // After the fetch: a commitless Change's start is its first publish, which
+  // firstPublishedAt reads from the fetched store.
+  if (!dryRun) await writeFacts(repoRoot, localSlugDir, { proposalOnly });
 
   const tmpParent = await mkdtemp(path.join(os.tmpdir(), "blueprint-changes-"));
   const tmpDir = path.join(tmpParent, "worktree");
@@ -318,10 +467,16 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
     // At most one retry: a concurrent publish can win the race once, but a
     // second rejection in a row is a real problem, not the race.
     for (let attempt = 1; attempt <= MAX_PUSH_ATTEMPTS; attempt += 1) {
-      const changed = await applyChange(tmpDir, slug, localSlugDir);
+      await syncDeployWorkflow(tmpDir, repoRoot);
+      const changed = await applyChange(tmpDir, slug, localSlugDir, {
+        proposalOnly,
+      });
+      // The store holds less than the directory after a proposal-only
+      // publish, so recording its hash would let a pull overwrite the Reviews.
       if (!changed) {
         console.log(`blueprint-changes publish: no changes for ${slug}`);
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       }
 
@@ -337,7 +492,8 @@ export async function publish(cwd, slug, { dryRun = false } = {}) {
         await runGit(["push", remote, `HEAD:refs/heads/${BRANCH}`], {
           cwd: tmpDir,
         });
-        await recordPublishedHash(repoRoot, slug, localSlugDir);
+        if (!proposalOnly)
+          await recordPublishedHash(repoRoot, slug, localSlugDir);
         return;
       } catch (error) {
         if (
@@ -371,7 +527,9 @@ async function main() {
   const cwd = process.cwd();
 
   if (command === "pull") {
-    await pull(cwd, { force: flags.has("--force") });
+    const force =
+      flags.has("--force") && (positional.length > 0 ? positional : true);
+    await pull(cwd, { force });
     return;
   }
 

@@ -30,19 +30,30 @@ describe("parseDecisionRecord", () => {
   it.each([
     { ...decision, supersededBy: "two-gate-workflow" },
     { ...decision, id: "decision-1" },
+    { ...decision, schemaVersion: 3 },
     {
       ...decision,
       capabilities: ["platform/delivery", "platform/delivery"],
     },
     { ...decision, capabilities: ["platform"] },
     { ...decision, context: "" },
-    { ...decision, originDecision: "D3" },
     { ...decision, claimedBy: "worker-1" },
     { ...decision, alternatives: [{ option: "Incomplete" }] },
-    { ...decision, status: "accepted" },
   ])("rejects schema-incompatible input", (record) => {
     expect(() => parseDecisionRecord(record)).toThrow(
       "Invalid decision record",
     );
+  });
+
+  it("names a key the definition does not hold", () => {
+    expect(() =>
+      parseDecisionRecord({ ...decision, $schema: "../schema.json" }),
+    ).toThrow(/\$schema/);
+  });
+
+  it("names the path of the field that fails", () => {
+    expect(() =>
+      parseDecisionRecord({ ...decision, capabilities: ["platform"] }),
+    ).toThrow(/capabilities\.0/);
   });
 });

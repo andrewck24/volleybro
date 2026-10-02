@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "id": "0081",
+  "title": "The store branch cannot be deleted or rewritten",
+  "capabilities": ["platform/blueprint"],
+  "context": "The blueprint-changes branch is the durable store of every Change page, and ADR-0075's freeze check reads the G1 version of a Proposal from its history. No ruleset covered it, so it could be deleted or force-pushed, and its earliest commit is already later than a measurement taken of it days before, so its history has been rebuilt once.",
+  "decision": "A GitHub ruleset forbids deleting blueprint-changes and pushing to it anything but a fast-forward. The store shrinks, when it has to, only through ordinary commits or by moving pages to another ref, never by rewriting its history.",
+  "alternatives": [
+    {
+      "option": "Leave the branch unprotected and rely on publish never forcing a push",
+      "reason": "Publish never forces, but a person or a one-off conversion script can, and one already rebuilt the history; the freeze check silently loses the version it compares against."
+    }
+  ],
+  "consequences": [
+    "Converting every page to a new format (ADR-0079) is done with ordinary commits on top of the store, never by rebuilding the branch.",
+    "Rewriting the store's history requires lifting the ruleset first, as an explicit decision."
+  ],
+  "revisitTriggers": [
+    "The store's history has to be rewritten, for example to drop pages that must not be kept, which requires lifting the ruleset as an explicit decision."
+  ],
+  "originChange": "blueprint-contract-guardrails"
+}

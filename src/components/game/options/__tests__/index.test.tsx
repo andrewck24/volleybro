@@ -1,61 +1,28 @@
 import { GameOptions } from "@/components/game/options";
 import { Dialog } from "@/components/ui/dialog";
+import { makeStore } from "@/lib/redux/store";
 import { render, screen } from "@testing-library/react";
-
-jest.mock("@/lib/redux/hooks", () => ({
-  useAppSelector: (selector: (state: unknown) => unknown) =>
-    selector({
-      game: {
-        mode: "general",
-        setIndex: 0,
-        editing: { entryDraft: { id: "" } },
-      },
-      pendingWrites: { pending: [], storageUnavailable: false },
-    }),
-  useAppDispatch: () => jest.fn(),
-}));
-
-// Overview pulls stats out of useGame; stub it so this test can stay focused
-// on the tab/Summary wiring instead of overview's data shape.
-jest.mock("@/components/game/options/overview", () => ({
-  GameOptionsOverview: () => <div data-testid="overview-marker" />,
-}));
-
-// A marker so the test can prove GameOptions never renders the Summary list,
-// regardless of which tab is requested -- it moved out into the `entry-ui`
-// change's drawer (src/components/game/summary-drawer.tsx) and is no longer
-// reachable from this dialog.
-jest.mock("@/components/game/options/summary", () => ({
-  GameOptionsSummary: () => <div data-testid="summary-marker" />,
-}));
+import { Provider } from "react-redux";
 
 describe("GameOptions", () => {
-  it("no longer renders the Summary tab or its content", () => {
+  // The play-by-play list moved to the summary drawer; a tab for it here would
+  // resurrect a second, diverging entry point.
+  it("exposes only the overview and settings tabs", () => {
     render(
-      <Dialog open>
-        <GameOptions
-          gameId="game-1"
-          tabValue="summary"
-          setTabValue={jest.fn()}
-        />
-      </Dialog>,
+      <Provider store={makeStore()}>
+        <Dialog open>
+          <GameOptions
+            gameId="game-1"
+            tabValue="overview"
+            setTabValue={() => {}}
+          />
+        </Dialog>
+      </Provider>,
     );
 
-    expect(screen.queryByRole("tab", { name: "紀錄" })).not.toBeInTheDocument();
-    expect(screen.queryByTestId("summary-marker")).not.toBeInTheDocument();
-  });
-
-  it("only exposes overview and settings tabs", () => {
-    render(
-      <Dialog open>
-        <GameOptions
-          gameId="game-1"
-          tabValue="overview"
-          setTabValue={jest.fn()}
-        />
-      </Dialog>,
-    );
-
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "總覽",
+      "設定",
+    ]);
   });
 });

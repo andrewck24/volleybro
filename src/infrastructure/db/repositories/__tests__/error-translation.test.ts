@@ -41,23 +41,16 @@ describe("Repository error translation", () => {
   });
 
   describe("connection/timeout error → TransientError", () => {
-    it("translates MongoNetworkError to TransientError with database source", () => {
-      const networkError = Object.assign(new Error("connection refused"), {
-        name: "MongoNetworkError",
-      });
-      const result = translateRepositoryError(networkError);
-      expect(result).toBeInstanceOf(TransientError);
-      expect((result as TransientError).source).toBe("database");
-    });
-
-    it("translates MongoNetworkTimeoutError to TransientError with database source", () => {
-      const timeoutError = Object.assign(new Error("connection timed out"), {
-        name: "MongoNetworkTimeoutError",
-      });
-      const result = translateRepositoryError(timeoutError);
-      expect(result).toBeInstanceOf(TransientError);
-      expect((result as TransientError).source).toBe("database");
-    });
+    it.each(["MongoNetworkError", "MongoNetworkTimeoutError"])(
+      "translates %s to a retryable TransientError from the database",
+      (name) => {
+        const result = translateRepositoryError(
+          Object.assign(new Error("connection lost"), { name }),
+        );
+        expect(result).toBeInstanceOf(TransientError);
+        expect(result).toMatchObject({ source: "database", retryable: true });
+      },
+    );
   });
 
   describe("unknown error → UnexpectedError", () => {
@@ -69,10 +62,9 @@ describe("Repository error translation", () => {
     });
 
     it("wraps non-Error as UnexpectedError", () => {
-      const result = translateRepositoryError(
-        "string error" as unknown as Error,
-      );
+      const result = translateRepositoryError("string error");
       expect(result).toBeInstanceOf(UnexpectedError);
+      expect((result as UnexpectedError).originalError).toBe("string error");
     });
   });
 });

@@ -1,9 +1,9 @@
 import {
   createMockAuthenticationService,
   createMockAuthorizationService,
-  createMockGameRepository,
-  createUser,
-} from "@/__tests__/helpers";
+} from "@test/support/doubles/services";
+import { createMockGameRepository } from "@test/support/doubles/repositories";
+import { createUser } from "@test/support/fixtures/entities";
 import { FindGameUseCase } from "@/applications/usecases/game/find-game.usecase";
 import { NotFoundError } from "@/entities/errors";
 import { beforeEach, describe, expect, it } from "@jest/globals";

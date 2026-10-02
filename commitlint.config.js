@@ -24,6 +24,7 @@ const commitlintConfig = {
     "scope-enum": [2, "never", RETIRED_TOOL_SCOPES],
     "blueprint-change-trailer": [2, "always"],
     "no-ai-attribution": [2, "always"],
+    "footer-lookalike": [2, "always"],
   },
 };
 

@@ -1,173 +1,155 @@
-import { createPlayer } from "@/__tests__/helpers";
-import { PlayerRole } from "@/entities/player";
+import {
+  routeRequest,
+  silenceConsoleError,
+} from "@test/support/http/route-request";
+import { PlayerRole, PlayerStatus } from "@/entities/player";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("@/infrastructure/di/inversify.config");
-jest.mock("@/lib/auth-client");
+const mockCreateInvitation = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockUpdateRole = jest.fn<(input: unknown) => Promise<unknown>>();
+const mockGetSession = jest.fn<() => Promise<unknown>>();
 
-describe("Memberships API Route - /api/players/[playerId]/memberships", () => {
-  beforeEach(() => {
+jest.mock("@/interface/controllers/player/membership.controller", () => ({
+  createInvitation: mockCreateInvitation,
+  updateRole: mockUpdateRole,
+}));
+
+jest.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: mockGetSession } },
+}));
+
+const VALID_OBJECT_ID = "507f1f77bcf86cd799439011";
+const SESSION = { user: { id: "user-1" } };
+
+type RouteResponse = { status: number; json: () => Promise<unknown> };
+
+let POST: (
+  req: never,
+  props: { params: Promise<{ playerId: string }> },
+) => Promise<RouteResponse>;
+let PATCH: (
+  req: never,
+  props: { params: Promise<{ playerId: string }> },
+) => Promise<RouteResponse>;
+
+describe("POST /api/players/[playerId]/memberships", () => {
+  beforeEach(async () => {
+    jest.resetModules();
     jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ POST } = await import("../route"));
   });
 
-  describe("POST - Create invitation for PURE_PLAYER", () => {
-    it("should validate email and role in request body", () => {
-      const validBody = { email: "test@example.com", role: PlayerRole.MEMBER };
-      expect(validBody.email).toBeDefined();
-      expect(validBody.role).toBeDefined();
-    });
-
-    it("should default role to MEMBER if not provided", () => {
-      const bodyWithoutRole = { email: "test@example.com" };
-      const defaultRole = PlayerRole.MEMBER;
-      expect(bodyWithoutRole.email).toBeDefined();
-      expect(defaultRole).toBe("MEMBER");
-    });
-
-    it("should reject OWNER role", () => {
-      const validRoles = [PlayerRole.MEMBER, PlayerRole.ADMIN];
-      expect(validRoles).not.toContain(PlayerRole.OWNER);
-    });
-
-    it("should return 201 on successful invitation", () => {
-      const player = createPlayer({
-        id: "player_123",
-        name: "Pure Player",
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "POST",
+      {
+        email: "test@example.com",
         role: PlayerRole.MEMBER,
-        teamId: "team_789",
-      });
+        message: "please join",
+      },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-      const response = {
-        status: 201,
-        data: { ...player, email: "test@example.com" },
-      };
+    const res = await POST(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-      expect(response.status).toBe(201);
-      expect(response.data.email).toBe("test@example.com");
-    });
-
-    it("should return 400 for invalid email", () => {
-      const response = {
-        status: 400,
-        error: "Invalid request data",
-      };
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 401 if not authenticated", () => {
-      const response = { status: 401, error: "Unauthorized" };
-      expect(response.status).toBe(401);
-    });
-
-    it("should return 403 if user is not team admin", () => {
-      const response = {
-        status: 403,
-        error: "User is not an admin of this team",
-      };
-      expect(response.status).toBe(403);
-    });
-
-    it("should return 409 if player already has invitation", () => {
-      const response = {
-        status: 409,
-        error: "Player already has an invitation",
-      };
-      expect(response.status).toBe(409);
-    });
-
-    it("should return 404 if player not found", () => {
-      const response = {
-        status: 404,
-        error: "Player not found",
-      };
-      expect(response.status).toBe(404);
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockCreateInvitation).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
-  describe("PATCH - Update player role", () => {
-    it("should update role to ADMIN", () => {
-      const player = createPlayer({
-        id: "player_123",
-        role: PlayerRole.ADMIN,
-        teamId: "team_123",
-      });
+  // The exact body InviteSection's handleInvite sends (src/components/team/players/membership-section.tsx):
+  it("returns 201 for the payload the invite form actually sends", async () => {
+    const invited = {
+      id: VALID_OBJECT_ID,
+      name: "Pure Player",
+      status: PlayerStatus.INVITED,
+      role: PlayerRole.MEMBER,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mockCreateInvitation.mockResolvedValue(invited);
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "POST",
+      {
+        email: "test@example.com",
+        role: PlayerRole.MEMBER,
+      },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-      const response = {
-        status: 200,
-        data: player,
-      };
+    const res = await POST(req as never, props);
+    const body = await res.json();
 
-      expect(response.status).toBe(200);
-      expect(response.data.role).toBe(PlayerRole.ADMIN);
-    });
-
-    it("should only allow MEMBER or ADMIN roles", () => {
-      const validRoles = [PlayerRole.MEMBER, PlayerRole.ADMIN];
-      expect(validRoles).toContain(PlayerRole.MEMBER);
-      expect(validRoles).toContain(PlayerRole.ADMIN);
-      expect(validRoles).not.toContain(PlayerRole.OWNER);
-    });
-
-    it("should return 400 for invalid role", () => {
-      const response = { status: 400, error: "Invalid request data" };
-      expect(response.status).toBe(400);
-    });
-
-    it("should return 403 if user is not team admin", () => {
-      const response = {
-        status: 403,
-        error: "User is not an admin of this team",
-      };
-      expect(response.status).toBe(403);
-    });
-
-    it("should return 404 if player not found", () => {
-      const response = { status: 404, error: "Player not found" };
-      expect(response.status).toBe(404);
+    expect(res.status).toBe(201);
+    expect(body).toEqual(invited);
+    expect(mockCreateInvitation).toHaveBeenCalledWith({
+      playerId: VALID_OBJECT_ID,
+      email: "test@example.com",
+      role: PlayerRole.MEMBER,
+      userId: SESSION.user.id,
     });
   });
+});
 
-  describe("DELETE - Cancel invitation", () => {
-    it("should cancel invitation for INVITED player", () => {
-      const player = createPlayer({
-        id: "player_123",
-        name: "Invited Player",
-        teamId: "team_789",
-      });
+describe("PATCH /api/players/[playerId]/memberships", () => {
+  beforeEach(async () => {
+    jest.resetModules();
+    jest.clearAllMocks();
+    mockGetSession.mockResolvedValue(SESSION);
+    ({ PATCH } = await import("../route"));
+  });
 
-      const response = {
-        status: 200,
-        data: { ...player, email: undefined },
-      };
+  it("returns 400 for a body with an undeclared field", async () => {
+    const consoleSpy = silenceConsoleError();
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "PATCH",
+      { role: PlayerRole.ADMIN, requestedBy: "user-1" },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-      expect(response.status).toBe(200);
-      expect(response.data.email).toBeUndefined();
-    });
+    const res = await PATCH(req as never, props);
+    const body = (await res.json()) as { code: string };
 
-    it("should return 409 if player is not invited", () => {
-      const response = {
-        status: 409,
-        error: "Player is not an invited member",
-      };
-      expect(response.status).toBe(409);
-    });
+    expect(res.status).toBe(400);
+    expect(body.code).toBe("VALIDATION");
+    expect(mockUpdateRole).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 
-    it("should return 401 if not authenticated", () => {
-      const response = { status: 401, error: "Unauthorized" };
-      expect(response.status).toBe(401);
-    });
+  // The exact body JoinedSection's handleUpdateRole sends (src/components/team/players/membership-section.tsx):
+  it("returns 200 for the payload the role-change control actually sends", async () => {
+    const updated = {
+      id: VALID_OBJECT_ID,
+      name: "Player",
+      status: PlayerStatus.JOINED,
+      role: PlayerRole.ADMIN,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mockUpdateRole.mockResolvedValue(updated);
+    const req = routeRequest(
+      `http://localhost/api/players/${VALID_OBJECT_ID}/memberships`,
+      "PATCH",
+      { role: PlayerRole.ADMIN },
+    );
+    const props = { params: Promise.resolve({ playerId: VALID_OBJECT_ID }) };
 
-    it("should return 403 if user is not team admin", () => {
-      const response = {
-        status: 403,
-        error: "User is not an admin of this team",
-      };
-      expect(response.status).toBe(403);
-    });
+    const res = await PATCH(req as never, props);
+    const body = await res.json();
 
-    it("should return 404 if player not found", () => {
-      const response = { status: 404, error: "Player not found" };
-      expect(response.status).toBe(404);
+    expect(res.status).toBe(200);
+    expect(body).toEqual(updated);
+    expect(mockUpdateRole).toHaveBeenCalledWith({
+      playerId: VALID_OBJECT_ID,
+      newRole: PlayerRole.ADMIN,
+      userId: SESSION.user.id,
     });
   });
 });

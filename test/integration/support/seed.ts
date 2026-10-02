@@ -4,9 +4,9 @@ import { Position } from "@/entities/team";
 import type { Lineup } from "@/entities/team";
 import { container } from "@/infrastructure/di/inversify.config";
 import { TYPES } from "@/infrastructure/di/types";
-import { Types } from "mongoose";
+import { randomBytes } from "node:crypto";
 
-export const oid = () => new Types.ObjectId().toString();
+export const oid = () => randomBytes(12).toString("hex");
 
 const emptyTeam = (
   name: string,
