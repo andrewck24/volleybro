@@ -1,0 +1,52 @@
+/* PROTOTYPE: landing visual-direction keyframes. transform/opacity only. */
+
+/* rotating skill word: 3 words stacked in one grid cell, 6s loop */
+@keyframes proto-word {
+  0% {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+  5%,
+  28% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  33%,
+  100% {
+    opacity: 0;
+    transform: translateY(-0.4em);
+  }
+}
+
+.proto-word {
+  grid-area: 1 / 1;
+  opacity: 0;
+  animation: proto-word 6.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+/* decorative CTA shapes (variant B): solid, no blur, slow drift */
+@keyframes proto-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) rotate(8deg);
+  }
+}
+
+.proto-drift {
+  animation: proto-drift 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proto-word {
+    animation: none;
+  }
+  .proto-word:first-child {
+    opacity: 1;
+  }
+  .proto-drift {
+    animation: none;
+  }
+}
