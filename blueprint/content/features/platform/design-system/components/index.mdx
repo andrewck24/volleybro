@@ -1,0 +1,37 @@
+---
+title: Components
+description: Which folder a component belongs in, how list rows are composed, and how loading, progress and empty states are drawn.
+---
+
+Components live in three layers under `src/components/`, told apart by how much of the app they know about.
+
+| Layer       | Location                          | Domain knowledge                                | Examples                       |
+| ----------- | --------------------------------- | ----------------------------------------------- | ------------------------------ |
+| `ui/`       | `src/components/ui/`              | None                                            | Button, Card, Dialog, Item     |
+| `custom/`   | `src/components/custom/`          | App-specific, e.g. error copy, brand, the court | Court, Panel, ServerErrorState |
+| `{domain}/` | `src/components/{team,game,...}/` | Full domain context                             | LineupPanel, InvitationList    |
+
+## Current behavior
+
+- A component that could be published as a generic package goes in `ui/`; one reused across two or more domain folders with app-specific behavior goes in `custom/`; one used by a single domain stays in that domain's folder.
+- List rows compose the `ui/item` primitives directly in the domain component rather than through thin wrappers in `custom/`. A shared, domain-agnostic building block such as `ItemAvatar` is added to `ui/item.tsx`; data fetching and loading states stay in the component that owns the query, even when that repeats a little layout.
+- A row takes one of two interaction forms: `Item asChild`, where the `Link` or `Button` is the interactive root, for a fully navigable row; or a plain `Item` with `ItemActions` or `ItemFooter` for a static row with inline actions, as invitations are.
+- `Button` takes `loading` and `loadingText`. While loading it is disabled and sets `aria-busy`; `loading` is ignored under `asChild`, where the button renders its child instead. How the spinner and text are drawn, and how a submit button uses them, is in the Forms capability.
+- Progress of an asynchronous action is held locally, with no global loading context. A React Hook Form form reads `formState.isSubmitting`; any other handler keeps an `isSubmitting` state set in a `try`/`finally` around it. Where a list offers the same actions on several rows, a single `processingId` marks the row in progress — `loading={processingId === id}` and `disabled={processingId !== null}` — as invitations do.
+- A component with a loading state defines a `*Skeleton` in its own file, exported when another file renders it, that mirrors its structure: the same wrapper and slot components with the same `className`, one `Skeleton` per piece of real content at roughly its rendered width, and a height matched to the glyph with `my-*` making up the line height (`h-6 my-1` for `text-xl`). A skeleton built on an `Item` sets `hover:bg-transparent`.
+- Not-found and empty-list fallbacks render `Empty` from `src/components/ui/empty.tsx`, composed of `EmptyHeader`, `EmptyMedia` (`icon` or `default` variant), `EmptyTitle`, `EmptyDescription` and `EmptyContent`.
+
+## Constraints
+
+- A row that should navigate as a whole yet keep a few inline controls clickable uses an overlay link: the link is an absolutely positioned sibling inside the `Item` with `absolute inset-0 z-0`, and the action container lifts itself above it with `relative z-10`. Reserve it for that case.
+
+## Known gaps
+
+- No production row uses the overlay-link form at present; `src/stories/ui/item.stories.tsx` keeps the reference. The invitation row's `ItemFooter` still carries the `relative z-10` it needed when it had one.
+- The invitation skeleton sets `hover:bg-muted/50`, and `MatchSkeleton` in `src/components/home/game-history.tsx` keeps `Item`'s default hover; neither sets `hover:bg-transparent`.
+- The court's skeletons, `LoadingCard` and `LoadingCourt` in `src/components/custom/court/index.tsx`, predate the `*Skeleton` naming.
+- The team form reports a missing team with an `Alert` rather than `Empty`.
+
+## Implemented decisions
+
+<DecisionTimeline />
