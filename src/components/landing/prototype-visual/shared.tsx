@@ -1,8 +1,6 @@
 import { LogoType } from "@/components/brand";
-import { Figures } from "@/components/custom/stats/figures";
 import { DarkMode } from "@/components/landing/footer/dark-mode";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 // PROTOTYPE: content + small pieces every visual-direction variant draws from.
 // Layout is NOT shared — each variant owns its own page structure.
@@ -65,58 +63,6 @@ export const LINKS = {
   github: "https://github.com/andrewck24/volleybro",
   feedback: "https://github.com/andrewck24/volleybro/discussions",
 };
-
-export const SKILL_FIGURES = [
-  { label: "發球", values: { left: 6, right: 4 } },
-  { label: "攻擊", values: { left: 14, right: 11 } },
-  { label: "攔網", values: { left: 5, right: 7 } },
-  { label: "接發", values: { left: 3, right: 6 } },
-];
-
-export const SET_SCORES = [
-  { set: 1, home: 25, away: 21 },
-  { set: 2, home: 23, away: 25 },
-  { set: 3, home: 15, away: 12 },
-];
-
-/** Theme-aware app screenshot. */
-export const Shot = ({
-  name,
-  alt,
-  className,
-  sizes = "(min-width: 1024px) 320px, 70vw",
-}: {
-  name: string;
-  alt: string;
-  className?: string;
-  sizes?: string;
-}) => (
-  <div className={cn("relative aspect-[1206/2622] overflow-hidden", className)}>
-    <Image
-      src={`/landing/features/${name}-light.png`}
-      alt={alt}
-      fill
-      sizes={sizes}
-      className="object-cover object-top dark:hidden"
-    />
-    <Image
-      src={`/landing/features/${name}-dark.png`}
-      alt={alt}
-      fill
-      sizes={sizes}
-      className="hidden object-cover object-top dark:block"
-    />
-  </div>
-);
-
-/** Real app stat rows (Figures + BarChart) with sample numbers. */
-export const SkillFigures = ({ className }: { className?: string }) => (
-  <div className={cn("flex w-full flex-col gap-3", className)}>
-    {SKILL_FIGURES.map((f) => (
-      <Figures key={f.label} label={f.label} values={f.values} />
-    ))}
-  </div>
-);
 
 /** Feature title; a planned feature only adds the 開發中 badge. */
 export const FeatureTitle = ({
@@ -187,11 +133,28 @@ export const ProtoFooter = ({ year }: { year: number }) => (
 /** Section spacing reference: round-1 B's ending CTA. */
 export const SECTION = "mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32";
 
-/** Closing-CTA options (`&cta=`), rendered by closing-cta.tsx. */
-export const CTA_OPTIONS = [
-  { key: "1", name: "分差面積 · Recharts" },
-  { key: "2", name: "分差面積 · SVG" },
-  { key: "3", name: "比分翻牌" },
-  { key: "4", name: "Entry 堆疊" },
-  { key: "5", name: "靜態" },
+/* ---------- round-4 switchable params (B1 only) ---------- */
+
+/** All CTA buttons: destructive ground + black text (8.06:1). */
+export const BTN_DESTRUCTIVE =
+  "bg-destructive font-bold text-black hover:bg-destructive/90";
+
+/** `&header=` — `h` is the header's overlay height (hero/steps pad by it). */
+export const HEADER_OPTIONS = [
+  { key: "1", name: "玻璃（現行 header 改）", h: "4rem" },
+  { key: "2", name: "實色記分板條", h: "3.5rem" },
+  { key: "3", name: "浮動膠囊", h: "3.75rem" },
+];
+
+/** `&ctaLayout=` — closing-CTA arrangement below lg (lg+ is always side by side). */
+export const CTA_LAYOUTS = [
+  { key: "1", name: "文字在上、圖在下" },
+  { key: "2", name: "圖鋪底、文字疊上" },
+  { key: "3", name: "圖夾在說明與按鈕間" },
+];
+
+/** `&curve=` — diff line shape. */
+export const CURVES = [
+  { key: "sharp", name: "折線" },
+  { key: "round", name: "圓滑（monotone cubic）" },
 ];

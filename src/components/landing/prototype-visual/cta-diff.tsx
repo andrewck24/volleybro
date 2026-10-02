@@ -1,63 +1,146 @@
 "use client";
 import { diffsOf, useRally } from "@/components/landing/prototype-visual/rally";
-import { useId } from "react";
+import { cn } from "@/lib/utils";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 
-// PROTOTYPE: shared bits of the split-area point-diff CTA backgrounds.
-// Pure visual: no labels, legend or axis text. Above the 0 baseline = primary
-// (chart-1), below = destructive (chart-2), area between line and baseline
-// filled semi-transparent. New rallies are revealed by a "curtain" that
-// shrinks with scaleX (transform only).
+// PROTOTYPE: closing-CTA split-area point-diff chart, hand-written SVG.
+// Pure visual (no labels/axes). Above the 0 baseline = chart-1 (primary),
+// below = chart-2 (destructive), semi-transparent area down/up to the
+// baseline. The split is two static clipPaths at the baseline, so it stays
+// exact for the rounded curve too.
+//
+// X spacing: the line always spans the whole canvas. While the set has fewer
+// points than `cap` (how many fit at MIN_PX spacing), spacing = W/(n-1) and
+// shrinks every rally: the plot group re-mounts with the new paths and plays
+// scaleX(old/new) → 1, so old points glide left and the newest enters from the
+// right. Past `cap`, spacing is fixed and the group plays translateX(+step) → 0
+// so the oldest points slide out left. Paths are recomputed once per rally;
+// nothing runs per frame.
 
-export const WINDOW = 50;
-export const MAXD = 8;
-const clamp = (d: number) => Math.max(-MAXD, Math.min(MAXD, d));
+const W = 1000;
+const H = 300;
+const MAXD = 8;
+const PAD = 12;
+const MIN_PX = 12;
+const y = (d: number) =>
+  H / 2 - (Math.max(-MAXD, Math.min(MAXD, d)) / MAXD) * (H / 2 - PAD);
 
-/** Visible slice of the running differential, clamped to the y domain. */
-export const useDiffWindow = () => {
+type Pt = [number, number];
+
+const sharp = (p: Pt[]) =>
+  p.map(([x, v], i) => `${i ? "L" : "M"}${x} ${v}`).join(" ");
+
+/** Monotone cubic (Fritsch–Carlson): no overshoot, so the curve never
+ *  crosses the baseline between two points on the same side. */
+const round = (p: Pt[]) => {
+  const n = p.length;
+  if (n < 3) return sharp(p);
+  const dx: number[] = [];
+  const m: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    dx[i] = p[i + 1]![0] - p[i]![0];
+    m[i] = (p[i + 1]![1] - p[i]![1]) / dx[i]!;
+  }
+  const t: number[] = [m[0]!];
+  for (let i = 1; i < n - 1; i++)
+    t[i] = m[i - 1]! * m[i]! <= 0 ? 0 : (m[i - 1]! + m[i]!) / 2;
+  t[n - 1] = m[n - 2]!;
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) {
+      t[i] = t[i + 1] = 0;
+      continue;
+    }
+    const a = t[i]! / m[i]!;
+    const b = t[i + 1]! / m[i]!;
+    const s = a * a + b * b;
+    if (s > 9) {
+      const k = 3 / Math.sqrt(s);
+      t[i] = k * a * m[i]!;
+      t[i + 1] = k * b * m[i]!;
+    }
+  }
+  let d = `M${p[0]![0]} ${p[0]![1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i]! / 3;
+    const [x0, y0] = p[i]!;
+    const [x1, y1] = p[i + 1]!;
+    d += ` C${x0 + h} ${y0 + t[i]! * h} ${x1 - h} ${y1 - t[i + 1]! * h} ${x1} ${y1}`;
+  }
+  return d;
+};
+
+export const DiffChart = ({
+  curve,
+  className,
+}: {
+  curve: string;
+  className?: string;
+}) => {
   const { set, setNo, live } = useRally();
-  const all = diffsOf(set);
-  const start = Math.max(0, all.length - 1 - WINDOW);
-  const d = all.slice(start).map(clamp);
-  return { d, n: d.length - 1, setNo, live };
-};
-
-/** Covers x > previous point, then shrinks to x > newest point. */
-export const Curtain = ({ n, live }: { n: number; live: boolean }) => {
-  if (!live || n < 1 || n > WINDOW) return null;
-  const from = (n - 1) / WINDOW;
-  const to = n / WINDOW;
-  return (
-    <div
-      key={n}
-      aria-hidden
-      className="proto-curtain absolute inset-y-0 right-0 bg-background"
-      style={
-        {
-          left: `${from * 100}%`,
-          "--s": (1 - to) / (1 - from),
-        } as React.CSSProperties
-      }
-    />
-  );
-};
-
-/** Hand-written SVG split-area chart. */
-export const DiffAreaSvg = () => {
-  const { d, n, setNo, live } = useDiffWindow();
+  const box = useRef<HTMLDivElement>(null);
+  const [cap, setCap] = useState(40);
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const W = 1000;
-  const H = 300;
-  const x = (i: number) => (i / WINDOW) * W;
-  const y = (v: number) => H / 2 - (v / MAXD) * (H / 2);
-  const line = d.map((v, i) => `${i ? "L" : "M"}${x(i)} ${y(v)}`).join(" ");
-  const area = `${line} L${x(n)} ${H / 2} L0 ${H / 2} Z`;
+
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) =>
+      setCap(Math.max(8, Math.floor(e!.contentRect.width / MIN_PX) + 1)),
+    );
+    ro.observe(box.current!);
+    return () => ro.disconnect();
+  }, []);
+
+  const all = diffsOf(set);
+  const n = all.length;
+  let pts: Pt[];
+  let anim: { cls: string; style: CSSProperties } | null = null;
+  if (n <= cap) {
+    const s = W / Math.max(1, n - 1);
+    pts = all.map((v, i) => [i * s, y(v)]);
+    if (n > 2)
+      anim = {
+        cls: "proto-squeeze",
+        style: { "--k": (n - 1) / (n - 2) } as CSSProperties,
+      };
+  } else {
+    const s = W / (cap - 1);
+    const first = n - cap - 1; // one extra point off-canvas left
+    pts = all.slice(first).map((v, j) => [(j - 1) * s, y(v)]);
+    anim = { cls: "proto-slide", style: { "--dx": s } as CSSProperties };
+  }
+
+  const line = (curve === "round" ? round : sharp)(pts);
+  const area = `${line} L${pts.at(-1)![0]} ${H / 2} L${pts[0]![0]} ${H / 2} Z`;
+
+  const plot = (side: "u" | "d") => (
+    <g clipPath={`url(#${id}${side})`}>
+      <g
+        key={n}
+        className={cn("proto-plot", live && anim?.cls)}
+        style={live ? anim?.style : undefined}
+      >
+        <path
+          d={area}
+          className={side === "u" ? "fill-chart-1/20" : "fill-chart-2/20"}
+        />
+        <path
+          d={line}
+          fill="none"
+          strokeWidth={3}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+          className={side === "u" ? "stroke-chart-1" : "stroke-chart-2"}
+        />
+      </g>
+    </g>
+  );
 
   return (
-    <>
+    <div ref={box} data-rally aria-hidden className={cn("relative", className)}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="none"
-        className="size-full"
+        className="size-full overflow-hidden"
       >
         <defs>
           <clipPath id={`${id}u`}>
@@ -68,31 +151,10 @@ export const DiffAreaSvg = () => {
           </clipPath>
         </defs>
         <g key={setNo} className={live ? "proto-fade" : undefined}>
-          <path
-            d={area}
-            clipPath={`url(#${id}u)`}
-            className="fill-chart-1/20"
-          />
-          <path
-            d={area}
-            clipPath={`url(#${id}d)`}
-            className="fill-chart-2/20"
-          />
-          {(["u", "d"] as const).map((k) => (
-            <path
-              key={k}
-              d={line}
-              fill="none"
-              strokeWidth={3}
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-              clipPath={`url(#${id}${k})`}
-              className={k === "u" ? "stroke-chart-1" : "stroke-chart-2"}
-            />
-          ))}
+          {plot("u")}
+          {plot("d")}
         </g>
       </svg>
-      <Curtain n={n} live={live} />
-    </>
+    </div>
   );
 };

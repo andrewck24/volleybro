@@ -157,55 +157,30 @@ const Screen = () => (
   </div>
 );
 
-export type StepsTone = "b1" | "b2" | "b3";
-
-const Numeral = ({ i, tone }: { i: number; tone: StepsTone }) => {
+const Numeral = ({ i }: { i: number }) => {
   const last = i === N - 1;
-  if (tone === "b2")
-    return (
-      <span
-        className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-lg text-2xl font-black",
-          last
-            ? "bg-[#FC7A56] text-neutral-950"
-            : "bg-primary text-primary-foreground",
-        )}
-      >
-        {last ? "✓" : i + 1}
-      </span>
-    );
   return (
     <span
       className={cn(
-        "shrink-0 leading-none font-black tabular-nums",
-        tone === "b1" ? "text-6xl" : "text-4xl",
+        "shrink-0 text-6xl leading-none font-black tabular-nums",
         last ? "text-chart-2" : "text-chart-1",
       )}
     >
-      {last ? "✓" : tone === "b1" ? `0${i + 1}` : i + 1}
+      {last ? "✓" : `0${i + 1}`}
     </span>
   );
 };
 
-const Texts = ({ tone }: { tone: StepsTone }) => (
-  <div
-    className={cn(
-      styles.texts,
-      "grid w-full max-w-md",
-      tone === "b2" && "mx-auto",
-    )}
-  >
+const Texts = () => (
+  <div className={cn(styles.texts, "grid w-full max-w-md")}>
     {STEPS.map((s, i) => (
       <Layer
         key={s.title}
         vals={one(i)}
         kind="o"
-        className={cn(
-          "col-start-1 row-start-1 flex gap-5",
-          tone === "b2" && "flex-col items-center text-center",
-        )}
+        className="col-start-1 row-start-1 flex gap-5"
       >
-        <Numeral i={i} tone={tone} />
+        <Numeral i={i} />
         <div className="flex flex-col gap-1">
           <p className="text-xs font-bold tracking-widest text-muted-foreground">
             步驟 {i + 1} / {N}
@@ -218,20 +193,51 @@ const Texts = ({ tone }: { tone: StepsTone }) => (
   </div>
 );
 
-const Heading = ({ center }: { center?: boolean }) => (
-  <div className={cn("flex flex-col gap-4", center && "text-center")}>
-    <h2 className="text-3xl leading-tight font-black md:text-5xl">
-      {COPY.recordTitle}
-    </h2>
-    <p className="hidden text-lg text-muted-foreground md:block">
-      {COPY.recordLead}
-    </p>
-  </div>
-);
+/**
+ * Mandatory snap, scoped: `html.proto-steps-snap` (scroll-snap-type: y
+ * mandatory) is on only while the viewport is inside the section, from
+ * "section top at viewport top" through "section bottom at viewport bottom"
+ * (both ends inclusive) — i.e. while none of the page content before or after
+ * the section is visible. IntersectionObserver watches those sibling blocks
+ * (not 1px markers, which a fast fling or End key can jump over without a
+ * callback); any jump that changes the answer flips one of them.
+ * Snap targets: the 4 step tracks plus two exit markers just outside the
+ * section — one whose bottom aligns to the viewport bottom (one screen above
+ * the first step) and one at the section's end (next section at the top). A
+ * scroll past the first/last step lands on an exit marker, the class drops,
+ * and the rest of the page scrolls freely; it never traps. Event-driven,
+ * nothing per frame.
+ */
+const useScopedSnap = (box: React.RefObject<HTMLElement | null>) => {
+  useEffect(() => {
+    const section = box.current!;
+    const outside = [...section.parentElement!.children].filter(
+      (el) => el !== section && getComputedStyle(el).position !== "fixed",
+    );
+    const seen = new Set<Element>();
+    const root = document.documentElement;
+    const io = new IntersectionObserver(
+      (es) => {
+        for (const e of es) {
+          if (e.isIntersecting) seen.add(e.target);
+          else seen.delete(e.target);
+        }
+        root.classList.toggle("proto-steps-snap", seen.size === 0);
+      },
+      { rootMargin: "-2px 0px -2px 0px" },
+    );
+    outside.forEach((el) => io.observe(el));
+    return () => {
+      io.disconnect();
+      root.classList.remove("proto-steps-snap");
+    };
+  }, [box]);
+};
 
-export const ScrollSteps = ({ tone }: { tone: StepsTone }) => {
+export const ScrollSteps = () => {
   const box = useRef<HTMLElement>(null);
   const [step, setStep] = useState(0);
+  useScopedSnap(box);
 
   useEffect(() => {
     if (CSS.supports("animation-timeline: view()")) return;
@@ -250,42 +256,37 @@ export const ScrollSteps = ({ tone }: { tone: StepsTone }) => {
   return (
     <StepCtx value={step}>
       <section ref={box} className={cn(styles.section, "relative")}>
+        <div
+          aria-hidden
+          data-snap="top"
+          className="absolute inset-x-0 -top-px h-px snap-end"
+        />
         <div className={styles.sticky}>
-          {tone === "b1" && (
-            <div className="mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-8 px-4 pt-14 md:px-8 lg:flex-row lg:justify-between lg:gap-24">
-              <div className="flex w-full flex-col gap-8 lg:gap-14">
-                <Heading />
-                <Texts tone={tone} />
+          <div className="mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-8 px-4 pt-[var(--header-h)] md:px-8 lg:flex-row lg:justify-between lg:gap-24">
+            <div className="flex w-full flex-col gap-8 lg:gap-14">
+              <div className="flex flex-col gap-4">
+                <h2 className="text-3xl leading-tight font-black md:text-5xl">
+                  {COPY.recordTitle}
+                </h2>
+                <p className="hidden text-lg text-muted-foreground md:block">
+                  {COPY.recordLead}
+                </p>
               </div>
-              <Screen />
+              <Texts />
             </div>
-          )}
-          {tone === "b2" && (
-            <div className="mx-auto flex h-full max-w-7xl flex-col items-center justify-center gap-8 px-4 pt-14 md:px-8">
-              <Heading center />
-              <div className="flex w-full flex-col items-center gap-8 lg:flex-row lg:justify-center lg:gap-20">
-                <Screen />
-                <Texts tone={tone} />
-              </div>
-            </div>
-          )}
-          {tone === "b3" && (
-            <div className="grid h-full grid-cols-1 pt-14 lg:grid-cols-2">
-              <div className="flex items-center justify-center bg-card px-4 py-6">
-                <Screen />
-              </div>
-              <div className="flex flex-col justify-center gap-8 px-4 py-6 md:px-12 lg:px-16">
-                <Heading />
-                <Texts tone={tone} />
-              </div>
-            </div>
-          )}
+            <Screen />
+          </div>
         </div>
         <div className={styles.tracks} aria-hidden>
           {STEPS.map((s, i) => (
             <div key={s.title} data-i={i} className={styles.track} />
           ))}
         </div>
+        <div
+          aria-hidden
+          data-snap="bottom"
+          className="absolute inset-x-0 -bottom-px h-px snap-start"
+        />
       </section>
     </StepCtx>
   );

@@ -8,12 +8,6 @@
   view-timeline: --steps block;
 }
 
-/* snap only has targets inside this section; proximity (not mandatory) so
-   the rest of the page scrolls freely and nothing can trap the reader */
-:global(html):has(.section) {
-  scroll-snap-type: y proximity;
-}
-
 /* invisible scroll tracks, one per step, laid over the sticky stage */
 .tracks {
   margin-top: -100svh;
@@ -100,9 +94,6 @@
 /* landscape phones: no sticky, no snap, steps stacked statically and the
    mock screen shown at its final (送出) state */
 @media (max-height: 500px) {
-  :global(html):has(.section) {
-    scroll-snap-type: none;
-  }
   .sticky {
     position: static;
     height: auto;

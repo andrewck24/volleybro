@@ -1,58 +1,61 @@
-import { LogoType } from "@/components/brand";
 import { CTAButton } from "@/components/landing/cta-button";
+import { ClosingCta } from "@/components/landing/prototype-visual/closing-cta";
 import {
   AnimatedTeamsStats,
   MatchScoreboard,
 } from "@/components/landing/prototype-visual/game-bits";
+import { ProtoHeader } from "@/components/landing/prototype-visual/headers";
 import {
   EntryRows,
   RallyWord,
 } from "@/components/landing/prototype-visual/rally";
+import { ScrollSteps } from "@/components/landing/prototype-visual/scroll-steps";
 import {
+  BTN_DESTRUCTIVE,
   COPY,
   FeatureTitle,
+  HEADER_OPTIONS,
   KIT,
   ProtoFooter,
   SECTION,
   STATS,
 } from "@/components/landing/prototype-visual/shared";
-import { ClosingCta } from "@/components/landing/prototype-visual/closing-cta";
-import { ScrollSteps } from "@/components/landing/prototype-visual/scroll-steps";
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
-// PROTOTYPE variant B1 — 「記分板」: the hero is a scoreboard that is dark in
-// both themes (`dark` token scope), so the entry rows (bg-card) read clearly.
-// Running point-diff chart + entry list + skill word share one rally clock.
-// Ending CTA keeps solid coral-block shapes, fully static (no drift).
+// PROTOTYPE variant B1 — 「記分板」 (picked in round 3). The hero is a
+// scoreboard that is dark in both themes (`dark` token scope) so the entry
+// rows (bg-card) read clearly. Header (&header=), closing-CTA arrangement
+// below lg (&ctaLayout=) and diff-line shape (&curve=) are switchable.
+// Every header overlays the page; --header-h is its height.
 
-const CORAL = "bg-[#FC7A56] text-neutral-950";
-const CORAL_BTN = `${CORAL} hover:bg-[#FC7A56]/90`;
+export const VariantB1 = ({
+  year,
+  header,
+  ctaLayout,
+  curve,
+}: {
+  year: number;
+  header: string;
+  ctaLayout: string;
+  curve: string;
+}) => (
+  <main
+    className="min-h-full w-full bg-background text-foreground select-text"
+    style={
+      {
+        "--header-h": HEADER_OPTIONS.find((h) => h.key === header)!.h,
+      } as CSSProperties
+    }
+  >
+    <ProtoHeader option={header} />
 
-export const VariantB1 = ({ year, cta }: { year: number; cta: string }) => (
-  <main className="min-h-full w-full bg-background text-foreground select-text">
-    <header className="dark sticky top-0 z-50 bg-background text-foreground">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
-        <div className="flex items-center gap-3">
-          <LogoType className="h-5 md:h-6" />
-          <span
-            className={`rounded-sm px-1.5 py-0.5 text-xs font-black ${CORAL}`}
-          >
-            預覽版
-          </span>
-        </div>
-        <CTAButton className={`h-9 font-bold ${CORAL_BTN}`} />
-      </div>
-    </header>
-
-    {/* Hero — scoreboard, dark in both themes */}
+    {/* Hero — scoreboard, dark in both themes. Below lg it is exactly one
+        screen (proto-hero, 100svh incl. the overlaid header); the list takes
+        the space left and is clipped by a fade. */}
     <div className="dark bg-background text-foreground">
-      <section
-        className={cn(
-          SECTION,
-          "grid grid-cols-1 gap-16 pt-16 md:pt-24 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-20",
-        )}
-      >
-        <div className="flex flex-col gap-8">
+      <section className="proto-hero mx-auto flex max-w-7xl flex-col px-4 pt-[calc(var(--header-h)+2rem)] pb-6 md:px-8 md:pt-[calc(var(--header-h)+4rem)] lg:grid lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-20 lg:pt-[calc(var(--header-h)+6rem)] lg:pb-32">
+        <div className="flex flex-col gap-6 md:gap-8">
           <h1 className="text-4xl leading-[1.1] font-black tracking-tight md:text-7xl">
             {COPY.heroTitle[0]}
             <br />
@@ -60,25 +63,27 @@ export const VariantB1 = ({ year, cta }: { year: number; cta: string }) => (
           </h1>
           <p className="text-xl leading-snug font-bold text-muted-foreground md:text-3xl">
             {COPY.heroDesc[0]}
-            <RallyWord className={`mx-2 rounded-md px-2 ${CORAL}`} />
+            <RallyWord className="mx-2 rounded-md bg-destructive px-2 text-black" />
             {COPY.heroDesc[1]}
           </p>
           <div className="flex flex-col items-start gap-3 lg:flex-row lg:items-center lg:gap-5">
             <CTAButton
               size="lg"
-              className={`h-14 px-10 text-lg font-black ${CORAL_BTN}`}
+              className={cn("h-14 px-10 text-lg font-black", BTN_DESTRUCTIVE)}
             >
               開始記錄
             </CTAButton>
             <p className="text-sm text-muted-foreground">{COPY.heroNote}</p>
           </div>
         </div>
-        <EntryRows className="mx-auto lg:mr-0" />
+        <div className="mt-8 min-h-0 flex-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent)] lg:mt-0 lg:flex-none lg:overflow-visible lg:[mask-image:none]">
+          <EntryRows className="mx-auto lg:mr-0" />
+        </div>
       </section>
     </div>
 
     {/* 記錄怎麼做 — scroll-driven steps */}
-    <ScrollSteps tone="b1" />
+    <ScrollSteps />
 
     {/* 數據自動長出來 */}
     <section className={SECTION}>
@@ -127,8 +132,8 @@ export const VariantB1 = ({ year, cta }: { year: number; cta: string }) => (
       </ul>
     </section>
 
-    {/* 結尾 CTA — switchable via &cta= */}
-    <ClosingCta option={cta} />
+    {/* 結尾 CTA — hand-SVG diff chart; &ctaLayout= / &curve= */}
+    <ClosingCta layout={ctaLayout} curve={curve} />
 
     <ProtoFooter year={year} />
   </main>

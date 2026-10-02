@@ -7,17 +7,17 @@ import { Highlights } from "@/components/landing/highlights";
 import {
   LandingVariant,
   isLandingVariant,
+  type LandingParams,
 } from "@/components/landing/prototype-visual";
 import "@/styles/landing.css";
 
 const LandingPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ variant?: string; cta?: string }>;
+  searchParams: Promise<LandingParams>;
 }) => {
-  const { variant, cta } = await searchParams;
-  if (isLandingVariant(variant))
-    return <LandingVariant variant={variant} cta={cta} />;
+  const params = await searchParams;
+  if (isLandingVariant(params.variant)) return <LandingVariant {...params} />;
 
   return (
     <main className="min-h-full w-full bg-background select-text">
