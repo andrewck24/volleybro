@@ -2,7 +2,7 @@
 
 This document defines how to keep VolleyBro's dependencies and test infrastructure healthy over time. Follow these rules when upgrading any package.
 
-See also: [Testing Strategy](./testing-strategy.md) · [Architecture Overview](./architecture.md) · [Contributing Guide](../CONTRIBUTING.md)
+See also: [Testing Strategy](./testing-strategy.md) · [Contributing Guide](../CONTRIBUTING.md)
 
 ---
 

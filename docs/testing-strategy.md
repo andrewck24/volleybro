@@ -2,7 +2,7 @@
 
 This document defines which tier a test belongs to, what it may replace, and where it lives. Consult it before writing a new test file. The decisions behind it are ADR-0085 to ADR-0092 in `blueprint/content/decisions/`.
 
-See also: [Architecture Overview](./architecture.md) · [Maintenance Policy](./maintenance-policy.md)
+See also: [Maintenance Policy](./maintenance-policy.md)
 
 ---
 
@@ -128,6 +128,7 @@ Frontend component tests are split across two tools with distinct responsibiliti
 
 - Test user interactions, conditional rendering, and accessibility (`jest-axe`)
 - Assert on visible output and DOM state — not on CSS classes or computed styles
+- Query by role or text first; reach for a kebab-case `data-testid` only for a structural element with no accessible role, and add it when the component or its skeleton is created
 - **No CSS assertions**: Tailwind class names change independently of visual output; asserting on them creates false negatives and false positives
 
 ### Storybook + Chromatic (visual regression)
