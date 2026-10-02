@@ -62,6 +62,21 @@
   animation: proto-fade 500ms ease-out both;
 }
 
+/* CTA diff chart: curtain over the newest segment shrinks away */
+@keyframes proto-curtain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(var(--s));
+  }
+}
+
+.proto-curtain {
+  transform-origin: right;
+  animation: proto-curtain 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 /* B0 only: decorative CTA shapes, solid, slow drift */
 @keyframes proto-drift {
   0%,
@@ -84,7 +99,8 @@
   .proto-drift {
     animation: none;
   }
-  .proto-word-out {
+  .proto-word-out,
+  .proto-curtain {
     display: none;
   }
 }

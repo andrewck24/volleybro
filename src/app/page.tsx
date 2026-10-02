@@ -13,10 +13,11 @@ import "@/styles/landing.css";
 const LandingPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ variant?: string }>;
+  searchParams: Promise<{ variant?: string; cta?: string }>;
 }) => {
-  const { variant } = await searchParams;
-  if (isLandingVariant(variant)) return <LandingVariant variant={variant} />;
+  const { variant, cta } = await searchParams;
+  if (isLandingVariant(variant))
+    return <LandingVariant variant={variant} cta={cta} />;
 
   return (
     <main className="min-h-full w-full bg-background select-text">

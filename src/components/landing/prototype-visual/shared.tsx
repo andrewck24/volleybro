@@ -186,3 +186,12 @@ export const ProtoFooter = ({ year }: { year: number }) => (
 
 /** Section spacing reference: round-1 B's ending CTA. */
 export const SECTION = "mx-auto max-w-7xl px-4 py-24 md:px-8 md:py-32";
+
+/** Closing-CTA options (`&cta=`), rendered by closing-cta.tsx. */
+export const CTA_OPTIONS = [
+  { key: "1", name: "分差面積 · Recharts" },
+  { key: "2", name: "分差面積 · SVG" },
+  { key: "3", name: "比分翻牌" },
+  { key: "4", name: "Entry 堆疊" },
+  { key: "5", name: "靜態" },
+];

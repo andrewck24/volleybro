@@ -12,7 +12,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -49,7 +48,15 @@ type Rally = {
 };
 
 const RallyCtx = createContext<Rally | null>(null);
-const useRally = () => useContext(RallyCtx)!;
+export const useRally = () => useContext(RallyCtx)!;
+
+/** Running point differential (home − away), oldest rally first, from 0. */
+export const diffsOf = (set: SetState) => {
+  const out = [0];
+  for (const win of [...set.entries].reverse())
+    out.push(out.at(-1)! + (win ? 1 : -1));
+  return out;
+};
 
 export const RallyProvider = ({
   children,
@@ -77,15 +84,22 @@ export const RallyProvider = ({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  // clock runs while any [data-rally] consumer (hero list, CTA visual) is on
+  // screen and the tab is visible
   useEffect(() => {
-    let onScreen = true;
+    const targets = [...box.current!.querySelectorAll("[data-rally]")];
+    if (!targets.length) targets.push(box.current!);
+    const seen = new Set<Element>();
     let shown = !document.hidden;
-    const update = () => setActive(onScreen && shown);
-    const io = new IntersectionObserver(([e]) => {
-      onScreen = e!.isIntersecting;
+    const update = () => setActive(seen.size > 0 && shown);
+    const io = new IntersectionObserver((es) => {
+      for (const e of es) {
+        if (e.isIntersecting) seen.add(e.target);
+        else seen.delete(e.target);
+      }
       update();
     });
-    io.observe(box.current!);
+    targets.forEach((t) => io.observe(t));
     const onVis = () => {
       shown = !document.hidden;
       update();
@@ -234,6 +248,7 @@ export const EntryRows = ({
   return (
     <div
       aria-hidden
+      data-rally
       className={cn(
         "relative w-full max-w-md [mask-image:linear-gradient(to_bottom,black_60%,transparent)]",
         className,
@@ -250,103 +265,6 @@ export const EntryRows = ({
           rowClassName={rowClassName}
         />
       ))}
-    </div>
-  );
-};
-
-/* ---------- Point-differential chart ---------- */
-
-const MAXD = 8;
-const PAD = 10;
-
-/** `w`/`h` = viewBox size, `window` = rallies visible before it scrolls. */
-export const DiffChart = ({
-  className,
-  w: W = 320,
-  h: H = 120,
-  window: WINDOW = 36,
-}: {
-  className?: string;
-  w?: number;
-  h?: number;
-  window?: number;
-}) => {
-  const { set, setNo, live } = useRally();
-  const STEP = W / WINDOW;
-  const yOf = (d: number) =>
-    H / 2 - (Math.max(-MAXD, Math.min(MAXD, d)) / MAXD) * (H / 2 - PAD);
-  const diffs = useMemo(() => {
-    const out = [0];
-    for (const win of [...set.entries].reverse())
-      out.push(out.at(-1)! + (win ? 1 : -1));
-    return out;
-  }, [set]);
-  const n = diffs.length - 1;
-  const shift = Math.max(0, n - WINDOW + 2) * STEP;
-  const lead = set.home - set.away;
-  const move = live ? `transform 500ms ${EASE}` : "none";
-
-  return (
-    <div className={cn("flex w-full flex-col gap-2", className)}>
-      <div
-        aria-hidden
-        className="flex items-baseline justify-between text-sm font-semibold tabular-nums"
-      >
-        <span className="text-chart-1">我方 {set.home}</span>
-        <span className="text-xs font-medium text-muted-foreground">
-          {lead === 0
-            ? "平手"
-            : lead > 0
-              ? `我方領先 ${lead}`
-              : `對手領先 ${-lead}`}
-        </span>
-        <span className="text-chart-2">{set.away} 對手</span>
-      </div>
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label="逐球分差走勢：線往上代表我方得分，往下代表對手得分"
-        className="h-auto w-full overflow-hidden"
-      >
-        <line
-          x1={0}
-          x2={W}
-          y1={H / 2}
-          y2={H / 2}
-          strokeDasharray="4 4"
-          className="stroke-muted-foreground/50"
-        />
-        <g key={setNo} className={live ? "proto-fade" : undefined}>
-          <g style={{ transform: `translateX(${-shift}px)`, transition: move }}>
-            {diffs.slice(1).map((d, i) => (
-              <line
-                key={i}
-                x1={i * STEP + 4}
-                y1={yOf(diffs[i]!)}
-                x2={(i + 1) * STEP + 4}
-                y2={yOf(d)}
-                pathLength={1}
-                strokeWidth={3}
-                strokeLinecap="round"
-                className={cn(
-                  d > diffs[i]! ? "stroke-chart-1" : "stroke-chart-2",
-                  live && i === n - 1 && "proto-draw",
-                )}
-              />
-            ))}
-            <circle
-              r={5}
-              cx={0}
-              cy={0}
-              className="fill-foreground"
-              style={{
-                transform: `translate(${n * STEP + 4}px, ${yOf(diffs[n]!)}px)`,
-                transition: move,
-              }}
-            />
-          </g>
-        </g>
-      </svg>
     </div>
   );
 };
@@ -389,10 +307,3 @@ export const RallyWord = ({
     </span>
   );
 };
-
-/** B0 compatibility: provider + list in one. */
-export const HeroEntryList = ({ className }: { className?: string }) => (
-  <RallyProvider className="w-full max-w-md">
-    <EntryRows className={className} />
-  </RallyProvider>
-);

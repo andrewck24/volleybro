@@ -1,0 +1,132 @@
+/* PROTOTYPE: 「每球三步」 scroll-driven steps, ported from
+   prototype/section3-scroll-steps variant B3 (prototype-native.module.css).
+   The section (4 x 100svh tracks) is the view-timeline subject;
+   `contain 0%..100%` maps section-top-at-viewport-top .. section-bottom-at-
+   viewport-bottom onto steps 0..3. Layer values come from --v0..--v3. */
+
+.section {
+  view-timeline: --steps block;
+}
+
+/* snap only has targets inside this section; proximity (not mandatory) so
+   the rest of the page scrolls freely and nothing can trap the reader */
+:global(html):has(.section) {
+  scroll-snap-type: y proximity;
+}
+
+/* invisible scroll tracks, one per step, laid over the sticky stage */
+.tracks {
+  margin-top: -100svh;
+}
+
+.track {
+  height: 100svh;
+  scroll-snap-align: start;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+}
+
+/* fallback (no animation-timeline): IntersectionObserver picks the step,
+   inline style + one CSS transition */
+.layer {
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer {
+    transition: none;
+  }
+}
+
+@keyframes y {
+  0% {
+    transform: translateY(var(--v0));
+  }
+  33.333% {
+    transform: translateY(var(--v1));
+  }
+  66.667% {
+    transform: translateY(var(--v2));
+  }
+  100% {
+    transform: translateY(var(--v3));
+  }
+}
+
+@keyframes o {
+  0% {
+    opacity: var(--v0);
+  }
+  33.333% {
+    opacity: var(--v1);
+  }
+  66.667% {
+    opacity: var(--v2);
+  }
+  100% {
+    opacity: var(--v3);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .layer {
+    transition: none;
+    animation-duration: auto;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: --steps;
+    animation-range: contain 0% contain 100%;
+  }
+  .y {
+    animation-name: y;
+  }
+  .o {
+    animation-name: o;
+  }
+  /* reduced motion: hold each keyframe value until the next = instant swaps */
+  @media (prefers-reduced-motion: reduce) {
+    .layer {
+      animation-timing-function: step-end;
+    }
+  }
+}
+
+/* landscape phones: no sticky, no snap, steps stacked statically and the
+   mock screen shown at its final (送出) state */
+@media (max-height: 500px) {
+  :global(html):has(.section) {
+    scroll-snap-type: none;
+  }
+  .sticky {
+    position: static;
+    height: auto;
+    padding-block: 6rem;
+  }
+  .tracks {
+    display: none;
+  }
+  .layer {
+    animation: none !important;
+    transition: none !important;
+  }
+  .y {
+    transform: translateY(var(--v3)) !important;
+  }
+  .o {
+    opacity: var(--v3) !important;
+  }
+  .texts {
+    display: flex !important;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .texts > .o {
+    opacity: 1 !important;
+  }
+}

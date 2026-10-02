@@ -28,7 +28,7 @@ const numerals = { className: "font-sans" };
 
 const CORAL = "bg-[#FC7A56] text-neutral-950";
 
-export const VariantB0 = ({ year }: { year: number }) => (
+export const VariantB0 = ({ year }: { year: number; cta?: string }) => (
   <main className="min-h-full w-full bg-background text-foreground select-text">
     <header className="sticky top-0 z-50 bg-primary text-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
