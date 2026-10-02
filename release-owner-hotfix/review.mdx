@@ -1,0 +1,77 @@
+import { scenarios } from "./proposal.mdx";
+
+<ActionItems>
+
+請驗收本次授權控制修正：指定 release owner 可 dispatch exact PR／head SHA，不再要求第二位人類 approve 自己的 PR。獨立 Agent review、可信 CI 與 protected deployment QA 保留。
+
+現在不需要建立第二個帳號，也不需要手動部署。G2 通過後才開本批 PR；本頁不是 production 發布授權。實際 owner／environment 設定及首次 cutover 按下方合併後步驟執行。
+
+沒有新增或改寫 adopted ADR；原 release-train Proposal 與各 shard Review 保持凍結。
+
+</ActionItems>
+
+<ReviewFocus>
+
+1. `scripts/release-controls.js`：owner、原始 actor、rerun actor、manual event 與 trusted main 必須相符；exact head、可信 checks 與 deployed-base isolation 不放寬。
+2. `production-release.yml` 與 release-state：原生 read-only token 做授權讀取，PAT 保留發布／merge-back 寫入。授權綁定 owner／run／PR／SHA，後段 partial rerun 也重新核對，不只檢查第一次 dispatch。
+3. `WORKFLOW.md` 與 runbook：dispatch 是發布授權，不宣稱 Agent review 已完成。Owner 可做 protected QA，但 required reviewer 仍必要；本批不切換分支、環境或 DB。
+
+</ReviewFocus>
+
+<Deviations>
+
+沒有更改 G1 scope 或 acceptance。獨立 Spec review 找到 partial-job rerun 可能沿用成功 candidate 而跳過上游 owner 檢查，已把授權綁入既有 release-state，並在共用 state loader 重驗所有後段控制器入口。這補足原本的 rerun 要求，不新增另一套 credential 或審查流程。
+
+實作期間 integration 已合併英文 Feature 與 architecture 文件整理；以 merge 保留 history，僅解決 delivery-workflow 同段文字衝突，保留本次授權內容與新版英文規則。沒有改寫共享 history。
+
+</Deviations>
+
+<ScenarioResults
+  scenarios={scenarios}
+  results={[
+    { id: "S1", result: "pass", evidence: "公開 CLI 在沒有 human approval API 的 fixture 中授權正確 owner／exact head，產生 owner／run／PR／SHA record；stage 保留該 binding，owner 可正常 promote。" },
+    { id: "S2", result: "pass", evidence: "缺少 owner／rerun actor、不同 actor／rerun actor、非 main ref 或非 manual event 被明確拒絕。Partial rerun 的 acceptance、promote、rollback、finalize 與 merge-back 均在寫入前拒絕 outsider。" },
+    { id: "S3", result: "pass", evidence: "Real Git／remote CLI cases 拒絕 stale head、fork、closed／merged／draft PR、非 hotfix branch、錯誤 SHA／failed CI、wrong deployed base、未發布 integration history 與非 patch 版本。" },
+    { id: "S4", result: "pass", evidence: "既有 stage／baseline／rollback／finalize CLI cases 與 workflow verification 通過；protected candidate／production QA 及共享 production lock 未被移除。沒有在真實 production 注入故障或宣稱已完成真人驗收。" },
+  ]}
+/>
+
+<TestPlan
+  items={[
+    { id: "T1", checks: "Final repository gate", method: "pnpm verify:all", executor: "agent", environment: "目前 integration 已整合的 Change checkout", result: "pass", evidence: "static／workflow／Blueprint 適用 lanes 通過；workflow 顯示 tests 195、pass 195。Diff planner 略過未受影響的 integration／app-build／app-test，不宣稱已執行。" },
+    { id: "T2", checks: "CLI authorization and partial reruns", method: "node --test scripts/__tests__/release-controls.test.js", executor: "agent", environment: "真實隔離 Git history／remote＋外部 API transport fixture", result: "pass", evidence: "Owner success regression 在旧 approval guard 下失敗、修正後通過。新增 partial-rerun case 驗證五個後段入口拒絕 outsider 且無新增 release write；owner promote 正例通過。完整 owner cases 包含在 workflow lane。" },
+    { id: "T3", checks: "Independent fixed point", method: "Standards／Spec review 與修正後 delta review", executor: "agent", environment: "獨立兩軸 reviewer contexts", result: "pass", evidence: "Standards 無 finding；Spec 的 partial-rerun finding 已修正，兩軸複審確認 fixed point。Test-audit 使用公開 CLI，沒有新增 test-only export。" },
+    { id: "T4", checks: "Actual protected candidate and production QA", method: "Actions Summary immutable candidate identity／Google login/session／team read-only 與 DB compatibility evidence", executor: "developer", environment: "本批合併且平台啟用後的真實發布", result: "pending", evidence: "本次不執行 production release。沿用 release-train activation checklist 與 protected QA；首頁 HTTP 成功不取代登入驗證。" },
+  ]}
+/>
+
+<AfterRelease>
+
+這裡的操作時點是本批 G2 通過、PR checks 綠燈並合併之後，不是要求你現在部署。
+
+1. Agent 與你核對 GitHub repository variable `RELEASE_OWNER_LOGIN` 的實際 owner；read-only 授權使用 job-scoped native token，不需要另外增加 PAT Checks 權限。既有 PAT 寫入身份與權限仍需核對。
+2. 配置 `production-release-review` 的 required reviewer。單人模式可以使用 owner 自己，不能啟用 `Prevent self-review` 導致自我驗收被擋住；不是移除 protected environment。
+3. 依原 release-train Shard 4 的一次性清單繼續 baseline／平台 inventory、演練、integration cutover、dependency live proof 與首次正常發布。本 Change 取代其中第二位人類 hotfix approval 前置，其他未完成義務不省略。
+4. 真正 hotfix 時，完成獨立 Agent review 與 CI，由 owner 明確授權 exact PR／head dispatch；你在 candidate 與 production 各做必要 protected QA，成功後才 tag。Merge-back 優先交 Agent，合併仍需明確授權。
+
+合併 tooling 不代表發布成功，不刪 dev、不重設 DB，也不提前開啟 automation flags。
+
+</AfterRelease>
+
+<ReviewDetails>
+
+### Archive assessment
+
+已更新最窄的 `platform/delivery-workflow` Feature，描述 owner 授權與保留的安全邊界；完整契約仍由 WORKFLOW 持有，操作步驟由 runbook 持有。Contributor-facing hotfix 操作改變有 patch Changeset。沒有新的穩定 domain 詞彙需修改 CONTEXT，也沒有重複 ADR。
+
+### Deletions
+
+| 刪除 | 原因與保留證據 |
+| --- | --- |
+| Human approval reducer、collaborator-permission 讀取與對應 fixture／負例 | 原契約已由 owner dispatch 取代；公開 CLI owner／rerun 正反例持有新契約。Exact head、CI、Git isolation 與 patch metadata 測試保留。 |
+
+### Remaining obligations
+
+本 Change 沒有尚未緩解的 controller finding。單人模式少了第二位人類 review，是 G1 已接受且由獨立 Agent review、exact-SHA owner 授權與 protected QA 緩解的取捨，不另造 bug。安全 session、authenticated smoke 自動化、dependency live proof 與完整平台啟用仍由既有 operational owners 持有；tracking parent 在啟用完成前不關閉。
+
+</ReviewDetails>
