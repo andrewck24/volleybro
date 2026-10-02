@@ -1,0 +1,59 @@
+name: Dependency auto-merge
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  status:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  statuses: read
+
+concurrency:
+  group: dependency-auto-merge-${{ github.event.workflow_run.head_sha || github.event.sha }}
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    if: >-
+      vars.DEPENDENCY_AUTO_MERGE_ENABLED == 'true' &&
+      github.event.repository.default_branch == 'main' &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'status' && github.event.context == 'Vercel' && github.event.state == 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      number: ${{ steps.policy.outputs.number }}
+      sha: ${{ steps.policy.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - id: policy
+        run: node scripts/dependency-controls.js inspect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDENCY_HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.sha }}
+  merge:
+    needs: inspect
+    if: needs.inspect.outputs.number != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge only the inspected revision through native branch protection
+        run: gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$PR_SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.inspect.outputs.number }}
+          PR_SHA: ${{ needs.inspect.outputs.sha }}

@@ -1,6 +1,7 @@
 name: Changesets
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -18,7 +19,7 @@ env:
 
 jobs:
   release:
-    if: vars.RELEASE_AUTOMATION_ENABLED == 'true'
+    if: vars.RELEASE_AUTOMATION_ENABLED == 'true' && github.ref == 'refs/heads/main'
     name: Release
     runs-on: ubuntu-latest
     timeout-minutes: 20

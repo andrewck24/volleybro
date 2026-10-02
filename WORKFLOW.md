@@ -92,6 +92,8 @@ After the release-tooling Change's final shard is accepted and merged, execute i
 
 ## Repository adapters
 
+The release-train Shard 4 Review owns its one-time platform cutover and activation checklist. The [release runbook](docs/release-runbook.md) owns recurring operating steps; the configuration and authorization contract above remains canonical.
+
 Apply installed Matt Pocock playbooks through the repository policies in:
 
 - `docs/agents/issue-tracker.md`;
@@ -230,6 +232,7 @@ Archive runs automatically after Pre-PR code review reaches its fixed point, bef
 1. determine whether implemented behavior or durable capability knowledge changed. If so, promote or correct it on the narrowest affected Features; otherwise leave Features untouched and explain why in Review. Archive does not promote or renumber decision records — they already live at their permanent paths;
 2. reconcile `CONTEXT.md` only for stable domain terminology resolved during the Change;
 3. export a Review summary of at most 40 lines — acceptance scenario results, verification, findings and fixes, residual risks — for the pull-request body; keep the rest in commit bodies;
+   - while waiting for G2, reconcile actionable unmitigated risks across all shards with the configured tracker: update an existing owner issue when it covers the same cause, otherwise create a related follow-up with evidence and acceptance criteria. Record the ownership on the active operational issue; do not treat mitigated trade-offs as new bugs or close the parent before activation obligations are resolved;
 4. read `docs/agents/blueprint.md`, generate the Review tab, read every section rendered in a browser as the developer will, run `pnpm blueprint:gate <slug>`, then notify the developer and stop for acceptance (G2). Reading the source is not reading the page: a stale count, a column that does not line up, an unreadable snippet are all invisible in the file that produces them;
 5. once accepted, verify tracker neutrality, workflow conformance, and the Features build the branch preview ran.
 

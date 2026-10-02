@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "09:00"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 0 # Enable after the consolidated activation rehearsal.
+    commit-message:
+      prefix: chore
+      include: scope
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: "09:00"
+      timezone: Asia/Taipei
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore
+      include: scope

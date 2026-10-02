@@ -95,7 +95,7 @@ function deploymentSourceSha(value, label) {
   return candidates[0];
 }
 
-function validateRequiredChecks(sha, checkRuns, statuses) {
+export function validateRequiredChecks(sha, checkRuns, statuses) {
   const latestVerify = checkRuns
     .filter((run) => run.name === "Verify")
     .sort(
@@ -124,6 +124,9 @@ function validateRequiredChecks(sha, checkRuns, statuses) {
   if (
     !latestVercel ||
     latestVercel.sha !== sha ||
+    latestVercel.creator?.id !== 35613825 ||
+    latestVercel.creator?.login !== "vercel[bot]" ||
+    latestVercel.creator?.type !== "Bot" ||
     latestVercel.state !== "success"
   ) {
     fail("Latest Vercel commit status on the PR head is not successful");
