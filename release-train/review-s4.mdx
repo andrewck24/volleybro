@@ -4,8 +4,8 @@ import { scenarios } from "./proposal.mdx";
 
 現在驗收的是最後一批 tooling，不是批准任何尚未通過 QA 的 app 發布。G2 接受後才開本批 PR；production、default branch、DB 與自動合併目前都尚未切換。
 
-1. 請確認初始自動合併 allowlist 只含 `@types/jest-axe`，且只有 stable patch 可通過。其他 minor／major、runtime／敏感／未知更新都保留人工 PR；是否啟動 Agent 由你或當次開發者決定。
-2. 接受 G2 後先交付本批 PR，再依 `docs/release-activation.md` 的完整順序執行平台 inventory、cutover 演練、credentials／reviewer、dependency graph／updater read-back 與首次 Changesets 發布。PR limits 暫為零，submission／auto-merge flags 保持 false；不能把 tooling 合併視為已完成啟用。
+1. 已同意初始自動合併 allowlist 只含 `@types/jest-axe`，依 `docs/maintenance-policy.md` 的證據門檻漸進納入，不按時間自動擴大。其他 minor／major、runtime／敏感／未知更新都保留人工 PR；是否啟動 Agent 由你或當次開發者決定。
+2. 接受 G2 後先交付本批 PR，再依本頁「上線後要做的事」的一次性清單執行平台 inventory、cutover 演練、credentials／reviewer、dependency graph／updater read-back 與首次 Changesets 發布。日常操作由 `docs/release-runbook.md` 持有；PR limits 暫為零，submission／auto-merge flags 保持 false，不能把 tooling 合併視為已完成啟用。
 3. 真正發布時，你仍需在 Actions Summary 提供的 immutable candidate URL 完成首頁、Google login／session、team 唯讀檢查，再於正式站重做必要 QA。安全自動 session 尚未交付，HTTP 首頁成功不取代登入驗證；候選可能有 deployment protection／OAuth callback 限制，失敗不能借用舊正式站結果。
 
 本批沒有新增 ADR，也沒有修改任何 adopted ADR 的 `decision` 或已接受的早期 shard Review。
@@ -16,13 +16,15 @@ import { scenarios } from "./proposal.mdx";
 
 1. `scripts/dependency-controls.js`：trusted native bot／signed commit、狹窄 manifest patch、bounded diff、environment document 不變、原生 lockfile regeneration 與其他 resolved packages 不變；native branch protection 與 exact head 仍是最後合併邊界。
 2. `dependency-auto-merge.yml`／`dependency-submission.yml`：只從可信 workflow revision 執行 controller，不 checkout PR code；read-only inspect 與 write-only native merge 分 job，沒有 production secrets；SBOM 用 pnpm 原生 split SPDX 與固定 upstream action revision。
-3. `docs/release-activation.md`／`WORKFLOW.md`：整套工具的合併與平台啟用分開；保留 dev 歷史，確認 alias／DB／OAuth／reviewer 後才啟用；等待 G2 時把跨 shards 尚未緩解風險交給 tracker owner。
+3. 本頁一次性清單／`docs/release-runbook.md`／`WORKFLOW.md`：cutover 不再混入日常操作；保留 dev 歷史，確認 alias／DB／OAuth／reviewer 後才啟用；等待 G2 時把跨 shards 尚未緩解風險交給 tracker owner。
 
 </ReviewFocus>
 
 <Deviations>
 
 pnpm prerequisite 的原生雙文件 lockfile 在 GitHub static dependency graph 中缺少部分實際 app 依賴。依你確認的方向，保留 pnpm 預設行為，用原生 split SPDX submission 補交 root／Blueprint graph；不採用 `pmOnFail: ignore`、不另外寫 YAML parser，也不宣稱 upstream updater／alerts 已完成端到端驗證。這是既有 dependency-maintenance 範圍內的相容性修正。
+
+這是 pnpm 原生 SBOM 與 GitHub 文件所列 submission 工具的 repo 組合，不是官方指定的 pnpm 12 recipe。`--split` 指 workspace package 各一份，並非 environment/project lockfile documents；目前只證明本地 project SBOM 生成與 controller，GitHub 接收、完整 graph、alerts 與 updater 仍需分別驗證。[pnpm SBOM](https://pnpm.io/cli/sbom)、[GitHub submission 文件](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/use-dependency-submission-api)。主流 repo 的 immutable 配置比較與限制記錄於 `docs/research/pnpm-github-dependency-graph.md`，沒有把別人升級 pnpm 當成其 graph／alerts 已完整的證據。
 
 獨立審查發現共用 Vercel status 檢查沒有綁定 provider 身分，已在原 owner 修正，normal release／hotfix 同時重用；沒有另複製一套 dependency checks。首次啟用的 version PR 可由 main-only Changesets manual dispatch 準備，不必產生空 commit；不增加發布授權。Archive 只更新 `platform/delivery-workflow` 的 verified tooling capability 與限制，不把安全 session／完整 E2E 或 live cutover 寫成已完成。
 
@@ -48,12 +50,37 @@ pnpm prerequisite 的原生雙文件 lockfile 在 GitHub static dependency graph
 
 <AfterRelease>
 
-本批 PR 合併後，依 `docs/release-activation.md` 執行，不再回頭修改已接受的早期 Reviews：
+以下是本 Change 的一次性啟用清單，僅在最終 G2 與 tooling PR 合併後執行；現在各項仍待執行，不是已完成。Agent 做已授權機械操作，開發者保留 credentials、protected QA、發布及新資料／權限決策。`WORKFLOW.md` 持有授權與設定契約；日常重複操作引用 `docs/release-runbook.md`，不複製另一套規則。
 
-1. Agent 重新 inventory 並保留 dev/main 的全部有效歷史；先解除舊直接 production 路徑，再整合及切換 default／checks／Blueprint hosting。固定 integration 是 `volleybro-integration.vercel.app`，正式 alias 維持 `volleybro.vercel.app`；設定 read-back 後才宣稱可用。
-2. 完成原生 graph／updater 證據，再開啟 version updates／security updates；初始 allowlist 與 native protection 通過後才開 auto-merge。沒有真正 eligible patch 時保持其 flag false，第一個受控事件再驗證，不拿 fixture 代替 live success。
-3. 由 Changesets 計算首次版本，納入原 Cycle 交付與 pnpm prerequisite；預期 v0.16.0 不硬編碼。你核對 latest version PR 並授權 merge，固定 SHA candidate → 必要 QA → promote → 上線後 QA → exact-SHA tag／Release。
-4. 保留 test DB；clean production DB 啟用與指定資料保留屬 stable launch 的獨立授權，沒有 PR DB reset。成功發布且 dev 已無活引用才清理；activation／remaining proofs 未完成時 tracking parent 不關閉。
+### 保留歷史與取得 baseline
+
+1. Agent fetch，確認 tooling 已合併與 workspace clean，以 `git log --left-right --oneline origin/main...origin/dev` 核對 unique history；inventory PR bases、worktrees、GitHub default／rulesets、Vercel Git settings／environments／domains、Blueprint production branch、Google redirects 與既有 deployments。
+2. 記錄目前正式 alias 指向的 immutable deployment ID、URL、source SHA 與 tag。無法證明 source identity 時先建立可信 baseline，不編造 tag、不 reset／rebase shared history、不刪 dev。
+
+### 先設定平台邊界，再切換 integration
+
+1. 開發者／已授權 Agent 在 main 收到整合內容前，停用 app 的 Git-triggered Production 路徑；確認普通 main merge 不移動正式 alias。先以同一固定 main SHA、approved test config 手動演練 Preview；未完成前不啟用 release 或 promote。
+2. 設定 main Preview 的固定 alias `volleybro-integration.vercel.app`；正式 alias 維持 `volleybro.vercel.app`，shared pre-merge 維持 `volleybro-test.vercel.app`。核對 immutable source，不只看 alias／截圖。`integration` environment 綁定已批准的 project/team 與 test-target credentials。
+3. v1.0.0 前所有部署維持 `test` DB，CI 保持 mongodb-memory-server；沒有 PR DB reset。clean `production` DB 與指定資料保留在 stable launch 另取授權，不為了 CI／rollback 複製或清除正式資料。
+4. 開發者／已授權 Agent 核對 candidate、integration、shared test 與 production 的 Google origins／redirects，以及 deployment protection。真正 QA 使用 Actions Summary 的 immutable candidate URL／ID／SHA，不能拿舊正式站或 production login bypass 替代。
+5. Agent 以 ordinary merge PR 保存 dev 的全部有效歷史，通過 Verify／Vercel 後整合到 main；切換 GitHub default，refresh `origin/HEAD`，retarget active PRs 並同步 Blueprint hosting／deploy hook。普通整合仍不得部署 Production。
+
+### Credentials、protection 與 dependency proof
+
+1. 開發者／已授權 Agent 依 WORKFLOW 設定表設定實際 CI secrets／variables；不寫 `.env.local`／`.env.example`、不印出 credentials。核對 repo／project／team 的實際 access scope，必要時使用 restricted identity；release／submission／auto-merge flags 各自保持 false。
+2. 配置 `production-release-review` 真正 required reviewer，驗證未授權 run 無法通過；main ruleset 禁 force-push／deletion、require latest Verify（GitHub Actions app 15368）與 Vercel（app 8329）、up-to-date branch、無 dependency bypass。保留 store 與仍活躍的 dev protection；確認實際方案支援 required environments，安排獨立 collaborator 審查 hotfix，作者不能 approve 自己的 PR。
+3. Agent 在 main 啟用 submission flag 並 manual run，將 GitHub graph 與原生 root／Blueprint SBOM 比對，包含 better-auth、mongoose、msw，確認 environment graph 沒消失。上傳成功不是 coverage／alerts／updater 成功；缺漏就停止相關啟用。
+4. 開發者／已授權 Agent 啟用 alerts 與 automatic security updates，read-back 設定。透過 reviewed PR 將兩個 version-update limits 從零改為批准的 bounded queue（起始建議各五）；Agent 核對真實 npm/pnpm 與 Actions PR／update logs、target main、native bot 與 CI，證明雙文件 updater 能力。
+5. 有適用 advisory 時核對真實 alert/security update；沒有時將證據保留 pending，不刻意引入漏洞。graph／updater／provider／protection 通過且有真正合格 patch 時才驗證並啟用 auto-merge；沒有 eligible event 就保持 flag false，不把 fixture 當 live proof。
+
+### 首次發布與清理
+
+1. 開發者接受演練後，Agent 才啟用 release flag，執行 Integration preview 並 read-back 固定 alias／source、不移動 production。需要首次 version PR 時使用 `gh workflow run changesets.yml --ref main`；只準備版本，不授權合併。
+2. Agent 核對 `pnpm changeset status`，包含原 dev/main Cycle 交付與 pnpm prerequisite；預期 v0.16.0 不硬編碼。若計算不同，說明 pending entries，由 release owner 決定後才授權。
+3. 開發者核對 latest version PR 並授權 merge；之後依 runbook 完成固定 SHA candidate、開發者 authenticated QA、promote、正式 QA 與 exact-SHA tag／Release。任一步失敗不宣稱發布成功。
+4. Agent 完成 tracker 的 activation／remaining proof 記錄。只有成功發布、ancestry preservation 與 PR／worktree／platform 無活引用全部證明後才清理 dev、關閉舊 sync issue；任何證據缺少就保留 dev。未完成證據的 tracking parent 不關閉。
+
+啟用失敗：相關 flag 維持 false，正式部署不變；已切換時停止新 integration／release runs，驗證現況後才能恢復 inventoried mapping，不盲目 repoint／改寫歷史。緊急事件、merge-back 與 DB-compatible rollback 按 runbook／WORKFLOW 執行，不另造例外路徑。
 
 </AfterRelease>
 
@@ -75,6 +102,8 @@ pnpm prerequisite 的原生雙文件 lockfile 在 GitHub static dependency graph
 Native SPDX submission 不保證 GitHub alerts／Dependabot updater 已端到端正常，亦不包含所有 package-manager environment dependencies；activation 時比較 root／Blueprint 與既有 environment graph，coverage 缺口不能被上傳成功掩蓋。新增 workspace 時需要對應 split submission 與 read-back。
 
 Auto-merge 刻意只允許 manifest range 有 stable patch 變化、single signed bot commit 與小 diff；lock-only security updates／Dependabot rebased multi-commit／原生 regeneration 有任何其他差異時保持人工。這是可見且 fail-closed 的容量限制，不是漏洞修補已完成的宣稱。
+
+Allowlist 的長期階段與運作證據在 tracker 維護，政策只由 `docs/maintenance-policy.md` 持有；實際候選分析才建立可完成的子票，不把 tracking parent 當每週容量承諾，也不自動增加套件或派工。初始套件是保守試行候選，不是官方安全清單；型別套件仍可能有 transitive dependencies。
 
 Production 串行鎖會把 QA 等待算在內，急件先由 owner 處理目前等待 run，不繞過 gate。未知 DB compatibility／Git merge metadata conflict 都停止，Agent-first 不表示自動派工或自動獲得合併授權。
 
