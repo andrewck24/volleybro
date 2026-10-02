@@ -29,7 +29,7 @@ When upgrading any package to a new major version:
 
 ## Each Cycle's Package Update
 
-Dependabot checks the npm ecosystem (including pnpm) and GitHub Actions every Tuesday at 09:00 Asia/Taipei. Security alerts and security updates are event-driven, not gated by the weekly digest email. Initial version-update limits are zero until [release activation](./release-activation.md) is accepted and rehearsed.
+Dependabot checks the npm ecosystem (including pnpm) and GitHub Actions every Tuesday at 09:00 Asia/Taipei. Security alerts and security updates are event-driven, not gated by the weekly digest email. Initial version-update limits are zero until the release-train Shard 4 Review's activation checklist is accepted and rehearsed. Recurring operations follow the [release runbook](./release-runbook.md).
 
 Dependency PRs target the repository default integration branch. They run CI but never deploy production or dispatch an Agent. A developer decides whether to start an Agent for compatibility analysis, migration, failed CI or sensitive updates; the Agent delivers a reviewed PR when safe, or a decision issue when implementation cannot proceed safely. Urgent production vulnerabilities and severe bugs use the isolated hotfix route in `WORKFLOW.md`.
 
@@ -38,6 +38,16 @@ The executable auto-merge policy is `scripts/dependency-controls.js`, used by `d
 Keep pnpm's default environment/project multi-document lockfile and version management. Generate project dependency submissions with native `pnpm sbom --lockfile-only --split`; separate root and Blueprint submissions use their package.json manifest paths so the environment lockfile graph is not replaced. No custom lockfile parser or `pmOnFail: ignore` workaround. After activation, verify GitHub graph coverage and alert visibility against the generated SBOM; a successful upload alone does not prove alerts or updater compatibility. Before adding another workspace, add its native split submission and verify coverage.
 
 For a manual assessment with the same policy, use `node scripts/dependency-controls.js validate-files <payload.json>`; the JSON contains `before` (base package.json, pnpm-lock.yaml, pnpm-workspace.yaml, blueprint/package.json text) and `after` (candidate package.json and lockfile text). This does not grant merge permission.
+
+### Progressive allowlist admission
+
+The long-term operational issue tracks phases and evidence, not a permanently active Cycle commitment. Create bounded executable child issues only for actual evaluations or changes. It does not automatically dispatch Agents or authorize policy changes.
+
+1. First activation: verify live graph, alerts when an advisory applies, native updater compatibility, protection and a genuine eligible patch. Fixtures do not replace provider evidence; no eligible event means automatic merge stays disabled.
+2. Observe the first three enabled Cycles. An Agent reviews real dependency PRs, manual fallback reasons and attributable regressions when the developer requests the maintenance assessment. Elapsed time without real updates is not evidence for expansion.
+3. Propose at most one or two candidates per Cycle, not a quota. Initial candidates are narrowly scoped test declarations/helpers, outside production runtime, auth, DB, bundler, package-manager and release-tooling boundaries. `devDependency` or an `@types/*` name alone does not establish low risk. Each candidate needs a previously human-reviewed real patch, documented impact and meaningful existing verification; use test-audit for an actual uncovered contract, not admission-only test scaffolding.
+4. An Agent may prepare a reviewed PR explaining purpose, risk and evidence and changing the executable allowlist. Existing patch/diff/transitive/provider/head rules remain unchanged; a developer authorizes merge. Minor/major admission or sensitive categories require a separate policy decision, never incidental expansion.
+5. Record successful merges, fallback reasons and defects on the tracker. Remove a candidate after an attributable regression; disable the whole auto-merge flag for a shared admission-boundary defect until repaired and revalidated. There is no goal of admitting every dependency.
 
 Every Linear cycle's package update checks two things before merging:
 

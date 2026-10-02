@@ -24,7 +24,7 @@ A repository-owned, Manual-first lifecycle shared by developer sessions and opti
 
 ## Constraints
 
-- Dependency 維護使用 pnpm 原生雙文件 lockfile 與 split SPDX submission；weekly version 與 event-driven security 是不同觸發來源。狹窄 allowlisted devDependency patch 只合併 main integration，不發布 production，也不自動啟動 Agent。執行規則由 `scripts/dependency-controls.js` 持有，啟用與平台驗證依 `docs/release-activation.md`。
+- Dependency 維護使用 pnpm 原生雙文件 lockfile 與 split SPDX submission；weekly version 與 event-driven security 是不同觸發來源。狹窄 allowlisted devDependency patch 只合併 main integration，不發布 production，也不自動啟動 Agent。執行規則由 `scripts/dependency-controls.js` 持有，漸進納入依 `docs/maintenance-policy.md`；一次性啟用在 release-train Shard 4 Review，日常操作依 `docs/release-runbook.md`。
 - Archive 等待 G2 時，跨 shards 尚未緩解且可採取行動的風險依 root cause 合併到既有 tracker owner，沒有 owner 才開 related follow-up；已緩解的取捨不轉成虛構 bug。完整啟用仍未驗證時不關閉 tracking parent。
 
 - Release-train tooling 將 `main` integration 與 production 分離：每日整合部署到 Preview alias，可信 rolling version PR 授權固定 revision，native main Git deployment 停用。平台 cutover 與 automation 啟用是明確的 G2 後操作，repo 設定不能代替執行證據。

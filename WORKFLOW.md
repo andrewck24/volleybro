@@ -92,7 +92,7 @@ After the release-tooling Change's final shard is accepted and merged, execute i
 
 ## Repository adapters
 
-The [release activation runbook](docs/release-activation.md) owns the consolidated step-by-step platform rehearsal and enablement procedure; the configuration and authorization contract above remains canonical.
+The release-train Shard 4 Review owns its one-time platform cutover and activation checklist. The [release runbook](docs/release-runbook.md) owns recurring operating steps; the configuration and authorization contract above remains canonical.
 
 Apply installed Matt Pocock playbooks through the repository policies in:
 
