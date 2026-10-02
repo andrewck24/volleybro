@@ -108,7 +108,9 @@ jobs:
       - name: Lint commits not already on the integration default
         run: |
           BASE=$(git merge-base "$PR_HEAD" "origin/$DEFAULT_BRANCH")
-          pnpm exec commitlint --from "$BASE" --to "$PR_HEAD"
+          if [ "$BASE" != "$PR_HEAD" ]; then
+            pnpm exec commitlint --from "$BASE" --to "$PR_HEAD"
+          fi
         env:
           COMMITLINT_BRANCH: ${{ github.head_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
