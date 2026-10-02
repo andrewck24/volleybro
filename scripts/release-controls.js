@@ -156,33 +156,7 @@ function validateAuthorization({
   return mergeSha;
 }
 
-function currentApprovedReviewers(reviews, sha) {
-  const current = new Map();
-  for (const review of [...reviews].sort(
-    (a, b) =>
-      Date.parse(a.submitted_at || "") - Date.parse(b.submitted_at || "") ||
-      Number(a.id || 0) - Number(b.id || 0),
-  )) {
-    if (
-      review.user?.login &&
-      ["APPROVED", "CHANGES_REQUESTED", "DISMISSED"].includes(review.state)
-    ) {
-      current.set(review.user.login, review);
-    }
-  }
-  return [...current.values()]
-    .filter((review) => review.state === "APPROVED" && review.commit_id === sha)
-    .map((review) => review.user.login);
-}
-
-function validateHotfixPr({
-  pr,
-  sha,
-  repository,
-  reviews,
-  checkRuns,
-  statuses,
-}) {
+function validateHotfixPr({ pr, sha, repository, checkRuns, statuses }) {
   if (
     pr.base.ref !== "main" ||
     pr.base.repo?.full_name !== repository ||
@@ -196,12 +170,7 @@ function validateHotfixPr({
       "Hotfix PR must remain open, unmerged, and point at the exact authorized SHA",
     );
   }
-  const approvers = currentApprovedReviewers(reviews, sha);
-  if (!approvers.length) {
-    fail("Hotfix PR has no approval bound to the exact authorized SHA");
-  }
   validateRequiredChecks(sha, checkRuns, statuses);
-  return approvers;
 }
 
 function validateVersionPr(pr, expectedAuthor, repository) {
@@ -501,38 +470,49 @@ async function authorize() {
   );
 }
 
+function hotfixOwnerContext() {
+  const owner = required("RELEASE_OWNER_LOGIN");
+  if (
+    required("GITHUB_ACTOR") !== owner ||
+    required("GITHUB_TRIGGERING_ACTOR") !== owner ||
+    required("GITHUB_EVENT_NAME") !== "workflow_dispatch" ||
+    required("GITHUB_REF") !== "refs/heads/main"
+  ) {
+    fail("Hotfix requires release owner dispatch and rerun on trusted main");
+  }
+  return { owner, runId: required("GITHUB_RUN_ID") };
+}
+
+function validateHotfixAuthorization(authorization, sha) {
+  const { owner, runId } = hotfixOwnerContext();
+  if (
+    authorization?.owner !== owner ||
+    authorization.runId !== runId ||
+    authorization.sha !== sha ||
+    !/^\d+$/.test(authorization.pullRequest)
+  )
+    fail("Hotfix authorization does not match this owner, run and release SHA");
+}
+
 async function authorizeHotfix() {
+  const { owner, runId } = hotfixOwnerContext();
   const pullRequest = required("HOTFIX_PR_NUMBER");
   if (!/^\d+$/.test(pullRequest))
     fail("HOTFIX_PR_NUMBER must be a pull request number");
   const sha = exactSha(required("RELEASE_SHA"), "Hotfix SHA");
   const pr = await github(`pulls/${pullRequest}`);
-  const [checks, statuses, reviews, environment] = await Promise.all([
+  const [checks, statuses, environment] = await Promise.all([
     github(`commits/${sha}/check-runs?per_page=100`),
     github(`commits/${sha}/statuses?per_page=100`),
-    githubAll(`pulls/${pullRequest}/reviews?per_page=100`),
     github("environments/production-release-review"),
   ]);
-  const approvers = validateHotfixPr({
+  validateHotfixPr({
     pr,
     sha,
     repository: required("GITHUB_REPOSITORY"),
-    reviews,
     checkRuns: checks.check_runs,
     statuses,
   });
-  const permissions = await Promise.all(
-    approvers.map((login) =>
-      github(`collaborators/${encodeURIComponent(login)}/permission`),
-    ),
-  );
-  if (
-    !permissions.some((result) =>
-      ["admin", "maintain", "write"].includes(result.permission),
-    )
-  ) {
-    fail("Hotfix PR has no current approval from a trusted collaborator");
-  }
   validateReviewEnvironment(environment);
   const baseline = await currentAlias();
   await assertAncestor(
@@ -556,15 +536,16 @@ async function authorizeHotfix() {
   }
   const metadata = await verifyHotfixMetadata(baseline.sha, sha);
   await assertRemoteBaselineTag(baseline.sha, metadata.basePackage.version);
+  const authorization = { owner, runId, pullRequest, sha };
   if (process.env.GITHUB_OUTPUT) {
     const fs = await import("node:fs/promises");
     await fs.appendFile(
       process.env.GITHUB_OUTPUT,
-      `sha=${sha}\nbaseline_deployment=${baseline.deploymentId}\nbaseline_updated_at=${baseline.updatedAt}\nbaseline_sha=${baseline.sha}\n`,
+      `sha=${sha}\nbaseline_deployment=${baseline.deploymentId}\nbaseline_updated_at=${baseline.updatedAt}\nbaseline_sha=${baseline.sha}\nhotfix_authorization=${JSON.stringify(authorization)}\n`,
     );
   }
   process.stdout.write(
-    `${JSON.stringify({ sha, version: metadata.repairPackage.version, baseline })}\n`,
+    `${JSON.stringify({ sha, version: metadata.repairPackage.version, baseline, authorization })}\n`,
   );
 }
 
@@ -618,6 +599,11 @@ async function currentAlias() {
 
 async function stage() {
   const sha = exactSha(required("RELEASE_SHA"), "Release SHA");
+  const authorization = process.env.HOTFIX_AUTHORIZATION
+    ? json(process.env.HOTFIX_AUTHORIZATION, "hotfix authorization")
+    : undefined;
+  if (authorization || process.env.GITHUB_EVENT_NAME === "workflow_dispatch")
+    validateHotfixAuthorization(authorization, sha);
   const controllerSha = exactSha(
     required("CONTROLLER_SHA"),
     "Trusted controller SHA",
@@ -674,6 +660,7 @@ async function stage() {
     sha,
     controllerSha,
     baseline,
+    ...(authorization && { authorization }),
   };
   const outputPath = required("GITHUB_OUTPUT");
   const fs = await import("node:fs/promises");
@@ -689,12 +676,18 @@ async function stage() {
 }
 
 async function loadState() {
-  return json(
+  const state = json(
     await (
       await import("node:fs/promises")
     ).readFile(required("RELEASE_STATE_FILE"), "utf8"),
     "release state",
   );
+  if (
+    state.authorization ||
+    process.env.GITHUB_EVENT_NAME === "workflow_dispatch"
+  )
+    validateHotfixAuthorization(state.authorization, state.sha);
+  return state;
 }
 
 async function promote() {

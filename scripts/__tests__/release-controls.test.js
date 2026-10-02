@@ -153,16 +153,6 @@ async function fixture(t) {
           updated_at: "2026-10-01T00:00:00Z",
         },
       ],
-      reviews: [
-        {
-          id: 1,
-          state: "APPROVED",
-          commit_id: hotfix,
-          submitted_at: "2026-10-01T00:00:00Z",
-          user: { login: "trusted-reviewer" },
-        },
-      ],
-      permissions: { "trusted-reviewer": "write" },
     }),
   );
   const stub = async (name, code) => {
@@ -176,7 +166,7 @@ async function fixture(t) {
   );
   await stub(
     "gh",
-    "const fs=require('fs'),cp=require('child_process'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/reviews?'))result=s.reviews||[];else if(route.includes('/collaborators/')){const login=decodeURIComponent(route.split('/').at(-2));result={permission:(s.permissions||{})[login]||'read'};}else if(route.includes('/pulls?'))result=s.mergeBackPr?[s.mergeBackPr]:[];else if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result=s.environment||{protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[0]==='release'&&a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[0]==='release'&&a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else if(a[0]==='pr'&&a[1]==='create'){const branch=a[a.indexOf('--head')+1],sha=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();s.calls.push(a);s.mergeBackPr={state:'open',merged_at:null,html_url:'https://example.test/pull/2',base:{ref:'main',repo:{full_name:'owner/repo'}},head:{ref:branch,sha,repo:{full_name:'owner/repo'}}};fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));console.log(s.mergeBackPr.html_url);return;}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
+    "const fs=require('fs'),cp=require('child_process'),s=JSON.parse(fs.readFileSync(process.env.API_STATE)),a=process.argv.slice(2);let result;if(a[0]==='api'){const route=a[1];if(route.includes('/pulls?'))result=s.mergeBackPr?[s.mergeBackPr]:[];else if(route.includes('/pulls/'))result=s.pr;else if(route.includes('/check-runs'))result={check_runs:s.checks};else if(route.includes('/statuses?'))result=s.statuses;else if(route.includes('/environments/'))result=s.environment||{protection_rules:[{type:'required_reviewers',reviewers:[{}]}]};else throw Error('Unexpected route '+route);}else if(a[0]==='release'&&a[1]==='view'){if(!s.existingRelease)process.exit(1);result={tagName:'v1.0.1'};}else if(a[0]==='release'&&a[1]==='create'){s.calls.push(a);s.existingRelease=true;fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));result={};}else if(a[0]==='pr'&&a[1]==='create'){const branch=a[a.indexOf('--head')+1],sha=cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();s.calls.push(a);s.mergeBackPr={state:'open',merged_at:null,html_url:'https://example.test/pull/2',base:{ref:'main',repo:{full_name:'owner/repo'}},head:{ref:branch,sha,repo:{full_name:'owner/repo'}}};fs.writeFileSync(process.env.API_STATE,JSON.stringify(s));console.log(s.mergeBackPr.html_url);return;}else throw Error('Unexpected gh action');console.log(JSON.stringify(result));",
   );
   const preload = path.join(root, "preload.mjs");
   await writeFile(
@@ -210,6 +200,11 @@ async function fixture(t) {
       GITHUB_EVENT_PATH: eventPath,
       GITHUB_REPOSITORY: "owner/repo",
       RELEASE_BOT_LOGIN: "release-owner",
+      RELEASE_OWNER_LOGIN: "release-owner",
+      GITHUB_ACTOR: "release-owner",
+      GITHUB_TRIGGERING_ACTOR: "release-owner",
+      GITHUB_EVENT_NAME: "pull_request",
+      GITHUB_REF: "refs/heads/main",
     },
   };
 }
@@ -321,47 +316,51 @@ function hotfixAuthorization(f, current) {
         sha: f.hotfix,
       },
     ],
-    reviews: current.reviews,
-    permissions: current.permissions,
     alias: "dpl_base",
     baselineSha: f.deployed,
   };
 }
 
-test("hotfix authorization binds an active reviewed same-repository PR to deployed source", async (t) => {
+test("hotfix authorization binds owner dispatch to an exact isolated PR without human approval", async (t) => {
   const f = await fixture(t);
   const current = JSON.parse(await readFile(f.statePath, "utf8"));
   const valid = { ...current, ...hotfixAuthorization(f, current) };
   await writeFile(f.statePath, JSON.stringify(valid));
-  const env = { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.hotfix };
+  const env = {
+    HOTFIX_PR_NUMBER: "2",
+    RELEASE_SHA: f.hotfix,
+    RELEASE_OWNER_LOGIN: "release-owner",
+    GITHUB_ACTOR: "release-owner",
+    GITHUB_TRIGGERING_ACTOR: "release-owner",
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+    GITHUB_REF: "refs/heads/main",
+  };
   let result = run(f, "authorize-hotfix", env);
   assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).authorization, {
+    owner: "release-owner",
+    runId: "9",
+    pullRequest: "2",
+    sha: f.hotfix,
+  });
 
   const failures = [
     {
       name: "wrong explicit SHA",
-      env: { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.head },
+      env: { ...env, RELEASE_SHA: f.head },
     },
-    { name: "no review", state: { reviews: [] } },
-    {
-      name: "superseded approval",
-      state: {
-        reviews: [
-          ...valid.reviews,
-          {
-            id: 2,
-            state: "CHANGES_REQUESTED",
-            commit_id: f.hotfix,
-            submitted_at: "2026-10-02T00:00:00Z",
-            user: { login: "trusted-reviewer" },
-          },
-        ],
-      },
-    },
-    {
-      name: "outsider approval",
-      state: { permissions: { "trusted-reviewer": "read" } },
-    },
+    ...[
+      ["missing owner", "RELEASE_OWNER_LOGIN", ""],
+      ["outsider dispatch", "GITHUB_ACTOR", "outsider"],
+      ["outsider rerun", "GITHUB_TRIGGERING_ACTOR", "outsider"],
+      ["missing rerun actor", "GITHUB_TRIGGERING_ACTOR", ""],
+      ["untrusted ref", "GITHUB_REF", "refs/heads/hotfix/urgent"],
+      ["wrong event", "GITHUB_EVENT_NAME", "push"],
+    ].map(([name, key, value]) => ({
+      name,
+      env: { ...env, [key]: value },
+      reason: /Missing required environment value|release owner dispatch/,
+    })),
     {
       name: "fork head",
       state: {
@@ -377,6 +376,20 @@ test("hotfix authorization binds an active reviewed same-repository PR to deploy
     {
       name: "closed PR",
       state: { pr: { ...valid.pr, state: "closed" } },
+    },
+    {
+      name: "draft PR",
+      state: { pr: { ...valid.pr, draft: true } },
+    },
+    {
+      name: "merged PR",
+      state: { pr: { ...valid.pr, merged: true } },
+    },
+    {
+      name: "non-hotfix branch",
+      state: {
+        pr: { ...valid.pr, head: { ...valid.pr.head, ref: "feat/repair" } },
+      },
     },
     {
       name: "check from wrong SHA",
@@ -401,12 +414,11 @@ test("hotfix authorization binds an active reviewed same-repository PR to deploy
     },
     {
       name: "head includes unreleased integration history",
-      env: { HOTFIX_PR_NUMBER: "2", RELEASE_SHA: f.merge },
+      env: { ...env, RELEASE_SHA: f.merge },
       state: {
         pr: { ...valid.pr, head: { ...valid.pr.head, sha: f.merge } },
         checks: [{ ...valid.checks[0], head_sha: f.merge }],
         statuses: [{ ...valid.statuses[0], sha: f.merge }],
-        reviews: [{ ...valid.reviews[0], commit_id: f.merge }],
       },
       reason: /unreleased integration history/,
     },
@@ -420,6 +432,53 @@ test("hotfix authorization binds an active reviewed same-repository PR to deploy
     assert.notEqual(result.status, 0, failure.name);
     if (failure.reason) assert.match(result.stderr, failure.reason);
   }
+});
+
+test("hotfix state rejects partial reruns by another actor before any release write", async (t) => {
+  const f = await fixture(t);
+  const current = JSON.parse(await readFile(f.statePath, "utf8"));
+  await updateApi(f, hotfixAuthorization(f, current));
+  const env = {
+    HOTFIX_PR_NUMBER: "2",
+    RELEASE_SHA: f.hotfix,
+    GITHUB_EVENT_NAME: "workflow_dispatch",
+  };
+  const authorized = run(f, "authorize-hotfix", env);
+  assert.equal(authorized.status, 0, authorized.stderr);
+  const authorization = JSON.parse(authorized.stdout).authorization;
+  f.git(["checkout", f.hotfix]);
+  const missing = run(f, "stage", env);
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /authorization does not match/);
+  assert.deepEqual(JSON.parse(await readFile(f.statePath, "utf8")).calls, []);
+  const staged = run(f, "stage", {
+    ...env,
+    HOTFIX_AUTHORIZATION: JSON.stringify(authorization),
+  });
+  assert.equal(staged.status, 0, staged.stderr);
+  const state = JSON.parse(await readFile(f.env.RELEASE_STATE_FILE, "utf8"));
+  assert.deepEqual(state.authorization, authorization);
+  const calls = JSON.parse(await readFile(f.statePath, "utf8")).calls;
+  for (const action of [
+    "record-compatibility",
+    "promote",
+    "rollback-if-compatible",
+    "finalize",
+    "merge-back",
+  ]) {
+    const denied = run(f, action, {
+      ...env,
+      GITHUB_TRIGGERING_ACTOR: "outsider",
+    });
+    assert.notEqual(denied.status, 0, action);
+    assert.match(denied.stderr, /release owner dispatch/);
+    assert.deepEqual(
+      JSON.parse(await readFile(f.statePath, "utf8")).calls,
+      calls,
+    );
+  }
+  const promoted = run(f, "promote", env);
+  assert.equal(promoted.status, 0, promoted.stderr);
 });
 
 test("hotfix authorization rejects a non-patch version", async (t) => {
@@ -445,16 +504,11 @@ test("hotfix authorization rejects a non-patch version", async (t) => {
   };
   state.checks = [{ ...state.checks[0], head_sha: wrong }];
   state.statuses = [{ ...state.statuses[0], sha: wrong }];
-  state.reviews = [
-    {
-      ...state.reviews[0],
-      commit_id: wrong,
-    },
-  ];
   await updateApi(f, state);
   const result = run(f, "authorize-hotfix", {
     HOTFIX_PR_NUMBER: "2",
     RELEASE_SHA: wrong,
+    GITHUB_EVENT_NAME: "workflow_dispatch",
   });
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /one patch above/);

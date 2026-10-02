@@ -17,6 +17,9 @@ on:
 
 permissions: {}
 
+env:
+  RELEASE_OWNER_LOGIN: ${{ vars.RELEASE_OWNER_LOGIN }}
+
 concurrency:
   group: production-release
   cancel-in-progress: false
@@ -75,12 +78,17 @@ jobs:
       - name: Verify release authorization
         id: authorize
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.event.pull_request.merge_commit_sha }}
           RELEASE_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.sha || github.event.pull_request.merge_commit_sha }}
           RELEASE_BOT_LOGIN: ${{ vars.RELEASE_BOT_LOGIN }}
+          RELEASE_OWNER_LOGIN: ${{ vars.RELEASE_OWNER_LOGIN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF: ${{ github.ref }}
           HOTFIX_PR_NUMBER: ${{ inputs.pull_request }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
@@ -109,6 +117,7 @@ jobs:
           VERCEL_TEAM_SLUG: ${{ vars.VERCEL_TEAM_SLUG }}
           PRODUCTION_ALIAS: ${{ vars.PRODUCTION_ALIAS }}
           RELEASE_SHA: ${{ steps.authorize.outputs.sha }}
+          HOTFIX_AUTHORIZATION: ${{ steps.authorize.outputs.hotfix_authorization }}
           CONTROLLER_SHA: ${{ steps.controller.outputs.controller_sha }}
           EXPECTED_BASELINE_DEPLOYMENT: ${{ steps.authorize.outputs.baseline_deployment }}
           EXPECTED_BASELINE_UPDATED_AT: ${{ steps.authorize.outputs.baseline_updated_at }}
